@@ -1,0 +1,568 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXContainerItemProxy section */
+		9BD3FB922F4D4587007B2E95 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 9BD3FB7A2F4D4584007B2E95 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9BD3FB812F4D4584007B2E95;
+			remoteInfo = Curfew;
+		};
+		9BD3FB9C2F4D4587007B2E95 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 9BD3FB7A2F4D4584007B2E95 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9BD3FB812F4D4584007B2E95;
+			remoteInfo = Curfew;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		9BD3FB822F4D4584007B2E95 /* Curfew.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Curfew.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		9BD3FB912F4D4587007B2E95 /* CurfewTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CurfewTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		9BD3FB9B2F4D4587007B2E95 /* CurfewUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CurfewUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		9BD3FB842F4D4584007B2E95 /* Curfew */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Curfew;
+			sourceTree = "<group>";
+		};
+		9BD3FB942F4D4587007B2E95 /* CurfewTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = CurfewTests;
+			sourceTree = "<group>";
+		};
+		9BD3FB9E2F4D4587007B2E95 /* CurfewUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = CurfewUITests;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		9BD3FB7F2F4D4584007B2E95 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9BD3FB8E2F4D4587007B2E95 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9BD3FB982F4D4587007B2E95 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		9BD3FB792F4D4584007B2E95 = {
+			isa = PBXGroup;
+			children = (
+				9BD3FB842F4D4584007B2E95 /* Curfew */,
+				9BD3FB942F4D4587007B2E95 /* CurfewTests */,
+				9BD3FB9E2F4D4587007B2E95 /* CurfewUITests */,
+				9BD3FB832F4D4584007B2E95 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		9BD3FB832F4D4584007B2E95 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				9BD3FB822F4D4584007B2E95 /* Curfew.app */,
+				9BD3FB912F4D4587007B2E95 /* CurfewTests.xctest */,
+				9BD3FB9B2F4D4587007B2E95 /* CurfewUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		9BD3FB812F4D4584007B2E95 /* Curfew */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9BD3FBA52F4D4587007B2E95 /* Build configuration list for PBXNativeTarget "Curfew" */;
+			buildPhases = (
+				9BD3FB7E2F4D4584007B2E95 /* Sources */,
+				9BD3FB7F2F4D4584007B2E95 /* Frameworks */,
+				9BD3FB802F4D4584007B2E95 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				9BD3FB842F4D4584007B2E95 /* Curfew */,
+			);
+			name = Curfew;
+			packageProductDependencies = (
+			);
+			productName = Curfew;
+			productReference = 9BD3FB822F4D4584007B2E95 /* Curfew.app */;
+			productType = "com.apple.product-type.application";
+		};
+		9BD3FB902F4D4587007B2E95 /* CurfewTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9BD3FBA82F4D4587007B2E95 /* Build configuration list for PBXNativeTarget "CurfewTests" */;
+			buildPhases = (
+				9BD3FB8D2F4D4587007B2E95 /* Sources */,
+				9BD3FB8E2F4D4587007B2E95 /* Frameworks */,
+				9BD3FB8F2F4D4587007B2E95 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				9BD3FB932F4D4587007B2E95 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				9BD3FB942F4D4587007B2E95 /* CurfewTests */,
+			);
+			name = CurfewTests;
+			packageProductDependencies = (
+			);
+			productName = CurfewTests;
+			productReference = 9BD3FB912F4D4587007B2E95 /* CurfewTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		9BD3FB9A2F4D4587007B2E95 /* CurfewUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9BD3FBAB2F4D4587007B2E95 /* Build configuration list for PBXNativeTarget "CurfewUITests" */;
+			buildPhases = (
+				9BD3FB972F4D4587007B2E95 /* Sources */,
+				9BD3FB982F4D4587007B2E95 /* Frameworks */,
+				9BD3FB992F4D4587007B2E95 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				9BD3FB9D2F4D4587007B2E95 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				9BD3FB9E2F4D4587007B2E95 /* CurfewUITests */,
+			);
+			name = CurfewUITests;
+			packageProductDependencies = (
+			);
+			productName = CurfewUITests;
+			productReference = 9BD3FB9B2F4D4587007B2E95 /* CurfewUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		9BD3FB7A2F4D4584007B2E95 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2620;
+				LastUpgradeCheck = 2620;
+				TargetAttributes = {
+					9BD3FB812F4D4584007B2E95 = {
+						CreatedOnToolsVersion = 26.2;
+					};
+					9BD3FB902F4D4587007B2E95 = {
+						CreatedOnToolsVersion = 26.2;
+						TestTargetID = 9BD3FB812F4D4584007B2E95;
+					};
+					9BD3FB9A2F4D4587007B2E95 = {
+						CreatedOnToolsVersion = 26.2;
+						TestTargetID = 9BD3FB812F4D4584007B2E95;
+					};
+				};
+			};
+			buildConfigurationList = 9BD3FB7D2F4D4584007B2E95 /* Build configuration list for PBXProject "Curfew" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 9BD3FB792F4D4584007B2E95;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 9BD3FB832F4D4584007B2E95 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				9BD3FB812F4D4584007B2E95 /* Curfew */,
+				9BD3FB902F4D4587007B2E95 /* CurfewTests */,
+				9BD3FB9A2F4D4587007B2E95 /* CurfewUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		9BD3FB802F4D4584007B2E95 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9BD3FB8F2F4D4587007B2E95 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9BD3FB992F4D4587007B2E95 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		9BD3FB7E2F4D4584007B2E95 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9BD3FB8D2F4D4587007B2E95 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9BD3FB972F4D4587007B2E95 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		9BD3FB932F4D4587007B2E95 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9BD3FB812F4D4584007B2E95 /* Curfew */;
+			targetProxy = 9BD3FB922F4D4587007B2E95 /* PBXContainerItemProxy */;
+		};
+		9BD3FB9D2F4D4587007B2E95 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9BD3FB812F4D4584007B2E95 /* Curfew */;
+			targetProxy = 9BD3FB9C2F4D4587007B2E95 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		9BD3FBA32F4D4587007B2E95 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.2;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		9BD3FBA42F4D4587007B2E95 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.2;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		9BD3FBA62F4D4587007B2E95 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = studio.hypertext.Curfew;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		9BD3FBA72F4D4587007B2E95 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = studio.hypertext.Curfew;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		9BD3FBA92F4D4587007B2E95 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.2;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = studio.hypertext.CurfewTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Curfew.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Curfew";
+			};
+			name = Debug;
+		};
+		9BD3FBAA2F4D4587007B2E95 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.2;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = studio.hypertext.CurfewTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Curfew.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Curfew";
+			};
+			name = Release;
+		};
+		9BD3FBAC2F4D4587007B2E95 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = studio.hypertext.CurfewUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = Curfew;
+			};
+			name = Debug;
+		};
+		9BD3FBAD2F4D4587007B2E95 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = studio.hypertext.CurfewUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = Curfew;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		9BD3FB7D2F4D4584007B2E95 /* Build configuration list for PBXProject "Curfew" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9BD3FBA32F4D4587007B2E95 /* Debug */,
+				9BD3FBA42F4D4587007B2E95 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		9BD3FBA52F4D4587007B2E95 /* Build configuration list for PBXNativeTarget "Curfew" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9BD3FBA62F4D4587007B2E95 /* Debug */,
+				9BD3FBA72F4D4587007B2E95 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		9BD3FBA82F4D4587007B2E95 /* Build configuration list for PBXNativeTarget "CurfewTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9BD3FBA92F4D4587007B2E95 /* Debug */,
+				9BD3FBAA2F4D4587007B2E95 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		9BD3FBAB2F4D4587007B2E95 /* Build configuration list for PBXNativeTarget "CurfewUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9BD3FBAC2F4D4587007B2E95 /* Debug */,
+				9BD3FBAD2F4D4587007B2E95 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 9BD3FB7A2F4D4584007B2E95 /* Project object */;
+}
