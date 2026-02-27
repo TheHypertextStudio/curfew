@@ -1,10 +1,3 @@
-//
-//  CurfewUITests.swift
-//  CurfewUITests
-//
-//  Created by Willie Chalmers III on 2026-02-23.
-//
-
 import XCTest
 
 final class CurfewUITests: XCTestCase {
