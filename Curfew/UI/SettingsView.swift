@@ -61,6 +61,7 @@ struct SettingsView: View {
                 licensePanel
                 advancedPanel
                 setupPanel
+                uninstallPanel
             }
             .tabItem { Label(
                 SettingsSection.advanced.title,
@@ -86,6 +87,7 @@ struct SettingsView: View {
             licensePanel
             advancedPanel
             setupPanel
+            uninstallPanel
         }
         .tint(CurfewTheme.accent)
     }
