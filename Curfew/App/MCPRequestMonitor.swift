@@ -83,14 +83,14 @@ final class MCPRequestMonitor {
             return
         }
 
-        let fd = open(directoryURL.path, O_EVTONLY)
-        guard fd >= 0 else {
+        let fileDescriptor = open(directoryURL.path, O_EVTONLY)
+        guard fileDescriptor >= 0 else {
             monitorLogger.error("Could not open mcp queue directory for watching")
             return
         }
 
         let source = DispatchSource.makeFileSystemObjectSource(
-            fileDescriptor: fd,
+            fileDescriptor: fileDescriptor,
             eventMask: [.write, .extend],
             queue: .main
         )
@@ -100,10 +100,10 @@ final class MCPRequestMonitor {
             }
         }
         source.setCancelHandler {
-            close(fd)
+            close(fileDescriptor)
         }
         source.resume()
-        self.dispatchSource = source
+        dispatchSource = source
     }
 
     /// Reads the queue file and fires `onNewRequests` for any pending entries
@@ -118,7 +118,7 @@ final class MCPRequestMonitor {
         }
 
         monitorLogger.info("new MCP requests: \(newPending.count)")
-        notifiedIDs.formUnion(newPending.map { $0.id })
+        notifiedIDs.formUnion(newPending.map(\.id))
         onNewRequests?(newPending)
     }
 }

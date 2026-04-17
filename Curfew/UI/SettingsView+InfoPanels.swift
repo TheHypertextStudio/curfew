@@ -20,14 +20,19 @@ extension SettingsView {
         CurfewPanel {
             CurfewSectionTitle(
                 title: "MCP Control Plane",
-                subtitle: "Allow AI assistants to control your device via the Model Context Protocol."
+                subtitle: "Allow AI assistants to control your device"
+                    + " via the Model Context Protocol."
             )
 
             Toggle("Enable MCP Control Plane", isOn: $model.settings.mcpEnabled)
 
-            Text("When enabled, AI assistants can lock and unlock your device, request time extensions, and manage Curfew settings. Only enable if you trust the AI clients you're connecting.")
-                .font(CurfewTypography.body(13))
-                .foregroundStyle(CurfewTheme.mutedInk)
+            Text(
+                "When enabled, AI assistants can lock and unlock your device, "
+                    + "request time extensions, and manage Curfew settings. "
+                    + "Only enable if you trust the AI clients you're connecting."
+            )
+            .font(CurfewTypography.body(13))
+            .foregroundStyle(CurfewTheme.mutedInk)
 
             if model.settings.mcpEnabled {
                 Text("""
@@ -88,8 +93,14 @@ extension SettingsView {
                 description: "See your enforcement phase and time remaining at a glance."
             ) {
                 CurfewPanel {
-                    CurfewSectionTitle(title: "WidgetKit", subtitle: "Small, medium, and large widgets.")
-                    integrationStatusRow(title: "WidgetKit", isEnabled: model.featureFlags.widgetKitEnabled)
+                    CurfewSectionTitle(
+                        title: "WidgetKit",
+                        subtitle: "Small, medium, and large widgets."
+                    )
+                    integrationStatusRow(
+                        title: "WidgetKit",
+                        isEnabled: model.featureFlags.widgetKitEnabled
+                    )
                 }
             }
             .environmentObject(model)
@@ -115,8 +126,14 @@ extension SettingsView {
             .environmentObject(model)
 
             CurfewPanel {
-                CurfewSectionTitle(title: "Privileged Helper", subtitle: "Stronger bypass prevention via a root-owned helper.")
-                integrationStatusRow(title: "Privileged Helper", isEnabled: model.featureFlags.privilegedHelperEnabled)
+                CurfewSectionTitle(
+                    title: "Privileged Helper",
+                    subtitle: "Stronger bypass prevention via a root-owned helper."
+                )
+                integrationStatusRow(
+                    title: "Privileged Helper",
+                    isEnabled: model.featureFlags.privilegedHelperEnabled
+                )
                 Text("Ships in v0.2.")
                     .font(CurfewTypography.body(13))
                     .foregroundStyle(CurfewTheme.mutedInk)
@@ -128,7 +145,8 @@ extension SettingsView {
     private var calendarAuthRow: some View {
         switch model.calendarMonitor.authorizationStatus {
         case .fullAccess:
-            Text("Calendar access granted. \(model.calendarMonitor.todayEvents.count) event(s) today.")
+            let count = model.calendarMonitor.todayEvents.count
+            Text("Calendar access granted. \(count) event(s) today.")
                 .font(CurfewTypography.body(13))
                 .foregroundStyle(CurfewTheme.mutedInk)
         case .notDetermined:
@@ -137,10 +155,12 @@ extension SettingsView {
             }
             .buttonStyle(CurfewSecondaryButtonStyle())
         default:
-            Text("Calendar access denied. Open System Settings → Privacy → Calendars to enable.")
-                .font(CurfewTypography.body(13))
-                .foregroundStyle(CurfewTheme.mutedInk)
-                .fixedSize(horizontal: false, vertical: true)
+            Text(
+                "Calendar access denied. Open System Settings → Privacy → Calendars to enable."
+            )
+            .font(CurfewTypography.body(13))
+            .foregroundStyle(CurfewTheme.mutedInk)
+            .fixedSize(horizontal: false, vertical: true)
         }
     }
 
@@ -208,8 +228,8 @@ extension SettingsView {
 
             if !model.featureFlags.cloudSyncEnabled {
                 Text("Cloud sync is available but not yet provisioned. "
-                   + "Provision the CloudKit container in App Store Connect "
-                   + "and set cloudSyncEnabled in FeatureFlags.")
+                    + "Provision the CloudKit container in App Store Connect "
+                    + "and set cloudSyncEnabled in FeatureFlags.")
                     .font(CurfewTypography.body(13))
                     .foregroundStyle(CurfewTheme.mutedInk)
                     .fixedSize(horizontal: false, vertical: true)

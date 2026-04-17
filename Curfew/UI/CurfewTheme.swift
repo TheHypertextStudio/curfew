@@ -3,21 +3,21 @@ import SwiftUI
 
 enum CurfewTheme {
     // Backgrounds
-    static let canvas       = adaptive(l: (0.95, 0.93, 0.90), d: (0.11, 0.12, 0.13))
-    static let canvasStrong = adaptive(l: (0.89, 0.87, 0.83), d: (0.16, 0.17, 0.19))
-    static let surface      = adaptive(l: (0.99, 0.98, 0.96), d: (0.15, 0.16, 0.18))
-    static let surfaceMuted = adaptive(l: (0.96, 0.95, 0.92), d: (0.19, 0.20, 0.22))
+    static let canvas = adaptive(light: RGB(0.95, 0.93, 0.90), dark: RGB(0.11, 0.12, 0.13))
+    static let canvasStrong = adaptive(light: RGB(0.89, 0.87, 0.83), dark: RGB(0.16, 0.17, 0.19))
+    static let surface = adaptive(light: RGB(0.99, 0.98, 0.96), dark: RGB(0.15, 0.16, 0.18))
+    static let surfaceMuted = adaptive(light: RGB(0.96, 0.95, 0.92), dark: RGB(0.19, 0.20, 0.22))
 
     // Text
-    static let ink      = adaptive(l: (0.13, 0.16, 0.18), d: (0.92, 0.91, 0.89))
-    static let mutedInk = adaptive(l: (0.35, 0.39, 0.41), d: (0.58, 0.62, 0.65))
+    static let ink = adaptive(light: RGB(0.13, 0.16, 0.18), dark: RGB(0.92, 0.91, 0.89))
+    static let mutedInk = adaptive(light: RGB(0.35, 0.39, 0.41), dark: RGB(0.58, 0.62, 0.65))
 
     // Accent / semantic
-    static let accent      = adaptive(l: (0.19, 0.43, 0.36), d: (0.25, 0.62, 0.52))
-    static let accentMuted = adaptive(l: (0.30, 0.53, 0.47), d: (0.32, 0.68, 0.58))
-    static let warning     = adaptive(l: (0.72, 0.45, 0.19), d: (0.90, 0.58, 0.25))
+    static let accent = adaptive(light: RGB(0.19, 0.43, 0.36), dark: RGB(0.25, 0.62, 0.52))
+    static let accentMuted = adaptive(light: RGB(0.30, 0.53, 0.47), dark: RGB(0.32, 0.68, 0.58))
+    static let warning = adaptive(light: RGB(0.72, 0.45, 0.19), dark: RGB(0.90, 0.58, 0.25))
 
-    // Chrome
+    /// Chrome
     static let border = Color(NSColor(name: nil) { app in
         app.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
             ? NSColor.white.withAlphaComponent(0.12)
@@ -25,14 +25,20 @@ enum CurfewTheme {
     })
 }
 
-private func adaptive(
-    l: (CGFloat, CGFloat, CGFloat),
-    d: (CGFloat, CGFloat, CGFloat)
-) -> Color {
+private struct RGB {
+    let red: CGFloat
+    let green: CGFloat
+    let blue: CGFloat
+    init(_ red: CGFloat, _ green: CGFloat, _ blue: CGFloat) {
+        self.red = red; self.green = green; self.blue = blue
+    }
+}
+
+private func adaptive(light: RGB, dark: RGB) -> Color {
     Color(NSColor(name: nil) { appearance in
         let isDark = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
-        let (r, g, b) = isDark ? d : l
-        return NSColor(red: r, green: g, blue: b, alpha: 1)
+        let rgb = isDark ? dark : light
+        return NSColor(red: rgb.red, green: rgb.green, blue: rgb.blue, alpha: 1)
     })
 }
 

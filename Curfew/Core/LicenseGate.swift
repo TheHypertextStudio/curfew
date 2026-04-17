@@ -2,10 +2,10 @@ import Combine
 import CryptoKit
 import Foundation
 
-// Base64-encoded 32-byte Ed25519 public key.
-// Replace this constant with the output of `scripts/gen-license-keypair.sh`
-// before shipping. The private half lives in `scripts/issue-license.ts` and
-// is never bundled with the app.
+/// Base64-encoded 32-byte Ed25519 public key.
+/// Replace this constant with the output of `scripts/gen-license-keypair.sh`
+/// before shipping. The private half lives in `scripts/issue-license.ts` and
+/// is never bundled with the app.
 private let licensePublicKeyBase64 = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
 
 enum LicenseActivationError: LocalizedError {
@@ -15,9 +15,9 @@ enum LicenseActivationError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .malformed:         return "The license key format is invalid."
-        case .invalidSignature:  return "This license key could not be verified."
-        case .wrongProduct:      return "This license key is for a different product."
+        case .malformed: "The license key format is invalid."
+        case .invalidSignature: "This license key could not be verified."
+        case .wrongProduct: "This license key is for a different product."
         }
     }
 }
@@ -34,7 +34,9 @@ final class LicenseGate: ObservableObject {
     @Published private(set) var activatedKey: LicenseKey?
     @Published private(set) var activationError: String?
 
-    var isProUnlocked: Bool { activatedKey != nil }
+    var isProUnlocked: Bool {
+        activatedKey != nil
+    }
 
     private let defaults: UserDefaults
     private static let storageKey = "pro.licenseKey"
@@ -96,11 +98,11 @@ final class LicenseGate: ObservableObject {
 
 private extension Data {
     init?(base64URLEncoded string: String) {
-        var s = string
+        var normalized = string
             .replacingOccurrences(of: "-", with: "+")
             .replacingOccurrences(of: "_", with: "/")
-        let pad = s.count % 4
-        if pad != 0 { s += String(repeating: "=", count: 4 - pad) }
-        self.init(base64Encoded: s)
+        let pad = normalized.count % 4
+        if pad != 0 { normalized += String(repeating: "=", count: 4 - pad) }
+        self.init(base64Encoded: normalized)
     }
 }

@@ -5,27 +5,11 @@ import Foundation
 import OSLog
 import SwiftUI
 
-/// Central `ObservableObject` that every Curfew UI surface binds to.
-///
-/// Responsibilities, in roughly the order they fire each tick:
-/// 1. Hold user-facing state (`settings`, `state`, `currentTime`, remaining
-///    budgets, override composer flags). All `@Published` so SwiftUI diffs.
-/// 2. Drive the 1 Hz tick loop that recomputes `CurfewEvaluation` via the
-///    `CurfewEnforcementEngine`.
-/// 3. Translate the engine result into the shape UI needs (menu bar symbol,
-///    one-line status, snapshot) — see `CurfewAppModel+Presentation`.
-/// 4. Route user actions (apply preset, edit schedule, request extension,
-///    confirm override) — see `CurfewAppModel+Actions`.
-/// 5. React to state changes — schedule swap, lockout entry, shutdown
-///    workflow, key interception — see `CurfewAppModel+Lifecycle`.
-///
-/// The class body here holds stored state and the three initialisers;
-/// everything behavioural lives in the adjacent extension files. Splitting
-/// this way keeps any one file under SwiftLint's length thresholds and
-/// groups related code by responsibility rather than visibility modifier.
-///
-/// Marked `@MainActor` because it reads and writes AppKit + SwiftUI state,
-/// and the tick timer fires on the main run loop.
+/// Central `ObservableObject` for Curfew. Holds all `@Published` state,
+/// drives the 1 Hz tick loop, and exposes the designated initialiser.
+/// Behaviour is split across extension files: Actions, Lifecycle,
+/// Presentation, Setup. `@MainActor` throughout — reads and writes
+/// AppKit + SwiftUI state and the tick timer fires on the main run loop.
 @MainActor
 final class CurfewAppModel: NSObject, ObservableObject {
     /// How long the user must hold the extension button before the request
@@ -335,22 +319,18 @@ final class CurfewAppModel: NSObject, ObservableObject {
 
         cloudKitSyncEngine.onSettingsReceived = { [weak self] remoteSettings in
             guard let self else { return }
-            self.settings = remoteSettings
-            self.settingsStore.save(remoteSettings)
+            settings = remoteSettings
+            settingsStore.save(remoteSettings)
         }
-        if featureFlags.cloudSyncEnabled && licenseGate.isProUnlocked {
+        if featureFlags.cloudSyncEnabled, licenseGate.isProUnlocked {
             cloudKitSyncEngine.start(
                 localSettings: settings,
                 localModifiedAt: Date()
             )
         }
-        if featureFlags.calendarEnabled && licenseGate.isProUnlocked {
+        if featureFlags.calendarEnabled, licenseGate.isProUnlocked {
             calendarMonitor.requestAccessAndSync()
         }
-    }
-
-    deinit {
-        timer?.invalidate()
     }
 
     /// Starts the 1 Hz enforcement tick. Safe to call repeatedly; no-ops
@@ -375,9 +355,7 @@ final class CurfewAppModel: NSObject, ObservableObject {
         )
     }
 
-    /// Whether `start()` has successfully armed the tick timer. Used by the
-    /// UI to show a "Start enforcement" button in Debug builds where
-    /// auto-start is disabled.
+    /// Whether `start()` has successfully armed the tick timer.
     var isEnforcementRunning: Bool {
         started
     }
@@ -390,13 +368,9 @@ final class CurfewAppModel: NSObject, ObservableObject {
     }
 
     /// Persists the given override event and appends it to the published
-    /// in-memory log.
-    ///
-    /// Exists because `overrideEvents` is `@Published private(set)` — the
-    /// private setter is file-scoped, so extensions in sibling files cannot
-    /// mutate the array directly. Routing every append through this method
-    /// preserves the read-only public API while letting the actions
-    /// extension record events.
+    /// in-memory log. Exists because `overrideEvents` is `@Published
+    /// private(set)` — extensions in sibling files cannot mutate the array
+    /// directly.
     func recordOverrideEvent(_ event: OverrideEvent) {
         settingsStore.appendOverrideEvent(event)
         overrideEvents.append(event)
@@ -407,32 +381,7 @@ final class CurfewAppModel: NSObject, ObservableObject {
         )
     }
 
-    /// Resolves the `Application Support/Curfew` directory and opens an
-    /// ``ActivityStore`` at `activity.sqlite3` inside it, wrapping it in
-    /// an ``ActivityRecorder``. On any failure (sandbox, disk full), falls
-    /// back to a ``NullActivityRecording`` so the app can continue to
-    /// enforce normally without telemetry. Failures are logged via
-    /// `os.Logger` so Console.app and sysdiagnose capture them.
-    static func defaultActivityRecording() -> any ActivityRecording {
-        let fileManager = FileManager.default
-        do {
-            let appSupport = try fileManager.url(
-                for: .applicationSupportDirectory,
-                in: .userDomainMask,
-                appropriateFor: nil,
-                create: true
-            )
-            let directory = appSupport.appendingPathComponent("Curfew", isDirectory: true)
-            try fileManager.createDirectory(
-                at: directory,
-                withIntermediateDirectories: true
-            )
-            let store = try ActivityStore(directory: directory)
-            return ActivityRecorder(store: store)
-        } catch {
-            let logger = Logger(subsystem: "studio.hypertext.curfew", category: "app-model")
-            logger.error("activity recorder unavailable: \(String(describing: error))")
-            return NullActivityRecording()
-        }
+    deinit {
+        timer?.invalidate()
     }
 }

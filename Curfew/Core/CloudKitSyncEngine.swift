@@ -25,7 +25,11 @@ final class CloudKitSyncEngine {
     /// the cloud. The app model applies it and persists locally.
     var onSettingsReceived: ((CurfewSettings) -> Void)?
 
-    private let container: CKContainer
+    // CKContainer is created lazily in start() to avoid calling it off the
+    // main thread — nonisolated init runs as a default argument before
+    // @MainActor isolation is established, which trips libMainThreadChecker.
+    private var container: CKContainer?
+    private let containerID: String
     private var active = false
     private let encoder = JSONEncoder()
     private let decoder = JSONDecoder()
@@ -39,7 +43,14 @@ final class CloudKitSyncEngine {
     nonisolated init(
         containerID: String = "iCloud.studio.hypertext.curfew"
     ) {
-        self.container = CKContainer(identifier: containerID)
+        self.containerID = containerID
+    }
+
+    private var resolvedContainer: CKContainer {
+        if let existing = container { return existing }
+        let new = CKContainer(identifier: containerID)
+        container = new
+        return new
     }
 
     // MARK: - Lifecycle
@@ -72,10 +83,10 @@ final class CloudKitSyncEngine {
     // MARK: - Private
 
     private func pull(localSettings: CurfewSettings, localModifiedAt: Date) async {
-        let db = container.privateCloudDatabase
+        let database = resolvedContainer.privateCloudDatabase
         let id = CKRecord.ID(recordName: Self.recordName)
         do {
-            let record = try await db.record(for: id)
+            let record = try await database.record(for: id)
             guard
                 let data = record[Self.payloadKey] as? Data,
                 let remoteModified = record[Self.modifiedKey] as? Date,
@@ -97,19 +108,19 @@ final class CloudKitSyncEngine {
     }
 
     private func save(settings: CurfewSettings, modifiedAt: Date) async {
-        let db = container.privateCloudDatabase
+        let database = resolvedContainer.privateCloudDatabase
         let id = CKRecord.ID(recordName: Self.recordName)
         do {
             let record: CKRecord
-            // Fetch-then-modify to avoid overwriting server change tags.
-            if let existing = try? await db.record(for: id) {
-                record = existing
+                // Fetch-then-modify to avoid overwriting server change tags.
+                = if let existing = try? await database.record(for: id) {
+                existing
             } else {
-                record = CKRecord(recordType: Self.recordType, recordID: id)
+                CKRecord(recordType: Self.recordType, recordID: id)
             }
             record[Self.payloadKey] = try encoder.encode(settings) as NSData
             record[Self.modifiedKey] = modifiedAt as NSDate
-            try await db.save(record)
+            try await database.save(record)
             syncLogger.info("CloudKit push: saved settings at \(modifiedAt)")
         } catch let error as CKError where error.isExpectedAbsence {
             syncLogger.info("CloudKit push skipped: iCloud not available")
@@ -128,9 +139,9 @@ private extension CKError {
         case .notAuthenticated, .networkUnavailable, .networkFailure,
              .serviceUnavailable, .requestRateLimited, .unknownItem,
              .zoneNotFound, .userDeletedZone:
-            return true
+            true
         default:
-            return false
+            false
         }
     }
 }
