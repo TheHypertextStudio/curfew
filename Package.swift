@@ -52,6 +52,7 @@ let package = Package(
             sources: [
                 // Domain
                 "Curfew/Core/Domain/ScheduleModels.swift",
+                "Curfew/Core/Domain/DayRule.swift",
                 "Curfew/Core/Domain/CurfewEnforcementEngine.swift",
                 "Curfew/Core/Domain/WarningStage.swift",
                 "Curfew/Core/Domain/ExtensionBudgetTracker.swift",

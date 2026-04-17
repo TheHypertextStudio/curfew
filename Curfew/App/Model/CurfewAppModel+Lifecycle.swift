@@ -78,7 +78,8 @@ extension CurfewAppModel {
             schedule: settings.schedule,
             extensionMinutesGrantedToday: extensionMinutesGrantedToday + snoozeMinutesGrantedToday,
             overrideUntil: overrideUntil,
-            warningIntervals: settings.warningIntervals
+            warningIntervals: settings.warningIntervals,
+            workedMinutesToday: workedMinutesToday(at: currentTime)
         )
         if state != newState {
             state = newState
@@ -330,6 +331,20 @@ extension CurfewAppModel {
             extensionMinutesGrantedToday: 0,
             overrideUntil: nil,
             warningIntervals: settings.warningIntervals
+        )
+    }
+
+    /// Active work minutes accumulated today. Hours-based enforcement reads
+    /// this; `.time` rules ignore it. Kept out of `tick()` so the tick body
+    /// stays under the lint budget.
+    func workedMinutesToday(at now: Date) -> Int {
+        WorkTimeAggregator.activeMinutesToday(
+            now: now,
+            events: activityRecorder.events(
+                in: Calendar.current.startOfDay(for: now) ... now
+            ),
+            idleWindows: [],
+            calendar: .current
         )
     }
 

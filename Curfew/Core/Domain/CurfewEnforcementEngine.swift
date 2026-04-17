@@ -23,6 +23,18 @@ public enum EnforcementPhase: Equatable {
     case dayOff
 }
 
+/// What caused the current countdown. For `.time` the answer is always
+/// `.time`; for `.hours` it's always `.hours`; for `.combined` it's whichever
+/// deadline fires first — i.e. the nearer of the two.
+///
+/// The MCP `get_time_remaining` tool surfaces this so AI assistants can
+/// phrase the answer correctly ("you have 14 minutes before your 6 PM
+/// curfew" vs. "you have 14 minutes of work hours left today").
+public enum EnforcementTrigger: String, Equatable, Codable {
+    case time
+    case hours
+}
+
 /// The complete output of a single enforcement evaluation for a given moment.
 ///
 /// The engine is a pure function: same inputs → same `CurfewEvaluation`. The
@@ -56,6 +68,29 @@ public struct CurfewEvaluation: Equatable {
     /// or `nil` on day-off.
     public var unlockDate: Date?
 
+    /// Which clock is driving the current countdown — wall time or
+    /// accumulated work hours. In `.time` mode this is always `.time`;
+    /// in combined mode it's whichever deadline fires first.
+    public var trigger: EnforcementTrigger
+
+    public init(
+        phase: EnforcementPhase,
+        warningStage: WarningStage,
+        minutesRemaining: Int,
+        canRequestExtension: Bool,
+        lockDate: Date?,
+        unlockDate: Date?,
+        trigger: EnforcementTrigger = .time
+    ) {
+        self.phase = phase
+        self.warningStage = warningStage
+        self.minutesRemaining = minutesRemaining
+        self.canRequestExtension = canRequestExtension
+        self.lockDate = lockDate
+        self.unlockDate = unlockDate
+        self.trigger = trigger
+    }
+
     /// Pre-built day-off evaluation. All timing fields are zeroed / nil.
     public static let dayOff = CurfewEvaluation(
         phase: .dayOff,
@@ -63,20 +98,27 @@ public struct CurfewEvaluation: Equatable {
         minutesRemaining: .max,
         canRequestExtension: false,
         lockDate: nil,
-        unlockDate: nil
+        unlockDate: nil,
+        trigger: .time
     )
 
     /// Pre-built locked evaluation with absolute lock / unlock dates.
     /// `minutesRemaining` is 0 and `canRequestExtension` is false during
-    /// lockout.
-    public static func locked(lockDate: Date, unlockDate: Date) -> CurfewEvaluation {
+    /// lockout. Callers specify `trigger` so the lockout screen can tell
+    /// the user whether time or hours pushed them over.
+    public static func locked(
+        lockDate: Date,
+        unlockDate: Date,
+        trigger: EnforcementTrigger = .time
+    ) -> CurfewEvaluation {
         CurfewEvaluation(
             phase: .locked,
             warningStage: .lockout,
             minutesRemaining: 0,
             canRequestExtension: false,
             lockDate: lockDate,
-            unlockDate: unlockDate
+            unlockDate: unlockDate,
+            trigger: trigger
         )
     }
 }
@@ -111,12 +153,17 @@ public struct CurfewEnforcementEngine {
     ///     duration of the override even if the nominal lock time has passed.
     ///   - warningIntervals: Thresholds for each escalation stage. Defaults to
     ///     ``WarningIntervals/default``.
+    ///   - workedMinutesToday: Active work minutes accumulated today across
+    ///     every synced device (idle time excluded). Only consulted when the
+    ///     day's rule is in `.hours` or `.combined` mode; defaults to 0 so
+    ///     existing call sites that pre-date the feature keep working.
     public func evaluate(
         at date: Date,
         schedule: WeeklySchedule,
         extensionMinutesGrantedToday: Int,
         overrideUntil: Date?,
-        warningIntervals: WarningIntervals = .default
+        warningIntervals: WarningIntervals = .default,
+        workedMinutesToday: Int = 0
     ) -> CurfewEvaluation {
         guard let window = schedule.scheduleWindow(
             for: date,
@@ -126,25 +173,86 @@ public struct CurfewEnforcementEngine {
             return .dayOff
         }
 
+        // Compute the effective window when hours-based enforcement is in
+        // play. For `.time` rules this is unchanged; for `.hours` the
+        // lock time becomes "now + (limit - worked)"; for `.combined`
+        // it's the nearer of the two. The `trigger` field flows through
+        // so the UI can tell the user which clock fired.
+        let weekday = Weekday(from: date, calendar: calendar)
+        let rule = schedule.rule(for: weekday)
+        let adjusted = applyHoursMode(
+            window: window,
+            rule: rule,
+            at: date,
+            workedMinutesToday: workedMinutesToday
+        )
+
         let intervals = warningIntervals.normalized
 
         if let overrideUntil, date < overrideUntil {
             return workingWithOverride(
                 at: date,
-                window: window,
-                intervals: intervals
+                window: adjusted.window,
+                intervals: intervals,
+                trigger: adjusted.trigger
             )
         }
 
-        if date >= window.lockDate, date < window.unlockDate {
-            return .locked(lockDate: window.lockDate, unlockDate: window.unlockDate)
+        if date >= adjusted.window.lockDate, date < adjusted.window.unlockDate {
+            return .locked(
+                lockDate: adjusted.window.lockDate,
+                unlockDate: adjusted.window.unlockDate,
+                trigger: adjusted.trigger
+            )
         }
 
         return approachingLock(
             at: date,
-            window: window,
-            intervals: intervals
+            window: adjusted.window,
+            intervals: intervals,
+            trigger: adjusted.trigger
         )
+    }
+
+    /// For `.hours` and `.combined` rules, recomputes the effective lock
+    /// time from accumulated work minutes. For `.time` rules returns the
+    /// original window and `.time` trigger unchanged.
+    ///
+    /// The hours deadline is "current time + minutes remaining in budget",
+    /// clamped to `date` when the budget is already exhausted. Combined
+    /// mode picks the nearer of the time-based and hours-based deadlines.
+    private func applyHoursMode(
+        window: ScheduleWindow,
+        rule: DayRule,
+        at date: Date,
+        workedMinutesToday: Int
+    ) -> (window: ScheduleWindow, trigger: EnforcementTrigger) {
+        guard rule.mode != .time,
+              let hoursLimit = rule.hoursLimitMinutes,
+              hoursLimit > 0
+        else {
+            return (window, .time)
+        }
+        let minutesLeft = max(0, hoursLimit - workedMinutesToday)
+        let hoursDeadline = date.addingTimeInterval(TimeInterval(minutesLeft * 60))
+
+        switch rule.mode {
+        case .hours:
+            return (
+                ScheduleWindow(lockDate: hoursDeadline, unlockDate: window.unlockDate),
+                .hours
+            )
+        case .combined:
+            if hoursDeadline < window.lockDate {
+                return (
+                    ScheduleWindow(lockDate: hoursDeadline, unlockDate: window.unlockDate),
+                    .hours
+                )
+            }
+            return (window, .time)
+        case .time:
+            return (window, .time)
+        }
     }
 
     /// Evaluation during an active override: the phase stays `.working` but
@@ -153,7 +261,8 @@ public struct CurfewEnforcementEngine {
     private func workingWithOverride(
         at date: Date,
         window: ScheduleWindow,
-        intervals: WarningIntervals
+        intervals: WarningIntervals,
+        trigger: EnforcementTrigger
     ) -> CurfewEvaluation {
         let minutesRemaining = remainingMinutes(until: window.lockDate, from: date)
         let stage = WarningStage.stage(
@@ -166,7 +275,8 @@ public struct CurfewEnforcementEngine {
             minutesRemaining: minutesRemaining,
             canRequestExtension: stage.allowsExtensionRequest,
             lockDate: window.lockDate,
-            unlockDate: window.unlockDate
+            unlockDate: window.unlockDate,
+            trigger: trigger
         )
     }
 
@@ -175,7 +285,8 @@ public struct CurfewEnforcementEngine {
     private func approachingLock(
         at date: Date,
         window: ScheduleWindow,
-        intervals: WarningIntervals
+        intervals: WarningIntervals,
+        trigger: EnforcementTrigger
     ) -> CurfewEvaluation {
         let minutesRemaining = remainingMinutes(until: window.lockDate, from: date)
         let stage = WarningStage.stage(
@@ -191,10 +302,15 @@ public struct CurfewEnforcementEngine {
                 minutesRemaining: minutesRemaining,
                 canRequestExtension: false,
                 lockDate: window.lockDate,
-                unlockDate: window.unlockDate
+                unlockDate: window.unlockDate,
+                trigger: trigger
             )
         case .lockout:
-            return .locked(lockDate: window.lockDate, unlockDate: window.unlockDate)
+            return .locked(
+                lockDate: window.lockDate,
+                unlockDate: window.unlockDate,
+                trigger: trigger
+            )
         default:
             return CurfewEvaluation(
                 phase: .warning,
@@ -202,7 +318,8 @@ public struct CurfewEnforcementEngine {
                 minutesRemaining: minutesRemaining,
                 canRequestExtension: stage.allowsExtensionRequest,
                 lockDate: window.lockDate,
-                unlockDate: window.unlockDate
+                unlockDate: window.unlockDate,
+                trigger: trigger
             )
         }
     }

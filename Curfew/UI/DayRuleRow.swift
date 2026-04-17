@@ -74,6 +74,42 @@ struct DayRuleRow: View {
         )
     }
 
+    /// Binding for the `CurfewMode` segmented picker. Flipping to `.hours`
+    /// or `.combined` seeds a default `hoursLimitMinutes` (8 hours) when
+    /// the user has not set one yet so the enforcement engine doesn't
+    /// interpret `nil` as "no hours ceiling" and quietly disable the
+    /// hours leg of combined mode.
+    private func modeBinding() -> Binding<CurfewMode> {
+        Binding(
+            get: { dayRule.mode },
+            set: { newMode in
+                model.updateRule(for: weekday) { rule in
+                    rule.mode = newMode
+                    if newMode != .time, rule.hoursLimitMinutes == nil {
+                        rule.hoursLimitMinutes = 8 * 60
+                    }
+                }
+            }
+        )
+    }
+
+    /// Binding for the "hours" value shown alongside the mode picker.
+    /// Exposed in hours (not minutes) since that's what the user thinks
+    /// in; the model stores minutes to keep the engine's math in one unit.
+    private func hoursLimitBinding() -> Binding<Double> {
+        Binding(
+            get: {
+                Double(dayRule.hoursLimitMinutes ?? 8 * 60) / 60
+            },
+            set: { newHours in
+                let clamped = max(1.0, min(16.0, newHours))
+                model.updateRule(for: weekday) { rule in
+                    rule.hoursLimitMinutes = Int(clamped * 60)
+                }
+            }
+        )
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
@@ -129,6 +165,35 @@ struct DayRuleRow: View {
                 )
                 .labelsHidden()
                 .disabled(dayRule.isDayOff)
+            }
+
+            if !dayRule.isDayOff {
+                HStack(spacing: 10) {
+                    Text("Trigger")
+                        .font(CurfewTypography.label(12))
+                        .foregroundStyle(CurfewTheme.mutedInk)
+                        .frame(width: 48, alignment: .leading)
+
+                    Picker("Mode", selection: modeBinding()) {
+                        ForEach(CurfewMode.allCases, id: \.self) { mode in
+                            Text(mode.shortName).tag(mode)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                    .frame(maxWidth: 220)
+
+                    if dayRule.mode != .time {
+                        Stepper(
+                            value: hoursLimitBinding(),
+                            in: 1.0 ... 16.0,
+                            step: 0.5
+                        ) {
+                            Text("\(String(format: "%.1f", hoursLimitBinding().wrappedValue)) h")
+                                .font(CurfewTypography.body(13))
+                        }
+                    }
+                }
             }
         }
         .padding(10)
