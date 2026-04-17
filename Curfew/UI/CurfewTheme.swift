@@ -23,11 +23,6 @@ enum CurfewTheme {
             ? NSColor.white.withAlphaComponent(0.12)
             : NSColor.black.withAlphaComponent(0.08)
     })
-    static let shadow = Color(NSColor(name: nil) { app in
-        app.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
-            ? NSColor.black.withAlphaComponent(0.30)
-            : NSColor.black.withAlphaComponent(0.08)
-    })
 }
 
 private func adaptive(
@@ -82,7 +77,6 @@ struct CurfewPanel<Content: View>: View {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .stroke(CurfewTheme.border, lineWidth: 1)
         )
-        .shadow(color: CurfewTheme.shadow, radius: 10, x: 0, y: 4)
     }
 }
 
