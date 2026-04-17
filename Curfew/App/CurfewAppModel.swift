@@ -2,6 +2,7 @@ import AppKit
 import Combine
 import CoreGraphics
 import Foundation
+import OSLog
 import SwiftUI
 
 /// Central `ObservableObject` that every Curfew UI surface binds to.
@@ -131,6 +132,13 @@ final class CurfewAppModel: NSObject, ObservableObject {
     /// Presenter for the first-launch onboarding window.
     let gettingStartedPresenter: GettingStartedPresenting
 
+    /// Writes lifecycle / extension / override events to the activity
+    /// log. Always non-nil; when the SQLite store can't be opened
+    /// (sandbox denied, disk full), this holds a ``NullActivityRecording``
+    /// that silently discards writes. Tests may inject a
+    /// `NullActivityRecording` directly to bypass I/O.
+    let activityRecorder: any ActivityRecording
+
     /// Tracks weekly extension budget consumption. Rebuilt when the user
     /// edits their extension config.
     var extensionTracker: ExtensionBudgetTracker
@@ -184,7 +192,8 @@ final class CurfewAppModel: NSObject, ObservableObject {
         settingsStore: CurfewSettingsStore,
         appRouter: AppRouting,
         gettingStartedPresenter: GettingStartedPresenting,
-        featureFlags: FeatureFlags = .default
+        featureFlags: FeatureFlags = .default,
+        activityRecorder: any ActivityRecording
     ) {
         self.settingsStore = settingsStore
         self.policyEngine = SchedulePolicyEngine()
@@ -197,6 +206,7 @@ final class CurfewAppModel: NSObject, ObservableObject {
         self.appRouter = appRouter
         self.gettingStartedPresenter = gettingStartedPresenter
         self.featureFlags = featureFlags
+        self.activityRecorder = activityRecorder
 
         let loadedSettings = settingsStore.load()
         self.settings = loadedSettings
@@ -230,9 +240,27 @@ final class CurfewAppModel: NSObject, ObservableObject {
         configureNotificationCallback()
     }
 
-    /// Convenience initialiser used by the main app when only routing and
-    /// onboarding presenter customisation is needed — in that case, the
-    /// settings store is built with its defaults.
+    /// Convenience for tests that only need to override the routing /
+    /// onboarding presenter; defaults everything else (including the
+    /// activity recorder, which falls back to the null recording when the
+    /// SQLite store cannot be opened).
+    convenience init(
+        settingsStore: CurfewSettingsStore,
+        appRouter: AppRouting,
+        gettingStartedPresenter: GettingStartedPresenting,
+        featureFlags: FeatureFlags = .default
+    ) {
+        self.init(
+            settingsStore: settingsStore,
+            appRouter: appRouter,
+            gettingStartedPresenter: gettingStartedPresenter,
+            featureFlags: featureFlags,
+            activityRecorder: Self.defaultActivityRecording()
+        )
+    }
+
+    /// Convenience for call sites that only want to override routing +
+    /// onboarding presenter; uses a default ``CurfewSettingsStore``.
     convenience init(
         appRouter: AppRouting,
         gettingStartedPresenter: GettingStartedPresenting
@@ -314,5 +342,39 @@ final class CurfewAppModel: NSObject, ObservableObject {
     func recordOverrideEvent(_ event: OverrideEvent) {
         settingsStore.appendOverrideEvent(event)
         overrideEvents.append(event)
+        activityRecorder.recordOverrideGranted(
+            minutes: event.grantedDurationMinutes,
+            reason: event.reason,
+            at: event.timestamp
+        )
+    }
+
+    /// Resolves the `Application Support/Curfew` directory and opens an
+    /// ``ActivityStore`` at `activity.sqlite3` inside it, wrapping it in
+    /// an ``ActivityRecorder``. On any failure (sandbox, disk full), falls
+    /// back to a ``NullActivityRecording`` so the app can continue to
+    /// enforce normally without telemetry. Failures are logged via
+    /// `os.Logger` so Console.app and sysdiagnose capture them.
+    static func defaultActivityRecording() -> any ActivityRecording {
+        let fileManager = FileManager.default
+        do {
+            let appSupport = try fileManager.url(
+                for: .applicationSupportDirectory,
+                in: .userDomainMask,
+                appropriateFor: nil,
+                create: true
+            )
+            let directory = appSupport.appendingPathComponent("Curfew", isDirectory: true)
+            try fileManager.createDirectory(
+                at: directory,
+                withIntermediateDirectories: true
+            )
+            let store = try ActivityStore(directory: directory)
+            return ActivityRecorder(store: store)
+        } catch {
+            let logger = Logger(subsystem: "studio.hypertext.curfew", category: "app-model")
+            logger.error("activity recorder unavailable: \(String(describing: error))")
+            return NullActivityRecording()
+        }
     }
 }

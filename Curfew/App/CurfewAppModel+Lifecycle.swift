@@ -69,6 +69,11 @@ extension CurfewAppModel {
             lockoutMessage = EncouragementMessageCatalog.next(after: lockoutMessage)
         }
 
+        activityRecorder.recordPhaseTransition(
+            from: previousPhase,
+            to: state.phase,
+            at: currentTime
+        )
         reconcileOverrideComposerState(previousPhase: previousPhase)
         notificationManager.update(stage: state.warningStage, now: currentTime)
         updateLockoutInterception(for: state.phase)

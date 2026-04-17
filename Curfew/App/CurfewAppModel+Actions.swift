@@ -73,6 +73,10 @@ extension CurfewAppModel {
 
         extensionsRemaining = extensionTracker.remaining
         extensionMinutesGrantedToday += settings.extensionDurationMinutes
+        activityRecorder.recordExtensionGranted(
+            minutes: settings.extensionDurationMinutes,
+            at: currentTime
+        )
         tick()
     }
 

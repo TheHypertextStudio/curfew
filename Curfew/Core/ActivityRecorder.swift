@@ -1,0 +1,165 @@
+import Foundation
+import OSLog
+
+private let recorderLogger = Logger(
+    subsystem: "studio.hypertext.curfew",
+    category: "activity-recorder"
+)
+
+/// Bridge between live `CurfewAppModel` state transitions and an activity
+/// log. Split into a protocol so the app can hold a non-optional recorder
+/// at all times: production wraps ``ActivityStore`` in ``ActivityRecorder``;
+/// when the store fails to open, the app substitutes
+/// ``NullActivityRecording`` which silently discards writes.
+///
+/// Alternative — `ActivityRecorder?` sprinkled through the tick loop —
+/// would force every call site to `?.` even though the failure mode is
+/// intrinsically "can't log, keep running."
+@MainActor
+protocol ActivityRecording: AnyObject {
+    func recordPhaseTransition(
+        from previous: EnforcementPhase,
+        to current: EnforcementPhase,
+        at timestamp: Date
+    )
+
+    func recordExtensionGranted(minutes: Int, at timestamp: Date)
+
+    /// Records an override grant via the "Convince Me" flow. `reason` is
+    /// persisted verbatim for retrospective display.
+    func recordOverrideGranted(minutes: Int, reason: String, at timestamp: Date)
+
+    /// Records a warning stage escalation. `stageDescriptor` is a stable
+    /// string token (e.g. "T-30") so rollups can bucket without coupling
+    /// to the Swift enum.
+    func recordWarningEscalation(
+        stageDescriptor: String,
+        minutesRemaining: Int,
+        at timestamp: Date
+    )
+}
+
+/// Production ``ActivityRecording`` that writes to a SQLite-backed
+/// ``ActivityStore``.
+///
+/// Errors from the store are swallowed and routed to `os.Logger` — a log
+/// write failing must not prevent the user from continuing to work, and
+/// the alternative (throwing up into the tick loop) would create far
+/// worse UX than a missing row in the retrospective. `os.Logger` is used
+/// instead of `stderr` so failures are captured by Console.app + sysdiagnose
+/// for post-hoc diagnosis on real user installs.
+@MainActor
+final class ActivityRecorder: ActivityRecording {
+    private let store: ActivityStore
+    private let gateKind: String
+
+    init(store: ActivityStore, gateKind: String = GateKind.curfew) {
+        self.store = store
+        self.gateKind = gateKind
+    }
+
+    /// Emits a pair of events on `working|warning → locked` and a single
+    /// `lockoutEnded` on the inverse. Same-phase calls are no-ops and
+    /// never touch the store — important because `tick()` fires at 1 Hz
+    /// and most ticks are same-phase.
+    func recordPhaseTransition(
+        from previous: EnforcementPhase,
+        to current: EnforcementPhase,
+        at timestamp: Date
+    ) {
+        guard previous != current else {
+            return
+        }
+
+        if current == .locked, previous != .locked {
+            if previous == .working || previous == .warning {
+                appendSafely(.init(
+                    timestamp: timestamp,
+                    gateKind: gateKind,
+                    kind: .sessionEnded,
+                    minutesValue: nil,
+                    note: nil
+                ))
+            }
+            appendSafely(.init(
+                timestamp: timestamp,
+                gateKind: gateKind,
+                kind: .lockoutStarted,
+                minutesValue: nil,
+                note: nil
+            ))
+        } else if previous == .locked, current != .locked {
+            appendSafely(.init(
+                timestamp: timestamp,
+                gateKind: gateKind,
+                kind: .lockoutEnded,
+                minutesValue: nil,
+                note: nil
+            ))
+        }
+    }
+
+    func recordExtensionGranted(minutes: Int, at timestamp: Date) {
+        appendSafely(.init(
+            timestamp: timestamp,
+            gateKind: gateKind,
+            kind: .extensionGranted,
+            minutesValue: minutes,
+            note: nil
+        ))
+    }
+
+    func recordOverrideGranted(minutes: Int, reason: String, at timestamp: Date) {
+        appendSafely(.init(
+            timestamp: timestamp,
+            gateKind: gateKind,
+            kind: .overrideGranted,
+            minutesValue: minutes,
+            note: reason
+        ))
+    }
+
+    func recordWarningEscalation(
+        stageDescriptor: String,
+        minutesRemaining: Int,
+        at timestamp: Date
+    ) {
+        appendSafely(.init(
+            timestamp: timestamp,
+            gateKind: gateKind,
+            kind: .warningEscalated,
+            minutesValue: minutesRemaining,
+            note: stageDescriptor
+        ))
+    }
+
+    private func appendSafely(_ event: ActivityEvent) {
+        do {
+            try store.append(event)
+        } catch {
+            recorderLogger.error("activity append failed: \(String(describing: error))")
+        }
+    }
+}
+
+/// No-op ``ActivityRecording`` used when the SQLite store couldn't be
+/// opened. Writes silently succeed (by doing nothing) so the rest of the
+/// app continues to enforce without special-casing a missing recorder.
+@MainActor
+final class NullActivityRecording: ActivityRecording {
+    func recordPhaseTransition(
+        from previous: EnforcementPhase,
+        to current: EnforcementPhase,
+        at timestamp: Date
+    ) {}
+
+    func recordExtensionGranted(minutes: Int, at timestamp: Date) {}
+
+    func recordOverrideGranted(minutes: Int, reason: String, at timestamp: Date) {}
+
+    func recordWarningEscalation(
+        stageDescriptor: String,
+        minutesRemaining: Int,
+        at timestamp: Date
+    ) {}
+}

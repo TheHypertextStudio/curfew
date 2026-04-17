@@ -146,7 +146,7 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 - [x] Show a first-launch getting-started window so users can configure Curfew immediately.
 - [x] Persist one-time first-launch setup state so Settings only auto-opens once.
 - [x] Build first-run flow: welcome, schedule, extension budget, permissions, confirmation.
-- [ ] Ensure onboarding schedule changes still respect anti-bypass timing rules.
+- [x] Ensure onboarding schedule changes still respect anti-bypass timing rules. (Verified 2026-04-17: all schedule mutations from onboarding route through `model.updateRule` / `applyPreset`, both of which call `queueScheduleUpdate`. The only direct `settings.schedule = ...` write is inside `applyPendingScheduleIfNeeded` after the cooldown elapses. No bypass path exists.)
 - [x] Allow onboarding relaunch from Settings.
 - [x] Add warm explanatory copy for commitment model and enforcement behavior.
 
