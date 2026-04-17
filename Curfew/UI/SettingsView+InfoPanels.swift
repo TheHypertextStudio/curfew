@@ -45,10 +45,14 @@ extension SettingsView {
                 .foregroundStyle(CurfewTheme.mutedInk)
                 .fixedSize(horizontal: false, vertical: true)
 
-                Button("Copy Claude Desktop Config") {
-                    copyClaudeDesktopConfig()
+                HStack(spacing: 8) {
+                    Button("Copy Claude Desktop Config") {
+                        copyClaudeDesktopConfig()
+                    }
+                    .buttonStyle(CurfewSecondaryButtonStyle())
+
+                    claudeDesktopRegisterButton
                 }
-                .buttonStyle(CurfewSecondaryButtonStyle())
 
                 if !model.pendingMCPRequests.isEmpty {
                     HStack(spacing: 8) {

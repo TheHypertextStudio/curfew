@@ -217,7 +217,83 @@ extension CurfewAppModel {
             if overrideTracker.requestExtension(at: currentTime) {
                 grantOverride(reason: "[AI] \(decodedReason(from: request.argumentsJSON))")
             }
+        case .setSchedule:
+            applyMCPScheduleUpdate(request)
         }
+    }
+
+    /// Parses a queued `.setSchedule` request and routes it through the same
+    /// `queueScheduleUpdate` path the in-app editor uses, so `SchedulePolicyEngine`
+    /// applies anti-bypass classification (strictly better = next day;
+    /// weaker = 24 h cooldown). Malformed payloads no-op rather than throw —
+    /// the tool-side validator already rejected the common failures before
+    /// the request was queued.
+    private func applyMCPScheduleUpdate(_ request: MCPPendingRequest) {
+        guard
+            let data = request.argumentsJSON.data(using: .utf8),
+            let args = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+            let weekdayName = args["weekday"] as? String,
+            let weekday = mcpWeekday(from: weekdayName),
+            let lockTime = args["lock_time"] as? String,
+            let lockMinutes = parseHHMMMinutes(lockTime)
+        else {
+            return
+        }
+
+        let currentRule = settings.schedule.rule(for: weekday)
+        let unlockMinutes: Int = if let unlockString = args["unlock_time"] as? String,
+                                    let parsed = parseHHMMMinutes(unlockString) {
+            parsed
+        } else {
+            currentRule.unlockMinutes
+        }
+        let isDayOff: Bool = if let flag = args["is_day_off"] as? Bool {
+            flag
+        } else if let flagString = args["is_day_off"] as? String {
+            (flagString as NSString).boolValue
+        } else {
+            currentRule.isDayOff
+        }
+
+        var proposedRules = settings.schedule.rules
+        proposedRules[weekday] = DayRule(
+            isDayOff: isDayOff,
+            lockMinutes: lockMinutes,
+            unlockMinutes: unlockMinutes,
+            exception: currentRule.exception
+        )
+        let proposed = WeeklySchedule(rules: proposedRules)
+        queueScheduleUpdate(proposed)
+    }
+
+    /// Local version of the `weekdayFromName` helper that lives in the MCP
+    /// tool file — the app target doesn't depend on the MCP server binary,
+    /// so we keep a second copy here to avoid pulling the CLI target into
+    /// the app module graph.
+    private func mcpWeekday(from name: String) -> Weekday? {
+        switch name.lowercased() {
+        case "monday": .monday
+        case "tuesday": .tuesday
+        case "wednesday": .wednesday
+        case "thursday": .thursday
+        case "friday": .friday
+        case "saturday": .saturday
+        case "sunday": .sunday
+        default: nil
+        }
+    }
+
+    /// Parses "HH:MM" (24 h) to minutes-past-midnight.
+    private func parseHHMMMinutes(_ text: String) -> Int? {
+        let parts = text.split(separator: ":")
+        guard parts.count == 2,
+              let hour = Int(parts[0]),
+              let minute = Int(parts[1]),
+              hour >= 0, hour < 24, minute >= 0, minute < 60
+        else {
+            return nil
+        }
+        return hour * 60 + minute
     }
 
     private func grantOverride(reason: String) {

@@ -28,8 +28,11 @@ struct MCPTool {
         scheduleTool,
         budgetTool,
         activityTool,
+        timeRemainingTool,
+        weeklySummaryTool,
         requestExtensionTool,
         requestOverrideTool,
+        setScheduleTool,
         requestStatusTool
     ]
 }
@@ -273,6 +276,239 @@ private let requestOverrideTool = MCPTool(
         )]
     }
 )
+
+// MARK: - New read tools (v0.2 spec §9.3)
+
+/// Compact structured equivalent of `curfew.status` for clients that want
+/// just the clock. Returns `{ minutes, mode, trigger }` so an AI assistant
+/// can answer "how much time is left" without parsing prose.
+///
+/// `mode` and `trigger` are always `"time"` until hours-based enforcement
+/// lands — the field is in the response shape now so downstream clients
+/// can pattern-match without a schema bump later.
+private let timeRemainingTool = MCPTool(
+    name: "curfew.get_time_remaining",
+    description: """
+    Returns a compact machine-readable countdown: minutes until lockout, \
+    the current curfew mode ("time", "hours", or "combined"), and which \
+    trigger is driving the countdown. Useful for small widgets, status \
+    bars, and assistants that just need the number.
+    """,
+    inputSchema: emptySchema(),
+    call: { _ in
+        let settings = loadSharedSettings()
+        let now = Date()
+        let engine = CurfewEnforcementEngine()
+        let eval = engine.evaluate(
+            at: now,
+            schedule: settings.schedule,
+            extensionMinutesGrantedToday: 0,
+            overrideUntil: nil,
+            warningIntervals: settings.warningIntervals
+        )
+
+        let payload: [String: Any] = [
+            "minutes": eval.minutesRemaining,
+            "phase": phaseName(eval.phase),
+            "mode": "time",
+            "trigger": "time"
+        ]
+        return [jsonContent(payload)]
+    }
+)
+
+/// Device-attributed weekly summary. Feeds reflection-style conversations
+/// ("How did this week go?") without each assistant having to re-derive
+/// the rollup from raw activity events.
+private let weeklySummaryTool = MCPTool(
+    name: "curfew.get_weekly_summary",
+    description: """
+    Returns this week's activity rollup: lockouts held, extensions and \
+    overrides used, and a current streak count. The device attribution \
+    field echoes the local device name today; multi-device aggregation \
+    lands when CloudKit device records ship.
+    """,
+    inputSchema: emptySchema(),
+    call: { _ in
+        let settings = loadSharedSettings()
+        let now = Date()
+        let calendar = Calendar.current
+        let weekStart = calendar.startOfWeek(for: now)
+        let weekEnd = calendar.date(
+            byAdding: .day,
+            value: 7,
+            to: weekStart
+        ) ?? weekStart
+
+        guard let store = openSharedActivityStore() else {
+            return [textContent(
+                "No activity log found. Has Curfew been launched yet?"
+            )]
+        }
+        let events = (try? store.events(in: weekStart ... weekEnd)) ?? []
+        let rollup = ActivityRollups.weeklyRollup(
+            events: events,
+            weekStart: weekStart,
+            calendar: calendar
+        )
+
+        let deviceName = Host.current().localizedName
+            ?? ProcessInfo.processInfo.hostName
+
+        let payload: [String: Any] = [
+            "week_of": ISO8601DateFormatter().string(from: weekStart),
+            "days_held": rollup.daysWithLockout,
+            "extensions_used": rollup.totalExtensionCount,
+            "extension_minutes": rollup.totalExtensionMinutes,
+            "overrides_used": rollup.totalOverrideCount,
+            "override_minutes": rollup.totalOverrideMinutes,
+            "streak": rollup.streak,
+            "device": deviceName
+        ]
+        return [jsonContent(payload)]
+    }
+)
+
+// MARK: - New write tools (v0.2 spec §9.3)
+
+/// Queues a schedule update for future days. Today's schedule is not
+/// weakened by this path — the app's anti-bypass `SchedulePolicyEngine`
+/// classifies the change and either applies immediately (`.stricter`),
+/// defers to tomorrow (`.weaker`), or no-ops (`.noChange`). That
+/// classification happens in the app, not here.
+///
+/// Arguments:
+///   `weekday`       — one of "monday" … "sunday"
+///   `lock_time`     — "HH:MM" (24 h)
+///   `unlock_time`   — "HH:MM" (24 h), optional — defaults to current
+///   `is_day_off`    — boolean, optional
+private let setScheduleTool = MCPTool(
+    name: "curfew.set_schedule",
+    description: """
+    Queues a schedule change for a single weekday. Weakening changes \
+    (later lock time, adding a day off) wait out a 24-hour cooldown; \
+    strengthening changes apply at the next day boundary. Requires the \
+    user to approve the change in the Curfew app unless the AI consent \
+    policy is set to auto-approve.
+    """,
+    inputSchema: [
+        "type": "object",
+        "properties": [
+            "weekday": [
+                "type": "string",
+                "enum": ["monday", "tuesday", "wednesday", "thursday",
+                         "friday", "saturday", "sunday"]
+            ],
+            "lock_time": [
+                "type": "string",
+                "description": "24-hour time, HH:MM, e.g. \"18:00\"."
+            ],
+            "unlock_time": [
+                "type": "string",
+                "description": "Optional. Defaults to the day's current unlock time."
+            ],
+            "is_day_off": [
+                "type": "boolean",
+                "description": "Optional. Set true to mark the day off."
+            ]
+        ] as [String: Any],
+        "required": ["weekday", "lock_time"]
+    ] as [String: Any],
+    call: { arguments in
+        guard let weekdayString = arguments["weekday"] as? String,
+              let lockTime = arguments["lock_time"] as? String
+        else {
+            throw MCPToolError.invalidArgument("weekday and lock_time are required.")
+        }
+        guard weekdayFromName(weekdayString) != nil else {
+            throw MCPToolError.invalidArgument(
+                "weekday must be one of monday…sunday."
+            )
+        }
+        guard parseHHMM(lockTime) != nil else {
+            throw MCPToolError.invalidArgument(
+                "lock_time must be HH:MM (24-hour), e.g. \"18:00\"."
+            )
+        }
+        if let unlock = arguments["unlock_time"] as? String, parseHHMM(unlock) == nil {
+            throw MCPToolError.invalidArgument(
+                "unlock_time must be HH:MM (24-hour)."
+            )
+        }
+
+        // Shape stored verbatim so the app-side dispatcher can reconstruct
+        // the exact user-facing consent prompt.
+        var argsDict: [String: String] = [
+            "weekday": weekdayString,
+            "lock_time": lockTime
+        ]
+        if let unlock = arguments["unlock_time"] as? String {
+            argsDict["unlock_time"] = unlock
+        }
+        if let off = arguments["is_day_off"] as? Bool {
+            argsDict["is_day_off"] = String(off)
+        }
+
+        let argsJSON = encodeArguments(argsDict)
+        let request = MCPPendingRequest(tool: .setSchedule, argumentsJSON: argsJSON)
+        do {
+            try MCPRequestQueue.append(request)
+        } catch {
+            throw MCPToolError.queueUnavailable(
+                "Could not write to request queue: \(error.localizedDescription)"
+            )
+        }
+        return [textContent(
+            "Schedule change queued (ID: \(request.id.uuidString)).\n" +
+                "Open the Curfew app to review, or poll with curfew.request_status."
+        )]
+    }
+)
+
+// MARK: - Helpers for the new tools
+
+private func weekdayFromName(_ name: String) -> Weekday? {
+    switch name.lowercased() {
+    case "monday": .monday
+    case "tuesday": .tuesday
+    case "wednesday": .wednesday
+    case "thursday": .thursday
+    case "friday": .friday
+    case "saturday": .saturday
+    case "sunday": .sunday
+    default: nil
+    }
+}
+
+/// Parses a strict "HH:MM" 24-hour string. Rejects "24:00", "09:5",
+/// negative values, and anything with extra whitespace. Returns minutes
+/// past midnight on success.
+private func parseHHMM(_ text: String) -> Int? {
+    let parts = text.split(separator: ":")
+    guard parts.count == 2,
+          let hour = Int(parts[0]),
+          let minute = Int(parts[1]),
+          hour >= 0, hour < 24, minute >= 0, minute < 60
+    else { return nil }
+    return hour * 60 + minute
+}
+
+/// Wraps a JSON-encodable dictionary as an MCP text-content block. The
+/// MCP spec doesn't have a first-class "structured JSON" content type
+/// today, so we serialize the dictionary and mark it with a `text/json`
+/// leading comment so clients can branch on it.
+private func jsonContent(_ payload: [String: Any]) -> [String: Any] {
+    guard
+        let data = try? JSONSerialization.data(
+            withJSONObject: payload,
+            options: [.prettyPrinted, .sortedKeys]
+        ),
+        let text = String(data: data, encoding: .utf8)
+    else {
+        return textContent("{}")
+    }
+    return ["type": "text", "text": text]
+}
 
 private let requestStatusTool = MCPTool(
     name: "curfew.request_status",

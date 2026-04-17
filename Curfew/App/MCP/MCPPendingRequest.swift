@@ -65,6 +65,11 @@ public enum MCPWriteTool: String, Codable, CaseIterable {
     /// Grant a timed override that lets the user work past curfew.
     case requestOverride = "curfew.request_override"
 
+    /// Update the schedule for a single weekday. Weakening changes pass
+    /// through the same 24-hour anti-bypass cooldown the in-app editor
+    /// applies; strengthening changes take effect at the next day boundary.
+    case setSchedule = "curfew.set_schedule"
+
     /// A human-readable label shown in the consent sheet.
     public var displayName: String {
         switch self {
@@ -72,6 +77,8 @@ public enum MCPWriteTool: String, Codable, CaseIterable {
             "Extension Request"
         case .requestOverride:
             "Override Request"
+        case .setSchedule:
+            "Schedule Change"
         }
     }
 }
