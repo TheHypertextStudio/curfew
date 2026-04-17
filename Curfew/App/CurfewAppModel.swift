@@ -149,6 +149,11 @@ final class CurfewAppModel: NSObject, ObservableObject {
     /// `pendingMCPRequests` updates so the UI can show consent sheets.
     let mcpRequestMonitor: MCPRequestMonitor
 
+    /// Syncs settings to iCloud when `featureFlags.cloudSyncEnabled` and
+    /// `licenseGate.isProUnlocked`. Dormant by default; started from
+    /// lifecycle once both conditions are satisfied.
+    let cloudKitSyncEngine: CloudKitSyncEngine
+
     /// Writes lifecycle / extension / override events to the activity
     /// log. Always non-nil; when the SQLite store can't be opened
     /// (sandbox denied, disk full), this holds a ``NullActivityRecording``
@@ -212,7 +217,8 @@ final class CurfewAppModel: NSObject, ObservableObject {
         featureFlags: FeatureFlags = .default,
         activityRecorder: any ActivityRecording,
         mcpRequestMonitor: MCPRequestMonitor = MCPRequestMonitor(),
-        licenseGate: LicenseGate = LicenseGate()
+        licenseGate: LicenseGate = LicenseGate(),
+        cloudKitSyncEngine: CloudKitSyncEngine = CloudKitSyncEngine()
     ) {
         self.settingsStore = settingsStore
         self.policyEngine = SchedulePolicyEngine()
@@ -228,6 +234,7 @@ final class CurfewAppModel: NSObject, ObservableObject {
         self.activityRecorder = activityRecorder
         self.mcpRequestMonitor = mcpRequestMonitor
         self.licenseGate = licenseGate
+        self.cloudKitSyncEngine = cloudKitSyncEngine
 
         let loadedSettings = settingsStore.load()
         self.settings = loadedSettings
@@ -318,6 +325,18 @@ final class CurfewAppModel: NSObject, ObservableObject {
             mcpRequestMonitor.start()
         }
         licenseGate.loadStoredKey()
+
+        cloudKitSyncEngine.onSettingsReceived = { [weak self] remoteSettings in
+            guard let self else { return }
+            self.settings = remoteSettings
+            self.settingsStore.save(remoteSettings)
+        }
+        if featureFlags.cloudSyncEnabled && licenseGate.isProUnlocked {
+            cloudKitSyncEngine.start(
+                localSettings: settings,
+                localModifiedAt: Date()
+            )
+        }
     }
 
     deinit {

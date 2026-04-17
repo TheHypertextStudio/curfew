@@ -121,25 +121,57 @@ extension SettingsView {
         NSPasteboard.general.setString(config, forType: .string)
     }
 
-    /// Minimal single-device summary plus a count of override events
-    /// logged locally. Multi-device listing comes with CloudKit sync.
+    /// Single-device summary plus the Pro cloud sync panel.
     var devicesPanel: some View {
+        VStack(spacing: 16) {
+            CurfewPanel {
+                CurfewSectionTitle(
+                    title: "This Device",
+                    subtitle: "Local schedule and activity."
+                )
+
+                let deviceName = Host.current().localizedName
+                    ?? Host.current().name
+                    ?? "Unknown"
+                Text("Device: \(deviceName)")
+                    .font(CurfewTypography.body(14))
+                    .foregroundStyle(CurfewTheme.ink)
+
+                Text("Override events logged locally: \(model.overrideEvents.count)")
+                    .font(CurfewTypography.body(14))
+                    .foregroundStyle(CurfewTheme.mutedInk)
+            }
+
+            ProGate(
+                feature: "Cloud Sync",
+                description: "Keep your schedule in sync across all your Macs via iCloud."
+            ) {
+                cloudSyncPanel
+            }
+            .environmentObject(model)
+        }
+    }
+
+    private var cloudSyncPanel: some View {
         CurfewPanel {
             CurfewSectionTitle(
-                title: "Devices",
-                subtitle: "Current device and local override activity."
+                title: "iCloud Sync",
+                subtitle: "Your schedule syncs automatically across all your Macs."
             )
 
-            let deviceName = Host.current().localizedName
-                ?? Host.current().name
-                ?? "Unknown"
-            Text("Current device: \(deviceName)")
-                .font(CurfewTypography.body(14))
-                .foregroundStyle(CurfewTheme.ink)
+            integrationStatusRow(
+                title: "iCloud Sync",
+                isEnabled: model.featureFlags.cloudSyncEnabled
+            )
 
-            Text("Override events logged locally: \(model.overrideEvents.count)")
-                .font(CurfewTypography.body(14))
-                .foregroundStyle(CurfewTheme.mutedInk)
+            if !model.featureFlags.cloudSyncEnabled {
+                Text("Cloud sync is available but not yet provisioned. "
+                   + "Provision the CloudKit container in App Store Connect "
+                   + "and set cloudSyncEnabled in FeatureFlags.")
+                    .font(CurfewTypography.body(13))
+                    .foregroundStyle(CurfewTheme.mutedInk)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
     }
 

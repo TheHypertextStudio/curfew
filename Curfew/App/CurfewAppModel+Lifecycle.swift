@@ -190,6 +190,7 @@ extension CurfewAppModel {
         }
 
         persistSettings()
+        cloudKitSyncEngine.push(settings)
 
         if settings.mcpEnabled != oldValue.mcpEnabled {
             if settings.mcpEnabled {
