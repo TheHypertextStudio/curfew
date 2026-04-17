@@ -286,8 +286,10 @@ extension CurfewAppModel {
         if settings.mcpEnabled != oldValue.mcpEnabled {
             if settings.mcpEnabled {
                 mcpRequestMonitor.start()
+                mcpSocketServer.start()
             } else {
                 mcpRequestMonitor.stop()
+                mcpSocketServer.stop()
             }
         }
     }

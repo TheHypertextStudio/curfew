@@ -73,6 +73,7 @@ let package = Package(
                 // Utilities (CLI/MCP helpers, not compiled into the app)
                 "Sources/CurfewKit/Utilities.swift",
                 "Sources/CurfewKit/CopyDeck.swift",
+                "Sources/CurfewKit/MCPSocketClient.swift",
             ],
             linkerSettings: [
                 .linkedLibrary("sqlite3"),

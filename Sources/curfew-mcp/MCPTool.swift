@@ -223,7 +223,7 @@ private let requestExtensionTool = MCPTool(
         let argsJSON = encodeArguments(["reason": reason])
         let request = MCPPendingRequest(tool: .requestExtension, argumentsJSON: argsJSON)
         do {
-            try MCPRequestQueue.append(request)
+            _ = try MCPSocketClient.send(request)
         } catch {
             throw MCPToolError.queueUnavailable(
                 "Could not write to request queue: \(error.localizedDescription)"
@@ -264,7 +264,7 @@ private let requestOverrideTool = MCPTool(
         let argsJSON = encodeArguments(["reason": reason])
         let request = MCPPendingRequest(tool: .requestOverride, argumentsJSON: argsJSON)
         do {
-            try MCPRequestQueue.append(request)
+            _ = try MCPSocketClient.send(request)
         } catch {
             throw MCPToolError.queueUnavailable(
                 "Could not write to request queue: \(error.localizedDescription)"
@@ -452,7 +452,7 @@ private let setScheduleTool = MCPTool(
         let argsJSON = encodeArguments(argsDict)
         let request = MCPPendingRequest(tool: .setSchedule, argumentsJSON: argsJSON)
         do {
-            try MCPRequestQueue.append(request)
+            _ = try MCPSocketClient.send(request)
         } catch {
             throw MCPToolError.queueUnavailable(
                 "Could not write to request queue: \(error.localizedDescription)"

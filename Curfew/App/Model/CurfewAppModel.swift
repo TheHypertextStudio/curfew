@@ -128,9 +128,10 @@ final class CurfewAppModel: NSObject, ObservableObject {
     /// Presenter for the first-launch onboarding window.
     let gettingStartedPresenter: GettingStartedPresenting
 
-    /// Watches the MCP request queue file for new write requests and fires
-    /// `pendingMCPRequests` updates so the UI can show consent sheets.
+    /// Watches the MCP request queue file; pairs with `mcpSocketServer`
+    /// for the Unix-socket fast path. Both start/stop together.
     let mcpRequestMonitor: MCPRequestMonitor
+    let mcpSocketServer: MCPSocketServer
 
     /// Syncs settings to iCloud when `featureFlags.cloudSyncEnabled` and
     /// `licenseGate.isProUnlocked`. Dormant by default; started from
@@ -154,8 +155,9 @@ final class CurfewAppModel: NSObject, ObservableObject {
 
     /// Cross-device awareness — heartbeats today, subscription-driven
     /// updates once a push arrives. Started alongside CloudKit sync when
-    /// Pro is unlocked and the feature flag is on.
-    let deviceRegistry: DeviceRegistry
+    /// Pro is unlocked and the feature flag is on. Lazy so the
+    /// designated init body stays under the function-length lint budget.
+    lazy var deviceRegistry: DeviceRegistry = .init(idleWatcher: idleWatcher)
 
     /// Writes lifecycle / extension / override events to the activity
     /// log. Always non-nil; when the SQLite store can't be opened
@@ -235,10 +237,8 @@ final class CurfewAppModel: NSObject, ObservableObject {
     /// initialiser delegates here. `settingsStore`, `appRouter`, and
     /// `gettingStartedPresenter` are injected so tests can substitute fakes.
     ///
-    /// The initial `state` is computed before `super.init()` because
-    /// `@Published` properties must be assigned before `NSObject` init
-    /// completes. `configureNotificationCallback()` runs after since it
-    /// captures `self` in a closure.
+    /// `@Published` state must be assigned before `super.init()`;
+    /// closure-capturing wiring runs via `configureNotificationCallback()`.
     init(
         settingsStore: CurfewSettingsStore,
         appRouter: AppRouting,
@@ -265,12 +265,12 @@ final class CurfewAppModel: NSObject, ObservableObject {
         self.featureFlags = featureFlags
         self.activityRecorder = activityRecorder
         self.mcpRequestMonitor = mcpRequestMonitor
+        self.mcpSocketServer = MCPSocketServer()
         self.licenseGate = licenseGate
         self.cloudKitSyncEngine = cloudKitSyncEngine
         self.calendarMonitor = calendarMonitor
         self.privilegedHelperManager = privilegedHelperManager
         self.idleWatcher = idleWatcher
-        self.deviceRegistry = DeviceRegistry(idleWatcher: idleWatcher)
 
         let loadedSettings = settingsStore.load()
         self.settings = loadedSettings
@@ -332,6 +332,7 @@ final class CurfewAppModel: NSObject, ObservableObject {
         }
         if settings.mcpEnabled {
             mcpRequestMonitor.start()
+            mcpSocketServer.start()
         }
         licenseGate.loadStoredKey()
 
