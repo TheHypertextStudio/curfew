@@ -183,6 +183,11 @@ final class CurfewAppModel: NSObject, ObservableObject {
     /// can detect day rollovers without depending on a NotificationCenter.
     var currentDayToken = ""
 
+    /// Last-evaluated warning stage. Tracked so widget-timeline reloads can
+    /// fire on sub-phase escalations (T-15 → T-5 within the warning phase),
+    /// not only on coarser phase transitions.
+    var previousWarningStage: WarningStage = .none
+
     /// Whether the user has been idle past `idleWatcher.idleThresholdSeconds`.
     /// Mirrored from the watcher so SwiftUI surfaces can observe it without
     /// reaching into a non-`@Published` collaborator. The day-rollover branch

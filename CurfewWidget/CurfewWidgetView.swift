@@ -13,28 +13,44 @@ struct CurfewWidgetView: View {
         }
     }
 
-    // MARK: - Small: phase icon + time remaining
+    // MARK: - Small: phase-tinted countdown ring
 
     private var smallView: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Image(systemName: phaseIcon)
-                .font(.system(size: 22, weight: .medium))
-                .foregroundStyle(phaseColor)
-
-            Text(timeRemainingText)
-                .font(.system(size: 28, weight: .semibold, design: .rounded))
-                .monospacedDigit()
-                .foregroundStyle(phaseColor)
-                .minimumScaleFactor(0.6)
-
-            Text(phaseLabel)
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(.secondary)
-                .textCase(.uppercase)
+        ZStack {
+            Gauge(value: ringProgress) {
+                EmptyView()
+            } currentValueLabel: {
+                VStack(spacing: 2) {
+                    Image(systemName: phaseIcon)
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(phaseColor)
+                    Text(timeRemainingText)
+                        .font(.system(size: 18, weight: .semibold, design: .rounded))
+                        .monospacedDigit()
+                        .foregroundStyle(phaseColor)
+                        .minimumScaleFactor(0.5)
+                }
+            }
+            .gaugeStyle(.accessoryCircular)
+            .tint(phaseColor)
+            .scaleEffect(1.6)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-        .padding(14)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(12)
         .containerBackground(.fill.tertiary, for: .widget)
+    }
+
+    /// Normalized 0 … 1 progress for the ring. Day-off and lockout render
+    /// as full circles; during working/warning, progress fills from 0 at
+    /// the start of the window to 1 at the lock moment.
+    private var ringProgress: Double {
+        switch entry.phase {
+        case "day_off", "locked": 1.0
+        default:
+            // Map minutesRemaining ∈ (0 … 480] to progress ∈ (1 … 0]; clamp.
+            let minutes = max(0, min(entry.minutesRemaining, 480))
+            return 1.0 - Double(minutes) / 480.0
+        }
     }
 
     // MARK: - Medium: phase + remaining + schedule window
@@ -77,7 +93,7 @@ struct CurfewWidgetView: View {
         .containerBackground(.fill.tertiary, for: .widget)
     }
 
-    // MARK: - Large: full status
+    // MARK: - Large: status + weekly chart + streak
 
     private var largeView: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -88,16 +104,17 @@ struct CurfewWidgetView: View {
                 Text("Curfew")
                     .font(.system(size: 15, weight: .semibold))
                 Spacer()
+                streakPill
             }
 
             Text(timeRemainingText)
-                .font(.system(size: 48, weight: .semibold, design: .rounded))
+                .font(.system(size: 44, weight: .semibold, design: .rounded))
                 .monospacedDigit()
                 .foregroundStyle(phaseColor)
                 .minimumScaleFactor(0.5)
 
             Text(phaseLabel)
-                .font(.system(size: 13))
+                .font(.system(size: 12))
                 .foregroundStyle(.secondary)
                 .textCase(.uppercase)
 
@@ -110,7 +127,7 @@ struct CurfewWidgetView: View {
                     Text(unlock)
                         .monospacedDigit()
                 }
-                .font(.system(size: 13))
+                .font(.system(size: 12))
                 .foregroundStyle(.secondary)
 
                 HStack {
@@ -119,17 +136,56 @@ struct CurfewWidgetView: View {
                     Text(lock)
                         .monospacedDigit()
                 }
-                .font(.system(size: 13))
+                .font(.system(size: 12))
                 .foregroundStyle(.secondary)
             } else {
                 Text("Day off")
-                    .font(.system(size: 13))
+                    .font(.system(size: 12))
                     .foregroundStyle(.secondary)
             }
+
+            Spacer(minLength: 0)
+            weeklyBars
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .padding(16)
         .containerBackground(.fill.tertiary, for: .widget)
+    }
+
+    /// Streak pill, rendered top-right on the large widget. Hidden when
+    /// streak is 0 so a freshly-installed app doesn't advertise "0 days"
+    /// as a spurious achievement.
+    @ViewBuilder
+    private var streakPill: some View {
+        if entry.weeklyStreakDays > 0 {
+            HStack(spacing: 3) {
+                Image(systemName: "flame.fill")
+                Text("\(entry.weeklyStreakDays)")
+                    .monospacedDigit()
+            }
+            .font(.system(size: 11, weight: .semibold))
+            .foregroundStyle(phaseColor)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3)
+            .background(phaseColor.opacity(0.15), in: Capsule())
+        }
+    }
+
+    /// Seven-bar sparkline of this week's lockouts. Filled bar = day held,
+    /// hollow bar = day missed or still pending. Monday-first.
+    private var weeklyBars: some View {
+        HStack(alignment: .bottom, spacing: 6) {
+            ForEach(0 ..< entry.dailyBars.count, id: \.self) { index in
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(
+                        entry.dailyBars[index] > 0
+                            ? phaseColor
+                            : phaseColor.opacity(0.2)
+                    )
+                    .frame(width: 10, height: 16)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     // MARK: - Helpers

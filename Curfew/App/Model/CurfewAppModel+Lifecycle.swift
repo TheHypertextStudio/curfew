@@ -104,9 +104,16 @@ extension CurfewAppModel {
         if previousPhase != .locked, state.phase == .locked {
             lockoutMessage = EncouragementMessageCatalog.next(after: lockoutMessage)
         }
-        if previousPhase != state.phase, featureFlags.widgetKitEnabled {
+        // Reload widget timelines on both phase transitions and warning-
+        // stage transitions. The old behaviour only covered phase, so a
+        // widget viewed during warning escalation stayed on stale copy
+        // until the lockout moment. Per-stage reloads keep the ring and
+        // the label in sync with what the app thinks is happening.
+        if featureFlags.widgetKitEnabled,
+           previousPhase != state.phase || previousWarningStage != state.warningStage {
             WidgetCenter.shared.reloadTimelines(ofKind: "CurfewWidget")
         }
+        previousWarningStage = state.warningStage
         if previousPhase != state.phase, featureFlags.privilegedHelperEnabled {
             if state.phase == .locked {
                 LockoutStatePersistence.markLockoutActive()
