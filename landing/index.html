@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Curfew — A hard stop for your Mac</title>
+  <meta name="description" content="Set a schedule. When the clock runs out, your Mac locks you out. No willpower required." />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <nav>
+      <span class="wordmark">Curfew</span>
+      <a href="https://github.com/hypertext-studio/curfew" class="nav-link">GitHub</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <h1>A hard stop<br>for your Mac.</h1>
+      <p class="hero-sub">
+        Set a schedule. When the clock runs out, your machine locks you out —
+        warnings, then an overlay, then an optional shutdown.
+        No willpower required.
+      </p>
+      <div class="hero-actions">
+        <a href="#download" class="btn-primary">Download free</a>
+        <a href="#pro" class="btn-secondary">Curfew Pro — $19</a>
+      </div>
+    </section>
+
+    <section class="features" id="features">
+      <div class="feature-grid">
+        <div class="feature-card">
+          <div class="feature-icon">⏱</div>
+          <h3>Weekly schedule</h3>
+          <p>Per-day lock and unlock times. Day-off support. Three presets to get started fast.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">⚠️</div>
+          <h3>Graduated warnings</h3>
+          <p>T-30, T-15, T-5, T-2, T-1 warnings with configurable intervals and notifications.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🔒</div>
+          <h3>Full-screen lockout</h3>
+          <p>Covers every display and Space. Intercepts the usual keyboard escape attempts.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🧾</div>
+          <h3>"Convince me" overrides</h3>
+          <p>Typed justification, 5-minute cooldown, hold-to-confirm. Overrides cost something deliberate.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📊</div>
+          <h3>This Week retrospective</h3>
+          <p>Rolling summary of lockouts held, extensions used, current streak.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🤖</div>
+          <h3>MCP server — free</h3>
+          <p>AI assistants can read your state and negotiate extensions from within a coding session.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="mcp" id="mcp">
+      <div class="section-inner">
+        <h2>Claude can negotiate with your focus rules.</h2>
+        <p>
+          <code>curfew-mcp</code> is a stdio MCP server bundled with the app.
+          Add it to Claude Desktop in one click and your AI assistant can check
+          how much time you have left, request an extension, or start a focus session —
+          all with your approval.
+        </p>
+        <div class="code-block">
+          <pre><code>{
+  "mcpServers": {
+    "curfew": {
+      "command": "/Applications/Curfew.app/Contents/Resources/curfew-mcp",
+      "args": []
+    }
+  }
+}</code></pre>
+        </div>
+        <p class="mcp-note">Or copy the config snippet directly from Settings → Integrations.</p>
+      </div>
+    </section>
+
+    <section class="pro" id="pro">
+      <div class="section-inner">
+        <h2>Curfew Pro</h2>
+        <p>For people working across multiple Macs.</p>
+        <table class="pro-table">
+          <thead>
+            <tr>
+              <th>Feature</th>
+              <th>Free</th>
+              <th>Pro</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>Schedule, warnings, lockout</td><td>✓</td><td>✓</td></tr>
+            <tr><td>Extension / override budgets</td><td>✓</td><td>✓</td></tr>
+            <tr><td>This Week retrospective</td><td>✓</td><td>✓</td></tr>
+            <tr><td>curfew-ctl CLI</td><td>✓</td><td>✓</td></tr>
+            <tr><td>curfew-mcp MCP server</td><td>✓</td><td>✓</td></tr>
+            <tr><td>CloudKit multi-device sync</td><td>—</td><td>✓</td></tr>
+            <tr><td>WidgetKit widgets</td><td>—</td><td>✓</td></tr>
+            <tr><td>Calendar integration</td><td>—</td><td>✓</td></tr>
+          </tbody>
+        </table>
+        <p class="pro-price">$19 early-bird &nbsp;·&nbsp; $29 list &nbsp;·&nbsp; verified offline</p>
+        <a href="#download" class="btn-primary">Get Pro</a>
+      </div>
+    </section>
+
+    <section class="download" id="download">
+      <div class="section-inner">
+        <h2>Download</h2>
+        <p>macOS 15+. Free, open source (MIT).</p>
+        <a href="https://github.com/hypertext-studio/curfew/releases/latest" class="btn-primary">
+          Download latest DMG
+        </a>
+        <p class="download-sub">
+          Or build from source:
+          <code>git clone https://github.com/hypertext-studio/curfew &amp;&amp; open Curfew.xcodeproj</code>
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>
+      A <a href="https://hypertext.studio">Hypertext Studio</a> product —
+      <em>mens et manus</em>
+    </p>
+    <p>
+      <a href="https://github.com/hypertext-studio/curfew">GitHub</a> ·
+      <a href="privacy.html">Privacy</a>
+    </p>
+  </footer>
+</body>
+</html>

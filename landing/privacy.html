@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy — Curfew</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <nav>
+      <a href="/" class="wordmark">Curfew</a>
+      <a href="https://github.com/hypertext-studio/curfew" class="nav-link">GitHub</a>
+    </nav>
+  </header>
+
+  <main>
+    <section>
+      <div class="section-inner" style="max-width:640px">
+        <h1 style="font-size:36px;font-weight:700;letter-spacing:-0.5px;margin-bottom:32px">Privacy</h1>
+
+        <p style="color:var(--muted);margin-bottom:32px">
+          Curfew stores everything locally and requests only the permissions it uses.
+        </p>
+
+        <h2 style="margin-bottom:12px;font-size:20px">What Curfew stores</h2>
+        <table class="pro-table" style="margin-bottom:40px">
+          <thead><tr><th>Data</th><th>Where</th><th>Retention</th></tr></thead>
+          <tbody>
+            <tr><td>Schedule, budgets, preferences</td><td>~/Library/Application Support/Curfew/</td><td>Until uninstall</td></tr>
+            <tr><td>Override and extension events</td><td>SQLite</td><td>52 weeks</td></tr>
+            <tr><td>Activity log</td><td>SQLite</td><td>52 weeks</td></tr>
+            <tr><td>License key (Pro)</td><td>~/Library/Application Support/Curfew/</td><td>Until deactivated</td></tr>
+          </tbody>
+        </table>
+
+        <h2 style="margin-bottom:12px;font-size:20px">What Curfew does not do</h2>
+        <ul style="color:var(--muted);margin-bottom:40px;padding-left:20px;line-height:2">
+          <li>No analytics, telemetry, or crash reporting.</li>
+          <li>No network requests except iCloud sync (Pro, opt-in) and one-time offline license verification.</li>
+          <li>No access to your files, browser history, or app content.</li>
+        </ul>
+
+        <h2 style="margin-bottom:12px;font-size:20px">Permissions</h2>
+        <table class="pro-table" style="margin-bottom:40px">
+          <thead><tr><th>Permission</th><th>Why</th></tr></thead>
+          <tbody>
+            <tr><td>Calendars (Pro)</td><td>Read today's events for display. Never written to.</td></tr>
+            <tr><td>Notifications</td><td>Warning countdowns and lockout alerts.</td></tr>
+            <tr><td>Accessibility (optional)</td><td>Keyboard shortcut interception during lockout.</td></tr>
+          </tbody>
+        </table>
+
+        <h2 style="margin-bottom:12px;font-size:20px">iCloud sync (Pro)</h2>
+        <p style="color:var(--muted);margin-bottom:40px">
+          When enabled, your schedule is stored in your private iCloud database (CloudKit).
+          Hypertext Studio has no access — it lives in your personal iCloud account, encrypted by Apple.
+        </p>
+
+        <h2 style="margin-bottom:12px;font-size:20px">MCP server</h2>
+        <p style="color:var(--muted);margin-bottom:40px">
+          When <code>curfew-mcp</code> is running, AI assistants can read your enforcement state and request
+          changes. Write operations require your explicit approval. No data leaves your machine through this path.
+        </p>
+
+        <p style="color:var(--muted)">Questions: <a href="mailto:hello@hypertext.studio">hello@hypertext.studio</a></p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>A <a href="https://hypertext.studio">Hypertext Studio</a> product — <em>mens et manus</em></p>
+  </footer>
+</body>
+</html>
