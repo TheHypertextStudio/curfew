@@ -1,13 +1,27 @@
 import Foundation
 
-struct WarningIntervals: Codable, Equatable {
-    var thirtyMinutes: Int
-    var fifteenMinutes: Int
-    var fiveMinutes: Int
-    var twoMinutes: Int
-    var oneMinute: Int
+public struct WarningIntervals: Codable, Equatable {
+    public var thirtyMinutes: Int
+    public var fifteenMinutes: Int
+    public var fiveMinutes: Int
+    public var twoMinutes: Int
+    public var oneMinute: Int
 
-    static let `default` = WarningIntervals(
+    public init(
+        thirtyMinutes: Int,
+        fifteenMinutes: Int,
+        fiveMinutes: Int,
+        twoMinutes: Int,
+        oneMinute: Int
+    ) {
+        self.thirtyMinutes = thirtyMinutes
+        self.fifteenMinutes = fifteenMinutes
+        self.fiveMinutes = fiveMinutes
+        self.twoMinutes = twoMinutes
+        self.oneMinute = oneMinute
+    }
+
+    public static let `default` = WarningIntervals(
         thirtyMinutes: 30,
         fifteenMinutes: 15,
         fiveMinutes: 5,
@@ -15,7 +29,7 @@ struct WarningIntervals: Codable, Equatable {
         oneMinute: 1
     )
 
-    var normalized: WarningIntervals {
+    public var normalized: WarningIntervals {
         var one = max(1, min(oneMinute, 30))
         var two = max(one + 1, min(twoMinutes, 45))
         var five = max(two + 1, min(fiveMinutes, 90))
@@ -38,7 +52,7 @@ struct WarningIntervals: Codable, Equatable {
     }
 }
 
-enum WarningStage: Equatable {
+public enum WarningStage: Equatable {
     case none
     case thirtyMinutes
     case fifteenMinutes
@@ -47,7 +61,7 @@ enum WarningStage: Equatable {
     case oneMinute
     case lockout
 
-    static func stage(
+    public static func stage(
         forMinutesRemaining minutes: Int,
         intervals: WarningIntervals = .default
     ) -> WarningStage {
@@ -73,7 +87,7 @@ enum WarningStage: Equatable {
         return .none
     }
 
-    var supportsSnooze: Bool {
+    public var supportsSnooze: Bool {
         switch self {
         case .thirtyMinutes, .fifteenMinutes:
             true
@@ -82,7 +96,7 @@ enum WarningStage: Equatable {
         }
     }
 
-    var showsFloatingTimer: Bool {
+    public var showsFloatingTimer: Bool {
         switch self {
         case .fiveMinutes, .twoMinutes, .oneMinute:
             true
@@ -91,7 +105,7 @@ enum WarningStage: Equatable {
         }
     }
 
-    var overlayOpacity: Double {
+    public var overlayOpacity: Double {
         switch self {
         case .none, .thirtyMinutes, .fifteenMinutes:
             0

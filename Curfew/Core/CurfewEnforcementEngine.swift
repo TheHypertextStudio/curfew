@@ -1,21 +1,21 @@
 import Foundation
 
-enum EnforcementPhase: Equatable {
+public enum EnforcementPhase: Equatable {
     case working
     case warning
     case locked
     case dayOff
 }
 
-struct CurfewEvaluation: Equatable {
-    var phase: EnforcementPhase
-    var warningStage: WarningStage
-    var minutesRemaining: Int
-    var canRequestExtension: Bool
-    var lockDate: Date?
-    var unlockDate: Date?
+public struct CurfewEvaluation: Equatable {
+    public var phase: EnforcementPhase
+    public var warningStage: WarningStage
+    public var minutesRemaining: Int
+    public var canRequestExtension: Bool
+    public var lockDate: Date?
+    public var unlockDate: Date?
 
-    static let dayOff = CurfewEvaluation(
+    public static let dayOff = CurfewEvaluation(
         phase: .dayOff,
         warningStage: .none,
         minutesRemaining: .max,
@@ -24,7 +24,7 @@ struct CurfewEvaluation: Equatable {
         unlockDate: nil
     )
 
-    static func locked(lockDate: Date, unlockDate: Date) -> CurfewEvaluation {
+    public static func locked(lockDate: Date, unlockDate: Date) -> CurfewEvaluation {
         CurfewEvaluation(
             phase: .locked,
             warningStage: .lockout,
@@ -36,14 +36,14 @@ struct CurfewEvaluation: Equatable {
     }
 }
 
-struct CurfewEnforcementEngine {
+public struct CurfewEnforcementEngine {
     private let calendar: Calendar
 
-    init(calendar: Calendar = .current) {
+    public init(calendar: Calendar = .current) {
         self.calendar = calendar
     }
 
-    func evaluate(
+    public func evaluate(
         at date: Date,
         schedule: WeeklySchedule,
         extensionMinutesGrantedToday: Int,

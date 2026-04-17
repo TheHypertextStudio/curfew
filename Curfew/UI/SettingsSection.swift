@@ -32,21 +32,21 @@ enum SettingsSection: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .schedule:     "Schedule"
-        case .enforcement:  "Enforcement"
+        case .schedule: "Schedule"
+        case .enforcement: "Enforcement"
         case .integrations: "Integrations"
-        case .devices:      "Devices"
-        case .advanced:     "Advanced"
+        case .devices: "Devices"
+        case .advanced: "Advanced"
         }
     }
 
     var icon: String {
         switch self {
-        case .schedule:     "calendar"
-        case .enforcement:  "timer"
+        case .schedule: "calendar"
+        case .enforcement: "timer"
         case .integrations: "puzzlepiece.extension"
-        case .devices:      "macbook.and.iphone"
-        case .advanced:     "gearshape.2"
+        case .devices: "macbook.and.iphone"
+        case .advanced: "gearshape.2"
         }
     }
 }

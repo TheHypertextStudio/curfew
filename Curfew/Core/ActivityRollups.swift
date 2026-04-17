@@ -7,28 +7,28 @@ import Foundation
 /// "0 extensions" without a nil-coalesce at every call site. A day with
 /// zero activity still appears in the weekly output so the streak and
 /// day-of-week grid stay contiguous.
-struct DailyActivityRollup: Equatable {
+public struct DailyActivityRollup: Equatable {
     /// Start-of-day moment this rollup bucket is keyed on. Stored as a
     /// `Date` (not a `DateComponents`) so timeline rendering can compare
     /// directly against other absolute timestamps.
-    let day: Date
+    public let day: Date
 
     /// Number of extensions the user claimed this day.
-    let extensionCount: Int
+    public let extensionCount: Int
 
     /// Total minutes granted by those extensions combined.
-    let extensionMinutes: Int
+    public let extensionMinutes: Int
 
     /// Number of overrides granted via the "Convince Me" flow.
-    let overrideCount: Int
+    public let overrideCount: Int
 
     /// Total minutes granted by those overrides combined.
-    let overrideMinutes: Int
+    public let overrideMinutes: Int
 
     /// Whether the user hit lockout today. False means either the day was
     /// off, the app wasn't running, or the user ended the working window
     /// before curfew fired.
-    let hadLockout: Bool
+    public let hadLockout: Bool
 }
 
 /// Weekly summary produced by folding a `[ActivityEvent]` slice into per-
@@ -38,40 +38,40 @@ struct DailyActivityRollup: Equatable {
 /// weekStart + 7 days)`; missing days carry zero rollups so downstream
 /// callers can iterate the array without gap handling. Totals are
 /// pre-computed so the UI doesn't have to re-fold in `body`.
-struct WeeklyActivityRollup: Equatable {
+public struct WeeklyActivityRollup: Equatable {
     /// Per-day rollups in chronological order, length always 7.
-    let days: [DailyActivityRollup]
+    public let days: [DailyActivityRollup]
 
     /// Sum of ``DailyActivityRollup/extensionCount`` across the week.
-    let totalExtensionCount: Int
+    public let totalExtensionCount: Int
 
     /// Sum of ``DailyActivityRollup/extensionMinutes``.
-    let totalExtensionMinutes: Int
+    public let totalExtensionMinutes: Int
 
     /// Sum of ``DailyActivityRollup/overrideCount``.
-    let totalOverrideCount: Int
+    public let totalOverrideCount: Int
 
     /// Sum of ``DailyActivityRollup/overrideMinutes``.
-    let totalOverrideMinutes: Int
+    public let totalOverrideMinutes: Int
 
     /// Number of days this week that ended in a lockout — a proxy for
     /// "how consistently the commitment was kept" until §11 work-hour
     /// accounting lands.
-    let daysWithLockout: Int
+    public let daysWithLockout: Int
 
     /// Trailing-end consecutive-day lockout count. If the most recent
     /// day in `days` had a lockout and so did the day before, the streak
     /// is 2; a gap resets to 0. Calculated from the latest lockout day
     /// (not necessarily the last array entry) so a mid-week view shows a
     /// meaningful streak on Wednesday.
-    let streak: Int
+    public let streak: Int
 }
 
 /// Namespace for the pure-function rollup builder. Kept as an `enum` with
 /// static methods (rather than injecting into `ActivityStore`) so tests
 /// can exercise the aggregation on hand-built event arrays without
 /// opening a database.
-enum ActivityRollups {
+public enum ActivityRollups {
     /// Width of the rollup window in days.
     private static let daysPerWeek = 7
 
@@ -84,7 +84,7 @@ enum ActivityRollups {
     ///     `firstWeekday` anchored to today's week.
     ///   - calendar: calendar used for day bucketing + arithmetic. Tests
     ///     pin a UTC calendar to avoid DST and timezone drift.
-    static func weeklyRollup(
+    public static func weeklyRollup(
         events: [ActivityEvent],
         weekStart: Date,
         calendar: Calendar

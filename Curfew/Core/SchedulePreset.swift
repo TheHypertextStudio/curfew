@@ -12,7 +12,7 @@ import Foundation
 /// Preset → concrete `WeeklySchedule` mappings live on `WeeklySchedule`
 /// itself (`.standardNineToFive`, `.startupHours`, `.halfDay`). This enum
 /// only identifies which preset was chosen.
-enum SchedulePreset: String, CaseIterable, Identifiable {
+public enum SchedulePreset: String, CaseIterable, Identifiable {
     /// 9am–5pm weekdays, weekends off.
     case nineToFive = "9-to-5"
 
@@ -22,7 +22,7 @@ enum SchedulePreset: String, CaseIterable, Identifiable {
     /// 8am–1pm weekdays (short day), weekends off.
     case halfDay = "Half Day"
 
-    var id: String {
+    public var id: String {
         rawValue
     }
 }

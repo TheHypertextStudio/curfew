@@ -1,11 +1,11 @@
 import Foundation
 
-struct ScheduleWindow: Equatable {
-    var lockDate: Date
-    var unlockDate: Date
+public struct ScheduleWindow: Equatable {
+    public var lockDate: Date
+    public var unlockDate: Date
 }
 
-enum Weekday: Int, CaseIterable, Identifiable, Codable {
+public enum Weekday: Int, CaseIterable, Identifiable, Codable {
     case monday = 2
     case tuesday = 3
     case wednesday = 4
@@ -14,11 +14,11 @@ enum Weekday: Int, CaseIterable, Identifiable, Codable {
     case saturday = 7
     case sunday = 1
 
-    var id: Int {
+    public var id: Int {
         rawValue
     }
 
-    var shortName: String {
+    public var shortName: String {
         switch self {
         case .monday: "Mon"
         case .tuesday: "Tue"
@@ -31,28 +31,38 @@ enum Weekday: Int, CaseIterable, Identifiable, Codable {
     }
 }
 
-struct DayRule: Equatable, Codable {
-    var isDayOff: Bool
-    var lockMinutes: Int
-    var unlockMinutes: Int
+public struct DayRule: Equatable, Codable {
+    public var isDayOff: Bool
+    public var lockMinutes: Int
+    public var unlockMinutes: Int
 
-    static let weekdayDefault = DayRule(
+    public static let weekdayDefault = DayRule(
         isDayOff: false,
         lockMinutes: 18 * 60,
         unlockMinutes: 8 * 60
     )
 
-    static let weekendDefault = DayRule(
+    public static let weekendDefault = DayRule(
         isDayOff: true,
         lockMinutes: 18 * 60,
         unlockMinutes: 8 * 60
     )
+
+    public init(isDayOff: Bool, lockMinutes: Int, unlockMinutes: Int) {
+        self.isDayOff = isDayOff
+        self.lockMinutes = lockMinutes
+        self.unlockMinutes = unlockMinutes
+    }
 }
 
-struct WeeklySchedule: Equatable, Codable {
-    var rules: [Weekday: DayRule]
+public struct WeeklySchedule: Equatable, Codable {
+    public var rules: [Weekday: DayRule]
 
-    static let standardNineToFive: WeeklySchedule = .init(
+    public init(rules: [Weekday: DayRule]) {
+        self.rules = rules
+    }
+
+    public static let standardNineToFive: WeeklySchedule = .init(
         rules: Dictionary(
             uniqueKeysWithValues: Weekday.allCases.map { weekday in
                 if weekday == .saturday || weekday == .sunday {
@@ -63,7 +73,7 @@ struct WeeklySchedule: Equatable, Codable {
         )
     )
 
-    static let startupHours: WeeklySchedule = .init(
+    public static let startupHours: WeeklySchedule = .init(
         rules: Dictionary(
             uniqueKeysWithValues: Weekday.allCases.map { weekday in
                 if weekday == .saturday || weekday == .sunday {
@@ -81,7 +91,7 @@ struct WeeklySchedule: Equatable, Codable {
         )
     )
 
-    static let halfDay: WeeklySchedule = .init(
+    public static let halfDay: WeeklySchedule = .init(
         rules: Dictionary(
             uniqueKeysWithValues: Weekday.allCases.map { weekday in
                 if weekday == .saturday || weekday == .sunday {
@@ -99,11 +109,11 @@ struct WeeklySchedule: Equatable, Codable {
         )
     )
 
-    func rule(for weekday: Weekday) -> DayRule {
+    public func rule(for weekday: Weekday) -> DayRule {
         rules[weekday] ?? .weekdayDefault
     }
 
-    func rule(for date: Date, calendar: Calendar = .current) -> DayRule {
+    public func rule(for date: Date, calendar: Calendar = .current) -> DayRule {
         let weekdayInt = calendar.component(.weekday, from: date)
         guard let weekday = Weekday(rawValue: weekdayInt) else {
             return .weekdayDefault
@@ -111,7 +121,7 @@ struct WeeklySchedule: Equatable, Codable {
         return rule(for: weekday)
     }
 
-    func scheduleWindow(
+    public func scheduleWindow(
         for date: Date,
         extensionMinutesGrantedToday: Int = 0,
         calendar: Calendar = .current
@@ -139,7 +149,7 @@ struct WeeklySchedule: Equatable, Codable {
         return currentWindow
     }
 
-    func summarySentence(
+    public func summarySentence(
         forNextDayFrom referenceDate: Date,
         calendar: Calendar = .current,
         locale: Locale = .current

@@ -1,15 +1,15 @@
 import Foundation
 
-final class ExtensionBudgetTracker: @unchecked Sendable {
-    let weeklyLimit: Int
-    let extensionMinutes: Int
-    let resetWeekday: Weekday
+public final class ExtensionBudgetTracker: @unchecked Sendable {
+    public let weeklyLimit: Int
+    public let extensionMinutes: Int
+    public let resetWeekday: Weekday
 
     private let calendar: Calendar
-    private(set) var remaining: Int
+    public private(set) var remaining: Int
     private var lastResetBoundary: Date?
 
-    init(
+    public init(
         weeklyLimit: Int,
         extensionMinutes: Int,
         resetWeekday: Weekday,
@@ -23,7 +23,7 @@ final class ExtensionBudgetTracker: @unchecked Sendable {
     }
 
     @discardableResult
-    func requestExtension(at date: Date) -> Bool {
+    public func requestExtension(at date: Date) -> Bool {
         resetIfNeeded(at: date)
 
         guard remaining > 0 else {
@@ -34,7 +34,7 @@ final class ExtensionBudgetTracker: @unchecked Sendable {
         return true
     }
 
-    func resetIfNeeded(at date: Date) {
+    public func resetIfNeeded(at date: Date) {
         let currentBoundary = mostRecentResetBoundary(for: date)
         if let lastResetBoundary {
             if currentBoundary > lastResetBoundary {

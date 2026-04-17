@@ -69,16 +69,16 @@ struct MCPPendingRequestTests {
         #expect(decoded.argumentsJSON == original.argumentsJSON)
     }
 
-    /// `MCPRequestQueue` reads `SharedPaths.mcpRequestQueue`. The queue
-    /// path is not injectable yet (v0.1.1 seam task). The tests below
-    /// document expected behaviour; the actual file I/O path is exercised
-    /// in smoke tests, not in the unit suite, to avoid polluting the
-    /// developer's live queue file.
+    // `MCPRequestQueue` reads `SharedPaths.mcpRequestQueue`. The queue
+    // path is not injectable yet (v0.1.1 seam task). The tests below
+    // document expected behaviour; the actual file I/O path is exercised
+    // in smoke tests, not in the unit suite, to avoid polluting the
+    // developer's live queue file.
 
     @Test("MCPPendingRequest encodes and decodes id + status correctly")
     func encodingRoundTrip() throws {
-        let original = MCPPendingRequest(
-            id: UUID(uuidString: "12345678-1234-1234-1234-123456789abc")!,
+        let original = try MCPPendingRequest(
+            id: #require(UUID(uuidString: "12345678-1234-1234-1234-123456789abc")),
             tool: .requestExtension,
             argumentsJSON: #"{"reason":"queue test"}"#,
             requestedAt: Date(timeIntervalSince1970: 2_000_000)

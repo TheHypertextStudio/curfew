@@ -1,19 +1,19 @@
 import Foundation
 
-enum ScheduleChangeClassification: String, Equatable, Codable {
+public enum ScheduleChangeClassification: String, Equatable, Codable {
     case weaker
     case stricter
     case noChange = "no_change"
 }
 
-struct SchedulePolicyEngine {
+public struct SchedulePolicyEngine {
     private let calendar: Calendar
 
-    init(calendar: Calendar = .current) {
+    public init(calendar: Calendar = .current) {
         self.calendar = calendar
     }
 
-    func classifyChange(
+    public func classifyChange(
         from current: WeeklySchedule,
         to proposed: WeeklySchedule
     ) -> ScheduleChangeClassification {
@@ -52,7 +52,7 @@ struct SchedulePolicyEngine {
         return hasStricterSignal ? .stricter : .noChange
     }
 
-    func earliestEffectiveDate(
+    public func earliestEffectiveDate(
         for change: ScheduleChangeClassification,
         requestedAt: Date
     ) -> Date {

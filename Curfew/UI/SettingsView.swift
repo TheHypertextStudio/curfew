@@ -30,32 +30,42 @@ struct SettingsView: View {
                     pendingChangePanel(message: pending)
                 }
             }
-            .tabItem { Label(SettingsSection.schedule.title,
-                             systemImage: SettingsSection.schedule.icon) }
+            .tabItem { Label(
+                SettingsSection.schedule.title,
+                systemImage: SettingsSection.schedule.icon
+            ) }
 
             tab {
                 extensionsPanel
                 warningPanel
                 shutdownPanel
             }
-            .tabItem { Label(SettingsSection.enforcement.title,
-                             systemImage: SettingsSection.enforcement.icon) }
+            .tabItem { Label(
+                SettingsSection.enforcement.title,
+                systemImage: SettingsSection.enforcement.icon
+            ) }
 
             tab { integrationsPanel }
-                .tabItem { Label(SettingsSection.integrations.title,
-                                 systemImage: SettingsSection.integrations.icon) }
+                .tabItem { Label(
+                    SettingsSection.integrations.title,
+                    systemImage: SettingsSection.integrations.icon
+                ) }
 
             tab { devicesPanel }
-                .tabItem { Label(SettingsSection.devices.title,
-                                 systemImage: SettingsSection.devices.icon) }
+                .tabItem { Label(
+                    SettingsSection.devices.title,
+                    systemImage: SettingsSection.devices.icon
+                ) }
 
             tab {
                 licensePanel
                 advancedPanel
                 setupPanel
             }
-            .tabItem { Label(SettingsSection.advanced.title,
-                             systemImage: SettingsSection.advanced.icon) }
+            .tabItem { Label(
+                SettingsSection.advanced.title,
+                systemImage: SettingsSection.advanced.icon
+            ) }
         }
         .tint(CurfewTheme.accent)
     }
@@ -82,7 +92,7 @@ struct SettingsView: View {
 
     // MARK: - Shared scroll wrapper
 
-    func tab<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+    func tab(@ViewBuilder content: () -> some View) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 content()

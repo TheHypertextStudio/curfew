@@ -5,7 +5,9 @@ struct LicenseView: View {
     @EnvironmentObject private var model: CurfewAppModel
     @State private var keyDraft = ""
 
-    private var gate: LicenseGate { model.licenseGate }
+    private var gate: LicenseGate {
+        model.licenseGate
+    }
 
     var body: some View {
         CurfewPanel {

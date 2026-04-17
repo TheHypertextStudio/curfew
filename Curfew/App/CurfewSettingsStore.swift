@@ -1,32 +1,56 @@
 import Foundation
 
-struct OverrideEvent: Codable, Equatable {
-    var timestamp: Date
-    var deviceName: String
-    var reason: String
-    var grantedDurationMinutes: Int
+public struct OverrideEvent: Codable, Equatable {
+    public var timestamp: Date
+    public var deviceName: String
+    public var reason: String
+    public var grantedDurationMinutes: Int
+
+    public init(
+        timestamp: Date,
+        deviceName: String,
+        reason: String,
+        grantedDurationMinutes: Int
+    ) {
+        self.timestamp = timestamp
+        self.deviceName = deviceName
+        self.reason = reason
+        self.grantedDurationMinutes = grantedDurationMinutes
+    }
 }
 
-struct PendingScheduleChange: Codable, Equatable {
-    var proposedSchedule: WeeklySchedule
-    var requestedAt: Date
-    var effectiveAt: Date
-    var classification: ScheduleChangeClassification
+public struct PendingScheduleChange: Codable, Equatable {
+    public var proposedSchedule: WeeklySchedule
+    public var requestedAt: Date
+    public var effectiveAt: Date
+    public var classification: ScheduleChangeClassification
+
+    public init(
+        proposedSchedule: WeeklySchedule,
+        requestedAt: Date,
+        effectiveAt: Date,
+        classification: ScheduleChangeClassification
+    ) {
+        self.proposedSchedule = proposedSchedule
+        self.requestedAt = requestedAt
+        self.effectiveAt = effectiveAt
+        self.classification = classification
+    }
 }
 
-struct CurfewSettings: Codable, Equatable {
-    var schedule: WeeklySchedule
-    var pendingScheduleChange: PendingScheduleChange?
-    var hasCompletedInitialSetup: Bool
-    var extensionWeeklyLimit: Int
-    var extensionDurationMinutes: Int
-    var overrideWeeklyLimit: Int
-    var overrideDurationMinutes: Int
-    var resetWeekday: Weekday
-    var autoShutdownEnabled: Bool
-    var autoShutdownDelayMinutes: Int
-    var warningIntervals: WarningIntervals
-    var mcpEnabled: Bool
+public struct CurfewSettings: Codable, Equatable {
+    public var schedule: WeeklySchedule
+    public var pendingScheduleChange: PendingScheduleChange?
+    public var hasCompletedInitialSetup: Bool
+    public var extensionWeeklyLimit: Int
+    public var extensionDurationMinutes: Int
+    public var overrideWeeklyLimit: Int
+    public var overrideDurationMinutes: Int
+    public var resetWeekday: Weekday
+    public var autoShutdownEnabled: Bool
+    public var autoShutdownDelayMinutes: Int
+    public var warningIntervals: WarningIntervals
+    public var mcpEnabled: Bool
 
     private enum CodingKeys: String, CodingKey {
         case schedule
@@ -43,7 +67,7 @@ struct CurfewSettings: Codable, Equatable {
         case mcpEnabled
     }
 
-    init(
+    public init(
         schedule: WeeklySchedule,
         pendingScheduleChange: PendingScheduleChange?,
         hasCompletedInitialSetup: Bool,
@@ -71,7 +95,7 @@ struct CurfewSettings: Codable, Equatable {
         self.mcpEnabled = mcpEnabled
     }
 
-    init(from decoder: Decoder) throws {
+    public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.schedule = try container.decode(WeeklySchedule.self, forKey: .schedule)
         self.pendingScheduleChange = try container.decodeIfPresent(
@@ -105,7 +129,7 @@ struct CurfewSettings: Codable, Equatable {
         self.mcpEnabled = try container.decodeIfPresent(Bool.self, forKey: .mcpEnabled) ?? true
     }
 
-    func encode(to encoder: Encoder) throws {
+    public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(schedule, forKey: .schedule)
         try container.encodeIfPresent(pendingScheduleChange, forKey: .pendingScheduleChange)
@@ -121,7 +145,7 @@ struct CurfewSettings: Codable, Equatable {
         try container.encode(mcpEnabled, forKey: .mcpEnabled)
     }
 
-    static let `default` = CurfewSettings(
+    public static let `default` = CurfewSettings(
         schedule: .standardNineToFive,
         pendingScheduleChange: nil,
         hasCompletedInitialSetup: false,
@@ -137,7 +161,7 @@ struct CurfewSettings: Codable, Equatable {
     )
 }
 
-final class CurfewSettingsStore {
+public final class CurfewSettingsStore {
     private enum Key {
         static let settings = "curfew.settings.v1"
         static let hasShownInitialSetup = "curfew.initialSetupShown.v1"
@@ -148,25 +172,25 @@ final class CurfewSettingsStore {
     private let encoder = JSONEncoder()
     private let decoder = JSONDecoder()
 
-    init(defaults: UserDefaults = .standard) {
+    public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
     }
 
-    func load() -> CurfewSettings {
+    public func load() -> CurfewSettings {
         guard let data = defaults.data(forKey: Key.settings) else {
             return .default
         }
         return (try? decoder.decode(CurfewSettings.self, from: data)) ?? .default
     }
 
-    func save(_ settings: CurfewSettings) {
+    public func save(_ settings: CurfewSettings) {
         guard let data = try? encoder.encode(settings) else {
             return
         }
         defaults.set(data, forKey: Key.settings)
     }
 
-    func consumeShouldShowInitialSetup() -> Bool {
+    public func consumeShouldShowInitialSetup() -> Bool {
         let hasShownInitialSetup = defaults.bool(forKey: Key.hasShownInitialSetup)
         if hasShownInitialSetup {
             return false
@@ -176,14 +200,14 @@ final class CurfewSettingsStore {
         return true
     }
 
-    func loadOverrideEvents() -> [OverrideEvent] {
+    public func loadOverrideEvents() -> [OverrideEvent] {
         guard let data = defaults.data(forKey: Key.overrideEvents) else {
             return []
         }
         return (try? decoder.decode([OverrideEvent].self, from: data)) ?? []
     }
 
-    func appendOverrideEvent(_ event: OverrideEvent) {
+    public func appendOverrideEvent(_ event: OverrideEvent) {
         var events = loadOverrideEvents()
         events.append(event)
         guard let data = try? encoder.encode(events) else {

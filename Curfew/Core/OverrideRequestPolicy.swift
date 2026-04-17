@@ -1,17 +1,17 @@
 import Foundation
 
-enum OverrideRequestPolicy {
-    static let entryPrompt = "Need to get back in?"
-    static let cooldownSeconds = 5 * 60
-    static let minimumJustificationCharacters = 50
-    static let confirmationHoldSeconds: Double = 3
-    static let defaultOverrideDurationMinutes = 30
+public enum OverrideRequestPolicy {
+    public static let entryPrompt = "Need to get back in?"
+    public static let cooldownSeconds = 5 * 60
+    public static let minimumJustificationCharacters = 50
+    public static let confirmationHoldSeconds: Double = 3
+    public static let defaultOverrideDurationMinutes = 30
 
-    static func cooldownEnd(startedAt now: Date) -> Date {
+    public static func cooldownEnd(startedAt now: Date) -> Date {
         now.addingTimeInterval(TimeInterval(cooldownSeconds))
     }
 
-    static func canConfirm(
+    public static func canConfirm(
         reason: String,
         now: Date,
         cooldownEndsAt: Date?,

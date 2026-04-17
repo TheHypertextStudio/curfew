@@ -5,6 +5,7 @@ let package = Package(
     name: "CurfewTools",
     platforms: [.macOS(.v14)],
     products: [
+        .library(name: "CurfewKit", targets: ["CurfewKit"]),
         .executable(name: "curfew-ctl", targets: ["curfew-ctl"]),
         .executable(name: "curfew-mcp", targets: ["curfew-mcp"]),
     ],
@@ -15,31 +16,35 @@ let package = Package(
         ),
     ],
     targets: [
+        // Domain models and storage shared by the app, CLI, and MCP server.
+        // Source files live in Curfew/Core/ and Curfew/App/; this target
+        // references them via symlinks so the app Xcode target and the package
+        // compile the same source without duplication.
+        .target(
+            name: "CurfewKit",
+            dependencies: [],
+            path: "Sources/CurfewKit",
+            linkerSettings: [
+                .linkedLibrary("sqlite3"),
+            ]
+        ),
         // CLI: reads app settings and activity log; no IPC with the app required.
-        // Source directory symlinks Core + App files the CLI needs directly into
-        // its build unit — no library module wrapper, no `public` modifiers.
-        // When CurfewShared is extracted as a proper Swift package (v0.1.1),
-        // the symlinks become package imports.
         .executableTarget(
             name: "curfew-ctl",
             dependencies: [
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
+                .target(name: "CurfewKit"),
             ],
-            path: "Sources/curfew-ctl",
-            linkerSettings: [
-                // ActivityStore uses the system SQLite3 bundled with macOS.
-                .linkedLibrary("sqlite3"),
-            ]
+            path: "Sources/curfew-ctl"
         ),
         // MCP server: JSON-RPC 2.0 over stdio. Also reads shared storage and
         // appends write requests to the queue file for user approval in the app.
         .executableTarget(
             name: "curfew-mcp",
-            dependencies: [],
-            path: "Sources/curfew-mcp",
-            linkerSettings: [
-                .linkedLibrary("sqlite3"),
-            ]
+            dependencies: [
+                .target(name: "CurfewKit"),
+            ],
+            path: "Sources/curfew-mcp"
         ),
     ]
 )

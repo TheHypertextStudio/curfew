@@ -30,9 +30,9 @@ enum AIConsentPolicy: String, Codable, CaseIterable {
     /// Human-readable label for display in Settings.
     var displayName: String {
         switch self {
-        case .queue: return "Queue for approval (recommended)"
-        case .autoApprove: return "Auto-approve all requests"
-        case .deny: return "Deny all write requests"
+        case .queue: "Queue for approval (recommended)"
+        case .autoApprove: "Auto-approve all requests"
+        case .deny: "Deny all write requests"
         }
     }
 
@@ -40,11 +40,11 @@ enum AIConsentPolicy: String, Codable, CaseIterable {
     var rationale: String {
         switch self {
         case .queue:
-            return "You'll see a prompt in Curfew before any AI-requested change takes effect."
+            "You'll see a prompt in Curfew before any AI-requested change takes effect."
         case .autoApprove:
-            return "AI tools can extend or override your curfew without asking first."
+            "AI tools can extend or override your curfew without asking first."
         case .deny:
-            return "AI tools can read your schedule and status but cannot change anything."
+            "AI tools can read your schedule and status but cannot change anything."
         }
     }
 }

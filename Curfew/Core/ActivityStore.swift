@@ -25,11 +25,11 @@ private let sqliteTransient = unsafeBitCast(
 /// serial queue before touching the SQLite handle. Callers can invoke from
 /// any queue. Intended usage is a single long-lived instance held by
 /// ``CurfewAppModel`` for the lifetime of the process.
-final class ActivityStore {
+public final class ActivityStore {
     /// On-disk path to the SQLite file. Exposed so tests can assert the
     /// database lives where we expect and so future export / backup
     /// tooling can read it without reopening through this class.
-    let databaseURL: URL
+    public let databaseURL: URL
 
     /// Raw SQLite handle. `nil` only briefly during init failure paths
     /// (before `throw`) and after `deinit`. Every method guards on this
@@ -44,11 +44,11 @@ final class ActivityStore {
 
     /// Opens (or creates) the activity log database at
     /// `<directory>/activity.sqlite3`. The directory must already exist.
-    convenience init(directory: URL) throws {
+    public convenience init(directory: URL) throws {
         try self.init(databaseURL: directory.appendingPathComponent("activity.sqlite3"))
     }
 
-    init(databaseURL: URL) throws {
+    public init(databaseURL: URL) throws {
         self.databaseURL = databaseURL
         var handle: OpaquePointer?
         let status = sqlite3_open_v2(
@@ -75,7 +75,7 @@ final class ActivityStore {
 
     /// Persists one event. Re-appending an event with the same `id` raises
     /// ``ActivityStoreError/duplicateEventID``.
-    func append(_ event: ActivityEvent) throws {
+    public func append(_ event: ActivityEvent) throws {
         try queue.sync {
             try runInsert(event)
         }
@@ -84,7 +84,7 @@ final class ActivityStore {
     /// Returns events whose `timestamp` falls within `range` (inclusive),
     /// ordered ascending. Pass `.distantPast ... .distantFuture` to read
     /// the full log.
-    func events(in range: ClosedRange<Date>) throws -> [ActivityEvent] {
+    public func events(in range: ClosedRange<Date>) throws -> [ActivityEvent] {
         try queue.sync {
             try runFetch(from: range.lowerBound, through: range.upperBound)
         }
@@ -93,7 +93,7 @@ final class ActivityStore {
     /// Deletes every event older than `olderThan` seconds relative to
     /// `now`. The recorder calls this on day rollover to enforce the
     /// 52-week retention window.
-    func trimEvents(olderThan olderThanSeconds: TimeInterval, now: Date) throws {
+    public func trimEvents(olderThan olderThanSeconds: TimeInterval, now: Date) throws {
         try queue.sync {
             try runTrim(olderThanSeconds: olderThanSeconds, now: now)
         }
@@ -257,7 +257,7 @@ final class ActivityStore {
 /// Failure modes for ``ActivityStore``. Cases are named around caller
 /// intent rather than exposing raw SQLite status codes — callers don't
 /// need to branch on SQLite internals.
-enum ActivityStoreError: Error, Equatable {
+public enum ActivityStoreError: Error, Equatable {
     /// `sqlite3_open_v2` failed to open or create the database file.
     case couldNotOpenDatabase
 

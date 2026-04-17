@@ -46,9 +46,12 @@ struct PurchasePromptView: View {
 
                 Spacer()
 
-                Link("Upgrade — $19", destination: URL(string: "https://curfew.hypertext.studio/#pro")!)
-                    .font(CurfewTypography.bodyEmphasis(13))
-                    .foregroundStyle(CurfewTheme.accent)
+                Link(
+                    "Upgrade — $19",
+                    destination: URL(string: "https://curfew.hypertext.studio/#pro")!
+                )
+                .font(CurfewTypography.bodyEmphasis(13))
+                .foregroundStyle(CurfewTheme.accent)
             }
         }
     }

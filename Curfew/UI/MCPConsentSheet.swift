@@ -43,9 +43,11 @@ struct MCPConsentSheet: View {
                     .font(CurfewTypography.bodyEmphasis(18))
                     .foregroundStyle(CurfewTheme.ink)
 
-                Text("An AI assistant (via \(request.tool.displayName)) is asking to change your Curfew enforcement.")
-                    .font(CurfewTypography.body(14))
-                    .foregroundStyle(CurfewTheme.mutedInk)
+                Text(
+                    "An AI assistant (via \(request.tool.displayName)) is asking to change your Curfew enforcement."
+                )
+                .font(CurfewTypography.body(14))
+                .foregroundStyle(CurfewTheme.mutedInk)
             }
 
             VStack(alignment: .leading, spacing: 4) {

@@ -9,37 +9,37 @@ import Foundation
 /// per-kind payloads without a full type hierarchy.
 ///
 /// `gateKind` exists so the same table can host future reflection gates
-/// (morning intent, midday check-in) without a schema split. Every event
-/// written in v0.1 uses `GateKind.curfew`; downstream aggregators filter
-/// on this field.
-struct ActivityEvent: Equatable, Hashable {
+/// (morning intent, midday check-in, evening retrospective) without a schema
+/// split. Every event written in v0.1 uses `GateKind.curfew`; downstream
+/// aggregators filter on this field.
+public struct ActivityEvent: Equatable, Hashable {
     /// Stable identifier. Defaults to a fresh UUID when omitted; preserved
     /// across read/write so sync dedup (post-v0.1) has a primary key.
-    let id: UUID
+    public let id: UUID
 
     /// Wall-clock moment the event occurred. Stored as the SQLite
     /// `timestamp` column and used as the rollup bucketing key.
-    let timestamp: Date
+    public let timestamp: Date
 
     /// Gate family that produced the event. Pass one of ``GateKind``'s
     /// constants so spelling stays consistent across recorders.
-    let gateKind: String
+    public let gateKind: String
 
     /// Discriminant — see ``ActivityEventKind``. Determines how
     /// `minutesValue` and `note` should be interpreted.
-    let kind: ActivityEventKind
+    public let kind: ActivityEventKind
 
     /// Numeric payload whose meaning depends on `kind`:
     /// - `.extensionGranted` / `.overrideGranted`: minutes granted
     /// - `.warningEscalated`: minutes remaining at escalation
     /// - otherwise: `nil`
-    let minutesValue: Int?
+    public let minutesValue: Int?
 
     /// Free-form text payload. Used for override reasons and future
     /// reflection responses. `nil` when not applicable.
-    let note: String?
+    public let note: String?
 
-    init(
+    public init(
         id: UUID = UUID(),
         timestamp: Date,
         gateKind: String,
@@ -60,25 +60,20 @@ struct ActivityEvent: Equatable, Hashable {
 /// SQLite column, CSV exports, and MCP tool responses — never rename
 /// without a migration plan. Future reflection gates (morning intent,
 /// midday check-in, evening retrospective) each add a case here.
-enum GateKind {
+public enum GateKind {
     /// End-of-day curfew gate. The only gate family that ships in v0.1.
-    static let curfew = "curfew"
+    public static let curfew = "curfew"
 }
 
 /// Discriminant for ``ActivityEvent``. Raw `String` values are the stable
 /// wire format (SQLite, CSV, MCP tool responses). Do not rename cases
 /// without a migration plan — existing rows on user machines carry the
 /// raw strings verbatim.
-enum ActivityEventKind: String, Equatable, Hashable, CaseIterable {
+public enum ActivityEventKind: String, Equatable, Hashable, CaseIterable {
     /// First tick after the daily unlock time — the working window began.
-    /// Useful as the start anchor for "how long did today's session run?"
-    /// queries alongside ``sessionEnded``.
     case sessionStarted = "session_started"
 
-    /// Working window ended because curfew lockout began. Paired with a
-    /// same-timestamp ``lockoutStarted`` so downstream consumers can
-    /// distinguish the session boundary from the lockout overlay
-    /// appearing.
+    /// Working window ended because curfew lockout began.
     case sessionEnded = "session_ended"
 
     /// A warning stage fired (T-30 / T-15 / T-5 / T-2 / T-1). The stage
@@ -89,10 +84,7 @@ enum ActivityEventKind: String, Equatable, Hashable, CaseIterable {
     /// Lockout overlay began displaying — the user is now locked out.
     case lockoutStarted = "lockout_started"
 
-    /// Lockout ended. Fires both when unlock time is reached naturally and
-    /// when an override grants temporary access. The retrospective
-    /// distinguishes these two cases by looking for a nearby
-    /// ``overrideGranted`` event.
+    /// Lockout ended (natural unlock or override).
     case lockoutEnded = "lockout_ended"
 
     /// An extension was granted via the warning-phase hold-to-confirm
@@ -104,8 +96,6 @@ enum ActivityEventKind: String, Equatable, Hashable, CaseIterable {
     /// user's typed justification verbatim.
     case overrideGranted = "override_granted"
 
-    /// A scheduled day-off boundary was crossed — enforcement will be
-    /// inactive for the duration of the day. Emitted once per day-off
-    /// day so the streak calculator can detect consecutive skip days.
+    /// A scheduled day-off boundary was crossed.
     case dayOff = "day_off"
 }
