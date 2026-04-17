@@ -1,3 +1,4 @@
+import EventKit
 import SwiftUI
 
 enum LockoutAccessibilityCopy {
@@ -75,6 +76,11 @@ struct LockoutScreenView: View {
                         .foregroundStyle(.white.opacity(0.55))
                 }
 
+                // Calendar strip: next event and current event, Pro-gated.
+                if model.featureFlags.calendarEnabled, model.licenseGate.isProUnlocked {
+                    calendarStrip
+                }
+
                 VStack(spacing: 10) {
                     if model.overrideCooldownRemaining > 0 {
                         Text("Unlock available in \(model.overrideCooldownRemaining)s")
@@ -127,6 +133,51 @@ struct LockoutScreenView: View {
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(accessibilitySummary)
+    }
+
+    /// Compact pill strip showing the currently-running meeting or next
+    /// upcoming event today. Visibility is pre-gated at the call site.
+    @ViewBuilder
+    private var calendarStrip: some View {
+        if model.calendarMonitor.hasCurrentEvent, let event = model.calendarMonitor.todayEvents.first(where: {
+            guard let s = $0.startDate, let e = $0.endDate else { return false }
+            return s <= Date() && e > Date()
+        }) {
+            calendarPill(
+                label: "In progress",
+                title: event.title ?? "Meeting",
+                end: event.endDate
+            )
+        } else if let next = model.calendarMonitor.nextEvent {
+            calendarPill(
+                label: "Up next",
+                title: next.title ?? "Meeting",
+                end: next.startDate
+            )
+        }
+    }
+
+    private func calendarPill(label: String, title: String, end: Date?) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: "calendar")
+                .font(.system(size: 12, weight: .medium))
+            Text(label.uppercased())
+                .font(.system(size: 11, weight: .semibold, design: .rounded))
+                .tracking(0.5)
+            Text(title)
+                .font(.system(size: 13, weight: .regular, design: .rounded))
+                .lineLimit(1)
+            if let end {
+                Text("until \(end.formatted(date: .omitted, time: .shortened))")
+                    .font(.system(size: 12, weight: .regular, design: .rounded))
+                    .opacity(0.8)
+            }
+        }
+        .foregroundStyle(.white.opacity(0.7))
+        .padding(.horizontal, 14)
+        .padding(.vertical, 7)
+        .background(.white.opacity(0.08))
+        .clipShape(Capsule())
     }
 }
 

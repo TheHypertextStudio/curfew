@@ -14,6 +14,9 @@ let package = Package(
             url: "https://github.com/apple/swift-argument-parser",
             from: "1.3.0"
         ),
+        // Sparkle autoupdate is an Xcode-level framework dependency only.
+        // It is NOT used by any SPM target (CLI/MCP don't need it).
+        // Add it via Xcode → project → Package Dependencies when ready.
     ],
     targets: [
         // Domain models and storage shared by the app, CLI, and MCP server.

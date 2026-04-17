@@ -5,6 +5,19 @@ import OSLog
 
 private let syncLogger = Logger(subsystem: "studio.hypertext.curfew", category: "cloudkit-sync")
 
+/// Observable status for CloudKit sync operations. Surfaced in
+/// Settings → Devices so users can see when their schedule last synced
+/// and whether the last attempt failed.
+enum CloudKitSyncStatus: Equatable {
+    case idle
+    case syncing
+    case synced(at: Date)
+    case failed(message: String)
+    /// iCloud not authenticated, container not provisioned, or network
+    /// unavailable — expected on first launch and offline.
+    case unavailable
+}
+
 /// Syncs `CurfewSettings` across the user's devices via CloudKit private database.
 ///
 /// Lifecycle: call `start()` once after the app model is ready and both
@@ -20,10 +33,14 @@ private let syncLogger = Logger(subsystem: "studio.hypertext.curfew", category: 
 /// `notAuthenticated`, `networkUnavailable`, and missing-container errors
 /// gracefully so the app stays functional on first launch.
 @MainActor
-final class CloudKitSyncEngine {
+final class CloudKitSyncEngine: ObservableObject {
     /// Called on the main actor when a newer settings payload arrives from
     /// the cloud. The app model applies it and persists locally.
     var onSettingsReceived: ((CurfewSettings) -> Void)?
+
+    /// Current sync state. Updates on every push/pull attempt so
+    /// Settings → Devices can show last-synced time and failure details.
+    @Published private(set) var syncStatus: CloudKitSyncStatus = .idle
 
     // CKContainer is created lazily in start() to avoid calling it off the
     // main thread — nonisolated init runs as a default argument before
@@ -83,6 +100,7 @@ final class CloudKitSyncEngine {
     // MARK: - Private
 
     private func pull(localSettings: CurfewSettings, localModifiedAt: Date) async {
+        await MainActor.run { syncStatus = .syncing }
         let database = resolvedContainer.privateCloudDatabase
         let id = CKRecord.ID(recordName: Self.recordName)
         do {
@@ -93,21 +111,27 @@ final class CloudKitSyncEngine {
                 remoteModified > localModifiedAt
             else {
                 syncLogger.info("CloudKit pull: local is up to date")
+                await MainActor.run { syncStatus = .synced(at: Date()) }
                 return
             }
             let remote = try decoder.decode(CurfewSettings.self, from: data)
             syncLogger.info("CloudKit pull: applying remote settings (modified \(remoteModified))")
-            onSettingsReceived?(remote)
+            await MainActor.run {
+                onSettingsReceived?(remote)
+                syncStatus = .synced(at: Date())
+            }
         } catch let error as CKError where error.isExpectedAbsence {
             // No record yet — push local settings to seed the cloud copy.
             syncLogger.info("CloudKit pull: no remote record, seeding from local")
             await save(settings: localSettings, modifiedAt: localModifiedAt)
         } catch {
             syncLogger.error("CloudKit pull failed: \(error.localizedDescription)")
+            await MainActor.run { syncStatus = .failed(message: error.localizedDescription) }
         }
     }
 
     private func save(settings: CurfewSettings, modifiedAt: Date) async {
+        await MainActor.run { syncStatus = .syncing }
         let database = resolvedContainer.privateCloudDatabase
         let id = CKRecord.ID(recordName: Self.recordName)
         do {
@@ -122,10 +146,13 @@ final class CloudKitSyncEngine {
             record[Self.modifiedKey] = modifiedAt as NSDate
             try await database.save(record)
             syncLogger.info("CloudKit push: saved settings at \(modifiedAt)")
+            await MainActor.run { syncStatus = .synced(at: Date()) }
         } catch let error as CKError where error.isExpectedAbsence {
             syncLogger.info("CloudKit push skipped: iCloud not available")
+            await MainActor.run { syncStatus = .unavailable }
         } catch {
             syncLogger.error("CloudKit push failed: \(error.localizedDescription)")
+            await MainActor.run { syncStatus = .failed(message: error.localizedDescription) }
         }
     }
 }

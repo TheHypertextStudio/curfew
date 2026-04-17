@@ -1,4 +1,7 @@
+import EventKit
 import Foundation
+import UserNotifications
+import WidgetKit
 
 /// Engine-side internals of `CurfewAppModel` — the tick loop plus all
 /// private helpers that translate engine output into published state.
@@ -37,6 +40,7 @@ extension CurfewAppModel {
             currentDayToken = Self.dayToken(for: currentTime)
             extensionMinutesGrantedToday = 0
             snoozeMinutesGrantedToday = 0
+            curfewOverlapPromptFiredForEventID = nil
         }
 
         applyPendingScheduleIfNeeded(now: currentTime)
@@ -69,6 +73,18 @@ extension CurfewAppModel {
             lockoutMessage = EncouragementMessageCatalog.next(after: lockoutMessage)
         }
 
+        if previousPhase != state.phase, featureFlags.widgetKitEnabled {
+            WidgetCenter.shared.reloadTimelines(ofKind: "CurfewWidget")
+        }
+
+        if previousPhase != state.phase, featureFlags.privilegedHelperEnabled {
+            if state.phase == .locked {
+                LockoutStatePersistence.markLockoutActive()
+            } else if previousPhase == .locked {
+                LockoutStatePersistence.markLockoutInactive()
+            }
+        }
+
         activityRecorder.recordPhaseTransition(
             from: previousPhase,
             to: state.phase,
@@ -79,6 +95,49 @@ extension CurfewAppModel {
         updateLockoutInterception(for: state.phase)
         updateShutdownWorkflow()
         overlayCoordinator.updateOverlays(for: state, model: self, lockoutMessage: lockoutMessage)
+        checkCalendarCurfewOverlap()
+    }
+
+    /// Fires a UNUserNotification once per event when a calendar event is
+    /// starting within 60 minutes of the user's curfew gate and the app is in
+    /// the working or warning phase. The user can act on the notification to
+    /// request an extension from the popover. Silently no-ops when:
+    ///   - Calendar feature flag is off or Pro is not unlocked.
+    ///   - No event is in the overlap window.
+    ///   - We've already prompted for this event today.
+    func checkCalendarCurfewOverlap() {
+        guard featureFlags.calendarEnabled, licenseGate.isProUnlocked else { return }
+        guard state.phase == .working || state.phase == .warning else { return }
+
+        let todayRule = settings.schedule.rule(for: Weekday(from: currentTime))
+        guard !todayRule.isDayOff else { return }
+
+        guard let event = calendarMonitor.eventNearingCurfew(
+            scheduleEndMinutes: todayRule.lockMinutes,
+            now: currentTime
+        ) else { return }
+
+        let eventID = event.eventIdentifier ?? event.title ?? ""
+        guard eventID != curfewOverlapPromptFiredForEventID else { return }
+        curfewOverlapPromptFiredForEventID = eventID
+
+        let content = UNMutableNotificationContent()
+        content.title = "Meeting near curfew"
+        let title = event.title ?? "A meeting"
+        let startText = event.startDate.map {
+            $0.formatted(date: .omitted, time: .shortened)
+        } ?? "soon"
+        content.body = "\(title) starts at \(startText). "
+            + "Request an extension before curfew fires."
+        content.categoryIdentifier = "CALENDAR_OVERLAP"
+        content.sound = .default
+
+        let request = UNNotificationRequest(
+            identifier: "curfew.calendar-overlap.\(eventID)",
+            content: content,
+            trigger: nil
+        )
+        UNUserNotificationCenter.current().add(request)
     }
 
     func reconcileOverrideComposerState(previousPhase: EnforcementPhase) {

@@ -40,6 +40,8 @@ enum CurfewLaunchBehavior {
 @main
 struct CurfewApp: App {
     @StateObject private var model: CurfewAppModel
+    @StateObject private var updater = CurfewUpdater()
+
     private static let shouldStartEnforcementOnLaunch = CurfewLaunchBehavior.shouldStartEnforcement(
         environment: ProcessInfo.processInfo.environment,
         isDebugBuild: isDebugBuild
@@ -72,6 +74,14 @@ struct CurfewApp: App {
                 .frame(minWidth: 980, minHeight: 660)
         }
         .defaultSize(width: 1080, height: 720)
+        .commands {
+            CommandGroup(after: .appInfo) {
+                Button("Check for Updates…") {
+                    updater.checkForUpdates()
+                }
+                .disabled(!updater.canCheckForUpdates)
+            }
+        }
 
         MenuBarExtra("Curfew", systemImage: model.menuBarSymbolName) {
             ContentView()

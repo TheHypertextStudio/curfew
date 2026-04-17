@@ -99,6 +99,25 @@ public final class ActivityStore {
         }
     }
 
+    /// Returns a CSV string covering all events whose `timestamp` falls within
+    /// `range`. Columns: id, timestamp (ISO 8601 UTC), gate_kind, kind,
+    /// minutes_value, note. Note fields are double-quoted and internal quotes
+    /// are escaped per RFC 4180.
+    public func exportCSV(in range: ClosedRange<Date>) throws -> String {
+        let rows = try events(in: range)
+        let iso = ISO8601DateFormatter()
+        let header = "id,timestamp,gate_kind,kind,minutes_value,note"
+        let lines: [String] = rows.map { event in
+            let minutes = event.minutesValue.map { String($0) } ?? ""
+            let note = event.note.map {
+                "\"\($0.replacingOccurrences(of: "\"", with: "\"\""))\""
+            } ?? ""
+            return "\(event.id.uuidString),\(iso.string(from: event.timestamp)),"
+                + "\(event.gateKind),\(event.kind.rawValue),\(minutes),\(note)"
+        }
+        return ([header] + lines).joined(separator: "\n")
+    }
+
     // MARK: - SQLite plumbing
 
     private func installSchema(on handle: OpaquePointer) throws {

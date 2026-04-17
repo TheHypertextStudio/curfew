@@ -1,4 +1,5 @@
 import EventKit
+import ServiceManagement
 import SwiftUI
 
 /// Informational / configuration panels for Settings tabs that don't drive
@@ -128,15 +129,15 @@ extension SettingsView {
             CurfewPanel {
                 CurfewSectionTitle(
                     title: "Privileged Helper",
-                    subtitle: "Stronger bypass prevention via a root-owned helper."
+                    subtitle: "Root-owned daemon for stronger bypass prevention."
                 )
                 integrationStatusRow(
                     title: "Privileged Helper",
                     isEnabled: model.featureFlags.privilegedHelperEnabled
                 )
-                Text("Ships in v0.2.")
-                    .font(CurfewTypography.body(13))
-                    .foregroundStyle(CurfewTheme.mutedInk)
+                if model.featureFlags.privilegedHelperEnabled {
+                    privilegedHelperPanel
+                }
             }
         }
     }
@@ -226,7 +227,9 @@ extension SettingsView {
                 isEnabled: model.featureFlags.cloudSyncEnabled
             )
 
-            if !model.featureFlags.cloudSyncEnabled {
+            if model.featureFlags.cloudSyncEnabled {
+                syncStatusRow
+            } else {
                 Text("Cloud sync is available but not yet provisioned. "
                     + "Provision the CloudKit container in App Store Connect "
                     + "and set cloudSyncEnabled in FeatureFlags.")
@@ -234,6 +237,42 @@ extension SettingsView {
                     .foregroundStyle(CurfewTheme.mutedInk)
                     .fixedSize(horizontal: false, vertical: true)
             }
+        }
+    }
+
+    /// Displays the current CloudKit sync status inline in the Devices panel.
+    @ViewBuilder
+    private var syncStatusRow: some View {
+        switch model.cloudKitSyncEngine.syncStatus {
+        case .idle:
+            EmptyView()
+        case .syncing:
+            HStack(spacing: 6) {
+                ProgressView().controlSize(.small)
+                Text("Syncing…")
+                    .font(CurfewTypography.body(13))
+                    .foregroundStyle(CurfewTheme.mutedInk)
+            }
+        case .synced(let at):
+            HStack {
+                Text("Last synced")
+                    .font(CurfewTypography.body(13))
+                    .foregroundStyle(CurfewTheme.mutedInk)
+                Spacer()
+                Text(at, style: .relative)
+                    .font(CurfewTypography.label(12))
+                    .foregroundStyle(CurfewTheme.mutedInk)
+            }
+        case .failed(let message):
+            Text("Sync failed: \(message)")
+                .font(CurfewTypography.body(13))
+                .foregroundStyle(Color.red.opacity(0.8))
+                .fixedSize(horizontal: false, vertical: true)
+        case .unavailable:
+            Text("iCloud unavailable. Sign in to iCloud in System Settings to enable sync.")
+                .font(CurfewTypography.body(13))
+                .foregroundStyle(CurfewTheme.mutedInk)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
@@ -279,6 +318,85 @@ extension SettingsView {
             Text(isEnabled ? "Enabled" : "Disabled")
                 .font(CurfewTypography.label(12))
                 .foregroundStyle(isEnabled ? CurfewTheme.accent : CurfewTheme.mutedInk)
+        }
+    }
+
+    /// Install / uninstall controls for the SMAppService privileged daemon and
+    /// the main-app login item. Only shown when `privilegedHelperEnabled`.
+    @ViewBuilder
+    private var privilegedHelperPanel: some View {
+        let helper = model.privilegedHelperManager
+        VStack(alignment: .leading, spacing: 10) {
+            // Daemon row
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("LaunchDaemon")
+                        .font(CurfewTypography.bodyEmphasis(13))
+                    Text(daemonStatusDescription(helper.daemonStatus))
+                        .font(CurfewTypography.label(12))
+                        .foregroundStyle(CurfewTheme.mutedInk)
+                }
+                Spacer()
+                if helper.daemonStatus == .enabled {
+                    Button("Uninstall") {
+                        helper.uninstallDaemon()
+                    }
+                    .buttonStyle(CurfewSecondaryButtonStyle())
+                } else {
+                    Button("Install…") {
+                        helper.installDaemon()
+                    }
+                    .buttonStyle(CurfewSecondaryButtonStyle())
+                }
+            }
+
+            // Login item row
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Open at Login")
+                        .font(CurfewTypography.bodyEmphasis(13))
+                    Text(loginItemStatusDescription(helper.loginItemStatus))
+                        .font(CurfewTypography.label(12))
+                        .foregroundStyle(CurfewTheme.mutedInk)
+                }
+                Spacer()
+                if helper.loginItemStatus == .enabled {
+                    Button("Disable") {
+                        helper.unregisterLoginItem()
+                    }
+                    .buttonStyle(CurfewSecondaryButtonStyle())
+                } else {
+                    Button("Enable") {
+                        helper.registerLoginItem()
+                    }
+                    .buttonStyle(CurfewSecondaryButtonStyle())
+                }
+            }
+
+            if let err = helper.lastError {
+                Text(err)
+                    .font(CurfewTypography.body(12))
+                    .foregroundStyle(Color.red.opacity(0.8))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    private func daemonStatusDescription(_ status: SMAppService.Status) -> String {
+        switch status {
+        case .enabled: "Running — root-owned lockout enforcement active."
+        case .requiresApproval: "Needs approval — open System Settings → Login Items."
+        case .notRegistered, .notFound: "Not installed."
+        @unknown default: "Unknown status."
+        }
+    }
+
+    private func loginItemStatusDescription(_ status: SMAppService.Status) -> String {
+        switch status {
+        case .enabled: "Curfew opens automatically at login."
+        case .requiresApproval: "Needs approval — open System Settings → Login Items."
+        case .notRegistered, .notFound: "Not registered."
+        @unknown default: "Unknown status."
         }
     }
 

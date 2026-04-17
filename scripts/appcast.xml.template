@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Curfew Sparkle appcast template.
+
+  Fill in the placeholders below and publish to:
+  https://curfew.hypertext.studio/appcast.xml
+
+  Generate the EdDSA signature with:
+    .build/artifacts/sparkle/Sparkle/bin/generate_appcast --ed-key-file sparkle-private-key.pem Curfew-<VERSION>.dmg
+
+  Store the private key in GitHub Secrets as SPARKLE_PRIVATE_KEY.
+  The public key goes into Info.plist under SUPublicEDKey.
+-->
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle"
+     xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>Curfew</title>
+    <link>https://curfew.hypertext.studio/appcast.xml</link>
+    <description>Curfew release feed</description>
+    <language>en</language>
+
+    <item>
+      <!-- ===== Fill these in for each release ===== -->
+      <title>Version {{VERSION}}</title>
+      <sparkle:version>{{BUILD_NUMBER}}</sparkle:version>
+      <sparkle:shortVersionString>{{VERSION}}</sparkle:shortVersionString>
+      <pubDate>{{PUB_DATE}}</pubDate>
+
+      <enclosure
+        url="https://github.com/hypertext-studio/curfew/releases/download/v{{VERSION}}/Curfew-{{VERSION}}.dmg"
+        sparkle:edSignature="{{ED_SIGNATURE}}"
+        length="{{FILE_SIZE_BYTES}}"
+        type="application/octet-stream"/>
+
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+
+      <description><![CDATA[
+        <h3>What's new in {{VERSION}}</h3>
+        <ul>
+          {{RELEASE_NOTES}}
+        </ul>
+      ]]></description>
+    </item>
+
+  </channel>
+</rss>

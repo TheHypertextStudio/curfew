@@ -129,6 +129,13 @@ extension CurfewAppModel {
         return String(format: "%d:%02d", hoursComponent, minuteComponent)
     }
 
+    /// Exports activity events within `range` as a CSV string.
+    /// Delegates to `ActivityStore.exportCSV(in:)` via the recorder's backing store.
+    /// Returns an empty header-only CSV string when the store is unavailable.
+    func exportActivityCSV(in range: ClosedRange<Date>) -> String {
+        (try? activityRecorder.exportCSV(in: range)) ?? "id,timestamp,gate_kind,kind,minutes_value,note"
+    }
+
     /// Returns the rollup of this calendar week relative to `currentTime`.
     ///
     /// "This week" is anchored on the user's `Calendar.current.firstWeekday`

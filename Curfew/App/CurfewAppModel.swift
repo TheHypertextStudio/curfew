@@ -143,6 +143,11 @@ final class CurfewAppModel: NSObject, ObservableObject {
     /// and `licenseGate.isProUnlocked`. Never started in free tier.
     let calendarMonitor: CalendarMonitor
 
+    /// Manages the `SMAppService`-registered privileged daemon and the
+    /// main-app login item. Surfaces Install/Uninstall actions in
+    /// Settings → Integrations when `featureFlags.privilegedHelperEnabled`.
+    let privilegedHelperManager: PrivilegedHelperManager
+
     /// Writes lifecycle / extension / override events to the activity
     /// log. Always non-nil; when the SQLite store can't be opened
     /// (sandbox denied, disk full), this holds a ``NullActivityRecording``
@@ -182,6 +187,11 @@ final class CurfewAppModel: NSObject, ObservableObject {
     /// See ``ShutdownWorkflow``.
     var shutdownWorkflow = ShutdownWorkflow()
 
+    /// The event identifier of the calendar event for which we've already
+    /// delivered a "meeting near curfew" extension prompt today. Reset to
+    /// `nil` on day rollover so the next day's events get their own prompt.
+    var curfewOverlapPromptFiredForEventID: String?
+
     /// Guard flag so `start()` is idempotent — prevents duplicate timers if
     /// the setup-complete callback fires twice. Only used inside the main
     /// class body.
@@ -208,7 +218,8 @@ final class CurfewAppModel: NSObject, ObservableObject {
         mcpRequestMonitor: MCPRequestMonitor = MCPRequestMonitor(),
         licenseGate: LicenseGate = LicenseGate(),
         cloudKitSyncEngine: CloudKitSyncEngine = CloudKitSyncEngine(),
-        calendarMonitor: CalendarMonitor = CalendarMonitor()
+        calendarMonitor: CalendarMonitor = CalendarMonitor(),
+        privilegedHelperManager: PrivilegedHelperManager = PrivilegedHelperManager()
     ) {
         self.settingsStore = settingsStore
         self.policyEngine = SchedulePolicyEngine()
@@ -226,6 +237,7 @@ final class CurfewAppModel: NSObject, ObservableObject {
         self.licenseGate = licenseGate
         self.cloudKitSyncEngine = cloudKitSyncEngine
         self.calendarMonitor = calendarMonitor
+        self.privilegedHelperManager = privilegedHelperManager
 
         let loadedSettings = settingsStore.load()
         self.settings = loadedSettings
@@ -330,6 +342,9 @@ final class CurfewAppModel: NSObject, ObservableObject {
         }
         if featureFlags.calendarEnabled, licenseGate.isProUnlocked {
             calendarMonitor.requestAccessAndSync()
+        }
+        if featureFlags.privilegedHelperEnabled {
+            privilegedHelperManager.refreshStatus()
         }
     }
 

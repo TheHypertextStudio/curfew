@@ -1,4 +1,7 @@
+import AppKit
+import EventKit
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// "This Week" retrospective surface — a compact summary of the user's
 /// current-week curfew behaviour.
@@ -24,14 +27,27 @@ struct ThisWeekView: View {
         let rollup = model.thisWeekRollup()
 
         CurfewPanel {
-            CurfewSectionTitle(
-                title: "This Week",
-                subtitle: "A glance at how your curfew has held up."
-            )
+            HStack {
+                CurfewSectionTitle(
+                    title: "This Week",
+                    subtitle: "A glance at how your curfew has held up."
+                )
+                Spacer()
+                Button("Export CSV") {
+                    exportThisWeek()
+                }
+                .buttonStyle(CurfewSecondaryButtonStyle())
+            }
 
             headlineMetrics(rollup: rollup)
             Divider()
             dayGrid(rollup: rollup)
+
+            if model.featureFlags.calendarEnabled, model.licenseGate.isProUnlocked,
+               !model.calendarMonitor.todayEvents.isEmpty {
+                Divider()
+                calendarSection
+            }
         }
     }
 
@@ -114,5 +130,61 @@ struct ThisWeekView: View {
     /// fit in the seven-column grid at typical window widths.
     private func weekdayLabel(for date: Date) -> String {
         Self.weekdayFormatter.string(from: date)
+    }
+
+    /// A short list of today's calendar events, shown when Calendar is enabled + Pro.
+    private var calendarSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Today's Schedule")
+                .font(CurfewTypography.label(12))
+                .foregroundStyle(CurfewTheme.mutedInk)
+
+            ForEach(model.calendarMonitor.todayEvents.prefix(5), id: \.eventIdentifier) { event in
+                HStack(spacing: 8) {
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(CurfewTheme.accent)
+                        .frame(width: 3, height: 28)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(event.title ?? "Event")
+                            .font(CurfewTypography.bodyEmphasis(13))
+                            .foregroundStyle(CurfewTheme.ink)
+                        if let start = event.startDate, let end = event.endDate {
+                            Text(
+                                "\(start.formatted(date: .omitted, time: .shortened))"
+                                    + " – \(end.formatted(date: .omitted, time: .shortened))"
+                            )
+                            .font(CurfewTypography.label(11))
+                            .foregroundStyle(CurfewTheme.mutedInk)
+                        }
+                    }
+                    Spacer()
+                }
+            }
+        }
+    }
+
+    /// Opens an NSSavePanel and writes a CSV of this week's activity events.
+    private func exportThisWeek() {
+        let cal = Calendar.current
+        let startOfDay = cal.startOfDay(for: model.currentTime)
+        let weekday = cal.component(.weekday, from: startOfDay)
+        let daysBack = (weekday - cal.firstWeekday + 7) % 7
+        guard let weekStart = cal.date(byAdding: .day, value: -daysBack, to: startOfDay),
+              let weekEnd = cal.date(byAdding: .day, value: 7, to: weekStart) else { return }
+        let range = weekStart ... weekEnd
+
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.commaSeparatedText]
+        panel.nameFieldStringValue = "curfew-this-week.csv"
+        panel.begin { response in
+            guard response == .OK, let url = panel.url else { return }
+            do {
+                let csv = try model.exportActivityCSV(in: range)
+                try csv.write(to: url, atomically: true, encoding: .utf8)
+            } catch {
+                // Surface failure non-modally via the default error presenter.
+                NSApp.presentError(error)
+            }
+        }
     }
 }

@@ -43,4 +43,22 @@ public enum SharedPaths {
     /// CLI/MCP tools pass this to `UserDefaults(suiteName:)` to read the
     /// same preferences plist the app writes via `UserDefaults.standard`.
     public static let defaultsSuiteName = "studio.hypertext.curfew"
+
+    // MARK: - Privileged daemon paths (root-readable, user-writable via App Group)
+
+    /// `/Library/Application Support/Curfew/` — written by the app, read by
+    /// the privileged daemon. The app writes a sentinel file here when lockout
+    /// starts; the daemon uses `KeepAlive.PathState` to watch the sentinel so
+    /// it wakes up when the file appears and exits cleanly when it disappears.
+    public static var privilegedApplicationSupport: URL {
+        URL(fileURLWithPath: "/Library/Application Support/Curfew", isDirectory: true)
+    }
+
+    /// Sentinel file that signals an active lockout to the privileged daemon.
+    /// The app creates this file on `working → locked` transition and deletes
+    /// it on `locked → working/dayOff`. The daemon wakes on file creation and
+    /// exits on deletion (via `KeepAlive.PathState`).
+    public static var lockoutActiveSentinel: URL {
+        privilegedApplicationSupport.appendingPathComponent("lockout-active")
+    }
 }

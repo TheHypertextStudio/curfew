@@ -29,6 +29,15 @@ public enum Weekday: Int, CaseIterable, Identifiable, Codable {
         case .sunday: "Sun"
         }
     }
+
+    /// Returns the `Weekday` for the calendar day containing `date` in
+    /// `calendar`. Falls back to `.monday` when the calendar component is
+    /// unavailable — callers that use this for enforcement should also
+    /// check `isDayOff` before trusting the result.
+    public init(from date: Date, calendar: Calendar = .current) {
+        let isoWeekday = calendar.component(.weekday, from: date)
+        self = Weekday(rawValue: isoWeekday) ?? .monday
+    }
 }
 
 public struct DayRule: Equatable, Codable {

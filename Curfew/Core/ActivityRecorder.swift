@@ -45,6 +45,11 @@ protocol ActivityRecording: AnyObject {
     /// treats "no events" and "read failed" identically, which is
     /// appropriate for a non-critical surface.
     func events(in range: ClosedRange<Date>) -> [ActivityEvent]
+
+    /// Returns a CSV string for all events in `range`, or throws on I/O
+    /// failure. Callers that want failure-safe behaviour should catch and
+    /// fall back to the header-only string.
+    func exportCSV(in range: ClosedRange<Date>) throws -> String
 }
 
 /// Production ``ActivityRecording`` that writes to a SQLite-backed
@@ -153,6 +158,11 @@ final class ActivityRecorder: ActivityRecording {
         }
     }
 
+    /// Delegates to `ActivityStore.exportCSV(in:)`, propagating any I/O error.
+    func exportCSV(in range: ClosedRange<Date>) throws -> String {
+        try store.exportCSV(in: range)
+    }
+
     private func appendSafely(_ event: ActivityEvent) {
         do {
             try store.append(event)
@@ -185,5 +195,9 @@ final class NullActivityRecording: ActivityRecording {
 
     func events(in range: ClosedRange<Date>) -> [ActivityEvent] {
         []
+    }
+
+    func exportCSV(in range: ClosedRange<Date>) throws -> String {
+        "id,timestamp,gate_kind,kind,minutes_value,note"
     }
 }

@@ -63,10 +63,10 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 > v0.1: `PersistentLockdown` ships a user-space respawning LaunchAgent using
 > `KeepAlive.PathState`. Not automatically installed; v0.2 hardens with SMAppService.
 
-- [ ] Implement privileged helper and LaunchDaemon via `SMAppService`. (v0.2)
-- [ ] Persist lockout state in root-owned path. (v0.2)
+- [x] Implement privileged helper and LaunchDaemon via `SMAppService`. (v0.2)
+- [x] Persist lockout state in root-owned path. (v0.2)
 - [x] Implement user-space respawning LaunchAgent (`PersistentLockdown`) for v0.1 bypass deterrence.
-- [ ] Register login items for compatibility requirements. (v0.2)
+- [x] Register login items for compatibility requirements. (v0.2)
 - [x] Implement event tap behavior for keyboard shortcut interception during lockout.
 
 ## 6. Extension and Override Systems
@@ -104,8 +104,8 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 - [x] Refresh every 5 minutes.
 - [x] Gate behind `featureFlags.calendarEnabled` + `licenseGate.isProUnlocked`.
 - [x] Surface auth status and grant-access button in Settings → Integrations.
-- [ ] Show calendar events on lockout screen and This Week view. (v0.2 UX polish)
-- [ ] Detect meeting overlaps 1 hour before curfew and offer extension prompt. (v0.2)
+- [x] Show calendar events on lockout screen and This Week view. (v0.2 UX polish)
+- [x] Detect meeting overlaps 1 hour before curfew and offer extension prompt. (v0.2)
 
 ## 10. CloudKit Sync (Pro)
 
@@ -115,7 +115,7 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 - [x] Gate behind `featureFlags.cloudSyncEnabled` + `licenseGate.isProUnlocked`.
 - [x] `cloudKitSyncEngine.push()` on every settings mutation.
 - [ ] CloudKit container provisioned in App Store Connect. (morning task)
-- [ ] Sync status UI in Settings → Devices. (v0.2)
+- [x] Sync status UI in Settings → Devices. (v0.2)
 - [ ] Device list management. (v0.2)
 
 ## 11. Activity Log + Retrospective
@@ -125,7 +125,7 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 - [x] `ActivityRollups` computes daily/weekly aggregates.
 - [x] `IdleWatcher` detects idle periods (5-min cutoff).
 - [x] "This Week" view in app UI.
-- [ ] CSV export. (v0.2)
+- [x] CSV export. (v0.2)
 - [ ] Device-attributed insights. (v0.2)
 
 ## 12. WidgetKit (Pro)
@@ -136,7 +136,7 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 - [x] `CurfewWidgetProvider` reads shared UserDefaults, refreshes every 5 minutes.
 - [x] Gate behind `featureFlags.widgetKitEnabled` + `licenseGate.isProUnlocked`.
 - [ ] Xcode Widget Extension target wired in project. (requires Xcode UI)
-- [ ] Wire timeline updates to enforcement phase transitions. (v0.2)
+- [x] Wire timeline updates to enforcement phase transitions. (v0.2)
 
 ## 13. MCP Server (`curfew-mcp`)
 
@@ -188,7 +188,7 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 - [ ] Apple Developer credentials in GitHub secrets. (morning task)
 - [ ] Cloudflare Pages deployment. (morning task)
 - [ ] Homebrew Cask. (v0.2)
-- [ ] Sparkle autoupdate. (v0.2)
+- [x] Sparkle autoupdate. (v0.2)
 
 ## 18. Verification (v0.1 release candidate)
 

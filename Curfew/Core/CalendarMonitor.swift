@@ -105,6 +105,35 @@ final class CalendarMonitor: ObservableObject {
         }
     }
 
+    // MARK: - Curfew-overlap detection
+
+    /// Returns the first event whose start time falls within `windowMinutes`
+    /// before the curfew end-of-day gate at `scheduleEndMinutes` from midnight.
+    ///
+    /// Used by the tick loop to offer a proactive extension prompt ("you have
+    /// a meeting starting at 22:00 — curfew fires in 45 min, want to extend?")
+    /// before the user hits a surprise lockout. Returns `nil` when:
+    /// - no events are loaded,
+    /// - no event starts within the overlap window,
+    /// - the event has already started.
+    func eventNearingCurfew(
+        scheduleEndMinutes: Int,
+        now: Date,
+        windowMinutes: Int = 60
+    ) -> EKEvent? {
+        let cal = Calendar.current
+        let midnight = cal.startOfDay(for: now)
+        let curfewTime = midnight.addingTimeInterval(TimeInterval(scheduleEndMinutes * 60))
+        let windowStart = curfewTime.addingTimeInterval(-TimeInterval(windowMinutes * 60))
+
+        return todayEvents.first { event in
+            guard let start = event.startDate else { return false }
+            // Only future events — already-running meetings are surfaced
+            // separately via `hasCurrentEvent`.
+            return start > now && start >= windowStart && start < curfewTime
+        }
+    }
+
     // MARK: - Private
 
     private func scheduleRefresh() {
