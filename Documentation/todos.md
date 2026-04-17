@@ -13,7 +13,7 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 
 ## 0. Foundation and Project Structure
 
-- [-] Create `CurfewShared` module for shared domain models and policy logic. (v0.1 uses symlinks; extraction deferred to v0.1.1)
+- [x] Create `CurfewKit` SPM library for shared domain models (Sources/CurfewKit/). App/CLI/MCP all depend on it via public types.
 - [x] Convert app shell to a standard macOS app window (`LSUIElement = false`) with menu bar quick access.
 - [x] Default debug/Xcode launch starts with enforcement disarmed unless explicitly enabled.
 - [x] Add a dedicated app launch coordinator so app startup orchestration is isolated from scene composition.
@@ -192,10 +192,10 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 
 ## 18. Verification (v0.1 release candidate)
 
-- [ ] `just check` passes (format + lint + tests + Debug build).
-- [ ] `xcodebuild archive` succeeds unsigned locally.
-- [ ] `./curfew-ctl status` prints live state.
-- [ ] `./curfew-mcp` responds to `tools/list` over stdio.
+- [x] `just check` passes (format + lint + tests + Debug build).
+- [x] `xcodebuild archive` succeeds unsigned locally.
+- [x] `./curfew-ctl status` prints live state.
+- [x] `./curfew-mcp` responds to `tools/list` over stdio.
 - [ ] Paste test license → Pro features unlock; remove → re-gate.
 - [ ] Lockout smoke test: set curfew 5 min ahead, observe overlay, recover via override.
 - [ ] MCP smoke test: paste Claude Desktop config, run `curfew.status` from Claude.
