@@ -26,6 +26,7 @@ struct CurfewSettings: Codable, Equatable {
     var autoShutdownEnabled: Bool
     var autoShutdownDelayMinutes: Int
     var warningIntervals: WarningIntervals
+    var mcpEnabled: Bool
 
     private enum CodingKeys: String, CodingKey {
         case schedule
@@ -39,6 +40,7 @@ struct CurfewSettings: Codable, Equatable {
         case autoShutdownEnabled
         case autoShutdownDelayMinutes
         case warningIntervals
+        case mcpEnabled
     }
 
     init(
@@ -52,7 +54,8 @@ struct CurfewSettings: Codable, Equatable {
         resetWeekday: Weekday,
         autoShutdownEnabled: Bool,
         autoShutdownDelayMinutes: Int,
-        warningIntervals: WarningIntervals
+        warningIntervals: WarningIntervals,
+        mcpEnabled: Bool
     ) {
         self.schedule = schedule
         self.pendingScheduleChange = pendingScheduleChange
@@ -65,6 +68,7 @@ struct CurfewSettings: Codable, Equatable {
         self.autoShutdownEnabled = autoShutdownEnabled
         self.autoShutdownDelayMinutes = autoShutdownDelayMinutes
         self.warningIntervals = warningIntervals.normalized
+        self.mcpEnabled = mcpEnabled
     }
 
     init(from decoder: Decoder) throws {
@@ -98,6 +102,7 @@ struct CurfewSettings: Codable, Equatable {
             WarningIntervals.self,
             forKey: .warningIntervals
         ) ?? .default).normalized
+        self.mcpEnabled = try container.decodeIfPresent(Bool.self, forKey: .mcpEnabled) ?? true
     }
 
     func encode(to encoder: Encoder) throws {
@@ -113,6 +118,7 @@ struct CurfewSettings: Codable, Equatable {
         try container.encode(autoShutdownEnabled, forKey: .autoShutdownEnabled)
         try container.encode(autoShutdownDelayMinutes, forKey: .autoShutdownDelayMinutes)
         try container.encode(warningIntervals.normalized, forKey: .warningIntervals)
+        try container.encode(mcpEnabled, forKey: .mcpEnabled)
     }
 
     static let `default` = CurfewSettings(
@@ -126,7 +132,8 @@ struct CurfewSettings: Codable, Equatable {
         resetWeekday: .monday,
         autoShutdownEnabled: false,
         autoShutdownDelayMinutes: 10,
-        warningIntervals: .default
+        warningIntervals: .default,
+        mcpEnabled: true
     )
 }
 

@@ -308,7 +308,9 @@ final class CurfewAppModel: NSObject, ObservableObject {
         mcpRequestMonitor.onNewRequests = { [weak self] requests in
             self?.handleNewMCPRequests(requests)
         }
-        mcpRequestMonitor.start()
+        if settings.mcpEnabled {
+            mcpRequestMonitor.start()
+        }
     }
 
     deinit {

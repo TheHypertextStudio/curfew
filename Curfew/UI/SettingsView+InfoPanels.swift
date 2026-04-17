@@ -18,33 +18,41 @@ extension SettingsView {
     private var mcpConfigPanel: some View {
         CurfewPanel {
             CurfewSectionTitle(
-                title: "MCP Server",
-                subtitle: "Connect AI assistants to Curfew via the Model Context Protocol."
+                title: "MCP Control Plane",
+                subtitle: "Allow AI assistants to control your device via the Model Context Protocol."
             )
 
-            Text("""
-            `curfew-mcp` is a stdio MCP server bundled with Curfew. Add it to \
-            Claude Desktop (or any MCP host) by pasting the config snippet below \
-            into your `claude_desktop_config.json` under `mcpServers`.
-            """)
-            .font(CurfewTypography.body(13))
-            .foregroundStyle(CurfewTheme.mutedInk)
-            .fixedSize(horizontal: false, vertical: true)
+            Toggle("Enable MCP Control Plane", isOn: $model.settings.mcpEnabled)
 
-            Button("Copy Claude Desktop Config") {
-                copyClaudeDesktopConfig()
-            }
-            .buttonStyle(CurfewSecondaryButtonStyle())
+            Text("When enabled, AI assistants can lock and unlock your device, request time extensions, and manage Curfew settings. Only enable if you trust the AI clients you're connecting.")
+                .font(CurfewTypography.body(13))
+                .foregroundStyle(CurfewTheme.mutedInk)
 
-            if !model.pendingMCPRequests.isEmpty {
-                HStack(spacing: 8) {
-                    Text("\(model.pendingMCPRequests.count) pending AI request(s)")
-                        .font(CurfewTypography.bodyEmphasis(13))
-                        .foregroundStyle(CurfewTheme.accent)
-                    Button("Review") {
-                        model.openSettings()
+            if model.settings.mcpEnabled {
+                Text("""
+                `curfew-mcp` is a stdio MCP server bundled with Curfew. Add it to \
+                Claude Desktop (or any MCP host) by pasting the config snippet below \
+                into your `claude_desktop_config.json` under `mcpServers`.
+                """)
+                .font(CurfewTypography.body(13))
+                .foregroundStyle(CurfewTheme.mutedInk)
+                .fixedSize(horizontal: false, vertical: true)
+
+                Button("Copy Claude Desktop Config") {
+                    copyClaudeDesktopConfig()
+                }
+                .buttonStyle(CurfewSecondaryButtonStyle())
+
+                if !model.pendingMCPRequests.isEmpty {
+                    HStack(spacing: 8) {
+                        Text("\(model.pendingMCPRequests.count) pending AI request(s)")
+                            .font(CurfewTypography.bodyEmphasis(13))
+                            .foregroundStyle(CurfewTheme.accent)
+                        Button("Review") {
+                            model.openSettings()
+                        }
+                        .buttonStyle(CurfewSecondaryButtonStyle())
                     }
-                    .buttonStyle(CurfewSecondaryButtonStyle())
                 }
             }
         }

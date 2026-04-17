@@ -190,6 +190,14 @@ extension CurfewAppModel {
         }
 
         persistSettings()
+
+        if settings.mcpEnabled != oldValue.mcpEnabled {
+            if settings.mcpEnabled {
+                mcpRequestMonitor.start()
+            } else {
+                mcpRequestMonitor.stop()
+            }
+        }
     }
 
     func updateLockoutInterception(for phase: EnforcementPhase) {
