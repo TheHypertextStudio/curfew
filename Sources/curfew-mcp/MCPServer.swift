@@ -85,8 +85,8 @@ final class MCPServer {
             "capabilities": ["tools": [String: Any]()],
             "serverInfo": [
                 "name": "curfew-mcp",
-                "version": "0.1.0",
-            ],
+                "version": "0.1.0"
+            ]
         ]
         return successResponse(rawID: rawID, result: result)
     }
@@ -96,7 +96,7 @@ final class MCPServer {
             [
                 "name": tool.name,
                 "description": tool.description,
-                "inputSchema": tool.inputSchema,
+                "inputSchema": tool.inputSchema
             ]
         }
         return successResponse(rawID: rawID, result: ["tools": toolDefs])
@@ -139,7 +139,7 @@ final class MCPServer {
         serialize([
             "jsonrpc": "2.0",
             "id": rawID ?? NSNull(),
-            "error": ["code": code, "message": message] as [String: Any],
+            "error": ["code": code, "message": message] as [String: Any]
         ])
     }
 

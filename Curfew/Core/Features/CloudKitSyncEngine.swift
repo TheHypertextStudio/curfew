@@ -11,7 +11,7 @@ private let syncLogger = Logger(subsystem: "studio.hypertext.curfew", category: 
 enum CloudKitSyncStatus: Equatable {
     case idle
     case syncing
-    case synced(at: Date)
+    case synced(date: Date)
     case failed(message: String)
     /// iCloud not authenticated, container not provisioned, or network
     /// unavailable — expected on first launch and offline.
@@ -111,14 +111,14 @@ final class CloudKitSyncEngine: ObservableObject {
                 remoteModified > localModifiedAt
             else {
                 syncLogger.info("CloudKit pull: local is up to date")
-                await MainActor.run { syncStatus = .synced(at: Date()) }
+                await MainActor.run { syncStatus = .synced(date: Date()) }
                 return
             }
             let remote = try decoder.decode(CurfewSettings.self, from: data)
             syncLogger.info("CloudKit pull: applying remote settings (modified \(remoteModified))")
             await MainActor.run {
                 onSettingsReceived?(remote)
-                syncStatus = .synced(at: Date())
+                syncStatus = .synced(date: Date())
             }
         } catch let error as CKError where error.isExpectedAbsence {
             // No record yet — push local settings to seed the cloud copy.
@@ -146,7 +146,7 @@ final class CloudKitSyncEngine: ObservableObject {
             record[Self.modifiedKey] = modifiedAt as NSDate
             try await database.save(record)
             syncLogger.info("CloudKit push: saved settings at \(modifiedAt)")
-            await MainActor.run { syncStatus = .synced(at: Date()) }
+            await MainActor.run { syncStatus = .synced(date: Date()) }
         } catch let error as CKError where error.isExpectedAbsence {
             syncLogger.info("CloudKit push skipped: iCloud not available")
             await MainActor.run { syncStatus = .unavailable }

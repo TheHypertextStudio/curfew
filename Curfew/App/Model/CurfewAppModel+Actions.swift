@@ -19,20 +19,26 @@ extension CurfewAppModel {
         appRouter.showSettings()
     }
 
+    /// Brings the app to the foreground and presents the Getting Started window.
     func showGettingStarted() {
         appRouter.activate()
         gettingStartedPresenter.present(model: self)
     }
 
+    /// Dismisses the Getting Started window.
     func dismissGettingStarted() {
         gettingStartedPresenter.dismiss()
     }
 
+    /// Marks initial setup complete and dismisses the Getting Started window.
+    /// Idempotent — safe to call if setup was already completed.
     func completeOnboardingFlow() {
         completeInitialSetup()
         dismissGettingStarted()
     }
 
+    /// Flips `hasCompletedInitialSetup` to `true` and starts the enforcement
+    /// tick loop. No-ops if setup was already completed.
     func completeInitialSetup() {
         guard !settings.hasCompletedInitialSetup else {
             return
@@ -41,6 +47,8 @@ extension CurfewAppModel {
         start()
     }
 
+    /// Queues a schedule change to the built-in `preset`. Subject to the same
+    /// anti-bypass cooldown as any other schedule change.
     func applyPreset(_ preset: SchedulePreset) {
         switch preset {
         case .nineToFive:
@@ -52,6 +60,8 @@ extension CurfewAppModel {
         }
     }
 
+    /// Applies `update` to the rule for `day` and queues the resulting
+    /// schedule change. Used by the per-day row editors in the schedule grid.
     func updateRule(for day: Weekday, update: (inout DayRule) -> Void) {
         var nextSchedule = editableSchedule
         var rule = nextSchedule.rule(for: day)
@@ -73,8 +83,13 @@ extension CurfewAppModel {
         queueScheduleUpdate(nextSchedule)
     }
 
+    /// Placeholder called when the user taps (not holds) the extension button.
+    /// No-ops currently; reserved for future haptic / visual tap feedback.
     func tapExtensionRequest() {}
 
+    /// Consumes one extension slot, adds the configured duration to today's
+    /// grant total, records the activity event, and re-ticks. No-ops when
+    /// `canRequestExtension` is false or the budget is exhausted.
     func confirmExtensionRequest() {
         guard state.canRequestExtension else {
             return
@@ -93,6 +108,8 @@ extension CurfewAppModel {
         tick()
     }
 
+    /// Grants a 1-minute snooze by adding to `snoozeMinutesGrantedToday`.
+    /// Only effective during stages that `supportsSnooze` (T-30, T-15).
     func requestNotificationSnooze() {
         guard state.warningStage.supportsSnooze else {
             return
@@ -101,6 +118,9 @@ extension CurfewAppModel {
         tick()
     }
 
+    /// Starts the override cooldown timer and shows the override composer
+    /// once the cooldown expires. No-ops if the device is not locked or
+    /// the weekly override budget is exhausted.
     func beginOverrideRequest() {
         guard state.phase == .locked else {
             return
@@ -117,6 +137,9 @@ extension CurfewAppModel {
         }
     }
 
+    /// Validates `canConfirmOverride`, consumes one override slot, clears
+    /// the composer, and calls `grantOverride(reason:)`. No-ops on any failed
+    /// gate check.
     func confirmOverride() {
         guard canConfirmOverride else {
             return

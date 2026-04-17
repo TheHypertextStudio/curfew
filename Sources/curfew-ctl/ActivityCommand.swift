@@ -24,13 +24,11 @@ struct ActivityCommand: ParsableCommand {
 
         let now = Date()
         let calendar = Calendar.current
-        let rangeStart: Date
-
-        if today {
-            rangeStart = calendar.startOfDay(for: now)
+        let rangeStart: Date = if today {
+            calendar.startOfDay(for: now)
         } else {
             // Week view: events since Monday of the current week.
-            rangeStart = calendar.startOfWeek(for: now)
+            calendar.startOfWeek(for: now)
         }
 
         let events: [ActivityEvent]
@@ -72,7 +70,7 @@ struct ActivityCommand: ParsableCommand {
             var obj: [String: Any] = [
                 "timestamp": iso.string(from: event.timestamp),
                 "kind": event.kind.rawValue,
-                "gate_kind": event.gateKind,
+                "gate_kind": event.gateKind
             ]
             if let minutes = event.minutesValue {
                 obj["minutes"] = minutes
@@ -118,4 +116,3 @@ struct ActivityCommand: ParsableCommand {
         }
     }
 }
-

@@ -55,7 +55,7 @@ struct ScheduleCommand: ParsableCommand {
                 "day": weekday.shortName,
                 "day_off": false,
                 "lock": minutesToHHMM(rule.lockMinutes),
-                "unlock": minutesToHHMM(rule.unlockMinutes),
+                "unlock": minutesToHHMM(rule.unlockMinutes)
             ])
         }
         let obj: [String: Any] = ["days": days]
@@ -67,4 +67,3 @@ struct ScheduleCommand: ParsableCommand {
         }
     }
 }
-

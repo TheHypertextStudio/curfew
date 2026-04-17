@@ -20,13 +20,58 @@ let package = Package(
     ],
     targets: [
         // Domain models and storage shared by the app, CLI, and MCP server.
-        // Source files live in Curfew/Core/ and Curfew/App/; this target
-        // references them via symlinks so the app Xcode target and the package
-        // compile the same source without duplication.
+        // Source files live canonically in Curfew/Core/ and Curfew/App/;
+        // this target compiles them directly from there so no symlinks are needed.
         .target(
             name: "CurfewKit",
             dependencies: [],
-            path: "Sources/CurfewKit",
+            path: ".",
+            exclude: [
+                "build",
+                "Curfew.xcodeproj",
+                "CurfewTests",
+                "CurfewUITests",
+                "Documentation",
+                "scripts",
+                "landing",
+                ".build",
+                ".github",
+                "Curfew/UI",
+                "Curfew/App/Model",
+                "Curfew/App/Infrastructure",
+                "Curfew/Core/Features",
+                "Sources/curfew-ctl",
+                "Sources/curfew-mcp",
+                "AGENTS.md",
+                "CONTRIBUTING.md",
+                "LICENSE",
+                "PRIVACY.md",
+                "README.md",
+                "justfile",
+            ],
+            sources: [
+                // Domain
+                "Curfew/Core/Domain/ScheduleModels.swift",
+                "Curfew/Core/Domain/CurfewEnforcementEngine.swift",
+                "Curfew/Core/Domain/WarningStage.swift",
+                "Curfew/Core/Domain/ExtensionBudgetTracker.swift",
+                "Curfew/Core/Domain/OverrideRequestPolicy.swift",
+                "Curfew/Core/Domain/SchedulePolicyEngine.swift",
+                "Curfew/Core/Domain/SchedulePreset.swift",
+                // Storage
+                "Curfew/Core/Storage/ActivityEvent.swift",
+                "Curfew/Core/Storage/ActivityStore.swift",
+                "Curfew/Core/Storage/ActivityRollups.swift",
+                // Settings + shared types
+                "Curfew/App/Settings/CurfewSettingsStore.swift",
+                "Curfew/App/Settings/EnforcementSnapshot.swift",
+                "Curfew/App/Settings/SharedPaths.swift",
+                // MCP queue
+                "Curfew/App/MCP/MCPPendingRequest.swift",
+                "Curfew/App/MCP/MCPRequestQueue.swift",
+                // Utilities (CLI/MCP helpers, not compiled into the app)
+                "Sources/CurfewKit/Utilities.swift",
+            ],
             linkerSettings: [
                 .linkedLibrary("sqlite3"),
             ]

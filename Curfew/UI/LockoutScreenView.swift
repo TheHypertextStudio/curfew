@@ -139,10 +139,11 @@ struct LockoutScreenView: View {
     /// upcoming event today. Visibility is pre-gated at the call site.
     @ViewBuilder
     private var calendarStrip: some View {
-        if model.calendarMonitor.hasCurrentEvent, let event = model.calendarMonitor.todayEvents.first(where: {
-            guard let s = $0.startDate, let e = $0.endDate else { return false }
-            return s <= Date() && e > Date()
-        }) {
+        if model.calendarMonitor.hasCurrentEvent,
+           let event = model.calendarMonitor.todayEvents.first(where: {
+               guard let start = $0.startDate, let end = $0.endDate else { return false }
+               return start <= Date() && end > Date()
+           }) {
             calendarPill(
                 label: "In progress",
                 title: event.title ?? "Meeting",

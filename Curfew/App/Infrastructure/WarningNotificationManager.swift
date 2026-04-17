@@ -1,27 +1,55 @@
 import Foundation
 import UserNotifications
 
+/// Pure data bundle describing a single warning notification. Separated from
+/// `UNMutableNotificationContent` so the payload can be constructed and
+/// asserted in tests without a `UNUserNotificationCenter`.
 struct WarningNotificationPayload: Equatable {
+    /// Short title displayed in the notification banner.
     let title: String
+    /// Body copy shown beneath the title.
     let body: String
+    /// `UNNotificationCategory` identifier controlling available actions.
     let categoryIdentifier: String
+    /// Whether the system should play the default alert sound.
     let playsSound: Bool
 }
 
+/// Defines a `UNNotificationCategory` by its identifier and action list.
+/// Registered once at startup; referenced by `categoryIdentifier` in payloads.
 struct WarningNotificationCategoryDefinition: Equatable {
     let identifier: String
     let actionIdentifiers: [String]
 }
 
+/// Delivers `UNUserNotification` banners for each ``WarningStage`` transition
+/// and routes the snooze action back to the app model.
+///
+/// One notification fires per stage per calendar day — the manager tracks
+/// `lastDeliveredStage` and `deliveredDayToken` so a stage that has already
+/// fired today is never re-delivered even if the tick loop re-evaluates it.
+/// Day rollover resets both sentinels.
+///
+/// The `NSObject` + `UNUserNotificationCenterDelegate` pattern is required
+/// by `UNUserNotificationCenter` for the delegate callback.
 @MainActor
 final class WarningNotificationManager: NSObject {
+    /// Category for non-snooze warnings (T-5, T-2, T-1, lockout).
     static let warningCategoryIdentifier = "CURFEW_WARNING"
+
+    /// Category for warnings that offer a snooze action (T-30, T-15).
     static let warningSnoozeCategoryIdentifier = "CURFEW_WARNING_SNOOZE"
+
+    /// Action identifier for the "Snooze 1 min" button on snooze-category
+    /// notifications. Matched in `userNotificationCenter(_:didReceive:)`.
     static let snoozeActionIdentifier = "SNOOZE_ONE_MIN"
 
     private let center: UNUserNotificationCenter
     private var lastDeliveredStage: WarningStage = .none
     private var deliveredDayToken: String = ""
+
+    /// Called on `@MainActor` when the user taps the snooze action. The model
+    /// wires this to `requestNotificationSnooze()`.
     var onSnoozeRequested: (() -> Void)?
 
     init(center: UNUserNotificationCenter = .current()) {
@@ -31,12 +59,16 @@ final class WarningNotificationManager: NSObject {
         registerCategories()
     }
 
+    /// Requests alert + sound + badge authorisation if not yet granted.
+    /// Non-fatal: enforcement continues even if the user denies.
     func requestPermissionIfNeeded() {
         center.requestAuthorization(options: [.alert, .sound, .badge]) { _, _ in
             // Permission failures are non-fatal for enforcement.
         }
     }
 
+    /// Delivers a notification for `stage` if it hasn't already fired today.
+    /// Resets the day sentinel on calendar rollover. Called once per tick.
     func update(stage: WarningStage, now: Date, calendar: Calendar = .current) {
         let dayToken = Self.dayToken(for: now, calendar: calendar)
 
@@ -65,6 +97,9 @@ final class WarningNotificationManager: NSObject {
         return "\(components.year ?? 0)-\(components.month ?? 0)-\(components.day ?? 0)"
     }
 
+    /// Returns the notification payload for `stage`, or `nil` for `.none`
+    /// (no notification when outside the warning window). Exposed as `static`
+    /// so tests can verify copy and sound policy without a live center.
     static func payload(for stage: WarningStage) -> WarningNotificationPayload? {
         switch stage {
         case .thirtyMinutes:
@@ -114,6 +149,8 @@ final class WarningNotificationManager: NSObject {
         }
     }
 
+    /// Returns the two category definitions used by this manager. Exposed as
+    /// `static` so tests can verify category / action wiring without a live center.
     static func categoryDefinitions() -> [WarningNotificationCategoryDefinition] {
         [
             WarningNotificationCategoryDefinition(

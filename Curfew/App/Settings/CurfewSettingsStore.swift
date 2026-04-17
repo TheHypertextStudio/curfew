@@ -1,9 +1,26 @@
 import Foundation
 
+/// A record of one granted "Convince Me" override.
+///
+/// Persisted in `UserDefaults` via `CurfewSettingsStore` and exposed on
+/// `CurfewAppModel.overrideEvents` so the retrospective and MCP activity
+/// tools can surface the full override history for the current device.
 public struct OverrideEvent: Codable, Equatable {
+    /// When the override was granted.
     public var timestamp: Date
+
+    /// Human-readable name of the device that requested the override.
+    /// Captured at grant time so multi-device retrospectives can attribute
+    /// events correctly even after the device is renamed.
     public var deviceName: String
+
+    /// The user-supplied justification text (minimum 50 characters as
+    /// enforced by ``OverrideRequestPolicy/minimumJustificationCharacters``).
     public var reason: String
+
+    /// How long the override was active, in minutes. Typically
+    /// ``OverrideRequestPolicy/defaultOverrideDurationMinutes`` (30) unless
+    /// the user has changed their override duration in Settings.
     public var grantedDurationMinutes: Int
 
     public init(
@@ -19,10 +36,26 @@ public struct OverrideEvent: Codable, Equatable {
     }
 }
 
+/// A schedule mutation that has been queued but not yet applied.
+///
+/// The anti-bypass policy delays schedule changes: stricter changes take
+/// effect the next calendar day; weaker changes require a 24-hour cooldown
+/// from the moment of the request. This struct captures the full intent of a
+/// pending change so the model can apply it when `effectiveAt` arrives.
 public struct PendingScheduleChange: Codable, Equatable {
+    /// The schedule that will replace the current one once `effectiveAt` passes.
     public var proposedSchedule: WeeklySchedule
+
+    /// When the user submitted this change request.
     public var requestedAt: Date
+
+    /// The earliest moment the proposed schedule may be applied.
+    /// Computed by ``SchedulePolicyEngine/earliestEffectiveDate(for:requestedAt:)``.
     public var effectiveAt: Date
+
+    /// Whether this change is stricter, weaker, or equivalent to the
+    /// currently active schedule. Determines both the cooldown duration and
+    /// the UI copy surfaced in the pending-change banner.
     public var classification: ScheduleChangeClassification
 
     public init(
@@ -38,18 +71,63 @@ public struct PendingScheduleChange: Codable, Equatable {
     }
 }
 
+/// The full set of user-editable Curfew preferences.
+///
+/// Serialised to JSON and stored in `UserDefaults` by
+/// ``CurfewSettingsStore``. CloudKit sync pushes and pulls this value as a
+/// single `Data` blob — the whole struct is the unit of sync. This makes
+/// conflict resolution trivial (last-write-wins on `modifiedAt`) at the
+/// cost of granularity; that tradeoff is intentional.
+///
+/// All fields carry defaults via ``CurfewSettings/default`` so a fresh
+/// install or a corrupted store always produces valid settings.
 public struct CurfewSettings: Codable, Equatable {
+    /// The active weekly lock/unlock schedule. Replaced atomically — pending
+    /// changes live in ``pendingScheduleChange`` until their effective date.
     public var schedule: WeeklySchedule
+
+    /// A schedule mutation that has been queued but not yet applied.
     public var pendingScheduleChange: PendingScheduleChange?
+
+    /// Whether the user has completed the first-run onboarding flow.
+    /// Enforcement is disarmed until this is `true` so a misconfigured
+    /// schedule cannot lock the user out before they have reviewed it.
     public var hasCompletedInitialSetup: Bool
+
+    /// How many extension requests the user may make per week before the
+    /// budget is exhausted. Resets on ``resetWeekday``.
     public var extensionWeeklyLimit: Int
+
+    /// Minutes added to the lock time when the user grants themselves an
+    /// extension during the warning phase.
     public var extensionDurationMinutes: Int
+
+    /// How many "Convince Me" overrides the user may request per week.
     public var overrideWeeklyLimit: Int
+
+    /// Minutes the device stays unlocked after an override is confirmed.
+    /// Defaults to ``OverrideRequestPolicy/defaultOverrideDurationMinutes``.
     public var overrideDurationMinutes: Int
+
+    /// The weekday on which extension and override budgets reset. Defaults
+    /// to Monday to align with a typical work week.
     public var resetWeekday: Weekday
+
+    /// When `true` the app will call `shutdown -h` after the auto-shutdown
+    /// delay once lockout begins.
     public var autoShutdownEnabled: Bool
+
+    /// How long (in minutes) the app waits after lockout begins before
+    /// issuing the shutdown command. Range 1–60; default 10.
     public var autoShutdownDelayMinutes: Int
+
+    /// User-customised thresholds for each warning escalation stage.
+    /// Normalised on write so stages are strictly ordered; see
+    /// ``WarningIntervals/normalized``.
     public var warningIntervals: WarningIntervals
+
+    /// Whether the MCP control-plane server subprocess may accept write-tool
+    /// requests. Toggled in Settings → Integrations.
     public var mcpEnabled: Bool
 
     private enum CodingKeys: String, CodingKey {
@@ -129,6 +207,9 @@ public struct CurfewSettings: Codable, Equatable {
         self.mcpEnabled = try container.decodeIfPresent(Bool.self, forKey: .mcpEnabled) ?? true
     }
 
+    /// Encodes to JSON. `warningIntervals` is normalised before encoding so
+    /// any out-of-range values written directly to the struct (e.g. in tests)
+    /// are corrected on the way out rather than persisted.
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(schedule, forKey: .schedule)
@@ -161,6 +242,18 @@ public struct CurfewSettings: Codable, Equatable {
     )
 }
 
+/// Reads and writes ``CurfewSettings`` and auxiliary records to
+/// `UserDefaults`.
+///
+/// The store is the single source of truth for persisted settings within the
+/// process. `CurfewAppModel` holds the live in-memory copy; the store is
+/// only touched on load (startup), save (mutation), and explicit reads
+/// (`loadOverrideEvents`).
+///
+/// `UserDefaults` was chosen over a plist file to stay in the same storage
+/// location already read by `curfew-ctl` and `curfew-mcp` via
+/// `SharedPaths.defaultsSuiteName`. If the storage layer ever needs to
+/// change, this is the only class that needs updating.
 public final class CurfewSettingsStore {
     private enum Key {
         static let settings = "curfew.settings.v1"
@@ -172,10 +265,14 @@ public final class CurfewSettingsStore {
     private let encoder = JSONEncoder()
     private let decoder = JSONDecoder()
 
+    /// Creates a store backed by `defaults`. Pass a custom suite in tests
+    /// to avoid polluting `UserDefaults.standard`.
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
     }
 
+    /// Returns the stored settings, or ``CurfewSettings/default`` when no
+    /// settings have been saved yet or decoding fails.
     public func load() -> CurfewSettings {
         guard let data = defaults.data(forKey: Key.settings) else {
             return .default
@@ -183,6 +280,8 @@ public final class CurfewSettingsStore {
         return (try? decoder.decode(CurfewSettings.self, from: data)) ?? .default
     }
 
+    /// Persists `settings` as JSON. Silently no-ops on encoding failure
+    /// (should never happen in practice for a known-good `Codable` type).
     public func save(_ settings: CurfewSettings) {
         guard let data = try? encoder.encode(settings) else {
             return
@@ -190,6 +289,9 @@ public final class CurfewSettingsStore {
         defaults.set(data, forKey: Key.settings)
     }
 
+    /// Returns `true` and records the flag on first call; returns `false` on
+    /// all subsequent calls. Used to decide whether to auto-open the
+    /// Getting Started window at launch.
     public func consumeShouldShowInitialSetup() -> Bool {
         let hasShownInitialSetup = defaults.bool(forKey: Key.hasShownInitialSetup)
         if hasShownInitialSetup {
@@ -200,6 +302,8 @@ public final class CurfewSettingsStore {
         return true
     }
 
+    /// Returns all persisted override events, or `[]` when none have been
+    /// recorded yet or decoding fails.
     public func loadOverrideEvents() -> [OverrideEvent] {
         guard let data = defaults.data(forKey: Key.overrideEvents) else {
             return []
@@ -207,6 +311,9 @@ public final class CurfewSettingsStore {
         return (try? decoder.decode([OverrideEvent].self, from: data)) ?? []
     }
 
+    /// Appends `event` to the persisted override log. The full array is
+    /// read, mutated, and written back on every call — acceptable given the
+    /// low write frequency (at most a few per week in typical usage).
     public func appendOverrideEvent(_ event: OverrideEvent) {
         var events = loadOverrideEvents()
         events.append(event)

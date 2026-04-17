@@ -91,7 +91,6 @@ final class CurfewAppModel: NSObject, ObservableObject {
 
     // MARK: - Collaborators
 
-    //
     // Kept at module-internal visibility (default `internal`) rather than
     // `private` so the extension files in `CurfewAppModel+*.swift` can
     // reach them. Swift requires this because extensions in separate files
@@ -198,17 +197,13 @@ final class CurfewAppModel: NSObject, ObservableObject {
     private var started = false
 
     /// Production / test-friendly designated initialiser. Every other
-    /// initialiser delegates here.
+    /// initialiser delegates here. `settingsStore`, `appRouter`, and
+    /// `gettingStartedPresenter` are injected so tests can substitute fakes.
     ///
-    /// `settingsStore`, `appRouter`, and `gettingStartedPresenter` are
-    /// injected so tests can substitute fakes; everything else is built
-    /// internally because the production engines have no knobs worth
-    /// varying in tests.
-    ///
-    /// The initial `state` is computed *before* `super.init()` runs because
-    /// `@Published` stored properties must be assigned before the NSObject
-    /// subclass completes initialisation. `configureNotificationCallback()`
-    /// runs after `super.init()` since it passes `self` into a closure.
+    /// The initial `state` is computed before `super.init()` because
+    /// `@Published` properties must be assigned before `NSObject` init
+    /// completes. `configureNotificationCallback()` runs after since it
+    /// captures `self` in a closure.
     init(
         settingsStore: CurfewSettingsStore,
         appRouter: AppRouting,

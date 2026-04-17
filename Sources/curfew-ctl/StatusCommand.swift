@@ -70,7 +70,7 @@ struct StatusCommand: ParsableCommand {
             "phase": phaseName(eval.phase),
             "minutes_remaining": eval.minutesRemaining,
             "warning_stage": warningStageString(eval.warningStage),
-            "can_request_extension": eval.canRequestExtension,
+            "can_request_extension": eval.canRequestExtension
         ]
         if let lock = eval.lockDate {
             obj["lock_date"] = iso8601(lock)
@@ -101,13 +101,13 @@ struct StatusCommand: ParsableCommand {
 
     private func warningStageString(_ stage: WarningStage) -> String {
         switch stage {
-        case .none: return "none"
-        case .thirtyMinutes: return "T-30"
-        case .fifteenMinutes: return "T-15"
-        case .fiveMinutes: return "T-5"
-        case .twoMinutes: return "T-2"
-        case .oneMinute: return "T-1"
-        case .lockout: return "lockout"
+        case .none: "none"
+        case .thirtyMinutes: "T-30"
+        case .fifteenMinutes: "T-15"
+        case .fiveMinutes: "T-5"
+        case .twoMinutes: "T-2"
+        case .oneMinute: "T-1"
+        case .lockout: "lockout"
         }
     }
 }

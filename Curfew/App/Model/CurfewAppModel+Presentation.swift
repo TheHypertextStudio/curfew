@@ -16,14 +16,19 @@ extension CurfewAppModel {
         symbolName(for: state.phase)
     }
 
+    /// One-line description of the current phase for the status bar and
+    /// popover header.
     var statusLine: String {
         statusLine(for: state.phase)
     }
 
+    /// `H:MM` string of minutes remaining, or `"—"` when not applicable.
     var timeRemainingText: String {
         timeRemainingText(for: state.minutesRemaining)
     }
 
+    /// Denormalised read-model consumed by every UI surface. Assembled once
+    /// per tick from the model's stored state.
     var snapshot: EnforcementSnapshot {
         EnforcementSnapshot(
             phase: state.phase,
@@ -39,12 +44,16 @@ extension CurfewAppModel {
         )
     }
 
+    /// Full button label for the extension hold button, e.g.
+    /// `"Hold 2s for +15m extension"`.
     var extensionRequestTitle: String {
         let holdSeconds = Int(Self.extensionConfirmationHoldSeconds)
         let minutes = settings.extensionDurationMinutes
         return "Hold \(holdSeconds)s for +\(minutes)m extension"
     }
 
+    /// The schedule the user is currently editing. Returns the pending
+    /// proposed schedule when a change is in flight, otherwise the active one.
     var editableSchedule: WeeklySchedule {
         settings.pendingScheduleChange?.proposedSchedule ?? settings.schedule
     }
@@ -64,10 +73,13 @@ extension CurfewAppModel {
         }
     }
 
+    /// Natural-language sentence describing tomorrow's enforcement window.
     var scheduleSummarySentence: String {
         editableSchedule.summarySentence(forNextDayFrom: currentTime)
     }
 
+    /// Today's lock → unlock window formatted as `"18:00 -> 08:00"`, or a
+    /// no-enforcement message on a day off.
     var scheduleWindowText: String {
         guard let lockDate = state.lockDate, let unlockDate = state.unlockDate else {
             return "No enforcement window is active today."
@@ -77,6 +89,8 @@ extension CurfewAppModel {
         return "\(lockText) -> \(unlockText)"
     }
 
+    /// Seconds remaining in the override cooldown, or `0` when the cooldown
+    /// has elapsed or was never started.
     var overrideCooldownRemaining: Int {
         guard let overrideCooldownEndsAt else {
             return 0
@@ -84,6 +98,8 @@ extension CurfewAppModel {
         return max(0, Int(overrideCooldownEndsAt.timeIntervalSince(currentTime)))
     }
 
+    /// `true` when all three override gates pass: reason is long enough,
+    /// budget is non-zero, and the cooldown has elapsed.
     var canConfirmOverride: Bool {
         OverrideRequestPolicy.canConfirm(
             reason: overrideReasonDraft,
@@ -93,6 +109,7 @@ extension CurfewAppModel {
         )
     }
 
+    /// SF Symbol name for `phase`. Used in the menu bar icon and snapshot.
     func symbolName(for phase: EnforcementPhase) -> String {
         switch phase {
         case .working:
@@ -106,6 +123,8 @@ extension CurfewAppModel {
         }
     }
 
+    /// One-line status copy for `phase`, used in the menu bar tooltip and
+    /// the snapshot's `statusLine`.
     func statusLine(for phase: EnforcementPhase) -> String {
         switch phase {
         case .working:
@@ -119,6 +138,8 @@ extension CurfewAppModel {
         }
     }
 
+    /// Formats `minutesRemaining` as `H:MM`. Returns `"—"` for `Int.max`
+    /// (day off or locked — no meaningful countdown).
     func timeRemainingText(for minutesRemaining: Int) -> String {
         if minutesRemaining == .max {
             return "—"
@@ -133,7 +154,9 @@ extension CurfewAppModel {
     /// Delegates to `ActivityStore.exportCSV(in:)` via the recorder's backing store.
     /// Returns an empty header-only CSV string when the store is unavailable.
     func exportActivityCSV(in range: ClosedRange<Date>) -> String {
-        (try? activityRecorder.exportCSV(in: range)) ?? "id,timestamp,gate_kind,kind,minutes_value,note"
+        (try? activityRecorder.exportCSV(
+            in: range
+        )) ?? "id,timestamp,gate_kind,kind,minutes_value,note"
     }
 
     /// Returns the rollup of this calendar week relative to `currentTime`.

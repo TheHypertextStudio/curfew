@@ -8,10 +8,10 @@ public func minutesToHHMM(_ minutes: Int) -> String {
 /// Returns the stable ASCII token for `phase` used in plain-text and JSON output.
 public func phaseName(_ phase: EnforcementPhase) -> String {
     switch phase {
-    case .working: return "working"
-    case .warning: return "warning"
-    case .locked: return "locked"
-    case .dayOff: return "day_off"
+    case .working: "working"
+    case .warning: "warning"
+    case .locked: "locked"
+    case .dayOff: "day_off"
     }
 }
 

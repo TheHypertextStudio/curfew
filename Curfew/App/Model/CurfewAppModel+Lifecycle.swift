@@ -69,21 +69,7 @@ extension CurfewAppModel {
             state = newState
         }
 
-        if previousPhase != .locked, state.phase == .locked {
-            lockoutMessage = EncouragementMessageCatalog.next(after: lockoutMessage)
-        }
-
-        if previousPhase != state.phase, featureFlags.widgetKitEnabled {
-            WidgetCenter.shared.reloadTimelines(ofKind: "CurfewWidget")
-        }
-
-        if previousPhase != state.phase, featureFlags.privilegedHelperEnabled {
-            if state.phase == .locked {
-                LockoutStatePersistence.markLockoutActive()
-            } else if previousPhase == .locked {
-                LockoutStatePersistence.markLockoutInactive()
-            }
-        }
+        propagatePhaseTransition(from: previousPhase)
 
         activityRecorder.recordPhaseTransition(
             from: previousPhase,
@@ -96,6 +82,22 @@ extension CurfewAppModel {
         updateShutdownWorkflow()
         overlayCoordinator.updateOverlays(for: state, model: self, lockoutMessage: lockoutMessage)
         checkCalendarCurfewOverlap()
+    }
+
+    private func propagatePhaseTransition(from previousPhase: EnforcementPhase) {
+        if previousPhase != .locked, state.phase == .locked {
+            lockoutMessage = EncouragementMessageCatalog.next(after: lockoutMessage)
+        }
+        if previousPhase != state.phase, featureFlags.widgetKitEnabled {
+            WidgetCenter.shared.reloadTimelines(ofKind: "CurfewWidget")
+        }
+        if previousPhase != state.phase, featureFlags.privilegedHelperEnabled {
+            if state.phase == .locked {
+                LockoutStatePersistence.markLockoutActive()
+            } else if previousPhase == .locked {
+                LockoutStatePersistence.markLockoutInactive()
+            }
+        }
     }
 
     /// Fires a UNUserNotification once per event when a calendar event is

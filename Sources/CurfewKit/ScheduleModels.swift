@@ -1,1 +1,0 @@
-../../Curfew/Core/ScheduleModels.swift

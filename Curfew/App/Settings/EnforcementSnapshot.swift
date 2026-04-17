@@ -15,6 +15,9 @@ public struct EnforcementSnapshot: Equatable {
     /// Drives high-level UI affordances (menu bar colour, lockout visibility).
     public var phase: EnforcementPhase
 
+    /// SF Symbol name for the current phase, used in the menu bar icon and
+    /// the status popover header (e.g. `"checkmark.circle"` when working,
+    /// `"lock.fill"` when locked).
     public var symbolName: String
 
     /// One-line human-readable description of the current phase, e.g.

@@ -30,7 +30,7 @@ struct MCPTool {
         activityTool,
         requestExtensionTool,
         requestOverrideTool,
-        requestStatusTool,
+        requestStatusTool
     ]
 }
 
@@ -91,7 +91,7 @@ private let scheduleTool = MCPTool(
     inputSchema: emptySchema(),
     call: { _ in
         let settings = loadSharedSettings()
-        var lines: [String] = ["Weekly schedule:"]
+        var lines = ["Weekly schedule:"]
         for weekday in Weekday.allCases {
             let rule = settings.schedule.rule(for: weekday)
             if rule.isDayOff {
@@ -127,8 +127,8 @@ private let budgetTool = MCPTool(
         let store = openSharedActivityStore()
         let events = (try? store?.events(in: weekStart ... now)) ?? []
 
-        let extsUsed = events.filter { $0.kind == .extensionGranted }.count
-        let ovsUsed = events.filter { $0.kind == .overrideGranted }.count
+        let extsUsed = events.count(where: { $0.kind == .extensionGranted })
+        let ovsUsed = events.count(where: { $0.kind == .overrideGranted })
         let extsRemaining = max(0, settings.extensionWeeklyLimit - extsUsed)
         let ovsRemaining = max(0, settings.overrideWeeklyLimit - ovsUsed)
 
@@ -137,7 +137,7 @@ private let budgetTool = MCPTool(
                 "(\(settings.extensionDurationMinutes) min each)",
             "Overrides:  \(ovsRemaining)/\(settings.overrideWeeklyLimit) remaining " +
                 "(\(settings.overrideDurationMinutes) min each)",
-            "Resets:     \(settings.resetWeekday.shortName)",
+            "Resets:     \(settings.resetWeekday.shortName)"
         ]
         return [textContent(lines.joined(separator: "\n"))]
     }
@@ -156,10 +156,10 @@ private let activityTool = MCPTool(
             "period": [
                 "type": "string",
                 "enum": ["today", "week"],
-                "description": "Time window: \"today\" or \"week\" (default).",
-            ],
+                "description": "Time window: \"today\" or \"week\" (default)."
+            ]
         ] as [String: Any],
-        "required": [] as [String],
+        "required": [] as [String]
     ] as [String: Any],
     call: { arguments in
         let period = arguments["period"] as? String ?? "week"
@@ -202,10 +202,10 @@ private let requestExtensionTool = MCPTool(
         "properties": [
             "reason": [
                 "type": "string",
-                "description": "Why more time is needed (shown to the user).",
-            ],
+                "description": "Why more time is needed (shown to the user)."
+            ]
         ] as [String: Any],
-        "required": ["reason"],
+        "required": ["reason"]
     ] as [String: Any],
     call: { arguments in
         let reason = arguments["reason"] as? String ?? ""
@@ -220,7 +220,7 @@ private let requestExtensionTool = MCPTool(
         }
         return [textContent(
             "Extension request queued (ID: \(request.id.uuidString)).\n" +
-            "Open the Curfew app to approve, or poll with curfew.request_status."
+                "Open the Curfew app to approve, or poll with curfew.request_status."
         )]
     }
 )
@@ -238,10 +238,10 @@ private let requestOverrideTool = MCPTool(
         "properties": [
             "reason": [
                 "type": "string",
-                "description": "Justification for the override (min 50 characters).",
-            ],
+                "description": "Justification for the override (min 50 characters)."
+            ]
         ] as [String: Any],
-        "required": ["reason"],
+        "required": ["reason"]
     ] as [String: Any],
     call: { arguments in
         let reason = arguments["reason"] as? String ?? ""
@@ -261,7 +261,7 @@ private let requestOverrideTool = MCPTool(
         }
         return [textContent(
             "Override request queued (ID: \(request.id.uuidString)).\n" +
-            "Open the Curfew app to review, or poll with curfew.request_status."
+                "Open the Curfew app to review, or poll with curfew.request_status."
         )]
     }
 )
@@ -278,10 +278,10 @@ private let requestStatusTool = MCPTool(
         "properties": [
             "request_id": [
                 "type": "string",
-                "description": "UUID returned by the write tool.",
-            ],
+                "description": "UUID returned by the write tool."
+            ]
         ] as [String: Any],
-        "required": ["request_id"],
+        "required": ["request_id"]
     ] as [String: Any],
     call: { arguments in
         guard let idString = arguments["request_id"] as? String,
@@ -305,14 +305,22 @@ private let requestStatusTool = MCPTool(
 
 // MARK: - Errors
 
+/// Failure modes for MCP tool `call` closures. Thrown values are mapped to
+/// JSON-RPC error responses by the server's dispatch loop.
 enum MCPToolError: Error, LocalizedError {
+    /// A required argument was missing, had the wrong type, or failed
+    /// a domain-level constraint (e.g. override reason too short).
     case invalidArgument(String)
+
+    /// The shared request-queue file could not be written — typically a
+    /// sandboxing or permissions issue. The MCP client should retry after
+    /// confirming the app is running.
     case queueUnavailable(String)
 
     var errorDescription: String? {
         switch self {
-        case .invalidArgument(let msg): return msg
-        case .queueUnavailable(let msg): return msg
+        case .invalidArgument(let msg): msg
+        case .queueUnavailable(let msg): msg
         }
     }
 }
@@ -352,6 +360,7 @@ private func encodeArguments(_ args: [String: String]) -> String {
     return data.flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
 }
 
+/// Formats `date` as a locale-sensitive short time string, e.g. `"6:00 PM"`.
 private func formatTime(_ date: Date) -> String {
     let f = DateFormatter()
     f.timeStyle = .short
@@ -359,19 +368,20 @@ private func formatTime(_ date: Date) -> String {
     return f.string(from: date)
 }
 
+/// Returns a short human-readable label for `event`, used in the activity
+/// tool's output lines.
 private func eventDetail(_ event: ActivityEvent) -> String {
     switch event.kind {
-    case .sessionStarted: return "session_started"
-    case .sessionEnded: return "session_ended"
+    case .sessionStarted: "session_started"
+    case .sessionEnded: "session_ended"
     case .warningEscalated:
-        return "warning \(event.note ?? "?") (\(event.minutesValue ?? 0) min remaining)"
-    case .lockoutStarted: return "lockout_started"
-    case .lockoutEnded: return "lockout_ended"
+        "warning \(event.note ?? "?") (\(event.minutesValue ?? 0) min remaining)"
+    case .lockoutStarted: "lockout_started"
+    case .lockoutEnded: "lockout_ended"
     case .extensionGranted:
-        return "extension_granted +\(event.minutesValue ?? 0) min"
+        "extension_granted +\(event.minutesValue ?? 0) min"
     case .overrideGranted:
-        return "override_granted +\(event.minutesValue ?? 0) min"
-    case .dayOff: return "day_off"
+        "override_granted +\(event.minutesValue ?? 0) min"
+    case .dayOff: "day_off"
     }
 }
-

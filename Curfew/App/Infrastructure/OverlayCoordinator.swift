@@ -1,17 +1,44 @@
 import AppKit
 import SwiftUI
 
+/// Value type that captures the window-level properties applied to all
+/// overlay windows of a given kind. Centralising these in a struct means
+/// the warning, lockout, and timer windows can each be described in one
+/// place and reused for both initial creation and frame-update paths.
 struct OverlayWindowConfiguration: Equatable {
+    /// Window style flags — overlays use `.borderless` so no title bar appears.
     var styleMask: NSWindow.StyleMask
+
+    /// Drawing priority. `.floating` for warnings, `.screenSaver` for lockout
+    /// (above the dock and full-screen apps), `.statusBar` for the timer pill.
     var level: NSWindow.Level
+
+    /// When `true` the window is transparent to mouse input. Warning and timer
+    /// windows pass through clicks; the lockout window captures them.
     var ignoresMouseEvents: Bool
+
+    /// Ensures the overlay appears on all Spaces and in full-screen mode.
     var collectionBehavior: NSWindow.CollectionBehavior
+
+    /// Always `false` for overlays — they must stay full-screen.
     var isMovable: Bool
+
+    /// Always `false` — overlays must not vanish when another app is focused.
     var hidesOnDeactivate: Bool
 }
 
+/// Manages the set of overlay `NSWindow` instances that visualise
+/// ``CurfewEvaluation`` across every connected display.
+///
+/// One window per screen per overlay kind (warning / lockout / timer) keeps
+/// multi-monitor setups consistent. The coordinator creates windows lazily on
+/// first need, updates them in-place on subsequent ticks, and tears them down
+/// when the phase clears. `CurfewAppModel` calls
+/// ``updateOverlays(for:model:lockoutMessage:)`` once per tick.
 @MainActor
 final class OverlayCoordinator {
+    /// Window configuration for the translucent dim overlay shown during the
+    /// warning phase. Mouse events pass through so normal interaction continues.
     static let warningWindowConfiguration = OverlayWindowConfiguration(
         styleMask: [.borderless],
         level: .floating,
@@ -21,6 +48,9 @@ final class OverlayCoordinator {
         hidesOnDeactivate: false
     )
 
+    /// Window configuration for the full-screen lockout overlay. Level
+    /// `.screenSaver` keeps it above the Dock and any full-screen app.
+    /// Mouse events are captured so the user cannot interact with the desktop.
     static let lockoutWindowConfiguration = OverlayWindowConfiguration(
         styleMask: [.borderless],
         level: .screenSaver,
@@ -30,6 +60,9 @@ final class OverlayCoordinator {
         hidesOnDeactivate: false
     )
 
+    /// Window configuration for the small floating countdown timer shown at
+    /// T-5 and below. Level `.statusBar` keeps it above normal windows but
+    /// below the lockout overlay. Mouse events pass through.
     static let timerWindowConfiguration = OverlayWindowConfiguration(
         styleMask: [.borderless],
         level: .statusBar,
@@ -43,6 +76,9 @@ final class OverlayCoordinator {
     private var lockoutWindows: [ObjectIdentifier: NSWindow] = [:]
     private var timerWindows: [ObjectIdentifier: NSWindow] = [:]
 
+    /// Reconciles the visible overlay windows with `state`. Called once per
+    /// tick; creates, updates, or removes windows as needed. Hides irrelevant
+    /// window kinds first to avoid z-order flicker.
     func updateOverlays(
         for state: CurfewEvaluation,
         model: CurfewAppModel,

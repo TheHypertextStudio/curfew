@@ -4,7 +4,10 @@ import OSLog
 import ServiceManagement
 import SwiftUI
 
-private let helperLogger = Logger(subsystem: "studio.hypertext.curfew", category: "privileged-helper")
+private let helperLogger = Logger(
+    subsystem: "studio.hypertext.curfew",
+    category: "privileged-helper"
+)
 
 /// Observable state machine for the `SMAppService`-managed LaunchDaemon and
 /// the app's login item registration.
@@ -75,7 +78,8 @@ final class PrivilegedHelperManager: ObservableObject {
             helperLogger.info("privileged daemon registered")
         } catch {
             lastError = error.localizedDescription
-            helperLogger.error("daemon register failed: \(error.localizedDescription, privacy: .public)")
+            helperLogger
+                .error("daemon register failed: \(error.localizedDescription, privacy: .public)")
         }
     }
 
@@ -89,7 +93,8 @@ final class PrivilegedHelperManager: ObservableObject {
             helperLogger.info("privileged daemon unregistered")
         } catch {
             lastError = error.localizedDescription
-            helperLogger.error("daemon unregister failed: \(error.localizedDescription, privacy: .public)")
+            helperLogger
+                .error("daemon unregister failed: \(error.localizedDescription, privacy: .public)")
         }
     }
 

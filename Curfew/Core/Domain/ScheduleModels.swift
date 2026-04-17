@@ -1,10 +1,25 @@
 import Foundation
 
+/// The resolved lock and unlock dates for a single enforcement day.
+///
+/// Produced by ``WeeklySchedule/scheduleWindow(for:extensionMinutesGrantedToday:calendar:)``
+/// and consumed by ``CurfewEnforcementEngine`` to determine the current phase.
+/// Dates are absolute (not minutes-from-midnight) so DST transitions and
+/// calendar arithmetic are handled by `Calendar` rather than by the engine.
 public struct ScheduleWindow: Equatable {
+    /// When the device locks today. May be after midnight if the user has a
+    /// late curfew (e.g. 02:00 the next day).
     public var lockDate: Date
+
+    /// When the device unlocks the following morning.
     public var unlockDate: Date
 }
 
+/// The seven days of the week, using ISO calendar weekday numbers as raw
+/// values (Sunday = 1, Monday = 2, …, Saturday = 7).
+///
+/// Raw values match `Calendar.component(.weekday, from:)` so `Weekday` can
+/// be round-tripped through `Calendar` without a mapping table.
 public enum Weekday: Int, CaseIterable, Identifiable, Codable {
     case monday = 2
     case tuesday = 3
@@ -14,10 +29,14 @@ public enum Weekday: Int, CaseIterable, Identifiable, Codable {
     case saturday = 7
     case sunday = 1
 
+    /// Satisfies `Identifiable` using the ISO weekday number. Stable across
+    /// locales — `id` is never shown to the user.
     public var id: Int {
         rawValue
     }
 
+    /// Three-letter English abbreviation used in the schedule editor grid and
+    /// the reset-day picker. English only.
     public var shortName: String {
         switch self {
         case .monday: "Mon"
@@ -40,17 +59,37 @@ public enum Weekday: Int, CaseIterable, Identifiable, Codable {
     }
 }
 
+/// The curfew rule for a single calendar day.
+///
+/// All time values are stored as **minutes from midnight** (0 = 00:00,
+/// 1080 = 18:00, 480 = 08:00) rather than as `Date` or `DateComponents`
+/// to keep `WeeklySchedule` timezone-independent. The absolute `Date`
+/// values needed for enforcement are resolved by
+/// ``WeeklySchedule/scheduleWindow(for:extensionMinutesGrantedToday:calendar:)``
+/// at evaluation time using the device's current calendar.
 public struct DayRule: Equatable, Codable {
+    /// When `true` no enforcement window is active on this day. The user
+    /// can still store `lockMinutes` / `unlockMinutes` so switching a day
+    /// back on retains the previous times.
     public var isDayOff: Bool
+
+    /// Minutes past midnight when the device locks. 1080 = 18:00 (6 pm).
     public var lockMinutes: Int
+
+    /// Minutes past midnight when the device unlocks the following morning.
+    /// Values ≤ `lockMinutes` are interpreted as next-day (e.g. 480 = 08:00
+    /// the next calendar day).
     public var unlockMinutes: Int
 
+    /// Standard workday defaults: Mon–Fri 18:00 lock / 08:00 unlock.
     public static let weekdayDefault = DayRule(
         isDayOff: false,
         lockMinutes: 18 * 60,
         unlockMinutes: 8 * 60
     )
 
+    /// Default for Saturday and Sunday: day-off with the same times stored
+    /// so the user gets sensible values if they re-enable a weekend day.
     public static let weekendDefault = DayRule(
         isDayOff: true,
         lockMinutes: 18 * 60,
@@ -64,13 +103,26 @@ public struct DayRule: Equatable, Codable {
     }
 }
 
+/// A seven-day curfew schedule mapping each ``Weekday`` to a ``DayRule``.
+///
+/// The struct is the primary domain model that users configure and that
+/// ``CurfewEnforcementEngine`` evaluates. It is persisted as part of
+/// ``CurfewSettings`` and synced via CloudKit.
+///
+/// Three built-in presets cover the most common schedules:
+/// - ``standardNineToFive`` — 18:00 lock, weekends off
+/// - ``startupHours`` — 20:00 lock, weekends off
+/// - ``halfDay`` — 13:00 lock, weekends off
 public struct WeeklySchedule: Equatable, Codable {
+    /// Per-day rules keyed by weekday. Missing keys fall back to
+    /// ``DayRule/weekdayDefault`` via ``rule(for:)-8b8m4``.
     public var rules: [Weekday: DayRule]
 
     public init(rules: [Weekday: DayRule]) {
         self.rules = rules
     }
 
+    /// Monday–Friday: 18:00 lock, 08:00 unlock. Saturday and Sunday off.
     public static let standardNineToFive: WeeklySchedule = .init(
         rules: Dictionary(
             uniqueKeysWithValues: Weekday.allCases.map { weekday in
@@ -82,6 +134,8 @@ public struct WeeklySchedule: Equatable, Codable {
         )
     )
 
+    /// Monday–Friday: 20:00 lock (start-up / longer hours), 08:00 unlock.
+    /// Saturday and Sunday off.
     public static let startupHours: WeeklySchedule = .init(
         rules: Dictionary(
             uniqueKeysWithValues: Weekday.allCases.map { weekday in
@@ -100,6 +154,8 @@ public struct WeeklySchedule: Equatable, Codable {
         )
     )
 
+    /// Monday–Friday: 13:00 lock (half-day), 08:00 unlock. Saturday and
+    /// Sunday off.
     public static let halfDay: WeeklySchedule = .init(
         rules: Dictionary(
             uniqueKeysWithValues: Weekday.allCases.map { weekday in
@@ -118,10 +174,15 @@ public struct WeeklySchedule: Equatable, Codable {
         )
     )
 
+    /// Returns the ``DayRule`` for `weekday`, falling back to
+    /// ``DayRule/weekdayDefault`` when the weekday has no explicit rule.
     public func rule(for weekday: Weekday) -> DayRule {
         rules[weekday] ?? .weekdayDefault
     }
 
+    /// Returns the ``DayRule`` for the weekday that contains `date` in
+    /// `calendar`. Convenience wrapper over ``rule(for:)-8b8m4`` for call
+    /// sites that work with `Date` values.
     public func rule(for date: Date, calendar: Calendar = .current) -> DayRule {
         let weekdayInt = calendar.component(.weekday, from: date)
         guard let weekday = Weekday(rawValue: weekdayInt) else {
@@ -130,6 +191,19 @@ public struct WeeklySchedule: Equatable, Codable {
         return rule(for: weekday)
     }
 
+    /// Returns the active ``ScheduleWindow`` for `date`, accounting for
+    /// extension minutes and previous-day carryover (when the unlock time
+    /// of the previous day falls after midnight into the current day).
+    ///
+    /// Returns `nil` when today is a day off or when calendar arithmetic
+    /// fails (extremely unlikely in practice).
+    ///
+    /// - Parameters:
+    ///   - date: The moment to evaluate — typically `Date()` from the tick loop.
+    ///   - extensionMinutesGrantedToday: Minutes already granted via
+    ///     extensions today; pushed onto `lockMinutes` to defer the gate.
+    ///   - calendar: Calendar used for all date arithmetic. Defaults to the
+    ///     device calendar so DST and timezone changes are respected.
     public func scheduleWindow(
         for date: Date,
         extensionMinutesGrantedToday: Int = 0,
@@ -158,6 +232,11 @@ public struct WeeklySchedule: Equatable, Codable {
         return currentWindow
     }
 
+    /// Returns a natural-language sentence describing tomorrow's enforcement
+    /// window, e.g. "Tomorrow, your computer locks at 6:00 PM and unlocks at
+    /// 8:00 AM." Used in the schedule summary card in the primary window.
+    ///
+    /// Returns a day-off message when tomorrow has no enforcement window.
     public func summarySentence(
         forNextDayFrom referenceDate: Date,
         calendar: Calendar = .current,
@@ -186,6 +265,9 @@ public struct WeeklySchedule: Equatable, Codable {
         return "Tomorrow, your computer locks at \(lockText) and unlocks at \(unlockText)."
     }
 
+    /// Returns the previous day's schedule window when `date` falls within
+    /// its lock–unlock span (i.e. the unlock time was after midnight and we
+    /// are still within that carryover window).
     private func previousDayCarryoverWindow(
         for date: Date,
         startOfDay: Date,
@@ -206,6 +288,9 @@ public struct WeeklySchedule: Equatable, Codable {
         return previousWindow
     }
 
+    /// Resolves the lock and unlock `Date` values for the calendar day
+    /// containing `day`, applying `extensionMinutes` to the lock time.
+    /// Returns `nil` when the day is marked off or calendar arithmetic fails.
     private func configuredWindow(
         forDayContaining day: Date,
         extensionMinutes: Int,

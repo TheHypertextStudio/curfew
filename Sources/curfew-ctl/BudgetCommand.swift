@@ -20,8 +20,8 @@ struct BudgetCommand: ParsableCommand {
         let weekStart = Calendar.current.startOfWeek(for: now)
         let events = (try? store?.events(in: weekStart ... now)) ?? []
 
-        let extensionsUsed = events.filter { $0.kind == .extensionGranted }.count
-        let overridesUsed = events.filter { $0.kind == .overrideGranted }.count
+        let extensionsUsed = events.count(where: { $0.kind == .extensionGranted })
+        let overridesUsed = events.count(where: { $0.kind == .overrideGranted })
 
         let extensionsRemaining = max(0, settings.extensionWeeklyLimit - extensionsUsed)
         let overridesRemaining = max(0, settings.overrideWeeklyLimit - overridesUsed)
@@ -32,15 +32,15 @@ struct BudgetCommand: ParsableCommand {
                     "used": extensionsUsed,
                     "remaining": extensionsRemaining,
                     "weekly_limit": settings.extensionWeeklyLimit,
-                    "duration_minutes": settings.extensionDurationMinutes,
+                    "duration_minutes": settings.extensionDurationMinutes
                 ],
                 "overrides": [
                     "used": overridesUsed,
                     "remaining": overridesRemaining,
                     "weekly_limit": settings.overrideWeeklyLimit,
-                    "duration_minutes": settings.overrideDurationMinutes,
+                    "duration_minutes": settings.overrideDurationMinutes
                 ],
-                "reset_weekday": settings.resetWeekday.shortName,
+                "reset_weekday": settings.resetWeekday.shortName
             ]
             if let data = try? JSONSerialization.data(
                 withJSONObject: obj,
