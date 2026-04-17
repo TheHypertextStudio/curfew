@@ -1,0 +1,22 @@
+# SwiftFormat config for Curfew
+# See https://github.com/nicklockwood/SwiftFormat/blob/main/Rules.md
+
+--swiftversion 6.0
+
+# SwiftLint's opening_brace requires `{` on same line as last condition;
+# disable the format rule that moves `{` to its own line to avoid tooling conflict.
+--disable wrapMultilineStatementBraces
+
+# General style
+--self init-only
+--patternlet inline
+--stripunusedargs closure-only
+--wraparguments before-first
+--wrapparameters before-first
+--wrapcollections before-first
+--indent 4
+--maxwidth 100
+--commas inline
+
+# Exclusions
+--exclude DerivedData,build,.build,.swiftpm,Pods,Carthage

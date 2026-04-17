@@ -1,0 +1,78 @@
+import AppKit
+@testable import Curfew
+import Foundation
+
+/// Minimal `AppRouting` spy that records call counts. Shared across test
+/// files so every behaviour test can inject the same stand-in without each
+/// file redefining its own.
+///
+/// Kept at module-internal visibility (default) rather than `private`
+/// because multiple test files need it; `private` would scope it to one
+/// file only, which is why the pre-split test file could embed it.
+@MainActor
+final class AppRouterSpy: AppRouting {
+    /// Number of times `activate()` has been called.
+    private(set) var activateCallCount = 0
+
+    /// Number of times `showSettings()` has been called.
+    private(set) var showSettingsCallCount = 0
+
+    func activate() {
+        activateCallCount += 1
+    }
+
+    func showSettings() {
+        showSettingsCallCount += 1
+    }
+}
+
+/// Minimal `GettingStartedPresenting` spy that records present/dismiss
+/// calls. Shared across test files for the same reason as `AppRouterSpy`.
+@MainActor
+final class GettingStartedPresenterSpy: GettingStartedPresenting {
+    /// Number of times `present(model:)` has been called.
+    private(set) var presentCallCount = 0
+
+    /// Number of times `dismiss()` has been called.
+    private(set) var dismissCallCount = 0
+
+    func present(model: CurfewAppModel) {
+        presentCallCount += 1
+    }
+
+    func dismiss() {
+        dismissCallCount += 1
+    }
+}
+
+/// `ShutdownControlling` spy for driving `ShutdownWorkflow` through its
+/// state machine without telling macOS to actually shut down.
+///
+/// `results` is a FIFO queue of return values for `executeShutdown()`. Each
+/// call dequeues and returns the next value; when empty, returns `false`.
+/// `callLog` records `"graceful"` / `"shutdown"` entries in call order so
+/// tests asserting ordering (graceful-terminate-before-shutdown) can check
+/// the sequence cheaply. Tests that don't care about ordering simply
+/// ignore `callLog`.
+final class ShutdownControllerSpy: ShutdownControlling {
+    /// Ordered log of method names, e.g. `["graceful", "shutdown"]`.
+    private(set) var callLog: [String] = []
+
+    private var results: [Bool]
+
+    init(results: [Bool]) {
+        self.results = results
+    }
+
+    func requestGracefulTermination() {
+        callLog.append("graceful")
+    }
+
+    func executeShutdown() -> Bool {
+        callLog.append("shutdown")
+        guard !results.isEmpty else {
+            return false
+        }
+        return results.removeFirst()
+    }
+}

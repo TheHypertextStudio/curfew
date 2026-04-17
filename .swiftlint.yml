@@ -1,0 +1,26 @@
+# SwiftLint config for Curfew
+# Uses default rules and thresholds.
+
+included:
+  - Curfew
+  - CurfewTests
+  - CurfewUITests
+
+excluded:
+  - DerivedData
+  - build
+  - .build
+  - .swiftpm
+
+line_length:
+  warning: 100
+  error: 120
+  ignores_comments: true
+  ignores_urls: true
+  ignores_interpolated_strings: true
+
+opt_in_rules:
+  - closure_spacing
+  - empty_count
+  - explicit_init
+  - redundant_nil_coalescing

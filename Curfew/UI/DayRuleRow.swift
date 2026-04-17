@@ -1,0 +1,145 @@
+import SwiftUI
+
+/// One row of the weekly schedule editor — rendered for each `Weekday` by
+/// `SettingsView.weeklySchedulePanel`. Owns its own bindings that round-
+/// trip user edits through `CurfewAppModel.updateRule(for:update:)` so
+/// the anti-bypass policy engine has a single entry point for schedule
+/// mutations.
+///
+/// Rendered as a vertical pair of rows:
+/// - Top row: weekday abbreviation + "day off" toggle.
+/// - Bottom row: "Lock" DatePicker → "->" → "Unlock" DatePicker (both
+///   disabled when day off).
+///
+/// Kept in its own file (rather than nested inside `SettingsView`) so this
+/// file can hold all the date-⇄-minutes conversion helpers together and so
+/// future per-row features (holiday pickers, per-day exceptions) have a
+/// natural home.
+struct DayRuleRow: View {
+    /// Shared app model — used for both reads (`editableSchedule.rule(for:)`)
+    /// and writes (`updateRule(for:update:)`).
+    @EnvironmentObject private var model: CurfewAppModel
+
+    /// Which weekday this row represents. Injected by the parent `ForEach`.
+    let weekday: Weekday
+
+    /// Current `DayRule` for this weekday, pulled through the model's
+    /// `editableSchedule` so pending-but-not-yet-effective edits are
+    /// visible in the editor (the engine still uses the live schedule
+    /// until the cooldown expires).
+    private var dayRule: DayRule {
+        model.editableSchedule.rule(for: weekday)
+    }
+
+    /// Binding that adapts `DayRule.lockMinutes` (minute-of-day offset) to
+    /// the `Date` that SwiftUI's `DatePicker` expects. Read/write
+    /// round-tripped through `minutesToDate` / `dateToMinutes`.
+    private func lockBinding() -> Binding<Date> {
+        Binding(
+            get: {
+                minutesToDate(dayRule.lockMinutes)
+            },
+            set: { newValue in
+                model.updateRule(for: weekday) { rule in
+                    rule.lockMinutes = dateToMinutes(newValue)
+                }
+            }
+        )
+    }
+
+    /// Symmetric binding for `DayRule.unlockMinutes`.
+    private func unlockBinding() -> Binding<Date> {
+        Binding(
+            get: {
+                minutesToDate(dayRule.unlockMinutes)
+            },
+            set: { newValue in
+                model.updateRule(for: weekday) { rule in
+                    rule.unlockMinutes = dateToMinutes(newValue)
+                }
+            }
+        )
+    }
+
+    /// Binding for the "day off" toggle. A true day-off skips enforcement
+    /// entirely for this weekday, regardless of lock/unlock values.
+    private func dayOffBinding() -> Binding<Bool> {
+        Binding(
+            get: { dayRule.isDayOff },
+            set: { isOff in
+                model.updateRule(for: weekday) { rule in
+                    rule.isDayOff = isOff
+                }
+            }
+        )
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(weekday.shortName)
+                    .font(CurfewTypography.bodyEmphasis(14))
+                    .frame(width: 48, alignment: .leading)
+
+                Toggle("Day off", isOn: dayOffBinding())
+                    .toggleStyle(.switch)
+                    .font(CurfewTypography.body(13))
+
+                Spacer()
+            }
+
+            HStack(spacing: 10) {
+                Text("Lock")
+                    .font(CurfewTypography.label(12))
+                    .foregroundStyle(CurfewTheme.mutedInk)
+                    .frame(width: 40, alignment: .leading)
+
+                DatePicker(
+                    "Lock",
+                    selection: lockBinding(),
+                    displayedComponents: .hourAndMinute
+                )
+                .labelsHidden()
+                .disabled(dayRule.isDayOff)
+
+                Text("->")
+                    .font(CurfewTypography.bodyEmphasis(14))
+                    .foregroundStyle(CurfewTheme.mutedInk)
+
+                Text("Unlock")
+                    .font(CurfewTypography.label(12))
+                    .foregroundStyle(CurfewTheme.mutedInk)
+
+                DatePicker(
+                    "Unlock",
+                    selection: unlockBinding(),
+                    displayedComponents: .hourAndMinute
+                )
+                .labelsHidden()
+                .disabled(dayRule.isDayOff)
+            }
+        }
+        .padding(10)
+        .background(
+            CurfewTheme.surfaceMuted,
+            in: RoundedRectangle(cornerRadius: 10, style: .continuous)
+        )
+    }
+
+    /// Converts a "minutes since start of today" count to a `Date` at that
+    /// offset. The date value returned is tied to today purely so
+    /// `DatePicker` has a valid `Date` to display — only the hour/minute
+    /// components of the returned value are meaningful.
+    private func minutesToDate(_ minutes: Int) -> Date {
+        let calendar = Calendar.current
+        let start = calendar.startOfDay(for: Date())
+        return calendar.date(byAdding: .minute, value: minutes, to: start) ?? Date()
+    }
+
+    /// Extracts hour + minute from a `Date` and collapses to a single
+    /// minute-of-day integer (0–1439). Complementary to `minutesToDate`.
+    private func dateToMinutes(_ date: Date) -> Int {
+        let components = Calendar.current.dateComponents([.hour, .minute], from: date)
+        return (components.hour ?? 0) * 60 + (components.minute ?? 0)
+    }
+}
