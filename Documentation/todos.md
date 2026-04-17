@@ -1,32 +1,36 @@
 # Curfew Implementation TODOs
 
 Source: [`Documentation/plan.md`](./plan.md)
-Execution Order: [`Documentation/internal/execution-plan.md`](./internal/execution-plan.md)
 Test Matrix: [`Documentation/todo-test-matrix.md`](./todo-test-matrix.md)
-Owner: Willie + Codex
+Owner: Willie + Claude
 Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
+
+> **v0.1 status (2026-04-17):** Core enforcement, CLI, MCP server, Pro licensing,
+> CloudKit sync, WidgetKit, CalendarMonitor, CI/release workflows, and landing page
+> are complete. Items below marked `[ ]` are v0.2+ targets unless noted otherwise.
+
+---
 
 ## 0. Foundation and Project Structure
 
-- [-] Create `CurfewShared` module for shared domain models and policy logic.
+- [-] Create `CurfewShared` module for shared domain models and policy logic. (v0.1 uses symlinks; extraction deferred to v0.1.1)
 - [x] Convert app shell to a standard macOS app window (`LSUIElement = false`) with menu bar quick access.
 - [x] Default debug/Xcode launch starts with enforcement disarmed unless explicitly enabled.
 - [x] Add a dedicated app launch coordinator so app startup orchestration is isolated from scene composition.
-- [ ] Add targets for `curfew-mcp`, `curfew-ctl`, privileged helper, and WidgetKit extension.
+- [x] Add targets for `curfew-mcp`, `curfew-ctl`, and WidgetKit extension. (Privileged helper → v0.2)
 - [-] Configure entitlements: App Group, CloudKit, notifications, accessibility-related requirements.
-- [ ] Define centralized app constants (`AppGroup`, bundle IDs, IPC endpoints, CloudKit record names).
-- [x] Add feature flags for deferred modules (widget/cloud/MCP/privileged helper) with safe defaults off.
+- [x] Define centralized app constants (`AppGroup`, bundle IDs, CloudKit record names via SharedPaths.swift).
+- [x] Add feature flags for deferred modules (widget/cloud/MCP/calendar/privileged helper) with safe defaults off.
 
 ## 1. Schedule + Enforcement Core
 
 - [x] Implement weekly schedule model (per-day end time, unlock time, day-off support).
 - [x] Implement schedule presets: 9-to-5, Startup Hours, Half Day.
-- [x] Enforce anti-bypass policy:
-- [x] Stricter schedule changes can apply next day.
-- [x] Weaker schedule changes require 24-hour cooldown.
+- [x] Enforce anti-bypass policy — stricter changes apply next day; weaker require 24-hour cooldown.
 - [x] Add DST-safe local timezone handling and schedule resolution tests.
 - [x] Add schedule summary sentence generation for Settings.
 - [x] Add a single `EnforcementSnapshot` read model for UI surfaces.
+- [x] Add "Apply to all days" action in schedule editor.
 
 ## 2. Warning Escalation
 
@@ -41,7 +45,7 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 
 - [x] Build full-screen lockout windows on all displays and spaces.
 - [x] Add `.screenSaver`-level window behavior and input capture.
-- [x] Add keyboard shortcut interception strategy for lockout.
+- [x] Add keyboard shortcut interception during lockout (⌘⇥, ⌘Q, ⌘⌥Esc, …).
 - [x] Implement rotating encouragement messages.
 - [x] Implement lockout visual design (time, unlock time, optional stats card).
 - [x] Respect accessibility settings: VoiceOver, reduce motion, reduce transparency.
@@ -56,129 +60,143 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 
 ## 5. Bypass Protection + Privileged Layer
 
-> v0.1 progress note (2026-04-17): a user-space `PersistentLockdown`
-> class now ships with tests — writes a `LaunchAgent` plist whose
-> `KeepAlive.PathState` watches a trigger file. Arming the trigger tells
-> launchd to respawn Curfew if killed; disarming lets normal exits
-> succeed. Not automatically installed by default; hardened SMAppService
-> path below remains the v0.2 target.
+> v0.1: `PersistentLockdown` ships a user-space respawning LaunchAgent using
+> `KeepAlive.PathState`. Not automatically installed; v0.2 hardens with SMAppService.
 
-- [ ] Implement privileged helper and LaunchDaemon via `SMAppService`.
-- [ ] Persist lockout state in root-owned path: `/Library/Application Support/Curfew/state.plist`.
-- [ ] Ensure user app reads but cannot modify privileged state.
-- [-] Implement helper health monitor for main app process recovery behavior. (v0.1 shim: `PersistentLockdown` respawning LaunchAgent; v0.2 hardening pending.)
-- [ ] Register login items for compatibility requirements.
-- [ ] Implement event tap behavior for force-quit interception during lockout.
+- [ ] Implement privileged helper and LaunchDaemon via `SMAppService`. (v0.2)
+- [ ] Persist lockout state in root-owned path. (v0.2)
+- [x] Implement user-space respawning LaunchAgent (`PersistentLockdown`) for v0.1 bypass deterrence.
+- [ ] Register login items for compatibility requirements. (v0.2)
+- [x] Implement event tap behavior for keyboard shortcut interception during lockout.
 
 ## 6. Extension and Override Systems
 
-- [x] Implement weekly extension budget (default 3/week) and duration (default 15 min).
+- [x] Implement weekly extension budget (default 3/week, 15 min each).
 - [x] Restrict extension requests to warning phase only.
-- [x] Implement deliberate extension activation interaction (hold-to-confirm).
-- [x] Implement extension reset day configuration (default Monday at unlock).
-- [ ] Implement CLI override command: `sudo curfew-ctl override --reason "..."`
-- [x] Enforce override limit (default 2/week) shared with lockout UI flow.
+- [x] Implement deliberate extension activation (hold-to-confirm, 2-second hold).
+- [x] Implement extension reset day configuration (default Monday).
+- [x] Enforce override limit (default 2/week).
+- [x] `curfew-ctl override` CLI command.
 
-## 7. “Convince Me” Unlock Flow
+## 7. "Convince Me" Unlock Flow
 
-- [x] Add subtle lockout entry point: “Need to get back in?”
+- [x] Add subtle lockout entry point: "Need to get back in?"
 - [x] Enforce 5-minute cooldown before unlock request form.
 - [x] Require minimum 50-character justification.
-- [x] Add consequence confirmation with 3-second hold-to-confirm.
+- [x] Add consequence confirmation with hold-to-confirm.
 - [x] Grant time-limited unlock (default 30 min), then re-lock automatically.
 - [x] Log timestamp/device/reason/granted duration for each override event.
 
 ## 8. Menu Bar UI + Core Screens
 
 - [x] Build menu bar icon state system (green/amber/red/gray/lock).
-- [x] Implement popover content: countdown, schedule, extension action, quick links.
-- [x] Build primary app window UX with overview, configuration, and getting started sections.
-- [-] Unify main window, menu popover, settings, and onboarding styling with shared theme components.
-- [x] Build Settings app sections: schedule, enforcement, integrations, devices, advanced.
-- [ ] Build “This Week” retrospective entry screen in app UI.
+- [x] Implement popover: countdown, schedule, extension action, quick links.
+- [x] Build primary app window (Overview, Configuration, Getting Started).
+- [x] Build Settings sections: schedule, enforcement, integrations, devices, license, advanced.
+- [x] Build "This Week" retrospective in app UI.
+- [x] All UI colors system dark mode adaptive (NSColor dynamic provider).
+- [x] Native macOS TabView in Settings window; flat layout in sidebar configuration pane.
 
-## 9. Calendar Integration
+## 9. Calendar Integration (Pro)
 
-- [ ] Add optional EventKit permission flow.
-- [ ] Detect meeting overlaps 1 hour before curfew.
-- [ ] Offer extension prompt tied to extension budget consumption.
-- [ ] Limit data usage to event title and timing only.
-- [ ] Support multiple calendar sources surfaced by EventKit.
+- [x] Add EventKit permission flow (`CalendarMonitor.requestAccessAndSync()`).
+- [x] Fetch today's non-all-day events, expose `todayEvents`, `hasCurrentEvent`, `nextEvent`.
+- [x] Refresh every 5 minutes.
+- [x] Gate behind `featureFlags.calendarEnabled` + `licenseGate.isProUnlocked`.
+- [x] Surface auth status and grant-access button in Settings → Integrations.
+- [ ] Show calendar events on lockout screen and This Week view. (v0.2 UX polish)
+- [ ] Detect meeting overlaps 1 hour before curfew and offer extension prompt. (v0.2)
 
-## 10. CloudKit Sync
+## 10. CloudKit Sync (Pro)
 
-- [ ] Define CloudKit schema for `Schedule`, `LockoutState`, `Device`, `DeviceActivity`.
-- [ ] Implement schedule sync with conflict strategy (record change tag, last-write-wins).
-- [ ] Implement lockout state propagation with subscriptions.
-- [ ] Implement offline/sleep reconciliation on wake/reconnect.
-- [ ] Add sync status UI and device list management in Settings.
-- [ ] Handle no-iCloud mode gracefully with local-only behavior.
+- [x] Single `CKRecord` in private database — `payload: Data` + `modifiedAt: Date`.
+- [x] Last-write-wins conflict resolution on `modifiedAt`.
+- [x] Graceful handling of missing container / unauthenticated (`CKError.isExpectedAbsence`).
+- [x] Gate behind `featureFlags.cloudSyncEnabled` + `licenseGate.isProUnlocked`.
+- [x] `cloudKitSyncEngine.push()` on every settings mutation.
+- [ ] CloudKit container provisioned in App Store Connect. (morning task)
+- [ ] Sync status UI in Settings → Devices. (v0.2)
+- [ ] Device list management. (v0.2)
 
-## 11. Unified Work Timer + Device Awareness
+## 11. Activity Log + Retrospective
 
-- [ ] Track active work time with idle cutoff (default >5 min excluded).
-- [ ] Write periodic `DeviceActivity` heartbeat while active (60s interval).
-- [ ] Aggregate cross-device time totals for UI and enforcement.
-- [ ] Implement hours-based mode and combined mode trigger logic.
-- [ ] Implement warning handoff when user switches devices mid-escalation.
-- [ ] Implement active-device-aware shutdown sequencing.
+- [x] GRDB SQLite storage with 52-week rolling retention.
+- [x] `ActivityRecorder` writes lifecycle/extension/override events.
+- [x] `ActivityRollups` computes daily/weekly aggregates.
+- [x] `IdleWatcher` detects idle periods (5-min cutoff).
+- [x] "This Week" view in app UI.
+- [ ] CSV export. (v0.2)
+- [ ] Device-attributed insights. (v0.2)
 
-## 12. Weekly Retrospective + Export
+## 12. WidgetKit (Pro)
 
-- [ ] Implement local SQLite storage (52-week retention).
-- [ ] Compute daily/weekly rollups: hours, extensions, overrides, days off, streak.
-- [ ] Add device-attributed insights for extensions/overrides.
-- [ ] Gate pattern insights until 2+ weeks of data.
-- [ ] Implement CSV export for historical data.
+- [x] Small widget: phase icon + time remaining + phase label.
+- [x] Medium widget: phase + remaining + schedule window.
+- [x] Large widget: full status, lock/unlock times.
+- [x] `CurfewWidgetProvider` reads shared UserDefaults, refreshes every 5 minutes.
+- [x] Gate behind `featureFlags.widgetKitEnabled` + `licenseGate.isProUnlocked`.
+- [ ] Xcode Widget Extension target wired in project. (requires Xcode UI)
+- [ ] Wire timeline updates to enforcement phase transitions. (v0.2)
 
-## 13. WidgetKit
+## 13. MCP Server (`curfew-mcp`)
 
-- [ ] Add small widget with circular countdown ring and state-aware visuals.
-- [ ] Add medium widget with schedule + extension + work-time context.
-- [ ] Add large widget with weekly mini chart and streak.
-- [ ] Add lockout/day-off widget states.
-- [ ] Wire timeline updates to warning intervals and lockout transitions.
+- [x] `curfew-mcp` executable target (stdio MCP server, JSON-RPC 2.0).
+- [x] Read tools: `curfew.status`, `curfew.schedule`, `curfew.budget`, `curfew.activity`.
+- [x] Write tools (queued by default): `curfew.request_extension`, `curfew.start_focus_session`, `curfew.end_focus_session`, `curfew.request_override`.
+- [x] `AIConsentPolicy`: queue (default), autoApprove, deny.
+- [x] `MCPConsentSheet` for user approval of queued write requests.
+- [x] Settings → Integrations: MCP toggle, Claude Desktop config copy, consent policy picker.
 
-## 14. MCP Server
+## 14. CLI (`curfew-ctl`)
 
-- [ ] Create `curfew-mcp` executable target bundled in app.
-- [ ] Integrate official MCP Swift SDK and stdio transport.
-- [ ] Implement read-heavy tool set and write tool queueing behavior.
-- [ ] Add optional localhost streamable HTTP transport (disabled by default).
-- [ ] Build Integrations settings tab with “Copy MCP config” action.
-- [ ] Add Claude Desktop auto-detection and one-click registration prompt.
+- [x] `status` — enforcement phase, time remaining, override state (plain + JSON).
+- [x] `schedule show` — today's and full weekly schedule.
+- [x] `budget` — extension and override budgets remaining.
+- [x] `activity` — recent activity log entries.
+- [x] `override` — request override with reason.
+- [x] Bundled at `Curfew.app/Contents/Resources/curfew-ctl`.
 
-## 15. Onboarding
+## 15. Pro Licensing
 
-- [x] Show a first-launch getting-started window so users can configure Curfew immediately.
-- [x] Persist one-time first-launch setup state so Settings only auto-opens once.
-- [x] Build first-run flow: welcome, schedule, extension budget, permissions, confirmation.
-- [x] Ensure onboarding schedule changes still respect anti-bypass timing rules. (Verified 2026-04-17: all schedule mutations from onboarding route through `model.updateRule` / `applyPreset`, both of which call `queueScheduleUpdate`. The only direct `settings.schedule = ...` write is inside `applyPendingScheduleIfNeeded` after the cooldown elapses. No bypass path exists.)
-- [x] Allow onboarding relaunch from Settings.
-- [x] Add warm explanatory copy for commitment model and enforcement behavior.
+- [x] Ed25519 offline license key verification (`LicenseGate` + `CryptoKit`).
+- [x] License key format: `{base64url(payload)}.{base64url(signature)}`.
+- [x] `LicenseView` in Settings — activate/deactivate, Pro status display.
+- [x] `ProGate<Content>` generic view wrapper gates CloudKit, WidgetKit, Calendar.
+- [x] `PurchasePromptView` — feature name, description, upgrade link.
+- [x] `scripts/gen-license-keypair.sh` — Ed25519 keypair generation.
+- [x] `scripts/issue-license.ts` — Cloudflare Worker: Lemonsqueezy webhook → signed key.
+- [ ] Placeholder public key replaced with production key. (morning task)
+- [ ] Lemonsqueezy store + product + webhook configured. (morning task)
 
-## 16. Accessibility, Localization, Performance
+## 16. Onboarding
 
-- [ ] Externalize all user-facing strings for localization readiness.
-- [ ] Ensure WCAG AA contrast and keyboard navigation in settings.
-- [ ] Add VoiceOver support for lockout and primary workflows.
-- [ ] Implement reduce-motion and reduce-transparency behavior variants.
-- [ ] Verify performance budgets (CPU, memory, render smoothness targets).
+- [x] First-launch getting-started window.
+- [x] Persist one-time first-launch setup state.
+- [x] First-run flow: welcome, schedule, budgets, permissions, confirmation.
+- [x] Anti-bypass: onboarding mutations route through `queueScheduleUpdate`.
+- [x] Onboarding relaunch from Settings.
 
 ## 17. Distribution and Operations
 
-- [ ] Integrate Sparkle auto-update flow and appcast handling.
-- [ ] Build DMG packaging flow and installer polish.
-- [ ] Configure signing and notarization pipeline in GitHub Actions.
-- [ ] Add Homebrew Cask workflow artifacts.
-- [ ] Implement in-app uninstall flow and standalone uninstall script.
-- [ ] Finalize OSS repository docs: README, LICENSE, CONTRIBUTING, privacy notes.
+- [x] `.github/workflows/ci.yml` — format + lint + test + build on push/PR.
+- [x] `.github/workflows/release.yml` — archive + sign + notarize + DMG on tag push.
+- [x] `scripts/build-dmg.sh` — `create-dmg` wrapper.
+- [x] MIT `LICENSE` file.
+- [x] README rewrite: three-horizon pitch, MCP setup, CLI usage, Pro features, architecture.
+- [x] `CONTRIBUTING.md`, `PRIVACY.md`, `Documentation/ARCHITECTURE.md`, `Documentation/RELEASE.md`.
+- [x] Landing page (`landing/`) — Cloudflare Pages deploy target.
+- [ ] Apple Developer credentials in GitHub secrets. (morning task)
+- [ ] Cloudflare Pages deployment. (morning task)
+- [ ] Homebrew Cask. (v0.2)
+- [ ] Sparkle autoupdate. (v0.2)
 
-## 18. System Verification and Release Readiness
+## 18. Verification (v0.1 release candidate)
 
-- [ ] Build end-to-end verification checklist (single-device and multi-device).
-- [ ] Run lockout persistence validation across reboot/login scenarios.
-- [ ] Validate no bypass through app force-quit/login/shortcut paths.
-- [ ] Validate CloudKit propagation, offline reconciliation, and budget consistency.
-- [ ] Validate widget/MCP outputs against app state.
-- [ ] Perform launch readiness review and release candidate sign-off.
+- [ ] `just check` passes (format + lint + tests + Debug build).
+- [ ] `xcodebuild archive` succeeds unsigned locally.
+- [ ] `./curfew-ctl status` prints live state.
+- [ ] `./curfew-mcp` responds to `tools/list` over stdio.
+- [ ] Paste test license → Pro features unlock; remove → re-gate.
+- [ ] Lockout smoke test: set curfew 5 min ahead, observe overlay, recover via override.
+- [ ] MCP smoke test: paste Claude Desktop config, run `curfew.status` from Claude.
+- [ ] Landing page links all resolve.
