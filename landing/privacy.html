@@ -17,59 +17,89 @@
   <main>
     <section>
       <div class="section-inner" style="max-width:640px">
-        <h1 style="font-size:36px;font-weight:700;letter-spacing:-0.5px;margin-bottom:32px">Privacy</h1>
+        <h1 class="privacy-heading">Privacy</h1>
 
-        <p style="color:var(--muted);margin-bottom:32px">
-          Curfew stores everything locally and requests only the permissions it uses.
+        <p class="privacy-lede">
+          Curfew stores everything locally and requests only the permissions
+          it uses.
         </p>
 
-        <h2 style="margin-bottom:12px;font-size:20px">What Curfew stores</h2>
-        <table class="pro-table" style="margin-bottom:40px">
+        <h2 class="privacy-section-title">What Curfew stores</h2>
+        <table class="privacy-table">
           <thead><tr><th>Data</th><th>Where</th><th>Retention</th></tr></thead>
           <tbody>
-            <tr><td>Schedule, budgets, preferences</td><td>~/Library/Application Support/Curfew/</td><td>Until uninstall</td></tr>
-            <tr><td>Override and extension events</td><td>SQLite</td><td>52 weeks</td></tr>
-            <tr><td>Activity log</td><td>SQLite</td><td>52 weeks</td></tr>
-            <tr><td>License key (Pro)</td><td>~/Library/Application Support/Curfew/</td><td>Until deactivated</td></tr>
+            <tr>
+              <td>Schedule, budgets, preferences, license key</td>
+              <td><code>~/Library/Preferences/</code></td>
+              <td>Until uninstall</td>
+            </tr>
+            <tr>
+              <td>Activity log (lockouts, extensions, overrides)</td>
+              <td><code>~/Library/Application Support/Curfew/activity.sqlite3</code></td>
+              <td>52 weeks rolling</td>
+            </tr>
+            <tr>
+              <td>Pending MCP write requests</td>
+              <td><code>~/Library/Application Support/Curfew/mcp-requests.json</code></td>
+              <td>Until resolved</td>
+            </tr>
           </tbody>
         </table>
 
-        <h2 style="margin-bottom:12px;font-size:20px">What Curfew does not do</h2>
-        <ul style="color:var(--muted);margin-bottom:40px;padding-left:20px;line-height:2">
+        <h2 class="privacy-section-title">What Curfew does not do</h2>
+        <ul class="privacy-list">
           <li>No analytics, telemetry, or crash reporting.</li>
-          <li>No network requests except iCloud sync (Pro, opt-in) and one-time offline license verification.</li>
+          <li>No network requests except iCloud sync (Pro, opt-in).</li>
           <li>No access to your files, browser history, or app content.</li>
         </ul>
 
-        <h2 style="margin-bottom:12px;font-size:20px">Permissions</h2>
-        <table class="pro-table" style="margin-bottom:40px">
+        <h2 class="privacy-section-title">Permissions</h2>
+        <table class="privacy-table">
           <thead><tr><th>Permission</th><th>Why</th></tr></thead>
           <tbody>
-            <tr><td>Calendars (Pro)</td><td>Read today's events for display. Never written to.</td></tr>
-            <tr><td>Notifications</td><td>Warning countdowns and lockout alerts.</td></tr>
-            <tr><td>Accessibility (optional)</td><td>Keyboard shortcut interception during lockout.</td></tr>
+            <tr>
+              <td>Calendars (Pro)</td>
+              <td>Read today's events for display. Never written to.</td>
+            </tr>
+            <tr>
+              <td>Notifications</td>
+              <td>Warning countdowns and lockout alerts.</td>
+            </tr>
+            <tr>
+              <td>Accessibility (optional)</td>
+              <td>Keyboard shortcut interception during lockout.</td>
+            </tr>
           </tbody>
         </table>
 
-        <h2 style="margin-bottom:12px;font-size:20px">iCloud sync (Pro)</h2>
-        <p style="color:var(--muted);margin-bottom:40px">
-          When enabled, your schedule is stored in your private iCloud database (CloudKit).
-          Hypertext Studio has no access — it lives in your personal iCloud account, encrypted by Apple.
+        <h2 class="privacy-section-title">iCloud sync (Pro)</h2>
+        <p class="privacy-prose">
+          When enabled, your schedule is stored in your private iCloud
+          database (CloudKit). Hypertext Studio has no access — it lives
+          in your personal iCloud account, encrypted by Apple.
         </p>
 
-        <h2 style="margin-bottom:12px;font-size:20px">MCP server</h2>
-        <p style="color:var(--muted);margin-bottom:40px">
-          When <code>curfew-mcp</code> is running, AI assistants can read your enforcement state and request
-          changes. Write operations require your explicit approval. No data leaves your machine through this path.
+        <h2 class="privacy-section-title">MCP server</h2>
+        <p class="privacy-prose">
+          When <code>curfew-mcp</code> is running, AI assistants can read
+          your enforcement state and request changes. Write operations
+          require your explicit approval in the app. No data leaves your
+          machine through this path.
         </p>
 
-        <p style="color:var(--muted)">Questions: <a href="mailto:hello@hypertext.studio">hello@hypertext.studio</a></p>
+        <p class="privacy-prose">
+          Questions:
+          <a href="mailto:hello@hypertext.studio">hello@hypertext.studio</a>
+        </p>
       </div>
     </section>
   </main>
 
   <footer>
-    <p>A <a href="https://hypertext.studio">Hypertext Studio</a> product — <em>mens et manus</em></p>
+    <p>
+      A <a href="https://hypertext.studio">Hypertext Studio</a> product —
+      <em>mens et manus</em>
+    </p>
   </footer>
 </body>
 </html>
