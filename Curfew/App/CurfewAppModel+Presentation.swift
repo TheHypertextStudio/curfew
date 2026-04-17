@@ -128,4 +128,35 @@ extension CurfewAppModel {
         let minuteComponent = minutes % 60
         return String(format: "%d:%02d", hoursComponent, minuteComponent)
     }
+
+    /// Returns the rollup of this calendar week relative to `currentTime`.
+    ///
+    /// "This week" is anchored on the user's `Calendar.current.firstWeekday`
+    /// rather than Curfew's own `resetWeekday` — the retrospective is a
+    /// calendar view, not a budget view. The two happen to match for the
+    /// default configuration (Monday) but will diverge if a user picks a
+    /// different reset day.
+    func thisWeekRollup() -> WeeklyActivityRollup {
+        let calendar = Calendar.current
+        let startOfDay = calendar.startOfDay(for: currentTime)
+        let weekday = calendar.component(.weekday, from: startOfDay)
+        let daysBack = (weekday - calendar.firstWeekday + 7) % 7
+        let weekStart = calendar.date(
+            byAdding: .day,
+            value: -daysBack,
+            to: startOfDay
+        ) ?? startOfDay
+        let weekEnd = calendar.date(
+            byAdding: .day,
+            value: 7,
+            to: weekStart
+        ) ?? weekStart
+
+        let events = activityRecorder.events(in: weekStart ... weekEnd)
+        return ActivityRollups.weeklyRollup(
+            events: events,
+            weekStart: weekStart,
+            calendar: calendar
+        )
+    }
 }

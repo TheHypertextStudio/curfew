@@ -37,6 +37,14 @@ protocol ActivityRecording: AnyObject {
         minutesRemaining: Int,
         at timestamp: Date
     )
+
+    /// Returns events in the given date range. The recorder is the single
+    /// entry point for both writes and reads so consumers don't need to
+    /// separately hold the underlying store. Failure modes (store closed,
+    /// SQLite error) collapse to an empty array — the retrospective UI
+    /// treats "no events" and "read failed" identically, which is
+    /// appropriate for a non-critical surface.
+    func events(in range: ClosedRange<Date>) -> [ActivityEvent]
 }
 
 /// Production ``ActivityRecording`` that writes to a SQLite-backed
@@ -133,6 +141,18 @@ final class ActivityRecorder: ActivityRecording {
         ))
     }
 
+    /// Returns events within the range, swallowing (and logging) any
+    /// SQLite error. See protocol doc for the rationale behind empty-on-
+    /// failure semantics.
+    func events(in range: ClosedRange<Date>) -> [ActivityEvent] {
+        do {
+            return try store.events(in: range)
+        } catch {
+            recorderLogger.error("activity fetch failed: \(String(describing: error))")
+            return []
+        }
+    }
+
     private func appendSafely(_ event: ActivityEvent) {
         do {
             try store.append(event)
@@ -162,4 +182,8 @@ final class NullActivityRecording: ActivityRecording {
         minutesRemaining: Int,
         at timestamp: Date
     ) {}
+
+    func events(in range: ClosedRange<Date>) -> [ActivityEvent] {
+        []
+    }
 }

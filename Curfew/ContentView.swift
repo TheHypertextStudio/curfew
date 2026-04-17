@@ -190,6 +190,9 @@ private struct MainOverviewSectionView: View {
                         .foregroundStyle(CurfewTheme.mutedInk)
                 }
 
+                ThisWeekView()
+                    .environmentObject(model)
+
                 CurfewPanel {
                     CurfewSectionTitle(
                         title: "Tomorrow",
