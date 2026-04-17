@@ -100,7 +100,8 @@ struct ShutdownWorkflow: Equatable {
         isLocked: Bool,
         isEnabled: Bool,
         delayMinutes: Int,
-        controller: ShutdownControlling
+        controller: ShutdownControlling,
+        isActiveDevice: Bool = true
     ) {
         guard isLocked, isEnabled else {
             phase = .idle
@@ -109,7 +110,11 @@ struct ShutdownWorkflow: Equatable {
 
         switch phase {
         case .idle:
-            let delay = max(1, delayMinutes)
+            // Active device follows the configured delay so the user has
+            // time to save. Idle devices get a shorter default — 2 min —
+            // since the user isn't there and the delay's only purpose is
+            // a graceful app termination grace period, not user save-time.
+            let delay = isActiveDevice ? max(1, delayMinutes) : 2
             phase = .scheduled(date: now.addingTimeInterval(TimeInterval(delay * 60)))
         case .scheduled(let date):
             guard now >= date else {

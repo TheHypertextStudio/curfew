@@ -134,6 +134,65 @@ final class CloudKitSyncEngine: ObservableObject {
         }
     }
 
+    /// Writes the shared `LockoutState` record so devices joining the
+    /// warning phase mid-escalation can align their stage baseline with
+    /// whichever Mac entered warning first.
+    ///
+    /// Rolling keys: passing `warningPhaseStarted = nil` clears the field
+    /// (e.g. when the user drops out of warning because an extension was
+    /// granted). The record is kept alive — CloudKit quota penalises
+    /// create/delete churn more than overwrite churn.
+    func pushLockoutState(
+        phase: String,
+        warningPhaseStarted: Date?,
+        lockedAt: Date?,
+        unlocksAt: Date?
+    ) {
+        guard active else { return }
+        Task {
+            await saveLockoutState(
+                phase: phase,
+                warningPhaseStarted: warningPhaseStarted,
+                lockedAt: lockedAt,
+                unlocksAt: unlocksAt
+            )
+        }
+    }
+
+    private func saveLockoutState(
+        phase: String,
+        warningPhaseStarted: Date?,
+        lockedAt: Date?,
+        unlocksAt: Date?
+    ) async {
+        let database = resolvedContainer.privateCloudDatabase
+        let id = CKRecord.ID(recordName: CloudKitSchema.lockoutStateRecordName)
+        do {
+            // Fetch-then-modify so CloudKit's server change tag stays
+            // coherent — avoids `.serverRecordChanged` on concurrent
+            // writers.
+            let record: CKRecord
+                = if let existing = try? await database.record(for: id) {
+                existing
+            } else {
+                CKRecord(
+                    recordType: CloudKitSchema.RecordType.lockoutState,
+                    recordID: id
+                )
+            }
+            record[CloudKitSchema.Field.phase] = phase as NSString
+            record[CloudKitSchema.Field.warningPhaseStarted] = warningPhaseStarted as NSDate?
+            record[CloudKitSchema.Field.lockedAt] = lockedAt as NSDate?
+            record[CloudKitSchema.Field.unlocksAt] = unlocksAt as NSDate?
+            record[CloudKitSchema.Field.modifiedAt] = Date() as NSDate
+            _ = try await database.save(record)
+        } catch let error as CKError where error.isExpectedAbsence {
+            syncLogger.debug("lockout-state save skipped: CloudKit unavailable")
+        } catch {
+            syncLogger.error("lockout-state save failed: \(error.localizedDescription)")
+        }
+    }
+
     // MARK: - Private
 
     private func pull(localSettings: CurfewSettings, localModifiedAt: Date) async {

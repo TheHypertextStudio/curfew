@@ -104,6 +104,13 @@ extension CurfewAppModel {
         if previousPhase != .locked, state.phase == .locked {
             lockoutMessage = EncouragementMessageCatalog.next(after: lockoutMessage)
         }
+        // Publish the current lockout/warning snapshot so other devices
+        // can align. Writing on every transition (not every tick) keeps
+        // CloudKit churn minimal; null-out warningPhaseStarted when we
+        // drop out of warning so joining devices don't see stale data.
+        if previousPhase != state.phase {
+            publishLockoutStateIfSyncActive(previous: previousPhase)
+        }
         // Reload widget timelines on both phase transitions and warning-
         // stage transitions. The old behaviour only covered phase, so a
         // widget viewed during warning escalation stayed on stale copy
@@ -294,12 +301,19 @@ extension CurfewAppModel {
     }
 
     func updateShutdownWorkflow() {
+        // Active-device test: during lockout the user is literally locked
+        // out, so `!isUserIdle` is what actually matters — is the user
+        // present at this Mac trying to save work? Fall through to
+        // active=true when no DeviceRegistry context exists (single-
+        // device builds) so behaviour stays the v0.1 default.
+        let isActiveDevice = !isUserIdle
         shutdownWorkflow.update(
             now: currentTime,
             isLocked: state.phase == .locked,
             isEnabled: settings.autoShutdownEnabled,
             delayMinutes: settings.autoShutdownDelayMinutes,
-            controller: shutdownController
+            controller: shutdownController,
+            isActiveDevice: isActiveDevice
         )
         shutdownStatusLine = shutdownWorkflow.statusLine(now: currentTime)
     }
@@ -341,6 +355,27 @@ extension CurfewAppModel {
         )
     }
 
+    /// Pushes the current lockout snapshot to CloudKit so other devices
+    /// can align. Clears `warningPhaseStarted` when the new phase is not
+    /// warning/lockout so joining devices don't see a stale timestamp.
+    private func publishLockoutStateIfSyncActive(previous: EnforcementPhase) {
+        let phaseToken = switch state.phase {
+        case .working: "working"
+        case .warning: "warning"
+        case .locked: "locked"
+        case .dayOff: "day_off"
+        }
+        let warningStarted: Date? = state.phase == .warning && previous != .warning
+            ? currentTime
+            : (state.phase == .warning ? nil : nil)
+        cloudKitSyncEngine.pushLockoutState(
+            phase: phaseToken,
+            warningPhaseStarted: warningStarted,
+            lockedAt: state.phase == .locked ? state.lockDate : nil,
+            unlocksAt: state.phase == .locked ? state.unlockDate : nil
+        )
+    }
+
     /// Active work minutes accumulated today; hours-based enforcement
     /// reads this. Kept out of `tick()` so the tick body stays tight.
     func workedMinutesToday(at now: Date) -> Int {
@@ -352,47 +387,5 @@ extension CurfewAppModel {
             idleWindows: [],
             calendar: .current
         )
-    }
-
-    /// Subscribes to license activation/deactivation so Pro engines start
-    /// or stop without requiring an app relaunch. Debounces via the main
-    /// run loop so the didSet cascade settles before engines bounce.
-    func subscribeToLicenseChanges() {
-        licenseGate.$activatedKey
-            .removeDuplicates()
-            .receive(on: RunLoop.main)
-            .sink { [weak self] _ in
-                self?.reconcileProGatedModules()
-            }
-            .store(in: &cancellables)
-    }
-
-    /// Starts or stops CloudKit, Calendar, and the privileged helper based
-    /// on the current `FeatureFlags` + `LicenseGate` combination. Idempotent:
-    /// `cloudKitSyncEngine.start()` guards on `!active`, and the calendar /
-    /// helper start calls no-op when already configured.
-    func reconcileProGatedModules() {
-        let pro = licenseGate.isProUnlocked
-
-        if featureFlags.cloudSyncEnabled, pro {
-            cloudKitSyncEngine.start(
-                localSettings: settings,
-                localModifiedAt: Date()
-            )
-            deviceRegistry.start()
-        } else {
-            cloudKitSyncEngine.stop()
-            deviceRegistry.stop()
-        }
-
-        if featureFlags.calendarEnabled, pro {
-            calendarMonitor.requestAccessAndSync()
-        } else {
-            calendarMonitor.stop()
-        }
-
-        if featureFlags.privilegedHelperEnabled {
-            privilegedHelperManager.refreshStatus()
-        }
     }
 }
