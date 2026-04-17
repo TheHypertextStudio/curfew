@@ -120,7 +120,7 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 
 ## 11. Activity Log + Retrospective
 
-- [x] GRDB SQLite storage with 52-week rolling retention.
+- [x] SQLite storage with 52-week rolling retention (direct `sqlite3` C API, no GRDB).
 - [x] `ActivityRecorder` writes lifecycle/extension/override events.
 - [x] `ActivityRollups` computes daily/weekly aggregates.
 - [x] `IdleWatcher` detects idle periods (5-min cutoff).
@@ -141,8 +141,9 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 ## 13. MCP Server (`curfew-mcp`)
 
 - [x] `curfew-mcp` executable target (stdio MCP server, JSON-RPC 2.0).
-- [x] Read tools: `curfew.status`, `curfew.schedule`, `curfew.budget`, `curfew.activity`.
-- [x] Write tools (queued by default): `curfew.request_extension`, `curfew.start_focus_session`, `curfew.end_focus_session`, `curfew.request_override`.
+- [x] Read tools: `curfew.status`, `curfew.schedule`, `curfew.budget`, `curfew.activity`, `curfew.request_status`.
+- [x] Write tools (queued by default): `curfew.request_extension`, `curfew.request_override`.
+- [ ] Write tools: `curfew.start_focus_session`, `curfew.end_focus_session`. (v0.2 — focus-mode schema TBD)
 - [x] `AIConsentPolicy`: queue (default), autoApprove, deny.
 - [x] `MCPConsentSheet` for user approval of queued write requests.
 - [x] Settings → Integrations: MCP toggle, Claude Desktop config copy, consent policy picker.
@@ -153,7 +154,7 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 - [x] `schedule show` — today's and full weekly schedule.
 - [x] `budget` — extension and override budgets remaining.
 - [x] `activity` — recent activity log entries.
-- [x] `override` — request override with reason.
+- [x] `override` — enqueue an override request for the running app to approve.
 - [x] Bundled at `Curfew.app/Contents/Resources/curfew-ctl`.
 
 ## 15. Pro Licensing

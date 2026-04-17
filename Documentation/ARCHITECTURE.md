@@ -10,7 +10,7 @@ Curfew.app
 │   ├── WarningStage              T-30 / T-15 / T-5 / T-2 / T-1 / lockout enum
 │   ├── ExtensionBudgetTracker    Weekly budget with reset-weekday logic
 │   ├── OverrideRequestPolicy     "Convince me" cooldown and justification gate
-│   ├── ActivityRecorder          GRDB SQLite — lifecycle/extension/override events
+│   ├── ActivityRecorder          sqlite3 C API — lifecycle/extension/override events
 │   ├── ActivityRollups           Daily/weekly aggregation for This Week view
 │   ├── IdleWatcher               CGEventSource idle detection, 5-min default cutoff
 │   ├── LicenseGate               Ed25519 offline license key verification (CryptoKit)
@@ -50,9 +50,14 @@ Curfew.app
     └── CurfewWidgetView          Small/medium/large SwiftUI views
 
 Sources/
-├── curfew-ctl/           ArgumentParser CLI (status, schedule, budget, activity, override)
-└── curfew-mcp/           MCP server — stdio transport, JSON-RPC 2.0
-    Both targets symlink shared Core files rather than importing a library module.
+├── CurfewKit/            SPM library — public re-exports of Core/Domain, Core/Storage,
+│                         Settings, and MCP queue types. One source of truth that the
+│                         app, CLI, and MCP server all depend on.
+├── curfew-ctl/           ArgumentParser CLI — status, schedule, budget, activity, override.
+│                         Read operations inspect shared storage directly; `override`
+│                         enqueues onto the MCP request queue so the running app
+│                         raises a consent sheet.
+└── curfew-mcp/           MCP server — stdio transport, JSON-RPC 2.0.
 
 CurfewTests/              ~90 unit tests, no UI dependencies
 ```
@@ -62,14 +67,14 @@ CurfewTests/              ~90 unit tests, no UI dependencies
 ### Pure enforcement engine
 `CurfewEnforcementEngine` is a stateless function: `(schedule, now, extensionMinutes, overrideUntil, warningIntervals) → CurfewEvaluation`. It has no side effects and no stored state. The app model calls it every second and reacts to the result. This makes every enforcement behavior trivially testable and keeps the Core completely independent of AppKit.
 
-### No feature module for shared code
-The CLI and MCP server share Core files via symlinks, not a library module. This avoids the complexity of SPM multi-target dependency graphs for what is essentially a one-product repo. The tradeoff is that shared files appear in multiple Xcode targets — acceptable at this scale.
+### `CurfewKit` as the shared library
+The CLI, MCP server, and app all link against a single SPM library, `CurfewKit`, that re-exports Core/Domain, Core/Storage, App/Settings, and the MCP queue types. Earlier revisions shared source files by symlink across targets; the library form makes the public seam explicit, removes duplicate compilation, and lets each consumer import exactly what it needs. Source files still live canonically under `Curfew/` so Xcode's synchronized-folder discovery continues to work — `Package.swift` just compiles them into the library target from there.
 
 ### Feature flags + license as two separate gates
 `FeatureFlags` controls whether a code path is *reachable at all* (off by default for incomplete features). `LicenseGate` controls whether a reachable feature is *unlocked* for the user. Both must pass for Pro surfaces to activate. This means a free-tier user who reverse-engineers the binary still hits the license check; a Pro user on an early build still hits the feature flag.
 
 ### Long-term gate seams
-The activity log schema carries optional `gateKind` and `reflection` fields. MCP tool verbs use generic names where sensible (`focus.start`, `gate.status`). `CurfewEnforcementEngine` is intentionally narrow — future gate types (morning intent, midday check-in, evening retrospective) will live as sibling engines, not as modifications to the existing one.
+The activity log schema carries optional `gateKind` and `reflection` fields. MCP tool verbs use generic names where sensible so future gate types (morning intent, midday check-in, evening retrospective) can land as sibling tools rather than overloads of the existing ones. `CurfewEnforcementEngine` is intentionally narrow — future gate types will live as sibling engines, not as modifications to the existing one.
 
 ### CloudKit sync strategy
 One `CKRecord` in the private database, record type `"Settings"`, deterministic record name `"curfew-settings-v1"`. Fields: `payload: Data` (JSON-encoded `CurfewSettings`) and `modifiedAt: Date`. Conflict resolution is last-write-wins on `modifiedAt`. This is intentionally simple — the schedule is a small, rarely-changed value and the consequences of a merge conflict are a minor schedule mismatch, not data loss.

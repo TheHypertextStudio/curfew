@@ -102,7 +102,9 @@ public final class ActivityStore {
     /// Returns a CSV string covering all events whose `timestamp` falls within
     /// `range`. Columns: id, timestamp (ISO 8601 UTC), gate_kind, kind,
     /// minutes_value, note. Note fields are double-quoted and internal quotes
-    /// are escaped per RFC 4180.
+    /// are escaped per RFC 4180. Rows are joined with CRLF per RFC 4180 §2.1
+    /// so strict parsers (notably Excel-on-Windows) preserve row boundaries
+    /// when a note contains an embedded newline.
     public func exportCSV(in range: ClosedRange<Date>) throws -> String {
         let rows = try events(in: range)
         let iso = ISO8601DateFormatter()
@@ -115,7 +117,7 @@ public final class ActivityStore {
             return "\(event.id.uuidString),\(iso.string(from: event.timestamp)),"
                 + "\(event.gateKind),\(event.kind.rawValue),\(minutes),\(note)"
         }
-        return ([header] + lines).joined(separator: "\n")
+        return ([header] + lines).joined(separator: "\r\n")
     }
 
     // MARK: - SQLite plumbing

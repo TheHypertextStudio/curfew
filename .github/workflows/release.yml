@@ -39,6 +39,18 @@ jobs:
           security list-keychains -d user -s "$KEYCHAIN_PATH"
           security set-key-partition-list -S apple-tool:,apple: -s -k "" "$KEYCHAIN_PATH"
 
+      - name: Reject placeholder license public key
+        # Refuses to release if LicenseGate.swift still embeds the all-zero
+        # placeholder. Without this gate, a forgotten key swap would ship
+        # a build that silently accepts attacker-forged license keys.
+        run: |
+          if grep -q 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=' \
+               Curfew/Core/Features/LicenseGate.swift; then
+            echo "::error::LicenseGate.swift still embeds the placeholder Ed25519 public key."
+            echo "Run scripts/gen-license-keypair.sh and paste the public key before tagging."
+            exit 1
+          fi
+
       - name: Run quality gate
         run: just check
 

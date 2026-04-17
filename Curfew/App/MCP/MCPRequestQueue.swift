@@ -91,5 +91,13 @@ public enum MCPRequestQueue {
         )
         let data = try encoder.encode(requests)
         try data.write(to: url, options: .atomic)
+        // Queue entries carry free-form override justifications; on a shared
+        // machine these should not be world-readable. An atomic write via
+        // `NSData.write` lands at default `0644` on macOS — explicitly
+        // tighten to `0600` after the rename completes.
+        try? FileManager.default.setAttributes(
+            [.posixPermissions: NSNumber(value: Int16(0o600))],
+            ofItemAtPath: url.path
+        )
     }
 }

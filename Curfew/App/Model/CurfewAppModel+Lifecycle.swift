@@ -1,3 +1,4 @@
+import Combine
 import EventKit
 import Foundation
 import UserNotifications
@@ -36,11 +37,25 @@ extension CurfewAppModel {
         let previousPhase = state.phase
         currentTime = Date()
 
+        // Idle sampling lives at the top of the tick so downstream surfaces
+        // (and any consumers observing `isUserIdle`) see today's true state
+        // before the engine runs. `sample()` fires `onIdleStateChanged`
+        // only on transitions, so 1 Hz polling costs one CGEventSource read.
+        idleWatcher.sample()
+
         if Self.dayToken(for: currentTime) != currentDayToken {
             currentDayToken = Self.dayToken(for: currentTime)
             extensionMinutesGrantedToday = 0
             snoozeMinutesGrantedToday = 0
             curfewOverlapPromptFiredForEventID = nil
+            // Enforces the 52-week retention promise in PRIVACY.md. Called
+            // on day rollover so the work happens at most once per day and
+            // never during a warning-phase tick where allocation jitter
+            // might be user-visible.
+            activityRecorder.trim(
+                olderThan: Self.activityRetentionSeconds,
+                now: currentTime
+            )
         }
 
         applyPendingScheduleIfNeeded(now: currentTime)
@@ -316,5 +331,47 @@ extension CurfewAppModel {
             overrideUntil: nil,
             warningIntervals: settings.warningIntervals
         )
+    }
+
+    /// Subscribes to license activation/deactivation so CloudKit and the
+    /// calendar monitor start (or stop) without requiring an app relaunch.
+    /// `licenseGate.activatedKey` flips synchronously inside `activate()` /
+    /// `deactivate()`; we hop to the main run loop so the didSet-cascade
+    /// settles before we touch engines.
+    func subscribeToLicenseChanges() {
+        licenseGate.$activatedKey
+            .removeDuplicates()
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                self?.reconcileProGatedModules()
+            }
+            .store(in: &cancellables)
+    }
+
+    /// Starts or stops CloudKit, Calendar, and the privileged helper based
+    /// on the current `FeatureFlags` + `LicenseGate` combination. Idempotent:
+    /// `cloudKitSyncEngine.start()` guards on `!active`, and the calendar /
+    /// helper start calls no-op when already configured.
+    func reconcileProGatedModules() {
+        let pro = licenseGate.isProUnlocked
+
+        if featureFlags.cloudSyncEnabled, pro {
+            cloudKitSyncEngine.start(
+                localSettings: settings,
+                localModifiedAt: Date()
+            )
+        } else {
+            cloudKitSyncEngine.stop()
+        }
+
+        if featureFlags.calendarEnabled, pro {
+            calendarMonitor.requestAccessAndSync()
+        } else {
+            calendarMonitor.stop()
+        }
+
+        if featureFlags.privilegedHelperEnabled {
+            privilegedHelperManager.refreshStatus()
+        }
     }
 }

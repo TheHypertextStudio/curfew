@@ -50,6 +50,12 @@ protocol ActivityRecording: AnyObject {
     /// failure. Callers that want failure-safe behaviour should catch and
     /// fall back to the header-only string.
     func exportCSV(in range: ClosedRange<Date>) throws -> String
+
+    /// Deletes events older than `seconds` relative to `now`. Called on
+    /// day rollover to enforce the 52-week retention window advertised in
+    /// PRIVACY.md. Failures are logged and swallowed — a trim that fails
+    /// must never block the tick loop.
+    func trim(olderThan seconds: TimeInterval, now: Date)
 }
 
 /// Production ``ActivityRecording`` that writes to a SQLite-backed
@@ -163,6 +169,14 @@ final class ActivityRecorder: ActivityRecording {
         try store.exportCSV(in: range)
     }
 
+    func trim(olderThan seconds: TimeInterval, now: Date) {
+        do {
+            try store.trimEvents(olderThan: seconds, now: now)
+        } catch {
+            recorderLogger.error("activity trim failed: \(String(describing: error))")
+        }
+    }
+
     private func appendSafely(_ event: ActivityEvent) {
         do {
             try store.append(event)
@@ -200,4 +214,6 @@ final class NullActivityRecording: ActivityRecording {
     func exportCSV(in range: ClosedRange<Date>) throws -> String {
         "id,timestamp,gate_kind,kind,minutes_value,note"
     }
+
+    func trim(olderThan seconds: TimeInterval, now: Date) {}
 }

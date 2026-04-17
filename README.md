@@ -43,9 +43,10 @@ Morning intent, midday check-in, evening retrospective — lifecycle gates beyon
 | `curfew.budget` | read | Extensions and overrides remaining this week |
 | `curfew.activity` | read | Recent activity log entries |
 | `curfew.request_extension` | write* | Ask for a time extension |
-| `curfew.start_focus_session` | write* | Mark the start of a focus session |
-| `curfew.end_focus_session` | write* | Mark the end of a focus session |
 | `curfew.request_override` | write* | Request a full override with a reason |
+| `curfew.request_status` | read | Poll a queued write request for approval/denial |
+
+Focus-session tools (`curfew.start_focus_session`, `curfew.end_focus_session`) are planned for v0.2 once the focus-mode schema stabilises.
 
 \* Write operations queue for user approval by default (configurable in Settings → Integrations → AI Consent Policy).
 

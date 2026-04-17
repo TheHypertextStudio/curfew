@@ -147,6 +147,11 @@ final class CurfewAppModel: NSObject, ObservableObject {
     /// Settings → Integrations when `featureFlags.privilegedHelperEnabled`.
     let privilegedHelperManager: PrivilegedHelperManager
 
+    /// Polls CoreGraphics idle time each tick. Gives downstream surfaces
+    /// (future warning-suppression, retrospective attribution) a single
+    /// source of truth for "is the user actively using the machine?".
+    let idleWatcher: IdleWatcher
+
     /// Writes lifecycle / extension / override events to the activity
     /// log. Always non-nil; when the SQLite store can't be opened
     /// (sandbox denied, disk full), this holds a ``NullActivityRecording``
@@ -177,6 +182,22 @@ final class CurfewAppModel: NSObject, ObservableObject {
     /// `YYYY-M-D` token representing the last-seen calendar day, so `tick()`
     /// can detect day rollovers without depending on a NotificationCenter.
     var currentDayToken = ""
+
+    /// Whether the user has been idle past `idleWatcher.idleThresholdSeconds`.
+    /// Mirrored from the watcher so SwiftUI surfaces can observe it without
+    /// reaching into a non-`@Published` collaborator. The day-rollover branch
+    /// in `tick()` also reads this to attribute "away" time correctly.
+    @Published private(set) var isUserIdle = false
+
+    /// Combine subscriptions held for the lifetime of the model. Currently
+    /// covers reactive Pro-gated module reconciliation: when
+    /// `licenseGate.activatedKey` flips, we start or stop CloudKit, calendar,
+    /// and the privileged helper without restarting the app.
+    var cancellables = Set<AnyCancellable>()
+
+    /// How many seconds of activity log to keep. Matches the 52-week rolling
+    /// retention promise in PRIVACY.md.
+    static let activityRetentionSeconds: TimeInterval = 52 * 7 * 24 * 60 * 60
 
     /// When non-nil, "Convince Me" override is active until this date —
     /// the engine continues returning `.working` until `now >= overrideUntil`.
@@ -214,7 +235,8 @@ final class CurfewAppModel: NSObject, ObservableObject {
         licenseGate: LicenseGate = LicenseGate(),
         cloudKitSyncEngine: CloudKitSyncEngine = CloudKitSyncEngine(),
         calendarMonitor: CalendarMonitor = CalendarMonitor(),
-        privilegedHelperManager: PrivilegedHelperManager = PrivilegedHelperManager()
+        privilegedHelperManager: PrivilegedHelperManager = PrivilegedHelperManager(),
+        idleWatcher: IdleWatcher = IdleWatcher(source: CGEventSourceIdleSource())
     ) {
         self.settingsStore = settingsStore
         self.policyEngine = SchedulePolicyEngine()
@@ -233,6 +255,7 @@ final class CurfewAppModel: NSObject, ObservableObject {
         self.cloudKitSyncEngine = cloudKitSyncEngine
         self.calendarMonitor = calendarMonitor
         self.privilegedHelperManager = privilegedHelperManager
+        self.idleWatcher = idleWatcher
 
         let loadedSettings = settingsStore.load()
         self.settings = loadedSettings
@@ -261,45 +284,18 @@ final class CurfewAppModel: NSObject, ObservableObject {
         self.lockoutMessage = EncouragementMessageCatalog.next(after: nil)
         self.shutdownStatusLine = nil
         self.currentDayToken = Self.dayToken(for: now)
+        self.isUserIdle = idleWatcher.isIdle
         super.init()
 
+        idleWatcher.onIdleStateChanged = { [weak self] idle in
+            self?.isUserIdle = idle
+        }
         configureNotificationCallback()
     }
 
-    /// Convenience for tests that only need to override the routing /
-    /// onboarding presenter; defaults everything else (including the
-    /// activity recorder, which falls back to the null recording when the
-    /// SQLite store cannot be opened).
-    convenience init(
-        settingsStore: CurfewSettingsStore,
-        appRouter: AppRouting,
-        gettingStartedPresenter: GettingStartedPresenting,
-        featureFlags: FeatureFlags = .default
-    ) {
-        self.init(
-            settingsStore: settingsStore,
-            appRouter: appRouter,
-            gettingStartedPresenter: gettingStartedPresenter,
-            featureFlags: featureFlags,
-            activityRecorder: Self.defaultActivityRecording()
-        )
-    }
-
-    /// Convenience for call sites that only want to override routing +
-    /// onboarding presenter; uses a default ``CurfewSettingsStore``.
-    convenience init(
-        appRouter: AppRouting,
-        gettingStartedPresenter: GettingStartedPresenting
-    ) {
-        self.init(
-            settingsStore: CurfewSettingsStore(),
-            appRouter: appRouter,
-            gettingStartedPresenter: gettingStartedPresenter
-        )
-    }
-
     /// Zero-arg convenience used by `CurfewApp` at production launch. All
-    /// collaborators resolve to their `System*` defaults.
+    /// collaborators resolve to their `System*` defaults. Kept in the main
+    /// class body because Swift forbids `override` in extensions.
     override convenience init() {
         self.init(
             settingsStore: CurfewSettingsStore(),
@@ -329,18 +325,8 @@ final class CurfewAppModel: NSObject, ObservableObject {
             settings = remoteSettings
             settingsStore.save(remoteSettings)
         }
-        if featureFlags.cloudSyncEnabled, licenseGate.isProUnlocked {
-            cloudKitSyncEngine.start(
-                localSettings: settings,
-                localModifiedAt: Date()
-            )
-        }
-        if featureFlags.calendarEnabled, licenseGate.isProUnlocked {
-            calendarMonitor.requestAccessAndSync()
-        }
-        if featureFlags.privilegedHelperEnabled {
-            privilegedHelperManager.refreshStatus()
-        }
+        subscribeToLicenseChanges()
+        reconcileProGatedModules()
     }
 
     /// Starts the 1 Hz enforcement tick. Safe to call repeatedly; no-ops

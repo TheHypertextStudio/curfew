@@ -15,7 +15,7 @@ struct AppConfigurationTests {
     @Test("Host app disables LSUIElement so it launches as a normal app window")
     func hostAppIsWindowed() throws {
         let appBundle = try #require(Bundle.allBundles
-            .first(where: { $0.bundleIdentifier == "studio.hypertext.Curfew" }))
+            .first(where: { $0.bundleIdentifier == "studio.hypertext.curfew" }))
         let value = appBundle.object(forInfoDictionaryKey: "LSUIElement") as? Bool
         #expect(value == false)
     }

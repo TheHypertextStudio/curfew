@@ -8,6 +8,12 @@
  *   LEMON_WEBHOOK_SECRET   — from Lemonsqueezy → Webhooks → signing secret
  *   LICENSE_PRIVATE_KEY    — base64url-encoded Ed25519 private key (gen-license-keypair.sh)
  *
+ * Required KV binding (wrangler.toml [[kv_namespaces]]):
+ *   LICENSE_KV             — stores per-order-ID idempotency records so a
+ *                            replayed webhook returns the original license
+ *                            instead of minting a second signed key for the
+ *                            same purchase.
+ *
  * The worker verifies the Lemonsqueezy webhook signature, extracts the
  * customer email and order ID, signs a license payload, and updates the
  * Lemonsqueezy license key meta with the signed key so it's delivered in
@@ -17,6 +23,12 @@
 export interface Env {
   LEMON_WEBHOOK_SECRET: string;
   LICENSE_PRIVATE_KEY: string;
+  /**
+   * Optional in local dev, required in production. When present, the worker
+   * dedupes by order ID; when absent, it logs a warning and still issues
+   * the key (useful for first-time-deploy smoke tests).
+   */
+  LICENSE_KV?: KVNamespace;
 }
 
 export default {
@@ -45,8 +57,32 @@ export default {
       return new Response("Missing order data", { status: 400 });
     }
 
+    // Idempotency: Lemonsqueezy retries webhooks on non-2xx responses, and
+    // a malicious actor who captured a webhook body could replay it. Look
+    // up the order ID first and return the cached license rather than
+    // signing a second one with a fresh issued_at timestamp.
+    if (env.LICENSE_KV) {
+      const cached = await env.LICENSE_KV.get(`order:${orderID}`);
+      if (cached) {
+        console.log(`Replay hit for order ${orderID}; returning cached license`);
+        return new Response(JSON.stringify({ license_key: cached }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+    } else {
+      console.warn("LICENSE_KV binding missing; proceeding without idempotency");
+    }
+
     const licenseKey = await signLicenseKey(email, orderID, env.LICENSE_PRIVATE_KEY);
-    console.log(`Issued license for ${email}, order ${orderID}: ${licenseKey}`);
+    console.log(`Issued license for ${email}, order ${orderID}`);
+
+    if (env.LICENSE_KV) {
+      // Licenses are durable — Ed25519 signatures do not expire — so the
+      // cache entry is also durable. Use `expirationTtl` only if we later
+      // decide replays older than N days should re-mint.
+      await env.LICENSE_KV.put(`order:${orderID}`, licenseKey);
+    }
 
     return new Response(JSON.stringify({ license_key: licenseKey }), {
       status: 200,
@@ -64,7 +100,9 @@ async function signLicenseKey(
 ): Promise<string> {
   const payload = {
     email,
-    product: "curfew",
+    // Must match the `product` check in LicenseGate.swift — any drift here
+    // silently rejects every license the worker mints.
+    product: "curfew-pro",
     order_id: orderID,
     issued_at: new Date().toISOString(),
   };

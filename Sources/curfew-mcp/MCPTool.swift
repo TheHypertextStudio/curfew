@@ -163,6 +163,14 @@ private let activityTool = MCPTool(
     ] as [String: Any],
     call: { arguments in
         let period = arguments["period"] as? String ?? "week"
+        // The JSON schema advertises only "today" and "week"; enforce that
+        // here so malformed callers get a clear JSON-RPC error instead of
+        // silently being coerced to the default "week" branch.
+        guard period == "today" || period == "week" else {
+            throw MCPToolError.invalidArgument(
+                "period must be \"today\" or \"week\" (got \"\(period)\")."
+            )
+        }
         let now = Date()
         let calendar = Calendar.current
         let rangeStart: Date = period == "today"

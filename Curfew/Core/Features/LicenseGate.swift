@@ -6,18 +6,36 @@ import Foundation
 /// Replace this constant with the output of `scripts/gen-license-keypair.sh`
 /// before shipping. The private half lives in `scripts/issue-license.ts` and
 /// is never bundled with the app.
+///
+/// The all-zero placeholder below is rejected by `LicenseGate.verified` —
+/// any activation attempt while it is in place fails with
+/// `.publicKeyNotProvisioned`. This prevents a build that has not had its
+/// production key swapped in from silently accepting attacker-forged keys.
 private let licensePublicKeyBase64 = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+
+/// Sentinel value for the unconfigured placeholder public key. Kept as its
+/// own constant so `LicenseGate.verified` can fail-closed when the build has
+/// not yet been pointed at a real signing key, and so CI can grep for the
+/// literal to reject release tags that still carry it.
+private let placeholderPublicKeyBase64 = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
 
 enum LicenseActivationError: LocalizedError {
     case malformed
     case invalidSignature
     case wrongProduct
+    /// The app was built with the placeholder public key still in place.
+    /// License verification is skipped rather than accepting a key that
+    /// could be forged against the all-zero key.
+    case publicKeyNotProvisioned
 
     var errorDescription: String? {
         switch self {
         case .malformed: "The license key format is invalid."
         case .invalidSignature: "This license key could not be verified."
         case .wrongProduct: "This license key is for a different product."
+        case .publicKeyNotProvisioned:
+            "This build does not have a license public key configured. " +
+                "Pro activation is disabled until the developer ships a signed build."
         }
     }
 }
@@ -69,9 +87,25 @@ final class LicenseGate: ObservableObject {
         defaults.removeObject(forKey: Self.storageKey)
     }
 
+    #if DEBUG
+        /// Debug-only hook for exercising `isProUnlocked` without a real
+        /// signed key. Used by `LifecycleWiringTests` to assert that
+        /// downstream engines react to activation. Not compiled into
+        /// Release builds, so production verification stays cryptographic.
+        func testInjectActivatedKey(_ key: LicenseKey?) {
+            activatedKey = key
+        }
+    #endif
+
     // MARK: - Private
 
     private func verified(_ keyString: String) throws -> LicenseKey {
+        // Fail-closed when the build still carries the placeholder zero key.
+        // Without this guard an attacker who discovered the all-zero private
+        // key (trivially derivable) could forge arbitrary licenses.
+        guard licensePublicKeyBase64 != placeholderPublicKeyBase64
+        else { throw LicenseActivationError.publicKeyNotProvisioned }
+
         let parts = keyString.split(separator: ".", maxSplits: 1)
         guard parts.count == 2,
               let payloadData = Data(base64URLEncoded: String(parts[0])),

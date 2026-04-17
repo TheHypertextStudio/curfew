@@ -6,21 +6,23 @@ import Foundation
 ///
 /// `curfew-ctl` reads the same settings and activity log the Curfew app
 /// writes, so it shows live state without requiring the app to be running.
-/// All subcommands are read-only in v0.1; write operations go through the
-/// MCP server (`curfew-mcp`) so they pass through the `AIConsentPolicy`
-/// approval gate.
+/// Mutating subcommands never change enforcement directly; they enqueue a
+/// request onto the same queue the MCP server uses, so the running app
+/// raises a consent sheet and the action passes through the
+/// `AIConsentPolicy` gate.
 ///
 /// Install: copy the `curfew-ctl` binary to `/usr/local/bin/` after
 /// building with `swift build -c release`.
 struct CurfewCLI: ParsableCommand {
     static var configuration = CommandConfiguration(
         commandName: "curfew-ctl",
-        abstract: "Inspect the current Curfew enforcement state.",
+        abstract: "Inspect or request changes to the current Curfew state.",
         subcommands: [
             StatusCommand.self,
             ScheduleCommand.self,
             BudgetCommand.self,
-            ActivityCommand.self
+            ActivityCommand.self,
+            OverrideCommand.self
         ],
         defaultSubcommand: StatusCommand.self
     )
