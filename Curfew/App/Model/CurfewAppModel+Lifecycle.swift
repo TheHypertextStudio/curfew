@@ -341,9 +341,8 @@ extension CurfewAppModel {
         )
     }
 
-    /// Active work minutes accumulated today. Hours-based enforcement reads
-    /// this; `.time` rules ignore it. Kept out of `tick()` so the tick body
-    /// stays under the lint budget.
+    /// Active work minutes accumulated today; hours-based enforcement
+    /// reads this. Kept out of `tick()` so the tick body stays tight.
     func workedMinutesToday(at now: Date) -> Int {
         WorkTimeAggregator.activeMinutesToday(
             now: now,
@@ -355,11 +354,9 @@ extension CurfewAppModel {
         )
     }
 
-    /// Subscribes to license activation/deactivation so CloudKit and the
-    /// calendar monitor start (or stop) without requiring an app relaunch.
-    /// `licenseGate.activatedKey` flips synchronously inside `activate()` /
-    /// `deactivate()`; we hop to the main run loop so the didSet-cascade
-    /// settles before we touch engines.
+    /// Subscribes to license activation/deactivation so Pro engines start
+    /// or stop without requiring an app relaunch. Debounces via the main
+    /// run loop so the didSet cascade settles before engines bounce.
     func subscribeToLicenseChanges() {
         licenseGate.$activatedKey
             .removeDuplicates()
@@ -382,8 +379,10 @@ extension CurfewAppModel {
                 localSettings: settings,
                 localModifiedAt: Date()
             )
+            deviceRegistry.start()
         } else {
             cloudKitSyncEngine.stop()
+            deviceRegistry.stop()
         }
 
         if featureFlags.calendarEnabled, pro {

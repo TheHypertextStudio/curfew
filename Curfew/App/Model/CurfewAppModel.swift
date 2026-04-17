@@ -152,6 +152,11 @@ final class CurfewAppModel: NSObject, ObservableObject {
     /// source of truth for "is the user actively using the machine?".
     let idleWatcher: IdleWatcher
 
+    /// Cross-device awareness — heartbeats today, subscription-driven
+    /// updates once a push arrives. Started alongside CloudKit sync when
+    /// Pro is unlocked and the feature flag is on.
+    let deviceRegistry: DeviceRegistry
+
     /// Writes lifecycle / extension / override events to the activity
     /// log. Always non-nil; when the SQLite store can't be opened
     /// (sandbox denied, disk full), this holds a ``NullActivityRecording``
@@ -189,16 +194,12 @@ final class CurfewAppModel: NSObject, ObservableObject {
     var previousWarningStage: WarningStage = .none
 
     /// Whether the user has been idle past `idleWatcher.idleThresholdSeconds`.
-    /// Mirrored from the watcher so SwiftUI surfaces can observe it without
-    /// reaching into a non-`@Published` collaborator. The day-rollover branch
-    /// in `tick()` also reads this to attribute "away" time correctly.
+    /// Mirrored from the watcher so observers need not reach into a
+    /// non-`@Published` collaborator.
     @Published private(set) var isUserIdle = false
 
-    /// Memoisation cache for ``thisWeekRollup()`` — key + last-returned
-    /// rollup. Invalidated when the week boundary advances or when the
-    /// activity recorder's mutation counter ticks. Kept at class scope
-    /// (rather than `@State` on the view) so the cache survives across
-    /// view disappearances.
+    /// Memoisation cache for ``thisWeekRollup()``. Invalidated on week
+    /// boundary advance or activity-recorder mutation.
     var cachedThisWeekKey: ThisWeekCacheKey?
     var cachedThisWeekRollup: WeeklyActivityRollup?
 
@@ -269,6 +270,7 @@ final class CurfewAppModel: NSObject, ObservableObject {
         self.calendarMonitor = calendarMonitor
         self.privilegedHelperManager = privilegedHelperManager
         self.idleWatcher = idleWatcher
+        self.deviceRegistry = DeviceRegistry(idleWatcher: idleWatcher)
 
         let loadedSettings = settingsStore.load()
         self.settings = loadedSettings

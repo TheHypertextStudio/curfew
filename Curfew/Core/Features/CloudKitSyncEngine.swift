@@ -78,6 +78,43 @@ final class CloudKitSyncEngine: ObservableObject {
         syncLogger.info("CloudKit sync starting")
         Task {
             await pull(localSettings: localSettings, localModifiedAt: localModifiedAt)
+            await registerDatabaseSubscriptionIfNeeded()
+        }
+    }
+
+    /// Creates a single `CKDatabaseSubscription` so remote record changes
+    /// arrive via silent APS push. Idempotent — subscriptions have
+    /// deterministic IDs (`CloudKitSchema.databaseSubscriptionID`); a
+    /// second save against the same ID returns a benign
+    /// `.serverRecordChanged` we swallow.
+    ///
+    /// On receipt of a push the app model calls `pullAll(localSettings:…)`
+    /// — there's no fine-grained per-record dispatch yet; we re-pull the
+    /// settings record and let `DeviceRegistry` observe its own heartbeats
+    /// lazily.
+    private func registerDatabaseSubscriptionIfNeeded() async {
+        let subscription = CKDatabaseSubscription(
+            subscriptionID: CloudKitSchema.databaseSubscriptionID
+        )
+        let notificationInfo = CKSubscription.NotificationInfo()
+        notificationInfo.shouldSendContentAvailable = true
+        subscription.notificationInfo = notificationInfo
+
+        do {
+            _ = try await resolvedContainer.privateCloudDatabase.save(subscription)
+            syncLogger.info("CloudKit database subscription registered")
+        } catch let error as CKError
+            where error.code == .serverRejectedRequest
+            || error.code == .unknownItem
+            || error.isExpectedAbsence {
+            // Most common benign case: subscription already exists. The
+            // `serverRejectedRequest` code covers "subscription with that
+            // identifier already present" in current CloudKit versions.
+            syncLogger.debug("database subscription already present")
+        } catch {
+            syncLogger.error(
+                "subscription registration failed: \(error.localizedDescription)"
+            )
         }
     }
 
