@@ -61,6 +61,8 @@ just --list      # show every recipe
 just check       # full ship-gate: format + lint + tests + Debug build
 just test        # unit suite only
 just format      # apply SwiftFormat in place
+just dev         # build + launch the app
+just kill        # kill any running Curfew process
 ```
 
 `just check` is also what CI runs on every push.

@@ -151,6 +151,17 @@ struct MainWindowView: View {
         }
         .navigationSplitViewStyle(.balanced)
         .tint(CurfewTheme.accent)
+        // Surface MCP consent sheet whenever a new AI write request arrives.
+        .sheet(item: Binding(
+            get: { model.pendingMCPRequests.first },
+            set: { _ in }
+        )) { request in
+            MCPConsentSheet(
+                request: request,
+                onApprove: { model.approveMCPRequest(request) },
+                onDeny: { model.denyMCPRequest(request) }
+            )
+        }
     }
 
     @ViewBuilder

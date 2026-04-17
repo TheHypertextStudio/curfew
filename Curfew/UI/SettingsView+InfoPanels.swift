@@ -4,34 +4,113 @@ import SwiftUI
 /// enforcement directly: Integrations, Devices, Advanced, and the setup
 /// re-entry panel.
 extension SettingsView {
-    /// Read-only status panel enumerating the deferred modules and whether
-    /// each is currently enabled via ``FeatureFlags``. Clicking a
-    /// disabled row is a no-op in v0.1 — turning modules on is a code
-    /// change until we wire in user-facing toggles post-v0.2.
+    /// Integrations panel: MCP server setup, Claude Desktop config snippet,
+    /// and AI consent policy picker.
     var integrationsPanel: some View {
+        VStack(spacing: 16) {
+            mcpConfigPanel
+            aiConsentPanel
+            otherIntegrationsPanel
+        }
+    }
+
+    /// MCP server setup instructions and Claude Desktop config copy button.
+    private var mcpConfigPanel: some View {
         CurfewPanel {
             CurfewSectionTitle(
-                title: "Integrations",
-                subtitle: "Optional modules for cloud sync, widgets, and external tooling."
+                title: "MCP Server",
+                subtitle: "Connect AI assistants to Curfew via the Model Context Protocol."
             )
 
-            integrationStatusRow(
-                title: "WidgetKit",
-                isEnabled: model.featureFlags.widgetKitEnabled
+            Text("""
+            `curfew-mcp` is a stdio MCP server bundled with Curfew. Add it to \
+            Claude Desktop (or any MCP host) by pasting the config snippet below \
+            into your `claude_desktop_config.json` under `mcpServers`.
+            """)
+            .font(CurfewTypography.body(13))
+            .foregroundStyle(CurfewTheme.mutedInk)
+            .fixedSize(horizontal: false, vertical: true)
+
+            Button("Copy Claude Desktop Config") {
+                copyClaudeDesktopConfig()
+            }
+            .buttonStyle(CurfewSecondaryButtonStyle())
+
+            if !model.pendingMCPRequests.isEmpty {
+                HStack(spacing: 8) {
+                    Text("\(model.pendingMCPRequests.count) pending AI request(s)")
+                        .font(CurfewTypography.bodyEmphasis(13))
+                        .foregroundStyle(CurfewTheme.accent)
+                    Button("Review") {
+                        model.openSettings()
+                    }
+                    .buttonStyle(CurfewSecondaryButtonStyle())
+                }
+            }
+        }
+    }
+
+    /// AI consent policy picker.
+    private var aiConsentPanel: some View {
+        CurfewPanel {
+            CurfewSectionTitle(
+                title: "AI Consent Policy",
+                subtitle: "Choose how Curfew handles AI-requested changes."
             )
+
+            Picker("Policy", selection: $model.aiConsentPolicy) {
+                ForEach(AIConsentPolicy.allCases, id: \.self) { policy in
+                    Text(policy.displayName).tag(policy)
+                }
+            }
+            .pickerStyle(.radioGroup)
+
+            Text(model.aiConsentPolicy.rationale)
+                .font(CurfewTypography.body(13))
+                .foregroundStyle(CurfewTheme.mutedInk)
+        }
+    }
+
+    /// Read-only status panel for deferred non-MCP modules.
+    private var otherIntegrationsPanel: some View {
+        CurfewPanel {
+            CurfewSectionTitle(
+                title: "Other Modules",
+                subtitle: "Cloud sync, widgets, and the privileged helper ship in a future release."
+            )
+
             integrationStatusRow(
                 title: "Cloud Sync",
                 isEnabled: model.featureFlags.cloudSyncEnabled
             )
             integrationStatusRow(
-                title: "MCP Server",
-                isEnabled: model.featureFlags.mcpServerEnabled
+                title: "WidgetKit",
+                isEnabled: model.featureFlags.widgetKitEnabled
             )
             integrationStatusRow(
                 title: "Privileged Helper",
                 isEnabled: model.featureFlags.privilegedHelperEnabled
             )
         }
+    }
+
+    /// Copies a ready-to-paste Claude Desktop MCP config JSON snippet for
+    /// `curfew-mcp` to the clipboard.
+    private func copyClaudeDesktopConfig() {
+        let executablePath = Bundle.main.bundlePath +
+            "/Contents/Resources/curfew-mcp"
+        let config = """
+        {
+          "mcpServers": {
+            "curfew": {
+              "command": "\(executablePath)",
+              "args": []
+            }
+          }
+        }
+        """
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(config, forType: .string)
     }
 
     /// Minimal single-device summary plus a count of override events

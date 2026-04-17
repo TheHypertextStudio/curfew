@@ -98,6 +98,10 @@ archive:
 # Run
 # -----------------------------------------------------------------------
 
+# Kill any running Curfew process immediately.
+kill:
+    pkill -x Curfew || true
+
 # Build Debug and launch the app locally for development.
 dev:
     xcodebuild build \
@@ -106,7 +110,8 @@ dev:
         -configuration Debug \
         -destination '{{ destination }}' \
         -derivedDataPath build
-    open build/Build/Products/Debug/Curfew.app
+    just kill
+    open -n build/Build/Products/Debug/Curfew.app
 
 # -----------------------------------------------------------------------
 # Composite gates

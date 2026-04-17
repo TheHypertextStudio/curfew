@@ -1,0 +1,1 @@
+../../Curfew/Core/ActivityEvent.swift

@@ -92,6 +92,15 @@ final class CurfewAppModel: NSObject, ObservableObject {
     /// succeeds.
     @Published private(set) var overrideEvents: [OverrideEvent]
 
+    /// MCP write requests waiting for user approval. Non-empty triggers the
+    /// ``MCPConsentSheet`` on the front window. Entries are removed once the
+    /// user approves or denies.
+    @Published var pendingMCPRequests: [MCPPendingRequest] = []
+
+    /// Whether the AI consent policy allows queuing MCP write requests.
+    /// Persisted in settings when user changes it in Settings → Integrations.
+    @Published var aiConsentPolicy: AIConsentPolicy = .queue
+
     // MARK: - Collaborators
 
     //
@@ -131,6 +140,10 @@ final class CurfewAppModel: NSObject, ObservableObject {
 
     /// Presenter for the first-launch onboarding window.
     let gettingStartedPresenter: GettingStartedPresenting
+
+    /// Watches the MCP request queue file for new write requests and fires
+    /// `pendingMCPRequests` updates so the UI can show consent sheets.
+    let mcpRequestMonitor: MCPRequestMonitor
 
     /// Writes lifecycle / extension / override events to the activity
     /// log. Always non-nil; when the SQLite store can't be opened
@@ -193,7 +206,8 @@ final class CurfewAppModel: NSObject, ObservableObject {
         appRouter: AppRouting,
         gettingStartedPresenter: GettingStartedPresenting,
         featureFlags: FeatureFlags = .default,
-        activityRecorder: any ActivityRecording
+        activityRecorder: any ActivityRecording,
+        mcpRequestMonitor: MCPRequestMonitor = MCPRequestMonitor()
     ) {
         self.settingsStore = settingsStore
         self.policyEngine = SchedulePolicyEngine()
@@ -207,6 +221,7 @@ final class CurfewAppModel: NSObject, ObservableObject {
         self.gettingStartedPresenter = gettingStartedPresenter
         self.featureFlags = featureFlags
         self.activityRecorder = activityRecorder
+        self.mcpRequestMonitor = mcpRequestMonitor
 
         let loadedSettings = settingsStore.load()
         self.settings = loadedSettings
@@ -282,13 +297,18 @@ final class CurfewAppModel: NSObject, ObservableObject {
         )
     }
 
-    /// Wires the notification manager's snooze callback back into the model
-    /// after `super.init()` completes. Lifted out of the initialiser body
-    /// because closures capturing `self` must run post-init.
+    /// Wires the notification manager's snooze callback and MCP request
+    /// monitor back into the model after `super.init()` completes. Lifted
+    /// out of the initialiser body because closures capturing `self` must
+    /// run post-init.
     private func configureNotificationCallback() {
         notificationManager.onSnoozeRequested = { [weak self] in
             self?.requestNotificationSnooze()
         }
+        mcpRequestMonitor.onNewRequests = { [weak self] requests in
+            self?.handleNewMCPRequests(requests)
+        }
+        mcpRequestMonitor.start()
     }
 
     deinit {

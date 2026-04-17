@@ -112,14 +112,82 @@ extension CurfewAppModel {
             overridesRemaining = overrideTracker.remaining
             return
         }
-
         let reason = trimmedOverrideReason
-        overrideUntil = currentTime
-            .addingTimeInterval(TimeInterval(settings.overrideDurationMinutes * 60))
-        overridesRemaining = overrideTracker.remaining
         overrideReasonDraft = ""
         overrideCooldownEndsAt = nil
         isOverrideComposerVisible = false
+        grantOverride(reason: reason)
+    }
+
+    // MARK: - MCP consent
+
+    /// Invoked by `MCPRequestMonitor` when new pending requests arrive.
+    /// Applies auto-approve or auto-deny based on `aiConsentPolicy`; queues
+    /// the rest in `pendingMCPRequests` for the consent sheet.
+    func handleNewMCPRequests(_ requests: [MCPPendingRequest]) {
+        for request in requests {
+            switch aiConsentPolicy {
+            case .autoApprove:
+                approveMCPRequest(request)
+            case .deny:
+                denyMCPRequest(request, reason: "AI consent policy set to deny all.")
+            case .queue:
+                if !pendingMCPRequests.contains(where: { $0.id == request.id }) {
+                    pendingMCPRequests.append(request)
+                }
+            }
+        }
+    }
+
+    /// Approves the given MCP request, applies the action, and updates the
+    /// queue file so `curfew-mcp` can return success to the client.
+    func approveMCPRequest(_ request: MCPPendingRequest) {
+        applyMCPAction(request)
+        var updated = request
+        updated.status = .approved
+        updated.resolvedAt = Date()
+        try? MCPRequestQueue.update(updated)
+        pendingMCPRequests.removeAll { $0.id == request.id }
+    }
+
+    /// Denies the given MCP request and updates the queue file so
+    /// `curfew-mcp` returns a refusal to the client.
+    func denyMCPRequest(_ request: MCPPendingRequest, reason: String = "") {
+        var updated = request
+        updated.status = .denied
+        updated.resolvedAt = Date()
+        updated.denialReason = reason.isEmpty ? nil : reason
+        try? MCPRequestQueue.update(updated)
+        pendingMCPRequests.removeAll { $0.id == request.id }
+    }
+
+    // MARK: - Private MCP helpers
+
+    private func applyMCPAction(_ request: MCPPendingRequest) {
+        switch request.tool {
+        case .requestExtension:
+            // Grant an extension if the budget allows and we're in warning phase.
+            if state.canRequestExtension {
+                _ = extensionTracker.requestExtension(at: currentTime)
+                extensionMinutesGrantedToday += settings.extensionDurationMinutes
+                extensionsRemaining = extensionTracker.remaining
+                activityRecorder.recordExtensionGranted(
+                    minutes: settings.extensionDurationMinutes,
+                    at: currentTime
+                )
+                tick()
+            }
+        case .requestOverride:
+            if overrideTracker.requestExtension(at: currentTime) {
+                grantOverride(reason: "[AI] \(decodedReason(from: request.argumentsJSON))")
+            }
+        }
+    }
+
+    private func grantOverride(reason: String) {
+        overrideUntil = currentTime
+            .addingTimeInterval(TimeInterval(settings.overrideDurationMinutes * 60))
+        overridesRemaining = overrideTracker.remaining
         lockoutMessage = EncouragementMessageCatalog.postOverride
         let event = OverrideEvent(
             timestamp: currentTime,
@@ -129,5 +197,16 @@ extension CurfewAppModel {
         )
         recordOverrideEvent(event)
         tick()
+    }
+
+    private func decodedReason(from argumentsJSON: String) -> String {
+        guard
+            let data = argumentsJSON.data(using: .utf8),
+            let args = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+            let reason = args["reason"] as? String
+        else {
+            return "(no reason provided)"
+        }
+        return reason
     }
 }
