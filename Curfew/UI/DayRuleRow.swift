@@ -86,6 +86,18 @@ struct DayRuleRow: View {
                     .font(CurfewTypography.body(13))
 
                 Spacer()
+
+                if !dayRule.isDayOff {
+                    Button("Apply to all") {
+                        model.applyTimesToAllDays(
+                            lockMinutes: dayRule.lockMinutes,
+                            unlockMinutes: dayRule.unlockMinutes
+                        )
+                    }
+                    .font(CurfewTypography.label(11))
+                    .foregroundStyle(CurfewTheme.accent)
+                    .buttonStyle(.plain)
+                }
             }
 
             HStack(spacing: 10) {

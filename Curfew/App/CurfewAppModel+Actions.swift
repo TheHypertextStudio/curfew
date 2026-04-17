@@ -60,6 +60,19 @@ extension CurfewAppModel {
         queueScheduleUpdate(nextSchedule)
     }
 
+    /// Copies `lockMinutes` and `unlockMinutes` to every day, preserving each
+    /// day's `isDayOff` flag so users don't accidentally re-enable rest days.
+    func applyTimesToAllDays(lockMinutes: Int, unlockMinutes: Int) {
+        var nextSchedule = editableSchedule
+        for weekday in Weekday.allCases {
+            var rule = nextSchedule.rule(for: weekday)
+            rule.lockMinutes = lockMinutes
+            rule.unlockMinutes = unlockMinutes
+            nextSchedule.rules[weekday] = rule
+        }
+        queueScheduleUpdate(nextSchedule)
+    }
+
     func tapExtensionRequest() {}
 
     func confirmExtensionRequest() {
