@@ -56,10 +56,17 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 
 ## 5. Bypass Protection + Privileged Layer
 
+> v0.1 progress note (2026-04-17): a user-space `PersistentLockdown`
+> class now ships with tests — writes a `LaunchAgent` plist whose
+> `KeepAlive.PathState` watches a trigger file. Arming the trigger tells
+> launchd to respawn Curfew if killed; disarming lets normal exits
+> succeed. Not automatically installed by default; hardened SMAppService
+> path below remains the v0.2 target.
+
 - [ ] Implement privileged helper and LaunchDaemon via `SMAppService`.
 - [ ] Persist lockout state in root-owned path: `/Library/Application Support/Curfew/state.plist`.
 - [ ] Ensure user app reads but cannot modify privileged state.
-- [ ] Implement helper health monitor for main app process recovery behavior.
+- [-] Implement helper health monitor for main app process recovery behavior. (v0.1 shim: `PersistentLockdown` respawning LaunchAgent; v0.2 hardening pending.)
 - [ ] Register login items for compatibility requirements.
 - [ ] Implement event tap behavior for force-quit interception during lockout.
 
