@@ -81,24 +81,25 @@ extension SettingsView {
 
     /// Read-only status panel for deferred non-MCP modules.
     private var otherIntegrationsPanel: some View {
-        CurfewPanel {
-            CurfewSectionTitle(
-                title: "Other Modules",
-                subtitle: "Cloud sync, widgets, and the privileged helper ship in a future release."
-            )
+        VStack(spacing: 16) {
+            ProGate(
+                feature: "WidgetKit",
+                description: "See your enforcement phase and time remaining at a glance."
+            ) {
+                CurfewPanel {
+                    CurfewSectionTitle(title: "WidgetKit", subtitle: "Small, medium, and large widgets.")
+                    integrationStatusRow(title: "WidgetKit", isEnabled: model.featureFlags.widgetKitEnabled)
+                }
+            }
+            .environmentObject(model)
 
-            integrationStatusRow(
-                title: "Cloud Sync",
-                isEnabled: model.featureFlags.cloudSyncEnabled
-            )
-            integrationStatusRow(
-                title: "WidgetKit",
-                isEnabled: model.featureFlags.widgetKitEnabled
-            )
-            integrationStatusRow(
-                title: "Privileged Helper",
-                isEnabled: model.featureFlags.privilegedHelperEnabled
-            )
+            CurfewPanel {
+                CurfewSectionTitle(title: "Privileged Helper", subtitle: "Stronger bypass prevention via a root-owned helper.")
+                integrationStatusRow(title: "Privileged Helper", isEnabled: model.featureFlags.privilegedHelperEnabled)
+                Text("Ships in v0.2.")
+                    .font(CurfewTypography.body(13))
+                    .foregroundStyle(CurfewTheme.mutedInk)
+            }
         }
     }
 
