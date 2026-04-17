@@ -138,9 +138,11 @@ Press ⌘R to run. First launch opens Getting Started, which walks through sched
 
 ## Development
 
+This repo uses [`just`](https://github.com/casey/just) as a command runner — a simpler `make` that lets you run every common task without invoking `xcodebuild` directly.
+
 ```bash
 brew install just swiftlint swiftformat
-just --list       # all recipes
+just --list       # show all recipes
 just check        # format + lint + tests + Debug build (CI gate)
 just test         # unit suite only
 just format       # apply SwiftFormat in place
@@ -148,7 +150,7 @@ just dev          # build + launch
 just kill         # kill any running Curfew process
 ```
 
-`just check` is what CI runs on every push.
+`just check` is the full ship-gate — same command CI runs on every push. All PRs must pass it.
 
 Contributor expectations and the TDD workflow live in [`AGENTS.md`](AGENTS.md).
 
