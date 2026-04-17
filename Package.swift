@@ -71,6 +71,7 @@ let package = Package(
                 "Curfew/App/MCP/MCPRequestQueue.swift",
                 // Utilities (CLI/MCP helpers, not compiled into the app)
                 "Sources/CurfewKit/Utilities.swift",
+                "Sources/CurfewKit/CopyDeck.swift",
             ],
             linkerSettings: [
                 .linkedLibrary("sqlite3"),

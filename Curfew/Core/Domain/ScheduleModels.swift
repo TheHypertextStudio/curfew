@@ -81,6 +81,13 @@ public struct DayRule: Equatable, Codable {
     /// the next calendar day).
     public var unlockMinutes: Int
 
+    /// Reserved for future per-day overrides — holiday pickers, one-off
+    /// "this Friday only" exceptions, calendar-driven day-off promotions.
+    /// Currently always `nil`; exists as a Codable seam so adding the
+    /// feature later does not require a CKRecord schema migration or a
+    /// breaking change to any call site already branching on it.
+    public var exception: DayRuleException?
+
     /// Standard workday defaults: Mon–Fri 18:00 lock / 08:00 unlock.
     public static let weekdayDefault = DayRule(
         isDayOff: false,
@@ -96,11 +103,50 @@ public struct DayRule: Equatable, Codable {
         unlockMinutes: 8 * 60
     )
 
-    public init(isDayOff: Bool, lockMinutes: Int, unlockMinutes: Int) {
+    public init(
+        isDayOff: Bool,
+        lockMinutes: Int,
+        unlockMinutes: Int,
+        exception: DayRuleException? = nil
+    ) {
         self.isDayOff = isDayOff
         self.lockMinutes = lockMinutes
         self.unlockMinutes = unlockMinutes
+        self.exception = exception
     }
+
+    /// Custom decoder so pre-existing persisted rules (which never stored
+    /// `exception`) still load cleanly. Synthesized decode would throw
+    /// `keyNotFound` on upgrade; `decodeIfPresent` keeps the upgrade path
+    /// one-way-safe.
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.isDayOff = try container.decode(Bool.self, forKey: .isDayOff)
+        self.lockMinutes = try container.decode(Int.self, forKey: .lockMinutes)
+        self.unlockMinutes = try container.decode(Int.self, forKey: .unlockMinutes)
+        self.exception = try container.decodeIfPresent(
+            DayRuleException.self,
+            forKey: .exception
+        )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case isDayOff
+        case lockMinutes
+        case unlockMinutes
+        case exception
+    }
+}
+
+/// Placeholder for per-day schedule exceptions. The struct is empty
+/// today — `rule.exception != nil` is always false — but the type
+/// exists so the schedule editor and enforcement engine can start
+/// referring to it before the v0.2 feature ships. When per-day
+/// exceptions land they gain fields here (date range, one-off
+/// `lockMinutes`/`unlockMinutes` override, "holiday" label) without
+/// changing any of the enclosing APIs.
+public struct DayRuleException: Equatable, Codable {
+    public init() {}
 }
 
 /// A seven-day curfew schedule mapping each ``Weekday`` to a ``DayRule``.

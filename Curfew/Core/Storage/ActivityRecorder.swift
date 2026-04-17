@@ -56,6 +56,13 @@ protocol ActivityRecording: AnyObject {
     /// PRIVACY.md. Failures are logged and swallowed — a trim that fails
     /// must never block the tick loop.
     func trim(olderThan seconds: TimeInterval, now: Date)
+
+    /// Monotonic counter bumped on every successful write. Lets views
+    /// (notably `ThisWeekView`) memoise expensive rollups and invalidate
+    /// only when data actually changes — not on every tick. Wraps around
+    /// at `Int.max` but in practice will not approach that for any
+    /// realistic lifetime of an install.
+    var mutationCount: Int { get }
 }
 
 /// Production ``ActivityRecording`` that writes to a SQLite-backed
@@ -71,6 +78,7 @@ protocol ActivityRecording: AnyObject {
 final class ActivityRecorder: ActivityRecording {
     private let store: ActivityStore
     private let gateKind: String
+    private(set) var mutationCount: Int = 0
 
     init(store: ActivityStore, gateKind: String = GateKind.curfew) {
         self.store = store
@@ -180,6 +188,7 @@ final class ActivityRecorder: ActivityRecording {
     private func appendSafely(_ event: ActivityEvent) {
         do {
             try store.append(event)
+            mutationCount &+= 1
         } catch {
             recorderLogger.error("activity append failed: \(String(describing: error))")
         }
@@ -216,4 +225,8 @@ final class NullActivityRecording: ActivityRecording {
     }
 
     func trim(olderThan seconds: TimeInterval, now: Date) {}
+
+    /// Always zero — a null recorder writes nothing so consumers treating
+    /// this as "nothing has changed ever" keep stable cached state.
+    let mutationCount: Int = 0
 }

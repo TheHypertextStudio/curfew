@@ -189,6 +189,14 @@ final class CurfewAppModel: NSObject, ObservableObject {
     /// in `tick()` also reads this to attribute "away" time correctly.
     @Published private(set) var isUserIdle = false
 
+    /// Memoisation cache for ``thisWeekRollup()`` — key + last-returned
+    /// rollup. Invalidated when the week boundary advances or when the
+    /// activity recorder's mutation counter ticks. Kept at class scope
+    /// (rather than `@State` on the view) so the cache survives across
+    /// view disappearances.
+    var cachedThisWeekKey: ThisWeekCacheKey?
+    var cachedThisWeekRollup: WeeklyActivityRollup?
+
     /// Combine subscriptions held for the lifetime of the model. Currently
     /// covers reactive Pro-gated module reconciliation: when
     /// `licenseGate.activatedKey` flips, we start or stop CloudKit, calendar,

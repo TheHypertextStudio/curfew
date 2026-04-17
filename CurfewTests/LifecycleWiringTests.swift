@@ -143,6 +143,8 @@ private final class ActivityRecordingSpy: ActivityRecording {
         trimCallCount += 1
         lastTrimOlderThan = seconds
     }
+
+    let mutationCount: Int = 0
 }
 
 private final class StubIdleSource: IdleTimeSource {

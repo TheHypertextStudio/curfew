@@ -166,6 +166,11 @@ extension CurfewAppModel {
     /// calendar view, not a budget view. The two happen to match for the
     /// default configuration (Monday) but will diverge if a user picks a
     /// different reset day.
+    ///
+    /// Memoised on `(weekStart, activityRecorder.mutationCount)` so the
+    /// 1 Hz tick loop does not rerun the SQLite query every second while
+    /// `ThisWeekView` is visible. Cache invalidates on week boundary
+    /// crossings and on every activity write.
     func thisWeekRollup() -> WeeklyActivityRollup {
         let calendar = Calendar.current
         let startOfDay = calendar.startOfDay(for: currentTime)
@@ -182,11 +187,30 @@ extension CurfewAppModel {
             to: weekStart
         ) ?? weekStart
 
+        let key = ThisWeekCacheKey(
+            weekStart: weekStart,
+            mutationCount: activityRecorder.mutationCount
+        )
+        if let cached = cachedThisWeekRollup, cachedThisWeekKey == key {
+            return cached
+        }
+
         let events = activityRecorder.events(in: weekStart ... weekEnd)
-        return ActivityRollups.weeklyRollup(
+        let rollup = ActivityRollups.weeklyRollup(
             events: events,
             weekStart: weekStart,
             calendar: calendar
         )
+        cachedThisWeekKey = key
+        cachedThisWeekRollup = rollup
+        return rollup
     }
+}
+
+/// Cache key pair for ``CurfewAppModel/thisWeekRollup()`` — declared at
+/// file scope (not nested) so it can be `Equatable` without pulling
+/// `CurfewAppModel` into Swift's actor inference.
+struct ThisWeekCacheKey: Equatable {
+    let weekStart: Date
+    let mutationCount: Int
 }
