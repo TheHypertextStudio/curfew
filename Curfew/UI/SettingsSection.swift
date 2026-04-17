@@ -30,19 +30,23 @@ enum SettingsSection: String, CaseIterable, Identifiable {
         rawValue
     }
 
-    /// Sidebar display label.
     var title: String {
         switch self {
-        case .schedule:
-            "Schedule"
-        case .enforcement:
-            "Enforcement"
-        case .integrations:
-            "Integrations"
-        case .devices:
-            "Devices"
-        case .advanced:
-            "Advanced"
+        case .schedule:     "Schedule"
+        case .enforcement:  "Enforcement"
+        case .integrations: "Integrations"
+        case .devices:      "Devices"
+        case .advanced:     "Advanced"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .schedule:     "calendar"
+        case .enforcement:  "timer"
+        case .integrations: "puzzlepiece.extension"
+        case .devices:      "macbook.and.iphone"
+        case .advanced:     "gearshape.2"
         }
     }
 }
