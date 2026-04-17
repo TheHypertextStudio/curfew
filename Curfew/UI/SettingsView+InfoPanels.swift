@@ -188,22 +188,18 @@ extension SettingsView {
         NSPasteboard.general.setString(config, forType: .string)
     }
 
-    /// Single-device summary plus the Pro cloud sync panel.
+    /// Cross-device overview. Pairs the live `DeviceRegistry` list with
+    /// the Pro cloud-sync panel so users can see sync health in one
+    /// place. Before Pro is unlocked the list is just the local Mac.
     var devicesPanel: some View {
         VStack(spacing: 16) {
+            devicesListPanel
+
             CurfewPanel {
                 CurfewSectionTitle(
                     title: "This Device",
-                    subtitle: "Local schedule and activity."
+                    subtitle: "Local overrides and activity."
                 )
-
-                let deviceName = Host.current().localizedName
-                    ?? Host.current().name
-                    ?? "Unknown"
-                Text("Device: \(deviceName)")
-                    .font(CurfewTypography.body(14))
-                    .foregroundStyle(CurfewTheme.ink)
-
                 Text("Override events logged locally: \(model.overrideEvents.count)")
                     .font(CurfewTypography.body(14))
                     .foregroundStyle(CurfewTheme.mutedInk)
