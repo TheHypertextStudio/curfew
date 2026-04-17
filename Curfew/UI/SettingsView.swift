@@ -50,6 +50,7 @@ struct SettingsView: View {
                                  systemImage: SettingsSection.devices.icon) }
 
             tab {
+                licensePanel
                 advancedPanel
                 setupPanel
             }
@@ -72,6 +73,7 @@ struct SettingsView: View {
             warningPanel
             shutdownPanel
             integrationsPanel
+            licensePanel
             advancedPanel
             setupPanel
         }

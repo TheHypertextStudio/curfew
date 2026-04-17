@@ -143,6 +143,12 @@ extension SettingsView {
         }
     }
 
+    /// License key entry and Pro status panel.
+    var licensePanel: some View {
+        LicenseView()
+            .environmentObject(model)
+    }
+
     /// Advanced/diagnostic panel — currently just the weekly reset-day
     /// picker. Placeholder for future debug toggles.
     var advancedPanel: some View {

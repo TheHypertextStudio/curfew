@@ -43,6 +43,10 @@ final class CurfewAppModel: NSObject, ObservableObject {
     /// See ``FeatureFlags``.
     let featureFlags: FeatureFlags
 
+    /// Pro license gate. Verifies the stored license key on startup and
+    /// exposes `isProUnlocked` for all Pro-gated surfaces.
+    let licenseGate: LicenseGate
+
     /// Persisted user settings (schedule, budgets, notification preferences,
     /// warning intervals). Mutations trigger `handleSettingsMutation` via
     /// `didSet` so budget trackers stay in sync with user edits.
@@ -207,7 +211,8 @@ final class CurfewAppModel: NSObject, ObservableObject {
         gettingStartedPresenter: GettingStartedPresenting,
         featureFlags: FeatureFlags = .default,
         activityRecorder: any ActivityRecording,
-        mcpRequestMonitor: MCPRequestMonitor = MCPRequestMonitor()
+        mcpRequestMonitor: MCPRequestMonitor = MCPRequestMonitor(),
+        licenseGate: LicenseGate = LicenseGate()
     ) {
         self.settingsStore = settingsStore
         self.policyEngine = SchedulePolicyEngine()
@@ -222,6 +227,7 @@ final class CurfewAppModel: NSObject, ObservableObject {
         self.featureFlags = featureFlags
         self.activityRecorder = activityRecorder
         self.mcpRequestMonitor = mcpRequestMonitor
+        self.licenseGate = licenseGate
 
         let loadedSettings = settingsStore.load()
         self.settings = loadedSettings
@@ -311,6 +317,7 @@ final class CurfewAppModel: NSObject, ObservableObject {
         if settings.mcpEnabled {
             mcpRequestMonitor.start()
         }
+        licenseGate.loadStoredKey()
     }
 
     deinit {
