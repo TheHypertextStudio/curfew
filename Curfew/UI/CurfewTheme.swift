@@ -1,20 +1,44 @@
+import AppKit
 import SwiftUI
 
 enum CurfewTheme {
-    static let canvas = Color(red: 0.95, green: 0.93, blue: 0.90)
-    static let canvasStrong = Color(red: 0.89, green: 0.87, blue: 0.83)
-    static let surface = Color(red: 0.99, green: 0.98, blue: 0.96)
-    static let surfaceMuted = Color(red: 0.96, green: 0.95, blue: 0.92)
+    // Backgrounds
+    static let canvas       = adaptive(l: (0.95, 0.93, 0.90), d: (0.11, 0.12, 0.13))
+    static let canvasStrong = adaptive(l: (0.89, 0.87, 0.83), d: (0.16, 0.17, 0.19))
+    static let surface      = adaptive(l: (0.99, 0.98, 0.96), d: (0.15, 0.16, 0.18))
+    static let surfaceMuted = adaptive(l: (0.96, 0.95, 0.92), d: (0.19, 0.20, 0.22))
 
-    static let ink = Color(red: 0.13, green: 0.16, blue: 0.18)
-    static let mutedInk = Color(red: 0.35, green: 0.39, blue: 0.41)
+    // Text
+    static let ink      = adaptive(l: (0.13, 0.16, 0.18), d: (0.92, 0.91, 0.89))
+    static let mutedInk = adaptive(l: (0.35, 0.39, 0.41), d: (0.58, 0.62, 0.65))
 
-    static let accent = Color(red: 0.19, green: 0.43, blue: 0.36)
-    static let accentMuted = Color(red: 0.30, green: 0.53, blue: 0.47)
-    static let warning = Color(red: 0.72, green: 0.45, blue: 0.19)
+    // Accent / semantic
+    static let accent      = adaptive(l: (0.19, 0.43, 0.36), d: (0.25, 0.62, 0.52))
+    static let accentMuted = adaptive(l: (0.30, 0.53, 0.47), d: (0.32, 0.68, 0.58))
+    static let warning     = adaptive(l: (0.72, 0.45, 0.19), d: (0.90, 0.58, 0.25))
 
-    static let border = Color.black.opacity(0.08)
-    static let shadow = Color.black.opacity(0.08)
+    // Chrome
+    static let border = Color(NSColor(name: nil) { app in
+        app.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+            ? NSColor.white.withAlphaComponent(0.12)
+            : NSColor.black.withAlphaComponent(0.08)
+    })
+    static let shadow = Color(NSColor(name: nil) { app in
+        app.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+            ? NSColor.black.withAlphaComponent(0.30)
+            : NSColor.black.withAlphaComponent(0.08)
+    })
+}
+
+private func adaptive(
+    l: (CGFloat, CGFloat, CGFloat),
+    d: (CGFloat, CGFloat, CGFloat)
+) -> Color {
+    Color(NSColor(name: nil) { appearance in
+        let isDark = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+        let (r, g, b) = isDark ? d : l
+        return NSColor(red: r, green: g, blue: b, alpha: 1)
+    })
 }
 
 enum CurfewTypography {

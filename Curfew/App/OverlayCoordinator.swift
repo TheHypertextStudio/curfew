@@ -199,7 +199,7 @@ private struct WarningOverlayView: View {
     var body: some View {
         let base = reduceTransparency
             ? Color.black.opacity(min(0.9, max(0.2, opacity + 0.30)))
-            : Color(red: 0.72, green: 0.42, blue: 0.10).opacity(opacity)
+            : CurfewTheme.warning.opacity(opacity)
 
         base
             .ignoresSafeArea()
