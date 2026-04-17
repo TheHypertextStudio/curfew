@@ -33,6 +33,11 @@ struct FeatureFlags: Equatable {
     /// respawning LaunchAgent for bypass deterrence.
     var privilegedHelperEnabled: Bool
 
+    /// Whether EventKit calendar awareness should run. When `false`, the
+    /// `CalendarMonitor` object is never started and EventKit access is
+    /// never requested. Also requires `LicenseGate.isProUnlocked`.
+    var calendarEnabled: Bool
+
     /// Safe defaults for first launch: every deferred module off.
     ///
     /// Keep this permanently conservative — turning a flag on in `.default`
@@ -42,6 +47,7 @@ struct FeatureFlags: Equatable {
         widgetKitEnabled: false,
         cloudSyncEnabled: false,
         mcpServerEnabled: false,
-        privilegedHelperEnabled: false
+        privilegedHelperEnabled: false,
+        calendarEnabled: false
     )
 }

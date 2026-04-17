@@ -1,0 +1,118 @@
+import Combine
+import EventKit
+import Foundation
+
+/// Surfaces today's calendar events so the lockout screen and This Week view
+/// can show contextual scheduling information. Read-only — Curfew never
+/// writes to the user's calendar.
+///
+/// This is a Pro feature gated by `FeatureFlags.calendarEnabled` +
+/// `LicenseGate.isProUnlocked`. When either gate is closed the store is never
+/// started and all published properties remain at their empty defaults.
+@MainActor
+final class CalendarMonitor: ObservableObject {
+    /// Authorisation state for EventKit calendar access.
+    @Published private(set) var authorizationStatus: EKAuthorizationStatus = .notDetermined
+
+    /// Today's non-all-day events from selected calendars, sorted by start time.
+    @Published private(set) var todayEvents: [EKEvent] = []
+
+    /// Whether any event is currently in progress.
+    @Published private(set) var hasCurrentEvent: Bool = false
+
+    /// The next upcoming (future) event today, if any.
+    @Published private(set) var nextEvent: EKEvent?
+
+    // MARK: - Private
+
+    private let store = EKEventStore()
+    private var refreshTimer: Timer?
+
+    nonisolated init() {}
+
+    // MARK: - Lifecycle
+
+    /// Requests EventKit access (if not already granted) and performs an
+    /// initial sync. Safe to call more than once — subsequent calls only
+    /// re-sync if access is already granted.
+    func requestAccessAndSync() {
+        let current = EKEventStore.authorizationStatus(for: .event)
+        authorizationStatus = current
+
+        switch current {
+        case .fullAccess, .writeOnly:
+            sync()
+            scheduleRefresh()
+        case .notDetermined:
+            Task {
+                do {
+                    if #available(macOS 14.0, *) {
+                        try await store.requestFullAccessToEvents()
+                    } else {
+                        try await store.requestAccess(to: .event)
+                    }
+                    await MainActor.run {
+                        authorizationStatus = EKEventStore.authorizationStatus(for: .event)
+                        sync()
+                        scheduleRefresh()
+                    }
+                } catch {
+                    await MainActor.run {
+                        authorizationStatus = EKEventStore.authorizationStatus(for: .event)
+                    }
+                }
+            }
+        case .denied, .restricted:
+            break
+        @unknown default:
+            break
+        }
+    }
+
+    func stop() {
+        refreshTimer?.invalidate()
+        refreshTimer = nil
+    }
+
+    // MARK: - Sync
+
+    func sync() {
+        let cal = Calendar.current
+        let now = Date()
+        let startOfDay = cal.startOfDay(for: now)
+        guard let endOfDay = cal.date(byAdding: .day, value: 1, to: startOfDay) else { return }
+
+        let predicate = store.predicateForEvents(
+            withStart: startOfDay,
+            end: endOfDay,
+            calendars: nil
+        )
+
+        let events = store.events(matching: predicate)
+            .filter { !$0.isAllDay }
+            .sorted { $0.startDate < $1.startDate }
+
+        todayEvents = events
+
+        hasCurrentEvent = events.contains { event in
+            guard let start = event.startDate, let end = event.endDate else { return false }
+            return start <= now && end > now
+        }
+
+        nextEvent = events.first { event in
+            guard let start = event.startDate else { return false }
+            return start > now
+        }
+    }
+
+    // MARK: - Private
+
+    private func scheduleRefresh() {
+        refreshTimer?.invalidate()
+        refreshTimer = Timer.scheduledTimer(withTimeInterval: 300, repeats: true) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.sync()
+            }
+        }
+    }
+}

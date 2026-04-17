@@ -154,6 +154,11 @@ final class CurfewAppModel: NSObject, ObservableObject {
     /// lifecycle once both conditions are satisfied.
     let cloudKitSyncEngine: CloudKitSyncEngine
 
+    /// Reads today's calendar events for contextual display on the lockout
+    /// screen and This Week view. Requires `featureFlags.calendarEnabled`
+    /// and `licenseGate.isProUnlocked`. Never started in free tier.
+    let calendarMonitor: CalendarMonitor
+
     /// Writes lifecycle / extension / override events to the activity
     /// log. Always non-nil; when the SQLite store can't be opened
     /// (sandbox denied, disk full), this holds a ``NullActivityRecording``
@@ -218,7 +223,8 @@ final class CurfewAppModel: NSObject, ObservableObject {
         activityRecorder: any ActivityRecording,
         mcpRequestMonitor: MCPRequestMonitor = MCPRequestMonitor(),
         licenseGate: LicenseGate = LicenseGate(),
-        cloudKitSyncEngine: CloudKitSyncEngine = CloudKitSyncEngine()
+        cloudKitSyncEngine: CloudKitSyncEngine = CloudKitSyncEngine(),
+        calendarMonitor: CalendarMonitor = CalendarMonitor()
     ) {
         self.settingsStore = settingsStore
         self.policyEngine = SchedulePolicyEngine()
@@ -235,6 +241,7 @@ final class CurfewAppModel: NSObject, ObservableObject {
         self.mcpRequestMonitor = mcpRequestMonitor
         self.licenseGate = licenseGate
         self.cloudKitSyncEngine = cloudKitSyncEngine
+        self.calendarMonitor = calendarMonitor
 
         let loadedSettings = settingsStore.load()
         self.settings = loadedSettings
@@ -336,6 +343,9 @@ final class CurfewAppModel: NSObject, ObservableObject {
                 localSettings: settings,
                 localModifiedAt: Date()
             )
+        }
+        if featureFlags.calendarEnabled && licenseGate.isProUnlocked {
+            calendarMonitor.requestAccessAndSync()
         }
     }
 

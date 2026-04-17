@@ -1,3 +1,4 @@
+import EventKit
 import SwiftUI
 
 /// Informational / configuration panels for Settings tabs that don't drive
@@ -93,6 +94,26 @@ extension SettingsView {
             }
             .environmentObject(model)
 
+            ProGate(
+                feature: "Calendar",
+                description: "See today's scheduled events on the lockout screen and in This Week."
+            ) {
+                CurfewPanel {
+                    CurfewSectionTitle(
+                        title: "Calendar",
+                        subtitle: "Today's events shown alongside enforcement status."
+                    )
+                    integrationStatusRow(
+                        title: "Calendar",
+                        isEnabled: model.featureFlags.calendarEnabled
+                    )
+                    if model.featureFlags.calendarEnabled {
+                        calendarAuthRow
+                    }
+                }
+            }
+            .environmentObject(model)
+
             CurfewPanel {
                 CurfewSectionTitle(title: "Privileged Helper", subtitle: "Stronger bypass prevention via a root-owned helper.")
                 integrationStatusRow(title: "Privileged Helper", isEnabled: model.featureFlags.privilegedHelperEnabled)
@@ -100,6 +121,26 @@ extension SettingsView {
                     .font(CurfewTypography.body(13))
                     .foregroundStyle(CurfewTheme.mutedInk)
             }
+        }
+    }
+
+    @ViewBuilder
+    private var calendarAuthRow: some View {
+        switch model.calendarMonitor.authorizationStatus {
+        case .fullAccess:
+            Text("Calendar access granted. \(model.calendarMonitor.todayEvents.count) event(s) today.")
+                .font(CurfewTypography.body(13))
+                .foregroundStyle(CurfewTheme.mutedInk)
+        case .notDetermined:
+            Button("Grant Calendar Access") {
+                model.calendarMonitor.requestAccessAndSync()
+            }
+            .buttonStyle(CurfewSecondaryButtonStyle())
+        default:
+            Text("Calendar access denied. Open System Settings → Privacy → Calendars to enable.")
+                .font(CurfewTypography.body(13))
+                .foregroundStyle(CurfewTheme.mutedInk)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
