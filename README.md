@@ -1,45 +1,128 @@
 # Curfew
 
-**A hard stop for your Mac.** Set a schedule. When the clock runs out, your machine locks you out — warnings, then an overlay, then an optional shutdown. No willpower required.
+**A hard stop for your Mac.** Set a schedule. When the clock runs out, your machine locks you out — warnings, then a full-screen overlay, then an optional shutdown. No willpower required.
 
 Curfew is the first product from [Hypertext Studio](https://hypertext.studio), a product design lab working under the motto *mens et manus* — mind and hand.
 
-> Curfew is in active development. v0.1 covers the core commitment loop (schedule → warnings → lockout → overrides) on a single Mac. Multi-device sync, AI-controlled gating, and an MCP server are on the roadmap — see [Roadmap](#roadmap).
+---
+
+## What it does
+
+### Today (v0.1) — hard end-of-day gates
+
+- **Weekly schedule** with per-day lock/unlock times, day-off support, and three presets (9-to-5, Startup Hours, Half Day).
+- **Graduated warnings** at T-30, T-15, T-5, T-2, T-1 with configurable intervals and per-stage notifications.
+- **Full-screen lockout** across every display and Space, with keyboard-shortcut interception (⌘⇥, ⌘Q, ⌘⌥Esc, …).
+- **Extension budget** — 3 × 15 min per week, hold-to-confirm so accidental taps don't burn a slot.
+- **"Convince me" overrides** — 2 × 30 min per week, 5-min cooldown, 50-char minimum justification, persistent log.
+- **Optional auto-shutdown** after lockout with retry-once semantics.
+- **This Week retrospective** — lockouts held, extensions/overrides used, current streak.
+- **`curfew-ctl` CLI** — scriptable access to every status/override/budget operation. See [`curfew-ctl` usage](#curfew-ctl) below.
+- **`curfew-mcp` MCP server** — AI assistants can negotiate with your focus rules from within a coding session. See [MCP setup](#mcp-setup) below.
+- **Menu bar quick access** + first-launch onboarding.
+
+### Near term (v0.2) — stronger enforcement
+- Privileged helper via `SMAppService` (root-owned state, harder to bypass).
+- Localization, Sparkle autoupdate.
+
+### Long term — reflection gates
+Morning intent, midday check-in, evening retrospective — lifecycle gates beyond just end-of-day. Design seams are already in the code (`gateKind` field in the activity log; generic MCP verbs).
 
 ---
 
-## Why it exists
+## MCP setup
 
-Willpower loses against interesting problems. Every focus app that relies on *remembering to stop* eventually becomes a todo app with extra steps.
+`curfew-mcp` is a stdio MCP server bundled with Curfew. It lets AI assistants read your enforcement state and, with your approval, request extensions or overrides.
 
-Curfew takes a different approach: **you make the decision once, while you're thinking clearly, and the machine enforces it later**. Schedule changes that weaken the rules sit in a 24-hour cooldown before taking effect. Overrides cost a deliberate "convince me" flow with a typed justification and a hold-to-confirm. Accidental escape gets boring fast.
+**Available tools:**
 
-## What it does today
+| Tool | Type | What it does |
+|------|------|------|
+| `curfew.status` | read | Current phase, time remaining, override state |
+| `curfew.schedule` | read | Full weekly schedule |
+| `curfew.budget` | read | Extensions and overrides remaining this week |
+| `curfew.activity` | read | Recent activity log entries |
+| `curfew.request_extension` | write* | Ask for a time extension |
+| `curfew.start_focus_session` | write* | Mark the start of a focus session |
+| `curfew.end_focus_session` | write* | Mark the end of a focus session |
+| `curfew.request_override` | write* | Request a full override with a reason |
 
-- **Weekly schedule** with per-day lock/unlock times, day-off support, and three starting presets (9-to-5, Startup Hours, Half Day).
-- **Graduated warnings** at T-30, T-15, T-5, T-2, and T-1, each with configurable intervals and per-stage notification behavior.
-- **Full-screen lockout** on every display and space, with keyboard-shortcut interception for the usual bypass attempts (⌘⇥, ⌘Q, ⌘⌥Esc, …).
-- **Extension budget** (default: 3 × 15 minutes per week) with hold-to-confirm so accidental taps don't burn a slot.
-- **"Convince me" overrides** (default: 2 × 30 minutes per week) with a 5-minute cooldown, 50-character minimum justification, and a persistent event log.
-- **Optional auto-shutdown** after lockout with retry-once semantics.
-- **This Week retrospective** — rolling summary of lockouts held, extensions/overrides used, and current streak.
-- **Menu bar quick access** + first-launch onboarding that walks through schedule, budget, and permissions.
+\* Write operations queue for user approval by default (configurable in Settings → Integrations → AI Consent Policy).
 
-## Roadmap
+**Add to Claude Desktop:**
 
-On the way, in rough order:
+Open Curfew → Settings → Integrations, click "Copy Claude Desktop Config", and paste into `~/Library/Application Support/Claude/claude_desktop_config.json` under `mcpServers`.
 
-- **MCP server** — expose `curfew.status`, `curfew.budget`, `curfew.request_extension`, and friends so AI assistants (Claude, Cursor, …) can negotiate with your focus rules from within a coding session.
-- **`curfew-ctl`** — CLI for scripting and automation.
-- **CloudKit sync + device-attributed retrospective** — keep one budget across multiple Macs.
-- **WidgetKit widgets** — countdown + streak on the desktop.
-- **Calendar awareness** — detect meetings that overlap curfew and proactively surface extension prompts.
-- **Privileged helper via `SMAppService`** — stronger bypass protection with root-owned state; v0.1 uses a user-space enforcement path that's honest about its limits.
-- **Reflection gates** beyond end-of-day — morning intent, midday check-in, evening retrospective.
+Or manually:
+
+```json
+{
+  "mcpServers": {
+    "curfew": {
+      "command": "/Applications/Curfew.app/Contents/Resources/curfew-mcp",
+      "args": []
+    }
+  }
+}
+```
+
+Restart Claude Desktop. Run `curfew.status` to verify.
+
+---
+
+## `curfew-ctl`
+
+Command-line interface for scripting and power users.
+
+```bash
+# Current enforcement phase, time remaining, active override
+curfew-ctl status
+curfew-ctl status --json
+
+# This week's schedule
+curfew-ctl schedule show
+
+# Extension and override budgets
+curfew-ctl budget
+
+# Recent activity log
+curfew-ctl activity
+curfew-ctl activity --days 7
+
+# Request an override (prompts for confirmation)
+curfew-ctl override --reason "shipping a fix, need 30 more minutes"
+```
+
+`curfew-ctl` is bundled at `Curfew.app/Contents/Resources/curfew-ctl`. Add it to your `$PATH`:
+
+```bash
+ln -s /Applications/Curfew.app/Contents/Resources/curfew-ctl /usr/local/bin/curfew-ctl
+```
+
+---
+
+## Curfew Pro
+
+Pro adds features with ongoing infrastructure cost. Upgrade at [curfew.hypertext.studio](https://curfew.hypertext.studio).
+
+| Feature | Free | Pro |
+|---------|------|-----|
+| Schedule, warnings, lockout | ✓ | ✓ |
+| Extension / override budgets | ✓ | ✓ |
+| This Week retrospective | ✓ | ✓ |
+| `curfew-ctl` CLI | ✓ | ✓ |
+| `curfew-mcp` MCP server | ✓ | ✓ |
+| **CloudKit multi-device sync** | — | ✓ |
+| **WidgetKit widgets** | — | ✓ |
+| **Calendar integration** | — | ✓ |
+
+Pricing: **$19 early-bird / $29 list**. License key is verified offline via Ed25519 — no account required after purchase.
+
+---
 
 ## Install & run
 
-Requires macOS 15+ and Xcode 26+.
+Requires **macOS 15+** and **Xcode 26+** (Swift 6).
 
 ```bash
 git clone https://github.com/hypertext-studio/curfew
@@ -47,39 +130,56 @@ cd curfew
 open Curfew.xcodeproj
 ```
 
-Press ⌘R to run. First launch opens a Getting Started window that walks through schedule, budgets, and permissions.
+Press ⌘R to run. First launch opens Getting Started, which walks through schedule, budgets, and permissions.
 
-**Debug launches are safe by default** — enforcement stays disarmed unless you set `CURFEW_ENABLE_ENFORCEMENT=1`. Release builds arm on launch; set `CURFEW_SKIP_ENFORCEMENT=1` to disable for QA.
+**Debug launches are safe by default** — enforcement stays disarmed unless you set `CURFEW_ENABLE_ENFORCEMENT=1`. Release builds arm on launch.
+
+---
 
 ## Development
 
-This repo supports using [`just`](https://github.com/casey/just) to run every common developer task from the command line without invoking `xcodebuild` directly.
-
 ```bash
 brew install just swiftlint swiftformat
-just --list      # show every recipe
-just check       # full ship-gate: format + lint + tests + Debug build
-just test        # unit suite only
-just format      # apply SwiftFormat in place
-just dev         # build + launch the app
-just kill        # kill any running Curfew process
+just --list       # all recipes
+just check        # format + lint + tests + Debug build (CI gate)
+just test         # unit suite only
+just format       # apply SwiftFormat in place
+just dev          # build + launch
+just kill         # kill any running Curfew process
 ```
 
-`just check` is also what CI runs on every push.
+`just check` is what CI runs on every push.
 
-Contributor expectations and the full test-driven workflow live in [`AGENTS.md`](AGENTS.md).
+Contributor expectations and the TDD workflow live in [`AGENTS.md`](AGENTS.md).
 
-## Architecture at a glance
+---
 
-- `Curfew/Core/` — pure domain logic (schedule engine, budget tracker, warning stages, activity log, override policy). No UI dependencies; unit-tested in isolation.
-- `Curfew/App/` — the `@MainActor` app model, routing, overlay coordinator, key interceptor, shutdown workflow, and notification bridge.
-- `Curfew/UI/` — SwiftUI views for the main window, settings, lockout overlay, and onboarding flow.
-- `CurfewTests/` — ~90 unit tests covering every Core module and the observable behavior of the app model.
+## Architecture
 
-The code carries `*-module.md` summaries in each directory and inline doc comments on every type and non-trivial property.
+```
+Curfew/Core/     Pure domain logic — schedule engine, budget tracker, warning stages,
+                 activity recorder, override policy. No UI imports; fully unit-tested.
+
+Curfew/App/      @MainActor app model, routing, overlay coordinator, key interceptor,
+                 shutdown workflow, notification bridge, CloudKit sync, CalendarMonitor.
+
+Curfew/UI/       SwiftUI views — main window, settings, lockout overlay, onboarding.
+
+CurfewWidget/    WidgetKit extension (Pro). Small/medium/large. Reads shared UserDefaults.
+
+Sources/
+  curfew-ctl/    ArgumentParser CLI. Symlinks shared Core files; no library module.
+  curfew-mcp/    MCP server (stdio transport). Same symlink strategy.
+
+CurfewTests/     ~90 unit tests covering every Core module and app model behavior.
+```
+
+Each directory has a `*-module.md` summary and every type carries doc comments.
+
+---
 
 ## License
 
-Curfew is released under the [MIT License](LICENSE). © Hypertext Studio.
+[MIT](LICENSE) © Hypertext Studio.
 
-Contributions, bug reports, and design critique are all welcome — open an issue or a pull request.
+Bug reports, design critique, and pull requests are welcome — open an issue.
