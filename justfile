@@ -95,6 +95,20 @@ archive:
         -archivePath release/Curfew.xcarchive
 
 # -----------------------------------------------------------------------
+# Run
+# -----------------------------------------------------------------------
+
+# Build Debug and launch the app locally for development.
+dev:
+    xcodebuild build \
+        -project {{ project }} \
+        -scheme {{ scheme }} \
+        -configuration Debug \
+        -destination '{{ destination }}' \
+        -derivedDataPath build
+    open build/Build/Products/Debug/Curfew.app
+
+# -----------------------------------------------------------------------
 # Composite gates
 # -----------------------------------------------------------------------
 # Ship-gate alias — the exact chain AGENTS.md requires before any
