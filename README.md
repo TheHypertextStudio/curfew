@@ -23,6 +23,8 @@ Curfew is in active MVP development. Core scheduling, warning, lockout, and setu
 
 Open `Curfew.xcodeproj` in Xcode and run the `Curfew` scheme.
 
+This repo supports using [`just`](https://github.com/casey/just) to run every common developer task from the command line without invoking `xcodebuild` directly. Install with `brew install just`, then run `just --list` to see all recipes — tests, lint, format, build, archive. The default recipe `just check` runs the full ship-gate (format check + strict lint + unit tests + Debug build) and is what CI invokes on every push.
+
 Debug launch is safe by default:
 
 - In `Debug`, enforcement does not auto-start unless `CURFEW_ENABLE_ENFORCEMENT=1`.
