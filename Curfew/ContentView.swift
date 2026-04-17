@@ -272,18 +272,8 @@ private struct MainConfigurationSectionView: View {
     @EnvironmentObject private var model: CurfewAppModel
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            CurfewSectionTitle(
-                title: "Configuration",
-                subtitle: "Schedule, warnings, extensions, overrides, and shutdown behavior"
-            )
-            .padding(.horizontal, 24)
-            .padding(.top, 24)
-
-            SettingsView()
-                .environmentObject(model)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        SettingsView(tabbed: false)
+            .environmentObject(model)
     }
 }
 

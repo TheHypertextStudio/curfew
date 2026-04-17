@@ -1,16 +1,27 @@
 import SwiftUI
 
-/// Root of the Settings window. Uses a native macOS `TabView` so SwiftUI
-/// renders the standard icon-toolbar tab picker at the top of the window.
+/// Root of the Settings window.
 ///
-/// Per-section panel definitions live in `SettingsView+SchedulePanels`,
-/// `+EnforcementPanels`, and `+InfoPanels`. Adding a tab means (a) adding
-/// a case to ``SettingsSection``, (b) adding a tab item below, and (c)
-/// putting panels in the appropriate extension file.
+/// `tabbed: true` (default) — used by the `Settings` scene; SwiftUI renders
+/// a native macOS icon-toolbar tab picker at the top of the window.
+/// `tabbed: false` — used when embedded inside the main workspace window's
+/// Configuration pane, where a tab bar would be redundant with the outer
+/// sidebar navigation. All panels are shown in a single flat scroll instead.
 struct SettingsView: View {
     @EnvironmentObject var model: CurfewAppModel
+    var tabbed: Bool = true
 
     var body: some View {
+        if tabbed {
+            tabbedBody
+        } else {
+            flatBody
+        }
+    }
+
+    // MARK: - Tabbed (standalone Settings window)
+
+    private var tabbedBody: some View {
         TabView {
             tab {
                 presetsPanel
@@ -48,7 +59,28 @@ struct SettingsView: View {
         .tint(CurfewTheme.accent)
     }
 
-    private func tab<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+    // MARK: - Flat (embedded in workspace Configuration pane)
+
+    private var flatBody: some View {
+        tab {
+            presetsPanel
+            weeklySchedulePanel
+            if let pending = model.pendingScheduleDescription {
+                pendingChangePanel(message: pending)
+            }
+            extensionsPanel
+            warningPanel
+            shutdownPanel
+            integrationsPanel
+            advancedPanel
+            setupPanel
+        }
+        .tint(CurfewTheme.accent)
+    }
+
+    // MARK: - Shared scroll wrapper
+
+    func tab<Content: View>(@ViewBuilder content: () -> Content) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 content()
