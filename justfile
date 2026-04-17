@@ -113,6 +113,23 @@ dev:
     just kill
     open -n build/Build/Products/Debug/Curfew.app
 
+# Serve the landing page with live reload and open it in the browser.
+# `live-server` injects a WebSocket client that auto-refreshes on every
+# edit to landing/*.{html,css} — saves the round-trip of manual reloads
+# while iterating on copy or CSS. Requires Node (npx); if it's not
+# available on the machine, fall back to `just landing-static`.
+# Ctrl+C stops the server. Pass a different port via `just landing 4000`.
+landing port="8765":
+    npx --yes live-server landing --port={{ port }} --host=127.0.0.1 --no-css-inject=false
+
+# Dependency-free alternative that serves without live reload. Useful
+# when the machine has no Node, or for confirming production-ish
+# behaviour without the live-reload script in the page.
+landing-static port="8765":
+    @echo "→ http://localhost:{{ port }}"
+    @open "http://localhost:{{ port }}" >/dev/null 2>&1 || true
+    python3 -m http.server {{ port }} --directory landing --bind 127.0.0.1
+
 # -----------------------------------------------------------------------
 # Composite gates
 # -----------------------------------------------------------------------
