@@ -48,6 +48,10 @@ public final class ActivityStore {
         try self.init(databaseURL: directory.appendingPathComponent("activity.sqlite3"))
     }
 
+    /// Opens (or creates) the SQLite file at `databaseURL`. The parent
+    /// directory must exist; the file itself is created if absent.
+    /// Throws `ActivityStoreError.couldNotOpenDatabase` when SQLite
+    /// refuses to open the path (missing parent, disk full, permission).
     public init(databaseURL: URL) throws {
         self.databaseURL = databaseURL
         var handle: OpaquePointer?

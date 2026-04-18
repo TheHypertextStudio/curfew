@@ -2,11 +2,20 @@ import Foundation
 
 /// Decoded payload from a verified Curfew Pro license key.
 struct LicenseKey: Codable, Equatable {
+    /// Email address the key was issued to. Shown in Settings → License.
     let email: String
+    /// Product SKU. Must equal `"curfew-pro"` for this build to accept
+    /// the key; other values (future SKUs, team licences) are rejected
+    /// via `LicenseActivationError.wrongProduct`.
     let product: String
+    /// Lemonsqueezy order identifier. Surfaces in support workflows.
     let orderID: String
+    /// Issuance timestamp from the Cloudflare Worker signer.
     let issuedAt: Date
 
+    /// Maps Swift property names to the snake_case fields the Cloudflare
+    /// Worker emits, so the signed JSON and the Swift struct stay in
+    /// lock-step across releases.
     enum CodingKeys: String, CodingKey {
         case email
         case product

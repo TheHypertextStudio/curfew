@@ -23,6 +23,9 @@ final class MCPServer {
     private let encoder = JSONEncoder()
     private let decoder = JSONDecoder()
 
+    /// Creates a server with the full tool set. `MCPTool.all` is resolved
+    /// eagerly so schema validation errors surface at process start,
+    /// not mid-session on first `tools/list`.
     init() {
         self.tools = MCPTool.all
         encoder.outputFormatting = [.sortedKeys]
@@ -91,6 +94,8 @@ final class MCPServer {
         return successResponse(rawID: rawID, result: result)
     }
 
+    /// Builds the `tools/list` response — a flat array of `{name, description,
+    /// inputSchema}` entries. MCP hosts display these in their tool picker.
     private func handleToolsList(rawID: Any?) -> String {
         let toolDefs = tools.map { tool -> [String: Any] in
             [
@@ -102,6 +107,9 @@ final class MCPServer {
         return successResponse(rawID: rawID, result: ["tools": toolDefs])
     }
 
+    /// Dispatches a `tools/call` to the matching `MCPTool`. Invalid names
+    /// return JSON-RPC `-32602` (invalid params); tool-side failures return
+    /// `-32603` (internal error) with the error's localised description.
     private func handleToolsCall(rawID: Any?, params: [String: Any]?) -> String {
         guard let name = params?["name"] as? String else {
             return errorResponse(rawID: rawID, code: -32602, message: "Missing tool name")
@@ -123,6 +131,9 @@ final class MCPServer {
         }
     }
 
+    /// Handles JSON-RPC notifications (no `id` field, no response expected).
+    /// We don't act on any notification today — just log to stderr for
+    /// post-hoc debugging when users share transcripts.
     private func handleNotification(method: String, params: [String: Any]?) {
         // Notifications that require no response (e.g. notifications/initialized).
         // Log to stderr for diagnostics; never write to stdout.
@@ -135,6 +146,9 @@ final class MCPServer {
         serialize(["jsonrpc": "2.0", "id": rawID ?? NSNull(), "result": result])
     }
 
+    /// Builds a JSON-RPC 2.0 error response using the supplied `code` and
+    /// `message`. `rawID` is preserved verbatim so the host can match the
+    /// error back to the originating request.
     private func errorResponse(rawID: Any?, code: Int, message: String) -> String {
         serialize([
             "jsonrpc": "2.0",
@@ -143,6 +157,10 @@ final class MCPServer {
         ])
     }
 
+    /// Serialises a response object to a single-line JSON string. Falls
+    /// back to a hard-coded internal-error envelope if encoding fails so
+    /// the caller always has *something* to send back — a dropped
+    /// response on the wire would hang the client.
     private func serialize(_ obj: [String: Any]) -> String {
         guard let data = try? JSONSerialization.data(withJSONObject: obj) else {
             return "{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32603,\"message\":\"Serialisation failed\"}}"
@@ -150,6 +168,10 @@ final class MCPServer {
         return String(data: data, encoding: .utf8) ?? ""
     }
 
+    /// Writes one JSON-RPC frame to stdout followed by a newline. Flushes
+    /// explicitly because some hosts launch the subprocess with buffered
+    /// stdio and would otherwise wait forever for a response that never
+    /// made it past the C buffer.
     private func writeLine(_ line: String) {
         print(line)
         // Flush immediately — stdio is line-buffered in most contexts, but

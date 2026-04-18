@@ -19,15 +19,26 @@ private let licensePublicKeyBase64 = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 /// literal to reject release tags that still carry it.
 private let placeholderPublicKeyBase64 = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
 
+/// Failure modes for Pro-license activation. Every case maps to a
+/// human-readable `errorDescription` consumed by `LicenseView` when
+/// surfacing the failure to the user.
 enum LicenseActivationError: LocalizedError {
+    /// The key string didn't split into a valid `{payload}.{signature}`
+    /// base64url pair, or the embedded JSON payload failed to decode.
     case malformed
+    /// Ed25519 signature verification failed against the embedded
+    /// public key. Either the key is forged or this build is
+    /// mismatched against the signer.
     case invalidSignature
+    /// Signature is valid but the payload's `product` field names a
+    /// different Curfew SKU — e.g. a Team licence presented to a Pro build.
     case wrongProduct
     /// The app was built with the placeholder public key still in place.
     /// License verification is skipped rather than accepting a key that
     /// could be forged against the all-zero key.
     case publicKeyNotProvisioned
 
+    /// Localizable error copy surfaced to the user.
     var errorDescription: String? {
         switch self {
         case .malformed: "The license key format is invalid."
@@ -49,9 +60,17 @@ enum LicenseActivationError: LocalizedError {
 /// Lemonsqueezy webhook Worker.
 @MainActor
 final class LicenseGate: ObservableObject {
+    /// Verified Pro license currently in effect, or `nil` for free-tier
+    /// users. Setting surfaces Pro features across the app through the
+    /// `isProUnlocked` derived boolean.
     @Published private(set) var activatedKey: LicenseKey?
+    /// Localized error string from the most recent failed `activate(_:)`
+    /// call, or `nil` after a successful activation / fresh launch.
     @Published private(set) var activationError: String?
 
+    /// Convenience: `true` when a verified licence is stored. The whole
+    /// Pro gate flows through this one flag so the rest of the code
+    /// never touches the crypto types.
     var isProUnlocked: Bool {
         activatedKey != nil
     }
@@ -59,17 +78,24 @@ final class LicenseGate: ObservableObject {
     private let defaults: UserDefaults
     private static let storageKey = "pro.licenseKey"
 
+    /// Creates a gate backed by `defaults`. `nonisolated` so it can be
+    /// evaluated as a default-parameter value in MainActor initializers.
     nonisolated init(
         defaults: UserDefaults = UserDefaults(suiteName: SharedPaths.defaultsSuiteName) ?? .standard
     ) {
         self.defaults = defaults
     }
 
+    /// Re-verifies any persisted licence string on app launch. Failures
+    /// are silent — a malformed stored key simply leaves `activatedKey`
+    /// nil so the user re-enters when visiting Settings → License.
     func loadStoredKey() {
         guard let stored = defaults.string(forKey: Self.storageKey) else { return }
         activatedKey = try? verified(stored)
     }
 
+    /// Verifies and (on success) persists the given licence string.
+    /// Failure surfaces via `activationError` for the UI to display.
     func activate(_ keyString: String) {
         activationError = nil
         let trimmed = keyString.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -81,6 +107,8 @@ final class LicenseGate: ObservableObject {
         }
     }
 
+    /// Clears the in-memory licence and removes the persisted string.
+    /// Pro features immediately lock down via the `isProUnlocked` flip.
     func deactivate() {
         activatedKey = nil
         activationError = nil
@@ -131,6 +159,9 @@ final class LicenseGate: ObservableObject {
 }
 
 private extension Data {
+    /// Decodes a base64url-encoded string (URL-safe alphabet, optional
+    /// missing `=` padding). Used by `LicenseGate.verified` to split
+    /// the two halves of the licence key format.
     init?(base64URLEncoded string: String) {
         var normalized = string
             .replacingOccurrences(of: "-", with: "+")

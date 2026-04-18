@@ -17,12 +17,18 @@ private let recorderLogger = Logger(
 /// intrinsically "can't log, keep running."
 @MainActor
 protocol ActivityRecording: AnyObject {
+    /// Emits activity events on `working|warning → locked` and the
+    /// inverse transition. Same-phase calls must be no-ops because
+    /// the tick loop invokes this at 1 Hz.
     func recordPhaseTransition(
         from previous: EnforcementPhase,
         to current: EnforcementPhase,
         at timestamp: Date
     )
 
+    /// Records one extension grant. `minutes` is the duration added to
+    /// today's budget (typically 15); `timestamp` is the moment the
+    /// user confirmed the hold-to-confirm gesture.
     func recordExtensionGranted(minutes: Int, at timestamp: Date)
 
     /// Records an override grant via the "Convince Me" flow. `reason` is
@@ -78,8 +84,13 @@ protocol ActivityRecording: AnyObject {
 final class ActivityRecorder: ActivityRecording {
     private let store: ActivityStore
     private let gateKind: String
+    /// Monotonic write counter. See the `ActivityRecording` protocol
+    /// for rationale — consumers memoise rollups against this value.
     private(set) var mutationCount: Int = 0
 
+    /// Wraps `store` as the active recorder. `gateKind` defaults to
+    /// `.curfew` and is stamped onto every event so future gate types
+    /// (reflection gates, morning intents) can share the same table.
     init(store: ActivityStore, gateKind: String = GateKind.curfew) {
         self.store = store
         self.gateKind = gateKind
@@ -126,6 +137,8 @@ final class ActivityRecorder: ActivityRecording {
         }
     }
 
+    /// Writes one extension-granted event. `minutes` is the granted
+    /// duration (typically 15); the row has no `note`.
     func recordExtensionGranted(minutes: Int, at timestamp: Date) {
         appendSafely(.init(
             timestamp: timestamp,
@@ -136,6 +149,8 @@ final class ActivityRecorder: ActivityRecording {
         ))
     }
 
+    /// Writes one override-granted event. `reason` is the user's
+    /// justification, persisted verbatim for the retrospective.
     func recordOverrideGranted(minutes: Int, reason: String, at timestamp: Date) {
         appendSafely(.init(
             timestamp: timestamp,
@@ -146,6 +161,9 @@ final class ActivityRecorder: ActivityRecording {
         ))
     }
 
+    /// Writes one warning-escalation event. `stageDescriptor` is a
+    /// stable token (e.g. `"T-30"`) so rollups can filter by stage
+    /// without coupling to the `WarningStage` enum's raw values.
     func recordWarningEscalation(
         stageDescriptor: String,
         minutesRemaining: Int,
@@ -177,6 +195,9 @@ final class ActivityRecorder: ActivityRecording {
         try store.exportCSV(in: range)
     }
 
+    /// Delegates to `ActivityStore.trimEvents` with the same error
+    /// swallowing semantics as the write path — a trim that fails
+    /// must never block the tick loop or lockout.
     func trim(olderThan seconds: TimeInterval, now: Date) {
         do {
             try store.trimEvents(olderThan: seconds, now: now)
@@ -200,26 +221,33 @@ final class ActivityRecorder: ActivityRecording {
 /// app continues to enforce without special-casing a missing recorder.
 @MainActor
 final class NullActivityRecording: ActivityRecording {
+    /// No-op. Conforms to `ActivityRecording`.
     func recordPhaseTransition(
         from previous: EnforcementPhase,
         to current: EnforcementPhase,
         at timestamp: Date
     ) {}
 
+    /// No-op. Conforms to `ActivityRecording`.
     func recordExtensionGranted(minutes: Int, at timestamp: Date) {}
 
+    /// No-op. Conforms to `ActivityRecording`.
     func recordOverrideGranted(minutes: Int, reason: String, at timestamp: Date) {}
 
+    /// No-op. Conforms to `ActivityRecording`.
     func recordWarningEscalation(
         stageDescriptor: String,
         minutesRemaining: Int,
         at timestamp: Date
     ) {}
 
+    /// Always returns an empty array — there's nothing stored.
     func events(in range: ClosedRange<Date>) -> [ActivityEvent] {
         []
     }
 
+    /// Returns a CSV header with no rows so consumers (UI, CLI) get
+    /// well-formed output they can write to disk without branching.
     func exportCSV(in range: ClosedRange<Date>) throws -> String {
         "id,timestamp,gate_kind,kind,minutes_value,note"
     }

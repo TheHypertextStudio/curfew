@@ -34,6 +34,9 @@ public enum ScheduleChangeClassification: String, Equatable, Codable {
 public struct SchedulePolicyEngine {
     private let calendar: Calendar
 
+    /// Creates a policy engine. `calendar` pins the reference clock for
+    /// "next-day boundary" arithmetic; tests swap in a UTC calendar to
+    /// keep DST and timezone drift out of the classification logic.
     public init(calendar: Calendar = .current) {
         self.calendar = calendar
     }

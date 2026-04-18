@@ -40,6 +40,9 @@ final class IdleWatcher {
     /// every idle→active transition. Same-state samples produce no call.
     var onIdleStateChanged: ((Bool) -> Void)?
 
+    /// Creates a watcher over `source`. `idleThresholdSeconds` defaults to
+    /// `defaultIdleThresholdSeconds` (5 min) — override in tests to
+    /// exercise transition behaviour without waiting real time.
     init(
         source: IdleTimeSource,
         idleThresholdSeconds: TimeInterval = defaultIdleThresholdSeconds
@@ -74,6 +77,9 @@ final class IdleWatcher {
 /// idle-tracking snippet in the wild uses; we isolate that magic number
 /// behind ``anyInputEventType`` so call sites read cleanly.
 final class CGEventSourceIdleSource: IdleTimeSource {
+    /// Reads the current idle duration from Core Graphics. Safe to call
+    /// from any thread; returns a wall-clock interval since the last HID
+    /// event seen by the window server.
     func secondsSinceLastInput() -> TimeInterval {
         CGEventSource.secondsSinceLastEventType(
             .combinedSessionState,

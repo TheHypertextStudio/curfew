@@ -10,10 +10,15 @@ import SwiftUI
 /// ```
 struct ProGate<Content: View>: View {
     @EnvironmentObject private var model: CurfewAppModel
+    /// Feature name shown in the upsell header. Keep short.
     let feature: String
+    /// One-sentence explainer for the upsell copy.
     let description: String
+    /// The Pro-gated content, rendered verbatim when a valid licence is
+    /// active and swapped for `PurchasePromptView` otherwise.
     @ViewBuilder let content: Content
 
+    /// Renders `content` when Pro is unlocked; the upsell otherwise.
     var body: some View {
         if model.licenseGate.isProUnlocked {
             content
@@ -23,10 +28,16 @@ struct ProGate<Content: View>: View {
     }
 }
 
+/// Inline upsell panel that replaces a Pro-gated feature when the
+/// current build has no active licence. Surfaces a single Upgrade link
+/// to the marketing page; no in-app purchase surface.
 struct PurchasePromptView: View {
+    /// Feature name shown in the upsell header.
     let feature: String
+    /// One-sentence explainer.
     let description: String
 
+    /// Lock icon + copy + upgrade link in a compact horizontal panel.
     var body: some View {
         CurfewPanel {
             HStack(spacing: 12) {

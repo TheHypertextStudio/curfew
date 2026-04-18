@@ -1,17 +1,28 @@
 import AppKit
 import SwiftUI
 
+/// Sidebar sections in the main window. Each case renders a different
+/// detail pane via `MainWindowView.detailContent`. Used as both the
+/// selection identity and the sidebar label source.
 enum MainWorkspaceSection: String, CaseIterable, Identifiable {
+    /// Status dashboard — current phase, time remaining, this-week rollup.
     case overview
+    /// Wraps the full Settings view so configuration is reachable without
+    /// the system Settings window.
     case configuration
+    /// First-launch walkthrough — schedule, extension budget, warnings.
     case onboarding
 
+    /// Stable `WindowGroup` id used by `openWindow(_:)` to focus the
+    /// existing main window instead of spawning duplicates.
     static let windowID = "main-workspace"
 
+    /// `Identifiable` conformance — raw string is already unique.
     var id: String {
         rawValue
     }
 
+    /// Sidebar label.
     var title: String {
         switch self {
         case .overview:
@@ -23,6 +34,7 @@ enum MainWorkspaceSection: String, CaseIterable, Identifiable {
         }
     }
 
+    /// SF Symbol used in the sidebar row.
     var symbolName: String {
         switch self {
         case .overview:
@@ -35,10 +47,18 @@ enum MainWorkspaceSection: String, CaseIterable, Identifiable {
     }
 }
 
+/// Compact menu-bar popover. Shows the live status snapshot plus quick
+/// actions (open workspace, request extension, open settings, quit).
+/// The full UI is in `MainWindowView`; this view is tight and fixed-width
+/// because the menu bar allots limited vertical space.
 struct ContentView: View {
+    /// Live app state — snapshot reads the derived display fields.
     @EnvironmentObject private var model: CurfewAppModel
+    /// SwiftUI `openWindow` action so the popover can raise the main
+    /// `WindowGroup` identified by `MainWorkspaceSection.windowID`.
     @Environment(\.openWindow) private var openWindow
 
+    /// Menu-bar popover content.
     var body: some View {
         let snapshot = model.snapshot
 
@@ -126,10 +146,19 @@ struct ContentView: View {
     }
 }
 
+/// Main application window — a `NavigationSplitView` with a sidebar of
+/// `MainWorkspaceSection` cases and a detail pane that swaps in the
+/// corresponding section view. Also hosts the MCP consent sheet so every
+/// pending AI write request is surfaced while the user is at the app.
 struct MainWindowView: View {
+    /// Live app state shared across detail panes.
     @EnvironmentObject private var model: CurfewAppModel
+    /// Currently-selected sidebar section. Defaults to `.overview` on
+    /// first display; SwiftUI restores the last selection between
+    /// window appearances within a session.
     @State private var selectedSection: MainWorkspaceSection? = .overview
 
+    /// Sidebar + detail split layout.
     var body: some View {
         NavigationSplitView {
             List(MainWorkspaceSection.allCases, selection: $selectedSection) { section in
@@ -164,6 +193,9 @@ struct MainWindowView: View {
         }
     }
 
+    /// Detail pane dispatcher — one case per `MainWorkspaceSection`.
+    /// Defaults to `.overview` if `selectedSection` is momentarily nil
+    /// (possible in multi-column navigation during resize animations).
     @ViewBuilder
     private var detailContent: some View {
         switch selectedSection ?? .overview {
@@ -180,9 +212,12 @@ struct MainWindowView: View {
     }
 }
 
+/// Overview detail pane — live status, this-week rollup, tomorrow's
+/// summary, and the armed/disarmed action block.
 private struct MainOverviewSectionView: View {
     @EnvironmentObject private var model: CurfewAppModel
 
+    /// Scrolling layout so narrow windows don't truncate the action block.
     var body: some View {
         let snapshot = model.snapshot
 
@@ -268,18 +303,25 @@ private struct MainOverviewSectionView: View {
     }
 }
 
+/// Configuration detail pane — delegates to `SettingsView` with
+/// `tabbed: false` so it renders as a scrollable column instead of the
+/// system-Settings tab bar.
 private struct MainConfigurationSectionView: View {
     @EnvironmentObject private var model: CurfewAppModel
 
+    /// Delegates layout to the shared Settings view.
     var body: some View {
         SettingsView(tabbed: false)
             .environmentObject(model)
     }
 }
 
+/// First-launch walkthrough pane — summarises the three setup steps and
+/// links into the dedicated Getting Started window for the full flow.
 private struct MainOnboardingSectionView: View {
     @EnvironmentObject private var model: CurfewAppModel
 
+    /// Three-item checklist with deep-link buttons.
     var body: some View {
         ScrollView {
             CurfewPanel {

@@ -25,9 +25,13 @@ public enum CopyDeck {
     /// MCP `curfew.status` output. Matches the tokens in
     /// `CurfewKit.phaseName(_:)` so structured output stays stable.
     public enum Phase {
+        /// `.working` — user inside permitted hours, no overlay active.
         public static let working = "Working"
+        /// `.warning` — approaching lock time; dim overlay is shown.
         public static let warning = "Warning"
+        /// `.locked` — full-screen lockout is active.
         public static let locked = "Locked"
+        /// `.dayOff` — today has no enforcement window (weekend / holiday).
         public static let dayOff = "Day off"
     }
 
@@ -36,11 +40,17 @@ public enum CopyDeck {
     /// Short labels for the warning ladder (T-30, T-15, …, T-0). Used in
     /// notifications, menu bar tooltips, and the CLI `status` output.
     public enum Warning {
+        /// T-30 — thirty minutes until lockout; snooze offered.
         public static let thirty = "30 minutes until lockout"
+        /// T-15 — fifteen minutes until lockout; snooze offered.
         public static let fifteen = "15 minutes until lockout"
+        /// T-5 — five minutes until lockout; floating timer appears.
         public static let five = "5 minutes until lockout"
+        /// T-2 — two minutes until lockout; final audible warning.
         public static let two = "2 minutes until lockout"
+        /// T-1 — one minute until lockout; save-now prompt.
         public static let one = "1 minute until lockout"
+        /// T-0 — lockout firing; overlay is being presented.
         public static let zero = "Lockout starting now"
     }
 
@@ -64,7 +74,10 @@ public enum CopyDeck {
     /// in the UI target. CLI and MCP descriptions pull from here so the
     /// same commitment-framing appears everywhere.
     public enum Onboarding {
+        /// Primary heading on the first-launch Getting Started window.
         public static let welcomeTitle = "Welcome to Curfew"
+        /// One-sentence framing below the welcome title — the
+        /// "you already made this decision when clear-headed" argument.
         public static let welcomeSubtitle =
             "Set your schedule while you're thinking clearly, " +
             "then let Curfew enforce it later."

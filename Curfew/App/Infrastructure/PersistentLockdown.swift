@@ -21,6 +21,8 @@ protocol LaunchctlRunning {
 /// a malicious binary — important because the call is made from an app
 /// that may already hold accessibility entitlements.
 struct SystemLaunchctl: LaunchctlRunning {
+    /// Executes `/bin/launchctl <arguments>` synchronously and throws
+    /// `PersistentLockdownError.launchctlFailed` on a non-zero exit.
     func run(arguments: [String]) throws {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/bin/launchctl")
@@ -88,6 +90,10 @@ final class PersistentLockdown {
     /// Process runner — injected for testability.
     private let launchctl: LaunchctlRunning
 
+    /// Creates a lockdown controller. All URL parameters are explicit so
+    /// tests can point at a temp directory; `launchctl` defaults to the
+    /// production `SystemLaunchctl` and is overridden in tests to assert
+    /// the emitted argument list without mutating real `launchd` state.
     init(
         launchAgentsDirectory: URL,
         triggerPath: URL,

@@ -78,6 +78,8 @@ public struct WeeklySchedule: Equatable, Codable {
     /// ``DayRule/weekdayDefault`` via ``rule(for:)-8b8m4``.
     public var rules: [Weekday: DayRule]
 
+    /// Memberwise initialiser. Missing weekdays fall back to
+    /// `DayRule.weekdayDefault` through `rule(for:)` at read time.
     public init(rules: [Weekday: DayRule]) {
         self.rules = rules
     }

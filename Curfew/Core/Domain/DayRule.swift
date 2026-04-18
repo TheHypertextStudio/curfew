@@ -58,6 +58,9 @@ public struct DayRule: Equatable, Codable {
         unlockMinutes: 8 * 60
     )
 
+    /// Memberwise initialiser. Defaults keep `.time` mode, no hours
+    /// limit, and no per-day exception so v0.1 call sites and legacy
+    /// persisted payloads keep compiling without the new v0.2 fields.
     public init(
         isDayOff: Bool,
         lockMinutes: Int,
@@ -136,5 +139,7 @@ public enum CurfewMode: String, Codable, CaseIterable {
 /// `lockMinutes`/`unlockMinutes` override, "holiday" label) without
 /// changing any of the enclosing APIs.
 public struct DayRuleException: Equatable, Codable {
+    /// Empty initialiser. The struct carries no fields today; kept
+    /// explicit so adding them later is an additive change only.
     public init() {}
 }

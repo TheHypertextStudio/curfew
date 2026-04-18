@@ -52,6 +52,9 @@ final class PrivilegedHelperManager: ObservableObject {
 
     // MARK: - Lifecycle
 
+    /// Default-initialised — `SMAppService` handles are derived statically
+    /// from a constant plist name. `nonisolated` so `CurfewAppModel` can
+    /// construct this as a non-optional default property.
     nonisolated init() {}
 
     /// Refreshes `daemonStatus` and `loginItemStatus` from the system.

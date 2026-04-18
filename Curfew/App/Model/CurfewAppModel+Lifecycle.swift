@@ -4,13 +4,9 @@ import Foundation
 import UserNotifications
 import WidgetKit
 
-/// Engine-side internals of `CurfewAppModel` — the tick loop plus all
-/// private helpers that translate engine output into published state.
-///
-/// Nothing in this file is called directly from UI code; everything here is
-/// either driven by the tick timer or is reacting to a user action that
-/// originated in `CurfewAppModel+Actions`. Kept separate from actions and
-/// presentation so a reader investigating "why does the lockout fire early?"
+/// Engine-side internals of `CurfewAppModel` — the tick loop plus the
+/// private helpers translating engine output into published state.
+/// Split from actions/presentation so "why did lockout fire early?"
 /// has one obvious file to open.
 @MainActor
 extension CurfewAppModel {
@@ -29,10 +25,8 @@ extension CurfewAppModel {
     /// 4. Apply any pending schedule swap whose effective date has arrived.
     /// 5. Reset weekly budgets if the reset weekday has arrived.
     /// 6. Run the enforcement engine to produce a fresh evaluation.
-    /// 7. Propagate derived effects: rotate lockout message on entry, update
-    ///    override composer visibility, fire/cancel warning notifications,
-    ///    install/uninstall key tap, advance shutdown workflow, redraw
-    ///    overlays.
+    /// 7. Propagate derived effects: rotate lockout copy, toggle override
+    ///    composer, fire warnings, toggle key tap, shutdown, overlays.
     func tick() {
         let previousPhase = state.phase
         currentTime = Date()
@@ -124,13 +118,10 @@ extension CurfewAppModel {
         }
     }
 
-    /// Fires a UNUserNotification once per event when a calendar event is
-    /// starting within 60 minutes of the user's curfew gate and the app is in
-    /// the working or warning phase. The user can act on the notification to
-    /// request an extension from the popover. Silently no-ops when:
-    ///   - Calendar feature flag is off or Pro is not unlocked.
-    ///   - No event is in the overlap window.
-    ///   - We've already prompted for this event today.
+    /// Fires one notification per event when a calendar event starts
+    /// within 60 min of the curfew gate during working/warning phases.
+    /// No-ops when calendar is off, Pro isn't unlocked, no event is
+    /// in the window, or we've already prompted for this event today.
     func checkCalendarCurfewOverlap() {
         guard featureFlags.calendarEnabled, licenseGate.isProUnlocked else { return }
         guard state.phase == .working || state.phase == .warning else { return }
@@ -166,6 +157,8 @@ extension CurfewAppModel {
         UNUserNotificationCenter.current().add(request)
     }
 
+    /// Hides the Convince Me composer on lockout exit and shows it on
+    /// lockout entry once the cooldown elapses. Ticks after engine eval.
     func reconcileOverrideComposerState(previousPhase: EnforcementPhase) {
         if previousPhase == .locked, state.phase != .locked {
             overrideCooldownEndsAt = nil
@@ -195,6 +188,10 @@ extension CurfewAppModel {
         }
     }
 
+    /// Classifies `proposedSchedule` against the live one and persists
+    /// the result as a `PendingScheduleChange` stamped with the earliest
+    /// legal effective date. Also MCP's `curfew.set_schedule` entry
+    /// point — shared path means shared anti-bypass semantics.
     func queueScheduleUpdate(_ proposedSchedule: WeeklySchedule) {
         let classification = policyEngine.classifyChange(
             from: settings.schedule,
@@ -221,6 +218,8 @@ extension CurfewAppModel {
         tick()
     }
 
+    /// Swaps in any `PendingScheduleChange` whose `effectiveAt` has
+    /// arrived. Called once per tick before the engine runs.
     func applyPendingScheduleIfNeeded(now: Date) {
         guard let pending = settings.pendingScheduleChange else {
             return
@@ -233,10 +232,16 @@ extension CurfewAppModel {
         persistSettings()
     }
 
+    /// Writes the current settings to the store. Separate from call
+    /// sites so future batching / coalescing can plug in here.
     func persistSettings() {
         settingsStore.save(settings)
     }
 
+    /// Reacts to `@Published settings` changes: rebuilds budget trackers
+    /// on limit/weekday changes, replays the week's usage so counts
+    /// don't jump, pushes to CloudKit, and toggles the MCP monitor/
+    /// socket pair with the MCP master switch.
     func handleSettingsMutation(from oldValue: CurfewSettings) {
         let extensionConfigChanged = settings.resetWeekday != oldValue.resetWeekday
             || settings.extensionWeeklyLimit != oldValue.extensionWeeklyLimit
@@ -288,6 +293,8 @@ extension CurfewAppModel {
         }
     }
 
+    /// Toggles the CGEventTap that intercepts ⌘⇥ / ⌘Q / ⌘⌥Esc during
+    /// lockout. Called once per tick; tap lifecycle tracks the phase.
     func updateLockoutInterception(for phase: EnforcementPhase) {
         if phase == .locked {
             lockoutKeyInterceptor.start()
@@ -296,6 +303,8 @@ extension CurfewAppModel {
         }
     }
 
+    /// Advances `ShutdownWorkflow` and republishes the countdown line.
+    /// `isActiveDevice = !isUserIdle` so idle Macs get the short grace.
     func updateShutdownWorkflow() {
         // Active-device test: during lockout the user is literally locked
         // out, so `!isUserIdle` is what actually matters — is the user
@@ -314,10 +323,14 @@ extension CurfewAppModel {
         shutdownStatusLine = shutdownWorkflow.statusLine(now: currentTime)
     }
 
+    /// `overrideReasonDraft` minus surrounding whitespace — used by the
+    /// composer's character-count gate.
     var trimmedOverrideReason: String {
         overrideReasonDraft.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    /// Best-effort device name, stamped onto `OverrideEvent` writes so
+    /// the Devices panel and retrospective can attribute overrides.
     func currentDeviceName() -> String {
         if let localized = Host.current().localizedName, !localized.isEmpty {
             return localized
@@ -328,11 +341,16 @@ extension CurfewAppModel {
         return "Unknown Device"
     }
 
+    /// `YYYY-M-D` token used by the tick loop to detect calendar
+    /// rollover without subscribing to `NSCalendar`'s notification.
     static func dayToken(for date: Date, calendar: Calendar = .current) -> String {
         let components = calendar.dateComponents([.year, .month, .day], from: date)
         return "\(components.year ?? 0)-\(components.month ?? 0)-\(components.day ?? 0)"
     }
 
+    /// Seeds `state` at app-model init — before `tick()` runs. Returns
+    /// `.dayOff` pre-onboarding so a half-configured schedule never
+    /// fires warnings on first launch.
     static func initialEvaluation(
         settings: CurfewSettings,
         now: Date,
@@ -351,10 +369,9 @@ extension CurfewAppModel {
         )
     }
 
-    /// Collected day-rollover bookkeeping. Resets daily grant counters,
-    /// the calendar-overlap dedup, the cross-device warning-stage set,
-    /// and runs the 52-week activity trim. Kept out of `tick()` to stay
-    /// inside the function-length lint budget.
+    /// Day-rollover bookkeeping: resets daily grant counters, the
+    /// calendar-overlap dedup, the cross-device warning-stage set, and
+    /// runs the 52-week activity trim.
     func handleDayRollover(to nextDayToken: String) {
         currentDayToken = nextDayToken
         extensionMinutesGrantedToday = 0
@@ -368,8 +385,7 @@ extension CurfewAppModel {
         )
     }
 
-    /// Active work minutes accumulated today; hours-based enforcement
-    /// reads this. Kept out of `tick()` so the tick body stays tight.
+    /// Active work minutes accumulated today; hours-based enforcement reads this.
     func workedMinutesToday(at now: Date) -> Int {
         WorkTimeAggregator.activeMinutesToday(
             now: now,

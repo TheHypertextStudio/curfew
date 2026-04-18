@@ -28,6 +28,8 @@ public final class ExtensionBudgetTracker: @unchecked Sendable {
     public private(set) var remaining: Int
     private var lastResetBoundary: Date?
 
+    /// Creates a tracker. Pass `calendar` to pin time-zone and DST
+    /// behaviour; production uses the current calendar, tests pin UTC.
     public init(
         weeklyLimit: Int,
         extensionMinutes: Int,

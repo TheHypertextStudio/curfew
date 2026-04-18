@@ -30,6 +30,9 @@ public struct WarningIntervals: Codable, Equatable {
     /// Must be less than ``twoMinutes`` after normalisation (minimum 1).
     public var oneMinute: Int
 
+    /// Memberwise initialiser. Values are clamped into a strictly-
+    /// decreasing order by ``normalized`` before the engine consumes
+    /// them, so callers may pass any non-negative integers.
     public init(
         thirtyMinutes: Int,
         fifteenMinutes: Int,

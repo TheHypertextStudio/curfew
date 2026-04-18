@@ -1,17 +1,33 @@
 import EventKit
 import SwiftUI
 
+/// Builds the single VoiceOver summary string read aloud when the
+/// lockout overlay appears. Centralised so tests can verify the copy
+/// without instantiating SwiftUI.
 enum LockoutAccessibilityCopy {
+    /// Combines the lockout message and optional unlock time into a
+    /// single screen-reader sentence. Falls back to "Unlock time
+    /// unavailable." when `unlockLine` is `nil` (schedule error).
     static func summary(message: String, unlockLine: String?) -> String {
         let unlockPortion = unlockLine ?? "Unlock time unavailable."
         return "Curfew lockout active. \(message). \(unlockPortion)"
     }
 }
 
+/// Accessibility-driven visual tuning for the lockout screen.
+/// Evaluates the user's Reduce Motion / Reduce Transparency preferences
+/// once per render; the struct is pure data so tests can assert the
+/// mapping without touching SwiftUI environment.
 struct LockoutVisualConfiguration: Equatable {
+    /// When `false`, the slow gradient animation is disabled.
     var animateBackground: Bool
+    /// When `true`, semi-transparent panels switch to solid fills so
+    /// content remains legible for users who can't parse translucency.
     var usesSolidPanels: Bool
 
+    /// Derives a configuration from the two accessibility environment
+    /// values. Kept as a pure static so `LockoutBackgroundView` and the
+    /// body rendering path can share the same resolution logic.
     static func resolve(
         reduceMotion: Bool,
         reduceTransparency: Bool
@@ -23,11 +39,16 @@ struct LockoutVisualConfiguration: Equatable {
     }
 }
 
+/// Full-screen overlay rendered on every display during the lockout
+/// phase. Shows the current time, the lockout message, the unlock time,
+/// optional calendar context (Pro), and the Convince Me override flow.
 struct LockoutScreenView: View {
     @EnvironmentObject private var model: CurfewAppModel
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
+    /// The user-facing message body — varies by trigger (wall time vs.
+    /// hours exhausted vs. combined). Formatted by the app model.
     let message: String
 
     private var visualConfiguration: LockoutVisualConfiguration {
@@ -48,6 +69,9 @@ struct LockoutScreenView: View {
         LockoutAccessibilityCopy.summary(message: message, unlockLine: unlockLine)
     }
 
+    /// Full-screen lockout UI — animated gradient background with the
+    /// time, message, unlock info, optional calendar pill, and the
+    /// Convince Me flow stacked centrally.
     var body: some View {
         ZStack {
             LockoutBackgroundView(animate: visualConfiguration.animateBackground)
@@ -182,10 +206,17 @@ struct LockoutScreenView: View {
     }
 }
 
+/// Slowly-panning three-stop linear gradient behind the lockout UI.
+/// When Reduce Motion is enabled the animation is disabled — the view
+/// still renders with the final colours but stops panning.
 private struct LockoutBackgroundView: View {
+    /// When `false`, the animation is entirely disabled (static gradient).
     let animate: Bool
+    /// Drives the start/end-point swap. Flipped on appear to kick off
+    /// the repeating animation.
     @State private var animatePhase = false
 
+    /// Animated `LinearGradient` with saturation ramp on animate.
     var body: some View {
         LinearGradient(
             colors: [

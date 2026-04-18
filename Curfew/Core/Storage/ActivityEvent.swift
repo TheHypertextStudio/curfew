@@ -39,6 +39,8 @@ public struct ActivityEvent: Equatable, Hashable {
     /// reflection responses. `nil` when not applicable.
     public let note: String?
 
+    /// Memberwise initialiser. `id` defaults to a fresh UUID so typical
+    /// call sites only specify the semantically-meaningful fields.
     public init(
         id: UUID = UUID(),
         timestamp: Date,

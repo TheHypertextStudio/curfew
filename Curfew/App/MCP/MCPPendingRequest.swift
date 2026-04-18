@@ -40,6 +40,10 @@ public struct MCPPendingRequest: Codable, Equatable, Identifiable {
     /// lockout"). Nil on approval and on pending requests.
     public var denialReason: String?
 
+    /// Creates a new pending request in the initial `.pending` status.
+    /// `id` and `requestedAt` default to fresh values; tests override them
+    /// for deterministic comparison. `resolvedAt` / `denialReason` start
+    /// `nil` and are populated by the app when the user resolves.
     public init(
         id: UUID = UUID(),
         tool: MCPWriteTool,

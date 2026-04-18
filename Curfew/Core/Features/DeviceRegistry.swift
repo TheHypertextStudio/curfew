@@ -11,11 +11,20 @@ private let deviceLogger = Logger(
 
 /// One Mac's row in the cross-device awareness table.
 public struct DeviceSummary: Identifiable, Equatable, Codable {
+    /// Stable per-Mac identifier — sourced from `IOPlatformUUID` so it
+    /// survives app reinstalls (but not logic-board swaps).
     public let id: String
+    /// Human-readable Mac name, matching what macOS shows in Sharing.
     public let deviceName: String
+    /// Timestamp of the most recent heartbeat from this device.
     public let lastSeen: Date
+    /// `true` when this row describes the Mac running the current
+    /// process and the user isn't idle. Drives the active/idle dot in
+    /// Settings → Devices.
     public let isActiveLocal: Bool
 
+    /// Memberwise initialiser. Kept explicit so the struct stays
+    /// `public` with a documented, stable public API.
     public init(id: String, deviceName: String, lastSeen: Date, isActiveLocal: Bool) {
         self.id = id
         self.deviceName = deviceName
@@ -59,6 +68,9 @@ final class DeviceRegistry: ObservableObject {
     private let deviceName: String
     private let container: CKContainer?
 
+    /// Creates a registry for the given idle watcher and optional
+    /// CloudKit container. Tests pass a nil container to exercise the
+    /// heartbeat state machine without touching CloudKit.
     init(
         idleWatcher: IdleWatcher,
         container: CKContainer? = nil,
@@ -96,6 +108,7 @@ final class DeviceRegistry: ObservableObject {
         }
     }
 
+    /// Cancels the heartbeat timer. Safe to call when already stopped.
     func stop() {
         heartbeatTimer?.invalidate()
         heartbeatTimer = nil

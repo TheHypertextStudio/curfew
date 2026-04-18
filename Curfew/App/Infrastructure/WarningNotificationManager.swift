@@ -18,7 +18,10 @@ struct WarningNotificationPayload: Equatable {
 /// Defines a `UNNotificationCategory` by its identifier and action list.
 /// Registered once at startup; referenced by `categoryIdentifier` in payloads.
 struct WarningNotificationCategoryDefinition: Equatable {
+    /// Opaque category identifier referenced from payloads.
     let identifier: String
+    /// Ordered list of action identifiers attached to this category. Each
+    /// identifier is resolved to a `UNNotificationAction` at registration time.
     let actionIdentifiers: [String]
 }
 
@@ -52,6 +55,9 @@ final class WarningNotificationManager: NSObject {
     /// wires this to `requestNotificationSnooze()`.
     var onSnoozeRequested: (() -> Void)?
 
+    /// Creates a manager backed by `center`. Production uses the default
+    /// `.current()` singleton; tests can inject a stub to capture add/remove
+    /// calls without touching the user's notification permissions.
     init(center: UNUserNotificationCenter = .current()) {
         self.center = center
         super.init()
@@ -232,6 +238,11 @@ final class WarningNotificationManager: NSObject {
 }
 
 extension WarningNotificationManager: UNUserNotificationCenterDelegate {
+    /// Routes the snooze action back to the app model on `@MainActor`.
+    /// Other action identifiers (none today) are ignored. The completion
+    /// handler is called unconditionally so the system retires the
+    /// response — skipping it leaves the notification hanging in Notification
+    /// Center forever.
     nonisolated func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         didReceive response: UNNotificationResponse,

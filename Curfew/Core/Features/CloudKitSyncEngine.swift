@@ -57,6 +57,9 @@ final class CloudKitSyncEngine: ObservableObject {
     private static let payloadKey = "payload"
     private static let modifiedKey = "modifiedAt"
 
+    /// Creates a sync engine targeting `containerID`. `nonisolated` so it
+    /// can be used as a default parameter value in the MainActor-isolated
+    /// `CurfewAppModel.init`, which evaluates defaults off-actor.
     nonisolated init(
         containerID: String = "iCloud.studio.hypertext.curfew"
     ) {
@@ -72,6 +75,10 @@ final class CloudKitSyncEngine: ObservableObject {
 
     // MARK: - Lifecycle
 
+    /// Arms the engine. Kicks off the initial settings pull and
+    /// registers the database-level subscription so subsequent remote
+    /// changes arrive via silent push. Idempotent — repeat calls while
+    /// already active no-op.
     func start(localSettings: CurfewSettings, localModifiedAt: Date) {
         guard !active else { return }
         active = true
@@ -118,6 +125,9 @@ final class CloudKitSyncEngine: ObservableObject {
         }
     }
 
+    /// Disarms the engine. Future `push`/`pull` calls no-op until a
+    /// subsequent `start` re-activates. Subscriptions stay registered —
+    /// removing them on every license flip would churn CloudKit quota.
     func stop() {
         active = false
         syncLogger.info("CloudKit sync stopped")
@@ -303,10 +313,19 @@ final class CloudKitSyncEngine: ObservableObject {
 /// Crosses the `CloudKitSyncEngine` → `CurfewAppModel` boundary so the
 /// app model doesn't need to know about `CKRecord` internals.
 public struct LockoutStateSnapshot: Equatable, Sendable {
+    /// Tokenised enforcement phase ("working", "warning", "locked",
+    /// "day_off"), or `nil` when the record is absent.
     public let phase: String?
+    /// Warning-stage tokens that have already fired today somewhere on
+    /// this iCloud account. Consumed by `WarningNotificationManager`
+    /// to suppress cross-device duplicate alarms.
     public let warningStagesFired: Set<String>
+    /// Server-last-modified timestamp; consumers ignore snapshots older
+    /// than their own local view.
     public let modifiedAt: Date
 
+    /// Memberwise initialiser. Kept explicit so the struct stays
+    /// `public` with a stable documented API surface.
     public init(phase: String?, warningStagesFired: Set<String>, modifiedAt: Date) {
         self.phase = phase
         self.warningStagesFired = warningStagesFired

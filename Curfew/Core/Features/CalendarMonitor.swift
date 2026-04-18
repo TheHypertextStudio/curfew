@@ -28,6 +28,10 @@ final class CalendarMonitor: ObservableObject {
     private let store = EKEventStore()
     private var refreshTimer: Timer?
 
+    /// `nonisolated` so `CurfewAppModel` can store the monitor as a
+    /// non-optional default without round-tripping to `MainActor` during
+    /// its own synchronous init. All mutation of published state happens
+    /// on the main actor via the instance methods.
     nonisolated init() {}
 
     // MARK: - Lifecycle
@@ -69,6 +73,9 @@ final class CalendarMonitor: ObservableObject {
         }
     }
 
+    /// Cancels the 5-minute refresh timer. Called when the Pro gate closes
+    /// (license deactivated or flag turned off) so an unlicensed install
+    /// stops polling EventKit entirely.
     func stop() {
         refreshTimer?.invalidate()
         refreshTimer = nil
@@ -76,6 +83,11 @@ final class CalendarMonitor: ObservableObject {
 
     // MARK: - Sync
 
+    /// Pulls today's events from EventKit and refreshes the `todayEvents`,
+    /// `hasCurrentEvent`, and `nextEvent` publishers. Called on initial
+    /// authorisation and every 5 minutes from the refresh timer. All-day
+    /// events are filtered out because they don't carry scheduling intent
+    /// relevant to curfew.
     func sync() {
         let cal = Calendar.current
         let now = Date()

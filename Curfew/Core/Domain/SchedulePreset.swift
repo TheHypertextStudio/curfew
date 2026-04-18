@@ -22,6 +22,8 @@ public enum SchedulePreset: String, CaseIterable, Identifiable {
     /// 8am–1pm weekdays (short day), weekends off.
     case halfDay = "Half Day"
 
+    /// Satisfies `Identifiable` using the raw preset label. Stable
+    /// across app versions so SwiftUI list diffing is sound.
     public var id: String {
         rawValue
     }

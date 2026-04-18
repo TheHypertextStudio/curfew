@@ -10,10 +10,14 @@ import WidgetKit
 //   ActivityRollups.swift.
 
 struct CurfewWidgetProvider: TimelineProvider {
+    /// Returns the safe placeholder entry rendered in the widget
+    /// gallery and during data-loading transitions.
     func placeholder(in _: Context) -> CurfewWidgetEntry {
         .placeholder
     }
 
+    /// Single-shot snapshot for the widget picker preview. Reads live
+    /// settings so the gallery mirrors the user's real schedule.
     func getSnapshot(in _: Context, completion: @escaping (CurfewWidgetEntry) -> Void) {
         completion(entry(at: Date()))
     }
@@ -152,6 +156,8 @@ struct CurfewWidgetProvider: TimelineProvider {
         String(format: "%02d:%02d", minutes / 60, minutes % 60)
     }
 
+    /// Maps an `EnforcementPhase` to the lowercase string token stored
+    /// in the widget entry. Kept symmetrical with the view's decoder.
     private func phaseToken(_ phase: EnforcementPhase) -> String {
         switch phase {
         case .working: "working"
@@ -172,6 +178,8 @@ struct CurfewWidgetProvider: TimelineProvider {
         return calendar.date(from: components) ?? calendar.startOfDay(for: date)
     }
 
+    /// Maps a `WarningStage` to the stable string token stored in the
+    /// widget entry. Matches `WarningNotificationManager.token(for:)`.
     private func warningToken(_ stage: WarningStage) -> String {
         switch stage {
         case .none: "none"

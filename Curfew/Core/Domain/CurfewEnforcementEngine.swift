@@ -73,6 +73,9 @@ public struct CurfewEvaluation: Equatable {
     /// in combined mode it's whichever deadline fires first.
     public var trigger: EnforcementTrigger
 
+    /// Memberwise initialiser with a back-compat default for `trigger`
+    /// so pre-v0.2 construction sites (tests, legacy snapshots) keep
+    /// compiling without having to specify the new field.
     public init(
         phase: EnforcementPhase,
         warningStage: WarningStage,

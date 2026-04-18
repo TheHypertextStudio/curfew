@@ -1,7 +1,14 @@
 import AppKit
 import SwiftUI
 
+/// Narrow seam exercised by `CurfewApp.init` on first launch. Separated
+/// into a protocol so tests can assert the boot decisions (start
+/// enforcement? show Getting Started?) without a SwiftUI app scene.
 protocol AppCoordinating {
+    /// Invoked once per launch on the main actor. `model` is the live
+    /// `CurfewAppModel`; `shouldStartEnforcement` is the result of
+    /// `CurfewLaunchBehavior.shouldStartEnforcement` applied to the
+    /// current environment.
     @MainActor
     func handleInitialLaunch(
         model: CurfewAppModel,
@@ -9,7 +16,11 @@ protocol AppCoordinating {
     )
 }
 
+/// Production `AppCoordinating` — arms the tick loop (when the launch
+/// policy allows) and opens Getting Started when the settings store
+/// says first-launch setup hasn't been completed yet.
 struct AppCoordinator: AppCoordinating {
+    /// Concrete launch orchestration. Called from `CurfewApp.init`.
     @MainActor
     func handleInitialLaunch(
         model: CurfewAppModel,
@@ -25,7 +36,14 @@ struct AppCoordinator: AppCoordinating {
     }
 }
 
+/// Policy for whether the app arms enforcement on launch. Debug builds
+/// stay disarmed unless explicitly opted in via `CURFEW_ENABLE_ENFORCEMENT=1`
+/// so development doesn't accidentally lock the developer out. Release
+/// builds arm unless opted out via `CURFEW_SKIP_ENFORCEMENT=1` (useful
+/// for CI notarization smoke tests).
 enum CurfewLaunchBehavior {
+    /// Returns `true` when enforcement should arm at launch given the
+    /// current environment and build configuration.
     static func shouldStartEnforcement(
         environment: [String: String],
         isDebugBuild: Bool
@@ -37,9 +55,14 @@ enum CurfewLaunchBehavior {
     }
 }
 
+/// SwiftUI app entry point. Composes the three scenes users interact
+/// with (main window, menu-bar extra, Settings) and hangs the launch
+/// coordinator off `init` so enforcement arms before the first frame.
 @main
 struct CurfewApp: App {
+    /// The central app-state object; injected into every scene.
     @StateObject private var model: CurfewAppModel
+    /// Sparkle wrapper driving the Check-for-Updates menu item.
     @StateObject private var updater = CurfewUpdater()
 
     private static let shouldStartEnforcementOnLaunch = CurfewLaunchBehavior.shouldStartEnforcement(
@@ -55,6 +78,9 @@ struct CurfewApp: App {
         #endif
     }
 
+    /// Constructs the app model, wires the `@StateObject`, and defers
+    /// the launch coordinator to the next run-loop spin so SwiftUI's
+    /// first body evaluation completes before enforcement arms.
     init() {
         let model = CurfewAppModel()
         _model = StateObject(wrappedValue: model)
@@ -67,6 +93,7 @@ struct CurfewApp: App {
         }
     }
 
+    /// Scene composition: main window + menu bar + Settings pane.
     var body: some Scene {
         WindowGroup(id: MainWorkspaceSection.windowID) {
             MainWindowView()

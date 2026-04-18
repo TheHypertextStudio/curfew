@@ -23,6 +23,9 @@ public struct OverrideEvent: Codable, Equatable {
     /// the user has changed their override duration in Settings.
     public var grantedDurationMinutes: Int
 
+    /// Memberwise initialiser. All fields are required — override
+    /// events are only created post-confirmation so there's no
+    /// degenerate "empty override" state.
     public init(
         timestamp: Date,
         deviceName: String,
@@ -58,6 +61,9 @@ public struct PendingScheduleChange: Codable, Equatable {
     /// the UI copy surfaced in the pending-change banner.
     public var classification: ScheduleChangeClassification
 
+    /// Memberwise initialiser. Typically built by
+    /// `SchedulePolicyEngine` + `CurfewAppModel.queueScheduleUpdate`
+    /// rather than by callers directly.
     public init(
         proposedSchedule: WeeklySchedule,
         requestedAt: Date,
@@ -157,6 +163,11 @@ public struct CurfewSettings: Codable, Equatable {
         case mcpHTTPPort
     }
 
+    /// Memberwise initialiser. `warningIntervals` is normalised on
+    /// assignment so out-of-range values written directly to the
+    /// struct (e.g. in tests) are corrected. `mcpHTTPEnabled` /
+    /// `mcpHTTPPort` default to safe off so a persisted value from a
+    /// v0.1 client (which didn't emit them) round-trips correctly.
     public init(
         schedule: WeeklySchedule,
         pendingScheduleChange: PendingScheduleChange?,
@@ -189,6 +200,10 @@ public struct CurfewSettings: Codable, Equatable {
         self.mcpHTTPPort = mcpHTTPPort
     }
 
+    /// Custom decoder so pre-existing persisted settings (v0.1 payloads
+    /// without `mcpHTTPEnabled`, `mcpHTTPPort`, and `pendingScheduleChange`
+    /// in some cases) upgrade cleanly. Every new field uses
+    /// `decodeIfPresent` so the upgrade path stays one-way-safe.
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.schedule = try container.decode(WeeklySchedule.self, forKey: .schedule)
@@ -252,6 +267,11 @@ public struct CurfewSettings: Codable, Equatable {
         try container.encode(mcpHTTPPort, forKey: .mcpHTTPPort)
     }
 
+    /// Factory defaults for a fresh install: 9-to-5 schedule, 3 × 15 min
+    /// extensions/week, 2 × 30 min overrides/week, Monday reset, auto-
+    /// shutdown off, canonical warning intervals, MCP on, loopback HTTP
+    /// off. Consumed by `CurfewSettingsStore.load()` when the
+    /// `UserDefaults` key is absent.
     public static let `default` = CurfewSettings(
         schedule: .standardNineToFive,
         pendingScheduleChange: nil,

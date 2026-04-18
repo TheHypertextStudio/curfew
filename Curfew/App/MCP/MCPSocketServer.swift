@@ -33,6 +33,9 @@ final class MCPSocketServer {
         SharedPaths.applicationSupport.appendingPathComponent("mcp.sock").path
     }
 
+    /// Default-constructed — all configuration is derived from
+    /// `SharedPaths`. `nonisolated` so the app model can default-initialise
+    /// one inside its synchronous init without hopping actors.
     nonisolated init() {}
 
     /// Ensures the socket directory exists. The socket file itself is

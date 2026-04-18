@@ -1,10 +1,17 @@
 import SwiftUI
 import WidgetKit
 
+/// WidgetKit view hierarchy. Dispatches to one of three layouts by
+/// `@Environment(\.widgetFamily)` — small (Gauge ring), medium
+/// (schedule + work-time row), and large (7-day bar chart + streak).
 struct CurfewWidgetView: View {
+    /// Timeline-provided snapshot to render.
     let entry: CurfewWidgetEntry
+    /// WidgetKit family selected by the user in the gallery. Determines
+    /// which of the three bodies renders.
     @Environment(\.widgetFamily) private var family
 
+    /// Picks the layout variant based on the user's selected family.
     var body: some View {
         switch family {
         case .systemSmall:  smallView
@@ -190,6 +197,8 @@ struct CurfewWidgetView: View {
 
     // MARK: - Helpers
 
+    /// Countdown label text — special-cased for day-off and locked
+    /// phases, otherwise formatted as `Xh Ym` or `Ym`.
     private var timeRemainingText: String {
         switch entry.phase {
         case "day_off": return "Day off"
@@ -201,6 +210,9 @@ struct CurfewWidgetView: View {
         }
     }
 
+    /// Human-readable phase label shown under the countdown. For the
+    /// warning phase it folds in the stage token so glances read
+    /// "Warning T-5" instead of a bare "Warning".
     private var phaseLabel: String {
         switch entry.phase {
         case "working": return entry.warningStage == "none" ? "Working" : "Warning \(entry.warningStage)"
@@ -211,6 +223,9 @@ struct CurfewWidgetView: View {
         }
     }
 
+    /// SF Symbol that accompanies the phase label. Tracks the app's
+    /// menu-bar icon vocabulary so the widget feels consistent with
+    /// other surfaces.
     private var phaseIcon: String {
         switch entry.phase {
         case "working": return "checkmark.circle"
@@ -221,6 +236,9 @@ struct CurfewWidgetView: View {
         }
     }
 
+    /// Tint colour for the Gauge ring and icon. Green for working /
+    /// day-off, orange for warning, red for locked — matches the
+    /// menu-bar icon tinting.
     private var phaseColor: Color {
         switch entry.phase {
         case "warning": return .orange

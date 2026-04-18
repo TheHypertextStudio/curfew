@@ -228,10 +228,19 @@ final class OverlayCoordinator {
     }
 }
 
+/// Translucent fill shown during the warning phase. Opacity ramps with
+/// the warning stage (see `WarningStage.overlayOpacity`) so the dim
+/// deepens as the lock approaches.
 private struct WarningOverlayView: View {
+    /// 0.0–1.0 opacity for the tint. `0` hides the overlay entirely.
     let opacity: Double
+    /// Respects the system "Reduce transparency" accessibility setting by
+    /// switching to a solid black fill at a slightly bumped alpha. Matches
+    /// the handling in `CurfewTheme`.
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
+    /// SwiftUI body — solid or tinted fill ignoring safe area so the
+    /// overlay covers the menu bar and Dock zones too.
     var body: some View {
         let base = reduceTransparency
             ? Color.black.opacity(min(0.9, max(0.2, opacity + 0.30)))
@@ -242,9 +251,16 @@ private struct WarningOverlayView: View {
     }
 }
 
+/// Small pill-shaped countdown shown in the top-right corner of each
+/// screen during the last few minutes before lockout. Non-interactive
+/// (window passes clicks through) — purely informative.
 private struct FloatingCountdownTimerView: View {
+    /// Whole minutes until lockout. Clamped to `>= 0` so the view
+    /// never displays a negative number if the tick loop hands it
+    /// a stale or just-over value.
     let minutesRemaining: Int
 
+    /// SwiftUI body — monospace digit capsule with a subtle border.
     var body: some View {
         Text("⏳ \(max(0, minutesRemaining))m")
             .font(.system(size: 16, weight: .semibold, design: .rounded))
