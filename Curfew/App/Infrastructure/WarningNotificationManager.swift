@@ -69,7 +69,19 @@ final class WarningNotificationManager: NSObject {
 
     /// Delivers a notification for `stage` if it hasn't already fired today.
     /// Resets the day sentinel on calendar rollover. Called once per tick.
-    func update(stage: WarningStage, now: Date, calendar: Calendar = .current) {
+    ///
+    /// - Parameter alreadyFiredElsewhere: Tokens for warning stages the
+    ///   cross-device `LockoutState` record shows have already fired on
+    ///   another Mac today. A stage present in this set is suppressed —
+    ///   the least-surprising behaviour for a user opening a second Mac
+    ///   mid-escalation ("don't re-send a T-30 alarm I already saw").
+    ///   Empty set keeps the single-device path unchanged.
+    func update(
+        stage: WarningStage,
+        now: Date,
+        calendar: Calendar = .current,
+        alreadyFiredElsewhere: Set<String> = []
+    ) {
         let dayToken = Self.dayToken(for: now, calendar: calendar)
 
         if dayToken != deliveredDayToken {
@@ -81,7 +93,8 @@ final class WarningNotificationManager: NSObject {
             return
         }
 
-        if let content = notificationContent(for: stage) {
+        if let content = notificationContent(for: stage),
+           !alreadyFiredElsewhere.contains(Self.token(for: stage)) {
             let request = UNNotificationRequest(
                 identifier: "curfew.warning.\(stage)",
                 content: content,
@@ -90,6 +103,21 @@ final class WarningNotificationManager: NSObject {
             center.add(request)
         }
         lastDeliveredStage = stage
+    }
+
+    /// Stable string token for a `WarningStage`, shared by the
+    /// `LockoutState` CloudKit record so publishers and consumers agree
+    /// on the vocabulary without leaking the enum across module boundaries.
+    static func token(for stage: WarningStage) -> String {
+        switch stage {
+        case .none: "none"
+        case .thirtyMinutes: "T-30"
+        case .fifteenMinutes: "T-15"
+        case .fiveMinutes: "T-5"
+        case .twoMinutes: "T-2"
+        case .oneMinute: "T-1"
+        case .lockout: "lockout"
+        }
     }
 
     private static func dayToken(for date: Date, calendar: Calendar) -> String {

@@ -134,6 +134,13 @@ final class CloudKitSyncEngine: ObservableObject {
         }
     }
 
+    /// Callback fired when a pulled `LockoutState` record carries a
+    /// non-empty `warningStagesFired` set. The app model uses this to
+    /// seed its local suppression set on launch so a Mac restarting
+    /// mid-day doesn't re-fire stages that already fired on this or
+    /// another Mac today.
+    var onLockoutStateReceived: ((LockoutStateSnapshot) -> Void)?
+
     /// Writes the shared `LockoutState` record so devices joining the
     /// warning phase mid-escalation can align their stage baseline with
     /// whichever Mac entered warning first.
@@ -146,7 +153,8 @@ final class CloudKitSyncEngine: ObservableObject {
         phase: String,
         warningPhaseStarted: Date?,
         lockedAt: Date?,
-        unlocksAt: Date?
+        unlocksAt: Date?,
+        warningStagesFired: Set<String> = []
     ) {
         guard active else { return }
         Task {
@@ -154,8 +162,20 @@ final class CloudKitSyncEngine: ObservableObject {
                 phase: phase,
                 warningPhaseStarted: warningPhaseStarted,
                 lockedAt: lockedAt,
-                unlocksAt: unlocksAt
+                unlocksAt: unlocksAt,
+                warningStagesFired: warningStagesFired
             )
+        }
+    }
+
+    /// Fetches the shared `LockoutState` record and surfaces its
+    /// `warningStagesFired` set via `onLockoutStateReceived`. Called on
+    /// sync start so a device that was offline when earlier stages
+    /// fired learns about them before firing its own duplicates.
+    func pullLockoutState() {
+        guard active else { return }
+        Task {
+            await loadLockoutState()
         }
     }
 
@@ -163,7 +183,8 @@ final class CloudKitSyncEngine: ObservableObject {
         phase: String,
         warningPhaseStarted: Date?,
         lockedAt: Date?,
-        unlocksAt: Date?
+        unlocksAt: Date?,
+        warningStagesFired: Set<String>
     ) async {
         let database = resolvedContainer.privateCloudDatabase
         let id = CKRecord.ID(recordName: CloudKitSchema.lockoutStateRecordName)
@@ -185,11 +206,36 @@ final class CloudKitSyncEngine: ObservableObject {
             record[CloudKitSchema.Field.lockedAt] = lockedAt as NSDate?
             record[CloudKitSchema.Field.unlocksAt] = unlocksAt as NSDate?
             record[CloudKitSchema.Field.modifiedAt] = Date() as NSDate
+            record[CloudKitSchema.Field.warningStagesFired]
+                = warningStagesFired.sorted() as NSArray
             _ = try await database.save(record)
         } catch let error as CKError where error.isExpectedAbsence {
             syncLogger.debug("lockout-state save skipped: CloudKit unavailable")
         } catch {
             syncLogger.error("lockout-state save failed: \(error.localizedDescription)")
+        }
+    }
+
+    private func loadLockoutState() async {
+        let database = resolvedContainer.privateCloudDatabase
+        let id = CKRecord.ID(recordName: CloudKitSchema.lockoutStateRecordName)
+        do {
+            let record = try await database.record(for: id)
+            let phase = record[CloudKitSchema.Field.phase] as? String
+            let stages = record[CloudKitSchema.Field.warningStagesFired] as? [String] ?? []
+            let modifiedAt = record[CloudKitSchema.Field.modifiedAt] as? Date ?? .distantPast
+            let snapshot = LockoutStateSnapshot(
+                phase: phase,
+                warningStagesFired: Set(stages),
+                modifiedAt: modifiedAt
+            )
+            await MainActor.run {
+                onLockoutStateReceived?(snapshot)
+            }
+        } catch let error as CKError where error.isExpectedAbsence {
+            syncLogger.debug("lockout-state pull skipped: CloudKit unavailable")
+        } catch {
+            syncLogger.error("lockout-state pull failed: \(error.localizedDescription)")
         }
     }
 
@@ -250,6 +296,21 @@ final class CloudKitSyncEngine: ObservableObject {
             syncLogger.error("CloudKit push failed: \(error.localizedDescription)")
             await MainActor.run { syncStatus = .failed(message: error.localizedDescription) }
         }
+    }
+}
+
+/// Plain-value snapshot of the shared `LockoutState` CKRecord.
+/// Crosses the `CloudKitSyncEngine` → `CurfewAppModel` boundary so the
+/// app model doesn't need to know about `CKRecord` internals.
+public struct LockoutStateSnapshot: Equatable, Sendable {
+    public let phase: String?
+    public let warningStagesFired: Set<String>
+    public let modifiedAt: Date
+
+    public init(phase: String?, warningStagesFired: Set<String>, modifiedAt: Date) {
+        self.phase = phase
+        self.warningStagesFired = warningStagesFired
+        self.modifiedAt = modifiedAt
     }
 }
 

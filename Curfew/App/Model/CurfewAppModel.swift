@@ -178,22 +178,23 @@ final class CurfewAppModel: NSObject, ObservableObject {
     /// Only used inside the main class body — kept `private`.
     private var timer: Timer?
 
-    /// Sum of extension minutes granted since the current day rolled over.
-    /// Resets in `tick()` when `dayToken(for: currentTime)` changes.
+    /// Daily grant counters; reset in `handleDayRollover`.
     var extensionMinutesGrantedToday = 0
-
-    /// Count of 1-minute snoozes granted today. Treated equivalently to
-    /// extension minutes when the engine computes `extensionMinutesGrantedToday`.
     var snoozeMinutesGrantedToday = 0
 
-    /// `YYYY-M-D` token representing the last-seen calendar day, so `tick()`
-    /// can detect day rollovers without depending on a NotificationCenter.
+    /// `YYYY-M-D` token for the last-seen calendar day so `tick()` can
+    /// detect rollovers without a NotificationCenter subscription.
     var currentDayToken = ""
 
-    /// Last-evaluated warning stage. Tracked so widget-timeline reloads can
-    /// fire on sub-phase escalations (T-15 → T-5 within the warning phase),
-    /// not only on coarser phase transitions.
+    /// Last-evaluated warning stage — drives widget timeline reloads on
+    /// sub-phase escalations (T-15 → T-5), not only phase transitions.
     var previousWarningStage: WarningStage = .none
+
+    /// Warning stages fired today across every device on this iCloud
+    /// account. Seeded from the `LockoutState` CKRecord; consulted by
+    /// `WarningNotificationManager` to suppress cross-device duplicates.
+    @Published var warningStagesFiredToday: Set<String> = []
+    var warningStagesFiredDayToken: String = ""
 
     /// Whether the user has been idle past `idleWatcher.idleThresholdSeconds`.
     /// Mirrored from the watcher so observers need not reach into a
@@ -341,20 +342,17 @@ final class CurfewAppModel: NSObject, ObservableObject {
             settings = remoteSettings
             settingsStore.save(remoteSettings)
         }
+        cloudKitSyncEngine.onLockoutStateReceived = { [weak self] snapshot in
+            self?.warningStagesFiredToday.formUnion(snapshot.warningStagesFired)
+        }
         subscribeToLicenseChanges()
         reconcileProGatedModules()
     }
 
     /// Starts the 1 Hz enforcement tick. Safe to call repeatedly; no-ops
-    /// when the user has not completed onboarding (we don't want a half-
-    /// configured schedule firing warnings) or when already running.
+    /// when onboarding is incomplete or the timer is already armed.
     func start() {
-        guard settings.hasCompletedInitialSetup else {
-            return
-        }
-        guard !started else {
-            return
-        }
+        guard settings.hasCompletedInitialSetup, !started else { return }
         started = true
         notificationManager.requestPermissionIfNeeded()
         tick()
@@ -379,10 +377,9 @@ final class CurfewAppModel: NSObject, ObservableObject {
         tick()
     }
 
-    /// Persists the given override event and appends it to the published
-    /// in-memory log. Exists because `overrideEvents` is `@Published
-    /// private(set)` — extensions in sibling files cannot mutate the array
-    /// directly.
+    /// Persists the given override event and appends to the published
+    /// in-memory log. Lives on the main class because `overrideEvents` is
+    /// `@Published private(set)`.
     func recordOverrideEvent(_ event: OverrideEvent) {
         settingsStore.appendOverrideEvent(event)
         overrideEvents.append(event)

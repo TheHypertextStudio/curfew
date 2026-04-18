@@ -44,18 +44,7 @@ extension CurfewAppModel {
         idleWatcher.sample()
 
         if Self.dayToken(for: currentTime) != currentDayToken {
-            currentDayToken = Self.dayToken(for: currentTime)
-            extensionMinutesGrantedToday = 0
-            snoozeMinutesGrantedToday = 0
-            curfewOverlapPromptFiredForEventID = nil
-            // Enforces the 52-week retention promise in PRIVACY.md. Called
-            // on day rollover so the work happens at most once per day and
-            // never during a warning-phase tick where allocation jitter
-            // might be user-visible.
-            activityRecorder.trim(
-                olderThan: Self.activityRetentionSeconds,
-                now: currentTime
-            )
+            handleDayRollover(to: Self.dayToken(for: currentTime))
         }
 
         applyPendingScheduleIfNeeded(now: currentTime)
@@ -93,7 +82,12 @@ extension CurfewAppModel {
             at: currentTime
         )
         reconcileOverrideComposerState(previousPhase: previousPhase)
-        notificationManager.update(stage: state.warningStage, now: currentTime)
+        notificationManager.update(
+            stage: state.warningStage,
+            now: currentTime,
+            alreadyFiredElsewhere: warningStagesFiredToday
+        )
+        recordWarningStageFiringIfNeeded()
         updateLockoutInterception(for: state.phase)
         updateShutdownWorkflow()
         overlayCoordinator.updateOverlays(for: state, model: self, lockoutMessage: lockoutMessage)
@@ -357,24 +351,20 @@ extension CurfewAppModel {
         )
     }
 
-    /// Pushes the current lockout snapshot to CloudKit so other devices
-    /// can align. Clears `warningPhaseStarted` when the new phase is not
-    /// warning/lockout so joining devices don't see a stale timestamp.
-    private func publishLockoutStateIfSyncActive(previous: EnforcementPhase) {
-        let phaseToken = switch state.phase {
-        case .working: "working"
-        case .warning: "warning"
-        case .locked: "locked"
-        case .dayOff: "day_off"
-        }
-        let warningStarted: Date? = state.phase == .warning && previous != .warning
-            ? currentTime
-            : (state.phase == .warning ? nil : nil)
-        cloudKitSyncEngine.pushLockoutState(
-            phase: phaseToken,
-            warningPhaseStarted: warningStarted,
-            lockedAt: state.phase == .locked ? state.lockDate : nil,
-            unlocksAt: state.phase == .locked ? state.unlockDate : nil
+    /// Collected day-rollover bookkeeping. Resets daily grant counters,
+    /// the calendar-overlap dedup, the cross-device warning-stage set,
+    /// and runs the 52-week activity trim. Kept out of `tick()` to stay
+    /// inside the function-length lint budget.
+    func handleDayRollover(to nextDayToken: String) {
+        currentDayToken = nextDayToken
+        extensionMinutesGrantedToday = 0
+        snoozeMinutesGrantedToday = 0
+        curfewOverlapPromptFiredForEventID = nil
+        warningStagesFiredToday.removeAll()
+        warningStagesFiredDayToken = nextDayToken
+        activityRecorder.trim(
+            olderThan: Self.activityRetentionSeconds,
+            now: currentTime
         )
     }
 

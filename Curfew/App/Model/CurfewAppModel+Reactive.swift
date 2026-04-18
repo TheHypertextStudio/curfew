@@ -33,6 +33,7 @@ extension CurfewAppModel {
                 localSettings: settings,
                 localModifiedAt: Date()
             )
+            cloudKitSyncEngine.pullLockoutState()
             deviceRegistry.start()
         } else {
             cloudKitSyncEngine.stop()

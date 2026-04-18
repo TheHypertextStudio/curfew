@@ -51,8 +51,6 @@ Morning intent, midday check-in, evening retrospective — lifecycle gates beyon
 
 Two transports: stdio (default, used by Claude Desktop) and loopback-only Streamable HTTP on `127.0.0.1:9847` (opt-in, Settings → Advanced).
 
-Focus-session tools (`curfew.start_focus_session`, `curfew.end_focus_session`) are planned for v0.3 once the focus-mode schema stabilises.
-
 \* Write operations queue for user approval by default (configurable in Settings → Integrations → AI Consent Policy).
 
 **Add to Claude Desktop:**

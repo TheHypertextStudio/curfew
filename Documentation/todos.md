@@ -154,7 +154,6 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 - [x] Streamable HTTP transport on localhost:9847 (opt-in; Settings → Advanced).
 - [x] Unix-socket IPC seam between `curfew-mcp` and the running app (queue fallback today; POSIX listener in a follow-up).
 - [x] Claude Desktop auto-detection and one-click registration from Settings.
-- [ ] Write tools: `curfew.start_focus_session`, `curfew.end_focus_session`. (v0.3 — focus-mode schema TBD)
 - [x] `AIConsentPolicy`: queue (default), autoApprove, deny.
 - [x] `MCPConsentSheet` for user approval of queued write requests.
 - [x] Settings → Integrations: MCP toggle, Claude Desktop config copy, consent policy picker.

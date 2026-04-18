@@ -184,7 +184,8 @@ public struct CurfewEnforcementEngine {
             window: window,
             rule: rule,
             at: date,
-            workedMinutesToday: workedMinutesToday
+            workedMinutesToday: workedMinutesToday,
+            extensionMinutesGrantedToday: extensionMinutesGrantedToday
         )
 
         let intervals = warningIntervals.normalized
@@ -218,14 +219,20 @@ public struct CurfewEnforcementEngine {
     /// time from accumulated work minutes. For `.time` rules returns the
     /// original window and `.time` trigger unchanged.
     ///
-    /// The hours deadline is "current time + minutes remaining in budget",
-    /// clamped to `date` when the budget is already exhausted. Combined
-    /// mode picks the nearer of the time-based and hours-based deadlines.
+    /// The hours deadline is "current time + (hoursLimit + extensions -
+    /// worked)". Extensions apply to **both** clocks — the wall deadline
+    /// already reflects them via `schedule.scheduleWindow(extensionMinutes…)`,
+    /// and the hours budget grows by the same amount here. Rationale: a
+    /// user who requests "+15 min" in any mode means "15 more minutes
+    /// tonight"; pushing both deadlines honors that regardless of which
+    /// clock is about to fire. Combined mode still picks the nearer of
+    /// the two post-extension deadlines.
     private func applyHoursMode(
         window: ScheduleWindow,
         rule: DayRule,
         at date: Date,
-        workedMinutesToday: Int
+        workedMinutesToday: Int,
+        extensionMinutesGrantedToday: Int
     ) -> (window: ScheduleWindow, trigger: EnforcementTrigger) {
         guard rule.mode != .time,
               let hoursLimit = rule.hoursLimitMinutes,
@@ -233,7 +240,8 @@ public struct CurfewEnforcementEngine {
         else {
             return (window, .time)
         }
-        let minutesLeft = max(0, hoursLimit - workedMinutesToday)
+        let effectiveLimit = hoursLimit + max(0, extensionMinutesGrantedToday)
+        let minutesLeft = max(0, effectiveLimit - workedMinutesToday)
         let hoursDeadline = date.addingTimeInterval(TimeInterval(minutesLeft * 60))
 
         switch rule.mode {

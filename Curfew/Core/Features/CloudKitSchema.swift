@@ -92,6 +92,11 @@ public enum CloudKitSchema {
         public static let warningPhaseStarted = "warningPhaseStarted"
         public static let lockedAt = "lockedAt"
         public static let unlocksAt = "unlocksAt"
+        /// `[String]` of warning-stage tokens ("T-30", "T-15", …) that
+        /// have fired today across any device on this account. Consumed
+        /// by `WarningNotificationManager` to suppress cross-device
+        /// duplicate alarms.
+        public static let warningStagesFired = "warningStagesFired"
     }
 
     // MARK: - Subscription IDs
