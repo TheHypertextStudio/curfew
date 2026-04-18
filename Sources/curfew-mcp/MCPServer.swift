@@ -45,7 +45,7 @@ final class MCPServer {
 
     // MARK: - Request dispatch
 
-    private func handle(line: String) -> String? {
+    func handle(line: String) -> String? {
         guard let data = line.data(using: .utf8),
               let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             return errorResponse(rawID: nil, code: -32700, message: "Parse error")

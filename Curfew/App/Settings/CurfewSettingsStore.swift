@@ -130,6 +130,16 @@ public struct CurfewSettings: Codable, Equatable {
     /// requests. Toggled in Settings → Integrations.
     public var mcpEnabled: Bool
 
+    /// Whether `curfew-mcp` also binds a loopback-only Streamable HTTP
+    /// transport so remote MCP clients (editors over SSH, multi-process
+    /// setups) can reach the tool registry. Off by default — the primary
+    /// stdio transport covers every in-the-box host.
+    public var mcpHTTPEnabled: Bool
+
+    /// Port the HTTP transport listens on when `mcpHTTPEnabled` is true.
+    /// Defaults to 9847 per plan.md §9.1.
+    public var mcpHTTPPort: Int
+
     private enum CodingKeys: String, CodingKey {
         case schedule
         case pendingScheduleChange
@@ -143,6 +153,8 @@ public struct CurfewSettings: Codable, Equatable {
         case autoShutdownDelayMinutes
         case warningIntervals
         case mcpEnabled
+        case mcpHTTPEnabled
+        case mcpHTTPPort
     }
 
     public init(
@@ -157,7 +169,9 @@ public struct CurfewSettings: Codable, Equatable {
         autoShutdownEnabled: Bool,
         autoShutdownDelayMinutes: Int,
         warningIntervals: WarningIntervals,
-        mcpEnabled: Bool
+        mcpEnabled: Bool,
+        mcpHTTPEnabled: Bool = false,
+        mcpHTTPPort: Int = 9847
     ) {
         self.schedule = schedule
         self.pendingScheduleChange = pendingScheduleChange
@@ -171,6 +185,8 @@ public struct CurfewSettings: Codable, Equatable {
         self.autoShutdownDelayMinutes = autoShutdownDelayMinutes
         self.warningIntervals = warningIntervals.normalized
         self.mcpEnabled = mcpEnabled
+        self.mcpHTTPEnabled = mcpHTTPEnabled
+        self.mcpHTTPPort = mcpHTTPPort
     }
 
     public init(from decoder: Decoder) throws {
@@ -205,6 +221,14 @@ public struct CurfewSettings: Codable, Equatable {
             forKey: .warningIntervals
         ) ?? .default).normalized
         self.mcpEnabled = try container.decodeIfPresent(Bool.self, forKey: .mcpEnabled) ?? true
+        self.mcpHTTPEnabled = try container.decodeIfPresent(
+            Bool.self,
+            forKey: .mcpHTTPEnabled
+        ) ?? false
+        self.mcpHTTPPort = try container.decodeIfPresent(
+            Int.self,
+            forKey: .mcpHTTPPort
+        ) ?? 9847
     }
 
     /// Encodes to JSON. `warningIntervals` is normalised before encoding so
@@ -224,6 +248,8 @@ public struct CurfewSettings: Codable, Equatable {
         try container.encode(autoShutdownDelayMinutes, forKey: .autoShutdownDelayMinutes)
         try container.encode(warningIntervals.normalized, forKey: .warningIntervals)
         try container.encode(mcpEnabled, forKey: .mcpEnabled)
+        try container.encode(mcpHTTPEnabled, forKey: .mcpHTTPEnabled)
+        try container.encode(mcpHTTPPort, forKey: .mcpHTTPPort)
     }
 
     public static let `default` = CurfewSettings(
