@@ -23,8 +23,13 @@ import Foundation
 // loop — the main thread runs stdio; the listener runs on the main
 // run loop via `NWListener(queue:.main)`.
 
+/// Raw process arguments — parsed manually because the MCP host
+/// launches this binary with positional args only; ArgumentParser's
+/// overhead isn't justified for two flags.
 let arguments = CommandLine.arguments
+/// `--http` opt-in flag. Runs an additional loopback HTTP listener.
 let httpEnabled = arguments.contains("--http")
+/// Port for the HTTP listener when enabled. Defaults to 9847.
 let port: UInt16 = {
     if let flagIndex = arguments.firstIndex(of: "--port"),
        flagIndex + 1 < arguments.count,
@@ -34,6 +39,7 @@ let port: UInt16 = {
     return 9847
 }()
 
+/// The single MCP server instance. Both transports share it.
 let server = MCPServer()
 
 if httpEnabled {

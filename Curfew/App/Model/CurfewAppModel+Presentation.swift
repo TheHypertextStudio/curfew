@@ -58,6 +58,9 @@ extension CurfewAppModel {
         settings.pendingScheduleChange?.proposedSchedule ?? settings.schedule
     }
 
+    /// One-sentence summary of any queued schedule change, shown above
+    /// the menu-bar popover and the overview pane. `nil` when no change
+    /// is pending.
     var pendingScheduleDescription: String? {
         guard let pending = settings.pendingScheduleChange else {
             return nil
@@ -244,6 +247,9 @@ extension CurfewAppModel {
 /// file scope (not nested) so it can be `Equatable` without pulling
 /// `CurfewAppModel` into Swift's actor inference.
 struct ThisWeekCacheKey: Equatable {
+    /// Monday-aligned start of the rollup's coverage window.
     let weekStart: Date
+    /// `ActivityRecorder.mutationCount` observed when the cache entry
+    /// was built. A change invalidates the cache.
     let mutationCount: Int
 }

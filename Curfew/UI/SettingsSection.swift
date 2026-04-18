@@ -26,10 +26,12 @@ enum SettingsSection: String, CaseIterable, Identifiable {
     /// Advanced / power-user options, debug panels, feature flags.
     case advanced
 
+    /// `Identifiable` conformance — raw string is already unique.
     var id: String {
         rawValue
     }
 
+    /// Tab label displayed in the Settings toolbar / sidebar.
     var title: String {
         switch self {
         case .schedule: "Schedule"
@@ -40,6 +42,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
         }
     }
 
+    /// SF Symbol name for the tab icon.
     var icon: String {
         switch self {
         case .schedule: "calendar"

@@ -7,6 +7,7 @@ import Foundation
 /// Reads settings from the Curfew app's UserDefaults domain — no IPC
 /// required, so this works whether or not the app is running.
 struct StatusCommand: ParsableCommand {
+    /// ArgumentParser command metadata.
     static var configuration = CommandConfiguration(
         commandName: "status",
         abstract: "Show current enforcement phase and time remaining."
@@ -17,6 +18,8 @@ struct StatusCommand: ParsableCommand {
     @Flag(name: .shortAndLong, help: "Output as JSON instead of plain text.")
     var json: Bool = false
 
+    /// Entry point — evaluates the engine against persisted settings
+    /// and prints the resulting snapshot.
     func run() {
         let settings = loadSettings()
         let now = Date()

@@ -48,6 +48,9 @@ final class MCPServer {
 
     // MARK: - Request dispatch
 
+    /// Parses one JSON-RPC frame and returns the response frame string,
+    /// or `nil` when the incoming message was a notification that takes
+    /// no response. Invalid JSON returns `-32700` (Parse error).
     func handle(line: String) -> String? {
         guard let data = line.data(using: .utf8),
               let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {

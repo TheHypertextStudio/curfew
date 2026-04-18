@@ -117,8 +117,11 @@ public struct DayRule: Equatable, Codable {
 /// of active work today (across devices when sync is on).
 /// `.combined` — locks at whichever comes first.
 public enum CurfewMode: String, Codable, CaseIterable {
+    /// Wall-clock lockout at `lockMinutes`.
     case time
+    /// Hours-worked lockout at `hoursLimitMinutes`.
     case hours
+    /// Locks at whichever of the two deadlines arrives first.
     case combined
 
     /// Short label used in the schedule editor toggle.

@@ -63,6 +63,29 @@ test-one target:
         -destination '{{ destination }}' \
         -only-testing:CurfewTests/{{ target }}
 
+# Run the full unit suite with code coverage enabled. Writes the
+# xcresult bundle to `build/Coverage.xcresult` and prints the
+# per-target line-coverage summary. Pass `--verbose` to the script
+# for the full breakdown; use `xcrun xccov view build/Coverage.xcresult`
+# directly for machine-readable JSON.
+test-coverage:
+    mkdir -p build
+    rm -rf build/Coverage.xcresult
+    xcodebuild test \
+        -project {{ project }} \
+        -scheme {{ scheme }} \
+        -destination '{{ destination }}' \
+        -only-testing:CurfewTests \
+        -enableCodeCoverage YES \
+        -resultBundlePath build/Coverage.xcresult
+    xcrun xccov view --report build/Coverage.xcresult
+
+# Report documentation gaps via SwiftLint's `missing_docs` analyzer rule.
+# `missing_docs` is opt-in in `.swiftlint.yml`; this recipe runs only
+# that rule so the output isn't drowned by normal style warnings.
+docs-coverage:
+    swiftlint lint --config .swiftlint-docs.yml --only-rule missing_docs --strict --reporter emoji
+
 # -----------------------------------------------------------------------
 # Build
 # -----------------------------------------------------------------------

@@ -29,8 +29,12 @@ import SwiftUI
     final class CurfewUpdater: ObservableObject {
         private let controller: SPUStandardUpdaterController
 
+        /// Whether the Sparkle updater is currently in a state where it
+        /// can start an update check. Drives the menu-item enabled state.
         @Published private(set) var canCheckForUpdates = false
 
+        /// Boots Sparkle's standard controller on the main actor. Sparkle
+        /// begins polling the appcast as soon as it is created.
         init() {
             self.controller = SPUStandardUpdaterController(
                 startingUpdater: true,
@@ -40,6 +44,8 @@ import SwiftUI
             self.canCheckForUpdates = controller.updater.canCheckForUpdates
         }
 
+        /// Invoked from the Check for Updates… menu item. Triggers a
+        /// user-initiated update check and refreshes the availability flag.
         func checkForUpdates() {
             controller.checkForUpdates(nil)
             canCheckForUpdates = controller.updater.canCheckForUpdates
@@ -52,8 +58,11 @@ import SwiftUI
     /// project. The Check for Updates menu item stays visible but disabled.
     @MainActor
     final class CurfewUpdater: ObservableObject {
+        /// Always `false` in the stub — keeps the menu item disabled.
         @Published private(set) var canCheckForUpdates = false
+        /// No-op init.
         nonisolated init() {}
+        /// No-op; menu item is disabled so this never fires in practice.
         func checkForUpdates() {}
     }
 

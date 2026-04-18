@@ -9,6 +9,8 @@ struct LicenseView: View {
         model.licenseGate
     }
 
+    /// Panel that swaps between an activation form and the activated
+    /// licence summary depending on `LicenseGate.isProUnlocked`.
     var body: some View {
         CurfewPanel {
             CurfewSectionTitle(

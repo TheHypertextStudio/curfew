@@ -1,6 +1,8 @@
 import AppKit
 import SwiftUI
 
+/// Uninstall panel extensions on `SettingsView`. Isolated from the
+/// rest of Advanced so the destructive affordance has a visible seam.
 extension SettingsView {
     /// Advanced → Uninstall panel. Exists as a separate seam so
     /// `advancedPanel` can stay focused on everyday power-user toggles and

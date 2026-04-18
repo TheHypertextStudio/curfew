@@ -31,7 +31,12 @@ public enum EnforcementPhase: Equatable {
 /// phrase the answer correctly ("you have 14 minutes before your 6 PM
 /// curfew" vs. "you have 14 minutes of work hours left today").
 public enum EnforcementTrigger: String, Equatable, Codable {
+    /// Wall-clock schedule drove the countdown / lockout (e.g. "curfew
+    /// is 22:00"). Used for `.time` and `.combined` modes when the wall
+    /// deadline is the closer one.
     case time
+    /// Hours-of-work budget drove the countdown / lockout. Used for
+    /// `.hours` and `.combined` modes when the hours deadline wins.
     case hours
 }
 

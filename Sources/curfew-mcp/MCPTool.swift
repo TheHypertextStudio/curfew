@@ -573,6 +573,8 @@ enum MCPToolError: Error, LocalizedError {
     /// confirming the app is running.
     case queueUnavailable(String)
 
+    /// Localised message surfaced back to the MCP client as the
+    /// JSON-RPC error's `message` field.
     var errorDescription: String? {
         switch self {
         case .invalidArgument(let msg): msg

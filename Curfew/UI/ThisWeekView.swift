@@ -23,6 +23,8 @@ struct ThisWeekView: View {
     /// `currentTime` (which advances every tick).
     @EnvironmentObject private var model: CurfewAppModel
 
+    /// Weekly rollup panel — lockout count, extensions/overrides used,
+    /// per-day bar chart, and streak pill.
     var body: some View {
         let rollup = model.thisWeekRollup()
 

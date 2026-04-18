@@ -24,3 +24,7 @@ opt_in_rules:
   - empty_count
   - explicit_init
   - redundant_nil_coalescing
+
+# `missing_docs` lives in `.swiftlint-docs.yml` (invoked by
+# `just docs-coverage`) so it only runs against production source —
+# tests document themselves through descriptive function names.

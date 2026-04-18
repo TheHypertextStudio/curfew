@@ -1,6 +1,9 @@
 import Foundation
 import OSLog
 
+/// Convenience initialisers used by tests and the production entry point.
+/// Split into its own extension so the designated init in the main file
+/// doesn't grow unbounded as new optional collaborators are added.
 extension CurfewAppModel {
     /// Convenience for tests that only need to override the routing /
     /// onboarding presenter; defaults everything else (including the

@@ -4,14 +4,17 @@ import Foundation
 
 /// Prints the active weekly schedule.
 struct ScheduleCommand: ParsableCommand {
+    /// ArgumentParser command metadata.
     static var configuration = CommandConfiguration(
         commandName: "schedule",
         abstract: "Show the active weekly schedule."
     )
 
+    /// Emit JSON rather than the default human-readable format.
     @Flag(name: .shortAndLong, help: "Output as JSON instead of plain text.")
     var json: Bool = false
 
+    /// Entry point — reads settings and prints the weekly schedule.
     func run() {
         let settings = loadSettings()
         if json {

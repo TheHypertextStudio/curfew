@@ -4,14 +4,17 @@ import Foundation
 
 /// Prints extension and override budget status.
 struct BudgetCommand: ParsableCommand {
+    /// ArgumentParser command metadata.
     static var configuration = CommandConfiguration(
         commandName: "budget",
         abstract: "Show extension and override budget remaining this week."
     )
 
+    /// Emit JSON rather than the default human-readable format.
     @Flag(name: .shortAndLong, help: "Output as JSON instead of plain text.")
     var json: Bool = false
 
+    /// Entry point — reads settings + activity, prints remaining budgets.
     func run() {
         let settings = loadSettings()
         let now = Date()

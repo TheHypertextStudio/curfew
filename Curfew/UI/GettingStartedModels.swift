@@ -44,6 +44,7 @@ enum FirstRunStep: Int, CaseIterable, Identifiable {
     /// Review pane that finalises onboarding and arms enforcement.
     case confirmation
 
+    /// `Identifiable` conformance — raw value is already unique.
     var id: Int {
         rawValue
     }

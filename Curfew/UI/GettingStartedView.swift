@@ -24,6 +24,7 @@ struct GettingStartedView: View {
     /// Local cursor tracking which onboarding pane is visible.
     @State private var flow = FirstRunFlow()
 
+    /// Header + current step panel + navigation action row.
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             header

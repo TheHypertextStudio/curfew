@@ -9,6 +9,9 @@ import WidgetKit
 //   EnforcementSnapshot.swift, ActivityEvent.swift, ActivityStore.swift,
 //   ActivityRollups.swift.
 
+/// WidgetKit `TimelineProvider` that reads from the shared App Group
+/// container, computes an enforcement snapshot, and emits entries at
+/// each warning threshold plus coarse 15-minute grid entries.
 struct CurfewWidgetProvider: TimelineProvider {
     /// Returns the safe placeholder entry rendered in the widget
     /// gallery and during data-loading transitions.

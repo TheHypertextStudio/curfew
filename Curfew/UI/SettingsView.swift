@@ -8,9 +8,13 @@ import SwiftUI
 /// Configuration pane, where a tab bar would be redundant with the outer
 /// sidebar navigation. All panels are shown in a single flat scroll instead.
 struct SettingsView: View {
+    /// Live app state shared across panels.
     @EnvironmentObject var model: CurfewAppModel
+    /// Whether to render the icon-toolbar tab picker (standalone Settings
+    /// window) or a single flat scroll (embedded in the main workspace).
     var tabbed: Bool = true
 
+    /// Dispatches to the tabbed or flat layout.
     var body: some View {
         if tabbed {
             tabbedBody
@@ -94,6 +98,9 @@ struct SettingsView: View {
 
     // MARK: - Shared scroll wrapper
 
+    /// Wraps a panel's content in the shared scroll + padding treatment
+    /// used by every Settings tab. Centralising it keeps the individual
+    /// tab bodies terse and visually consistent.
     func tab(@ViewBuilder content: () -> some View) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {

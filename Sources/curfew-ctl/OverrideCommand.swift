@@ -11,6 +11,7 @@ import Foundation
 /// The queue file lives at ``SharedPaths.mcpRequestQueue``; the running app
 /// observes it via `MCPRequestMonitor` and raises an `MCPConsentSheet`.
 struct OverrideCommand: ParsableCommand {
+    /// ArgumentParser command metadata.
     static var configuration = CommandConfiguration(
         commandName: "override",
         abstract: "Queue an override request for the running app to approve."
@@ -28,6 +29,8 @@ struct OverrideCommand: ParsableCommand {
     @Flag(name: .shortAndLong, help: "Output as JSON instead of plain text.")
     var json: Bool = false
 
+    /// Entry point — validates the reason length, enqueues the request,
+    /// and prints the resulting request id for the caller to track.
     func run() throws {
         let trimmed = reason.trimmingCharacters(in: .whitespacesAndNewlines)
         let minChars = OverrideRequestPolicy.minimumJustificationCharacters

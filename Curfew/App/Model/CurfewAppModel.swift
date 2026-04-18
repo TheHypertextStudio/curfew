@@ -128,9 +128,9 @@ final class CurfewAppModel: NSObject, ObservableObject {
     /// Presenter for the first-launch onboarding window.
     let gettingStartedPresenter: GettingStartedPresenting
 
-    /// Watches the MCP request queue file; pairs with `mcpSocketServer`
-    /// for the Unix-socket fast path. Both start/stop together.
+    /// Watches the MCP request queue; paired with `mcpSocketServer` (Unix-socket fast path).
     let mcpRequestMonitor: MCPRequestMonitor
+    /// Unix-socket fast path for in-app MCP writes.
     let mcpSocketServer: MCPSocketServer
 
     /// Syncs settings to iCloud when `featureFlags.cloudSyncEnabled` and
@@ -180,6 +180,7 @@ final class CurfewAppModel: NSObject, ObservableObject {
 
     /// Daily grant counters; reset in `handleDayRollover`.
     var extensionMinutesGrantedToday = 0
+    /// Snooze minutes granted today. Added to the deadline like extensions.
     var snoozeMinutesGrantedToday = 0
 
     /// `YYYY-M-D` token for the last-seen calendar day so `tick()` can
@@ -194,6 +195,8 @@ final class CurfewAppModel: NSObject, ObservableObject {
     /// account. Seeded from the `LockoutState` CKRecord; consulted by
     /// `WarningNotificationManager` to suppress cross-device duplicates.
     @Published var warningStagesFiredToday: Set<String> = []
+    /// Day token for which `warningStagesFiredToday` applies. Flipped
+    /// on rollover so yesterday's warnings don't leak into today.
     var warningStagesFiredDayToken: String = ""
 
     /// Whether the user has been idle past `idleWatcher.idleThresholdSeconds`.
@@ -204,6 +207,7 @@ final class CurfewAppModel: NSObject, ObservableObject {
     /// Memoisation cache for ``thisWeekRollup()``. Invalidated on week
     /// boundary advance or activity-recorder mutation.
     var cachedThisWeekKey: ThisWeekCacheKey?
+    /// Cached rollup aligned with `cachedThisWeekKey`; nil when invalid.
     var cachedThisWeekRollup: WeeklyActivityRollup?
 
     /// Combine subscriptions held for the lifetime of the model. Currently

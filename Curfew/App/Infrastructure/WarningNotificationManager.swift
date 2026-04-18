@@ -237,6 +237,8 @@ final class WarningNotificationManager: NSObject {
     }
 }
 
+/// Delegate conformance that routes notification responses (snooze
+/// taps, tap-to-open) back into the app model on the main actor.
 extension WarningNotificationManager: UNUserNotificationCenterDelegate {
     /// Routes the snooze action back to the app model on `@MainActor`.
     /// Other action identifiers (none today) are ignored. The completion

@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// Advanced/diagnostic panel extensions on `SettingsView`.
 extension SettingsView {
     /// Advanced/diagnostic panel — weekly reset-day picker and Streamable
     /// HTTP MCP transport toggle.

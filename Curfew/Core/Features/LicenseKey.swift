@@ -17,9 +17,13 @@ struct LicenseKey: Codable, Equatable {
     /// Worker emits, so the signed JSON and the Swift struct stay in
     /// lock-step across releases.
     enum CodingKeys: String, CodingKey {
+        /// Email address field.
         case email
+        /// Product SKU field.
         case product
+        /// Lemonsqueezy order id — `order_id` in JSON.
         case orderID = "order_id"
+        /// Issue timestamp — `issued_at` in JSON.
         case issuedAt = "issued_at"
     }
 }

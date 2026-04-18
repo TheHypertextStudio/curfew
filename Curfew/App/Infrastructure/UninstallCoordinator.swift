@@ -38,6 +38,7 @@ enum UninstallCoordinator {
         /// Paths that failed to remove, paired with the best-effort reason.
         let failed: [(path: String, reason: String)]
 
+        /// `true` when every targeted path was removed.
         var allSucceeded: Bool {
             failed.isEmpty
         }
@@ -59,6 +60,9 @@ enum UninstallCoordinator {
             return lines.joined(separator: "\n")
         }
 
+        /// Equatable conformance. `failed` is compared by path only —
+        /// the reason strings may vary by platform without meaning the
+        /// outcomes differ.
         static func == (lhs: Outcome, rhs: Outcome) -> Bool {
             lhs.removed == rhs.removed
                 && lhs.failed.map(\.path) == rhs.failed.map(\.path)

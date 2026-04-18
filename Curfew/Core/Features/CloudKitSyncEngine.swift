@@ -9,9 +9,13 @@ private let syncLogger = Logger(subsystem: "studio.hypertext.curfew", category: 
 /// Settings → Devices so users can see when their schedule last synced
 /// and whether the last attempt failed.
 enum CloudKitSyncStatus: Equatable {
+    /// No sync activity and no recorded success or failure.
     case idle
+    /// A push or pull is in flight.
     case syncing
+    /// Last sync completed successfully at the associated date.
     case synced(date: Date)
+    /// Last sync attempt failed with the associated human-readable message.
     case failed(message: String)
     /// iCloud not authenticated, container not provisioned, or network
     /// unavailable — expected on first launch and offline.

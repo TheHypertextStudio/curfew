@@ -110,6 +110,7 @@ struct DayRuleRow: View {
         )
     }
 
+    /// SwiftUI body — weekday label + time pickers + mode switcher.
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {

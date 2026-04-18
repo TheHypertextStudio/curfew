@@ -14,6 +14,9 @@ import Foundation
 /// Install: copy the `curfew-ctl` binary to `/usr/local/bin/` after
 /// building with `swift build -c release`.
 struct CurfewCLI: ParsableCommand {
+    /// ArgumentParser root-command metadata — sub-command list and
+    /// default. Defaults to `status` when the binary is invoked with
+    /// no arguments so `curfew-ctl` alone prints current state.
     static var configuration = CommandConfiguration(
         commandName: "curfew-ctl",
         abstract: "Inspect or request changes to the current Curfew state.",

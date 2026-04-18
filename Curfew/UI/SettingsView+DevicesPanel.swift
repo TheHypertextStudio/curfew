@@ -1,5 +1,7 @@
 import SwiftUI
 
+/// Devices panel extensions on `SettingsView`. Surfaces
+/// `DeviceRegistry.activeDevices` and the soft-delete affordance.
 extension SettingsView {
     /// Lists every Mac currently syncing. Replaces the v0.1 "just the
     /// local Mac" placeholder in Settings → Devices; when cloud sync is

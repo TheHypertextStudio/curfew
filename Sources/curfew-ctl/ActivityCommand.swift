@@ -4,6 +4,8 @@ import Foundation
 
 /// Prints recent activity events from the local log.
 struct ActivityCommand: ParsableCommand {
+    /// ArgumentParser command metadata — name, short abstract, and
+    /// usage. Read by the parent `curfew-ctl` to build its help output.
     static var configuration = CommandConfiguration(
         commandName: "activity",
         abstract: "Show recent activity events from the local log."
@@ -13,9 +15,12 @@ struct ActivityCommand: ParsableCommand {
     @Flag(name: .long, help: "Show only today's events.")
     var today: Bool = false
 
+    /// Emit JSON rather than the default human-readable format.
     @Flag(name: .shortAndLong, help: "Output as JSON instead of plain text.")
     var json: Bool = false
 
+    /// Entry point — opens the activity store, filters to the requested
+    /// window, and prints each event.
     func run() {
         guard let store = openActivityStore() else {
             print("No activity log found. Has Curfew been launched yet?")

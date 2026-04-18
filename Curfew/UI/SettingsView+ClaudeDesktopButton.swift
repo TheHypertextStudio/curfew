@@ -1,6 +1,9 @@
 import AppKit
 import SwiftUI
 
+/// Claude Desktop integration panel extensions on `SettingsView`.
+/// Adds a one-click "Add to Claude Desktop" button and a state pill
+/// reflecting whether the merge has already been applied.
 extension SettingsView {
     /// One-click button that merges Curfew's server block into Claude
     /// Desktop's config. Falls back to the "copy" path when Claude Desktop

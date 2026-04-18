@@ -21,12 +21,19 @@ public struct ScheduleWindow: Equatable {
 /// Raw values match `Calendar.component(.weekday, from:)` so `Weekday` can
 /// be round-tripped through `Calendar` without a mapping table.
 public enum Weekday: Int, CaseIterable, Identifiable, Codable {
+    /// ISO weekday 2.
     case monday = 2
+    /// ISO weekday 3.
     case tuesday = 3
+    /// ISO weekday 4.
     case wednesday = 4
+    /// ISO weekday 5.
     case thursday = 5
+    /// ISO weekday 6.
     case friday = 6
+    /// ISO weekday 7.
     case saturday = 7
+    /// ISO weekday 1 — first day of the week in `Calendar`'s default.
     case sunday = 1
 
     /// Satisfies `Identifiable` using the ISO weekday number. Stable across

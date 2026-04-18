@@ -36,6 +36,9 @@ final class StreamableHTTPTransport {
         qos: .userInitiated
     )
 
+    /// Wraps `server` behind an HTTP listener bound to `port` on the
+    /// loopback interface only. Caller must still invoke `start()` to
+    /// begin accepting connections.
     init(server: MCPServer, port: UInt16) {
         self.server = server
         self.port = port

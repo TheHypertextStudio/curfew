@@ -1,0 +1,23 @@
+# Docs-coverage config. Consumed by `just docs-coverage` (not `just lint`).
+# Scoped to production source — tests document themselves via descriptive
+# function names, so enforcing `///` there adds noise without signal.
+
+included:
+  - Curfew
+  - CurfewWidget
+  - Sources
+
+excluded:
+  - DerivedData
+  - build
+  - .build
+  - .swiftpm
+
+missing_docs:
+  warning:
+    - open
+    - public
+    - internal
+  excludes_extensions: false
+  excludes_inherited_types: false
+  excludes_trivial_init: false

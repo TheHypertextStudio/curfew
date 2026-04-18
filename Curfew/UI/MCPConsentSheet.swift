@@ -36,6 +36,9 @@ struct MCPConsentSheet: View {
         return text
     }
 
+    /// Approve/Deny sheet for one pending MCP write request. Shows the
+    /// tool, the arguments, and the parsed reason (if any) so the user
+    /// has enough context to decide without opening the MCP transcript.
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             VStack(alignment: .leading, spacing: 6) {

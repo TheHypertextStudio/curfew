@@ -252,6 +252,7 @@ final class NullActivityRecording: ActivityRecording {
         "id,timestamp,gate_kind,kind,minutes_value,note"
     }
 
+    /// No-op. Conforms to `ActivityRecording`.
     func trim(olderThan seconds: TimeInterval, now: Date) {}
 
     /// Always zero — a null recorder writes nothing so consumers treating

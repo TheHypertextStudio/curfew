@@ -15,6 +15,8 @@ public func phaseName(_ phase: EnforcementPhase) -> String {
     }
 }
 
+/// Shared `Calendar` helpers used by CurfewKit consumers (CLI, widget,
+/// app). Kept here so every surface computes week starts the same way.
 public extension Calendar {
     /// Monday-aligned week start for `date`. Matches the calculation used in
     /// `ActivityRollups.weeklyRollup` so budget counts agree with the app UI.
