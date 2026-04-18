@@ -43,10 +43,40 @@ struct ThisWeekView: View {
             Divider()
             dayGrid(rollup: rollup)
 
+            let devices = model.overridesByDeviceThisWeek()
+            if devices.count >= 2 || (devices.count == 1 && devices.values.first ?? 0 >= 2) {
+                Divider()
+                deviceBreakdown(devices: devices)
+            }
+
             if model.featureFlags.calendarEnabled, model.licenseGate.isProUnlocked,
                !model.calendarMonitor.todayEvents.isEmpty {
                 Divider()
                 calendarSection
+            }
+        }
+    }
+
+    /// Per-device override counts. Hidden when there's only one device
+    /// and fewer than two overrides — that's the degenerate case where
+    /// the headline number already tells the whole story.
+    private func deviceBreakdown(devices: [String: Int]) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Overrides by device")
+                .font(CurfewTypography.label(12))
+                .foregroundStyle(CurfewTheme.mutedInk)
+
+            ForEach(devices.sorted { $0.value > $1.value }, id: \.key) { name, count in
+                HStack {
+                    Text(name)
+                        .font(CurfewTypography.body(13))
+                        .foregroundStyle(CurfewTheme.ink)
+                    Spacer()
+                    Text("\(count)")
+                        .font(CurfewTypography.bodyEmphasis(13))
+                        .foregroundStyle(CurfewTheme.accent)
+                        .monospacedDigit()
+                }
             }
         }
     }

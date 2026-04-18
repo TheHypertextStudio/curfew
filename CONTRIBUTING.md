@@ -6,7 +6,7 @@ Bug reports, design critique, and pull requests are welcome.
 
 ```bash
 brew install just swiftlint swiftformat
-git clone https://github.com/hypertext-studio/curfew
+git clone https://github.com/TheHypertextStudio/curfew
 cd curfew
 open Curfew.xcodeproj
 ```

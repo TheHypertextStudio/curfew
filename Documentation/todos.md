@@ -134,7 +134,7 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 - [x] `IdleWatcher` detects idle periods (5-min cutoff).
 - [x] "This Week" view in app UI.
 - [x] CSV export. (v0.2)
-- [ ] Device-attributed insights. (v0.2)
+- [x] Device-attributed insights. Surfaced in `ThisWeekView` when 2+ overrides exist and in `curfew.get_weekly_summary`'s `overrides_by_device` field.
 
 ## 12. WidgetKit (Pro)
 
@@ -221,4 +221,4 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 - [ ] Paste test license → Pro features unlock; remove → re-gate.
 - [ ] Lockout smoke test: set curfew 5 min ahead, observe overlay, recover via override.
 - [ ] MCP smoke test: paste Claude Desktop config, run `curfew.status` from Claude.
-- [ ] Landing page links all resolve.
+- [x] Landing page links all resolve. Fixed `hypertext-studio/curfew` → `TheHypertextStudio/curfew` across README, Cask, landing, CONTRIBUTING, generate-appcast.

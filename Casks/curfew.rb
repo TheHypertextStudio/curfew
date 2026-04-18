@@ -2,8 +2,8 @@ cask "curfew" do
   version "1.0.0"
   sha256 "REPLACE_WITH_RELEASE_DMG_SHA256"
 
-  url "https://github.com/hypertext-studio/curfew/releases/download/v#{version}/Curfew-v#{version}.dmg",
-      verified: "github.com/hypertext-studio/curfew/"
+  url "https://github.com/TheHypertextStudio/curfew/releases/download/v#{version}/Curfew-v#{version}.dmg",
+      verified: "github.com/TheHypertextStudio/curfew/"
   name "Curfew"
   desc "A hard stop for your Mac"
   homepage "https://curfew.hypertext.studio/"

@@ -355,6 +355,17 @@ private let weeklySummaryTool = MCPTool(
         let deviceName = Host.current().localizedName
             ?? ProcessInfo.processInfo.hostName
 
+        // Per-device override breakdown. `loadSharedOverrideEvents` reads
+        // the same UserDefaults-backed log the app writes on each override
+        // grant, so attribution is accurate even when `curfew-mcp` is
+        // invoked from a shell that hasn't opened the app.
+        let overrideEvents = loadSharedOverrideEvents()
+        var overridesByDevice: [String: Int] = [:]
+        for event in overrideEvents
+            where event.timestamp >= weekStart && event.timestamp < weekEnd {
+            overridesByDevice[event.deviceName, default: 0] += 1
+        }
+
         let payload: [String: Any] = [
             "week_of": ISO8601DateFormatter().string(from: weekStart),
             "days_held": rollup.daysWithLockout,
@@ -363,7 +374,8 @@ private let weeklySummaryTool = MCPTool(
             "overrides_used": rollup.totalOverrideCount,
             "override_minutes": rollup.totalOverrideMinutes,
             "streak": rollup.streak,
-            "device": deviceName
+            "device": deviceName,
+            "overrides_by_device": overridesByDevice
         ]
         return [jsonContent(payload)]
     }
@@ -575,6 +587,14 @@ enum MCPToolError: Error, LocalizedError {
 private func loadSharedSettings() -> CurfewSettings {
     let defaults = UserDefaults(suiteName: SharedPaths.defaultsSuiteName) ?? .standard
     return CurfewSettingsStore(defaults: defaults).load()
+}
+
+/// Reads the app's persisted override-event log from UserDefaults so
+/// `curfew.get_weekly_summary` can surface per-device attribution
+/// without opening an `NSObject`-bound settings store.
+private func loadSharedOverrideEvents() -> [OverrideEvent] {
+    let defaults = UserDefaults(suiteName: SharedPaths.defaultsSuiteName) ?? .standard
+    return CurfewSettingsStore(defaults: defaults).loadOverrideEvents()
 }
 
 /// Opens the shared activity SQLite database. Returns nil when the app

@@ -131,7 +131,7 @@ Pricing: **$19 early-bird / $29 list**. License key is verified offline via Ed25
 Requires **macOS 15+** and **Xcode 26+** (Swift 6).
 
 ```bash
-git clone https://github.com/hypertext-studio/curfew
+git clone https://github.com/TheHypertextStudio/curfew
 cd curfew
 open Curfew.xcodeproj
 ```

@@ -205,6 +205,39 @@ extension CurfewAppModel {
         cachedThisWeekRollup = rollup
         return rollup
     }
+
+    /// Per-device override counts for the current calendar week. Drives
+    /// the "device-attributed insights" surface in `ThisWeekView` and the
+    /// `devices` field on the `curfew.get_weekly_summary` MCP response.
+    ///
+    /// Today every override is attributed to the local Mac because
+    /// `OverrideEvent.deviceName` is stamped at grant time; once
+    /// cross-device CloudKit delivery of override events lands, the same
+    /// aggregation surfaces every Mac the user has overridden from in
+    /// the past week.
+    func overridesByDeviceThisWeek() -> [String: Int] {
+        let calendar = Calendar.current
+        let startOfDay = calendar.startOfDay(for: currentTime)
+        let weekday = calendar.component(.weekday, from: startOfDay)
+        let daysBack = (weekday - calendar.firstWeekday + 7) % 7
+        let weekStart = calendar.date(
+            byAdding: .day,
+            value: -daysBack,
+            to: startOfDay
+        ) ?? startOfDay
+        let weekEnd = calendar.date(
+            byAdding: .day,
+            value: 7,
+            to: weekStart
+        ) ?? weekStart
+
+        var counts: [String: Int] = [:]
+        for event in overrideEvents
+            where event.timestamp >= weekStart && event.timestamp < weekEnd {
+            counts[event.deviceName, default: 0] += 1
+        }
+        return counts
+    }
 }
 
 /// Cache key pair for ``CurfewAppModel/thisWeekRollup()`` — declared at

@@ -31,7 +31,7 @@ DMG_PATH=${DMG_PATH:?DMG_PATH is required}
 SPARKLE_PRIVATE_KEY=${SPARKLE_PRIVATE_KEY:?SPARKLE_PRIVATE_KEY is required}
 RELEASE_NOTES_URL=${RELEASE_NOTES_URL:-https://curfew.hypertext.studio/releases/${VERSION}.html}
 MIN_MACOS_VERSION=${MIN_MACOS_VERSION:-26.0}
-APPCAST_URL_BASE=${APPCAST_URL_BASE:-https://github.com/hypertext-studio/curfew/releases/download/v${VERSION}}
+APPCAST_URL_BASE=${APPCAST_URL_BASE:-https://github.com/TheHypertextStudio/curfew/releases/download/v${VERSION}}
 
 if [[ ! -f "$DMG_PATH" ]]; then
   echo "DMG not found: $DMG_PATH" >&2
