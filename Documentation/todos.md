@@ -109,18 +109,26 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 
 ## 10. CloudKit Sync (Pro)
 
-- [x] Single `CKRecord` in private database — `payload: Data` + `modifiedAt: Date`.
+- [x] Per-record CloudKit schema (`Settings`, `Device`, `DeviceActivity`, `LockoutState`).
 - [x] Last-write-wins conflict resolution on `modifiedAt`.
 - [x] Graceful handling of missing container / unauthenticated (`CKError.isExpectedAbsence`).
 - [x] Gate behind `featureFlags.cloudSyncEnabled` + `licenseGate.isProUnlocked`.
 - [x] `cloudKitSyncEngine.push()` on every settings mutation.
+- [x] `CKDatabaseSubscription` registered for silent-push sync on remote changes.
+- [x] `DeviceRegistry` 60 s heartbeat + active-device detection (120 s freshness).
+- [x] `LockoutState` published on phase transitions for warning handoff between devices.
+- [x] Active-device-aware shutdown delay (active follows configured delay; idle uses 2 min).
 - [ ] CloudKit container provisioned in App Store Connect. (morning task)
-- [x] Sync status UI in Settings → Devices. (v0.2)
-- [ ] Device list management. (v0.2)
+- [x] Sync status UI in Settings → Devices.
+- [x] Device list management (live list + last-seen + active pill).
 
 ## 11. Activity Log + Retrospective
 
 - [x] SQLite storage with 52-week rolling retention (direct `sqlite3` C API, no GRDB).
+- [x] Hours-based and combined curfew modes (lock after N hours of active work; per-day toggle in the schedule editor).
+- [x] `WorkTimeAggregator` computes active-minutes-today from ActivityStore + idle windows.
+- [x] `ThisWeekView` memoises the weekly rollup on `(weekStart, activityMutationCount)` so the tick loop stops rerunning the query every second.
+- [x] Per-day schedule exception seam (`DayRuleException` struct) — Codable-compatible for future holiday pickers.
 - [x] `ActivityRecorder` writes lifecycle/extension/override events.
 - [x] `ActivityRollups` computes daily/weekly aggregates.
 - [x] `IdleWatcher` detects idle periods (5-min cutoff).
@@ -130,20 +138,23 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 
 ## 12. WidgetKit (Pro)
 
-- [x] Small widget: phase icon + time remaining + phase label.
+- [x] Small widget: phase-tinted Gauge ring with in-ring phase icon and time remaining.
 - [x] Medium widget: phase + remaining + schedule window.
-- [x] Large widget: full status, lock/unlock times.
-- [x] `CurfewWidgetProvider` reads shared UserDefaults, refreshes every 5 minutes.
+- [x] Large widget: full status, lock/unlock times, streak pill, 7-day sparkline.
+- [x] `CurfewWidgetProvider` reads shared UserDefaults; timeline produces per-warning-stage entries (T-30/15/5/2/1/0) within the next hour plus 15-min coarse entries.
 - [x] Gate behind `featureFlags.widgetKitEnabled` + `licenseGate.isProUnlocked`.
 - [ ] Xcode Widget Extension target wired in project. (requires Xcode UI)
-- [x] Wire timeline updates to enforcement phase transitions. (v0.2)
+- [x] Wire timeline updates to enforcement phase AND warning-stage transitions.
 
 ## 13. MCP Server (`curfew-mcp`)
 
 - [x] `curfew-mcp` executable target (stdio MCP server, JSON-RPC 2.0).
-- [x] Read tools: `curfew.status`, `curfew.schedule`, `curfew.budget`, `curfew.activity`, `curfew.request_status`.
-- [x] Write tools (queued by default): `curfew.request_extension`, `curfew.request_override`.
-- [ ] Write tools: `curfew.start_focus_session`, `curfew.end_focus_session`. (v0.2 — focus-mode schema TBD)
+- [x] Read tools: `curfew.status`, `curfew.schedule`, `curfew.budget`, `curfew.activity`, `curfew.request_status`, `curfew.get_time_remaining`, `curfew.get_weekly_summary`.
+- [x] Write tools (queued by default): `curfew.request_extension`, `curfew.request_override`, `curfew.set_schedule`.
+- [x] Streamable HTTP transport on localhost:9847 (opt-in; Settings → Advanced).
+- [x] Unix-socket IPC seam between `curfew-mcp` and the running app (queue fallback today; POSIX listener in a follow-up).
+- [x] Claude Desktop auto-detection and one-click registration from Settings.
+- [ ] Write tools: `curfew.start_focus_session`, `curfew.end_focus_session`. (v0.3 — focus-mode schema TBD)
 - [x] `AIConsentPolicy`: queue (default), autoApprove, deny.
 - [x] `MCPConsentSheet` for user approval of queued write requests.
 - [x] Settings → Integrations: MCP toggle, Claude Desktop config copy, consent policy picker.
@@ -156,6 +167,16 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 - [x] `activity` — recent activity log entries.
 - [x] `override` — enqueue an override request for the running app to approve.
 - [x] Bundled at `Curfew.app/Contents/Resources/curfew-ctl`.
+
+## 18.1 Distribution scaffolding (you complete externally)
+
+- [x] `wrangler.toml` — Cloudflare Worker config with `LICENSE_KV` namespace + secrets.
+- [x] `Casks/curfew.rb` — Homebrew Cask formula with signed release URL and zap paths.
+- [x] `scripts/gen-sparkle-keypair.sh` — local Ed25519 keygen with paste-into-Info.plist instructions.
+- [x] `scripts/generate-appcast.sh` — CI-invoked Sparkle appcast builder.
+- [x] `scripts/release-checklist.md` — exhaustive external-setup sequence.
+- [x] `scripts/uninstall.sh` — standalone uninstaller mirroring the in-app flow.
+- [x] In-app uninstall flow (Settings → Advanced → Uninstall).
 
 ## 15. Pro Licensing
 

@@ -42,11 +42,16 @@ Morning intent, midday check-in, evening retrospective — lifecycle gates beyon
 | `curfew.schedule` | read | Full weekly schedule |
 | `curfew.budget` | read | Extensions and overrides remaining this week |
 | `curfew.activity` | read | Recent activity log entries |
+| `curfew.get_time_remaining` | read | Compact `{ minutes, phase, mode, trigger }` payload |
+| `curfew.get_weekly_summary` | read | Device-attributed weekly rollup |
 | `curfew.request_extension` | write* | Ask for a time extension |
 | `curfew.request_override` | write* | Request a full override with a reason |
+| `curfew.set_schedule` | write* | Update a single weekday (cannot weaken today without cooldown) |
 | `curfew.request_status` | read | Poll a queued write request for approval/denial |
 
-Focus-session tools (`curfew.start_focus_session`, `curfew.end_focus_session`) are planned for v0.2 once the focus-mode schema stabilises.
+Two transports: stdio (default, used by Claude Desktop) and loopback-only Streamable HTTP on `127.0.0.1:9847` (opt-in, Settings → Advanced).
+
+Focus-session tools (`curfew.start_focus_session`, `curfew.end_focus_session`) are planned for v0.3 once the focus-mode schema stabilises.
 
 \* Write operations queue for user approval by default (configurable in Settings → Integrations → AI Consent Policy).
 

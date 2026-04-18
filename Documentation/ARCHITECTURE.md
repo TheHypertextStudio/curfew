@@ -77,4 +77,14 @@ The CLI, MCP server, and app all link against a single SPM library, `CurfewKit`,
 The activity log schema carries optional `gateKind` and `reflection` fields. MCP tool verbs use generic names where sensible so future gate types (morning intent, midday check-in, evening retrospective) can land as sibling tools rather than overloads of the existing ones. `CurfewEnforcementEngine` is intentionally narrow — future gate types will live as sibling engines, not as modifications to the existing one.
 
 ### CloudKit sync strategy
-One `CKRecord` in the private database, record type `"Settings"`, deterministic record name `"curfew-settings-v1"`. Fields: `payload: Data` (JSON-encoded `CurfewSettings`) and `modifiedAt: Date`. Conflict resolution is last-write-wins on `modifiedAt`. This is intentionally simple — the schedule is a small, rarely-changed value and the consequences of a merge conflict are a minor schedule mismatch, not data loss.
+v0.2 splits the private database into four record types — `Settings`, `Device`, `DeviceActivity`, `LockoutState` — collected in `Core/Features/CloudKitSchema.swift`. `Settings` preserves the v0.1 single-record JSON payload for back-compat. `Device` and `DeviceActivity` carry per-Mac identifiers + 60 s heartbeats; `DeviceRegistry` publishes them and drives the Settings → Devices list. `LockoutState` carries the live warning/lockout snapshot so a Mac joining the warning phase mid-escalation can align with whichever device entered warning first.
+
+Delivery is push-based: `CloudKitSyncEngine.start()` registers a deterministic `CKDatabaseSubscription`, and silent APS notifications trigger a pull on remote change. Conflict resolution stays last-write-wins on `modifiedAt` — small values, rare edits, minor consequences.
+
+### MCP transports
+Two transports share the same `MCPServer.handle(line:)` dispatcher:
+
+- **stdio** — the default. Claude Desktop spawns `curfew-mcp` and pipes stdin/stdout.
+- **Streamable HTTP** — opt-in via Settings → Advanced → Expose MCP over localhost HTTP. Binds `127.0.0.1:9847` with accept-time filtering so non-loopback remotes are rejected. Useful for editors-over-SSH and multi-process setups.
+
+Writes use a Unix-socket seam (`~/Library/Application Support/Curfew/mcp.sock`) that falls through to the JSON request queue when the socket is unavailable. v0.2 ships the client API + the app-side server seam; the POSIX listener itself lands in a later revision.

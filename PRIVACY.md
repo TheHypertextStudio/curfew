@@ -27,7 +27,14 @@ Curfew is designed to store everything locally and request only the permissions 
 
 ## iCloud sync (Pro)
 
-When enabled, your schedule and settings are stored in your private iCloud database (CloudKit). Hypertext Studio has no access to this data — it lives in your personal iCloud account, encrypted by Apple.
+When enabled, Curfew writes four record types to **your private CloudKit database**:
+
+- `Settings` — schedule, budgets, preferences, warning intervals.
+- `Device` — per-Mac registration (device name, first-seen / last-seen).
+- `DeviceActivity` — a 60-second heartbeat so the other Macs you use can tell which is active. Contains only a timestamp and an active boolean; no cursor tracking, no app activity, no keystrokes.
+- `LockoutState` — current phase + warning timestamps so a Mac joining mid-warning aligns with whichever Mac entered warning first.
+
+Heartbeats older than 7 days are pruned. All other records survive until you sign out of iCloud or uninstall. Hypertext Studio has no access — everything lives in your personal iCloud account, encrypted by Apple.
 
 ## MCP server
 
