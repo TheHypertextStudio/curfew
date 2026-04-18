@@ -1,70 +1,74 @@
 # CurfewTests
 
-Unit and behavior tests for policy, orchestration, and configuration.
+Unit and behaviour tests for Curfew. Uses Swift Testing (`import Testing`).
 
-## Framework
+## Layout
 
-- Uses Swift Testing (`import Testing`).
-- Tests are behavior-driven and map to explicit todo items.
+The directory tree mirrors `Curfew/` — each test file sits in the same
+module subdirectory as its production subject. Consult a file's
+production counterpart at the matching path to find what it exercises.
 
-## Files
+```
+CurfewTests/
+├── App/
+│   ├── Infrastructure/      # ShutdownWorkflow, PersistentLockdown, overlays, notifications
+│   │   ├── ActiveDeviceShutdownTests.swift
+│   │   ├── FeatureBehaviorTests.swift
+│   │   └── PersistentLockdownTests.swift
+│   ├── MCP/                 # AIConsentPolicy, MCPPendingRequest
+│   │   ├── AIConsentPolicyTests.swift
+│   │   └── MCPPendingRequestTests.swift
+│   └── Model/               # CurfewAppModel + CurfewSettingsStore behaviour
+│       ├── AppConfigurationBehaviorTests.swift
+│       ├── CurfewTests.swift
+│       ├── LifecycleWiringTests.swift
+│       ├── OnboardingAndUIBehaviorTests.swift
+│       └── OverrideAndExtensionBehaviorTests.swift
+├── Core/
+│   ├── Domain/              # Pure enforcement/policy logic
+│   │   ├── CurfewEnforcementEngineTests.swift
+│   │   ├── HoursModeEngineTests.swift
+│   │   └── SchedulePolicyEngineTests.swift
+│   ├── Features/            # IdleWatcher, WorkTimeAggregator
+│   │   ├── IdleWatcherTests.swift
+│   │   └── WorkTimeAggregatorTests.swift
+│   └── Storage/             # ActivityStore + ActivityRecorder + rollups
+│       ├── ActivityRecorderTests.swift
+│       ├── ActivityRecorderTrimTests.swift
+│       ├── ActivityRollupsTests.swift
+│       └── ActivityStoreTests.swift
+└── Support/                 # Shared test helpers (spies, fixtures)
+    ├── ActivityTestSupport.swift
+    └── TestSpies.swift
+```
 
-### `CurfewTests.swift`
-
-Covers setup and startup contracts plus shared behavior utilities.
-
-- setup gating and first-run behavior
-- warning behavior helpers
-- lockout shortcut policy
-- lockout accessibility behavior
-- shutdown workflow behavior
-
-### `SchedulePolicyEngineTests.swift`
-
-Covers schedule and warning policy calculations.
-
-- schedule weakening/strengthening classification
-- effective-date rules
-- DST-safe schedule resolution
-- preset defaults
-- warning stage boundaries and opacity
-- extension budget decrement behavior
-
-### `CurfewEnforcementEngineTests.swift`
-
-Covers enforcement phase transitions and warning interval behavior.
-
-- working/warning/lockout/day-off transitions
-- custom interval mapping
-- extension eligibility by stage
-
-### `FeatureBehaviorTests.swift`
-
-Covers app integration behaviors.
-
-- warning notification payload/category contracts
-- overlay window configuration contracts
-- encouragement message rotation
-- shutdown delay/countdown behavior
-- warning interval persistence normalization
-- override validation and temporary unlock behavior
-- launch behavior and app coordinator startup behavior
-- snapshot presentation behavior and workspace section contracts
+The Xcode project uses a `PBXFileSystemSynchronizedRootGroup` for the
+test target, so new files dropped into any subdirectory are picked up
+automatically — no pbxproj edit required.
 
 ## Running
 
-All unit tests:
+Full suite:
 
 ```bash
-xcodebuild test -scheme Curfew -destination 'platform=macOS' -only-testing:CurfewTests
+just test
 ```
 
-Selected suites:
+One suite:
 
 ```bash
-xcodebuild test -scheme Curfew -destination 'platform=macOS' -only-testing:CurfewTests/CurfewEnforcementEngineTests
+just test-one CurfewEnforcementEngineTests
+just test-one FeatureBehaviorTests/overlayWindowConfiguration
 ```
 
+Full ship-gate (format + lint + tests + Debug build):
+
 ```bash
-xcodebuild test -scheme Curfew -destination 'platform=macOS' -only-testing:CurfewTests/FeatureBehaviorTests
+just check
+```
+
+With coverage:
+
+```bash
+just test-coverage
 ```
