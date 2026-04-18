@@ -1,0 +1,9 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "" : {
+      "comment" : "Seed catalog for future localization. Swift strings used in SwiftUI Text and NSLocalizedString calls are auto-extracted by Xcode via STRING_CATALOG_GENERATE_SYMBOLS = YES (set in the Xcode project). This empty seed lets translators see the file exists; entries populate on next build."
+    }
+  },
+  "version" : "1.0"
+}

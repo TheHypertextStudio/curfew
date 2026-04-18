@@ -131,6 +131,22 @@ landing-static port="8765":
     python3 -m http.server {{ port }} --directory landing --bind 127.0.0.1
 
 # -----------------------------------------------------------------------
+# Localization
+# -----------------------------------------------------------------------
+
+# Export the String Catalog to an XLIFF bundle for translator round-trips.
+# Swift → XLIFF happens in the Xcode build (STRING_CATALOG_GENERATE_SYMBOLS
+# auto-extracts); this recipe wraps `xcodebuild -exportLocalizations` so
+# the output lives in `localization/` for version control.
+xliff:
+    mkdir -p localization
+    xcodebuild -exportLocalizations \
+        -project {{ project }} \
+        -scheme {{ scheme }} \
+        -localizationPath localization \
+        -exportLanguage en
+
+# -----------------------------------------------------------------------
 # Composite gates
 # -----------------------------------------------------------------------
 # Ship-gate alias — the exact chain AGENTS.md requires before any
