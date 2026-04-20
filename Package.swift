@@ -8,12 +8,13 @@ let package = Package(
         .library(name: "CurfewKit", targets: ["CurfewKit"]),
         .executable(name: "curfew-ctl", targets: ["curfew-ctl"]),
         .executable(name: "curfew-mcp", targets: ["curfew-mcp"]),
+        .executable(name: "curfew-daemon", targets: ["curfew-daemon"])
     ],
     dependencies: [
         .package(
             url: "https://github.com/apple/swift-argument-parser",
             from: "1.3.0"
-        ),
+        )
         // Sparkle autoupdate is an Xcode-level framework dependency only.
         // It is NOT used by any SPM target (CLI/MCP don't need it).
         // Add it via Xcode → project → Package Dependencies when ready.
@@ -47,7 +48,7 @@ let package = Package(
                 "LICENSE",
                 "PRIVACY.md",
                 "README.md",
-                "justfile",
+                "justfile"
             ],
             sources: [
                 // Domain
@@ -73,10 +74,10 @@ let package = Package(
                 // Utilities (CLI/MCP helpers, not compiled into the app)
                 "Sources/CurfewKit/Utilities.swift",
                 "Sources/CurfewKit/CopyDeck.swift",
-                "Sources/CurfewKit/MCPSocketClient.swift",
+                "Sources/CurfewKit/MCPSocketClient.swift"
             ],
             linkerSettings: [
-                .linkedLibrary("sqlite3"),
+                .linkedLibrary("sqlite3")
             ]
         ),
         // CLI: reads app settings and activity log; no IPC with the app required.
@@ -84,7 +85,7 @@ let package = Package(
             name: "curfew-ctl",
             dependencies: [
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
-                .target(name: "CurfewKit"),
+                .target(name: "CurfewKit")
             ],
             path: "Sources/curfew-ctl"
         ),
@@ -93,9 +94,16 @@ let package = Package(
         .executableTarget(
             name: "curfew-mcp",
             dependencies: [
-                .target(name: "CurfewKit"),
+                .target(name: "CurfewKit")
             ],
             path: "Sources/curfew-mcp"
         ),
+        .executableTarget(
+            name: "curfew-daemon",
+            dependencies: [
+                .target(name: "CurfewKit")
+            ],
+            path: "Sources/curfew-daemon"
+        )
     ]
 )

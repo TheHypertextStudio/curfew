@@ -26,6 +26,7 @@ cask "curfew" do
 
   zap trash: [
     "~/Library/Application Support/Curfew",
+    "~/Library/Group Containers/group.studio.hypertext.curfew/Curfew",
     "~/Library/Caches/studio.hypertext.curfew",
     "~/Library/LaunchAgents/studio.hypertext.curfew.lockdown.plist",
     "~/Library/Preferences/studio.hypertext.curfew.plist",
