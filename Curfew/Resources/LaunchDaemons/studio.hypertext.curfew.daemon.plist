@@ -5,14 +5,14 @@
   Curfew privileged daemon — installed by SMAppService.daemon(plistName:).
 
   Responsibilities (v0.2):
-    1. Watches the shared lockout-state file for unexpected "unlocked" transitions
-       during an active lockout session.
-    2. Calls /sbin/shutdown -h +0 as a last-resort consequence when the user
-       breaks out of lockout without going through the "Convince Me" flow.
+    1. Holds the SMAppService / LaunchDaemon packaging path open with a real
+       executable so install + status plumbing can be validated on signed builds.
+    2. Emits a lightweight heartbeat while the lockout sentinel exists.
+    3. Defers jailbreak detection + forced shutdown to a later enforcement pass.
 
-  The binary is built as a separate executable target "curfew-daemon" and
-  bundled at Curfew.app/Contents/Library/LaunchDaemons/curfew-daemon.
-  SMAppService requires the plist to live alongside the binary.
+  SMAppService launch daemons now embed their plist at
+  Curfew.app/Contents/Library/LaunchDaemons/<label>.plist and reference the
+  helper executable via BundleProgram relative to the app bundle.
 
   NOTE: This plist is bundled into the app but the daemon is NOT automatically
   installed. The user must explicitly click "Install Privileged Helper" in
@@ -23,15 +23,13 @@
     <key>Label</key>
     <string>studio.hypertext.curfew.daemon</string>
 
-    <key>ProgramArguments</key>
-    <array>
-        <string>/Library/Application Support/Curfew/curfew-daemon</string>
-    </array>
+    <key>BundleProgram</key>
+    <string>Contents/Resources/curfew-daemon</string>
 
     <!--
-      Run on demand: the daemon is kept alive by SMAppService across reboots
-      via KeepAlive.PathState pointing at the lockout-state file. When the
-      file disappears, the daemon exits cleanly.
+      Run on demand while the sentinel exists. The helper exits cleanly when the
+      file disappears; later versions can extend the same service with actual
+      anti-bypass enforcement.
     -->
     <key>KeepAlive</key>
     <dict>
@@ -41,9 +39,6 @@
             <true/>
         </dict>
     </dict>
-
-    <key>RunAtLoad</key>
-    <false/>
 
     <!-- Restrict network access — the daemon only reads the local state file. -->
     <key>Sockets</key>
