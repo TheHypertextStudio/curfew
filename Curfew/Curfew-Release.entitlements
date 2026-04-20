@@ -20,8 +20,19 @@
         <string>iCloud.studio.hypertext.curfew</string>
     </array>
 
+    <!-- Auto-shutdown uses Apple Events to ask System Events to shut down
+         the Mac. Keep this in the release entitlements so signed builds can
+         surface the shutdown UI once automation approval is granted. -->
+    <key>com.apple.security.automation.apple-events</key>
+    <true/>
+
     <key>com.apple.security.cs.disable-library-validation</key>
     <true/>
+
+    <key>com.apple.security.application-groups</key>
+    <array>
+        <string>group.studio.hypertext.curfew</string>
+    </array>
 
     <!-- Silent-push for CloudKit `CKDatabaseSubscription`. Production
          push environment — must pair with the APNs certificate in the

@@ -2,7 +2,7 @@
 #
 # Curfew uninstaller — removes every bit of local state Curfew writes.
 #
-# Paired with `UninstallCoordinator.swift`: both clean the same four
+# Paired with `UninstallCoordinator.swift`: both clean the same five
 # locations so a user who never launches the app (CLI-only install, or
 # installed and never opened) can still get a clean removal.
 #
@@ -30,6 +30,7 @@ say() { printf '%s\n' "$1"; }
 
 AGENT_PLIST="$HOME/Library/LaunchAgents/studio.hypertext.curfew.lockdown.plist"
 APP_SUPPORT="$HOME/Library/Application Support/Curfew"
+SHARED_SUPPORT="$HOME/Library/Group Containers/group.studio.hypertext.curfew/Curfew"
 CACHES="$HOME/Library/Caches/studio.hypertext.curfew"
 PREFS="$HOME/Library/Preferences/studio.hypertext.curfew.plist"
 APP_BUNDLE="/Applications/Curfew.app"
@@ -49,7 +50,7 @@ else
   say "  (no LaunchAgent to remove)"
 fi
 
-# 2. Application Support — activity SQLite, MCP request queue, Unix socket.
+# 2. Application Support — MCP request queue, Unix socket, legacy local files.
 if [[ -d "$APP_SUPPORT" ]]; then
   if confirm "Remove application support directory $APP_SUPPORT?"; then
     rm -rf "$APP_SUPPORT"
@@ -59,7 +60,17 @@ else
   say "  (no application support directory)"
 fi
 
-# 3. Caches — bundle-ID keyed, OS-created.
+# 3. Shared group-container storage — activity SQLite + widget settings snapshot.
+if [[ -d "$SHARED_SUPPORT" ]]; then
+  if confirm "Remove shared storage directory $SHARED_SUPPORT?"; then
+    rm -rf "$SHARED_SUPPORT"
+    say "  removed: $SHARED_SUPPORT"
+  fi
+else
+  say "  (no shared storage directory)"
+fi
+
+# 4. Caches — bundle-ID keyed, OS-created.
 if [[ -d "$CACHES" ]]; then
   if confirm "Remove caches directory $CACHES?"; then
     rm -rf "$CACHES"
@@ -69,7 +80,7 @@ else
   say "  (no caches directory)"
 fi
 
-# 4. UserDefaults — schedule, budgets, license key, settings.
+# 5. UserDefaults — schedule, budgets, license key, settings.
 if [[ -f "$PREFS" ]]; then
   if confirm "Clear preferences at $PREFS?"; then
     /usr/bin/defaults delete studio.hypertext.curfew 2>/dev/null || true

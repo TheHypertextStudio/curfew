@@ -27,6 +27,8 @@ import SwiftUI
     /// Live updater backed by Sparkle.
     @MainActor
     final class CurfewUpdater: ObservableObject {
+        static let isAvailable = true
+
         private let controller: SPUStandardUpdaterController
 
         /// Whether the Sparkle updater is currently in a state where it
@@ -58,6 +60,8 @@ import SwiftUI
     /// project. The Check for Updates menu item stays visible but disabled.
     @MainActor
     final class CurfewUpdater: ObservableObject {
+        static let isAvailable = false
+
         /// Always `false` in the stub — keeps the menu item disabled.
         @Published private(set) var canCheckForUpdates = false
         /// No-op init.

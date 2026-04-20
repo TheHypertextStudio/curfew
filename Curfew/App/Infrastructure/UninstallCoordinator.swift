@@ -9,15 +9,17 @@ private let uninstallLogger = Logger(
 
 /// Orchestrates a complete uninstall of Curfew's local state.
 ///
-/// Removes the four places the app writes on disk:
-///   1. `~/Library/Application Support/Curfew/` — activity SQLite, MCP queue,
-///      Unix socket (if live), lockout sentinel staging directory.
-///   2. `~/Library/LaunchAgents/studio.hypertext.curfew.lockdown.plist` — the
+/// Removes the five places the app writes on disk:
+///   1. `~/Library/LaunchAgents/studio.hypertext.curfew.lockdown.plist` — the
 ///      `PersistentLockdown` respawn agent (best-effort `launchctl unload`
 ///      first so the agent doesn't re-launch the app mid-uninstall).
-///   3. `~/Library/Preferences/studio.hypertext.curfew.plist` — UserDefaults
+///   2. `~/Library/Application Support/Curfew/` — MCP queue, Unix socket,
+///      and other legacy app-owned files.
+///   3. `~/Library/Group Containers/group.studio.hypertext.curfew/Curfew/` —
+///      shared activity SQLite plus the widget settings snapshot.
+///   4. `~/Library/Preferences/studio.hypertext.curfew.plist` — UserDefaults
 ///      domain holding schedule, budgets, license key, settings.
-///   4. `~/Library/Caches/studio.hypertext.curfew/` — incidental cache files.
+///   5. `~/Library/Caches/studio.hypertext.curfew/` — incidental cache files.
 ///
 /// The app bundle itself lives in `/Applications/` and is user-managed — the
 /// coordinator surfaces a drag-to-Trash prompt rather than deleting it
@@ -96,8 +98,8 @@ enum UninstallCoordinator {
             remove(at: agentPath, via: fileManager, removed: &removed, failed: &failed)
         }
 
-        // 2. Application Support directory (activity.sqlite3, mcp-requests.json,
-        //    the Unix socket file, etc.).
+        // 2. Legacy Application Support directory (MCP queue, Unix socket,
+        //    older activity DBs before shared-container migration, etc.).
         let appSupport = home
             .appendingPathComponent("Library/Application Support", isDirectory: true)
             .appendingPathComponent("Curfew", isDirectory: true)
@@ -105,7 +107,16 @@ enum UninstallCoordinator {
             remove(at: appSupport, via: fileManager, removed: &removed, failed: &failed)
         }
 
-        // 3. Caches directory — bundle identifier, not display name, so the
+        // 3. Shared group-container directory used by the future widget target.
+        let sharedSupport = home
+            .appendingPathComponent("Library/Group Containers", isDirectory: true)
+            .appendingPathComponent(SharedPaths.widgetAppGroupIdentifier, isDirectory: true)
+            .appendingPathComponent("Curfew", isDirectory: true)
+        if fileManager.fileExists(atPath: sharedSupport.path) {
+            remove(at: sharedSupport, via: fileManager, removed: &removed, failed: &failed)
+        }
+
+        // 4. Caches directory — bundle identifier, not display name, so the
         //    OS-created caches directory clears cleanly.
         let caches = home
             .appendingPathComponent("Library/Caches", isDirectory: true)
@@ -114,7 +125,7 @@ enum UninstallCoordinator {
             remove(at: caches, via: fileManager, removed: &removed, failed: &failed)
         }
 
-        // 4. UserDefaults domain — `removePersistentDomain` is the official
+        // 5. UserDefaults domain — `removePersistentDomain` is the official
         //    API but does not always flush the plist file. We follow up
         //    with a direct unlink so the file is gone even on machines
         //    where the defaults daemon hasn't flushed yet.

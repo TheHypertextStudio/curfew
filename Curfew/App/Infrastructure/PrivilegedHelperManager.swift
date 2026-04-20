@@ -9,6 +9,28 @@ private let helperLogger = Logger(
     category: "privileged-helper"
 )
 
+protocol AppServiceControlling {
+    var status: SMAppService.Status { get }
+    func register() throws
+    func unregister() throws
+}
+
+private struct SystemAppServiceController: AppServiceControlling {
+    let service: SMAppService
+
+    var status: SMAppService.Status {
+        service.status
+    }
+
+    func register() throws {
+        try service.register()
+    }
+
+    func unregister() throws {
+        try service.unregister()
+    }
+}
+
 /// Observable state machine for the `SMAppService`-managed LaunchDaemon and
 /// the app's login item registration.
 ///
@@ -41,21 +63,25 @@ final class PrivilegedHelperManager: ObservableObject {
     // MARK: - SMAppService handles
 
     private static let daemonPlistName = "studio.hypertext.curfew.daemon.plist"
-
-    private var daemonService: SMAppService {
-        SMAppService.daemon(plistName: Self.daemonPlistName)
-    }
-
-    private var loginItemService: SMAppService {
-        SMAppService.mainApp
-    }
+    private let daemonService: any AppServiceControlling
+    private let loginItemService: any AppServiceControlling
 
     // MARK: - Lifecycle
 
     /// Default-initialised — `SMAppService` handles are derived statically
     /// from a constant plist name. `nonisolated` so `CurfewAppModel` can
     /// construct this as a non-optional default property.
-    nonisolated init() {}
+    nonisolated init(
+        daemonService: (any AppServiceControlling)? = nil,
+        loginItemService: (any AppServiceControlling)? = nil
+    ) {
+        self.daemonService = daemonService ?? SystemAppServiceController(
+            service: SMAppService.daemon(plistName: Self.daemonPlistName)
+        )
+        self.loginItemService = loginItemService ?? SystemAppServiceController(
+            service: SMAppService.mainApp
+        )
+    }
 
     /// Refreshes `daemonStatus` and `loginItemStatus` from the system.
     /// Call this on app launch and after any `install` / `uninstall` attempt.

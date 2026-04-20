@@ -25,6 +25,12 @@
     <key>com.apple.security.cs.disable-library-validation</key>
     <true/>
 
+    <!-- WidgetKit reads mirrored settings + activity data from the shared App Group. -->
+    <key>com.apple.security.application-groups</key>
+    <array>
+        <string>group.studio.hypertext.curfew</string>
+    </array>
+
     <!--
       Silent-push for CloudKit `CKDatabaseSubscription` is configured
       only in Curfew-Release.entitlements — requesting `aps-environment`
@@ -34,6 +40,10 @@
       the entitlement is present, which is fine because local builds
       can still manually-pull on tick via the existing
       NSWorkspace.didWakeNotification path.
+
+      Likewise, Apple Events automation for auto-shutdown stays release-only.
+      The shutdown UI now checks `ShutdownSupport` at runtime, so debug and
+      ad-hoc test builds hide that surface instead of pretending it works.
     -->
 </dict>
 </plist>
