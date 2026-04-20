@@ -78,8 +78,7 @@ struct CurfewWidgetProvider: TimelineProvider {
     // MARK: - Entry construction
 
     private func entry(at date: Date) -> CurfewWidgetEntry {
-        let defaults = UserDefaults(suiteName: "studio.hypertext.curfew") ?? .standard
-        let settings = CurfewSettingsStore(defaults: defaults).load()
+        let settings = WidgetSharedStateStore().loadSettings()
         let engine = CurfewEnforcementEngine()
         let eval = engine.evaluate(
             at: date,
@@ -114,8 +113,7 @@ struct CurfewWidgetProvider: TimelineProvider {
     /// entries. Returns nil on day-off — the coarse 15-minute grid is
     /// enough when there's no warning to escalate.
     private func lookupLockDate(now: Date) -> Date? {
-        let defaults = UserDefaults(suiteName: "studio.hypertext.curfew") ?? .standard
-        let settings = CurfewSettingsStore(defaults: defaults).load()
+        let settings = WidgetSharedStateStore().loadSettings()
         guard
             let window = settings.schedule.scheduleWindow(
                 for: now,

@@ -1,11 +1,9 @@
 import SwiftUI
 import WidgetKit
 
-// MARK: - Widget definition
-
-/// WidgetKit bundle entry point. One widget today; bundle exists so
-/// future Curfew widgets (weekly summary, multi-device dashboard) can
-/// be added without restructuring the target.
+/// WidgetKit bundle entry point. The target also compiles Curfew's shared
+/// domain/settings/storage sources plus `WidgetSharedStateStore` so the
+/// extension stays in sync with the host app's scheduling model.
 @main
 struct CurfewWidgetBundle: WidgetBundle {
     /// Single-widget bundle body.
@@ -20,7 +18,7 @@ struct CurfewWidgetBundle: WidgetBundle {
 struct CurfewWidget: Widget {
     /// Stable widget identifier. Used by `WidgetCenter` to reload
     /// timelines from the host app.
-    let kind = "studio.hypertext.curfew.widget"
+    let kind = CurfewWidgetIdentity.kind
 
     /// `StaticConfiguration` paired with the provider and view.
     var body: some WidgetConfiguration {

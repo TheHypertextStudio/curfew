@@ -14,9 +14,9 @@ struct CurfewWidgetView: View {
     /// Picks the layout variant based on the user's selected family.
     var body: some View {
         switch family {
-        case .systemSmall:  smallView
+        case .systemSmall: smallView
         case .systemMedium: mediumView
-        default:            largeView
+        default: largeView
         }
     }
 
@@ -52,7 +52,8 @@ struct CurfewWidgetView: View {
     /// the start of the window to 1 at the lock moment.
     private var ringProgress: Double {
         switch entry.phase {
-        case "day_off", "locked": 1.0
+        case "day_off", "locked":
+            return 1.0
         default:
             // Map minutesRemaining ∈ (0 … 480] to progress ∈ (1 … 0]; clamp.
             let minutes = max(0, min(entry.minutesRemaining, 480))
@@ -202,7 +203,7 @@ struct CurfewWidgetView: View {
     private var timeRemainingText: String {
         switch entry.phase {
         case "day_off": return "Day off"
-        case "locked":  return "Locked"
+        case "locked": return "Locked"
         default:
             let h = entry.minutesRemaining / 60
             let m = entry.minutesRemaining % 60
@@ -215,11 +216,11 @@ struct CurfewWidgetView: View {
     /// "Warning T-5" instead of a bare "Warning".
     private var phaseLabel: String {
         switch entry.phase {
-        case "working": return entry.warningStage == "none" ? "Working" : "Warning \(entry.warningStage)"
-        case "warning": return "Warning \(entry.warningStage)"
-        case "locked":  return "Locked"
-        case "day_off": return "Day off"
-        default:        return entry.phase
+        case "working": entry.warningStage == "none" ? "Working" : "Warning \(entry.warningStage)"
+        case "warning": "Warning \(entry.warningStage)"
+        case "locked": "Locked"
+        case "day_off": "Day off"
+        default: entry.phase
         }
     }
 
@@ -228,11 +229,11 @@ struct CurfewWidgetView: View {
     /// other surfaces.
     private var phaseIcon: String {
         switch entry.phase {
-        case "working": return "checkmark.circle"
-        case "warning": return "exclamationmark.triangle"
-        case "locked":  return "lock.fill"
-        case "day_off": return "sun.max"
-        default:        return "circle"
+        case "working": "checkmark.circle"
+        case "warning": "exclamationmark.triangle"
+        case "locked": "lock.fill"
+        case "day_off": "sun.max"
+        default: "circle"
         }
     }
 
@@ -241,9 +242,9 @@ struct CurfewWidgetView: View {
     /// menu-bar icon tinting.
     private var phaseColor: Color {
         switch entry.phase {
-        case "warning": return .orange
-        case "locked":  return .red
-        default:        return .green
+        case "warning": .orange
+        case "locked": .red
+        default: .green
         }
     }
 }
