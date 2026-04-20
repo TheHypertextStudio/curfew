@@ -154,6 +154,34 @@ struct AutoShutdownConfigurationTests {
         let status = workflow.statusLine(now: now)
         #expect(status?.contains("1:00") == true)
     }
+
+    @Test("Permission-denied shutdown status points users to Automation settings")
+    func shutdownPermissionDeniedStatusLine() {
+        var workflow = ShutdownWorkflow()
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+        let spy = ShutdownControllerSpy(outcomes: [.permissionDenied])
+
+        workflow.update(
+            now: now,
+            isLocked: true,
+            isEnabled: true,
+            delayMinutes: 1,
+            controller: spy
+        )
+        workflow.update(
+            now: now.addingTimeInterval(61),
+            isLocked: true,
+            isEnabled: true,
+            delayMinutes: 1,
+            controller: spy
+        )
+
+        let status = workflow.statusLine(now: now.addingTimeInterval(61))
+        #expect(status?.contains("Privacy & Security") == true)
+        #expect(status?.contains("Automation") == true)
+        #expect(status?.contains("Curfew") == true)
+        #expect(status?.contains("System Events") == true)
+    }
 }
 
 struct WarningIntervalsPersistenceTests {

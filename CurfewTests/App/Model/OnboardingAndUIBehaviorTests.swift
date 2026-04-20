@@ -36,14 +36,67 @@ struct FirstRunFlowTests {
         flow.advance()
         #expect(flow.currentStep == .schedule)
         flow.advance()
+        #expect(flow.currentStep == .schedule)
+
+        flow.markScheduleReviewed()
+        #expect(flow.canAdvance)
+
+        flow.advance()
         #expect(flow.currentStep == .extensionBudget)
         flow.advance()
         #expect(flow.currentStep == .permissions)
+        flow.advance()
+        #expect(flow.currentStep == .permissions)
+
+        flow.acknowledgePermissions()
+        #expect(flow.canAdvance)
+
         flow.advance()
         #expect(flow.currentStep == .confirmation)
 
         flow.advance()
         #expect(flow.currentStep == .confirmation)
+    }
+
+    @Test("Schedule step blocks progress until settings review is recorded")
+    func scheduleStepRequiresReview() {
+        var flow = FirstRunFlow()
+
+        flow.advance()
+        #expect(flow.currentStep == .schedule)
+        #expect(!flow.canAdvance)
+
+        flow.advance()
+        #expect(flow.currentStep == .schedule)
+
+        flow.markScheduleReviewed()
+        #expect(flow.canAdvance)
+
+        flow.advance()
+        #expect(flow.currentStep == .extensionBudget)
+    }
+
+    @Test("Permissions step blocks finish path until acknowledged")
+    func permissionsStepRequiresAcknowledgement() {
+        var flow = FirstRunFlow()
+
+        flow.advance()
+        flow.markScheduleReviewed()
+        flow.advance()
+        flow.advance()
+
+        #expect(flow.currentStep == .permissions)
+        #expect(!flow.canAdvance)
+
+        flow.advance()
+        #expect(flow.currentStep == .permissions)
+
+        flow.acknowledgePermissions()
+        #expect(flow.canAdvance)
+
+        flow.advance()
+        #expect(flow.currentStep == .confirmation)
+        #expect(flow.canFinish)
     }
 }
 
@@ -53,6 +106,13 @@ struct GettingStartedCopyTests {
         let message = GettingStartedCopy.commitmentMessage.lowercased()
         #expect(message.contains("thinking clearly"))
         #expect(message.contains("enforce"))
+    }
+
+    @Test("Schedule step copy explains when work ends and resumes")
+    func scheduleCopyUsesWorkWindowLanguage() {
+        let message = FirstRunStep.schedule.message.lowercased()
+        #expect(message.contains("work ends"))
+        #expect(message.contains("work resumes"))
     }
 }
 

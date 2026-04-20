@@ -48,8 +48,8 @@ final class GettingStartedPresenterSpy: GettingStartedPresenting {
 /// `ShutdownControlling` spy for driving `ShutdownWorkflow` through its
 /// state machine without telling macOS to actually shut down.
 ///
-/// `results` is a FIFO queue of return values for `executeShutdown()`. Each
-/// call dequeues and returns the next value; when empty, returns `false`.
+/// `results` is a FIFO queue of outcomes for `executeShutdown()`. Each call
+/// dequeues and returns the next value; when empty, returns `.failed`.
 /// `callLog` records `"graceful"` / `"shutdown"` entries in call order so
 /// tests asserting ordering (graceful-terminate-before-shutdown) can check
 /// the sequence cheaply. Tests that don't care about ordering simply
@@ -58,20 +58,24 @@ final class ShutdownControllerSpy: ShutdownControlling {
     /// Ordered log of method names, e.g. `["graceful", "shutdown"]`.
     private(set) var callLog: [String] = []
 
-    private var results: [Bool]
+    private var results: [ShutdownExecutionOutcome]
 
     init(results: [Bool]) {
-        self.results = results
+        self.results = results.map { $0 ? .succeeded : .failed }
+    }
+
+    init(outcomes: [ShutdownExecutionOutcome]) {
+        self.results = outcomes
     }
 
     func requestGracefulTermination() {
         callLog.append("graceful")
     }
 
-    func executeShutdown() -> Bool {
+    func executeShutdown() -> ShutdownExecutionOutcome {
         callLog.append("shutdown")
         guard !results.isEmpty else {
-            return false
+            return .failed
         }
         return results.removeFirst()
     }

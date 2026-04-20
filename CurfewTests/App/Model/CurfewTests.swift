@@ -259,4 +259,45 @@ struct ShutdownWorkflowTests {
         #expect(workflow.phase == .failed)
         #expect(spy.callLog == ["graceful", "shutdown", "graceful", "shutdown"])
     }
+
+    @Test("Workflow stops retrying and shows recovery guidance when shutdown automation is denied")
+    func permissionDeniedStopsRetrying() {
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+        var workflow = ShutdownWorkflow()
+        let spy = ShutdownControllerSpy(outcomes: [.permissionDenied])
+
+        workflow.update(
+            now: now,
+            isLocked: true,
+            isEnabled: true,
+            delayMinutes: 10,
+            controller: spy
+        )
+
+        workflow.update(
+            now: now.addingTimeInterval(10 * 60 + 1),
+            isLocked: true,
+            isEnabled: true,
+            delayMinutes: 10,
+            controller: spy
+        )
+
+        #expect(workflow.phase == .permissionDenied)
+        #expect(spy.callLog == ["graceful", "shutdown"])
+
+        workflow.update(
+            now: now.addingTimeInterval(10 * 60 + 120),
+            isLocked: true,
+            isEnabled: true,
+            delayMinutes: 10,
+            controller: spy
+        )
+
+        #expect(workflow.phase == .permissionDenied)
+        #expect(spy.callLog == ["graceful", "shutdown"])
+
+        let status = workflow.statusLine(now: now.addingTimeInterval(10 * 60 + 120))
+        #expect(status?.contains("Automation") == true)
+        #expect(status?.contains("System Events") == true)
+    }
 }

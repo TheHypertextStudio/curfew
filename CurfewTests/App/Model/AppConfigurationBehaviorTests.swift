@@ -60,6 +60,18 @@ struct FeatureFlagTests {
         #expect(!flags.mcpServerEnabled)
         #expect(!flags.privilegedHelperEnabled)
     }
+
+    @Test("Default build hides deferred integration panels")
+    func deferredPanelsAreHiddenByDefault() {
+        #expect(DeferredFeaturePanel.visible(for: .default).isEmpty)
+    }
+}
+
+struct WidgetIdentityTests {
+    @Test("Widget timeline reloads use the extension kind identifier")
+    func kindMatchesWidgetExtension() {
+        #expect(CurfewWidgetIdentity.kind == "studio.hypertext.curfew.widget")
+    }
 }
 
 @MainActor
@@ -200,5 +212,22 @@ struct SettingsSectionTests {
                 .advanced
             ]
         )
+    }
+}
+
+struct CurfewUpdaterTests {
+    @Test("Current build only shows update UI when Sparkle is linked")
+    func updateAvailabilityMatchesLinkedFramework() {
+        #expect(CurfewUpdater.isAvailable == false)
+    }
+}
+
+struct ShutdownSupportTests {
+    @Test("Current build only shows auto-shutdown when Apple Events entitlement is present")
+    func shutdownAvailabilityMatchesEntitlements() throws {
+        let appBundle = try #require(Bundle.allBundles
+            .first(where: { $0.bundleIdentifier == "studio.hypertext.curfew" }))
+
+        #expect(ShutdownSupport.isAvailable(in: appBundle) == false)
     }
 }
