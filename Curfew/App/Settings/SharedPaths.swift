@@ -20,11 +20,49 @@ public enum SharedPaths {
         return base.appendingPathComponent("Curfew", isDirectory: true)
     }
 
-    /// SQLite database file written by the app's `ActivityStore`.
-    /// `curfew-ctl` and `curfew-mcp` open this read-only to serve activity
-    /// queries without risking concurrent write corruption.
-    public static var activityDatabase: URL {
+    /// App Group / shared-container identifier reserved for the future
+    /// WidgetKit extension. The main app and bundled CLI tools use the
+    /// explicit filesystem path below today; the widget target will gain the
+    /// actual entitlement when it is wired into the Xcode project.
+    public static let widgetAppGroupIdentifier = "group.studio.hypertext.curfew"
+
+    /// `~/Library/Group Containers/group.studio.hypertext.curfew/`
+    ///
+    /// Uses the system-resolved App Group container when available, otherwise
+    /// falls back to the well-known filesystem location so unsandboxed helper
+    /// binaries (`curfew-ctl`, `curfew-mcp`) can still cooperate with the same
+    /// storage root before the widget target is wired in.
+    public static var widgetSharedContainer: URL {
+        if let container = FileManager.default.containerURL(
+            forSecurityApplicationGroupIdentifier: widgetAppGroupIdentifier
+        ) {
+            return container
+        }
+
+        return URL(
+            fileURLWithPath: NSHomeDirectory(),
+            isDirectory: true
+        )
+        .appendingPathComponent("Library/Group Containers", isDirectory: true)
+        .appendingPathComponent(widgetAppGroupIdentifier, isDirectory: true)
+    }
+
+    /// Shared storage root used by the app, bundled CLI tools, and the future
+    /// widget extension for files that must cross the sandbox boundary.
+    public static var widgetSharedSupport: URL {
+        widgetSharedContainer.appendingPathComponent("Curfew", isDirectory: true)
+    }
+
+    /// Legacy SQLite database location used before widget storage started
+    /// migrating into the shared container.
+    public static var legacyActivityDatabase: URL {
         applicationSupport.appendingPathComponent("activity.sqlite3")
+    }
+
+    /// SQLite database file written by the app's `ActivityStore` and read by
+    /// the bundled CLI tools plus the future widget extension.
+    public static var activityDatabase: URL {
+        widgetSharedSupport.appendingPathComponent("activity.sqlite3")
     }
 
     /// JSON queue file for pending MCP write-tool requests.
@@ -37,6 +75,13 @@ public enum SharedPaths {
     /// the MCP client.
     public static var mcpRequestQueue: URL {
         applicationSupport.appendingPathComponent("mcp-requests.json")
+    }
+
+    /// Mirrored settings snapshot for the widget extension. The main app writes
+    /// this JSON whenever persisted settings change; the widget reads it
+    /// without depending on the app's private `UserDefaults` domain.
+    public static var widgetSettingsSnapshot: URL {
+        widgetSharedSupport.appendingPathComponent("widget-settings.json")
     }
 
     /// User Defaults suite name used by the Curfew app (= its bundle ID).

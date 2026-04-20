@@ -202,8 +202,8 @@ public struct WeeklySchedule: Equatable, Codable {
     }
 
     /// Returns a natural-language sentence describing tomorrow's enforcement
-    /// window, e.g. "Tomorrow, your computer locks at 6:00 PM and unlocks at
-    /// 8:00 AM." Used in the schedule summary card in the primary window.
+    /// window, e.g. "Tomorrow, work ends at 6:00 PM and resumes at 8:00 AM."
+    /// Used in the schedule summary card in the primary window.
     ///
     /// Returns a day-off message when tomorrow has no enforcement window.
     public func summarySentence(
@@ -231,7 +231,7 @@ public struct WeeklySchedule: Equatable, Codable {
 
         let lockText = formatter.string(from: window.lockDate)
         let unlockText = formatter.string(from: window.unlockDate)
-        return "Tomorrow, your computer locks at \(lockText) and unlocks at \(unlockText)."
+        return "Tomorrow, work ends at \(lockText) and resumes at \(unlockText)."
     }
 
     /// Returns the previous day's schedule window when `date` falls within

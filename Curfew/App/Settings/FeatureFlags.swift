@@ -51,3 +51,33 @@ struct FeatureFlags: Equatable {
         calendarEnabled: false
     )
 }
+
+/// Deferred integrations that should only surface in the UI when the
+/// current build actually enables them.
+enum DeferredFeaturePanel: String, CaseIterable, Identifiable {
+    case widgetKit
+    case calendar
+    case cloudSync
+    case privilegedHelper
+
+    var id: String {
+        rawValue
+    }
+
+    static func visible(for flags: FeatureFlags) -> [DeferredFeaturePanel] {
+        var panels: [DeferredFeaturePanel] = []
+        if flags.widgetKitEnabled {
+            panels.append(.widgetKit)
+        }
+        if flags.calendarEnabled {
+            panels.append(.calendar)
+        }
+        if flags.cloudSyncEnabled {
+            panels.append(.cloudSync)
+        }
+        if flags.privilegedHelperEnabled {
+            panels.append(.privilegedHelper)
+        }
+        return panels
+    }
+}
