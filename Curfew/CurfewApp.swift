@@ -102,11 +102,13 @@ struct CurfewApp: App {
         }
         .defaultSize(width: 1080, height: 720)
         .commands {
-            CommandGroup(after: .appInfo) {
-                Button("Check for Updates…") {
-                    updater.checkForUpdates()
+            if CurfewUpdater.isAvailable {
+                CommandGroup(after: .appInfo) {
+                    Button("Check for Updates…") {
+                        updater.checkForUpdates()
+                    }
+                    .disabled(!updater.canCheckForUpdates)
                 }
-                .disabled(!updater.canCheckForUpdates)
             }
         }
 

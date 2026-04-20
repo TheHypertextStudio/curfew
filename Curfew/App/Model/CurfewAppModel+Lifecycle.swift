@@ -106,7 +106,7 @@ extension CurfewAppModel {
         // the label in sync with what the app thinks is happening.
         if featureFlags.widgetKitEnabled,
            previousPhase != state.phase || previousWarningStage != state.warningStage {
-            WidgetCenter.shared.reloadTimelines(ofKind: "CurfewWidget")
+            WidgetCenter.shared.reloadTimelines(ofKind: CurfewWidgetIdentity.kind)
         }
         previousWarningStage = state.warningStage
         if previousPhase != state.phase, featureFlags.privilegedHelperEnabled {
@@ -236,6 +236,7 @@ extension CurfewAppModel {
     /// sites so future batching / coalescing can plug in here.
     func persistSettings() {
         settingsStore.save(settings)
+        syncWidgetSharedState()
     }
 
     /// Reacts to `@Published settings` changes: rebuilds budget trackers
@@ -315,7 +316,7 @@ extension CurfewAppModel {
         shutdownWorkflow.update(
             now: currentTime,
             isLocked: state.phase == .locked,
-            isEnabled: settings.autoShutdownEnabled,
+            isEnabled: settings.autoShutdownEnabled && ShutdownSupport.isAvailable,
             delayMinutes: settings.autoShutdownDelayMinutes,
             controller: shutdownController,
             isActiveDevice: isActiveDevice

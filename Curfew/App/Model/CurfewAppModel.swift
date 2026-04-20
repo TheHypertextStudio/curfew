@@ -306,11 +306,7 @@ final class CurfewAppModel: NSObject, ObservableObject {
         self.currentDayToken = Self.dayToken(for: now)
         self.isUserIdle = idleWatcher.isIdle
         super.init()
-
-        idleWatcher.onIdleStateChanged = { [weak self] idle in
-            self?.isUserIdle = idle
-        }
-        configureNotificationCallback()
+        completeInitialization(with: loadedSettings)
     }
 
     /// Zero-arg convenience used by `CurfewApp` at production launch. All
@@ -322,35 +318,6 @@ final class CurfewAppModel: NSObject, ObservableObject {
             appRouter: SystemAppRouter(),
             gettingStartedPresenter: GettingStartedWindowPresenter()
         )
-    }
-
-    /// Wires the notification manager's snooze callback and MCP request
-    /// monitor back into the model after `super.init()` completes. Lifted
-    /// out of the initialiser body because closures capturing `self` must
-    /// run post-init.
-    private func configureNotificationCallback() {
-        notificationManager.onSnoozeRequested = { [weak self] in
-            self?.requestNotificationSnooze()
-        }
-        mcpRequestMonitor.onNewRequests = { [weak self] requests in
-            self?.handleNewMCPRequests(requests)
-        }
-        if settings.mcpEnabled {
-            mcpRequestMonitor.start()
-            mcpSocketServer.start()
-        }
-        licenseGate.loadStoredKey()
-
-        cloudKitSyncEngine.onSettingsReceived = { [weak self] remoteSettings in
-            guard let self else { return }
-            settings = remoteSettings
-            settingsStore.save(remoteSettings)
-        }
-        cloudKitSyncEngine.onLockoutStateReceived = { [weak self] snapshot in
-            self?.warningStagesFiredToday.formUnion(snapshot.warningStagesFired)
-        }
-        subscribeToLicenseChanges()
-        reconcileProGatedModules()
     }
 
     /// Starts the 1 Hz enforcement tick. Safe to call repeatedly; no-ops
@@ -372,6 +339,10 @@ final class CurfewAppModel: NSObject, ObservableObject {
     /// Whether `start()` has successfully armed the tick timer.
     var isEnforcementRunning: Bool {
         started
+    }
+
+    func setIdleState(_ idle: Bool) {
+        isUserIdle = idle
     }
 
     /// Timer-target bridge. Swift `Timer` requires a `@objc` selector, and
