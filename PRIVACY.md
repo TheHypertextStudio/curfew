@@ -6,10 +6,10 @@ Curfew is designed to store everything locally and request only the permissions 
 
 | Data | Where | Retention |
 |------|-------|-----------|
-| Schedule, budgets, preferences | `~/Library/Application Support/Curfew/` (UserDefaults + SQLite) | Until you uninstall |
-| Override and extension events | Same SQLite database | 52 weeks rolling |
+| Schedule, budgets, preferences | `~/Library/Preferences/studio.hypertext.curfew.plist` plus `~/Library/Group Containers/group.studio.hypertext.curfew/Curfew/widget-settings.json` for widget mirroring | Until you uninstall |
+| Override and extension events | `~/Library/Group Containers/group.studio.hypertext.curfew/Curfew/activity.sqlite3` | 52 weeks rolling |
 | Activity log (lock/unlock/idle events) | Same SQLite database | 52 weeks rolling |
-| License key (Pro) | `~/Library/Application Support/Curfew/` | Until you deactivate |
+| License key (Pro) | `~/Library/Preferences/studio.hypertext.curfew.plist` | Until you deactivate |
 
 ## What Curfew does NOT do
 

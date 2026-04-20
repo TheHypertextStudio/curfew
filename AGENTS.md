@@ -74,7 +74,7 @@ Lint and format commands:
 swiftformat Curfew CurfewTests CurfewUITests
 
 # formatting check (must pass before completion claim)
-swiftformat --lint Curfew CurfewTests CurfewUITests
+swiftformat Curfew CurfewTests CurfewUITests --lint
 
 # lint check (must pass before completion claim)
 swiftlint lint --strict
@@ -166,7 +166,7 @@ Required execution order:
 
 ```bash
 swiftformat Curfew CurfewTests CurfewUITests
-swiftformat --lint Curfew CurfewTests CurfewUITests
+swiftformat Curfew CurfewTests CurfewUITests --lint
 swiftlint lint --strict
 xcodebuild test -project Curfew.xcodeproj -scheme Curfew -destination 'platform=macOS' -only-testing:CurfewTests
 ```
@@ -226,7 +226,7 @@ xcodebuild test -project Curfew.xcodeproj -scheme Curfew -destination 'platform=
 - Lint command outcome
 - Minimum commands to report:
 ```bash
-swiftformat --lint Curfew CurfewTests CurfewUITests
+swiftformat Curfew CurfewTests CurfewUITests --lint
 swiftlint lint --strict
 ```
 

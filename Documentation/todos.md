@@ -5,9 +5,12 @@ Test Matrix: [`Documentation/todo-test-matrix.md`](./todo-test-matrix.md)
 Owner: Willie + Claude
 Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 
-> **v0.1 status (2026-04-17):** Core enforcement, CLI, MCP server, Pro licensing,
-> CloudKit sync, WidgetKit, CalendarMonitor, CI/release workflows, and landing page
-> are complete. Items below marked `[ ]` are v0.2+ targets unless noted otherwise.
+> **v0.1 status (2026-04-18):** Core enforcement, CLI, MCP server, Pro licensing,
+> CI/release workflows, landing page, and WidgetKit target wiring are complete.
+> CloudKit and Calendar app-side code remain feature-flag/provisioning gated, and
+> signed-build/manual release validation for WidgetKit, shutdown, and the
+> privileged helper is tracked in `Documentation/RELEASE.md`. Items below marked
+> `[ ]` are v0.2+ targets unless noted otherwise.
 
 ---
 
@@ -17,14 +20,14 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 - [x] Convert app shell to a standard macOS app window (`LSUIElement = false`) with menu bar quick access.
 - [x] Default debug/Xcode launch starts with enforcement disarmed unless explicitly enabled.
 - [x] Add a dedicated app launch coordinator so app startup orchestration is isolated from scene composition.
-- [x] Add targets for `curfew-mcp`, `curfew-ctl`, and WidgetKit extension. (Privileged helper → v0.2)
-- [-] Configure entitlements: App Group, CloudKit, notifications, accessibility-related requirements.
+- [x] Add targets for `curfew-mcp`, `curfew-ctl`, and WidgetKit extension. (`curfew-mcp`, `curfew-ctl`, and `CurfewWidget` are wired in Xcode. Privileged helper → v0.2)
+- [-] Configure entitlements: App Group, CloudKit, notifications, accessibility-related requirements. (The signed Release path now carries the App Group, CloudKit, APS, and Apple Events entitlements used by shutdown/widget/cloud flows; the remaining work is external provisioning + manual signed-build validation in `Documentation/RELEASE.md`.)
 - [x] Define centralized app constants (`AppGroup`, bundle IDs, CloudKit record names via SharedPaths.swift).
 - [x] Add feature flags for deferred modules (widget/cloud/MCP/calendar/privileged helper) with safe defaults off.
 
 ## 1. Schedule + Enforcement Core
 
-- [x] Implement weekly schedule model (per-day end time, unlock time, day-off support).
+- [x] Implement weekly schedule model (per-day end time, unlock time, day-off support). The Settings/onboarding copy now frames these as "Work ends" and "Work resumes" so the editable times line up with the actual enforcement window.
 - [x] Implement schedule presets: 9-to-5, Startup Hours, Half Day.
 - [x] Enforce anti-bypass policy — stricter changes apply next day; weaker require 24-hour cooldown.
 - [x] Add DST-safe local timezone handling and schedule resolution tests.
@@ -57,14 +60,15 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 - [x] Request graceful app termination before shutdown.
 - [x] Implement shutdown retry once after 60 seconds on failure.
 - [x] Keep lockout active if shutdown ultimately fails.
+- [x] Gate auto-shutdown UI/runtime behind Apple Events capability; release builds carry the entitlement while debug/ad-hoc builds hide the feature. The Settings panel and generated Info.plist now explain that Curfew asks `System Events` to shut down the Mac, and a denied Automation prompt now keeps lockout active without retrying while pointing users to **Privacy & Security → Automation → Curfew → System Events**.
 
 ## 5. Bypass Protection + Privileged Layer
 
 > v0.1: `PersistentLockdown` ships a user-space respawning LaunchAgent using
 > `KeepAlive.PathState`. Not automatically installed; v0.2 hardens with SMAppService.
 
-- [x] Implement privileged helper and LaunchDaemon via `SMAppService`. (v0.2)
-- [x] Persist lockout state in root-owned path. (v0.2)
+- [-] Package a real `curfew-daemon` helper for `SMAppService` install/status validation; jailbreak detection + shutdown enforcement remain deferred. (Packaging/UI are in-repo; signed-build install/reboot/uninstall validation remains an external release step. See `Documentation/RELEASE.md`.) (v0.2)
+- [-] Persist lockout state through the LaunchDaemon sentinel path; root-owned write semantics still need signed-build/manual validation. (`Documentation/RELEASE.md` now captures the exact manual checks; the actual proof still requires a signed build.) (v0.2)
 - [x] Implement user-space respawning LaunchAgent (`PersistentLockdown`) for v0.1 bypass deterrence.
 - [x] Register login items for compatibility requirements. (v0.2)
 - [x] Implement event tap behavior for keyboard shortcut interception during lockout.
@@ -118,7 +122,7 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 - [x] `DeviceRegistry` 60 s heartbeat + active-device detection (120 s freshness).
 - [x] `LockoutState` published on phase transitions for warning handoff between devices.
 - [x] Active-device-aware shutdown delay (active follows configured delay; idle uses 2 min).
-- [ ] CloudKit container provisioned in App Store Connect. (morning task)
+- [ ] CloudKit container provisioned in App Store Connect. (`Documentation/RELEASE.md` lists the production container/schema validation steps; execution remains external.) (morning task)
 - [x] Sync status UI in Settings → Devices.
 - [x] Device list management (live list + last-seen + active pill).
 
@@ -141,9 +145,10 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 - [x] Small widget: phase-tinted Gauge ring with in-ring phase icon and time remaining.
 - [x] Medium widget: phase + remaining + schedule window.
 - [x] Large widget: full status, lock/unlock times, streak pill, 7-day sparkline.
-- [x] `CurfewWidgetProvider` reads shared UserDefaults; timeline produces per-warning-stage entries (T-30/15/5/2/1/0) within the next hour plus 15-min coarse entries.
+- [x] Mirror widget settings + activity data into shared widget storage so the future extension can read state without the app's private defaults domain.
+- [x] `CurfewWidgetProvider` reads mirrored settings/activity data from shared widget storage; timeline produces per-warning-stage entries (T-30/15/5/2/1/0) within the next hour plus 15-min coarse entries.
 - [x] Gate behind `featureFlags.widgetKitEnabled` + `licenseGate.isProUnlocked`.
-- [ ] Xcode Widget Extension target wired in project. (requires Xcode UI)
+- [x] Xcode Widget Extension target wired in project.
 - [x] Wire timeline updates to enforcement phase AND warning-stage transitions.
 
 ## 13. MCP Server (`curfew-mcp`)
@@ -194,6 +199,7 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 - [x] First-launch getting-started window.
 - [x] Persist one-time first-launch setup state.
 - [x] First-run flow: welcome, schedule, budgets, permissions, confirmation.
+- [x] Onboarding completion now requires opening live schedule settings and acknowledging permissions guidance before finish.
 - [x] Anti-bypass: onboarding mutations route through `queueScheduleUpdate`.
 - [x] Onboarding relaunch from Settings.
 
@@ -205,11 +211,12 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 - [x] MIT `LICENSE` file.
 - [x] README rewrite: three-horizon pitch, MCP setup, CLI usage, Pro features, architecture.
 - [x] `CONTRIBUTING.md`, `PRIVACY.md`, `Documentation/ARCHITECTURE.md`, `Documentation/RELEASE.md`.
+- [x] Signed-build validation runbook for shutdown, widget, privileged helper, and CloudKit lives in `Documentation/RELEASE.md`. (Actual Apple-credential execution is still tracked by the remaining unchecked release/provisioning items.)
 - [x] Landing page (`landing/`) — Cloudflare Pages deploy target.
 - [ ] Apple Developer credentials in GitHub secrets. (morning task)
 - [ ] Cloudflare Pages deployment. (morning task)
 - [ ] Homebrew Cask. (v0.2)
-- [x] Sparkle autoupdate. (v0.2)
+- [-] Sparkle autoupdate scaffolding present; framework wiring + signed appcast flow still pending. (v0.2)
 
 ## 18. Verification (v0.1 release candidate)
 

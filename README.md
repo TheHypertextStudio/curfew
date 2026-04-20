@@ -21,8 +21,11 @@ Curfew is the first product from [Hypertext Studio](https://hypertext.studio), a
 - **`curfew-mcp` MCP server** — AI assistants can negotiate with your focus rules from within a coding session. See [MCP setup](#mcp-setup) below.
 - **Menu bar quick access** + first-launch onboarding.
 
+Deferred Pro surfaces stay conservative in default/debug builds until their
+signed-release entitlement and provisioning path has been validated.
+
 ### Near term (v0.2) — stronger enforcement
-- Privileged helper via `SMAppService` (root-owned state, harder to bypass).
+- Privileged helper via `SMAppService` (packaging landed; signed install/recovery validation still required).
 - Localization, Sparkle autoupdate.
 
 ### Long term — reflection gates
@@ -116,9 +119,9 @@ Pro adds features with ongoing infrastructure cost. Upgrade at [curfew.hypertext
 | This Week retrospective | ✓ | ✓ |
 | `curfew-ctl` CLI | ✓ | ✓ |
 | `curfew-mcp` MCP server | ✓ | ✓ |
-| **CloudKit multi-device sync** | — | ✓ |
-| **WidgetKit widgets** | — | ✓ |
-| **Calendar integration** | — | ✓ |
+| **CloudKit multi-device sync** | — | Preview builds only |
+| **WidgetKit widgets** | — | Preview builds only (signed release validation pending) |
+| **Calendar integration** | — | Preview builds only |
 
 Pricing: **$19 early-bird / $29 list**. License key is verified offline via Ed25519 — no account required after purchase.
 
@@ -137,6 +140,9 @@ open Curfew.xcodeproj
 Press ⌘R to run. First launch opens Getting Started, which walks through schedule, budgets, and permissions.
 
 **Debug launches are safe by default** — enforcement stays disarmed unless you set `CURFEW_ENABLE_ENFORCEMENT=1`. Release builds arm on launch.
+
+Release-only validation for shutdown, WidgetKit, the privileged helper, and
+CloudKit is documented in [`Documentation/RELEASE.md`](Documentation/RELEASE.md).
 
 ---
 
@@ -171,7 +177,8 @@ Curfew/App/      @MainActor app model, routing, overlay coordinator, key interce
 
 Curfew/UI/       SwiftUI views — main window, settings, lockout overlay, onboarding.
 
-CurfewWidget/    WidgetKit extension (Pro). Small/medium/large. Reads shared UserDefaults.
+CurfewWidget/    WidgetKit extension source + Xcode target. Signed release/App
+                 Group validation still requires a provisioned build.
 
 Sources/
   curfew-ctl/    ArgumentParser CLI. Symlinks shared Core files; no library module.

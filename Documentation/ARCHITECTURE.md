@@ -45,7 +45,7 @@ Curfew.app
 │
 └── CurfewWidget/         WidgetKit extension (Pro, flag gated)
     ├── CurfewWidget              StaticConfiguration, small/medium/large families
-    ├── CurfewWidgetProvider      TimelineProvider — reads shared UserDefaults suite
+    ├── CurfewWidgetProvider      TimelineProvider — reads mirrored widget settings + shared activity DB
     ├── CurfewWidgetEntry         TimelineEntry snapshot
     └── CurfewWidgetView          Small/medium/large SwiftUI views
 

@@ -80,7 +80,7 @@ Curfew solves this by treating your schedule as a binding commitment, not a sugg
 
 - Settings UI uses a weekly calendar grid, similar to Calendar.app's week view
 - Each day is a row; drag handles adjust start/end times visually
-- A summary sentence below: *"Tomorrow, your computer locks at 6:00 PM and unlocks at 8:00 AM."*
+- A summary sentence below: *"Tomorrow, work ends at 6:00 PM and resumes at 8:00 AM."*
 
 ---
 

@@ -2,6 +2,11 @@
 
 This file maps completed todo items (`[x]`) in `Documentation/todos.md` to automated behavior tests.
 
+Signed-build/manual validation for shutdown, WidgetKit, the privileged helper,
+CloudKit, notarization, and related Apple-provisioned release surfaces lives in
+`Documentation/RELEASE.md`; this matrix intentionally tracks automated coverage
+only.
+
 ## 0. Foundation and Project Structure
 
 - `Convert app shell to a standard macOS app window (LSUIElement = false) with menu bar quick access.`
@@ -91,6 +96,28 @@ This file maps completed todo items (`[x]`) in `Documentation/todos.md` to autom
   - `ShutdownWorkflowTests/retriesOnceAfterFailure()`
 - `Keep lockout active if shutdown ultimately fails.`
   - `ShutdownWorkflowTests/failureAfterRetryKeepsLockoutState()`
+- `Only surface auto-shutdown when the current build carries the Apple Events automation entitlement.`
+  - `ShutdownSupportTests/shutdownAvailabilityMatchesEntitlements()`
+  - `ShutdownPanelStateTests/unavailableStateCarriesReleaseGuidance()`
+  - `ShutdownPanelStateTests/availableStateExplainsAutomationPrompt()`
+- `If the user denies Automation permission for System Events shutdown, stop retrying and show a recovery path to Automation settings.`
+  - `ShutdownWorkflowTests/permissionDeniedStopsRetrying()`
+  - `AutoShutdownConfigurationTests/shutdownPermissionDeniedStatusLine()`
+
+## 5. Bypass Protection + Privileged Layer
+
+- `Persist lockout state through the LaunchDaemon sentinel path.`
+  - `LockoutStatePersistenceTests/markLockoutActiveCreatesSentinel()`
+  - `LockoutStatePersistenceTests/markLockoutInactiveRemovesSentinel()`
+  - `LockoutStatePersistenceTests/markLockoutActiveNoopsWithoutParentDirectory()`
+- `Package the embedded LaunchDaemon plist using SMAppService's BundleProgram layout.`
+  - `DaemonPlistTests/plistUsesEmbeddedBundleProgram()`
+- `Mirror SMAppService daemon/login-item status into the Settings helper panel through testable service wrappers.`
+  - `PrivilegedHelperManagerTests/refreshStatusMirrorsServices()`
+  - `PrivilegedHelperManagerTests/installDaemonRegisters()`
+  - `PrivilegedHelperManagerTests/installDaemonStoresError()`
+  - `PrivilegedHelperManagerTests/loginItemRegistrationFlows()`
+  - `PrivilegedHelperStatusCopyTests/helperStatusDescriptions()`
 
 ## 6. Extension and Override Systems
 
@@ -139,6 +166,17 @@ This file maps completed todo items (`[x]`) in `Documentation/todos.md` to autom
 - `Build Settings app sections: schedule, enforcement, integrations, devices, advanced.`
   - `SettingsSectionTests/sectionSet()`
 
+## 12. WidgetKit
+
+- `Mirror widget settings + activity data into shared storage before wiring the WidgetKit target.`
+  - `WidgetSharedStateStoreTests/settingsSnapshotRoundTrips()`
+  - `WidgetSharedStateStoreTests/migratesLegacyActivityDatabase()`
+- `Wire the Xcode Widget Extension target into the app bundle.`
+  - Build verification: `xcodebuild -list -project Curfew.xcodeproj`
+  - Build verification: `xcodebuild build -project Curfew.xcodeproj -target CurfewWidget -destination 'platform=macOS'`
+- `Use the widget extension kind identifier when reloading host-app timelines.`
+  - `WidgetIdentityTests/kindMatchesWidgetExtension()`
+
 ## 15. Onboarding
 
 - `Show a first-launch getting-started window so users can configure Curfew immediately.`
@@ -149,7 +187,23 @@ This file maps completed todo items (`[x]`) in `Documentation/todos.md` to autom
   - `FirstRunFlowTests/requiredSteps()`
   - `FirstRunFlowTests/navigationBounds()`
   - `SetupUXTests/completeOnboardingFlowUpdatesState()`
+- `Onboarding completion now requires opening live schedule settings and acknowledging permissions guidance before finish.`
+  - `FirstRunFlowTests/scheduleStepRequiresReview()`
+  - `FirstRunFlowTests/permissionsStepRequiresAcknowledgement()`
+  - `OnboardingConfirmationRequirementTests/confirmationRequirementsTrackOutstandingSteps()`
 - `Allow onboarding relaunch from Settings.`
   - `SetupUXTests/gettingStartedActionRoutesThroughPresenter()`
 - `Add warm explanatory copy for commitment model and enforcement behavior.`
   - `GettingStartedCopyTests/warmCommitmentCopy()`
+  - `GettingStartedCopyTests/scheduleCopyUsesWorkWindowLanguage()`
+- `Schedule editor and summary copy should make the editable times read as work-window boundaries, not ambiguous lock/unlock jargon.`
+  - `ScheduleSurfaceCopyTests/scheduleLabelsExplainWorkWindow()`
+  - `SchedulePolicyEngineTests/scheduleSummarySentenceForTomorrow()`
+
+## 16. Build Gating and Distribution Accuracy
+
+- `Hide deferred integration panels in default builds until their feature flags are enabled.`
+  - `FeatureFlagTests/deferredPanelsAreHiddenByDefault()`
+  - `DeferredIntegrationVisibilityTests/visiblePanelsFollowEnabledFlags()`
+- `Only surface update UI when Sparkle is actually linked into the app target.`
+  - `CurfewUpdaterTests/updateAvailabilityMatchesLinkedFramework()`
