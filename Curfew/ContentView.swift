@@ -331,7 +331,7 @@ private struct MainOnboardingSectionView: View {
                 )
 
                 VStack(alignment: .leading, spacing: 8) {
-                    Label("Choose lock and unlock times for each day.", systemImage: "calendar")
+                    Label(ScheduleSurfaceCopy.mainChecklistItem, systemImage: "calendar")
                     Label("Configure extension and override limits.", systemImage: "hourglass")
                     Label("Tune warnings and optional auto-shutdown.", systemImage: "bell")
                 }

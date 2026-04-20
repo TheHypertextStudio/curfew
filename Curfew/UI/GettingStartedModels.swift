@@ -32,7 +32,7 @@ enum FirstRunStep: Int, CaseIterable, Identifiable {
     /// Introductory pane explaining Curfew's commitment model.
     case welcome
 
-    /// Schedule configuration (lock/unlock times, days off).
+    /// Schedule configuration (work-end/work-resume times, days off).
     case schedule
 
     /// Extension + override budget configuration.
@@ -71,7 +71,7 @@ enum FirstRunStep: Int, CaseIterable, Identifiable {
         case .welcome:
             "Curfew helps you keep commitments you made while you had clear focus."
         case .schedule:
-            "Choose realistic lock and unlock times for each day so your plan matches your week."
+            ScheduleSurfaceCopy.onboardingMessage
         case .extensionBudget:
             "Set weekly extension and override limits to keep exceptions deliberate."
         case .permissions:
@@ -89,7 +89,7 @@ enum FirstRunStep: Int, CaseIterable, Identifiable {
         case .welcome:
             ["Understand how Curfew enforces commitments"]
         case .schedule:
-            ["Set lock and unlock times", "Mark true days off"]
+            ScheduleSurfaceCopy.onboardingChecklist
         case .extensionBudget:
             ["Adjust weekly extension limit", "Set override duration"]
         case .permissions:
@@ -111,6 +111,12 @@ struct FirstRunFlow {
     /// `advance()` / `retreat()`.
     private(set) var currentStep: FirstRunStep = .welcome
 
+    /// Whether onboarding has routed the user through live schedule settings.
+    private(set) var hasReviewedScheduleSettings = false
+
+    /// Whether the permissions step has been explicitly acknowledged.
+    private(set) var hasAcknowledgedPermissions = false
+
     /// Whether the user is on the first step (drives "Back" button disabling).
     var isFirstStep: Bool {
         currentStep == .welcome
@@ -121,8 +127,38 @@ struct FirstRunFlow {
         currentStep == .confirmation
     }
 
+    /// Whether the current step is allowed to advance.
+    var canAdvance: Bool {
+        switch currentStep {
+        case .schedule:
+            hasReviewedScheduleSettings
+        case .permissions:
+            hasAcknowledgedPermissions
+        case .welcome, .extensionBudget, .confirmation:
+            true
+        }
+    }
+
+    /// Whether the final onboarding action should be enabled.
+    var canFinish: Bool {
+        isLastStep && hasReviewedScheduleSettings && hasAcknowledgedPermissions
+    }
+
+    /// Records that the user has opened the live schedule editor from onboarding.
+    mutating func markScheduleReviewed() {
+        hasReviewedScheduleSettings = true
+    }
+
+    /// Records that the user reviewed the permissions guidance.
+    mutating func acknowledgePermissions() {
+        hasAcknowledgedPermissions = true
+    }
+
     /// Moves forward one step, unless already on the last step (no-op).
     mutating func advance() {
+        guard canAdvance else {
+            return
+        }
         guard let nextStep = FirstRunStep(rawValue: currentStep.rawValue + 1) else {
             return
         }

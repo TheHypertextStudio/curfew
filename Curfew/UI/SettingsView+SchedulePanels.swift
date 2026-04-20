@@ -33,8 +33,13 @@ extension SettingsView {
         CurfewPanel {
             CurfewSectionTitle(
                 title: "Weekly Schedule",
-                subtitle: "Set lock and unlock times for each day."
+                subtitle: ScheduleSurfaceCopy.weeklyScheduleSubtitle
             )
+
+            Text(ScheduleSurfaceCopy.weeklyScheduleExplanation)
+                .font(CurfewTypography.body(13))
+                .foregroundStyle(CurfewTheme.mutedInk)
+                .fixedSize(horizontal: false, vertical: true)
 
             VStack(alignment: .leading, spacing: 10) {
                 ForEach(Weekday.allCases) { weekday in

@@ -81,9 +81,20 @@ struct GettingStartedView: View {
     private var stepExtras: some View {
         if flow.currentStep == .schedule {
             Button("Open Schedule Settings") {
+                flow.markScheduleReviewed()
                 model.openSettings()
             }
             .buttonStyle(CurfewSecondaryButtonStyle())
+
+            if flow.hasReviewedScheduleSettings {
+                Label("Schedule settings opened", systemImage: "checkmark.circle.fill")
+                    .font(CurfewTypography.body(13))
+                    .foregroundStyle(CurfewTheme.accent)
+            } else {
+                Text("Open Settings once here before continuing.")
+                    .font(CurfewTypography.body(13))
+                    .foregroundStyle(CurfewTheme.mutedInk)
+            }
         }
 
         if flow.currentStep == .extensionBudget {
@@ -102,6 +113,28 @@ struct GettingStartedView: View {
             )
             .font(CurfewTypography.body(13))
             .foregroundStyle(CurfewTheme.mutedInk)
+
+            Button(
+                flow.hasAcknowledgedPermissions
+                    ? "Permissions Reviewed"
+                    : "I Reviewed Permissions"
+            ) {
+                flow.acknowledgePermissions()
+            }
+            .buttonStyle(CurfewSecondaryButtonStyle())
+        }
+
+        if flow.currentStep == .confirmation {
+            ForEach(flow.confirmationRequirements) { requirement in
+                Label(
+                    requirement.title,
+                    systemImage: requirement.isSatisfied ? "checkmark.circle.fill" : "circle"
+                )
+                .font(CurfewTypography.body(13))
+                .foregroundStyle(
+                    requirement.isSatisfied ? CurfewTheme.accent : CurfewTheme.mutedInk
+                )
+            }
         }
     }
 
@@ -128,12 +161,14 @@ struct GettingStartedView: View {
                 }
                 .buttonStyle(CurfewPrimaryButtonStyle())
                 .keyboardShortcut(.defaultAction)
+                .disabled(!flow.canFinish)
             } else {
                 Button("Next") {
                     flow.advance()
                 }
                 .buttonStyle(CurfewPrimaryButtonStyle())
                 .keyboardShortcut(.defaultAction)
+                .disabled(!flow.canAdvance)
             }
         }
     }

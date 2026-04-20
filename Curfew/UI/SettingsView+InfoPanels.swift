@@ -93,53 +93,71 @@ extension SettingsView {
     /// Read-only status panel for deferred non-MCP modules.
     private var otherIntegrationsPanel: some View {
         VStack(spacing: 16) {
-            ProGate(
-                feature: "WidgetKit",
-                description: "See your enforcement phase and time remaining at a glance."
-            ) {
+            if DeferredFeaturePanel.visible(for: model.featureFlags).isEmpty {
                 CurfewPanel {
                     CurfewSectionTitle(
-                        title: "WidgetKit",
-                        subtitle: "Small, medium, and large widgets."
+                        title: "Additional Integrations",
+                        subtitle: "This build only ships MCP-driven integrations."
                     )
-                    integrationStatusRow(
-                        title: "WidgetKit",
-                        isEnabled: model.featureFlags.widgetKitEnabled
+                    Text(
+                        "WidgetKit, Calendar, Cloud Sync, and the privileged helper "
+                            + "are hidden until they are enabled for the current build."
                     )
+                    .font(CurfewTypography.body(13))
+                    .foregroundStyle(CurfewTheme.mutedInk)
+                    .fixedSize(horizontal: false, vertical: true)
                 }
             }
-            .environmentObject(model)
 
-            ProGate(
-                feature: "Calendar",
-                description: "See today's scheduled events on the lockout screen and in This Week."
-            ) {
-                CurfewPanel {
-                    CurfewSectionTitle(
-                        title: "Calendar",
-                        subtitle: "Today's events shown alongside enforcement status."
-                    )
-                    integrationStatusRow(
-                        title: "Calendar",
-                        isEnabled: model.featureFlags.calendarEnabled
-                    )
-                    if model.featureFlags.calendarEnabled {
+            if model.featureFlags.widgetKitEnabled {
+                ProGate(
+                    feature: "WidgetKit",
+                    description: "See your enforcement phase and time remaining at a glance."
+                ) {
+                    CurfewPanel {
+                        CurfewSectionTitle(
+                            title: "WidgetKit",
+                            subtitle: "Small, medium, and large widgets."
+                        )
+                        integrationStatusRow(
+                            title: "WidgetKit",
+                            isEnabled: true
+                        )
+                    }
+                }
+                .environmentObject(model)
+            }
+            if model.featureFlags.calendarEnabled {
+                ProGate(
+                    feature: "Calendar",
+                    description: "See today's scheduled events on the lockout screen and in This"
+                        + " Week."
+                ) {
+                    CurfewPanel {
+                        CurfewSectionTitle(
+                            title: "Calendar",
+                            subtitle: "Today's events shown alongside enforcement status."
+                        )
+                        integrationStatusRow(
+                            title: "Calendar",
+                            isEnabled: true
+                        )
                         calendarAuthRow
                     }
                 }
+                .environmentObject(model)
             }
-            .environmentObject(model)
 
-            CurfewPanel {
-                CurfewSectionTitle(
-                    title: "Privileged Helper",
-                    subtitle: "Root-owned daemon for stronger bypass prevention."
-                )
-                integrationStatusRow(
-                    title: "Privileged Helper",
-                    isEnabled: model.featureFlags.privilegedHelperEnabled
-                )
-                if model.featureFlags.privilegedHelperEnabled {
+            if model.featureFlags.privilegedHelperEnabled {
+                CurfewPanel {
+                    CurfewSectionTitle(
+                        title: "Privileged Helper",
+                        subtitle: "Root-owned daemon for stronger bypass prevention."
+                    )
+                    integrationStatusRow(
+                        title: "Privileged Helper",
+                        isEnabled: true
+                    )
                     privilegedHelperPanel
                 }
             }
@@ -205,13 +223,15 @@ extension SettingsView {
                     .foregroundStyle(CurfewTheme.mutedInk)
             }
 
-            ProGate(
-                feature: "Cloud Sync",
-                description: "Keep your schedule in sync across all your Macs via iCloud."
-            ) {
-                cloudSyncPanel
+            if model.featureFlags.cloudSyncEnabled {
+                ProGate(
+                    feature: "Cloud Sync",
+                    description: "Keep your schedule in sync across all your Macs via iCloud."
+                ) {
+                    cloudSyncPanel
+                }
+                .environmentObject(model)
             }
-            .environmentObject(model)
         }
     }
 
@@ -310,7 +330,7 @@ extension SettingsView {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("LaunchDaemon")
                         .font(CurfewTypography.bodyEmphasis(13))
-                    Text(daemonStatusDescription(helper.daemonStatus))
+                    Text(PrivilegedHelperStatusCopy.daemonDescription(for: helper.daemonStatus))
                         .font(CurfewTypography.label(12))
                         .foregroundStyle(CurfewTheme.mutedInk)
                 }
@@ -333,7 +353,8 @@ extension SettingsView {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Open at Login")
                         .font(CurfewTypography.bodyEmphasis(13))
-                    Text(loginItemStatusDescription(helper.loginItemStatus))
+                    Text(PrivilegedHelperStatusCopy
+                        .loginItemDescription(for: helper.loginItemStatus))
                         .font(CurfewTypography.label(12))
                         .foregroundStyle(CurfewTheme.mutedInk)
                 }
@@ -357,24 +378,6 @@ extension SettingsView {
                     .foregroundStyle(Color.red.opacity(0.8))
                     .fixedSize(horizontal: false, vertical: true)
             }
-        }
-    }
-
-    private func daemonStatusDescription(_ status: SMAppService.Status) -> String {
-        switch status {
-        case .enabled: "Running — root-owned lockout enforcement active."
-        case .requiresApproval: "Needs approval — open System Settings → Login Items."
-        case .notRegistered, .notFound: "Not installed."
-        @unknown default: "Unknown status."
-        }
-    }
-
-    private func loginItemStatusDescription(_ status: SMAppService.Status) -> String {
-        switch status {
-        case .enabled: "Curfew opens automatically at login."
-        case .requiresApproval: "Needs approval — open System Settings → Login Items."
-        case .notRegistered, .notFound: "Not registered."
-        @unknown default: "Unknown status."
         }
     }
 }

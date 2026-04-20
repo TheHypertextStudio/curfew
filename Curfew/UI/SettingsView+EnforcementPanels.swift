@@ -105,14 +105,26 @@ extension SettingsView {
     var shutdownPanel: some View {
         CurfewPanel {
             CurfewSectionTitle(title: "Shutdown")
+            switch ShutdownPanelState.resolve(isAvailable: SystemShutdownController.isAvailable) {
+            case .available:
+                Toggle("Enable auto shutdown", isOn: $model.settings.autoShutdownEnabled)
 
-            Toggle("Enable auto shutdown", isOn: $model.settings.autoShutdownEnabled)
+                Stepper(
+                    "Shutdown delay: \(model.settings.autoShutdownDelayMinutes) min",
+                    value: $model.settings.autoShutdownDelayMinutes,
+                    in: 1 ... 60
+                )
 
-            Stepper(
-                "Shutdown delay: \(model.settings.autoShutdownDelayMinutes) min",
-                value: $model.settings.autoShutdownDelayMinutes,
-                in: 1 ... 60
-            )
+                Text(ShutdownPanelState.availableExplanation)
+                    .font(CurfewTypography.body(13))
+                    .foregroundStyle(CurfewTheme.mutedInk)
+                    .fixedSize(horizontal: false, vertical: true)
+            case .unavailable(let message):
+                Text(message)
+                    .font(CurfewTypography.body(13))
+                    .foregroundStyle(CurfewTheme.mutedInk)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
     }
 

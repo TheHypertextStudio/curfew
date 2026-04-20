@@ -8,8 +8,8 @@ import SwiftUI
 ///
 /// Rendered as a vertical pair of rows:
 /// - Top row: weekday abbreviation + "day off" toggle.
-/// - Bottom row: "Lock" DatePicker → "->" → "Unlock" DatePicker (both
-///   disabled when day off).
+/// - Bottom row: "Work ends" DatePicker → "->" → "Work resumes" DatePicker
+///   (both disabled when day off).
 ///
 /// Kept in its own file (rather than nested inside `SettingsView`) so this
 /// file can hold all the date-⇄-minutes conversion helpers together and so
@@ -138,13 +138,13 @@ struct DayRuleRow: View {
             }
 
             HStack(spacing: 10) {
-                Text("Lock")
+                Text(ScheduleSurfaceCopy.workEndsLabel)
                     .font(CurfewTypography.label(12))
                     .foregroundStyle(CurfewTheme.mutedInk)
-                    .frame(width: 40, alignment: .leading)
+                    .frame(width: 84, alignment: .leading)
 
                 DatePicker(
-                    "Lock",
+                    ScheduleSurfaceCopy.workEndsLabel,
                     selection: lockBinding(),
                     displayedComponents: .hourAndMinute
                 )
@@ -155,12 +155,12 @@ struct DayRuleRow: View {
                     .font(CurfewTypography.bodyEmphasis(14))
                     .foregroundStyle(CurfewTheme.mutedInk)
 
-                Text("Unlock")
+                Text(ScheduleSurfaceCopy.workResumesLabel)
                     .font(CurfewTypography.label(12))
                     .foregroundStyle(CurfewTheme.mutedInk)
 
                 DatePicker(
-                    "Unlock",
+                    ScheduleSurfaceCopy.workResumesLabel,
                     selection: unlockBinding(),
                     displayedComponents: .hourAndMinute
                 )
