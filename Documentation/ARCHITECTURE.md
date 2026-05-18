@@ -1,5 +1,7 @@
 # Architecture
 
+> **Three-repo layout:** this doc describes the **`curfew`** repo (the macOS app + the local `curfew-mcp` binary + the license-issuer Worker). Curfew Sync's coordinator (Hono + Durable Objects + D1 + Better Auth) lives in [`curfew-sync`](https://github.com/TheHypertextStudio/curfew-sync); the shared wire-format contract (MCP tool schemas, pending-request shapes) lives in [`curfew-protocols`](https://github.com/TheHypertextStudio/curfew-protocols) and is consumed here via SPM. See `AGENTS.md` §"Repo topology" and §"Cross-repo changes" for the full layout and change-coordination protocol.
+
 ## Module map
 
 ```

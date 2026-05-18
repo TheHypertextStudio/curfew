@@ -5,6 +5,8 @@
 **Last Updated:** February 2026
 **Status:** Draft
 
+> **Repo split:** as of May 2026, Curfew is three repos — `curfew` (this one, the macOS app), `curfew-sync` (the Cloudflare Sync coordinator), and `curfew-protocols` (the versioned wire-format contract). This PRD covers the **product** scope, which spans all three. Where this doc mentions implementation details for the Sync coordinator (F-section TBD), the canonical implementation spec is `curfew-sync/Documentation/ARCHITECTURE.md`. MCP tool schemas referenced as inline Swift types are migrating to `curfew-protocols`; see `AGENTS.md` for the migration discipline.
+
 ---
 
 ## Executive Summary

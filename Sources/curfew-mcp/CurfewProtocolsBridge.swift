@@ -1,0 +1,30 @@
+import CurfewProtocols
+
+// CurfewProtocols bridge for the curfew-mcp SPM target.
+//
+// As of the curfew-protocols v0.1.0 cut, the Swift face of the shared
+// wire-format contract is available at this binary's call sites. v0.1
+// of curfew-protocols ships the same `MCPPendingRequest`,
+// `MCPWriteTool`, and `MCPRequestStatus` shapes already declared in
+// `Sources/CurfewKit/MCP/MCPPendingRequest.swift` — both are wire-
+// compatible because the JSON Schemas in curfew-protocols were
+// extracted from the Swift source verbatim.
+//
+// This file exists today to *consume* the CurfewProtocols package from
+// SPM so dependency resolution is exercised by `swift build` and CI
+// catches version drift. The internal typealiases below are not
+// referenced by curfew-mcp's runtime code; the implementation goal that
+// follows the repo split is expected to:
+//   1. Delete the inline shapes from `Sources/CurfewKit/MCP/...`
+//   2. Add curfew-protocols as a Curfew app target dependency through
+//      the Xcode project (File → Add Package Dependencies)
+//   3. Replace all consumers' `MCPPendingRequest` (etc.) references
+//      with the CurfewProtocols types via `import CurfewProtocols`
+//
+// Until then, keeping these typealiases under `internal` access avoids
+// polluting curfew-mcp's symbol surface.
+
+internal typealias BridgeMCPPendingRequest = CurfewProtocols.MCPPendingRequest
+internal typealias BridgeMCPWriteTool = CurfewProtocols.MCPWriteTool
+internal typealias BridgeMCPRequestStatus = CurfewProtocols.MCPRequestStatus
+internal typealias BridgeMCPToolRegistry = CurfewProtocols.MCPToolRegistry

@@ -2,6 +2,24 @@
 
 This file defines how coding agents must operate in this repository.
 
+## Repo topology
+
+Curfew lives across three repositories. Boundaries here matter — most edits stay in **this** repo, but anything touching the cross-device wire format or the Cloudflare coordinator goes elsewhere.
+
+- **`curfew`** (this repo) — the macOS app, the local `curfew-mcp` and `curfew-ctl` and `curfew-daemon` binaries, the license-issuer Cloudflare Worker (`scripts/issue-license.ts` + root `wrangler.toml`), the landing site (`landing/`), the Homebrew cask (`Casks/`), and the product-level Curfew Sync design (`Documentation/curfew-sync.md`).
+- **`curfew-sync`** ([github.com/TheHypertextStudio/curfew-sync](https://github.com/TheHypertextStudio/curfew-sync)) — the Cloudflare-deployed Curfew Sync coordinator: Hono Worker, Durable Objects, D1, Better Auth, OAuth 2.1 MCP endpoint. Backend architecture lives in *that* repo's `Documentation/ARCHITECTURE.md`.
+- **`curfew-protocols`** ([github.com/TheHypertextStudio/curfew-protocols](https://github.com/TheHypertextStudio/curfew-protocols), npm `@hypertext/curfew-protocols`) — versioned JSON Schemas for MCP tools, pending-request shapes, and (in v0.2+) sync delta envelopes and OAuth payloads. Consumed by both `curfew` (via SPM) and `curfew-sync` (via npm). Tagged releases only — no floating `main` references.
+
+## Cross-repo changes
+
+A change to a wire-format shape (MCP tool argument schemas, the `MCPPendingRequest` envelope, OAuth scope strings, sync deltas) is a **three-PR ceremony**, in this order:
+
+1. **`curfew-protocols`** — edit schema, run `pnpm codegen`, contract tests, bump version (semver: additive = minor, breaking = major), tag, `pnpm publish`.
+2. **`curfew-sync`** — bump `@hypertext/curfew-protocols` in `package.json`, update consuming code, deploy.
+3. **`curfew`** (this repo) — bump the SPM pin in `Package.swift` (currently `exact: "0.1.0"` for the curfew-mcp target), update consuming Swift code, ship in the next macOS release.
+
+Do not invent new shapes in this repo. If a shape needs to exist on the wire (anything the local app sends to or receives from a remote AI host or the coordinator), it goes through `curfew-protocols` first.
+
 ## Project Context
 
 Curfew is a production-focused macOS app that enforces end-of-day boundaries with escalating warnings, lockout behavior, and optional shutdown.
@@ -9,9 +27,14 @@ Curfew is a production-focused macOS app that enforces end-of-day boundaries wit
 Primary code and docs locations:
 
 - `Curfew/` app code (Swift/SwiftUI/AppKit + domain logic)
+- `Sources/CurfewKit/` shared Swift library (SPM target; also compiled into the Xcode app via PBXFileSystemSynchronizedRootGroup)
+- `Sources/curfew-mcp/` local MCP server binary; consumes `@hypertext/curfew-protocols` via SPM
+- `Sources/curfew-ctl/` CLI
+- `Sources/curfew-daemon/` privileged helper
 - `CurfewTests/` unit and behavior tests
 - `CurfewUITests/` UI tests
 - `Documentation/plan.md` product requirements
+- `Documentation/curfew-sync.md` Curfew Sync product design (the coordinator's external contract — backend internals live in the `curfew-sync` repo)
 - `Documentation/todos.md` implementation backlog and status
 - `Documentation/todo-test-matrix.md` behavior-to-test mapping
 

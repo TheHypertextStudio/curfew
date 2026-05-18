@@ -25,6 +25,19 @@ let package = Package(
         .package(
             url: "https://github.com/apple/swift-argument-parser",
             from: "1.3.0"
+        ),
+        // Versioned wire-format contract shared with curfew-sync (the
+        // Cloudflare coordinator). The Swift face of @hypertext/curfew-protocols
+        // on npm — JSON Schemas in the source repo, codegen'd to Codable
+        // structs here. Wired into the SPM-only curfew-mcp target below;
+        // the Xcode app target picks the package up separately when added
+        // via Xcode → File → Add Package Dependencies (deferred until the
+        // implementation goal replaces the inline shapes in
+        // Sources/CurfewKit/MCP/MCPPendingRequest.swift and the inputSchema
+        // JSON literals in Sources/curfew-mcp/MCPTool.swift).
+        .package(
+            url: "git@github.com:TheHypertextStudio/curfew-protocols.git",
+            exact: "0.1.0"
         )
         // Sparkle autoupdate is an Xcode-level framework dependency only.
         // It is NOT used by any SPM target (CLI/MCP don't need it).
@@ -50,7 +63,8 @@ let package = Package(
         .executableTarget(
             name: "curfew-mcp",
             dependencies: [
-                .target(name: "CurfewKit")
+                .target(name: "CurfewKit"),
+                .product(name: "CurfewProtocols", package: "curfew-protocols")
             ],
             path: "Sources/curfew-mcp"
         ),
