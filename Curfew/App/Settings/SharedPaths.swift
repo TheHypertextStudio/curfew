@@ -132,4 +132,14 @@ public enum SharedPaths {
     public static var appHeartbeat: URL {
         widgetSharedSupport.appendingPathComponent("app-heartbeat")
     }
+
+    /// Symmetric key used by `MCPRequestSigner` to authenticate MCP queue
+    /// entries. Mode 0600 owned by the user; both the app and the
+    /// `curfew-mcp` subprocess read it under the same UID. An attacker
+    /// with shell access already trumps this; the file's job is to close
+    /// the `aiConsentPolicy = .autoApprove` bypass surface, not to
+    /// authenticate against a stronger threat model.
+    public static var mcpSharedSecret: URL {
+        applicationSupport.appendingPathComponent(".mcp-secret")
+    }
 }

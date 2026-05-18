@@ -40,6 +40,15 @@ public struct MCPPendingRequest: Codable, Equatable, Identifiable {
     /// lockout"). Nil on approval and on pending requests.
     public var denialReason: String?
 
+    /// Hex-encoded HMAC-SHA256 produced by ``MCPRequestSigner``. Present
+    /// on requests written by `curfew-mcp`; absent on legacy entries or
+    /// payloads written by other tools. The app treats absent/invalid
+    /// signatures as "do not auto-approve" — they still flow to the
+    /// consent sheet so the user can decide explicitly. Storing the
+    /// signature on the wire alongside the request keeps the writer and
+    /// the verifier symmetric without a side-channel.
+    public var signature: String?
+
     /// Creates a new pending request in the initial `.pending` status.
     /// `id` and `requestedAt` default to fresh values; tests override them
     /// for deterministic comparison. `resolvedAt` / `denialReason` start
@@ -48,12 +57,14 @@ public struct MCPPendingRequest: Codable, Equatable, Identifiable {
         id: UUID = UUID(),
         tool: MCPWriteTool,
         argumentsJSON: String,
-        requestedAt: Date = Date()
+        requestedAt: Date = Date(),
+        signature: String? = nil
     ) {
         self.id = id
         self.tool = tool
         self.argumentsJSON = argumentsJSON
         self.requestedAt = requestedAt
+        self.signature = signature
         self.status = .pending
         self.resolvedAt = nil
         self.denialReason = nil

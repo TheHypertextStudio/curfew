@@ -166,6 +166,11 @@ extension CurfewAppModel {
     /// against impulsive overrides and applies only in-app. The MCP tool
     /// surface no longer advertises `request_override`; this guard catches
     /// legacy entries left in the queue file from older builds.
+    ///
+    /// Unsigned or signature-invalid requests are routed to the consent
+    /// sheet even under `.autoApprove`, closing the bypass surface where a
+    /// rogue user-process could append a forged request and have the app
+    /// approve it silently.
     func handleNewMCPRequests(_ requests: [MCPPendingRequest]) {
         for request in requests {
             if request.tool == .requestOverride {
@@ -175,7 +180,8 @@ extension CurfewAppModel {
                 )
                 continue
             }
-            switch aiConsentPolicy {
+            let policy = effectiveConsentPolicy(for: request)
+            switch policy {
             case .autoApprove:
                 approveMCPRequest(request)
             case .deny:
@@ -186,6 +192,18 @@ extension CurfewAppModel {
                 }
             }
         }
+    }
+
+    /// Returns the effective policy for `request` after applying signature
+    /// verification: a missing or invalid signature downgrades
+    /// `.autoApprove` to `.queue` so the consent sheet always shows for
+    /// requests we can't authenticate. Signed-and-valid requests honor
+    /// the user's configured policy unchanged.
+    private func effectiveConsentPolicy(for request: MCPPendingRequest) -> AIConsentPolicy {
+        guard aiConsentPolicy == .autoApprove else {
+            return aiConsentPolicy
+        }
+        return MCPRequestSigner.verify(request) ? .autoApprove : .queue
     }
 
     /// Approves the given MCP request, applies the action, and updates the

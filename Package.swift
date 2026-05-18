@@ -72,6 +72,7 @@ let package = Package(
                 // MCP queue
                 "Curfew/App/MCP/MCPPendingRequest.swift",
                 "Curfew/App/MCP/MCPRequestQueue.swift",
+                "Curfew/App/MCP/MCPRequestSigner.swift",
                 // Utilities (CLI/MCP helpers, not compiled into the app)
                 "Sources/CurfewKit/Utilities.swift",
                 "Sources/CurfewKit/CopyDeck.swift",

@@ -226,7 +226,8 @@ private let requestExtensionTool = MCPTool(
     call: { arguments in
         let reason = arguments["reason"] as? String ?? ""
         let argsJSON = encodeArguments(["reason": reason])
-        let request = MCPPendingRequest(tool: .requestExtension, argumentsJSON: argsJSON)
+        var request = MCPPendingRequest(tool: .requestExtension, argumentsJSON: argsJSON)
+        request.signature = MCPRequestSigner.sign(request)
         do {
             _ = try MCPSocketClient.send(request)
         } catch {
@@ -433,7 +434,8 @@ private let setScheduleTool = MCPTool(
         }
 
         let argsJSON = encodeArguments(argsDict)
-        let request = MCPPendingRequest(tool: .setSchedule, argumentsJSON: argsJSON)
+        var request = MCPPendingRequest(tool: .setSchedule, argumentsJSON: argsJSON)
+        request.signature = MCPRequestSigner.sign(request)
         do {
             _ = try MCPSocketClient.send(request)
         } catch {
