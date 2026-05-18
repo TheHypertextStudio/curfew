@@ -86,24 +86,177 @@ struct LifecycleWiringTests {
         #expect(model.licenseGate.isProUnlocked)
     }
 
+    @Test("Tick refreshes isAccessibilityTrusted from the injected checker")
+    func tickRefreshesAccessibilityTrust() {
+        let trust = StubAccessibilityTrust(isProcessTrusted: false)
+        let model = makeModel(
+            featureFlags: .default,
+            activityRecorder: NullActivityRecording(),
+            idleSource: StubIdleSource(seconds: 0),
+            accessibilityTrust: trust,
+            setupComplete: true
+        )
+
+        #expect(!model.isAccessibilityTrusted)
+
+        trust.isProcessTrusted = true
+        model.tick()
+        #expect(model.isAccessibilityTrusted)
+
+        trust.isProcessTrusted = false
+        model.tick()
+        #expect(!model.isAccessibilityTrusted)
+    }
+
+    @Test("start() installs the respawn guard so killed Curfew respawns under lockout")
+    func startInstallsRespawnGuard() {
+        let respawnGuard = RecordingRespawnGuard()
+        let model = makeModel(
+            featureFlags: .default,
+            activityRecorder: NullActivityRecording(),
+            idleSource: StubIdleSource(seconds: 0),
+            respawnGuard: respawnGuard,
+            setupComplete: true
+        )
+
+        #expect(respawnGuard.callLog.isEmpty)
+        model.start()
+
+        // `start()` is idempotent — call twice and we still install exactly
+        // once. Re-installing on every relaunch is fine because launchctl
+        // load is idempotent at the system level, but the model must not
+        // hammer launchctl when callers repeat `start()` themselves.
+        model.start()
+
+        #expect(respawnGuard.callLog == ["install"])
+    }
+
+    @Test("Weaker pending schedule change is held back during active lockout")
+    func weakerPendingScheduleDeferredDuringLockout() {
+        let model = makeModel(
+            featureFlags: .default,
+            activityRecorder: NullActivityRecording(),
+            idleSource: StubIdleSource(seconds: 0),
+            setupComplete: true
+        )
+
+        // Force the model into a locked phase by configuring a schedule
+        // that locks the whole current day, then ticking so the engine
+        // computes `.locked`.
+        var schedule = WeeklySchedule.standardNineToFive
+        for weekday in Weekday.allCases {
+            schedule.rules[weekday] = DayRule(
+                isDayOff: false,
+                lockMinutes: 0,
+                unlockMinutes: 1439
+            )
+        }
+        model.settings.schedule = schedule
+        model.start()
+        #expect(model.state.phase == .locked)
+
+        // Queue a weaker pending change whose effectiveAt is already past.
+        // Without the C7 guard the next tick would swap the schedule in
+        // mid-lockout and the engine would drop straight to .working.
+        var weaker = schedule
+        for weekday in Weekday.allCases {
+            weaker.rules[weekday] = DayRule(
+                isDayOff: true,
+                lockMinutes: 0,
+                unlockMinutes: 0
+            )
+        }
+        let past = Date().addingTimeInterval(-60)
+        model.settings.pendingScheduleChange = PendingScheduleChange(
+            proposedSchedule: weaker,
+            requestedAt: past,
+            effectiveAt: past,
+            classification: .weaker
+        )
+
+        model.tick()
+
+        // Pending change must still be present and lockout must hold.
+        #expect(model.settings.pendingScheduleChange != nil)
+        #expect(model.state.phase == .locked)
+    }
+
+    @Test("Locked-phase transitions arm and disarm the respawn guard")
+    func lockedPhaseArmsAndDisarmsGuard() {
+        let respawnGuard = RecordingRespawnGuard()
+        let model = makeModel(
+            featureFlags: .default,
+            activityRecorder: NullActivityRecording(),
+            idleSource: StubIdleSource(seconds: 0),
+            respawnGuard: respawnGuard,
+            setupComplete: true
+        )
+        // Set up a schedule that locks the entire current day so the
+        // engine's evaluation reliably returns `.locked` regardless of
+        // wall-clock time. lockMinutes = 0 means "lock at midnight";
+        // unlockMinutes = 1439 means "unlock one minute before next
+        // midnight". `start()` then drives the tick and the engine.
+        var schedule = WeeklySchedule.standardNineToFive
+        for weekday in Weekday.allCases {
+            schedule.rules[weekday] = DayRule(
+                isDayOff: false,
+                lockMinutes: 0,
+                unlockMinutes: 1439
+            )
+        }
+        model.settings.schedule = schedule
+
+        model.start()
+        #expect(model.state.phase == .locked)
+        #expect(respawnGuard.callLog.contains("arm"))
+
+        // Flip the schedule to .dayOff for every day; tick() will see the
+        // phase fall back to .dayOff and disarm fires once.
+        var dayOff = WeeklySchedule.standardNineToFive
+        for weekday in Weekday.allCases {
+            dayOff.rules[weekday] = DayRule(
+                isDayOff: true,
+                lockMinutes: 0,
+                unlockMinutes: 0
+            )
+        }
+        model.settings.schedule = dayOff
+        model.tick()
+        #expect(model.state.phase == .dayOff)
+        #expect(respawnGuard.callLog.contains("disarm"))
+    }
+
     // MARK: - Helpers
 
     private func makeModel(
         featureFlags: FeatureFlags,
         activityRecorder: any ActivityRecording,
-        idleSource: IdleTimeSource
+        idleSource: IdleTimeSource,
+        respawnGuard: any RespawnGuardControlling = NoOpRespawnGuard(),
+        accessibilityTrust: any AccessibilityTrustChecking = StubAccessibilityTrust(
+            isProcessTrusted: true
+        ),
+        setupComplete: Bool = false
     ) -> CurfewAppModel {
         let suite = "studio.hypertext.curfew.tests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite) ?? .standard
         defaults.removePersistentDomain(forName: suite)
         let watcher = IdleWatcher(source: idleSource, idleThresholdSeconds: 300)
+        let store = CurfewSettingsStore(defaults: defaults)
+        if setupComplete {
+            var settings = CurfewSettings.default
+            settings.hasCompletedInitialSetup = true
+            store.save(settings)
+        }
         return CurfewAppModel(
-            settingsStore: CurfewSettingsStore(defaults: defaults),
+            settingsStore: store,
             appRouter: AppRouterSpy(),
             gettingStartedPresenter: GettingStartedPresenterSpy(),
             featureFlags: featureFlags,
             activityRecorder: activityRecorder,
-            idleWatcher: watcher
+            idleWatcher: watcher,
+            respawnGuard: respawnGuard,
+            accessibilityTrust: accessibilityTrust
         )
     }
 }

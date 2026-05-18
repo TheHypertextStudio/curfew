@@ -62,6 +62,91 @@ struct SchedulePolicyEngineTests {
         let classification = engine.classifyChange(from: current, to: proposed)
         #expect(classification == .stricter)
     }
+
+    @Test("Mode flip from .time to .hours is classified as weaker")
+    func modeFlipTimeToHoursIsWeaker() {
+        let engine = SchedulePolicyEngine()
+        let current = WeeklySchedule.standardNineToFive
+        var proposed = current
+        proposed.rules[.monday] = DayRule(
+            isDayOff: false,
+            lockMinutes: 18 * 60,
+            unlockMinutes: 8 * 60,
+            mode: .hours,
+            hoursLimitMinutes: 12 * 60
+        )
+
+        // This is the bypass repro from the C5 audit finding: a user at
+        // T-10 minutes flips to .hours mode with a fresh 12-hour budget
+        // and immediately escapes the wall-clock deadline. The engine
+        // must classify this as .weaker so the 24-hour cooldown applies.
+        let classification = engine.classifyChange(from: current, to: proposed)
+        #expect(classification == .weaker)
+    }
+
+    @Test("Mode flip from .time to .combined is classified as weaker (defensive)")
+    func modeFlipTimeToCombinedIsWeaker() {
+        let engine = SchedulePolicyEngine()
+        let current = WeeklySchedule.standardNineToFive
+        var proposed = current
+        proposed.rules[.monday] = DayRule(
+            isDayOff: false,
+            lockMinutes: 18 * 60,
+            unlockMinutes: 8 * 60,
+            mode: .combined,
+            hoursLimitMinutes: 8 * 60
+        )
+
+        // Combined mode is strictly stricter than .time alone in steady
+        // state (it adds an hours deadline) — but the classifier is
+        // defensive: any mode change forces a cooldown because effective
+        // strictness depends on runtime `worked` and cannot be evaluated
+        // statically. Users get the 24-hour wait for genuine upgrades.
+        let classification = engine.classifyChange(from: current, to: proposed)
+        #expect(classification == .weaker)
+    }
+
+    @Test("Hours-limit increase within same mode is weaker")
+    func hoursLimitIncreaseIsWeaker() {
+        let engine = SchedulePolicyEngine()
+        var current = WeeklySchedule.standardNineToFive
+        for weekday in Weekday.allCases {
+            if current.rule(for: weekday).isDayOff { continue }
+            current.rules[weekday] = DayRule(
+                isDayOff: false,
+                lockMinutes: 18 * 60,
+                unlockMinutes: 8 * 60,
+                mode: .hours,
+                hoursLimitMinutes: 8 * 60
+            )
+        }
+        var proposed = current
+        proposed.rules[.monday]?.hoursLimitMinutes = 12 * 60
+
+        let classification = engine.classifyChange(from: current, to: proposed)
+        #expect(classification == .weaker)
+    }
+
+    @Test("Hours-limit decrease within same mode is stricter")
+    func hoursLimitDecreaseIsStricter() {
+        let engine = SchedulePolicyEngine()
+        var current = WeeklySchedule.standardNineToFive
+        for weekday in Weekday.allCases {
+            if current.rule(for: weekday).isDayOff { continue }
+            current.rules[weekday] = DayRule(
+                isDayOff: false,
+                lockMinutes: 18 * 60,
+                unlockMinutes: 8 * 60,
+                mode: .hours,
+                hoursLimitMinutes: 10 * 60
+            )
+        }
+        var proposed = current
+        proposed.rules[.monday]?.hoursLimitMinutes = 6 * 60
+
+        let classification = engine.classifyChange(from: current, to: proposed)
+        #expect(classification == .stricter)
+    }
 }
 
 struct ScheduleResolutionTests {

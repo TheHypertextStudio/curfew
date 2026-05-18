@@ -45,6 +45,51 @@ final class GettingStartedPresenterSpy: GettingStartedPresenting {
     }
 }
 
+/// `AccessibilityTrustChecking` stub that returns a caller-set value so
+/// tests can verify the model's `isAccessibilityTrusted` publishes the
+/// expected state without depending on system AX state.
+final class StubAccessibilityTrust: AccessibilityTrustChecking {
+    var isProcessTrusted: Bool
+
+    init(isProcessTrusted: Bool) {
+        self.isProcessTrusted = isProcessTrusted
+    }
+}
+
+/// `RespawnGuardControlling` spy that records install / arm / disarm
+/// invocations so tests can assert the model wires the user-space respawn
+/// deterrent at the expected lifecycle points without touching real
+/// `launchctl` state.
+final class RecordingRespawnGuard: RespawnGuardControlling {
+    /// Ordered method-name log, e.g. `["install", "arm", "disarm"]`.
+    private(set) var callLog: [String] = []
+    /// Optional error each subsequent `install` call should throw. When
+    /// non-empty, the head of the queue is dequeued; empty means succeed.
+    var installErrors: [Error] = []
+
+    /// Default init for use in test scopes; `nonisolated` to mirror the
+    /// pattern used by other test spies that can be constructed off-actor.
+    init() {}
+
+    func install() throws {
+        callLog.append("install")
+        guard !installErrors.isEmpty else { return }
+        throw installErrors.removeFirst()
+    }
+
+    func uninstall() throws {
+        callLog.append("uninstall")
+    }
+
+    func arm() throws {
+        callLog.append("arm")
+    }
+
+    func disarm() throws {
+        callLog.append("disarm")
+    }
+}
+
 /// `ShutdownControlling` spy for driving `ShutdownWorkflow` through its
 /// state machine without telling macOS to actually shut down.
 ///

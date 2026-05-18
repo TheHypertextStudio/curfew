@@ -39,8 +39,11 @@ struct AppCoordinator: AppCoordinating {
 /// Policy for whether the app arms enforcement on launch. Debug builds
 /// stay disarmed unless explicitly opted in via `CURFEW_ENABLE_ENFORCEMENT=1`
 /// so development doesn't accidentally lock the developer out. Release
-/// builds arm unless opted out via `CURFEW_SKIP_ENFORCEMENT=1` (useful
-/// for CI notarization smoke tests).
+/// builds always arm — `CURFEW_SKIP_ENFORCEMENT=1` is honored only in
+/// Debug. Once a binary is notarised and distributed, a user-controllable
+/// env var must not be able to disable the lockout: that would be a
+/// trivial bypass. CI smoke tests that need to launch without enforcement
+/// use Debug builds (or a dedicated launch argument the harness controls).
 enum CurfewLaunchBehavior {
     /// Returns `true` when enforcement should arm at launch given the
     /// current environment and build configuration.
@@ -51,7 +54,7 @@ enum CurfewLaunchBehavior {
         if isDebugBuild {
             return environment["CURFEW_ENABLE_ENFORCEMENT"] == "1"
         }
-        return environment["CURFEW_SKIP_ENFORCEMENT"] != "1"
+        return true
     }
 }
 

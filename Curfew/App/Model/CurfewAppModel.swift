@@ -122,6 +122,12 @@ final class CurfewAppModel: NSObject, ObservableObject {
     /// so tests can assert the sequence without telling the OS to power off.
     let shutdownController: ShutdownControlling
 
+    /// Respawn deterrent (``PersistentLockdown``); installed in `start()`,
+    /// armed/disarmed on lockout transitions.
+    let respawnGuard: any RespawnGuardControlling
+    /// Trust probe driving ``isAccessibilityTrusted``; read each tick.
+    let accessibilityTrust: any AccessibilityTrustChecking
+
     /// Abstraction over "activate + show Settings". Tests substitute a spy.
     let appRouter: AppRouting
 
@@ -204,6 +210,10 @@ final class CurfewAppModel: NSObject, ObservableObject {
     /// non-`@Published` collaborator.
     @Published private(set) var isUserIdle = false
 
+    /// Whether the host holds Accessibility trust for the CGEventTap that
+    /// blocks bypass keys. Polled each tick; UI banner reads this.
+    @Published private(set) var isAccessibilityTrusted: Bool
+
     /// Memoisation cache for ``thisWeekRollup()``. Invalidated on week
     /// boundary advance or activity-recorder mutation.
     var cachedThisWeekKey: ThisWeekCacheKey?
@@ -255,7 +265,9 @@ final class CurfewAppModel: NSObject, ObservableObject {
         cloudKitSyncEngine: CloudKitSyncEngine = CloudKitSyncEngine(),
         calendarMonitor: CalendarMonitor = CalendarMonitor(),
         privilegedHelperManager: PrivilegedHelperManager = PrivilegedHelperManager(),
-        idleWatcher: IdleWatcher = IdleWatcher(source: CGEventSourceIdleSource())
+        idleWatcher: IdleWatcher = IdleWatcher(source: CGEventSourceIdleSource()),
+        respawnGuard: any RespawnGuardControlling = NoOpRespawnGuard(),
+        accessibilityTrust: any AccessibilityTrustChecking = SystemAccessibilityTrust()
     ) {
         self.settingsStore = settingsStore
         self.policyEngine = SchedulePolicyEngine()
@@ -276,6 +288,9 @@ final class CurfewAppModel: NSObject, ObservableObject {
         self.calendarMonitor = calendarMonitor
         self.privilegedHelperManager = privilegedHelperManager
         self.idleWatcher = idleWatcher
+        self.respawnGuard = respawnGuard
+        self.accessibilityTrust = accessibilityTrust
+        self.isAccessibilityTrusted = accessibilityTrust.isProcessTrusted
 
         let loadedSettings = settingsStore.load()
         self.settings = loadedSettings
@@ -311,12 +326,20 @@ final class CurfewAppModel: NSObject, ObservableObject {
 
     /// Zero-arg convenience used by `CurfewApp` at production launch. All
     /// collaborators resolve to their `System*` defaults. Kept in the main
-    /// class body because Swift forbids `override` in extensions.
+    /// class body because Swift forbids `override` in extensions. The
+    /// real ``PersistentLockdown`` wires up in Release; Debug uses
+    /// `NoOpRespawnGuard` so Xcode runs don't churn launchd state.
     override convenience init() {
+        #if DEBUG
+            let respawnGuard: any RespawnGuardControlling = NoOpRespawnGuard()
+        #else
+            let respawnGuard: any RespawnGuardControlling = PersistentLockdown.production()
+        #endif
         self.init(
             settingsStore: CurfewSettingsStore(),
             appRouter: SystemAppRouter(),
-            gettingStartedPresenter: GettingStartedWindowPresenter()
+            gettingStartedPresenter: GettingStartedWindowPresenter(),
+            respawnGuard: respawnGuard
         )
     }
 
@@ -326,6 +349,7 @@ final class CurfewAppModel: NSObject, ObservableObject {
         guard settings.hasCompletedInitialSetup, !started else { return }
         started = true
         notificationManager.requestPermissionIfNeeded()
+        installRespawnGuardIfNeeded()
         tick()
         timer = Timer.scheduledTimer(
             timeInterval: 1,
@@ -343,6 +367,11 @@ final class CurfewAppModel: NSObject, ObservableObject {
 
     func setIdleState(_ idle: Bool) {
         isUserIdle = idle
+    }
+
+    /// `private(set)` writer for ``isAccessibilityTrusted``.
+    func setAccessibilityTrusted(_ trusted: Bool) {
+        isAccessibilityTrusted = trusted
     }
 
     /// Timer-target bridge. Swift `Timer` requires a `@objc` selector, and

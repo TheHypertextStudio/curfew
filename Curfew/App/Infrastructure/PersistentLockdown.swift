@@ -45,6 +45,42 @@ enum PersistentLockdownError: Error, Equatable {
     case launchctlFailed(arguments: [String], status: Int32)
 }
 
+/// Abstracts the user-space respawn-on-kill deterrent so the app model can
+/// drive install / arm / disarm against either ``PersistentLockdown``
+/// (production) or ``NoOpRespawnGuard`` (debug builds and unit tests).
+///
+/// The seam matches the shape of ``ShutdownControlling`` so the model can
+/// inject test doubles using the same convenience-init pattern.
+protocol RespawnGuardControlling: AnyObject {
+    /// Writes the plist and loads the LaunchAgent. Idempotent.
+    func install() throws
+
+    /// Unloads the LaunchAgent and removes the plist. Safe to call when not
+    /// installed.
+    func uninstall() throws
+
+    /// Creates the trigger file so launchd respawns the app on exit. Called
+    /// on ``EnforcementPhase/locked`` entry.
+    func arm() throws
+
+    /// Removes the trigger file so launchd stops respawning. Called on
+    /// ``EnforcementPhase/locked`` exit.
+    func disarm() throws
+}
+
+/// Null-object conformer used by debug builds (so launchd state isn't
+/// polluted on every developer run) and by tests that don't exercise the
+/// respawn deterrent. All methods are no-ops.
+final class NoOpRespawnGuard: RespawnGuardControlling {
+    /// Public init so tests and the debug-build path can construct one
+    /// without going through a factory.
+    init() {}
+    func install() throws {}
+    func uninstall() throws {}
+    func arm() throws {}
+    func disarm() throws {}
+}
+
 /// User-space bypass deterrent: installs a `LaunchAgent` whose
 /// `KeepAlive.PathState` watches a trigger file. When the file exists
 /// (lockout is active) launchd ensures Curfew stays running; if the
@@ -62,7 +98,7 @@ enum PersistentLockdownError: Error, Equatable {
 /// kill must explicitly opt in. Debug builds should never install —
 /// launchd respawning a debugger-attached process is painful.
 @MainActor
-final class PersistentLockdown {
+final class PersistentLockdown: RespawnGuardControlling {
     /// `Label` used in the generated plist and as the plist filename.
     /// Kept stable across versions — changing it would leave stale
     /// agents registered under the old label on upgraded installs.
@@ -104,6 +140,34 @@ final class PersistentLockdown {
         self.triggerPath = triggerPath
         self.curfewExecutableURL = curfewExecutableURL
         self.launchctl = launchctl
+    }
+
+    /// Production factory: wires the user's `~/Library/LaunchAgents`, the
+    /// app's shared support directory for the trigger file, and the running
+    /// bundle's executable URL. Used by ``CurfewAppModel``'s zero-arg
+    /// convenience init in Release builds; Debug builds use
+    /// ``NoOpRespawnGuard`` instead so a developer running the app from
+    /// Xcode doesn't pollute launchd state.
+    ///
+    /// `Bundle.main.executableURL` is the safe source for the path that
+    /// will be respawned — it's the binary the user is already running,
+    /// not derived from any user-tainted input.
+    static func production() -> PersistentLockdown {
+        let home = FileManager.default.homeDirectoryForCurrentUser
+        let launchAgents = home.appendingPathComponent(
+            "Library/LaunchAgents",
+            isDirectory: true
+        )
+        let trigger = SharedPaths.applicationSupport.appendingPathComponent(
+            "respawn-trigger"
+        )
+        let executable = Bundle.main.executableURL
+            ?? URL(fileURLWithPath: "/Applications/Curfew.app/Contents/MacOS/Curfew")
+        return PersistentLockdown(
+            launchAgentsDirectory: launchAgents,
+            triggerPath: trigger,
+            curfewExecutableURL: executable
+        )
     }
 
     /// Writes the plist and asks launchd to load it. Idempotent —

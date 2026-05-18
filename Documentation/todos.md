@@ -218,6 +218,16 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 - [ ] Homebrew Cask. (v0.2)
 - [-] Sparkle autoupdate scaffolding present; framework wiring + signed appcast flow still pending. (v0.2)
 
+## 17.5 Phase 1 audit hotfix (v0.1.x)
+
+Closes trivial-bypass findings from the 2026-05-18 enforcement audit.
+
+- [x] **C1** — `CURFEW_SKIP_ENFORCEMENT` is honored only in Debug; Release always arms.
+- [x] **C2** — `PersistentLockdown` (respawn LaunchAgent) auto-installs in Release builds via the new `RespawnGuardControlling` seam; Debug uses `NoOpRespawnGuard`.
+- [x] **C5** — `SchedulePolicyEngine.classifyChange` now covers `mode` and `hoursLimitMinutes`; mode flips and hours-budget bumps trigger the 24-hour cooldown.
+- [x] **C7** — `applyPendingScheduleIfNeeded` defers `.weaker` pending changes during active lockout so the cooldown can't be waited out into a future lockout.
+- [x] **M3** — Accessibility-trust state is polled each tick and surfaced as a banner on the Overview pane with a deep link to System Settings.
+
 ## 18. Verification (v0.1 release candidate)
 
 - [x] `just check` passes (format + lint + tests + Debug build).

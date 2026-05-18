@@ -1,6 +1,7 @@
 import Combine
 import EventKit
 import Foundation
+import OSLog
 import UserNotifications
 import WidgetKit
 
@@ -36,6 +37,16 @@ extension CurfewAppModel {
         // before the engine runs. `sample()` fires `onIdleStateChanged`
         // only on transitions, so 1 Hz polling costs one CGEventSource read.
         idleWatcher.sample()
+
+        // Refresh the Accessibility-trust banner state. Polling once per
+        // tick keeps the UI live: when the user grants the permission in
+        // System Settings the banner clears within a second without the
+        // app needing a foreground notification subscription. Equality
+        // guard prevents `objectWillChange` churn when the value is stable.
+        let trusted = accessibilityTrust.isProcessTrusted
+        if isAccessibilityTrusted != trusted {
+            setAccessibilityTrusted(trusted)
+        }
 
         if Self.dayToken(for: currentTime) != currentDayToken {
             handleDayRollover(to: Self.dayToken(for: currentTime))
@@ -116,6 +127,7 @@ extension CurfewAppModel {
                 LockoutStatePersistence.markLockoutInactive()
             }
         }
+        toggleRespawnGuardIfPhaseChanged(previousPhase: previousPhase)
     }
 
     /// Fires one notification per event when a calendar event starts
@@ -186,50 +198,6 @@ extension CurfewAppModel {
         } else {
             isOverrideComposerVisible = false
         }
-    }
-
-    /// Classifies `proposedSchedule` against the live one and persists
-    /// the result as a `PendingScheduleChange` stamped with the earliest
-    /// legal effective date. Also MCP's `curfew.set_schedule` entry
-    /// point — shared path means shared anti-bypass semantics.
-    func queueScheduleUpdate(_ proposedSchedule: WeeklySchedule) {
-        let classification = policyEngine.classifyChange(
-            from: settings.schedule,
-            to: proposedSchedule
-        )
-        if classification == .noChange {
-            settings.pendingScheduleChange = nil
-            persistSettings()
-            tick()
-            return
-        }
-
-        let effectiveDate = policyEngine.earliestEffectiveDate(
-            for: classification,
-            requestedAt: currentTime
-        )
-        settings.pendingScheduleChange = PendingScheduleChange(
-            proposedSchedule: proposedSchedule,
-            requestedAt: currentTime,
-            effectiveAt: effectiveDate,
-            classification: classification
-        )
-        persistSettings()
-        tick()
-    }
-
-    /// Swaps in any `PendingScheduleChange` whose `effectiveAt` has
-    /// arrived. Called once per tick before the engine runs.
-    func applyPendingScheduleIfNeeded(now: Date) {
-        guard let pending = settings.pendingScheduleChange else {
-            return
-        }
-        guard now >= pending.effectiveAt else {
-            return
-        }
-        settings.schedule = pending.proposedSchedule
-        settings.pendingScheduleChange = nil
-        persistSettings()
     }
 
     /// Writes the current settings to the store. Separate from call

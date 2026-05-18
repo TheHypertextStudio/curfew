@@ -43,10 +43,20 @@ public struct SchedulePolicyEngine {
 
     /// Compares `current` and `proposed` day-by-day and returns the
     /// strictest applicable classification. Any single day that loosens the
-    /// schedule (later lock, earlier unlock, enforcement turned off)
-    /// immediately returns ``ScheduleChangeClassification/weaker``; otherwise
-    /// a day that tightens the schedule sets a `.stricter` flag. Returns
+    /// schedule (later lock, earlier unlock, enforcement turned off, mode
+    /// change, or higher hours budget) immediately returns
+    /// ``ScheduleChangeClassification/weaker``; otherwise a day that
+    /// tightens the schedule sets a `.stricter` flag. Returns
     /// ``ScheduleChangeClassification/noChange`` when every day is unchanged.
+    ///
+    /// Mode and `hoursLimitMinutes` comparisons are intentionally
+    /// conservative: any mode transition (`.time` ↔ `.hours`, either to or
+    /// from `.combined`) defaults to `.weaker` even when the new mode is
+    /// objectively stricter, because effective strictness depends on the
+    /// runtime `worked` count which cannot be evaluated at classification
+    /// time. The user can wait out the 24-hour cooldown for genuine
+    /// strictness upgrades; the price of conservatism is preferable to a
+    /// classifier that lets a mode-flip slip past the anti-bypass gate.
     public func classifyChange(
         from current: WeeklySchedule,
         to proposed: WeeklySchedule
@@ -54,36 +64,82 @@ public struct SchedulePolicyEngine {
         var hasStricterSignal = false
 
         for weekday in Weekday.allCases {
-            let currentRule = current.rule(for: weekday)
-            let proposedRule = proposed.rule(for: weekday)
-
-            if !currentRule.isDayOff, proposedRule.isDayOff {
+            switch classifyDay(
+                current: current.rule(for: weekday),
+                proposed: proposed.rule(for: weekday)
+            ) {
+            case .weaker:
                 return .weaker
-            }
-            if currentRule.isDayOff, !proposedRule.isDayOff {
+            case .stricter:
                 hasStricterSignal = true
+            case .noChange:
                 continue
-            }
-            if currentRule.isDayOff, proposedRule.isDayOff {
-                continue
-            }
-
-            if proposedRule.lockMinutes > currentRule.lockMinutes {
-                return .weaker
-            }
-            if proposedRule.lockMinutes < currentRule.lockMinutes {
-                hasStricterSignal = true
-            }
-
-            if proposedRule.unlockMinutes < currentRule.unlockMinutes {
-                return .weaker
-            }
-            if proposedRule.unlockMinutes > currentRule.unlockMinutes {
-                hasStricterSignal = true
             }
         }
 
         return hasStricterSignal ? .stricter : .noChange
+    }
+
+    /// Returns the classification for a single day's rule pair. Folds the
+    /// per-day comparisons (day-off toggle, lock/unlock minutes, mode,
+    /// hours limit) into one function so the outer loop stays linear and
+    /// the cyclomatic complexity per function stays within budget.
+    private func classifyDay(
+        current: DayRule,
+        proposed: DayRule
+    ) -> ScheduleChangeClassification {
+        // Day-off toggling short-circuits the rest of the rule comparison.
+        if !current.isDayOff, proposed.isDayOff {
+            return .weaker
+        }
+        if current.isDayOff, !proposed.isDayOff {
+            return .stricter
+        }
+        if current.isDayOff, proposed.isDayOff {
+            return .noChange
+        }
+
+        if let clockSignal = classifyClockTimes(current: current, proposed: proposed) {
+            return clockSignal
+        }
+        return classifyModeAndHours(current: current, proposed: proposed)
+    }
+
+    /// Per-day comparison of `lockMinutes` and `unlockMinutes`. Returns
+    /// `.weaker` on any loosening, `.stricter` on any tightening (when no
+    /// loosening also present), and `nil` when neither field changed so
+    /// the caller can continue with mode/hours checks.
+    private func classifyClockTimes(
+        current: DayRule,
+        proposed: DayRule
+    ) -> ScheduleChangeClassification? {
+        var stricter = false
+        if proposed.lockMinutes > current.lockMinutes { return .weaker }
+        if proposed.lockMinutes < current.lockMinutes { stricter = true }
+        if proposed.unlockMinutes < current.unlockMinutes { return .weaker }
+        if proposed.unlockMinutes > current.unlockMinutes { stricter = true }
+        return stricter ? .stricter : nil
+    }
+
+    /// Per-day comparison of `mode` and `hoursLimitMinutes`. Any mode
+    /// change is `.weaker` by default — see `classifyChange` docstring
+    /// for the conservatism rationale. When mode is unchanged and uses
+    /// the hours budget, the limit comparison decides.
+    private func classifyModeAndHours(
+        current: DayRule,
+        proposed: DayRule
+    ) -> ScheduleChangeClassification {
+        if proposed.mode != current.mode {
+            return .weaker
+        }
+        if proposed.mode == .time {
+            return .noChange
+        }
+        let currentLimit = current.hoursLimitMinutes ?? 0
+        let proposedLimit = proposed.hoursLimitMinutes ?? 0
+        if proposedLimit > currentLimit { return .weaker }
+        if proposedLimit < currentLimit { return .stricter }
+        return .noChange
     }
 
     /// Returns the earliest `Date` at which `change` may be applied.

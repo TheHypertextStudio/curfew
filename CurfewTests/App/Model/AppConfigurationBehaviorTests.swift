@@ -39,12 +39,23 @@ struct LaunchBehaviorTests {
         )
     }
 
-    @Test("Release launches arm enforcement unless explicitly skipped")
+    @Test("Release launches always arm enforcement; CURFEW_SKIP_ENFORCEMENT is Debug-only")
     func releaseLaunchStartsByDefault() {
         #expect(CurfewLaunchBehavior.shouldStartEnforcement(environment: [:], isDebugBuild: false))
+        // Release ignores CURFEW_SKIP_ENFORCEMENT — a user-controllable env var
+        // must not disable enforcement once the binary has been notarised and
+        // distributed. The variable is honored only in Debug builds for local
+        // development. CI smoke tests use Debug builds or a dedicated launch
+        // argument outside the env-var surface.
         #expect(
-            !CurfewLaunchBehavior.shouldStartEnforcement(
+            CurfewLaunchBehavior.shouldStartEnforcement(
                 environment: ["CURFEW_SKIP_ENFORCEMENT": "1"],
+                isDebugBuild: false
+            )
+        )
+        #expect(
+            CurfewLaunchBehavior.shouldStartEnforcement(
+                environment: ["CURFEW_ENABLE_ENFORCEMENT": "0"],
                 isDebugBuild: false
             )
         )

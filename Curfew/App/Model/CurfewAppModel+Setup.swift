@@ -9,18 +9,25 @@ extension CurfewAppModel {
     /// onboarding presenter; defaults everything else (including the
     /// activity recorder, which falls back to the null recording when the
     /// SQLite store cannot be opened).
+    ///
+    /// `respawnGuard` is plumbed through with a `NoOpRespawnGuard()`
+    /// default so production callers (`CurfewApp` zero-arg init) can
+    /// override it with the real ``PersistentLockdown`` while tests keep
+    /// the no-op behavior without changing their construction calls.
     convenience init(
         settingsStore: CurfewSettingsStore,
         appRouter: AppRouting,
         gettingStartedPresenter: GettingStartedPresenting,
-        featureFlags: FeatureFlags = .default
+        featureFlags: FeatureFlags = .default,
+        respawnGuard: any RespawnGuardControlling = NoOpRespawnGuard()
     ) {
         self.init(
             settingsStore: settingsStore,
             appRouter: appRouter,
             gettingStartedPresenter: gettingStartedPresenter,
             featureFlags: featureFlags,
-            activityRecorder: Self.defaultActivityRecording()
+            activityRecorder: Self.defaultActivityRecording(),
+            respawnGuard: respawnGuard
         )
     }
 

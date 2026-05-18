@@ -1,5 +1,33 @@
+import ApplicationServices
 import CoreGraphics
 import Foundation
+
+/// Reports whether the host process currently holds the Accessibility
+/// trust that `LockoutKeyInterceptor` needs to install its CGEventTap.
+///
+/// The protocol exists so tests can inject a stub instead of relying on
+/// the real `AXIsProcessTrustedWithOptions` call, which depends on
+/// system-wide state. Production code uses ``SystemAccessibilityTrust``;
+/// tests pass a recording stub via ``CurfewAppModel`` init.
+protocol AccessibilityTrustChecking {
+    /// `true` when this app is in the system's Accessibility allow-list.
+    /// Read on every tick so the UI banner updates within seconds of the
+    /// user toggling the permission in System Settings.
+    var isProcessTrusted: Bool { get }
+}
+
+/// Production conformer that wraps the AX trust API.
+///
+/// Pass `prompt: true` to the underlying API when the model wants the
+/// system to surface its own permission prompt; that's a destructive
+/// surface so we leave it `false` here and let the Getting Started flow
+/// drive the explicit prompt via `NSWorkspace.open`.
+struct SystemAccessibilityTrust: AccessibilityTrustChecking {
+    var isProcessTrusted: Bool {
+        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue(): false] as CFDictionary
+        return AXIsProcessTrustedWithOptions(options)
+    }
+}
 
 /// Pure-function policy for deciding whether a key event should be blocked
 /// while Curfew is in lockout.
