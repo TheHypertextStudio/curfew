@@ -99,11 +99,12 @@ public enum WarningStage: Equatable {
     /// No warning is active. The device is well within its working window.
     case none
 
-    /// T-30: first visible warning. Dim overlay appears; extension and snooze
-    /// buttons are enabled.
+    /// T-30: first warning — notification fires; extension and snooze
+    /// buttons are enabled. No dim overlay yet (overlay opacity = 0); the
+    /// visual ramp starts at T-5 to avoid early visual noise.
     case thirtyMinutes
 
-    /// T-15: second warning. Same affordances as T-30.
+    /// T-15: second warning. Same affordances as T-30; still no overlay.
     case fifteenMinutes
 
     /// T-5: urgency escalates. The floating countdown timer appears; overlay

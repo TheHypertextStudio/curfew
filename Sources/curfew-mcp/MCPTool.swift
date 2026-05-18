@@ -23,6 +23,12 @@ struct MCPTool {
 
     /// All tools registered in the server. Append new tools here; order
     /// determines the listing sent to the client.
+    ///
+    /// `request_override` is intentionally absent: override grants depend
+    /// on the in-app friction model (5-minute cooldown + 50-character
+    /// reason + 3-second confirm hold) which doesn't translate to a
+    /// remote channel. The audit's C6 finding details the bypass that
+    /// the previous surface created.
     static let all: [MCPTool] = [
         statusTool,
         scheduleTool,
@@ -31,7 +37,6 @@ struct MCPTool {
         timeRemainingTool,
         weeklySummaryTool,
         requestExtensionTool,
-        requestOverrideTool,
         setScheduleTool,
         requestStatusTool
     ]
@@ -236,47 +241,6 @@ private let requestExtensionTool = MCPTool(
     }
 )
 
-private let requestOverrideTool = MCPTool(
-    name: "curfew.request_override",
-    description: """
-    Queues a "Convince Me" override request. If approved by the user, Curfew \
-    temporarily suspends the lockout for the configured override duration \
-    (default 30 min). Requires a justification of at least 50 characters. \
-    Returns a request ID to poll with `curfew.request_status`.
-    """,
-    inputSchema: [
-        "type": "object",
-        "properties": [
-            "reason": [
-                "type": "string",
-                "description": "Justification for the override (min 50 characters)."
-            ]
-        ] as [String: Any],
-        "required": ["reason"]
-    ] as [String: Any],
-    call: { arguments in
-        let reason = arguments["reason"] as? String ?? ""
-        guard reason.count >= 50 else {
-            throw MCPToolError.invalidArgument(
-                "Override reason must be at least 50 characters (got \(reason.count))."
-            )
-        }
-        let argsJSON = encodeArguments(["reason": reason])
-        let request = MCPPendingRequest(tool: .requestOverride, argumentsJSON: argsJSON)
-        do {
-            _ = try MCPSocketClient.send(request)
-        } catch {
-            throw MCPToolError.queueUnavailable(
-                "Could not write to request queue: \(error.localizedDescription)"
-            )
-        }
-        return [textContent(
-            "Override request queued (ID: \(request.id.uuidString)).\n" +
-                "Open the Curfew app to review, or poll with curfew.request_status."
-        )]
-    }
-)
-
 // MARK: - New read tools (v0.2 spec §9.3)
 
 /// Compact structured equivalent of `curfew.status` for clients that want
@@ -408,8 +372,15 @@ private let setScheduleTool = MCPTool(
         "properties": [
             "weekday": [
                 "type": "string",
-                "enum": ["monday", "tuesday", "wednesday", "thursday",
-                         "friday", "saturday", "sunday"]
+                "enum": [
+                    "monday",
+                    "tuesday",
+                    "wednesday",
+                    "thursday",
+                    "friday",
+                    "saturday",
+                    "sunday"
+                ]
             ],
             "lock_time": [
                 "type": "string",

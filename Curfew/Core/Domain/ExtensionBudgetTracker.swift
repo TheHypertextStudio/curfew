@@ -26,21 +26,30 @@ public final class ExtensionBudgetTracker: @unchecked Sendable {
     /// Uses remaining this week. Decrements on ``requestExtension(at:)`` and
     /// resets to ``weeklyLimit`` when the reset boundary passes.
     public private(set) var remaining: Int
-    private var lastResetBoundary: Date?
+    /// Most recent reset boundary the tracker has observed. Exposed so the
+    /// app model can seed a fresh tracker with the previous one's boundary
+    /// when settings change mid-week, preventing a surprise reset on the
+    /// next tick.
+    public private(set) var lastResetBoundary: Date?
 
     /// Creates a tracker. Pass `calendar` to pin time-zone and DST
     /// behaviour; production uses the current calendar, tests pin UTC.
+    /// `seedLastResetBoundary` is the previous tracker's boundary when the
+    /// caller is reconstructing one (e.g. limit changed). Defaults to nil
+    /// so first-launch construction starts fresh.
     public init(
         weeklyLimit: Int,
         extensionMinutes: Int,
         resetWeekday: Weekday,
-        calendar: Calendar = .current
+        calendar: Calendar = .current,
+        seedLastResetBoundary: Date? = nil
     ) {
         self.weeklyLimit = max(0, weeklyLimit)
         self.extensionMinutes = max(1, extensionMinutes)
         self.resetWeekday = resetWeekday
         self.calendar = calendar
         self.remaining = max(0, weeklyLimit)
+        self.lastResetBoundary = seedLastResetBoundary
     }
 
     /// Attempts to consume one use from the budget. Calls ``resetIfNeeded(at:)``
@@ -62,9 +71,13 @@ public final class ExtensionBudgetTracker: @unchecked Sendable {
     /// Resets `remaining` to `weeklyLimit` when a new reset boundary has
     /// passed since the last recorded boundary. Called once per tick so the
     /// budget always resets at the start of the configured weekday even if no
-    /// requests are made.
+    /// requests are made. A nil boundary from
+    /// ``mostRecentResetBoundary(for:)`` is a no-op so pathological calendar
+    /// arithmetic can't surprise-reset the budget mid-week.
     public func resetIfNeeded(at date: Date) {
-        let currentBoundary = mostRecentResetBoundary(for: date)
+        guard let currentBoundary = mostRecentResetBoundary(for: date) else {
+            return
+        }
         if let lastResetBoundary {
             if currentBoundary > lastResetBoundary {
                 remaining = weeklyLimit
@@ -75,7 +88,13 @@ public final class ExtensionBudgetTracker: @unchecked Sendable {
         }
     }
 
-    private func mostRecentResetBoundary(for date: Date) -> Date {
+    /// Walks back through the last seven days looking for the configured
+    /// reset weekday. Returns `nil` when calendar arithmetic fails for the
+    /// entire week — extremely unlikely with a valid Gregorian calendar,
+    /// but treating "couldn't find a boundary" as a no-op (rather than
+    /// falling back to today) prevents the mid-week budget-restore bug
+    /// the M3 fallback used to allow.
+    private func mostRecentResetBoundary(for date: Date) -> Date? {
         let startOfToday = calendar.startOfDay(for: date)
         let targetWeekday = resetWeekday.rawValue
 
@@ -90,6 +109,6 @@ public final class ExtensionBudgetTracker: @unchecked Sendable {
             }
         }
 
-        return startOfToday
+        return nil
     }
 }

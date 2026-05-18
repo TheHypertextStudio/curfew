@@ -17,4 +17,38 @@ extension CurfewAppModel {
             )
         }
     }
+
+    /// Writes a live enforcement snapshot the widget can read. Called on
+    /// phase transitions in `propagatePhaseTransition` so the widget
+    /// timeline reflects the same state the menu-bar icon does, not a
+    /// stale settings-derived estimate.
+    func syncWidgetEnforcementSnapshot() {
+        let snapshot = WidgetEnforcementSnapshot(
+            phase: snapshotPhaseToken(state.phase),
+            minutesRemaining: state.minutesRemaining,
+            canRequestExtension: state.canRequestExtension,
+            lockDate: state.lockDate,
+            unlockDate: state.unlockDate,
+            updatedAt: currentTime
+        )
+        do {
+            try WidgetSharedStateStore().sync(enforcement: snapshot)
+        } catch {
+            widgetMirrorLogger.error(
+                "failed to sync widget enforcement: \(error.localizedDescription, privacy: .public)"
+            )
+        }
+    }
+
+    /// Stable string tokens for ``EnforcementPhase`` matching the MCP
+    /// `curfew.status` vocabulary, so the widget timeline reads the same
+    /// labels an AI assistant would.
+    private func snapshotPhaseToken(_ phase: EnforcementPhase) -> String {
+        switch phase {
+        case .working: "working"
+        case .warning: "warning"
+        case .locked: "locked"
+        case .dayOff: "day_off"
+        }
+    }
 }

@@ -127,6 +127,13 @@ public final class ActivityStore {
     // MARK: - SQLite plumbing
 
     private func installSchema(on handle: OpaquePointer) throws {
+        // Enable WAL mode + NORMAL synchronous so a power loss or force
+        // kill mid-write rolls back the in-flight row instead of leaving a
+        // half-written record. Hours-based enforcement reads this store on
+        // every tick; a corrupted row would silently distort the worked
+        // count and let lockout fire early or late.
+        try exec("PRAGMA journal_mode = WAL;", on: handle)
+        try exec("PRAGMA synchronous = NORMAL;", on: handle)
         try exec(
             """
             CREATE TABLE IF NOT EXISTS events (

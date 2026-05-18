@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 
 /// The resolved lock and unlock dates for a single enforcement day.
 ///
@@ -59,11 +60,27 @@ public enum Weekday: Int, CaseIterable, Identifiable, Codable {
     /// Returns the `Weekday` for the calendar day containing `date` in
     /// `calendar`. Falls back to `.monday` when the calendar component is
     /// unavailable — callers that use this for enforcement should also
-    /// check `isDayOff` before trusting the result.
+    /// check `isDayOff` before trusting the result. The fallback is logged
+    /// at warning so an unexpected calendar produces traceable telemetry
+    /// instead of a silent wrong rule.
     public init(from date: Date, calendar: Calendar = .current) {
         let isoWeekday = calendar.component(.weekday, from: date)
-        self = Weekday(rawValue: isoWeekday) ?? .monday
+        if let value = Weekday(rawValue: isoWeekday) {
+            self = value
+        } else {
+            Weekday.fallbackLogger.warning(
+                "Weekday init falling back to .monday (iso=\(isoWeekday, privacy: .public))"
+            )
+            self = .monday
+        }
     }
+
+    /// Subsystem logger used for the calendar-fallback warning. Stored as
+    /// a static so init() stays a pure value-returning function.
+    private static let fallbackLogger = Logger(
+        subsystem: "studio.hypertext.curfew",
+        category: "weekday"
+    )
 }
 
 // DayRule, CurfewMode, and DayRuleException live in DayRule.swift —

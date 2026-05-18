@@ -31,14 +31,39 @@ extension CurfewAppModel {
 
         cloudKitSyncEngine.onSettingsReceived = { [weak self] remoteSettings in
             guard let self else { return }
-            settings = remoteSettings
-            settingsStore.save(remoteSettings)
-            syncWidgetSharedState(remoteSettings)
+            settings = mergedSettingsApplyingRemote(remoteSettings)
+            settingsStore.save(settings)
+            syncWidgetSharedState(settings)
         }
         cloudKitSyncEngine.onLockoutStateReceived = { [weak self] snapshot in
             self?.warningStagesFiredToday.formUnion(snapshot.warningStagesFired)
         }
         subscribeToLicenseChanges()
         reconcileProGatedModules()
+    }
+
+    /// Merges a remote settings payload with the live local copy, deferring
+    /// a `.weaker` schedule change when the device is currently locked.
+    /// Closing M7: without this, a fast-clock device that loosens its
+    /// schedule wins last-write and releases the locked device's lockout on
+    /// the next sync. The C7 guard then catches it on the apply path too,
+    /// but deferring at receive time keeps the local schedule in `settings`
+    /// rather than silently rewriting it.
+    private func mergedSettingsApplyingRemote(_ remote: CurfewSettings) -> CurfewSettings {
+        var merged = remote
+        guard state.phase == .locked else { return merged }
+        let classification = policyEngine.classifyChange(
+            from: settings.schedule,
+            to: remote.schedule
+        )
+        guard classification == .weaker else { return merged }
+        merged.schedule = settings.schedule
+        merged.pendingScheduleChange = PendingScheduleChange(
+            proposedSchedule: remote.schedule,
+            requestedAt: currentTime,
+            effectiveAt: currentTime,
+            classification: .weaker
+        )
+        return merged
     }
 }

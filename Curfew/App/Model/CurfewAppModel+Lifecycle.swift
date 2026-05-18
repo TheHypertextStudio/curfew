@@ -128,6 +128,9 @@ extension CurfewAppModel {
             }
         }
         toggleRespawnGuardIfPhaseChanged(previousPhase: previousPhase)
+        if previousPhase != state.phase {
+            syncWidgetEnforcementSnapshot()
+        }
     }
 
     /// Fires one notification per event when a calendar event starts
@@ -217,10 +220,15 @@ extension CurfewAppModel {
             || settings.extensionDurationMinutes != oldValue.extensionDurationMinutes
         if extensionConfigChanged {
             let usedExtensions = max(0, oldValue.extensionWeeklyLimit - extensionsRemaining)
+            // Preserve the previous tracker's lastResetBoundary so a same-
+            // week settings tweak (limit, duration, or reset weekday) does
+            // not surprise-reset the budget on the next tick. Seeding nil
+            // keeps the v0.1 behavior for first-launch construction.
             extensionTracker = ExtensionBudgetTracker(
                 weeklyLimit: settings.extensionWeeklyLimit,
                 extensionMinutes: settings.extensionDurationMinutes,
-                resetWeekday: settings.resetWeekday
+                resetWeekday: settings.resetWeekday,
+                seedLastResetBoundary: extensionTracker.lastResetBoundary
             )
             if usedExtensions > 0 {
                 for _ in 0 ..< usedExtensions where extensionTracker.remaining > 0 {
@@ -238,7 +246,8 @@ extension CurfewAppModel {
             overrideTracker = ExtensionBudgetTracker(
                 weeklyLimit: settings.overrideWeeklyLimit,
                 extensionMinutes: settings.overrideDurationMinutes,
-                resetWeekday: settings.resetWeekday
+                resetWeekday: settings.resetWeekday,
+                seedLastResetBoundary: overrideTracker.lastResetBoundary
             )
             if usedOverrides > 0 {
                 for _ in 0 ..< usedOverrides where overrideTracker.remaining > 0 {
@@ -339,8 +348,9 @@ extension CurfewAppModel {
     }
 
     /// Day-rollover bookkeeping: resets daily grant counters, the
-    /// calendar-overlap dedup, the cross-device warning-stage set, and
-    /// runs the 52-week activity trim.
+    /// calendar-overlap dedup, the cross-device warning-stage set, runs
+    /// the 52-week activity trim, and re-verifies the persisted Pro
+    /// license so a tampered UserDefaults can't keep Pro alive forever.
     func handleDayRollover(to nextDayToken: String) {
         currentDayToken = nextDayToken
         extensionMinutesGrantedToday = 0
@@ -352,6 +362,7 @@ extension CurfewAppModel {
             olderThan: Self.activityRetentionSeconds,
             now: currentTime
         )
+        licenseGate.reverifyStoredKey()
     }
 
     /// Active work minutes accumulated today; hours-based enforcement reads this.

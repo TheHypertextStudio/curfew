@@ -160,13 +160,26 @@ extension CurfewAppModel {
     /// Invoked by `MCPRequestMonitor` when new pending requests arrive.
     /// Applies auto-approve or auto-deny based on `aiConsentPolicy`; queues
     /// the rest in `pendingMCPRequests` for the consent sheet.
+    ///
+    /// Override requests are always denied regardless of policy — the
+    /// friction model (cooldown + reason + hold) is the structural defence
+    /// against impulsive overrides and applies only in-app. The MCP tool
+    /// surface no longer advertises `request_override`; this guard catches
+    /// legacy entries left in the queue file from older builds.
     func handleNewMCPRequests(_ requests: [MCPPendingRequest]) {
         for request in requests {
+            if request.tool == .requestOverride {
+                denyMCPRequest(
+                    request,
+                    reason: "Override grants are user-only — confirm one in-app."
+                )
+                continue
+            }
             switch aiConsentPolicy {
             case .autoApprove:
                 approveMCPRequest(request)
             case .deny:
-                denyMCPRequest(request, reason: "AI consent policy set to deny all.")
+                denyMCPRequest(request, reason: "Consent policy set to deny all.")
             case .queue:
                 if !pendingMCPRequests.contains(where: { $0.id == request.id }) {
                     pendingMCPRequests.append(request)
@@ -214,9 +227,14 @@ extension CurfewAppModel {
                 tick()
             }
         case .requestOverride:
-            if overrideTracker.requestExtension(at: currentTime) {
-                grantOverride(reason: "[AI] \(decodedReason(from: request.argumentsJSON))")
-            }
+            // Override grants are user-only. The friction model — 5-minute
+            // cooldown, 50-character reason, 3-second hold — is the
+            // structural defense against impulsive overrides; routing any
+            // of that through a remote channel undermines the contract.
+            // Legacy queue entries that still reach this case are denied
+            // upstream in `handleNewMCPRequests`; this branch is a guard
+            // against a queue file racing in mid-removal.
+            break
         case .setSchedule:
             applyMCPScheduleUpdate(request)
         }

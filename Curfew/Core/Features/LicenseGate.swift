@@ -94,6 +94,26 @@ final class LicenseGate: ObservableObject {
         activatedKey = try? verified(stored)
     }
 
+    /// Re-runs verification against the persisted licence so a UserDefaults
+    /// tamper or a clock-rollback can't keep Pro alive indefinitely. Called
+    /// from the model tick loop on a daily cadence (see
+    /// ``CurfewAppModel.reverifyLicenseIfDue``). Safe to call at any time;
+    /// flips `activatedKey` to `nil` when re-verification fails. License
+    /// verification is purely offline (Ed25519 signature against the
+    /// embedded public key), so this is cheap and fail-closed.
+    func reverifyStoredKey() {
+        guard let stored = defaults.string(forKey: Self.storageKey) else {
+            if activatedKey != nil {
+                activatedKey = nil
+            }
+            return
+        }
+        let next = try? verified(stored)
+        if next != activatedKey {
+            activatedKey = next
+        }
+    }
+
     /// Verifies and (on success) persists the given licence string.
     /// Failure surfaces via `activationError` for the UI to display.
     func activate(_ keyString: String) {
