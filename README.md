@@ -169,22 +169,30 @@ Contributor expectations and the TDD workflow live in [`AGENTS.md`](AGENTS.md).
 ## Architecture
 
 ```
-Curfew/Core/     Pure domain logic — schedule engine, budget tracker, warning stages,
-                 activity recorder, override policy. No UI imports; fully unit-tested.
+Sources/CurfewKit/   Pure domain logic, storage, settings, and MCP queue types —
+                     schedule engine, budget tracker, warning stages, override policy,
+                     activity store. No UI; fully unit-tested. Auto-compiled into
+                     the SPM library, the Xcode app + widget targets, and all three
+                     CLI executables.
+
+Curfew/Core/Features/  App-only features that depend on Apple frameworks —
+                       IdleWatcher, LicenseGate, CalendarMonitor, CloudKit sync.
 
 Curfew/App/      @MainActor app model, routing, overlay coordinator, key interceptor,
-                 shutdown workflow, notification bridge, CloudKit sync, CalendarMonitor.
+                 shutdown workflow, notification bridge, MCP request monitor.
 
 Curfew/UI/       SwiftUI views — main window, settings, lockout overlay, onboarding.
 
-CurfewWidget/    WidgetKit extension source + Xcode target. Signed release/App
-                 Group validation still requires a provisioned build.
+CurfewWidget/    WidgetKit extension. Compiles the Domain/Storage/Settings subsets
+                 of CurfewKit; signed release/App Group validation still requires
+                 a provisioned build.
 
 Sources/
-  curfew-ctl/    ArgumentParser CLI. Symlinks shared Core files; no library module.
-  curfew-mcp/    MCP server (stdio transport). Same symlink strategy.
+  curfew-ctl/    ArgumentParser CLI — reads shared storage; enqueues override requests.
+  curfew-mcp/    MCP server (stdio transport, JSON-RPC 2.0).
+  curfew-daemon/ Root-enforced shutdown when the app dies mid-lockout.
 
-CurfewTests/     ~90 unit tests covering every Core module and app model behavior.
+CurfewTests/     Unit tests covering every CurfewKit module and app model behavior.
 ```
 
 Each directory has a `*-module.md` summary and every type carries doc comments.

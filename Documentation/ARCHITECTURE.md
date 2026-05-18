@@ -4,18 +4,34 @@
 
 ```
 Curfew.app
-├── Curfew/Core/          Pure domain logic — no UI, no AppKit
-│   ├── CurfewEnforcementEngine   Stateless (schedule, now, budget) → CurfewEvaluation
-│   ├── ScheduleModels            CurfewSchedule, DayRule, Weekday, SchedulePreset
-│   ├── WarningStage              T-30 / T-15 / T-5 / T-2 / T-1 / lockout enum
-│   ├── ExtensionBudgetTracker    Weekly budget with reset-weekday logic
-│   ├── OverrideRequestPolicy     "Convince me" cooldown and justification gate
-│   ├── ActivityRecorder          sqlite3 C API — lifecycle/extension/override events
-│   ├── ActivityRollups           Daily/weekly aggregation for This Week view
+├── Sources/CurfewKit/    Pure domain, storage, settings, and MCP queue types
+│   ├── Domain/
+│   │   ├── CurfewEnforcementEngine   Stateless (schedule, now, budget) → CurfewEvaluation
+│   │   ├── ScheduleModels            CurfewSchedule, DayRule, Weekday, SchedulePreset
+│   │   ├── SchedulePolicyEngine      Classifies schedule edits as stricter/weaker/no-op
+│   │   ├── WarningStage              T-30 / T-15 / T-5 / T-2 / T-1 / lockout enum
+│   │   ├── ExtensionBudgetTracker    Weekly budget with reset-weekday logic
+│   │   └── OverrideRequestPolicy     "Convince me" cooldown and justification gate
+│   ├── Storage/
+│   │   ├── ActivityEvent / ActivityStore  sqlite3 C API — lifecycle/extension/override events
+│   │   ├── ActivityRollups          Daily/weekly aggregation for This Week view
+│   │   └── LockoutDeadlineStore     Durable lockout deadline survives reboot
+│   ├── Settings/
+│   │   ├── CurfewSettingsStore      UserDefaults persistence for CurfewSettings
+│   │   ├── EnforcementSnapshot      Shared snapshot type for app + widget
+│   │   └── SharedPaths              File-path constants used across surfaces
+│   └── MCP/
+│       ├── MCPPendingRequest        Queue payload + provenance metadata
+│       ├── MCPRequestQueue          Append-only JSON-lines queue file
+│       └── MCPRequestSigner         HMAC-SHA256 per-install signing
+│
+├── Curfew/Core/Features/  App-only features that depend on Apple frameworks
 │   ├── IdleWatcher               CGEventSource idle detection, 5-min default cutoff
 │   ├── LicenseGate               Ed25519 offline license key verification (CryptoKit)
 │   ├── LicenseKey                Codable payload: email, product, orderID, issuedAt
-│   └── CalendarMonitor           EventKit — today's events, Pro + flag gated
+│   ├── CalendarMonitor           EventKit — today's events, Pro + flag gated
+│   ├── CloudKitSyncEngine        CKRecord last-write-wins sync (Pro, flag gated)
+│   └── WorkTimeAggregator        Per-day work-minute aggregation from ActivityStore
 │
 ├── Curfew/App/           @MainActor orchestration
 │   ├── CurfewAppModel            Central ObservableObject: tick loop, state, actions
@@ -23,13 +39,12 @@ Curfew.app
 │   ├── CurfewAppModel+Lifecycle  Reactions to state changes, day rollover, shutdown
 │   ├── CurfewAppModel+Presentation  Menu bar symbol, status line, snapshot shape
 │   ├── FeatureFlags              Runtime on/off for deferred modules
-│   ├── CurfewSettingsStore       UserDefaults persistence for CurfewSettings
 │   ├── OverlayCoordinator        NSWindow management across all displays/Spaces
 │   ├── LockoutKeyInterceptor     CGEventTap for ⌘⇥, ⌘Q, ⌘⌥Esc during lockout
 │   ├── WarningNotificationManager  UNUserNotificationCenter bridge
 │   ├── MCPRequestMonitor         Polls queue file for pending AI write requests
-│   ├── CloudKitSyncEngine        CKRecord last-write-wins sync (Pro, flag gated)
-│   └── PersistentLockdown        Respawning LaunchAgent for bypass deterrence
+│   ├── PersistentLockdown        Respawning LaunchAgent for bypass deterrence
+│   └── PrivilegedHelperManager   SMAppService registration for the root daemon
 │
 ├── Curfew/UI/            SwiftUI views
 │   ├── ContentView               NavigationSplitView: Overview / Configuration / Setup
@@ -50,16 +65,18 @@ Curfew.app
     └── CurfewWidgetView          Small/medium/large SwiftUI views
 
 Sources/
-├── CurfewKit/            SPM library — public re-exports of Core/Domain, Core/Storage,
-│                         Settings, and MCP queue types. One source of truth that the
-│                         app, CLI, and MCP server all depend on.
+├── CurfewKit/            SPM library — Domain, Storage, Settings, and MCP queue types
+│                         live here canonically. The Xcode app + widget targets, the
+│                         three CLI executables, and the SPM library all compile from
+│                         the same files via PBXFileSystemSynchronizedRootGroup.
 ├── curfew-ctl/           ArgumentParser CLI — status, schedule, budget, activity, override.
 │                         Read operations inspect shared storage directly; `override`
 │                         enqueues onto the MCP request queue so the running app
 │                         raises a consent sheet.
-└── curfew-mcp/           MCP server — stdio transport, JSON-RPC 2.0.
+├── curfew-mcp/           MCP server — stdio transport, JSON-RPC 2.0.
+└── curfew-daemon/        Root-enforced shutdown when the app dies mid-lockout.
 
-CurfewTests/              ~90 unit tests, no UI dependencies
+CurfewTests/              Unit tests, no UI dependencies
 ```
 
 ## Key design decisions
@@ -68,7 +85,7 @@ CurfewTests/              ~90 unit tests, no UI dependencies
 `CurfewEnforcementEngine` is a stateless function: `(schedule, now, extensionMinutes, overrideUntil, warningIntervals) → CurfewEvaluation`. It has no side effects and no stored state. The app model calls it every second and reacts to the result. This makes every enforcement behavior trivially testable and keeps the Core completely independent of AppKit.
 
 ### `CurfewKit` as the shared library
-The CLI, MCP server, and app all link against a single SPM library, `CurfewKit`, that re-exports Core/Domain, Core/Storage, App/Settings, and the MCP queue types. Earlier revisions shared source files by symlink across targets; the library form makes the public seam explicit, removes duplicate compilation, and lets each consumer import exactly what it needs. Source files still live canonically under `Curfew/` so Xcode's synchronized-folder discovery continues to work — `Package.swift` just compiles them into the library target from there.
+The CLI tools, MCP server, and privileged daemon all link against a single SPM library, `CurfewKit`. Its source files live canonically under `Sources/CurfewKit/` and are auto-discovered by SPM. The Xcode app and widget targets compile the same files directly via `PBXFileSystemSynchronizedRootGroup` entries — there is no `import CurfewKit` on the app side, just shared compilation. Earlier revisions cherry-picked individual files into `Package.swift`; the auto-discovery form means a new file dropped into `Sources/CurfewKit/{Domain,Storage,Settings,MCP}/` is automatically picked up by every consumer.
 
 ### Feature flags + license as two separate gates
 `FeatureFlags` controls whether a code path is *reachable at all* (off by default for incomplete features). `LicenseGate` controls whether a reachable feature is *unlocked* for the user. Both must pass for Pro surfaces to activate. This means a free-tier user who reverse-engineers the binary still hits the license check; a Pro user on an early build still hits the feature flag.

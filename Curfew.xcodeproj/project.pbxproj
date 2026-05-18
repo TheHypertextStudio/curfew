@@ -13,21 +13,6 @@
 		C0FE00000000000000000041 /* CurfewWidgetEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FE00000000000000000015 /* CurfewWidgetEntry.swift */; };
 		C0FE00000000000000000042 /* CurfewWidgetProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FE00000000000000000016 /* CurfewWidgetProvider.swift */; };
 		C0FE00000000000000000043 /* CurfewWidgetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FE00000000000000000017 /* CurfewWidgetView.swift */; };
-		C0FE00000000000000000044 /* CurfewEnforcementEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FE00000000000000000020 /* CurfewEnforcementEngine.swift */; };
-		C0FE00000000000000000045 /* DayRule.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FE00000000000000000021 /* DayRule.swift */; };
-		C0FE00000000000000000046 /* ExtensionBudgetTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FE00000000000000000022 /* ExtensionBudgetTracker.swift */; };
-		C0FE00000000000000000047 /* OverrideRequestPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FE00000000000000000023 /* OverrideRequestPolicy.swift */; };
-		C0FE00000000000000000048 /* ScheduleModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FE00000000000000000024 /* ScheduleModels.swift */; };
-		C0FE00000000000000000049 /* SchedulePolicyEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FE00000000000000000025 /* SchedulePolicyEngine.swift */; };
-		C0FE0000000000000000004A /* SchedulePreset.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FE00000000000000000026 /* SchedulePreset.swift */; };
-		C0FE0000000000000000004B /* WarningStage.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FE00000000000000000027 /* WarningStage.swift */; };
-		C0FE0000000000000000004C /* ActivityEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FE00000000000000000028 /* ActivityEvent.swift */; };
-		C0FE0000000000000000004D /* ActivityRollups.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FE00000000000000000029 /* ActivityRollups.swift */; };
-		C0FE0000000000000000004E /* ActivityStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FE0000000000000000002A /* ActivityStore.swift */; };
-		C0FE0000000000000000004F /* CurfewSettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FE0000000000000000002B /* CurfewSettingsStore.swift */; };
-		C0FE00000000000000000050 /* CurfewWidgetIdentity.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FE0000000000000000002C /* CurfewWidgetIdentity.swift */; };
-		C0FE00000000000000000051 /* EnforcementSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FE0000000000000000002D /* EnforcementSnapshot.swift */; };
-		C0FE00000000000000000052 /* SharedPaths.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FE0000000000000000002E /* SharedPaths.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -81,21 +66,6 @@
 		C0FE00000000000000000018 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		C0FE00000000000000000019 /* CurfewWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CurfewWidget.entitlements; sourceTree = "<group>"; };
 		C0FE0000000000000000001E /* CurfewWidget-Debug.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CurfewWidget-Debug.entitlements; sourceTree = "<group>"; };
-		C0FE00000000000000000020 /* CurfewEnforcementEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurfewEnforcementEngine.swift; sourceTree = "<group>"; };
-		C0FE00000000000000000021 /* DayRule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayRule.swift; sourceTree = "<group>"; };
-		C0FE00000000000000000022 /* ExtensionBudgetTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionBudgetTracker.swift; sourceTree = "<group>"; };
-		C0FE00000000000000000023 /* OverrideRequestPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverrideRequestPolicy.swift; sourceTree = "<group>"; };
-		C0FE00000000000000000024 /* ScheduleModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleModels.swift; sourceTree = "<group>"; };
-		C0FE00000000000000000025 /* SchedulePolicyEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchedulePolicyEngine.swift; sourceTree = "<group>"; };
-		C0FE00000000000000000026 /* SchedulePreset.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchedulePreset.swift; sourceTree = "<group>"; };
-		C0FE00000000000000000027 /* WarningStage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WarningStage.swift; sourceTree = "<group>"; };
-		C0FE00000000000000000028 /* ActivityEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityEvent.swift; sourceTree = "<group>"; };
-		C0FE00000000000000000029 /* ActivityRollups.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityRollups.swift; sourceTree = "<group>"; };
-		C0FE0000000000000000002A /* ActivityStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityStore.swift; sourceTree = "<group>"; };
-		C0FE0000000000000000002B /* CurfewSettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurfewSettingsStore.swift; sourceTree = "<group>"; };
-		C0FE0000000000000000002C /* CurfewWidgetIdentity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurfewWidgetIdentity.swift; sourceTree = "<group>"; };
-		C0FE0000000000000000002D /* EnforcementSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnforcementSnapshot.swift; sourceTree = "<group>"; };
-		C0FE0000000000000000002E /* SharedPaths.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedPaths.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -127,25 +97,32 @@
 			path = CurfewUITests;
 			sourceTree = "<group>";
 		};
-		C0FE00000000000000000007 /* Curfew/Core/Domain */ = {
+		C0FE00000000000000000007 /* Sources/CurfewKit/Domain */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 			);
-			path = Curfew/Core/Domain;
+			path = Sources/CurfewKit/Domain;
 			sourceTree = "<group>";
 		};
-		C0FE00000000000000000008 /* Curfew/Core/Storage */ = {
+		C0FE00000000000000000008 /* Sources/CurfewKit/Storage */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 			);
-			path = Curfew/Core/Storage;
+			path = Sources/CurfewKit/Storage;
 			sourceTree = "<group>";
 		};
-		C0FE00000000000000000009 /* Curfew/App/Settings */ = {
+		C0FE00000000000000000009 /* Sources/CurfewKit/Settings */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 			);
-			path = Curfew/App/Settings;
+			path = Sources/CurfewKit/Settings;
+			sourceTree = "<group>";
+		};
+		C0FE00000000000000000060 /* Sources/CurfewKit/MCP */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
+			path = Sources/CurfewKit/MCP;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -223,9 +200,9 @@
 		C0FE00000000000000000006 /* CurfewWidgetSupport */ = {
 			isa = PBXGroup;
 			children = (
-				C0FE00000000000000000007 /* Curfew/Core/Domain */,
-				C0FE00000000000000000008 /* Curfew/Core/Storage */,
-				C0FE00000000000000000009 /* Curfew/App/Settings */,
+				C0FE00000000000000000007 /* Sources/CurfewKit/Domain */,
+				C0FE00000000000000000008 /* Sources/CurfewKit/Storage */,
+				C0FE00000000000000000009 /* Sources/CurfewKit/Settings */,
 				C0FE0000000000000000000A /* WidgetSharedStateStore.swift */,
 			);
 			name = CurfewWidgetSupport;
@@ -251,6 +228,10 @@
 			);
 			fileSystemSynchronizedGroups = (
 				9BD3FB842F4D4584007B2E95 /* Curfew */,
+				C0FE00000000000000000007 /* Sources/CurfewKit/Domain */,
+				C0FE00000000000000000008 /* Sources/CurfewKit/Storage */,
+				C0FE00000000000000000009 /* Sources/CurfewKit/Settings */,
+				C0FE00000000000000000060 /* Sources/CurfewKit/MCP */,
 			);
 			name = Curfew;
 			productName = Curfew;
@@ -312,9 +293,9 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				C0FE00000000000000000007 /* Curfew/Core/Domain */,
-				C0FE00000000000000000008 /* Curfew/Core/Storage */,
-				C0FE00000000000000000009 /* Curfew/App/Settings */,
+				C0FE00000000000000000007 /* Sources/CurfewKit/Domain */,
+				C0FE00000000000000000008 /* Sources/CurfewKit/Storage */,
+				C0FE00000000000000000009 /* Sources/CurfewKit/Settings */,
 				1F56E9B021971B57F3DE957D /* CurfewWidget */,
 			);
 			name = CurfewWidget;

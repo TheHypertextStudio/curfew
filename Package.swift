@@ -1,6 +1,17 @@
 // swift-tools-version: 5.9
 import PackageDescription
 
+// Shared library and CLI/MCP/daemon executables. The Curfew app target and
+// the widget extension both *also* compile the files in Sources/CurfewKit/
+// directly via the Xcode project's PBXFileSystemSynchronizedRootGroup
+// entries — there is no `import CurfewKit` from the app side. SPM exists
+// here so the three command-line products can share the same source.
+//
+// Folder contract: anything dropped in Sources/CurfewKit/ is auto-discovered
+// by SPM and auto-synced into the Xcode app + widget targets. Files that
+// must NOT ship to the CLI/MCP/daemon (anything depending on AppKit,
+// SwiftUI, UserNotifications, EventKit, CloudKit, SMAppService, etc.) stay
+// under Curfew/ and remain reachable only to the app/widget targets.
 let package = Package(
     name: "CurfewTools",
     platforms: [.macOS(.v14)],
@@ -20,69 +31,14 @@ let package = Package(
         // Add it via Xcode → project → Package Dependencies when ready.
     ],
     targets: [
-        // Domain models and storage shared by the app, CLI, and MCP server.
-        // Source files live canonically in Curfew/Core/ and Curfew/App/;
-        // this target compiles them directly from there so no symlinks are needed.
         .target(
             name: "CurfewKit",
             dependencies: [],
-            path: ".",
-            exclude: [
-                "build",
-                "Curfew.xcodeproj",
-                "CurfewTests",
-                "CurfewUITests",
-                "Documentation",
-                "scripts",
-                "landing",
-                ".build",
-                ".github",
-                "Curfew/UI",
-                "Curfew/App/Model",
-                "Curfew/App/Infrastructure",
-                "Curfew/Core/Features",
-                "Sources/curfew-ctl",
-                "Sources/curfew-mcp",
-                "AGENTS.md",
-                "CONTRIBUTING.md",
-                "LICENSE",
-                "PRIVACY.md",
-                "README.md",
-                "justfile"
-            ],
-            sources: [
-                // Domain
-                "Curfew/Core/Domain/ScheduleModels.swift",
-                "Curfew/Core/Domain/DayRule.swift",
-                "Curfew/Core/Domain/CurfewEnforcementEngine.swift",
-                "Curfew/Core/Domain/WarningStage.swift",
-                "Curfew/Core/Domain/ExtensionBudgetTracker.swift",
-                "Curfew/Core/Domain/OverrideRequestPolicy.swift",
-                "Curfew/Core/Domain/SchedulePolicyEngine.swift",
-                "Curfew/Core/Domain/SchedulePreset.swift",
-                // Storage
-                "Curfew/Core/Storage/ActivityEvent.swift",
-                "Curfew/Core/Storage/ActivityStore.swift",
-                "Curfew/Core/Storage/ActivityRollups.swift",
-                "Curfew/Core/Storage/LockoutDeadlineStore.swift",
-                // Settings + shared types
-                "Curfew/App/Settings/CurfewSettingsStore.swift",
-                "Curfew/App/Settings/EnforcementSnapshot.swift",
-                "Curfew/App/Settings/SharedPaths.swift",
-                // MCP queue
-                "Curfew/App/MCP/MCPPendingRequest.swift",
-                "Curfew/App/MCP/MCPRequestQueue.swift",
-                "Curfew/App/MCP/MCPRequestSigner.swift",
-                // Utilities (CLI/MCP helpers, not compiled into the app)
-                "Sources/CurfewKit/Utilities.swift",
-                "Sources/CurfewKit/CopyDeck.swift",
-                "Sources/CurfewKit/MCPSocketClient.swift"
-            ],
+            path: "Sources/CurfewKit",
             linkerSettings: [
                 .linkedLibrary("sqlite3")
             ]
         ),
-        // CLI: reads app settings and activity log; no IPC with the app required.
         .executableTarget(
             name: "curfew-ctl",
             dependencies: [
@@ -91,8 +47,6 @@ let package = Package(
             ],
             path: "Sources/curfew-ctl"
         ),
-        // MCP server: JSON-RPC 2.0 over stdio. Also reads shared storage and
-        // appends write requests to the queue file for user approval in the app.
         .executableTarget(
             name: "curfew-mcp",
             dependencies: [
