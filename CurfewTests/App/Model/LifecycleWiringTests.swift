@@ -211,7 +211,11 @@ struct LifecycleWiringTests {
         #expect(respawnGuard.callLog.contains("arm"))
 
         // Flip the schedule to .dayOff for every day; tick() will see the
-        // phase fall back to .dayOff and disarm fires once.
+        // phase fall back to .dayOff and disarm fires once. Clearing the
+        // durable deadline record first is necessary because M5's
+        // forced-lockout logic would otherwise keep the device locked
+        // until today's scheduled unlock time arrives — schedule alone
+        // cannot release a lockout once the durable record is armed.
         var dayOff = WeeklySchedule.standardNineToFive
         for weekday in Weekday.allCases {
             dayOff.rules[weekday] = DayRule(
@@ -220,6 +224,7 @@ struct LifecycleWiringTests {
                 unlockMinutes: 0
             )
         }
+        model.lockoutDeadlineStore.clear()
         model.settings.schedule = dayOff
         model.tick()
         #expect(model.state.phase == .dayOff)
@@ -248,6 +253,12 @@ struct LifecycleWiringTests {
             settings.hasCompletedInitialSetup = true
             store.save(settings)
         }
+        // Tests use an isolated lockout-deadline file under the OS temp
+        // directory so concurrent / sequential test runs cannot share
+        // durable state; a stale file would otherwise wedge the next
+        // test into a forced-lockout phase.
+        let deadlineURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("curfew-deadline-\(UUID().uuidString).json")
         return CurfewAppModel(
             settingsStore: store,
             appRouter: AppRouterSpy(),
@@ -256,7 +267,8 @@ struct LifecycleWiringTests {
             activityRecorder: activityRecorder,
             idleWatcher: watcher,
             respawnGuard: respawnGuard,
-            accessibilityTrust: accessibilityTrust
+            accessibilityTrust: accessibilityTrust,
+            lockoutDeadlineStore: LockoutDeadlineStore(recordURL: deadlineURL)
         )
     }
 }

@@ -44,6 +44,21 @@ extension CurfewAppModel {
         )
     }
 
+    /// Tracker factory used by the designated init to keep its body inside
+    /// the lint-enforced line budget. Returns a fresh tracker seeded with
+    /// no prior reset boundary.
+    static func makeTracker(
+        limit: Int,
+        minutes: Int,
+        weekday: Weekday
+    ) -> ExtensionBudgetTracker {
+        ExtensionBudgetTracker(
+            weeklyLimit: limit,
+            extensionMinutes: minutes,
+            resetWeekday: weekday
+        )
+    }
+
     /// Resolves the `Application Support/Curfew` directory and opens an
     /// ``ActivityStore`` at `activity.sqlite3` inside it, wrapping it in
     /// an ``ActivityRecorder``. On any failure (sandbox, disk full), falls

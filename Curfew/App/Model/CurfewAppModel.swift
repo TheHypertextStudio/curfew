@@ -122,12 +122,10 @@ final class CurfewAppModel: NSObject, ObservableObject {
     /// so tests can assert the sequence without telling the OS to power off.
     let shutdownController: ShutdownControlling
 
-    /// Respawn deterrent (``PersistentLockdown``); installed in `start()`,
-    /// armed/disarmed on lockout transitions.
+    /// Respawn deterrent installed in `start()`, armed/disarmed on lockout.
     let respawnGuard: any RespawnGuardControlling
-    /// Trust probe driving ``isAccessibilityTrusted``; read each tick.
     let accessibilityTrust: any AccessibilityTrustChecking
-
+    let lockoutDeadlineStore: LockoutDeadlineStore
     /// Abstraction over "activate + show Settings". Tests substitute a spy.
     let appRouter: AppRouting
 
@@ -211,8 +209,9 @@ final class CurfewAppModel: NSObject, ObservableObject {
     @Published private(set) var isUserIdle = false
 
     /// Whether the host holds Accessibility trust for the CGEventTap that
-    /// blocks bypass keys. Polled each tick; UI banner reads this.
-    @Published private(set) var isAccessibilityTrusted: Bool
+    /// blocks bypass keys. Polled each tick; UI banner reads this. Seeded
+    /// to `false` so the first tick refreshes it from the trust probe.
+    @Published private(set) var isAccessibilityTrusted = false
 
     /// Memoisation cache for ``thisWeekRollup()``. Invalidated on week
     /// boundary advance or activity-recorder mutation.
@@ -267,7 +266,8 @@ final class CurfewAppModel: NSObject, ObservableObject {
         privilegedHelperManager: PrivilegedHelperManager = PrivilegedHelperManager(),
         idleWatcher: IdleWatcher = IdleWatcher(source: CGEventSourceIdleSource()),
         respawnGuard: any RespawnGuardControlling = NoOpRespawnGuard(),
-        accessibilityTrust: any AccessibilityTrustChecking = SystemAccessibilityTrust()
+        accessibilityTrust: any AccessibilityTrustChecking = SystemAccessibilityTrust(),
+        lockoutDeadlineStore: LockoutDeadlineStore = LockoutDeadlineStore()
     ) {
         self.settingsStore = settingsStore
         self.policyEngine = SchedulePolicyEngine()
@@ -290,22 +290,22 @@ final class CurfewAppModel: NSObject, ObservableObject {
         self.idleWatcher = idleWatcher
         self.respawnGuard = respawnGuard
         self.accessibilityTrust = accessibilityTrust
-        self.isAccessibilityTrusted = accessibilityTrust.isProcessTrusted
+        self.lockoutDeadlineStore = lockoutDeadlineStore
 
         let loadedSettings = settingsStore.load()
         self.settings = loadedSettings
         self.shouldOpenSettingsOnLaunch = settingsStore.consumeShouldShowInitialSetup()
         self.overrideEvents = settingsStore.loadOverrideEvents()
 
-        self.extensionTracker = ExtensionBudgetTracker(
-            weeklyLimit: loadedSettings.extensionWeeklyLimit,
-            extensionMinutes: loadedSettings.extensionDurationMinutes,
-            resetWeekday: loadedSettings.resetWeekday
+        self.extensionTracker = Self.makeTracker(
+            limit: loadedSettings.extensionWeeklyLimit,
+            minutes: loadedSettings.extensionDurationMinutes,
+            weekday: loadedSettings.resetWeekday
         )
-        self.overrideTracker = ExtensionBudgetTracker(
-            weeklyLimit: loadedSettings.overrideWeeklyLimit,
-            extensionMinutes: loadedSettings.overrideDurationMinutes,
-            resetWeekday: loadedSettings.resetWeekday
+        self.overrideTracker = Self.makeTracker(
+            limit: loadedSettings.overrideWeeklyLimit,
+            minutes: loadedSettings.overrideDurationMinutes,
+            weekday: loadedSettings.resetWeekday
         )
 
         let now = Date()

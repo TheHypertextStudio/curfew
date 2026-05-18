@@ -99,7 +99,7 @@ final class StreamableHTTPTransport {
     private func acceptIfLoopback(connection: NWConnection) {
         if case .hostPort(let host, _) = connection.endpoint {
             let hostString = "\(host)"
-            if hostString != "127.0.0.1" && hostString != "::1" && hostString != "localhost" {
+            if hostString != "127.0.0.1", hostString != "::1", hostString != "localhost" {
                 connection.cancel()
                 return
             }

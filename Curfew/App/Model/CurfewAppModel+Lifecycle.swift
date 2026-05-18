@@ -78,8 +78,16 @@ extension CurfewAppModel {
         if state != newState {
             state = newState
         }
+        // Durable-deadline enforcement may swap `state` back to `.locked`
+        // if the engine dropped lockout early (clock skew, schedule
+        // weakening past the cooldown, or a manual record left from a
+        // prior session). It runs after the engine assignment so any
+        // change here is reflected in `propagatePhaseTransition` below.
+        enforceDurableDeadlineIfActive()
+        clearDurableDeadlineIfNaturalUnlock()
 
         propagatePhaseTransition(from: previousPhase)
+        writeDurableDeadlineIfEnteringLockout(previousPhase: previousPhase)
 
         activityRecorder.recordPhaseTransition(
             from: previousPhase,
