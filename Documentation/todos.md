@@ -218,15 +218,38 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 - [ ] Homebrew Cask. (v0.2)
 - [-] Sparkle autoupdate scaffolding present; framework wiring + signed appcast flow still pending. (v0.2)
 
-## 17.5 Phase 1 audit hotfix (v0.1.x)
+## 17.5 Enforcement audit closure (2026-05-18)
 
-Closes trivial-bypass findings from the 2026-05-18 enforcement audit.
+Every finding in `audir-our-core-feature-vectorized-sutherland.md` is closed
+in this branch. The audit's M1 (uninstall during lockout) was reclassified
+as an opt-in feature per the user's product direction and is not blocking.
 
+### Phase 1 — trivial bypasses (v0.1.x)
 - [x] **C1** — `CURFEW_SKIP_ENFORCEMENT` is honored only in Debug; Release always arms.
-- [x] **C2** — `PersistentLockdown` (respawn LaunchAgent) auto-installs in Release builds via the new `RespawnGuardControlling` seam; Debug uses `NoOpRespawnGuard`.
-- [x] **C5** — `SchedulePolicyEngine.classifyChange` now covers `mode` and `hoursLimitMinutes`; mode flips and hours-budget bumps trigger the 24-hour cooldown.
-- [x] **C7** — `applyPendingScheduleIfNeeded` defers `.weaker` pending changes during active lockout so the cooldown can't be waited out into a future lockout.
-- [x] **M3** — Accessibility-trust state is polled each tick and surfaced as a banner on the Overview pane with a deep link to System Settings.
+- [x] **C2** — `PersistentLockdown` auto-installs in Release via the new `RespawnGuardControlling` seam; Debug uses `NoOpRespawnGuard`.
+- [x] **C5** — `SchedulePolicyEngine.classifyChange` covers `mode` and `hoursLimitMinutes`; mode flips and hours-budget bumps trigger the 24-hour cooldown.
+- [x] **C7** — `applyPendingScheduleIfNeeded` defers `.weaker` pending changes during active lockout.
+- [x] **M3** — Accessibility-trust state polled each tick; Overview banner deep-links to System Settings.
+
+### Phase 2 — v0.2 hardening
+- [x] **C3** — Privileged daemon now enforces: detects stale app heartbeat during lockout and invokes `/sbin/shutdown -h +1` as root.
+- [x] **C4** — Daemon shadow-copies the durable record to `/Library/Application Support/Curfew/lockout-deadline.json` so a user delete of the user-side file can't end-run the deadline.
+- [x] **C6** — `request_override` removed from the MCP tool surface; the friction model (cooldown + reason + hold) stays in-app where it belongs.
+- [x] **M2** — `LockoutKeyInterceptor` blocks Cmd-W/H/M/backtick, F3/F4/F11/F12 alongside the existing Cmd-Tab/Q/Space/Opt-Esc set.
+- [x] **M4** — Daemon issues shutdown directly via `/sbin/shutdown`; AppleScript path stays as fallback when daemon isn't installed.
+- [x] **M5** — `LockoutDeadlineStore` persists the active window; the model overrides the engine back to `.locked` when the deadline hasn't passed.
+- [x] **M6** — `MCPRequestSigner` HMACs every queue entry with a per-install secret; unsigned/forged requests bypass `.autoApprove` and fall to the consent sheet.
+- [x] **M7** — `onSettingsReceived` defers a `.weaker` remote schedule into `pendingScheduleChange` when the device is locked.
+- [x] **M8** — `ExtensionBudgetTracker` reconstruction preserves `lastResetBoundary` via the new `seedLastResetBoundary` init param.
+
+### Phase 3 — minor + arch
+- [x] **m1** — T-30/T-15 docstring matches the actual notification-only behavior (overlay starts at T-5).
+- [x] **m2** — `ActivityStore` opens with WAL + NORMAL synchronous; mid-write power loss rolls back instead of corrupting rows.
+- [x] **m3** — `mostRecentResetBoundary` returns `nil` on pathological calendar arithmetic instead of falling back to today.
+- [x] **m4** — `Weekday(from:)` logs a warning before its Monday fallback so unexpected calendars produce telemetry.
+- [x] **m5** — Widget shared state carries a live `WidgetEnforcementSnapshot` written on every phase transition.
+- [x] **m6** — License re-verifies on day rollover so a tampered UserDefaults can't keep Pro alive indefinitely.
+- [x] **A1** — `LockoutDeadlineRecord` is now the single source of truth for "am I locked"; overlay/sentinel/daemon all derive from it.
 
 ## 18. Verification (v0.1 release candidate)
 
