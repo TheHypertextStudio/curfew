@@ -24,6 +24,37 @@ private let durableLockoutLogger = Logger(
 ///   driving phase normally.
 @MainActor
 extension CurfewAppModel {
+    /// Single entry point the tick loop calls to keep the durable record
+    /// aligned. Combines the two checks (enforce / clear-on-natural-unlock)
+    /// so the tick body stays inside its lint-enforced length budget.
+    func reconcileDurableLockoutDeadline() {
+        enforceDurableDeadlineIfActive()
+        clearDurableDeadlineIfNaturalUnlock()
+    }
+
+    /// Touches the app-heartbeat file with the current timestamp. The
+    /// daemon reads this file's mtime to decide whether the app is still
+    /// running; a stale heartbeat plus an active lockout deadline is the
+    /// signal the daemon uses to force a shutdown.
+    func touchAppHeartbeat() {
+        let url = SharedPaths.appHeartbeat
+        do {
+            try FileManager.default.createDirectory(
+                at: url.deletingLastPathComponent(),
+                withIntermediateDirectories: true
+            )
+            try Data().write(to: url, options: .atomic)
+            try FileManager.default.setAttributes(
+                [.modificationDate: currentTime],
+                ofItemAtPath: url.path
+            )
+        } catch {
+            durableLockoutLogger.error(
+                "failed to touch app heartbeat: \(error.localizedDescription, privacy: .public)"
+            )
+        }
+    }
+
     /// Stamps the durable deadline record at the moment lockout begins so
     /// a force-shutdown / crash mid-lockout still leaves the next launch
     /// enforced.

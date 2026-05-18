@@ -64,6 +64,7 @@ let package = Package(
                 "Curfew/Core/Storage/ActivityEvent.swift",
                 "Curfew/Core/Storage/ActivityStore.swift",
                 "Curfew/Core/Storage/ActivityRollups.swift",
+                "Curfew/Core/Storage/LockoutDeadlineStore.swift",
                 // Settings + shared types
                 "Curfew/App/Settings/CurfewSettingsStore.swift",
                 "Curfew/App/Settings/EnforcementSnapshot.swift",

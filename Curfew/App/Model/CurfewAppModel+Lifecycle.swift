@@ -47,6 +47,10 @@ extension CurfewAppModel {
         if isAccessibilityTrusted != trusted {
             setAccessibilityTrusted(trusted)
         }
+        // Touch the heartbeat file so the privileged daemon can tell
+        // whether the app is still running. Stale heartbeat plus an
+        // active durable deadline drives the daemon's shutdown path.
+        touchAppHeartbeat()
 
         if Self.dayToken(for: currentTime) != currentDayToken {
             handleDayRollover(to: Self.dayToken(for: currentTime))
@@ -83,8 +87,7 @@ extension CurfewAppModel {
         // weakening past the cooldown, or a manual record left from a
         // prior session). It runs after the engine assignment so any
         // change here is reflected in `propagatePhaseTransition` below.
-        enforceDurableDeadlineIfActive()
-        clearDurableDeadlineIfNaturalUnlock()
+        reconcileDurableLockoutDeadline()
 
         propagatePhaseTransition(from: previousPhase)
         writeDurableDeadlineIfEnteringLockout(previousPhase: previousPhase)

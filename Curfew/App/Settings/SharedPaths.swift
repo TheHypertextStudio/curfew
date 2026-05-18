@@ -106,4 +106,30 @@ public enum SharedPaths {
     public static var lockoutActiveSentinel: URL {
         privilegedApplicationSupport.appendingPathComponent("lockout-active")
     }
+
+    /// JSON record of the active lockout window. Written by the app on
+    /// `.locked` entry, cleared on natural unlock. The privileged daemon
+    /// reads this to know how long it must keep the Mac armed even if the
+    /// Curfew app process disappears (force-kill, crash, force-shutdown).
+    /// Lives in the user-writable shared container today; the v0.2 daemon
+    /// shadow-copies it to ``privilegedApplicationSupport`` so a delete by
+    /// the user can't end-run the deadline.
+    public static var lockoutDeadline: URL {
+        widgetSharedSupport.appendingPathComponent("lockout-deadline.json")
+    }
+
+    /// Root-owned shadow copy of the durable lockout deadline. The daemon
+    /// writes this from the user-side record once and re-reads it on
+    /// every loop iteration; if the user deletes the user-side file the
+    /// shadow is still authoritative until `scheduledUnlockAt` passes.
+    public static var lockoutDeadlineShadow: URL {
+        privilegedApplicationSupport.appendingPathComponent("lockout-deadline.json")
+    }
+
+    /// Timestamp file the app touches every tick so the daemon can tell
+    /// whether the Curfew app process is still alive. Stale heartbeat plus
+    /// an active deadline triggers the daemon's shutdown enforcement.
+    public static var appHeartbeat: URL {
+        widgetSharedSupport.appendingPathComponent("app-heartbeat")
+    }
 }
