@@ -153,10 +153,10 @@ struct ContentView: View {
 struct MainWindowView: View {
     /// Live app state shared across detail panes.
     @EnvironmentObject private var model: CurfewAppModel
-    /// Currently-selected sidebar section. Defaults to `.overview` on
-    /// first display; SwiftUI restores the last selection between
-    /// window appearances within a session.
-    @State private var selectedSection: MainWorkspaceSection? = .overview
+    /// Currently-selected sidebar section. Defaults to `.overview` (a Debug
+    /// demo-capture launch can pin a different pane via `demoLaunchSelection`);
+    /// SwiftUI restores the last selection between window appearances.
+    @State private var selectedSection: MainWorkspaceSection? = .demoLaunchSelection
 
     /// Sidebar + detail split layout.
     var body: some View {
@@ -180,13 +180,6 @@ struct MainWindowView: View {
         }
         .navigationSplitViewStyle(.balanced)
         .tint(CurfewTheme.accent)
-        .onAppear {
-            #if DEBUG
-                if let demoSection = model.demoInitialSection {
-                    selectedSection = demoSection
-                }
-            #endif
-        }
         // Surface MCP consent sheet whenever a new AI write request arrives.
         .sheet(item: Binding(
             get: { model.pendingMCPRequests.first },

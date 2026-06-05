@@ -103,7 +103,7 @@ struct CurfewApp: App {
             if let scenario = CurfewLaunchBehavior.demoScenario(
                 environment: ProcessInfo.processInfo.environment
             ) {
-                let model = CurfewAppModel.demoModel(scenario: scenario)
+                let model = CurfewAppModel.demoModel()
                 _model = StateObject(wrappedValue: model)
                 DispatchQueue.main.async {
                     model.applyDemoScenario(scenario)

@@ -59,22 +59,56 @@ extension CurfewAppModel {
         )
     }
 
-    /// Resolves the `Application Support/Curfew` directory and opens an
-    /// ``ActivityStore`` at `activity.sqlite3` inside it, wrapping it in
-    /// an ``ActivityRecorder``. On any failure (sandbox, disk full), falls
-    /// back to a ``NullActivityRecording`` so the app can continue to
-    /// enforce normally without telemetry. Failures are logged via
-    /// `os.Logger` so Console.app and sysdiagnose capture them.
+    /// UserDefaults key recording that the one-time activity-database
+    /// migration out of the App Group container has been attempted. Stored in
+    /// the standard suite (not signature-tied) so even repeated ad-hoc Debug
+    /// rebuilds never re-touch the shared container.
+    static let activityMigrationDefaultsKey = "curfew.activityDB.migratedToAppSupport.v1"
+
+    /// Opens the canonical ``ActivityStore`` in the app's own Application
+    /// Support directory, wrapping it in an ``ActivityRecorder``. On any
+    /// failure (disk full, permissions), falls back to a
+    /// ``NullActivityRecording`` so the app keeps enforcing without telemetry.
     static func defaultActivityRecording() -> any ActivityRecording {
+        let canonical = SharedPaths.activityDatabase
         do {
-            let sharedStateStore = WidgetSharedStateStore()
-            try sharedStateStore.prepareActivityDatabase()
-            let store = try ActivityStore(databaseURL: SharedPaths.activityDatabase)
+            try FileManager.default.createDirectory(
+                at: canonical.deletingLastPathComponent(),
+                withIntermediateDirectories: true
+            )
+            migrateActivityDatabaseFromSharedContainerOnce(canonical: canonical)
+            let store = try ActivityStore(databaseURL: canonical)
             return ActivityRecorder(store: store)
         } catch {
             let logger = Logger(subsystem: "studio.hypertext.curfew", category: "app-model")
             logger.error("activity recorder unavailable: \(String(describing: error))")
             return NullActivityRecording()
         }
+    }
+
+    /// One-time migration of the activity log from its former App Group
+    /// container location into ``SharedPaths/activityDatabase``.
+    ///
+    /// Guarded by a UserDefaults flag so the App Group container is touched at
+    /// most once, ever — after that the app never reaches into
+    /// `~/Library/Group Containers`, which is what stops the recurring macOS
+    /// "access data from other apps" prompt. `source` is an `@autoclosure` so
+    /// the shared-container path is only resolved (which itself can prompt)
+    /// when a migration is actually due. The shared-container copy is the
+    /// superset of history (the previous layout copied Application Support →
+    /// shared, then appended), so it overwrites any stale canonical copy.
+    static func migrateActivityDatabaseFromSharedContainerOnce(
+        canonical: URL,
+        source: @autoclosure () -> URL = SharedPaths.sharedContainerActivityDatabase,
+        defaults: UserDefaults = .standard,
+        fileManager: FileManager = .default
+    ) {
+        guard !defaults.bool(forKey: activityMigrationDefaultsKey) else { return }
+        defaults.set(true, forKey: activityMigrationDefaultsKey)
+
+        let sourceURL = source()
+        guard fileManager.fileExists(atPath: sourceURL.path) else { return }
+        try? fileManager.removeItem(at: canonical)
+        try? fileManager.copyItem(at: sourceURL, to: canonical)
     }
 }

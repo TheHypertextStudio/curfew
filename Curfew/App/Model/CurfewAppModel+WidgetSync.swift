@@ -9,6 +9,12 @@ private let widgetMirrorLogger = Logger(
 @MainActor
 extension CurfewAppModel {
     func syncWidgetSharedState(_ settings: CurfewSettings? = nil) {
+        // Only mirror into the App Group container when the widget is actually
+        // enabled. A non-sandboxed app touching the shared container raises the
+        // macOS "access data from other apps" prompt, so a default install
+        // (widget off) must never write here. Guard before constructing the
+        // store so the shared-container URL isn't even resolved.
+        guard featureFlags.widgetKitEnabled else { return }
         do {
             try WidgetSharedStateStore().sync(settings: settings ?? self.settings)
         } catch {
@@ -23,6 +29,7 @@ extension CurfewAppModel {
     /// timeline reflects the same state the menu-bar icon does, not a
     /// stale settings-derived estimate.
     func syncWidgetEnforcementSnapshot() {
+        guard featureFlags.widgetKitEnabled else { return }
         let snapshot = WidgetEnforcementSnapshot(
             phase: snapshotPhaseToken(state.phase),
             minutesRemaining: state.minutesRemaining,

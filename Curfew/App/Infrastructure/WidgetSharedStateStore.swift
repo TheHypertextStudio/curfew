@@ -37,17 +37,17 @@ public struct WidgetEnforcementSnapshot: Codable, Equatable {
 
 /// Bridges app-owned state into widget-readable storage.
 ///
-/// The main app still owns its private `UserDefaults` domain. This store
-/// mirrors the subset the widget needs into a shared JSON snapshot and also
-/// migrates the activity SQLite database into the shared container so the
-/// future widget target can read it without reaching into the app's legacy
-/// `~/Library/Application Support/Curfew` directory.
+/// The main app owns its private `UserDefaults` domain and its activity log
+/// (in Application Support). This store mirrors the subset the widget needs —
+/// a settings snapshot and a live enforcement snapshot — into the App Group
+/// container so the sandboxed widget can read them. These writes only happen
+/// when ``FeatureFlags/widgetKitEnabled`` is on, so a default install never
+/// touches the shared container (and so never raises the macOS "access data
+/// from other apps" prompt).
 struct WidgetSharedStateStore {
     let fileManager: FileManager
     let settingsURL: URL
     let enforcementURL: URL
-    let activityDatabaseURL: URL
-    let legacyActivityDatabaseURL: URL
 
     private let encoder: JSONEncoder = {
         let enc = JSONEncoder()
@@ -65,15 +65,11 @@ struct WidgetSharedStateStore {
         fileManager: FileManager = .default,
         settingsURL: URL = SharedPaths.widgetSettingsSnapshot,
         enforcementURL: URL = SharedPaths.widgetSharedSupport
-            .appendingPathComponent("widget-enforcement.json"),
-        activityDatabaseURL: URL = SharedPaths.activityDatabase,
-        legacyActivityDatabaseURL: URL = SharedPaths.legacyActivityDatabase
+            .appendingPathComponent("widget-enforcement.json")
     ) {
         self.fileManager = fileManager
         self.settingsURL = settingsURL
         self.enforcementURL = enforcementURL
-        self.activityDatabaseURL = activityDatabaseURL
-        self.legacyActivityDatabaseURL = legacyActivityDatabaseURL
     }
 
     /// Persists a JSON snapshot the widget can decode independently of the
@@ -119,25 +115,5 @@ struct WidgetSharedStateStore {
             return nil
         }
         return try? decoder.decode(WidgetEnforcementSnapshot.self, from: data)
-    }
-
-    /// Ensures the shared activity database directory exists and performs a
-    /// one-time copy from the legacy location when the shared DB is still
-    /// absent. Safe to call on every launch.
-    func prepareActivityDatabase() throws {
-        try fileManager.createDirectory(
-            at: activityDatabaseURL.deletingLastPathComponent(),
-            withIntermediateDirectories: true
-        )
-
-        guard !fileManager.fileExists(atPath: activityDatabaseURL.path) else {
-            return
-        }
-        guard fileManager.fileExists(atPath: legacyActivityDatabaseURL.path) else {
-            return
-        }
-
-        try fileManager.copyItem(at: legacyActivityDatabaseURL, to: activityDatabaseURL)
-        widgetSharedStateLogger.info("migrated legacy activity database into widget shared storage")
     }
 }

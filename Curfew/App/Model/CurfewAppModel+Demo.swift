@@ -11,22 +11,24 @@
     /// auto-shutdown workflow, which only advances inside a tick — never runs.
     /// Combined with `autoShutdownEnabled = false` in the seeded settings,
     /// this guarantees a capture run can never power off the machine.
+    ///
+    /// Demo launches are also hermetic with respect to shared storage: the
+    /// activity log is a throwaway temp database, and `featureFlags.default`
+    /// keeps `widgetKitEnabled` off so nothing writes the App Group container.
     @MainActor
     extension CurfewAppModel {
-        /// Constructs a demo model for `scenario`, backed by an ephemeral
-        /// `UserDefaults` suite and a temporary on-disk activity log so the
-        /// user's real settings and history are never touched.
-        static func demoModel(scenario: DemoScenario) -> CurfewAppModel {
-            let model = CurfewAppModel(
+        /// Constructs a demo model backed by an ephemeral `UserDefaults` suite
+        /// and a temporary on-disk activity log so the user's real settings and
+        /// history are never touched. The scenario is applied separately via
+        /// ``applyDemoScenario(_:)`` once the scene is on screen.
+        static func demoModel() -> CurfewAppModel {
+            CurfewAppModel(
                 settingsStore: makeDemoSettingsStore(),
                 appRouter: SystemAppRouter(),
                 gettingStartedPresenter: GettingStartedWindowPresenter(),
                 featureFlags: .default,
-                activityRecorder: makeDemoActivityRecorder(now: Date()),
-                demoMode: true
+                activityRecorder: makeDemoActivityRecorder(now: Date())
             )
-            model.demoInitialSection = scenario.initialSection
-            return model
         }
 
         /// Applies the scenario after launch: pins the presented clock, swaps

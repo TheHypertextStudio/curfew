@@ -23,24 +23,9 @@ final class CurfewAppModel: NSObject, ObservableObject {
     /// again — re-invoking onboarding from Settings uses a different path.
     let shouldOpenSettingsOnLaunch: Bool
 
-    #if DEBUG
-        /// Main-window sidebar section a demo launch should open on. `nil`
-        /// outside demo mode. Read once by `MainWindowView` on appear. See
-        /// `CurfewAppModel+Demo.swift`.
-        var demoInitialSection: MainWorkspaceSection?
-    #endif
-
     /// Runtime module flags (widgets, cloud sync, MCP, privileged helper).
     /// See ``FeatureFlags``.
     let featureFlags: FeatureFlags
-
-    /// When `true`, the model is running as a marketing / debug capture
-    /// fixture (see `CurfewAppModel+Demo.swift`). It suppresses side effects
-    /// that reach outside the process — notably the App Group container write
-    /// in `syncWidgetSharedState`, which would otherwise raise the macOS
-    /// "access data from other apps" prompt on every (ad-hoc-signed) launch.
-    /// Always `false` in normal runs.
-    let isDemoMode: Bool
 
     /// Pro license gate. Verifies the stored license key on startup and
     /// exposes `isProUnlocked` for all Pro-gated surfaces.
@@ -282,10 +267,8 @@ final class CurfewAppModel: NSObject, ObservableObject {
         idleWatcher: IdleWatcher = IdleWatcher(source: CGEventSourceIdleSource()),
         respawnGuard: any RespawnGuardControlling = NoOpRespawnGuard(),
         accessibilityTrust: any AccessibilityTrustChecking = SystemAccessibilityTrust(),
-        lockoutDeadlineStore: LockoutDeadlineStore = LockoutDeadlineStore(),
-        demoMode: Bool = false
+        lockoutDeadlineStore: LockoutDeadlineStore = LockoutDeadlineStore()
     ) {
-        self.isDemoMode = demoMode
         self.settingsStore = settingsStore
         self.policyEngine = SchedulePolicyEngine()
         let enforcementEngine = CurfewEnforcementEngine()

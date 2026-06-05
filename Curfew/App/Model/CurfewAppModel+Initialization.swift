@@ -3,12 +3,10 @@ import Foundation
 @MainActor
 extension CurfewAppModel {
     func completeInitialization(with loadedSettings: CurfewSettings) {
-        // Demo / capture launches stay hermetic: skip the App Group container
-        // write so they don't raise the macOS "access data from other apps"
-        // prompt. The widget snapshot is irrelevant to a capture anyway.
-        if !isDemoMode {
-            syncWidgetSharedState(loadedSettings)
-        }
+        // No-op unless the widget is enabled (`syncWidgetSharedState` guards
+        // `widgetKitEnabled` internally), so a default install — and every
+        // demo / capture launch — never touches the App Group container here.
+        syncWidgetSharedState(loadedSettings)
 
         idleWatcher.onIdleStateChanged = { [weak self] idle in
             self?.setIdleState(idle)

@@ -53,15 +53,24 @@ public enum SharedPaths {
         widgetSharedContainer.appendingPathComponent("Curfew", isDirectory: true)
     }
 
-    /// Legacy SQLite database location used before widget storage started
-    /// migrating into the shared container.
-    public static var legacyActivityDatabase: URL {
+    /// Canonical SQLite database written by the app's `ActivityStore` and read
+    /// by the bundled CLI tools (`curfew-ctl`, `curfew-mcp`).
+    ///
+    /// Lives in the app's own Application Support — *not* the App Group
+    /// container. A non-sandboxed app touching its App Group container raises
+    /// the macOS "access data from other apps" prompt, and the activity log
+    /// has no cross-sandbox consumer (the CLI tools run in the user context;
+    /// the widget is not yet shipped). When the WidgetKit extension lands it
+    /// will mirror what it needs into the shared container, gated behind
+    /// ``FeatureFlags/widgetKitEnabled``.
+    public static var activityDatabase: URL {
         applicationSupport.appendingPathComponent("activity.sqlite3")
     }
 
-    /// SQLite database file written by the app's `ActivityStore` and read by
-    /// the bundled CLI tools plus the future widget extension.
-    public static var activityDatabase: URL {
+    /// The App Group container location the activity database lived in before
+    /// it moved back to ``activityDatabase``. Used once, on first launch of the
+    /// new layout, to migrate any existing history into the canonical store.
+    public static var sharedContainerActivityDatabase: URL {
         widgetSharedSupport.appendingPathComponent("activity.sqlite3")
     }
 
