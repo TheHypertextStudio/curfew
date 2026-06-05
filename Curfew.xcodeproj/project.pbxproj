@@ -403,7 +403,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "set -e\ncd \"$SRCROOT\"\nmkdir -p \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Resources\"\nmkdir -p \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Library/LaunchDaemons\"\nswift build -c release --product curfew-ctl --product curfew-mcp --product curfew-daemon\ncp .build/release/curfew-ctl \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Resources/curfew-ctl\"\ncp .build/release/curfew-mcp \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Resources/curfew-mcp\"\ncp .build/release/curfew-daemon \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Resources/curfew-daemon\"\ncp Curfew/Resources/LaunchDaemons/studio.hypertext.curfew.daemon.plist \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Library/LaunchDaemons/studio.hypertext.curfew.daemon.plist\"\n";
+			shellScript = "set -e\ncd \"$SRCROOT\"\nmkdir -p \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Resources\"\nmkdir -p \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Library/LaunchDaemons\"\nswift build -c release --product curfew-ctl\nswift build -c release --product curfew-mcp\nswift build -c release --product curfew-daemon\ncp .build/release/curfew-ctl \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Resources/curfew-ctl\"\ncp .build/release/curfew-mcp \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Resources/curfew-mcp\"\ncp .build/release/curfew-daemon \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Resources/curfew-daemon\"\ncp Curfew/Resources/LaunchDaemons/studio.hypertext.curfew.daemon.plist \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Library/LaunchDaemons/studio.hypertext.curfew.daemon.plist\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -593,6 +593,8 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_LSUIElement = NO;
 				INFOPLIST_KEY_NSAppleEventsUsageDescription = "Curfew uses System Events to shut down your Mac after lockout when you turn on auto shutdown.";
+				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "Curfew reads today's calendar events to show meetings on the lockout screen and warn you before a meeting collides with curfew. Curfew never edits your calendar.";
+				INFOPLIST_KEY_NSCalendarsUsageDescription = "Curfew reads today's calendar events to show meetings on the lockout screen and warn you before a meeting collides with curfew. Curfew never edits your calendar.";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -627,6 +629,8 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_LSUIElement = NO;
 				INFOPLIST_KEY_NSAppleEventsUsageDescription = "Curfew uses System Events to shut down your Mac after lockout when you turn on auto shutdown.";
+				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "Curfew reads today's calendar events to show meetings on the lockout screen and warn you before a meeting collides with curfew. Curfew never edits your calendar.";
+				INFOPLIST_KEY_NSCalendarsUsageDescription = "Curfew reads today's calendar events to show meetings on the lockout screen and warn you before a meeting collides with curfew. Curfew never edits your calendar.";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

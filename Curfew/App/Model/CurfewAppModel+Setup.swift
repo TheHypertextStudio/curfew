@@ -44,19 +44,22 @@ extension CurfewAppModel {
         )
     }
 
-    /// Tracker factory used by the designated init to keep its body inside
-    /// the lint-enforced line budget. Returns a fresh tracker seeded with
-    /// no prior reset boundary.
-    static func makeTracker(
-        limit: Int,
-        minutes: Int,
-        weekday: Weekday
-    ) -> ExtensionBudgetTracker {
-        ExtensionBudgetTracker(
-            weeklyLimit: limit,
-            extensionMinutes: minutes,
-            resetWeekday: weekday
+    /// Builds the extension and override budget trackers from `settings` in one
+    /// call, keeping the designated init body inside the lint-enforced budget.
+    static func makeBudgetTrackers(
+        for settings: CurfewSettings
+    ) -> (extension: ExtensionBudgetTracker, override: ExtensionBudgetTracker) {
+        let extensionTracker = ExtensionBudgetTracker(
+            weeklyLimit: settings.extensionWeeklyLimit,
+            extensionMinutes: settings.extensionDurationMinutes,
+            resetWeekday: settings.resetWeekday
         )
+        let overrideTracker = ExtensionBudgetTracker(
+            weeklyLimit: settings.overrideWeeklyLimit,
+            extensionMinutes: settings.overrideDurationMinutes,
+            resetWeekday: settings.resetWeekday
+        )
+        return (extension: extensionTracker, override: overrideTracker)
     }
 
     /// UserDefaults key recording that the one-time activity-database

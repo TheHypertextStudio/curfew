@@ -45,17 +45,6 @@ final class GettingStartedPresenterSpy: GettingStartedPresenting {
     }
 }
 
-/// `AccessibilityTrustChecking` stub that returns a caller-set value so
-/// tests can verify the model's `isAccessibilityTrusted` publishes the
-/// expected state without depending on system AX state.
-final class StubAccessibilityTrust: AccessibilityTrustChecking {
-    var isProcessTrusted: Bool
-
-    init(isProcessTrusted: Bool) {
-        self.isProcessTrusted = isProcessTrusted
-    }
-}
-
 /// `RespawnGuardControlling` spy that records install / arm / disarm
 /// invocations so tests can assert the model wires the user-space respawn
 /// deterrent at the expected lifecycle points without touching real
@@ -123,5 +112,46 @@ final class ShutdownControllerSpy: ShutdownControlling {
             return .failed
         }
         return results.removeFirst()
+    }
+}
+
+/// Scriptable `AccessibilityAuthorizing` fake for exercising model logic that
+/// gates on Accessibility trust without triggering a real macOS AX prompt.
+///
+/// The real `AXIsProcessTrusted` C symbols cannot be driven headlessly, so this
+/// fake stands in for them: `trusted` is the value `isTrusted()` returns, and
+/// `promptResult` is what `promptForTrust()` returns. Both calls are counted so
+/// tests can assert they were (or were not) invoked.
+final class FakeAccessibilityAuthorization: AccessibilityAuthorizing {
+    /// Scripted return value for `isTrusted()`.
+    var trusted: Bool
+
+    /// Scripted return value for `promptForTrust()`.
+    var promptResult: Bool
+
+    /// Number of times `isTrusted()` has been called.
+    private(set) var isTrustedCallCount = 0
+
+    /// Number of times `promptForTrust()` has been called.
+    private(set) var promptForTrustCallCount = 0
+
+    /// Creates a fake with the given scripted trust and prompt outcomes.
+    /// - Parameters:
+    ///   - trusted: Value returned by `isTrusted()`.
+    ///   - promptResult: Value returned by `promptForTrust()`.
+    init(trusted: Bool, promptResult: Bool = false) {
+        self.trusted = trusted
+        self.promptResult = promptResult
+    }
+
+    func isTrusted() -> Bool {
+        isTrustedCallCount += 1
+        return trusted
+    }
+
+    @discardableResult
+    func promptForTrust() -> Bool {
+        promptForTrustCallCount += 1
+        return promptResult
     }
 }

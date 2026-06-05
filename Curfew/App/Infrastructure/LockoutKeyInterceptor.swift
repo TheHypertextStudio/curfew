@@ -2,33 +2,6 @@ import ApplicationServices
 import CoreGraphics
 import Foundation
 
-/// Reports whether the host process currently holds the Accessibility
-/// trust that `LockoutKeyInterceptor` needs to install its CGEventTap.
-///
-/// The protocol exists so tests can inject a stub instead of relying on
-/// the real `AXIsProcessTrustedWithOptions` call, which depends on
-/// system-wide state. Production code uses ``SystemAccessibilityTrust``;
-/// tests pass a recording stub via ``CurfewAppModel`` init.
-protocol AccessibilityTrustChecking {
-    /// `true` when this app is in the system's Accessibility allow-list.
-    /// Read on every tick so the UI banner updates within seconds of the
-    /// user toggling the permission in System Settings.
-    var isProcessTrusted: Bool { get }
-}
-
-/// Production conformer that wraps the AX trust API.
-///
-/// Pass `prompt: true` to the underlying API when the model wants the
-/// system to surface its own permission prompt; that's a destructive
-/// surface so we leave it `false` here and let the Getting Started flow
-/// drive the explicit prompt via `NSWorkspace.open`.
-struct SystemAccessibilityTrust: AccessibilityTrustChecking {
-    var isProcessTrusted: Bool {
-        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue(): false] as CFDictionary
-        return AXIsProcessTrustedWithOptions(options)
-    }
-}
-
 /// Pure-function policy for deciding whether a key event should be blocked
 /// while Curfew is in lockout.
 ///
@@ -82,6 +55,20 @@ enum LockoutShortcutPolicy {
     }
 }
 
+/// Mutable heap box holding the live tap port, handed to the C event-tap
+/// callback through its `userInfo` pointer.
+///
+/// The `CGEventTapCallBack` is a C function pointer and therefore cannot
+/// capture `self`. To let the callback re-enable a tap the OS just disabled,
+/// we pass a retained pointer to this box as `userInfo`; the callback reads
+/// ``tap`` back out via `Unmanaged`. The field is filled in *after*
+/// `CGEvent.tapCreate` returns (the port doesn't exist until then), so the
+/// callback always sees the current port for the lifetime of the tap.
+private final class TapPortBox {
+    /// The live CGEvent tap port, set immediately after creation.
+    var tap: CFMachPort?
+}
+
 /// Installs a `CGEventTap` at the session level that consults
 /// `LockoutShortcutPolicy` for every keydown while lockout is active.
 ///
@@ -90,45 +77,126 @@ enum LockoutShortcutPolicy {
 /// disabled by the OS at first event. The getting-started flow walks the
 /// user through granting this permission in System Settings.
 ///
+/// The tap is kept resilient: the OS can disable a tap that is too slow to
+/// respond (`tapDisabledByTimeout`) or after certain user input
+/// (`tapDisabledByUserInput`), and a tap can vanish entirely. The callback
+/// re-enables itself on the disable events, and a 2-second watchdog
+/// (``TapWatchdogDecision``) re-enables a disabled tap or recreates a vanished
+/// one so a silently downed shield self-heals.
+///
 /// This is a best-effort deterrent — a determined user with root access can
 /// still bypass via the command line. v0.2's privileged helper will add a
 /// second layer at a higher privilege level.
 final class LockoutKeyInterceptor {
+    /// Remediation the watchdog should take for a tap given its observable
+    /// state. Pure and `Equatable` so the decision is unit-testable without a
+    /// live tap or run loop.
+    enum TapWatchdogDecision: Equatable {
+        /// The tap is installed and OS-enabled; nothing to do.
+        case healthy
+        /// The tap is installed but the OS disabled it; re-enable it in place.
+        case reEnable
+        /// The tap is no longer installed; recreate it from scratch.
+        case recreate
+
+        /// Maps a tap's observable facts to the watchdog's remediation.
+        ///
+        /// - Parameters:
+        ///   - installed: Whether the tap port still exists
+        ///     (``LockoutKeyInterceptor/isActive``).
+        ///   - enabled: Whether the OS reports the tap as enabled and firing
+        ///     (``LockoutKeyInterceptor/isEnabled``). Ignored when not
+        ///     `installed`, since a vanished tap must be recreated regardless.
+        /// - Returns: ``recreate`` when the tap is gone, ``reEnable`` when it is
+        ///   installed but disabled, otherwise ``healthy``.
+        static func decide(installed: Bool, enabled: Bool) -> TapWatchdogDecision {
+            if !installed {
+                .recreate
+            } else if !enabled {
+                .reEnable
+            } else {
+                .healthy
+            }
+        }
+    }
+
     /// The live CGEvent tap port, or `nil` when stopped.
     private var eventTap: CFMachPort?
 
     /// Main run-loop source wrapping `eventTap`, or `nil` when stopped.
     private var source: CFRunLoopSource?
 
-    /// Whether the tap is currently installed on the main run loop.
+    /// Retained box shared with the C callback so it can re-enable the tap on
+    /// disable events. Released in ``stop()``.
+    private var portBox: Unmanaged<TapPortBox>?
+
+    /// Periodic timer that re-enables a disabled tap or recreates a vanished
+    /// one. `nil` when stopped.
+    private var watchdog: Timer?
+
+    /// How often the watchdog re-checks the tap, in seconds.
+    private static let watchdogInterval: TimeInterval = 2
+
+    /// Whether the tap is currently *installed* on the main run loop
+    /// (`eventTap != nil`). Installed does not imply firing — the OS may have
+    /// disabled it; see ``isEnabled``.
     var isActive: Bool {
         eventTap != nil
     }
 
-    /// Installs the event tap. Safe to call repeatedly; no-ops when already
-    /// running. If the tap fails to create (e.g. accessibility not granted),
-    /// this silently returns without setting `eventTap` — callers should
-    /// check `isActive` if they need to know whether interception took.
+    /// Whether the tap is currently *OS-enabled and firing*
+    /// (`CGEvent.tapIsEnabled`). `false` when the tap is uninstalled or when
+    /// the OS has disabled it (timeout, user input). A tap can be ``isActive``
+    /// yet not `isEnabled`; the watchdog exists to close that gap.
+    var isEnabled: Bool {
+        eventTap.map { CGEvent.tapIsEnabled(tap: $0) } ?? false
+    }
+
+    /// Installs the event tap and starts the watchdog. Safe to call
+    /// repeatedly; no-ops when already running. If the tap fails to create
+    /// (e.g. accessibility not granted), this silently returns without setting
+    /// `eventTap` — callers should check ``isActive`` if they need to know
+    /// whether interception took.
+    ///
+    /// `start()` is invoked every tick (1 Hz) while locked, so when the tap
+    /// cannot install it would otherwise spin up a fresh `Timer` each second.
+    /// The watchdog is therefore (re)started only when none is already
+    /// scheduled; an existing watchdog's ``TapWatchdogDecision/recreate`` path
+    /// already retries the install on its own cadence.
     func start() {
         guard eventTap == nil else {
             return
         }
 
-        let mask = (1 << CGEventType.keyDown.rawValue) | (1 << CGEventType.flagsChanged.rawValue)
-        let callback: CGEventTapCallBack = { _, type, event, _ in
-            guard type == .keyDown || type == .flagsChanged else {
-                return Unmanaged.passUnretained(event)
-            }
-
-            let keyCode = CGKeyCode(event.getIntegerValueField(.keyboardEventKeycode))
-            let flags = event.flags
-
-            if LockoutShortcutPolicy.shouldBlock(keyCode: keyCode, flags: flags) {
-                return nil
-            }
-
-            return Unmanaged.passUnretained(event)
+        installTap()
+        if watchdog == nil {
+            startWatchdog()
         }
+    }
+
+    /// Removes the event tap from the main run loop and stops the watchdog.
+    /// Safe to call when not started. Idempotent.
+    func stop() {
+        watchdog?.invalidate()
+        watchdog = nil
+        uninstallTap()
+    }
+
+    /// Self-cleaning teardown: invalidates the watchdog, uninstalls the tap, and
+    /// releases the ``TapPortBox`` if the instance is deallocated without an
+    /// explicit ``stop()``. Leans on `stop()`'s idempotence.
+    deinit {
+        stop()
+    }
+
+    // MARK: - Tap lifecycle
+
+    /// Creates the session tap, adds it to the main run loop, enables it, and
+    /// wires up the callback's port box. No-ops if creation fails.
+    private func installTap() {
+        let mask = (1 << CGEventType.keyDown.rawValue) | (1 << CGEventType.flagsChanged.rawValue)
+        let box = TapPortBox()
+        let boxPointer = Unmanaged.passRetained(box)
 
         guard
             let tap = CGEvent.tapCreate(
@@ -136,33 +204,96 @@ final class LockoutKeyInterceptor {
                 place: .headInsertEventTap,
                 options: .defaultTap,
                 eventsOfInterest: CGEventMask(mask),
-                callback: callback,
-                userInfo: nil
+                callback: Self.eventCallback,
+                userInfo: boxPointer.toOpaque()
             )
         else {
+            boxPointer.release()
             return
         }
 
+        box.tap = tap
         let runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
         CFRunLoopAddSource(CFRunLoopGetMain(), runLoopSource, .commonModes)
         CGEvent.tapEnable(tap: tap, enable: true)
 
         eventTap = tap
         source = runLoopSource
+        portBox = boxPointer
     }
 
-    /// Removes the event tap from the main run loop. Safe to call when not
-    /// started. Idempotent.
-    func stop() {
-        guard let tap = eventTap, let source else {
-            eventTap = nil
-            source = nil
-            return
+    /// Tears down the tap and releases the callback's port box. Idempotent.
+    private func uninstallTap() {
+        if let tap = eventTap {
+            CGEvent.tapEnable(tap: tap, enable: false)
+        }
+        if let source {
+            CFRunLoopRemoveSource(CFRunLoopGetMain(), source, .commonModes)
+        }
+        portBox?.release()
+
+        eventTap = nil
+        source = nil
+        portBox = nil
+    }
+
+    /// The C event-tap callback. Re-enables the tap on OS disable events, then
+    /// applies the lockout blocklist to key events. Cannot capture `self`, so
+    /// it reaches the tap port through the boxed `userInfo` pointer.
+    private static let eventCallback: CGEventTapCallBack = { _, type, event, userInfo in
+        if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
+            if let userInfo {
+                let box = Unmanaged<TapPortBox>.fromOpaque(userInfo).takeUnretainedValue()
+                if let tap = box.tap {
+                    CGEvent.tapEnable(tap: tap, enable: true)
+                }
+            }
+            return nil
         }
 
-        CGEvent.tapEnable(tap: tap, enable: false)
-        CFRunLoopRemoveSource(CFRunLoopGetMain(), source, .commonModes)
-        eventTap = nil
-        self.source = nil
+        guard type == .keyDown || type == .flagsChanged else {
+            return Unmanaged.passUnretained(event)
+        }
+
+        let keyCode = CGKeyCode(event.getIntegerValueField(.keyboardEventKeycode))
+        let flags = event.flags
+
+        if LockoutShortcutPolicy.shouldBlock(keyCode: keyCode, flags: flags) {
+            return nil
+        }
+
+        return Unmanaged.passUnretained(event)
+    }
+
+    // MARK: - Watchdog
+
+    /// Starts the periodic watchdog on the main run loop, replacing any prior
+    /// timer.
+    private func startWatchdog() {
+        watchdog?.invalidate()
+        let timer = Timer(
+            timeInterval: Self.watchdogInterval,
+            repeats: true
+        ) { [weak self] _ in
+            self?.runWatchdog()
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        watchdog = timer
+    }
+
+    /// Consults ``TapWatchdogDecision`` and acts: re-enables a disabled tap or
+    /// reinstalls a vanished one.
+    private func runWatchdog() {
+        switch TapWatchdogDecision.decide(installed: isActive, enabled: isEnabled) {
+        case .healthy:
+            break
+        case .reEnable:
+            if let tap = eventTap {
+                CGEvent.tapEnable(tap: tap, enable: true)
+            }
+        case .recreate:
+            uninstallTap()
+            installTap()
+        }
     }
 }

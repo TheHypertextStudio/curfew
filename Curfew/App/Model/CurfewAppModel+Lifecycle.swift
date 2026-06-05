@@ -38,15 +38,6 @@ extension CurfewAppModel {
         // only on transitions, so 1 Hz polling costs one CGEventSource read.
         idleWatcher.sample()
 
-        // Refresh the Accessibility-trust banner state. Polling once per
-        // tick keeps the UI live: when the user grants the permission in
-        // System Settings the banner clears within a second without the
-        // app needing a foreground notification subscription. Equality
-        // guard prevents `objectWillChange` churn when the value is stable.
-        let trusted = accessibilityTrust.isProcessTrusted
-        if isAccessibilityTrusted != trusted {
-            setAccessibilityTrusted(trusted)
-        }
         // Touch the heartbeat file so the privileged daemon can tell
         // whether the app is still running. Stale heartbeat plus an
         // active durable deadline drives the daemon's shutdown path.
@@ -89,6 +80,10 @@ extension CurfewAppModel {
         // change here is reflected in `propagatePhaseTransition` below.
         reconcileDurableLockoutDeadline()
 
+        // Fold Accessibility trust + the keyboard shield's live tap state into
+        // the enforcement-health verdict. Runs after `state` is set because the
+        // verdict depends on the current phase.
+        pollAndUpdateEnforcementHealth()
         propagatePhaseTransition(from: previousPhase)
         writeDurableDeadlineIfEnteringLockout(previousPhase: previousPhase)
 

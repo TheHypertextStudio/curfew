@@ -5,17 +5,12 @@ import Foundation
 import OSLog
 import SwiftUI
 
-/// Central `ObservableObject` for Curfew. Holds all `@Published` state,
-/// drives the 1 Hz tick loop, and exposes the designated initialiser.
-/// Behaviour is split across extension files: Actions, Lifecycle,
-/// Presentation, Setup. `@MainActor` throughout — reads and writes
-/// AppKit + SwiftUI state and the tick timer fires on the main run loop.
+/// Central `@MainActor ObservableObject` for Curfew: holds all `@Published`
+/// state and drives the 1 Hz tick loop. Behaviour lives in `CurfewAppModel+*`.
 @MainActor
 final class CurfewAppModel: NSObject, ObservableObject {
-    /// How long the user must hold the extension button before the request
-    /// is consumed. Prevents accidental taps from burning a weekly budget
-    /// slot. Also exposed to `EnforcementSnapshot.extensionRequestTitle` so
-    /// the UI copy stays in sync with the actual hold duration.
+    /// Extension-button hold duration before a request is consumed; also drives
+    /// `EnforcementSnapshot.extensionRequestTitle` copy.
     static let extensionConfirmationHoldSeconds: Double = 2
 
     /// Whether the first-launch Settings window should open automatically
@@ -124,7 +119,6 @@ final class CurfewAppModel: NSObject, ObservableObject {
 
     /// Respawn deterrent installed in `start()`, armed/disarmed on lockout.
     let respawnGuard: any RespawnGuardControlling
-    let accessibilityTrust: any AccessibilityTrustChecking
     let lockoutDeadlineStore: LockoutDeadlineStore
     /// Abstraction over "activate + show Settings". Tests substitute a spy.
     let appRouter: AppRouting
@@ -157,17 +151,18 @@ final class CurfewAppModel: NSObject, ObservableObject {
     /// source of truth for "is the user actively using the machine?".
     let idleWatcher: IdleWatcher
 
-    /// Cross-device awareness — heartbeats today, subscription-driven
-    /// updates once a push arrives. Started alongside CloudKit sync when
-    /// Pro is unlocked and the feature flag is on. Lazy so the
-    /// designated init body stays under the function-length lint budget.
+    /// Seam over the macOS Accessibility-trust check, polled each tick. The
+    /// production default reads the real `AXIsProcessTrusted()` (false on
+    /// headless CI); inject ``FakeAccessibilityAuthorization``.
+    let accessibilityAuthorization: AccessibilityAuthorizing
+
+    /// Cross-device awareness, started alongside CloudKit sync when Pro is
+    /// unlocked and the flag is on. Lazy so the init body stays under budget.
     lazy var deviceRegistry: DeviceRegistry = .init(idleWatcher: idleWatcher)
 
-    /// Writes lifecycle / extension / override events to the activity
-    /// log. Always non-nil; when the SQLite store can't be opened
-    /// (sandbox denied, disk full), this holds a ``NullActivityRecording``
-    /// that silently discards writes. Tests may inject a
-    /// `NullActivityRecording` directly to bypass I/O.
+    /// Writes lifecycle / extension / override events to the activity log.
+    /// Always non-nil; falls back to ``NullActivityRecording`` when the SQLite
+    /// store can't be opened.
     let activityRecorder: any ActivityRecording
 
     /// Tracks weekly extension budget consumption. Rebuilt when the user
@@ -208,10 +203,19 @@ final class CurfewAppModel: NSObject, ObservableObject {
     /// non-`@Published` collaborator.
     @Published private(set) var isUserIdle = false
 
-    /// Whether the host holds Accessibility trust for the CGEventTap that
-    /// blocks bypass keys. Polled each tick; UI banner reads this. Seeded
-    /// to `false` so the first tick refreshes it from the trust probe.
-    @Published private(set) var isAccessibilityTrusted = false
+    /// Whether the app currently holds Accessibility trust. Seeded at init and
+    /// re-polled each tick so a revoked permission shows without a relaunch.
+    @Published private(set) var isAccessibilityTrusted: Bool
+
+    /// Live enforcement-health verdict folding Accessibility trust with the
+    /// keyboard shield's tap state. Seeded at init and recomputed each tick to
+    /// drive the badge.
+    @Published private(set) var enforcementHealth: EnforcementHealth
+
+    /// Test seam for the keyboard shield's tap liveness. `nil` in production,
+    /// where ``pollAndUpdateEnforcementHealth()`` reads the live
+    /// `lockoutKeyInterceptor.isEnabled`; tests assign a closure instead.
+    var tapLivenessOverride: (() -> Bool)?
 
     /// Memoisation cache for ``thisWeekRollup()``. Invalidated on week
     /// boundary advance or activity-recorder mutation.
@@ -219,10 +223,8 @@ final class CurfewAppModel: NSObject, ObservableObject {
     /// Cached rollup aligned with `cachedThisWeekKey`; nil when invalid.
     var cachedThisWeekRollup: WeeklyActivityRollup?
 
-    /// Combine subscriptions held for the lifetime of the model. Currently
-    /// covers reactive Pro-gated module reconciliation: when
-    /// `licenseGate.activatedKey` flips, we start or stop CloudKit, calendar,
-    /// and the privileged helper without restarting the app.
+    /// Combine subscriptions held for the model's lifetime; drive reactive
+    /// Pro-gated module reconciliation when `licenseGate.activatedKey` flips.
     var cancellables = Set<AnyCancellable>()
 
     /// How many seconds of activity log to keep. Matches the 52-week rolling
@@ -247,12 +249,9 @@ final class CurfewAppModel: NSObject, ObservableObject {
     /// class body.
     private var started = false
 
-    /// Production / test-friendly designated initialiser. Every other
-    /// initialiser delegates here. `settingsStore`, `appRouter`, and
-    /// `gettingStartedPresenter` are injected so tests can substitute fakes.
-    ///
-    /// `@Published` state must be assigned before `super.init()`;
-    /// closure-capturing wiring runs via `configureNotificationCallback()`.
+    /// Production / test-friendly designated initialiser; every other
+    /// initialiser delegates here. Collaborators are injected so tests can
+    /// substitute fakes. `@Published` state is assigned before `super.init()`.
     init(
         settingsStore: CurfewSettingsStore,
         appRouter: AppRouting,
@@ -266,8 +265,8 @@ final class CurfewAppModel: NSObject, ObservableObject {
         privilegedHelperManager: PrivilegedHelperManager = PrivilegedHelperManager(),
         idleWatcher: IdleWatcher = IdleWatcher(source: CGEventSourceIdleSource()),
         respawnGuard: any RespawnGuardControlling = NoOpRespawnGuard(),
-        accessibilityTrust: any AccessibilityTrustChecking = SystemAccessibilityTrust(),
-        lockoutDeadlineStore: LockoutDeadlineStore = LockoutDeadlineStore()
+        lockoutDeadlineStore: LockoutDeadlineStore = LockoutDeadlineStore(),
+        accessibilityAuthorization: AccessibilityAuthorizing = SystemAccessibilityAuthorization()
     ) {
         self.settingsStore = settingsStore
         self.policyEngine = SchedulePolicyEngine()
@@ -289,24 +288,17 @@ final class CurfewAppModel: NSObject, ObservableObject {
         self.privilegedHelperManager = privilegedHelperManager
         self.idleWatcher = idleWatcher
         self.respawnGuard = respawnGuard
-        self.accessibilityTrust = accessibilityTrust
         self.lockoutDeadlineStore = lockoutDeadlineStore
+        self.accessibilityAuthorization = accessibilityAuthorization
 
         let loadedSettings = settingsStore.load()
         self.settings = loadedSettings
         self.shouldOpenSettingsOnLaunch = settingsStore.consumeShouldShowInitialSetup()
         self.overrideEvents = settingsStore.loadOverrideEvents()
 
-        self.extensionTracker = Self.makeTracker(
-            limit: loadedSettings.extensionWeeklyLimit,
-            minutes: loadedSettings.extensionDurationMinutes,
-            weekday: loadedSettings.resetWeekday
-        )
-        self.overrideTracker = Self.makeTracker(
-            limit: loadedSettings.overrideWeeklyLimit,
-            minutes: loadedSettings.overrideDurationMinutes,
-            weekday: loadedSettings.resetWeekday
-        )
+        let trackers = Self.makeBudgetTrackers(for: loadedSettings)
+        self.extensionTracker = trackers.extension
+        self.overrideTracker = trackers.override
 
         let now = Date()
         self.state = Self.initialEvaluation(
@@ -320,15 +312,19 @@ final class CurfewAppModel: NSObject, ObservableObject {
         self.shutdownStatusLine = nil
         self.currentDayToken = Self.dayToken(for: now)
         self.isUserIdle = idleWatcher.isIdle
+        let seededTrust = accessibilityAuthorization.isTrusted()
+        self.isAccessibilityTrusted = seededTrust
+        self.enforcementHealth = Self.seededEnforcementHealth(
+            isAccessibilityTrusted: seededTrust,
+            tapIsEnabled: lockoutKeyInterceptor.isEnabled
+        )
         super.init()
         completeInitialization(with: loadedSettings)
     }
 
-    /// Zero-arg convenience used by `CurfewApp` at production launch. All
-    /// collaborators resolve to their `System*` defaults. Kept in the main
-    /// class body because Swift forbids `override` in extensions. The
-    /// real ``PersistentLockdown`` wires up in Release; Debug uses
-    /// `NoOpRespawnGuard` so Xcode runs don't churn launchd state.
+    /// Zero-arg convenience used by `CurfewApp` at production launch; all
+    /// collaborators resolve to their `System*` defaults. Release wires up the
+    /// real ``PersistentLockdown``; Debug uses `NoOpRespawnGuard`.
     override convenience init() {
         #if DEBUG
             let respawnGuard: any RespawnGuardControlling = NoOpRespawnGuard()
@@ -365,13 +361,22 @@ final class CurfewAppModel: NSObject, ObservableObject {
         started
     }
 
+    /// Overrides the mirrored idle flag. Used by the idle-watcher callback and
+    /// by tests to drive idle-dependent behaviour deterministically.
     func setIdleState(_ idle: Bool) {
         isUserIdle = idle
     }
 
-    /// `private(set)` writer for ``isAccessibilityTrusted``.
+    /// Guarded `isAccessibilityTrusted` setter. In-file because the property's
+    /// setter is `private(set)`; the Lifecycle tick poll routes through here.
     func setAccessibilityTrusted(_ trusted: Bool) {
-        isAccessibilityTrusted = trusted
+        if isAccessibilityTrusted != trusted { isAccessibilityTrusted = trusted }
+    }
+
+    /// Guarded `enforcementHealth` setter. In-file because the property's
+    /// setter is `private(set)`; the Lifecycle tick recompute routes here.
+    func setEnforcementHealth(_ health: EnforcementHealth) {
+        if enforcementHealth != health { enforcementHealth = health }
     }
 
     /// Timer-target bridge. Swift `Timer` requires a `@objc` selector, and
@@ -381,17 +386,10 @@ final class CurfewAppModel: NSObject, ObservableObject {
         tick()
     }
 
-    /// Persists the given override event and appends to the published
-    /// in-memory log. Lives on the main class because `overrideEvents` is
-    /// `@Published private(set)`.
-    func recordOverrideEvent(_ event: OverrideEvent) {
-        settingsStore.appendOverrideEvent(event)
+    /// Appends to the published override log. In-file because `overrideEvents`
+    /// is `@Published private(set)`; ``recordOverrideEvent(_:)`` routes here.
+    func appendOverrideEvent(_ event: OverrideEvent) {
         overrideEvents.append(event)
-        activityRecorder.recordOverrideGranted(
-            minutes: event.grantedDurationMinutes,
-            reason: event.reason,
-            at: event.timestamp
-        )
     }
 
     deinit {

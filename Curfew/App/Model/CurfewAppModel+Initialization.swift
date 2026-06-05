@@ -1,7 +1,17 @@
 import Foundation
 
+/// Post-`super.init()` wiring for `CurfewAppModel` plus the `static` seed
+/// helpers the designated initialiser calls. Split from the main class so the
+/// initialiser body stays within the lint budget and closure-capturing setup
+/// (which must run after `super.init()`) lives in one obvious place.
 @MainActor
 extension CurfewAppModel {
+    /// Finishes constructing the model after `super.init()`: pushes the initial
+    /// widget snapshot, wires the idle-state callback, and installs the
+    /// notification, MCP, CloudKit, and license-change wiring.
+    ///
+    /// - Parameter loadedSettings: The settings loaded during init, forwarded
+    ///   to the first widget shared-state sync.
     func completeInitialization(with loadedSettings: CurfewSettings) {
         // No-op unless the widget is enabled (`syncWidgetSharedState` guards
         // `widgetKitEnabled` internally), so a default install — and every

@@ -88,22 +88,22 @@ struct LifecycleWiringTests {
 
     @Test("Tick refreshes isAccessibilityTrusted from the injected checker")
     func tickRefreshesAccessibilityTrust() {
-        let trust = StubAccessibilityTrust(isProcessTrusted: false)
+        let trust = FakeAccessibilityAuthorization(trusted: false)
         let model = makeModel(
             featureFlags: .default,
             activityRecorder: NullActivityRecording(),
             idleSource: StubIdleSource(seconds: 0),
-            accessibilityTrust: trust,
+            accessibilityAuthorization: trust,
             setupComplete: true
         )
 
         #expect(!model.isAccessibilityTrusted)
 
-        trust.isProcessTrusted = true
+        trust.trusted = true
         model.tick()
         #expect(model.isAccessibilityTrusted)
 
-        trust.isProcessTrusted = false
+        trust.trusted = false
         model.tick()
         #expect(!model.isAccessibilityTrusted)
     }
@@ -238,8 +238,8 @@ struct LifecycleWiringTests {
         activityRecorder: any ActivityRecording,
         idleSource: IdleTimeSource,
         respawnGuard: any RespawnGuardControlling = NoOpRespawnGuard(),
-        accessibilityTrust: any AccessibilityTrustChecking = StubAccessibilityTrust(
-            isProcessTrusted: true
+        accessibilityAuthorization: AccessibilityAuthorizing = FakeAccessibilityAuthorization(
+            trusted: true
         ),
         setupComplete: Bool = false
     ) -> CurfewAppModel {
@@ -267,8 +267,8 @@ struct LifecycleWiringTests {
             activityRecorder: activityRecorder,
             idleWatcher: watcher,
             respawnGuard: respawnGuard,
-            accessibilityTrust: accessibilityTrust,
-            lockoutDeadlineStore: LockoutDeadlineStore(recordURL: deadlineURL)
+            lockoutDeadlineStore: LockoutDeadlineStore(recordURL: deadlineURL),
+            accessibilityAuthorization: accessibilityAuthorization
         )
     }
 }

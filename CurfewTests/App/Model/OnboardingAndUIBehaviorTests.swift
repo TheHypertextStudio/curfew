@@ -224,7 +224,11 @@ struct OverrideComposerStateTests {
 struct MenuBarPresentationModelTests {
     @Test("Menu bar symbol and status line reflect enforcement phase")
     func symbolAndStatusForPhase() {
-        let model = CurfewAppModel()
+        // Build a model that holds Accessibility trust so `enforcementHealth`
+        // seeds to `.active`; otherwise the warning badge would override the
+        // per-phase glyph this test is asserting. Enforcement degradation has
+        // its own coverage in `EnforcementHealthWiringTests`.
+        let model = makeTrustedModel()
 
         model.state = CurfewEvaluation(
             phase: .working,
@@ -294,5 +298,21 @@ struct MenuBarPresentationModelTests {
             unlockDate: nil
         )
         #expect(model.timeRemainingText == "—")
+    }
+
+    /// Builds a `CurfewAppModel` over isolated defaults and a trusted
+    /// ``FakeAccessibilityAuthorization`` so `enforcementHealth` seeds to
+    /// `.active`, letting the per-phase menu-bar glyph show through.
+    private func makeTrustedModel() -> CurfewAppModel {
+        let suite = "studio.hypertext.curfew.tests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite) ?? .standard
+        defaults.removePersistentDomain(forName: suite)
+        return CurfewAppModel(
+            settingsStore: CurfewSettingsStore(defaults: defaults),
+            appRouter: AppRouterSpy(),
+            gettingStartedPresenter: GettingStartedPresenterSpy(),
+            activityRecorder: NullActivityRecording(),
+            accessibilityAuthorization: FakeAccessibilityAuthorization(trusted: true)
+        )
     }
 }

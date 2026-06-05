@@ -347,6 +347,22 @@ extension CurfewAppModel {
         tick()
     }
 
+    /// Persists the given override event to the store, appends it to the
+    /// published in-memory log via ``appendOverrideEvent(_:)``, and records it
+    /// to the activity log. The append hop is a thin main-class mutator because
+    /// `overrideEvents` is `@Published private(set)`.
+    ///
+    /// - Parameter event: The granted override to persist and record.
+    func recordOverrideEvent(_ event: OverrideEvent) {
+        settingsStore.appendOverrideEvent(event)
+        appendOverrideEvent(event)
+        activityRecorder.recordOverrideGranted(
+            minutes: event.grantedDurationMinutes,
+            reason: event.reason,
+            at: event.timestamp
+        )
+    }
+
     private func decodedReason(from argumentsJSON: String) -> String {
         guard
             let data = argumentsJSON.data(using: .utf8),

@@ -12,8 +12,15 @@ import Foundation
 extension CurfewAppModel {
     /// SF Symbol name representing the current phase. Surfaces in the menu
     /// bar.
+    ///
+    /// When enforcement is degraded (Accessibility revoked or the keyboard
+    /// shield's tap is down) the phase glyph is replaced by the warning badge
+    /// so a silently broken lockout cannot look like business as usual.
     var menuBarSymbolName: String {
-        symbolName(for: state.phase)
+        if enforcementHealth != .active {
+            return enforcementHealth.menuBarBadgeSymbol ?? "exclamationmark.triangle.fill"
+        }
+        return symbolName(for: state.phase)
     }
 
     /// One-line description of the current phase for the status bar and

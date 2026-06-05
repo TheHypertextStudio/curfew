@@ -81,6 +81,10 @@ struct CurfewApp: App {
     @StateObject private var model: CurfewAppModel
     /// Sparkle wrapper driving the Check-for-Updates menu item.
     @StateObject private var updater = CurfewUpdater()
+    /// AppKit delegate seam. A no-op today; a later workflow hangs
+    /// activation / wake re-assertion of the keyboard shield off it so a
+    /// degraded lockout can recover when the user returns to the Mac.
+    @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     private static let shouldStartEnforcementOnLaunch = CurfewLaunchBehavior.shouldStartEnforcement(
         environment: ProcessInfo.processInfo.environment,
@@ -155,3 +159,12 @@ struct CurfewApp: App {
         }
     }
 }
+
+/// AppKit application delegate for Curfew.
+///
+/// Intentionally minimal for now: SwiftUI's `App` lifecycle owns launch and
+/// scene composition, and the enforcement re-assertion hooks (re-check
+/// Accessibility trust and restart the keyboard shield on app activation and
+/// system wake) land in a later workflow. This stub exists so that wiring has
+/// a delegate to attach to without reshaping the SwiftUI entry point again.
+final class AppDelegate: NSObject, NSApplicationDelegate {}
