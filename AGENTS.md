@@ -90,6 +90,23 @@ xcodebuild build -project Curfew.xcodeproj -scheme Curfew -configuration Debug -
 xcodebuild build -project Curfew.xcodeproj -scheme Curfew -configuration Release -destination 'platform=macOS'
 ```
 
+Marketing / debug capture (Debug-only demo fixture; never touches real
+settings/history and never arms enforcement, so auto-shutdown can't fire):
+
+```bash
+just capture        # XCUITest screenshots → build/screenshots/curfew-*.png (CI-safe, no perms)
+just capture-hero   # local per-window stills with shadow (needs Screen Recording perm)
+just capture-video  # local lockout walkthrough .mov (needs Screen Recording perm)
+
+# launch a single surface by hand
+CURFEW_DEMO_FIXTURE=1 CURFEW_DEMO_SCENARIO=lockout \
+  build/Build/Products/Debug/Curfew.app/Contents/MacOS/Curfew
+```
+
+Scenarios live in `Curfew/App/Demo/DemoFixture.swift`. `just capture-hero` /
+`capture-video` require Screen Recording permission (System Settings → Privacy &
+Security → Screen Recording); `just capture` does not.
+
 Lint and format commands:
 
 ```bash

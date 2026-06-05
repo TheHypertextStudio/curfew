@@ -56,6 +56,20 @@ enum CurfewLaunchBehavior {
         }
         return true
     }
+
+    #if DEBUG
+        /// Resolves the demo-capture scenario from the environment, or `nil`
+        /// when `CURFEW_DEMO_FIXTURE` is not set to `1`. Unknown scenario
+        /// tokens fall back to `.overview`. Debug-only: Release builds neither
+        /// compile nor honour this flag.
+        static func demoScenario(environment: [String: String]) -> DemoScenario? {
+            guard environment["CURFEW_DEMO_FIXTURE"] == "1" else {
+                return nil
+            }
+            let token = environment["CURFEW_DEMO_SCENARIO"] ?? ""
+            return DemoScenario(rawValue: token) ?? .overview
+        }
+    #endif
 }
 
 /// SwiftUI app entry point. Composes the three scenes users interact
@@ -85,6 +99,19 @@ struct CurfewApp: App {
     /// the launch coordinator to the next run-loop spin so SwiftUI's
     /// first body evaluation completes before enforcement arms.
     init() {
+        #if DEBUG
+            if let scenario = CurfewLaunchBehavior.demoScenario(
+                environment: ProcessInfo.processInfo.environment
+            ) {
+                let model = CurfewAppModel.demoModel(scenario: scenario)
+                _model = StateObject(wrappedValue: model)
+                DispatchQueue.main.async {
+                    model.applyDemoScenario(scenario)
+                }
+                return
+            }
+        #endif
+
         let model = CurfewAppModel()
         _model = StateObject(wrappedValue: model)
 

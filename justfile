@@ -136,6 +136,27 @@ dev:
     just kill
     open -n build/Build/Products/Debug/Curfew.app
 
+# -----------------------------------------------------------------------
+# Capture (marketing + debug screenshots / video)
+# -----------------------------------------------------------------------
+
+# CI / debug screenshots via XCUITest. Needs no Screen Recording permission,
+# so it also works on headless runners. Output: build/screenshots/*.png.
+capture:
+    scripts/extract-screenshots.sh
+
+# Local high-fidelity marketing stills (per-window, with shadow) via
+# `screencapture`. Requires Screen Recording permission for the terminal.
+# Output: build/screenshots/*.png.
+capture-hero:
+    scripts/capture-marketing.sh
+
+# Local walkthrough video of the lockout overlay. Requires Screen Recording
+# permission. Pass a duration in seconds (default 18). Output:
+# build/screenshots/curfew-reel.mov.
+capture-video seconds="18":
+    scripts/capture-video.sh {{ seconds }}
+
 # Serve the landing page with live reload and open it in the browser.
 # `live-server` injects a WebSocket client that auto-refreshes on every
 # edit to landing/*.{html,css} — saves the round-trip of manual reloads

@@ -29,3 +29,39 @@ jobs:
 
       - name: Check (format + lint + test + build)
         run: just check
+
+  screenshots:
+    name: Capture screenshots
+    runs-on: macos-15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_16.app
+
+      - name: Install tools
+        run: brew install just
+
+      - name: Cache derived data
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Developer/Xcode/DerivedData
+          key: ${{ runner.os }}-derived-${{ hashFiles('**/*.xcodeproj/project.pbxproj') }}
+          restore-keys: ${{ runner.os }}-derived-
+
+      # Drives the demo-fixture scenarios through XCUITest and exports the
+      # screenshots. Uses XCUIScreen.screenshot(), so no Screen Recording
+      # permission is needed on the runner. The walkthrough video and the
+      # shadowed per-window hero stills are local-only (they need that
+      # permission) — see scripts/capture-marketing.sh / capture-video.sh.
+      - name: Capture demo screenshots
+        run: just capture
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: curfew-screenshots
+          path: build/screenshots/curfew-*.png
+          if-no-files-found: warn

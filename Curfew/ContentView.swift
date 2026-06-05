@@ -180,6 +180,13 @@ struct MainWindowView: View {
         }
         .navigationSplitViewStyle(.balanced)
         .tint(CurfewTheme.accent)
+        .onAppear {
+            #if DEBUG
+                if let demoSection = model.demoInitialSection {
+                    selectedSection = demoSection
+                }
+            #endif
+        }
         // Surface MCP consent sheet whenever a new AI write request arrives.
         .sheet(item: Binding(
             get: { model.pendingMCPRequests.first },
