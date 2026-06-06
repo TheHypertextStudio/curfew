@@ -16,7 +16,7 @@ maintainer executes it on a signed build with real Apple credentials.
 ## One-time external setup
 
 Use `scripts/release-checklist.md` for the full business/infrastructure setup
-(Lemonsqueezy, Cloudflare Worker, Sparkle, landing page, Homebrew). The Apple
+(Stripe, Cloudflare Worker, Sparkle, landing page, Homebrew). The Apple
 release identifiers that must stay aligned are:
 
 - App bundle ID: `studio.hypertext.curfew`

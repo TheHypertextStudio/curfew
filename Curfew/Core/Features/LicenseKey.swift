@@ -8,7 +8,8 @@ struct LicenseKey: Codable, Equatable {
     /// the key; other values (future SKUs, team licences) are rejected
     /// via `LicenseActivationError.wrongProduct`.
     let product: String
-    /// Lemonsqueezy order identifier. Surfaces in support workflows.
+    /// Stripe Checkout Session id (kept as the `order_id` wire field).
+    /// Surfaces in support workflows.
     let orderID: String
     /// Issuance timestamp from the Cloudflare Worker signer.
     let issuedAt: Date
@@ -21,7 +22,7 @@ struct LicenseKey: Codable, Equatable {
         case email
         /// Product SKU field.
         case product
-        /// Lemonsqueezy order id — `order_id` in JSON.
+        /// Stripe Checkout Session id — `order_id` in JSON (legacy field name).
         case orderID = "order_id"
         /// Issue timestamp — `issued_at` in JSON.
         case issuedAt = "issued_at"

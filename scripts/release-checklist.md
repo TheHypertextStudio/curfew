@@ -39,17 +39,29 @@ next step needs.
 - [ ] Schema: record types `Schedule`, `LockoutState`, `Device`,
       `DeviceActivity` (the app creates them on first write; no manual
       schema work needed).
+- [ ] Mark `Device` and `DeviceActivity` as **Queryable** in the CloudKit
+      dashboard. The cross-device "which Macs are active" view runs a query;
+      without a queryable index it silently returns nothing (the app logs
+      this at `.error`).
 - [ ] Promote Production schema from Development before the first
       release tag.
 
-### 4. Lemonsqueezy store + product
+### 4. Stripe (Managed Payments / merchant of record)
 
-- [ ] Create a Lemonsqueezy store, fill out tax / payouts.
-- [ ] Create a product "Curfew Pro" at $20 launch price.
-- [ ] Settings → Webhooks → create a webhook pointing at the
-      Cloudflare Worker URL (see step 6), signed with a secret.
-- [ ] Save the webhook signing secret — goes into
-      `LEMON_WEBHOOK_SECRET` in step 6.
+Stripe is the seller of record, so it handles VAT/sales tax, receipts, and
+fraud — no separate tax-filing service is needed.
+
+- [ ] Create / sign in to the Hypertext Studio Stripe account and enable
+      **Managed Payments** (public preview — confirm eligibility).
+- [ ] Create a product "Curfew Pro" at the **$20** one-time price and a
+      hosted **Payment Link** for it.
+- [ ] Paste the Payment Link URL into `landing/index.html` (replace
+      `https://buy.stripe.com/REPLACE_WITH_CURFEW_PRO_PAYMENT_LINK`).
+- [ ] Developers → Webhooks → add an endpoint subscribed to
+      `checkout.session.completed`, pointing at the Cloudflare Worker URL
+      (see step 6).
+- [ ] Save the endpoint's signing secret (`whsec_…`) — goes into
+      `STRIPE_WEBHOOK_SECRET` in step 6.
 
 ### 5. Ed25519 license-signing keypair
 
@@ -66,10 +78,11 @@ next step needs.
 - [ ] `wrangler login`.
 - [ ] `wrangler kv namespace create LICENSE_KV` — paste the returned id
       into `wrangler.toml` under `kv_namespaces[0].id`.
-- [ ] `wrangler secret put LEMON_WEBHOOK_SECRET` — paste the secret from step 4.
+- [ ] `wrangler secret put STRIPE_WEBHOOK_SECRET` — paste the `whsec_…`
+      signing secret from step 4.
 - [ ] `wrangler secret put LICENSE_PRIVATE_KEY` — paste the private key from step 5.
 - [ ] `wrangler deploy` — note the worker URL (`*.workers.dev`).
-- [ ] Update the Lemonsqueezy webhook URL (step 4) to the worker URL.
+- [ ] Point the Stripe webhook endpoint (step 4) at the worker URL.
 - [ ] (Optional) Set up a custom domain: `license.hypertext.studio` →
       uncomment the `routes = [...]` block in `wrangler.toml`.
 

@@ -2,6 +2,8 @@
 
 **A hard stop for your Mac.** Set a schedule. When the clock runs out, your machine locks you out — warnings, then a full-screen overlay, then an optional shutdown. No willpower required.
 
+It's a commitment device, not a kernel-level lock: a determined user with a terminal can still get around it. The point is to make stopping the easy default, not to make it impossible.
+
 Curfew is the first product from [Hypertext Studio](https://hypertext.studio), a product design lab working under the motto *mens et manus* — mind and hand.
 
 ---

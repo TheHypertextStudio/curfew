@@ -190,9 +190,9 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 - [x] `ProGate<Content>` generic view wrapper gates CloudKit, WidgetKit, Calendar.
 - [x] `PurchasePromptView` — feature name, description, upgrade link.
 - [x] `scripts/gen-license-keypair.sh` — Ed25519 keypair generation.
-- [x] `scripts/issue-license.ts` — Cloudflare Worker: Lemonsqueezy webhook → signed key.
+- [x] `scripts/issue-license.ts` — Cloudflare Worker: Stripe webhook → signed key.
 - [ ] Placeholder public key replaced with production key. (morning task)
-- [ ] Lemonsqueezy store + product + webhook configured. (morning task)
+- [ ] Stripe account + Curfew Pro product + webhook configured. (morning task)
 
 ## 16. Onboarding
 
