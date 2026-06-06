@@ -164,6 +164,11 @@ final class LockoutKeyInterceptor {
     /// scheduled; an existing watchdog's ``TapWatchdogDecision/recreate`` path
     /// already retries the install on its own cadence.
     func start() {
+        // Skip in a unit-test host: creating the CGEvent tap raises the macOS
+        // Accessibility ("control your computer") prompt, and every re-signed
+        // test build re-prompts. No test asserts the live tap; production
+        // launches install it as normal.
+        guard !RuntimeEnvironment.isUnitTestHost else { return }
         guard eventTap == nil else {
             return
         }

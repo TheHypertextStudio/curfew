@@ -206,6 +206,22 @@ struct LifecycleWiringTests {
         }
         model.settings.schedule = schedule
 
+        // Hermetic start: seed a known non-locked phase (and clear any durable
+        // record) so `start()`'s first tick produces a real `.dayOff -> .locked`
+        // transition — which is what arms the guard. Without this, the model's
+        // initial phase comes from the default 9-to-5 schedule, which evaluates
+        // to `.locked` outside business hours; the tick then sees no fresh
+        // transition and never logs "arm" (a wall-clock-dependent flake).
+        model.lockoutDeadlineStore.clear()
+        model.state = CurfewEvaluation(
+            phase: .dayOff,
+            warningStage: .none,
+            minutesRemaining: .max,
+            canRequestExtension: false,
+            lockDate: nil,
+            unlockDate: nil
+        )
+
         model.start()
         #expect(model.state.phase == .locked)
         #expect(respawnGuard.callLog.contains("arm"))

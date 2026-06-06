@@ -68,6 +68,10 @@ final class WarningNotificationManager: NSObject {
     /// Requests alert + sound + badge authorisation if not yet granted.
     /// Non-fatal: enforcement continues even if the user denies.
     func requestPermissionIfNeeded() {
+        // Skip in a unit-test host: a test build is re-signed each run, so
+        // requesting Notifications authorization re-prompts the developer on
+        // every run. No test asserts this request; production requests normally.
+        guard !RuntimeEnvironment.isUnitTestHost else { return }
         center.requestAuthorization(options: [.alert, .sound, .badge]) { _, _ in
             // Permission failures are non-fatal for enforcement.
         }

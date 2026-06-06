@@ -37,6 +37,11 @@ extension CurfewAppModel {
     /// running; a stale heartbeat plus an active lockout deadline is the
     /// signal the daemon uses to force a shutdown.
     func touchAppHeartbeat() {
+        // Skip when running as a unit-test host: the heartbeat lives in the App
+        // Group container, so writing it from the (re-signed each build) test
+        // host raises the macOS "access data from other apps" prompt on every
+        // run. No test asserts the heartbeat; production launches are unaffected.
+        guard !RuntimeEnvironment.isUnitTestHost else { return }
         let url = SharedPaths.appHeartbeat
         do {
             try FileManager.default.createDirectory(
