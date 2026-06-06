@@ -41,7 +41,10 @@ extension CurfewAppModel {
         // Group container, so writing it from the (re-signed each build) test
         // host raises the macOS "access data from other apps" prompt on every
         // run. No test asserts the heartbeat; production launches are unaffected.
-        guard !RuntimeEnvironment.isUnitTestHost else { return }
+        // Also skip in Debug builds where the daemon is not active: the
+        // heartbeat is meaningless without the privileged helper reading it.
+        guard !RuntimeEnvironment.isUnitTestHost,
+              featureFlags.privilegedHelperEnabled else { return }
         let url = SharedPaths.appHeartbeat
         do {
             try FileManager.default.createDirectory(
