@@ -187,16 +187,13 @@ struct MainWindowView: View {
         NavigationSplitView {
             List(MainWorkspaceSection.allCases, selection: $selectedSection) { section in
                 Label(section.title, systemImage: section.symbolName)
-                    .font(CurfewTypography.bodyEmphasis(14))
-                    .foregroundStyle(CurfewTheme.ink)
+                    .font(CurfewTypography.bodyEmphasis(15))
                     .tag(section)
-                    .padding(.vertical, 4)
-                    .listRowBackground(Color.clear)
+                    .padding(.vertical, 6)
             }
-            .scrollContentBackground(.hidden)
-            .background(CurfewTheme.canvasStrong)
             .navigationTitle("Curfew")
             .listStyle(.sidebar)
+            .navigationSplitViewColumnWidth(min: 220, ideal: 248, max: 340)
         } detail: {
             detailContent
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)

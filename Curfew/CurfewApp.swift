@@ -146,6 +146,7 @@ struct CurfewApp: App {
                 .frame(minWidth: 980, minHeight: 660)
         }
         .defaultSize(width: 1080, height: 720)
+        .windowStyle(.hiddenTitleBar)
         .commands {
             if CurfewUpdater.isAvailable {
                 CommandGroup(after: .appInfo) {

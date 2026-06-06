@@ -41,6 +41,7 @@ struct TodaySundownView: View {
             Palette.sky
             sunGlow
             vignette
+            bottomFade
             skyContent
         }
         .frame(height: 452)
@@ -52,15 +53,15 @@ struct TodaySundownView: View {
                 .font(.system(size: 30, weight: .semibold))
                 .foregroundStyle(Palette.warmWhite.opacity(0.95))
 
-            Spacer(minLength: 0)
-
             if timeRemaining.isEmpty {
                 Text(emptyNote)
-                    .font(.system(size: 34, weight: .semibold))
+                    .font(.system(size: 40, weight: .semibold))
                     .foregroundStyle(Palette.warmWhite.opacity(0.92))
-                    .frame(maxWidth: 440, alignment: .leading)
+                    .frame(maxWidth: 460, alignment: .leading)
+                    .padding(.top, 16)
                 Spacer(minLength: 0)
             } else {
+                Spacer(minLength: 0)
                 Text(timeRemaining)
                     .font(SundownType.display(108))
                     .foregroundStyle(Palette.warmWhite)
@@ -111,6 +112,18 @@ struct TodaySundownView: View {
             endRadius: 560
         )
         .blendMode(.multiply)
+    }
+
+    /// Softens the sky's bottom edge into the page canvas so there's no hard
+    /// seam where the sky meets the surface below.
+    private var bottomFade: some View {
+        LinearGradient(
+            colors: [.clear, Palette.canvas],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+        .frame(height: 150)
+        .frame(maxHeight: .infinity, alignment: .bottom)
     }
 
     // MARK: - The control (system state + the only accent/action)
