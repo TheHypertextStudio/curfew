@@ -15,18 +15,18 @@ enum EncouragementMessageCatalog {
     /// Pool of lockout screen messages. Order matters: `next(after:)` walks
     /// the list circularly, so edits should preserve the tone progression.
     static let messages = [
-        "Great work today. Tomorrow is another day.",
-        "The best code is written by a rested mind.",
-        "You've earned this. Go live your life.",
-        "Nothing in your inbox is more important than your health.",
-        "Future you will be grateful."
+        "That's the day.",
+        "Your workday's done.",
+        "See you in the morning.",
+        "Rest well.",
+        "Done for today."
     ]
 
     /// Message shown after the user successfully confirms an override and
     /// regains temporary access. Not part of the rotation — we don't want
     /// to "reward" overrides with fresh encouragement the way first-entry
     /// into lockout gets rotated copy.
-    static let postOverride = "Welcome back. Hope you got what you needed."
+    static let postOverride = "Welcome back."
 
     /// Returns the next message after `previous`, wrapping around when the
     /// end of the list is reached. When `previous` is `nil` or unknown (e.g.
@@ -39,7 +39,7 @@ enum EncouragementMessageCatalog {
     ///   `messages` is non-empty (see fallback).
     static func next(after previous: String?) -> String {
         guard let previous, let index = messages.firstIndex(of: previous), !messages.isEmpty else {
-            return messages.first ?? "Great work today."
+            return messages.first ?? "That's the day."
         }
         let nextIndex = (index + 1) % messages.count
         return messages[nextIndex]
