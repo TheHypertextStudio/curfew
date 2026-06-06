@@ -8,6 +8,11 @@ on:
 jobs:
   release:
     name: Archive · Sign · Notarize · DMG
+    # NOTE: deployment target is macOS 26 (Tahoe), which requires Xcode 26.
+    # `macos-15` + `Xcode_16.app` below cannot build it — bump both to a
+    # macOS 26-capable runner image and the matching Xcode path once the
+    # GitHub-hosted image exists (see willieItem). Left as-is to avoid pinning
+    # a runner label / Xcode path that may not yet be available.
     runs-on: macos-15
     permissions:
       contents: write
@@ -16,6 +21,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Select Xcode
+        # TODO: needs Xcode 26 for the macOS 26 (Tahoe) deployment target.
         run: sudo xcode-select -s /Applications/Xcode_16.app
 
       - name: Install tools
@@ -55,17 +61,34 @@ jobs:
             exit 1
           fi
 
+      - name: Reject placeholder Sparkle public key
+        # Mirrors the license-key gate: refuses to release while
+        # INFOPLIST_KEY_SUPublicEDKey is still the placeholder, which would ship
+        # an app whose Sparkle update signatures can never verify.
+        run: |
+          if grep -q 'REPLACE_WITH_SPARKLE_PUBLIC_ED_KEY' Curfew.xcodeproj/project.pbxproj; then
+            echo "::error::project.pbxproj still embeds the placeholder SUPublicEDKey."
+            echo "Run scripts/gen-sparkle-keypair.sh and paste the public key into INFOPLIST_KEY_SUPublicEDKey before tagging."
+            exit 1
+          fi
+
       - name: Run quality gate
         run: just check
 
       - name: Archive
         run: |
+          # Derive the build + marketing version from the tag so the shipped
+          # CFBundleVersion matches the appcast's <sparkle:version> — Sparkle
+          # compares those to decide whether an update is newer. Strip the 'v'.
+          VERSION="${{ github.ref_name }}"; VERSION="${VERSION#v}"
           xcodebuild archive \
             -project Curfew.xcodeproj \
             -scheme Curfew \
             -archivePath "$RUNNER_TEMP/Curfew.xcarchive" \
             CODE_SIGN_STYLE=Manual \
             CODE_SIGN_IDENTITY="Developer ID Application" \
+            CURRENT_PROJECT_VERSION="$VERSION" \
+            MARKETING_VERSION="$VERSION" \
             DEVELOPMENT_TEAM="${{ secrets.APPLE_TEAM_ID }}"
 
       - name: Export app
@@ -106,8 +129,43 @@ jobs:
             "$RUNNER_TEMP/export/Curfew.app" \
             "$RUNNER_TEMP/Curfew-${{ github.ref_name }}.dmg"
 
+      - name: Generate appcast
+        env:
+          # scripts/generate-appcast.sh signs the DMG with the Sparkle private
+          # key (Ed25519 seed) and emits a signed appcast.xml. Keep the key in
+          # the env only — never echo it.
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        run: |
+          # Skip cleanly until Sparkle is wired up: without the signing key the
+          # script exits 1 and would fail the whole release. Once the
+          # SPARKLE_PRIVATE_KEY secret is set (and Sparkle is linked so
+          # sign_update exists), this activates automatically. A skipped appcast
+          # never fails the release — action-gh-release tolerates the missing
+          # file (fail_on_unmatched_files is false by default).
+          if [ -z "$SPARKLE_PRIVATE_KEY" ]; then
+            echo "::warning::SPARKLE_PRIVATE_KEY not set — skipping appcast generation (see scripts/release-checklist.md)."
+            exit 0
+          fi
+          # github.ref_name is the tag (e.g. v1.0.1); the script wants a bare
+          # semver for <sparkle:version>/shortVersionString, so strip the 'v'.
+          VERSION="${{ github.ref_name }}"
+          VERSION="${VERSION#v}"
+          export VERSION
+          export DMG_PATH="$RUNNER_TEMP/Curfew-${{ github.ref_name }}.dmg"
+          # Point the enclosure URL at the GitHub release asset that the
+          # Create GitHub Release step uploads below. The DMG basename matches
+          # the asset name, so Sparkle downloads exactly what we signed.
+          export APPCAST_URL_BASE="${{ github.server_url }}/${{ github.repository }}/releases/download/${{ github.ref_name }}"
+          bash scripts/generate-appcast.sh > "$RUNNER_TEMP/appcast.xml"
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: ${{ runner.temp }}/Curfew-${{ github.ref_name }}.dmg
+          # appcast.xml is published as a release asset for archival, but the
+          # CANONICAL feed the app polls (INFOPLIST_KEY_SUFeedURL) must be
+          # served at https://curfew.hypertext.studio/appcast.xml via Cloudflare
+          # Pages — copy this asset to that path on each release.
+          files: |
+            ${{ runner.temp }}/Curfew-${{ github.ref_name }}.dmg
+            ${{ runner.temp }}/appcast.xml
           generate_release_notes: true

@@ -4,21 +4,22 @@ import SwiftUI
 
 // Sparkle autoupdate integration.
 //
-// To activate:
-//   1. In Xcode → project → Package Dependencies, add:
-//      https://github.com/sparkle-project/Sparkle  from: 2.7.0
-//   2. In Curfew target → Frameworks, Libraries, and Embedded Content, add
-//      Sparkle.framework (Embed & Sign).
-//   3. Add `SUFeedURL = https://curfew.hypertext.studio/appcast.xml` to Info.plist.
-//   4. Generate an EdDSA key pair:
-//        .build/artifacts/sparkle/.../generate_keys
-//      Add the public key to Info.plist as SUPublicEDKey.
-//      Store the private key in GitHub Secrets as SPARKLE_PRIVATE_KEY.
-//   5. Add `-DSPARKLE_ENABLED` to the Curfew target's Other Swift Flags.
+// The feed URL and a placeholder public EdDSA key already ship in the app's
+// build settings (INFOPLIST_KEY_SUFeedURL / INFOPLIST_KEY_SUPublicEDKey), so
+// the only remaining steps to light this up are:
+//   1. In Xcode → File → Add Package Dependencies, add:
+//      https://github.com/sparkle-project/Sparkle  (exact 2.x).
+//      Link Sparkle into the Curfew target.
+//   2. Run scripts/gen-sparkle-keypair.sh to mint an EdDSA key pair.
+//      Paste the public key into INFOPLIST_KEY_SUPublicEDKey (replacing the
+//      REPLACE_WITH_SPARKLE_PUBLIC_ED_KEY placeholder) and store the private
+//      key as the SPARKLE_PRIVATE_KEY repo secret for the appcast signer.
 //
-// Without those steps `CurfewUpdater` falls back to a no-op stub so the rest
-// of the project compiles and the Check for Updates menu item remains visible
-// but disabled.
+// The live path below is gated on `#if canImport(Sparkle)` — not a custom
+// compilation flag — so the moment the package is linked the real updater and
+// the Check for Updates… menu item come online with no further code changes.
+// Until then `CurfewUpdater` falls back to a no-op stub so the rest of the
+// project compiles and the menu item stays hidden.
 
 #if canImport(Sparkle)
 
@@ -57,16 +58,18 @@ import SwiftUI
 #else
 
     /// No-op stub used when Sparkle.framework is not yet linked into the Xcode
-    /// project. The Check for Updates menu item stays visible but disabled.
+    /// project. With `isAvailable == false`, `CurfewApp` omits the Check for
+    /// Updates… menu item entirely, so this stub is never invoked.
     @MainActor
     final class CurfewUpdater: ObservableObject {
         static let isAvailable = false
 
-        /// Always `false` in the stub — keeps the menu item disabled.
+        /// Always `false` in the stub; the menu item is hidden, so it is unused.
         @Published private(set) var canCheckForUpdates = false
         /// No-op init.
         nonisolated init() {}
-        /// No-op; menu item is disabled so this never fires in practice.
+        /// No-op; the menu item is hidden when Sparkle is unlinked, so this
+        /// never fires.
         func checkForUpdates() {}
     }
 
