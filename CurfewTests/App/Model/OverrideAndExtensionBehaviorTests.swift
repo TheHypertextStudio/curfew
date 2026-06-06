@@ -11,39 +11,16 @@ import Foundation
 import Testing
 
 struct OverrideRequestPolicyTests {
-    @Test("Override policy requires cooldown completion and 50+ chars")
+    @Test("Override policy requires 50+ chars and a non-zero budget")
     func overridePolicyValidation() {
-        let now = Date(timeIntervalSince1970: 1_700_000_000)
-        let cooldownEnd = OverrideRequestPolicy.cooldownEnd(startedAt: now)
         let validReason = String(
             repeating: "a",
             count: OverrideRequestPolicy.minimumJustificationCharacters
         )
 
-        #expect(!OverrideRequestPolicy.canConfirm(
-            reason: "short",
-            now: now,
-            cooldownEndsAt: nil,
-            overridesRemaining: 1
-        ))
-        #expect(!OverrideRequestPolicy.canConfirm(
-            reason: validReason,
-            now: now,
-            cooldownEndsAt: cooldownEnd,
-            overridesRemaining: 1
-        ))
-        #expect(OverrideRequestPolicy.canConfirm(
-            reason: validReason,
-            now: cooldownEnd,
-            cooldownEndsAt: cooldownEnd,
-            overridesRemaining: 1
-        ))
-        #expect(!OverrideRequestPolicy.canConfirm(
-            reason: validReason,
-            now: cooldownEnd,
-            cooldownEndsAt: cooldownEnd,
-            overridesRemaining: 0
-        ))
+        #expect(!OverrideRequestPolicy.canConfirm(reason: "short", overridesRemaining: 1))
+        #expect(OverrideRequestPolicy.canConfirm(reason: validReason, overridesRemaining: 1))
+        #expect(!OverrideRequestPolicy.canConfirm(reason: validReason, overridesRemaining: 0))
     }
 
     @Test("Override defaults align with product settings")
@@ -226,7 +203,6 @@ struct OverrideEventLoggingTests {
             unlockDate: nil
         )
         model.overridesRemaining = 1
-        model.overrideCooldownEndsAt = now.addingTimeInterval(-1)
         model.overrideReasonDraft = reason
 
         model.confirmOverride()

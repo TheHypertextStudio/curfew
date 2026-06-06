@@ -99,22 +99,11 @@ extension CurfewAppModel {
         return "\(lockText) -> \(unlockText)"
     }
 
-    /// Seconds remaining in the override cooldown, or `0` when the cooldown
-    /// has elapsed or was never started.
-    var overrideCooldownRemaining: Int {
-        guard let overrideCooldownEndsAt else {
-            return 0
-        }
-        return max(0, Int(overrideCooldownEndsAt.timeIntervalSince(currentTime)))
-    }
-
-    /// `true` when all three override gates pass: reason is long enough,
-    /// budget is non-zero, and the cooldown has elapsed.
+    /// `true` when both override gates pass: the reason is long enough and the
+    /// weekly budget is non-zero.
     var canConfirmOverride: Bool {
         OverrideRequestPolicy.canConfirm(
             reason: overrideReasonDraft,
-            now: currentTime,
-            cooldownEndsAt: overrideCooldownEndsAt,
             overridesRemaining: overridesRemaining
         )
     }

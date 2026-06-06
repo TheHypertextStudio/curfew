@@ -3,22 +3,16 @@ import Foundation
 /// Namespace for the constants and pure functions that govern the "Convince Me"
 /// override flow.
 ///
-/// The override flow is the primary friction mechanism: the user must wait out
-/// a 5-minute cooldown, write at least 50 characters of justification, then
-/// hold a button for 3 seconds before the device unlocks. Each step is
-/// configurable via these constants so the policy can tighten without
-/// touching UI code.
+/// The override flow is the friction mechanism: the user must write at least 50
+/// characters of justification, then hold a button for 3 seconds before the
+/// device unlocks. The written reason *is* the gate — there is no dead-time
+/// cooldown, which only ever read as a punitive timer.
 ///
-/// `CurfewAppModel` calls ``canConfirm(reason:now:cooldownEndsAt:overridesRemaining:)``
-/// to gate the confirm action, and ``cooldownEnd(startedAt:)`` to compute the
-/// timestamp shown in the countdown UI.
+/// `CurfewAppModel` calls ``canConfirm(reason:overridesRemaining:)`` to gate the
+/// confirm action.
 public enum OverrideRequestPolicy {
     /// Prompt shown at the top of the override composer sheet.
     public static let entryPrompt = "Need to get back in?"
-
-    /// Seconds the user must wait before the confirm button becomes available.
-    /// The 5-minute cooldown discourages impulsive overrides.
-    public static let cooldownSeconds = 5 * 60
 
     /// Minimum non-whitespace character count required in the justification
     /// field. Enforces a meaningful reason rather than accepting a single word.
@@ -33,31 +27,16 @@ public enum OverrideRequestPolicy {
     /// Used as the default when no value has been persisted in `CurfewSettings`.
     public static let defaultOverrideDurationMinutes = 30
 
-    /// Returns the `Date` at which the cooldown expires, given that it started
-    /// at `now`.
-    public static func cooldownEnd(startedAt now: Date) -> Date {
-        now.addingTimeInterval(TimeInterval(cooldownSeconds))
-    }
-
-    /// Returns `true` when all three gates pass: the reason is long enough,
-    /// the weekly override budget is non-zero, and the cooldown has elapsed (or
-    /// was never started).
+    /// Returns `true` when both gates pass: the reason is long enough and the
+    /// weekly override budget is non-zero.
     public static func canConfirm(
         reason: String,
-        now: Date,
-        cooldownEndsAt: Date?,
         overridesRemaining: Int
     ) -> Bool {
         let trimmed = reason.trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed.count >= minimumJustificationCharacters else {
             return false
         }
-        guard overridesRemaining > 0 else {
-            return false
-        }
-        guard let cooldownEndsAt else {
-            return true
-        }
-        return now >= cooldownEndsAt
+        return overridesRemaining > 0
     }
 }

@@ -200,7 +200,6 @@ struct OverrideComposerStateTests {
 
         model.currentTime = now
         model.overridesRemaining = 1
-        model.overrideCooldownEndsAt = now.addingTimeInterval(-1)
         model.state = CurfewEvaluation(
             phase: .working,
             warningStage: .none,
@@ -214,14 +213,13 @@ struct OverrideComposerStateTests {
         #expect(!model.isOverrideComposerVisible)
     }
 
-    @Test("Override cooldown and composer state reset after leaving lockout")
+    @Test("Override composer state resets after leaving lockout")
     func composerStateResetsWhenLockoutEnds() {
         let model = CurfewAppModel()
         let now = Date()
 
         model.currentTime = now
         model.overridesRemaining = 1
-        model.overrideCooldownEndsAt = now.addingTimeInterval(-1)
         model.overrideReasonDraft = String(repeating: "x", count: 60)
         model.isOverrideComposerVisible = true
         model.state = CurfewEvaluation(
@@ -235,7 +233,6 @@ struct OverrideComposerStateTests {
 
         model.reconcileOverrideComposerState(previousPhase: .locked)
 
-        #expect(model.overrideCooldownEndsAt == nil)
         #expect(!model.isOverrideComposerVisible)
         #expect(model.overrideReasonDraft.isEmpty)
     }

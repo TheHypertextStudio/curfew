@@ -107,12 +107,6 @@ struct LockoutScreenView: View {
                 }
 
                 VStack(spacing: 10) {
-                    if model.overrideCooldownRemaining > 0 {
-                        Text("Unlock available in \(model.overrideCooldownRemaining)s")
-                            .font(.system(size: 14, weight: .regular, design: .rounded))
-                            .foregroundStyle(.white.opacity(0.7))
-                    }
-
                     if model.isOverrideComposerVisible {
                         TextEditor(text: $model.overrideReasonDraft)
                             .font(.system(size: 14, weight: .regular, design: .rounded))

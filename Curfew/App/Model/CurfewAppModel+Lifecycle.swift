@@ -178,33 +178,17 @@ extension CurfewAppModel {
         UNUserNotificationCenter.current().add(request)
     }
 
-    /// Hides the Convince Me composer on lockout exit and shows it on
-    /// lockout entry once the cooldown elapses. Ticks after engine eval.
+    /// Resets the Convince Me composer when the device leaves lockout, and
+    /// hides it if the weekly override budget is exhausted. Ticks after engine
+    /// eval. The composer is shown by `beginOverrideRequest()`.
     func reconcileOverrideComposerState(previousPhase: EnforcementPhase) {
         if previousPhase == .locked, state.phase != .locked {
-            overrideCooldownEndsAt = nil
             isOverrideComposerVisible = false
             overrideReasonDraft = ""
             return
         }
 
-        guard state.phase == .locked else {
-            return
-        }
-
-        guard overridesRemaining > 0 else {
-            isOverrideComposerVisible = false
-            return
-        }
-
-        guard overrideCooldownEndsAt != nil else {
-            isOverrideComposerVisible = false
-            return
-        }
-
-        if overrideCooldownRemaining == 0 {
-            isOverrideComposerVisible = true
-        } else {
+        if state.phase == .locked, overridesRemaining == 0 {
             isOverrideComposerVisible = false
         }
     }

@@ -118,9 +118,8 @@ extension CurfewAppModel {
         tick()
     }
 
-    /// Starts the override cooldown timer and shows the override composer
-    /// once the cooldown expires. No-ops if the device is not locked or
-    /// the weekly override budget is exhausted.
+    /// Shows the override composer. No-ops if the device is not locked or the
+    /// weekly override budget is exhausted.
     func beginOverrideRequest() {
         guard state.phase == .locked else {
             return
@@ -129,12 +128,7 @@ extension CurfewAppModel {
             isOverrideComposerVisible = false
             return
         }
-        if overrideCooldownEndsAt == nil {
-            overrideCooldownEndsAt = OverrideRequestPolicy.cooldownEnd(startedAt: currentTime)
-        }
-        if overrideCooldownRemaining == 0 {
-            isOverrideComposerVisible = true
-        }
+        isOverrideComposerVisible = true
     }
 
     /// Validates `canConfirmOverride`, consumes one override slot, clears
@@ -150,7 +144,6 @@ extension CurfewAppModel {
         }
         let reason = trimmedOverrideReason
         overrideReasonDraft = ""
-        overrideCooldownEndsAt = nil
         isOverrideComposerVisible = false
         grantOverride(reason: reason)
     }

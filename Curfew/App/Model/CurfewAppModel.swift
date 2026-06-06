@@ -58,10 +58,6 @@ final class CurfewAppModel: NSObject, ObservableObject {
     /// responsive to every keystroke.
     @Published var overrideReasonDraft: String = ""
 
-    /// End time of the 5-minute cooldown before the override composer can
-    /// be confirmed. `nil` when no override attempt is in progress.
-    @Published var overrideCooldownEndsAt: Date?
-
     /// Whether the override composer sheet is currently presented on the
     /// lockout screen.
     @Published var isOverrideComposerVisible = false
