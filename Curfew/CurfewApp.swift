@@ -119,7 +119,13 @@ struct CurfewApp: App {
         let model = CurfewAppModel()
         _model = StateObject(wrappedValue: model)
 
+        // Hand the shared model to the AppKit delegate so it can re-assert
+        // enforcement on app activation. Captured here and assigned on the next
+        // run-loop spin alongside the launch coordinator, by which point the
+        // delegate adaptor has produced its instance.
+        let delegate = appDelegate
         DispatchQueue.main.async {
+            delegate.model = model
             AppCoordinator().handleInitialLaunch(
                 model: model,
                 shouldStartEnforcement: Self.shouldStartEnforcementOnLaunch
@@ -162,9 +168,26 @@ struct CurfewApp: App {
 
 /// AppKit application delegate for Curfew.
 ///
-/// Intentionally minimal for now: SwiftUI's `App` lifecycle owns launch and
-/// scene composition, and the enforcement re-assertion hooks (re-check
-/// Accessibility trust and restart the keyboard shield on app activation and
-/// system wake) land in a later workflow. This stub exists so that wiring has
-/// a delegate to attach to without reshaping the SwiftUI entry point again.
-final class AppDelegate: NSObject, NSApplicationDelegate {}
+/// SwiftUI's `App` lifecycle owns launch and scene composition; the delegate's
+/// one job is to re-assert enforcement when the user returns to the Mac. On app
+/// activation it re-polls Accessibility trust + tap liveness and, when locked,
+/// restarts the keyboard shield and re-fronts the lockout overlay so a degraded
+/// lockout recovers. System wake is handled by the model's own
+/// `NSWorkspace` observers (see `CurfewAppModel.startEnforcementReassertionObservers`).
+///
+/// The shared model is injected by `CurfewApp.init` after the scene graph is
+/// constructed; it is `weak` so the delegate never keeps the model alive past
+/// the app's own lifetime.
+final class AppDelegate: NSObject, NSApplicationDelegate {
+    /// The live app model, injected by `CurfewApp`. `weak` so the delegate
+    /// observes rather than owns the model.
+    weak var model: CurfewAppModel?
+
+    /// AppKit calls this whenever Curfew becomes the active app — including the
+    /// user clicking back into a Curfew window after being away. Re-assert
+    /// enforcement so a lockout that degraded while we were in the background
+    /// recovers. No-ops when not locked.
+    func applicationDidBecomeActive(_ notification: Notification) {
+        model?.reassertEnforcementIfNeeded()
+    }
+}

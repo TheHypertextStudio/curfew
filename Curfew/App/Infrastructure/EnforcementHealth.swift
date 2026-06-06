@@ -89,6 +89,50 @@ enum EnforcementHealth: Equatable {
         }
     }
 
+    /// Single-line message for the tight menu-bar popover, or `nil` when
+    /// ``active`` (the popover shows no warning row). Deliberately terser than
+    /// ``bannerDetail`` because the popover is fixed-width with little vertical
+    /// room; the full remediation steps live in the main window and Settings.
+    var compactPopoverMessage: String? {
+        switch self {
+        case .active:
+            nil
+        case .degradedNoAccessibility:
+            "Enforcement is not active — Curfew can't block your keyboard "
+                + "without Accessibility access."
+        case .degradedTapDown:
+            "Enforcement is not active — the keyboard shield was interrupted."
+        }
+    }
+
+    /// Short status headline for the Settings enforcement panel. Unlike
+    /// ``bannerTitle`` this is defined for ``active`` too, so the panel can
+    /// state the healthy case plainly rather than vanishing.
+    var settingsStatusTitle: String {
+        switch self {
+        case .active:
+            "Enforcement is active"
+        case .degradedNoAccessibility:
+            Self.noAccessibilityBannerTitle
+        case .degradedTapDown:
+            Self.tapDownBannerTitle
+        }
+    }
+
+    /// Reassurance body shown in the Settings panel when enforcement is
+    /// ``active``; the degraded cases use ``bannerDetail`` instead.
+    static let activeSettingsDetail =
+        "Accessibility is trusted and the keyboard shield runs whenever a "
+            + "lockout is active. Nothing to do here."
+
+    /// Whether this state should offer the "open Accessibility settings"
+    /// fix-it affordance. `true` for every degraded case — re-granting
+    /// Accessibility (or relaunching) is the remediation for both — and
+    /// `false` when ``active``.
+    var offersAccessibilityRemediation: Bool {
+        !isFullyActive
+    }
+
     /// Headline shown when Accessibility trust is missing.
     static let noAccessibilityBannerTitle =
         "Enforcement is not active"

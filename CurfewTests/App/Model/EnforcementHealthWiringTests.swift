@@ -143,6 +143,27 @@ struct EnforcementHealthWiringTests {
         #expect(model.enforcementHealth == .degradedNoAccessibility)
     }
 
+    @Test("Refreshing trust re-polls the seam without prompting or a tick")
+    func refreshAccessibilityTrustRepollsWithoutPrompting() {
+        // Onboarding's permissions gate refreshes trust before enforcement is
+        // ever started, so the refresh path must be a pure read of the seam —
+        // never the prompting API — and must move `isAccessibilityTrusted`
+        // without a `tick()`.
+        let fake = FakeAccessibilityAuthorization(trusted: false)
+        let model = makeModel(authorization: fake)
+        #expect(model.isAccessibilityTrusted == false)
+
+        fake.trusted = true
+        model.refreshAccessibilityTrust()
+        #expect(model.isAccessibilityTrusted)
+        #expect(fake.promptForTrustCallCount == 0)
+
+        fake.trusted = false
+        model.refreshAccessibilityTrust()
+        #expect(model.isAccessibilityTrusted == false)
+        #expect(fake.promptForTrustCallCount == 0)
+    }
+
     // MARK: - Helpers
 
     /// Builds a `CurfewAppModel` wired to a ``FakeAccessibilityAuthorization``

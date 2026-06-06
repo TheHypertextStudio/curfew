@@ -63,6 +63,20 @@ extension CurfewAppModel {
         )
     }
 
+    /// Re-polls Accessibility trust (and the folded enforcement-health verdict)
+    /// without surfacing any prompt or opening System Settings.
+    ///
+    /// This is the read-only refresh the onboarding permissions gate drives on
+    /// appear / on app activation / from its light timer: enforcement is not yet
+    /// started during first run, so the per-tick poll is not running, yet the
+    /// gate must still live-reflect a grant the user makes in System Settings.
+    /// Because it only *reads* the seam (`AXIsProcessTrusted`, never the
+    /// prompting `AXIsProcessTrustedWithOptions`), it is safe to call from any
+    /// surface — including, via the injected fake, the unit-test host.
+    func refreshAccessibilityTrust() {
+        pollAndUpdateEnforcementHealth()
+    }
+
     /// Surfaces the macOS Accessibility-trust prompt, opens the System Settings
     /// pane, then re-polls trust. Trust granted there only takes effect on
     /// relaunch, so the user typically stays untrusted until the next launch.
@@ -72,7 +86,13 @@ extension CurfewAppModel {
     /// stay stale until the next tick.
     func requestAccessibilityAccess() {
         accessibilityAuthorization.promptForTrust()
-        SystemAccessibilityAuthorization.openAccessibilitySettings()
+        // Opening System Settings is a live NSWorkspace side effect; skip it in
+        // the unit-test host so a re-signed test build never yanks the developer
+        // into System Settings. The trust prompt above still routes through the
+        // injectable seam, so tests can assert it fired.
+        if !RuntimeEnvironment.isUnitTestHost {
+            SystemAccessibilityAuthorization.openAccessibilitySettings()
+        }
         pollAndUpdateEnforcementHealth()
     }
 }

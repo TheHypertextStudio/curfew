@@ -74,10 +74,14 @@ struct ContentView: View {
 
                 Spacer()
 
-                Label(snapshot.timeRemainingText, systemImage: snapshot.symbolName)
+                Label(snapshot.timeRemainingText, systemImage: model.menuBarSymbolName)
                     .font(CurfewTypography.numeric(22))
                     .monospacedDigit()
                     .foregroundStyle(CurfewTheme.accent)
+            }
+
+            CompactEnforcementHealthWarning(health: model.enforcementHealth) {
+                model.requestAccessibilityAccess()
             }
 
             CurfewPanel {
@@ -223,8 +227,8 @@ private struct MainOverviewSectionView: View {
 
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                if !model.isAccessibilityTrusted {
-                    AccessibilityPermissionBanner()
+                EnforcementHealthBanner(health: model.enforcementHealth) {
+                    model.requestAccessibilityAccess()
                 }
                 CurfewPanel {
                     CurfewSectionTitle(title: "Status", subtitle: snapshot.statusLine)
@@ -303,43 +307,6 @@ private struct MainOverviewSectionView: View {
             .frame(maxWidth: 900, alignment: .leading)
         }
         .scrollIndicators(.hidden)
-    }
-}
-
-/// Warning shown atop the Overview pane when the host process is not in
-/// the system Accessibility allow-list. Without that trust the
-/// CGEventTap that blocks bypass keys (⌘⇥, ⌘Q, ⌘⌥Esc, …) silently fails
-/// at install time and the user gets a weaker lockout without knowing.
-/// The banner deep-links to System Settings → Privacy & Security so the
-/// user can grant the permission in two clicks.
-private struct AccessibilityPermissionBanner: View {
-    var body: some View {
-        CurfewPanel {
-            VStack(alignment: .leading, spacing: 8) {
-                Label(
-                    "Accessibility permission required",
-                    systemImage: "exclamationmark.triangle.fill"
-                )
-                .font(CurfewTypography.bodyEmphasis(14))
-                .foregroundStyle(CurfewTheme.warning)
-
-                Text(
-                    "Curfew needs the Accessibility permission to block bypass "
-                        + "shortcuts (⌘⇥, ⌘Q, …) during lockout. Without it the "
-                        + "lockout overlay still appears, but bypass keys pass through."
-                )
-                .font(CurfewTypography.body(13))
-                .foregroundStyle(CurfewTheme.mutedInk)
-
-                Button("Open System Settings") {
-                    let path = "com.apple.preference.security?Privacy_Accessibility"
-                    if let url = URL(string: "x-apple.systempreferences:" + path) {
-                        NSWorkspace.shared.open(url)
-                    }
-                }
-                .buttonStyle(CurfewSecondaryButtonStyle())
-            }
-        }
     }
 }
 

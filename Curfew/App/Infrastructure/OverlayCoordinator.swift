@@ -104,6 +104,20 @@ final class OverlayCoordinator {
         }
     }
 
+    /// Brings every live lockout window back to the front of the z-order
+    /// without rebuilding it. Used when the user returns to the Mac (app
+    /// activation / system wake): another app or the wake transition can leave
+    /// a lockout overlay behind a newly-focused window even though our window
+    /// level is `.screenSaver`. Re-ordering front restores the cover.
+    ///
+    /// No-ops when no lockout windows exist (i.e. not in a locked phase), so it
+    /// is safe to call on every activation regardless of the current phase.
+    func reassertLockoutFrontmost() {
+        for window in lockoutWindows.values {
+            window.orderFrontRegardless()
+        }
+    }
+
     private func showWarningWindows(opacity: Double) {
         guard opacity > 0 else {
             hideWarningWindows()

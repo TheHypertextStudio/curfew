@@ -93,7 +93,7 @@ enum FirstRunStep: Int, CaseIterable, Identifiable {
         case .extensionBudget:
             ["Adjust weekly extension limit", "Set override duration"]
         case .permissions:
-            ["Allow notifications", "Confirm accessibility permissions"]
+            ["Grant accessibility access", "Allow notifications (optional)"]
         case .confirmation:
             ["Enable Curfew", "Start with confidence"]
         }
@@ -114,8 +114,16 @@ struct FirstRunFlow {
     /// Whether onboarding has routed the user through live schedule settings.
     private(set) var hasReviewedScheduleSettings = false
 
-    /// Whether the permissions step has been explicitly acknowledged.
-    private(set) var hasAcknowledgedPermissions = false
+    /// Whether the app currently holds macOS Accessibility trust.
+    ///
+    /// This is a *real* grant check, not a self-attested checkbox: the view
+    /// keeps it in sync with the injected `AccessibilityAuthorizing` seam
+    /// (on appear / on app activation / a light timer), and the permissions
+    /// step refuses to advance while it is `false`. Replacing the old
+    /// "I reviewed permissions" acknowledgement closes the hole where a user
+    /// could tick the box without ever granting access, leaving enforcement
+    /// silently inert.
+    private(set) var isAccessibilityGranted = false
 
     /// Whether the user is on the first step (drives "Back" button disabling).
     var isFirstStep: Bool {
@@ -128,12 +136,17 @@ struct FirstRunFlow {
     }
 
     /// Whether the current step is allowed to advance.
+    ///
+    /// The permissions gate is a hard one: Accessibility must be *actually*
+    /// granted (`isAccessibilityGranted`) before the user can leave the step.
+    /// Notifications stay soft — their denial is non-fatal and never blocks
+    /// progress.
     var canAdvance: Bool {
         switch currentStep {
         case .schedule:
             hasReviewedScheduleSettings
         case .permissions:
-            hasAcknowledgedPermissions
+            isAccessibilityGranted
         case .welcome, .extensionBudget, .confirmation:
             true
         }
@@ -141,7 +154,7 @@ struct FirstRunFlow {
 
     /// Whether the final onboarding action should be enabled.
     var canFinish: Bool {
-        isLastStep && hasReviewedScheduleSettings && hasAcknowledgedPermissions
+        isLastStep && hasReviewedScheduleSettings && isAccessibilityGranted
     }
 
     /// Records that the user has opened the live schedule editor from onboarding.
@@ -149,9 +162,14 @@ struct FirstRunFlow {
         hasReviewedScheduleSettings = true
     }
 
-    /// Records that the user reviewed the permissions guidance.
-    mutating func acknowledgePermissions() {
-        hasAcknowledgedPermissions = true
+    /// Syncs the live Accessibility-trust state into the flow.
+    ///
+    /// Called by the view whenever a fresh reading is available (on appear, on
+    /// app activation, and from a light refresh timer). Passing `false` after a
+    /// previous `true` re-closes the gate, so a revoked permission can never
+    /// leave the user advancing on a stale "granted" reading.
+    mutating func updateAccessibilityGranted(_ granted: Bool) {
+        isAccessibilityGranted = granted
     }
 
     /// Moves forward one step, unless already on the last step (no-op).

@@ -87,4 +87,32 @@ struct EnforcementHealthTests {
                 == "exclamationmark.triangle.fill"
         )
     }
+
+    @Test("Compact popover message is nil when active and warns when degraded")
+    func compactPopoverMessageTracksHealth() {
+        #expect(EnforcementHealth.active.compactPopoverMessage == nil)
+
+        let noAccessibility = EnforcementHealth.degradedNoAccessibility.compactPopoverMessage
+        #expect(noAccessibility?.contains("not active") == true)
+
+        let tapDown = EnforcementHealth.degradedTapDown.compactPopoverMessage
+        #expect(tapDown?.isEmpty == false)
+    }
+
+    @Test("Settings status title is defined for every case and reads plainly")
+    func settingsStatusTitleDefinedForEveryCase() {
+        #expect(EnforcementHealth.active.settingsStatusTitle == "Enforcement is active")
+        #expect(
+            EnforcementHealth.degradedNoAccessibility.settingsStatusTitle
+                .contains("not active")
+        )
+        #expect(EnforcementHealth.degradedTapDown.settingsStatusTitle.contains("not active"))
+    }
+
+    @Test("Only degraded states offer the fix-it affordance")
+    func fixItAffordanceOnlyWhenDegraded() {
+        #expect(EnforcementHealth.active.offersAccessibilityRemediation == false)
+        #expect(EnforcementHealth.degradedNoAccessibility.offersAccessibilityRemediation)
+        #expect(EnforcementHealth.degradedTapDown.offersAccessibilityRemediation)
+    }
 }

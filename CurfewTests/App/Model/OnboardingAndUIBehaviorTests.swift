@@ -48,7 +48,7 @@ struct FirstRunFlowTests {
         flow.advance()
         #expect(flow.currentStep == .permissions)
 
-        flow.acknowledgePermissions()
+        flow.updateAccessibilityGranted(true)
         #expect(flow.canAdvance)
 
         flow.advance()
@@ -76,8 +76,8 @@ struct FirstRunFlowTests {
         #expect(flow.currentStep == .extensionBudget)
     }
 
-    @Test("Permissions step blocks finish path until acknowledged")
-    func permissionsStepRequiresAcknowledgement() {
+    @Test("Permissions step blocks finish path until accessibility is actually granted")
+    func permissionsStepRequiresAccessibilityGrant() {
         var flow = FirstRunFlow()
 
         flow.advance()
@@ -88,15 +88,36 @@ struct FirstRunFlowTests {
         #expect(flow.currentStep == .permissions)
         #expect(!flow.canAdvance)
 
+        // Self-attestation is gone: advancing without a real grant is a no-op.
         flow.advance()
         #expect(flow.currentStep == .permissions)
 
-        flow.acknowledgePermissions()
+        flow.updateAccessibilityGranted(true)
         #expect(flow.canAdvance)
 
         flow.advance()
         #expect(flow.currentStep == .confirmation)
         #expect(flow.canFinish)
+    }
+
+    @Test("Permissions step re-locks when accessibility trust is revoked")
+    func permissionsStepRelocksWhenTrustRevoked() {
+        var flow = FirstRunFlow()
+
+        flow.advance()
+        flow.markScheduleReviewed()
+        flow.advance()
+        flow.advance()
+        #expect(flow.currentStep == .permissions)
+
+        flow.updateAccessibilityGranted(true)
+        #expect(flow.canAdvance)
+
+        // A live re-poll that now reports false must re-close the gate so the
+        // user cannot advance on a stale "granted" reading.
+        flow.updateAccessibilityGranted(false)
+        #expect(!flow.canAdvance)
+        #expect(!flow.isAccessibilityGranted)
     }
 }
 

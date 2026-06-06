@@ -1,8 +1,42 @@
 import SwiftUI
 
-/// Enforcement-related panels for the Settings window: extension / override
-/// budgets, warning interval tuning, and auto-shutdown toggles.
+/// Enforcement-related panels for the Settings window: live enforcement
+/// health, extension / override budgets, warning interval tuning, and
+/// auto-shutdown toggles.
 extension SettingsView {
+    /// Surfaces the live ``EnforcementHealth`` verdict so a silently degraded
+    /// lockout (revoked Accessibility, a downed keyboard-shield tap) is visible
+    /// here, not just in the menu bar. When active it states so plainly in a
+    /// section panel; when degraded it reuses the shared
+    /// ``EnforcementHealthBanner`` (which brings its own panel chrome) so the
+    /// remediation copy and fix-it button match the main window exactly. The
+    /// fix-it action prompts for Accessibility and opens System Settings — both
+    /// guarded against the test host inside the model.
+    @ViewBuilder
+    var enforcementHealthPanel: some View {
+        if model.enforcementHealth.isFullyActive {
+            CurfewPanel {
+                CurfewSectionTitle(
+                    title: "Enforcement Health",
+                    subtitle: model.enforcementHealth.settingsStatusTitle
+                )
+
+                Label("Enforcement is active", systemImage: "checkmark.circle.fill")
+                    .font(CurfewTypography.bodyEmphasis(14))
+                    .foregroundStyle(CurfewTheme.accent)
+
+                Text(EnforcementHealth.activeSettingsDetail)
+                    .font(CurfewTypography.body(13))
+                    .foregroundStyle(CurfewTheme.mutedInk)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        } else {
+            EnforcementHealthBanner(health: model.enforcementHealth) {
+                model.requestAccessibilityAccess()
+            }
+        }
+    }
+
     /// Controls weekly extension and override counts + their durations.
     /// The ranges bound each stepper to values that don't break downstream
     /// invariants (e.g. overrides have a 15-minute floor so the "convince

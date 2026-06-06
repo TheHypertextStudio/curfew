@@ -15,8 +15,8 @@ struct OnboardingConfirmationRequirementTests {
                 isSatisfied: false
             ),
             OnboardingConfirmationRequirement(
-                id: .permissionsAcknowledgement,
-                title: "Permissions acknowledgement still required",
+                id: .accessibilityGrant,
+                title: "Accessibility access still required",
                 isSatisfied: false
             )
         ])
@@ -28,7 +28,7 @@ struct OnboardingConfirmationRequirementTests {
             isSatisfied: true
         ))
 
-        flow.acknowledgePermissions()
+        flow.updateAccessibilityGranted(true)
         #expect(flow.confirmationRequirements == [
             OnboardingConfirmationRequirement(
                 id: .scheduleReview,
@@ -36,8 +36,8 @@ struct OnboardingConfirmationRequirementTests {
                 isSatisfied: true
             ),
             OnboardingConfirmationRequirement(
-                id: .permissionsAcknowledgement,
-                title: "Permissions acknowledged",
+                id: .accessibilityGrant,
+                title: "Accessibility access granted",
                 isSatisfied: true
             )
         ])

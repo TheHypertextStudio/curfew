@@ -322,10 +322,9 @@ final class CurfewAppModel: NSObject, ObservableObject {
         completeInitialization(with: loadedSettings)
     }
 
-    /// Zero-arg convenience used by `CurfewApp` at production launch; all
-    /// collaborators resolve to their `System*` defaults. Release wires up the
-    /// real ``PersistentLockdown``; Debug uses `NoOpRespawnGuard`. Flags come
-    /// from ``FeatureFlags/resolved`` (shipping on Release, `.default` else).
+    /// Zero-arg convenience used by `CurfewApp` at production launch; collaborators
+    /// resolve to their `System*` defaults. Release wires the real ``PersistentLockdown``
+    /// (Debug uses `NoOpRespawnGuard`); flags from ``FeatureFlags/resolved``.
     override convenience init() {
         #if DEBUG
             let respawnGuard: any RespawnGuardControlling = NoOpRespawnGuard()
@@ -348,6 +347,7 @@ final class CurfewAppModel: NSObject, ObservableObject {
         started = true
         notificationManager.requestPermissionIfNeeded()
         installRespawnGuardIfNeeded()
+        startEnforcementReassertionObservers()
         tick()
         timer = Timer.scheduledTimer(
             timeInterval: 1,

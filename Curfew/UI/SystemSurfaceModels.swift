@@ -3,7 +3,7 @@ import ServiceManagement
 struct OnboardingConfirmationRequirement: Equatable, Identifiable {
     enum RequirementID: String {
         case scheduleReview
-        case permissionsAcknowledgement
+        case accessibilityGrant
     }
 
     let id: RequirementID
@@ -22,11 +22,11 @@ extension FirstRunFlow {
                 isSatisfied: hasReviewedScheduleSettings
             ),
             OnboardingConfirmationRequirement(
-                id: .permissionsAcknowledgement,
-                title: hasAcknowledgedPermissions
-                    ? "Permissions acknowledged"
-                    : "Permissions acknowledgement still required",
-                isSatisfied: hasAcknowledgedPermissions
+                id: .accessibilityGrant,
+                title: isAccessibilityGranted
+                    ? "Accessibility access granted"
+                    : "Accessibility access still required",
+                isSatisfied: isAccessibilityGranted
             )
         ]
     }

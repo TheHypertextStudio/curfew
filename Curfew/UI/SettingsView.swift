@@ -40,6 +40,7 @@ struct SettingsView: View {
             ) }
 
             tab {
+                enforcementHealthPanel
                 extensionsPanel
                 warningPanel
                 shutdownPanel
@@ -84,6 +85,7 @@ struct SettingsView: View {
             if let pending = model.pendingScheduleDescription {
                 pendingChangePanel(message: pending)
             }
+            enforcementHealthPanel
             extensionsPanel
             warningPanel
             shutdownPanel

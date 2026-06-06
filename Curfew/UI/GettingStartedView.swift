@@ -1,3 +1,5 @@
+import AppKit
+import Combine
 import SwiftUI
 
 /// First-launch onboarding view presented in its own AppKit window by
@@ -24,6 +26,17 @@ struct GettingStartedView: View {
     /// Local cursor tracking which onboarding pane is visible.
     @State private var flow = FirstRunFlow()
 
+    /// Light poll that keeps the accessibility gate live while the window is
+    /// open. Accessibility trust is granted out-of-process in System Settings,
+    /// so there is no notification to observe — we re-read the model's polled
+    /// trust state on a slow cadence (plus on appear / activation below) so the
+    /// gate reflects a fresh grant within a second or two of the user making it.
+    private let accessibilityRefreshTimer = Timer.publish(
+        every: 1,
+        on: .main,
+        in: .common
+    ).autoconnect()
+
     /// Header + current step panel + navigation action row.
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -36,6 +49,27 @@ struct GettingStartedView: View {
         .frame(minWidth: 640, minHeight: 470)
         .background(CurfewTheme.canvas)
         .foregroundStyle(CurfewTheme.ink)
+        .onAppear(perform: syncAccessibilityGrant)
+        .onReceive(accessibilityRefreshTimer) { _ in
+            syncAccessibilityGrant()
+        }
+        .onReceive(
+            NotificationCenter.default.publisher(
+                for: NSApplication.didBecomeActiveNotification
+            )
+        ) { _ in
+            syncAccessibilityGrant()
+        }
+    }
+
+    /// Re-polls the model's Accessibility-trust state and folds it into the
+    /// flow's hard gate. The model's `refreshAccessibilityTrust()` only *reads*
+    /// the trust seam (never the prompting API), so this is safe to call on a
+    /// timer; `updateAccessibilityGranted` then opens or re-closes the gate to
+    /// match, so a revoked permission cannot leave a stale "granted" reading.
+    private func syncAccessibilityGrant() {
+        model.refreshAccessibilityTrust()
+        flow.updateAccessibilityGranted(model.isAccessibilityTrusted)
     }
 
     /// Static title + commitment sentence at the top of the window.
@@ -107,21 +141,7 @@ struct GettingStartedView: View {
         }
 
         if flow.currentStep == .permissions {
-            Text(
-                "You can review notifications and accessibility access "
-                    + "in system settings at any time."
-            )
-            .font(CurfewTypography.body(13))
-            .foregroundStyle(CurfewTheme.mutedInk)
-
-            Button(
-                flow.hasAcknowledgedPermissions
-                    ? "Permissions Reviewed"
-                    : "I Reviewed Permissions"
-            ) {
-                flow.acknowledgePermissions()
-            }
-            .buttonStyle(CurfewSecondaryButtonStyle())
+            permissionsExtras
         }
 
         if flow.currentStep == .confirmation {
@@ -136,6 +156,50 @@ struct GettingStartedView: View {
                 )
             }
         }
+    }
+
+    /// Accessibility hard-gate + soft notifications guidance for the
+    /// `.permissions` step.
+    ///
+    /// The accessibility row is a *real* grant check, not a self-attested
+    /// checkbox: "Next" stays disabled (`flow.canAdvance`) until the model's
+    /// polled trust state — synced into the flow on appear / activation / the
+    /// refresh timer — reports granted. The button routes through
+    /// `requestAccessibilityAccess()`, which prompts and opens System Settings →
+    /// Privacy & Security → Accessibility. Notifications remain optional below;
+    /// denial there is non-fatal and never blocks progress.
+    @ViewBuilder
+    private var permissionsExtras: some View {
+        if flow.isAccessibilityGranted {
+            Label("Accessibility access granted", systemImage: "checkmark.circle.fill")
+                .font(CurfewTypography.bodyEmphasis(14))
+                .foregroundStyle(CurfewTheme.accent)
+        } else {
+            Label("Accessibility access required", systemImage: "exclamationmark.triangle.fill")
+                .font(CurfewTypography.bodyEmphasis(14))
+                .foregroundStyle(CurfewTheme.warning)
+
+            Text(
+                "Curfew needs Accessibility access to block bypass shortcuts "
+                    + "(⌘⇥, ⌘Q, …) during lockout. Grant it in System Settings, "
+                    + "then return here — this updates on its own."
+            )
+            .font(CurfewTypography.body(13))
+            .foregroundStyle(CurfewTheme.mutedInk)
+
+            Button("Open System Settings") {
+                model.requestAccessibilityAccess()
+                flow.updateAccessibilityGranted(model.isAccessibilityTrusted)
+            }
+            .buttonStyle(CurfewSecondaryButtonStyle())
+        }
+
+        Text(
+            "Notifications are optional — they deliver the wrap-up warnings. "
+                + "You can allow or change them in System Settings anytime."
+        )
+        .font(CurfewTypography.body(13))
+        .foregroundStyle(CurfewTheme.mutedInk)
     }
 
     /// Back / Not now / Next | Finish action row.
