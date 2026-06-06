@@ -266,7 +266,11 @@ extension CurfewAppModel {
         persistSettings()
         cloudKitSyncEngine.push(settings)
 
-        if settings.mcpEnabled != oldValue.mcpEnabled {
+        // The MCP runtime is gated on BOTH the build-level feature flag and
+        // the user-level setting. When the flag is off the start branch is
+        // unreachable, so a setting toggle never spins up the monitor/socket
+        // on a build that doesn't ship MCP.
+        if featureFlags.mcpServerEnabled, settings.mcpEnabled != oldValue.mcpEnabled {
             if settings.mcpEnabled {
                 mcpRequestMonitor.start()
                 mcpSocketServer.start()

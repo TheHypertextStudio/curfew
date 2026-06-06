@@ -36,7 +36,7 @@ extension CurfewAppModel {
         mcpRequestMonitor.onNewRequests = { [weak self] requests in
             self?.handleNewMCPRequests(requests)
         }
-        if settings.mcpEnabled {
+        if featureFlags.mcpServerEnabled, settings.mcpEnabled {
             mcpRequestMonitor.start()
             mcpSocketServer.start()
         }

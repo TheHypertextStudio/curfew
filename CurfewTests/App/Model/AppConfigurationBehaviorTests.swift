@@ -70,11 +70,62 @@ struct FeatureFlagTests {
         #expect(!flags.cloudSyncEnabled)
         #expect(!flags.mcpServerEnabled)
         #expect(!flags.privilegedHelperEnabled)
+        #expect(!flags.calendarEnabled)
     }
 
     @Test("Default build hides deferred integration panels")
     func deferredPanelsAreHiddenByDefault() {
         #expect(DeferredFeaturePanel.visible(for: .default).isEmpty)
+    }
+
+    @Test("Shipping turns every deferred module on")
+    func shippingIsAllOn() {
+        let flags = FeatureFlags.shipping
+        #expect(flags.widgetKitEnabled)
+        #expect(flags.cloudSyncEnabled)
+        #expect(flags.mcpServerEnabled)
+        #expect(flags.privilegedHelperEnabled)
+        #expect(flags.calendarEnabled)
+    }
+
+    @Test("Resolution returns default when RELEASE_FEATURES is absent")
+    func resolveWithoutReleaseFeatures() {
+        #expect(
+            FeatureFlags.resolve(releaseFeaturesEnabled: false, environment: [:])
+                == .default
+        )
+    }
+
+    @Test("Resolution returns shipping when RELEASE_FEATURES is present")
+    func resolveWithReleaseFeatures() {
+        #expect(
+            FeatureFlags.resolve(releaseFeaturesEnabled: true, environment: [:])
+                == .shipping
+        )
+    }
+
+    @Test("Conservative-flags escape hatch forces default even under RELEASE_FEATURES")
+    func conservativeEscapeHatchForcesDefault() {
+        #expect(
+            FeatureFlags.resolve(
+                releaseFeaturesEnabled: true,
+                environment: ["CURFEW_CONSERVATIVE_FLAGS": "1"]
+            ) == .default
+        )
+        // A non-"1" value does not trip the escape hatch.
+        #expect(
+            FeatureFlags.resolve(
+                releaseFeaturesEnabled: true,
+                environment: ["CURFEW_CONSERVATIVE_FLAGS": "0"]
+            ) == .shipping
+        )
+    }
+
+    @Test("Resolved is .default in the Debug/test build (no RELEASE_FEATURES)")
+    func resolvedMatchesDebugBuild() {
+        // The test host is a Debug build and never defines RELEASE_FEATURES,
+        // so the live `resolved` accessor must collapse to the all-off default.
+        #expect(FeatureFlags.resolved == .default)
     }
 }
 

@@ -65,7 +65,7 @@ final class CloudKitSyncEngine: ObservableObject {
     /// can be used as a default parameter value in the MainActor-isolated
     /// `CurfewAppModel.init`, which evaluates defaults off-actor.
     nonisolated init(
-        containerID: String = "iCloud.studio.hypertext.curfew"
+        containerID: String = CloudKitSchema.containerID
     ) {
         self.containerID = containerID
     }

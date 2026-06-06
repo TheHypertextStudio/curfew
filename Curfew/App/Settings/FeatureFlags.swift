@@ -43,6 +43,8 @@ struct FeatureFlags: Equatable {
     /// Keep this permanently conservative — turning a flag on in `.default`
     /// will affect *every* Curfew install including fresh ones, so flip flags
     /// individually at the call site where the risk is understood, not here.
+    ///
+    /// Many tests assert against this all-off shape; do not change it.
     static let `default` = FeatureFlags(
         widgetKitEnabled: false,
         cloudSyncEnabled: false,
@@ -50,6 +52,59 @@ struct FeatureFlags: Equatable {
         privilegedHelperEnabled: false,
         calendarEnabled: false
     )
+
+    /// Headline configuration for shipping builds: every deferred module on.
+    ///
+    /// Selected by ``resolved`` when the binary is compiled with the
+    /// `RELEASE_FEATURES` condition (set only on the app target's Release
+    /// configuration). Debug / test builds never see this, so `.default`
+    /// remains the value exercised by the unit-test host.
+    static let shipping = FeatureFlags(
+        widgetKitEnabled: true,
+        cloudSyncEnabled: true,
+        mcpServerEnabled: true,
+        privilegedHelperEnabled: true,
+        calendarEnabled: true
+    )
+
+    /// The flag set the running app should use, chosen from the build
+    /// configuration with a developer escape hatch.
+    ///
+    /// Returns ``shipping`` when the binary is built with the
+    /// `RELEASE_FEATURES` compilation condition, otherwise ``default``.
+    /// Setting the environment variable `CURFEW_CONSERVATIVE_FLAGS=1` forces
+    /// ``default`` even under `RELEASE_FEATURES`, mirroring the Debug-only
+    /// `CURFEW_SKIP_ENFORCEMENT` escape hatch used by ``CurfewLaunchBehavior``
+    /// so a release binary can be run with every deferred module off when
+    /// diagnosing a regression.
+    static var resolved: FeatureFlags {
+        #if RELEASE_FEATURES
+            let releaseFeaturesEnabled = true
+        #else
+            let releaseFeaturesEnabled = false
+        #endif
+        return resolve(
+            releaseFeaturesEnabled: releaseFeaturesEnabled,
+            environment: ProcessInfo.processInfo.environment
+        )
+    }
+
+    /// Pure resolution policy behind ``resolved``, split out so it can be
+    /// unit-tested without depending on the build configuration or the live
+    /// process environment.
+    ///
+    /// - Parameters:
+    ///   - releaseFeaturesEnabled: whether the `RELEASE_FEATURES` condition is
+    ///     compiled in.
+    ///   - environment: the process environment to consult for the escape hatch.
+    static func resolve(
+        releaseFeaturesEnabled: Bool,
+        environment: [String: String]
+    ) -> FeatureFlags {
+        guard releaseFeaturesEnabled else { return .default }
+        if environment["CURFEW_CONSERVATIVE_FLAGS"] == "1" { return .default }
+        return .shipping
+    }
 }
 
 /// Deferred integrations that should only surface in the UI when the

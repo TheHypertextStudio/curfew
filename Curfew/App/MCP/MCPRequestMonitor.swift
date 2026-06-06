@@ -24,6 +24,13 @@ final class MCPRequestMonitor {
     /// The app model hooks this to display the consent sheet.
     var onNewRequests: (([MCPPendingRequest]) -> Void)?
 
+    /// Whether ``start()`` has been called without a matching ``stop()``.
+    /// Read by gating tests to assert the runtime tracks the feature flag +
+    /// user setting; flips on ``start()`` and back off on ``stop()``
+    /// regardless of whether the underlying file watch was installed (it is
+    /// skipped in the unit-test host to avoid filesystem side effects).
+    private(set) var isStarted = false
+
     private var dispatchSource: DispatchSourceFileSystemObject?
     private var pollTimer: Timer?
 
@@ -43,15 +50,23 @@ final class MCPRequestMonitor {
 
     /// Starts monitoring. Idempotent — safe to call more than once.
     func start() {
-        guard dispatchSource == nil, pollTimer == nil else {
+        guard !isStarted else {
             return
         }
+        isStarted = true
+        // Skip the real directory watch in the unit-test host: opening an
+        // `O_EVTONLY` descriptor on `~/Library/Application Support/Curfew`
+        // and scheduling a poll timer are filesystem side effects we do not
+        // want fired during `xcodebuild test`. `isStarted` still flips so
+        // gating tests can assert the flag + setting drove the start.
+        guard !RuntimeEnvironment.isUnitTestHost else { return }
         setupWatch()
         check()
     }
 
     /// Stops monitoring and releases the file watch descriptor.
     func stop() {
+        isStarted = false
         dispatchSource?.cancel()
         dispatchSource = nil
         pollTimer?.invalidate()

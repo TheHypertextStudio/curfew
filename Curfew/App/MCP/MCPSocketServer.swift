@@ -42,6 +42,10 @@ final class MCPSocketServer {
     /// not created yet; `MCPSocketClient` interprets its absence as
     /// "fall through to the queue path."
     func start() {
+        // Skip the directory creation in the unit-test host so gating tests
+        // that flip the MCP flag on do not write into the Application Support
+        // container during `xcodebuild test`.
+        guard !RuntimeEnvironment.isUnitTestHost else { return }
         try? FileManager.default.createDirectory(
             at: SharedPaths.applicationSupport,
             withIntermediateDirectories: true
@@ -52,6 +56,7 @@ final class MCPSocketServer {
     /// Removes any stale socket file a future listener left behind so a
     /// restart starts clean.
     func stop() {
+        guard !RuntimeEnvironment.isUnitTestHost else { return }
         try? FileManager.default.removeItem(atPath: Self.defaultPath)
     }
 }

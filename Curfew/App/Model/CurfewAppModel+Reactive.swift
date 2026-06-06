@@ -1,3 +1,4 @@
+import CloudKit
 import Combine
 import Foundation
 
@@ -34,6 +35,19 @@ extension CurfewAppModel {
                 localModifiedAt: Date()
             )
             cloudKitSyncEngine.pullLockoutState()
+            // Attach a real CloudKit adapter so this Mac writes a `Device`
+            // record and folds in other Macs. Skipped in the unit-test host
+            // so tests never provision CloudKit or trip a permission prompt;
+            // the registry then surfaces only the local device.
+            if !RuntimeEnvironment.isUnitTestHost {
+                deviceRegistry.attachStore(
+                    CloudKitDeviceStore(
+                        container: CKContainer(
+                            identifier: CloudKitSchema.containerID
+                        )
+                    )
+                )
+            }
             deviceRegistry.start()
         } else {
             cloudKitSyncEngine.stop()

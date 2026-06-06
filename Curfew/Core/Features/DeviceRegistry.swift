@@ -1,4 +1,3 @@
-import CloudKit
 import Combine
 import Foundation
 import IOKit
@@ -10,7 +9,12 @@ private let deviceLogger = Logger(
 )
 
 /// One Mac's row in the cross-device awareness table.
-public struct DeviceSummary: Identifiable, Equatable, Codable {
+///
+/// `nonisolated` so the pure, `nonisolated` `DeviceRegistry.mergeDevices`
+/// can construct rows without hopping to the main actor — the project
+/// builds with `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`, which would
+/// otherwise infer a `@MainActor` initializer for this plain value type.
+public nonisolated struct DeviceSummary: Identifiable, Equatable, Codable {
     /// Stable per-Mac identifier — sourced from `IOPlatformUUID` so it
     /// survives app reinstalls (but not logic-board swaps).
     public let id: String
@@ -56,7 +60,7 @@ final class DeviceRegistry: ObservableObject {
 
     /// Seconds since the last heartbeat, beyond which a device drops off
     /// `activeDevices`. 120 s per the plan.md §F15 spec.
-    static let activeThresholdSeconds: TimeInterval = 120
+    nonisolated static let activeThresholdSeconds: TimeInterval = 120
 
     /// Heartbeat cadence. 60 s matches the product spec; shorter would
     /// burn CloudKit quota for no user-visible gain.
@@ -66,21 +70,42 @@ final class DeviceRegistry: ObservableObject {
     private let idleWatcher: IdleWatcher
     private let deviceID: String
     private let deviceName: String
-    private let container: CKContainer?
 
-    /// Creates a registry for the given idle watcher and optional
-    /// CloudKit container. Tests pass a nil container to exercise the
-    /// heartbeat state machine without touching CloudKit.
+    /// The in-flight `Device` upsert kicked off by `start()`. Retained so a
+    /// test can await it deterministically (the upsert is fire-and-forget in
+    /// production so `start()` never blocks the main actor on CloudKit).
+    private var pendingRegistration: Task<Void, Never>?
+
+    /// CloudKit adapter, or `nil` when sync is off (and in the unit-test
+    /// host) — in which case the registry surfaces only the local device.
+    /// Injected at construction (tests) or via ``attachStore(_:)`` (the app
+    /// model, once sync arms).
+    private var store: DeviceRecordSyncing?
+
+    /// Creates a registry for the given idle watcher and optional CloudKit
+    /// `store`. Tests pass either a `nil` store (heartbeat state machine
+    /// only) or an in-memory `DeviceRecordSyncing` stub; production injects
+    /// a `CloudKitDeviceStore` only when sync is armed and the process is
+    /// not a unit-test host.
     init(
         idleWatcher: IdleWatcher,
-        container: CKContainer? = nil,
+        store: DeviceRecordSyncing? = nil,
         deviceID: String = DeviceRegistry.localDeviceID(),
         deviceName: String = DeviceRegistry.localDeviceName()
     ) {
         self.idleWatcher = idleWatcher
-        self.container = container
+        self.store = store
         self.deviceID = deviceID
         self.deviceName = deviceName
+    }
+
+    /// Attaches the CloudKit adapter before `start()`. Called by the app
+    /// model when sync arms so the registry can write `Device` records and
+    /// fold in other Macs. A no-op once the heartbeat timer is running so a
+    /// re-arm mid-session doesn't swap the store under a live cadence.
+    func attachStore(_ store: DeviceRecordSyncing) {
+        guard heartbeatTimer == nil else { return }
+        self.store = store
     }
 
     /// Starts periodic heartbeats. Idempotent — no-op on repeat calls.
@@ -97,13 +122,21 @@ final class DeviceRegistry: ObservableObject {
                 isActiveLocal: true
             )
         ]
+        // Register this Mac as a `Device` row so it appears in Settings →
+        // Devices on every other Mac on the account.
+        if let store {
+            let registration = localRecord(at: Date())
+            pendingRegistration = Task { await store.upsertDevice(registration) }
+        }
         sendHeartbeat()
+        Task { await refreshRemoteDevices() }
         heartbeatTimer = Timer.scheduledTimer(
             withTimeInterval: Self.heartbeatIntervalSeconds,
             repeats: true
         ) { [weak self] _ in
             Task { @MainActor in
                 self?.sendHeartbeat()
+                await self?.refreshRemoteDevices()
             }
         }
     }
@@ -116,41 +149,107 @@ final class DeviceRegistry: ObservableObject {
     }
 
     /// Fires one heartbeat: writes `DeviceActivity` with the current
-    /// timestamp + idle-aware active flag. Skipped entirely if the
-    /// container is nil (sync off) — in that case we still update the
-    /// local `activeDevices` entry so single-device users see their own
-    /// name in the Devices panel.
+    /// timestamp + idle-aware active flag. Skipped entirely if the store is
+    /// nil (sync off) — in that case we still update the local
+    /// `activeDevices` entry so single-device users see their own name in
+    /// the Devices panel.
     private func sendHeartbeat() {
         let now = Date()
-        activeDevices = [
-            DeviceSummary(
-                id: deviceID,
-                deviceName: deviceName,
-                lastSeen: now,
-                isActiveLocal: !idleWatcher.isIdle
-            )
-        ]
-
-        guard let container else { return }
-        let recordID = CKRecord.ID(
-            recordName: CloudKitSchema.deviceActivityRecordName(for: deviceID)
+        // Update the local row in place; remote rows (if any) are
+        // preserved so a heartbeat doesn't blank out other Macs between
+        // remote fetches.
+        activeDevices = Self.mergeDevices(
+            localID: deviceID,
+            localName: deviceName,
+            localActive: !idleWatcher.isIdle,
+            remotes: lastRemotes,
+            now: now
         )
-        let record = CKRecord(
-            recordType: CloudKitSchema.RecordType.deviceActivity,
-            recordID: recordID
-        )
-        record[CloudKitSchema.Field.deviceID] = deviceID as NSString
-        record[CloudKitSchema.Field.deviceName] = deviceName as NSString
-        record[CloudKitSchema.Field.timestamp] = now as NSDate
-        record[CloudKitSchema.Field.isActive] = NSNumber(value: !idleWatcher.isIdle)
 
-        Task {
-            do {
-                _ = try await container.privateCloudDatabase.save(record)
-            } catch {
-                deviceLogger.debug("heartbeat save failed: \(error.localizedDescription)")
+        guard let store else { return }
+        let record = localRecord(at: now)
+        Task { await store.writeHeartbeat(record) }
+    }
+
+    /// Last batch of remote records seen, retained so a local heartbeat can
+    /// re-merge without re-fetching and so the panel doesn't flicker
+    /// between fetches.
+    private var lastRemotes: [RemoteDeviceRecord] = []
+
+    /// Fetches other Macs' `Device` / `DeviceActivity` records and folds
+    /// them into `activeDevices`. No-op without a store.
+    private func refreshRemoteDevices() async {
+        guard let store else { return }
+        let remotes = await store.fetchRemoteDevices()
+        lastRemotes = remotes
+        activeDevices = Self.mergeDevices(
+            localID: deviceID,
+            localName: deviceName,
+            localActive: !idleWatcher.isIdle,
+            remotes: remotes,
+            now: Date()
+        )
+    }
+
+    /// Test hook: forces a synchronous remote-device fold. Production drives
+    /// the same path from the heartbeat timer.
+    func refreshRemoteDevicesForTesting() async {
+        await refreshRemoteDevices()
+    }
+
+    /// Test hook: awaits the in-flight `Device` upsert started by `start()`.
+    /// Production never needs this — the upsert is fire-and-forget — but a
+    /// synchronous test can't otherwise observe the detached write.
+    func awaitPendingRegistrationForTesting() async {
+        await pendingRegistration?.value
+    }
+
+    /// Folds remote `Device` / `DeviceActivity` records into the active list
+    /// alongside the local Mac. Pure — no clock or CloudKit dependency, so
+    /// it tests in isolation.
+    ///
+    /// Rules: the local device is always present and is the only row flagged
+    /// `isActiveLocal`. Remote rows are dropped when soft-deleted, stale
+    /// (last seen beyond `activeThresholdSeconds`), or a duplicate of the
+    /// local device. Ordering is local-first, then by most-recent heartbeat.
+    nonisolated static func mergeDevices(
+        localID: String,
+        localName: String,
+        localActive: Bool,
+        remotes: [RemoteDeviceRecord],
+        now: Date
+    ) -> [DeviceSummary] {
+        let local = DeviceSummary(
+            id: localID,
+            deviceName: localName,
+            lastSeen: now,
+            isActiveLocal: localActive
+        )
+        let remoteSummaries = remotes
+            .filter { $0.deviceID != localID && !$0.removed }
+            .filter { now.timeIntervalSince($0.lastSeen) <= activeThresholdSeconds }
+            .sorted { $0.lastSeen > $1.lastSeen }
+            .map {
+                DeviceSummary(
+                    id: $0.deviceID,
+                    deviceName: $0.deviceName,
+                    lastSeen: $0.lastSeen,
+                    isActiveLocal: false
+                )
             }
-        }
+        return [local] + remoteSummaries
+    }
+
+    /// The local Mac as a `RemoteDeviceRecord` for upsert / heartbeat
+    /// writes at `now`.
+    private func localRecord(at now: Date) -> RemoteDeviceRecord {
+        RemoteDeviceRecord(
+            deviceID: deviceID,
+            deviceName: deviceName,
+            lastSeen: now,
+            isActive: !idleWatcher.isIdle,
+            removed: false
+        )
     }
 
     // MARK: - Local device identification

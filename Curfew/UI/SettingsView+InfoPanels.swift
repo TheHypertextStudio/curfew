@@ -16,8 +16,19 @@ extension SettingsView {
         }
     }
 
-    /// MCP server setup instructions and Claude Desktop config copy button.
+    /// MCP server setup + Claude Desktop config. Gated on
+    /// `featureFlags.mcpServerEnabled` so a build that doesn't ship the MCP
+    /// control plane hides the toggle and the "Configure Claude Desktop"
+    /// button entirely — they can't surface a runtime the app never starts.
+    /// `settings.mcpEnabled` only gates the runtime when the flag is on too.
+    @ViewBuilder
     private var mcpConfigPanel: some View {
+        if model.featureFlags.mcpServerEnabled {
+            enabledMCPConfigPanel
+        }
+    }
+
+    private var enabledMCPConfigPanel: some View {
         CurfewPanel {
             CurfewSectionTitle(
                 title: "MCP Control Plane",

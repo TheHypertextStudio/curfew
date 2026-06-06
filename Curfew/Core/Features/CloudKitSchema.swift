@@ -18,6 +18,13 @@ import Foundation
 /// the Pro gate flags — peeling them into their own records is a later
 /// migration that can land independently.
 public enum CloudKitSchema {
+    // MARK: - Container
+
+    /// The private-database container identifier, matching the iCloud
+    /// entitlement in `Curfew-Release.entitlements`. Single source of truth
+    /// so the sync engine and the device store target the same container.
+    public static let containerID = "iCloud.studio.hypertext.curfew"
+
     // MARK: - Record types
 
     /// The four CKRecord types Curfew writes into the user's private
