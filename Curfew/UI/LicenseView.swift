@@ -59,6 +59,10 @@ struct LicenseView: View {
                 .textFieldStyle(.roundedBorder)
                 .disableAutocorrection(true)
 
+            Text("Paste the key from your purchase confirmation page or email.")
+                .font(CurfewTypography.label(12))
+                .foregroundStyle(CurfewTheme.mutedInk)
+
             if let error = gate.activationError {
                 Text(error)
                     .font(CurfewTypography.label(12))
@@ -72,7 +76,7 @@ struct LicenseView: View {
                 .buttonStyle(CurfewPrimaryButtonStyle())
                 .disabled(keyDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
-                Link("Buy Curfew Pro — $19", destination: purchaseURL)
+                Link("Buy Curfew Pro — $20", destination: purchaseURL)
                     .font(CurfewTypography.bodyEmphasis(14))
                     .foregroundStyle(CurfewTheme.accent)
             }
@@ -94,6 +98,6 @@ struct LicenseView: View {
     }
 
     private var purchaseURL: URL {
-        URL(string: "https://curfew.hypertext.studio/#pro")!
+        URL(string: "https://buy.stripe.com/REPLACE_WITH_CURFEW_PRO_PAYMENT_LINK")!
     }
 }

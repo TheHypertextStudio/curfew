@@ -30,7 +30,7 @@ struct ProGate<Content: View>: View {
 
 /// Inline upsell panel that replaces a Pro-gated feature when the
 /// current build has no active licence. Surfaces a single Upgrade link
-/// to the marketing page; no in-app purchase surface.
+/// to the Stripe Checkout payment link; no in-app purchase surface.
 struct PurchasePromptView: View {
     /// Feature name shown in the upsell header.
     let feature: String
@@ -58,8 +58,10 @@ struct PurchasePromptView: View {
                 Spacer()
 
                 Link(
-                    "Upgrade — $19",
-                    destination: URL(string: "https://curfew.hypertext.studio/#pro")!
+                    "Upgrade — $20",
+                    destination: URL(
+                        string: "https://buy.stripe.com/REPLACE_WITH_CURFEW_PRO_PAYMENT_LINK"
+                    )!
                 )
                 .font(CurfewTypography.bodyEmphasis(13))
                 .foregroundStyle(CurfewTheme.accent)

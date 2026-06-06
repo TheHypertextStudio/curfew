@@ -298,11 +298,29 @@ section { padding: 80px 24px; }
 .pro-price {
   font-size: 15px;
   color: var(--muted);
+  margin-bottom: 24px;
+}
+
+.pro-amount {
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 18px;
 }
 
 .pro-availability {
   color: var(--accent);
   font-weight: 500;
+}
+
+.pro-buy {
+  margin-bottom: 16px;
+}
+
+.pro-checkout-note {
+  font-size: 13px;
+  color: var(--muted);
+  max-width: 540px;
+  line-height: 1.7;
 }
 
 /* ── Download ── */

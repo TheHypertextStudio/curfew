@@ -45,7 +45,7 @@ next step needs.
 ### 4. Lemonsqueezy store + product
 
 - [ ] Create a Lemonsqueezy store, fill out tax / payouts.
-- [ ] Create a product "Curfew Pro" at $19 launch price.
+- [ ] Create a product "Curfew Pro" at $20 launch price.
 - [ ] Settings → Webhooks → create a webhook pointing at the
       Cloudflare Worker URL (see step 6), signed with a secret.
 - [ ] Save the webhook signing secret — goes into

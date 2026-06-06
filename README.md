@@ -123,7 +123,7 @@ Pro adds features with ongoing infrastructure cost. Upgrade at [curfew.hypertext
 | **WidgetKit widgets** | — | Preview builds only (signed release validation pending) |
 | **Calendar integration** | — | Preview builds only |
 
-Pricing: **$19 early-bird / $29 list**. License key is verified offline via Ed25519 — no account required after purchase.
+Pricing: **$20 flat**. License key is verified offline via Ed25519 — no account required after purchase.
 
 ---
 

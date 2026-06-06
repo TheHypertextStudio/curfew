@@ -44,6 +44,11 @@ struct EnforcementHealthWiringTests {
 
         #expect(model.isAccessibilityTrusted)
 
+        // Poll directly rather than via `tick()`: the tick re-runs the
+        // enforcement engine, which would overwrite this hand-set `.working`
+        // phase from the (unconfigured) default schedule — making the asserted
+        // glyph depend on the wall-clock time the suite happens to run. The
+        // sibling tests below use the same seam for the same reason.
         model.state = CurfewEvaluation(
             phase: .working,
             warningStage: .none,
@@ -52,7 +57,7 @@ struct EnforcementHealthWiringTests {
             lockDate: nil,
             unlockDate: nil
         )
-        model.tick()
+        model.pollAndUpdateEnforcementHealth()
 
         #expect(model.enforcementHealth == .active)
         #expect(model.menuBarSymbolName == "clock.badge.checkmark")

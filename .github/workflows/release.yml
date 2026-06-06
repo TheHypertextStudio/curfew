@@ -41,11 +41,15 @@ jobs:
 
       - name: Reject placeholder license public key
         # Refuses to release if LicenseGate.swift still embeds the all-zero
-        # placeholder. Without this gate, a forgotten key swap would ship
-        # a build that silently accepts attacker-forged license keys.
+        # placeholder in the ACTIVE `licensePublicKeyBase64` constant. Without
+        # this gate, a forgotten key swap would ship a build that silently
+        # accepts attacker-forged license keys. The match is scoped to the
+        # `licensePublicKeyBase64 =` assignment so the intentional all-zero
+        # `placeholderPublicKeyBase64` sentinel does not trip the guard.
         run: |
-          if grep -q 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=' \
-               Curfew/Core/Features/LicenseGate.swift; then
+          if grep -E 'licensePublicKeyBase64[[:space:]]*=' \
+               Curfew/Core/Features/LicenseGate.swift \
+               | grep -q 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA='; then
             echo "::error::LicenseGate.swift still embeds the placeholder Ed25519 public key."
             echo "Run scripts/gen-license-keypair.sh and paste the public key before tagging."
             exit 1

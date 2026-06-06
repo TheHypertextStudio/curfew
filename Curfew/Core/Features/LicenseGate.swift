@@ -2,16 +2,18 @@ import Combine
 import CryptoKit
 import Foundation
 
-/// Base64-encoded 32-byte Ed25519 public key.
-/// Replace this constant with the output of `scripts/gen-license-keypair.sh`
-/// before shipping. The private half lives in `scripts/issue-license.ts` and
+/// Standard-base64-encoded 32-byte Ed25519 public key (decoded below with
+/// `Data(base64Encoded:)`). Replace this constant with the
+/// `license_public.key` output of `scripts/gen-license-keypair.sh` before
+/// shipping. The matching private half is set as the Stripe-webhook
+/// Worker secret `LICENSE_PRIVATE_KEY` (see `scripts/issue-license.ts`) and
 /// is never bundled with the app.
 ///
 /// The all-zero placeholder below is rejected by `LicenseGate.verified` —
 /// any activation attempt while it is in place fails with
 /// `.publicKeyNotProvisioned`. This prevents a build that has not had its
 /// production key swapped in from silently accepting attacker-forged keys.
-private let licensePublicKeyBase64 = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+private let licensePublicKeyBase64 = "jx3THl0He1kY3/7RQIRKglwRpTNhxzLmuMbkC9hczYI="
 
 /// Sentinel value for the unconfigured placeholder public key. Kept as its
 /// own constant so `LicenseGate.verified` can fail-closed when the build has
@@ -57,7 +59,7 @@ enum LicenseActivationError: LocalizedError {
 /// The payload is a JSON object matching `LicenseKey`; the signature covers the
 /// exact UTF-8 bytes of that JSON. Verification uses the Ed25519 public key
 /// embedded above — the matching private key signs keys server-side via the
-/// Lemonsqueezy webhook Worker.
+/// Stripe Checkout webhook Worker (`scripts/issue-license.ts`).
 @MainActor
 final class LicenseGate: ObservableObject {
     /// Verified Pro license currently in effect, or `nil` for free-tier
