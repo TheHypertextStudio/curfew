@@ -85,7 +85,7 @@ extension SettingsView {
             CurfewSectionTitle(title: "Warning Intervals")
 
             Stepper(
-                "T-\(model.settings.warningIntervals.thirtyMinutes) warning",
+                "\(model.settings.warningIntervals.thirtyMinutes) min before lockout",
                 value: warningBinding(
                     get: { $0.thirtyMinutes },
                     set: { $0.thirtyMinutes = $1 }
@@ -94,7 +94,7 @@ extension SettingsView {
             )
 
             Stepper(
-                "T-\(model.settings.warningIntervals.fifteenMinutes) warning",
+                "\(model.settings.warningIntervals.fifteenMinutes) min before lockout",
                 value: warningBinding(
                     get: { $0.fifteenMinutes },
                     set: { $0.fifteenMinutes = $1 }
@@ -104,7 +104,7 @@ extension SettingsView {
             )
 
             Stepper(
-                "T-\(model.settings.warningIntervals.fiveMinutes) warning",
+                "\(model.settings.warningIntervals.fiveMinutes) min before lockout",
                 value: warningBinding(
                     get: { $0.fiveMinutes },
                     set: { $0.fiveMinutes = $1 }
@@ -114,7 +114,7 @@ extension SettingsView {
             )
 
             Stepper(
-                "T-\(model.settings.warningIntervals.twoMinutes) warning",
+                "\(model.settings.warningIntervals.twoMinutes) min before lockout",
                 value: warningBinding(
                     get: { $0.twoMinutes },
                     set: { $0.twoMinutes = $1 }
@@ -124,7 +124,7 @@ extension SettingsView {
             )
 
             Stepper(
-                "T-\(model.settings.warningIntervals.oneMinute) warning",
+                "\(model.settings.warningIntervals.oneMinute) min before lockout",
                 value: warningBinding(
                     get: { $0.oneMinute },
                     set: { $0.oneMinute = $1 }

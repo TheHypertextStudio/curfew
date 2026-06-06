@@ -4,14 +4,17 @@ import SwiftUI
 /// Sidebar sections in the main window. Each case renders a different
 /// detail pane via `MainWindowView.detailContent`. Used as both the
 /// selection identity and the sidebar label source.
+///
+/// The spine maps to the product's three verbs: **Trust** today, **Set**
+/// your schedule, **Reflect** in the journal. Configuration lives in the
+/// ⌘, Settings window, not here.
 enum MainWorkspaceSection: String, CaseIterable, Identifiable {
-    /// Status dashboard — current phase, time remaining, this-week rollup.
-    case overview
-    /// Wraps the full Settings view so configuration is reachable without
-    /// the system Settings window.
-    case configuration
-    /// First-launch walkthrough — schedule, extension budget, warnings.
-    case onboarding
+    /// Live status — tonight's curfew at a glance.
+    case today
+    /// Weekly lock/unlock editor — the core creative act, reused by onboarding.
+    case schedule
+    /// Reflective archive — the weekly rollup, and soon the nightly entries.
+    case journal
 
     /// Stable `WindowGroup` id used by `openWindow(_:)` to focus the
     /// existing main window instead of spawning duplicates.
@@ -25,24 +28,24 @@ enum MainWorkspaceSection: String, CaseIterable, Identifiable {
     /// Sidebar label.
     var title: String {
         switch self {
-        case .overview:
-            "Overview"
-        case .configuration:
-            "Configuration"
-        case .onboarding:
-            "Getting Started"
+        case .today:
+            "Today"
+        case .schedule:
+            "Schedule"
+        case .journal:
+            "Journal"
         }
     }
 
     /// SF Symbol used in the sidebar row.
     var symbolName: String {
         switch self {
-        case .overview:
-            "gauge.with.dots.needle.67percent"
-        case .configuration:
-            "slider.horizontal.3"
-        case .onboarding:
-            "sparkles"
+        case .today:
+            "sun.horizon"
+        case .schedule:
+            "calendar"
+        case .journal:
+            "book.closed"
         }
     }
 }
@@ -62,87 +65,104 @@ struct ContentView: View {
     var body: some View {
         let snapshot = model.snapshot
 
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .firstTextBaseline) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Curfew")
-                        .font(CurfewTypography.title(22))
-                    Text(snapshot.statusLine)
-                        .font(CurfewTypography.body(13))
-                        .foregroundStyle(CurfewTheme.mutedInk)
-                }
-
-                Spacer()
-
-                Label(snapshot.timeRemainingText, systemImage: model.menuBarSymbolName)
-                    .font(CurfewTypography.numeric(22))
-                    .monospacedDigit()
-                    .foregroundStyle(CurfewTheme.accent)
-            }
-
+        VStack(spacing: 0) {
+            header(snapshot: snapshot)
             CompactEnforcementHealthWarning(health: model.enforcementHealth) {
                 model.requestAccessibilityAccess()
             }
-
-            CurfewPanel {
-                CurfewSectionTitle(
-                    title: "Today",
-                    subtitle: snapshot.scheduleWindowText
-                )
-
-                if let pending = snapshot.pendingScheduleDescription {
-                    Text(pending)
-                        .font(CurfewTypography.body(13))
-                        .foregroundStyle(CurfewTheme.warning)
-                }
-            }
-
-            CurfewPanel {
-                CurfewSectionTitle(title: "Quick Actions")
-
-                Button("Open Curfew") {
-                    openMainWorkspace()
-                }
-                .buttonStyle(CurfewPrimaryButtonStyle())
-
-                if snapshot.canRequestExtension {
-                    Button(snapshot.extensionRequestTitle) {
-                        model.tapExtensionRequest()
-                    }
-                    .buttonStyle(CurfewSecondaryButtonStyle())
-                    .disabled(snapshot.extensionsRemaining == 0)
-                    .simultaneousGesture(
-                        LongPressGesture(minimumDuration: CurfewAppModel
-                            .extensionConfirmationHoldSeconds)
-                            .onEnded { _ in
-                                model.confirmExtensionRequest()
-                            }
-                    )
-                }
-
-                HStack(spacing: 10) {
-                    Button("Settings") {
-                        model.openSettings()
-                    }
-                    .buttonStyle(CurfewSecondaryButtonStyle())
-
-                    Button("Getting Started") {
-                        model.showGettingStarted()
-                    }
-                    .buttonStyle(CurfewSecondaryButtonStyle())
-                }
-
-                Button("Quit Curfew") {
-                    NSApp.terminate(nil)
-                }
-                .buttonStyle(CurfewSecondaryButtonStyle())
-            }
+            .padding(.horizontal, 10)
+            .padding(.top, 10)
+            actions(snapshot: snapshot)
         }
-        .padding(14)
-        .frame(width: 350)
+        .frame(width: 320)
         .background(CurfewTheme.canvas)
         .foregroundStyle(CurfewTheme.ink)
     }
+
+    /// Compact sundown header — the countdown over a dusk band.
+    private func header(snapshot: EnforcementSnapshot) -> some View {
+        ZStack(alignment: .bottomLeading) {
+            Self.miniSky
+            VStack(alignment: .leading, spacing: 4) {
+                Text(snapshot.timeRemainingText)
+                    .font(.system(size: 40, weight: .semibold, design: .rounded))
+                    .foregroundStyle(Self.warmWhite)
+                Text(headerLine(snapshot))
+                    .font(CurfewTypography.body(13))
+                    .foregroundStyle(Self.warmWhite.opacity(0.82))
+            }
+            .padding(18)
+        }
+        .frame(height: 116)
+    }
+
+    private func headerLine(_ snapshot: EnforcementSnapshot) -> String {
+        if let lock = model.state.lockDate, snapshot.phase == .working {
+            return "until your Mac locks at \(lock.formatted(date: .omitted, time: .shortened))"
+        }
+        return snapshot.statusLine
+    }
+
+    /// Menu-style action rows.
+    private func actions(snapshot: EnforcementSnapshot) -> some View {
+        VStack(spacing: 2) {
+            menuRow("Open Curfew", icon: "sun.horizon", prominent: true) {
+                openMainWorkspace()
+            }
+            if snapshot.canRequestExtension {
+                menuRow(snapshot.extensionRequestTitle, icon: "plus.circle") {
+                    model.tapExtensionRequest()
+                }
+                .disabled(snapshot.extensionsRemaining == 0)
+                .simultaneousGesture(
+                    LongPressGesture(
+                        minimumDuration: CurfewAppModel.extensionConfirmationHoldSeconds
+                    )
+                    .onEnded { _ in model.confirmExtensionRequest() }
+                )
+            }
+            menuRow("Settings", icon: "gearshape") { model.openSettings() }
+            menuRow("Getting Started", icon: "sparkles") { model.showGettingStarted() }
+            Divider().padding(.vertical, 4)
+            menuRow("Quit Curfew", icon: "power") { NSApp.terminate(nil) }
+        }
+        .padding(10)
+    }
+
+    private func menuRow(
+        _ title: String,
+        icon: String,
+        prominent: Bool = false,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: 11) {
+                Image(systemName: icon)
+                    .font(.system(size: 14, weight: .medium))
+                    .frame(width: 20)
+                    .foregroundStyle(prominent ? CurfewTheme.accent : CurfewTheme.mutedInk)
+                Text(title)
+                    .font(CurfewTypography.bodyEmphasis(14))
+                    .foregroundStyle(CurfewTheme.ink)
+                Spacer()
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 9)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private static let warmWhite = Color(red: 0.99, green: 0.97, blue: 0.94)
+    private static let miniSky = LinearGradient(
+        stops: [
+            .init(color: Color(red: 0.28, green: 0.27, blue: 0.36), location: 0.0),
+            .init(color: Color(red: 0.55, green: 0.42, blue: 0.42), location: 0.6),
+            .init(color: Color(red: 0.86, green: 0.62, blue: 0.45), location: 1.0)
+        ],
+        startPoint: .top,
+        endPoint: .bottom
+    )
 
     private func openMainWorkspace() {
         NSApp.activate(ignoringOtherApps: true)
@@ -157,7 +177,7 @@ struct ContentView: View {
 struct MainWindowView: View {
     /// Live app state shared across detail panes.
     @EnvironmentObject private var model: CurfewAppModel
-    /// Currently-selected sidebar section. Defaults to `.overview` (a Debug
+    /// Currently-selected sidebar section. Defaults to `.today` (a Debug
     /// demo-capture launch can pin a different pane via `demoLaunchSelection`);
     /// SwiftUI restores the last selection between window appearances.
     @State private var selectedSection: MainWorkspaceSection? = .demoLaunchSelection
@@ -198,168 +218,20 @@ struct MainWindowView: View {
     }
 
     /// Detail pane dispatcher — one case per `MainWorkspaceSection`.
-    /// Defaults to `.overview` if `selectedSection` is momentarily nil
+    /// Defaults to `.today` if `selectedSection` is momentarily nil
     /// (possible in multi-column navigation during resize animations).
     @ViewBuilder
     private var detailContent: some View {
-        switch selectedSection ?? .overview {
-        case .overview:
-            MainOverviewSectionView()
+        switch selectedSection ?? .today {
+        case .today:
+            TodayView()
                 .environmentObject(model)
-        case .configuration:
-            MainConfigurationSectionView()
+        case .schedule:
+            ScheduleView()
                 .environmentObject(model)
-        case .onboarding:
-            MainOnboardingSectionView()
+        case .journal:
+            JournalView()
                 .environmentObject(model)
         }
-    }
-}
-
-/// Overview detail pane — live status, this-week rollup, tomorrow's
-/// summary, and the armed/disarmed action block.
-private struct MainOverviewSectionView: View {
-    @EnvironmentObject private var model: CurfewAppModel
-
-    /// Scrolling layout so narrow windows don't truncate the action block.
-    var body: some View {
-        let snapshot = model.snapshot
-
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                EnforcementHealthBanner(health: model.enforcementHealth) {
-                    model.requestAccessibilityAccess()
-                }
-                CurfewPanel {
-                    CurfewSectionTitle(title: "Status", subtitle: snapshot.statusLine)
-
-                    Text("\(snapshot.timeRemainingText) remaining")
-                        .font(CurfewTypography.display(34))
-                        .monospacedDigit()
-                        .foregroundStyle(CurfewTheme.accent)
-
-                    Text(snapshot.scheduleWindowText)
-                        .font(CurfewTypography.body(14))
-                        .foregroundStyle(CurfewTheme.mutedInk)
-                }
-
-                ThisWeekView()
-                    .environmentObject(model)
-
-                CurfewPanel {
-                    CurfewSectionTitle(
-                        title: "Tomorrow",
-                        subtitle: snapshot.scheduleSummarySentence
-                    )
-                    if let pending = snapshot.pendingScheduleDescription {
-                        Text(pending)
-                            .font(CurfewTypography.body(14))
-                            .foregroundStyle(CurfewTheme.warning)
-                    }
-                }
-
-                CurfewPanel {
-                    CurfewSectionTitle(title: "Actions")
-
-                    if !model.settings.hasCompletedInitialSetup {
-                        Text(
-                            "Setup is not complete. Curfew stays disarmed until you complete setup."
-                        )
-                        .font(CurfewTypography.body(14))
-                        .foregroundStyle(CurfewTheme.mutedInk)
-
-                        Button("Complete Setup and Enable Curfew") {
-                            model.completeInitialSetup()
-                        }
-                        .buttonStyle(CurfewPrimaryButtonStyle())
-                    } else if !model.isEnforcementRunning {
-                        Text(
-                            "Debug launches are safe by default. Start enforcement manually "
-                                + "when you want to test lock behavior."
-                        )
-                        .font(CurfewTypography.body(14))
-                        .foregroundStyle(CurfewTheme.mutedInk)
-
-                        Button("Start Enforcement") {
-                            model.start()
-                        }
-                        .buttonStyle(CurfewPrimaryButtonStyle())
-                    } else {
-                        Text("Enforcement is currently active.")
-                            .font(CurfewTypography.body(14))
-                            .foregroundStyle(CurfewTheme.accentMuted)
-                    }
-
-                    HStack(spacing: 10) {
-                        Button("Open Settings") {
-                            model.openSettings()
-                        }
-                        .buttonStyle(CurfewSecondaryButtonStyle())
-
-                        Button("Show Getting Started") {
-                            model.showGettingStarted()
-                        }
-                        .buttonStyle(CurfewSecondaryButtonStyle())
-                    }
-                }
-            }
-            .padding(24)
-            .frame(maxWidth: 900, alignment: .leading)
-        }
-        .scrollIndicators(.hidden)
-    }
-}
-
-/// Configuration detail pane — delegates to `SettingsView` with
-/// `tabbed: false` so it renders as a scrollable column instead of the
-/// system-Settings tab bar.
-private struct MainConfigurationSectionView: View {
-    @EnvironmentObject private var model: CurfewAppModel
-
-    /// Delegates layout to the shared Settings view.
-    var body: some View {
-        SettingsView(tabbed: false)
-            .environmentObject(model)
-    }
-}
-
-/// First-launch walkthrough pane — summarises the three setup steps and
-/// links into the dedicated Getting Started window for the full flow.
-private struct MainOnboardingSectionView: View {
-    @EnvironmentObject private var model: CurfewAppModel
-
-    /// Three-item checklist with deep-link buttons.
-    var body: some View {
-        ScrollView {
-            CurfewPanel {
-                CurfewSectionTitle(
-                    title: "Getting Started",
-                    subtitle: "Set your schedule first, then arm enforcement when you are ready."
-                )
-
-                VStack(alignment: .leading, spacing: 8) {
-                    Label(ScheduleSurfaceCopy.mainChecklistItem, systemImage: "calendar")
-                    Label("Configure extension and override limits.", systemImage: "hourglass")
-                    Label("Tune warnings and optional auto-shutdown.", systemImage: "bell")
-                }
-                .font(CurfewTypography.bodyEmphasis(14))
-                .foregroundStyle(CurfewTheme.ink)
-
-                HStack(spacing: 10) {
-                    Button("Open Getting Started Window") {
-                        model.showGettingStarted()
-                    }
-                    .buttonStyle(CurfewPrimaryButtonStyle())
-
-                    Button("Open Settings") {
-                        model.openSettings()
-                    }
-                    .buttonStyle(CurfewSecondaryButtonStyle())
-                }
-            }
-            .padding(24)
-            .frame(maxWidth: 760, alignment: .leading)
-        }
-        .scrollIndicators(.hidden)
     }
 }

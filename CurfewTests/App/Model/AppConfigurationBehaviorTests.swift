@@ -256,18 +256,17 @@ struct EnforcementSnapshotTests {
 }
 
 struct MainWorkspaceSectionTests {
-    @Test("Main workspace navigation includes overview, configuration, and onboarding")
+    @Test("Main workspace navigation is Today, Schedule, and Journal")
     func sectionSet() {
-        #expect(MainWorkspaceSection.allCases == [.overview, .configuration, .onboarding])
+        #expect(MainWorkspaceSection.allCases == [.today, .schedule, .journal])
     }
 }
 
 struct SettingsSectionTests {
-    @Test("Settings sections include schedule, enforcement, integrations, devices, and advanced")
+    @Test("Settings sections are enforcement, integrations, devices, and advanced")
     func sectionSet() {
         #expect(
             SettingsSection.allCases == [
-                .schedule,
                 .enforcement,
                 .integrations,
                 .devices,

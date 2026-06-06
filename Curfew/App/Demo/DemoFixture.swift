@@ -36,11 +36,11 @@
         var initialSection: MainWorkspaceSection? {
             switch self {
             case .configuration:
-                .configuration
-            case .gettingStarted:
-                .onboarding
-            case .overview, .thisWeek, .menuBar, .warning, .lockout, .reel, .settings:
-                .overview
+                .schedule
+            case .thisWeek:
+                .journal
+            case .overview, .gettingStarted, .menuBar, .warning, .lockout, .reel, .settings:
+                .today
             }
         }
 

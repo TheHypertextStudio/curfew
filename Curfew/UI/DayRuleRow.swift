@@ -115,8 +115,8 @@ struct DayRuleRow: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text(weekday.shortName)
-                    .font(CurfewTypography.bodyEmphasis(14))
-                    .frame(width: 48, alignment: .leading)
+                    .font(CurfewTypography.title(15))
+                    .frame(width: 52, alignment: .leading)
 
                 Toggle("Day off", isOn: dayOffBinding())
                     .toggleStyle(.switch)
@@ -151,8 +151,8 @@ struct DayRuleRow: View {
                 .labelsHidden()
                 .disabled(dayRule.isDayOff)
 
-                Text("->")
-                    .font(CurfewTypography.bodyEmphasis(14))
+                Text("→")
+                    .font(CurfewTypography.body(16))
                     .foregroundStyle(CurfewTheme.mutedInk)
 
                 Text(ScheduleSurfaceCopy.workResumesLabel)

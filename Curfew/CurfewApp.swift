@@ -26,6 +26,11 @@ struct AppCoordinator: AppCoordinating {
         model: CurfewAppModel,
         shouldStartEnforcement: Bool
     ) {
+        // The sundown palette is a warm light design; pin the app to a light
+        // appearance so the chrome (sidebar, title bar) stays consistent with it
+        // rather than splitting light/dark when the system is in Dark Mode.
+        NSApplication.shared.appearance = NSAppearance(named: .aqua)
+
         if shouldStartEnforcement {
             model.start()
         }

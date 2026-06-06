@@ -19,18 +19,19 @@ enum CurfewTheme {
 
     // MARK: - Text
 
-    /// Primary text colour.
-    static let ink = adaptive(light: RGB(0.13, 0.16, 0.18), dark: RGB(0.92, 0.91, 0.89))
+    /// Primary text colour — warm near-black.
+    static let ink = adaptive(light: RGB(0.19, 0.16, 0.14), dark: RGB(0.94, 0.92, 0.88))
     /// Secondary / caption text colour.
-    static let mutedInk = adaptive(light: RGB(0.35, 0.39, 0.41), dark: RGB(0.58, 0.62, 0.65))
+    static let mutedInk = adaptive(light: RGB(0.52, 0.46, 0.41), dark: RGB(0.64, 0.60, 0.55))
 
     // MARK: - Accent / semantic
 
-    /// Primary brand accent — used for tint and primary buttons.
-    static let accent = adaptive(light: RGB(0.19, 0.43, 0.36), dark: RGB(0.25, 0.62, 0.52))
+    /// Primary brand accent — warm ember (the colour of the setting sun),
+    /// used for tint and primary buttons.
+    static let accent = adaptive(light: RGB(0.85, 0.45, 0.23), dark: RGB(0.92, 0.56, 0.33))
     /// Lower-emphasis variant of the accent, used for inactive states
     /// where the full-saturation accent would pull too much focus.
-    static let accentMuted = adaptive(light: RGB(0.30, 0.53, 0.47), dark: RGB(0.32, 0.68, 0.58))
+    static let accentMuted = adaptive(light: RGB(0.80, 0.52, 0.36), dark: RGB(0.85, 0.60, 0.44))
     /// Amber warning tint used by the warning-phase overlay and the
     /// pending-schedule-change callout.
     static let warning = adaptive(light: RGB(0.72, 0.45, 0.19), dark: RGB(0.90, 0.58, 0.25))
@@ -68,38 +69,39 @@ private func adaptive(light: RGB, dark: RGB) -> Color {
     })
 }
 
-/// Typography scale anchored on Avenir Next — a humanist sans that
-/// reads well at both widget and dashboard sizes. All sizes are
-/// caller-supplied so one typography helper can serve every surface.
+/// Typography scale on the system font (SF Pro) — native, modern, with free
+/// Dynamic Type and optical sizing. Numerals use the rounded design (clock-
+/// like, warm); text uses the default design. Sizes are caller-supplied so one
+/// helper serves every surface.
 enum CurfewTypography {
     /// Large numeric display, e.g. the main "Xh Ym remaining" label.
     static func display(_ size: CGFloat) -> Font {
-        .custom("AvenirNext-DemiBold", size: size)
+        .system(size: size, weight: .semibold, design: .rounded)
     }
 
     /// Section / pane title. Defaults to 24 pt.
     static func title(_ size: CGFloat = 24) -> Font {
-        .custom("AvenirNext-DemiBold", size: size)
+        .system(size: size, weight: .bold)
     }
 
     /// Body text. Defaults to 15 pt.
     static func body(_ size: CGFloat = 15) -> Font {
-        .custom("AvenirNext-Regular", size: size)
+        .system(size: size, weight: .regular)
     }
 
     /// Medium-weight body text for row labels and emphasised copy.
     static func bodyEmphasis(_ size: CGFloat = 15) -> Font {
-        .custom("AvenirNext-Medium", size: size)
+        .system(size: size, weight: .medium)
     }
 
-    /// Uppercase caption used by `CurfewSectionTitle` and status chips.
+    /// Small caption used by `CurfewSectionTitle` and status chips.
     static func label(_ size: CGFloat = 12) -> Font {
-        .custom("AvenirNext-Medium", size: size)
+        .system(size: size, weight: .medium)
     }
 
-    /// Bold weight for numeric readouts (countdown, percentages).
+    /// Bold rounded weight for numeric readouts (countdown, percentages).
     static func numeric(_ size: CGFloat = 24) -> Font {
-        .custom("AvenirNext-Bold", size: size)
+        .system(size: size, weight: .bold, design: .rounded)
     }
 }
 
@@ -127,25 +129,23 @@ struct CurfewPanel<Content: View>: View {
     }
 }
 
-/// Uppercase section heading with an optional subtitle beneath it.
-/// Used as the first child of most `CurfewPanel` containers.
+/// Section heading with an optional subtitle beneath it. Used as the first
+/// child of most `CurfewPanel` containers.
 struct CurfewSectionTitle: View {
-    /// Rendered in uppercase via `.textCase(.uppercase)`.
+    /// The section title.
     let title: String
-    /// Optional body-weight subtitle rendered below the uppercase title.
+    /// Optional subtitle rendered below the title.
     var subtitle: String?
 
-    /// Two-line heading layout.
+    /// Two-line heading layout — a confident title over an optional subtitle.
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 3) {
             Text(title)
-                .font(CurfewTypography.label(12))
-                .textCase(.uppercase)
-                .tracking(0.8)
-                .foregroundStyle(CurfewTheme.mutedInk)
+                .font(CurfewTypography.title(16))
+                .foregroundStyle(CurfewTheme.ink)
             if let subtitle {
                 Text(subtitle)
-                    .font(CurfewTypography.body(14))
+                    .font(CurfewTypography.body(13))
                     .foregroundStyle(CurfewTheme.mutedInk)
             }
         }

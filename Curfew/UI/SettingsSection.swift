@@ -9,9 +9,6 @@ import Foundation
 ///
 /// Ordering matters — cases appear in the sidebar in declaration order.
 enum SettingsSection: String, CaseIterable, Identifiable {
-    /// Schedule editor (weekly lock/unlock times, day-off toggles, presets).
-    case schedule
-
     /// Enforcement tuning (warning intervals, auto-shutdown, extension /
     /// override budgets).
     case enforcement
@@ -34,7 +31,6 @@ enum SettingsSection: String, CaseIterable, Identifiable {
     /// Tab label displayed in the Settings toolbar / sidebar.
     var title: String {
         switch self {
-        case .schedule: "Schedule"
         case .enforcement: "Enforcement"
         case .integrations: "Integrations"
         case .devices: "Devices"
@@ -45,7 +41,6 @@ enum SettingsSection: String, CaseIterable, Identifiable {
     /// SF Symbol name for the tab icon.
     var icon: String {
         switch self {
-        case .schedule: "calendar"
         case .enforcement: "timer"
         case .integrations: "puzzlepiece.extension"
         case .devices: "macbook.and.iphone"

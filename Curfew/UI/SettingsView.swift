@@ -1,44 +1,18 @@
 import SwiftUI
 
-/// Root of the Settings window.
+/// Root of the Settings window — the single configuration home (⌘,).
 ///
-/// `tabbed: true` (default) — used by the `Settings` scene; SwiftUI renders
-/// a native macOS icon-toolbar tab picker at the top of the window.
-/// `tabbed: false` — used when embedded inside the main workspace window's
-/// Configuration pane, where a tab bar would be redundant with the outer
-/// sidebar navigation. All panels are shown in a single flat scroll instead.
+/// Renders a native macOS icon-toolbar tab picker. Note the schedule editor
+/// is deliberately *not* here: it's promoted to a first-class `Schedule`
+/// workspace destination (see ``ScheduleView``), because choosing your
+/// horizon is the core act of the app, not a buried setting.
 struct SettingsView: View {
     /// Live app state shared across panels.
     @EnvironmentObject var model: CurfewAppModel
-    /// Whether to render the icon-toolbar tab picker (standalone Settings
-    /// window) or a single flat scroll (embedded in the main workspace).
-    var tabbed: Bool = true
 
-    /// Dispatches to the tabbed or flat layout.
+    /// Tabbed settings layout.
     var body: some View {
-        if tabbed {
-            tabbedBody
-        } else {
-            flatBody
-        }
-    }
-
-    // MARK: - Tabbed (standalone Settings window)
-
-    private var tabbedBody: some View {
         TabView {
-            tab {
-                presetsPanel
-                weeklySchedulePanel
-                if let pending = model.pendingScheduleDescription {
-                    pendingChangePanel(message: pending)
-                }
-            }
-            .tabItem { Label(
-                SettingsSection.schedule.title,
-                systemImage: SettingsSection.schedule.icon
-            ) }
-
             tab {
                 enforcementHealthPanel
                 extensionsPanel
@@ -76,33 +50,9 @@ struct SettingsView: View {
         .tint(CurfewTheme.accent)
     }
 
-    // MARK: - Flat (embedded in workspace Configuration pane)
-
-    private var flatBody: some View {
-        tab {
-            presetsPanel
-            weeklySchedulePanel
-            if let pending = model.pendingScheduleDescription {
-                pendingChangePanel(message: pending)
-            }
-            enforcementHealthPanel
-            extensionsPanel
-            warningPanel
-            shutdownPanel
-            integrationsPanel
-            licensePanel
-            advancedPanel
-            setupPanel
-            uninstallPanel
-        }
-        .tint(CurfewTheme.accent)
-    }
-
-    // MARK: - Shared scroll wrapper
-
-    /// Wraps a panel's content in the shared scroll + padding treatment
-    /// used by every Settings tab. Centralising it keeps the individual
-    /// tab bodies terse and visually consistent.
+    /// Wraps a panel's content in the shared scroll + padding treatment used
+    /// by every Settings tab. Centralising it keeps the individual tab
+    /// bodies terse and visually consistent.
     func tab(@ViewBuilder content: () -> some View) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {

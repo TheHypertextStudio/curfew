@@ -1,18 +1,58 @@
 import SwiftUI
 
-/// Schedule-related panels for the Settings window: preset picker, weekly
-/// day-by-day editor, and the "change queued" notice for pending edits
-/// still within their anti-bypass cooldown.
-extension SettingsView {
+/// "Schedule" workspace destination — the weekly lock/unlock editor.
+///
+/// Promoted out of the Settings window into a first-class destination: the
+/// schedule is the core creative act of the app (you decide your horizon
+/// while you're thinking clearly), and first-run onboarding reuses this same
+/// editor inline.
+///
+/// The scrollable body is split into ``ScheduleContent`` so the snapshot
+/// capture tier can render it off-screen (`ImageRenderer` doesn't render
+/// `ScrollView` content).
+struct ScheduleView: View {
+    /// Shared app model, forwarded to the content via the environment.
+    @EnvironmentObject private var model: CurfewAppModel
+
+    /// Scrolling wrapper around ``ScheduleContent``.
+    var body: some View {
+        ScrollView {
+            ScheduleContent()
+                .environmentObject(model)
+        }
+        .scrollIndicators(.hidden)
+    }
+}
+
+/// The scrollable column of ``ScheduleView`` — presets, the seven-day editor
+/// (one ``DayRuleRow`` per weekday), and the pending-change notice for edits
+/// still inside their anti-bypass cooldown.
+struct ScheduleContent: View {
+    /// Shared app model — schedule reads/writes round-trip through it so the
+    /// anti-bypass policy engine stays the single mutation entry point.
+    @EnvironmentObject private var model: CurfewAppModel
+
+    /// Padded column of schedule panels.
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            presetsPanel
+            weeklySchedulePanel
+            if let pending = model.pendingScheduleDescription {
+                pendingChangePanel(message: pending)
+            }
+        }
+        .padding(24)
+        .frame(maxWidth: 900, alignment: .leading)
+    }
+
     /// One-click preset selector (9-to-5 / Startup Hours / Half Day). Acts
     /// as the "start from a baseline" shortcut so users aren't forced to
     /// build a seven-day schedule from scratch.
-    var presetsPanel: some View {
-        CurfewPanel {
-            CurfewSectionTitle(
-                title: "Presets",
-                subtitle: "Start from a baseline and tweak day-by-day."
-            )
+    private var presetsPanel: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Start from a preset")
+                .font(CurfewTypography.title(16))
+                .foregroundStyle(CurfewTheme.ink)
 
             HStack(spacing: 10) {
                 ForEach(SchedulePreset.allCases) { preset in
@@ -23,13 +63,14 @@ extension SettingsView {
                 }
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     /// Seven-row editor, one row per `Weekday`. Each row uses `DayRuleRow`
     /// to expose lock/unlock time pickers and a "day off" toggle. Summary
     /// sentence at the bottom pulls from the model so it reflects either
     /// the live schedule or a pending-but-not-effective change.
-    var weeklySchedulePanel: some View {
+    private var weeklySchedulePanel: some View {
         CurfewPanel {
             CurfewSectionTitle(
                 title: "Weekly Schedule",
@@ -59,10 +100,7 @@ extension SettingsView {
     /// Warning banner shown when the user has queued a schedule change that
     /// will take effect later (weaker edits are held for 24h to prevent
     /// impulsive bypass; stricter edits may take effect next day).
-    ///
-    /// - Parameter message: copy describing the pending change, produced
-    ///   by ``CurfewAppModel/pendingScheduleDescription``.
-    func pendingChangePanel(message: String) -> some View {
+    private func pendingChangePanel(message: String) -> some View {
         CurfewPanel {
             CurfewSectionTitle(title: "Pending Change")
             Text(message)

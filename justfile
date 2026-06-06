@@ -157,6 +157,19 @@ capture-hero:
 capture-video seconds="18":
     scripts/capture-video.sh {{ seconds }}
 
+# Headless SwiftUI snapshots of the main-window destinations. Renders via
+# ImageRenderer in a plain unit test — no UI-test runner, no Screen Recording,
+# no desktop takeover, CI-friendly. Output: build/snapshots/curfew-*.png.
+snapshot:
+    swift build -c release --product curfew-ctl --product curfew-mcp --product curfew-daemon
+    xcodebuild test \
+        -project {{ project }} \
+        -scheme {{ scheme }} \
+        -configuration Debug \
+        -destination '{{ destination }}' \
+        -derivedDataPath build \
+        -only-testing:CurfewTests/DestinationSnapshotTests
+
 # Serve the landing page with live reload and open it in the browser.
 # `live-server` injects a WebSocket client that auto-refreshes on every
 # edit to landing/*.{html,css} — saves the round-trip of manual reloads

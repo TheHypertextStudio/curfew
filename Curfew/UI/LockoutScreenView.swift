@@ -79,8 +79,9 @@ struct LockoutScreenView: View {
 
             VStack(spacing: 24) {
                 Text(model.currentTime, style: .time)
-                    .font(.system(size: 72, weight: .light, design: .rounded))
+                    .font(.system(size: 104, weight: .semibold, design: .rounded))
                     .foregroundStyle(.white)
+                    .shadow(color: .black.opacity(0.3), radius: 28, y: 10)
 
                 Text(message)
                     .font(.system(size: 28, weight: .medium, design: .rounded))
@@ -216,21 +217,31 @@ private struct LockoutBackgroundView: View {
     /// the repeating animation.
     @State private var animatePhase = false
 
-    /// Animated `LinearGradient` with saturation ramp on animate.
+    /// Sundown night sky — deep dusk with the day's last embers glowing low on
+    /// the horizon. The ember bloom breathes gently when motion is allowed.
     var body: some View {
-        LinearGradient(
-            colors: [
-                Color(red: 0.12, green: 0.08, blue: 0.20),
-                Color(red: 0.18, green: 0.10, blue: 0.12),
-                Color(red: 0.06, green: 0.09, blue: 0.16)
-            ],
-            startPoint: animate && animatePhase ? .topTrailing : .topLeading,
-            endPoint: animate && animatePhase ? .bottomLeading : .bottomTrailing
-        )
-        .saturation(animate ? 1.1 : 1.0)
+        ZStack {
+            LinearGradient(
+                stops: [
+                    .init(color: Color(red: 0.07, green: 0.08, blue: 0.16), location: 0.0),
+                    .init(color: Color(red: 0.14, green: 0.13, blue: 0.24), location: 0.45),
+                    .init(color: Color(red: 0.28, green: 0.18, blue: 0.28), location: 0.78),
+                    .init(color: Color(red: 0.44, green: 0.24, blue: 0.22), location: 1.0)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            RadialGradient(
+                colors: [Color(red: 0.92, green: 0.52, blue: 0.30).opacity(glowOpacity), .clear],
+                center: .bottom,
+                startRadius: 0,
+                endRadius: 640
+            )
+            .blendMode(.screen)
+        }
         .animation(
             animate
-                ? .easeInOut(duration: 12).repeatForever(autoreverses: true)
+                ? .easeInOut(duration: 8).repeatForever(autoreverses: true)
                 : .default,
             value: animatePhase
         )
@@ -240,5 +251,10 @@ private struct LockoutBackgroundView: View {
             }
             animatePhase = true
         }
+    }
+
+    /// Ember-bloom opacity — drifts subtly when motion is allowed.
+    private var glowOpacity: Double {
+        animate && animatePhase ? 0.55 : 0.45
     }
 }

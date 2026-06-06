@@ -12,9 +12,9 @@ extension MainWorkspaceSection {
             if let scenario = CurfewLaunchBehavior.demoScenario(
                 environment: ProcessInfo.processInfo.environment
             ) {
-                return scenario.initialSection ?? .overview
+                return scenario.initialSection ?? .today
             }
         #endif
-        return .overview
+        return .today
     }
 }

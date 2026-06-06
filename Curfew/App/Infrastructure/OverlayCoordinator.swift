@@ -274,18 +274,23 @@ private struct FloatingCountdownTimerView: View {
     /// a stale or just-over value.
     let minutesRemaining: Int
 
-    /// SwiftUI body — monospace digit capsule with a subtle border.
+    /// SwiftUI body — a small dusk capsule with the minutes remaining.
     var body: some View {
-        Text("⏳ \(max(0, minutesRemaining))m")
-            .font(.system(size: 16, weight: .semibold, design: .rounded))
-            .monospacedDigit()
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
-            .foregroundStyle(.white)
-            .background(.black.opacity(0.72), in: Capsule())
-            .overlay(
-                Capsule()
-                    .stroke(.white.opacity(0.15), lineWidth: 1)
-            )
+        HStack(spacing: 7) {
+            Image(systemName: "clock.fill")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(Color(red: 0.95, green: 0.6, blue: 0.35))
+            Text("\(max(0, minutesRemaining)) min")
+                .font(.system(size: 15, weight: .semibold, design: .rounded))
+                .monospacedDigit()
+                .foregroundStyle(.white)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(.black.opacity(0.6), in: Capsule())
+        .overlay(
+            Capsule()
+                .stroke(.white.opacity(0.12), lineWidth: 1)
+        )
     }
 }
