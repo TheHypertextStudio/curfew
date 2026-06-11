@@ -10,9 +10,17 @@ struct SettingsView: View {
     /// Live app state shared across panels.
     @EnvironmentObject var model: CurfewAppModel
 
+    /// The selected tab. Bound so panels can navigate between tabs — e.g. the
+    /// Reflection panel's "Set up in Integrations" callout jumps here.
+    @State var selection: SettingsSection = .enforcement
+
+    /// Which reflection prompt's text field should hold keyboard focus —
+    /// driven so "Add prompt" focuses the freshly-added row.
+    @FocusState var focusedPromptID: UUID?
+
     /// Tabbed settings layout.
     var body: some View {
-        TabView {
+        TabView(selection: $selection) {
             tab {
                 enforcementHealthPanel
                 extensionsPanel
@@ -23,18 +31,28 @@ struct SettingsView: View {
                 SettingsSection.enforcement.title,
                 systemImage: SettingsSection.enforcement.icon
             ) }
+            .tag(SettingsSection.enforcement)
 
             tab { integrationsPanel }
                 .tabItem { Label(
                     SettingsSection.integrations.title,
                     systemImage: SettingsSection.integrations.icon
                 ) }
+                .tag(SettingsSection.integrations)
 
             tab { devicesPanel }
                 .tabItem { Label(
                     SettingsSection.devices.title,
                     systemImage: SettingsSection.devices.icon
                 ) }
+                .tag(SettingsSection.devices)
+
+            tab { reflectionPanel }
+                .tabItem { Label(
+                    SettingsSection.reflection.title,
+                    systemImage: SettingsSection.reflection.icon
+                ) }
+                .tag(SettingsSection.reflection)
 
             tab {
                 licensePanel
@@ -46,6 +64,7 @@ struct SettingsView: View {
                 SettingsSection.advanced.title,
                 systemImage: SettingsSection.advanced.icon
             ) }
+            .tag(SettingsSection.advanced)
         }
         .tint(CurfewTheme.accent)
     }

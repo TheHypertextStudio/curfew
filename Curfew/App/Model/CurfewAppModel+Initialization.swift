@@ -22,6 +22,8 @@ extension CurfewAppModel {
             self?.setIdleState(idle)
         }
 
+        reflectionState.configuration = settingsStore.loadReflectionConfiguration()
+        seedReflectionGatesResolvedToday()
         configureNotificationCallback()
     }
 

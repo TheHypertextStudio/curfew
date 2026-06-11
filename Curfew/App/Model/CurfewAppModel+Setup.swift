@@ -27,6 +27,9 @@ extension CurfewAppModel {
             gettingStartedPresenter: gettingStartedPresenter,
             featureFlags: featureFlags,
             activityRecorder: Self.defaultActivityRecording(),
+            reflectionState: ReflectionRuntimeState(
+                recorder: Self.defaultReflectionRecording()
+            ),
             respawnGuard: respawnGuard
         )
     }
@@ -86,6 +89,27 @@ extension CurfewAppModel {
             let logger = Logger(subsystem: "studio.hypertext.curfew", category: "app-model")
             logger.error("activity recorder unavailable: \(String(describing: error))")
             return NullActivityRecording()
+        }
+    }
+
+    /// Opens the canonical ``ReflectionStore`` in the app's own Application
+    /// Support directory, wrapping it in a ``ReflectionRecorder``. On any
+    /// failure (disk full, permissions), falls back to a
+    /// ``NullReflectionRecording`` so reflection prompting still works in
+    /// memory even though nothing persists. Mirrors ``defaultActivityRecording``.
+    static func defaultReflectionRecording() -> any ReflectionRecording {
+        let canonical = SharedPaths.reflectionDatabase
+        do {
+            try FileManager.default.createDirectory(
+                at: canonical.deletingLastPathComponent(),
+                withIntermediateDirectories: true
+            )
+            let store = try ReflectionStore(databaseURL: canonical)
+            return ReflectionRecorder(store: store)
+        } catch {
+            let logger = Logger(subsystem: "studio.hypertext.curfew", category: "app-model")
+            logger.error("reflection recorder unavailable: \(String(describing: error))")
+            return NullReflectionRecording()
         }
     }
 

@@ -36,6 +36,7 @@ struct MCPTool {
         activityTool,
         timeRemainingTool,
         weeklySummaryTool,
+        reflectionsTool,
         requestExtensionTool,
         setScheduleTool,
         requestStatusTool
@@ -200,6 +201,78 @@ private let activityTool = MCPTool(
             return "  \(time)  \(detail)"
         }
         return [textContent("Activity (\(period)):\n" + lines.joined(separator: "\n"))]
+    }
+)
+
+/// Read-only access to the user's morning/evening reflections so an assistant
+/// can use "how did the user say the day went?" as context. There is
+/// deliberately no write counterpart — reflections are human-authored only.
+private let reflectionsTool = MCPTool(
+    name: "curfew.get_reflections",
+    description: """
+    Returns the user's recorded reflections (morning intent and evening \
+    retrospective). Pass `{"period": "today"}` for today or \
+    `{"period": "week"}` (default) for the current week, and an optional \
+    `{"gate": "morning"|"evening"}` to filter. Each reflection lists its \
+    answers as {prompt, type, value}. Read-only.
+    """,
+    inputSchema: [
+        "type": "object",
+        "properties": [
+            "period": [
+                "type": "string",
+                "enum": ["today", "week"],
+                "description": "Time window: \"today\" or \"week\" (default)."
+            ],
+            "gate": [
+                "type": "string",
+                "enum": ["morning", "evening"],
+                "description": "Optional gate filter."
+            ]
+        ] as [String: Any],
+        "required": [] as [String]
+    ] as [String: Any],
+    call: { arguments in
+        let period = arguments["period"] as? String ?? "week"
+        guard period == "today" || period == "week" else {
+            throw MCPToolError.invalidArgument(
+                "period must be \"today\" or \"week\" (got \"\(period)\")."
+            )
+        }
+        var gateFilter: ReflectionGate?
+        if let gateString = arguments["gate"] as? String {
+            guard let gate = ReflectionGate(rawValue: gateString) else {
+                throw MCPToolError.invalidArgument(
+                    "gate must be \"morning\" or \"evening\"."
+                )
+            }
+            gateFilter = gate
+        }
+
+        let now = Date()
+        let calendar = Calendar.current
+        let rangeStart: Date = period == "today"
+            ? calendar.startOfDay(for: now)
+            : calendar.startOfWeek(for: now)
+
+        guard let store = openSharedReflectionStore() else {
+            return [textContent("No reflections found. Has Curfew been launched yet?")]
+        }
+        let reflections = ((try? store.reflections(in: rangeStart ... now)) ?? [])
+            .filter { gateFilter == nil || $0.gate == gateFilter }
+
+        let iso = ISO8601DateFormatter()
+        let payload: [String: Any] = [
+            "period": period,
+            "reflections": reflections.map { reflection in
+                [
+                    "timestamp": iso.string(from: reflection.timestamp),
+                    "gate": reflection.gate.rawValue,
+                    "answers": reflection.answers.map(reflectionAnswerJSON)
+                ] as [String: Any]
+            }
+        ]
+        return [jsonContent(payload)]
     }
 )
 
@@ -583,6 +656,17 @@ private func openSharedActivityStore() -> ActivityStore? {
     return try? ActivityStore(databaseURL: SharedPaths.activityDatabase)
 }
 
+/// Opens the shared reflection SQLite database read-only. Returns nil when the
+/// app hasn't recorded any reflections yet (file absent).
+private func openSharedReflectionStore() -> ReflectionStore? {
+    guard FileManager.default.fileExists(
+        atPath: SharedPaths.reflectionDatabase.path
+    ) else {
+        return nil
+    }
+    return try? ReflectionStore(databaseURL: SharedPaths.reflectionDatabase)
+}
+
 /// Wraps a plain text string in an MCP content object.
 private func textContent(_ text: String) -> [String: Any] {
     ["type": "text", "text": text]
@@ -622,5 +706,6 @@ private func eventDetail(_ event: ActivityEvent) -> String {
     case .overrideGranted:
         "override_granted +\(event.minutesValue ?? 0) min"
     case .dayOff: "day_off"
+    case .reflectionRecorded: "reflection_recorded (\(event.gateKind))"
     }
 }

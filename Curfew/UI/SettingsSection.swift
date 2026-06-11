@@ -20,6 +20,9 @@ enum SettingsSection: String, CaseIterable, Identifiable {
     /// Multi-device sync status and per-device activity (Pro).
     case devices
 
+    /// Morning / evening reflection gate prompts and toggles.
+    case reflection
+
     /// Advanced / power-user options, debug panels, feature flags.
     case advanced
 
@@ -34,6 +37,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
         case .enforcement: "Enforcement"
         case .integrations: "Integrations"
         case .devices: "Devices"
+        case .reflection: "Reflection"
         case .advanced: "Advanced"
         }
     }
@@ -44,6 +48,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
         case .enforcement: "timer"
         case .integrations: "puzzlepiece.extension"
         case .devices: "macbook.and.iphone"
+        case .reflection: "book.closed"
         case .advanced: "gearshape.2"
         }
     }

@@ -109,6 +109,9 @@ extension CurfewAppModel {
         if previousPhase != .locked, state.phase == .locked {
             lockoutMessage = EncouragementMessageCatalog.next(after: lockoutMessage)
         }
+        // Raise / clear the morning + evening reflection gates off the same
+        // transition the tick already computed.
+        evaluateReflectionGates(previousPhase: previousPhase)
         // Publish the current lockout/warning snapshot so other devices
         // can align. Writing on every transition (not every tick) keeps
         // CloudKit churn minimal; null-out warningPhaseStarted when we
@@ -356,6 +359,7 @@ extension CurfewAppModel {
             olderThan: Self.activityRetentionSeconds,
             now: currentTime
         )
+        resetReflectionGatesForNewDay()
         licenseGate.reverifyStoredKey()
     }
 

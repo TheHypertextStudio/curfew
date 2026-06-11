@@ -74,6 +74,15 @@ public enum SharedPaths {
         widgetSharedSupport.appendingPathComponent("activity.sqlite3")
     }
 
+    /// Canonical SQLite database written by the app's `ReflectionStore` and
+    /// read by the bundled CLI/MCP tools. Lives beside ``activityDatabase`` in
+    /// the app's own Application Support for the same reason: reflections have
+    /// no cross-sandbox consumer today, so keeping the file out of the App
+    /// Group container avoids the macOS "access data from other apps" prompt.
+    public static var reflectionDatabase: URL {
+        applicationSupport.appendingPathComponent("reflections.sqlite3")
+    }
+
     /// JSON queue file for pending MCP write-tool requests.
     ///
     /// `curfew-mcp` appends new `MCPPendingRequest` entries here.

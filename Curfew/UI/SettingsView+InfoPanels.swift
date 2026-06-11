@@ -40,7 +40,9 @@ extension SettingsView {
 
             Text(
                 "When enabled, AI assistants can lock and unlock your device, "
-                    + "request time extensions, and manage Curfew settings. "
+                    + "request time extensions, and manage Curfew settings. They can "
+                    + "also read your status, schedule, and daily reflections (your "
+                    + "journal stays on this Mac — it's never uploaded). "
                     + "Only enable if you trust the AI clients you're connecting."
             )
             .font(CurfewTypography.body(13))

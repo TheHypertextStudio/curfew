@@ -25,6 +25,7 @@ struct CurfewCLI: ParsableCommand {
             ScheduleCommand.self,
             BudgetCommand.self,
             ActivityCommand.self,
+            ReflectionCommand.self,
             OverrideCommand.self
         ],
         defaultSubcommand: StatusCommand.self
@@ -52,4 +53,15 @@ func openActivityStore() -> ActivityStore? {
         return nil
     }
     return try? ActivityStore(databaseURL: SharedPaths.activityDatabase)
+}
+
+/// Opens the shared reflection SQLite database read-only.
+/// Returns `nil` when the database doesn't exist (no reflections recorded yet).
+func openReflectionStore() -> ReflectionStore? {
+    guard FileManager.default.fileExists(
+        atPath: SharedPaths.reflectionDatabase.path
+    ) else {
+        return nil
+    }
+    return try? ReflectionStore(databaseURL: SharedPaths.reflectionDatabase)
 }

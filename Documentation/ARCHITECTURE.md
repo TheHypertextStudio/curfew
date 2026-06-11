@@ -13,15 +13,18 @@ Curfew.app
 │   │   ├── SchedulePolicyEngine      Classifies schedule edits as stricter/weaker/no-op
 │   │   ├── WarningStage              T-30 / T-15 / T-5 / T-2 / T-1 / lockout enum
 │   │   ├── ExtensionBudgetTracker    Weekly budget with reset-weekday logic
-│   │   └── OverrideRequestPolicy     "Convince me" cooldown and justification gate
+│   │   ├── OverrideRequestPolicy     "Convince me" cooldown and justification gate
+│   │   └── Reflection                Reflection gate value types (gate, prompt, answer, mood)
 │   ├── Storage/
 │   │   ├── ActivityEvent / ActivityStore  sqlite3 C API — lifecycle/extension/override events
 │   │   ├── ActivityRollups          Daily/weekly aggregation for This Week view
+│   │   ├── ReflectionStore          sqlite3 C API — morning/evening reflection content
 │   │   └── LockoutDeadlineStore     Durable lockout deadline survives reboot
 │   ├── Settings/
-│   │   ├── CurfewSettingsStore      UserDefaults persistence for CurfewSettings
+│   │   ├── CurfewSettingsStore      UserDefaults persistence for CurfewSettings + reflection config
+│   │   ├── ReflectionConfiguration  User-editable per-gate prompts + enable flags
 │   │   ├── EnforcementSnapshot      Shared snapshot type for app + widget
-│   │   └── SharedPaths              File-path constants used across surfaces
+│   │   └── SharedPaths              File-path constants used across surfaces (see curfew-flow.md)
 │   └── MCP/
 │       ├── MCPPendingRequest        Queue payload + provenance metadata
 │       ├── MCPRequestQueue          Append-only JSON-lines queue file

@@ -44,6 +44,14 @@ protocol ActivityRecording: AnyObject {
         at timestamp: Date
     )
 
+    /// Writes a lightweight marker noting that a reflection was recorded at
+    /// `gate`. The event carries the gate in its `gateKind`
+    /// (``GateKind/morning`` / ``GateKind/evening``) and kind
+    /// ``ActivityEventKind/reflectionRecorded``; the answer content lives in
+    /// `ReflectionStore`, not here. A default no-op implementation is provided
+    /// so test spies and ``NullActivityRecording`` need not implement it.
+    func recordReflectionRecorded(gate: ReflectionGate, at timestamp: Date)
+
     /// Returns events in the given date range. The recorder is the single
     /// entry point for both writes and reads so consumers don't need to
     /// separately hold the underlying store. Failure modes (store closed,
@@ -69,6 +77,14 @@ protocol ActivityRecording: AnyObject {
     /// at `Int.max` but in practice will not approach that for any
     /// realistic lifetime of an install.
     var mutationCount: Int { get }
+}
+
+@MainActor
+extension ActivityRecording {
+    /// Default no-op so existing conformers (test spies,
+    /// ``NullActivityRecording``) need not implement the reflection marker.
+    /// ``ActivityRecorder`` overrides this to write the real event.
+    func recordReflectionRecorded(gate: ReflectionGate, at timestamp: Date) {}
 }
 
 /// Production ``ActivityRecording`` that writes to a SQLite-backed
@@ -175,6 +191,19 @@ final class ActivityRecorder: ActivityRecording {
             kind: .warningEscalated,
             minutesValue: minutesRemaining,
             note: stageDescriptor
+        ))
+    }
+
+    /// Writes one reflection marker event, stamping the gate's raw value as
+    /// the `gateKind` (overriding this recorder's default `gateKind`) so the
+    /// timeline can distinguish morning from evening reflections.
+    func recordReflectionRecorded(gate: ReflectionGate, at timestamp: Date) {
+        appendSafely(.init(
+            timestamp: timestamp,
+            gateKind: gate.rawValue,
+            kind: .reflectionRecorded,
+            minutesValue: nil,
+            note: nil
         ))
     }
 

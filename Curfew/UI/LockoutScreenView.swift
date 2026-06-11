@@ -106,6 +106,12 @@ struct LockoutScreenView: View {
                     calendarStrip
                 }
 
+                if model.reflectionState.isEveningReflectionPending {
+                    EveningReflectionCard(usesSolidPanels: visualConfiguration.usesSolidPanels)
+                        .environmentObject(model)
+                        .padding(.top, 12)
+                }
+
                 VStack(spacing: 10) {
                     if model.isOverrideComposerVisible {
                         TextEditor(text: $model.overrideReasonDraft)
@@ -198,6 +204,54 @@ struct LockoutScreenView: View {
         .padding(.vertical, 7)
         .background(.white.opacity(0.08))
         .clipShape(Capsule())
+    }
+}
+
+/// The evening (sundown) reflection, shown inside the lockout screen as the
+/// optional shutdown ritual. Renders the configured evening prompts; "Save &
+/// settle in" records them and collapses the card, "Skip" dismisses it. Either
+/// way the reflection never delays or weakens enforcement — the clock and
+/// Convince Me flow remain below it.
+struct EveningReflectionCard: View {
+    @EnvironmentObject private var model: CurfewAppModel
+
+    /// Forwarded from the lockout screen's accessibility configuration so the
+    /// card's panels stay legible under Reduce Transparency.
+    let usesSolidPanels: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Close out the day")
+                    .font(.system(size: 22, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.white)
+                Text("A moment to reflect before you step away.")
+                    .font(.system(size: 14, weight: .regular, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.7))
+            }
+
+            ReflectionFormView(
+                prompts: model.reflectionConfiguration.prompts(for: .evening),
+                submitLabel: "Save & settle in",
+                usesSolidPanels: usesSolidPanels,
+                onSubmit: { answers in
+                    model.saveReflection(gate: .evening, answers: answers)
+                },
+                onSkip: {
+                    model.skipReflection(gate: .evening)
+                }
+            )
+        }
+        .padding(24)
+        .frame(maxWidth: 600, alignment: .leading)
+        .background(
+            usesSolidPanels
+                ? Color.black.opacity(0.6)
+                : Color.white.opacity(0.08)
+        )
+        .cornerRadius(18)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Evening reflection")
     }
 }
 

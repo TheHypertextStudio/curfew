@@ -305,6 +305,7 @@ public final class CurfewSettingsStore {
         static let settings = "curfew.settings.v1"
         static let hasShownInitialSetup = "curfew.initialSetupShown.v1"
         static let overrideEvents = "curfew.overrideEvents.v1"
+        static let reflectionConfig = "curfew.reflectionConfig.v1"
     }
 
     private let defaults: UserDefaults
@@ -367,5 +368,25 @@ public final class CurfewSettingsStore {
             return
         }
         defaults.set(data, forKey: Key.overrideEvents)
+    }
+
+    /// Returns the stored reflection configuration, or
+    /// ``ReflectionConfiguration/default`` when none has been saved yet or
+    /// decoding fails. Read by `CurfewAppModel` (to gate prompting and render
+    /// the prompts) and by the reflection settings panel (to edit them).
+    public func loadReflectionConfiguration() -> ReflectionConfiguration {
+        guard let data = defaults.data(forKey: Key.reflectionConfig) else {
+            return .default
+        }
+        return (try? decoder.decode(ReflectionConfiguration.self, from: data)) ?? .default
+    }
+
+    /// Persists `configuration` as JSON. Silently no-ops on encoding failure
+    /// (should never happen for a known-good `Codable` type).
+    public func saveReflectionConfiguration(_ configuration: ReflectionConfiguration) {
+        guard let data = try? encoder.encode(configuration) else {
+            return
+        }
+        defaults.set(data, forKey: Key.reflectionConfig)
     }
 }

@@ -80,6 +80,8 @@ final class CurfewAppModel: NSObject, ObservableObject {
     /// Persisted in settings when user changes it in Settings → Integrations.
     @Published var aiConsentPolicy: AIConsentPolicy = .queue
 
+    @Published var reflectionState: ReflectionRuntimeState
+
     // MARK: - Collaborators
 
     // Kept at module-internal visibility (default `internal`) rather than
@@ -254,6 +256,7 @@ final class CurfewAppModel: NSObject, ObservableObject {
         gettingStartedPresenter: GettingStartedPresenting,
         featureFlags: FeatureFlags = .default,
         activityRecorder: any ActivityRecording,
+        reflectionState: ReflectionRuntimeState = ReflectionRuntimeState(),
         mcpRequestMonitor: MCPRequestMonitor = MCPRequestMonitor(),
         licenseGate: LicenseGate = LicenseGate(),
         cloudKitSyncEngine: CloudKitSyncEngine = CloudKitSyncEngine(),
@@ -276,6 +279,7 @@ final class CurfewAppModel: NSObject, ObservableObject {
         self.gettingStartedPresenter = gettingStartedPresenter
         self.featureFlags = featureFlags
         self.activityRecorder = activityRecorder
+        self.reflectionState = reflectionState
         self.mcpRequestMonitor = mcpRequestMonitor
         self.mcpSocketServer = MCPSocketServer()
         self.licenseGate = licenseGate

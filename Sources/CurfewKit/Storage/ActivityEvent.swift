@@ -65,6 +65,17 @@ public struct ActivityEvent: Equatable, Hashable {
 public enum GateKind {
     /// End-of-day curfew gate. The only gate family that ships in v0.1.
     public static let curfew = "curfew"
+
+    /// Start-of-day reflection gate (sunrise intent). Carried on the marker
+    /// event written when a morning reflection is recorded. The reflection's
+    /// content lives in `ReflectionStore`; this constant matches
+    /// ``ReflectionGate/morning``'s raw value.
+    public static let morning = ReflectionGate.morning.rawValue
+
+    /// End-of-day reflection gate (sundown retrospective). Carried on the
+    /// marker event written when an evening reflection is recorded. Matches
+    /// ``ReflectionGate/evening``'s raw value.
+    public static let evening = ReflectionGate.evening.rawValue
 }
 
 /// Discriminant for ``ActivityEvent``. Raw `String` values are the stable
@@ -100,4 +111,12 @@ public enum ActivityEventKind: String, Equatable, Hashable, CaseIterable {
 
     /// A scheduled day-off boundary was crossed.
     case dayOff = "day_off"
+
+    /// A reflection was recorded at a gate. This is a lightweight *marker*
+    /// only — the gate is carried in the event's `gateKind`
+    /// (``GateKind/morning`` or ``GateKind/evening``) and the full answer set
+    /// lives in `ReflectionStore`. Lets the activity timeline and rollups note
+    /// *that* a reflection happened without duplicating its content. No
+    /// `minutesValue`; no `note`.
+    case reflectionRecorded = "reflection_recorded"
 }

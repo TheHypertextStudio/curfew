@@ -72,9 +72,23 @@ final class OverlayCoordinator {
         hidesOnDeactivate: false
     )
 
+    /// Window configuration for the full-screen morning (sunrise) reflection
+    /// overlay. Same commanding `.screenSaver` presence as the lockout so it
+    /// owns the screen the moment it appears, but it is *not* paired with the
+    /// key interceptor — the user can dismiss it (Start / Skip) at any time.
+    static let daybreakWindowConfiguration = OverlayWindowConfiguration(
+        styleMask: [.borderless],
+        level: .screenSaver,
+        ignoresMouseEvents: false,
+        collectionBehavior: [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary],
+        isMovable: false,
+        hidesOnDeactivate: false
+    )
+
     private var warningWindows: [ObjectIdentifier: NSWindow] = [:]
     private var lockoutWindows: [ObjectIdentifier: NSWindow] = [:]
     private var timerWindows: [ObjectIdentifier: NSWindow] = [:]
+    private var daybreakWindows: [ObjectIdentifier: NSWindow] = [:]
 
     /// Reconciles the visible overlay windows with `state`. Called once per
     /// tick; creates, updates, or removes windows as needed. Hides irrelevant
@@ -102,6 +116,52 @@ final class OverlayCoordinator {
             hideLockoutWindows()
             hideTimerWindows()
         }
+        // The morning (sunrise) overlay is not phase-driven — reconcile it
+        // from the model's flag every tick so it tears down promptly after the
+        // user taps Start or Skip.
+        syncDaybreakOverlay(presented: model.reflectionState.isDaybreakPresented, model: model)
+    }
+
+    /// Reconciles the morning (sunrise) reflection overlay with `presented`.
+    /// Independent of the phase-driven overlays above because the morning gate
+    /// is not a curfew phase — it is raised by `CurfewAppModel` on the day's
+    /// first session and dismissed when the user finishes or skips. Called
+    /// once per tick; creates windows on first need and tears them down when
+    /// `presented` goes false.
+    func syncDaybreakOverlay(presented: Bool, model: CurfewAppModel) {
+        guard presented else {
+            hideDaybreakWindows()
+            return
+        }
+        for screen in NSScreen.screens {
+            let key = ObjectIdentifier(screen)
+            let root = DaybreakReflectionView().environmentObject(model)
+            if let window = daybreakWindows[key] {
+                window.setFrame(screen.frame, display: true)
+                window.contentView = NSHostingView(rootView: root)
+                window.orderFrontRegardless()
+                continue
+            }
+
+            let window = NSWindow(
+                contentRect: screen.frame,
+                styleMask: Self.daybreakWindowConfiguration.styleMask,
+                backing: .buffered,
+                defer: false,
+                screen: screen
+            )
+            apply(configuration: Self.daybreakWindowConfiguration, to: window)
+            window.contentView = NSHostingView(rootView: root)
+            window.makeKeyAndOrderFront(nil)
+            daybreakWindows[key] = window
+        }
+    }
+
+    private func hideDaybreakWindows() {
+        for window in daybreakWindows.values {
+            window.orderOut(nil)
+        }
+        daybreakWindows.removeAll()
     }
 
     /// Brings every live lockout window back to the front of the z-order

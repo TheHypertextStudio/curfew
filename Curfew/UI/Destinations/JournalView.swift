@@ -1,27 +1,91 @@
+import AppKit
 import SwiftUI
+import UniformTypeIdentifiers
 
-/// "Journal" workspace destination — the reflective archive.
-///
-/// A thin adapter: folds the weekly rollup into the sundown week chart
-/// (``JournalSundownView``), marking each night kept / override / day off /
-/// upcoming. The nightly reflection entries land below this in a later phase.
+/// "Journal" workspace destination — the reflective archive: the week's sundown
+/// chart (``JournalSundownView``), the neutral rating trends and per-entry
+/// reflections (``JournalReflectionsView``), and an export menu (Markdown /
+/// JSON / Share) for getting a week's journal out of the app.
 struct JournalView: View {
     @EnvironmentObject private var model: CurfewAppModel
 
     var body: some View {
         let rollup = model.thisWeekRollup()
         ScrollView {
-            JournalSundownView(
-                dateRange: Self.dateRange(for: rollup),
-                nights: Self.nights(
-                    for: rollup,
-                    schedule: model.editableSchedule,
-                    now: model.currentTime
-                ),
-                footnote: Self.footnote(for: rollup)
-            )
+            VStack(spacing: 0) {
+                JournalSundownView(
+                    dateRange: Self.dateRange(for: rollup),
+                    nights: Self.nights(
+                        for: rollup,
+                        schedule: model.editableSchedule,
+                        now: model.currentTime
+                    ),
+                    footnote: Self.footnote(for: rollup)
+                )
+
+                JournalReflectionsView(
+                    reflections: model.reflections(inWeekOf: model.currentTime),
+                    referenceDate: model.currentTime
+                )
+            }
         }
         .scrollIndicators(.hidden)
+        .overlay(alignment: .topTrailing) {
+            exportMenu
+                .padding(.top, 28)
+                .padding(.trailing, 28)
+        }
+    }
+
+    /// Export affordance floated over the Journal header: save a Markdown or
+    /// JSON file, or share/copy this week's journal. Mirrors the NSSavePanel
+    /// pattern in ``ThisWeekView``.
+    private var exportMenu: some View {
+        Menu {
+            Button("Export as Markdown…") { exportReflections(asJSON: false) }
+            Button("Export as JSON…") { exportReflections(asJSON: true) }
+            Divider()
+            Button("Copy this week") {
+                let markdown = model.exportReflectionsMarkdown(inWeekOf: model.currentTime)
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(markdown, forType: .string)
+            }
+            ShareLink(
+                "Share this week",
+                item: model.exportReflectionsMarkdown(inWeekOf: model.currentTime)
+            )
+        } label: {
+            Image(systemName: "square.and.arrow.up")
+                .imageScale(.large)
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
+        .help("Export or share this week's reflections")
+        .accessibilityLabel("Export reflections")
+    }
+
+    /// Opens an NSSavePanel and writes this week's reflections as Markdown or
+    /// JSON. Defaults the filename per format; failures surface non-modally.
+    private func exportReflections(asJSON: Bool) {
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = asJSON
+            ? [.json]
+            : [UTType(filenameExtension: "md") ?? .plainText]
+        panel.nameFieldStringValue = asJSON
+            ? "curfew-reflections.json"
+            : "curfew-reflections.md"
+        let now = model.currentTime
+        panel.begin { response in
+            guard response == .OK, let url = panel.url else { return }
+            let text = asJSON
+                ? model.exportReflectionsJSON(inWeekOf: now)
+                : model.exportReflectionsMarkdown(inWeekOf: now)
+            do {
+                try text.write(to: url, atomically: true, encoding: .utf8)
+            } catch {
+                NSApp.presentError(error)
+            }
+        }
     }
 
     private static func nights(

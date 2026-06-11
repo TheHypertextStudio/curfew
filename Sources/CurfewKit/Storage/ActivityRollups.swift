@@ -173,7 +173,7 @@ private struct DailyAccumulator {
         case .lockoutStarted:
             hadLockout = true
         case .sessionStarted, .sessionEnded, .lockoutEnded,
-             .warningEscalated, .dayOff:
+             .warningEscalated, .dayOff, .reflectionRecorded:
             break
         }
     }

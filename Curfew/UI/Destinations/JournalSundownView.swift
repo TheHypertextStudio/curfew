@@ -116,12 +116,6 @@ struct JournalSundownView: View {
         }
     }
 
-    /// Sundown palette, scoped to this proposal.
-    private enum Palette {
-        static let canvas = Color(red: 0.96, green: 0.94, blue: 0.90)
-        static let ink = Color(red: 0.19, green: 0.16, blue: 0.14)
-        static let inkSoft = Color(red: 0.52, green: 0.46, blue: 0.41)
-        static let ember = Color(red: 0.85, green: 0.45, blue: 0.23)
-        static let faint = Color.black.opacity(0.1)
-    }
+    /// The shared Journal palette (see ``JournalPalette``).
+    private typealias Palette = JournalPalette
 }

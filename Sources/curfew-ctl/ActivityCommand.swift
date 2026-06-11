@@ -118,6 +118,8 @@ struct ActivityCommand: ParsableCommand {
             return "Override granted \(mins)\(reason)"
         case .dayOff:
             return "Day off"
+        case .reflectionRecorded:
+            return "Reflection recorded (\(event.gateKind))"
         }
     }
 }
