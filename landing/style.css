@@ -213,6 +213,26 @@ section { padding: 80px 24px; }
 
 .how-note em { color: var(--ink); font-style: italic; }
 
+/* ── Reflect ── */
+/* Reuses the .how-steps / .how-step / .how-note layout; only the section
+   heading and lede need their own rules. Sits on the page background so it
+   alternates with the surface-toned sections around it. */
+
+.reflect h2 {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  margin-bottom: 16px;
+}
+
+.reflect > .section-inner > .reflect-lede {
+  font-size: 17px;
+  color: var(--muted);
+  max-width: 620px;
+  margin-bottom: 48px;
+  line-height: 1.6;
+}
+
 /* ── MCP ── */
 
 .mcp h2 {

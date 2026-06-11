@@ -115,6 +115,31 @@ fraud — no separate tax-filing service is needed.
 - [ ] Fork `homebrew/homebrew-cask`, PR `Casks/curfew.rb`.
 - [ ] Run `brew style --fix` and `brew audit --new --cask` locally before PR.
 
+### 10. Branded DMG installer art (optional but recommended)
+
+The DMG is the install experience. `scripts/build-dmg.sh` auto-layers branded
+assets when they exist — without them it falls back to plain Finder chrome, so
+this is never a release blocker.
+
+- [ ] Drop `scripts/dmg-assets/background.png` — **1160×800** (the @2x of the
+      580×400 install window). Design it against the fixed icon positions: the
+      app glyph at the left, the Applications drop-link at the right, with a
+      "drag to install" arrow between.
+- [ ] (Optional) Drop `scripts/dmg-assets/volume.icns` for a custom mounted-
+      volume icon.
+- [ ] Preview locally with `just dmg` — builds an unsigned DMG and opens it so
+      you can eyeball the window before tagging. CI uses the same script, so
+      what you see is what ships.
+
+### Heads-up: deployment-target reach
+
+The project's minimum is **macOS 26 (Tahoe)** (`depends_on macos: ">= :tahoe"`
+in the cask; the matching deployment target in the Xcode project). That
+excludes everyone not yet on the latest macOS. If wider reach matters at
+launch, consider lowering the deployment target to macOS 14/15 before the first
+tag — purely a product call, but it materially changes the addressable audience.
+The release workflow runs on `macos-26` to match the target.
+
 ## Per-release sequence
 
 Once the infrastructure above is in place, every release is:

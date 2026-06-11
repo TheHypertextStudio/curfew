@@ -39,6 +39,11 @@
               <td>52 weeks rolling</td>
             </tr>
             <tr>
+              <td>Reflections (your morning &amp; evening journal answers)</td>
+              <td><code>~/Library/Application Support/Curfew/reflections.sqlite3</code></td>
+              <td>52 weeks rolling</td>
+            </tr>
+            <tr>
               <td>Pending MCP write requests</td>
               <td><code>~/Library/Application Support/Curfew/mcp-requests.json</code></td>
               <td>Until resolved</td>
@@ -82,7 +87,8 @@
         <h2 class="privacy-section-title">MCP server</h2>
         <p class="privacy-prose">
           When <code>curfew-mcp</code> is running, AI assistants can read
-          your enforcement state and request changes. Write operations
+          your enforcement state and your daily reflections, and request
+          changes. Reflections are exposed read-only; write operations
           require your explicit approval in the app. No data leaves your
           machine through this path.
         </p>

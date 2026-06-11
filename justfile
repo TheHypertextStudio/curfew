@@ -117,6 +117,27 @@ archive:
         -destination '{{ destination }}' \
         -archivePath release/Curfew.xcarchive
 
+# Build a local (unsigned) DMG to preview the branded installer window —
+# background art, volume icon, and drag-to-Applications layout. Picks up the
+# assets under scripts/dmg-assets/ when present. Pass a version for the file
+# name (default "dev"). The signed/notarised DMG in CI uses the same
+# scripts/build-dmg.sh; this recipe is for eyeballing the chrome.
+dmg version="dev":
+    mkdir -p release
+    rm -rf release/dmg-build release/dmg-export-app
+    xcodebuild build \
+        -project {{ project }} \
+        -scheme {{ scheme }} \
+        -configuration Release \
+        -destination '{{ destination }}' \
+        -derivedDataPath release/dmg-build \
+        CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
+    cp -R release/dmg-build/Build/Products/Release/Curfew.app release/dmg-export-app
+    rm -f "release/Curfew-{{ version }}.dmg"
+    bash scripts/build-dmg.sh release/dmg-export-app "release/Curfew-{{ version }}.dmg"
+    rm -rf release/dmg-export-app
+    open "release/Curfew-{{ version }}.dmg"
+
 # -----------------------------------------------------------------------
 # Run
 # -----------------------------------------------------------------------

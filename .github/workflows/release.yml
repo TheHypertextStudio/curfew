@@ -8,12 +8,12 @@ on:
 jobs:
   release:
     name: Archive · Sign · Notarize · DMG
-    # NOTE: deployment target is macOS 26 (Tahoe), which requires Xcode 26.
-    # `macos-15` + `Xcode_16.app` below cannot build it — bump both to a
-    # macOS 26-capable runner image and the matching Xcode path once the
-    # GitHub-hosted image exists (see willieItem). Left as-is to avoid pinning
-    # a runner label / Xcode path that may not yet be available.
-    runs-on: macos-15
+    # The deployment target is macOS 26 (Tahoe), which requires Xcode 26 — so
+    # the runner must be a macOS 26 image. If GitHub has not yet promoted
+    # `macos-26` out of preview, pin it to the preview label (e.g.
+    # `macos-26-large`) or self-host. The Select Xcode step below falls back to
+    # the newest installed Xcode, so a label bump is usually all that's needed.
+    runs-on: macos-26
     permissions:
       contents: write
 
@@ -21,8 +21,16 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Select Xcode
-        # TODO: needs Xcode 26 for the macOS 26 (Tahoe) deployment target.
-        run: sudo xcode-select -s /Applications/Xcode_16.app
+        # Prefer Xcode 26 (required for the macOS 26 / Tahoe deployment target);
+        # fall back to the newest installed Xcode if that exact path is absent,
+        # so a runner-image refresh doesn't silently break the build.
+        run: |
+          if [ -d /Applications/Xcode_26.app ]; then
+            sudo xcode-select -s /Applications/Xcode_26.app
+          else
+            sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)"
+          fi
+          xcodebuild -version
 
       - name: Install tools
         run: brew install create-dmg swiftlint swiftformat just
