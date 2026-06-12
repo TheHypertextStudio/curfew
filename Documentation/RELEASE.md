@@ -274,7 +274,7 @@ xcrun stapler validate "$APP"
 - Run `Curfew.app/Contents/Resources/curfew-ctl status` and confirm the output
   matches the UI.
 - Paste the Claude Desktop config from **Settings → Integrations** and confirm
-  `curfew.status` responds.
+  `curfew_status` responds.
 - Paste a known-good Pro license and confirm only the explicitly enabled Pro
   previews in that build unlock.
 

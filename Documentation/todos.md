@@ -138,7 +138,7 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 - [x] `IdleWatcher` detects idle periods (5-min cutoff).
 - [x] "This Week" view in app UI.
 - [x] CSV export. (v0.2)
-- [x] Device-attributed insights. Surfaced in `ThisWeekView` when 2+ overrides exist and in `curfew.get_weekly_summary`'s `overrides_by_device` field.
+- [x] Device-attributed insights. Surfaced in `ThisWeekView` when 2+ overrides exist and in `curfew_get_weekly_summary`'s `overrides_by_device` field.
 
 ## 12. WidgetKit (Pro)
 
@@ -154,8 +154,8 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 ## 13. MCP Server (`curfew-mcp`)
 
 - [x] `curfew-mcp` executable target (stdio MCP server, JSON-RPC 2.0).
-- [x] Read tools: `curfew.status`, `curfew.schedule`, `curfew.budget`, `curfew.activity`, `curfew.request_status`, `curfew.get_time_remaining`, `curfew.get_weekly_summary`.
-- [x] Write tools (queued by default): `curfew.request_extension`, `curfew.request_override`, `curfew.set_schedule`.
+- [x] Read tools: `curfew_status`, `curfew_schedule`, `curfew_budget`, `curfew_activity`, `curfew_request_status`, `curfew_get_time_remaining`, `curfew_get_weekly_summary`.
+- [x] Write tools (queued by default): `curfew_request_extension`, `curfew_request_override`, `curfew_set_schedule`.
 - [x] Streamable HTTP transport on localhost:9847 (opt-in; Settings → Advanced).
 - [x] Unix-socket IPC seam between `curfew-mcp` and the running app (queue fallback today; POSIX listener in a follow-up).
 - [x] Claude Desktop auto-detection and one-click registration from Settings.
@@ -259,5 +259,5 @@ as an opt-in feature per the user's product direction and is not blocking.
 - [x] `./curfew-mcp` responds to `tools/list` over stdio.
 - [ ] Paste test license → Pro features unlock; remove → re-gate.
 - [ ] Lockout smoke test: set curfew 5 min ahead, observe overlay, recover via override.
-- [ ] MCP smoke test: paste Claude Desktop config, run `curfew.status` from Claude.
+- [ ] MCP smoke test: paste Claude Desktop config, run `curfew_status` from Claude.
 - [x] Landing page links all resolve. Fixed `hypertext-studio/curfew` → `TheHypertextStudio/curfew` across README, Cask, landing, CONTRIBUTING, generate-appcast.

@@ -84,7 +84,7 @@ This is the AI-control surface — the reason Sync exists beyond F13. Architectu
   - Read scopes — status, activity, budget.
   - Write scopes — `request_extension`, `request_override`, `set_schedule`. Each write scope is independently grantable.
   - Least-privilege defaults: the consent screen pre-selects read-only.
-- **Tool surface (subset of F9).** All read tools (`curfew.status`, `curfew.schedule`, `curfew.budget`, `curfew.activity`, `curfew.get_time_remaining`, `curfew.get_weekly_summary`) plus the queue-and-poll write tools (`curfew.request_extension`, `curfew.request_override`, `curfew.set_schedule`, `curfew.request_status`). Per-tool consent decisions still happen on the user's device — see *Authorization and consent* below.
+- **Tool surface (subset of F9).** All read tools (`curfew_status`, `curfew_schedule`, `curfew_budget`, `curfew_activity`, `curfew_get_time_remaining`, `curfew_get_weekly_summary`) plus the queue-and-poll write tools (`curfew_request_extension`, `curfew_request_override`, `curfew_set_schedule`, `curfew_request_status`). Per-tool consent decisions still happen on the user's device — see *Authorization and consent* below.
 - **Revocation.** The Curfew app exposes a "Connected AI tools" panel listing every OAuth client with active tokens. Per-client revoke is one tap and takes effect on the next request the host makes; the coordinator's token cache is invalidated immediately.
 
 Deferred to a future implementation doc: exact endpoint paths, authorization-server metadata, exact token-lifetime numbers, host-by-host dynamic-client-registration support matrix, and wire-level error semantics.

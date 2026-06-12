@@ -381,7 +381,7 @@ public enum ReflectionExport {
         return lines.joined(separator: "\n")
     }
 
-    /// Structured JSON matching the `curfew.get_reflections` MCP shape:
+    /// Structured JSON matching the `curfew_get_reflections` MCP shape:
     /// `{ "reflections": [ { timestamp, gate, answers: [...] } ] }`. Pretty-
     /// printed and sorted-key for stable diffs. Reuses ``reflectionAnswerJSON``.
     public static func json(_ reflections: [Reflection]) -> String {

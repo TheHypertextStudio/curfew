@@ -22,7 +22,7 @@ public enum CopyDeck {
     // MARK: - Phase labels
 
     /// Plain-text phase name rendered in the menu bar, widget, CLI, and
-    /// MCP `curfew.status` output. Matches the tokens in
+    /// MCP `curfew_status` output. Matches the tokens in
     /// `CurfewKit.phaseName(_:)` so structured output stays stable.
     public enum Phase {
         /// `.working` — user inside permitted hours, no overlay active.
@@ -95,7 +95,7 @@ public enum CopyDeck {
     // MARK: - Retrospective
 
     /// One-sentence summary for the "This Week" view and its
-    /// `curfew.get_weekly_summary` MCP counterpart.
+    /// `curfew_get_weekly_summary` MCP counterpart.
     public static func weekSummary(
         daysHeld: Int,
         extensionsUsed: Int,

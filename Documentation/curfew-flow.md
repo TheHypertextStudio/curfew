@@ -108,7 +108,7 @@ Reflections are exposed read-only so assistants can use "how did the user say
 the day went?" as context — never written by agents (reflections are
 human-authored):
 
-- MCP: `curfew.get_reflections` (period `today`/`week`, optional `gate`).
+- MCP: `curfew_get_reflections` (period `today`/`week`, optional `gate`).
 - CLI: `curfew-ctl reflections [--days N] [--gate morning|evening] [--json]`.
 
 ## Roadmap

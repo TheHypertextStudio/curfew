@@ -41,32 +41,65 @@ extension SettingsView {
     private func runClaudeDesktopRegister() {
         do {
             let result = try ClaudeDesktopRegistration.register()
-            let alert = NSAlert()
             switch result {
-            case .registered:
-                alert.messageText = "Claude Desktop configured."
-                alert.informativeText =
-                    "Curfew is now registered with Claude Desktop. " +
-                    "Restart Claude Desktop to pick up the change."
-            case .alreadyRegistered:
-                alert.messageText = "Already registered."
-                alert.informativeText =
-                    "Claude Desktop already points at this build of Curfew."
+            case .registered, .alreadyRegistered:
+                // Claude only reads MCP servers at launch, so a config change
+                // does nothing until a full quit + relaunch — the #1 reason a
+                // freshly-added server "doesn't show up". Make that explicit and
+                // offer to do it, since closing the window is not enough.
+                presentRestartAlert(alreadyRegistered: result == .alreadyRegistered)
             case .claudeNotInstalled:
+                let alert = NSAlert()
                 alert.messageText = "Claude Desktop not found."
                 alert.informativeText =
                     "Install Claude Desktop first, then come back here."
+                alert.runModal()
             default:
+                let alert = NSAlert()
                 alert.messageText = "Claude Desktop updated."
-                alert.informativeText = ""
+                alert.runModal()
             }
-            alert.runModal()
         } catch {
             let alert = NSAlert()
             alert.alertStyle = .warning
             alert.messageText = "Could not update Claude Desktop config."
             alert.informativeText = error.localizedDescription
             alert.runModal()
+        }
+    }
+
+    /// Tells the user Curfew is in the config and that Claude must be fully
+    /// relaunched, offering to quit + reopen it for them.
+    private func presentRestartAlert(alreadyRegistered: Bool) {
+        let alert = NSAlert()
+        alert.messageText = alreadyRegistered
+            ? "Curfew is already in Claude's config."
+            : "Curfew added to Claude Desktop."
+        alert.informativeText =
+            "Claude only loads MCP servers when it launches. Fully quit Claude "
+                + "(⌘Q — closing the window isn't enough) and reopen it, then look "
+                + "for the Curfew tools. You can let Curfew do that now."
+        alert.addButton(withTitle: "Quit & Reopen Claude")
+        alert.addButton(withTitle: "I'll Do It Myself")
+        if alert.runModal() == .alertFirstButtonReturn {
+            relaunchClaudeDesktop()
+        }
+    }
+
+    /// Gracefully quits any running Claude Desktop instance and reopens it so
+    /// the new MCP server is picked up. Falls back to `/Applications/Claude.app`
+    /// when no instance is running.
+    private func relaunchClaudeDesktop() {
+        let workspace = NSWorkspace.shared
+        let running = workspace.runningApplications.filter {
+            $0.bundleURL?.lastPathComponent == "Claude.app"
+        }
+        let appURL = running.first?.bundleURL
+            ?? URL(fileURLWithPath: "/Applications/Claude.app")
+        running.forEach { $0.terminate() }
+        // Give Claude a moment to quit before relaunching.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
+            workspace.openApplication(at: appURL, configuration: .init()) { _, _ in }
         }
     }
 }

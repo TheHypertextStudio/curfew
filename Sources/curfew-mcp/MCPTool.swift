@@ -46,7 +46,7 @@ struct MCPTool {
 // MARK: - Read tools
 
 private let statusTool = MCPTool(
-    name: "curfew.status",
+    name: "curfew_status",
     description: """
     Returns the current Curfew enforcement status: phase (working, warning, \
     locked, day_off), minutes remaining until lock, today's schedule window, \
@@ -91,7 +91,7 @@ private let statusTool = MCPTool(
 )
 
 private let scheduleTool = MCPTool(
-    name: "curfew.schedule",
+    name: "curfew_schedule",
     description: """
     Returns the full weekly Curfew schedule: per-day lock and unlock times, \
     which days are marked as day-off, and any pending schedule change that \
@@ -122,7 +122,7 @@ private let scheduleTool = MCPTool(
 )
 
 private let budgetTool = MCPTool(
-    name: "curfew.budget",
+    name: "curfew_budget",
     description: """
     Returns this week's extension and override budget: weekly limits, how many \
     have been used so far, remaining slots, and duration per slot. Useful for \
@@ -153,7 +153,7 @@ private let budgetTool = MCPTool(
 )
 
 private let activityTool = MCPTool(
-    name: "curfew.activity",
+    name: "curfew_activity",
     description: """
     Returns recent activity events from the local log. Pass \
     `{"period": "today"}` to limit to today's events or \
@@ -208,7 +208,7 @@ private let activityTool = MCPTool(
 /// can use "how did the user say the day went?" as context. There is
 /// deliberately no write counterpart — reflections are human-authored only.
 private let reflectionsTool = MCPTool(
-    name: "curfew.get_reflections",
+    name: "curfew_get_reflections",
     description: """
     Returns the user's recorded reflections (morning intent and evening \
     retrospective). Pass `{"period": "today"}` for today or \
@@ -279,12 +279,12 @@ private let reflectionsTool = MCPTool(
 // MARK: - Write tools
 
 private let requestExtensionTool = MCPTool(
-    name: "curfew.request_extension",
+    name: "curfew_request_extension",
     description: """
     Queues a request for a work-session extension (default +15 min). The \
     Curfew app will show the user a consent prompt; extensions are only \
     granted during warning stages (T-30 and T-15). Returns a request ID \
-    you can poll with `curfew.request_status`.
+    you can poll with `curfew_request_status`.
     """,
     inputSchema: [
         "type": "object",
@@ -310,14 +310,14 @@ private let requestExtensionTool = MCPTool(
         }
         return [textContent(
             "Extension request queued (ID: \(request.id.uuidString)).\n" +
-                "Open the Curfew app to approve, or poll with curfew.request_status."
+                "Open the Curfew app to approve, or poll with curfew_request_status."
         )]
     }
 )
 
 // MARK: - New read tools (v0.2 spec §9.3)
 
-/// Compact structured equivalent of `curfew.status` for clients that want
+/// Compact structured equivalent of `curfew_status` for clients that want
 /// just the clock. Returns `{ minutes, mode, trigger }` so an AI assistant
 /// can answer "how much time is left" without parsing prose.
 ///
@@ -325,7 +325,7 @@ private let requestExtensionTool = MCPTool(
 /// lands — the field is in the response shape now so downstream clients
 /// can pattern-match without a schema bump later.
 private let timeRemainingTool = MCPTool(
-    name: "curfew.get_time_remaining",
+    name: "curfew_get_time_remaining",
     description: """
     Returns a compact machine-readable countdown: minutes until lockout, \
     the current curfew mode ("time", "hours", or "combined"), and which \
@@ -359,7 +359,7 @@ private let timeRemainingTool = MCPTool(
 /// ("How did this week go?") without each assistant having to re-derive
 /// the rollup from raw activity events.
 private let weeklySummaryTool = MCPTool(
-    name: "curfew.get_weekly_summary",
+    name: "curfew_get_weekly_summary",
     description: """
     Returns this week's activity rollup: lockouts held, extensions and \
     overrides used, and a current streak count. The device attribution \
@@ -433,7 +433,7 @@ private let weeklySummaryTool = MCPTool(
 ///   `unlock_time`   — "HH:MM" (24 h), optional — defaults to current
 ///   `is_day_off`    — boolean, optional
 private let setScheduleTool = MCPTool(
-    name: "curfew.set_schedule",
+    name: "curfew_set_schedule",
     description: """
     Queues a schedule change for a single weekday. Weakening changes \
     (later lock time, adding a day off) wait out a 24-hour cooldown; \
@@ -518,7 +518,7 @@ private let setScheduleTool = MCPTool(
         }
         return [textContent(
             "Schedule change queued (ID: \(request.id.uuidString)).\n" +
-                "Open the Curfew app to review, or poll with curfew.request_status."
+                "Open the Curfew app to review, or poll with curfew_request_status."
         )]
     }
 )
@@ -569,11 +569,11 @@ private func jsonContent(_ payload: [String: Any]) -> [String: Any] {
 }
 
 private let requestStatusTool = MCPTool(
-    name: "curfew.request_status",
+    name: "curfew_request_status",
     description: """
     Returns the current approval status for a pending MCP write request. \
-    Pass the `request_id` returned by `curfew.request_extension` or \
-    `curfew.request_override`. Status is one of: pending, approved, denied.
+    Pass the `request_id` returned by `curfew_request_extension` or \
+    `curfew_request_override`. Status is one of: pending, approved, denied.
     """,
     inputSchema: [
         "type": "object",
@@ -638,7 +638,7 @@ private func loadSharedSettings() -> CurfewSettings {
 }
 
 /// Reads the app's persisted override-event log from UserDefaults so
-/// `curfew.get_weekly_summary` can surface per-device attribution
+/// `curfew_get_weekly_summary` can surface per-device attribution
 /// without opening an `NSObject`-bound settings store.
 private func loadSharedOverrideEvents() -> [OverrideEvent] {
     let defaults = UserDefaults(suiteName: SharedPaths.defaultsSuiteName) ?? .standard
