@@ -27,7 +27,9 @@ STAGING="$(mktemp -d)/staging"
 mkdir -p "$STAGING"
 
 cp -R "$APP_PATH" "$STAGING/"
-ln -s /Applications "$STAGING/Applications"
+# Note: the Applications alias is created by create-dmg's `--app-drop-link`
+# below (positioned to match the background art). Do not also `ln -s` it here —
+# create-dmg would then fail with "Applications: File exists".
 
 # Assemble create-dmg flags, folding in the branded assets only when present.
 args=(
