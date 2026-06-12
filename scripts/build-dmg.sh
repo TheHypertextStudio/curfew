@@ -44,8 +44,15 @@ args=(
 )
 
 if [[ -f "$BACKGROUND" ]]; then
-  args+=(--background "$BACKGROUND")
-  echo "Using branded DMG background: $BACKGROUND"
+  # The art is authored at 1160×800 px = the 580×400 window @2x. Finder sizes
+  # the background by the image's POINT dimensions, so the PNG must report
+  # 144 DPI (→ 580×400 pt) or it renders at 1× and only the top-left quarter
+  # shows. Normalise a working copy so a 72-DPI re-export can't break the layout.
+  RETINA_BG="$(mktemp -d)/background.png"
+  cp "$BACKGROUND" "$RETINA_BG"
+  sips -s dpiWidth 144.0 -s dpiHeight 144.0 "$RETINA_BG" >/dev/null
+  args+=(--background "$RETINA_BG")
+  echo "Using branded DMG background: $BACKGROUND (normalised to 144 DPI)"
 else
   echo "No dmg-assets/background.png found — building a plain DMG."
 fi
