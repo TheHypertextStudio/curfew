@@ -189,18 +189,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// observes rather than owns the model.
     weak var model: CurfewAppModel?
 
-    /// Drives the time-of-day Dock icon. Owned by the delegate so it lives for
-    /// the whole app session; independent of enforcement (the icon shifts even
-    /// before onboarding completes).
-    private let dockIcon = DockIconController()
-
-    /// Start the time-of-day Dock icon once the app is up. The static bundle
-    /// icon stays the dusk signature; this re-skins the running Dock tile to
-    /// the current phase and keeps it in step as the day turns.
-    func applicationDidFinishLaunching(_ notification: Notification) {
-        dockIcon.start()
-    }
-
     /// AppKit calls this whenever Curfew becomes the active app — including the
     /// user clicking back into a Curfew window after being away. Re-assert
     /// enforcement so a lockout that degraded while we were in the background

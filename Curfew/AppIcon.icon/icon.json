@@ -1,0 +1,47 @@
+{
+  "fill-specializations" : [
+    {
+      "value" : {
+        "linear-gradient" : [
+          "display-p3:0.30000,0.24000,0.42000,1.00000",
+          "display-p3:0.93000,0.46000,0.22000,1.00000"
+        ]
+      }
+    },
+    {
+      "appearance" : "dark",
+      "value" : {
+        "linear-gradient" : [
+          "display-p3:0.06000,0.06000,0.14000,1.00000",
+          "display-p3:0.32000,0.16000,0.17000,1.00000"
+        ]
+      }
+    }
+  ],
+  "groups" : [
+    {
+      "name" : "Sun",
+      "layers" : [
+        {
+          "image-name" : "sun.png",
+          "name" : "Sun",
+          "glass" : true,
+          "hidden" : false
+        }
+      ],
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.5
+      }
+    }
+  ],
+  "supported-platforms" : {
+    "squares" : [
+      "macOS"
+    ]
+  }
+}
