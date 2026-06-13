@@ -39,6 +39,9 @@ Thumbs.db
 *.swp
 *~
 
+# Playwright MCP scratch output (screenshots, console/page dumps)
+.playwright-mcp/
+
 # CocoaPods / Carthage (if ever used)
 Pods/
 Carthage/Build/
