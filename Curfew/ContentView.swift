@@ -6,8 +6,9 @@ import SwiftUI
 /// selection identity and the sidebar label source.
 ///
 /// The spine maps to the product's three verbs: **Trust** today, **Set**
-/// your schedule, **Reflect** in the journal. Configuration lives in the
-/// ⌘, Settings window, not here.
+/// your schedule, **Reflect** in the journal — where reading past entries and
+/// editing the prompts you answer both live. Only system/enforcement
+/// configuration lives in the ⌘, Settings window.
 enum MainWorkspaceSection: String, CaseIterable, Identifiable {
     /// Live status — tonight's curfew at a glance.
     case today
@@ -79,21 +80,34 @@ struct ContentView: View {
         .foregroundStyle(CurfewTheme.ink)
     }
 
-    /// Compact sundown header — the countdown over a dusk band.
+    /// Compact sundown header — the countdown over the live sky, which melts
+    /// into the popover canvas at the bottom so there's no hard seam.
     private func header(snapshot: EnforcementSnapshot) -> some View {
-        ZStack(alignment: .bottomLeading) {
-            Self.miniSky
+        ZStack(alignment: .topLeading) {
+            SundownSky(moment: model.skyMoment)
+                .overlay(alignment: .bottom) {
+                    LinearGradient(
+                        colors: [.clear, CurfewTheme.canvas],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .frame(height: 48)
+                }
             VStack(alignment: .leading, spacing: 4) {
                 Text(snapshot.timeRemainingText)
                     .font(.system(size: 40, weight: .semibold, design: .rounded))
-                    .foregroundStyle(Self.warmWhite)
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
+                    .foregroundStyle(SundownPalette.warmWhite)
                 Text(headerLine(snapshot))
                     .font(CurfewTypography.body(13))
-                    .foregroundStyle(Self.warmWhite.opacity(0.82))
+                    .foregroundStyle(SundownPalette.warmWhite.opacity(0.82))
             }
-            .padding(18)
+            .padding(.horizontal, 18)
+            .padding(.top, 18)
         }
-        .frame(height: 116)
+        .frame(height: 128)
+        .clipped()
     }
 
     private func headerLine(_ snapshot: EnforcementSnapshot) -> String {
@@ -153,36 +167,26 @@ struct ContentView: View {
         .buttonStyle(.plain)
     }
 
-    private static let warmWhite = Color(red: 0.99, green: 0.97, blue: 0.94)
-    private static let miniSky = LinearGradient(
-        stops: [
-            .init(color: Color(red: 0.28, green: 0.27, blue: 0.36), location: 0.0),
-            .init(color: Color(red: 0.55, green: 0.42, blue: 0.42), location: 0.6),
-            .init(color: Color(red: 0.86, green: 0.62, blue: 0.45), location: 1.0)
-        ],
-        startPoint: .top,
-        endPoint: .bottom
-    )
-
     private func openMainWorkspace() {
         NSApp.activate(ignoringOtherApps: true)
         openWindow(id: MainWorkspaceSection.windowID)
     }
 }
 
-/// Main application window — a `NavigationSplitView` with a sidebar of
-/// `MainWorkspaceSection` cases and a detail pane that swaps in the
-/// corresponding section view. Also hosts the MCP consent sheet so every
-/// pending AI write request is surfaced while the user is at the app.
+/// Main application window — `NavigationSplitView` whose detail column carries
+/// `.backgroundExtensionEffect()` on the `SundownSky` view. This is the
+/// macOS 26 public API for bleeding a detail-column background behind the
+/// floating sidebar glass: the system mirrors and blurs the sky into the
+/// sidebar's safe-area edge so the `NSGlassEffectView` that backs the sidebar
+/// refracts sky colours rather than the desktop wallpaper behind the window.
 struct MainWindowView: View {
     /// Live app state shared across detail panes.
     @EnvironmentObject private var model: CurfewAppModel
     /// Currently-selected sidebar section. Defaults to `.today` (a Debug
     /// demo-capture launch can pin a different pane via `demoLaunchSelection`);
     /// SwiftUI restores the last selection between window appearances.
-    @State private var selectedSection: MainWorkspaceSection? = .demoLaunchSelection
+    @State private var selectedSection: MainWorkspaceSection = .demoLaunchSelection
 
-    /// Sidebar + detail split layout.
     var body: some View {
         NavigationSplitView {
             List(MainWorkspaceSection.allCases, selection: $selectedSection) { section in
@@ -193,15 +197,27 @@ struct MainWindowView: View {
             }
             .navigationTitle("Curfew")
             .listStyle(.sidebar)
+            .scrollContentBackground(.hidden)
             .navigationSplitViewColumnWidth(min: 220, ideal: 248, max: 340)
         } detail: {
             detailContent
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                .background(CurfewTheme.canvas)
+                .id(selectedSection)
+                .transition(.opacity)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                // SundownSky is the persistent detail-column background.
+                // .backgroundExtensionEffect() extends it into the sidebar's
+                // safe-area inset so the liquid-glass sidebar refracts sky
+                // colours. The visible portion stays inside the safe area;
+                // only the mirrored+blurred projection appears behind the glass.
+                .background {
+                    SundownSky(moment: model.skyMoment)
+                        .ignoresSafeArea()
+                        .backgroundExtensionEffect()
+                }
+                .animation(.easeInOut(duration: 0.28), value: selectedSection)
         }
         .navigationSplitViewStyle(.balanced)
         .tint(CurfewTheme.accent)
-        // Surface MCP consent sheet whenever a new AI write request arrives.
         .sheet(item: Binding(
             get: { model.pendingMCPRequests.first },
             set: { _ in }
@@ -214,18 +230,16 @@ struct MainWindowView: View {
         }
     }
 
-    /// Detail pane dispatcher — one case per `MainWorkspaceSection`.
-    /// Defaults to `.today` if `selectedSection` is momentarily nil
-    /// (possible in multi-column navigation during resize animations).
     @ViewBuilder
     private var detailContent: some View {
-        switch selectedSection ?? .today {
+        switch selectedSection {
         case .today:
-            TodayView()
+            TodayView(selectedSection: $selectedSection)
                 .environmentObject(model)
         case .schedule:
             ScheduleView()
                 .environmentObject(model)
+                .background(CurfewTheme.canvas)
         case .journal:
             JournalView()
                 .environmentObject(model)
