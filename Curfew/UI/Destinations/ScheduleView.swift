@@ -32,6 +32,10 @@ struct ScheduleContent: View {
     /// anti-bypass policy engine stays the single mutation entry point.
     @EnvironmentObject private var model: CurfewAppModel
 
+    /// Briefly true when a pending schedule change transitions to applied so
+    /// the user gets confirmation that their queued edit took effect.
+    @State private var justApplied = false
+
     /// Padded column of schedule panels.
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -39,10 +43,20 @@ struct ScheduleContent: View {
             weeklySchedulePanel
             if let pending = model.pendingScheduleDescription {
                 pendingChangePanel(message: pending)
+            } else if justApplied {
+                appliedConfirmationPanel
             }
         }
         .padding(24)
         .frame(maxWidth: 900, alignment: .leading)
+        .onChange(of: model.pendingScheduleDescription) { oldValue, newValue in
+            guard oldValue != nil && newValue == nil else { return }
+            withAnimation { justApplied = true }
+            Task {
+                try? await Task.sleep(for: .seconds(3))
+                withAnimation { justApplied = false }
+            }
+        }
     }
 
     /// One-click preset selector (9-to-5 / Startup Hours / Half Day). Acts
@@ -107,5 +121,20 @@ struct ScheduleContent: View {
                 .font(CurfewTypography.body(14))
                 .foregroundStyle(CurfewTheme.warning)
         }
+    }
+
+    /// Brief confirmation shown when a pending change leaves the cooldown and
+    /// takes effect, so the user knows their edit is now live.
+    private var appliedConfirmationPanel: some View {
+        CurfewPanel {
+            HStack(spacing: 10) {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundStyle(.green)
+                Text("Schedule change applied.")
+                    .font(CurfewTypography.body(14))
+                    .foregroundStyle(CurfewTheme.ink)
+            }
+        }
+        .transition(.opacity)
     }
 }

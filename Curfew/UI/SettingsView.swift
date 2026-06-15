@@ -1,22 +1,20 @@
 import SwiftUI
 
-/// Root of the Settings window — the single configuration home (⌘,).
+/// Root of the Settings window — the home for system and enforcement
+/// configuration (⌘,).
 ///
-/// Renders a native macOS icon-toolbar tab picker. Note the schedule editor
-/// is deliberately *not* here: it's promoted to a first-class `Schedule`
-/// workspace destination (see ``ScheduleView``), because choosing your
-/// horizon is the core act of the app, not a buried setting.
+/// Renders a native macOS icon-toolbar tab picker. Two things are deliberately
+/// *not* here, because they're core acts rather than buried settings: the
+/// schedule editor (promoted to the `Schedule` workspace destination, see
+/// ``ScheduleView``) and the reflection prompt editor (promoted to the Reflect
+/// destination, see ``ReflectionPromptsView``).
 struct SettingsView: View {
     /// Live app state shared across panels.
     @EnvironmentObject var model: CurfewAppModel
 
-    /// The selected tab. Bound so panels can navigate between tabs — e.g. the
-    /// Reflection panel's "Set up in Integrations" callout jumps here.
+    /// The selected tab. Held as state so the window restores the last tab and
+    /// callouts can navigate between tabs if needed.
     @State var selection: SettingsSection = .enforcement
-
-    /// Which reflection prompt's text field should hold keyboard focus —
-    /// driven so "Add prompt" focuses the freshly-added row.
-    @FocusState var focusedPromptID: UUID?
 
     /// Tabbed settings layout.
     var body: some View {
@@ -40,24 +38,8 @@ struct SettingsView: View {
                 ) }
                 .tag(SettingsSection.integrations)
 
-            tab { devicesPanel }
-                .tabItem { Label(
-                    SettingsSection.devices.title,
-                    systemImage: SettingsSection.devices.icon
-                ) }
-                .tag(SettingsSection.devices)
-
-            tab { reflectionPanel }
-                .tabItem { Label(
-                    SettingsSection.reflection.title,
-                    systemImage: SettingsSection.reflection.icon
-                ) }
-                .tag(SettingsSection.reflection)
-
             tab {
-                licensePanel
                 advancedPanel
-                setupPanel
                 uninstallPanel
             }
             .tabItem { Label(
@@ -65,19 +47,28 @@ struct SettingsView: View {
                 systemImage: SettingsSection.advanced.icon
             ) }
             .tag(SettingsSection.advanced)
+
+            tab { aboutPanel }
+                .tabItem { Label(
+                    SettingsSection.about.title,
+                    systemImage: SettingsSection.about.icon
+                ) }
+                .tag(SettingsSection.about)
         }
         .tint(CurfewTheme.accent)
     }
 
     /// Wraps a panel's content in the shared scroll + padding treatment used
-    /// by every Settings tab. Centralising it keeps the individual tab
-    /// bodies terse and visually consistent.
+    /// by every Settings tab. Centralising it keeps the individual tab bodies
+    /// terse and visually consistent. Panels are separated by
+    /// `CurfewSpacing.section` — wider than the intra-panel `md` gap — so each
+    /// card reads as a distinct group.
     func tab(@ViewBuilder content: () -> some View) -> some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: CurfewSpacing.section) {
                 content()
             }
-            .padding(24)
+            .padding(CurfewSpacing.xLarge)
             .frame(maxWidth: 900, alignment: .leading)
         }
         .scrollIndicators(.hidden)

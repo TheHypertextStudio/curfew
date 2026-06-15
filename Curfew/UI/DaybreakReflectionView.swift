@@ -14,6 +14,9 @@ struct DaybreakReflectionView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
+    /// Drives the one-shot "awakening" rise-in when the sunrise gate appears.
+    @State private var awoke = false
+
     private var greeting: String {
         let hour = Calendar.current.component(.hour, from: model.currentTime)
         return hour < 5 ? "Still up?" : "Good morning"
@@ -21,7 +24,7 @@ struct DaybreakReflectionView: View {
 
     var body: some View {
         ZStack {
-            DaybreakBackgroundView(animate: !reduceMotion)
+            SundownSky(moment: model.skyMoment)
                 .ignoresSafeArea()
 
             ScrollView {
@@ -29,11 +32,11 @@ struct DaybreakReflectionView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Text(greeting)
                             .font(.system(size: 46, weight: .semibold, design: .rounded))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(SundownPalette.warmWhite)
                             .shadow(color: .black.opacity(0.25), radius: 18, y: 6)
                         Text("Set your intention before the day takes over.")
                             .font(.system(size: 18, weight: .regular, design: .rounded))
-                            .foregroundStyle(.white.opacity(0.78))
+                            .foregroundStyle(SundownPalette.warmWhite.opacity(0.78))
                     }
 
                     ReflectionFormView(
@@ -51,57 +54,19 @@ struct DaybreakReflectionView: View {
                 .padding(48)
                 .frame(maxWidth: 720, alignment: .leading)
                 .frame(maxWidth: .infinity)
+                .opacity(awoke ? 1 : 0)
+                .offset(y: awoke ? 0 : 18)
             }
             .scrollIndicators(.hidden)
         }
+        .onAppear {
+            guard !reduceMotion else {
+                awoke = true
+                return
+            }
+            withAnimation(.easeOut(duration: 0.9)) { awoke = true }
+        }
         .accessibilityElement(children: .contain)
         .accessibilityLabel("\(greeting). Morning reflection.")
-    }
-}
-
-/// Slowly-warming dawn gradient behind the morning reflection — the mirror of
-/// the lockout's `LockoutBackgroundView`. The sunrise glow rises from the
-/// *top* (vs. the sundown ember low on the horizon) and breathes gently when
-/// motion is allowed.
-private struct DaybreakBackgroundView: View {
-    /// When `false`, the animation is disabled (static gradient).
-    let animate: Bool
-    @State private var animatePhase = false
-
-    var body: some View {
-        ZStack {
-            LinearGradient(
-                stops: [
-                    .init(color: Color(red: 0.42, green: 0.30, blue: 0.40), location: 0.0),
-                    .init(color: Color(red: 0.30, green: 0.27, blue: 0.42), location: 0.28),
-                    .init(color: Color(red: 0.18, green: 0.20, blue: 0.36), location: 0.6),
-                    .init(color: Color(red: 0.10, green: 0.13, blue: 0.24), location: 1.0)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            RadialGradient(
-                colors: [Color(red: 0.98, green: 0.74, blue: 0.42).opacity(glowOpacity), .clear],
-                center: .top,
-                startRadius: 0,
-                endRadius: 680
-            )
-            .blendMode(.screen)
-        }
-        .animation(
-            animate
-                ? .easeInOut(duration: 8).repeatForever(autoreverses: true)
-                : .default,
-            value: animatePhase
-        )
-        .onAppear {
-            guard animate else { return }
-            animatePhase = true
-        }
-    }
-
-    /// Sunrise-bloom opacity — drifts subtly when motion is allowed.
-    private var glowOpacity: Double {
-        animate && animatePhase ? 0.6 : 0.48
     }
 }

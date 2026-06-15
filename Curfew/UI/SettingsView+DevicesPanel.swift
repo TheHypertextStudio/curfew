@@ -22,7 +22,7 @@ extension SettingsView {
             if model.deviceRegistry.activeDevices.isEmpty {
                 Text(
                     "No devices registered yet. Enable iCloud sync " +
-                        "in Settings → Devices → iCloud Sync."
+                        "in Settings → Integrations → iCloud Sync."
                 )
                 .font(CurfewTypography.body(13))
                 .foregroundStyle(CurfewTheme.mutedInk)

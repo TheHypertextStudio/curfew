@@ -69,39 +69,62 @@ private func adaptive(light: RGB, dark: RGB) -> Color {
     })
 }
 
-/// Typography scale on the system font (SF Pro) — native, modern, with free
-/// Dynamic Type and optical sizing. Numerals use the rounded design (clock-
-/// like, warm); text uses the default design. Sizes are caller-supplied so one
-/// helper serves every surface.
+/// Spacing scale shared across the app's chrome (Settings, the workspace
+/// destinations, panels). Centralising the values means the rhythm is
+/// consistent and, crucially, that inter-panel spacing (`section`) reads as
+/// larger than intra-panel spacing (`medium`) so grouped cards stay visually
+/// distinct instead of melting together.
+enum CurfewSpacing {
+    /// Tight 4 pt gap — adjacent glyphs, chip internals.
+    static let xSmall: CGFloat = 4
+    /// 8 pt — related controls on one line.
+    static let small: CGFloat = 8
+    /// 12 pt — default gap between rows inside a panel.
+    static let medium: CGFloat = 12
+    /// 16 pt — generous in-panel separation, e.g. title to first control.
+    static let large: CGFloat = 16
+    /// 24 pt — outer page padding around a tab's scroll content.
+    static let xLarge: CGFloat = 24
+    /// 20 pt — gap *between* panels in a stack. Deliberately larger than
+    /// `medium` so cards read as separate groups; deliberately smaller than
+    /// `xLarge` so a tab doesn't feel sparse.
+    static let section: CGFloat = 20
+}
+
+/// The Curfew chrome's typographic names, mapped onto the one canonical scale
+/// (``SundownType``) so the whole app — workspace, Settings, and the sundown
+/// surfaces — speaks a single typographic voice. These are thin aliases; the
+/// scale itself (SF Pro, rounded numerals, weight earned by headlines and
+/// figures) lives in one place.
 enum CurfewTypography {
-    /// Large numeric display, e.g. the main "Xh Ym remaining" label.
+    /// Large numeric display, e.g. the main countdown.
     static func display(_ size: CGFloat) -> Font {
-        .system(size: size, weight: .semibold, design: .rounded)
+        SundownType.display(size)
     }
 
     /// Section / pane title. Defaults to 24 pt.
     static func title(_ size: CGFloat = 24) -> Font {
-        .system(size: size, weight: .bold)
+        SundownType.headline(size)
     }
 
     /// Body text. Defaults to 15 pt.
     static func body(_ size: CGFloat = 15) -> Font {
-        .system(size: size, weight: .regular)
+        SundownType.body(size)
     }
 
     /// Medium-weight body text for row labels and emphasised copy.
     static func bodyEmphasis(_ size: CGFloat = 15) -> Font {
-        .system(size: size, weight: .medium)
+        SundownType.strong(size)
     }
 
     /// Small caption used by `CurfewSectionTitle` and status chips.
     static func label(_ size: CGFloat = 12) -> Font {
-        .system(size: size, weight: .medium)
+        SundownType.label(size)
     }
 
     /// Bold rounded weight for numeric readouts (countdown, percentages).
     static func numeric(_ size: CGFloat = 24) -> Font {
-        .system(size: size, weight: .bold, design: .rounded)
+        SundownType.figure(size)
     }
 }
 
@@ -116,7 +139,7 @@ struct CurfewPanel<Content: View>: View {
 
     /// Panel body — padded, filled, and bordered.
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: CurfewSpacing.medium) {
             content
         }
         .padding(padding)
@@ -126,6 +149,9 @@ struct CurfewPanel<Content: View>: View {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .stroke(CurfewTheme.border, lineWidth: 1)
         )
+        // A whisper of elevation lifts each card off the warm page so the
+        // workspace reads as a calm, layered sanctuary rather than flat boxes.
+        .shadow(color: .black.opacity(0.05), radius: 10, y: 3)
     }
 }
 
@@ -192,5 +218,20 @@ struct CurfewSecondaryButtonStyle: ButtonStyle {
             .foregroundStyle(CurfewTheme.ink)
             .opacity(configuration.isPressed ? 0.86 : 1.0)
             .scaleEffect(configuration.isPressed ? 0.99 : 1.0)
+    }
+}
+
+/// Chromeless accent text button — an inline affordance ("Add prompt",
+/// "Buy Curfew Pro") that reads as a link without the surface/border of the
+/// secondary style. Standardises the scattered `.borderless` / `.plain`
+/// buttons so the app speaks one button language.
+struct CurfewLinkButtonStyle: ButtonStyle {
+    /// Tints the label with the accent and dims slightly while pressed.
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(CurfewTypography.bodyEmphasis(14))
+            .foregroundStyle(CurfewTheme.accent)
+            .opacity(configuration.isPressed ? 0.7 : 1.0)
+            .contentShape(Rectangle())
     }
 }

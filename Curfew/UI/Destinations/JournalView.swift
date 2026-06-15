@@ -9,9 +9,70 @@ import UniformTypeIdentifiers
 struct JournalView: View {
     @EnvironmentObject private var model: CurfewAppModel
 
+    /// Which face of Reflect is showing: the read-only archive, or the prompt
+    /// editor that shapes it.
+    @State private var mode: ReflectMode = .entries
+
+    /// The two faces of the Reflect destination.
+    private enum ReflectMode: String, CaseIterable, Identifiable {
+        /// The week's chart + reflection entries (read-only archive).
+        case entries
+        /// The morning / evening prompt editor.
+        case prompts
+
+        var id: String {
+            rawValue
+        }
+
+        var title: String {
+            switch self {
+            case .entries: "Entries"
+            case .prompts: "Prompts"
+            }
+        }
+    }
+
     var body: some View {
+        VStack(spacing: 0) {
+            modeBar
+            switch mode {
+            case .entries:
+                entriesContent
+            case .prompts:
+                ReflectionPromptsView()
+                    .environmentObject(model)
+            }
+        }
+    }
+
+    /// Mode switcher pinned at the top of the destination: the Entries|Prompts
+    /// segmented control leading, and (in Entries) the export menu trailing.
+    private var modeBar: some View {
+        HStack(spacing: CurfewSpacing.medium) {
+            Picker("View", selection: $mode) {
+                ForEach(ReflectMode.allCases) { mode in
+                    Text(mode.title).tag(mode)
+                }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .fixedSize()
+
+            Spacer(minLength: 0)
+
+            if mode == .entries {
+                exportMenu
+            }
+        }
+        .padding(.horizontal, CurfewSpacing.xLarge)
+        .padding(.vertical, CurfewSpacing.medium)
+        .background(CurfewTheme.canvas)
+    }
+
+    /// The read-only archive: the week's sundown chart and per-entry reflections.
+    private var entriesContent: some View {
         let rollup = model.thisWeekRollup()
-        ScrollView {
+        return ScrollView {
             VStack(spacing: 0) {
                 JournalSundownView(
                     dateRange: Self.dateRange(for: rollup),
@@ -25,16 +86,12 @@ struct JournalView: View {
 
                 JournalReflectionsView(
                     reflections: model.reflections(inWeekOf: model.currentTime),
-                    referenceDate: model.currentTime
+                    referenceDate: model.currentTime,
+                    onConfigurePrompts: { mode = .prompts }
                 )
             }
         }
         .scrollIndicators(.hidden)
-        .overlay(alignment: .topTrailing) {
-            exportMenu
-                .padding(.top, 28)
-                .padding(.trailing, 28)
-        }
     }
 
     /// Export affordance floated over the Journal header: save a Markdown or

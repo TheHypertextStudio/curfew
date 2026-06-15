@@ -7,10 +7,10 @@ import SwiftUI
 /// warm paper/ink tones the Journal is composed from. Centralised here so the
 /// week chart and the reflections below it can never drift apart.
 enum JournalPalette {
-    static let canvas = Color(red: 0.96, green: 0.94, blue: 0.90)
+    static let canvas = SundownPalette.paper
     static let card = Color.white.opacity(0.55)
-    static let ink = Color(red: 0.19, green: 0.16, blue: 0.14)
-    static let inkSoft = Color(red: 0.52, green: 0.46, blue: 0.41)
-    static let ember = Color(red: 0.85, green: 0.45, blue: 0.23)
+    static let ink = SundownPalette.ink
+    static let inkSoft = SundownPalette.inkSoft
+    static let ember = SundownPalette.ember
     static let faint = Color.black.opacity(0.1)
 }

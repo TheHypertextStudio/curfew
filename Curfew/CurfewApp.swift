@@ -115,6 +115,11 @@ struct CurfewApp: App {
                 let model = CurfewAppModel.demoModel()
                 _model = StateObject(wrappedValue: model)
                 DispatchQueue.main.async {
+                    // The demo branch returns before `AppCoordinator` runs, so
+                    // pin the light appearance here too — otherwise demo/capture
+                    // builds follow the system into Dark Mode and the warm "paper
+                    // sanctuary" chrome renders dark, unlike the shipping app.
+                    NSApplication.shared.appearance = NSAppearance(named: .aqua)
                     model.applyDemoScenario(scenario)
                 }
                 return
@@ -147,6 +152,9 @@ struct CurfewApp: App {
         }
         .defaultSize(width: 1080, height: 720)
         .windowStyle(.hiddenTitleBar)
+        #if DEBUG
+        .defaultLaunchBehavior(.presented)
+        #endif
         .commands {
             if CurfewUpdater.isAvailable {
                 CommandGroup(after: .appInfo) {

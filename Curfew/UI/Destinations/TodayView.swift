@@ -9,6 +9,9 @@ import SwiftUI
 /// Journal.
 struct TodayView: View {
     @EnvironmentObject private var model: CurfewAppModel
+    /// Binding to the sidebar selection so the empty-state note can navigate
+    /// the user directly to the Schedule destination.
+    @Binding var selectedSection: MainWorkspaceSection
 
     var body: some View {
         let snapshot = model.snapshot
@@ -17,6 +20,7 @@ struct TodayView: View {
         let hasWindow = model.state.lockDate != nil && snapshot.timeRemainingText != "—"
 
         TodaySundownView(
+            moment: model.skyMoment,
             greeting: Self.greeting(at: model.currentTime),
             timeRemaining: hasWindow ? snapshot.timeRemainingText : "",
             emptyNote: needsSetup ? "Set your schedule to begin." : "No curfew scheduled today.",
@@ -26,6 +30,7 @@ struct TodayView: View {
             statusDetail: control.detail,
             isEnforcing: model.isEnforcementRunning,
             showAccessibilityWarning: !model.isAccessibilityTrusted,
+            streak: model.thisWeekRollup().streak,
             primaryActionLabel: control.action,
             onPrimaryAction: {
                 if needsSetup {
@@ -34,7 +39,8 @@ struct TodayView: View {
                     model.start()
                 }
             },
-            onResolveAccessibility: { Self.openAccessibilitySettings() }
+            onEmptyNoteAction: { selectedSection = .schedule },
+            onResolveAccessibility: { model.requestAccessibilityAccess() }
         )
     }
 
@@ -71,20 +77,13 @@ struct TodayView: View {
         switch Calendar.current.component(.hour, from: date) {
         case 5 ..< 12: "Good morning"
         case 12 ..< 17: "Good afternoon"
-        case 17 ..< 22: "Good evening"
-        default: "Good night"
+        case 17 ..< 24: "Good evening"
+        default: "Still up?"  // midnight through 4 AM
         }
     }
 
     private static func timeString(_ date: Date?) -> String {
         guard let date else { return "—" }
         return date.formatted(date: .omitted, time: .shortened)
-    }
-
-    private static func openAccessibilitySettings() {
-        let path = "com.apple.preference.security?Privacy_Accessibility"
-        if let url = URL(string: "x-apple.systempreferences:" + path) {
-            NSWorkspace.shared.open(url)
-        }
     }
 }

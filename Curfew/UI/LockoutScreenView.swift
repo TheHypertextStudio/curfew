@@ -51,6 +51,9 @@ struct LockoutScreenView: View {
     /// hours exhausted vs. combined). Formatted by the app model.
     let message: String
 
+    /// Tracks hold-gesture progress (0 → 1) for the confirm-override button.
+    @State private var holdProgress: Double = 0
+
     private var visualConfiguration: LockoutVisualConfiguration {
         LockoutVisualConfiguration.resolve(
             reduceMotion: reduceMotion,
@@ -74,90 +77,134 @@ struct LockoutScreenView: View {
     /// Convince Me flow stacked centrally.
     var body: some View {
         ZStack {
-            LockoutBackgroundView(animate: visualConfiguration.animateBackground)
+            SundownSky(moment: model.skyMoment)
                 .ignoresSafeArea()
 
-            VStack(spacing: 24) {
-                Text(model.currentTime, style: .time)
-                    .font(.system(size: 104, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.white)
-                    .shadow(color: .black.opacity(0.3), radius: 28, y: 10)
-
-                Text(message)
-                    .font(.system(size: 28, weight: .medium, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.88))
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: 760)
-
-                if let unlockLine {
-                    Text(unlockLine)
-                        .font(.system(size: 20, weight: .regular, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.75))
-                }
-
-                if let shutdownStatusLine = model.shutdownStatusLine {
-                    Text(shutdownStatusLine)
-                        .font(.system(size: 14, weight: .regular, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.55))
-                }
-
-                // Calendar strip: next event and current event, Pro-gated.
-                if model.featureFlags.calendarEnabled, model.licenseGate.isProUnlocked {
-                    calendarStrip
-                }
-
-                if model.reflectionState.isEveningReflectionPending {
-                    EveningReflectionCard(usesSolidPanels: visualConfiguration.usesSolidPanels)
-                        .environmentObject(model)
-                        .padding(.top, 12)
-                }
-
-                VStack(spacing: 10) {
-                    if model.isOverrideComposerVisible {
-                        TextEditor(text: $model.overrideReasonDraft)
-                            .font(.system(size: 14, weight: .regular, design: .rounded))
-                            .frame(width: 420, height: 120)
-                            .padding(8)
-                            .background(
-                                visualConfiguration.usesSolidPanels
-                                    ? Color.black.opacity(0.72)
-                                    : Color.black.opacity(0.25)
-                            )
-                            .cornerRadius(12)
-
-                        Text(
-                            "Minimum \(OverrideRequestPolicy.minimumJustificationCharacters) characters"
-                        )
-                        .font(.caption)
-                        .foregroundStyle(.white.opacity(0.65))
-
-                        Button(
-                            "Hold for 3s to unlock for \(model.settings.overrideDurationMinutes) min"
-                        ) {}
-                            .buttonStyle(.borderedProminent)
-                            .disabled(!model.canConfirmOverride)
-                            .simultaneousGesture(
-                                LongPressGesture(
-                                    minimumDuration: OverrideRequestPolicy.confirmationHoldSeconds
-                                )
-                                .onEnded { _ in
-                                    model.confirmOverride()
-                                }
-                            )
-                    } else {
-                        Button(OverrideRequestPolicy.entryPrompt) {
-                            model.beginOverrideRequest()
-                        }
-                        .buttonStyle(.plain)
-                        .foregroundStyle(.white.opacity(0.45))
-                    }
-                }
-                .padding(.top, 24)
+            VStack(spacing: 0) {
+                Spacer(minLength: 24)
+                centralBeat
+                Spacer(minLength: 24)
+                overrideSection
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .padding(40)
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(accessibilitySummary)
+    }
+
+    /// The calm centre of the lockout: the time as protagonist, the message,
+    /// and — beneath a thin horizon rule — the unlock time as a quiet promise.
+    /// Contextual cards (calendar, the evening reflection) sit below it.
+    private var centralBeat: some View {
+        VStack(spacing: 22) {
+            VStack(spacing: 12) {
+                Text(model.currentTime, style: .time)
+                    .font(.system(size: 110, weight: .semibold, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundStyle(SundownPalette.warmWhite)
+                    .shadow(color: .black.opacity(0.35), radius: 30, y: 12)
+
+                Text(message)
+                    .font(.system(size: 26, weight: .medium, design: .rounded))
+                    .foregroundStyle(SundownPalette.warmWhite.opacity(0.9))
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: 720)
+
+                if let unlockLine {
+                    VStack(spacing: 10) {
+                        Capsule()
+                            .fill(SundownPalette.warmWhite.opacity(0.22))
+                            .frame(width: 64, height: 1)
+                        Text(unlockLine)
+                            .font(.system(size: 18, weight: .regular, design: .rounded))
+                            .foregroundStyle(SundownPalette.warmWhite.opacity(0.72))
+                    }
+                    .padding(.top, 4)
+                }
+
+                if let shutdownStatusLine = model.shutdownStatusLine {
+                    Text(shutdownStatusLine)
+                        .font(.system(size: 13, weight: .regular, design: .rounded))
+                        .foregroundStyle(SundownPalette.warmWhite.opacity(0.5))
+                }
+            }
+
+            // Calendar strip: next event and current event, Pro-gated.
+            if model.featureFlags.calendarEnabled, model.licenseGate.isProUnlocked {
+                calendarStrip
+            }
+
+            if model.reflectionState.isEveningReflectionPending {
+                EveningReflectionCard(usesSolidPanels: visualConfiguration.usesSolidPanels)
+                    .environmentObject(model)
+                    .padding(.top, 4)
+            }
+        }
+    }
+
+    /// The "Convince Me" override flow, anchored at the bottom and held at low
+    /// emphasis until invoked, so it never competes with the central beat.
+    private var overrideSection: some View {
+        VStack(spacing: 10) {
+            if model.isOverrideComposerVisible {
+                TextEditor(text: $model.overrideReasonDraft)
+                    .font(.system(size: 14, weight: .regular, design: .rounded))
+                    .scrollContentBackground(.hidden)
+                    .frame(width: 420, height: 120)
+                    .padding(8)
+                    .background(
+                        visualConfiguration.usesSolidPanels
+                            ? Color.black.opacity(0.72)
+                            : Color.black.opacity(0.25),
+                        in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    )
+
+                Text(
+                    "Minimum \(OverrideRequestPolicy.minimumJustificationCharacters) characters"
+                )
+                .font(.caption)
+                .foregroundStyle(SundownPalette.warmWhite.opacity(0.6))
+
+                let holdDuration = OverrideRequestPolicy.confirmationHoldSeconds
+                ZStack {
+                    Capsule()
+                        .fill(SundownPalette.ember.opacity(model.canConfirmOverride ? 1 : 0.4))
+                    // Progress fill sweeps left-to-right during the hold gesture.
+                    Color.white.opacity(0.22)
+                        .clipShape(Capsule())
+                        .scaleEffect(x: holdProgress, y: 1, anchor: .leading)
+                        .animation(.linear(duration: holdProgress == 0 ? 0 : holdDuration), value: holdProgress)
+                    Text("Hold \(Int(holdDuration))s to unlock for \(model.settings.overrideDurationMinutes) min")
+                        .font(.system(size: 14, weight: .semibold, design: .rounded))
+                        .foregroundStyle(SundownPalette.warmWhite)
+                }
+                .frame(width: 340, height: 44)
+                .onLongPressGesture(
+                    minimumDuration: holdDuration,
+                    pressing: { isPressing in
+                        if isPressing && model.canConfirmOverride {
+                            holdProgress = 1
+                        } else {
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                holdProgress = 0
+                            }
+                        }
+                    },
+                    perform: {
+                        model.confirmOverride()
+                        holdProgress = 0
+                    }
+                )
+                .allowsHitTesting(model.canConfirmOverride)
+            } else {
+                Button(OverrideRequestPolicy.entryPrompt) {
+                    model.beginOverrideRequest()
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(SundownPalette.warmWhite.opacity(0.4))
+            }
+        }
     }
 
     /// Compact pill strip showing the currently-running meeting or next
@@ -252,57 +299,5 @@ struct EveningReflectionCard: View {
         .cornerRadius(18)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Evening reflection")
-    }
-}
-
-/// Slowly-panning three-stop linear gradient behind the lockout UI.
-/// When Reduce Motion is enabled the animation is disabled — the view
-/// still renders with the final colours but stops panning.
-private struct LockoutBackgroundView: View {
-    /// When `false`, the animation is entirely disabled (static gradient).
-    let animate: Bool
-    /// Drives the start/end-point swap. Flipped on appear to kick off
-    /// the repeating animation.
-    @State private var animatePhase = false
-
-    /// Sundown night sky — deep dusk with the day's last embers glowing low on
-    /// the horizon. The ember bloom breathes gently when motion is allowed.
-    var body: some View {
-        ZStack {
-            LinearGradient(
-                stops: [
-                    .init(color: Color(red: 0.07, green: 0.08, blue: 0.16), location: 0.0),
-                    .init(color: Color(red: 0.14, green: 0.13, blue: 0.24), location: 0.45),
-                    .init(color: Color(red: 0.28, green: 0.18, blue: 0.28), location: 0.78),
-                    .init(color: Color(red: 0.44, green: 0.24, blue: 0.22), location: 1.0)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            RadialGradient(
-                colors: [Color(red: 0.92, green: 0.52, blue: 0.30).opacity(glowOpacity), .clear],
-                center: .bottom,
-                startRadius: 0,
-                endRadius: 640
-            )
-            .blendMode(.screen)
-        }
-        .animation(
-            animate
-                ? .easeInOut(duration: 8).repeatForever(autoreverses: true)
-                : .default,
-            value: animatePhase
-        )
-        .onAppear {
-            guard animate else {
-                return
-            }
-            animatePhase = true
-        }
-    }
-
-    /// Ember-bloom opacity — drifts subtly when motion is allowed.
-    private var glowOpacity: Double {
-        animate && animatePhase ? 0.55 : 0.45
     }
 }

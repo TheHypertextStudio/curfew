@@ -9,22 +9,21 @@ import Foundation
 ///
 /// Ordering matters — cases appear in the sidebar in declaration order.
 enum SettingsSection: String, CaseIterable, Identifiable {
-    /// Enforcement tuning (warning intervals, auto-shutdown, extension /
-    /// override budgets).
+    /// Enforcement tuning — extension / override budgets and their weekly
+    /// reset, warning intervals, auto-shutdown.
     case enforcement
 
-    /// Third-party integrations — MCP config copy, Claude Desktop
-    /// auto-detect, CLI install instructions.
+    /// Connections to the world outside Curfew — MCP control plane, AI consent,
+    /// calendar, widgets, the privileged helper, and devices / iCloud sync.
     case integrations
 
-    /// Multi-device sync status and per-device activity (Pro).
-    case devices
-
-    /// Morning / evening reflection gate prompts and toggles.
-    case reflection
-
-    /// Advanced / power-user options, debug panels, feature flags.
+    /// Power-user diagnostics (MCP-over-HTTP transport) and the destructive
+    /// uninstall action.
     case advanced
+
+    /// App identity and licensing — version, Curfew Pro activation, and the
+    /// Getting Started re-entry.
+    case about
 
     /// `Identifiable` conformance — raw string is already unique.
     var id: String {
@@ -36,9 +35,8 @@ enum SettingsSection: String, CaseIterable, Identifiable {
         switch self {
         case .enforcement: "Enforcement"
         case .integrations: "Integrations"
-        case .devices: "Devices"
-        case .reflection: "Reflection"
         case .advanced: "Advanced"
+        case .about: "About"
         }
     }
 
@@ -47,9 +45,8 @@ enum SettingsSection: String, CaseIterable, Identifiable {
         switch self {
         case .enforcement: "timer"
         case .integrations: "puzzlepiece.extension"
-        case .devices: "macbook.and.iphone"
-        case .reflection: "book.closed"
         case .advanced: "gearshape.2"
+        case .about: "info.circle"
         }
     }
 }

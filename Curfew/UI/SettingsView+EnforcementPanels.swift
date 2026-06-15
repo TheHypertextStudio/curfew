@@ -70,6 +70,20 @@ extension SettingsView {
                 in: 15 ... 60,
                 step: 5
             )
+
+            Divider()
+
+            Picker("Weekly reset day", selection: $model.settings.resetWeekday) {
+                ForEach(Weekday.allCases) { weekday in
+                    Text(weekday.shortName).tag(weekday)
+                }
+            }
+            .pickerStyle(.segmented)
+
+            Text("Extension and override budgets refresh on this day each week.")
+                .font(CurfewTypography.body(13))
+                .foregroundStyle(CurfewTheme.mutedInk)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 

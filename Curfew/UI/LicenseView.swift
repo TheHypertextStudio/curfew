@@ -77,8 +77,7 @@ struct LicenseView: View {
                 .disabled(keyDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
                 Link("Buy Curfew Pro — $20", destination: purchaseURL)
-                    .font(CurfewTypography.bodyEmphasis(14))
-                    .foregroundStyle(CurfewTheme.accent)
+                    .buttonStyle(CurfewLinkButtonStyle())
             }
         }
     }

@@ -9,10 +9,11 @@ extension SettingsView {
     /// Integrations panel: MCP server setup, Claude Desktop config snippet,
     /// and AI consent policy picker.
     var integrationsPanel: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: CurfewSpacing.section) {
             mcpConfigPanel
             aiConsentPanel
             otherIntegrationsPanel
+            devicesPanel
         }
     }
 
@@ -105,7 +106,7 @@ extension SettingsView {
 
     /// Read-only status panel for deferred non-MCP modules.
     private var otherIntegrationsPanel: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: CurfewSpacing.section) {
             if DeferredFeaturePanel.visible(for: model.featureFlags).isEmpty {
                 CurfewPanel {
                     CurfewSectionTitle(
@@ -223,7 +224,7 @@ extension SettingsView {
     /// the Pro cloud-sync panel so users can see sync health in one
     /// place. Before Pro is unlocked the list is just the local Mac.
     var devicesPanel: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: CurfewSpacing.section) {
             devicesListPanel
 
             CurfewPanel {

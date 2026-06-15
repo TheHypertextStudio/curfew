@@ -12,6 +12,9 @@ struct JournalReflectionsView: View {
     /// axis. Defaults are supplied by the caller (the live clock).
     let referenceDate: Date
 
+    /// Called when the user taps "Set up prompts" in the empty-entries state.
+    var onConfigurePrompts: () -> Void = {}
+
     private typealias Palette = JournalPalette
 
     var body: some View {
@@ -106,11 +109,23 @@ struct JournalReflectionsView: View {
                 .padding(.bottom, 18)
 
             if groupedDays.isEmpty {
-                Text("No reflections yet this week. They'll appear here as you "
-                    + "set intentions in the morning and close out the day.")
-                    .font(SundownType.body(15))
-                    .foregroundStyle(Palette.inkSoft)
-                    .padding(.horizontal, 40)
+                VStack(alignment: .leading, spacing: 14) {
+                    Text("No reflections yet this week. They'll appear here as you "
+                        + "set intentions in the morning and close out the day.")
+                        .font(SundownType.body(15))
+                        .foregroundStyle(Palette.inkSoft)
+                    Button(action: onConfigurePrompts) {
+                        HStack(spacing: 6) {
+                            Text("Set up reflection prompts")
+                                .font(SundownType.title(14))
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 12, weight: .medium))
+                        }
+                        .foregroundStyle(Palette.ember)
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, 40)
             } else {
                 VStack(alignment: .leading, spacing: 24) {
                     ForEach(groupedDays, id: \.day) { group in

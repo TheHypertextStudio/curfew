@@ -263,15 +263,14 @@ struct MainWorkspaceSectionTests {
 }
 
 struct SettingsSectionTests {
-    @Test("Settings sections are enforcement, integrations, devices, reflection, and advanced")
+    @Test("Settings sections are enforcement, integrations, advanced, and about")
     func sectionSet() {
         #expect(
             SettingsSection.allCases == [
                 .enforcement,
                 .integrations,
-                .devices,
-                .reflection,
-                .advanced
+                .advanced,
+                .about
             ]
         )
     }
