@@ -77,20 +77,21 @@ extension CurfewAppModel {
         pollAndUpdateEnforcementHealth()
     }
 
-    /// Surfaces the macOS Accessibility-trust prompt, opens the System Settings
-    /// pane, then re-polls trust. Trust granted there only takes effect on
-    /// relaunch, so the user typically stays untrusted until the next launch.
+    /// Surfaces the macOS Accessibility-trust prompt, then re-polls trust.
+    ///
+    /// `AXIsProcessTrustedWithOptions` with the prompt flag shows the system
+    /// "Accessibility Access" dialog and registers Curfew in TCC. If the call
+    /// returns `false` (not yet trusted), we also open the System Settings
+    /// Accessibility pane directly — this handles the case where the system
+    /// suppresses the dialog because a prior choice was already recorded, so
+    /// the user can still reach the toggle without hunting for it manually.
     ///
     /// Recomputes ``enforcementHealth`` alongside trust so both published
     /// enforcement properties move together; otherwise the banner/badge would
     /// stay stale until the next tick.
     func requestAccessibilityAccess() {
-        accessibilityAuthorization.promptForTrust()
-        // Opening System Settings is a live NSWorkspace side effect; skip it in
-        // the unit-test host so a re-signed test build never yanks the developer
-        // into System Settings. The trust prompt above still routes through the
-        // injectable seam, so tests can assert it fired.
-        if !RuntimeEnvironment.isUnitTestHost {
+        let trusted = accessibilityAuthorization.promptForTrust()
+        if !trusted {
             SystemAccessibilityAuthorization.openAccessibilitySettings()
         }
         pollAndUpdateEnforcementHealth()
