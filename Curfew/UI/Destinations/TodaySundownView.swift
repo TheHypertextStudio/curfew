@@ -65,6 +65,7 @@ struct TodaySundownView: View {
     private var sky: some View {
         ZStack(alignment: .topLeading) {
             SundownSky(moment: moment)
+                .backgroundExtensionEffect()
                 .overlay(alignment: .bottom) { bottomFade }
                 .ignoresSafeArea(.container, edges: .top)
             skyContent

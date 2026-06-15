@@ -205,7 +205,6 @@ struct MainWindowView: View {
         } detail: {
             ZStack {
                 SundownSky(moment: model.skyMoment)
-                    .backgroundExtensionEffect()
                 detailContent
                     .id(selectedSection)
                     .transition(.opacity)
