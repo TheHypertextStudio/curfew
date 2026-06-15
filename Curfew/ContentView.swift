@@ -186,9 +186,12 @@ struct MainWindowView: View {
     /// demo-capture launch can pin a different pane via `demoLaunchSelection`);
     /// SwiftUI restores the last selection between window appearances.
     @State private var selectedSection: MainWorkspaceSection = .demoLaunchSelection
+    /// Sidebar visibility — kept .all so the floating glass sidebar is always
+    /// shown on launch. The user can still dismiss it with the toolbar toggle.
+    @State private var columnVisibility: NavigationSplitViewVisibility = .all
 
     var body: some View {
-        NavigationSplitView {
+        NavigationSplitView(columnVisibility: $columnVisibility) {
             List(MainWorkspaceSection.allCases, selection: $selectedSection) { section in
                 Label(section.title, systemImage: section.symbolName)
                     .font(CurfewTypography.bodyEmphasis(15))
@@ -200,23 +203,17 @@ struct MainWindowView: View {
             .scrollContentBackground(.hidden)
             .navigationSplitViewColumnWidth(min: 220, ideal: 248, max: 340)
         } detail: {
-            detailContent
-                .id(selectedSection)
-                .transition(.opacity)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                // SundownSky is the persistent detail-column background.
-                // .backgroundExtensionEffect() extends it into the sidebar's
-                // safe-area inset so the liquid-glass sidebar refracts sky
-                // colours. The visible portion stays inside the safe area;
-                // only the mirrored+blurred projection appears behind the glass.
-                .background {
-                    SundownSky(moment: model.skyMoment)
-                        .ignoresSafeArea()
-                        .backgroundExtensionEffect()
-                }
-                .animation(.easeInOut(duration: 0.28), value: selectedSection)
+            ZStack {
+                SundownSky(moment: model.skyMoment)
+                    .backgroundExtensionEffect()
+                detailContent
+                    .id(selectedSection)
+                    .transition(.opacity)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .animation(.easeInOut(duration: 0.28), value: selectedSection)
+            }
         }
-        .navigationSplitViewStyle(.balanced)
+        .navigationSplitViewStyle(.prominentDetail)
         .tint(CurfewTheme.accent)
         .sheet(item: Binding(
             get: { model.pendingMCPRequests.first },
