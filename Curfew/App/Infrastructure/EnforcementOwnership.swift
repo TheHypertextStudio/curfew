@@ -99,8 +99,7 @@ enum EnforcementOwnership {
         // Free, dead, stale, or already ours → (re)assert ownership. Skip the
         // write when the record already names this process, to avoid rewriting
         // (and bumping the timestamp on) the lock every tick.
-        let alreadyOurs = incumbent?.processIdentifier == pid
-            && incumbent?.bundleIdentifier == bundleIdentifier
+        let alreadyOurs = incumbent.map { isOwnedByUs($0, pid: pid, bundleIdentifier: bundleIdentifier) } ?? false
         if !alreadyOurs {
             writeOwner(mine, at: lockURL)
         }
@@ -111,10 +110,13 @@ enum EnforcementOwnership {
     /// so a non-owning flavor calling this never deletes someone else's lock.
     static func release(
         pid: Int32 = ProcessInfo.processInfo.processIdentifier,
+        bundleIdentifier: String = Bundle.main.bundleIdentifier ?? "studio.hypertext.curfew",
         lockURL: URL = SharedPaths.enforcementOwnerLock,
         fileManager: FileManager = .default
     ) {
-        guard let owner = readOwner(at: lockURL), owner.processIdentifier == pid else {
+        guard let owner = readOwner(at: lockURL),
+              isOwnedByUs(owner, pid: pid, bundleIdentifier: bundleIdentifier)
+        else {
             return
         }
         try? fileManager.removeItem(at: lockURL)
@@ -148,6 +150,13 @@ enum EnforcementOwnership {
     }
 
     // MARK: - Private
+
+    /// Returns `true` when `owner` was written by this process — same pid AND
+    /// bundle identifier. Used by both `acquire` and `release` so the two-field
+    /// ownership predicate lives in one place.
+    private static func isOwnedByUs(_ owner: EnforcementOwner, pid: Int32, bundleIdentifier: String) -> Bool {
+        owner.processIdentifier == pid && owner.bundleIdentifier == bundleIdentifier
+    }
 
     /// `nonisolated` so it can serve as the `displayName` default argument;
     /// `Bundle.main` and ``CurfewFlavor/current`` are both safe off the main

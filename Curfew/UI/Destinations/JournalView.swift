@@ -33,14 +33,19 @@ struct JournalView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            modeBar
-            switch mode {
-            case .entries:
-                entriesContent
-            case .prompts:
-                ReflectionPromptsView()
-                    .environmentObject(model)
+        ZStack(alignment: .top) {
+            SundownSky(moment: model.skyMoment)
+                .backgroundExtensionEffect()
+                .ignoresSafeArea(.container, edges: .top)
+            VStack(spacing: 0) {
+                modeBar
+                switch mode {
+                case .entries:
+                    entriesContent
+                case .prompts:
+                    ReflectionPromptsView()
+                        .environmentObject(model)
+                }
             }
         }
     }

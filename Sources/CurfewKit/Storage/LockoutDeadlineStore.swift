@@ -90,8 +90,7 @@ public struct LockoutDeadlineStore {
 
     public init(
         fileManager: FileManager = .default,
-        recordURL: URL = SharedPaths.widgetSharedSupport
-            .appendingPathComponent("lockout-deadline.json")
+        recordURL: URL = SharedPaths.lockoutDeadline
     ) {
         self.fileManager = fileManager
         self.recordURL = recordURL

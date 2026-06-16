@@ -16,11 +16,16 @@ struct ScheduleView: View {
 
     /// Scrolling wrapper around ``ScheduleContent``.
     var body: some View {
-        ScrollView {
-            ScheduleContent()
-                .environmentObject(model)
+        ZStack(alignment: .top) {
+            SundownSky(moment: model.skyMoment)
+                .backgroundExtensionEffect()
+                .ignoresSafeArea(.container, edges: .top)
+            ScrollView {
+                ScheduleContent()
+                    .environmentObject(model)
+            }
+            .scrollIndicators(.hidden)
         }
-        .scrollIndicators(.hidden)
     }
 }
 

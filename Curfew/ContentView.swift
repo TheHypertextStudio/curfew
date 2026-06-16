@@ -235,7 +235,6 @@ struct MainWindowView: View {
         case .schedule:
             ScheduleView()
                 .environmentObject(model)
-                .background(CurfewTheme.canvas)
         case .journal:
             JournalView()
                 .environmentObject(model)

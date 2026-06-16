@@ -80,10 +80,6 @@ extension CurfewAppModel {
         // change here is reflected in `propagatePhaseTransition` below.
         reconcileDurableLockoutDeadline()
 
-        // Fold Accessibility trust + the keyboard shield's live tap state into
-        // the enforcement-health verdict. Runs after `state` is set because the
-        // verdict depends on the current phase.
-        pollAndUpdateEnforcementHealth()
         propagatePhaseTransition(from: previousPhase)
         writeDurableDeadlineIfEnteringLockout(previousPhase: previousPhase)
 
@@ -103,6 +99,11 @@ extension CurfewAppModel {
         // effect, so the key shield, overlay, and shutdown below all agree on
         // whether this build is the one enforcing.
         reconcileEnforcementOwnership()
+        // Fold Accessibility trust + the keyboard shield's live tap state into
+        // the enforcement-health verdict. Runs after `reconcileEnforcementOwnership`
+        // so `isEnforcingLockout` reflects this tick's ownership decision, not the
+        // prior tick's — otherwise the badge/banner lag one second on transitions.
+        pollAndUpdateEnforcementHealth()
         updateLockoutInterception(for: state.phase)
         updateShutdownWorkflow()
         overlayCoordinator.updateOverlays(for: state, model: self, lockoutMessage: lockoutMessage)

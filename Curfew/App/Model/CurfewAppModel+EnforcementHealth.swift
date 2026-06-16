@@ -9,6 +9,12 @@ import Foundation
 /// the menu bar show a warning?" has one obvious place to look. The guarded
 /// `private(set)` writes themselves live on the main class (Swift scopes a
 /// `private(set)` setter to the declaring file); this extension drives them.
+
+/// Tracks whether `requestAccessibilityAccess()` has been called at least once
+/// this session. File-scoped (following the pattern in
+/// `CurfewAppModel+EnforcementOwnership.swift`) to avoid the model line-count cap.
+private var hasShownAccessibilityPrompt = false
+
 @MainActor
 extension CurfewAppModel {
     /// Initial ``enforcementHealth`` seed, computed from the same facts the
@@ -57,7 +63,7 @@ extension CurfewAppModel {
         setEnforcementHealth(
             EnforcementHealth.resolve(
                 isAccessibilityTrusted: trusted,
-                tapExpectedActive: state.phase == .locked,
+                tapExpectedActive: isEnforcingLockout,
                 tapIsActive: tapIsActive
             )
         )
@@ -91,9 +97,13 @@ extension CurfewAppModel {
     /// stay stale until the next tick.
     func requestAccessibilityAccess() {
         let trusted = accessibilityAuthorization.promptForTrust()
-        if !trusted {
+        // Only open Settings when TCC has already recorded a prior choice and is
+        // suppressing the native dialog. On the very first call the system shows the
+        // TCC prompt itself; opening Settings simultaneously races that dialog.
+        if !trusted && hasShownAccessibilityPrompt {
             SystemAccessibilityAuthorization.openAccessibilitySettings()
         }
+        hasShownAccessibilityPrompt = true
         pollAndUpdateEnforcementHealth()
     }
 }
