@@ -26,6 +26,8 @@ Packages/
 # Swift compile artifacts
 *.o
 *.a
+*.profraw
+*.profdata
 
 # macOS
 .DS_Store
