@@ -8,6 +8,7 @@ Bug reports, design critique, and pull requests are welcome.
 brew install just swiftlint swiftformat
 git clone https://github.com/TheHypertextStudio/curfew
 cd curfew
+just install-hooks   # symlinks scripts/hooks/commit-msg into .git/hooks/
 open Curfew.xcodeproj
 ```
 
@@ -32,7 +33,7 @@ Key conventions:
 
 ## Commit messages
 
-Follow conventional commits (`feat:`, `fix:`, `refactor:`, `test:`, `docs:`). One subject line, imperative mood, ≤72 chars. Body only when the why isn't obvious from the diff.
+See [Documentation/commit-conventions.md](Documentation/commit-conventions.md).
 
 ## License
 

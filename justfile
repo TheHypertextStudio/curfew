@@ -236,6 +236,15 @@ xliff:
         -exportLanguage en
 
 # -----------------------------------------------------------------------
+# Git hooks
+# -----------------------------------------------------------------------
+
+# Symlink repo-managed hooks into .git/hooks so they fire on commit.
+install-hooks:
+    ln -sf ../../scripts/hooks/commit-msg .git/hooks/commit-msg
+    chmod +x .git/hooks/commit-msg
+
+# -----------------------------------------------------------------------
 # Composite gates
 # -----------------------------------------------------------------------
 # Ship-gate alias — the exact chain AGENTS.md requires before any
