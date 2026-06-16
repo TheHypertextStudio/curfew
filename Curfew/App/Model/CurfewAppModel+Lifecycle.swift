@@ -99,6 +99,10 @@ extension CurfewAppModel {
             alreadyFiredElsewhere: warningStagesFiredToday
         )
         recordWarningStageFiringIfNeeded()
+        // Resolve who owns the single-enforcer lock before applying any blocking
+        // effect, so the key shield, overlay, and shutdown below all agree on
+        // whether this build is the one enforcing.
+        reconcileEnforcementOwnership()
         updateLockoutInterception(for: state.phase)
         updateShutdownWorkflow()
         overlayCoordinator.updateOverlays(for: state, model: self, lockoutMessage: lockoutMessage)
@@ -269,9 +273,13 @@ extension CurfewAppModel {
     }
 
     /// Toggles the CGEventTap that intercepts ⌘⇥ / ⌘Q / ⌘⌥Esc during
-    /// lockout. Called once per tick; tap lifecycle tracks the phase.
+    /// lockout. Called once per tick; tap lifecycle tracks enforcement.
+    ///
+    /// Gated on ``isEnforcingLockout`` rather than the phase alone: when another
+    /// Curfew flavor already owns the lock this build is locked but standing by,
+    /// so it must not install a competing key tap.
     func updateLockoutInterception(for phase: EnforcementPhase) {
-        if phase == .locked {
+        if phase == .locked, isEnforcingLockout {
             lockoutKeyInterceptor.start()
         } else {
             lockoutKeyInterceptor.stop()
@@ -289,7 +297,9 @@ extension CurfewAppModel {
         let isActiveDevice = !isUserIdle
         shutdownWorkflow.update(
             now: currentTime,
-            isLocked: state.phase == .locked,
+            // Standing-by builds (another flavor owns the lock) must not drive
+            // auto-shutdown, so this keys off enforcement, not phase alone.
+            isLocked: isEnforcingLockout,
             isEnabled: settings.autoShutdownEnabled && ShutdownSupport.isAvailable,
             delayMinutes: settings.autoShutdownDelayMinutes,
             controller: shutdownController,

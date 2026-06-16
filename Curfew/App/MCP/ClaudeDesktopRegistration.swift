@@ -66,6 +66,16 @@ enum ClaudeDesktopRegistration {
         Bundle.main.bundlePath + "/Contents/Resources/curfew-mcp"
     }
 
+    /// Key under `mcpServers` for the running flavor. Production registers as
+    /// `curfew`; a development build registers as `curfew-dev` so the two never
+    /// clobber each other's entry in a shared Claude Desktop config.
+    static var serverKey: String {
+        switch CurfewFlavor.current {
+        case .production: "curfew"
+        case .development: "curfew-dev"
+        }
+    }
+
     /// Non-mutating status probe. Use this to drive UI state without
     /// touching the file.
     static func currentStatus(
@@ -80,7 +90,7 @@ enum ClaudeDesktopRegistration {
         }
 
         let servers = payload["mcpServers"] as? [String: Any] ?? [:]
-        guard let curfew = servers["curfew"] as? [String: Any] else {
+        guard let curfew = servers[serverKey] as? [String: Any] else {
             return .notRegistered
         }
         let existingCommand = curfew["command"] as? String ?? ""
@@ -108,19 +118,27 @@ enum ClaudeDesktopRegistration {
         var payload = readConfig() ?? [:]
         var servers = payload["mcpServers"] as? [String: Any] ?? [:]
 
-        if let existing = servers["curfew"] as? [String: Any],
+        if let existing = servers[serverKey] as? [String: Any],
            existing["command"] as? String == binary {
             return .alreadyRegistered
         }
 
-        servers["curfew"] = [
+        var block: [String: Any] = [
             "command": binary,
             "args": [String]()
-        ] as [String: Any]
+        ]
+        // A development build tells the spawned curfew-mcp which flavor it
+        // serves so the helper resolves the dev data paths rather than the
+        // production install's. Production omits the key, leaving its
+        // registration byte-identical to prior versions.
+        if CurfewFlavor.current != .production {
+            block["env"] = ["CURFEW_FLAVOR": CurfewFlavor.current.environmentValue]
+        }
+        servers[serverKey] = block
         payload["mcpServers"] = servers
 
         try writeConfig(payload)
-        claudeLogger.info("Registered curfew-mcp in Claude Desktop config")
+        claudeLogger.info("Registered \(serverKey) (curfew-mcp) in Claude Desktop config")
         return .registered
     }
 

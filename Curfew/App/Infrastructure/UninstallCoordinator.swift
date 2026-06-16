@@ -89,20 +89,32 @@ enum UninstallCoordinator {
         //    failure mode here is benign — if the agent was never loaded,
         //    `launchctl unload` prints a warning and exits non-zero; we
         //    ignore that and proceed to the plist removal.
-        let agentPath = home
-            .appendingPathComponent("Library/LaunchAgents", isDirectory: true)
-            .appendingPathComponent("studio.hypertext.curfew.lockdown.plist")
+        //
+        //    The respawn agent is installed only by the production build (a
+        //    development build uses `NoOpRespawnGuard`) and its label is
+        //    deliberately flavor-neutral. So only a production uninstall may
+        //    remove it — otherwise uninstalling a dev build would tear down
+        //    the real install's respawn deterrent.
+        if CurfewFlavor.current == .production {
+            let agentPath = home
+                .appendingPathComponent("Library/LaunchAgents", isDirectory: true)
+                .appendingPathComponent("studio.hypertext.curfew.lockdown.plist")
 
-        if fileManager.fileExists(atPath: agentPath.path) {
-            _ = runLaunchctl(["unload", agentPath.path])
-            remove(at: agentPath, via: fileManager, removed: &removed, failed: &failed)
+            if fileManager.fileExists(atPath: agentPath.path) {
+                _ = runLaunchctl(["unload", agentPath.path])
+                remove(at: agentPath, via: fileManager, removed: &removed, failed: &failed)
+            }
         }
 
-        // 2. Legacy Application Support directory (MCP queue, Unix socket,
-        //    older activity DBs before shared-container migration, etc.).
+        // 2. Application Support directory (MCP queue, Unix socket, activity
+        //    DBs, etc.). Flavor-suffixed — a dev uninstall clears `Curfew (Dev)`
+        //    and leaves the production `Curfew` directory untouched.
         let appSupport = home
             .appendingPathComponent("Library/Application Support", isDirectory: true)
-            .appendingPathComponent("Curfew", isDirectory: true)
+            .appendingPathComponent(
+                "Curfew\(CurfewFlavor.current.displaySuffix)",
+                isDirectory: true
+            )
         if fileManager.fileExists(atPath: appSupport.path) {
             remove(at: appSupport, via: fileManager, removed: &removed, failed: &failed)
         }
@@ -116,11 +128,15 @@ enum UninstallCoordinator {
             remove(at: sharedSupport, via: fileManager, removed: &removed, failed: &failed)
         }
 
-        // 4. Caches directory — bundle identifier, not display name, so the
-        //    OS-created caches directory clears cleanly.
+        // 4. Caches directory — keyed by bundle identifier (so flavor-suffixed
+        //    for dev), not display name, so the OS-created caches directory
+        //    clears cleanly.
         let caches = home
             .appendingPathComponent("Library/Caches", isDirectory: true)
-            .appendingPathComponent("studio.hypertext.curfew", isDirectory: true)
+            .appendingPathComponent(
+                "studio.hypertext.curfew\(CurfewFlavor.current.identifierSuffix)",
+                isDirectory: true
+            )
         if fileManager.fileExists(atPath: caches.path) {
             remove(at: caches, via: fileManager, removed: &removed, failed: &failed)
         }

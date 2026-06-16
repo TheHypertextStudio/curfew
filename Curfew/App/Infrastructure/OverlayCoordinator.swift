@@ -99,10 +99,17 @@ final class OverlayCoordinator {
         lockoutMessage: String
     ) {
         switch state.phase {
-        case .locked:
+        case .locked where model.isEnforcingLockout:
             hideWarningWindows()
             hideTimerWindows()
             showLockoutWindows(model: model, message: lockoutMessage)
+        case .locked:
+            // Locked, but another Curfew flavor already owns enforcement on this
+            // Mac. Only one Curfew may lock the user out at a time, so this build
+            // stands by and shows nothing blocking.
+            hideWarningWindows()
+            hideTimerWindows()
+            hideLockoutWindows()
         case .warning:
             hideLockoutWindows()
             showWarningWindows(opacity: state.warningStage.overlayOpacity)

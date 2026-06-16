@@ -14,8 +14,11 @@ import Testing
 struct AppConfigurationTests {
     @Test("Host app disables LSUIElement so it launches as a normal app window")
     func hostAppIsWindowed() throws {
+        // Match the host app by its actual running bundle id — `…curfew` in
+        // production, `…curfew.dev` in a development build — rather than a
+        // hardcoded literal, so the flavor split doesn't break the assertion.
         let appBundle = try #require(Bundle.allBundles
-            .first(where: { $0.bundleIdentifier == "studio.hypertext.curfew" }))
+            .first(where: { $0.bundleIdentifier == Bundle.main.bundleIdentifier }))
         let value = appBundle.object(forInfoDictionaryKey: "LSUIElement") as? Bool
         #expect(value == false)
     }
@@ -130,9 +133,16 @@ struct FeatureFlagTests {
 }
 
 struct WidgetIdentityTests {
-    @Test("Widget timeline reloads use the extension kind identifier")
+    @Test("Widget timeline reloads use the flavor's extension kind identifier")
     func kindMatchesWidgetExtension() {
-        #expect(CurfewWidgetIdentity.kind == "studio.hypertext.curfew.widget")
+        // Flavor-suffixed so a dev build's timelines stay distinct from
+        // production; the app and the widget extension derive the same value.
+        // The Debug/dev test host resolves the `.dev` variant.
+        #expect(CurfewWidgetIdentity.kind.hasSuffix(".widget"))
+        #expect(
+            CurfewWidgetIdentity.kind
+                == "studio.hypertext.curfew\(CurfewFlavor.current.identifierSuffix).widget"
+        )
     }
 }
 
@@ -286,8 +296,11 @@ struct CurfewUpdaterTests {
 struct ShutdownSupportTests {
     @Test("Current build only shows auto-shutdown when Apple Events entitlement is present")
     func shutdownAvailabilityMatchesEntitlements() throws {
+        // Match the host app by its actual running bundle id — `…curfew` in
+        // production, `…curfew.dev` in a development build — rather than a
+        // hardcoded literal, so the flavor split doesn't break the assertion.
         let appBundle = try #require(Bundle.allBundles
-            .first(where: { $0.bundleIdentifier == "studio.hypertext.curfew" }))
+            .first(where: { $0.bundleIdentifier == Bundle.main.bundleIdentifier }))
 
         #expect(ShutdownSupport.isAvailable(in: appBundle) == false)
     }

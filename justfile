@@ -42,6 +42,7 @@ test:
     xcodebuild test \
         -project {{ project }} \
         -scheme {{ scheme }} \
+        -allowProvisioningUpdates \
         -destination '{{ destination }}' \
         -only-testing:CurfewTests
 
@@ -50,6 +51,7 @@ test-ui:
     xcodebuild test \
         -project {{ project }} \
         -scheme {{ scheme }} \
+        -allowProvisioningUpdates \
         -destination '{{ destination }}' \
         -only-testing:CurfewUITests
 
@@ -60,6 +62,7 @@ test-one target:
     xcodebuild test \
         -project {{ project }} \
         -scheme {{ scheme }} \
+        -allowProvisioningUpdates \
         -destination '{{ destination }}' \
         -only-testing:CurfewTests/{{ target }}
 
@@ -74,6 +77,7 @@ test-coverage:
     xcodebuild test \
         -project {{ project }} \
         -scheme {{ scheme }} \
+        -allowProvisioningUpdates \
         -destination '{{ destination }}' \
         -only-testing:CurfewTests \
         -enableCodeCoverage YES \
@@ -95,6 +99,7 @@ build:
     xcodebuild build \
         -project {{ project }} \
         -scheme {{ scheme }} \
+        -allowProvisioningUpdates \
         -configuration Debug \
         -destination '{{ destination }}'
 
@@ -103,6 +108,7 @@ build-release:
     xcodebuild build \
         -project {{ project }} \
         -scheme {{ scheme }} \
+        -allowProvisioningUpdates \
         -configuration Release \
         -destination '{{ destination }}'
 
@@ -113,6 +119,7 @@ archive:
     xcodebuild archive \
         -project {{ project }} \
         -scheme {{ scheme }} \
+        -allowProvisioningUpdates \
         -configuration Release \
         -destination '{{ destination }}' \
         -archivePath release/Curfew.xcarchive
@@ -128,6 +135,7 @@ dmg version="dev":
     xcodebuild build \
         -project {{ project }} \
         -scheme {{ scheme }} \
+        -allowProvisioningUpdates \
         -configuration Release \
         -destination '{{ destination }}' \
         -derivedDataPath release/dmg-build \
@@ -151,6 +159,7 @@ dev:
     xcodebuild build \
         -project {{ project }} \
         -scheme {{ scheme }} \
+        -allowProvisioningUpdates \
         -configuration Debug \
         -destination '{{ destination }}' \
         -derivedDataPath build
@@ -186,6 +195,7 @@ snapshot:
     xcodebuild test \
         -project {{ project }} \
         -scheme {{ scheme }} \
+        -allowProvisioningUpdates \
         -configuration Debug \
         -destination '{{ destination }}' \
         -derivedDataPath build \
@@ -221,6 +231,7 @@ xliff:
     xcodebuild -exportLocalizations \
         -project {{ project }} \
         -scheme {{ scheme }} \
+        -allowProvisioningUpdates \
         -localizationPath localization \
         -exportLanguage en
 
@@ -248,5 +259,6 @@ clean:
     xcodebuild clean \
         -project {{ project }} \
         -scheme {{ scheme }} \
+        -allowProvisioningUpdates \
         -configuration Debug \
         -destination '{{ destination }}'

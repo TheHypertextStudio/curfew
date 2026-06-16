@@ -8,23 +8,42 @@ import Foundation
 /// All three processes must read from / write to the same files; any
 /// divergence here silently produces stale reads.
 public enum SharedPaths {
-    /// `~/Library/Application Support/Curfew/`
+    /// `~/Library/Application Support/Curfew/` — or `Curfew (Dev)` for a
+    /// development build, so a dev run's database, request queue, and settings
+    /// never touch the production install the user relies on. The suffix is
+    /// empty for production, so its directory is unchanged.
     ///
     /// The Curfew app creates this directory on first launch. CLI/MCP tools
     /// assume it exists and fail gracefully when it doesn't (no app run yet).
     public static var applicationSupport: URL {
-        let base = FileManager.default.urls(
+        applicationSupportBase.appendingPathComponent(
+            "Curfew\(CurfewFlavor.current.displaySuffix)",
+            isDirectory: true
+        )
+    }
+
+    /// The system Application Support directory, falling back to the well-known
+    /// location when the lookup fails. Shared by ``applicationSupport`` (which
+    /// appends the flavor-specific app folder) and the deliberately
+    /// flavor-neutral ``enforcementOwnerLock``.
+    private static var applicationSupportBase: URL {
+        FileManager.default.urls(
             for: .applicationSupportDirectory,
             in: .userDomainMask
         ).first ?? URL(fileURLWithPath: NSHomeDirectory() + "/Library/Application Support")
-        return base.appendingPathComponent("Curfew", isDirectory: true)
     }
 
     /// App Group / shared-container identifier reserved for the future
     /// WidgetKit extension. The main app and bundled CLI tools use the
     /// explicit filesystem path below today; the widget target will gain the
     /// actual entitlement when it is wired into the Xcode project.
-    public static let widgetAppGroupIdentifier = "group.studio.hypertext.curfew"
+    /// Flavor-suffixed for development (`group.studio.hypertext.curfew.dev`) so
+    /// a dev build's shared container is distinct; empty suffix leaves the
+    /// production group untouched. The main app is unsandboxed and reaches the
+    /// container through the filesystem fallback below, so the suffix needs no
+    /// entitlement change.
+    public static let widgetAppGroupIdentifier =
+        "group.studio.hypertext.curfew\(CurfewFlavor.current.identifierSuffix)"
 
     /// `~/Library/Group Containers/group.studio.hypertext.curfew/`
     ///
@@ -105,7 +124,12 @@ public enum SharedPaths {
     /// User Defaults suite name used by the Curfew app (= its bundle ID).
     /// CLI/MCP tools pass this to `UserDefaults(suiteName:)` to read the
     /// same preferences plist the app writes via `UserDefaults.standard`.
-    public static let defaultsSuiteName = "studio.hypertext.curfew"
+    ///
+    /// Flavor-suffixed so the suite still equals the running app's bundle id
+    /// (`studio.hypertext.curfew.dev` for development). Helper tools resolve the
+    /// flavor from `CURFEW_FLAVOR`, so they read the matching plist.
+    public static let defaultsSuiteName =
+        "studio.hypertext.curfew\(CurfewFlavor.current.identifierSuffix)"
 
     // MARK: - Privileged daemon paths (root-readable, user-writable via App Group)
 
@@ -159,5 +183,19 @@ public enum SharedPaths {
     /// authenticate against a stronger threat model.
     public static var mcpSharedSecret: URL {
         applicationSupport.appendingPathComponent(".mcp-secret")
+    }
+
+    // MARK: - Cross-flavor enforcement ownership
+
+    /// Lock file recording which Curfew flavor currently holds the user in
+    /// lockout. Unlike every other path here it is deliberately *flavor-neutral*
+    /// — it always resolves to the canonical `Curfew` directory regardless of
+    /// the running flavor — because it is the one rendezvous every flavor must
+    /// agree on to guarantee that only one Curfew locks the user out at a time.
+    /// See `EnforcementOwnership`.
+    public static var enforcementOwnerLock: URL {
+        applicationSupportBase
+            .appendingPathComponent("Curfew", isDirectory: true)
+            .appendingPathComponent("enforcement-owner.json")
     }
 }
