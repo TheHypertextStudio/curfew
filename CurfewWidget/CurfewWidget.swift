@@ -7,9 +7,15 @@ import WidgetKit
 /// extension stays in sync with the host app's scheduling model.
 @main
 struct CurfewWidgetBundle: WidgetBundle {
-    /// Single-widget bundle body.
+    /// Bundle body: the timeline widget plus, on macOS 15+, the Control
+    /// Center control. The control is gated behind `@available` because
+    /// `ControlWidget` is unavailable on earlier systems; the bundle still
+    /// ships the timeline widget there.
     var body: some Widget {
         CurfewWidget()
+        if #available(macOS 15.0, *) {
+            CurfewControlWidget()
+        }
     }
 }
 
