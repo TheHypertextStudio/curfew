@@ -39,6 +39,65 @@ enum SundownPalette {
         SkyRGB.glowWarm.lerp(to: .glowEmber, min(max(proximity, 0), 1)).color
     }
 
+    // MARK: - Mesh gradient
+
+    /// Control points and colours for rendering the sky as a `MeshGradient`
+    /// (macOS 15+), derived entirely from the same four keyframe stops the
+    /// linear sky used — no new colour model. The mesh is a 3×4 grid: three
+    /// columns across, four rows down sitting at the existing ``stopLocations``
+    /// (dark crown → warm horizon). Every column of a row takes that row's
+    /// blended keyframe stop, so straight down the centre the mesh reproduces
+    /// the original vertical gradient exactly; the sun-side (right) column of
+    /// the two horizon rows is warmed toward the ember ``glow`` so the sunset
+    /// reads asymmetrically beneath the sun disc (which always rides the right
+    /// of the sky). `drift` (a phase in radians, held at 0 under Reduce Motion)
+    /// gently sways the interior control points so the sky breathes; at
+    /// `drift == 0` the grid is a still, regular lattice.
+    static func skyMesh(
+        light: Double,
+        proximity: Double,
+        drift: Double = 0
+    ) -> SkyMesh {
+        let frame = blendedKeyframe(for: light)
+        let glow = SkyRGB.glowWarm.lerp(to: .glowEmber, min(max(proximity, 0), 1))
+
+        // Per-row base colours, dark crown → warm horizon.
+        let crown = frame[0]
+        let upper = frame[1]
+        let lower = frame[2]
+        let horizon = frame[3]
+
+        // Warm the sun-side column of the two lowest rows toward the ember so
+        // the horizon glows where the sun sits.
+        let lowerWarm = lower.lerp(to: glow, 0.14)
+        let horizonWarm = horizon.lerp(to: glow, 0.24)
+
+        let colors: [Color] = [
+            crown.color, crown.color, crown.color,
+            upper.color, upper.color, upper.color,
+            lower.color, lower.color, lowerWarm.color,
+            horizon.color, horizon.color, horizonWarm.color
+        ]
+
+        // Gentle breathing of the interior control points; frozen at drift == 0.
+        let sway = Float(sin(drift * 0.27) * 0.03)
+        let bob = Float(sin(drift * 0.21) * 0.02)
+        let y1 = Float(stopLocations[1]) + bob
+        let y2 = Float(stopLocations[2]) - bob
+        let xMid: Float = 0.5 + sway
+
+        // Outer frame pinned to the rectangle edges (full bleed, no gaps); only
+        // the interior y-rows and the middle column drift.
+        let points: [SIMD2<Float>] = [
+            SIMD2<Float>(0, 0), SIMD2<Float>(0.5, 0), SIMD2<Float>(1, 0),
+            SIMD2<Float>(0, y1), SIMD2<Float>(xMid, y1), SIMD2<Float>(1, y1),
+            SIMD2<Float>(0, y2), SIMD2<Float>(xMid, y2), SIMD2<Float>(1, y2),
+            SIMD2<Float>(0, 1), SIMD2<Float>(0.5, 1), SIMD2<Float>(1, 1)
+        ]
+
+        return SkyMesh(width: 3, height: 4, points: points, colors: colors)
+    }
+
     // MARK: - Keyframe data
 
     /// Fixed stop positions, dark crown → warm horizon.
@@ -94,6 +153,17 @@ enum SundownPalette {
         }
         return keyframes[keyframes.count - 1].stops
     }
+}
+
+/// A resolved `MeshGradient` description — grid dimensions, unit-square control
+/// points, and per-point colours — derived from the sky keyframes by
+/// ``SundownPalette/skyMesh(light:proximity:drift:)``. Bundled so `SundownSky`
+/// can hand it straight to a `MeshGradient` without re-deriving the layout.
+struct SkyMesh {
+    let width: Int
+    let height: Int
+    let points: [SIMD2<Float>]
+    let colors: [Color]
 }
 
 /// A plain RGB triple with linear interpolation, used to blend gradient

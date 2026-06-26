@@ -2,16 +2,24 @@ import CurfewKit
 import Foundation
 import SwiftUI
 
-/// The one living sky. Renders a complete atmosphere — gradient, the sun's
-/// glow, a night star-field, and a depth vignette — purely from a `SkyMoment`,
-/// so Today, the lockout, the sunrise, and the menu bar all breathe the same
-/// air and shift together through the day. Replaces the four bespoke static
-/// gradients the app used to carry.
+/// The one living sky. Renders a complete atmosphere — a mesh-gradient sky, the
+/// sun's glow, a night star-field, and a depth vignette — purely from a
+/// `SkyMoment`, so Today, the lockout, the sunrise, and the menu bar all
+/// breathe the same air and shift together through the day. Replaces the four
+/// bespoke static gradients the app used to carry.
 ///
-/// It is alive: a `TimelineView` drives a slow glow breath and gentle star
-/// twinkle. All ambient motion freezes under Reduce Motion (the timeline is
-/// paused), leaving a still, correct frame. The view fills whatever space it is
-/// given, so callers use it as a full-bleed background.
+/// The base sky is a SwiftUI `MeshGradient` (macOS 15+) whose control points
+/// and colours come from ``SundownPalette/skyMesh(light:proximity:drift:)`` —
+/// the same four keyframe stops the old linear sky used, laid out as a 3×4
+/// lattice. Down the centre it matches the original vertical gradient; the
+/// sun-side horizon is warmed toward the ember, and the interior control points
+/// sway gently so the dusk is alive rather than flat.
+///
+/// It is alive: a `TimelineView` drives the mesh's slow control-point breath, a
+/// glow breath, and gentle star twinkle. All ambient motion freezes under
+/// Reduce Motion (the timeline is paused and the mesh drift is held at 0),
+/// leaving a still, correct frame. The view fills whatever space it is given,
+/// so callers use it as a full-bleed background.
 struct SundownSky: View {
     /// The atmosphere to render.
     var moment: SkyMoment
@@ -19,18 +27,16 @@ struct SundownSky: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        ZStack {
-            LinearGradient(
-                stops: SundownPalette.skyStops(for: moment.light),
-                startPoint: .top,
-                endPoint: .bottom
-            )
+        TimelineView(.animation(
+            minimumInterval: 1.0 / 24.0,
+            paused: reduceMotion
+        )) { timeline in
+            let seconds = timeline.date.timeIntervalSinceReferenceDate
+            // Hold the mesh drift still under Reduce Motion for a static lattice.
+            let drift = reduceMotion ? 0 : seconds
+            ZStack {
+                skyMesh(drift: drift)
 
-            TimelineView(.animation(
-                minimumInterval: 1.0 / 24.0,
-                paused: reduceMotion
-            )) { timeline in
-                let seconds = timeline.date.timeIntervalSinceReferenceDate
                 GeometryReader { proxy in
                     ZStack {
                         sunGlow(seconds: seconds)
@@ -38,13 +44,32 @@ struct SundownSky: View {
                         starField(seconds: seconds)
                     }
                 }
-            }
 
-            vignette
+                vignette
+            }
         }
     }
 
     // MARK: - Layers
+
+    /// The base sky: a `MeshGradient` built from the moment's `light` and
+    /// `proximity` via ``SundownPalette/skyMesh(light:proximity:drift:)``. The
+    /// mesh colours interpolate as the moment evolves across the day, while
+    /// `drift` (0 under Reduce Motion) animates the control-point positions for
+    /// a living, breathing dusk. Fills the view like the linear sky it replaces.
+    private func skyMesh(drift: Double) -> some View {
+        let mesh = SundownPalette.skyMesh(
+            light: moment.light,
+            proximity: moment.proximity,
+            drift: drift
+        )
+        return MeshGradient(
+            width: mesh.width,
+            height: mesh.height,
+            points: mesh.points,
+            colors: mesh.colors
+        )
+    }
 
     /// The sun's warm bloom — anchored at the horizon when the light is falling
     /// (dusk) and rising from the crown at dawn. Reddens and strengthens as the
