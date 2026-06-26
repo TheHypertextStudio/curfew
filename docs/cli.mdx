@@ -1,0 +1,22 @@
+---
+title: CLI (curfew-ctl)
+description: Query and script Curfew's enforcement state from the shell.
+---
+
+`curfew-ctl` ships in the app bundle for shell scripts and dotfile hooks. It reads
+the same shared storage as the app — no IPC dance, and it works whether or not the
+app is running.
+
+## Status
+
+```bash
+$ curfew-ctl status
+phase:     warning
+remaining: 14 min
+locks at:  6:00 PM
+warning:   T-15
+```
+
+Use it in prompts, status bars, or `cron`/launchd hooks to react to the current
+enforcement phase. Pair it with the [MCP server](/mcp) when you want an AI
+assistant in the loop rather than a script.

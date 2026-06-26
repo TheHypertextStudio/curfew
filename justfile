@@ -221,6 +221,25 @@ landing-static port="8765":
     @open "http://localhost:{{ port }}" >/dev/null 2>&1 || true
     python3 -m http.server {{ port }} --directory landing --bind 127.0.0.1
 
+# Deploy the landing page to Cloudflare Pages. The static `landing/` directory
+# uploads as-is (no build step); `landing/_headers` carries the caching and
+# security headers. Same Cloudflare account as the license Worker (see
+# wrangler.toml). First deploy creates the project; afterwards wire the custom
+# domain `curfew.hypertext.studio` in the Pages dashboard once DNS is ready.
+# Pass `--prod`-style promotion via wrangler's own flags if needed.
+deploy-landing project="curfew-landing":
+    npx --yes wrangler pages deploy landing --project-name={{ project }}
+
+# One-shot infrastructure setup — Cloudflare + Stripe. Deploys the Worker (with
+# its custom domain), generates + uploads the signing keypair, creates the Stripe
+# product/prices/payment-links/webhook and wires the secrets, injects live values
+# into the repo, and deploys the landing + /docs proxy. Idempotent. Dry-runs
+# unless `--yes` is passed. Requires STRIPE_API_KEY in the environment (sk_test_…
+# recommended first); see the header of scripts/setup.mjs for all env options.
+# Example:  STRIPE_API_KEY=sk_test_… STRIPE_SUB_AMOUNT=4000 just setup --yes
+setup *flags:
+    node scripts/setup.mjs {{ flags }}
+
 # -----------------------------------------------------------------------
 # Localization
 # -----------------------------------------------------------------------

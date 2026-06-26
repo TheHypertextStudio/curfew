@@ -1,0 +1,42 @@
+---
+title: Curfew developer docs
+description: How Curfew's server-side surfaces work — licensing, the MCP server, and the CLI.
+---
+
+Curfew is a macOS commitment device: set a schedule, and when the clock runs out
+your Mac locks you out. These docs cover the **developer-facing** surfaces, not
+end-user help.
+
+## Server-side surfaces
+
+<CardGroup cols={2}>
+  <Card title="License API" icon="key" href="https://curfew-license.hypertext.studio/reference">
+    The Cloudflare Worker that mints and delivers signed Curfew Plus keys.
+    Full request/response reference (auto-generated from the code) lives at
+    **`curfew-license.hypertext.studio/reference`**, spec at **`/openapi.json`**.
+  </Card>
+  <Card title="Licensing & activation" icon="unlock" href="/licensing">
+    How Curfew Plus is sold (lifetime vs subscription), how a key is delivered,
+    activated, and refreshed.
+  </Card>
+  <Card title="MCP server" icon="robot" href="/mcp">
+    `curfew-mcp` — a stdio MCP server so an AI assistant can read remaining time,
+    request extensions, or read back reflections.
+  </Card>
+  <Card title="CLI" icon="terminal" href="/cli">
+    `curfew-ctl` — query and script enforcement state from the shell.
+  </Card>
+</CardGroup>
+
+## How it fits together
+
+The macOS app holds all enforcement logic and verifies licenses **offline** with
+an embedded Ed25519 public key. The only networked component is the **license
+Worker**, which signs keys on Stripe webhooks and delivers them to the buyer.
+Curfew Plus iCloud sync runs on CloudKit (Apple-managed, no custom endpoints).
+
+<Note>
+The API reference is generated from the Worker's route definitions
+(`@hono/zod-openapi`), so it can't drift from the implementation. This guide set
+is the narrative layer on top of it.
+</Note>

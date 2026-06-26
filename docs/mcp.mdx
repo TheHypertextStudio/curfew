@@ -1,0 +1,35 @@
+---
+title: MCP server (curfew-mcp)
+description: Let an AI assistant negotiate with your focus rules and read your reflections.
+---
+
+`curfew-mcp` is a stdio [MCP](https://modelcontextprotocol.io) server (JSON-RPC 2.0)
+bundled inside the app at
+`/Applications/Curfew.app/Contents/Resources/curfew-mcp`. Add it to an MCP host
+(e.g. Claude Desktop) and the assistant can check how much time is left, request
+an extension, or read back your daily reflections.
+
+## Setup
+
+Add it to your host's MCP config:
+
+```json ~/.claude_desktop_config.json
+{
+  "mcpServers": {
+    "curfew": {
+      "command": "/Applications/Curfew.app/Contents/Resources/curfew-mcp"
+    }
+  }
+}
+```
+
+## Consent model
+
+<Note>
+Writes (e.g. requesting an extension) require your explicit approval through an
+in-app consent sheet. Reflections are **read-only** and never leave your Mac.
+</Note>
+
+The server reads and writes the same shared on-disk state the app uses, so it
+works whether or not the app is in the foreground. There is no network surface —
+it speaks MCP over stdio to the local host only.

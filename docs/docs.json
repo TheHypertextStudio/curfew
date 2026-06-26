@@ -1,0 +1,22 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "Curfew",
+  "colors": {
+    "primary": "#d9733b",
+    "light": "#f58f4f",
+    "dark": "#d9733b"
+  },
+  "navigation": {
+    "groups": [
+      {
+        "group": "Get started",
+        "pages": ["index"]
+      },
+      {
+        "group": "Guides",
+        "pages": ["licensing", "mcp", "cli"]
+      }
+    ]
+  }
+}
