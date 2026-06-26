@@ -1,27 +1,27 @@
 import CurfewKit
 import SwiftUI
 
-/// Inline upsell shown in place of a Pro-gated feature.
+/// Inline upsell shown in place of a Plus-gated feature.
 ///
 /// Usage:
 /// ```swift
-/// ProGate(feature: "Cloud Sync", description: "Sync your schedule across all your Macs.") {
+/// PlusGate(feature: "Cloud Sync", description: "Sync your schedule across all your Macs.") {
 ///     CloudSyncSettingsView()
 /// }
 /// ```
-struct ProGate<Content: View>: View {
+struct PlusGate<Content: View>: View {
     @EnvironmentObject private var model: CurfewAppModel
     /// Feature name shown in the upsell header. Keep short.
     let feature: String
     /// One-sentence explainer for the upsell copy.
     let description: String
-    /// The Pro-gated content, rendered verbatim when a valid licence is
+    /// The Plus-gated content, rendered verbatim when a valid licence is
     /// active and swapped for `PurchasePromptView` otherwise.
     @ViewBuilder let content: Content
 
-    /// Renders `content` when Pro is unlocked; the upsell otherwise.
+    /// Renders `content` when Plus is unlocked; the upsell otherwise.
     var body: some View {
-        if model.licenseGate.isProUnlocked {
+        if model.licenseGate.isPlusUnlocked {
             content
         } else {
             PurchasePromptView(feature: feature, description: description)
@@ -29,9 +29,10 @@ struct ProGate<Content: View>: View {
     }
 }
 
-/// Inline upsell panel that replaces a Pro-gated feature when the
+/// Inline upsell panel that replaces a Plus-gated feature when the
 /// current build has no active licence. Surfaces a single Upgrade link
-/// to the Stripe Checkout payment link; no in-app purchase surface.
+/// to the landing pricing section (one-time + subscription); no in-app
+/// purchase surface.
 struct PurchasePromptView: View {
     /// Feature name shown in the upsell header.
     let feature: String
@@ -47,7 +48,7 @@ struct PurchasePromptView: View {
                     .foregroundStyle(CurfewTheme.mutedInk)
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("\(feature) — Curfew Pro")
+                    Text("\(feature) — Curfew Plus")
                         .font(CurfewTypography.bodyEmphasis(14))
                         .foregroundStyle(CurfewTheme.ink)
 
@@ -58,14 +59,9 @@ struct PurchasePromptView: View {
 
                 Spacer()
 
-                Link(
-                    "Upgrade — $20",
-                    destination: URL(
-                        string: "https://buy.stripe.com/REPLACE_WITH_CURFEW_PRO_PAYMENT_LINK"
-                    )!
-                )
-                .font(CurfewTypography.bodyEmphasis(13))
-                .foregroundStyle(CurfewTheme.accent)
+                Link("Get Plus", destination: LicensePurchase.pricingURL)
+                    .font(CurfewTypography.bodyEmphasis(13))
+                    .foregroundStyle(CurfewTheme.accent)
             }
         }
     }

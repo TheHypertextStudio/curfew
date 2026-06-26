@@ -1,7 +1,7 @@
 import CurfewKit
 import SwiftUI
 
-/// Settings panel for entering and managing a Curfew Pro license key.
+/// Settings panel for entering and managing a Curfew Plus license key.
 struct LicenseView: View {
     @EnvironmentObject private var model: CurfewAppModel
     @State private var keyDraft = ""
@@ -11,17 +11,17 @@ struct LicenseView: View {
     }
 
     /// Panel that swaps between an activation form and the activated
-    /// licence summary depending on `LicenseGate.isProUnlocked`.
+    /// licence summary depending on `LicenseGate.isPlusUnlocked`.
     var body: some View {
         CurfewPanel {
             CurfewSectionTitle(
-                title: "Curfew Pro",
-                subtitle: gate.isProUnlocked
+                title: "Curfew Plus",
+                subtitle: gate.isPlusUnlocked
                     ? "Your license is active."
                     : "Unlock cloud sync, widgets, and calendar awareness."
             )
 
-            if gate.isProUnlocked {
+            if gate.isPlusUnlocked {
                 unlockedBody
             } else {
                 lockedBody
@@ -36,7 +36,7 @@ struct LicenseView: View {
             HStack(spacing: 6) {
                 Image(systemName: "checkmark.seal.fill")
                     .foregroundStyle(CurfewTheme.accent)
-                Text("Pro — \(gate.activatedKey?.email ?? "")")
+                Text(activeSummary)
                     .font(CurfewTypography.bodyEmphasis(14))
                     .foregroundStyle(CurfewTheme.ink)
             }
@@ -49,11 +49,34 @@ struct LicenseView: View {
         }
     }
 
+    /// "Lifetime — email" or "Subscription · renews <date> — email", drawn from
+    /// the activated key's `plan` and `expiresAt`.
+    private var activeSummary: String {
+        let email = gate.activatedKey?.email ?? ""
+        switch gate.activatedKey?.plan {
+        case .subscription:
+            if let expiresAt = gate.activatedKey?.expiresAt {
+                let date = expiresAt.formatted(date: .abbreviated, time: .omitted)
+                return "Subscription · renews \(date) — \(email)"
+            }
+            return "Subscription — \(email)"
+        case .lifetime, .none:
+            return "Lifetime — \(email)"
+        }
+    }
+
     // MARK: - Locked state
 
     private var lockedBody: some View {
         VStack(alignment: .leading, spacing: 12) {
-            proFeatureList
+            // A stored-but-expired subscription lands here; nudge toward renewal.
+            if gate.activatedKey != nil {
+                Text("Your Plus subscription has lapsed. Renew to restore access.")
+                    .font(CurfewTypography.label(12))
+                    .foregroundStyle(CurfewTheme.mutedInk)
+            }
+
+            plusFeatureList
 
             TextField("Paste license key…", text: $keyDraft)
                 .font(CurfewTypography.body(13))
@@ -77,27 +100,30 @@ struct LicenseView: View {
                 .buttonStyle(CurfewPrimaryButtonStyle())
                 .disabled(keyDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
-                Link("Buy Curfew Pro — $20", destination: purchaseURL)
+                Link("Get Curfew Plus", destination: LicensePurchase.pricingURL)
                     .buttonStyle(CurfewLinkButtonStyle())
             }
         }
     }
 
-    private var proFeatureList: some View {
+    private var plusFeatureList: some View {
         VStack(alignment: .leading, spacing: 4) {
-            proFeatureRow("iCloud sync across all your Macs", icon: "icloud")
-            proFeatureRow("WidgetKit status widget", icon: "rectangle.3.group")
-            proFeatureRow("Calendar-aware schedule exceptions", icon: "calendar.badge.clock")
+            plusFeatureRow("iCloud sync across all your Macs", icon: "icloud")
+            plusFeatureRow("WidgetKit status widget", icon: "rectangle.3.group")
+            plusFeatureRow("Calendar-aware schedule exceptions", icon: "calendar.badge.clock")
         }
     }
 
-    private func proFeatureRow(_ label: String, icon: String) -> some View {
+    private func plusFeatureRow(_ label: String, icon: String) -> some View {
         Label(label, systemImage: icon)
             .font(CurfewTypography.body(13))
             .foregroundStyle(CurfewTheme.mutedInk)
     }
+}
 
-    private var purchaseURL: URL {
-        URL(string: "https://buy.stripe.com/REPLACE_WITH_CURFEW_PRO_PAYMENT_LINK")!
-    }
+/// Single source of truth for where the app sends people to buy Plus. Points at
+/// the landing page's pricing section, which presents both the one-time and the
+/// subscription options together, rather than embedding two Stripe links here.
+enum LicensePurchase {
+    static let pricingURL = URL(string: "https://curfew.hypertext.studio/#plus")!
 }

@@ -6,7 +6,7 @@ This file defines how coding agents must operate in this repository.
 
 Curfew lives across three repositories. Boundaries here matter — most edits stay in **this** repo, but anything touching the cross-device wire format or the Cloudflare coordinator goes elsewhere.
 
-- **`curfew`** (this repo) — the macOS app, the local `curfew-mcp` and `curfew-ctl` and `curfew-daemon` binaries, the license-issuer Cloudflare Worker (`scripts/issue-license.ts` + root `wrangler.toml`), the landing site (`landing/`), the Homebrew cask (`Casks/`), and the product-level Curfew Sync design (`Documentation/curfew-sync.md`).
+- **`curfew`** (this repo) — the macOS app, the local `curfew-mcp` and `curfew-ctl` and `curfew-daemon` binaries, the license-issuer Cloudflare Worker (`worker/src/` + `worker/wrangler.toml`), the landing site (`landing/`), the Homebrew cask (`Casks/`), and the product-level Curfew Sync design (`Documentation/curfew-sync.md`).
 - **`curfew-sync`** ([github.com/TheHypertextStudio/curfew-sync](https://github.com/TheHypertextStudio/curfew-sync)) — the Cloudflare-deployed Curfew Sync coordinator: Hono Worker, Durable Objects, D1, Better Auth, OAuth 2.1 MCP endpoint. Backend architecture lives in *that* repo's `Documentation/ARCHITECTURE.md`.
 - **`curfew-protocols`** ([github.com/TheHypertextStudio/curfew-protocols](https://github.com/TheHypertextStudio/curfew-protocols), npm `@hypertext/curfew-protocols`) — versioned JSON Schemas for MCP tools, pending-request shapes, and (in v0.2+) sync delta envelopes and OAuth payloads. Consumed by both `curfew` (via SPM) and `curfew-sync` (via npm). Tagged releases only — no floating `main` references.
 

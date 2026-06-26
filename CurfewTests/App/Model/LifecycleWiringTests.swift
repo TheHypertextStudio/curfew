@@ -11,7 +11,7 @@ import Testing
 ///    log honours the 52-week retention promise.
 /// 2. `idleWatcher.sample()` runs every tick so `isUserIdle` reflects
 ///    the live watcher state.
-/// 3. `reconcileProGatedModules()` reacts to license activation so Pro
+/// 3. `reconcilePlusGatedModules()` reacts to license activation so Pro
 ///    surfaces start without an app relaunch.
 @MainActor
 struct LifecycleWiringTests {
@@ -67,8 +67,8 @@ struct LifecycleWiringTests {
             idleSource: StubIdleSource(seconds: 0)
         )
 
-        model.reconcileProGatedModules()
-        #expect(!model.licenseGate.isProUnlocked)
+        model.reconcilePlusGatedModules()
+        #expect(!model.licenseGate.isPlusUnlocked)
 
         let key = LicenseKey(
             email: "tester@example.com",
@@ -77,14 +77,14 @@ struct LifecycleWiringTests {
             issuedAt: Date()
         )
         model.licenseGate.testInjectActivatedKey(key)
-        #expect(model.licenseGate.isProUnlocked)
+        #expect(model.licenseGate.isPlusUnlocked)
 
         // Re-entering reconciliation after a license flip must remain
         // idempotent even when engines are already stopped. The regression
         // guards against a crash introduced by asymmetric start/stop in a
         // future Pro-gated module.
-        model.reconcileProGatedModules()
-        #expect(model.licenseGate.isProUnlocked)
+        model.reconcilePlusGatedModules()
+        #expect(model.licenseGate.isPlusUnlocked)
     }
 
     @Test("Tick refreshes isAccessibilityTrusted from the injected checker")

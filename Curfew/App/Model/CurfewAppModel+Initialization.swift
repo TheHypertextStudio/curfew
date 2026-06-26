@@ -55,7 +55,7 @@ extension CurfewAppModel {
             self?.warningStagesFiredToday.formUnion(snapshot.warningStagesFired)
         }
         subscribeToLicenseChanges()
-        reconcileProGatedModules()
+        reconcilePlusGatedModules()
         refreshSubscriptionLicenseIfNeeded()
     }
 

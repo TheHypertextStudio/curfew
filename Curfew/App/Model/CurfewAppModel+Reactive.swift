@@ -17,7 +17,7 @@ extension CurfewAppModel {
             .removeDuplicates()
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in
-                self?.reconcileProGatedModules()
+                self?.reconcilePlusGatedModules()
             }
             .store(in: &cancellables)
     }
@@ -27,10 +27,10 @@ extension CurfewAppModel {
     /// `LicenseGate` combination. Idempotent: each engine's `start()`
     /// guards against repeated activation, and `stop()` is safe to call
     /// on an already-stopped engine.
-    func reconcileProGatedModules() {
-        let pro = licenseGate.isProUnlocked
+    func reconcilePlusGatedModules() {
+        let plus = licenseGate.isPlusUnlocked
 
-        if featureFlags.cloudSyncEnabled, pro {
+        if featureFlags.cloudSyncEnabled, plus {
             cloudKitSyncEngine.start(
                 localSettings: settings,
                 localModifiedAt: Date()
@@ -55,7 +55,7 @@ extension CurfewAppModel {
             deviceRegistry.stop()
         }
 
-        if featureFlags.calendarEnabled, pro {
+        if featureFlags.calendarEnabled, plus {
             calendarMonitor.requestAccessAndSync()
         } else {
             calendarMonitor.stop()
@@ -66,15 +66,23 @@ extension CurfewAppModel {
         }
     }
 
-    /// Subscription refresh is deliberately best-effort and silent. Only a
-    /// valid Worker-issued replacement changes local entitlement state.
+    /// Pulls a renewed subscription license from the Worker when the active key
+    /// is a `.subscription` plan. Fire-and-forget: a successful fetch re-activates
+    /// with the renewed key (extending `expiresAt`); a 404 / network failure is a
+    /// no-op, leaving the stored key to lapse at its deadline. Lifetime keys (and
+    /// the free tier) return immediately without touching the network. Called on
+    /// launch and on the daily rollover.
     func refreshSubscriptionLicenseIfNeeded() {
-        guard let key = licenseGate.activatedKey, key.plan == .subscription,
-              let token = key.refreshToken else { return }
-        let refresher = LicenseRefresher()
+        guard
+            let key = licenseGate.activatedKey,
+            key.plan == .subscription,
+            let refreshToken = key.refreshToken
+        else { return }
+
+        let refresher = licenseRefresher
         Task { [weak self] in
-            guard let refreshed = await refresher.refreshedKey(for: token) else { return }
-            await MainActor.run { self?.licenseGate.activate(refreshed) }
+            guard let renewed = await refresher.refreshedKey(for: refreshToken) else { return }
+            await MainActor.run { self?.licenseGate.activate(renewed) }
         }
     }
 }

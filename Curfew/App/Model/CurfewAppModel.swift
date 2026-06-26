@@ -23,9 +23,13 @@ final class CurfewAppModel: NSObject, ObservableObject {
     /// See ``FeatureFlags``.
     let featureFlags: FeatureFlags
 
-    /// Pro license gate. Verifies the stored license key on startup and
-    /// exposes `isProUnlocked` for all Pro-gated surfaces.
+    /// Plus license gate. Verifies the stored license key on startup and
+    /// exposes `isPlusUnlocked` for all Plus-gated surfaces.
     let licenseGate: LicenseGate
+
+    /// Pulls renewed subscription license keys from the license Worker. Used
+    /// only for `.subscription` plans; lifetime keys never touch the network.
+    let licenseRefresher = LicenseRefresher()
 
     /// Persisted user settings (schedule, budgets, notification preferences,
     /// warning intervals). Mutations trigger `handleSettingsMutation` via
@@ -129,13 +133,13 @@ final class CurfewAppModel: NSObject, ObservableObject {
     let mcpSocketServer: MCPSocketServer
 
     /// Syncs settings to iCloud when `featureFlags.cloudSyncEnabled` and
-    /// `licenseGate.isProUnlocked`. Dormant by default; started from
+    /// `licenseGate.isPlusUnlocked`. Dormant by default; started from
     /// lifecycle once both conditions are satisfied.
     let cloudKitSyncEngine: CloudKitSyncEngine
 
     /// Reads today's calendar events for contextual display on the lockout
     /// screen and This Week view. Requires `featureFlags.calendarEnabled`
-    /// and `licenseGate.isProUnlocked`. Never started in free tier.
+    /// and `licenseGate.isPlusUnlocked`. Never started in free tier.
     let calendarMonitor: CalendarMonitor
 
     /// Manages the `SMAppService`-registered privileged daemon and the
@@ -221,7 +225,7 @@ final class CurfewAppModel: NSObject, ObservableObject {
     var cachedThisWeekRollup: WeeklyActivityRollup?
 
     /// Combine subscriptions held for the model's lifetime; drive reactive
-    /// Pro-gated module reconciliation when `licenseGate.activatedKey` flips.
+    /// Plus-gated module reconciliation when `licenseGate.activatedKey` flips.
     var cancellables = Set<AnyCancellable>()
 
     /// How many seconds of activity log to keep. Matches the 52-week rolling

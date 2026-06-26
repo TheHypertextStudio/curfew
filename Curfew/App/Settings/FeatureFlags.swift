@@ -11,7 +11,7 @@ import Foundation
 ///
 /// Intended usage: the app instantiates a single `FeatureFlags` value during
 /// startup (defaulting to ``FeatureFlags/default``) and passes it into
-/// `CurfewAppModel`. Consumers of Pro surfaces should also consult
+/// `CurfewAppModel`. Consumers of Plus surfaces should also consult
 /// `LicenseGate` — flags gate whether the code path is *reachable at all*,
 /// whereas licensing gates whether the reachable feature is *unlocked*.
 struct FeatureFlags: Equatable {
@@ -36,7 +36,7 @@ struct FeatureFlags: Equatable {
 
     /// Whether EventKit calendar awareness should run. When `false`, the
     /// `CalendarMonitor` object is never started and EventKit access is
-    /// never requested. Also requires `LicenseGate.isProUnlocked`.
+    /// never requested. Also requires `LicenseGate.isPlusUnlocked`.
     var calendarEnabled: Bool
 
     /// Safe defaults for first launch: every deferred module off.

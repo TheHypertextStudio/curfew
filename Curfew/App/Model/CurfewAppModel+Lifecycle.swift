@@ -153,7 +153,7 @@ extension CurfewAppModel {
     /// No-ops when calendar is off, Pro isn't unlocked, no event is
     /// in the window, or we've already prompted for this event today.
     func checkCalendarCurfewOverlap() {
-        guard featureFlags.calendarEnabled, licenseGate.isProUnlocked else { return }
+        guard featureFlags.calendarEnabled, licenseGate.isPlusUnlocked else { return }
         guard state.phase == .working || state.phase == .warning else { return }
 
         let todayRule = settings.schedule.rule(for: Weekday(from: currentTime))
@@ -373,6 +373,12 @@ extension CurfewAppModel {
         )
         resetReflectionGatesForNewDay()
         licenseGate.reverifyStoredKey()
+        // A subscription key can lapse without the stored string changing (its
+        // `expiresAt` simply passes), so `$activatedKey` never fires and the
+        // Combine-driven reconcile won't run. Reconcile explicitly here — it is
+        // idempotent — so the Plus-gated engines stop when a subscription
+        // expires, even with no network. Then try to pull a renewed key.
+        reconcilePlusGatedModules()
         refreshSubscriptionLicenseIfNeeded()
     }
 

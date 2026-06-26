@@ -9,7 +9,7 @@ import Foundation
 /// literal to reject release tags that still carry it.
 private let placeholderPublicKeyBase64 = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
 
-/// Failure modes for Pro-license activation. Every case maps to a
+/// Failure modes for Plus-license activation. Every case maps to a
 /// human-readable `errorDescription` consumed by `LicenseView` when
 /// surfacing the failure to the user.
 enum LicenseActivationError: LocalizedError {
@@ -36,12 +36,12 @@ enum LicenseActivationError: LocalizedError {
         case .wrongProduct: "This license key is for a different product."
         case .publicKeyNotProvisioned:
             "This build does not have a license public key configured. " +
-                "Pro activation is disabled until the developer ships a signed build."
+                "Plus activation is disabled until the developer ships a signed build."
         }
     }
 }
 
-/// Verifies and stores a Curfew Pro license key.
+/// Verifies and stores a Curfew Plus license key.
 ///
 /// License key format: `{base64url(payloadJSON)}.{base64url(ed25519Signature)}`
 /// The payload is a JSON object matching `LicenseKey`; the signature covers the
@@ -77,6 +77,9 @@ final class LicenseGate: ObservableObject {
     }
 
     private let defaults: UserDefaults
+    // Kept as the original `"pro.licenseKey"` across the Plus rename: it is an
+    // internal UserDefaults key, never shown to users, and renaming it would
+    // need a migration to avoid dropping already-activated keys for no gain.
     private static let storageKey = "pro.licenseKey"
 
     /// Creates a gate backed by `defaults`. `nonisolated` so it can be
@@ -129,7 +132,7 @@ final class LicenseGate: ObservableObject {
     }
 
     /// Clears the in-memory licence and removes the persisted string.
-    /// Pro features immediately lock down via the `isProUnlocked` flip.
+    /// Plus features immediately lock down via the `isPlusUnlocked` flip.
     func deactivate() {
         activatedKey = nil
         activationError = nil
@@ -137,7 +140,7 @@ final class LicenseGate: ObservableObject {
     }
 
     #if DEBUG
-        /// Debug-only hook for exercising `isProUnlocked` without a real
+        /// Debug-only hook for exercising `isPlusUnlocked` without a real
         /// signed key. Used by `LifecycleWiringTests` to assert that
         /// downstream engines react to activation. Not compiled into
         /// Release builds, so production verification stays cryptographic.

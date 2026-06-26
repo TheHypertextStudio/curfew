@@ -131,8 +131,8 @@ struct LockoutScreenView: View {
                 }
             }
 
-            // Calendar strip: next event and current event, Pro-gated.
-            if model.featureFlags.calendarEnabled, model.licenseGate.isProUnlocked {
+            // Calendar strip: next event and current event, Plus-gated.
+            if model.featureFlags.calendarEnabled, model.licenseGate.isPlusUnlocked {
                 calendarStrip
             }
 

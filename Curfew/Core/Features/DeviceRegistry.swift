@@ -43,7 +43,7 @@ public nonisolated struct DeviceSummary: Identifiable, Equatable, Codable {
 /// into a cross-device view.
 ///
 /// Lifecycle: the app model starts the registry when both
-/// `featureFlags.cloudSyncEnabled` and `licenseGate.isProUnlocked`
+/// `featureFlags.cloudSyncEnabled` and `licenseGate.isPlusUnlocked`
 /// flip true. Heartbeats are written every 60 s while the user is
 /// active (paused during idle to avoid burning CloudKit quota on a
 /// sleeping Mac); other devices receive the change via `CKSubscription`
