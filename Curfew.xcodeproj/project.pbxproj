@@ -595,7 +595,7 @@
 				INFOPLIST_KEY_NSAccessibilityUsageDescription = "Curfew uses Accessibility to intercept keyboard shortcuts during lockout so you can't bypass your own curfew.";
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "Curfew reads today's calendar events to show meetings on the lockout screen and warn you before a meeting collides with curfew. Curfew never edits your calendar.";
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "Curfew reads today's calendar events to show meetings on the lockout screen and warn you before a meeting collides with curfew. Curfew never edits your calendar.";
-				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 Hypertext Studio. All rights reserved.";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 Hypertext Studio. MIT licensed.";
 				INFOPLIST_KEY_SUFeedURL = "https://curfew.hypertext.studio/appcast.xml";
 				INFOPLIST_KEY_SUPublicEDKey = REPLACE_WITH_SPARKLE_PUBLIC_ED_KEY;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -636,7 +636,7 @@
 				INFOPLIST_KEY_NSAccessibilityUsageDescription = "Curfew uses Accessibility to intercept keyboard shortcuts during lockout so you can't bypass your own curfew.";
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "Curfew reads today's calendar events to show meetings on the lockout screen and warn you before a meeting collides with curfew. Curfew never edits your calendar.";
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "Curfew reads today's calendar events to show meetings on the lockout screen and warn you before a meeting collides with curfew. Curfew never edits your calendar.";
-				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 Hypertext Studio. All rights reserved.";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 Hypertext Studio. MIT licensed.";
 				INFOPLIST_KEY_SUFeedURL = "https://curfew.hypertext.studio/appcast.xml";
 				INFOPLIST_KEY_SUPublicEDKey = REPLACE_WITH_SPARKLE_PUBLIC_ED_KEY;
 				LD_RUNPATH_SEARCH_PATHS = (
