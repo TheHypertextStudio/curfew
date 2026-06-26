@@ -3,11 +3,28 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Curfew — End work on your terms</title>
-  <meta name="description" content="Define a flexible work rhythm, then let Curfew enforce a device-level end to the day with user-approved reflection and read-only MCP access." />
+  <title>Curfew — A hard stop for your Mac</title>
+  <meta name="description" content="Set a schedule. When the clock runs out, your Mac locks you out. No willpower required." />
+
+  <!-- Social / Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Curfew — A hard stop for your Mac" />
+  <meta property="og:description" content="Set a schedule. When the clock runs out, your Mac locks you out — warnings, then an overlay, then an optional shutdown. No willpower required." />
+  <meta property="og:url" content="https://curfew.hypertext.studio/" />
+  <meta property="og:image" content="https://curfew.hypertext.studio/images/og.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Curfew — A hard stop for your Mac" />
+  <meta name="twitter:description" content="Set a schedule. When the clock runs out, your Mac locks you out. No willpower required." />
+  <meta name="twitter:image" content="https://curfew.hypertext.studio/images/og.png" />
+
+  <link rel="icon" type="image/png" href="images/favicon.png" />
+  <link rel="apple-touch-icon" href="images/apple-touch-icon.png" />
   <link rel="stylesheet" href="style.css" />
 </head>
-<body>
+<body class="has-sky">
+  <!-- The living sky — a faithful Canvas2D port of the app's SundownSky. See sky.js. -->
+  <canvas id="sky" aria-hidden="true"></canvas>
+
   <header class="site-header">
     <nav>
       <span class="wordmark">Curfew</span>
@@ -17,123 +34,135 @@
 
   <main>
     <section class="hero">
-      <h1>End work<br>on your terms.</h1>
-      <p class="hero-sub">
-        Define the work rhythm that fits your life — not only a standard job.
-        When it ends, Curfew enforces a device-level stop: warnings, then an
-        overlay, then an optional shutdown.
-        No willpower required.
-      </p>
-      <div class="hero-actions">
-        <a href="#download" class="btn-primary">Download free</a>
-        <a href="#pro" class="btn-secondary">Curfew Pro</a>
-      </div>
-
-      <img
-        class="lockout-shot"
-        src="images/lockout-overlay.png"
-        width="3024" height="1964"
-        alt="The Curfew lockout overlay: a large 10:47 PM clock, the message &quot;Great work today. Tomorrow is another day.&quot;, an &quot;unlocks at 7:00 AM&quot; line, and a &quot;Need to get back in?&quot; prompt."
-      >
-    </section>
-
-    <section class="how" id="how">
-      <div class="section-inner">
-        <h2>How it works</h2>
-        <div class="how-steps">
-          <div class="how-step">
-            <span class="step-num">01</span>
-            <h3>Set your work rhythm</h3>
-            <p>Choose per-day work-end and resume times, days off, or
-              hours-based work modes, with editable presets to start. Weaker
-              changes wait out a cooldown so late-night you
-              can't rewrite early-morning you's rules.</p>
-          </div>
-          <div class="how-step">
-            <span class="step-num">02</span>
-            <h3>Warnings arrive</h3>
-            <p>Notifications at T-30, T-15, T-5, T-2, T-1. Click-through dim
-              overlays for the early stages, an always-on-top timer for the
-              last five minutes.</p>
-          </div>
-          <div class="how-step">
-            <span class="step-num">03</span>
-            <h3>Curfew fires</h3>
-            <p>Full-screen overlay covers every display and every Space.
-              ⌘⇥, ⌘Q, and ⌘⌥Esc are intercepted. Optional auto-shutdown
-              closes your apps and powers the machine down.</p>
-          </div>
+      <div class="hero-inner">
+        <h1>A hard stop<br>for your Mac.</h1>
+        <p class="hero-sub">
+          Set a schedule. When the clock runs out, your machine locks you out —
+          warnings, then an overlay, then an optional shutdown.
+          No willpower required.
+        </p>
+        <div class="hero-actions">
+          <a href="#download" class="btn-primary">Download free</a>
+          <a href="#plus" class="btn-secondary">Curfew Plus</a>
         </div>
-        <p class="how-note">
-          Need to get back in? A typed justification, a five-minute cooldown,
-          and hold-to-confirm — overrides cost something deliberate. Weekly
-          budgets for extensions and overrides are visible in the menu bar;
-          the <em>This Week</em> view shows what actually happened.
-        </p>
-        <p class="how-note">
-          Honest about what it is: Curfew is a commitment device, not a
-          kernel-level lock. Someone determined enough — a terminal, another
-          user account, a reboot — can still get around it. The point isn't to
-          make that impossible; it's to make stopping the easy default, so most
-          nights you just close the laptop.
-        </p>
+
+        <img
+          class="lockout-shot"
+          src="images/lockout-overlay.png"
+          width="3024" height="1964"
+          alt="The Curfew lockout overlay: a large 10:47 PM clock, the message &quot;Great work today. Tomorrow is another day.&quot;, an &quot;unlocks at 7:00 AM&quot; line, and a &quot;Need to get back in?&quot; prompt."
+        >
       </div>
     </section>
 
-    <section class="reflect" id="reflect">
-      <div class="section-inner">
-        <h2>Bookend the day with a moment of reflection.</h2>
-        <p class="reflect-lede">
-          Curfew doesn't just stop the day — it frames it. A short prompt at
-          sunrise to set your intent, and a quiet retrospective at sundown,
-          right on the lockout screen. Sunsama's reflection ritual, built into
-          the same full-screen moments you already pass through.
-        </p>
-        <div class="how-steps">
-          <div class="how-step">
-            <span class="step-num">01</span>
-            <h3>Set your intent at sunrise</h3>
-            <p>The day's first session opens with a brief full-screen prompt.
-              Ask yourself anything — free text, a 1–N rating, a quick mood.
-              Always skippable; it owns the screen, never traps you.</p>
+    <div class="sheet">
+      <section class="how reveal" id="how">
+        <div class="section-inner">
+          <h2>How it works</h2>
+          <div class="how-steps">
+            <div class="how-step">
+              <span class="step-num">01</span>
+              <h3>Set a weekly schedule</h3>
+              <p>Per-day lock and unlock times, day-off support, three presets
+                to start. Weaker changes wait out a cooldown so late-night you
+                can't rewrite early-morning you's rules.</p>
+            </div>
+            <div class="how-step">
+              <span class="step-num">02</span>
+              <h3>Warnings arrive</h3>
+              <p>Notifications at T-30, T-15, T-5, T-2, T-1. Click-through dim
+                overlays for the early stages, an always-on-top timer for the
+                last five minutes.</p>
+            </div>
+            <div class="how-step">
+              <span class="step-num">03</span>
+              <h3>Curfew fires</h3>
+              <p>Full-screen overlay covers every display and every Space.
+                ⌘⇥, ⌘Q, and ⌘⌥Esc are intercepted. Optional auto-shutdown
+                closes your apps and powers the machine down.</p>
+            </div>
           </div>
-          <div class="how-step">
-            <span class="step-num">02</span>
-            <h3>Close the day at sundown</h3>
-            <p>When curfew fires, the lockout screen invites a retrospective
-              before you step away. Write what got done, what's carried
-              forward, rate the day. Skip it and the clock still runs.</p>
+          <p class="how-note">
+            Need to get back in? A typed justification, a five-minute cooldown,
+            and hold-to-confirm — overrides cost something deliberate. Weekly
+            budgets for extensions and overrides are visible in the menu bar;
+            the <em>This Week</em> view shows what actually happened.
+          </p>
+          <p class="how-note">
+            Honest about what it is: Curfew is a commitment device, not a
+            kernel-level lock. Someone determined enough — a terminal, another
+            user account, a reboot — can still get around it. The point isn't to
+            make that impossible; it's to make stopping the easy default, so most
+            nights you just close the laptop.
+          </p>
+
+          <!-- Screenshot gallery slot. Drop in real captures at different times
+               of day (sunrise intent, T-5 warning, lockout) once produced with
+               `just capture`; this is also where the interactive "watch it fire"
+               demo lands after the sky prototype is validated.
+          <div class="shots">
+            <figure class="shot"><img src="images/shot-sunrise.png" alt="Sunrise intent prompt" /><figcaption>Sunrise — set your intent</figcaption></figure>
+            <figure class="shot"><img src="images/shot-warning.png" alt="T-5 warning timer" /><figcaption>T-5 — the timer takes over</figcaption></figure>
+            <figure class="shot"><img src="images/shot-lockout.png" alt="The lockout overlay" /><figcaption>Sundown — curfew fires</figcaption></figure>
           </div>
-          <div class="how-step">
-            <span class="step-num">03</span>
-            <h3>Keep the thread</h3>
-            <p>A private Journal charts your ratings across the week and keeps
-              every entry. Export to Markdown or JSON, or let your AI assistant
-              read it back — all of it stays on your Mac.</p>
-          </div>
+          -->
         </div>
-        <p class="how-note">
-          The questions are yours: edit, reorder, and choose each answer's type
-          in Settings. This is the first of Hypertext Studio's
-          <em>reflection gates</em> — the third horizon, arriving early.
-        </p>
-      </div>
-    </section>
+      </section>
 
-    <section class="mcp" id="mcp">
-      <div class="section-inner">
-        <h2>Your AI can work with your boundaries — on your approval.</h2>
-        <p>
-          <code>curfew-mcp</code> is a stdio MCP server bundled with the app.
-          Add it to Claude Desktop and your assistant can check how much time
-          is left, request an extension, or read back your daily reflections to
-          help you review the week. Any requested change requires your explicit
-          approval through an in-app consent sheet. Reflections are read-only,
-          user-controlled, and remain on your Mac.
-        </p>
-        <div class="code-row">
-          <div class="code-block">
-            <div class="code-caption">~/.claude_desktop_config.json</div>
+      <section class="reflect reveal" id="reflect">
+        <div class="section-inner">
+          <h2>Bookend the day with a moment of reflection.</h2>
+          <p class="reflect-lede">
+            Curfew doesn't just stop the day — it frames it. A short prompt at
+            sunrise to set your intent, and a quiet retrospective at sundown,
+            right on the lockout screen. Sunsama's reflection ritual, built into
+            the same full-screen moments you already pass through.
+          </p>
+          <div class="how-steps">
+            <div class="how-step">
+              <span class="step-num">01</span>
+              <h3>Set your intent at sunrise</h3>
+              <p>The day's first session opens with a brief full-screen prompt.
+                Ask yourself anything — free text, a 1–N rating, a quick mood.
+                Always skippable; it owns the screen, never traps you.</p>
+            </div>
+            <div class="how-step">
+              <span class="step-num">02</span>
+              <h3>Close the day at sundown</h3>
+              <p>When curfew fires, the lockout screen invites a retrospective
+                before you step away. Write what got done, what's carried
+                forward, rate the day. Skip it and the clock still runs.</p>
+            </div>
+            <div class="how-step">
+              <span class="step-num">03</span>
+              <h3>Keep the thread</h3>
+              <p>A private Journal charts your ratings across the week and keeps
+                every entry. Export to Markdown or JSON, or let your AI assistant
+                read it back — all of it stays on your Mac.</p>
+            </div>
+          </div>
+          <p class="how-note">
+            The questions are yours: edit, reorder, and choose each answer's type
+            in Settings. This is the first of Hypertext Studio's
+            <em>reflection gates</em> — the third horizon, arriving early.
+          </p>
+        </div>
+      </section>
+
+      <section class="mcp reveal" id="mcp">
+        <div class="section-inner">
+          <h2>Claude can negotiate with your focus rules — and read your journal.</h2>
+          <p>
+            <code>curfew-mcp</code> is a stdio MCP server bundled with the app.
+            Add it to Claude Desktop and your assistant can check how much time
+            is left, request an extension, or read back your daily reflections to
+            help you review the week. Writes require your explicit approval
+            through an in-app consent sheet; reflections are read-only and never
+            leave your Mac.
+          </p>
+          <div class="code-row">
+            <div class="code-block">
+              <div class="code-caption">~/.claude_desktop_config.json</div>
 <pre><code>{
   "mcpServers": {
     "curfew": {
@@ -141,58 +170,61 @@
     }
   }
 }</code></pre>
-          </div>
-          <div class="code-block">
-            <div class="code-caption">shell</div>
+            </div>
+            <div class="code-block">
+              <div class="code-caption">shell</div>
 <pre><code>$ curfew-ctl status
 phase:     warning
 remaining: 14 min
 locks at:  6:00 PM
 warning:   T-15</code></pre>
+            </div>
           </div>
+          <p class="mcp-note">
+            A matching CLI (<code>curfew-ctl</code>) ships in the app bundle for
+            shell scripts and dotfile hooks — same shared storage, no IPC
+            dance, works whether the app is running or not.
+          </p>
         </div>
-        <p class="mcp-note">
-          A matching CLI (<code>curfew-ctl</code>) ships in the app bundle for
-          shell scripts and dotfile hooks — same shared storage, no IPC
-          dance, works whether the app is running or not.
-        </p>
-      </div>
-    </section>
+      </section>
 
-    <section class="pro" id="pro">
-      <div class="section-inner">
-        <h2>Curfew Pro is not on sale yet.</h2>
-        <p class="pro-pitch">
-          iCloud sync, calendar-aware warnings, and the status widget remain
-          disabled until their production Apple provisioning and signed-release
-          validation are complete. We will not sell access to features that
-          have not passed those checks.
-        </p>
-        <p class="pro-checkout-note">
-          Purchase will open only after the production license service and
-          checkout flow have been verified end to end.
-        </p>
-      </div>
-    </section>
+      <section class="pro reveal" id="plus">
+        <div class="section-inner">
+          <h2>Curfew Plus is not on sale yet.</h2>
+          <p class="pro-pitch">
+            iCloud sync, calendar-aware warnings, and other Plus capabilities
+            remain disabled until their production Apple provisioning and
+            signed-release validation are complete. We will not sell access to
+            features that have not passed those checks.
+          </p>
+          <p class="pro-checkout-note">
+            Purchase will open only after the production license service and
+            checkout flow have been verified end to end.
+          </p>
+        </div>
+      </section>
 
-    <section class="download" id="download">
-      <div class="section-inner">
-        <h2>Download</h2>
-        <p>Requires macOS 26 or later. Free, open source (MIT).</p>
-        <a href="https://github.com/TheHypertextStudio/curfew/releases/latest" class="btn-primary">
-          Download latest DMG
-        </a>
-        <p class="download-trust">
-          Signed &amp; notarized Developer ID build ·
-          <a href="https://github.com/TheHypertextStudio/curfew">source on GitHub</a> ·
-          no telemetry, no analytics, no network calls except iCloud sync (Pro, opt-in).
-        </p>
-        <p class="download-sub">
-          Or build from source:
-          <code>git clone github.com/TheHypertextStudio/curfew &amp;&amp; open Curfew.xcodeproj</code>
-        </p>
-      </div>
-    </section>
+      <section class="download reveal" id="download">
+        <div class="section-inner">
+          <h2>Download</h2>
+          <p>Requires macOS 26 or later. Free, open source (MIT).</p>
+          <a href="https://github.com/TheHypertextStudio/curfew/releases/latest" class="btn-primary">
+            Download latest DMG
+          </a>
+          <p class="download-trust">
+            Signed &amp; notarized Developer ID build ·
+            <a href="https://github.com/TheHypertextStudio/curfew">source on GitHub</a> ·
+            no telemetry, no analytics. The only network calls are iCloud sync
+            (Plus, opt-in) and — for Plus subscribers — a periodic license-refresh
+            check. Lifetime keys stay fully offline.
+          </p>
+          <p class="download-sub">
+            Or build from source:
+            <code>git clone github.com/TheHypertextStudio/curfew &amp;&amp; open Curfew.xcodeproj</code>
+          </p>
+        </div>
+      </section>
+    </div>
   </main>
 
   <footer>
@@ -211,5 +243,8 @@ warning:   T-15</code></pre>
       <a href="privacy.html">Privacy</a>
     </p>
   </footer>
+
+  <script src="sky.js" defer></script>
+  <script src="reveal.js" defer></script>
 </body>
 </html>

@@ -1,38 +1,56 @@
-/* Curfew landing — minimal, system font, dark default */
+/* Curfew landing — the living sky + the paper sanctuary.
+ *
+ * The page is built on the app's own structure: a full-bleed living sky
+ * (rendered by sky.js into the fixed #sky canvas) with the warm "paper
+ * sanctuary" riding over it. The hero and footer sit directly on the sky in
+ * warm-white; every content section rides on the paper sheet, where ink-on-
+ * paper guarantees contrast no matter what the sky is doing behind it.
+ *
+ * The palette is taken verbatim from Curfew/UI/Sundown/SundownPalette.swift so
+ * the web and the app share one identity. Sky/hero/footer theming is scoped to
+ * `body.has-sky` (the landing page) so the shared legal pages — which load this
+ * same stylesheet without a sky — keep their plain paper treatment.
+ */
 
 :root {
-  --bg: #0e0e0e;
-  --surface: #161616;
-  --border: rgba(255, 255, 255, 0.08);
-  --ink: #f0ede8;
-  --muted: #888;
-  --accent: #e8854a;
-  --accent-hover: #d9743b;
+  /* Paper + ember identity (SundownPalette). */
+  --paper: #f5f0e6; /* the warm page the sanctuary sits on (0.96,0.94,0.90) */
+  --surface: #fbf7ef; /* a lifted paper for alternating sections / cards */
+  --warm-white: #fcf7f0; /* near-white text over the dark sky (0.99,0.97,0.94) */
+  --ink: #302924; /* primary warm near-black (0.19,0.16,0.14) */
+  --muted: #857569; /* secondary ink (0.52,0.46,0.41) */
+  --border: rgba(48, 41, 36, 0.12);
+  --accent: #d9733b; /* ember — the one brand accent (0.85,0.45,0.23) */
+  --accent-hover: #c8632d;
+  --ember-bright: #f58f4f; /* kindled / hover ember (0.96,0.56,0.31) */
   --radius: 12px;
   --max: 820px;
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    --bg: #f5f2ee;
-    --surface: #fff;
-    --border: rgba(0, 0, 0, 0.08);
-    --ink: #1a1714;
-    --muted: #666;
-  }
+  /* Static dusk gradient — the no-JS / no-canvas fallback for the sky. Mirrors
+     the dusk keyframe so the page still reads as Curfew without sky.js. */
+  --sky-fallback: linear-gradient(
+    to bottom,
+    #383a57 0%,
+    #6b5670 45%,
+    #a86b66 80%,
+    #eb8f57 100%
+  );
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-html { font-size: 16px; }
+html { font-size: 16px; scroll-behavior: smooth; }
 
 body {
-  background: var(--bg);
+  background: var(--paper);
   color: var(--ink);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
 }
+
+/* Landing page only: the sky shows through, with the dusk gradient as the
+   behind-canvas fallback. */
+body.has-sky { background: var(--sky-fallback); }
 
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
@@ -40,6 +58,21 @@ a:hover { text-decoration: underline; }
 code {
   font-family: "SF Mono", ui-monospace, monospace;
   font-size: 0.92em;
+}
+
+/* ── The living sky ── */
+/* sky.js draws into this canvas; it is fixed behind all content and never
+   intercepts pointer events. If JS is off it simply stays transparent and the
+   body's --sky-fallback gradient shows instead. */
+
+#sky {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -2;
+  display: block;
+  pointer-events: none;
 }
 
 /* ── Header ── */
@@ -70,41 +103,81 @@ code {
   color: var(--muted);
 }
 
+/* On the sky, the header is chromeless and warm-white. */
+.has-sky .site-header {
+  position: relative;
+  z-index: 2;
+  border-bottom: none;
+}
+.has-sky .wordmark { color: var(--warm-white); text-shadow: 0 1px 12px rgba(0, 0, 0, 0.35); }
+.has-sky .nav-link { color: rgba(252, 247, 240, 0.8); text-shadow: 0 1px 12px rgba(0, 0, 0, 0.35); }
+.has-sky .nav-link:hover { color: var(--warm-white); }
+
 /* ── Sections ── */
 
 section { padding: 80px 24px; }
 .section-inner { max-width: var(--max); margin: 0 auto; }
 
-/* ── Hero ── */
+/* ── Hero (on the sky) ── */
+/* The immersive moment: text directly on the living sky. A soft scrim, anchored
+   bottom-left where the copy lives, carries warm-white text legibly across every
+   sky state from bright day to deep night — without collisions with the sun
+   disc, which rides at x≈0.72 (matching the app). */
 
 .hero {
-  max-width: var(--max);
-  margin: 0 auto;
-  padding-top: 100px;
-  padding-bottom: 100px;
+  position: relative;
+  z-index: 1;
+  max-width: none;
+  min-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 60px 24px 100px;
 }
 
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(120% 90% at 18% 80%, rgba(10, 8, 16, 0.5), rgba(10, 8, 16, 0) 60%),
+    linear-gradient(to top, rgba(10, 8, 16, 0.35), rgba(10, 8, 16, 0) 55%);
+}
+
+.hero-inner {
+  max-width: var(--max);
+  margin: 0 auto;
+  width: 100%;
+}
+
+.has-sky .hero h1,
+.has-sky .hero .hero-sub { color: var(--warm-white); }
+
 .hero h1 {
-  font-size: clamp(40px, 8vw, 72px);
+  font-size: clamp(40px, 8vw, 76px);
   font-weight: 700;
   letter-spacing: -2px;
   line-height: 1.05;
   margin-bottom: 24px;
+  text-shadow: 0 2px 30px rgba(0, 0, 0, 0.35);
 }
 
 .hero-sub {
   font-size: 20px;
-  color: var(--muted);
+  color: rgba(252, 247, 240, 0.85);
   max-width: 520px;
   margin-bottom: 40px;
   line-height: 1.55;
+  text-shadow: 0 1px 20px rgba(0, 0, 0, 0.3);
 }
 
 .hero-actions {
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
-  margin-bottom: 72px;
+  margin-bottom: 64px;
 }
 
 /* ── Buttons ── */
@@ -116,14 +189,20 @@ section { padding: 80px 24px; }
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s, opacity 0.15s;
+  transition: background 0.15s, box-shadow 0.2s, opacity 0.15s, transform 0.15s;
 }
 
+/* The ember CTA carries a soft warm bloom that kindles on hover. */
 .btn-primary {
   background: var(--accent);
-  color: #fff;
+  color: var(--warm-white);
+  box-shadow: 0 8px 28px -10px rgba(217, 115, 59, 0.7);
 }
-.btn-primary:hover { background: var(--accent-hover); text-decoration: none; }
+.btn-primary:hover {
+  background: var(--ember-bright);
+  box-shadow: 0 10px 34px -8px rgba(245, 143, 79, 0.85);
+  text-decoration: none;
+}
 
 .btn-secondary {
   background: var(--surface);
@@ -132,23 +211,43 @@ section { padding: 80px 24px; }
 }
 .btn-secondary:hover { opacity: 0.8; text-decoration: none; }
 
-/* ── Lockout mockup ── */
-/* A standalone dark card that evokes the full-screen overlay users see
-   when curfew fires. The mockup stays dark regardless of light-mode so
-   it always reads as "this is what the app looks like when it kicks in."
-   The subtle radial warmth hints at the product's orange accent without
-   colouring the rest of the page. */
+/* On the sky, the secondary CTA is glass rather than paper. */
+.has-sky .hero .btn-secondary {
+  background: rgba(252, 247, 240, 0.14);
+  color: var(--warm-white);
+  border: 1px solid rgba(252, 247, 240, 0.28);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+.has-sky .hero .btn-secondary:hover { background: rgba(252, 247, 240, 0.22); opacity: 1; }
 
+/* ── Lockout mockup ── */
 /* Real screenshot of the lockout overlay, generated by `just capture` and
-   committed at landing/images/lockout-overlay.png. Refresh it before a
-   release with `just capture` (XCUITest) or `just capture-hero` (local). */
+   committed at landing/images/lockout-overlay.png. Sat against the live sky it
+   reads as a window onto the app's own night. Refresh it before a release with
+   `just capture` (XCUITest) or `just capture-hero` (local). */
 .lockout-shot {
   display: block;
   width: 100%;
   height: auto;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  margin-top: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
-  box-shadow: 0 24px 60px -24px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 40px 90px -30px rgba(0, 0, 0, 0.6);
+}
+
+/* ── Paper sanctuary ── */
+/* Every content section rides on this sheet. It lifts over the sky with a soft
+   shadow and rounded shoulders, and clips its children so the alternating
+   surface-toned sections honour the rounded top. */
+
+.sheet {
+  position: relative;
+  z-index: 1;
+  background: var(--paper);
+  border-radius: 28px 28px 28px 28px;
+  overflow: hidden;
+  box-shadow: 0 -24px 70px -36px rgba(0, 0, 0, 0.55);
 }
 
 /* ── How it works ── */
@@ -215,7 +314,7 @@ section { padding: 80px 24px; }
 
 /* ── Reflect ── */
 /* Reuses the .how-steps / .how-step / .how-note layout; only the section
-   heading and lede need their own rules. Sits on the page background so it
+   heading and lede need their own rules. Sits on the paper sheet so it
    alternates with the surface-toned sections around it. */
 
 .reflect h2 {
@@ -231,6 +330,37 @@ section { padding: 80px 24px; }
   max-width: 620px;
   margin-bottom: 48px;
   line-height: 1.6;
+}
+
+/* ── Screenshots gallery ── */
+/* Real captures at different times of day. A clean slot is left here for the
+   interactive "watch it fire" demo once the sky prototype is validated. */
+
+.shots {
+  display: grid;
+  gap: 20px;
+  margin-top: 48px;
+}
+
+@media (min-width: 720px) {
+  .shots { grid-template-columns: repeat(3, 1fr); }
+}
+
+.shot figure { margin: 0; }
+
+.shot img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 20px 50px -28px rgba(0, 0, 0, 0.45);
+}
+
+.shot figcaption {
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--muted);
 }
 
 /* ── MCP ── */
@@ -263,8 +393,8 @@ section { padding: 80px 24px; }
 }
 
 .code-block {
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: #1d1a16;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--radius);
   padding: 16px 20px;
   overflow-x: auto;
@@ -273,7 +403,7 @@ section { padding: 80px 24px; }
 .code-caption {
   font-family: "SF Mono", ui-monospace, monospace;
   font-size: 12px;
-  color: var(--muted);
+  color: rgba(252, 247, 240, 0.5);
   margin-bottom: 12px;
 }
 
@@ -281,7 +411,7 @@ section { padding: 80px 24px; }
 .code-block code {
   font-family: "SF Mono", ui-monospace, monospace;
   font-size: 13px;
-  color: var(--ink);
+  color: var(--warm-white);
   white-space: pre;
 }
 
@@ -332,8 +462,17 @@ section { padding: 80px 24px; }
   font-weight: 500;
 }
 
-.pro-buy {
+/* The two Curfew Plus purchase options sit side by side, wrapping on narrow
+   screens. Both reuse the standard button styles. */
+.plus-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
   margin-bottom: 16px;
+}
+
+.pro-buy {
+  margin-bottom: 0;
 }
 
 .pro-checkout-note {
@@ -397,9 +536,41 @@ footer {
 
 footer p em { color: var(--ink); font-style: italic; }
 
-/* ── Privacy page ── */
-/* Shared styles reused via class names; the privacy page keeps to the
-   same grid and typography so the two surfaces read as one product. */
+/* On the sky, the footer dissolves into the open night. */
+.has-sky footer {
+  position: relative;
+  z-index: 1;
+  border-top: none;
+  padding: 64px 24px 56px;
+  color: rgba(252, 247, 240, 0.72);
+  text-shadow: 0 1px 14px rgba(0, 0, 0, 0.4);
+}
+.has-sky footer a { color: rgba(252, 247, 240, 0.92); }
+.has-sky footer p em { color: var(--warm-white); }
+
+/* ── Scroll reveals ── */
+/* Subtle, once. Sections lift in as they enter the viewport; sky.js handles the
+   atmosphere, this handles the content. Disabled entirely under Reduce Motion. */
+
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+.reveal.in {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .reveal { opacity: 1; transform: none; transition: none; }
+}
+
+/* ── Privacy / legal pages ── */
+/* Shared styles reused via class names; the legal pages keep to the same grid
+   and typography so the two surfaces read as one product. They load this same
+   stylesheet without `body.has-sky`, so they sit on plain paper. */
 
 .privacy-heading {
   font-size: 36px;
