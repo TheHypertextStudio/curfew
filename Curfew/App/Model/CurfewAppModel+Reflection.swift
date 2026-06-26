@@ -1,3 +1,4 @@
+import CurfewKit
 import Foundation
 
 /// The reflection-gate runtime held by `CurfewAppModel`, bundled into one value

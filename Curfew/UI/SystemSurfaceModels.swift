@@ -1,3 +1,4 @@
+import CurfewKit
 import ServiceManagement
 
 struct OnboardingConfirmationRequirement: Equatable, Identifiable {

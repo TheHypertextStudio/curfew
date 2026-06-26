@@ -1,5 +1,6 @@
 import Combine
 import CryptoKit
+import CurfewKit
 import Foundation
 
 /// Sentinel value for the unconfigured placeholder public key. Kept as its

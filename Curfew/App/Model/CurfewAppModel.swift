@@ -1,6 +1,7 @@
 import AppKit
 import Combine
 import CoreGraphics
+import CurfewKit
 import Foundation
 import OSLog
 import SwiftUI
@@ -30,9 +31,7 @@ final class CurfewAppModel: NSObject, ObservableObject {
     /// warning intervals). Mutations trigger `handleSettingsMutation` via
     /// `didSet` so budget trackers stay in sync with user edits.
     @Published var settings: CurfewSettings {
-        didSet {
-            handleSettingsMutation(from: oldValue)
-        }
+        didSet { handleSettingsMutation(from: oldValue) }
     }
 
     /// Latest evaluation from the enforcement engine. Replaced every tick.

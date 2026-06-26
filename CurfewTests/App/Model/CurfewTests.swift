@@ -1,5 +1,6 @@
 import CoreGraphics
 @testable import Curfew
+import CurfewKit
 import Foundation
 import Testing
 

@@ -11,10 +11,10 @@ import Foundation
 /// Messages live here rather than in a localisation bundle because v0.1 is
 /// English-only. When localisation lands in v0.2, swap the `messages` array
 /// for `String.localizedStringWithFormat` calls keyed off a resource table.
-enum EncouragementMessageCatalog {
+public enum EncouragementMessageCatalog {
     /// Pool of lockout screen messages. Order matters: `next(after:)` walks
     /// the list circularly, so edits should preserve the tone progression.
-    static let messages = [
+    public static let messages = [
         "That's the day.",
         "Your workday's done.",
         "See you in the morning.",
@@ -26,7 +26,7 @@ enum EncouragementMessageCatalog {
     /// regains temporary access. Not part of the rotation — we don't want
     /// to "reward" overrides with fresh encouragement the way first-entry
     /// into lockout gets rotated copy.
-    static let postOverride = "Welcome back."
+    public static let postOverride = "Welcome back."
 
     /// Returns the next message after `previous`, wrapping around when the
     /// end of the list is reached. When `previous` is `nil` or unknown (e.g.
@@ -37,7 +37,7 @@ enum EncouragementMessageCatalog {
     ///   `nil` on first launch.
     /// - Returns: a message to display; guaranteed non-empty as long as
     ///   `messages` is non-empty (see fallback).
-    static func next(after previous: String?) -> String {
+    public static func next(after previous: String?) -> String {
         guard let previous, let index = messages.firstIndex(of: previous), !messages.isEmpty else {
             return messages.first ?? "That's the day."
         }

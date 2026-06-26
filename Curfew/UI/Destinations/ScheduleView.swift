@@ -1,3 +1,4 @@
+import CurfewKit
 import SwiftUI
 
 /// "Schedule" workspace destination — the weekly lock/unlock editor.

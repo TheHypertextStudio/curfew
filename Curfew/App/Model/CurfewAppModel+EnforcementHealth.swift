@@ -1,3 +1,4 @@
+import CurfewKit
 import Foundation
 
 // Enforcement-health wiring for `CurfewAppModel`: the per-tick poll that

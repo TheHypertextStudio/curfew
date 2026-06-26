@@ -1,4 +1,5 @@
 import Foundation
+import CurfewKit
 import WidgetKit
 
 /// Snapshot of enforcement state passed to the widget view.

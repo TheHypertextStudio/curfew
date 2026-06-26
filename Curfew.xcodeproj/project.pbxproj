@@ -13,6 +13,9 @@
 		C0FE00000000000000000041 /* CurfewWidgetEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FE00000000000000000015 /* CurfewWidgetEntry.swift */; };
 		C0FE00000000000000000042 /* CurfewWidgetProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FE00000000000000000016 /* CurfewWidgetProvider.swift */; };
 		C0FE00000000000000000043 /* CurfewWidgetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FE00000000000000000017 /* CurfewWidgetView.swift */; };
+		C0FE00000000000000000111 /* CurfewKit in Frameworks */ = {isa = PBXBuildFile; productRef = C0FE00000000000000000101 /* CurfewKit */; };
+		C0FE00000000000000000112 /* CurfewKit in Frameworks */ = {isa = PBXBuildFile; productRef = C0FE00000000000000000102 /* CurfewKit */; };
+		C0FE00000000000000000113 /* CurfewKit in Frameworks */ = {isa = PBXBuildFile; productRef = C0FE00000000000000000103 /* CurfewKit */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -97,34 +100,6 @@
 			path = CurfewUITests;
 			sourceTree = "<group>";
 		};
-		C0FE00000000000000000007 /* Sources/CurfewKit/Domain */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
-			path = Sources/CurfewKit/Domain;
-			sourceTree = "<group>";
-		};
-		C0FE00000000000000000008 /* Sources/CurfewKit/Storage */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
-			path = Sources/CurfewKit/Storage;
-			sourceTree = "<group>";
-		};
-		C0FE00000000000000000009 /* Sources/CurfewKit/Settings */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
-			path = Sources/CurfewKit/Settings;
-			sourceTree = "<group>";
-		};
-		C0FE00000000000000000060 /* Sources/CurfewKit/MCP */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
-			path = Sources/CurfewKit/MCP;
-			sourceTree = "<group>";
-		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -132,6 +107,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C0FE00000000000000000111 /* CurfewKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -139,6 +115,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C0FE00000000000000000113 /* CurfewKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -153,6 +130,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C0FE00000000000000000112 /* CurfewKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -200,9 +178,6 @@
 		C0FE00000000000000000006 /* CurfewWidgetSupport */ = {
 			isa = PBXGroup;
 			children = (
-				C0FE00000000000000000007 /* Sources/CurfewKit/Domain */,
-				C0FE00000000000000000008 /* Sources/CurfewKit/Storage */,
-				C0FE00000000000000000009 /* Sources/CurfewKit/Settings */,
 				C0FE0000000000000000000A /* WidgetSharedStateStore.swift */,
 			);
 			name = CurfewWidgetSupport;
@@ -229,12 +204,11 @@
 			);
 			fileSystemSynchronizedGroups = (
 				9BD3FB842F4D4584007B2E95 /* Curfew */,
-				C0FE00000000000000000007 /* Sources/CurfewKit/Domain */,
-				C0FE00000000000000000008 /* Sources/CurfewKit/Storage */,
-				C0FE00000000000000000009 /* Sources/CurfewKit/Settings */,
-				C0FE00000000000000000060 /* Sources/CurfewKit/MCP */,
 			);
 			name = Curfew;
+			packageProductDependencies = (
+				C0FE00000000000000000101 /* CurfewKit */,
+			);
 			productName = Curfew;
 			productReference = 9BD3FB822F4D4584007B2E95 /* Curfew.app */;
 			productType = "com.apple.product-type.application";
@@ -256,6 +230,9 @@
 				9BD3FB942F4D4587007B2E95 /* CurfewTests */,
 			);
 			name = CurfewTests;
+			packageProductDependencies = (
+				C0FE00000000000000000103 /* CurfewKit */,
+			);
 			productName = CurfewTests;
 			productReference = 9BD3FB912F4D4587007B2E95 /* CurfewTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
@@ -294,12 +271,12 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				C0FE00000000000000000007 /* Sources/CurfewKit/Domain */,
-				C0FE00000000000000000008 /* Sources/CurfewKit/Storage */,
-				C0FE00000000000000000009 /* Sources/CurfewKit/Settings */,
 				1F56E9B021971B57F3DE957D /* CurfewWidget */,
 			);
 			name = CurfewWidget;
+			packageProductDependencies = (
+				C0FE00000000000000000102 /* CurfewKit */,
+			);
 			productName = CurfewWidget;
 			productReference = C0FE00000000000000000004 /* CurfewWidget.appex */;
 			productType = "com.apple.product-type.app-extension";
@@ -339,6 +316,9 @@
 			);
 			mainGroup = 9BD3FB792F4D4584007B2E95;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				C0FE00000000000000000100 /* XCLocalSwiftPackageReference "CurfewKit" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 9BD3FB832F4D4584007B2E95 /* Products */;
 			projectDirPath = "";
@@ -404,7 +384,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "set -e\ncd \"$SRCROOT\"\nmkdir -p \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Resources\"\nmkdir -p \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Library/LaunchDaemons\"\nswift build -c release --product curfew-ctl\nswift build -c release --product curfew-mcp\nswift build -c release --product curfew-daemon\ncp .build/release/curfew-ctl \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Resources/curfew-ctl\"\ncp .build/release/curfew-mcp \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Resources/curfew-mcp\"\ncp .build/release/curfew-daemon \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Resources/curfew-daemon\"\ncp Curfew/Resources/LaunchDaemons/studio.hypertext.curfew.daemon.plist \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Library/LaunchDaemons/studio.hypertext.curfew.daemon.plist\"\n";
+			shellScript = "set -e\ncd \"$SRCROOT\"\nmkdir -p \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Resources\"\nmkdir -p \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Library/LaunchDaemons\"\nswift build --package-path CurfewKit -c release --product curfew-ctl\nswift build --package-path CurfewKit -c release --product curfew-mcp\nswift build --package-path CurfewKit -c release --product curfew-daemon\ncp CurfewKit/.build/release/curfew-ctl \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Resources/curfew-ctl\"\ncp CurfewKit/.build/release/curfew-mcp \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Resources/curfew-mcp\"\ncp CurfewKit/.build/release/curfew-daemon \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Resources/curfew-daemon\"\ncp Curfew/Resources/LaunchDaemons/studio.hypertext.curfew.daemon.plist \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Library/LaunchDaemons/studio.hypertext.curfew.daemon.plist\"\n";
 		};
 		C0FE0000000000000000ABCD /* Require Signed Build */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -863,6 +843,28 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		C0FE00000000000000000100 /* XCLocalSwiftPackageReference "CurfewKit" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = CurfewKit;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		C0FE00000000000000000101 /* CurfewKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = CurfewKit;
+		};
+		C0FE00000000000000000102 /* CurfewKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = CurfewKit;
+		};
+		C0FE00000000000000000103 /* CurfewKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = CurfewKit;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 9BD3FB7A2F4D4584007B2E95 /* Project object */;
 }

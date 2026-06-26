@@ -1,4 +1,5 @@
 import AppKit
+import CurfewKit
 import Foundation
 
 /// Enforcement re-assertion wiring for `CurfewAppModel`: recovers a degraded

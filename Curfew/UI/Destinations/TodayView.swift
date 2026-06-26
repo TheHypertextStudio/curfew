@@ -1,4 +1,5 @@
 import AppKit
+import CurfewKit
 import SwiftUI
 
 /// "Today" workspace destination — the live status surface.

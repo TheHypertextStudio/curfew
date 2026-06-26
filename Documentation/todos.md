@@ -18,7 +18,7 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 
 ## 0. Foundation and Project Structure
 
-- [x] Create `CurfewKit` SPM library for shared domain models (Sources/CurfewKit/). App/CLI/MCP all depend on it via public types.
+- [x] Create `CurfewKit` SPM library for shared domain models (CurfewKit/Sources/CurfewKit/). App/widget/CLI/MCP all link it as a library product and depend on it via public types (`import CurfewKit`).
 - [x] Convert app shell to a standard macOS app window (`LSUIElement = false`) with menu bar quick access.
 - [x] Default debug/Xcode launch starts with enforcement disarmed unless explicitly enabled.
 - [x] Add a dedicated app launch coordinator so app startup orchestration is isolated from scene composition.

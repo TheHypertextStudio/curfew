@@ -1,3 +1,4 @@
+import CurfewKit
 import SwiftUI
 
 /// Devices panel extensions on `SettingsView`. Surfaces

@@ -1,3 +1,4 @@
+import CurfewKit
 import SwiftUI
 
 /// The Journal's reflections section — the per-entry log plus a neutral

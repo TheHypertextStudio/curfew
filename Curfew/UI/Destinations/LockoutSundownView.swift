@@ -1,3 +1,4 @@
+import CurfewKit
 import SwiftUI
 
 /// Presentational lockout overlay in the sundown language — the signature

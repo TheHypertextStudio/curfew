@@ -1,3 +1,4 @@
+import CurfewKit
 import SwiftUI
 
 /// Advanced diagnostics and the Getting Started re-entry, as panel extensions

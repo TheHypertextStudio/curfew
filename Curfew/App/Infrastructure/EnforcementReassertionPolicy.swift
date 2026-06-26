@@ -1,3 +1,5 @@
+import CurfewKit
+
 /// Pure policy deciding whether Curfew should re-assert its lockout enforcement
 /// when the user returns to the Mac — on app activation or system wake.
 ///

@@ -1,4 +1,5 @@
 import Combine
+import CurfewKit
 import EventKit
 import Foundation
 import OSLog

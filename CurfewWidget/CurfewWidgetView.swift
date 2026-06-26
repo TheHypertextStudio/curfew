@@ -1,4 +1,5 @@
 import SwiftUI
+import CurfewKit
 import WidgetKit
 
 /// WidgetKit view hierarchy. Dispatches to one of three layouts by

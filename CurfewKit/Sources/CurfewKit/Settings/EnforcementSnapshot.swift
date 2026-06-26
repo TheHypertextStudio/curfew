@@ -50,4 +50,31 @@ public struct EnforcementSnapshot: Equatable {
 
     /// Remaining weekly extension count (post any already-consumed today).
     public var extensionsRemaining: Int
+
+    /// Memberwise initialiser. Public so the app target — which now links
+    /// CurfewKit as a library rather than compiling its sources directly —
+    /// can build snapshots for each tick.
+    public init(
+        phase: EnforcementPhase,
+        symbolName: String,
+        statusLine: String,
+        timeRemainingText: String,
+        scheduleWindowText: String,
+        scheduleSummarySentence: String,
+        pendingScheduleDescription: String?,
+        canRequestExtension: Bool,
+        extensionRequestTitle: String,
+        extensionsRemaining: Int
+    ) {
+        self.phase = phase
+        self.symbolName = symbolName
+        self.statusLine = statusLine
+        self.timeRemainingText = timeRemainingText
+        self.scheduleWindowText = scheduleWindowText
+        self.scheduleSummarySentence = scheduleSummarySentence
+        self.pendingScheduleDescription = pendingScheduleDescription
+        self.canRequestExtension = canRequestExtension
+        self.extensionRequestTitle = extensionRequestTitle
+        self.extensionsRemaining = extensionsRemaining
+    }
 }

@@ -1,4 +1,5 @@
 @testable import Curfew
+import CurfewKit
 import ServiceManagement
 import Testing
 

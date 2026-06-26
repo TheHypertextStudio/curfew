@@ -1,3 +1,4 @@
+import CurfewKit
 import SwiftUI
 
 /// Settings panel for entering and managing a Curfew Pro license key.

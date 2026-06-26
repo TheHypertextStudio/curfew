@@ -1,5 +1,6 @@
 import AppKit
 @testable import Curfew
+import CurfewKit
 import Foundation
 
 /// Minimal `AppRouting` spy that records call counts. Shared across test

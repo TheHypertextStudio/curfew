@@ -1,5 +1,6 @@
 import AppKit
 import Combine
+import CurfewKit
 import SwiftUI
 
 /// First-launch onboarding view presented in its own AppKit window by

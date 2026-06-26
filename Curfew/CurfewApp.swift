@@ -1,4 +1,5 @@
 import AppKit
+import CurfewKit
 import SwiftUI
 
 /// Narrow seam exercised by `CurfewApp.init` on first launch. Separated

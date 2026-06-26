@@ -1,4 +1,5 @@
 import AppKit
+import CurfewKit
 import SwiftUI
 
 /// Abstraction over "bring the app to focus and show settings" so tests can

@@ -1,3 +1,4 @@
+import CurfewKit
 import Foundation
 
 /// A pure description of the sky at one instant — the single source the whole

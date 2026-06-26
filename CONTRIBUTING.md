@@ -18,7 +18,7 @@ The full ship-gate is `just check`: SwiftFormat lint → SwiftLint → unit test
 
 - Open an issue before a large change to align on scope.
 - Keep PRs focused — one concern per PR.
-- Add or update tests for any behavior change in `Sources/CurfewKit/`. UI changes don't require tests but must not break existing ones.
+- Add or update tests for any behavior change in `CurfewKit/Sources/CurfewKit/`. UI changes don't require tests but must not break existing ones.
 - `AGENTS.md` describes the TDD contract for Core modules in detail.
 
 ## Code style

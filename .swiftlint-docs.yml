@@ -5,7 +5,7 @@
 included:
   - Curfew
   - CurfewWidget
-  - Sources
+  - CurfewKit/Sources
 
 excluded:
   - DerivedData

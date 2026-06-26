@@ -1,3 +1,4 @@
+import CurfewKit
 import Foundation
 
 /// One tab of the Settings window.

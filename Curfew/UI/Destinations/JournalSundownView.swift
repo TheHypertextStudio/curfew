@@ -1,3 +1,4 @@
+import CurfewKit
 import SwiftUI
 
 /// DESIGN PROPOSAL — not wired into the app.

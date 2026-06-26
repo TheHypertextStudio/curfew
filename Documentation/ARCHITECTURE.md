@@ -6,7 +6,7 @@
 
 ```
 Curfew.app
-├── Sources/CurfewKit/    Pure domain, storage, settings, and MCP queue types
+├── CurfewKit/Sources/CurfewKit/    Pure domain, storage, settings, and MCP queue types
 │   ├── Domain/
 │   │   ├── CurfewEnforcementEngine   Stateless (schedule, now, budget) → CurfewEvaluation
 │   │   ├── ScheduleModels            CurfewSchedule, DayRule, Weekday, SchedulePreset
@@ -69,19 +69,22 @@ Curfew.app
     ├── CurfewWidgetEntry         TimelineEntry snapshot
     └── CurfewWidgetView          Small/medium/large SwiftUI views
 
-Sources/
-├── CurfewKit/            SPM library — Domain, Storage, Settings, and MCP queue types
-│                         live here canonically. The Xcode app + widget targets, the
-│                         three CLI executables, and the SPM library all compile from
-│                         the same files via PBXFileSystemSynchronizedRootGroup.
-├── curfew-ctl/           ArgumentParser CLI — status, schedule, budget, activity, override.
-│                         Read operations inspect shared storage directly; `override`
-│                         enqueues onto the MCP request queue so the running app
-│                         raises a consent sheet.
-├── curfew-mcp/           MCP server — stdio transport, JSON-RPC 2.0.
-└── curfew-daemon/        Root-enforced shutdown when the app dies mid-lockout.
+CurfewKit/                local Swift package (in its own subfolder, not the repo root,
+│                         so opening the repo folder lands on Curfew.xcodeproj).
+└── Sources/
+    ├── CurfewKit/        SPM library — Domain, Storage, Settings, and MCP queue types
+    │                     live here canonically. `Curfew.xcodeproj` references this
+    │                     package locally and links the `CurfewKit` library product
+    │                     into the app, widget, and CLI tools; every consumer
+    │                     `import CurfewKit` (one compiled copy, no dual-compilation).
+    ├── curfew-ctl/       ArgumentParser CLI — status, schedule, budget, activity, override.
+    │                     Read operations inspect shared storage directly; `override`
+    │                     enqueues onto the MCP request queue so the running app
+    │                     raises a consent sheet.
+    ├── curfew-mcp/       MCP server — stdio transport, JSON-RPC 2.0.
+    └── curfew-daemon/    Root-enforced shutdown when the app dies mid-lockout.
 
-CurfewTests/              Unit tests, no UI dependencies
+CurfewTests/              Unit tests, no UI dependencies (in the Xcode project)
 ```
 
 ## Key design decisions
@@ -90,7 +93,7 @@ CurfewTests/              Unit tests, no UI dependencies
 `CurfewEnforcementEngine` is a stateless function: `(schedule, now, extensionMinutes, overrideUntil, warningIntervals) → CurfewEvaluation`. It has no side effects and no stored state. The app model calls it every second and reacts to the result. This makes every enforcement behavior trivially testable and keeps the Core completely independent of AppKit.
 
 ### `CurfewKit` as the shared library
-The CLI tools, MCP server, and privileged daemon all link against a single SPM library, `CurfewKit`. Its source files live canonically under `Sources/CurfewKit/` and are auto-discovered by SPM. The Xcode app and widget targets compile the same files directly via `PBXFileSystemSynchronizedRootGroup` entries — there is no `import CurfewKit` on the app side, just shared compilation. Earlier revisions cherry-picked individual files into `Package.swift`; the auto-discovery form means a new file dropped into `Sources/CurfewKit/{Domain,Storage,Settings,MCP}/` is automatically picked up by every consumer.
+Everything shares a single SPM library, `CurfewKit`, whose source lives canonically under `CurfewKit/Sources/CurfewKit/` and is auto-discovered by SPM. The package sits in its own `CurfewKit/` subfolder (not the repo root) so opening the repo folder in Xcode resolves to `Curfew.xcodeproj`, not a package-only window. `Curfew.xcodeproj` references the package locally and links the `CurfewKit` library product into the app, the widget, and the three CLI executables — every consumer `import CurfewKit`. There is one compiled copy of CurfewKit (no dual-compilation); a new file dropped into `CurfewKit/Sources/CurfewKit/{Domain,Storage,Settings,MCP}/` is picked up by SPM automatically and is visible to every consumer once it is marked `public`. (An earlier revision compiled these files directly into the app/widget targets via `PBXFileSystemSynchronizedRootGroup`, with no `import` on the app side; that dual-compile was replaced by the conventional library-product dependency.)
 
 ### Feature flags + license as two separate gates
 `FeatureFlags` controls whether a code path is *reachable at all* (off by default for incomplete features). `LicenseGate` controls whether a reachable feature is *unlocked* for the user. Both must pass for Pro surfaces to activate. This means a free-tier user who reverse-engineers the binary still hits the license check; a Pro user on an early build still hits the feature flag.

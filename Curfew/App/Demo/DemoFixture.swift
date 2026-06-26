@@ -1,3 +1,5 @@
+import CurfewKit
+
 #if DEBUG
     import Foundation
 

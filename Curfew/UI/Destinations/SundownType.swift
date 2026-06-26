@@ -1,3 +1,4 @@
+import CurfewKit
 import SwiftUI
 
 /// Intentional type scale for the sundown design language (proposal).

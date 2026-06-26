@@ -1,3 +1,4 @@
+import CurfewKit
 import Foundation
 
 /// View-facing surface of `CurfewAppModel`.

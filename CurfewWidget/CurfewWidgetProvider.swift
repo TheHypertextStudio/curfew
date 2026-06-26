@@ -1,4 +1,5 @@
 import Foundation
+import CurfewKit
 import WidgetKit
 
 // NOTE: This target must include (or symlink) the following files from Curfew/Core

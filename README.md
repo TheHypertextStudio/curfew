@@ -174,11 +174,16 @@ Contributor expectations and the TDD workflow live in [`AGENTS.md`](AGENTS.md).
 ## Architecture
 
 ```
-Sources/CurfewKit/   Pure domain logic, storage, settings, and MCP queue types —
-                     schedule engine, budget tracker, warning stages, override policy,
-                     activity store. No UI; fully unit-tested. Auto-compiled into
-                     the SPM library, the Xcode app + widget targets, and all three
-                     CLI executables.
+CurfewKit/           Local Swift package (its own subfolder, so opening the repo
+                     folder in Xcode resolves to Curfew.xcodeproj, not a package).
+                     Curfew.xcodeproj links its CurfewKit library product into the
+                     app, widget, and CLI tools — every consumer `import CurfewKit`.
+  Sources/CurfewKit/   Pure domain logic, storage, settings, and MCP queue types —
+                       schedule engine, budget tracker, warning stages, override
+                       policy, activity store. No UI; fully unit-tested.
+  Sources/curfew-ctl/    ArgumentParser CLI — reads shared storage; enqueues overrides.
+  Sources/curfew-mcp/    MCP server (stdio transport, JSON-RPC 2.0).
+  Sources/curfew-daemon/ Root-enforced shutdown when the app dies mid-lockout.
 
 Curfew/Core/Features/  App-only features that depend on Apple frameworks —
                        IdleWatcher, LicenseGate, CalendarMonitor, CloudKit sync.
@@ -188,14 +193,9 @@ Curfew/App/      @MainActor app model, routing, overlay coordinator, key interce
 
 Curfew/UI/       SwiftUI views — main window, settings, lockout overlay, onboarding.
 
-CurfewWidget/    WidgetKit extension. Compiles the Domain/Storage/Settings subsets
-                 of CurfewKit; signed release/App Group validation still requires
-                 a provisioned build.
-
-Sources/
-  curfew-ctl/    ArgumentParser CLI — reads shared storage; enqueues override requests.
-  curfew-mcp/    MCP server (stdio transport, JSON-RPC 2.0).
-  curfew-daemon/ Root-enforced shutdown when the app dies mid-lockout.
+CurfewWidget/    WidgetKit extension. Links CurfewKit and imports the Domain/Storage/
+                 Settings types it needs; signed release/App Group validation still
+                 requires a provisioned build.
 
 CurfewTests/     Unit tests covering every CurfewKit module and app model behavior.
 ```

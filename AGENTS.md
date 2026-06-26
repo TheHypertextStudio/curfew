@@ -27,10 +27,11 @@ Curfew is a production-focused macOS app that enforces end-of-day boundaries wit
 Primary code and docs locations:
 
 - `Curfew/` app code (Swift/SwiftUI/AppKit + domain logic)
-- `Sources/CurfewKit/` shared Swift library (SPM target; also compiled into the Xcode app via PBXFileSystemSynchronizedRootGroup)
-- `Sources/curfew-mcp/` local MCP server binary; consumes `@hypertext/curfew-protocols` via SPM
-- `Sources/curfew-ctl/` CLI
-- `Sources/curfew-daemon/` privileged helper
+- `CurfewKit/` local Swift package: shared `CurfewKit` library + the CLI/MCP/daemon executables. `Curfew.xcodeproj` references it locally and links the `CurfewKit` library into the app, widget, and CLI tools (every consumer `import CurfewKit` — no dual-compilation)
+- `CurfewKit/Sources/CurfewKit/` shared Swift library (Domain, Storage, Settings, MCP queue types)
+- `CurfewKit/Sources/curfew-mcp/` local MCP server binary; consumes `@hypertext/curfew-protocols` via SPM
+- `CurfewKit/Sources/curfew-ctl/` CLI
+- `CurfewKit/Sources/curfew-daemon/` privileged helper
 - `CurfewTests/` unit and behavior tests
 - `CurfewUITests/` UI tests
 - `Documentation/plan.md` product requirements

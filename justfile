@@ -194,7 +194,7 @@ capture-video seconds="18":
 # ImageRenderer in a plain unit test — no UI-test runner, no Screen Recording,
 # no desktop takeover, CI-friendly. Output: build/snapshots/curfew-*.png.
 snapshot:
-    swift build -c release --product curfew-ctl --product curfew-mcp --product curfew-daemon
+    swift build --package-path CurfewKit -c release --product curfew-ctl --product curfew-mcp --product curfew-daemon
     xcodebuild test \
         -project {{ project }} \
         -scheme {{ scheme }} \

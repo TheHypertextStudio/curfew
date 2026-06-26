@@ -1,3 +1,4 @@
+import CurfewKit
 import Foundation
 
 extension MainWorkspaceSection {

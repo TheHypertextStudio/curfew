@@ -1,4 +1,5 @@
 import AppKit
+import CurfewKit
 import SwiftUI
 
 /// Presents and dismisses the first-launch "Welcome to Curfew" onboarding
