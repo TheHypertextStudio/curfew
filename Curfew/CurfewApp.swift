@@ -27,11 +27,9 @@ struct AppCoordinator: AppCoordinating {
         model: CurfewAppModel,
         shouldStartEnforcement: Bool
     ) {
-        // The sundown palette is a warm light design; pin the app to a light
-        // appearance so the chrome (sidebar, title bar) stays consistent with it
-        // rather than splitting light/dark when the system is in Dark Mode.
-        NSApplication.shared.appearance = NSAppearance(named: .aqua)
-
+        // Appearance is left to the system: CurfewTheme resolves every colour
+        // adaptively (Aqua / Dark Aqua), so the chrome follows Light/Dark Mode
+        // automatically.
         if shouldStartEnforcement {
             model.start()
         }
@@ -116,10 +114,10 @@ struct CurfewApp: App {
                 let model = CurfewAppModel.demoModel()
                 _model = State(wrappedValue: model)
                 DispatchQueue.main.async {
-                    // The demo branch returns before `AppCoordinator` runs, so
-                    // pin the light appearance here too — otherwise demo/capture
-                    // builds follow the system into Dark Mode and the warm "paper
-                    // sanctuary" chrome renders dark, unlike the shipping app.
+                    // Demo/capture builds only: pin a light appearance so
+                    // marketing screenshots stay deterministic regardless of the
+                    // capture machine's mode. The shipping app itself follows the
+                    // system (Light/Dark) — this pin is scoped to the demo fixture.
                     NSApplication.shared.appearance = NSAppearance(named: .aqua)
                     model.applyDemoScenario(scenario)
                 }
