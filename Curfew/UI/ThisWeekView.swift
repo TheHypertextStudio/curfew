@@ -1,4 +1,5 @@
 import AppKit
+import Charts
 import CurfewKit
 import EventKit
 import SwiftUI
@@ -44,7 +45,7 @@ struct ThisWeekView: View {
 
             headlineMetrics(rollup: rollup)
             Divider()
-            dayGrid(rollup: rollup)
+            weeklyActivity(rollup: rollup)
 
             let devices = model.overridesByDeviceThisWeek()
             if devices.count >= 2 || (devices.count == 1 && devices.values.first ?? 0 >= 2) {
@@ -111,16 +112,151 @@ struct ThisWeekView: View {
         }
     }
 
-    /// Seven equal-width columns representing each day of the week. A
-    /// filled dot indicates a day that ended in lockout; the weekday
-    /// label below sits underneath.
-    private func dayGrid(rollup: WeeklyActivityRollup) -> some View {
-        HStack(spacing: 10) {
-            ForEach(Array(rollup.days.enumerated()), id: \.offset) { _, day in
-                dayCell(day: day)
+    /// Weekly activity section. Shows the per-day Swift Charts bar chart
+    /// when there's something to plot, and a native ``ContentUnavailableView``
+    /// for an untouched week so the panel never renders an empty axis.
+    @ViewBuilder
+    private func weeklyActivity(rollup: WeeklyActivityRollup) -> some View {
+        if hasActivity(rollup) {
+            activityChart(rollup: rollup)
+        } else {
+            emptyState
+        }
+    }
+
+    /// Whether the week recorded any lockout, extension, or override. Drives
+    /// the chart-vs-empty-state branch. A week of pure zeros reads better as
+    /// an explicit "nothing here yet" than as seven flat bars.
+    private func hasActivity(_ rollup: WeeklyActivityRollup) -> Bool {
+        rollup.daysWithLockout > 0
+            || rollup.totalExtensionCount > 0
+            || rollup.totalOverrideCount > 0
+    }
+
+    /// Native empty state for a quiet week (or before any data exists).
+    private var emptyState: some View {
+        ContentUnavailableView {
+            Label("No activity yet this week", systemImage: "chart.bar.xaxis")
+        } description: {
+            Text(
+                "Once your curfew starts holding, each day's lockouts and the "
+                    + "extensions or overrides you use will chart here."
+            )
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    /// Per-day Swift Charts visualisation. Stacked bars encode how many
+    /// extensions and overrides were claimed each day (the "interventions
+    /// used" the user is trying to reduce); the weekday axis label is tinted
+    /// with the accent ember on days that held their lockout, so a single
+    /// glance reads both "how consistently it held" and "how much I leaned on
+    /// escapes". Counts share one y-axis; the boolean lockout signal rides the
+    /// axis labels rather than competing for bar height.
+    private func activityChart(rollup: WeeklyActivityRollup) -> some View {
+        VStack(alignment: .leading, spacing: CurfewSpacing.small) {
+            interventionBars(rollup: rollup)
+                .chartForegroundStyleScale([
+                    Self.extensionsLabel: CurfewTheme.accent,
+                    Self.overridesLabel: CurfewTheme.warning
+                ])
+                .chartYAxis { weekdayCountAxis }
+                .chartXAxis { weekdayLabelAxis(rollup: rollup) }
+                .chartLegend(position: .bottom, spacing: 8)
+                .frame(height: 160)
+
+            lockoutLegend
+        }
+    }
+
+    /// The stacked bar series: two bars per day (extensions + overrides),
+    /// coloured by category via the foreground-style scale applied upstream.
+    private func interventionBars(rollup: WeeklyActivityRollup) -> some View {
+        Chart(interventionPoints(for: rollup)) { point in
+            BarMark(
+                x: .value("Day", point.day, unit: .day),
+                y: .value("Count", point.count)
+            )
+            .foregroundStyle(by: .value("Type", point.category))
+            .cornerRadius(4)
+        }
+    }
+
+    /// Integer count ticks down the y-axis, in the muted ink so the bars stay
+    /// the focal point.
+    private var weekdayCountAxis: some AxisContent {
+        AxisMarks(values: .automatic(desiredCount: 4)) { value in
+            AxisGridLine().foregroundStyle(CurfewTheme.border)
+            AxisValueLabel {
+                if let count = value.as(Int.self) {
+                    Text("\(count)")
+                        .font(CurfewTypography.label(11))
+                        .foregroundStyle(CurfewTheme.mutedInk)
+                }
             }
         }
     }
+
+    /// Weekday labels along the x-axis, tinted with the accent ember on days
+    /// that held their lockout so the boolean signal rides the axis rather than
+    /// competing with the bars for height.
+    private func weekdayLabelAxis(rollup: WeeklyActivityRollup) -> some AxisContent {
+        let lockoutDays = Set(rollup.days.filter(\.hadLockout).map(\.day))
+        return AxisMarks(values: rollup.days.map(\.day)) { value in
+            if let date = value.as(Date.self) {
+                AxisValueLabel {
+                    Text(weekdayLabel(for: date))
+                        .font(CurfewTypography.label(11))
+                        .foregroundStyle(
+                            lockoutDays.contains(date)
+                                ? CurfewTheme.accent
+                                : CurfewTheme.mutedInk
+                        )
+                }
+            }
+        }
+    }
+
+    /// Key for the accent-tinted axis labels — without it the highlight is just
+    /// an unexplained colour. A tiny inline swatch carries the meaning.
+    private var lockoutLegend: some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(CurfewTheme.accent)
+                .frame(width: 8, height: 8)
+            Text("Highlighted weekdays held their lockout.")
+                .font(CurfewTypography.label(11))
+                .foregroundStyle(CurfewTheme.mutedInk)
+        }
+    }
+
+    /// Flattens the weekly rollup into one chart row per (day, category) pair.
+    /// Both categories are emitted for every day — including zero-count rows,
+    /// which Charts renders as no bar — so the seven-day axis stays contiguous.
+    private func interventionPoints(
+        for rollup: WeeklyActivityRollup
+    ) -> [DayIntervention] {
+        rollup.days.flatMap { day in
+            [
+                DayIntervention(
+                    day: day.day,
+                    category: Self.extensionsLabel,
+                    count: day.extensionCount
+                ),
+                DayIntervention(
+                    day: day.day,
+                    category: Self.overridesLabel,
+                    count: day.overrideCount
+                )
+            ]
+        }
+    }
+
+    /// Series label for extension bars. Hoisted to a constant so the chart
+    /// data, the foreground-style scale, and the legend all agree on spelling.
+    private static let extensionsLabel = "Extensions"
+    /// Series label for override bars.
+    private static let overridesLabel = "Overrides"
 
     /// Static two-letter weekday formatter shared across cells. A fresh
     /// `DateFormatter` allocation is non-trivial (Foundation lock +
@@ -144,18 +280,6 @@ struct ThisWeekView: View {
                 .foregroundStyle(CurfewTheme.mutedInk)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private func dayCell(day: DailyActivityRollup) -> some View {
-        VStack(spacing: 6) {
-            Circle()
-                .fill(day.hadLockout ? CurfewTheme.accent : CurfewTheme.surfaceMuted)
-                .frame(width: 14, height: 14)
-            Text(weekdayLabel(for: day.day))
-                .font(CurfewTypography.label(11))
-                .foregroundStyle(CurfewTheme.mutedInk)
-        }
-        .frame(maxWidth: .infinity)
     }
 
     /// Two-letter weekday label (Mo / Tu / …) in the user's locale.
@@ -220,4 +344,15 @@ struct ThisWeekView: View {
             }
         }
     }
+}
+
+/// One bar's worth of chart input: a day, a category ("Extensions" or
+/// "Overrides"), and the count claimed that day. Two of these per day feed the
+/// stacked ``BarMark`` series. `Identifiable` keeps `Chart(_:)` happy without a
+/// manual `id:` key path.
+private struct DayIntervention: Identifiable {
+    let id = UUID()
+    let day: Date
+    let category: String
+    let count: Int
 }
