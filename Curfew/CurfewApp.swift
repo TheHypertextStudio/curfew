@@ -167,9 +167,17 @@ struct CurfewApp: App {
                 }
             }
 
-        MenuBarExtra("Curfew", systemImage: model.menuBarSymbolName) {
+        MenuBarExtra {
             ContentView()
                 .environmentObject(model)
+        } label: {
+            // Morph between phase glyphs on change, and pulse when enforcement
+            // is degraded so a silently-broken lockout draws the eye in the
+            // menu bar. (Menu-bar symbol animation is best-effort; the glyph
+            // itself always renders correctly.)
+            Image(systemName: model.menuBarSymbolName)
+                .contentTransition(.symbolEffect(.replace))
+                .symbolEffect(.pulse, isActive: model.enforcementHealth != .active)
         }
         .menuBarExtraStyle(.window)
 
