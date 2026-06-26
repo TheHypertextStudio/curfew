@@ -8,7 +8,8 @@ extension SettingsView {
     /// The explanatory caveat sits above the control so the panel reads
     /// top-down rather than burying the "why" beneath the switch.
     var advancedPanel: some View {
-        CurfewPanel {
+        @Bindable var model = model
+        return CurfewPanel {
             CurfewSectionTitle(
                 title: "MCP Transport",
                 subtitle: "A diagnostic for advanced MCP client setups."

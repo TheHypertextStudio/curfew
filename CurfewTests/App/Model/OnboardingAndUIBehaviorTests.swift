@@ -144,8 +144,7 @@ struct SetupUXTests {
     func openSettingsActionRoutesThroughRouter() {
         let router = AppRouterSpy()
         let model = CurfewAppModel(
-            appRouter: router,
-            gettingStartedPresenter: GettingStartedPresenterSpy()
+            appRouter: router
         )
 
         model.openSettings()
@@ -154,17 +153,15 @@ struct SetupUXTests {
         #expect(router.showSettingsCallCount == 1)
     }
 
-    @Test("Getting Started action presents onboarding window route")
-    func gettingStartedActionRoutesThroughPresenter() {
-        let presenter = GettingStartedPresenterSpy()
+    @Test("Getting Started action bumps the onboarding window request trigger")
+    func gettingStartedActionBumpsRequestTrigger() {
         let model = CurfewAppModel(
-            appRouter: AppRouterSpy(),
-            gettingStartedPresenter: presenter
+            appRouter: AppRouterSpy()
         )
 
         model.showGettingStarted()
 
-        #expect(presenter.presentCallCount == 1)
+        #expect(model.gettingStartedRequestID == 1)
     }
 
     @Test("Completing onboarding marks setup complete and dismisses onboarding")
@@ -178,17 +175,15 @@ struct SetupUXTests {
             defaults.removePersistentDomain(forName: suiteName)
         }
 
-        let presenter = GettingStartedPresenterSpy()
         let model = CurfewAppModel(
             settingsStore: CurfewSettingsStore(defaults: defaults),
-            appRouter: AppRouterSpy(),
-            gettingStartedPresenter: presenter
+            appRouter: AppRouterSpy()
         )
 
         #expect(!model.settings.hasCompletedInitialSetup)
         model.completeOnboardingFlow()
         #expect(model.settings.hasCompletedInitialSetup)
-        #expect(presenter.dismissCallCount == 1)
+        #expect(model.gettingStartedDismissID == 1)
     }
 }
 
@@ -329,7 +324,6 @@ struct MenuBarPresentationModelTests {
         return CurfewAppModel(
             settingsStore: CurfewSettingsStore(defaults: defaults),
             appRouter: AppRouterSpy(),
-            gettingStartedPresenter: GettingStartedPresenterSpy(),
             activityRecorder: NullActivityRecording(),
             accessibilityAuthorization: FakeAccessibilityAuthorization(trusted: true)
         )

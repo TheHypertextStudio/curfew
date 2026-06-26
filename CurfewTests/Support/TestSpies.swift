@@ -27,25 +27,6 @@ final class AppRouterSpy: AppRouting {
     }
 }
 
-/// Minimal `GettingStartedPresenting` spy that records present/dismiss
-/// calls. Shared across test files for the same reason as `AppRouterSpy`.
-@MainActor
-final class GettingStartedPresenterSpy: GettingStartedPresenting {
-    /// Number of times `present(model:)` has been called.
-    private(set) var presentCallCount = 0
-
-    /// Number of times `dismiss()` has been called.
-    private(set) var dismissCallCount = 0
-
-    func present(model: CurfewAppModel) {
-        presentCallCount += 1
-    }
-
-    func dismiss() {
-        dismissCallCount += 1
-    }
-}
-
 /// `RespawnGuardControlling` spy that records install / arm / disarm
 /// invocations so tests can assert the model wires the user-space respawn
 /// deterrent at the expected lifecycle points without touching real

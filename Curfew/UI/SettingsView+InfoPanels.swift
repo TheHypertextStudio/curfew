@@ -31,7 +31,8 @@ extension SettingsView {
     }
 
     private var enabledMCPConfigPanel: some View {
-        CurfewPanel {
+        @Bindable var model = model
+        return CurfewPanel {
             CurfewSectionTitle(
                 title: "MCP Control Plane",
                 subtitle: "Allow AI assistants to control your device"
@@ -86,7 +87,8 @@ extension SettingsView {
 
     /// AI consent policy picker.
     private var aiConsentPanel: some View {
-        CurfewPanel {
+        @Bindable var model = model
+        return CurfewPanel {
             CurfewSectionTitle(
                 title: "AI Consent Policy",
                 subtitle: "Choose how Curfew handles AI-requested changes."
@@ -140,7 +142,7 @@ extension SettingsView {
                         )
                     }
                 }
-                .environmentObject(model)
+                .environment(model)
             }
             if model.featureFlags.calendarEnabled {
                 PlusGate(
@@ -160,7 +162,7 @@ extension SettingsView {
                         calendarAuthRow
                     }
                 }
-                .environmentObject(model)
+                .environment(model)
             }
 
             if model.featureFlags.privilegedHelperEnabled {
@@ -245,7 +247,7 @@ extension SettingsView {
                 ) {
                     cloudSyncPanel
                 }
-                .environmentObject(model)
+                .environment(model)
             }
         }
     }
@@ -314,7 +316,7 @@ extension SettingsView {
     /// License key entry and Pro status panel.
     var licensePanel: some View {
         LicenseView()
-            .environmentObject(model)
+            .environment(model)
     }
 
     /// Shared row layout for the Integrations panel.

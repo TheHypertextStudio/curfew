@@ -1,7 +1,7 @@
 import CloudKit
-import Combine
 import CurfewKit
 import Foundation
+import Observation
 import OSLog
 
 private let syncLogger = Logger(subsystem: "studio.hypertext.curfew", category: "cloudkit-sync")
@@ -38,14 +38,15 @@ enum CloudKitSyncStatus: Equatable {
 /// `notAuthenticated`, `networkUnavailable`, and missing-container errors
 /// gracefully so the app stays functional on first launch.
 @MainActor
-final class CloudKitSyncEngine: ObservableObject {
+@Observable
+final class CloudKitSyncEngine {
     /// Called on the main actor when a newer settings payload arrives from
     /// the cloud. The app model applies it and persists locally.
-    var onSettingsReceived: ((CurfewSettings) -> Void)?
+    @ObservationIgnored var onSettingsReceived: ((CurfewSettings) -> Void)?
 
     /// Current sync state. Updates on every push/pull attempt so
     /// Settings → Devices can show last-synced time and failure details.
-    @Published private(set) var syncStatus: CloudKitSyncStatus = .idle
+    private(set) var syncStatus: CloudKitSyncStatus = .idle
 
     // CKContainer is created lazily in start() to avoid calling it off the
     // main thread — nonisolated init runs as a default argument before

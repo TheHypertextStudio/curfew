@@ -1,7 +1,7 @@
-import Combine
 import CryptoKit
 import CurfewKit
 import Foundation
+import Observation
 
 /// Sentinel value for the unconfigured placeholder public key. Kept as its
 /// own constant so `LicenseGate.verified` can fail-closed when the build has
@@ -49,19 +49,34 @@ enum LicenseActivationError: LocalizedError {
 /// embedded above — the matching private key signs keys server-side via the
 /// license issuer Worker secret `LICENSE_PRIVATE_KEY`.
 @MainActor
-final class LicenseGate: ObservableObject {
+@Observable
+final class LicenseGate {
     /// Standard-base64 Ed25519 public key for the current Curfew Plus issuer.
     /// The matching private seed is an external Worker secret and is never
     /// bundled, committed, logged, or read by the app.
     static let configuredPublicKeyBase64 = "UKRq5y4Zyahv2VxzLfx4Gth8uTJLvqiIESpJ+dkER+4="
 
-    /// Verified Pro license currently in effect, or `nil` for free-tier
-    /// users. Setting surfaces Pro features across the app through the
-    /// `isProUnlocked` derived boolean.
-    @Published private(set) var activatedKey: LicenseKey?
+    /// Verified Plus license currently in effect, or `nil` for free-tier
+    /// users. Setting surfaces Plus features across the app through the
+    /// `isPlusUnlocked` derived boolean.
+    ///
+    /// `didSet` fires ``onActivationChange`` only on a real value change so
+    /// Plus-gated modules reconcile without an `@Observable` publisher (which
+    /// the macro does not provide). Equivalent to the old Combine
+    /// `removeDuplicates()` chain.
+    private(set) var activatedKey: LicenseKey? {
+        didSet {
+            if activatedKey != oldValue { onActivationChange?() }
+        }
+    }
     /// Localized error string from the most recent failed `activate(_:)`
     /// call, or `nil` after a successful activation / fresh launch.
-    @Published private(set) var activationError: String?
+    private(set) var activationError: String?
+
+    /// Invoked on the main actor whenever ``activatedKey`` changes value.
+    /// `CurfewAppModel` wires this to reconcile Plus-gated engines, replacing
+    /// the former `licenseGate.$activatedKey` Combine subscription.
+    @ObservationIgnored var onActivationChange: (() -> Void)?
 
     /// Convenience: `true` when a verified licence is stored. The whole
     /// Pro gate flows through this one flag so the rest of the code
@@ -77,9 +92,9 @@ final class LicenseGate: ObservableObject {
     }
 
     private let defaults: UserDefaults
-    // Kept as the original `"pro.licenseKey"` across the Plus rename: it is an
-    // internal UserDefaults key, never shown to users, and renaming it would
-    // need a migration to avoid dropping already-activated keys for no gain.
+    /// Kept as the original `"pro.licenseKey"` across the Plus rename: it is an
+    /// internal UserDefaults key, never shown to users, and renaming it would
+    /// need a migration to avoid dropping already-activated keys for no gain.
     private static let storageKey = "pro.licenseKey"
 
     /// Creates a gate backed by `defaults`. `nonisolated` so it can be

@@ -58,7 +58,7 @@ enum MainWorkspaceSection: String, CaseIterable, Identifiable {
 /// because the menu bar allots limited vertical space.
 struct ContentView: View {
     /// Live app state — snapshot reads the derived display fields.
-    @EnvironmentObject private var model: CurfewAppModel
+    @Environment(CurfewAppModel.self) private var model
     /// SwiftUI `openWindow` action so the popover can raise the main
     /// `WindowGroup` identified by `MainWorkspaceSection.windowID`.
     @Environment(\.openWindow) private var openWindow
@@ -182,7 +182,11 @@ struct ContentView: View {
 /// refracts sky colours rather than the desktop wallpaper behind the window.
 struct MainWindowView: View {
     /// Live app state shared across detail panes.
-    @EnvironmentObject private var model: CurfewAppModel
+    @Environment(CurfewAppModel.self) private var model
+    /// Opens the Getting Started `WindowGroup` when the model requests it.
+    @Environment(\.openWindow) private var openWindow
+    /// Dismisses the Getting Started window when the model requests it.
+    @Environment(\.dismissWindow) private var dismissWindow
     /// Currently-selected sidebar section. Defaults to `.today` (a Debug
     /// demo-capture launch can pin a different pane via `demoLaunchSelection`);
     /// SwiftUI restores the last selection between window appearances.
@@ -225,6 +229,16 @@ struct MainWindowView: View {
                 onDeny: { model.denyMCPRequest(request) }
             )
         }
+        // Bridge the model's onboarding triggers to the SwiftUI scene graph.
+        // `showGettingStarted()` / `dismissGettingStarted()` bump these
+        // monotonic counters; opening / dismissing the window is a scene
+        // concern, so it lives here rather than in the model.
+        .onChange(of: model.gettingStartedRequestID) {
+            openWindow(id: CurfewAppModel.gettingStartedWindowID)
+        }
+        .onChange(of: model.gettingStartedDismissID) {
+            dismissWindow(id: CurfewAppModel.gettingStartedWindowID)
+        }
     }
 
     @ViewBuilder
@@ -232,13 +246,13 @@ struct MainWindowView: View {
         switch selectedSection {
         case .today:
             TodayView(selectedSection: $selectedSection)
-                .environmentObject(model)
+                .environment(model)
         case .schedule:
             ScheduleView()
-                .environmentObject(model)
+                .environment(model)
         case .journal:
             JournalView()
-                .environmentObject(model)
+                .environment(model)
         }
     }
 }

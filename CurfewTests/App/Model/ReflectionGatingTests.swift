@@ -15,7 +15,6 @@ struct ReflectionGatingTests {
         return CurfewAppModel(
             settingsStore: CurfewSettingsStore(defaults: defaults),
             appRouter: AppRouterSpy(),
-            gettingStartedPresenter: GettingStartedPresenterSpy(),
             activityRecorder: NullActivityRecording()
         )
     }

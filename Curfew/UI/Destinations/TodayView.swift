@@ -9,7 +9,7 @@ import SwiftUI
 /// lock/unlock) and the on/off control; the weekly retrospective lives in the
 /// Journal.
 struct TodayView: View {
-    @EnvironmentObject private var model: CurfewAppModel
+    @Environment(CurfewAppModel.self) private var model
     /// Binding to the sidebar selection so the empty-state note can navigate
     /// the user directly to the Schedule destination.
     @Binding var selectedSection: MainWorkspaceSection

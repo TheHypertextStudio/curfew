@@ -279,7 +279,6 @@ struct LifecycleWiringTests {
         return CurfewAppModel(
             settingsStore: store,
             appRouter: AppRouterSpy(),
-            gettingStartedPresenter: GettingStartedPresenterSpy(),
             featureFlags: featureFlags,
             activityRecorder: activityRecorder,
             idleWatcher: watcher,

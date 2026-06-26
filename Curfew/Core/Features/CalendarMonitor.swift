@@ -1,7 +1,7 @@
-import Combine
 import CurfewKit
 import EventKit
 import Foundation
+import Observation
 
 /// Surfaces today's calendar events so the lockout screen and This Week view
 /// can show contextual scheduling information. Read-only — Curfew never
@@ -11,18 +11,19 @@ import Foundation
 /// `LicenseGate.isPlusUnlocked`. When either gate is closed the store is never
 /// started and all published properties remain at their empty defaults.
 @MainActor
-final class CalendarMonitor: ObservableObject {
+@Observable
+final class CalendarMonitor {
     /// Authorisation state for EventKit calendar access.
-    @Published private(set) var authorizationStatus: EKAuthorizationStatus = .notDetermined
+    private(set) var authorizationStatus: EKAuthorizationStatus = .notDetermined
 
     /// Today's non-all-day events from selected calendars, sorted by start time.
-    @Published private(set) var todayEvents: [EKEvent] = []
+    private(set) var todayEvents: [EKEvent] = []
 
     /// Whether any event is currently in progress.
-    @Published private(set) var hasCurrentEvent: Bool = false
+    private(set) var hasCurrentEvent: Bool = false
 
     /// The next upcoming (future) event today, if any.
-    @Published private(set) var nextEvent: EKEvent?
+    private(set) var nextEvent: EKEvent?
 
     // MARK: - Private
 

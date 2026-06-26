@@ -75,7 +75,6 @@ struct MCPGatingTests {
         return CurfewAppModel(
             settingsStore: store,
             appRouter: AppRouterSpy(),
-            gettingStartedPresenter: GettingStartedPresenterSpy(),
             featureFlags: featureFlags,
             activityRecorder: NullActivityRecording()
         )

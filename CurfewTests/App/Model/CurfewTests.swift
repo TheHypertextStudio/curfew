@@ -46,8 +46,7 @@ struct CurfewTests {
         let store = CurfewSettingsStore(defaults: defaults)
         let model = CurfewAppModel(
             settingsStore: store,
-            appRouter: AppRouterSpy(),
-            gettingStartedPresenter: GettingStartedPresenterSpy()
+            appRouter: AppRouterSpy()
         )
 
         model.start()

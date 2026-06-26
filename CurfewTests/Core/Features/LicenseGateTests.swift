@@ -49,7 +49,7 @@ struct LicenseGateTests {
                 plan: .subscription,
                 orderID: "s",
                 issuedAt: Date(),
-                expiresAt: Date().addingTimeInterval(86_400),
+                expiresAt: Date().addingTimeInterval(86400),
                 refreshToken: "tok"
             )
         )

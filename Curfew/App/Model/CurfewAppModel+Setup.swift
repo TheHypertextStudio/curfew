@@ -18,14 +18,12 @@ extension CurfewAppModel {
     convenience init(
         settingsStore: CurfewSettingsStore,
         appRouter: AppRouting,
-        gettingStartedPresenter: GettingStartedPresenting,
         featureFlags: FeatureFlags = .default,
         respawnGuard: any RespawnGuardControlling = NoOpRespawnGuard()
     ) {
         self.init(
             settingsStore: settingsStore,
             appRouter: appRouter,
-            gettingStartedPresenter: gettingStartedPresenter,
             featureFlags: featureFlags,
             activityRecorder: Self.defaultActivityRecording(),
             reflectionState: ReflectionRuntimeState(
@@ -35,16 +33,14 @@ extension CurfewAppModel {
         )
     }
 
-    /// Convenience for call sites that only want to override routing +
-    /// onboarding presenter; uses a default ``CurfewSettingsStore``.
+    /// Convenience for call sites that only want to override routing; uses a
+    /// default ``CurfewSettingsStore``.
     convenience init(
-        appRouter: AppRouting,
-        gettingStartedPresenter: GettingStartedPresenting
+        appRouter: AppRouting
     ) {
         self.init(
             settingsStore: CurfewSettingsStore(),
-            appRouter: appRouter,
-            gettingStartedPresenter: gettingStartedPresenter
+            appRouter: appRouter
         )
     }
 

@@ -1,7 +1,7 @@
-import Combine
 import CurfewKit
 import Foundation
 import IOKit
+import Observation
 import OSLog
 
 private let deviceLogger = Logger(
@@ -54,10 +54,11 @@ public nonisolated struct DeviceSummary: Identifiable, Equatable, Codable {
 /// gating is the caller's responsibility; the registry never reads
 /// `licenseGate` directly.
 @MainActor
-final class DeviceRegistry: ObservableObject {
+@Observable
+final class DeviceRegistry {
     /// Active devices (heartbeat within `activeThresholdSeconds`), including
     /// the local one. Empty until the first heartbeat lands.
-    @Published private(set) var activeDevices: [DeviceSummary] = []
+    private(set) var activeDevices: [DeviceSummary] = []
 
     /// Seconds since the last heartbeat, beyond which a device drops off
     /// `activeDevices`. 120 s per the plan.md §F15 spec.

@@ -1,15 +1,16 @@
 import AppKit
-import Combine
 import CoreGraphics
 import CurfewKit
 import Foundation
+import Observation
 import OSLog
 import SwiftUI
 
-/// Central `@MainActor ObservableObject` for Curfew: holds all `@Published`
+/// Central `@MainActor` `@Observable` model for Curfew: holds all observable
 /// state and drives the 1 Hz tick loop. Behaviour lives in `CurfewAppModel+*`.
+@Observable
 @MainActor
-final class CurfewAppModel: NSObject, ObservableObject {
+final class CurfewAppModel: NSObject {
     /// Extension-button hold duration before a request is consumed; also drives
     /// `EnforcementSnapshot.extensionRequestTitle` copy.
     static let extensionConfirmationHoldSeconds: Double = 2
@@ -34,56 +35,62 @@ final class CurfewAppModel: NSObject, ObservableObject {
     /// Persisted user settings (schedule, budgets, notification preferences,
     /// warning intervals). Mutations trigger `handleSettingsMutation` via
     /// `didSet` so budget trackers stay in sync with user edits.
-    @Published var settings: CurfewSettings {
+    var settings: CurfewSettings {
         didSet { handleSettingsMutation(from: oldValue) }
     }
 
     /// Latest evaluation from the enforcement engine. Replaced every tick.
-    @Published var state: CurfewEvaluation
+    var state: CurfewEvaluation
 
     /// Cached clock value. Updated at the top of each tick so all downstream
     /// logic within one tick agrees on "now".
-    @Published var currentTime: Date = .init()
+    var currentTime: Date = .init()
 
     /// Remaining weekly extensions. Mirror of `extensionTracker.remaining`
     /// lifted to `@Published` so SwiftUI can observe it directly.
-    @Published var extensionsRemaining: Int
+    var extensionsRemaining: Int
 
     /// Remaining weekly overrides. Mirror of `overrideTracker.remaining`.
-    @Published var overridesRemaining: Int
+    var overridesRemaining: Int
 
     /// Current lockout-screen encouragement message. Rotates once per
     /// `.working → .locked` transition via `EncouragementMessageCatalog`.
-    @Published var lockoutMessage: String
+    var lockoutMessage: String
 
     /// Text the user is typing in the override reason box. Surfaced live so
     /// character-count UI (the "Convince Me" flow requires ≥50 chars) stays
     /// responsive to every keystroke.
-    @Published var overrideReasonDraft: String = ""
+    var overrideReasonDraft: String = ""
 
     /// Whether the override composer sheet is currently presented on the
     /// lockout screen.
-    @Published var isOverrideComposerVisible = false
+    var isOverrideComposerVisible = false
 
     /// One-line status describing the auto-shutdown workflow (e.g. a
     /// countdown), or `nil` when no shutdown is pending.
-    @Published var shutdownStatusLine: String?
+    var shutdownStatusLine: String?
 
     /// Persisted log of granted overrides, newest last. Populated from the
     /// settings store at init and appended to whenever `confirmOverride()`
     /// succeeds.
-    @Published private(set) var overrideEvents: [OverrideEvent]
+    private(set) var overrideEvents: [OverrideEvent]
 
     /// MCP write requests waiting for user approval. Non-empty triggers the
     /// ``MCPConsentSheet`` on the front window. Entries are removed once the
     /// user approves or denies.
-    @Published var pendingMCPRequests: [MCPPendingRequest] = []
+    var pendingMCPRequests: [MCPPendingRequest] = []
 
     /// Whether the AI consent policy allows queuing MCP write requests.
     /// Persisted in settings when user changes it in Settings → Integrations.
-    @Published var aiConsentPolicy: AIConsentPolicy = .queue
+    var aiConsentPolicy: AIConsentPolicy = .queue
 
-    @Published var reflectionState: ReflectionRuntimeState
+    var reflectionState: ReflectionRuntimeState
+
+    /// Bumped by ``showGettingStarted()`` / ``dismissGettingStarted()``; the
+    /// scene graph observes them to drive `openWindow` / `dismissWindow` for the
+    /// Getting Started `WindowGroup` (replacing the old presenter).
+    var gettingStartedRequestID = 0
+    var gettingStartedDismissID = 0
 
     // MARK: - Collaborators
 
@@ -124,9 +131,6 @@ final class CurfewAppModel: NSObject, ObservableObject {
     /// Abstraction over "activate + show Settings". Tests substitute a spy.
     let appRouter: AppRouting
 
-    /// Presenter for the first-launch onboarding window.
-    let gettingStartedPresenter: GettingStartedPresenting
-
     /// Watches the MCP request queue; paired with `mcpSocketServer` (Unix-socket fast path).
     let mcpRequestMonitor: MCPRequestMonitor
     /// Unix-socket fast path for in-app MCP writes.
@@ -157,9 +161,9 @@ final class CurfewAppModel: NSObject, ObservableObject {
     /// headless CI); inject ``FakeAccessibilityAuthorization``.
     let accessibilityAuthorization: AccessibilityAuthorizing
 
-    /// Cross-device awareness, started alongside CloudKit sync when Pro is
-    /// unlocked and the flag is on. Lazy so the init body stays under budget.
-    lazy var deviceRegistry: DeviceRegistry = .init(idleWatcher: idleWatcher)
+    /// Cross-device awareness, started with CloudKit sync when Pro is unlocked.
+    /// Lazy; `@ObservationIgnored` since `@Observable` cannot wrap `lazy`.
+    @ObservationIgnored lazy var deviceRegistry: DeviceRegistry = .init(idleWatcher: idleWatcher)
 
     /// Writes lifecycle / extension / override events to the activity log.
     /// Always non-nil; falls back to ``NullActivityRecording`` when the SQLite
@@ -167,66 +171,62 @@ final class CurfewAppModel: NSObject, ObservableObject {
     let activityRecorder: any ActivityRecording
 
     /// Tracks weekly extension budget consumption. Rebuilt when the user
-    /// edits their extension config.
-    var extensionTracker: ExtensionBudgetTracker
+    /// edits their extension config. (Mirrored to observed `extensionsRemaining`.)
+    @ObservationIgnored var extensionTracker: ExtensionBudgetTracker
 
     /// Tracks weekly override budget consumption. Rebuilt when the user
-    /// edits their override config.
-    var overrideTracker: ExtensionBudgetTracker
+    /// edits their override config. (Mirrored to observed `overridesRemaining`.)
+    @ObservationIgnored var overrideTracker: ExtensionBudgetTracker
 
     /// The 1 Hz repeating tick timer. `nil` until `start()` is called.
     /// Only used inside the main class body — kept `private`.
-    private var timer: Timer?
+    @ObservationIgnored private var timer: Timer?
 
     /// Daily grant counters; reset in `handleDayRollover`.
-    var extensionMinutesGrantedToday = 0
+    @ObservationIgnored var extensionMinutesGrantedToday = 0
     /// Snooze minutes granted today. Added to the deadline like extensions.
-    var snoozeMinutesGrantedToday = 0
+    @ObservationIgnored var snoozeMinutesGrantedToday = 0
 
     /// `YYYY-M-D` token for the last-seen calendar day so `tick()` can
     /// detect rollovers without a NotificationCenter subscription.
-    var currentDayToken = ""
+    @ObservationIgnored var currentDayToken = ""
 
     /// Last-evaluated warning stage — drives widget timeline reloads on
     /// sub-phase escalations (T-15 → T-5), not only phase transitions.
-    var previousWarningStage: WarningStage = .none
+    @ObservationIgnored var previousWarningStage: WarningStage = .none
 
     /// Warning stages fired today across every device on this iCloud
     /// account. Seeded from the `LockoutState` CKRecord; consulted by
     /// `WarningNotificationManager` to suppress cross-device duplicates.
-    @Published var warningStagesFiredToday: Set<String> = []
+    var warningStagesFiredToday: Set<String> = []
     /// Day token for which `warningStagesFiredToday` applies. Flipped
     /// on rollover so yesterday's warnings don't leak into today.
-    var warningStagesFiredDayToken: String = ""
+    @ObservationIgnored var warningStagesFiredDayToken: String = ""
 
     /// Whether the user has been idle past `idleWatcher.idleThresholdSeconds`.
     /// Mirrored from the watcher so observers need not reach into a
     /// non-`@Published` collaborator.
-    @Published private(set) var isUserIdle = false
+    private(set) var isUserIdle = false
 
     /// Whether the app currently holds Accessibility trust. Seeded at init and
     /// re-polled each tick so a revoked permission shows without a relaunch.
-    @Published private(set) var isAccessibilityTrusted: Bool
+    private(set) var isAccessibilityTrusted: Bool
 
     /// Live enforcement-health verdict folding Accessibility trust with the
     /// keyboard shield's tap state. Seeded at init and recomputed each tick to
     /// drive the badge.
-    @Published private(set) var enforcementHealth: EnforcementHealth
+    private(set) var enforcementHealth: EnforcementHealth
 
     /// Test seam for the keyboard shield's tap liveness. `nil` in production,
     /// where ``pollAndUpdateEnforcementHealth()`` reads the live
     /// `lockoutKeyInterceptor.isEnabled`; tests assign a closure instead.
-    var tapLivenessOverride: (() -> Bool)?
+    @ObservationIgnored var tapLivenessOverride: (() -> Bool)?
 
     /// Memoisation cache for ``thisWeekRollup()``. Invalidated on week
     /// boundary advance or activity-recorder mutation.
-    var cachedThisWeekKey: ThisWeekCacheKey?
+    @ObservationIgnored var cachedThisWeekKey: ThisWeekCacheKey?
     /// Cached rollup aligned with `cachedThisWeekKey`; nil when invalid.
-    var cachedThisWeekRollup: WeeklyActivityRollup?
-
-    /// Combine subscriptions held for the model's lifetime; drive reactive
-    /// Plus-gated module reconciliation when `licenseGate.activatedKey` flips.
-    var cancellables = Set<AnyCancellable>()
+    @ObservationIgnored var cachedThisWeekRollup: WeeklyActivityRollup?
 
     /// How many seconds of activity log to keep. Matches the 52-week rolling
     /// retention promise in PRIVACY.md.
@@ -234,29 +234,28 @@ final class CurfewAppModel: NSObject, ObservableObject {
 
     /// When non-nil, "Convince Me" override is active until this date —
     /// the engine continues returning `.working` until `now >= overrideUntil`.
-    var overrideUntil: Date?
+    @ObservationIgnored var overrideUntil: Date?
 
     /// Value-typed state machine driving auto-shutdown after lockout begins.
     /// See ``ShutdownWorkflow``.
-    var shutdownWorkflow = ShutdownWorkflow()
+    @ObservationIgnored var shutdownWorkflow = ShutdownWorkflow()
 
     /// The event identifier of the calendar event for which we've already
     /// delivered a "meeting near curfew" extension prompt today. Reset to
     /// `nil` on day rollover so the next day's events get their own prompt.
-    var curfewOverlapPromptFiredForEventID: String?
+    @ObservationIgnored var curfewOverlapPromptFiredForEventID: String?
 
     /// Guard flag so `start()` is idempotent — prevents duplicate timers if
     /// the setup-complete callback fires twice. Only used inside the main
     /// class body.
-    private var started = false
+    @ObservationIgnored private var started = false
 
     /// Production / test-friendly designated initialiser; every other
     /// initialiser delegates here. Collaborators are injected so tests can
-    /// substitute fakes. `@Published` state is assigned before `super.init()`.
+    /// substitute fakes. Observable state is assigned before `super.init()`.
     init(
         settingsStore: CurfewSettingsStore,
         appRouter: AppRouting,
-        gettingStartedPresenter: GettingStartedPresenting,
         featureFlags: FeatureFlags = .default,
         activityRecorder: any ActivityRecording,
         reflectionState: ReflectionRuntimeState = ReflectionRuntimeState(),
@@ -279,7 +278,6 @@ final class CurfewAppModel: NSObject, ObservableObject {
         self.lockoutKeyInterceptor = LockoutKeyInterceptor()
         self.shutdownController = SystemShutdownController()
         self.appRouter = appRouter
-        self.gettingStartedPresenter = gettingStartedPresenter
         self.featureFlags = featureFlags
         self.activityRecorder = activityRecorder
         self.reflectionState = reflectionState
@@ -337,7 +335,6 @@ final class CurfewAppModel: NSObject, ObservableObject {
         self.init(
             settingsStore: CurfewSettingsStore(),
             appRouter: SystemAppRouter(),
-            gettingStartedPresenter: GettingStartedWindowPresenter(),
             featureFlags: .resolved,
             respawnGuard: respawnGuard
         )

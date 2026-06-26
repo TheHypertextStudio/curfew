@@ -143,7 +143,7 @@ final class OverlayCoordinator {
         }
         for screen in NSScreen.screens {
             let key = ObjectIdentifier(screen)
-            let root = DaybreakReflectionView().environmentObject(model)
+            let root = DaybreakReflectionView().environment(model)
             if let window = daybreakWindows[key] {
                 window.setFrame(screen.frame, display: true)
                 window.contentView = NSHostingView(rootView: root)
@@ -220,7 +220,7 @@ final class OverlayCoordinator {
             let key = ObjectIdentifier(screen)
             if let window = lockoutWindows[key] {
                 window.setFrame(screen.frame, display: true)
-                let root = LockoutScreenView(message: message).environmentObject(model)
+                let root = LockoutScreenView(message: message).environment(model)
                 window.contentView = NSHostingView(rootView: root)
                 window.orderFrontRegardless()
                 continue
@@ -234,7 +234,7 @@ final class OverlayCoordinator {
                 screen: screen
             )
             apply(configuration: Self.lockoutWindowConfiguration, to: window)
-            let root = LockoutScreenView(message: message).environmentObject(model)
+            let root = LockoutScreenView(message: message).environment(model)
             window.contentView = NSHostingView(rootView: root)
             window.makeKeyAndOrderFront(nil)
             lockoutWindows[key] = window

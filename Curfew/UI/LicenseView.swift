@@ -3,7 +3,7 @@ import SwiftUI
 
 /// Settings panel for entering and managing a Curfew Plus license key.
 struct LicenseView: View {
-    @EnvironmentObject private var model: CurfewAppModel
+    @Environment(CurfewAppModel.self) private var model
     @State private var keyDraft = ""
 
     private var gate: LicenseGate {

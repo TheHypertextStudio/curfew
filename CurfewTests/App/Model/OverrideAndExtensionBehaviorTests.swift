@@ -184,8 +184,7 @@ struct OverrideEventLoggingTests {
         let store = CurfewSettingsStore(defaults: defaults)
         let model = CurfewAppModel(
             settingsStore: store,
-            appRouter: AppRouterSpy(),
-            gettingStartedPresenter: GettingStartedPresenterSpy()
+            appRouter: AppRouterSpy()
         )
 
         let now = Date(timeIntervalSince1970: 1_700_000_000)

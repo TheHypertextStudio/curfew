@@ -26,7 +26,7 @@
             let model = Self.demoModel()
 
             try render(
-                ScheduleContent().environmentObject(model),
+                ScheduleContent().environment(model),
                 named: "schedule",
                 width: 880,
                 to: outputDirectory
@@ -50,7 +50,7 @@
                 to: outputDirectory
             )
             try render(
-                ContentView().environmentObject(model),
+                ContentView().environment(model),
                 named: "menubar",
                 width: 320,
                 to: outputDirectory

@@ -1,6 +1,6 @@
-import Combine
 import CurfewKit
 import Foundation
+import Observation
 import OSLog
 import ServiceManagement
 import SwiftUI
@@ -51,15 +51,16 @@ private struct SystemAppServiceController: AppServiceControlling {
 /// at login without the legacy `LaunchAgent` approach — this pairs with the
 /// existing `PersistentLockdown` LaunchAgent for defence-in-depth in v0.2.
 @MainActor
-final class PrivilegedHelperManager: ObservableObject {
+@Observable
+final class PrivilegedHelperManager {
     /// Installation state of the privileged daemon.
-    @Published private(set) var daemonStatus: SMAppService.Status = .notRegistered
+    private(set) var daemonStatus: SMAppService.Status = .notRegistered
 
     /// Registration state of the main-app login item.
-    @Published private(set) var loginItemStatus: SMAppService.Status = .notRegistered
+    private(set) var loginItemStatus: SMAppService.Status = .notRegistered
 
     /// Most recent error from `install()` or `uninstall()`, shown in the UI.
-    @Published private(set) var lastError: String?
+    private(set) var lastError: String?
 
     // MARK: - SMAppService handles
 
