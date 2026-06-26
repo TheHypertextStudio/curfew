@@ -82,16 +82,16 @@ enum SundownPalette {
         // Gentle breathing of the interior control points; frozen at drift == 0.
         let sway = Float(sin(drift * 0.27) * 0.03)
         let bob = Float(sin(drift * 0.21) * 0.02)
-        let y1 = Float(stopLocations[1]) + bob
-        let y2 = Float(stopLocations[2]) - bob
+        let yUpper = Float(stopLocations[1]) + bob
+        let yLower = Float(stopLocations[2]) - bob
         let xMid: Float = 0.5 + sway
 
         // Outer frame pinned to the rectangle edges (full bleed, no gaps); only
         // the interior y-rows and the middle column drift.
         let points: [SIMD2<Float>] = [
             SIMD2<Float>(0, 0), SIMD2<Float>(0.5, 0), SIMD2<Float>(1, 0),
-            SIMD2<Float>(0, y1), SIMD2<Float>(xMid, y1), SIMD2<Float>(1, y1),
-            SIMD2<Float>(0, y2), SIMD2<Float>(xMid, y2), SIMD2<Float>(1, y2),
+            SIMD2<Float>(0, yUpper), SIMD2<Float>(xMid, yUpper), SIMD2<Float>(1, yUpper),
+            SIMD2<Float>(0, yLower), SIMD2<Float>(xMid, yLower), SIMD2<Float>(1, yLower),
             SIMD2<Float>(0, 1), SIMD2<Float>(0.5, 1), SIMD2<Float>(1, 1)
         ]
 
