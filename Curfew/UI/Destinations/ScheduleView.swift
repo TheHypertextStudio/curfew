@@ -17,16 +17,16 @@ struct ScheduleView: View {
 
     /// Scrolling wrapper around ``ScheduleContent``.
     var body: some View {
-        ZStack(alignment: .top) {
-            SundownSky(moment: model.skyMoment)
-                .backgroundExtensionEffect()
-                .ignoresSafeArea(.container, edges: .top)
-            ScrollView {
-                ScheduleContent()
-                    .environment(model)
-            }
-            .scrollIndicators(.hidden)
+        ScrollView {
+            ScheduleContent()
+                .environment(model)
         }
+        .scrollIndicators(.hidden)
+        // A calm, opaque adaptive canvas. Schedule is a utility surface — the
+        // living sky belongs on Today, not stretched behind the editor where it
+        // crushes legibility. The canvas extends under the title bar and the
+        // scroller so nothing peeks through at the edges.
+        .background(CurfewTheme.canvas.ignoresSafeArea())
     }
 }
 
@@ -46,12 +46,15 @@ struct ScheduleContent: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             presetsPanel
-            weeklySchedulePanel
+            // A queued schedule change (anti-bypass cooldown) is high-priority —
+            // surface it directly under the presets, not buried beneath the
+            // seven-day editor where the user has to scroll to find it.
             if let pending = model.pendingScheduleDescription {
                 pendingChangePanel(message: pending)
             } else if justApplied {
                 appliedConfirmationPanel
             }
+            weeklySchedulePanel
         }
         .padding(24)
         .frame(maxWidth: 900, alignment: .leading)
@@ -69,7 +72,7 @@ struct ScheduleContent: View {
     /// as the "start from a baseline" shortcut so users aren't forced to
     /// build a seven-day schedule from scratch.
     private var presetsPanel: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        CurfewPanel {
             Text("Start from a preset")
                 .font(CurfewTypography.title(16))
                 .foregroundStyle(CurfewTheme.ink)
@@ -83,7 +86,6 @@ struct ScheduleContent: View {
                 }
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     /// Seven-row editor, one row per `Weekday`. Each row uses `DayRuleRow`

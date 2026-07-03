@@ -45,12 +45,13 @@ enum SundownPalette {
     /// (macOS 15+), derived entirely from the same four keyframe stops the
     /// linear sky used — no new colour model. The mesh is a 3×4 grid: three
     /// columns across, four rows down sitting at the existing ``stopLocations``
-    /// (dark crown → warm horizon). Every column of a row takes that row's
-    /// blended keyframe stop, so straight down the centre the mesh reproduces
-    /// the original vertical gradient exactly; the sun-side (right) column of
-    /// the two horizon rows is warmed toward the ember ``glow`` so the sunset
-    /// reads asymmetrically beneath the sun disc (which always rides the right
-    /// of the sky). `drift` (a phase in radians, held at 0 under Reduce Motion)
+    /// (dark crown → warm horizon). The centre column follows the keyframe
+    /// stops; a lateral colour-temperature axis warms the sun-side (right)
+    /// column toward the ember ``glow`` and cools the anti-sun (left) column
+    /// toward the crown, while the horizon centre pales into an atmospheric
+    /// haze — so the sunset reads dimensionally beneath the sun disc (which
+    /// always rides the right of the sky). `drift` (a phase in radians, held at 0 under Reduce
+    /// Motion)
     /// gently sways the interior control points so the sky breathes; at
     /// `drift == 0` the grid is a still, regular lattice.
     static func skyMesh(
@@ -67,16 +68,28 @@ enum SundownPalette {
         let lower = frame[2]
         let horizon = frame[3]
 
-        // Warm the sun-side column of the two lowest rows toward the ember so
-        // the horizon glows where the sun sits.
-        let lowerWarm = lower.lerp(to: glow, 0.14)
-        let horizonWarm = horizon.lerp(to: glow, 0.24)
+        /// Lateral colour-temperature axis: warmer toward the sun (right column,
+        /// pulled toward the ember `glow`), cooler toward the anti-sun side (left
+        /// column, pulled gently toward the cool `crown` hue). The spread widens
+        /// row by row toward the horizon where the sun actually sits — the warm/
+        /// cool variation a flat vertical gradient can't render.
+        func cool(_ base: SkyRGB, _ amount: Double) -> SkyRGB {
+            base.lerp(to: crown, amount)
+        }
+        func warm(_ base: SkyRGB, _ amount: Double) -> SkyRGB {
+            base.lerp(to: glow, amount)
+        }
+
+        // Atmospheric haze: just above the horizon there is more air to scatter
+        // through, so the warmest light pales and desaturates into a soft bloom
+        // rather than a hard saturated line.
+        let horizonHaze = horizon.lerp(to: SkyRGB(0.95, 0.89, 0.82), 0.12)
 
         let colors: [Color] = [
-            crown.color, crown.color, crown.color,
-            upper.color, upper.color, upper.color,
-            lower.color, lower.color, lowerWarm.color,
-            horizon.color, horizon.color, horizonWarm.color
+            crown.color, crown.color, warm(crown, 0.03).color,
+            cool(upper, 0.07).color, upper.color, warm(upper, 0.06).color,
+            cool(lower, 0.10).color, lower.color, warm(lower, 0.16).color,
+            cool(horizon, 0.10).color, horizonHaze.color, warm(horizon, 0.26).color
         ]
 
         // Gentle breathing of the interior control points; frozen at drift == 0.
