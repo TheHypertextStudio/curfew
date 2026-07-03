@@ -9,6 +9,49 @@ disabled until every license-delivery prerequisite is verified.
 Do these in order — each step produces a secret or identifier that the
 next step needs.
 
+### 0. Fast path: `just setup`
+
+`scripts/setup.mjs` automates the **web/purchase** infrastructure — steps 4
+(Stripe product/prices/payment-links/webhook), 5 (license keypair), 6
+(Worker deploy + secrets), and 8 (landing + `/docs` proxy deploy) — in one
+idempotent run. It does *not* touch the Apple/notarization/iCloud/Sparkle/Cask
+steps (1–3, 7, 9–10); do those separately.
+
+Prerequisites it can't do for you (do these first):
+
+- [ ] Enable Stripe **Managed Payments** on the Hypertext Studio account
+      (account-level eligibility — no API).
+- [ ] `pnpm -C web/worker exec wrangler login` as **willie@hypertext.studio**
+      (the script refuses any other account).
+
+Run it (dry run prints the plan; `--yes` executes; add `--live` only with an
+`sk_live_…` key):
+
+```sh
+# Test mode, both SKUs ($20 lifetime + $40/yr subscription):
+STRIPE_API_KEY=sk_test_… STRIPE_SUB_AMOUNT=4000 just setup --yes
+# Also attach the curfew.hypertext.studio Pages domain automatically:
+CLOUDFLARE_API_TOKEN=… STRIPE_API_KEY=sk_live_… STRIPE_SUB_AMOUNT=4000 just setup --yes --live
+```
+
+Env: `STRIPE_LIFETIME_AMOUNT` (cents, default 2000), `STRIPE_SUB_AMOUNT` (cents;
+omit to ship lifetime-only), `STRIPE_SUB_INTERVAL` (`year`|`month`),
+`RECREATE_WEBHOOK=1` to rotate the webhook secret, `SKIP_WORKER`/`SKIP_KEYPAIR`/
+`SKIP_STRIPE`/`SKIP_PAGES=1` to skip a phase.
+
+Manual steps that remain **after** the script (no API for these):
+
+- [ ] **Mintlify** dashboard → connect this GitHub repo and set the project to
+      serve from the **`/docs` subpath** of `curfew.hypertext.studio`. The Pages
+      Function in `web/landing/functions/_middleware.js` reverse-proxies
+      `/docs` → `curfew.mintlify.dev` without rewriting the path, so Mintlify
+      must be told it lives under `/docs`.
+- [ ] Commit the values the script injected: the Ed25519 public key in
+      `LicenseGate.swift` and the payment-link URLs/price in
+      `web/landing/index.html`.
+
+Steps 4–8 below are the manual fallback / reference for what the script does.
+
 ### 1. Apple Developer
 
 - [ ] Enroll `Hypertext Studio` in the Apple Developer Program.
@@ -124,9 +167,16 @@ a later signed build.
 
 ### 8. Landing page hosting
 
-- [ ] Cloudflare Pages → create a project pointing at this repo's `web/landing/` directory.
+- [ ] Cloudflare Pages → create a project (`curfew-landing`) pointing at this
+      repo's `web/landing/` directory.
 - [ ] Custom domain: `curfew.hypertext.studio`.
 - [ ] Preview deployments on every push to `main`.
+- [ ] **Docs proxy:** the landing project ships a Pages Function
+      (`web/landing/functions/_middleware.js`) that reverse-proxies `/docs` and
+      `/docs/*` to `curfew.mintlify.dev`. In the Mintlify dashboard, connect this
+      repo (docs source in `web/docs/`) and set the project to serve from the
+      `/docs` subpath of `curfew.hypertext.studio`. The proxy does not rewrite
+      the path, so Mintlify must know it lives under `/docs`.
 
 ### 9. Homebrew Cask submission
 
