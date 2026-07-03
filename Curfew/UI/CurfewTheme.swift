@@ -193,8 +193,9 @@ struct CurfewPrimaryButtonStyle: ButtonStyle {
                     .fill(CurfewTheme.accent)
             )
             .foregroundStyle(Color.white)
-            .opacity(configuration.isPressed ? 0.86 : 1.0)
-            .scaleEffect(configuration.isPressed ? 0.99 : 1.0)
+            .opacity(configuration.isPressed ? 0.9 : 1.0)
+            .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
+            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
     }
 }
 
@@ -217,8 +218,9 @@ struct CurfewSecondaryButtonStyle: ButtonStyle {
                     .stroke(CurfewTheme.border, lineWidth: 1)
             )
             .foregroundStyle(CurfewTheme.ink)
-            .opacity(configuration.isPressed ? 0.86 : 1.0)
-            .scaleEffect(configuration.isPressed ? 0.99 : 1.0)
+            .opacity(configuration.isPressed ? 0.9 : 1.0)
+            .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
+            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
     }
 }
 
@@ -233,6 +235,7 @@ struct CurfewLinkButtonStyle: ButtonStyle {
             .font(CurfewTypography.bodyEmphasis(14))
             .foregroundStyle(CurfewTheme.accent)
             .opacity(configuration.isPressed ? 0.7 : 1.0)
+            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
             .contentShape(Rectangle())
     }
 }

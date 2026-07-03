@@ -181,14 +181,8 @@ struct TodaySundownView: View {
 
                 Button(action: onPrimaryAction) {
                     Text(primaryActionLabel)
-                        .font(SundownType.title(15))
-                        .foregroundStyle(SundownPalette.warmWhite)
-                        .padding(.horizontal, 22)
-                        .padding(.vertical, 12)
-                        .background(CurfewTheme.accent, in: .capsule)
                 }
-                .buttonStyle(.plain)
-                .shadow(color: CurfewTheme.accent.opacity(0.3), radius: 10, y: 4)
+                .buttonStyle(SundownCapsuleButtonStyle())
                 .padding(.top, 4)
                 .transition(.scale(scale: 0.92).combined(with: .opacity))
             }
@@ -250,5 +244,28 @@ struct TodaySundownView: View {
             .padding(.horizontal, 40)
             .padding(.top, 22)
         }
+    }
+}
+
+/// The Today hero's primary call to action — an ember capsule that reads as
+/// the one confident action over the sky. Distinct from the chrome's
+/// `CurfewPrimaryButtonStyle` (a small rounded rect) because this button is the
+/// emotional centre of the empty state; it carries a soft ember glow and a
+/// springy press so turning Curfew on feels deliberate.
+private struct SundownCapsuleButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(SundownType.title(15))
+            .foregroundStyle(SundownPalette.warmWhite)
+            .padding(.horizontal, 22)
+            .padding(.vertical, 12)
+            .background(CurfewTheme.accent, in: .capsule)
+            .shadow(
+                color: CurfewTheme.accent.opacity(configuration.isPressed ? 0.18 : 0.3),
+                radius: 10,
+                y: 4
+            )
+            .scaleEffect(configuration.isPressed ? 0.96 : 1.0)
+            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: configuration.isPressed)
     }
 }

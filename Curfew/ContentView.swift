@@ -100,9 +100,11 @@ struct ContentView: View {
                     .monospacedDigit()
                     .contentTransition(.numericText())
                     .foregroundStyle(SundownPalette.warmWhite)
+                    .shadow(color: .black.opacity(0.18), radius: 10, y: 3)
                 Text(headerLine(snapshot))
                     .font(CurfewTypography.body(13))
-                    .foregroundStyle(SundownPalette.warmWhite.opacity(0.82))
+                    .foregroundStyle(SundownPalette.warmWhite.opacity(0.9))
+                    .shadow(color: .black.opacity(0.3), radius: 6, y: 1)
             }
             .padding(.horizontal, 18)
             .padding(.top, 18)

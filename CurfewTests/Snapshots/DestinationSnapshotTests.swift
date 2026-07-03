@@ -25,37 +25,47 @@
 
             let model = Self.demoModel()
 
-            try render(
+            try renderBoth(
                 ScheduleContent().environment(model),
                 named: "schedule",
                 width: 880,
                 to: outputDirectory
             )
-            try render(
+            try renderBoth(
                 TodaySundownView(),
                 named: "today-sundown",
                 width: 900,
                 to: outputDirectory
             )
-            try render(
+            try renderBoth(
                 emptyToday(),
                 named: "today-empty",
                 width: 900,
                 to: outputDirectory
             )
-            try render(
+            try renderBoth(
                 JournalSundownView(),
                 named: "journal-sundown",
                 width: 900,
                 to: outputDirectory
             )
-            try render(
+            try renderBoth(
+                JournalReflectionsView(
+                    reflections: [],
+                    referenceDate: model.currentTime,
+                    onConfigurePrompts: {}
+                ).environment(model),
+                named: "journal-reflections",
+                width: 900,
+                to: outputDirectory
+            )
+            try renderBoth(
                 ContentView().environment(model),
                 named: "menubar",
                 width: 320,
                 to: outputDirectory
             )
-            try render(
+            try renderBoth(
                 LockoutSundownView(),
                 named: "lockout-sundown",
                 width: 1440,
@@ -87,29 +97,71 @@
             )
         }
 
-        /// Renders `view` at a fixed `width` (natural height, 2× scale) onto the
-        /// canvas background and writes it as a PNG. Throws rather than crashes
-        /// if the platform hands back no bitmap, so a render hiccup can't take
-        /// down the suite.
-        private func render(
+        /// Renders `view` in both Light and Dark appearance, writing
+        /// `curfew-<name>-light.png` and `curfew-<name>-dark.png`. Every surface
+        /// is reviewed in both modes, so both variants are produced side by side.
+        private func renderBoth(
             _ view: some View,
             named name: String,
             width: CGFloat,
             height: CGFloat? = nil,
             to directory: URL
         ) throws {
+            try render(
+                view,
+                named: "\(name)-light",
+                width: width,
+                height: height,
+                appearance: .aqua,
+                to: directory
+            )
+            try render(
+                view,
+                named: "\(name)-dark",
+                width: width,
+                height: height,
+                appearance: .darkAqua,
+                to: directory
+            )
+        }
+
+        /// Renders `view` at a fixed `width` (natural height, 2× scale) onto the
+        /// canvas background and writes it as a PNG. The render runs inside the
+        /// requested `appearance` so `CurfewTheme`'s dynamic `NSColor` providers
+        /// resolve for the right mode, and the SwiftUI `colorScheme` environment
+        /// is set to match for any native-adaptive views. Throws rather than
+        /// crashes if the platform hands back no bitmap, so a render hiccup can't
+        /// take down the suite.
+        private func render(
+            _ view: some View,
+            named name: String,
+            width: CGFloat,
+            height: CGFloat? = nil,
+            appearance: NSAppearance.Name,
+            to directory: URL
+        ) throws {
+            let scheme: ColorScheme = appearance == .darkAqua ? .dark : .light
             let content = view
+                .environment(\.colorScheme, scheme)
                 .frame(width: width, height: height, alignment: .topLeading)
                 .background(CurfewTheme.canvas)
 
             let renderer = ImageRenderer(content: content)
             renderer.scale = 2
 
-            guard let image = renderer.nsImage,
-                  let tiff = image.tiffRepresentation,
-                  let bitmap = NSBitmapImageRep(data: tiff),
-                  let png = bitmap.representation(using: .png, properties: [:])
-            else {
+            // Resolve dynamic colours against the target appearance: `nsImage`
+            // draws synchronously, so wrapping it sets `currentDrawingAppearance`
+            // for the NSColor providers `CurfewTheme` is built on.
+            var png: Data?
+            NSAppearance(named: appearance)?.performAsCurrentDrawingAppearance {
+                if let image = renderer.nsImage,
+                   let tiff = image.tiffRepresentation,
+                   let bitmap = NSBitmapImageRep(data: tiff) {
+                    png = bitmap.representation(using: .png, properties: [:])
+                }
+            }
+
+            guard let png else {
                 throw XCTSkip("ImageRenderer produced no bitmap for \(name)")
             }
 
