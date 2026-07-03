@@ -238,7 +238,7 @@ async function phaseStripe() {
     inject("REPLACE_WITH_CURFEW_PLUS_SUB_PRICE", `$${(SUB_AMOUNT / 100).toFixed(0)} / ${each}`);
   }
   writeFileSync(indexPath, html);
-  log("Injected payment links into web/web/landing/index.html");
+  log("Injected payment links into web/landing/index.html");
 
   // Webhook endpoint (its signing secret is only returned on creation).
   const hooks = hooksRes.data;
@@ -285,5 +285,5 @@ async function phasePages() {
   log("Remaining manual steps (no API):");
   log("  • Mintlify dashboard → connect the GitHub repo and set the /docs subpath on " + LANDING_DOMAIN);
   log("  • Stripe → enable Managed Payments (account-level eligibility)");
-  log("  • Commit the injected changes (LicenseGate.swift public key, web/web/landing/index.html links)");
+  log("  • Commit the injected changes (LicenseGate.swift public key, web/landing/index.html links)");
 })();
