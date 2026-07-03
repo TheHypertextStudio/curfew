@@ -206,16 +206,21 @@ struct MainWindowView: View {
             .navigationTitle("Curfew")
             .listStyle(.sidebar)
             .scrollContentBackground(.hidden)
+            // One consistent adaptive surface so the sidebar harmonises with the
+            // canvas detail in both modes, instead of rendering a light glass slab
+            // beside a dark page (the "sudden colour change" seam).
+            .background(CurfewTheme.canvasStrong.ignoresSafeArea())
             .navigationSplitViewColumnWidth(min: 220, ideal: 248, max: 340)
         } detail: {
-            ZStack {
-                SundownSky(moment: model.skyMoment)
-                detailContent
-                    .id(selectedSection)
-                    .transition(.opacity)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .animation(.easeInOut(duration: 0.28), value: selectedSection)
-            }
+            // Each destination owns its own background now — Today's composed sky
+            // hero, a calm opaque canvas on Schedule/Journal. No global stretched
+            // sky behind everything (that was doubling the per-destination sky and
+            // distorting to fill the window).
+            detailContent
+                .id(selectedSection)
+                .transition(.opacity)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .animation(.easeInOut(duration: 0.28), value: selectedSection)
         }
         .navigationSplitViewStyle(.prominentDetail)
         .tint(CurfewTheme.accent)

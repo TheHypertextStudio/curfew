@@ -113,12 +113,17 @@ struct CurfewApp: App {
             ) {
                 let model = CurfewAppModel.demoModel()
                 _model = State(wrappedValue: model)
+                let demoAppearance: NSAppearance.Name =
+                    ProcessInfo.processInfo.environment["CURFEW_DEMO_APPEARANCE"] == "dark"
+                        ? .darkAqua
+                        : .aqua
                 DispatchQueue.main.async {
-                    // Demo/capture builds only: pin a light appearance so
-                    // marketing screenshots stay deterministic regardless of the
-                    // capture machine's mode. The shipping app itself follows the
-                    // system (Light/Dark) — this pin is scoped to the demo fixture.
-                    NSApplication.shared.appearance = NSAppearance(named: .aqua)
+                    // Demo/capture builds only: pin a deterministic appearance so
+                    // marketing screenshots don't depend on the capture machine's
+                    // mode. Defaults to light; `CURFEW_DEMO_APPEARANCE=dark` pins
+                    // dark so we can capture both. The shipping app itself follows
+                    // the system — this pin is scoped to the demo fixture.
+                    NSApplication.shared.appearance = NSAppearance(named: demoAppearance)
                     model.applyDemoScenario(scenario)
                 }
                 return
