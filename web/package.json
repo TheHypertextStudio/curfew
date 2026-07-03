@@ -1,9 +1,14 @@
 {
-  "name": "curfew-web",
+  "name": "curfew-monorepo",
   "private": true,
   "packageManager": "pnpm@11.9.0",
   "scripts": {
+    "dev": "turbo run dev",
+    "deploy": "turbo run deploy",
     "test": "pnpm --filter @curfew/license-worker test",
-    "typecheck": "pnpm --filter @curfew/license-worker typecheck"
+    "typecheck": "turbo run typecheck"
+  },
+  "devDependencies": {
+    "turbo": "^2"
   }
 }

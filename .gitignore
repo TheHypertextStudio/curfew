@@ -65,3 +65,7 @@ release/
 license_private.key
 license_public.key
 *.key
+
+# Node / Turborepo (monorepo)
+node_modules/
+.turbo/

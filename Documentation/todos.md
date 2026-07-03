@@ -222,7 +222,7 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 - [x] README rewrite: three-horizon pitch, MCP setup, CLI usage, Pro features, architecture.
 - [x] `CONTRIBUTING.md`, `PRIVACY.md`, `Documentation/ARCHITECTURE.md`, `Documentation/RELEASE.md`.
 - [x] Signed-build validation runbook for shutdown, widget, privileged helper, and CloudKit lives in `Documentation/RELEASE.md`. (Actual Apple-credential execution is still tracked by the remaining unchecked release/provisioning items.)
-- [x] Landing page (`landing/`) — Cloudflare Pages deploy target.
+- [x] Landing page (`web/landing/`) — Cloudflare Pages deploy target.
 - [ ] Apple Developer credentials in GitHub secrets. (external launch gate)
 - [ ] Cloudflare Pages deployment and `curfew.hypertext.studio` DNS/TLS. (external launch gate)
 - [ ] Homebrew Cask. (v0.2)

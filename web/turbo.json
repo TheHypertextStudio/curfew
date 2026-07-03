@@ -1,0 +1,17 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "tasks": {
+    "typecheck": {
+      "inputs": ["src/**/*.ts", "tsconfig.json", "$TURBO_DEFAULT$"],
+      "outputs": []
+    },
+    "deploy": {
+      "cache": false,
+      "dependsOn": ["typecheck"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    }
+  }
+}

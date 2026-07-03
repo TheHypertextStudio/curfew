@@ -47,7 +47,7 @@ enum LicenseActivationError: LocalizedError {
 /// The payload is a JSON object matching `LicenseKey`; the signature covers the
 /// exact UTF-8 bytes of that JSON. Verification uses the Ed25519 public key
 /// embedded above — the matching private key signs keys server-side via the
-/// license issuer Worker secret `LICENSE_PRIVATE_KEY`.
+/// Stripe Checkout webhook Worker (`web/worker/src/`).
 @MainActor
 @Observable
 final class LicenseGate {

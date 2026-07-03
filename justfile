@@ -204,31 +204,37 @@ snapshot:
         -derivedDataPath build \
         -only-testing:CurfewTests/DestinationSnapshotTests
 
-# Serve the landing page with live reload and open it in the browser.
-# `live-server` injects a WebSocket client that auto-refreshes on every
-# edit to landing/*.{html,css} — saves the round-trip of manual reloads
-# while iterating on copy or CSS. Requires Node (npx); if it's not
-# available on the machine, fall back to `just landing-static`.
-# Ctrl+C stops the server. Pass a different port via `just landing 4000`.
-landing port="8765":
-    npx --yes live-server landing --port={{ port }} --host=127.0.0.1 --no-css-inject=false
+# The web monorepo lives in `web/` (pnpm + Turborepo), kept separate so it can be
+# extracted into its own repo. These recipes drive it from the repo root.
 
-# Dependency-free alternative that serves without live reload. Useful
-# when the machine has no Node, or for confirming production-ish
-# behaviour without the live-reload script in the page.
+# Start every JS/TS dev server (worker + landing) together via Turborepo.
+# (`dev` is the Swift app; this is the web side.) Ctrl+C stops them.
+web:
+    pnpm -C web dev
+
+# Typecheck the TS packages through Turbo — cached, so a no-change re-run is
+# instant (`>>> FULL TURBO`).
+web-typecheck:
+    pnpm -C web typecheck
+
+# Serve the landing page locally (Wrangler Pages dev): runs the
+# `web/landing/functions` Pages Function (the /docs → Mintlify proxy), serves
+# `_headers`, and live-reloads. Ctrl+C stops it. (Static fallback: `landing-static`.)
+landing:
+    pnpm -C web --filter @curfew/landing dev
+
+# Dependency-free alternative that serves without functions or live reload —
+# plain static files via Python. Useful on a machine without the workspace deps.
 landing-static port="8765":
     @echo "→ http://localhost:{{ port }}"
     @open "http://localhost:{{ port }}" >/dev/null 2>&1 || true
-    python3 -m http.server {{ port }} --directory landing --bind 127.0.0.1
+    python3 -m http.server {{ port }} --directory web/landing --bind 127.0.0.1
 
-# Deploy the landing page to Cloudflare Pages. The static `landing/` directory
-# uploads as-is (no build step); `landing/_headers` carries the caching and
-# security headers. Same Cloudflare account as the license Worker (see
-# wrangler.toml). First deploy creates the project; afterwards wire the custom
-# domain `curfew.hypertext.studio` in the Pages dashboard once DNS is ready.
-# Pass `--prod`-style promotion via wrangler's own flags if needed.
-deploy-landing project="curfew-landing":
-    npx --yes wrangler pages deploy landing --project-name={{ project }}
+# Deploy the landing page to Cloudflare Pages (Wrangler, via the workspace).
+# Uploads `web/landing/` as-is plus its Pages Function. First deploy creates the
+# project; the custom domain `curfew.hypertext.studio` is attached by `just setup`.
+deploy-landing:
+    pnpm -C web --filter @curfew/landing deploy
 
 # One-shot infrastructure setup — Cloudflare + Stripe. Deploys the Worker (with
 # its custom domain), generates + uploads the signing keypair, creates the Stripe

@@ -56,7 +56,7 @@ fraud — no separate tax-filing service is needed.
       **Managed Payments** (public preview — confirm eligibility).
 - [ ] Create the Curfew Plus lifetime and subscription products and their
       hosted Payment Links only after the production issuer is ready.
-- [ ] Keep `landing/index.html`'s sale gate in place until the production
+- [ ] Keep `web/landing/index.html`'s sale gate in place until the production
       purchase-to-license delivery path is proven end to end. Do not commit a
       hosted payment-link URL before that proof.
 - [ ] Developers → Webhooks → add an endpoint subscribed to
@@ -124,7 +124,7 @@ a later signed build.
 
 ### 8. Landing page hosting
 
-- [ ] Cloudflare Pages → create a project pointing at this repo's `landing/` directory.
+- [ ] Cloudflare Pages → create a project pointing at this repo's `web/landing/` directory.
 - [ ] Custom domain: `curfew.hypertext.studio`.
 - [ ] Preview deployments on every push to `main`.
 
@@ -180,13 +180,13 @@ Once the infrastructure above is in place, every release is:
 4. **If (and only if) a later release enables Sparkle, publish its generated
    `appcast.xml`** to `https://curfew.hypertext.studio/appcast.xml` (the
    `SUFeedURL` the app polls) via Cloudflare Pages — e.g. commit it into
-   `landing/` so Pages serves it. The GitHub release asset alone is not the
+   `web/landing/` so Pages serves it. The GitHub release asset alone is not the
    feed; without this step the app never discovers the update. v0.1 skips
    this step because Sparkle is deliberately unlinked.
 5. Bump the `Casks/curfew.rb` version + sha256 and push to homebrew-cask
    (only required after the first release is out).
 6. Post the release to the landing page's release notes page at
-   `landing/releases/<version>.html`.
+   `web/landing/releases/<version>.html`.
 
 ## Smoke tests after tagging
 
