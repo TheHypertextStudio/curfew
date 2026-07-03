@@ -98,14 +98,32 @@
     return { light: light, rising: hour >= 1 && hour < 13, proximity: 0 };
   }
 
-  // The visitor's base moment, honouring the `?t=` debug override.
+  // True when the OS is in dark mode. The whole site honours dark mode, so the
+  // sky stays dark too — otherwise a daytime visit in dark mode would show a
+  // bright hero above a dark page.
+  var darkMql = window.matchMedia("(prefers-color-scheme: dark)");
+
+  // The `?t=<hour>` debug override is fixed for the session — parse it once.
+  var T_OVERRIDE = (function () {
+    var v = new URLSearchParams(window.location.search).get("t");
+    return v !== null && v !== "" && !isNaN(parseFloat(v)) ? parseFloat(v) : null;
+  })();
+
+  // The visitor's base moment. In OS dark mode the brightness is capped so the
+  // sky reads dark at any hour (deep night overnight, dusk by day) rather than
+  // sitting bright above the dark content.
   function baseMoment() {
-    var override = new URLSearchParams(window.location.search).get("t");
-    if (override !== null && override !== "" && !isNaN(parseFloat(override))) {
-      return timeOfDayMoment(parseFloat(override));
+    var moment;
+    if (T_OVERRIDE !== null) {
+      moment = timeOfDayMoment(T_OVERRIDE);
+    } else {
+      var now = new Date();
+      moment = timeOfDayMoment(now.getHours() + now.getMinutes() / 60);
     }
-    var now = new Date();
-    return timeOfDayMoment(now.getHours() + now.getMinutes() / 60);
+    if (darkMql.matches && moment.light > 0.32) {
+      moment = { light: 0.32, rising: moment.rising, proximity: moment.proximity };
+    }
+    return moment;
   }
 
   // Smoothstep for easing the scroll ramps.
@@ -146,6 +164,24 @@
   var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   var width = 0;
   var height = 0;
+  var scrollMax = 0; // cached in resize() so draw() needn't read scrollHeight (a layout flush) per frame
+  var starData = []; // star geometry, rebuilt only on resize
+  var gradCache = { light: -1, grad: null }; // base sky gradient, memoised on `light`
+
+  // Star geometry depends only on the hash and the canvas size, so build it on
+  // resize and let the draw loop vary only each star's twinkle.
+  function buildStars() {
+    starData.length = 0;
+    for (var n = 0; n < STAR_COUNT; n++) {
+      starData.push({
+        x: hashed(n, 17) * width,
+        y: hashed(n, 53) * height * 0.62,
+        r: 0.6 + 1.1 * hashed(n, 91),
+        base: 0.35 + 0.55 * hashed(n, 7),
+        phase: hashed(n, 131) * 2 * Math.PI,
+      });
+    }
+  }
 
   function resize() {
     var dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -156,13 +192,14 @@
     canvas.style.width = width + "px";
     canvas.style.height = height + "px";
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    scrollMax = document.documentElement.scrollHeight - height;
+    buildStars();
+    gradCache.light = -1; // size changed → invalidate the cached gradient
   }
 
   function scrollProgress() {
     if (reduceMotion.matches) return 0; // no scroll-driven descent under Reduce Motion
-    var doc = document.documentElement;
-    var max = doc.scrollHeight - window.innerHeight;
-    return max > 0 ? clamp01(window.scrollY / max) : 0;
+    return scrollMax > 0 ? clamp01(window.scrollY / scrollMax) : 0;
   }
 
   function draw(seconds) {
@@ -174,11 +211,16 @@
     ctx.globalCompositeOperation = "source-over";
     ctx.clearRect(0, 0, width, height);
 
-    // 1 — sky gradient (vertical, four blended stops)
-    var frame = blendedKeyframe(light);
-    var grad = ctx.createLinearGradient(0, 0, 0, height);
-    for (var i = 0; i < 4; i++) grad.addColorStop(STOP_LOCATIONS[i], rgba(frame[i], 1));
-    ctx.fillStyle = grad;
+    // 1 — sky gradient (vertical, four blended stops). Depends only on `light`,
+    // so reuse the cached gradient on idle frames (size changes reset the cache).
+    if (gradCache.light !== light) {
+      var frame = blendedKeyframe(light);
+      var g = ctx.createLinearGradient(0, 0, 0, height);
+      for (var i = 0; i < 4; i++) g.addColorStop(STOP_LOCATIONS[i], rgba(frame[i], 1));
+      gradCache.light = light;
+      gradCache.grad = g;
+    }
+    ctx.fillStyle = gradCache.grad;
     ctx.fillRect(0, 0, width, height);
 
     var sun = glowColor(moment.proximity);
@@ -215,19 +257,17 @@
       ctx.fillRect(0, 0, width, height);
     }
 
-    // 4 — star field, drawn once the sky has darkened past dusk
-    var stars = starOpacity(light);
-    if (stars > 0.01) {
+    // 4 — star field, drawn once the sky has darkened past dusk. Geometry is
+    // precomputed (buildStars); only each star's twinkle varies per frame.
+    var starsAlpha = starOpacity(light);
+    if (starsAlpha > 0.01) {
       ctx.globalCompositeOperation = "source-over";
-      for (var n = 0; n < STAR_COUNT; n++) {
-        var px = hashed(n, 17) * width;
-        var py = hashed(n, 53) * height * 0.62;
-        var r = 0.6 + 1.1 * hashed(n, 91);
-        var baseOpacity = 0.35 + 0.55 * hashed(n, 7);
-        var twinkle = still ? 1 : 0.65 + 0.35 * Math.sin(seconds * 0.8 + hashed(n, 131) * 2 * Math.PI);
-        ctx.fillStyle = "rgba(255,255,255," + baseOpacity * twinkle * stars + ")";
+      for (var n = 0; n < starData.length; n++) {
+        var s = starData[n];
+        var twinkle = still ? 1 : 0.65 + 0.35 * Math.sin(seconds * 0.8 + s.phase);
+        ctx.fillStyle = "rgba(255,255,255," + s.base * twinkle * starsAlpha + ")";
         ctx.beginPath();
-        ctx.arc(px, py, r, 0, 2 * Math.PI);
+        ctx.arc(s.x, s.y, s.r, 0, 2 * Math.PI);
         ctx.fill();
       }
     }
@@ -275,14 +315,15 @@
   window.addEventListener("resize", refresh);
   document.addEventListener("visibilitychange", refresh);
   if (reduceMotion.addEventListener) reduceMotion.addEventListener("change", refresh);
-  // Scrolling changes the moment; when the loop is paused we still need a redraw.
+  if (darkMql.addEventListener) darkMql.addEventListener("change", refresh);
+  // Scrolling changes the moment. While the rAF loop runs it already redraws;
+  // only when paused (a hidden tab) do we redraw a single frame. Under Reduce
+  // Motion the sky doesn't track scroll, so skip. Canvas size is unchanged by
+  // scroll, so no resize() here.
   window.addEventListener(
     "scroll",
     function () {
-      if (rafId === null) {
-        resize();
-        draw(0);
-      }
+      if (rafId === null && !reduceMotion.matches) draw(0);
     },
     { passive: true }
   );

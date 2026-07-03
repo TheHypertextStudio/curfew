@@ -13,6 +13,7 @@
  */
 
 :root {
+  color-scheme: light dark;
   /* Paper + ember identity (SundownPalette). */
   --paper: #f5f0e6; /* the warm page the sanctuary sits on (0.96,0.94,0.90) */
   --surface: #fbf7ef; /* a lifted paper for alternating sections / cards */
@@ -21,8 +22,10 @@
   --muted: #857569; /* secondary ink (0.52,0.46,0.41) */
   --border: rgba(48, 41, 36, 0.12);
   --accent: #d9733b; /* ember — the one brand accent (0.85,0.45,0.23) */
-  --accent-hover: #c8632d;
   --ember-bright: #f58f4f; /* kindled / hover ember (0.96,0.56,0.31) */
+  --shadow-rgb: 0 0 0; /* tint for elevation shadows (themed in dark) */
+  --code-bg: #1d1a16; /* the always-dark terminal surface */
+  --code-border: rgba(255, 255, 255, 0.08);
   --radius: 12px;
   --max: 820px;
   /* Static dusk gradient — the no-JS / no-canvas fallback for the sky. Mirrors
@@ -34,6 +37,48 @@
     #a86b66 80%,
     #eb8f57 100%
   );
+}
+
+/* ── Dark theme ── */
+/* Follows the OS appearance. In dark mode the whole UI — the content sanctuary
+   and the legal pages, not just the hero sky — goes dark. Warm paper at night,
+   not grey, so the ember identity is kept. sky.js darkens the sky to match. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #16130f;
+    --surface: #1e1a15;
+    --ink: #f1ece4;
+    --muted: #a99c8e;
+    --border: rgba(241, 236, 228, 0.12);
+    --code-bg: #100e0b;
+    --sky-fallback: linear-gradient(
+      to bottom,
+      #0f1226 0%,
+      #21213b 45%,
+      #422c45 80%,
+      #6b3b38 100%
+    );
+  }
+}
+
+/* ── Cross-page transitions ── */
+/* Same-origin navigations (index ⇄ docs ⇄ legal pages) cross-fade instead of
+   hard-cutting, and the wordmark persists across them as a shared element. */
+@view-transition { navigation: auto; }
+.wordmark { view-transition-name: wordmark; }
+
+/* ── Smooth colour changes ── */
+/* Theme switches (and any colour change) ease instead of snapping. Scoped to the
+   properties that change with theme so it never touches layout. Off under Reduce
+   Motion, which also drops the cross-page transition. */
+@media (prefers-reduced-motion: no-preference) {
+  body, .sheet, section, footer, .site-header, .btn-secondary,
+  .code-block, .how-note, .privacy-table th, .privacy-table td {
+    transition: background-color 0.35s ease, border-color 0.35s ease, color 0.35s ease;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  @view-transition { navigation: none; }
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -129,6 +174,7 @@ section { padding: 80px 24px; }
   z-index: 1;
   max-width: none;
   min-height: 92vh;
+  min-height: 92svh; /* account for mobile browser chrome */
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -233,7 +279,7 @@ section { padding: 80px 24px; }
   margin-top: 8px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
-  box-shadow: 0 40px 90px -30px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 40px 90px -30px rgb(var(--shadow-rgb) / 0.6);
 }
 
 /* ── Paper sanctuary ── */
@@ -245,9 +291,20 @@ section { padding: 80px 24px; }
   position: relative;
   z-index: 1;
   background: var(--paper);
-  border-radius: 28px 28px 28px 28px;
+  border-radius: 28px;
   overflow: hidden;
-  box-shadow: 0 -24px 70px -36px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 -24px 70px -36px rgb(var(--shadow-rgb) / 0.55);
+}
+
+/* A black drop-shadow is invisible on the dark sheet, so the sanctuary keeps
+   its lift via a faint top rim of light instead. Placed after the base rule so
+   it wins source order — @media adds no specificity. */
+@media (prefers-color-scheme: dark) {
+  .sheet {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.05),
+      0 -24px 70px -36px rgb(var(--shadow-rgb) / 0.5);
+  }
 }
 
 /* ── How it works ── */
@@ -354,7 +411,7 @@ section { padding: 80px 24px; }
   height: auto;
   border: 1px solid var(--border);
   border-radius: 12px;
-  box-shadow: 0 20px 50px -28px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 20px 50px -28px rgb(var(--shadow-rgb) / 0.45);
 }
 
 .shot figcaption {
@@ -393,8 +450,8 @@ section { padding: 80px 24px; }
 }
 
 .code-block {
-  background: #1d1a16;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--code-bg);
+  border: 1px solid var(--code-border);
   border-radius: var(--radius);
   padding: 16px 20px;
   overflow-x: auto;
@@ -527,11 +584,8 @@ footer {
   line-height: 1.8;
 }
 
-.three-horizon {
-  max-width: 520px;
-  margin: 0 auto 20px;
-  font-size: 13px;
-  line-height: 1.7;
+.footer-make {
+  margin-bottom: 12px;
 }
 
 footer p em { color: var(--ink); font-style: italic; }
@@ -624,4 +678,28 @@ footer p em { color: var(--ink); font-style: italic; }
   margin-bottom: 40px;
   line-height: 1.7;
   max-width: 640px;
+}
+
+/* ── Small screens ── */
+/* The page otherwise only branched at 720px; phones get tighter spacing,
+   smaller headings, and full-width CTAs (bigger tap targets). */
+@media (max-width: 540px) {
+  section { padding: 56px 20px; }
+  .hero { padding: 48px 20px 72px; }
+  .hero h1 { letter-spacing: -1px; }
+  .hero-sub { font-size: 18px; }
+  .how h2, .reflect h2, .mcp h2, .pro h2, .download h2 { font-size: 26px; }
+  .how h2 { margin-bottom: 40px; }
+  .sheet { border-radius: 20px; }
+  .privacy-heading { font-size: 30px; }
+
+  .hero-actions, .plus-options { width: 100%; }
+  .hero-actions .btn-primary, .hero-actions .btn-secondary,
+  .plus-options .btn-primary, .plus-options .btn-secondary {
+    flex: 1 1 auto;
+    text-align: center;
+  }
+
+  /* Keep wide code samples and tables from forcing the page sideways. */
+  .privacy-table { display: block; overflow-x: auto; }
 }
