@@ -41,10 +41,12 @@ struct TodaySundownView: View {
             sky
             decision
             accessibilityWarning
+            // Extra window height collects here as calm canvas rather than a gap
+            // between the countdown and the control.
+            Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .padding(.bottom, CurfewSpacing.xLarge)
-        .background(SundownPalette.paper)
+        .background(CurfewTheme.canvas)
         .onChange(of: showAccessibilityWarning) { oldValue, newValue in
             guard oldValue, !newValue else { return }
             withAnimation { justGrantedAccess = true }
@@ -68,11 +70,15 @@ struct TodaySundownView: View {
             SundownSky(moment: moment)
                 .backgroundExtensionEffect()
                 .overlay(alignment: .bottom) { bottomFade }
+                .overlay { skyTextScrim }
                 .ignoresSafeArea(.container, edges: .top)
             skyContent
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .frame(minHeight: 380)
+        // A fixed, composed hero — capped so the mesh and sun never stretch or
+        // distort to fill an arbitrarily tall window. Extra height becomes calm
+        // canvas below, not a stretched sky.
+        .frame(maxWidth: .infinity)
+        .frame(minHeight: 380, maxHeight: 520)
     }
 
     private var skyContent: some View {
@@ -103,31 +109,50 @@ struct TodaySundownView: View {
 
                 HStack(spacing: 5) {
                     Text("until your Mac locks at")
-                        .foregroundStyle(SundownPalette.warmWhite.opacity(0.72))
+                        .foregroundStyle(SundownPalette.warmWhite.opacity(0.9))
                     Text(lockTime)
                         .font(SundownType.strong(16))
                         .foregroundStyle(SundownPalette.warmWhite)
                 }
                 .font(SundownType.body(16))
+                .shadow(color: .black.opacity(0.35), radius: 8, y: 1)
                 .padding(.top, 10)
 
                 Text("Unlocks \(unlockTime)")
                     .font(SundownType.body(14))
-                    .foregroundStyle(SundownPalette.warmWhite.opacity(0.55))
+                    .foregroundStyle(SundownPalette.warmWhite.opacity(0.78))
+                    .shadow(color: .black.opacity(0.3), radius: 6, y: 1)
                     .padding(.top, 5)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .padding(.horizontal, 40)
         .padding(.top, 34)
-        .padding(.bottom, 84)
+        // Sit the countdown near the hero's lower edge so it flows straight into
+        // the control beneath — no floating gap between them.
+        .padding(.bottom, 30)
+    }
+
+    /// A legibility scrim under the hero text. The mesh brightens toward the
+    /// horizon, where the countdown sits, so light warmWhite text would wash out
+    /// against the bright band without this. A soft top-to-bottom dark gradient
+    /// darkens only the lower hero — strongest under the countdown — so the text
+    /// always clears the sky at any time of day, while the bright crown above
+    /// stays untouched.
+    private var skyTextScrim: some View {
+        LinearGradient(
+            colors: [.clear, .black.opacity(0.08), .black.opacity(0.32)],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+        .allowsHitTesting(false)
     }
 
     /// Softens the sky's bottom edge into the page so there's no hard seam where
     /// the sky meets the surface below.
     private var bottomFade: some View {
         LinearGradient(
-            colors: [.clear, SundownPalette.paper],
+            colors: [.clear, CurfewTheme.canvas],
             startPoint: .top,
             endPoint: .bottom
         )
@@ -137,27 +162,39 @@ struct TodaySundownView: View {
     // MARK: - The control (system state + the only accent/action)
 
     private var decision: some View {
-        VStack(alignment: .leading, spacing: 13) {
-            HStack(spacing: 11) {
-                // The state dot ignites when Curfew is armed — a small ember
-                // that kindles as you turn it on.
-                Circle()
-                    .fill(isEnforcing ? SundownPalette.ember : SundownPalette.ink.opacity(0.25))
-                    .frame(width: 9, height: 9)
-                    .shadow(color: SundownPalette.ember.opacity(isEnforcing ? 0.8 : 0), radius: 6)
+        VStack(alignment: .leading, spacing: 10) {
+            // When armed, the countdown above already says Curfew is on — no
+            // redundant status badge. Off / needs-setup gets a real invitation
+            // to act: a heading, one concrete line, and the action.
+            if !isEnforcing {
                 Text(statusLine)
                     .font(SundownType.title(19))
-                    .foregroundStyle(SundownPalette.ink)
+                    .foregroundStyle(CurfewTheme.ink)
                     .contentTransition(.opacity)
+
+                if !statusDetail.isEmpty {
+                    Text(statusDetail)
+                        .font(SundownType.body(15))
+                        .foregroundStyle(CurfewTheme.mutedInk)
+                        .contentTransition(.opacity)
+                }
+
+                Button(action: onPrimaryAction) {
+                    Text(primaryActionLabel)
+                        .font(SundownType.title(15))
+                        .foregroundStyle(SundownPalette.warmWhite)
+                        .padding(.horizontal, 22)
+                        .padding(.vertical, 12)
+                        .background(CurfewTheme.accent, in: .capsule)
+                }
+                .buttonStyle(.plain)
+                .shadow(color: CurfewTheme.accent.opacity(0.3), radius: 10, y: 4)
+                .padding(.top, 4)
+                .transition(.scale(scale: 0.92).combined(with: .opacity))
             }
 
-            if !statusDetail.isEmpty {
-                Text(statusDetail)
-                    .font(SundownType.body(15))
-                    .foregroundStyle(SundownPalette.ink.opacity(0.6))
-                    .contentTransition(.opacity)
-            }
-
+            // The earned streak is the one quiet, meaningful note worth keeping
+            // while armed.
             if streak >= 2 {
                 HStack(spacing: 6) {
                     Image(systemName: "moon.stars.fill")
@@ -165,29 +202,14 @@ struct TodaySundownView: View {
                     Text("\(streak) nights in a row")
                         .font(SundownType.body(13))
                 }
-                .foregroundStyle(SundownPalette.ember)
-                .padding(.top, 2)
+                .foregroundStyle(CurfewTheme.accent)
+                .padding(.top, isEnforcing ? 0 : 2)
                 .transition(.opacity)
-            }
-
-            if !isEnforcing {
-                Button(action: onPrimaryAction) {
-                    Text(primaryActionLabel)
-                        .font(SundownType.title(15))
-                        .foregroundStyle(SundownPalette.warmWhite)
-                        .padding(.horizontal, 22)
-                        .padding(.vertical, 12)
-                        .background(SundownPalette.ember, in: .capsule)
-                }
-                .buttonStyle(.plain)
-                .shadow(color: SundownPalette.ember.opacity(0.3), radius: 10, y: 4)
-                .padding(.top, 3)
-                .transition(.scale(scale: 0.92).combined(with: .opacity))
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 40)
-        .padding(.top, 30)
+        .padding(.top, 14)
         .animation(.spring(response: 0.45, dampingFraction: 0.8), value: isEnforcing)
     }
 
@@ -200,7 +222,7 @@ struct TodaySundownView: View {
                     .foregroundStyle(.green)
                 Text("Accessibility access granted.")
                     .font(SundownType.body(14))
-                    .foregroundStyle(SundownPalette.ink)
+                    .foregroundStyle(CurfewTheme.ink)
             }
             .padding(.horizontal, 18)
             .padding(.vertical, 14)
@@ -215,12 +237,12 @@ struct TodaySundownView: View {
                     .foregroundStyle(CurfewTheme.warning)
                 Text("Curfew needs Accessibility access to enforce your schedule.")
                     .font(SundownType.body(14))
-                    .foregroundStyle(SundownPalette.ink)
+                    .foregroundStyle(CurfewTheme.ink)
                 Spacer(minLength: 12)
                 Button("Grant Access", action: onResolveAccessibility)
                     .buttonStyle(.plain)
                     .font(SundownType.title(14))
-                    .foregroundStyle(SundownPalette.ember)
+                    .foregroundStyle(CurfewTheme.accent)
             }
             .padding(.horizontal, 18)
             .padding(.vertical, 14)

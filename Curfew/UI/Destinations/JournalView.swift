@@ -34,21 +34,21 @@ struct JournalView: View {
     }
 
     var body: some View {
-        ZStack(alignment: .top) {
-            SundownSky(moment: model.skyMoment)
-                .backgroundExtensionEffect()
-                .ignoresSafeArea(.container, edges: .top)
-            VStack(spacing: 0) {
-                modeBar
-                switch mode {
-                case .entries:
-                    entriesContent
-                case .prompts:
-                    ReflectionPromptsView()
-                        .environment(model)
-                }
+        VStack(spacing: 0) {
+            modeBar
+            switch mode {
+            case .entries:
+                entriesContent
+            case .prompts:
+                ReflectionPromptsView()
+                    .environment(model)
             }
         }
+        // One opaque adaptive canvas behind the whole destination — it extends
+        // under the title bar and all the way to the window edge (under the
+        // scroller), so the desktop/sky can't peek through the scrollbar. Journal
+        // is a utility surface; no living sky stretched behind the content.
+        .background(CurfewTheme.canvas.ignoresSafeArea())
     }
 
     /// Mode switcher pinned at the top of the destination: the Entries|Prompts

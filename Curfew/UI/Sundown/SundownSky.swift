@@ -67,7 +67,11 @@ struct SundownSky: View {
             width: mesh.width,
             height: mesh.height,
             points: mesh.points,
-            colors: mesh.colors
+            colors: mesh.colors,
+            // Perceptual interpolation keeps the blue→rose→ember mids luminous
+            // instead of dipping through the muddy grey that device-RGB lerp
+            // produces between near-complementary sky colours.
+            colorSpace: .perceptual
         )
     }
 
