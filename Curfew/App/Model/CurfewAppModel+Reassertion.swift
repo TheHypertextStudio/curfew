@@ -65,7 +65,7 @@ extension CurfewAppModel {
             NSWorkspace.didWakeNotification,
             NSWorkspace.screensDidWakeNotification
         ] {
-            workspaceCenter.addObserver(
+            let token = workspaceCenter.addObserver(
                 forName: name,
                 object: nil,
                 queue: .main
@@ -74,6 +74,7 @@ extension CurfewAppModel {
                     _ = self?.reassertEnforcementIfNeeded()
                 }
             }
+            reassertionObservers.append(token)
         }
     }
 }

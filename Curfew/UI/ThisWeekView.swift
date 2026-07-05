@@ -319,9 +319,15 @@ struct ThisWeekView: View {
             }
         }
     }
+}
 
+/// Split into its own extension so this CSV-export helper doesn't count
+/// against `ThisWeekView`'s type-body-length budget.
+private extension ThisWeekView {
     /// Opens an NSSavePanel and writes a CSV of this week's activity events.
-    private func exportThisWeek() {
+    /// Warns instead of writing a silent empty file when the week has no
+    /// recorded activity.
+    func exportThisWeek() {
         let cal = Calendar.current
         let startOfDay = cal.startOfDay(for: model.currentTime)
         let weekday = cal.component(.weekday, from: startOfDay)
@@ -330,13 +336,29 @@ struct ThisWeekView: View {
               let weekEnd = cal.date(byAdding: .day, value: 7, to: weekStart) else { return }
         let range = weekStart ... weekEnd
 
+        let csv: String
+        do {
+            csv = try model.exportActivityCSV(in: range)
+        } catch {
+            NSApp.presentError(error)
+            return
+        }
+
+        guard csv.split(separator: "\n", omittingEmptySubsequences: true).count > 1 else {
+            let alert = NSAlert()
+            alert.messageText = "Nothing to export yet"
+            alert.informativeText = "There's no curfew activity recorded for this week."
+            alert.addButton(withTitle: "OK")
+            alert.runModal()
+            return
+        }
+
         let panel = NSSavePanel()
         panel.allowedContentTypes = [.commaSeparatedText]
         panel.nameFieldStringValue = "curfew-this-week.csv"
         panel.begin { response in
             guard response == .OK, let url = panel.url else { return }
             do {
-                let csv = try model.exportActivityCSV(in: range)
                 try csv.write(to: url, atomically: true, encoding: .utf8)
             } catch {
                 // Surface failure non-modally via the default error presenter.

@@ -146,6 +146,12 @@ public struct CurfewSettings: Codable, Equatable {
     /// Defaults to 9847 per plan.md §9.1.
     public var mcpHTTPPort: Int
 
+    /// How the app responds to AI write requests, as the `rawValue` of the
+    /// app-layer `AIConsentPolicy` (`queue` / `autoApprove` / `deny`). Stored as
+    /// a string here so this CurfewKit-level settings struct doesn't depend on
+    /// the app target's enum; the model maps it back. Defaults to `queue`.
+    public var aiConsentPolicyRawValue: String
+
     private enum CodingKeys: String, CodingKey {
         case schedule
         case pendingScheduleChange
@@ -161,6 +167,7 @@ public struct CurfewSettings: Codable, Equatable {
         case mcpEnabled
         case mcpHTTPEnabled
         case mcpHTTPPort
+        case aiConsentPolicyRawValue
     }
 
     /// Memberwise initialiser. `warningIntervals` is normalised on
@@ -182,7 +189,8 @@ public struct CurfewSettings: Codable, Equatable {
         warningIntervals: WarningIntervals,
         mcpEnabled: Bool,
         mcpHTTPEnabled: Bool = false,
-        mcpHTTPPort: Int = 9847
+        mcpHTTPPort: Int = 9847,
+        aiConsentPolicyRawValue: String = "queue"
     ) {
         self.schedule = schedule
         self.pendingScheduleChange = pendingScheduleChange
@@ -198,6 +206,7 @@ public struct CurfewSettings: Codable, Equatable {
         self.mcpEnabled = mcpEnabled
         self.mcpHTTPEnabled = mcpHTTPEnabled
         self.mcpHTTPPort = mcpHTTPPort
+        self.aiConsentPolicyRawValue = aiConsentPolicyRawValue
     }
 
     /// Custom decoder so pre-existing persisted settings (v0.1 payloads
@@ -244,6 +253,10 @@ public struct CurfewSettings: Codable, Equatable {
             Int.self,
             forKey: .mcpHTTPPort
         ) ?? 9847
+        self.aiConsentPolicyRawValue = try container.decodeIfPresent(
+            String.self,
+            forKey: .aiConsentPolicyRawValue
+        ) ?? "queue"
     }
 
     /// Encodes to JSON. `warningIntervals` is normalised before encoding so
@@ -265,6 +278,7 @@ public struct CurfewSettings: Codable, Equatable {
         try container.encode(mcpEnabled, forKey: .mcpEnabled)
         try container.encode(mcpHTTPEnabled, forKey: .mcpHTTPEnabled)
         try container.encode(mcpHTTPPort, forKey: .mcpHTTPPort)
+        try container.encode(aiConsentPolicyRawValue, forKey: .aiConsentPolicyRawValue)
     }
 
     /// Factory defaults for a fresh install: 9-to-5 schedule, 3 × 15 min

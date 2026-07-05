@@ -34,6 +34,23 @@ struct AIConsentPolicyTests {
         }
     }
 
+    @Test("Policy is backed by settings, so it persists across relaunch")
+    func policyPersistsThroughSettings() throws {
+        let model = CurfewAppModel(
+            settingsStore: CurfewSettingsStore(),
+            appRouter: AppRouterSpy()
+        )
+
+        model.aiConsentPolicy = .autoApprove
+        #expect(model.settings.aiConsentPolicyRawValue == "autoApprove")
+
+        // Simulates a relaunch: the single source of truth is `settings`, not
+        // a standalone in-memory property, so it survives an encode/decode.
+        let data = try JSONEncoder().encode(model.settings)
+        let decoded = try JSONDecoder().decode(CurfewSettings.self, from: data)
+        #expect(decoded.aiConsentPolicyRawValue == "autoApprove")
+    }
+
     @Test("handleNewMCPRequests queues requests under .queue policy")
     func queuePolicyQueuesRequests() {
         let model = CurfewAppModel(

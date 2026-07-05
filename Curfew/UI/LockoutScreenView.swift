@@ -62,9 +62,13 @@ struct LockoutScreenView: View {
         )
     }
 
-    private var unlockLine: String? {
+    /// The unlock promise beneath the clock. Always non-nil so the lockout never
+    /// strands the user without a "how long" answer — a degenerate schedule with
+    /// no `unlockDate` falls back to a reassuring line rather than showing
+    /// nothing (the VoiceOver copy carries the same fallback).
+    private var unlockLine: String {
         guard let unlockDate = model.state.unlockDate else {
-            return nil
+            return "Your computer stays locked until the schedule lifts."
         }
         return "Your computer unlocks at \(unlockDate.formatted(date: .omitted, time: .shortened))"
     }
@@ -112,17 +116,15 @@ struct LockoutScreenView: View {
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: 720)
 
-                if let unlockLine {
-                    VStack(spacing: 10) {
-                        Capsule()
-                            .fill(SundownPalette.warmWhite.opacity(0.22))
-                            .frame(width: 64, height: 1)
-                        Text(unlockLine)
-                            .font(.system(size: 18, weight: .regular, design: .rounded))
-                            .foregroundStyle(SundownPalette.warmWhite.opacity(0.72))
-                    }
-                    .padding(.top, 4)
+                VStack(spacing: 10) {
+                    Capsule()
+                        .fill(SundownPalette.warmWhite.opacity(0.22))
+                        .frame(width: 64, height: 1)
+                    Text(unlockLine)
+                        .font(.system(size: 18, weight: .regular, design: .rounded))
+                        .foregroundStyle(SundownPalette.warmWhite.opacity(0.72))
                 }
+                .padding(.top, 4)
 
                 if let shutdownStatusLine = model.shutdownStatusLine {
                     Text(shutdownStatusLine)
@@ -204,6 +206,16 @@ struct LockoutScreenView: View {
                     }
                 )
                 .allowsHitTesting(model.canConfirmOverride)
+                // If the budget is exhausted on a tick mid-hold, hit-testing is
+                // revoked before the gesture's release fires — reset the fill
+                // reactively so it can't strand full.
+                .onChange(of: model.canConfirmOverride) { _, canConfirm in
+                    if !canConfirm {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                            holdProgress = 0
+                        }
+                    }
+                }
             } else {
                 Button(OverrideRequestPolicy.entryPrompt) {
                     model.beginOverrideRequest()

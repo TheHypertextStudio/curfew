@@ -213,15 +213,18 @@ struct LifecycleWiringTests {
         // initial phase comes from the default 9-to-5 schedule, which evaluates
         // to `.locked` outside business hours; the tick then sees no fresh
         // transition and never logs "arm" (a wall-clock-dependent flake).
+        // `seedState` (not a bare `model.state =`) also resets `lastEnforcedPhase`
+        // to match, so the transition this test expects isn't masked by a stale
+        // value left over from construction.
         model.lockoutDeadlineStore.clear()
-        model.state = CurfewEvaluation(
+        model.seedState(CurfewEvaluation(
             phase: .dayOff,
             warningStage: .none,
             minutesRemaining: .max,
             canRequestExtension: false,
             lockDate: nil,
             unlockDate: nil
-        )
+        ))
 
         model.start()
         #expect(model.state.phase == .locked)

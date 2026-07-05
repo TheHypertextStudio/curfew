@@ -18,6 +18,14 @@ extension CurfewAppModel {
     /// shared by `CurfewApp` and the `openWindow`/`dismissWindow` triggers.
     static let gettingStartedWindowID = "getting-started"
 
+    /// How the app responds to AI write requests. Backed by
+    /// `settings.aiConsentPolicyRawValue` (the single source of truth) so it
+    /// persists via the normal `settings.didSet → persistSettings` path.
+    var aiConsentPolicy: AIConsentPolicy {
+        get { AIConsentPolicy(rawValue: settings.aiConsentPolicyRawValue) ?? .queue }
+        set { settings.aiConsentPolicyRawValue = newValue.rawValue }
+    }
+
     /// Activates Curfew and opens the standard Settings window.
     func openSettings() {
         appRouter.activate()
@@ -114,7 +122,7 @@ extension CurfewAppModel {
             minutes: settings.extensionDurationMinutes,
             at: currentTime
         )
-        tick()
+        refreshAfterUserAction()
     }
 
     /// Grants a 1-minute snooze by adding to `snoozeMinutesGrantedToday`.
@@ -124,7 +132,7 @@ extension CurfewAppModel {
             return
         }
         snoozeMinutesGrantedToday += 1
-        tick()
+        refreshAfterUserAction()
     }
 
     /// Shows the override composer. No-ops if the device is not locked or the
@@ -346,7 +354,7 @@ extension CurfewAppModel {
             grantedDurationMinutes: settings.overrideDurationMinutes
         )
         recordOverrideEvent(event)
-        tick()
+        refreshAfterUserAction()
     }
 
     /// Persists the given override event to the store, appends it to the

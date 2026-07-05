@@ -17,20 +17,31 @@ struct TodayView: View {
     var body: some View {
         let snapshot = model.snapshot
         let needsSetup = !model.settings.hasCompletedInitialSetup
+        let isLocked = model.state.phase == .locked
         let control = Self.control(needsSetup: needsSetup, enforcing: model.isEnforcementRunning)
+        // A countdown exists only when the engine is counting down to a lock —
+        // `.locked` and `.dayOff` both report "—", so gate on a real window.
         let hasWindow = model.state.lockDate != nil && snapshot.timeRemainingText != "—"
 
         TodaySundownView(
             moment: model.skyMoment,
             greeting: Self.greeting(at: model.currentTime),
             timeRemaining: hasWindow ? snapshot.timeRemainingText : "",
-            emptyNote: needsSetup ? "Set your schedule to begin." : "No curfew scheduled today.",
+            emptyNote: Self.emptyNote(
+                needsSetup: needsSetup,
+                isLocked: isLocked,
+                unlockTime: Self.timeString(model.state.unlockDate)
+            ),
+            // During an active curfew window the note states status, so it must
+            // not double as a "go edit your schedule" button.
+            emptyNoteActionable: !isLocked,
             lockTime: Self.timeString(model.state.lockDate),
             unlockTime: Self.timeString(model.state.unlockDate),
             statusLine: control.line,
             statusDetail: control.detail,
             isEnforcing: model.isEnforcementRunning,
             showAccessibilityWarning: !model.isAccessibilityTrusted,
+            showAccessibilityGranted: model.accessibilityJustGranted,
             streak: model.thisWeekRollup().streak,
             primaryActionLabel: control.action,
             onPrimaryAction: {
@@ -43,6 +54,21 @@ struct TodayView: View {
             onEmptyNoteAction: { selectedSection = .schedule },
             onResolveAccessibility: { model.requestAccessibilityAccess() }
         )
+    }
+
+    /// Hero copy for the no-countdown states. Distinguishes an active curfew
+    /// (`.locked` → state the window, not "nothing scheduled") from a genuine
+    /// day off and from first-run setup.
+    private static func emptyNote(needsSetup: Bool, isLocked: Bool, unlockTime: String) -> String {
+        if needsSetup {
+            return "Set your schedule to begin."
+        }
+        if isLocked {
+            return unlockTime == "—"
+                ? "Curfew is active."
+                : "Curfew is active until \(unlockTime)."
+        }
+        return "No curfew scheduled today."
     }
 
     /// The bottom-section copy + action for the current state.

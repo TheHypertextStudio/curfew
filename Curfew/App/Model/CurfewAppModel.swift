@@ -80,9 +80,15 @@ final class CurfewAppModel: NSObject {
     /// user approves or denies.
     var pendingMCPRequests: [MCPPendingRequest] = []
 
-    /// Whether the AI consent policy allows queuing MCP write requests.
-    /// Persisted in settings when user changes it in Settings → Integrations.
-    var aiConsentPolicy: AIConsentPolicy = .queue
+    /// Briefly true after a queued schedule change takes effect, so Schedule can
+    /// confirm it (survives sidebar navigation; set via `flagScheduleChangeApplied()`).
+    var scheduleChangeJustApplied = false
+    @ObservationIgnored var scheduleAppliedDismissTask: Task<Void, Never>?
+
+    /// Briefly true after Accessibility trust flips denied→granted (same
+    /// ownership pattern as `scheduleChangeJustApplied`).
+    var accessibilityJustGranted = false
+    @ObservationIgnored var accessibilityGrantedDismissTask: Task<Void, Never>?
 
     var reflectionState: ReflectionRuntimeState
 
@@ -178,9 +184,11 @@ final class CurfewAppModel: NSObject {
     /// edits their override config. (Mirrored to observed `overridesRemaining`.)
     @ObservationIgnored var overrideTracker: ExtensionBudgetTracker
 
-    /// The 1 Hz repeating tick timer. `nil` until `start()` is called.
-    /// Only used inside the main class body — kept `private`.
-    @ObservationIgnored private var timer: Timer?
+    /// The 1 Hz repeating tick/display timer; managed by `+DisplayClock`.
+    @ObservationIgnored var timer: Timer?
+
+    /// `NSWorkspace` wake-observer tokens; registered in `+Reassertion`, removed in `deinit`.
+    @ObservationIgnored var reassertionObservers: [NSObjectProtocol] = []
 
     /// Daily grant counters; reset in `handleDayRollover`.
     @ObservationIgnored var extensionMinutesGrantedToday = 0
@@ -194,6 +202,13 @@ final class CurfewAppModel: NSObject {
     /// Last-evaluated warning stage — drives widget timeline reloads on
     /// sub-phase escalations (T-15 → T-5), not only phase transitions.
     @ObservationIgnored var previousWarningStage: WarningStage = .none
+
+    /// The phase the armed `tick()` last acted on — distinct from `state.phase`,
+    /// which the disarmed `displayTick()` may silently re-derive meanwhile.
+    /// `tick()` diffs against this instead, so it can't miss a transition no
+    /// matter how many disarmed re-derivations happened first. Advanced only
+    /// at the end of `tick()`'s enforcement tail.
+    @ObservationIgnored var lastEnforcedPhase: EnforcementPhase = .dayOff
 
     /// Warning stages fired today across every device on this iCloud
     /// account. Seeded from the `LockoutState` CKRecord; consulted by
@@ -210,7 +225,8 @@ final class CurfewAppModel: NSObject {
 
     /// Whether the app currently holds Accessibility trust. Seeded at init and
     /// re-polled each tick so a revoked permission shows without a relaunch.
-    private(set) var isAccessibilityTrusted: Bool
+    /// Set only via `setAccessibilityTrusted(_:)` (`+DisplayClock`).
+    var isAccessibilityTrusted: Bool
 
     /// Live enforcement-health verdict folding Accessibility trust with the
     /// keyboard shield's tap state. Seeded at init and recomputed each tick to
@@ -245,10 +261,9 @@ final class CurfewAppModel: NSObject {
     /// `nil` on day rollover so the next day's events get their own prompt.
     @ObservationIgnored var curfewOverlapPromptFiredForEventID: String?
 
-    /// Guard flag so `start()` is idempotent — prevents duplicate timers if
-    /// the setup-complete callback fires twice. Only used inside the main
-    /// class body.
-    @ObservationIgnored private var started = false
+    /// Whether enforcement is armed (the full `tick()` runs); guards `start()`
+    /// idempotency. **Observed** so Today's on/off control reacts directly.
+    private(set) var started = false
 
     /// Production / test-friendly designated initialiser; every other
     /// initialiser delegates here. Collaborators are injected so tests can
@@ -320,6 +335,7 @@ final class CurfewAppModel: NSObject {
             tapIsEnabled: lockoutKeyInterceptor.isEnabled
         )
         super.init()
+        self.lastEnforcedPhase = state.phase
         completeInitialization(with: loadedSettings)
     }
 
@@ -340,8 +356,10 @@ final class CurfewAppModel: NSObject {
         )
     }
 
-    /// Starts the 1 Hz enforcement tick. Safe to call repeatedly; no-ops
-    /// when onboarding is incomplete or the timer is already armed.
+    /// Arms enforcement: from now on the 1 Hz clock runs the full ``tick()``,
+    /// so lockout side-effects fire. Safe to call repeatedly; no-ops when
+    /// onboarding is incomplete or already armed. Call order relative to
+    /// ``beginDisplayClock()`` doesn't matter — see `lastEnforcedPhase`.
     func start() {
         guard settings.hasCompletedInitialSetup, !started else { return }
         started = true
@@ -349,18 +367,7 @@ final class CurfewAppModel: NSObject {
         installRespawnGuardIfNeeded()
         startEnforcementReassertionObservers()
         tick()
-        timer = Timer.scheduledTimer(
-            timeInterval: 1,
-            target: self,
-            selector: #selector(handleTimerFire(_:)),
-            userInfo: nil,
-            repeats: true
-        )
-    }
-
-    /// Whether `start()` has successfully armed the tick timer.
-    var isEnforcementRunning: Bool {
-        started
+        beginDisplayClock()
     }
 
     /// Overrides the mirrored idle flag for the idle watcher and deterministic tests.
@@ -396,5 +403,9 @@ final class CurfewAppModel: NSObject {
 
     deinit {
         timer?.invalidate()
+        let workspaceCenter = NSWorkspace.shared.notificationCenter
+        for observer in reassertionObservers {
+            workspaceCenter.removeObserver(observer)
+        }
     }
 }

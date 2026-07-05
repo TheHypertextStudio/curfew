@@ -127,16 +127,21 @@ struct ContentView: View {
                 openMainWorkspace()
             }
             if snapshot.canRequestExtension {
-                menuRow(snapshot.extensionRequestTitle, icon: "plus.circle") {
-                    model.tapExtensionRequest()
-                }
-                .disabled(snapshot.extensionsRemaining == 0)
-                .simultaneousGesture(
-                    LongPressGesture(
-                        minimumDuration: CurfewAppModel.extensionConfirmationHoldSeconds
+                if snapshot.extensionsRemaining == 0 {
+                    // Budget exhausted — say so plainly instead of a greyed,
+                    // unexplained control the user can't tell why they can't tap.
+                    infoRow("No extensions left this week", icon: "plus.slash.minus")
+                } else {
+                    menuRow(snapshot.extensionRequestTitle, icon: "plus.circle") {
+                        model.tapExtensionRequest()
+                    }
+                    .simultaneousGesture(
+                        LongPressGesture(
+                            minimumDuration: CurfewAppModel.extensionConfirmationHoldSeconds
+                        )
+                        .onEnded { _ in model.confirmExtensionRequest() }
                     )
-                    .onEnded { _ in model.confirmExtensionRequest() }
-                )
+                }
             }
             menuRow("Settings", icon: "gearshape") { model.openSettings() }
             menuRow("Getting Started", icon: "sparkles") { model.showGettingStarted() }
@@ -144,6 +149,23 @@ struct ContentView: View {
             menuRow("Quit Curfew", icon: "power") { NSApp.terminate(nil) }
         }
         .padding(10)
+    }
+
+    /// Non-interactive, low-emphasis status row — same metrics as ``menuRow`` but
+    /// muted and without a button, for stating why an action is unavailable.
+    private func infoRow(_ title: String, icon: String) -> some View {
+        HStack(spacing: 11) {
+            Image(systemName: icon)
+                .font(.system(size: 14, weight: .medium))
+                .frame(width: 20)
+                .foregroundStyle(CurfewTheme.mutedInk)
+            Text(title)
+                .font(CurfewTypography.body(14))
+                .foregroundStyle(CurfewTheme.mutedInk)
+            Spacer()
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 9)
     }
 
     private func menuRow(

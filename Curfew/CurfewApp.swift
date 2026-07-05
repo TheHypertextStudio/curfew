@@ -30,6 +30,14 @@ struct AppCoordinator: AppCoordinating {
         // Appearance is left to the system: CurfewTheme resolves every colour
         // adaptively (Aqua / Dark Aqua), so the chrome follows Light/Dark Mode
         // automatically.
+
+        // Always run the display clock so the countdown, sky, and health stay
+        // live even when enforcement isn't armed (Debug `just dev`, pre-
+        // onboarding, or Curfew off). Enforcement — the actual locking — stays
+        // gated behind `start()` below, so a disarmed app is live but never
+        // locks the Mac.
+        model.beginDisplayClock()
+
         if shouldStartEnforcement {
             model.start()
         }
@@ -248,5 +256,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// recovers. No-ops when not locked.
     func applicationDidBecomeActive(_ notification: Notification) {
         model?.reassertEnforcementIfNeeded()
+        // Re-poll Accessibility trust immediately on return, so granting access
+        // in System Settings and switching back clears the warning banner at
+        // once rather than waiting up to a second for the display clock's tick.
+        model?.refreshAccessibilityTrust()
     }
 }

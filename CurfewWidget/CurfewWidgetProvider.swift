@@ -1,5 +1,5 @@
-import Foundation
 import CurfewKit
+import Foundation
 import WidgetKit
 
 // NOTE: This target must include (or symlink) the following files from Curfew/Core
@@ -91,15 +91,35 @@ struct CurfewWidgetProvider: TimelineProvider {
         )
 
         let rule = settings.schedule.rule(for: date)
-        let lockTime = rule.isDayOff ? nil : formatted(minutes: rule.lockMinutes)
-        let unlockTime = rule.isDayOff ? nil : formatted(minutes: rule.unlockMinutes)
+        var phase = phaseToken(eval.phase)
+        var minutesRemaining = eval.minutesRemaining
+        var lockTime = rule.isDayOff ? nil : formatted(minutes: rule.lockMinutes)
+        var unlockTime = rule.isDayOff ? nil : formatted(minutes: rule.unlockMinutes)
+
+        // For the current entry, defer to the live enforcement snapshot the app
+        // writes — it reflects active extensions/overrides, which the settings-
+        // only estimate above cannot, so the widget agrees with Today and the
+        // menu bar. The countdown is recomputed from the snapshot's
+        // authoritative lockDate so the ring stays live between snapshot writes.
+        // Future timeline entries are predictions and keep the settings estimate.
+        if let live = currentLiveSnapshot(for: date) {
+            phase = live.phase
+            lockTime = live.lockDate.map(formattedClock) ?? lockTime
+            unlockTime = live.unlockDate.map(formattedClock) ?? unlockTime
+            if live.phase == "working" || live.phase == "warning",
+               let lockDate = live.lockDate, lockDate > date {
+                minutesRemaining = Int(lockDate.timeIntervalSince(date) / 60)
+            } else {
+                minutesRemaining = live.minutesRemaining
+            }
+        }
 
         let rollup = weeklyRollup(at: date)
 
         return CurfewWidgetEntry(
             date: date,
-            phase: phaseToken(eval.phase),
-            minutesRemaining: eval.minutesRemaining,
+            phase: phase,
+            minutesRemaining: minutesRemaining,
             lockTime: lockTime,
             unlockTime: unlockTime,
             warningStage: warningToken(eval.warningStage),
@@ -108,6 +128,26 @@ struct CurfewWidgetProvider: TimelineProvider {
             weeklyStreakDays: rollup.streak,
             dailyBars: rollup.days.map { $0.hadLockout ? 1 : 0 }
         )
+    }
+
+    /// The live enforcement snapshot, but only for the current entry (≈ now) and
+    /// only when recent enough to trust over the schedule-derived estimate — a
+    /// snapshot from an app that's been quit for a while shouldn't override a
+    /// fresh prediction. Future timeline entries always return nil here.
+    private func currentLiveSnapshot(for date: Date) -> WidgetEnforcementSnapshot? {
+        guard abs(date.timeIntervalSince(Date())) < 60 else { return nil }
+        guard let snapshot = WidgetSharedStateStore().loadEnforcement() else { return nil }
+        guard Date().timeIntervalSince(snapshot.updatedAt) < 90 * 60 else { return nil }
+        return snapshot
+    }
+
+    /// Formats a `Date` as the widget's `HH:mm` clock string, by converting to
+    /// minutes-since-midnight and reusing ``formatted(minutes:)`` — the same
+    /// formatter the settings-derived path uses — rather than a second
+    /// parallel `String(format:)` call.
+    private func formattedClock(_ date: Date) -> String {
+        let components = Calendar.current.dateComponents([.hour, .minute], from: date)
+        return formatted(minutes: (components.hour ?? 0) * 60 + (components.minute ?? 0))
     }
 
     /// Resolves today's lock time so `getTimeline` can enqueue per-stage
