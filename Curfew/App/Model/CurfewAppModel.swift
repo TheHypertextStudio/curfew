@@ -73,7 +73,8 @@ final class CurfewAppModel: NSObject {
     /// Persisted log of granted overrides, newest last. Populated from the
     /// settings store at init and appended to whenever `confirmOverride()`
     /// succeeds.
-    private(set) var overrideEvents: [OverrideEvent]
+    /// Set only via `appendOverrideEvent(_:)` (`+DisplayClock`).
+    var overrideEvents: [OverrideEvent]
 
     /// MCP write requests waiting for user approval. Non-empty triggers the
     /// ``MCPConsentSheet`` on the front window. Entries are removed once the
@@ -97,6 +98,10 @@ final class CurfewAppModel: NSObject {
     /// Getting Started `WindowGroup` (replacing the old presenter).
     var gettingStartedRequestID = 0
     var gettingStartedDismissID = 0
+
+    /// Set by ``requestWorkspaceNavigation(to:)``; lets Getting Started drive
+    /// the main window's sidebar selection. Cleared back to `nil` once handled.
+    var requestedWorkspaceSection: MainWorkspaceSection?
 
     // MARK: - Collaborators
 
@@ -231,7 +236,8 @@ final class CurfewAppModel: NSObject {
     /// Live enforcement-health verdict folding Accessibility trust with the
     /// keyboard shield's tap state. Seeded at init and recomputed each tick to
     /// drive the badge.
-    private(set) var enforcementHealth: EnforcementHealth
+    /// Set only via `setEnforcementHealth(_:)` (`+DisplayClock`).
+    var enforcementHealth: EnforcementHealth
 
     /// Test seam for the keyboard shield's tap liveness. `nil` in production,
     /// where ``pollAndUpdateEnforcementHealth()`` reads the live
@@ -373,32 +379,6 @@ final class CurfewAppModel: NSObject {
     /// Overrides the mirrored idle flag for the idle watcher and deterministic tests.
     func setIdleState(_ idle: Bool) {
         isUserIdle = idle
-    }
-
-    /// Updates accessibility trust only when its value changed.
-    func setAccessibilityTrusted(_ trusted: Bool) {
-        if isAccessibilityTrusted != trusted {
-            isAccessibilityTrusted = trusted
-        }
-    }
-
-    /// Updates enforcement health only when its value changed.
-    func setEnforcementHealth(_ health: EnforcementHealth) {
-        if enforcementHealth != health {
-            enforcementHealth = health
-        }
-    }
-
-    /// Timer-target bridge. Swift `Timer` requires a `@objc` selector, and
-    /// `tick()` must remain callable from Swift too, so we trampoline here.
-    @objc
-    private func handleTimerFire(_ timer: Timer) {
-        tick()
-    }
-
-    /// Appends to the published override log.
-    func appendOverrideEvent(_ event: OverrideEvent) {
-        overrideEvents.append(event)
     }
 
     deinit {

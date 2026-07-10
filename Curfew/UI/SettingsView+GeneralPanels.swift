@@ -67,17 +67,10 @@ extension SettingsView {
                 .buttonStyle(CurfewPrimaryButtonStyle())
             }
 
-            HStack(spacing: 10) {
-                Button("Show Getting Started") {
-                    model.showGettingStarted()
-                }
-                .buttonStyle(CurfewSecondaryButtonStyle())
-
-                Button("Open Settings Window") {
-                    model.openSettings()
-                }
-                .buttonStyle(CurfewSecondaryButtonStyle())
+            Button("Show Getting Started") {
+                model.showGettingStarted()
             }
+            .buttonStyle(CurfewSecondaryButtonStyle())
         }
     }
 }

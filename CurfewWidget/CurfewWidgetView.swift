@@ -1,5 +1,5 @@
-import SwiftUI
 import CurfewKit
+import SwiftUI
 import WidgetKit
 
 /// WidgetKit view hierarchy. Dispatches to one of three layouts by
@@ -164,6 +164,10 @@ struct CurfewWidgetView: View {
     /// Streak pill, rendered top-right on the large widget. Hidden when
     /// streak is 0 so a freshly-installed app doesn't advertise "0 days"
     /// as a spurious achievement.
+    ///
+    /// Tinted with the fixed ``historyColor``, not `phaseColor`, for the same
+    /// reason as ``weeklyBars`` — a streak of nights already held shouldn't
+    /// flip to red just because tonight happens to be mid-lockout right now.
     @ViewBuilder
     private var streakPill: some View {
         if entry.weeklyStreakDays > 0 {
@@ -173,28 +177,48 @@ struct CurfewWidgetView: View {
                     .monospacedDigit()
             }
             .font(.system(size: 11, weight: .semibold))
-            .foregroundStyle(phaseColor)
+            .foregroundStyle(historyColor)
             .padding(.horizontal, 8)
             .padding(.vertical, 3)
-            .background(phaseColor.opacity(0.15), in: Capsule())
+            .background(historyColor.opacity(0.15), in: Capsule())
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("\(entry.weeklyStreakDays) night streak")
         }
     }
 
     /// Seven-bar sparkline of this week's lockouts. Filled bar = day held,
     /// hollow bar = day missed or still pending. Monday-first.
+    ///
+    /// Tinted with the fixed ``historyColor``, not `phaseColor` — the bars are
+    /// a retrospective of *past* days, unrelated to the enforcement phase
+    /// *right now*. Using `phaseColor` meant opening the widget during a late-
+    /// night lockout painted the entire week's chart red, as if every day
+    /// (including ones already held) were in lockout.
     private var weeklyBars: some View {
         HStack(alignment: .bottom, spacing: 6) {
             ForEach(0 ..< entry.dailyBars.count, id: \.self) { index in
                 RoundedRectangle(cornerRadius: 2)
                     .fill(
                         entry.dailyBars[index] > 0
-                            ? phaseColor
-                            : phaseColor.opacity(0.2)
+                            ? historyColor
+                            : historyColor.opacity(0.2)
                     )
                     .frame(width: 10, height: 16)
+                    .accessibilityHidden(true)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(weeklyBarsAccessibilityLabel)
+    }
+
+    /// Spoken summary of the week's held/missed days for VoiceOver, since the
+    /// bars themselves carry their information entirely through fill vs.
+    /// opacity — nothing a screen reader can read off the shapes directly.
+    private var weeklyBarsAccessibilityLabel: String {
+        let held = entry.dailyBars.filter { $0 > 0 }.count
+        let total = entry.dailyBars.count
+        return "This week: \(held) of \(total) days held"
     }
 
     // MARK: - Helpers
@@ -215,10 +239,18 @@ struct CurfewWidgetView: View {
     /// Human-readable phase label shown under the countdown. For the
     /// warning phase it folds in the stage token so glances read
     /// "Warning T-5" instead of a bare "Warning".
+    ///
+    /// Both branches guard `warningStage == "none"` — not just `"working"` —
+    /// because `phase` and `warningStage` can come from different sources in
+    /// the provider (the live snapshot overrides `phase`; `warningStage`
+    /// stays schedule-derived), so `phase == "warning"` with a still-`"none"`
+    /// stage is reachable (e.g. an active extension shifted the real lock
+    /// time later without a fresh escalation yet). Without this guard that
+    /// combination rendered the literal, meaningless "Warning none".
     private var phaseLabel: String {
         switch entry.phase {
-        case "working": entry.warningStage == "none" ? "Working" : "Warning \(entry.warningStage)"
-        case "warning": "Warning \(entry.warningStage)"
+        case "working", "warning":
+            entry.warningStage == "none" ? "Working" : "Warning \(entry.warningStage)"
         case "locked": "Locked"
         case "day_off": "Day off"
         default: entry.phase
@@ -247,5 +279,13 @@ struct CurfewWidgetView: View {
         case "locked": .red
         default: .green
         }
+    }
+
+    /// Fixed accent used for retrospective elements (the weekly bar chart,
+    /// the streak pill) that summarise *past* days — deliberately not
+    /// `phaseColor`, which reflects only the enforcement phase right now and
+    /// has no relationship to history already recorded.
+    private var historyColor: Color {
+        .orange
     }
 }

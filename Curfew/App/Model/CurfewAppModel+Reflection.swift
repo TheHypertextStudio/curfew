@@ -100,9 +100,14 @@ extension CurfewAppModel {
 
         // Leaving the working window with the sunrise overlay still up (e.g.
         // the user never touched it before curfew) — dismiss it so it never
-        // lingers into a warning or lockout screen.
+        // lingers into a warning or lockout screen, and mark it resolved so it
+        // cannot resurrect later today. Without this, a "Convince Me" override
+        // granted from lockout flips the phase back to `.working`, which the
+        // check above reads as a fresh `→ working` transition and re-raises
+        // the full-screen morning overlay hours into the night.
         if state.phase != .working, reflectionState.isDaybreakPresented {
             reflectionState.isDaybreakPresented = false
+            reflectionState.gatesResolvedToday.insert(.morning)
         }
     }
 

@@ -25,6 +25,15 @@ extension CurfewAppModel {
 
         reflectionState.configuration = settingsStore.loadReflectionConfiguration()
         seedReflectionGatesResolvedToday()
+        // A relaunch that lands already inside `.working`/`.locked` (app
+        // force-quit or crashed mid-session, then reopened) has no in-session
+        // "previous phase" to transition from, so the tick-driven check in
+        // `evaluateReflectionGates` would never see a transition and that
+        // day's gate would be silently missed for good. `.dayOff` can't equal
+        // either target phase, so passing it here forces the same evaluation
+        // a live `→ working` / `→ locked` transition would do, without
+        // duplicating that logic.
+        evaluateReflectionGates(previousPhase: .dayOff)
         configureNotificationCallback()
     }
 

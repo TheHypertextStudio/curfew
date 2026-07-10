@@ -50,6 +50,13 @@ struct GettingStartedView: View {
         .frame(minWidth: 640, minHeight: 470)
         .background(CurfewTheme.canvas)
         .foregroundStyle(CurfewTheme.ink)
+        .onAppear {
+            // Re-entry (Settings → "Show Getting Started") skips the walkthrough
+            // for an already-onboarded install — see `FirstRunFlow.returningUser()`.
+            if model.settings.hasCompletedInitialSetup, flow.currentStep == .welcome {
+                flow = .returningUser()
+            }
+        }
         .onAppear(perform: syncAccessibilityGrant)
         .onReceive(accessibilityRefreshTimer) { _ in
             syncAccessibilityGrant()
@@ -115,30 +122,25 @@ struct GettingStartedView: View {
     @ViewBuilder
     private var stepExtras: some View {
         if flow.currentStep == .schedule {
-            Button("Open Schedule Settings") {
+            Button("Open Schedule") {
                 flow.markScheduleReviewed()
-                model.openSettings()
+                model.requestWorkspaceNavigation(to: .schedule)
             }
             .buttonStyle(CurfewSecondaryButtonStyle())
 
             if flow.hasReviewedScheduleSettings {
-                Label("Schedule settings opened", systemImage: "checkmark.circle.fill")
+                Label("Schedule opened", systemImage: "checkmark.circle.fill")
                     .font(CurfewTypography.body(13))
                     .foregroundStyle(CurfewTheme.accent)
             } else {
-                Text("Open Settings once here before continuing.")
+                Text("Open the schedule editor once here before continuing.")
                     .font(CurfewTypography.body(13))
                     .foregroundStyle(CurfewTheme.mutedInk)
             }
         }
 
         if flow.currentStep == .extensionBudget {
-            Text("Current extension limit: \(model.settings.extensionWeeklyLimit) per week")
-                .font(CurfewTypography.body(13))
-                .foregroundStyle(CurfewTheme.mutedInk)
-            Text("Current override limit: \(model.settings.overrideWeeklyLimit) per week")
-                .font(CurfewTypography.body(13))
-                .foregroundStyle(CurfewTheme.mutedInk)
+            extensionBudgetExtras
         }
 
         if flow.currentStep == .permissions {
@@ -146,6 +148,12 @@ struct GettingStartedView: View {
         }
 
         if flow.currentStep == .confirmation {
+            if model.settings.hasCompletedInitialSetup {
+                Label("Curfew is already active", systemImage: "checkmark.seal.fill")
+                    .font(CurfewTypography.bodyEmphasis(14))
+                    .foregroundStyle(CurfewTheme.accent)
+            }
+
             ForEach(flow.confirmationRequirements) { requirement in
                 Label(
                     requirement.title,
@@ -156,7 +164,33 @@ struct GettingStartedView: View {
                     requirement.isSatisfied ? CurfewTheme.accent : CurfewTheme.mutedInk
                 )
             }
+
+            Text(model.scheduleSummarySentence)
+                .font(CurfewTypography.body(13))
+                .foregroundStyle(CurfewTheme.mutedInk)
         }
+    }
+
+    /// Extension/override budget controls — real `Stepper`s bound straight to
+    /// settings, so the checklist's "Adjust weekly extension limit" and "Set
+    /// override duration" are actions this step can actually perform, not just
+    /// a read-only preview of values editable only elsewhere.
+    private var extensionBudgetExtras: some View {
+        @Bindable var model = model
+        return VStack(alignment: .leading, spacing: 6) {
+            Stepper(
+                "Extensions per week: \(model.settings.extensionWeeklyLimit)",
+                value: $model.settings.extensionWeeklyLimit,
+                in: 0 ... 10
+            )
+            Stepper(
+                "Overrides per week: \(model.settings.overrideWeeklyLimit)",
+                value: $model.settings.overrideWeeklyLimit,
+                in: 0 ... 10
+            )
+        }
+        .font(CurfewTypography.body(13))
+        .foregroundStyle(CurfewTheme.ink)
     }
 
     /// Accessibility hard-gate + soft notifications guidance for the

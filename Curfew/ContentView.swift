@@ -250,7 +250,18 @@ struct MainWindowView: View {
         .tint(CurfewTheme.accent)
         .sheet(item: Binding(
             get: { model.pendingMCPRequests.first },
-            set: { _ in }
+            set: { newValue in
+                // SwiftUI calls this with `nil` on an interactive dismissal
+                // (Escape, click outside). A no-op setter here used to
+                // silently swallow that *and*, since the item never left
+                // `pendingMCPRequests`, block every subsequent MCP request
+                // from ever being shown until this one was explicitly
+                // Approved/Denied via a button. Route the dismissal through
+                // the same deny path "Deny" uses, so both close together.
+                guard newValue == nil,
+                      let dismissed = model.pendingMCPRequests.first else { return }
+                model.denyMCPRequest(dismissed, reason: "Dismissed without a decision.")
+            }
         )) { request in
             MCPConsentSheet(
                 request: request,
@@ -267,6 +278,14 @@ struct MainWindowView: View {
         }
         .onChange(of: model.gettingStartedDismissID) {
             dismissWindow(id: CurfewAppModel.gettingStartedWindowID)
+        }
+        // Bridges `requestWorkspaceNavigation(to:)` (e.g. Getting Started's
+        // "Open Schedule" step) into this window's own sidebar selection.
+        .onChange(of: model.requestedWorkspaceSection) { _, requested in
+            guard let requested else { return }
+            openWindow(id: MainWorkspaceSection.windowID)
+            selectedSection = requested
+            model.requestedWorkspaceSection = nil
         }
     }
 

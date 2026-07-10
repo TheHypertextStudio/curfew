@@ -238,18 +238,26 @@ struct LockoutScreenView: View {
             calendarPill(
                 label: "In progress",
                 title: event.title ?? "Meeting",
-                end: event.endDate
+                // The meeting is already running — "until" the time it ends.
+                timePhrase: event.endDate.map {
+                    "until \($0.formatted(date: .omitted, time: .shortened))"
+                }
             )
         } else if let next = model.calendarMonitor.nextEvent {
             calendarPill(
                 label: "Up next",
                 title: next.title ?? "Meeting",
-                end: next.startDate
+                // The meeting hasn't started — "at" the time it starts, not
+                // "until": that previously read as "you're free until then",
+                // backwards from what it meant (the meeting begins then).
+                timePhrase: next.startDate.map {
+                    "at \($0.formatted(date: .omitted, time: .shortened))"
+                }
             )
         }
     }
 
-    private func calendarPill(label: String, title: String, end: Date?) -> some View {
+    private func calendarPill(label: String, title: String, timePhrase: String?) -> some View {
         HStack(spacing: 8) {
             Image(systemName: "calendar")
                 .font(.system(size: 12, weight: .medium))
@@ -259,8 +267,8 @@ struct LockoutScreenView: View {
             Text(title)
                 .font(.system(size: 13, weight: .regular, design: .rounded))
                 .lineLimit(1)
-            if let end {
-                Text("until \(end.formatted(date: .omitted, time: .shortened))")
+            if let timePhrase {
+                Text(timePhrase)
                     .font(.system(size: 12, weight: .regular, design: .rounded))
                     .opacity(0.8)
             }

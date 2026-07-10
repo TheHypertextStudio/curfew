@@ -39,7 +39,21 @@ extension CurfewAppModel {
         guard isAccessibilityTrusted != trusted else { return }
         let becameGranted = !isAccessibilityTrusted && trusted
         isAccessibilityTrusted = trusted
-        if becameGranted { flagAccessibilityGranted() }
+        if becameGranted {
+            flagAccessibilityGranted()
+        }
+    }
+
+    /// Guarded `enforcementHealth` setter — the only place that mutates it.
+    func setEnforcementHealth(_ health: EnforcementHealth) {
+        if enforcementHealth != health {
+            enforcementHealth = health
+        }
+    }
+
+    /// Appends to the published override log — the only place that mutates it.
+    func appendOverrideEvent(_ event: OverrideEvent) {
+        overrideEvents.append(event)
     }
 
     /// The disarmed clock cycle: refresh the display and health with **no**

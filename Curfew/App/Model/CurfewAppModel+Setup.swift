@@ -19,7 +19,8 @@ extension CurfewAppModel {
         settingsStore: CurfewSettingsStore,
         appRouter: AppRouting,
         featureFlags: FeatureFlags = .default,
-        respawnGuard: any RespawnGuardControlling = NoOpRespawnGuard()
+        respawnGuard: any RespawnGuardControlling = NoOpRespawnGuard(),
+        accessibilityAuthorization: AccessibilityAuthorizing = SystemAccessibilityAuthorization()
     ) {
         self.init(
             settingsStore: settingsStore,
@@ -29,7 +30,8 @@ extension CurfewAppModel {
             reflectionState: ReflectionRuntimeState(
                 recorder: Self.defaultReflectionRecording()
             ),
-            respawnGuard: respawnGuard
+            respawnGuard: respawnGuard,
+            accessibilityAuthorization: accessibilityAuthorization
         )
     }
 

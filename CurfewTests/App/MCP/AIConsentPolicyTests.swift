@@ -10,10 +10,7 @@ struct AIConsentPolicyTests {
     func defaultPolicyIsQueue() {
         // The model initialises aiConsentPolicy = .queue. Tests inject a
         // model directly so we can verify the default without launching the UI.
-        let model = CurfewAppModel(
-            settingsStore: CurfewSettingsStore(),
-            appRouter: AppRouterSpy()
-        )
+        let model = makeModel()
         #expect(model.aiConsentPolicy == .queue)
     }
 
@@ -36,10 +33,7 @@ struct AIConsentPolicyTests {
 
     @Test("Policy is backed by settings, so it persists across relaunch")
     func policyPersistsThroughSettings() throws {
-        let model = CurfewAppModel(
-            settingsStore: CurfewSettingsStore(),
-            appRouter: AppRouterSpy()
-        )
+        let model = makeModel()
 
         model.aiConsentPolicy = .autoApprove
         #expect(model.settings.aiConsentPolicyRawValue == "autoApprove")
@@ -53,10 +47,7 @@ struct AIConsentPolicyTests {
 
     @Test("handleNewMCPRequests queues requests under .queue policy")
     func queuePolicyQueuesRequests() {
-        let model = CurfewAppModel(
-            settingsStore: CurfewSettingsStore(),
-            appRouter: AppRouterSpy()
-        )
+        let model = makeModel()
         model.aiConsentPolicy = .queue
         let request = MCPPendingRequest(
             tool: .requestExtension,
@@ -72,10 +63,7 @@ struct AIConsentPolicyTests {
 
     @Test("handleNewMCPRequests does not add duplicates")
     func noDuplicateRequests() {
-        let model = CurfewAppModel(
-            settingsStore: CurfewSettingsStore(),
-            appRouter: AppRouterSpy()
-        )
+        let model = makeModel()
         model.aiConsentPolicy = .queue
         let request = MCPPendingRequest(
             tool: .requestExtension,
@@ -95,10 +83,7 @@ struct AIConsentPolicyTests {
 
     @Test("denyMCPRequest removes the request from pending list")
     func denyRemovesFromPending() {
-        let model = CurfewAppModel(
-            settingsStore: CurfewSettingsStore(),
-            appRouter: AppRouterSpy()
-        )
+        let model = makeModel()
         model.aiConsentPolicy = .queue
         let request = MCPPendingRequest(
             tool: .requestExtension,
@@ -114,10 +99,7 @@ struct AIConsentPolicyTests {
 
     @Test("handleNewMCPRequests discards all under .deny policy")
     func denyPolicyDiscards() {
-        let model = CurfewAppModel(
-            settingsStore: CurfewSettingsStore(),
-            appRouter: AppRouterSpy()
-        )
+        let model = makeModel()
         model.aiConsentPolicy = .deny
         let request = MCPPendingRequest(
             tool: .requestExtension,
@@ -130,5 +112,21 @@ struct AIConsentPolicyTests {
         // written back to the file as denied. The specific request must not
         // appear in the pending list.
         #expect(!model.pendingMCPRequests.contains { $0.id == request.id })
+    }
+
+    // MARK: - Helpers
+
+    /// An isolated `UserDefaults` suite per call, so mutating `aiConsentPolicy`
+    /// (which persists through `settings` since it's the single source of
+    /// truth) never leaks into the shared/default domain and pollutes other
+    /// tests or runs.
+    private func makeModel() -> CurfewAppModel {
+        let suite = "studio.hypertext.curfew.tests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite) ?? .standard
+        defaults.removePersistentDomain(forName: suite)
+        return CurfewAppModel(
+            settingsStore: CurfewSettingsStore(defaults: defaults),
+            appRouter: AppRouterSpy()
+        )
     }
 }
