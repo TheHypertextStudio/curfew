@@ -56,8 +56,8 @@ struct GettingStartedView: View {
             if model.settings.hasCompletedInitialSetup, flow.currentStep == .welcome {
                 flow = .returningUser()
             }
+            syncAccessibilityGrant()
         }
-        .onAppear(perform: syncAccessibilityGrant)
         .onReceive(accessibilityRefreshTimer) { _ in
             syncAccessibilityGrant()
         }
@@ -171,23 +171,14 @@ struct GettingStartedView: View {
         }
     }
 
-    /// Extension/override budget controls — real `Stepper`s bound straight to
-    /// settings, so the checklist's "Adjust weekly extension limit" and "Set
-    /// override duration" are actions this step can actually perform, not just
-    /// a read-only preview of values editable only elsewhere.
+    /// Extension/override budget controls — the same `WeeklyBudgetSteppers`
+    /// Settings → Enforcement uses, bound straight to settings, so the
+    /// checklist's "Adjust weekly extension limit" is an action this step can
+    /// actually perform, not just a read-only preview of values editable only
+    /// elsewhere.
     private var extensionBudgetExtras: some View {
-        @Bindable var model = model
-        return VStack(alignment: .leading, spacing: 6) {
-            Stepper(
-                "Extensions per week: \(model.settings.extensionWeeklyLimit)",
-                value: $model.settings.extensionWeeklyLimit,
-                in: 0 ... 10
-            )
-            Stepper(
-                "Overrides per week: \(model.settings.overrideWeeklyLimit)",
-                value: $model.settings.overrideWeeklyLimit,
-                in: 0 ... 10
-            )
+        VStack(alignment: .leading, spacing: 6) {
+            WeeklyBudgetSteppers(model: model)
         }
         .font(CurfewTypography.body(13))
         .foregroundStyle(CurfewTheme.ink)
