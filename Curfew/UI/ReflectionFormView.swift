@@ -59,9 +59,7 @@ struct ReflectionFormView: View {
             } else {
                 ForEach(visiblePrompts) { prompt in
                     VStack(alignment: .leading, spacing: 10) {
-                        Text(prompt.text)
-                            .font(.system(size: promptFontSize, weight: .medium, design: .rounded))
-                            .foregroundStyle(.white.opacity(0.9))
+                        titleText(prompt.text)
                         control(for: prompt)
                     }
                 }
@@ -89,9 +87,7 @@ struct ReflectionFormView: View {
     /// nothing to answer, not something they're opting out of.
     private var emptyPromptsNotice: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("No prompts configured for this reflection yet.")
-                .font(.system(size: promptFontSize, weight: .medium, design: .rounded))
-                .foregroundStyle(.white.opacity(0.9))
+            titleText("No prompts configured for this reflection yet.")
             Text("Add prompts in Journal → Prompts to start recording reflections here.")
                 .font(.system(size: editorFontSize, weight: .regular, design: .rounded))
                 .foregroundStyle(.white.opacity(0.6))
@@ -99,6 +95,15 @@ struct ReflectionFormView: View {
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
         }
+    }
+
+    /// Shared style for a prompt's question text and the empty-state
+    /// headline — the two "this is the main thing to read" lines on this
+    /// form — so they can't drift from each other one at a time.
+    private func titleText(_ text: String) -> some View {
+        Text(text)
+            .font(.system(size: promptFontSize, weight: .medium, design: .rounded))
+            .foregroundStyle(.white.opacity(0.9))
     }
 
     /// Builds answers for every prompt the user meaningfully answered:

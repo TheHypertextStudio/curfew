@@ -285,7 +285,5 @@ struct CurfewWidgetView: View {
     /// the streak pill) that summarise *past* days — deliberately not
     /// `phaseColor`, which reflects only the enforcement phase right now and
     /// has no relationship to history already recorded.
-    private var historyColor: Color {
-        .orange
-    }
+    private let historyColor: Color = .orange
 }

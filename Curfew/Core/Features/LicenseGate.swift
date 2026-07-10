@@ -142,10 +142,8 @@ final class LicenseGate {
     /// failure is something the user just did and should see explained.
     func activate(_ keyString: String) {
         activationError = nil
-        let trimmed = keyString.trimmingCharacters(in: .whitespacesAndNewlines)
         do {
-            activatedKey = try verified(trimmed)
-            defaults.set(trimmed, forKey: Self.storageKey)
+            activatedKey = try verifyAndPersist(keyString)
         } catch {
             activationError = error.localizedDescription
         }
@@ -162,10 +160,18 @@ final class LicenseGate {
     /// to silently wipe an error the user is actively looking at from
     /// something they *did* just type into that field.
     func activateSilently(_ keyString: String) {
+        activatedKey = try? verifyAndPersist(keyString)
+    }
+
+    /// Shared verify-and-persist body behind ``activate(_:)`` and
+    /// ``activateSilently(_:)``: trims, verifies, and — only on success —
+    /// persists the raw string. Throws (rather than swallowing) so each
+    /// caller decides for itself whether a failure is worth surfacing.
+    private func verifyAndPersist(_ keyString: String) throws -> LicenseKey {
         let trimmed = keyString.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let verifiedKey = try? verified(trimmed) else { return }
-        activatedKey = verifiedKey
+        let key = try verified(trimmed)
         defaults.set(trimmed, forKey: Self.storageKey)
+        return key
     }
 
     /// Clears the in-memory licence and removes the persisted string.

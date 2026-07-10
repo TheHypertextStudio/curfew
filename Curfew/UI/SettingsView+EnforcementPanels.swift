@@ -47,23 +47,13 @@ extension SettingsView {
         return CurfewPanel {
             CurfewSectionTitle(title: "Extensions and Overrides")
 
-            Stepper(
-                "Extensions per week: \(model.settings.extensionWeeklyLimit)",
-                value: $model.settings.extensionWeeklyLimit,
-                in: 0 ... 10
-            )
+            WeeklyBudgetSteppers(model: model)
 
             Stepper(
                 "Extension duration: \(model.settings.extensionDurationMinutes) min",
                 value: $model.settings.extensionDurationMinutes,
                 in: 5 ... 60,
                 step: 5
-            )
-
-            Stepper(
-                "Overrides per week: \(model.settings.overrideWeeklyLimit)",
-                value: $model.settings.overrideWeeklyLimit,
-                in: 0 ... 10
             )
 
             Stepper(
