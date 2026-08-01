@@ -73,7 +73,8 @@ async function renderConfig(arguments_) {
   const rendered = template
     .replaceAll("__CURFEW_LICENSE_WORKER_NAME__", process.env.CURFEW_LICENSE_WORKER_NAME)
     .replaceAll("__CURFEW_LICENSE_KV_NAMESPACE_ID__", process.env.CURFEW_LICENSE_KV_NAMESPACE_ID)
-    .replaceAll("__CURFEW_LICENSE_HOSTNAME__", process.env.CURFEW_LICENSE_HOSTNAME);
+    .replaceAll("__CURFEW_LICENSE_HOSTNAME__", process.env.CURFEW_LICENSE_HOSTNAME)
+    .replaceAll("__CURFEW_LICENSE_WORKER_MAIN__", resolve(root, "web/worker/src/index.ts"));
   await writePublic(output, rendered);
   console.log(`Rendered local Worker configuration: ${resolve(output)}`);
 }
