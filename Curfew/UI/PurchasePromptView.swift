@@ -57,14 +57,15 @@ struct PurchasePromptView: View {
 
                 Spacer()
 
-                Link(
-                    "Upgrade — $20",
-                    destination: URL(
-                        string: "https://buy.stripe.com/REPLACE_WITH_CURFEW_PRO_PAYMENT_LINK"
-                    )!
-                )
-                .font(CurfewTypography.bodyEmphasis(13))
-                .foregroundStyle(CurfewTheme.accent)
+                if let purchaseURL = PurchaseAvailability.checkoutURL {
+                    Link("Upgrade — $20", destination: purchaseURL)
+                        .font(CurfewTypography.bodyEmphasis(13))
+                        .foregroundStyle(CurfewTheme.accent)
+                } else {
+                    Text("Available in a future release.")
+                        .font(CurfewTypography.label(12))
+                        .foregroundStyle(CurfewTheme.mutedInk)
+                }
             }
         }
     }

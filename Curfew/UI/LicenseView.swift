@@ -76,8 +76,14 @@ struct LicenseView: View {
                 .buttonStyle(CurfewPrimaryButtonStyle())
                 .disabled(keyDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
-                Link("Buy Curfew Pro — $20", destination: purchaseURL)
-                    .buttonStyle(CurfewLinkButtonStyle())
+                if let purchaseURL = PurchaseAvailability.checkoutURL {
+                    Link("Buy Curfew Pro — $20", destination: purchaseURL)
+                        .buttonStyle(CurfewLinkButtonStyle())
+                } else {
+                    Text("Curfew Pro is not currently available.")
+                        .font(CurfewTypography.label(12))
+                        .foregroundStyle(CurfewTheme.mutedInk)
+                }
             }
         }
     }
@@ -94,9 +100,5 @@ struct LicenseView: View {
         Label(label, systemImage: icon)
             .font(CurfewTypography.body(13))
             .foregroundStyle(CurfewTheme.mutedInk)
-    }
-
-    private var purchaseURL: URL {
-        URL(string: "https://buy.stripe.com/REPLACE_WITH_CURFEW_PRO_PAYMENT_LINK")!
     }
 }
