@@ -225,6 +225,10 @@ only.
 - `A conservative v0.1 tag release uploads only its notarized DMG; it cannot
   reference an appcast that Sparkle intentionally did not generate.`
   - `scripts/release-entitlements.test.mjs`
+- `The forward-looking PRD and release checklist distinguish the core-only
+  v0.1 scope from deferred CloudKit, WidgetKit, Calendar, privileged-helper,
+  and Sparkle work.`
+  - `scripts/release-entitlements.test.mjs`
 - `Stripe test-mode staging can use a workers.dev license issuer without
   attaching a production custom domain.`
   - `scripts/license-worker.test.mjs`

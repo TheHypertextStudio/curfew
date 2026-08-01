@@ -7,6 +7,13 @@
 
 > **Repo split:** as of May 2026, Curfew is three repos — `curfew` (this one, the macOS app), `curfew-sync` (the Cloudflare Sync coordinator), and `curfew-protocols` (the versioned wire-format contract). This PRD covers the **product** scope, which spans all three. Where this doc mentions implementation details for the Sync coordinator (F-section TBD), the canonical implementation spec is `curfew-sync/Documentation/ARCHITECTURE.md`. MCP tool schemas referenced as inline Swift types are migrating to `curfew-protocols`; see `AGENTS.md` for the migration discipline.
 
+> **Release status (v0.1):** This PRD is forward-looking. The current shipping
+> scope is the Tahoe-only local core described in `README.md` and
+> `Documentation/RELEASE.md`. CloudKit, WidgetKit, Calendar, privileged-helper,
+> and Sparkle features are deferred until their separately provisioned,
+> signed-release validation is complete. Curfew is not distributed as a
+> notarized DMG until the Apple release checklist has been executed.
+
 ---
 
 ## Executive Summary
@@ -49,7 +56,7 @@ Curfew solves this by treating your schedule as a binding commitment, not a sugg
 
 ---
 
-## Platform Requirements
+## Target Platform Requirements (post-v0.1)
 
 - **OS:** macOS 14 (Sonoma) minimum, macOS 15 (Sequoia) recommended
 - **Architecture:** Universal Binary (Apple Silicon + Intel)

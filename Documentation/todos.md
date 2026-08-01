@@ -279,3 +279,6 @@ as an opt-in feature per the user's product direction and is not blocking.
 - [ ] Lockout smoke test: set curfew 5 min ahead, observe overlay, recover via override.
 - [ ] MCP smoke test: paste Claude Desktop config, run `curfew_status` from Claude.
 - [x] Landing page links all resolve. Fixed `hypertext-studio/curfew` → `TheHypertextStudio/curfew` across README, Cask, landing, CONTRIBUTING, generate-appcast.
+- [x] Marked the forward-looking PRD and Sparkle/appcast checklist steps so v0.1
+  cannot be mistaken for a released sync/updater product; regression coverage
+  lives in `scripts/release-entitlements.test.mjs`.

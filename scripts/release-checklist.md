@@ -177,11 +177,12 @@ Once the infrastructure above is in place, every release is:
      `appcast.xml` to the release only after Sparkle is provisioned. Until
      then it publishes only the notarized DMG.
    - Publishes a GitHub Release.
-4. **Publish the appcast to the live feed.** Copy the release's
-   `appcast.xml` asset to `https://curfew.hypertext.studio/appcast.xml`
-   (the `SUFeedURL` the app polls) via Cloudflare Pages — e.g. commit it
-   into `landing/` so Pages serves it. The GitHub release asset alone is
-   not the feed; without this step the app never discovers the update.
+4. **If (and only if) a later release enables Sparkle, publish its generated
+   `appcast.xml`** to `https://curfew.hypertext.studio/appcast.xml` (the
+   `SUFeedURL` the app polls) via Cloudflare Pages — e.g. commit it into
+   `landing/` so Pages serves it. The GitHub release asset alone is not the
+   feed; without this step the app never discovers the update. v0.1 skips
+   this step because Sparkle is deliberately unlinked.
 5. Bump the `Casks/curfew.rb` version + sha256 and push to homebrew-cask
    (only required after the first release is out).
 6. Post the release to the landing page's release notes page at

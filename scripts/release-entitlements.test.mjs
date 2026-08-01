@@ -4,6 +4,8 @@ import test from "node:test";
 
 const releaseEntitlements = await readFile("Curfew/Curfew-Release.entitlements", "utf8");
 const releaseWorkflow = await readFile(".github/workflows/release.yml", "utf8");
+const releaseChecklist = await readFile("scripts/release-checklist.md", "utf8");
+const productPlan = await readFile("Documentation/plan.md", "utf8");
 
 test("conservative initial Release keeps only the signed core entitlements", () => {
   assert.match(releaseEntitlements, /com\.apple\.security\.automation\.apple-events/);
@@ -23,4 +25,16 @@ test("unprovisioned Sparkle releases upload only the generated DMG", () => {
     /files: \|\n\s+\$\{\{ runner\.temp \}\}\/Curfew-\$\{\{ github\.ref_name \}\}\.dmg/,
   );
   assert.doesNotMatch(releaseWorkflow, /\$\{\{ runner\.temp \}\}\/appcast\.xml/);
+});
+
+test("v0.1 release docs distinguish the current core-only launch from future sync and updater work", () => {
+  assert.match(productPlan, /Release status \(v0\.1\).*forward-looking/s);
+  assert.match(
+    productPlan,
+    /CloudKit, WidgetKit, Calendar, privileged-helper,\s*> and Sparkle features are deferred/s,
+  );
+  assert.match(
+    releaseChecklist,
+    /If \(and only if\) a later release enables Sparkle, publish its generated\s+`appcast\.xml`/,
+  );
 });
