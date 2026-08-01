@@ -35,6 +35,15 @@ configuration. Set the private seed as the Worker `LICENSE_PRIVATE_KEY` secret
 through an authorized secret-management session; never place it in a file,
 environment dump, issue, or commit.
 
+## Rotation boundary
+
+The app artifact and Worker secret form one signing boundary: deploy a Worker
+configured with the new `LICENSE_PRIVATE_KEY` before distributing an app that
+embeds its matching public key. A newly rotated app intentionally rejects keys
+from the prior signer. Keep the prior key material available only in the
+operator's approved secret store until the pre-release transition is complete;
+do not commit either private seed or add it to repository configuration.
+
 ## Local config and safe verification
 
 The committed `web/worker/wrangler.toml.example` has no account identifiers,

@@ -196,7 +196,7 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 - [x] `web/worker/` — pnpm-locked issuer source plus local tests and template-only Wrangler config.
 - [x] `scripts/license-worker.mjs` — explicit-path keygen, fail-closed config validation, dry-run and HTTPS health verification.
 - [x] `Documentation/license-worker-bootstrap.md` — fresh-clone bootstrap and rollout boundary.
-- [ ] Placeholder public key replaced with production key. (external launch gate)
+- [x] Production Ed25519 public key embedded; matching private seed is retained only outside the repository for Worker secret provisioning.
 - [ ] Stripe account + Curfew Pro product + webhook configured. (external launch gate)
 
 ## 16. Onboarding

@@ -223,6 +223,9 @@ only.
 
 ## 18. License issuer envelope v2
 
+- `Embed the provisioned Ed25519 public key for the external Worker signing
+  seed.`
+  - `LicenseEnvelopeContractTests/embedsProvisionedPublicKey()`
 - `Decode and enforce Curfew Plus subscription claims while retaining legacy lifetime continuity.`
   - `LicenseEnvelopeContractTests/decodesCurfewPlusSubscriptionEnvelope()`
 - `Sign the decoded JSON payload for the Worker envelope rather than the base64url text.`
