@@ -10,7 +10,6 @@
   <header class="site-header">
     <nav>
       <a href="/" class="wordmark">Curfew</a>
-      <a href="https://github.com/TheHypertextStudio/curfew" class="nav-link">GitHub</a>
     </nav>
   </header>
 
@@ -86,11 +85,13 @@
 
         <h2 class="privacy-section-title">MCP server</h2>
         <p class="privacy-prose">
-          When <code>curfew-mcp</code> is running, AI assistants can read
-          your enforcement state and your daily reflections, and request
-          changes. Reflections are exposed read-only; write operations
-          require your explicit approval in the app. No data leaves your
-          machine through this path.
+          When <code>curfew-mcp</code> is running, a connected assistant can
+          read your enforcement state and reflections, and request an
+          extension or schedule change. Reflections are read-only. Curfew asks
+          before write requests by default; you can change that policy in
+          Settings. Curfew does not upload this data, but the assistant you
+          connect may send it to its own service. Check that service's privacy
+          policy before sharing your reflections.
         </p>
 
         <p class="privacy-prose">
@@ -103,11 +104,10 @@
 
   <footer>
     <p>
-      A <a href="https://hypertext.studio">Hypertext Studio</a> product —
-      <em>mens et manus</em>
+      Made by <a href="https://hypertext.studio">Hypertext Studio</a>.
     </p>
     <p>
-      <a href="https://github.com/TheHypertextStudio/curfew">GitHub</a> ·
+      <a href="mcp.html">MCP setup</a> ·
       <a href="terms.html">Terms</a> ·
       <a href="refund.html">Refund</a> ·
       <a href="privacy.html">Privacy</a>

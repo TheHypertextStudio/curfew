@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MCP setup — Curfew</title>
+  <meta name="description" content="Connect Curfew to Claude Desktop or another MCP-compatible app." />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <nav>
+      <a href="/" class="wordmark">Curfew</a>
+    </nav>
+  </header>
+
+  <main>
+    <section>
+      <div class="section-inner docs-page">
+        <h1 class="privacy-heading">Connect Curfew to an MCP client</h1>
+        <p class="privacy-lede">Set up Curfew with Claude Desktop or another MCP-compatible app.</p>
+
+        <h2 class="privacy-section-title">What you need</h2>
+        <p class="privacy-prose">Install Curfew, then open Settings → Integrations and turn on MCP. The normal connection uses stdio and runs on your Mac.</p>
+
+        <h2 class="privacy-section-title">Claude Desktop</h2>
+        <p class="privacy-prose">In Curfew, open Settings → Integrations and choose Copy Claude Desktop Config. Paste it into Claude Desktop's configuration, then restart Claude Desktop.</p>
+        <p class="privacy-prose">If you need to add it yourself, place this under <code>mcpServers</code> in <code>~/Library/Application Support/Claude/claude_desktop_config.json</code>:</p>
+        <div class="code-block">
+<pre><code>{
+  "mcpServers": {
+    "curfew": {
+      "command": "/Applications/Curfew.app/Contents/Resources/curfew-mcp",
+      "args": []
+    }
+  }
+}</code></pre>
+        </div>
+        <p class="privacy-prose">After restarting Claude Desktop, ask for your Curfew status to check the connection.</p>
+
+        <h2 class="privacy-section-title">Command line</h2>
+        <p class="privacy-prose"><code>curfew-ctl</code> is bundled with the app. Run it directly, or add your own alias if you use it often.</p>
+        <div class="code-block">
+<pre><code>/Applications/Curfew.app/Contents/Resources/curfew-ctl status
+/Applications/Curfew.app/Contents/Resources/curfew-ctl schedule show
+/Applications/Curfew.app/Contents/Resources/curfew-ctl budget
+/Applications/Curfew.app/Contents/Resources/curfew-ctl reflections --days 7</code></pre>
+        </div>
+
+        <h2 class="privacy-section-title">What an assistant can do</h2>
+        <ul class="privacy-list">
+          <li>Read your status, schedule, budget, activity, and reflections you choose to share.</li>
+          <li>Request an extension or a schedule change.</li>
+          <li>Never write reflections or request an override through MCP.</li>
+        </ul>
+
+        <h2 class="privacy-section-title">You stay in control</h2>
+        <p class="privacy-prose">Curfew asks before write requests by default. In Settings → Integrations, you can keep that setting, deny requests automatically, or approve them automatically. Automatic approval lets a connected assistant make supported changes without asking again.</p>
+
+        <h2 class="privacy-section-title">Advanced: local HTTP</h2>
+        <p class="privacy-prose">If you need an HTTP connection, enable loopback HTTP in Settings → Advanced. It listens only on <code>127.0.0.1:9847</code>, so another machine cannot reach it.</p>
+
+        <h2 class="privacy-section-title">Privacy</h2>
+        <p class="privacy-prose">Curfew's MCP server runs locally. Curfew does not upload the information it serves, but an MCP client may send that information to its own service. Check that client's privacy policy before sharing reflections.</p>
+        <p class="privacy-prose"><a href="privacy.html">Read Curfew's privacy policy</a>.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>Made by <a href="https://hypertext.studio">Hypertext Studio</a>.</p>
+    <p><a href="terms.html">Terms</a> · <a href="refund.html">Refund</a> · <a href="privacy.html">Privacy</a></p>
+  </footer>
+</body>
+</html>
