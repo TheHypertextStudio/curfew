@@ -36,6 +36,9 @@ jobs:
           restore-keys: ${{ runner.os }}-derived-
 
       - name: Check (format + lint + test + build)
+        env:
+          CODE_SIGNING_ALLOWED: "NO"
+          CODE_SIGNING_REQUIRED: "NO"
         run: just check
 
   screenshots:
