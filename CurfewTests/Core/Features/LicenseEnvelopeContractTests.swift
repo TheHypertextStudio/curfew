@@ -5,6 +5,14 @@ import Testing
 /// Compatibility boundary for the internal app-to-license-issuer envelope.
 /// This is intentionally local to Curfew: it is not an MCP or Sync protocol.
 struct LicenseEnvelopeContractTests {
+    @Test("The app embeds the provisioned Curfew Plus signing public key")
+    func embedsProvisionedPublicKey() {
+        #expect(
+            LicenseGate.configuredPublicKeyBase64 ==
+                "O3aliqjY5EGELzz0H0esqHPNXbU3D7+RovTka/c93/c="
+        )
+    }
+
     @Test("subscription envelopes decode as Curfew Plus and retain refresh metadata")
     func decodesCurfewPlusSubscriptionEnvelope() throws {
         let decoder = JSONDecoder()

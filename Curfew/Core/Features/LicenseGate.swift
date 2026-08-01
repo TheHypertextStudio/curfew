@@ -2,19 +2,6 @@ import Combine
 import CryptoKit
 import Foundation
 
-/// Standard-base64-encoded 32-byte Ed25519 public key (decoded below with
-/// `Data(base64Encoded:)`). Replace this constant with the
-/// `license_public.key` output of `scripts/gen-license-keypair.sh` before
-/// shipping. The matching private half is set as the Stripe-webhook
-/// Worker secret `LICENSE_PRIVATE_KEY` (see `scripts/issue-license.ts`) and
-/// is never bundled with the app.
-///
-/// The all-zero placeholder below is rejected by `LicenseGate.verified` —
-/// any activation attempt while it is in place fails with
-/// `.publicKeyNotProvisioned`. This prevents a build that has not had its
-/// production key swapped in from silently accepting attacker-forged keys.
-private let licensePublicKeyBase64 = "jx3THl0He1kY3/7RQIRKglwRpTNhxzLmuMbkC9hczYI="
-
 /// Sentinel value for the unconfigured placeholder public key. Kept as its
 /// own constant so `LicenseGate.verified` can fail-closed when the build has
 /// not yet been pointed at a real signing key, and so CI can grep for the
@@ -59,9 +46,14 @@ enum LicenseActivationError: LocalizedError {
 /// The payload is a JSON object matching `LicenseKey`; the signature covers the
 /// exact UTF-8 bytes of that JSON. Verification uses the Ed25519 public key
 /// embedded above — the matching private key signs keys server-side via the
-/// Stripe Checkout webhook Worker (`scripts/issue-license.ts`).
+/// license issuer Worker secret `LICENSE_PRIVATE_KEY`.
 @MainActor
 final class LicenseGate: ObservableObject {
+    /// Standard-base64 Ed25519 public key for the current Curfew Plus issuer.
+    /// The matching private seed is an external Worker secret and is never
+    /// bundled, committed, logged, or read by the app.
+    static let configuredPublicKeyBase64 = "O3aliqjY5EGELzz0H0esqHPNXbU3D7+RovTka/c93/c="
+
     /// Verified Pro license currently in effect, or `nil` for free-tier
     /// users. Setting surfaces Pro features across the app through the
     /// `isProUnlocked` derived boolean.
@@ -159,7 +151,7 @@ final class LicenseGate: ObservableObject {
         // Fail-closed when the build still carries the placeholder zero key.
         // Without this guard an attacker who discovered the all-zero private
         // key (trivially derivable) could forge arbitrary licenses.
-        guard licensePublicKeyBase64 != placeholderPublicKeyBase64
+        guard Self.configuredPublicKeyBase64 != placeholderPublicKeyBase64
         else { throw LicenseActivationError.publicKeyNotProvisioned }
 
         let parts = keyString.split(separator: ".", maxSplits: 1)
@@ -169,7 +161,7 @@ final class LicenseGate: ObservableObject {
         else { throw LicenseActivationError.malformed }
 
         guard
-            let rawKey = Data(base64Encoded: licensePublicKeyBase64),
+            let rawKey = Data(base64Encoded: Self.configuredPublicKeyBase64),
             let publicKey = try? Curve25519.Signing.PublicKey(rawRepresentation: rawKey),
             publicKey.isValidSignature(signatureData, for: payloadData)
         else { throw LicenseActivationError.invalidSignature }
