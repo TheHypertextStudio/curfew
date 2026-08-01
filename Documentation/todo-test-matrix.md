@@ -244,6 +244,9 @@ only.
 - `Operator documentation names only the envelope-v2 Worker bootstrap and
   cannot reintroduce a legacy deployment path.`
   - `scripts/license-worker-documentation.test.mjs`
+- `Initial-release app surfaces do not offer a hosted checkout until a release
+  explicitly provides one.`
+  - `PurchaseAvailabilityTests/checkoutIsUnavailable()`
 
 ## 18. License issuer envelope v2
 
