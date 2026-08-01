@@ -74,6 +74,8 @@ jobs:
       # shadowed per-window hero stills are local-only (they need that
       # permission) — see scripts/capture-marketing.sh / capture-video.sh.
       - name: Capture demo screenshots
+        env:
+          CURFEW_XCODEBUILD_SETTINGS: "CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO"
         run: just capture
 
       - name: Upload screenshots

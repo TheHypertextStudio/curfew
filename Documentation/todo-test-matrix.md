@@ -229,6 +229,10 @@ only.
   v0.1 scope from deferred CloudKit, WidgetKit, Calendar, privileged-helper,
   and Sparkle work.`
   - `scripts/release-entitlements.test.mjs`
+- `CI screenshot capture uses unsigned Xcode settings so hosted macOS runners
+  produce and upload the MarketingCapture PNG artifacts.`
+  - `scripts/release-entitlements.test.mjs`
+  - `scripts/extract-screenshots.sh` (local and hosted runtime coverage)
 - `Stripe test-mode staging can use a workers.dev license issuer without
   attaching a production custom domain.`
   - `scripts/license-worker.test.mjs`

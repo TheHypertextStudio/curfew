@@ -282,3 +282,5 @@ as an opt-in feature per the user's product direction and is not blocking.
 - [x] Marked the forward-looking PRD and Sparkle/appcast checklist steps so v0.1
   cannot be mistaken for a released sync/updater product; regression coverage
   lives in `scripts/release-entitlements.test.mjs`.
+- [x] Restored CI demo-capture artifacts by forwarding the screenshot job's
+  unsigned build settings into `scripts/extract-screenshots.sh`.
