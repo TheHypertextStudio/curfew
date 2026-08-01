@@ -43,8 +43,9 @@ embeds its matching public key. A newly rotated app intentionally rejects keys
 from the prior signer. Keep the prior key material available only in the
 operator's approved secret store until the pre-release transition is complete;
 do not commit either private seed or add it to repository configuration.
-If a seed is displayed, logged, or otherwise exposed before it is deployed,
-discard it and generate a new pair; do not save the exposed seed to the Worker.
+If a seed is displayed, logged, or otherwise exposed, discard it and generate a
+new pair. Update the app verifier and Worker secret together before distributing
+the next app artifact; do not keep using the exposed signer.
 
 ## Local config and safe verification
 
