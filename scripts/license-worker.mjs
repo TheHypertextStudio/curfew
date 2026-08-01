@@ -69,12 +69,16 @@ async function renderConfig(arguments_) {
   validateConfig();
   const output = option(arguments_, "--output");
   if (!output) throw new Error("render-config requires --output <local-path>");
+  const route = arguments_.includes("--workers-dev")
+    ? "workers_dev = true"
+    : `routes = [{ pattern = "${process.env.CURFEW_LICENSE_HOSTNAME}", custom_domain = true }]`;
   const template = await readFile(templatePath, "utf8");
   const rendered = template
     .replaceAll("__CURFEW_LICENSE_WORKER_NAME__", process.env.CURFEW_LICENSE_WORKER_NAME)
     .replaceAll("__CURFEW_LICENSE_KV_NAMESPACE_ID__", process.env.CURFEW_LICENSE_KV_NAMESPACE_ID)
     .replaceAll("__CURFEW_LICENSE_HOSTNAME__", process.env.CURFEW_LICENSE_HOSTNAME)
-    .replaceAll("__CURFEW_LICENSE_WORKER_MAIN__", resolve(root, "web/worker/src/index.ts"));
+    .replaceAll("__CURFEW_LICENSE_WORKER_MAIN__", resolve(root, "web/worker/src/index.ts"))
+    .replaceAll("__CURFEW_LICENSE_WORKER_ROUTE__", route);
   await writePublic(output, rendered);
   console.log(`Rendered local Worker configuration: ${resolve(output)}`);
 }

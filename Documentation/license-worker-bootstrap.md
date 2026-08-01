@@ -61,6 +61,21 @@ node scripts/license-worker.mjs render-config --output /secure/user-owned/wrangl
 node scripts/license-worker.mjs dry-run --config /secure/user-owned/wrangler.toml
 ```
 
+For an isolated staging Worker, use a separate KV namespace and render a
+`workers.dev` endpoint rather than assigning a production custom domain:
+
+```sh
+export CURFEW_LICENSE_WORKER_NAME='curfew-issue-license-staging'
+export CURFEW_LICENSE_KV_NAMESPACE_ID='your-staging-kv-namespace-id'
+export CURFEW_LICENSE_HOSTNAME='curfew-issue-license-staging.your-subdomain.workers.dev'
+node scripts/license-worker.mjs render-config --workers-dev \
+  --output /secure/user-owned/wrangler-staging.toml
+```
+
+Set a distinct staging `LICENSE_PRIVATE_KEY` and Stripe **test-mode** webhook
+secret on that Worker. Never reuse its KV namespace, webhook secret, or
+checkout links in production.
+
 `validate-config` fails closed when any required field is absent or malformed.
 `render-config` resolves the Worker entry point from this clone, so the
 caller-selected output path does not change what Wrangler builds. `dry-run`

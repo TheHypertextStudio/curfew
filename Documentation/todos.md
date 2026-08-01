@@ -224,6 +224,8 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 - [ ] Homebrew Cask. (v0.2)
 - [-] Sparkle autoupdate scaffolding present; framework wiring + signed appcast
   flow still pending. v0.1 releases publish only the notarized DMG. (v0.2)
+- [x] Support an isolated workers.dev license Worker configuration for Stripe
+  test-mode staging, with a distinct KV namespace and secrets.
 
 ## 17.5 Enforcement audit closure (2026-05-18)
 
