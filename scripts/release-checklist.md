@@ -75,14 +75,13 @@ fraud — no separate tax-filing service is needed.
 
 ### 6. Cloudflare Worker for license issuance
 
-- [ ] `npm i -g wrangler` (or `brew install cloudflare-wrangler2`).
-- [ ] `wrangler login`.
-- [ ] `wrangler kv namespace create LICENSE_KV` — paste the returned id
+- [ ] `pnpm dlx wrangler@latest login`.
+- [ ] `pnpm dlx wrangler@latest kv namespace create LICENSE_KV` — paste the returned id
       into `wrangler.toml` under `kv_namespaces[0].id`.
-- [ ] `wrangler secret put STRIPE_WEBHOOK_SECRET` — paste the `whsec_…`
+- [ ] `pnpm dlx wrangler@latest secret put STRIPE_WEBHOOK_SECRET` — paste the `whsec_…`
       signing secret from step 4.
-- [ ] `wrangler secret put LICENSE_PRIVATE_KEY` — paste the private key from step 5.
-- [ ] `wrangler deploy` — note the worker URL (`*.workers.dev`).
+- [ ] `pnpm dlx wrangler@latest secret put LICENSE_PRIVATE_KEY` — paste the private key from step 5.
+- [ ] `pnpm dlx wrangler@latest deploy` — note the worker URL (`*.workers.dev`).
 - [ ] Point the Stripe webhook endpoint (step 4) at the worker URL.
 - [ ] (Optional) Set up a custom domain: `license.hypertext.studio` →
       uncomment the `routes = [...]` block in `wrangler.toml`.

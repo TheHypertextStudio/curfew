@@ -8,16 +8,16 @@
 #
 # Setup (one-time, per environment):
 #
-#   1. `npx wrangler kv namespace create LICENSE_KV`
+#   1. `pnpm dlx wrangler@latest kv namespace create LICENSE_KV`
 #      Paste the returned id into `kv_namespaces[0].id` below.
-#   2. `npx wrangler secret put STRIPE_WEBHOOK_SECRET`
+#   2. `pnpm dlx wrangler@latest secret put STRIPE_WEBHOOK_SECRET`
 #      Value: the signing secret (`whsec_…`) from Stripe → Developers →
 #             Webhooks → your endpoint. Add an endpoint subscribed to
 #             `checkout.session.completed` pointing at this Worker's POST URL.
-#   3. `npx wrangler secret put LICENSE_PRIVATE_KEY`
+#   3. `pnpm dlx wrangler@latest secret put LICENSE_PRIVATE_KEY`
 #      Value: base64url-encoded Ed25519 private key from
 #             `scripts/gen-license-keypair.sh`.
-#   4. `npx wrangler deploy`
+#   4. `pnpm dlx wrangler@latest deploy`
 
 name = "curfew-issue-license"
 main = "scripts/issue-license.ts"
