@@ -363,22 +363,23 @@ final class CurfewAppModel: NSObject, ObservableObject {
         started
     }
 
-    /// Overrides the mirrored idle flag. Used by the idle-watcher callback and
-    /// by tests to drive idle-dependent behaviour deterministically.
+    /// Overrides the mirrored idle flag for the idle watcher and deterministic tests.
     func setIdleState(_ idle: Bool) {
         isUserIdle = idle
     }
 
-    /// Guarded `isAccessibilityTrusted` setter. In-file because the property's
-    /// setter is `private(set)`; the Lifecycle tick poll routes through here.
+    /// Updates accessibility trust only when its value changed.
     func setAccessibilityTrusted(_ trusted: Bool) {
-        if isAccessibilityTrusted != trusted { isAccessibilityTrusted = trusted }
+        if isAccessibilityTrusted != trusted {
+            isAccessibilityTrusted = trusted
+        }
     }
 
-    /// Guarded `enforcementHealth` setter. In-file because the property's
-    /// setter is `private(set)`; the Lifecycle tick recompute routes here.
+    /// Updates enforcement health only when its value changed.
     func setEnforcementHealth(_ health: EnforcementHealth) {
-        if enforcementHealth != health { enforcementHealth = health }
+        if enforcementHealth != health {
+            enforcementHealth = health
+        }
     }
 
     /// Timer-target bridge. Swift `Timer` requires a `@objc` selector, and
@@ -388,8 +389,7 @@ final class CurfewAppModel: NSObject, ObservableObject {
         tick()
     }
 
-    /// Appends to the published override log. In-file because `overrideEvents`
-    /// is `@Published private(set)`; ``recordOverrideEvent(_:)`` routes here.
+    /// Appends to the published override log.
     func appendOverrideEvent(_ event: OverrideEvent) {
         overrideEvents.append(event)
     }

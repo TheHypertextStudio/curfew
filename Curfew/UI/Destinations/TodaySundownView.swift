@@ -45,7 +45,7 @@ struct TodaySundownView: View {
         .padding(.bottom, CurfewSpacing.xLarge)
         .background(SundownPalette.paper)
         .onChange(of: showAccessibilityWarning) { oldValue, newValue in
-            guard oldValue && !newValue else { return }
+            guard oldValue, !newValue else { return }
             withAnimation { justGrantedAccess = true }
             Task {
                 try? await Task.sleep(for: .seconds(2))

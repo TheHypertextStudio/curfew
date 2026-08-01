@@ -78,7 +78,7 @@ struct TodayView: View {
         case 5 ..< 12: "Good morning"
         case 12 ..< 17: "Good afternoon"
         case 17 ..< 24: "Good evening"
-        default: "Still up?"  // midnight through 4 AM
+        default: "Still up?" // midnight through 4 AM
         }
     }
 

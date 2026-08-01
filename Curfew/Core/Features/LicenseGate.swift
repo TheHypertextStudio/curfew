@@ -189,7 +189,9 @@ private extension Data {
             .replacingOccurrences(of: "-", with: "+")
             .replacingOccurrences(of: "_", with: "/")
         let pad = normalized.count % 4
-        if pad != 0 { normalized += String(repeating: "=", count: 4 - pad) }
+        if pad != 0 {
+            normalized += String(repeating: "=", count: 4 - pad)
+        }
         self.init(base64Encoded: normalized)
     }
 }

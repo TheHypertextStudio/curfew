@@ -139,7 +139,9 @@ struct ReflectionFormView: View {
     }
 
     private func currentRating(for id: UUID) -> Int {
-        if case .rating(let value, _) = values[id] { return value }
+        if case .rating(let value, _) = values[id] {
+            return value
+        }
         return 0
     }
 
@@ -171,14 +173,18 @@ struct ReflectionFormView: View {
     }
 
     private func currentMood(for id: UUID) -> ReflectionMood? {
-        if case .mood(let mood) = values[id] { return mood }
+        if case .mood(let mood) = values[id] {
+            return mood
+        }
         return nil
     }
 
     private func textBinding(for id: UUID) -> Binding<String> {
         Binding(
             get: {
-                if case .text(let string) = values[id] { return string }
+                if case .text(let string) = values[id] {
+                    return string
+                }
                 return ""
             },
             set: { values[id] = .text($0) }

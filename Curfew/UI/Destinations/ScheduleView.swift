@@ -55,7 +55,7 @@ struct ScheduleContent: View {
         .padding(24)
         .frame(maxWidth: 900, alignment: .leading)
         .onChange(of: model.pendingScheduleDescription) { oldValue, newValue in
-            guard oldValue != nil && newValue == nil else { return }
+            guard oldValue != nil, newValue == nil else { return }
             withAnimation { justApplied = true }
             Task {
                 try? await Task.sleep(for: .seconds(3))
