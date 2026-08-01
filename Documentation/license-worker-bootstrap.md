@@ -59,8 +59,24 @@ node scripts/license-worker.mjs dry-run --config /secure/user-owned/wrangler.tom
 ```
 
 `validate-config` fails closed when any required field is absent or malformed.
-`dry-run` performs no deployment. After an authorized deployment and secret
-upload, the read-only endpoint check is:
+`render-config` resolves the Worker entry point from this clone, so the
+caller-selected output path does not change what Wrangler builds. `dry-run`
+performs no deployment. To produce a dashboard-reviewable bundle without a
+Cloudflare token, run from the Worker directory:
+
+```sh
+cd web/worker
+pnpm exec wrangler deploy --dry-run \
+  --config /secure/user-owned/wrangler.toml \
+  --outdir /secure/user-owned/curfew-license-worker-bundle
+```
+
+Wrangler writes the bundled entry point at
+`/secure/user-owned/curfew-license-worker-bundle/index.js`; its source map and
+README are supporting local artifacts. The dashboard still requires separate
+configuration of the `LICENSE_KV` binding, custom hostname, and encrypted
+secrets. After an authorized deployment and secret upload, the read-only
+endpoint check is:
 
 ```sh
 node scripts/license-worker.mjs verify-endpoint --base-url https://license.example.com

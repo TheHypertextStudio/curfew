@@ -232,3 +232,6 @@ only.
   - `web/worker/test/crypto.test.ts`
 - `Generate private signing material only into a caller-selected mode-600 path.`
   - `scripts/license-worker.test.mjs`
+- `Render a caller-owned Worker config whose entry point still resolves from
+  the fresh clone.`
+  - `scripts/license-worker.test.mjs`

@@ -1,6 +1,6 @@
 # Copy or render this template locally. Never commit the rendered config.
 name = "__CURFEW_LICENSE_WORKER_NAME__"
-main = "src/index.ts"
+main = "__CURFEW_LICENSE_WORKER_MAIN__"
 compatibility_date = "2026-07-31"
 
 # Optional production custom hostname; leave this block out for workers.dev only.
