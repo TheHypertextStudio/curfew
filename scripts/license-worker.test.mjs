@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm, stat } from "node:fs/promises";
+import { access, mkdtemp, readFile, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -88,4 +88,16 @@ test("workers.dev staging config omits production custom-domain routing", async 
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
+});
+
+test("only the envelope-v2 Worker bootstrap remains deployable", async () => {
+  for (const legacyPath of [
+    "scripts/issue-license.ts",
+    "scripts/gen-license-keypair.sh",
+    "wrangler.toml",
+  ]) {
+    await assert.rejects(access(legacyPath));
+  }
+  await access("scripts/license-worker.mjs");
+  await access("web/worker/wrangler.toml.example");
 });
