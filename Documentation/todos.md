@@ -23,7 +23,7 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 - [x] Default debug/Xcode launch starts with enforcement disarmed unless explicitly enabled.
 - [x] Add a dedicated app launch coordinator so app startup orchestration is isolated from scene composition.
 - [x] Add targets for `curfew-mcp`, `curfew-ctl`, and WidgetKit extension. (`curfew-mcp`, `curfew-ctl`, and `CurfewWidget` are wired in Xcode. Privileged helper → v0.2)
-- [-] Configure entitlements: App Group, CloudKit, notifications, accessibility-related requirements. (The signed Release path now carries the App Group, CloudKit, APS, and Apple Events entitlements used by shutdown/widget/cloud flows; the remaining work is external provisioning + manual signed-build validation in `Documentation/RELEASE.md`.)
+- [-] Configure entitlements: App Group, CloudKit, notifications, accessibility-related requirements. (The conservative v0.1 Release carries only App Group and Apple Events for the shipped core. CloudKit and APS stay out until their feature flags are enabled after external provisioning + manual signed-build validation in `Documentation/RELEASE.md`.)
 - [x] Define centralized app constants (`AppGroup`, bundle IDs, CloudKit record names via SharedPaths.swift).
 - [x] Add feature flags for deferred modules (widget/cloud/MCP/calendar/privileged helper) with safe defaults off.
 

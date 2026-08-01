@@ -250,11 +250,16 @@ install-hooks:
 # -----------------------------------------------------------------------
 # Composite gates
 # -----------------------------------------------------------------------
+# Assert that the signed v0.1 configuration does not accidentally request
+# CloudKit or APNs before those deferred integrations are provisioned.
+release-policy:
+    node --test scripts/release-entitlements.test.mjs
+
 # Ship-gate alias — the exact chain AGENTS.md requires before any
 # completion claim. Fails loudly on the first problem rather than
 # reporting all four at once, because the fixes usually build on each
 # other.
-check: format-check lint test build
+check: release-policy format-check lint test build
 
 # Quick pre-commit sanity — lint + unit tests only, skips the Debug
 # build. Useful when you've just written pure-logic code and don't want
