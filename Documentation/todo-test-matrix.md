@@ -225,6 +225,9 @@ only.
 - `A conservative v0.1 tag release uploads only its notarized DMG; it cannot
   reference an appcast that Sparkle intentionally did not generate.`
   - `scripts/release-entitlements.test.mjs`
+- `Stripe test-mode staging can use a workers.dev license issuer without
+  attaching a production custom domain.`
+  - `scripts/license-worker.test.mjs`
 
 ## 18. License issuer envelope v2
 

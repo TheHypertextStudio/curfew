@@ -62,3 +62,30 @@ test("rendered config resolves the Worker entry point from a caller-selected pat
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+test("workers.dev staging config omits production custom-domain routing", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "curfew-license-workers-dev-test-"));
+  const configFile = join(directory, "wrangler.toml");
+
+  try {
+    const result = spawnSync(
+      process.execPath,
+      ["scripts/license-worker.mjs", "render-config", "--workers-dev", "--output", configFile],
+      {
+        encoding: "utf8",
+        env: {
+          CURFEW_LICENSE_WORKER_NAME: "curfew-license-staging",
+          CURFEW_LICENSE_KV_NAMESPACE_ID: "00000000000000000000000000000000",
+          CURFEW_LICENSE_HOSTNAME: "curfew-license-staging.example.workers.dev",
+        },
+      }
+    );
+
+    assert.equal(result.status, 0, result.stderr);
+    const config = await readFile(configFile, "utf8");
+    assert.match(config, /^workers_dev = true$/m);
+    assert.doesNotMatch(config, /^routes = /m);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
