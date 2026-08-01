@@ -52,7 +52,7 @@ final class LicenseGate: ObservableObject {
     /// Standard-base64 Ed25519 public key for the current Curfew Plus issuer.
     /// The matching private seed is an external Worker secret and is never
     /// bundled, committed, logged, or read by the app.
-    static let configuredPublicKeyBase64 = "UKRq5y4Zyahv2VxzLfx4Gth8uTJLvqiIESpJ+dkER+4="
+    static let configuredPublicKeyBase64 = "PxDfBCNsculISyzJ6ymoKnKK2awPEiRCq3FLCkTCFhY="
 
     /// Verified Pro license currently in effect, or `nil` for free-tier
     /// users. Setting surfaces Pro features across the app through the
