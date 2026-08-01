@@ -197,7 +197,7 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 - [x] `scripts/license-worker.mjs` — explicit-path keygen, fail-closed config validation, dry-run and HTTPS health verification.
 - [x] Caller-owned rendered Worker configs resolve the entry point from the clone, so a fresh-clone dry-run and dashboard bundle do not need a repo-local config workaround.
 - [x] `Documentation/license-worker-bootstrap.md` — fresh-clone bootstrap and rollout boundary.
-- [x] Production Ed25519 public key embedded; matching private seed is retained only outside the repository for Worker secret provisioning, and an exposed seed is discarded and rotated before deployment.
+- [x] Production Ed25519 public key embedded; matching private seed is retained only outside the repository for Worker secret provisioning. If it is exposed at any point, rotate both the Worker signer and app verifier before distribution.
 - [ ] Stripe account + Curfew Pro product + webhook configured. (external launch gate)
 
 ## 16. Onboarding
