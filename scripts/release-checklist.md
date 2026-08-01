@@ -124,9 +124,13 @@ a later signed build.
 
 ### 8. Landing page hosting
 
-- [ ] Cloudflare Pages → create a project pointing at this repo's `landing/` directory.
-- [ ] Custom domain: `curfew.hypertext.studio`.
-- [ ] Preview deployments on every push to `main`.
+- [x] Cloudflare Pages project serves this repo's `landing/` directory.
+- [x] Custom domain: `curfew.hypertext.studio` (HTTPS 200 verified 2026-08-01).
+- [x] Cloudflare Pages preview deployment runs for repository changes.
+
+The completed hosting setup does **not** authorize a sale: keep the root
+landing sale gate closed until the production Stripe webhook and signed-app
+license delivery are independently verified.
 
 ### 9. Homebrew Cask submission
 
