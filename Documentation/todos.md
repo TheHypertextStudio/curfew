@@ -228,6 +228,11 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 - [x] `CONTRIBUTING.md`, `PRIVACY.md`, `Documentation/ARCHITECTURE.md`, `Documentation/RELEASE.md`.
 - [x] Signed-build validation runbook for shutdown, widget, privileged helper, and CloudKit lives in `Documentation/RELEASE.md`. (Actual Apple-credential execution is still tracked by the remaining unchecked release/provisioning items.)
 - [x] Landing page (`landing/`) — Cloudflare Pages deploy target.
+- [x] Mintlify documentation source lives in `docs/`.
+- [ ] Connect and publish the Mintlify source, then configure the Pages
+      `/docs` reverse proxy and complete the required custom-domain TXT
+      verification. Keep the current hosted content intact until its
+      replacement is explicitly authorized. (external launch gate)
 - [ ] Apple Developer credentials in GitHub secrets. (external launch gate)
 - [x] Cloudflare Pages production deployment and `curfew.hypertext.studio`
       DNS/TLS. The public site returned HTTPS 200 on 2026-08-01; checkout

@@ -1,0 +1,51 @@
+---
+title: Connect an assistant
+description: Use Curfew with Claude Desktop or another MCP-compatible app.
+---
+
+Curfew includes a local MCP server. It can share your status, schedule, budget,
+activity, and the reflections you choose to share with a connected client.
+
+## Claude Desktop
+
+1. In Curfew, open **Settings → Integrations** and enable MCP.
+2. Choose **Add to Claude Desktop**.
+3. Restart Claude Desktop, then ask for your Curfew status.
+
+Curfew adds the connection to Claude Desktop’s configuration for you.
+
+## Add it manually
+
+Use **Copy Claude Desktop Config** in Curfew, then add this under
+`mcpServers` in `~/Library/Application Support/Claude/claude_desktop_config.json`.
+
+```json
+{
+  "mcpServers": {
+    "curfew": {
+      "command": "/Applications/Curfew.app/Contents/Resources/curfew-mcp",
+      "args": []
+    }
+  }
+}
+```
+
+Restart Claude Desktop after changing its configuration.
+
+## What an assistant can do
+
+- Read your status, schedule, budget, activity, and selected reflections.
+- Request an extension or a schedule change.
+- Never write reflections or request an override through MCP.
+
+## Approving changes
+
+Curfew asks before change requests by default. In **Settings → Integrations**,
+you can keep that policy, deny requests automatically, or approve supported
+changes automatically.
+
+## Local HTTP
+
+The normal connection uses stdio. For a client that requires HTTP, enable
+loopback HTTP in **Settings → Advanced**. Curfew listens only at
+`127.0.0.1:9847`, so another machine cannot reach it.

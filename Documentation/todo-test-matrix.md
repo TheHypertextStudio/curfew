@@ -213,6 +213,10 @@ only.
 
 ## 17. Build Gating and Distribution Accuracy
 
+- `Public setup guidance is published from the repository-owned Mintlify source
+  rather than a marketing-page guide.`
+  - `docs/docs.json` (Mintlify configuration validation at publish time)
+  - Browser review of the deployed `/docs` site (external launch proof)
 - `Hide deferred integration panels in default builds until their feature flags are enabled.`
   - `FeatureFlagTests/deferredPanelsAreHiddenByDefault()`
   - `DeferredIntegrationVisibilityTests/visiblePanelsFollowEnabledFlags()`
