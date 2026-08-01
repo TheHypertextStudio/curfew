@@ -5,14 +5,16 @@ Test Matrix: [`Documentation/todo-test-matrix.md`](./todo-test-matrix.md)
 Owner: Willie + Claude
 Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 
-> **v0.1 launch status (2026-07-31):** Core enforcement, flexible schedules,
+> **v0.1 launch status (2026-08-01):** Core enforcement, flexible schedules,
 > CLI, user-approved MCP requests, user-confirmed reflections, CI/release
 > scaffolding, and the landing site are implemented. Release builds enable only
 > the local MCP integration; CloudKit, Calendar, WidgetKit, and the privileged
 > helper remain disabled pending production Apple provisioning and signed-artifact
-> validation. The license service and checkout are also unconfigured, so Pro is
-> not for sale. Items below marked `[ ]` are external release gates or v0.2+
-> targets unless noted otherwise.
+> validation. The production license issuer is deployed and its envelope-v2
+> health endpoint is live, but the landing sale gate remains closed: no
+> production checkout-to-license delivery has been proven from a signed app
+> release. Items below marked `[ ]` are external release gates or v0.2+ targets
+> unless noted otherwise.
 
 ---
 
@@ -224,7 +226,10 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 - [x] Signed-build validation runbook for shutdown, widget, privileged helper, and CloudKit lives in `Documentation/RELEASE.md`. (Actual Apple-credential execution is still tracked by the remaining unchecked release/provisioning items.)
 - [x] Landing page (`landing/`) — Cloudflare Pages deploy target.
 - [ ] Apple Developer credentials in GitHub secrets. (external launch gate)
-- [ ] Cloudflare Pages deployment and `curfew.hypertext.studio` DNS/TLS. (external launch gate)
+- [x] Cloudflare Pages production deployment and `curfew.hypertext.studio`
+      DNS/TLS. The public site returned HTTPS 200 on 2026-08-01; checkout
+      remains intentionally gated pending the separate production delivery
+      proof.
 - [ ] Homebrew Cask. (v0.2)
 - [-] Sparkle autoupdate scaffolding present; framework wiring + signed appcast
   flow still pending. v0.1 releases publish only the notarized DMG. (v0.2)
