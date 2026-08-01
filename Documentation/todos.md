@@ -230,6 +230,11 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
   flow still pending. v0.1 releases publish only the notarized DMG. (v0.2)
 - [x] Support an isolated workers.dev license Worker configuration for Stripe
   test-mode staging, with a distinct KV namespace and secrets.
+- [x] Stripe Sandbox staging proof: an isolated `$1` test-only payment link
+      completed with Stripe's `4242` test card; the fresh
+      `checkout.session.completed` and `invoice.paid` deliveries both returned
+      `200`, and the issued license was retrieved from the staging Worker. No
+      live Stripe card, live payment link, or production Worker was used.
 
 ## 17.5 Enforcement audit closure (2026-05-18)
 
