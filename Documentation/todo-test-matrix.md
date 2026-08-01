@@ -228,6 +228,11 @@ only.
 - `Stripe test-mode staging can use a workers.dev license issuer without
   attaching a production custom domain.`
   - `scripts/license-worker.test.mjs`
+- `A Stripe Sandbox checkout can exercise the isolated issuer without a real
+  card or production endpoint; webhook delivery and subsequent session-license
+  retrieval are recorded as an operator-run staging proof.`
+  - `Documentation/license-worker-bootstrap.md` (operator procedure)
+  - Stripe Sandbox + isolated `workers.dev` Worker runtime evidence (external)
 - `Operator documentation names only the envelope-v2 Worker bootstrap and
   cannot reintroduce a legacy deployment path.`
   - `scripts/license-worker-documentation.test.mjs`

@@ -103,3 +103,17 @@ node scripts/license-worker.mjs verify-endpoint --base-url https://license.examp
 Before opening checkout, separately verify a Stripe test event, successful
 key delivery, subscription renewal, cancellation, and that the root
 `landing/index.html` sale gate remains closed until this path is proven.
+
+## Recorded staging proof
+
+On 2026-08-01, the isolated staging configuration was exercised from the
+Hypertext Studio Stripe **Sandbox** only. A dedicated `$1` staging payment link
+used Stripe's `4242` test card; the resulting `checkout.session.completed` and
+`invoice.paid` webhook deliveries returned HTTP `200`, and a follow-up
+`GET /license?session_id=...` returned a license envelope. The staging webhook
+secret was rotated before the proof and is distinct from production.
+
+This is evidence for the staging boundary, not authorization to expose a
+production checkout. Keep the root landing sale gate closed until the separate
+production Worker, Stripe webhook, signing, and installed-app checks are
+completed.
