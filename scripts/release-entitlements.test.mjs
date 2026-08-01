@@ -4,8 +4,10 @@ import test from "node:test";
 
 const releaseEntitlements = await readFile("Curfew/Curfew-Release.entitlements", "utf8");
 const releaseWorkflow = await readFile(".github/workflows/release.yml", "utf8");
+const ciWorkflow = await readFile(".github/workflows/ci.yml", "utf8");
 const releaseChecklist = await readFile("scripts/release-checklist.md", "utf8");
 const productPlan = await readFile("Documentation/plan.md", "utf8");
+const screenshotExtractor = await readFile("scripts/extract-screenshots.sh", "utf8");
 
 test("conservative initial Release keeps only the signed core entitlements", () => {
   assert.match(releaseEntitlements, /com\.apple\.security\.automation\.apple-events/);
@@ -37,4 +39,12 @@ test("v0.1 release docs distinguish the current core-only launch from future syn
     releaseChecklist,
     /If \(and only if\) a later release enables Sparkle, publish its generated\s+`appcast\.xml`/,
   );
+});
+
+test("CI screenshot capture forwards its unsigned build settings to Xcode", () => {
+  assert.match(
+    ciWorkflow,
+    /- name: Capture demo screenshots\n\s+env:\n\s+CURFEW_XCODEBUILD_SETTINGS: "CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO"\n\s+run: just capture/,
+  );
+  assert.match(screenshotExtractor, /\$\{CURFEW_XCODEBUILD_SETTINGS:-\}/);
 });
