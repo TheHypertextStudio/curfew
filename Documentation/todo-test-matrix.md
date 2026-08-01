@@ -220,3 +220,12 @@ only.
   - `FeatureFlagTests/shippingEnablesOnlyValidatedLocalIntegration()`
 - `Only surface update UI when Sparkle is actually linked into the app target.`
   - `CurfewUpdaterTests/updateAvailabilityMatchesLinkedFramework()`
+
+## 18. License issuer envelope v2
+
+- `Decode and enforce Curfew Plus subscription claims while retaining legacy lifetime continuity.`
+  - `LicenseEnvelopeContractTests/decodesCurfewPlusSubscriptionEnvelope()`
+- `Sign the decoded JSON payload for the Worker envelope rather than the base64url text.`
+  - `web/worker/test/crypto.test.ts`
+- `Generate private signing material only into a caller-selected mode-600 path.`
+  - `scripts/license-worker.test.mjs`

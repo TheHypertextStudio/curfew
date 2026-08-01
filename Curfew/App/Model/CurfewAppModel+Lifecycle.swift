@@ -372,6 +372,7 @@ extension CurfewAppModel {
         )
         resetReflectionGatesForNewDay()
         licenseGate.reverifyStoredKey()
+        refreshSubscriptionLicenseIfNeeded()
     }
 
     /// Active work minutes accumulated today; hours-based enforcement reads this.

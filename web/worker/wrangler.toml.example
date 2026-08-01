@@ -1,0 +1,14 @@
+# Copy or render this template locally. Never commit the rendered config.
+name = "__CURFEW_LICENSE_WORKER_NAME__"
+main = "src/index.ts"
+compatibility_date = "2026-07-31"
+
+# Optional production custom hostname; leave this block out for workers.dev only.
+routes = [{ pattern = "__CURFEW_LICENSE_HOSTNAME__", custom_domain = true }]
+
+[[kv_namespaces]]
+binding = "LICENSE_KV"
+id = "__CURFEW_LICENSE_KV_NAMESPACE_ID__"
+
+[observability]
+enabled = true
