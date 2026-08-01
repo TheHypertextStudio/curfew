@@ -154,8 +154,8 @@ Once the infrastructure above is in place, every release is:
    - Notarizes via `notarytool`.
    - Builds the DMG.
    - Runs `scripts/generate-appcast.sh` and attaches the signed
-     `appcast.xml` to the release (skipped with a warning until the
-     `SPARKLE_PRIVATE_KEY` secret is set).
+     `appcast.xml` to the release only after Sparkle is provisioned. Until
+     then it publishes only the notarized DMG.
    - Publishes a GitHub Release.
 4. **Publish the appcast to the live feed.** Copy the release's
    `appcast.xml` asset to `https://curfew.hypertext.studio/appcast.xml`

@@ -16,3 +16,11 @@ test("release guard inspects the active Curfew Plus verifier", () => {
   assert.match(releaseWorkflow, /configuredPublicKeyBase64/);
   assert.doesNotMatch(releaseWorkflow, /licensePublicKeyBase64/);
 });
+
+test("unprovisioned Sparkle releases upload only the generated DMG", () => {
+  assert.match(
+    releaseWorkflow,
+    /files: \|\n\s+\$\{\{ runner\.temp \}\}\/Curfew-\$\{\{ github\.ref_name \}\}\.dmg/,
+  );
+  assert.doesNotMatch(releaseWorkflow, /\$\{\{ runner\.temp \}\}\/appcast\.xml/);
+});
