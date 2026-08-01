@@ -11,13 +11,12 @@
   <header class="site-header">
     <nav>
       <span class="wordmark">Curfew</span>
-      <a href="https://github.com/TheHypertextStudio/curfew" class="nav-link">GitHub</a>
     </nav>
   </header>
 
   <main>
     <section class="hero">
-      <h1>Work has an<br>end time.</h1>
+      <h1>End the workday.</h1>
       <p class="hero-sub">
         Set your work hours. Curfew gives you a countdown when the day is
         over, then puts a full-screen lockout in the way. You can also have it
@@ -29,10 +28,27 @@
 
       <img
         class="lockout-shot"
-        src="images/lockout-overlay.png"
-        width="3024" height="1964"
-        alt="The Curfew lockout overlay: a large 10:47 PM clock, the message &quot;Great work today. Tomorrow is another day.&quot;, an &quot;unlocks at 7:00 AM&quot; line, and a &quot;Need to get back in?&quot; prompt."
+        src="images/curfew-lockout.png"
+        width="1920" height="1200"
+        alt="The Curfew lockout overlay, showing the time, an unlock time, and a prompt for getting back in."
       >
+    </section>
+
+    <section class="screens">
+      <div class="section-inner">
+        <h2>What it looks like</h2>
+        <p>Set a different end time for each day, then see the week as it went.</p>
+        <div class="screen-grid">
+          <figure>
+            <img src="images/curfew-schedule.png" width="1080" height="720" alt="Curfew's weekly schedule editor with per-day work end and resume times, day-off toggles, and schedule presets." />
+            <figcaption>Schedule</figcaption>
+          </figure>
+          <figure>
+            <img src="images/curfew-journal.png" width="1080" height="720" alt="Curfew's Journal view showing a week of kept days, overrides, and reflection history." />
+            <figcaption>Journal</figcaption>
+          </figure>
+        </div>
+      </div>
     </section>
 
     <section class="how" id="how">
@@ -43,13 +59,13 @@
             <span class="step-num">01</span>
             <h3>Set your hours</h3>
             <p>Choose start and stop times for each day, days off, or an
-              hours-based schedule. Changes close to curfew wait for a
-              cooldown.</p>
+              hours-based schedule. Last-minute schedule changes do not
+              quietly move today's finish line.</p>
           </div>
           <div class="how-step">
             <span class="step-num">02</span>
             <h3>Get a heads-up</h3>
-            <p>Curfew counts down at 30, 15, 5, 2, and 1 minutes.</p>
+            <p>Curfew gives you warning before time is up.</p>
           </div>
           <div class="how-step">
             <span class="step-num">03</span>
@@ -107,52 +123,21 @@
       <div class="section-inner">
         <h2>Use your data with the tools you already use.</h2>
         <p>
-          <code>curfew-mcp</code> is included with Curfew. A compatible
-          assistant can read curfew status and reflections you choose to share.
-          It runs locally on your Mac. Reflections are read-only; any supported
-          request that changes Curfew waits for approval in the app.
+          Curfew can share your schedule, current curfew, and reflections with
+          an MCP-compatible assistant. It runs on your Mac. You choose whether
+          an assistant can only read that information or ask to make changes.
         </p>
-        <div class="code-row">
-          <div class="code-block">
-            <div class="code-caption">~/.claude_desktop_config.json</div>
-<pre><code>{
-  "mcpServers": {
-    "curfew": {
-      "command": "/Applications/Curfew.app/Contents/Resources/curfew-mcp"
-    }
-  }
-}</code></pre>
-          </div>
-          <div class="code-block">
-            <div class="code-caption">shell</div>
-<pre><code>$ curfew-ctl status
-phase:     warning
-remaining: 14 min
-locks at:  6:00 PM
-warning:   T-15</code></pre>
-          </div>
-        </div>
-        <p class="mcp-note">
-          <code>curfew-ctl</code> is included for shell scripts and dotfile
-          hooks. It uses the same local data as Curfew.
-        </p>
+        <a href="mcp.html" class="btn-secondary">Set up MCP</a>
       </div>
     </section>
 
     <section class="download" id="download">
       <div class="section-inner">
         <h2>Curfew for macOS</h2>
-        <p>Requires macOS 26 or later. Curfew is open source under the MIT
-          License. A signed macOS release is on the way.</p>
-        <a href="https://github.com/TheHypertextStudio/curfew" class="btn-primary">
-          Build from source
-        </a>
+        <p>Requires macOS 26 or later. A signed macOS release is on the way.</p>
         <p class="download-trust">
           Private by default. No telemetry. Local MCP access stays under your
           control.
-        </p>
-        <p class="download-sub">
-          <code>git clone github.com/TheHypertextStudio/curfew &amp;&amp; open Curfew.xcodeproj</code>
         </p>
       </div>
     </section>
@@ -163,7 +148,7 @@ warning:   T-15</code></pre>
       Made by <a href="https://hypertext.studio">Hypertext Studio</a>.
     </p>
     <p>
-      <a href="https://github.com/TheHypertextStudio/curfew">GitHub</a> ·
+      <a href="mcp.html">MCP setup</a> ·
       <a href="terms.html">Terms</a> ·
       <a href="refund.html">Refund</a> ·
       <a href="privacy.html">Privacy</a>

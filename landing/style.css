@@ -65,11 +65,6 @@ code {
   flex: 1;
 }
 
-.nav-link {
-  font-size: 14px;
-  color: var(--muted);
-}
-
 /* ── Sections ── */
 
 section { padding: 80px 24px; }
@@ -149,6 +144,50 @@ section { padding: 80px 24px; }
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 16px;
   box-shadow: 0 24px 60px -24px rgba(0, 0, 0, 0.45);
+}
+
+/* ── Screens ── */
+
+.screens {
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.screens h2 {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  margin-bottom: 12px;
+}
+
+.screens > .section-inner > p {
+  color: var(--muted);
+  font-size: 17px;
+  margin-bottom: 36px;
+}
+
+.screen-grid {
+  display: grid;
+  gap: 24px;
+}
+
+@media (min-width: 720px) {
+  .screen-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+.screen-grid figure { margin: 0; }
+.screen-grid img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.screen-grid figcaption {
+  color: var(--muted);
+  font-size: 14px;
+  margin-top: 10px;
 }
 
 /* ── How it works ── */
@@ -454,3 +493,5 @@ footer p em { color: var(--ink); font-style: italic; }
   line-height: 1.7;
   max-width: 640px;
 }
+
+.docs-page .code-block { margin-bottom: 24px; }
