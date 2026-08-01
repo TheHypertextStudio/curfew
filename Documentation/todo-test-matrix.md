@@ -218,6 +218,8 @@ only.
   - `DeferredIntegrationVisibilityTests/visiblePanelsFollowEnabledFlags()`
 - `Initial Release enables only the validated local MCP integration; CloudKit, WidgetKit, Calendar, and privileged helper remain disabled.`
   - `FeatureFlagTests/shippingEnablesOnlyValidatedLocalIntegration()`
+- `Conservative signed Release does not request CloudKit or APNs before those integrations are enabled.`
+  - `scripts/release-entitlements.test.mjs`
 - `Only surface update UI when Sparkle is actually linked into the app target.`
   - `CurfewUpdaterTests/updateAvailabilityMatchesLinkedFramework()`
 

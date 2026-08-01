@@ -3,22 +3,14 @@
 <plist version="1.0">
 <dict>
     <!--
-      Release entitlements. Adds the iCloud container so CloudKit sync
-      works on distributed builds signed with Developer ID. Local tests
-      use Curfew.entitlements (Debug) which omits iCloud so ad-hoc
-      signing succeeds.
+      Conservative initial-release entitlements. Local MCP and core
+      enforcement ship, while CloudKit, push, WidgetKit, Calendar, and the
+      privileged helper remain disabled by FeatureFlags.shipping. Do not add
+      iCloud or APNs capabilities until their signed-build validation is
+      complete and the feature flags are intentionally enabled.
     -->
     <key>com.apple.security.app-sandbox</key>
     <false/>
-
-    <key>com.apple.developer.icloud-services</key>
-    <array>
-        <string>CloudKit</string>
-    </array>
-    <key>com.apple.developer.icloud-container-identifiers</key>
-    <array>
-        <string>iCloud.studio.hypertext.curfew</string>
-    </array>
 
     <!-- Auto-shutdown uses Apple Events to ask System Events to shut down
          the Mac. Keep this in the release entitlements so signed builds can
@@ -34,10 +26,5 @@
         <string>group.studio.hypertext.curfew</string>
     </array>
 
-    <!-- Silent-push for CloudKit `CKDatabaseSubscription`. Production
-         push environment — must pair with the APNs certificate in the
-         Apple Developer portal. -->
-    <key>aps-environment</key>
-    <string>production</string>
 </dict>
 </plist>

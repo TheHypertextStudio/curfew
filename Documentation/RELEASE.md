@@ -48,11 +48,12 @@ prerequisites exist:
      verification below passes.
 
 3. **Release entitlements**
-   - `Curfew/Curfew-Release.entitlements` must continue to carry:
+   - The conservative v0.1 `Curfew/Curfew-Release.entitlements` carries:
      - `com.apple.security.automation.apple-events = true`
      - `com.apple.security.application-groups = group.studio.hypertext.curfew`
-     - `com.apple.developer.icloud-container-identifiers = iCloud.studio.hypertext.curfew`
-     - `aps-environment = production`
+   - It deliberately omits iCloud and `aps-environment` while CloudKit and
+     push-backed sync are disabled. Reintroduce and validate those entitlements
+     only in the release that enables `cloudSyncEnabled`.
    - `CurfewWidget/CurfewWidget.entitlements` must continue to carry:
      - `com.apple.security.app-sandbox = true`
      - `com.apple.security.application-groups = group.studio.hypertext.curfew`
@@ -134,8 +135,8 @@ ls "$WIDGET" "$HELPER" "$HELPER_PLIST"
 
 From the entitlement dumps, confirm:
 
-- **App**: Apple Events automation, App Group, iCloud container, and
-  `aps-environment = production` are present.
+- **App (v0.1)**: Apple Events automation and the App Group are present; iCloud
+  and `aps-environment` are absent while CloudKit sync is disabled.
 - **Widget**: sandbox + the same App Group are present.
 - **Helper plist**: `Label = studio.hypertext.curfew.daemon` and
   `BundleProgram = Contents/Resources/curfew-daemon`.
@@ -232,8 +233,8 @@ file never appears during a real lockout.
 
 ### 4. CloudKit + push-backed sync
 
-CloudKit requires real Apple-side provisioning plus a signed build carrying the
-iCloud and APS entitlements.
+CloudKit requires real Apple-side provisioning plus a future signed build that
+adds the iCloud and APS entitlements when `cloudSyncEnabled` is enabled.
 
 1. Confirm the signed app entitlement dump includes:
    - `com.apple.developer.icloud-container-identifiers = iCloud.studio.hypertext.curfew`
