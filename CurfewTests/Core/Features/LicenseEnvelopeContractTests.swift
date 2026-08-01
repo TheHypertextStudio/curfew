@@ -9,7 +9,7 @@ struct LicenseEnvelopeContractTests {
     func embedsProvisionedPublicKey() {
         #expect(
             LicenseGate.configuredPublicKeyBase64 ==
-                "O3aliqjY5EGELzz0H0esqHPNXbU3D7+RovTka/c93/c="
+                "V54mfManht5dg5yhqX3iok9PkX9WLOpmyuF8rm2nG+o="
         )
     }
 
