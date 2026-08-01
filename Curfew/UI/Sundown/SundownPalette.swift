@@ -79,7 +79,9 @@ enum SundownPalette {
 
     /// Picks and linearly blends the two keyframes bracketing `light`.
     private static func blendedKeyframe(for light: Double) -> [SkyRGB] {
-        if light <= keyframes[0].level { return keyframes[0].stops }
+        if light <= keyframes[0].level {
+            return keyframes[0].stops
+        }
         if light >= keyframes[keyframes.count - 1].level {
             return keyframes[keyframes.count - 1].stops
         }

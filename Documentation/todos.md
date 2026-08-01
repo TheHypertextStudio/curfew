@@ -5,12 +5,14 @@ Test Matrix: [`Documentation/todo-test-matrix.md`](./todo-test-matrix.md)
 Owner: Willie + Claude
 Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 
-> **v0.1 status (2026-04-18):** Core enforcement, CLI, MCP server, Pro licensing,
-> CI/release workflows, landing page, and WidgetKit target wiring are complete.
-> CloudKit and Calendar app-side code remain feature-flag/provisioning gated, and
-> signed-build/manual release validation for WidgetKit, shutdown, and the
-> privileged helper is tracked in `Documentation/RELEASE.md`. Items below marked
-> `[ ]` are v0.2+ targets unless noted otherwise.
+> **v0.1 launch status (2026-07-31):** Core enforcement, flexible schedules,
+> CLI, user-approved MCP requests, user-confirmed reflections, CI/release
+> scaffolding, and the landing site are implemented. Release builds enable only
+> the local MCP integration; CloudKit, Calendar, WidgetKit, and the privileged
+> helper remain disabled pending production Apple provisioning and signed-artifact
+> validation. The license service and checkout are also unconfigured, so Pro is
+> not for sale. Items below marked `[ ]` are external release gates or v0.2+
+> targets unless noted otherwise.
 
 ---
 
@@ -155,6 +157,7 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 
 - [x] `curfew-mcp` executable target (stdio MCP server, JSON-RPC 2.0).
 - [x] Read tools: `curfew_status`, `curfew_schedule`, `curfew_budget`, `curfew_activity`, `curfew_request_status`, `curfew_get_time_remaining`, `curfew_get_weekly_summary`.
+- [x] Read-only reflection tool: `curfew_get_reflections`; no MCP tool can write a user's reflections.
 - [x] Write tools (queued by default): `curfew_request_extension`, `curfew_request_override`, `curfew_set_schedule`.
 - [x] Streamable HTTP transport on localhost:9847 (opt-in; Settings → Advanced).
 - [x] Unix-socket IPC seam between `curfew-mcp` and the running app (queue fallback today; POSIX listener in a follow-up).
@@ -191,8 +194,8 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 - [x] `PurchasePromptView` — feature name, description, upgrade link.
 - [x] `scripts/gen-license-keypair.sh` — Ed25519 keypair generation.
 - [x] `scripts/issue-license.ts` — Cloudflare Worker: Stripe webhook → signed key.
-- [ ] Placeholder public key replaced with production key. (morning task)
-- [ ] Stripe account + Curfew Pro product + webhook configured. (morning task)
+- [ ] Placeholder public key replaced with production key. (external launch gate)
+- [ ] Stripe account + Curfew Pro product + webhook configured. (external launch gate)
 
 ## 16. Onboarding
 
@@ -213,8 +216,8 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 - [x] `CONTRIBUTING.md`, `PRIVACY.md`, `Documentation/ARCHITECTURE.md`, `Documentation/RELEASE.md`.
 - [x] Signed-build validation runbook for shutdown, widget, privileged helper, and CloudKit lives in `Documentation/RELEASE.md`. (Actual Apple-credential execution is still tracked by the remaining unchecked release/provisioning items.)
 - [x] Landing page (`landing/`) — Cloudflare Pages deploy target.
-- [ ] Apple Developer credentials in GitHub secrets. (morning task)
-- [ ] Cloudflare Pages deployment. (morning task)
+- [ ] Apple Developer credentials in GitHub secrets. (external launch gate)
+- [ ] Cloudflare Pages deployment and `curfew.hypertext.studio` DNS/TLS. (external launch gate)
 - [ ] Homebrew Cask. (v0.2)
 - [-] Sparkle autoupdate scaffolding present; framework wiring + signed appcast flow still pending. (v0.2)
 

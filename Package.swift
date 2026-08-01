@@ -36,7 +36,7 @@ let package = Package(
         // Sources/CurfewKit/MCP/MCPPendingRequest.swift and the inputSchema
         // JSON literals in Sources/curfew-mcp/MCPTool.swift).
         .package(
-            url: "git@github.com:TheHypertextStudio/curfew-protocols.git",
+            url: "https://github.com/TheHypertextStudio/curfew-protocols.git",
             exact: "0.1.0"
         )
         // Sparkle autoupdate is an Xcode-level framework dependency only.

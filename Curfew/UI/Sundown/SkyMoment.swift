@@ -44,10 +44,18 @@ extension SkyMoment {
     /// The band this moment falls in. Dawn/dusk share the horizon range and are
     /// split by direction (`rising`).
     var band: Band {
-        if light >= 0.78 { return .day }
-        if light >= 0.6 { return .golden }
-        if light >= 0.42 { return rising ? .dawn : .dusk }
-        if rising, light >= 0.3 { return .dawn }
+        if light >= 0.78 {
+            return .day
+        }
+        if light >= 0.6 {
+            return .golden
+        }
+        if light >= 0.42 {
+            return rising ? .dawn : .dusk
+        }
+        if rising, light >= 0.3 {
+            return .dawn
+        }
         return .night
     }
 

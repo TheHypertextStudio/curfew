@@ -90,13 +90,21 @@ struct EnforcementOwnershipTests {
         let url = tempLock()
         seed(.production, pid: 100, at: url, isAlive: alive)
         // A non-owning pid cannot release it.
-        EnforcementOwnership.release(pid: 999, lockURL: url)
+        EnforcementOwnership.release(
+            pid: 999,
+            bundleIdentifier: "studio.hypertext.curfew",
+            lockURL: url
+        )
         #expect(
             EnforcementOwnership.currentOwner(lockURL: url, isAlive: alive)?
                 .processIdentifier == 100
         )
         // The owner can.
-        EnforcementOwnership.release(pid: 100, lockURL: url)
+        EnforcementOwnership.release(
+            pid: 100,
+            bundleIdentifier: "studio.hypertext.curfew",
+            lockURL: url
+        )
         #expect(EnforcementOwnership.currentOwner(lockURL: url, isAlive: alive) == nil)
     }
 

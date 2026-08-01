@@ -111,7 +111,9 @@ struct SchedulePolicyEngineTests {
         let engine = SchedulePolicyEngine()
         var current = WeeklySchedule.standardNineToFive
         for weekday in Weekday.allCases {
-            if current.rule(for: weekday).isDayOff { continue }
+            if current.rule(for: weekday).isDayOff {
+                continue
+            }
             current.rules[weekday] = DayRule(
                 isDayOff: false,
                 lockMinutes: 18 * 60,
@@ -132,7 +134,9 @@ struct SchedulePolicyEngineTests {
         let engine = SchedulePolicyEngine()
         var current = WeeklySchedule.standardNineToFive
         for weekday in Weekday.allCases {
-            if current.rule(for: weekday).isDayOff { continue }
+            if current.rule(for: weekday).isDayOff {
+                continue
+            }
             current.rules[weekday] = DayRule(
                 isDayOff: false,
                 lockMinutes: 18 * 60,

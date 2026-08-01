@@ -1,6 +1,6 @@
 # Curfew
 
-**A hard stop for your Mac.** Set a schedule. When the clock runs out, your machine locks you out — warnings, then a full-screen overlay, then an optional shutdown. No willpower required.
+**A hard stop for your Mac.** Define the work rhythm that fits your life — not only a standard job — and Curfew enforces its end with warnings, a full-screen overlay, and optional shutdown. No willpower required.
 
 It's a commitment device, not a kernel-level lock: a determined user with a terminal can still get around it. The point is to make stopping the easy default, not to make it impossible.
 
@@ -10,9 +10,9 @@ Curfew is the first product from [Hypertext Studio](https://hypertext.studio), a
 
 ## What it does
 
-### Today (v0.1) — hard end-of-day gates
+### Today (v0.1) — flexible work rhythms and hard end-of-work gates
 
-- **Weekly schedule** with per-day lock/unlock times, day-off support, and three presets (9-to-5, Startup Hours, Half Day).
+- **Weekly schedule** with per-day work-end/resume times, day-off support, hours-based modes, and three editable presets (9-to-5, Startup Hours, Half Day).
 - **Graduated warnings** at T-30, T-15, T-5, T-2, T-1 with configurable intervals and per-stage notifications.
 - **Full-screen lockout** across every display and Space, with keyboard-shortcut interception (⌘⇥, ⌘Q, ⌘⌥Esc, …).
 - **Extension budget** — 3 × 15 min per week, hold-to-confirm so accidental taps don't burn a slot.
@@ -21,6 +21,7 @@ Curfew is the first product from [Hypertext Studio](https://hypertext.studio), a
 - **This Week retrospective** — lockouts held, extensions/overrides used, current streak.
 - **`curfew-ctl` CLI** — scriptable access to every status/override/budget operation. See [`curfew-ctl` usage](#curfew-ctl) below.
 - **`curfew-mcp` MCP server** — AI assistants can negotiate with your focus rules from within a coding session. See [MCP setup](#mcp-setup) below.
+- **User-confirmed reflections** — optional morning intentions and evening retrospectives use user-editable prompts, stay on the Mac, and are available to AI only through read-only MCP/CLI access.
 - **Menu bar quick access** + first-launch onboarding.
 
 Deferred Pro surfaces stay conservative in default/debug builds until their
@@ -30,8 +31,8 @@ signed-release entitlement and provisioning path has been validated.
 - Privileged helper via `SMAppService` (packaging landed; signed install/recovery validation still required).
 - Localization, Sparkle autoupdate.
 
-### Long term — reflection gates
-Morning intent, midday check-in, evening retrospective — lifecycle gates beyond just end-of-day. Design seams are already in the code (`gateKind` field in the activity log; generic MCP verbs).
+### Near term — reflection depth
+Morning intent and evening retrospective are available now. Midday check-ins and on-device AI-generated prompt suggestions remain future work; agents will never write a user's reflections.
 
 ---
 
@@ -43,16 +44,16 @@ Morning intent, midday check-in, evening retrospective — lifecycle gates beyon
 
 | Tool | Type | What it does |
 |------|------|------|
-| `curfew.status` | read | Current phase, time remaining, override state |
-| `curfew.schedule` | read | Full weekly schedule |
-| `curfew.budget` | read | Extensions and overrides remaining this week |
-| `curfew.activity` | read | Recent activity log entries |
-| `curfew.get_time_remaining` | read | Compact `{ minutes, phase, mode, trigger }` payload |
-| `curfew.get_weekly_summary` | read | Device-attributed weekly rollup |
-| `curfew.request_extension` | write* | Ask for a time extension |
-| `curfew.request_override` | write* | Request a full override with a reason |
-| `curfew.set_schedule` | write* | Update a single weekday (cannot weaken today without cooldown) |
-| `curfew.request_status` | read | Poll a queued write request for approval/denial |
+| `curfew_status` | read | Current phase, time remaining, override state |
+| `curfew_schedule` | read | Full weekly schedule |
+| `curfew_budget` | read | Extensions and overrides remaining this week |
+| `curfew_activity` | read | Recent activity log entries |
+| `curfew_get_time_remaining` | read | Compact `{ minutes, phase, mode, trigger }` payload |
+| `curfew_get_weekly_summary` | read | Device-attributed weekly rollup |
+| `curfew_get_reflections` | read | User-authored reflections only; agents cannot write them |
+| `curfew_request_extension` | write* | Ask for a time extension |
+| `curfew_set_schedule` | write* | Update a single weekday (cannot weaken today without cooldown) |
+| `curfew_request_status` | read | Poll a queued write request for approval/denial |
 
 Two transports: stdio (default, used by Claude Desktop) and loopback-only Streamable HTTP on `127.0.0.1:9847` (opt-in, Settings → Advanced).
 
@@ -75,7 +76,7 @@ Or manually:
 }
 ```
 
-Restart Claude Desktop. Run `curfew.status` to verify.
+Restart Claude Desktop. Run `curfew_status` to verify.
 
 ---
 
@@ -121,9 +122,9 @@ Pro adds features with ongoing infrastructure cost. Upgrade at [curfew.hypertext
 | This Week retrospective | ✓ | ✓ |
 | `curfew-ctl` CLI | ✓ | ✓ |
 | `curfew-mcp` MCP server | ✓ | ✓ |
-| **CloudKit multi-device sync** | — | Preview builds only |
-| **WidgetKit widgets** | — | Preview builds only (signed release validation pending) |
-| **Calendar integration** | — | Preview builds only |
+| **CloudKit multi-device sync** | — | Not enabled until production container validation |
+| **WidgetKit widgets** | — | Not enabled until signed-release validation |
+| **Calendar integration** | — | Not enabled until signed-release validation |
 
 Pricing: **$20 flat**. License key is verified offline via Ed25519 — no account required after purchase.
 
@@ -131,7 +132,9 @@ Pricing: **$20 flat**. License key is verified offline via Ed25519 — no accoun
 
 ## Install & run
 
-Requires **macOS 15+** and **Xcode 26+** (Swift 6).
+Requires **macOS 26+** and **Xcode 26+** (Swift 6). The first release is
+Tahoe-only; supporting earlier macOS versions is a deliberate future product
+and compatibility decision.
 
 ```bash
 git clone https://github.com/TheHypertextStudio/curfew
