@@ -71,7 +71,9 @@ final class CloudKitSyncEngine: ObservableObject {
     }
 
     private var resolvedContainer: CKContainer {
-        if let existing = container { return existing }
+        if let existing = container {
+            return existing
+        }
         let new = CKContainer(identifier: containerID)
         container = new
         return new

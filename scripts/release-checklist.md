@@ -1,7 +1,8 @@
 # Curfew Release Checklist
 
-Every external step required to cut a signed, notarized, purchasable
-release. One-time infrastructure setup plus the per-release sequence.
+Every external step required to cut a signed, notarized, purchasable release.
+One-time infrastructure setup plus the per-release sequence. Keep checkout
+disabled until every license-delivery prerequisite is verified.
 
 ## One-time infrastructure
 
@@ -86,11 +87,12 @@ fraud — no separate tax-filing service is needed.
 - [ ] (Optional) Set up a custom domain: `license.hypertext.studio` →
       uncomment the `routes = [...]` block in `wrangler.toml`.
 
-### 7. Sparkle EdDSA keypair
+### 7. Sparkle EdDSA keypair (post-v0.1)
 
-`INFOPLIST_KEY_SUFeedURL` and `INFOPLIST_KEY_SUPublicEDKey` already exist in
-`project.pbxproj`; the feed URL is final and the public key is a placeholder
-(`REPLACE_WITH_SPARKLE_PUBLIC_ED_KEY`) that CI rejects at tag time.
+Sparkle remains disabled for v0.1. Its placeholder public key does not block a
+release while the framework and updater UI are absent; the release workflow
+also skips appcast generation. Complete this section before enabling Sparkle in
+a later signed build.
 
 - [ ] Add the Sparkle package: Xcode → Curfew target → File → Add Package
       Dependencies → `github.com/sparkle-project/Sparkle` (exact 2.x). This

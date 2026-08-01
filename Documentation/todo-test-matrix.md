@@ -200,10 +200,23 @@ only.
   - `ScheduleSurfaceCopyTests/scheduleLabelsExplainWorkWindow()`
   - `SchedulePolicyEngineTests/scheduleSummarySentenceForTomorrow()`
 
-## 16. Build Gating and Distribution Accuracy
+## 16. Reflection and AI Access
+
+- `Present user-confirmed morning and evening reflection gates at the work-day boundaries.`
+  - `ReflectionGatingTests/morningGateOnSession()`
+  - `ReflectionGatingTests/eveningGateOnLockout()`
+  - `ReflectionGatingTests/saveResolvesGate()`
+  - `ReflectionGatingTests/skipResolvesGate()`
+- `Persist user-authored reflection answers without losing their prompt snapshots or value types.`
+  - `ReflectionModelTests/answersRoundTrip()`
+  - `ReflectionStoreTests/roundTrip()`
+
+## 17. Build Gating and Distribution Accuracy
 
 - `Hide deferred integration panels in default builds until their feature flags are enabled.`
   - `FeatureFlagTests/deferredPanelsAreHiddenByDefault()`
   - `DeferredIntegrationVisibilityTests/visiblePanelsFollowEnabledFlags()`
+- `Initial Release enables only the validated local MCP integration; CloudKit, WidgetKit, Calendar, and privileged helper remain disabled.`
+  - `FeatureFlagTests/shippingEnablesOnlyValidatedLocalIntegration()`
 - `Only surface update UI when Sparkle is actually linked into the app target.`
   - `CurfewUpdaterTests/updateAvailabilityMatchesLinkedFramework()`

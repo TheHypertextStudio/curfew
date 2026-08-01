@@ -283,12 +283,13 @@ xcrun stapler validate "$APP"
 1. Update `MARKETING_VERSION` + `CURRENT_PROJECT_VERSION` in `Curfew.xcodeproj`.
 2. Push the final commit to `main`; `just check` should already be green.
 3. Tag the release: `git tag v0.1.0 && git push origin v0.1.0`
-4. `.github/workflows/release.yml` will:
+4. `.github/workflows/release.yml` will resolve the public `curfew-protocols` SPM dependency without an additional repository secret, then:
    - run `just check`
    - archive with Developer ID signing
    - notarize with `notarytool`
    - staple/build the DMG
    - upload the DMG as a GitHub Release asset
+   - skip Sparkle appcast generation until Sparkle is explicitly provisioned; the initial build has no updater UI
 5. Download the GitHub Release DMG and repeat the final smoke test above on the
    actual shipped artifact before announcing the release.
 

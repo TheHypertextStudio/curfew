@@ -158,12 +158,11 @@
 
   <script>
     // ─────────────────────────────────────────────────────────────────────
-    // EDIT THIS: the base URL of your deployed Cloudflare Worker.
-    // After `wrangler deploy`, replace <your-worker-subdomain> with the
-    // subdomain Cloudflare assigns (shown in the deploy output and in the
-    // dashboard, e.g. curfew-license.janedoe.workers.dev).
+    // This page is intentionally inactive until the deployed Cloudflare
+    // Worker URL is configured. Do not publish a checkout link before this
+    // value points to the HTTPS license issuer that receives Stripe webhooks.
     // ─────────────────────────────────────────────────────────────────────
-    const WORKER_BASE_URL = "https://curfew-license.<your-worker-subdomain>.workers.dev";
+    const WORKER_BASE_URL = "";
 
     // ── State helpers ──
     const states = {
@@ -206,6 +205,10 @@
 
     // ── Fetch the license key for this checkout session ──
     async function loadLicense() {
+      if (!WORKER_BASE_URL) {
+        showError("License delivery is not configured yet. Please contact support with your order details.");
+        return;
+      }
       const sessionId = new URLSearchParams(window.location.search).get("session_id");
 
       if (!sessionId) {

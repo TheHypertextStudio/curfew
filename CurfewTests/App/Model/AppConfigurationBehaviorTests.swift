@@ -81,14 +81,14 @@ struct FeatureFlagTests {
         #expect(DeferredFeaturePanel.visible(for: .default).isEmpty)
     }
 
-    @Test("Shipping turns every deferred module on")
-    func shippingIsAllOn() {
+    @Test("Initial Release enables only the local MCP integration")
+    func shippingEnablesOnlyValidatedLocalIntegration() {
         let flags = FeatureFlags.shipping
-        #expect(flags.widgetKitEnabled)
-        #expect(flags.cloudSyncEnabled)
+        #expect(flags.widgetKitEnabled == false)
+        #expect(flags.cloudSyncEnabled == false)
         #expect(flags.mcpServerEnabled)
-        #expect(flags.privilegedHelperEnabled)
-        #expect(flags.calendarEnabled)
+        #expect(flags.privilegedHelperEnabled == false)
+        #expect(flags.calendarEnabled == false)
     }
 
     @Test("Resolution returns default when RELEASE_FEATURES is absent")

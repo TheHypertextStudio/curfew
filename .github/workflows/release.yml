@@ -69,17 +69,6 @@ jobs:
             exit 1
           fi
 
-      - name: Reject placeholder Sparkle public key
-        # Mirrors the license-key gate: refuses to release while
-        # INFOPLIST_KEY_SUPublicEDKey is still the placeholder, which would ship
-        # an app whose Sparkle update signatures can never verify.
-        run: |
-          if grep -q 'REPLACE_WITH_SPARKLE_PUBLIC_ED_KEY' Curfew.xcodeproj/project.pbxproj; then
-            echo "::error::project.pbxproj still embeds the placeholder SUPublicEDKey."
-            echo "Run scripts/gen-sparkle-keypair.sh and paste the public key into INFOPLIST_KEY_SUPublicEDKey before tagging."
-            exit 1
-          fi
-
       - name: Run quality gate
         run: just check
 
@@ -144,14 +133,13 @@ jobs:
           # the env only — never echo it.
           SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
         run: |
-          # Skip cleanly until Sparkle is wired up: without the signing key the
-          # script exits 1 and would fail the whole release. Once the
-          # SPARKLE_PRIVATE_KEY secret is set (and Sparkle is linked so
-          # sign_update exists), this activates automatically. A skipped appcast
-          # never fails the release — action-gh-release tolerates the missing
-          # file (fail_on_unmatched_files is false by default).
-          if [ -z "$SPARKLE_PRIVATE_KEY" ]; then
-            echo "::warning::SPARKLE_PRIVATE_KEY not set — skipping appcast generation (see scripts/release-checklist.md)."
+          # Sparkle is deliberately unavailable in the conservative initial
+          # release until its framework, public key and signing secret are all
+          # provisioned. A placeholder key is safe only because the app hides
+          # updater UI while Sparkle is unlinked. Do not produce an appcast
+          # until every updater prerequisite exists.
+          if grep -q 'REPLACE_WITH_SPARKLE_PUBLIC_ED_KEY' Curfew.xcodeproj/project.pbxproj || [ -z "$SPARKLE_PRIVATE_KEY" ]; then
+            echo "::warning::Sparkle is not provisioned — skipping appcast generation (see scripts/release-checklist.md)."
             exit 0
           fi
           # github.ref_name is the tag (e.g. v1.0.1); the script wants a bare
