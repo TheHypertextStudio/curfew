@@ -290,7 +290,8 @@ xcrun stapler validate "$APP"
    - notarize with `notarytool`
    - staple/build the DMG
    - upload the DMG as a GitHub Release asset
-   - skip Sparkle appcast generation until Sparkle is explicitly provisioned; the initial build has no updater UI
+   - skip Sparkle appcast generation and upload until Sparkle is explicitly
+     provisioned; the initial build has no updater UI
 5. Download the GitHub Release DMG and repeat the final smoke test above on the
    actual shipped artifact before announcing the release.
 

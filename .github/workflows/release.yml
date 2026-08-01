@@ -157,11 +157,9 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          # appcast.xml is published as a release asset for archival, but the
-          # CANONICAL feed the app polls (INFOPLIST_KEY_SUFeedURL) must be
-          # served at https://curfew.hypertext.studio/appcast.xml via Cloudflare
-          # Pages — copy this asset to that path on each release.
+          # Sparkle is not provisioned for v0.1, so the sole generated and
+          # published asset is the notarized DMG. Add a separately tested
+          # appcast publication path when the updater is enabled.
           files: |
             ${{ runner.temp }}/Curfew-${{ github.ref_name }}.dmg
-            ${{ runner.temp }}/appcast.xml
           generate_release_notes: true

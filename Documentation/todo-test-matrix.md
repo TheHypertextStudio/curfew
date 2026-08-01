@@ -222,6 +222,9 @@ only.
   - `scripts/release-entitlements.test.mjs`
 - `Only surface update UI when Sparkle is actually linked into the app target.`
   - `CurfewUpdaterTests/updateAvailabilityMatchesLinkedFramework()`
+- `A conservative v0.1 tag release uploads only its notarized DMG; it cannot
+  reference an appcast that Sparkle intentionally did not generate.`
+  - `scripts/release-entitlements.test.mjs`
 
 ## 18. License issuer envelope v2
 

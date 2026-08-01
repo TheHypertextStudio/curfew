@@ -222,7 +222,8 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 - [ ] Apple Developer credentials in GitHub secrets. (external launch gate)
 - [ ] Cloudflare Pages deployment and `curfew.hypertext.studio` DNS/TLS. (external launch gate)
 - [ ] Homebrew Cask. (v0.2)
-- [-] Sparkle autoupdate scaffolding present; framework wiring + signed appcast flow still pending. (v0.2)
+- [-] Sparkle autoupdate scaffolding present; framework wiring + signed appcast
+  flow still pending. v0.1 releases publish only the notarized DMG. (v0.2)
 
 ## 17.5 Enforcement audit closure (2026-05-18)
 
