@@ -293,6 +293,10 @@ xcrun stapler validate "$APP"
 5. Download the GitHub Release DMG and repeat the final smoke test above on the
    actual shipped artifact before announcing the release.
 
+The pull-request CI workflow also runs on `macos-26` so its test host matches
+Curfew's macOS 26 deployment target; running it on an older macOS image cannot
+execute the app or its tests.
+
 ## Rollback
 
 - Yank the GitHub release asset and replace it with the previous DMG.
