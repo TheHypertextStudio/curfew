@@ -214,18 +214,18 @@ snapshot:
 # Start every JS/TS dev server (worker + landing) together via Turborepo.
 # (`dev` is the Swift app; this is the web side.) Ctrl+C stops them.
 web:
-    pnpm -C web dev
+    cd web && pnpm dev
 
 # Typecheck the TS packages through Turbo — cached, so a no-change re-run is
 # instant (`>>> FULL TURBO`).
 web-typecheck:
-    pnpm -C web typecheck
+    cd web && pnpm typecheck
 
 # Serve the landing page locally (Wrangler Pages dev): runs the
 # `web/landing/functions` Pages Function (the /docs → Mintlify proxy), serves
 # `_headers`, and live-reloads. Ctrl+C stops it. (Static fallback: `landing-static`.)
 landing:
-    pnpm -C web --filter @curfew/landing dev
+    cd web && pnpm --filter @curfew/landing dev
 
 # Dependency-free alternative that serves without functions or live reload —
 # plain static files via Python. Useful on a machine without the workspace deps.
@@ -238,7 +238,7 @@ landing-static port="8765":
 # Uploads `web/landing/` as-is plus its Pages Function. First deploy creates the
 # project; the custom domain `curfew.hypertext.studio` is attached by `just setup`.
 deploy-landing:
-    pnpm -C web --filter @curfew/landing deploy
+    cd web && pnpm --filter @curfew/landing deploy
 
 # One-shot infrastructure setup — Cloudflare + Stripe. Deploys the Worker (with
 # its custom domain), generates + uploads the signing keypair, creates the Stripe

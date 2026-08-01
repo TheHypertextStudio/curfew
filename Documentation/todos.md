@@ -203,7 +203,7 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 - [ ] Production Curfew Plus Stripe products, Worker secrets, webhook, and
       purchase-to-license delivery verified. Keep the landing sale gate closed
       until this external launch gate is complete.
-- [x] `scripts/gen-license-keypair.sh` — Ed25519 keypair generation.
+- [x] `node scripts/license-worker.mjs keygen` — envelope-v2 Ed25519 keypair generation.
 - [x] `web/worker/src/` — Cloudflare Worker: Stripe webhook → signed key.
 - [x] Placeholder public key replaced with the embedded release public key; release CI rejects the all-zero sentinel if it returns. Matching private-key availability remains part of Worker deployment evidence.
 

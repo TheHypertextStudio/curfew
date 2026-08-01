@@ -21,7 +21,7 @@ Prerequisites it can't do for you (do these first):
 
 - [ ] Enable Stripe **Managed Payments** on the Hypertext Studio account
       (account-level eligibility — no API).
-- [ ] `pnpm -C web/worker exec wrangler login` as **willie@hypertext.studio**
+- [ ] `(cd web/worker && pnpm exec wrangler login)` as **willie@hypertext.studio**
       (the script refuses any other account).
 
 Run it (dry run prints the plan; `--yes` executes; add `--live` only with an
@@ -124,7 +124,7 @@ fraud — no separate tax-filing service is needed.
 ### 6. Cloudflare Worker for license issuance
 
 - [ ] Install from the locked workspace and validate only non-secret settings:
-      `pnpm install --dir web --frozen-lockfile`, then set
+      `(cd web && pnpm install --frozen-lockfile)`, then set
       `CURFEW_LICENSE_WORKER_NAME`, `CURFEW_LICENSE_KV_NAMESPACE_ID`, and
       `CURFEW_LICENSE_HOSTNAME` and run
       `node scripts/license-worker.mjs validate-config`.

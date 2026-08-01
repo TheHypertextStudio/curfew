@@ -71,6 +71,7 @@ final class LicenseGate {
             }
         }
     }
+
     /// Localized error string from the most recent failed `activate(_:)`
     /// call, or `nil` after a successful activation / fresh launch.
     private(set) var activationError: String?

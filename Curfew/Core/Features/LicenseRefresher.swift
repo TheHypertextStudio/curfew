@@ -16,14 +16,6 @@ struct LicenseRefresher {
     var baseURL = URL(string: "https://curfew-license.hypertext.studio")!
     var session: URLSession = .shared
 
-    init(
-        baseURL: URL = URL(string: "https://curfew-license.hypertext.studio")!,
-        session: URLSession = .shared
-    ) {
-        self.baseURL = baseURL
-        self.session = session
-    }
-
     /// Returns a renewed signed license key string for `refreshToken`, or `nil`
     /// when the subscription is no longer active (404) or the request failed.
     /// Never throws — a failed refresh is a no-op for the caller, which leaves

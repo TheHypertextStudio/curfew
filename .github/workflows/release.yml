@@ -65,7 +65,7 @@ jobs:
                Curfew/Core/Features/LicenseGate.swift \
                | grep -q 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA='; then
             echo "::error::LicenseGate.swift still embeds the placeholder Ed25519 public key."
-            echo "Run scripts/gen-license-keypair.sh and paste the public key before tagging."
+            echo "Run node scripts/license-worker.mjs keygen --private-key-path <secure-path> and paste the public key before tagging."
             exit 1
           fi
 
@@ -169,7 +169,8 @@ jobs:
       - name: Publish signed DMG
         uses: softprops/action-gh-release@v2
         with:
-          files: ${{ runner.temp }}/Curfew-${{ github.ref_name }}.dmg
+          files: |
+            ${{ runner.temp }}/Curfew-${{ github.ref_name }}.dmg
           generate_release_notes: true
 
       - name: Generate appcast
@@ -206,8 +207,9 @@ jobs:
           : "${CLOUDFLARE_ACCOUNT_ID:?CLOUDFLARE_ACCOUNT_ID is required}"
           cp "$RUNNER_TEMP/appcast.xml" web/landing/appcast.xml
           corepack enable
-          pnpm -C web install --frozen-lockfile
-          pnpm -C web --filter @curfew/landing deploy
+          cd web
+          pnpm install --frozen-lockfile
+          pnpm --filter @curfew/landing deploy
 
       - name: Verify live appcast
         run: |

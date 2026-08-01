@@ -15,9 +15,10 @@ shape without updating the Worker and `LicenseEnvelopeContractTests` together.
 Install only from the committed pnpm lockfile:
 
 ```sh
-pnpm install --dir web --frozen-lockfile
-pnpm --dir web test
-pnpm --dir web typecheck
+cd web
+pnpm install --frozen-lockfile
+pnpm test
+pnpm typecheck
 ```
 
 Generate a pair only when an authorized operator is ready. This command prints
