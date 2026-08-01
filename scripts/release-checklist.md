@@ -54,37 +54,57 @@ fraud — no separate tax-filing service is needed.
 
 - [ ] Create / sign in to the Hypertext Studio Stripe account and enable
       **Managed Payments** (public preview — confirm eligibility).
-- [ ] Create a product "Curfew Pro" at the **$20** one-time price and a
-      hosted **Payment Link** for it.
-- [ ] Paste the Payment Link URL into `landing/index.html` (replace
-      `https://buy.stripe.com/REPLACE_WITH_CURFEW_PRO_PAYMENT_LINK`).
+- [ ] Create the Curfew Plus lifetime and subscription products and their
+      hosted Payment Links only after the production issuer is ready.
+- [ ] Keep `landing/index.html`'s sale gate in place until the production
+      purchase-to-license delivery path is proven end to end. Do not commit a
+      hosted payment-link URL before that proof.
 - [ ] Developers → Webhooks → add an endpoint subscribed to
-      `checkout.session.completed`, pointing at the Cloudflare Worker URL
-      (see step 6).
-- [ ] Save the endpoint's signing secret (`whsec_…`) — goes into
-      `STRIPE_WEBHOOK_SECRET` in step 6.
+      `checkout.session.completed`, `invoice.paid`, and
+      `customer.subscription.deleted`, pointing at the production Worker URL
+      from step 6.
+- [ ] Save the endpoint's signing secret (`whsec_…`) for the production
+      `STRIPE_WEBHOOK_SECRET`. It must never be reused by staging.
 
 ### 5. Ed25519 license-signing keypair
 
-- [ ] `bash scripts/gen-license-keypair.sh` — produces a public/private pair.
-- [ ] Replace the placeholder value of `licensePublicKeyBase64` in
-      `Curfew/Core/Features/LicenseGate.swift:9` with the emitted
-      public key. CI (`.github/workflows/release.yml`) fails the tag
-      if the placeholder is still present.
-- [ ] Save the private key — goes into `LICENSE_PRIVATE_KEY` in step 6.
+- [ ] Follow `Documentation/license-worker-bootstrap.md` and run
+      `node scripts/license-worker.mjs keygen` with a caller-owned private
+      path. The private seed is written at mode `0600` and must not be
+      committed or printed.
+- [ ] Replace `LicenseGate.configuredPublicKeyBase64` with the emitted public
+      key in a separately reviewed app change. CI rejects the all-zero
+      placeholder verifier on a release tag.
+- [ ] Store the matching private seed only as the production
+      `LICENSE_PRIVATE_KEY` Worker secret in step 6.
 
 ### 6. Cloudflare Worker for license issuance
 
-- [ ] `pnpm dlx wrangler@latest login`.
-- [ ] `pnpm dlx wrangler@latest kv namespace create LICENSE_KV` — paste the returned id
-      into `wrangler.toml` under `kv_namespaces[0].id`.
-- [ ] `pnpm dlx wrangler@latest secret put STRIPE_WEBHOOK_SECRET` — paste the `whsec_…`
-      signing secret from step 4.
-- [ ] `pnpm dlx wrangler@latest secret put LICENSE_PRIVATE_KEY` — paste the private key from step 5.
-- [ ] `pnpm dlx wrangler@latest deploy` — note the worker URL (`*.workers.dev`).
-- [ ] Point the Stripe webhook endpoint (step 4) at the worker URL.
-- [ ] (Optional) Set up a custom domain: `license.hypertext.studio` →
-      uncomment the `routes = [...]` block in `wrangler.toml`.
+- [ ] Install from the locked workspace and validate only non-secret settings:
+      `pnpm install --dir web --frozen-lockfile`, then set
+      `CURFEW_LICENSE_WORKER_NAME`, `CURFEW_LICENSE_KV_NAMESPACE_ID`, and
+      `CURFEW_LICENSE_HOSTNAME` and run
+      `node scripts/license-worker.mjs validate-config`.
+- [ ] Render an untracked deployment config from
+      `web/worker/wrangler.toml.example` with
+      `node scripts/license-worker.mjs render-config --output
+      /secure/user-owned/wrangler.toml`.
+- [ ] Bundle before deployment with
+      `node scripts/license-worker.mjs dry-run --config
+      /secure/user-owned/wrangler.toml`.
+- [ ] In an authorized Hypertext Studio Cloudflare session, deploy only the
+      rendered config using `cd web/worker && pnpm exec wrangler deploy
+      --config /secure/user-owned/wrangler.toml`.
+- [ ] Bind the production `LICENSE_KV`, configure the production custom
+      hostname, then upload `STRIPE_WEBHOOK_SECRET` and `LICENSE_PRIVATE_KEY`
+      as encrypted Worker secrets. Do not put either value in Git, a rendered
+      config, or command-line arguments.
+- [ ] Verify `node scripts/license-worker.mjs verify-endpoint --base-url
+      https://curfew-license.hypertext.studio`; only then point the production
+      Stripe webhook at that hostname.
+- [ ] Prove checkout, renewal, cancellation, and license refresh first with
+      a distinct Stripe test-mode Worker/KV/secrets configuration; do not use
+      a real card for that proof.
 
 ### 7. Sparkle EdDSA keypair (post-v0.1)
 

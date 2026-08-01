@@ -16,8 +16,12 @@ maintainer executes it on a signed build with real Apple credentials.
 ## One-time external setup
 
 Use `scripts/release-checklist.md` for the full business/infrastructure setup
-(Stripe, Cloudflare Worker, Sparkle, landing page, Homebrew). The Apple
-release identifiers that must stay aligned are:
+(Stripe, Cloudflare Worker, Sparkle, landing page, Homebrew), and
+`Documentation/license-worker-bootstrap.md` for the sole reproducible issuer
+path: `scripts/license-worker.mjs` renders a caller-owned config from
+`web/worker/wrangler.toml.example`. Prove a separate workers.dev Worker with
+Stripe test mode before configuring production hostname, KV binding, secrets,
+or checkout. The Apple release identifiers that must stay aligned are:
 
 - App bundle ID: `studio.hypertext.curfew`
 - Widget bundle ID: `studio.hypertext.curfew.widget`
