@@ -74,7 +74,13 @@ final class LicenseGate: ObservableObject {
     /// Pro gate flows through this one flag so the rest of the code
     /// never touches the crypto types.
     var isProUnlocked: Bool {
-        activatedKey != nil
+        isPlusUnlocked
+    }
+
+    /// Plus is active for lifetime keys and only until expiry for subscriptions.
+    var isPlusUnlocked: Bool {
+        guard let key = activatedKey else { return false }
+        return key.plan == .lifetime || (key.expiresAt ?? .distantPast) > Date()
     }
 
     private let defaults: UserDefaults
@@ -173,7 +179,7 @@ final class LicenseGate: ObservableObject {
         guard let key = try? decoder.decode(LicenseKey.self, from: payloadData)
         else { throw LicenseActivationError.malformed }
 
-        guard key.product == "curfew-pro"
+        guard key.product == "curfew-plus" || (key.product == "curfew-pro" && key.plan == .lifetime)
         else { throw LicenseActivationError.wrongProduct }
 
         return key

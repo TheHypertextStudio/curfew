@@ -64,4 +64,16 @@ extension CurfewAppModel {
             privilegedHelperManager.refreshStatus()
         }
     }
+
+    /// Subscription refresh is deliberately best-effort and silent. Only a
+    /// valid Worker-issued replacement changes local entitlement state.
+    func refreshSubscriptionLicenseIfNeeded() {
+        guard let key = licenseGate.activatedKey, key.plan == .subscription,
+              let token = key.refreshToken else { return }
+        let refresher = LicenseRefresher()
+        Task { [weak self] in
+            guard let refreshed = await refresher.refreshedKey(for: token) else { return }
+            await MainActor.run { self?.licenseGate.activate(refreshed) }
+        }
+    }
 }

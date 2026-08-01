@@ -1,0 +1,9 @@
+{
+  "name": "curfew-web",
+  "private": true,
+  "packageManager": "pnpm@11.9.0",
+  "scripts": {
+    "test": "pnpm --filter @curfew/license-worker test",
+    "typecheck": "pnpm --filter @curfew/license-worker typecheck"
+  }
+}

@@ -55,6 +55,7 @@ extension CurfewAppModel {
         }
         subscribeToLicenseChanges()
         reconcileProGatedModules()
+        refreshSubscriptionLicenseIfNeeded()
     }
 
     /// Merges a remote settings payload with the live local copy, deferring

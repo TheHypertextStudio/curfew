@@ -185,15 +185,17 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 - [x] `scripts/uninstall.sh` — standalone uninstaller mirroring the in-app flow.
 - [x] In-app uninstall flow (Settings → Advanced → Uninstall).
 
-## 15. Pro Licensing
+## 15. Curfew Plus Licensing
 
 - [x] Ed25519 offline license key verification (`LicenseGate` + `CryptoKit`).
 - [x] License key format: `{base64url(payload)}.{base64url(signature)}`.
 - [x] `LicenseView` in Settings — activate/deactivate, Pro status display.
 - [x] `ProGate<Content>` generic view wrapper gates CloudKit, WidgetKit, Calendar.
 - [x] `PurchasePromptView` — feature name, description, upgrade link.
-- [x] `scripts/gen-license-keypair.sh` — Ed25519 keypair generation.
-- [x] `scripts/issue-license.ts` — Cloudflare Worker: Stripe webhook → signed key.
+- [x] Envelope v2: signed JSON bytes, `curfew-plus`, lifetime/subscription claims, expiry and refresh token.
+- [x] `web/worker/` — pnpm-locked issuer source plus local tests and template-only Wrangler config.
+- [x] `scripts/license-worker.mjs` — explicit-path keygen, fail-closed config validation, dry-run and HTTPS health verification.
+- [x] `Documentation/license-worker-bootstrap.md` — fresh-clone bootstrap and rollout boundary.
 - [ ] Placeholder public key replaced with production key. (external launch gate)
 - [ ] Stripe account + Curfew Pro product + webhook configured. (external launch gate)
 
