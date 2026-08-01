@@ -14,14 +14,37 @@ import Testing
 struct OverrideRequestPolicyTests {
     @Test("Override policy requires 50+ chars and a non-zero budget")
     func overridePolicyValidation() {
+        let requestedAt = Date(timeIntervalSince1970: 1_700_000_000)
         let validReason = String(
             repeating: "a",
             count: OverrideRequestPolicy.minimumJustificationCharacters
         )
 
-        #expect(!OverrideRequestPolicy.canConfirm(reason: "short", overridesRemaining: 1))
-        #expect(OverrideRequestPolicy.canConfirm(reason: validReason, overridesRemaining: 1))
-        #expect(!OverrideRequestPolicy.canConfirm(reason: validReason, overridesRemaining: 0))
+        #expect(!OverrideRequestPolicy.canConfirm(
+            reason: "short",
+            overridesRemaining: 1,
+            requestedAt: requestedAt,
+            now: requestedAt.addingTimeInterval(300)
+        ))
+        #expect(!OverrideRequestPolicy.canConfirm(
+            reason: validReason,
+            overridesRemaining: 1,
+            requestedAt: requestedAt,
+            now: requestedAt.addingTimeInterval(299)
+        ))
+        #expect(OverrideRequestPolicy.canConfirm(
+            reason: validReason,
+            overridesRemaining: 1,
+            requestedAt: requestedAt,
+            now: requestedAt.addingTimeInterval(300)
+        ))
+        #expect(!OverrideRequestPolicy.canConfirm(
+            reason: validReason,
+            overridesRemaining: 0,
+            requestedAt: requestedAt,
+            now: requestedAt.addingTimeInterval(300)
+        ))
+        #expect(OverrideRequestPolicy.cooldownSeconds == 300)
     }
 
     @Test("Override defaults align with product settings")
@@ -105,7 +128,7 @@ struct ExtensionResetConfigurationTests {
 struct ExtensionActivationInteractionTests {
     @Test("Tapping extension action alone does not consume budget")
     func tapDoesNotConsumeBudget() {
-        let model = CurfewAppModel()
+        let model = makeTestAppModel()
         model.currentTime = Date(timeIntervalSince1970: 1_700_000_000)
         model.state = CurfewEvaluation(
             phase: .warning,
@@ -124,7 +147,7 @@ struct ExtensionActivationInteractionTests {
 
     @Test("Hold-confirm extension action consumes budget")
     func holdConfirmConsumesBudget() {
-        let model = CurfewAppModel()
+        let model = makeTestAppModel()
         model.currentTime = Date()
         model.state = CurfewEvaluation(
             phase: .warning,
@@ -184,7 +207,9 @@ struct OverrideEventLoggingTests {
         let store = CurfewSettingsStore(defaults: defaults)
         let model = CurfewAppModel(
             settingsStore: store,
-            appRouter: AppRouterSpy()
+            appRouter: AppRouterSpy(),
+            activityRecorder: NullActivityRecording(),
+            lockoutDeadlineStore: .ephemeralForTesting()
         )
 
         let now = Date(timeIntervalSince1970: 1_700_000_000)
@@ -204,6 +229,7 @@ struct OverrideEventLoggingTests {
         )
         model.overridesRemaining = 1
         model.overrideReasonDraft = reason
+        model.overrideRequestedAt = now.addingTimeInterval(-OverrideRequestPolicy.cooldownSeconds)
 
         model.confirmOverride()
 

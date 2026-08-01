@@ -27,14 +27,15 @@ test("unprovisioned Sparkle releases upload only the generated DMG", () => {
   assert.doesNotMatch(releaseWorkflow, /\$\{\{ runner\.temp \}\}\/appcast\.xml/);
 });
 
-test("v0.1 release docs distinguish the current core-only launch from future sync and updater work", () => {
+test("v0.1 release docs match the shipping feature contract", () => {
   assert.match(productPlan, /Release status \(v0\.1\).*forward-looking/s);
   assert.match(
     productPlan,
-    /CloudKit, WidgetKit, Calendar, privileged-helper,\s*> and Sparkle features are deferred/s,
+    /includes\s*> WidgetKit, MCP, the authenticated privileged helper, and Sparkle/s,
   );
   assert.match(
-    releaseChecklist,
-    /If \(and only if\) a later release enables Sparkle, publish its generated\s+`appcast\.xml`/,
+    productPlan,
+    /CloudKit and\s*> Calendar remain compiled but dormant/s,
   );
+  assert.match(releaseChecklist, /Generates and attaches a signed appcast/);
 });

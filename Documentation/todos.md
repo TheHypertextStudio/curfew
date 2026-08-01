@@ -5,14 +5,12 @@ Test Matrix: [`Documentation/todo-test-matrix.md`](./todo-test-matrix.md)
 Owner: Willie + Claude
 Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 
-> **v0.1 launch status (2026-07-31):** Core enforcement, flexible schedules,
-> CLI, user-approved MCP requests, user-confirmed reflections, CI/release
-> scaffolding, and the landing site are implemented. Release builds enable only
-> the local MCP integration; CloudKit, Calendar, WidgetKit, and the privileged
-> helper remain disabled pending production Apple provisioning and signed-artifact
-> validation. The license service and checkout are also unconfigured, so Pro is
-> not for sale. Items below marked `[ ]` are external release gates or v0.2+
-> targets unless noted otherwise.
+> **v0.1 status (2026-07-31):** The shipping preset enables WidgetKit, MCP, and
+> the authenticated privileged helper. CloudKit and Calendar are compiled but
+> hidden and dormant, and their iCloud/APS entitlements are absent. Repository
+> implementation is in release closure; signed/notarized artifact and
+> sacrificial-Mac evidence remain blocking in
+> `Documentation/release-evidence/v0.1.0.md`.
 
 ---
 
@@ -22,10 +20,11 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 - [x] Convert app shell to a standard macOS app window (`LSUIElement = false`) with menu bar quick access.
 - [x] Default debug/Xcode launch starts with enforcement disarmed unless explicitly enabled.
 - [x] Add a dedicated app launch coordinator so app startup orchestration is isolated from scene composition.
-- [x] Add targets for `curfew-mcp`, `curfew-ctl`, and WidgetKit extension. (`curfew-mcp`, `curfew-ctl`, and `CurfewWidget` are wired in Xcode. Privileged helper → v0.2)
-- [-] Configure entitlements: App Group, CloudKit, notifications, accessibility-related requirements. (The conservative v0.1 Release carries only App Group and Apple Events for the shipped core. CloudKit and APS stay out until their feature flags are enabled after external provisioning + manual signed-build validation in `Documentation/RELEASE.md`.)
+- [x] Add targets for `curfew-mcp`, `curfew-ctl`, `curfew-daemon`, and the WidgetKit extension.
+- [x] Keep synchronized app/Widget groups normalized, exclude target-owned `Info.plist` files from resources, and verify the package-backed Widget through its generated scheme.
+- [x] Define the v0.1 Release entitlements: Apple Events and App Group present; iCloud, APS, and user-selected-file access intentionally absent. Exact signed-artifact validation remains a release gate, not an implementation TODO.
 - [x] Define centralized app constants (`AppGroup`, bundle IDs, CloudKit record names via SharedPaths.swift).
-- [x] Add feature flags for deferred modules (widget/cloud/MCP/calendar/privileged helper) with safe defaults off.
+- [x] Add feature flags with safe defaults off and an explicit `shippingV1` preset: WidgetKit/MCP/helper on, CloudKit/Calendar off.
 
 ## 1. Schedule + Enforcement Core
 
@@ -53,7 +52,7 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 - [x] Add keyboard shortcut interception during lockout (⌘⇥, ⌘Q, ⌘⌥Esc, …).
 - [x] Implement rotating encouragement messages.
 - [x] Implement lockout visual design (time, unlock time, optional stats card).
-- [x] Respect accessibility settings: VoiceOver, reduce motion, reduce transparency.
+- [x] Respect accessibility settings: VoiceOver, reduce motion, reduce transparency; warning countdowns, lockout controls, and Settings tabs expose stable semantic accessibility values/identifiers for UI automation and assistive technology.
 
 ## 4. Shutdown Manager
 
@@ -66,11 +65,12 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 
 ## 5. Bypass Protection + Privileged Layer
 
-> v0.1: `PersistentLockdown` ships a user-space respawning LaunchAgent using
-> `KeepAlive.PathState`. Not automatically installed; v0.2 hardens with SMAppService.
+> v0.1 ships an authenticated `SMAppService` LaunchDaemon. The legacy
+> user-space respawn guard remains defense in depth, not the state bridge.
 
-- [-] Package a real `curfew-daemon` helper for `SMAppService` install/status validation; jailbreak detection + shutdown enforcement remain deferred. (Packaging/UI are in-repo; signed-build install/reboot/uninstall validation remains an external release step. See `Documentation/RELEASE.md`.) (v0.2)
-- [-] Persist lockout state through the LaunchDaemon sentinel path; root-owned write semantics still need signed-build/manual validation. (`Documentation/RELEASE.md` now captures the exact manual checks; the actual proof still requires a signed build.) (v0.2)
+- [x] Package `curfew-daemon` for `SMAppService` with a named Mach service, authenticated app-only XPC, asynchronous status/error handling, and individual helper signing.
+- [x] Make the daemon exclusively own atomic root state, reconcile its active deadline on relaunch, enforce one-shot stale-heartbeat shutdown, and reject uninstall during lockout.
+- [-] Validate helper install/approval, reboot recovery, force-kill shutdown, completion, and both uninstall paths on the signed sacrificial-Mac artifact.
 - [x] Implement user-space respawning LaunchAgent (`PersistentLockdown`) for v0.1 bypass deterrence.
 - [x] Register login items for compatibility requirements. (v0.2)
 - [x] Implement event tap behavior for keyboard shortcut interception during lockout.
@@ -181,7 +181,7 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
       template-only Worker path with caller-owned rendered config and no
       committed identifiers or secrets.
 - [x] `Casks/curfew.rb` — Homebrew Cask formula with signed release URL and zap paths.
-- [x] `scripts/gen-sparkle-keypair.sh` — local Ed25519 keygen with paste-into-Info.plist instructions.
+- [x] `scripts/gen-sparkle-keypair.sh` — uploads the private Ed25519 seed directly to the GitHub secret and prints only the public key.
 - [x] `scripts/generate-appcast.sh` — CI-invoked Sparkle appcast builder.
 - [x] `scripts/release-checklist.md` — exhaustive external-setup sequence.
 - [x] `scripts/uninstall.sh` — standalone uninstaller mirroring the in-app flow.
@@ -203,6 +203,9 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 - [ ] Production Curfew Plus Stripe products, Worker secrets, webhook, and
       purchase-to-license delivery verified. Keep the landing sale gate closed
       until this external launch gate is complete.
+- [x] `scripts/gen-license-keypair.sh` — Ed25519 keypair generation.
+- [x] `web/worker/src/` — Cloudflare Worker: Stripe webhook → signed key.
+- [x] Placeholder public key replaced with the embedded release public key; release CI rejects the all-zero sentinel if it returns. Matching private-key availability remains part of Worker deployment evidence.
 
 ## 16. Onboarding
 
@@ -221,15 +224,14 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 - [x] MIT `LICENSE` file.
 - [x] README rewrite: three-horizon pitch, MCP setup, CLI usage, Pro features, architecture.
 - [x] `CONTRIBUTING.md`, `PRIVACY.md`, `Documentation/ARCHITECTURE.md`, `Documentation/RELEASE.md`.
-- [x] Signed-build validation runbook for shutdown, widget, privileged helper, and CloudKit lives in `Documentation/RELEASE.md`. (Actual Apple-credential execution is still tracked by the remaining unchecked release/provisioning items.)
+- [x] Signed-build validation runbook for shutdown, Widget, helper, Sparkle, notarization, and DMG installation lives in `Documentation/RELEASE.md`.
 - [x] Landing page (`web/landing/`) — Cloudflare Pages deploy target.
 - [ ] Apple Developer credentials in GitHub secrets. (external launch gate)
 - [ ] Cloudflare Pages deployment and `curfew.hypertext.studio` DNS/TLS. (external launch gate)
 - [ ] Homebrew Cask. (v0.2)
-- [-] Sparkle autoupdate scaffolding present; framework wiring + signed appcast
-  flow still pending. v0.1 releases publish only the notarized DMG. (v0.2)
-- [x] Support an isolated workers.dev license Worker configuration for Stripe
-  test-mode staging, with a distinct KV namespace and secrets.
+- [x] Sparkle `2.9.4` is required and linked; Release automation publishes the DMG first, generates and deploys the signed appcast, then verifies the live feed.
+- [-] Validate a signed Sparkle staging upgrade from `0.0.99` to the `0.1.0` candidate.
+- [x] Support an isolated workers.dev license Worker configuration for Stripe test-mode staging, with a distinct KV namespace and secrets.
 - [x] Stripe Sandbox staging proof: an isolated `$1` test-only payment link
       completed with Stripe's `4242` test card; the fresh
       `checkout.session.completed` and `invoice.paid` deliveries both returned
@@ -267,18 +269,23 @@ as an opt-in feature per the user's product direction and is not blocking.
 - [x] **m4** — `Weekday(from:)` logs a warning before its Monday fallback so unexpected calendars produce telemetry.
 - [x] **m5** — Widget shared state carries a live `WidgetEnforcementSnapshot` written on every phase transition.
 - [x] **m6** — License re-verifies on day rollover so a tampered UserDefaults can't keep Pro alive indefinitely.
-- [x] **A1** — `LockoutDeadlineRecord` is now the single source of truth for "am I locked"; overlay/sentinel/daemon all derive from it.
+- [x] **A1** — `LockoutDeadlineRecord` carries a backward-compatible UUID; the daemon's active deadline is authoritative over missing or weaker user-side state.
 
 ## 18. Verification (v0.1 release candidate)
 
-- [x] `just check` passes (format + lint + tests + Debug build).
-- [x] `xcodebuild archive` succeeds unsigned locally.
+- [x] `just check` passes (format + lint + tests + Debug build). Model fixtures
+  use ephemeral deadline stores instead of the real App Group, and unit recipes
+  explicitly skip the UI bundle. Verified on 2026-07-31; evidence is recorded in
+  `Documentation/release-evidence/v0.1.0.md`.
+- [-] Semantic UI assertions execute against the Debug-only ephemeral fixture. Local verification reached assertions on 2026-07-31, exposing and fixing accessibility-contract gaps; final `just test-ui` rerun is reserved for a dedicated GUI test host because macOS XCUITest controls the active desktop session.
+- [ ] Signed Release archive, exact artifact verification, notarization, stapling, and Gatekeeper acceptance are recorded.
 - [x] `./curfew-ctl status` prints live state.
 - [x] `./curfew-mcp` responds to `tools/list` over stdio.
 - [ ] Paste test license → Pro features unlock; remove → re-gate.
 - [ ] Lockout smoke test: set curfew 5 min ahead, observe overlay, recover via override.
 - [ ] MCP smoke test: paste Claude Desktop config, run `curfew_status` from Claude.
 - [x] Landing page links all resolve. Fixed `hypertext-studio/curfew` → `TheHypertextStudio/curfew` across README, Cask, landing, CONTRIBUTING, generate-appcast.
-- [x] Marked the forward-looking PRD and Sparkle/appcast checklist steps so v0.1
-  cannot be mistaken for a released sync/updater product; regression coverage
-  lives in `scripts/release-entitlements.test.mjs`.
+- [x] Updated the forward-looking PRD and release checklist to distinguish the
+  shipping v0.1 WidgetKit, MCP, helper, and Sparkle scope from deferred CloudKit
+  and Calendar work; regression coverage lives in `scripts/release-entitlements.test.mjs`.
+- [ ] Complete every pending row in `Documentation/release-evidence/v0.1.0.md` against the published DMG.

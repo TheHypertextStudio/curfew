@@ -135,13 +135,6 @@ extension CurfewAppModel {
             syncWidgetEnforcementSnapshot()
         }
         previousWarningStage = state.warningStage
-        if previousPhase != state.phase, featureFlags.privilegedHelperEnabled {
-            if state.phase == .locked {
-                LockoutStatePersistence.markLockoutActive()
-            } else if previousPhase == .locked {
-                LockoutStatePersistence.markLockoutInactive()
-            }
-        }
         toggleRespawnGuardIfPhaseChanged(previousPhase: previousPhase)
     }
 
@@ -191,6 +184,7 @@ extension CurfewAppModel {
         if previousPhase == .locked, state.phase != .locked {
             isOverrideComposerVisible = false
             overrideReasonDraft = ""
+            overrideRequestedAt = nil
             return
         }
 

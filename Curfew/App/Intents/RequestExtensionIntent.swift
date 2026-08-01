@@ -31,6 +31,7 @@ struct RequestExtensionIntent: AppIntent {
     )
     var reason: String
 
+    @MainActor
     func perform() async throws -> some IntentResult & ProvidesDialog {
         let id = try CurfewIntentSupport.enqueueWriteRequest(
             tool: .requestExtension,

@@ -14,7 +14,7 @@ next step needs.
 `scripts/setup.mjs` automates the **web/purchase** infrastructure — steps 4
 (Stripe product/prices/payment-links/webhook), 5 (license keypair), 6
 (Worker deploy + secrets), and 8 (landing + `/docs` proxy deploy) — in one
-idempotent run. It does *not* touch the Apple/notarization/iCloud/Sparkle/Cask
+idempotent run. It does *not* touch the Apple/notarization/Sparkle/Cask
 steps (1–3, 7, 9–10); do those separately.
 
 Prerequisites it can't do for you (do these first):
@@ -76,7 +76,7 @@ Steps 4–8 below are the manual fallback / reference for what the script does.
 - [ ] `gh secret set APPLE_API_KEY_ID --body "<10-char key id>"`
 - [ ] `gh secret set APPLE_API_PRIVATE_KEY < AuthKey_XXXX.p8`
 
-### 3. iCloud container for CloudKit sync
+### 3. iCloud container for CloudKit sync (v0.2, not a v0.1 gate)
 
 - [ ] App Store Connect → CloudKit Database → Create container
       `iCloud.studio.hypertext.curfew`.
@@ -151,19 +151,18 @@ fraud — no separate tax-filing service is needed.
 
 ### 7. Sparkle EdDSA keypair (post-v0.1)
 
-Sparkle remains disabled for v0.1. Its placeholder public key does not block a
-release while the framework and updater UI are absent; the release workflow
-also skips appcast generation. Complete this section before enabling Sparkle in
-a later signed build.
+Sparkle is linked exactly at `2.9.4`. `Curfew/Info.plist` contains the final
+feed URL and public key; CI rejects a placeholder and treats a missing private
+key as fatal before publishing.
 
-- [ ] Add the Sparkle package: Xcode → Curfew target → File → Add Package
-      Dependencies → `github.com/sparkle-project/Sparkle` (exact 2.x). This
-      flips `#if canImport(Sparkle)` on and provides `sign_update` for CI.
-- [ ] `bash scripts/gen-sparkle-keypair.sh` — emits public + private keys
-      once; they are never saved to disk.
-- [ ] `gh secret set SPARKLE_PRIVATE_KEY --body "<private key>"`
-- [ ] Replace the `INFOPLIST_KEY_SUPublicEDKey` placeholder in
-      `project.pbxproj` with `<public key>` (CI fails the tag otherwise).
+- [x] Link `sparkle-project/Sparkle` exactly at `2.9.4` and require
+      `SPUStandardUpdaterController`.
+- [x] Run `bash scripts/gen-sparkle-keypair.sh TheHypertextStudio/curfew`.
+      The script uploads `SPARKLE_PRIVATE_KEY` directly and prints only the
+      public key; it never writes or displays the private seed.
+- [x] Put the emitted public key in `Curfew/Info.plist` as `SUPublicEDKey`.
+- [ ] Verify repository Actions contains `SPARKLE_PRIVATE_KEY` without reading
+      or rotating it.
 
 ### 8. Landing page hosting
 
@@ -216,23 +215,19 @@ The release workflow runs on `macos-26` to match the target.
 Once the infrastructure above is in place, every release is:
 
 1. Land the final commit on `main`; `just check` must be green.
-2. `git tag v1.0.1 && git push --tags`. The version is derived from the
+2. `git tag v0.1.0 && git push origin v0.1.0`. The version is derived from the
    tag — CI passes `MARKETING_VERSION`/`CURRENT_PROJECT_VERSION` to the
    archive, so there is no `project.pbxproj` version to bump by hand.
 3. `.github/workflows/release.yml` runs automatically:
    - Signs with the Developer ID certificate.
    - Notarizes via `notarytool`.
-   - Builds the DMG.
-   - Runs `scripts/generate-appcast.sh` and attaches the signed
-     `appcast.xml` to the release only after Sparkle is provisioned. Until
-     then it publishes only the notarized DMG.
-   - Publishes a GitHub Release.
-4. **If (and only if) a later release enables Sparkle, publish its generated
-   `appcast.xml`** to `https://curfew.hypertext.studio/appcast.xml` (the
-   `SUFeedURL` the app polls) via Cloudflare Pages — e.g. commit it into
-   `web/landing/` so Pages serves it. The GitHub release asset alone is not the
-   feed; without this step the app never discovers the update. v0.1 skips
-   this step because Sparkle is deliberately unlinked.
+   - Verifies the signed app, then builds/signs/notarizes/staples the DMG.
+   - Publishes the DMG to the GitHub Release first.
+   - Generates and attaches a signed appcast pointing at that exact asset.
+   - Deploys the appcast to `https://curfew.hypertext.studio/appcast.xml`
+     and verifies the live bytes match.
+4. Run every signed-device check in `Documentation/RELEASE.md` and record the
+   artifact hash and outcome in `Documentation/release-evidence/v0.1.0.md`.
 5. Bump the `Casks/curfew.rb` version + sha256 and push to homebrew-cask
    (only required after the first release is out).
 6. Post the release to the landing page's release notes page at

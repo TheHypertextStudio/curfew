@@ -27,7 +27,7 @@ import CurfewKit
             CurfewAppModel(
                 settingsStore: makeDemoSettingsStore(),
                 appRouter: SystemAppRouter(),
-                featureFlags: .default,
+                featureFlags: .shippingV1,
                 activityRecorder: makeDemoActivityRecorder(now: Date())
             )
         }
@@ -49,8 +49,10 @@ import CurfewKit
 
             switch scenario {
             case .settings:
+                privilegedHelperManager.seedDemoUnavailableError()
                 openSettings()
             case .gettingStarted:
+                settings.hasCompletedInitialSetup = false
                 showGettingStarted()
             case .overview, .configuration, .thisWeek, .menuBar:
                 break

@@ -2,23 +2,22 @@
 
 **Version:** 1.0
 **Author:** Willie
-**Last Updated:** February 2026
+**Last Updated:** July 2026
 **Status:** Draft
 
 > **Repo split:** as of May 2026, Curfew is three repos — `curfew` (this one, the macOS app), `curfew-sync` (the Cloudflare Sync coordinator), and `curfew-protocols` (the versioned wire-format contract). This PRD covers the **product** scope, which spans all three. Where this doc mentions implementation details for the Sync coordinator (F-section TBD), the canonical implementation spec is `curfew-sync/Documentation/ARCHITECTURE.md`. MCP tool schemas referenced as inline Swift types are migrating to `curfew-protocols`; see `AGENTS.md` for the migration discipline.
 
-> **Release status (v0.1):** This PRD is forward-looking. The current shipping
-> scope is the Tahoe-only local core described in `README.md` and
-> `Documentation/RELEASE.md`. CloudKit, WidgetKit, Calendar, privileged-helper,
-> and Sparkle features are deferred until their separately provisioned,
-> signed-release validation is complete. Curfew is not distributed as a
-> notarized DMG until the Apple release checklist has been executed.
+> **Release status (v0.1):** This PRD is forward-looking. The current Tahoe-only
+> shipping scope described in `README.md` and `Documentation/RELEASE.md` includes
+> WidgetKit, MCP, the authenticated privileged helper, and Sparkle. CloudKit and
+> Calendar remain compiled but dormant. Curfew is not distributed as a notarized
+> DMG until the Apple release checklist has been executed.
 
 ---
 
 ## Executive Summary
 
-Curfew is a macOS-native app that enforces healthy work-life boundaries by hard-locking users out of their computers at a configurable time each day. Unlike existing digital wellbeing tools that offer gentle suggestions easily dismissed, Curfew acts as a commitment device — a contract between your present self and your future self. It escalates from friendly reminders to a full-screen lockout, optional shutdown, and bypass-resistant persistence across restarts. Curfew syncs across all of a user's Macs via CloudKit, tracks cumulative work time across devices, and exposes an MCP server interface for AI assistant integration. The app is open source and distributed as a notarized `.dmg`.
+Curfew is a macOS-native app that enforces healthy work-life boundaries by hard-locking users out of their computers at a configurable time each day. Unlike existing digital wellbeing tools that offer gentle suggestions easily dismissed, Curfew acts as a commitment device — a contract between your present self and your future self. It escalates from friendly reminders to a full-screen lockout, optional shutdown, and bypass-resistant persistence across restarts. v0.1 includes WidgetKit, local MCP access, and an authenticated privileged helper; CloudKit and Calendar remain dormant for a later release. The app is open source and distributed as a notarized `.dmg`.
 
 ---
 
@@ -58,10 +57,10 @@ Curfew solves this by treating your schedule as a binding commitment, not a sugg
 
 ## Target Platform Requirements (post-v0.1)
 
-- **OS:** macOS 14 (Sonoma) minimum, macOS 15 (Sequoia) recommended
+- **OS:** macOS 26 (Tahoe) minimum
 - **Architecture:** Universal Binary (Apple Silicon + Intel)
 - **Distribution:** Notarized `.dmg` via GitHub Releases (primary), Homebrew Cask (secondary), landing page at curfew.app
-- **Updates:** Sparkle framework with appcast hosted on GitHub Releases
+- **Updates:** Sparkle 2.9.4 with the live appcast at `https://curfew.hypertext.studio/appcast.xml`
 - **Signing:** Apple Developer ID (Developer ID Application + Developer ID Installer certificates)
 - **Notarization:** Apple notarytool via automated CI pipeline
 - **Frameworks:** SwiftUI, AppKit, WidgetKit, CloudKit, UserNotifications, EventKit, ServiceManagement, XPC

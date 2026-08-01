@@ -158,6 +158,9 @@ extension CurfewAppModel {
             isOverrideComposerVisible = false
             return
         }
+        if overrideRequestedAt == nil {
+            overrideRequestedAt = currentTime
+        }
         isOverrideComposerVisible = true
     }
 
@@ -175,10 +178,20 @@ extension CurfewAppModel {
         let reason = trimmedOverrideReason
         overrideReasonDraft = ""
         isOverrideComposerVisible = false
+        overrideRequestedAt = nil
         grantOverride(reason: reason)
     }
 
     private func grantOverride(reason: String) {
+        if featureFlags.privilegedHelperEnabled,
+           let record = lockoutDeadlineStore.load() {
+            Task {
+                await privilegedHelperManager.completeLockout(
+                    lockoutID: record.lockoutID,
+                    reason: .approvedOverride
+                )
+            }
+        }
         overrideUntil = currentTime
             .addingTimeInterval(TimeInterval(settings.overrideDurationMinutes * 60))
         overridesRemaining = overrideTracker.remaining

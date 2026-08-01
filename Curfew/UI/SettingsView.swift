@@ -36,7 +36,9 @@ struct SettingsView: View {
                 .tabItem { Label(
                     SettingsSection.integrations.title,
                     systemImage: SettingsSection.integrations.icon
-                ) }
+                )
+                .accessibilityIdentifier("settings-integrations-tab")
+                }
                 .tag(SettingsSection.integrations)
 
             tab {

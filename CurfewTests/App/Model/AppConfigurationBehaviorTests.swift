@@ -82,14 +82,14 @@ struct FeatureFlagTests {
         #expect(DeferredFeaturePanel.visible(for: .default).isEmpty)
     }
 
-    @Test("Initial Release enables only the local MCP integration")
-    func shippingEnablesOnlyValidatedLocalIntegration() {
-        let flags = FeatureFlags.shipping
-        #expect(flags.widgetKitEnabled == false)
-        #expect(flags.cloudSyncEnabled == false)
+    @Test("v0.1 shipping enables only release-validated integrations")
+    func shippingV1ExcludesPreviewIntegrations() {
+        let flags = FeatureFlags.shippingV1
+        #expect(flags.widgetKitEnabled)
+        #expect(!flags.cloudSyncEnabled)
         #expect(flags.mcpServerEnabled)
-        #expect(flags.privilegedHelperEnabled == false)
-        #expect(flags.calendarEnabled == false)
+        #expect(flags.privilegedHelperEnabled)
+        #expect(!flags.calendarEnabled)
     }
 
     @Test("Resolution returns default when RELEASE_FEATURES is absent")
@@ -104,7 +104,7 @@ struct FeatureFlagTests {
     func resolveWithReleaseFeatures() {
         #expect(
             FeatureFlags.resolve(releaseFeaturesEnabled: true, environment: [:])
-                == .shipping
+                == .shippingV1
         )
     }
 
@@ -121,7 +121,7 @@ struct FeatureFlagTests {
             FeatureFlags.resolve(
                 releaseFeaturesEnabled: true,
                 environment: ["CURFEW_CONSERVATIVE_FLAGS": "0"]
-            ) == .shipping
+            ) == .shippingV1
         )
     }
 
@@ -167,7 +167,9 @@ struct AppCoordinatorTests {
 
         let model = CurfewAppModel(
             settingsStore: store,
-            appRouter: AppRouterSpy()
+            appRouter: AppRouterSpy(),
+            activityRecorder: NullActivityRecording(),
+            lockoutDeadlineStore: .ephemeralForTesting()
         )
 
         let coordinator = AppCoordinator()
@@ -198,7 +200,9 @@ struct AppCoordinatorTests {
 
         let model = CurfewAppModel(
             settingsStore: store,
-            appRouter: AppRouterSpy()
+            appRouter: AppRouterSpy(),
+            activityRecorder: NullActivityRecording(),
+            lockoutDeadlineStore: .ephemeralForTesting()
         )
 
         let coordinator = AppCoordinator()
@@ -215,7 +219,7 @@ struct AppCoordinatorTests {
 struct EnforcementSnapshotTests {
     @Test("Snapshot reflects warning-phase state and extension copy")
     func warningSnapshot() {
-        let model = CurfewAppModel()
+        let model = makeTestAppModel()
 
         model.state = CurfewEvaluation(
             phase: .warning,
@@ -242,7 +246,7 @@ struct EnforcementSnapshotTests {
 
     @Test("Snapshot shows idle messaging when no schedule window is active")
     func dayOffSnapshot() {
-        let model = CurfewAppModel()
+        let model = makeTestAppModel()
 
         model.state = CurfewEvaluation(
             phase: .dayOff,
@@ -285,9 +289,9 @@ struct SettingsSectionTests {
 }
 
 struct CurfewUpdaterTests {
-    @Test("Current build only shows update UI when Sparkle is linked")
+    @Test("Current build always includes the required Sparkle updater")
     func updateAvailabilityMatchesLinkedFramework() {
-        #expect(CurfewUpdater.isAvailable == false)
+        #expect(CurfewUpdater.isAvailable)
     }
 }
 

@@ -34,8 +34,8 @@ Curfew.app
 │   ├── IdleWatcher               CGEventSource idle detection, 5-min default cutoff
 │   ├── LicenseGate               Ed25519 offline license key verification (CryptoKit)
 │   ├── LicenseKey                Codable payload: email, product, orderID, issuedAt
-│   ├── CalendarMonitor           EventKit — today's events, Pro + flag gated
-│   ├── CloudKitSyncEngine        CKRecord last-write-wins sync (Pro, flag gated)
+│   ├── CalendarMonitor           EventKit — compiled, dormant in v0.1
+│   ├── CloudKitSyncEngine        CKRecord sync — compiled, dormant in v0.1
 │   └── WorkTimeAggregator        Per-day work-minute aggregation from ActivityStore
 │
 ├── Curfew/App/           @MainActor orchestration
@@ -63,7 +63,7 @@ Curfew.app
 │   ├── DayRuleRow                Per-day schedule editor row (Apply to all shortcut)
 │   └── HoldToConfirmButton       Deliberate hold interaction, reusable
 │
-└── CurfewWidget/         WidgetKit extension (Pro, flag gated)
+└── CurfewWidget/         WidgetKit extension (enabled in shippingV1, Pro gated)
     ├── CurfewWidget              StaticConfiguration, small/medium/large families
     ├── CurfewWidgetProvider      TimelineProvider — reads mirrored widget settings + shared activity DB
     ├── CurfewWidgetEntry         TimelineEntry snapshot
@@ -89,6 +89,14 @@ CurfewTests/              Unit tests, no UI dependencies (in the Xcode project)
 
 ## Key design decisions
 
+### v0.1 shipping contract
+
+`FeatureFlags.shippingV1` is the only Release preset. It enables WidgetKit,
+the local MCP server, and the privileged helper. CloudKit and Calendar remain
+compiled but their engines never start and their UI is hidden. Release signing
+therefore carries only Apple Events and App Group capabilities; iCloud and APS
+entitlements are intentionally absent. The deployment floor is macOS 26.
+
 ### Pure enforcement engine
 `CurfewEnforcementEngine` is a stateless function: `(schedule, now, extensionMinutes, overrideUntil, warningIntervals) → CurfewEvaluation`. It has no side effects and no stored state. The app model calls it every second and reacts to the result. This makes every enforcement behavior trivially testable and keeps the Core completely independent of AppKit.
 
@@ -102,9 +110,29 @@ Everything shares a single SPM library, `CurfewKit`, whose source lives canonica
 The activity log schema carries optional `gateKind` and `reflection` fields. MCP tool verbs use generic names where sensible so future gate types (morning intent, midday check-in, evening retrospective) can land as sibling tools rather than overloads of the existing ones. `CurfewEnforcementEngine` is intentionally narrow — future gate types will live as sibling engines, not as modifications to the existing one.
 
 ### CloudKit sync strategy
-v0.2 splits the private database into four record types — `Settings`, `Device`, `DeviceActivity`, `LockoutState` — collected in `Core/Features/CloudKitSchema.swift`. `Settings` preserves the v0.1 single-record JSON payload for back-compat. `Device` and `DeviceActivity` carry per-Mac identifiers + 60 s heartbeats; `DeviceRegistry` publishes them and drives the Settings → Devices list. `LockoutState` carries the live warning/lockout snapshot so a Mac joining the warning phase mid-escalation can align with whichever device entered warning first.
+The dormant v0.2 implementation splits the private database into four record types — `Settings`, `Device`, `DeviceActivity`, `LockoutState` — collected in `Core/Features/CloudKitSchema.swift`. `Settings` preserves the earlier single-record JSON payload for back-compat. `Device` and `DeviceActivity` carry per-Mac identifiers + 60 s heartbeats; `DeviceRegistry` publishes them and drives the Settings → Devices list. `LockoutState` carries the live warning/lockout snapshot so a Mac joining the warning phase mid-escalation can align with whichever device entered warning first.
 
 Delivery is push-based: `CloudKitSyncEngine.start()` registers a deterministic `CKDatabaseSubscription`, and silent APS notifications trigger a pull on remote change. Conflict resolution stays last-write-wins on `modifiedAt` — small values, rare edits, minor consequences.
+
+### Privileged enforcement channel
+
+The app and `curfew-daemon` communicate through the
+`studio.hypertext.curfew.daemon` Mach service using
+`CurfewDaemonXPCProtocol`. The daemon validates the connecting process against
+the exact Team ID `39AB9DY3K8` and app bundle ID
+`studio.hypertext.curfew` before accepting a request. It exclusively owns
+`/Library/Application Support/Curfew/lockout-state.json`; the directory is
+root-owned mode `0755` and the atomically replaced state file is mode `0600`.
+
+An arm request persists a UUID-bearing deadline. The app heartbeats that ID;
+if the heartbeat is stale for more than 90 seconds while the deadline remains
+active, the daemon records the one-shot shutdown decision before invoking
+`/sbin/shutdown -h +1`. Relaunch reconciliation treats an active daemon
+deadline as authoritative over missing or weaker user-side state. Completion
+is limited to natural expiry or an approved override, and uninstall preparation
+is rejected during an active lockout. Client RPCs have a five-second deadline;
+unavailable, unauthorized, stale, and registration failures degrade the shared
+enforcement-health status.
 
 ### MCP transports
 Two transports share the same `MCPServer.handle(line:)` dispatcher:

@@ -3,6 +3,27 @@ import AppKit
 import CurfewKit
 import Foundation
 
+extension LockoutDeadlineStore {
+    static func ephemeralForTesting() -> LockoutDeadlineStore {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("curfew-test-deadline-\(UUID().uuidString).json")
+        return LockoutDeadlineStore(recordURL: url)
+    }
+}
+
+@MainActor
+func makeTestAppModel() -> CurfewAppModel {
+    let suite = "studio.hypertext.curfew.tests.\(UUID().uuidString)"
+    let defaults = UserDefaults(suiteName: suite) ?? .standard
+    defaults.removePersistentDomain(forName: suite)
+    return CurfewAppModel(
+        settingsStore: CurfewSettingsStore(defaults: defaults),
+        appRouter: AppRouterSpy(),
+        activityRecorder: NullActivityRecording(),
+        lockoutDeadlineStore: .ephemeralForTesting()
+    )
+}
+
 /// Minimal `AppRouting` spy that records call counts. Shared across test
 /// files so every behaviour test can inject the same stand-in without each
 /// file redefining its own.

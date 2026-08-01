@@ -25,6 +25,8 @@ private let durableLockoutLogger = Logger(
 ///   driving phase normally.
 @MainActor
 extension CurfewAppModel {
+    static let privilegedHeartbeatInterval: TimeInterval = 30
+
     /// Single entry point the tick loop calls to keep the durable record
     /// aligned. Combines the two checks (enforce / clear-on-natural-unlock)
     /// so the tick body stays inside its lint-enforced length budget.
@@ -33,35 +35,25 @@ extension CurfewAppModel {
         clearDurableDeadlineIfNaturalUnlock()
     }
 
-    /// Touches the app-heartbeat file with the current timestamp. The
-    /// daemon reads this file's mtime to decide whether the app is still
-    /// running; a stale heartbeat plus an active lockout deadline is the
-    /// signal the daemon uses to force a shutdown.
+    /// Sends the active lockout identifier over the authenticated XPC channel.
     func touchAppHeartbeat() {
-        // Skip when running as a unit-test host: the heartbeat lives in the App
-        // Group container, so writing it from the (re-signed each build) test
-        // host raises the macOS "access data from other apps" prompt on every
-        // run. No test asserts the heartbeat; production launches are unaffected.
-        // Also skip in Debug builds where the daemon is not active: the
-        // heartbeat is meaningless without the privileged helper reading it.
-        guard !RuntimeEnvironment.isUnitTestHost,
-              featureFlags.privilegedHelperEnabled else { return }
-        let url = SharedPaths.appHeartbeat
-        do {
-            try FileManager.default.createDirectory(
-                at: url.deletingLastPathComponent(),
-                withIntermediateDirectories: true
-            )
-            try Data().write(to: url, options: .atomic)
-            try FileManager.default.setAttributes(
-                [.modificationDate: currentTime],
-                ofItemAtPath: url.path
-            )
-        } catch {
-            durableLockoutLogger.error(
-                "failed to touch app heartbeat: \(error.localizedDescription, privacy: .public)"
-            )
+        guard featureFlags.privilegedHelperEnabled else {
+            lastPrivilegedHeartbeatAt = nil
+            return
         }
+        guard let record = lockoutDeadlineStore.load(),
+              currentTime < record.scheduledUnlockAt
+        else {
+            lastPrivilegedHeartbeatAt = nil
+            return
+        }
+        if let lastPrivilegedHeartbeatAt,
+           currentTime.timeIntervalSince(lastPrivilegedHeartbeatAt)
+           < Self.privilegedHeartbeatInterval {
+            return
+        }
+        lastPrivilegedHeartbeatAt = currentTime
+        Task { await privilegedHelperManager.heartbeat(lockoutID: record.lockoutID) }
     }
 
     /// Stamps the durable deadline record at the moment lockout begins so
@@ -78,6 +70,10 @@ extension CurfewAppModel {
             kind: state.trigger == .hours ? .scheduledHours : .scheduledTime
         )
         lockoutDeadlineStore.save(record)
+        if featureFlags.privilegedHelperEnabled {
+            lastPrivilegedHeartbeatAt = currentTime
+            Task { await privilegedHelperManager.armLockout(record) }
+        }
     }
 
     /// Clears the record once the natural unlock time has arrived. Called
@@ -87,6 +83,37 @@ extension CurfewAppModel {
         guard let record = lockoutDeadlineStore.load() else { return }
         guard currentTime >= record.scheduledUnlockAt else { return }
         lockoutDeadlineStore.clear()
+        lastPrivilegedHeartbeatAt = nil
+        if featureFlags.privilegedHelperEnabled {
+            Task {
+                await privilegedHelperManager.completeLockout(
+                    lockoutID: record.lockoutID,
+                    reason: .naturalExpiry
+                )
+            }
+        }
+    }
+
+    /// Reconciles app-owned presentation state from the daemon's authoritative record.
+    func reconcilePrivilegedDaemonState() async {
+        guard featureFlags.privilegedHelperEnabled else { return }
+        guard let daemonStatus = await privilegedHelperManager.reconcileDaemonStatus() else {
+            return
+        }
+        if let authoritative = daemonStatus.activeRecord,
+           currentTime < authoritative.scheduledUnlockAt {
+            let local = lockoutDeadlineStore.load()
+            if local == nil || local!.scheduledUnlockAt < authoritative.scheduledUnlockAt {
+                lockoutDeadlineStore.save(authoritative)
+            }
+            enforceDurableDeadlineIfActive()
+            await privilegedHelperManager.heartbeat(lockoutID: authoritative.lockoutID)
+            lastPrivilegedHeartbeatAt = currentTime
+        } else if let local = lockoutDeadlineStore.load(),
+                  currentTime < local.scheduledUnlockAt {
+            await privilegedHelperManager.armLockout(local)
+            lastPrivilegedHeartbeatAt = currentTime
+        }
     }
 
     /// Overrides the engine's evaluation back to `.locked` when the

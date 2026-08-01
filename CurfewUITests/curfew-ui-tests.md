@@ -6,7 +6,8 @@ Foreground UI launch tests using XCTest.
 
 ### `CurfewUITests.swift`
 
-Contains template launch/performance tests that execute the app in foreground.
+Contains semantic fixture tests for onboarding gates, warning/lockout surfaces,
+override friction, v0.1 integration visibility, helper errors, and Sparkle.
 
 ### `CurfewUITestsLaunchTests.swift`
 

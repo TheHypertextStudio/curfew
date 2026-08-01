@@ -96,6 +96,7 @@ struct LockoutScreenView: View {
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(accessibilitySummary)
+        .accessibilityIdentifier("lockout-screen")
     }
 
     /// The calm centre of the lockout: the time as protagonist, the message,
@@ -153,6 +154,7 @@ struct LockoutScreenView: View {
         return VStack(spacing: 10) {
             if model.isOverrideComposerVisible {
                 TextEditor(text: $model.overrideReasonDraft)
+                    .accessibilityIdentifier("override-reason")
                     .font(.system(size: 14, weight: .regular, design: .rounded))
                     .scrollContentBackground(.hidden)
                     .frame(width: 420, height: 120)
@@ -170,25 +172,39 @@ struct LockoutScreenView: View {
                 .font(.caption)
                 .foregroundStyle(SundownPalette.warmWhite.opacity(0.6))
 
-                let holdDuration = OverrideRequestPolicy.confirmationHoldSeconds
-                ZStack {
-                    Capsule()
-                        .fill(SundownPalette.ember.opacity(model.canConfirmOverride ? 1 : 0.4))
-                    // Progress fill sweeps left-to-right during the hold gesture.
-                    Color.white.opacity(0.22)
-                        .clipShape(Capsule())
-                        .scaleEffect(x: holdProgress, y: 1, anchor: .leading)
-                        .animation(
-                            .linear(duration: holdProgress == 0 ? 0 : holdDuration),
-                            value: holdProgress
-                        )
-                    Text(
-                        "Hold \(Int(holdDuration))s to unlock for \(model.settings.overrideDurationMinutes) min"
-                    )
-                    .font(.system(size: 14, weight: .semibold, design: .rounded))
-                    .foregroundStyle(SundownPalette.warmWhite)
+                if model.overrideCooldownRemaining > 0 {
+                    let remaining = Int(ceil(model.overrideCooldownRemaining))
+                    Text(String(format: "Cooling off: %d:%02d", remaining / 60, remaining % 60))
+                        .font(.caption.monospacedDigit())
+                        .foregroundStyle(SundownPalette.warmWhite.opacity(0.72))
+                        .accessibilityIdentifier("override-cooldown")
                 }
-                .frame(width: 340, height: 44)
+
+                let holdDuration = OverrideRequestPolicy.confirmationHoldSeconds
+                Button(action: {}, label: {
+                    ZStack {
+                        Capsule()
+                            .fill(SundownPalette.ember.opacity(model.canConfirmOverride ? 1 : 0.4))
+                        // Progress fill sweeps left-to-right during the hold gesture.
+                        Color.white.opacity(0.22)
+                            .clipShape(Capsule())
+                            .scaleEffect(x: holdProgress, y: 1, anchor: .leading)
+                            .animation(
+                                .linear(duration: holdProgress == 0 ? 0 : holdDuration),
+                                value: holdProgress
+                            )
+                        Text(
+                            "Hold \(Int(holdDuration))s to unlock for "
+                                + "\(model.settings.overrideDurationMinutes) min"
+                        )
+                        .font(.system(size: 14, weight: .semibold, design: .rounded))
+                        .foregroundStyle(SundownPalette.warmWhite)
+                    }
+                    .frame(width: 340, height: 44)
+                })
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("override-hold-confirm")
+                .disabled(!model.canConfirmOverride)
                 .onLongPressGesture(
                     minimumDuration: holdDuration,
                     pressing: { isPressing in
@@ -205,7 +221,6 @@ struct LockoutScreenView: View {
                         holdProgress = 0
                     }
                 )
-                .allowsHitTesting(model.canConfirmOverride)
                 // If the budget is exhausted on a tick mid-hold, hit-testing is
                 // revoked before the gesture's release fires — reset the fill
                 // reactively so it can't strand full.
@@ -220,6 +235,7 @@ struct LockoutScreenView: View {
                 Button(OverrideRequestPolicy.entryPrompt) {
                     model.beginOverrideRequest()
                 }
+                .accessibilityIdentifier("override-entry")
                 .buttonStyle(.plain)
                 .foregroundStyle(SundownPalette.warmWhite.opacity(0.4))
             }

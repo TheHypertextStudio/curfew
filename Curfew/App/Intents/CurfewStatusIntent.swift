@@ -17,6 +17,7 @@ struct CurfewStatusIntent: AppIntent {
     /// Pure read — no reason to launch the app to answer.
     static var openAppWhenRun = false
 
+    @MainActor
     func perform() async throws -> some IntentResult & ProvidesDialog & ReturnsValue<String> {
         let eval = CurfewIntentSupport.currentEvaluation()
         let phase = phaseName(eval.phase)

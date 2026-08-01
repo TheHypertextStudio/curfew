@@ -126,7 +126,9 @@ struct AIConsentPolicyTests {
         defaults.removePersistentDomain(forName: suite)
         return CurfewAppModel(
             settingsStore: CurfewSettingsStore(defaults: defaults),
-            appRouter: AppRouterSpy()
+            appRouter: AppRouterSpy(),
+            activityRecorder: NullActivityRecording(),
+            lockoutDeadlineStore: .ephemeralForTesting()
         )
     }
 }

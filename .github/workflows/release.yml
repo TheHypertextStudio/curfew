@@ -69,6 +69,27 @@ jobs:
             exit 1
           fi
 
+      - name: Reject placeholder Sparkle public key
+        # Mirrors the license-key gate: refuses to release while
+        # Curfew/Info.plist still contains the placeholder, which would ship
+        # an app whose Sparkle update signatures can never verify.
+        run: |
+          if grep -q 'REPLACE_WITH_SPARKLE_PUBLIC_ED_KEY' Curfew/Info.plist; then
+            echo "::error::Curfew/Info.plist still embeds the placeholder SUPublicEDKey."
+            echo "Run scripts/gen-sparkle-keypair.sh and paste the public key into SUPublicEDKey before tagging."
+            exit 1
+          fi
+
+      - name: Require release secrets
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          : "${SPARKLE_PRIVATE_KEY:?SPARKLE_PRIVATE_KEY is required}"
+          : "${CLOUDFLARE_API_TOKEN:?CLOUDFLARE_API_TOKEN is required}"
+          : "${CLOUDFLARE_ACCOUNT_ID:?CLOUDFLARE_ACCOUNT_ID is required}"
+
       - name: Run quality gate
         run: just check
 
@@ -106,25 +127,50 @@ jobs:
             -exportPath "$RUNNER_TEMP/export" \
             -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist"
 
-      - name: Notarize
+      - name: Notarize app
         env:
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
           APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
           APPLE_API_PRIVATE_KEY: ${{ secrets.APPLE_API_PRIVATE_KEY }}
         run: |
           echo "$APPLE_API_PRIVATE_KEY" > "$RUNNER_TEMP/AuthKey.p8"
-          xcrun notarytool submit "$RUNNER_TEMP/export/Curfew.app" \
+          ditto -c -k --keepParent "$RUNNER_TEMP/export/Curfew.app" "$RUNNER_TEMP/Curfew.zip"
+          xcrun notarytool submit "$RUNNER_TEMP/Curfew.zip" \
             --issuer "$APPLE_API_ISSUER" \
             --key-id "$APPLE_API_KEY_ID" \
             --key "$RUNNER_TEMP/AuthKey.p8" \
             --wait
           xcrun stapler staple "$RUNNER_TEMP/export/Curfew.app"
 
+      - name: Verify signed app artifact
+        run: bash scripts/verify-release-artifact.sh "$RUNNER_TEMP/export/Curfew.app"
+
       - name: Build DMG
         run: |
           bash scripts/build-dmg.sh \
             "$RUNNER_TEMP/export/Curfew.app" \
             "$RUNNER_TEMP/Curfew-${{ github.ref_name }}.dmg"
+
+      - name: Sign and notarize DMG
+        env:
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+        run: |
+          DMG="$RUNNER_TEMP/Curfew-${{ github.ref_name }}.dmg"
+          codesign --force --timestamp --sign "Developer ID Application" "$DMG"
+          xcrun notarytool submit "$DMG" \
+            --issuer "$APPLE_API_ISSUER" \
+            --key-id "$APPLE_API_KEY_ID" \
+            --key "$RUNNER_TEMP/AuthKey.p8" \
+            --wait
+          xcrun stapler staple "$DMG"
+          xcrun stapler validate "$DMG"
+
+      - name: Publish signed DMG
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ runner.temp }}/Curfew-${{ github.ref_name }}.dmg
+          generate_release_notes: true
 
       - name: Generate appcast
         env:
@@ -133,15 +179,7 @@ jobs:
           # the env only — never echo it.
           SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
         run: |
-          # Sparkle is deliberately unavailable in the conservative initial
-          # release until its framework, public key and signing secret are all
-          # provisioned. A placeholder key is safe only because the app hides
-          # updater UI while Sparkle is unlinked. Do not produce an appcast
-          # until every updater prerequisite exists.
-          if grep -q 'REPLACE_WITH_SPARKLE_PUBLIC_ED_KEY' Curfew.xcodeproj/project.pbxproj || [ -z "$SPARKLE_PRIVATE_KEY" ]; then
-            echo "::warning::Sparkle is not provisioned — skipping appcast generation (see scripts/release-checklist.md)."
-            exit 0
-          fi
+          : "${SPARKLE_PRIVATE_KEY:?SPARKLE_PRIVATE_KEY is required}"
           # github.ref_name is the tag (e.g. v1.0.1); the script wants a bare
           # semver for <sparkle:version>/shortVersionString, so strip the 'v'.
           VERSION="${{ github.ref_name }}"
@@ -149,17 +187,37 @@ jobs:
           export VERSION
           export DMG_PATH="$RUNNER_TEMP/Curfew-${{ github.ref_name }}.dmg"
           # Point the enclosure URL at the GitHub release asset that the
-          # Create GitHub Release step uploads below. The DMG basename matches
+          # Publish signed DMG step uploaded above. The DMG basename matches
           # the asset name, so Sparkle downloads exactly what we signed.
           export APPCAST_URL_BASE="${{ github.server_url }}/${{ github.repository }}/releases/download/${{ github.ref_name }}"
           bash scripts/generate-appcast.sh > "$RUNNER_TEMP/appcast.xml"
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          # Sparkle is not provisioned for v0.1, so the sole generated and
-          # published asset is the notarized DMG. Add a separately tested
-          # appcast publication path when the updater is enabled.
-          files: |
-            ${{ runner.temp }}/Curfew-${{ github.ref_name }}.dmg
-          generate_release_notes: true
+      - name: Attach signed appcast
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.ref_name }}" "$RUNNER_TEMP/appcast.xml" --clobber
+
+      - name: Deploy live appcast
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          : "${CLOUDFLARE_API_TOKEN:?CLOUDFLARE_API_TOKEN is required}"
+          : "${CLOUDFLARE_ACCOUNT_ID:?CLOUDFLARE_ACCOUNT_ID is required}"
+          cp "$RUNNER_TEMP/appcast.xml" web/landing/appcast.xml
+          corepack enable
+          pnpm -C web install --frozen-lockfile
+          pnpm -C web --filter @curfew/landing deploy
+
+      - name: Verify live appcast
+        run: |
+          for attempt in 1 2 3 4 5; do
+            if curl -fsS https://curfew.hypertext.studio/appcast.xml \
+              -o "$RUNNER_TEMP/live-appcast.xml" \
+              && cmp "$RUNNER_TEMP/appcast.xml" "$RUNNER_TEMP/live-appcast.xml"; then
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::live Sparkle feed does not match the signed release appcast"
+          exit 1

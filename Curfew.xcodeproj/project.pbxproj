@@ -8,14 +8,11 @@
 
 /* Begin PBXBuildFile section */
 		C0FE00000000000000000001 /* CurfewWidget.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = C0FE00000000000000000004 /* CurfewWidget.appex */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		C0FE00000000000000000002 /* WidgetSharedStateStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FE0000000000000000000A /* WidgetSharedStateStore.swift */; };
-		C0FE00000000000000000040 /* CurfewWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FE00000000000000000014 /* CurfewWidget.swift */; };
-		C0FE00000000000000000041 /* CurfewWidgetEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FE00000000000000000015 /* CurfewWidgetEntry.swift */; };
-		C0FE00000000000000000042 /* CurfewWidgetProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FE00000000000000000016 /* CurfewWidgetProvider.swift */; };
-		C0FE00000000000000000043 /* CurfewWidgetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FE00000000000000000017 /* CurfewWidgetView.swift */; };
+		C0FE00000000000000000002 /* Curfew/App/Infrastructure/WidgetSharedStateStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FE0000000000000000000A /* Curfew/App/Infrastructure/WidgetSharedStateStore.swift */; };
 		C0FE00000000000000000111 /* CurfewKit in Frameworks */ = {isa = PBXBuildFile; productRef = C0FE00000000000000000101 /* CurfewKit */; };
 		C0FE00000000000000000112 /* CurfewKit in Frameworks */ = {isa = PBXBuildFile; productRef = C0FE00000000000000000102 /* CurfewKit */; };
 		C0FE00000000000000000113 /* CurfewKit in Frameworks */ = {isa = PBXBuildFile; productRef = C0FE00000000000000000103 /* CurfewKit */; };
+		C0FE00000000000000000114 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = C0FE00000000000000000105 /* Sparkle */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -61,20 +58,38 @@
 		9BD3FB912F4D4587007B2E95 /* CurfewTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CurfewTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		9BD3FB9B2F4D4587007B2E95 /* CurfewUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CurfewUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		C0FE00000000000000000004 /* CurfewWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = CurfewWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
-		C0FE0000000000000000000A /* WidgetSharedStateStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Curfew/App/Infrastructure/WidgetSharedStateStore.swift; sourceTree = "<group>"; };
+		C0FE0000000000000000000A /* Curfew/App/Infrastructure/WidgetSharedStateStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Curfew/App/Infrastructure/WidgetSharedStateStore.swift; sourceTree = "<group>"; };
 		C0FE00000000000000000014 /* CurfewWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurfewWidget.swift; sourceTree = "<group>"; };
 		C0FE00000000000000000015 /* CurfewWidgetEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurfewWidgetEntry.swift; sourceTree = "<group>"; };
 		C0FE00000000000000000016 /* CurfewWidgetProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurfewWidgetProvider.swift; sourceTree = "<group>"; };
 		C0FE00000000000000000017 /* CurfewWidgetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurfewWidgetView.swift; sourceTree = "<group>"; };
 		C0FE00000000000000000018 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		C0FE00000000000000000019 /* CurfewWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CurfewWidget.entitlements; sourceTree = "<group>"; };
-		C0FE0000000000000000001E /* CurfewWidget-Debug.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CurfewWidget-Debug.entitlements; sourceTree = "<group>"; };
+		C0FE0000000000000000001E /* CurfewWidget-Debug.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "CurfewWidget-Debug.entitlements"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		C0FE00000000000000000201 /* Exceptions for "Curfew" folder in "Curfew" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 9BD3FB812F4D4584007B2E95 /* Curfew */;
+		};
+		C0FE00000000000000000200 /* Exceptions for "CurfewWidget" folder in "CurfewWidget" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = C0FE0000000000000000000C /* CurfewWidget */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		1F56E9B021971B57F3DE957D /* CurfewWidget */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
+				C0FE00000000000000000200 /* Exceptions for "CurfewWidget" folder in "CurfewWidget" target */,
 			);
 			path = CurfewWidget;
 			sourceTree = "<group>";
@@ -82,21 +97,18 @@
 		9BD3FB842F4D4584007B2E95 /* Curfew */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
+				C0FE00000000000000000201 /* Exceptions for "Curfew" folder in "Curfew" target */,
 			);
 			path = Curfew;
 			sourceTree = "<group>";
 		};
 		9BD3FB942F4D4587007B2E95 /* CurfewTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = CurfewTests;
 			sourceTree = "<group>";
 		};
 		9BD3FB9E2F4D4587007B2E95 /* CurfewUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = CurfewUITests;
 			sourceTree = "<group>";
 		};
@@ -108,6 +120,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				C0FE00000000000000000111 /* CurfewKit in Frameworks */,
+				C0FE00000000000000000114 /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -178,7 +191,7 @@
 		C0FE00000000000000000006 /* CurfewWidgetSupport */ = {
 			isa = PBXGroup;
 			children = (
-				C0FE0000000000000000000A /* WidgetSharedStateStore.swift */,
+				C0FE0000000000000000000A /* Curfew/App/Infrastructure/WidgetSharedStateStore.swift */,
 			);
 			name = CurfewWidgetSupport;
 			sourceTree = "<group>";
@@ -208,6 +221,7 @@
 			name = Curfew;
 			packageProductDependencies = (
 				C0FE00000000000000000101 /* CurfewKit */,
+				C0FE00000000000000000105 /* Sparkle */,
 			);
 			productName = Curfew;
 			productReference = 9BD3FB822F4D4584007B2E95 /* Curfew.app */;
@@ -318,6 +332,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				C0FE00000000000000000100 /* XCLocalSwiftPackageReference "CurfewKit" */,
+				C0FE00000000000000000104 /* XCRemoteSwiftPackageReference "Sparkle" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 9BD3FB832F4D4584007B2E95 /* Products */;
@@ -384,10 +399,11 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "set -e\ncd \"$SRCROOT\"\nmkdir -p \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Resources\"\nmkdir -p \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Library/LaunchDaemons\"\nswift build --package-path CurfewKit -c release --product curfew-ctl\nswift build --package-path CurfewKit -c release --product curfew-mcp\nswift build --package-path CurfewKit -c release --product curfew-daemon\ncp CurfewKit/.build/release/curfew-ctl \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Resources/curfew-ctl\"\ncp CurfewKit/.build/release/curfew-mcp \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Resources/curfew-mcp\"\ncp CurfewKit/.build/release/curfew-daemon \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Resources/curfew-daemon\"\ncp Curfew/Resources/LaunchDaemons/studio.hypertext.curfew.daemon.plist \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Library/LaunchDaemons/studio.hypertext.curfew.daemon.plist\"\n";
+			shellScript = "set -e\ncd \"$SRCROOT\"\nresources=\"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Resources\"\nmkdir -p \"$resources\"\nmkdir -p \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Library/LaunchDaemons\"\nswift build --package-path CurfewKit -c release --product curfew-ctl\nswift build --package-path CurfewKit -c release --product curfew-mcp\nswift build --package-path CurfewKit -c release --product curfew-daemon\ncp CurfewKit/.build/release/curfew-ctl \"$resources/curfew-ctl\"\ncp CurfewKit/.build/release/curfew-mcp \"$resources/curfew-mcp\"\ncp CurfewKit/.build/release/curfew-daemon \"$resources/curfew-daemon\"\ncp Curfew/Resources/LaunchDaemons/studio.hypertext.curfew.daemon.plist \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Library/LaunchDaemons/studio.hypertext.curfew.daemon.plist\"\nif [ \"$CODE_SIGNING_ALLOWED\" = \"YES\" ] && [ -n \"$EXPANDED_CODE_SIGN_IDENTITY\" ]; then\n  for tool in curfew-ctl curfew-mcp curfew-daemon; do\n    if [ \"$CONFIGURATION\" = \"Release\" ]; then\n      /usr/bin/codesign --force --options runtime --timestamp --sign \"$EXPANDED_CODE_SIGN_IDENTITY\" \"$resources/$tool\"\n    else\n      /usr/bin/codesign --force --options runtime --sign \"$EXPANDED_CODE_SIGN_IDENTITY\" \"$resources/$tool\"\n    fi\n  done\nfi\n";
 		};
 		C0FE0000000000000000ABCD /* Require Signed Build */ = {
 			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
 			files = (
 			);
@@ -432,7 +448,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C0FE00000000000000000002 /* WidgetSharedStateStore.swift in Sources */,
+				C0FE00000000000000000002 /* Curfew/App/Infrastructure/WidgetSharedStateStore.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -589,7 +605,8 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
-				GENERATE_INFOPLIST_FILE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Curfew/Info.plist;
 				INFOPLIST_KEY_LSUIElement = NO;
 				INFOPLIST_KEY_NSAppleEventsUsageDescription = "Curfew uses System Events to shut down your Mac after lockout when you turn on auto shutdown.";
 				INFOPLIST_KEY_NSAccessibilityUsageDescription = "Curfew uses Accessibility to intercept keyboard shortcuts during lockout so you can't bypass your own curfew.";
@@ -597,12 +614,13 @@
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "Curfew reads today's calendar events to show meetings on the lockout screen and warn you before a meeting collides with curfew. Curfew never edits your calendar.";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 Hypertext Studio. MIT licensed.";
 				INFOPLIST_KEY_SUFeedURL = "https://curfew.hypertext.studio/appcast.xml";
-				INFOPLIST_KEY_SUPublicEDKey = REPLACE_WITH_SPARKLE_PUBLIC_ED_KEY;
+				INFOPLIST_KEY_SUPublicEDKey = "/nTixzbNLaV9ZMpWlLHn6E03k4FDhWp+rolbmGAV8Is=";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
 				MARKETING_VERSION = 1.0.0;
+				CURFEW_DISPLAY_SUFFIX = " (Dev)";
 				INFOPLIST_KEY_CFBundleDisplayName = "Curfew (Dev)";
 				PRODUCT_BUNDLE_IDENTIFIER = studio.hypertext.curfew.dev;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -629,8 +647,9 @@
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
-				ENABLE_USER_SELECTED_FILES = readonly;
-				GENERATE_INFOPLIST_FILE = YES;
+				ENABLE_USER_SELECTED_FILES = NO;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Curfew/Info.plist;
 				INFOPLIST_KEY_LSUIElement = NO;
 				INFOPLIST_KEY_NSAppleEventsUsageDescription = "Curfew uses System Events to shut down your Mac after lockout when you turn on auto shutdown.";
 				INFOPLIST_KEY_NSAccessibilityUsageDescription = "Curfew uses Accessibility to intercept keyboard shortcuts during lockout so you can't bypass your own curfew.";
@@ -638,12 +657,13 @@
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "Curfew reads today's calendar events to show meetings on the lockout screen and warn you before a meeting collides with curfew. Curfew never edits your calendar.";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 Hypertext Studio. MIT licensed.";
 				INFOPLIST_KEY_SUFeedURL = "https://curfew.hypertext.studio/appcast.xml";
-				INFOPLIST_KEY_SUPublicEDKey = REPLACE_WITH_SPARKLE_PUBLIC_ED_KEY;
+				INFOPLIST_KEY_SUPublicEDKey = "/nTixzbNLaV9ZMpWlLHn6E03k4FDhWp+rolbmGAV8Is=";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
 				MARKETING_VERSION = 1.0.0;
+				CURFEW_DISPLAY_SUFFIX = "";
 				INFOPLIST_KEY_CFBundleDisplayName = "Curfew";
 				PRODUCT_BUNDLE_IDENTIFIER = studio.hypertext.curfew;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -851,6 +871,17 @@
 		};
 /* End XCLocalSwiftPackageReference section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+		C0FE00000000000000000104 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = exactVersion;
+				version = 2.9.4;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
 		C0FE00000000000000000101 /* CurfewKit */ = {
 			isa = XCSwiftPackageProductDependency;
@@ -863,6 +894,11 @@
 		C0FE00000000000000000103 /* CurfewKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = CurfewKit;
+		};
+		C0FE00000000000000000105 /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C0FE00000000000000000104 /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

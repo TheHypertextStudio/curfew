@@ -144,7 +144,12 @@ struct SetupUXTests {
     func openSettingsActionRoutesThroughRouter() {
         let router = AppRouterSpy()
         let model = CurfewAppModel(
-            appRouter: router
+            settingsStore: CurfewSettingsStore(
+                defaults: UserDefaults(suiteName: UUID().uuidString) ?? .standard
+            ),
+            appRouter: router,
+            activityRecorder: NullActivityRecording(),
+            lockoutDeadlineStore: .ephemeralForTesting()
         )
 
         model.openSettings()
@@ -156,7 +161,12 @@ struct SetupUXTests {
     @Test("Getting Started action bumps the onboarding window request trigger")
     func gettingStartedActionBumpsRequestTrigger() {
         let model = CurfewAppModel(
-            appRouter: AppRouterSpy()
+            settingsStore: CurfewSettingsStore(
+                defaults: UserDefaults(suiteName: UUID().uuidString) ?? .standard
+            ),
+            appRouter: AppRouterSpy(),
+            activityRecorder: NullActivityRecording(),
+            lockoutDeadlineStore: .ephemeralForTesting()
         )
 
         model.showGettingStarted()
@@ -178,6 +188,8 @@ struct SetupUXTests {
         let model = CurfewAppModel(
             settingsStore: CurfewSettingsStore(defaults: defaults),
             appRouter: AppRouterSpy(),
+            activityRecorder: NullActivityRecording(),
+            lockoutDeadlineStore: .ephemeralForTesting(),
             accessibilityAuthorization: FakeAccessibilityAuthorization(trusted: true)
         )
 
@@ -206,6 +218,8 @@ struct SetupUXTests {
         let model = CurfewAppModel(
             settingsStore: CurfewSettingsStore(defaults: defaults),
             appRouter: AppRouterSpy(),
+            activityRecorder: NullActivityRecording(),
+            lockoutDeadlineStore: .ephemeralForTesting(),
             accessibilityAuthorization: FakeAccessibilityAuthorization(trusted: false)
         )
 
@@ -220,7 +234,7 @@ struct SetupUXTests {
 struct OverrideComposerStateTests {
     @Test("Override composer does not auto-open outside lockout")
     func composerStaysHiddenWhenNotLocked() {
-        let model = CurfewAppModel()
+        let model = makeTestAppModel()
         let now = Date()
 
         model.currentTime = now
@@ -240,7 +254,7 @@ struct OverrideComposerStateTests {
 
     @Test("Override composer state resets after leaving lockout")
     func composerStateResetsWhenLockoutEnds() {
-        let model = CurfewAppModel()
+        let model = makeTestAppModel()
         let now = Date()
 
         model.currentTime = now
@@ -320,7 +334,7 @@ struct MenuBarPresentationModelTests {
 
     @Test("Menu bar countdown uses h:mm formatting and day-off placeholder")
     func timeRemainingTextFormatting() {
-        let model = CurfewAppModel()
+        let model = makeTestAppModel()
 
         model.state = CurfewEvaluation(
             phase: .working,
@@ -354,6 +368,7 @@ struct MenuBarPresentationModelTests {
             settingsStore: CurfewSettingsStore(defaults: defaults),
             appRouter: AppRouterSpy(),
             activityRecorder: NullActivityRecording(),
+            lockoutDeadlineStore: .ephemeralForTesting(),
             accessibilityAuthorization: FakeAccessibilityAuthorization(trusted: true)
         )
     }

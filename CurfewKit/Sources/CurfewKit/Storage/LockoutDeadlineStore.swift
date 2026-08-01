@@ -10,7 +10,7 @@ private let lockoutDeadlineLogger = Logger(
 /// metadata that the lockout screen, activity log, and any future
 /// remote-state surface can describe *why* the device is held without
 /// having to inspect the schedule that produced the original lock.
-public enum LockoutKind: String, Codable, Equatable {
+public enum LockoutKind: String, Codable, Equatable, Sendable {
     /// Wall-clock schedule fired (`.time` mode or `.combined` with the
     /// time deadline winning).
     case scheduledTime = "scheduled_time"
@@ -34,7 +34,10 @@ public enum LockoutKind: String, Codable, Equatable {
 /// is no easier than killing the app process — once the privileged
 /// daemon's enforcement landing zone is implemented (C3/C4), the daemon
 /// owns the file and the user no longer needs to read it.
-public struct LockoutDeadlineRecord: Codable, Equatable {
+public struct LockoutDeadlineRecord: Codable, Equatable, Sendable {
+    /// Stable identifier shared by the app and daemon for one lockout window.
+    public var lockoutID: UUID
+
     /// Moment the lockout window opened. Carried for activity-log
     /// attribution; not used in apply-time decisions.
     public var lockoutStartedAt: Date
@@ -49,22 +52,40 @@ public struct LockoutDeadlineRecord: Codable, Equatable {
     public var kind: LockoutKind
 
     public init(
+        lockoutID: UUID = UUID(),
         lockoutStartedAt: Date,
         scheduledUnlockAt: Date,
         kind: LockoutKind
     ) {
+        self.lockoutID = lockoutID
         self.lockoutStartedAt = lockoutStartedAt
         self.scheduledUnlockAt = scheduledUnlockAt
         self.kind = kind
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case lockoutID
+        case lockoutStartedAt
+        case scheduledUnlockAt
+        case kind
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        lockoutID = try container.decodeIfPresent(UUID.self, forKey: .lockoutID) ?? UUID()
+        lockoutStartedAt = try container.decode(Date.self, forKey: .lockoutStartedAt)
+        scheduledUnlockAt = try container.decode(Date.self, forKey: .scheduledUnlockAt)
+        kind = try container.decode(LockoutKind.self, forKey: .kind)
     }
 }
 
 /// Atomic JSON store for ``LockoutDeadlineRecord``.
 ///
-/// Lives in the user's shared support directory today; the v0.2 daemon
-/// will relocate (or shadow) it into `/Library/Application Support/Curfew`
-/// so root ownership protects the file from the same user who's trying
-/// to bypass enforcement. The file format is forward-compatible: callers
+/// This user-owned copy drives presentation and recovery hints. In v0.1 the
+/// authenticated daemon independently owns the authoritative root state under
+/// `/Library/Application Support/Curfew`; app relaunch reconciliation accepts
+/// the daemon's active deadline over missing or weaker local state. The file
+/// format is forward-compatible: callers
 /// that find a malformed payload treat the record as absent and proceed
 /// without forcing a lockout — fail-open at the storage boundary is the
 /// right default because corrupt durable state must not hold a user
@@ -106,6 +127,10 @@ public struct LockoutDeadlineStore {
               let record = try? decoder.decode(LockoutDeadlineRecord.self, from: data)
         else {
             return nil
+        }
+        if let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           object["lockoutID"] == nil {
+            save(record)
         }
         return record
     }

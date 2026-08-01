@@ -3,9 +3,11 @@
 This file maps completed todo items (`[x]`) in `Documentation/todos.md` to automated behavior tests.
 
 Signed-build/manual validation for shutdown, WidgetKit, the privileged helper,
-CloudKit, notarization, and related Apple-provisioned release surfaces lives in
+Sparkle, notarization, and related Apple-provisioned release surfaces lives in
 `Documentation/RELEASE.md`; this matrix intentionally tracks automated coverage
-only.
+only. CloudKit and Calendar are dormant in v0.1. Model behavior fixtures use
+`makeTestAppModel()` or `LockoutDeadlineStore.ephemeralForTesting()` so unit
+tests cannot read or mutate a user's App Group lockout record.
 
 ## 0. Foundation and Project Structure
 
@@ -19,6 +21,9 @@ only.
   - `AppCoordinatorTests/doesNotStartWhenDisallowed()`
 - `Add feature flags for deferred modules (widget/cloud/MCP/privileged helper) with safe defaults off.`
   - `FeatureFlagTests/defaultsAreOff()`
+  - `FeatureFlagTests/shippingV1ExcludesPreviewIntegrations()`
+- `Keep Release capabilities limited to the v0.1 entitlement contract.`
+  - `scripts/verify-release-artifact.sh` compares signed entitlements exactly.
 
 ## 1. Schedule + Enforcement Core
 
@@ -82,6 +87,8 @@ only.
   - `AccessibilityConfigurationTests/reduceMotionConfiguration()`
   - `AccessibilityConfigurationTests/reduceTransparencyConfiguration()`
   - `AccessibilityConfigurationTests/voiceOverSummaryIncludesUnlockCopy()`
+  - `CurfewUITests/testWarningAndLockoutPresentation()`
+  - `CurfewUITests/testOverrideRequiresCooldownReasonAndHold()`
 
 ## 4. Shutdown Manager
 
@@ -106,10 +113,31 @@ only.
 
 ## 5. Bypass Protection + Privileged Layer
 
-- `Persist lockout state through the LaunchDaemon sentinel path.`
-  - `LockoutStatePersistenceTests/markLockoutActiveCreatesSentinel()`
-  - `LockoutStatePersistenceTests/markLockoutInactiveRemovesSentinel()`
-  - `LockoutStatePersistenceTests/markLockoutActiveNoopsWithoutParentDirectory()`
+- `Release enforcement ownership only for the seeded PID and bundle identity.`
+  - `EnforcementOwnershipTests/releaseRespectsOwnership()`
+  - `EnforcementOwnershipTests/releaseRejectsWrongBundleIdentifier()`
+- `Migrate legacy deadline records to UUID-bearing records.`
+  - `PrivilegedDaemonProtocolTests/legacyDeadlineMigration()`
+  - `PrivilegedDaemonProtocolTests/legacyDeadlineStorePersistsMigration()`
+- `Persist daemon-owned state atomically with root-safe permissions.`
+  - `PrivilegedDaemonProtocolTests/daemonStateStorageContract()`
+- `Arm, heartbeat, complete, and recover lockouts deterministically.`
+  - `PrivilegedDaemonProtocolTests/armRejectsExpiredDeadline()`
+  - `PrivilegedDaemonProtocolTests/heartbeatKeepsLockoutAlive()`
+  - `PrivilegedDaemonWiringTests/activeLockoutHeartbeatIsThrottled()`
+  - `PrivilegedDaemonProtocolTests/naturalCompletionCannotBypassDeadline()`
+  - `PrivilegedDaemonProtocolTests/approvedOverrideCompletesLockout()`
+  - `PrivilegedDaemonProtocolTests/restartRecovery()`
+- `Issue stale-heartbeat shutdown once and reject uninstall while active.`
+  - `PrivilegedDaemonProtocolTests/staleHeartbeatRequestsOneShutdown()`
+  - `PrivilegedDaemonProtocolTests/uninstallRejectedDuringLockout()`
+- `Authenticate every XPC message by audit-token signing identity, accepting only the exact Team ID and app bundle ID.`
+  - `PrivilegedDaemonProtocolTests/clientIdentityPolicy()`
+  - `PrivilegedDaemonProtocolTests/daemonSigningRequirement()`
+- `Encode XPC requests and time out unresponsive channels.`
+  - `PrivilegedDaemonProtocolTests/protocolPayloadRoundTrip()`
+  - `PrivilegedDaemonProtocolTests/daemonRPCDeadlineTimesOut()`
+  - `PrivilegedDaemonProtocolTests/daemonRPCDeadlineReturnsResponse()`
 - `Package the embedded LaunchDaemon plist using SMAppService's BundleProgram layout.`
   - `DaemonPlistTests/plistUsesEmbeddedBundleProgram()`
 - `Mirror SMAppService daemon/login-item status into the Settings helper panel through testable service wrappers.`
@@ -118,6 +146,12 @@ only.
   - `PrivilegedHelperManagerTests/installDaemonStoresError()`
   - `PrivilegedHelperManagerTests/loginItemRegistrationFlows()`
   - `PrivilegedHelperStatusCopyTests/helperStatusDescriptions()`
+  - `PrivilegedHelperManagerTests/daemonStatusReconciliation()`
+  - `PrivilegedHelperManagerTests/unavailableDaemonRPCIsSurfaced()`
+  - `PrivilegedHelperManagerTests/uninstallRejectedDuringActiveLockout()`
+- `Surface helper failures through shared enforcement health.`
+  - `EnforcementHealthTests/helperFailuresDegradeEnforcementHealth()`
+  - `PrivilegedHelperManagerTests/connectionStatesMapToEnforcementAvailability()`
 
 ## 6. Extension and Override Systems
 
@@ -173,7 +207,7 @@ only.
   - `WidgetSharedStateStoreTests/migratesLegacyActivityDatabase()`
 - `Wire the Xcode Widget Extension target into the app bundle.`
   - Build verification: `xcodebuild -list -project Curfew.xcodeproj`
-  - Build verification: `xcodebuild build -project Curfew.xcodeproj -target CurfewWidget -destination 'platform=macOS'`
+  - Build verification: `xcodebuild build -project Curfew.xcodeproj -scheme CurfewWidget -destination 'platform=macOS'`
 - `Use the widget extension kind identifier when reloading host-app timelines.`
   - `WidgetIdentityTests/kindMatchesWidgetExtension()`
 
@@ -182,6 +216,8 @@ only.
 - `Show a first-launch getting-started window so users can configure Curfew immediately.`
   - `CurfewTests/initialSetupPromptShownOnlyOnce()`
 - `Persist one-time first-launch setup state so Settings only auto-opens once.`
+  - `CurfewTests/enforcementArmsOnlyAfterSetupCompletion()` uses an ephemeral
+    deadline store so the unit suite never reads a real App Group lockout record.
   - `CurfewTests/initialSetupPromptShownOnlyOnce()`
 - `Build first-run flow: welcome, schedule, extension budget, permissions, confirmation.`
   - `FirstRunFlowTests/requiredSteps()`
@@ -216,19 +252,12 @@ only.
 - `Hide deferred integration panels in default builds until their feature flags are enabled.`
   - `FeatureFlagTests/deferredPanelsAreHiddenByDefault()`
   - `DeferredIntegrationVisibilityTests/visiblePanelsFollowEnabledFlags()`
-- `Initial Release enables only the validated local MCP integration; CloudKit, WidgetKit, Calendar, and privileged helper remain disabled.`
-  - `FeatureFlagTests/shippingEnablesOnlyValidatedLocalIntegration()`
-- `Conservative signed Release does not request CloudKit or APNs before those integrations are enabled.`
+- `v0.1 enables WidgetKit, MCP, and the authenticated helper while CloudKit and Calendar remain dormant.`
+  - `FeatureFlagTests/shippingV1ExcludesPreviewIntegrations()`
+- `The signed v0.1 Release omits CloudKit and APNs entitlements.`
   - `scripts/release-entitlements.test.mjs`
-- `Only surface update UI when Sparkle is actually linked into the app target.`
+- `Sparkle is required and its update command is available in the shipping app.`
   - `CurfewUpdaterTests/updateAvailabilityMatchesLinkedFramework()`
-- `A conservative v0.1 tag release uploads only its notarized DMG; it cannot
-  reference an appcast that Sparkle intentionally did not generate.`
-  - `scripts/release-entitlements.test.mjs`
-- `The forward-looking PRD and release checklist distinguish the core-only
-  v0.1 scope from deferred CloudKit, WidgetKit, Calendar, privileged-helper,
-  and Sparkle work.`
-  - `scripts/release-entitlements.test.mjs`
 - `Stripe test-mode staging can use a workers.dev license issuer without
   attaching a production custom domain.`
   - `scripts/license-worker.test.mjs`
@@ -240,6 +269,15 @@ only.
 - `Operator documentation names only the envelope-v2 Worker bootstrap and
   cannot reintroduce a legacy deployment path.`
   - `scripts/license-worker-documentation.test.mjs`
+- `Release UI fixtures remain ephemeral and expose semantic user journeys.`
+  - `DemoFixtureTests/demoSettingsAreSafe()`
+  - `CurfewUITests/testOnboardingStartsAtARealGate()`
+  - `CurfewUITests/testWarningAndLockoutPresentation()`
+  - `CurfewUITests/testOverrideRequiresCooldownReasonAndHold()`
+  - `CurfewUITests/testShippingIntegrationsAndHelperFailureAreVisible()`
+  - `CurfewUITests/testSparkleUpdateCommandIsPresent()`
+- `Swift 6 actor isolation remains warning-clean across App Intents, model dependencies, license callbacks, and filesystem monitoring.`
+  - `xcodebuild build ... SWIFT_TREAT_WARNINGS_AS_ERRORS=YES SWIFT_SUPPRESS_WARNINGS=NO`
 
 ## 18. License issuer envelope v2
 

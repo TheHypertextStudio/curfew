@@ -20,7 +20,7 @@ extension CurfewAppModel {
     /// before engines start or stop.
     func subscribeToLicenseChanges() {
         licenseGate.onActivationChange = { [weak self] in
-            RunLoop.main.perform { [weak self] in
+            Task { @MainActor [weak self] in
                 self?.reconcilePlusGatedModules()
             }
         }

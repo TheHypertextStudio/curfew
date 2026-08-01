@@ -33,12 +33,30 @@ extension CurfewAppModel {
     /// - Returns: The verdict to seed ``enforcementHealth`` with.
     static func seededEnforcementHealth(
         isAccessibilityTrusted: Bool,
-        tapIsEnabled: Bool
+        tapIsEnabled: Bool,
+        helperAvailability: PrivilegedEnforcementAvailability = .notRequired
     ) -> EnforcementHealth {
         EnforcementHealth.resolve(
             isAccessibilityTrusted: isAccessibilityTrusted,
             tapExpectedActive: false,
-            tapIsActive: tapIsEnabled
+            tapIsActive: tapIsEnabled,
+            helperAvailability: helperAvailability
+        )
+    }
+
+    /// Resolves the helper feature gate before seeding launch-time health.
+    static func resolvedSeededHealth(
+        trusted: Bool,
+        tapEnabled: Bool,
+        flags: FeatureFlags,
+        helper: PrivilegedHelperManager
+    ) -> EnforcementHealth {
+        let availability = flags.privilegedHelperEnabled
+            ? helper.enforcementAvailability : .notRequired
+        return seededEnforcementHealth(
+            isAccessibilityTrusted: trusted,
+            tapIsEnabled: tapEnabled,
+            helperAvailability: availability
         )
     }
 
@@ -65,7 +83,10 @@ extension CurfewAppModel {
             EnforcementHealth.resolve(
                 isAccessibilityTrusted: trusted,
                 tapExpectedActive: isEnforcingLockout,
-                tapIsActive: tapIsActive
+                tapIsActive: tapIsActive,
+                helperAvailability: featureFlags.privilegedHelperEnabled
+                    ? privilegedHelperManager.enforcementAvailability
+                    : .notRequired
             )
         )
     }

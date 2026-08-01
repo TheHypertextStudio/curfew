@@ -2,13 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <!--
-      Conservative initial-release entitlements. Local MCP and core
-      enforcement ship, while CloudKit, push, WidgetKit, Calendar, and the
-      privileged helper remain disabled by FeatureFlags.shipping. Do not add
-      iCloud or APNs capabilities until their signed-build validation is
-      complete and the feature flags are intentionally enabled.
-    -->
+    <!-- v0.1 ships WidgetKit, MCP, the privileged helper, and shutdown.
+         CloudKit and Calendar remain compiled but disabled. -->
     <key>com.apple.security.app-sandbox</key>
     <false/>
 
@@ -25,6 +20,5 @@
     <array>
         <string>group.studio.hypertext.curfew</string>
     </array>
-
 </dict>
 </plist>

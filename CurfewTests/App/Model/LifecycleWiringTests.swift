@@ -3,16 +3,6 @@ import CurfewKit
 import Foundation
 import Testing
 
-/// Regression tests for three pieces of tick-loop wiring that were
-/// documented as shipped in `todos.md` but had no call sites until the
-/// 2026-04-17 audit:
-///
-/// 1. `activityRecorder.trim(...)` runs on day rollover so the SQLite
-///    log honours the 52-week retention promise.
-/// 2. `idleWatcher.sample()` runs every tick so `isUserIdle` reflects
-///    the live watcher state.
-/// 3. `reconcilePlusGatedModules()` reacts to license activation so Pro
-///    surfaces start without an app relaunch.
 @MainActor
 struct LifecycleWiringTests {
     @Test("Day rollover triggers activity-log retention trim")
@@ -207,15 +197,7 @@ struct LifecycleWiringTests {
         }
         model.settings.schedule = schedule
 
-        // Hermetic start: seed a known non-locked phase (and clear any durable
-        // record) so `start()`'s first tick produces a real `.dayOff -> .locked`
-        // transition — which is what arms the guard. Without this, the model's
-        // initial phase comes from the default 9-to-5 schedule, which evaluates
-        // to `.locked` outside business hours; the tick then sees no fresh
-        // transition and never logs "arm" (a wall-clock-dependent flake).
-        // `seedState` (not a bare `model.state =`) also resets `lastEnforcedPhase`
-        // to match, so the transition this test expects isn't masked by a stale
-        // value left over from construction.
+        // Seed a known phase so the first tick produces the transition under test.
         model.lockoutDeadlineStore.clear()
         model.seedState(CurfewEvaluation(
             phase: .dayOff,
@@ -257,6 +239,7 @@ struct LifecycleWiringTests {
         featureFlags: FeatureFlags,
         activityRecorder: any ActivityRecording,
         idleSource: IdleTimeSource,
+        privilegedHelperManager: PrivilegedHelperManager? = nil,
         respawnGuard: any RespawnGuardControlling = NoOpRespawnGuard(),
         accessibilityAuthorization: AccessibilityAuthorizing = FakeAccessibilityAuthorization(
             trusted: true
@@ -273,10 +256,6 @@ struct LifecycleWiringTests {
             settings.hasCompletedInitialSetup = true
             store.save(settings)
         }
-        // Tests use an isolated lockout-deadline file under the OS temp
-        // directory so concurrent / sequential test runs cannot share
-        // durable state; a stale file would otherwise wedge the next
-        // test into a forced-lockout phase.
         let deadlineURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("curfew-deadline-\(UUID().uuidString).json")
         return CurfewAppModel(
@@ -284,6 +263,7 @@ struct LifecycleWiringTests {
             appRouter: AppRouterSpy(),
             featureFlags: featureFlags,
             activityRecorder: activityRecorder,
+            privilegedHelperManager: privilegedHelperManager,
             idleWatcher: watcher,
             respawnGuard: respawnGuard,
             lockoutDeadlineStore: LockoutDeadlineStore(recordURL: deadlineURL),

@@ -54,20 +54,22 @@ struct FeatureFlags: Equatable {
         calendarEnabled: false
     )
 
-    /// Conservative initial-release configuration.
+    /// v0.1 shipping configuration. Only integrations that are part of the
+    /// signed release-validation matrix are reachable in production.
     ///
     /// The local MCP server remains available so user-approved agent access to
     /// schedules, curfews and user-authored reflections ships as advertised.
-    /// CloudKit, WidgetKit, Calendar and the privileged helper stay disabled
-    /// until each has passed its signed-build and provisioning validation.
+    /// WidgetKit and the privileged helper ship alongside MCP. CloudKit and
+    /// Calendar stay disabled until their provisioning is validated.
     /// Selected by ``resolved`` when the binary is compiled with the
-    /// `RELEASE_FEATURES` condition. Debug / test builds never see this, so
-    /// `.default` remains the value exercised by the unit-test host.
-    static let shipping = FeatureFlags(
-        widgetKitEnabled: false,
+    /// `RELEASE_FEATURES` condition (set only on the app target's Release
+    /// configuration). Debug / test builds never see this, so `.default`
+    /// remains the value exercised by the unit-test host.
+    static let shippingV1 = FeatureFlags(
+        widgetKitEnabled: true,
         cloudSyncEnabled: false,
         mcpServerEnabled: true,
-        privilegedHelperEnabled: false,
+        privilegedHelperEnabled: true,
         calendarEnabled: false
     )
 
@@ -109,7 +111,7 @@ struct FeatureFlags: Equatable {
         if environment["CURFEW_CONSERVATIVE_FLAGS"] == "1" {
             return .default
         }
-        return .shipping
+        return .shippingV1
     }
 }
 

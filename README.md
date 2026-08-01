@@ -22,14 +22,17 @@ Curfew is the first product from [Hypertext Studio](https://hypertext.studio), a
 - **`curfew-ctl` CLI** — scriptable access to every status/override/budget operation. See [`curfew-ctl` usage](#curfew-ctl) below.
 - **`curfew-mcp` MCP server** — AI assistants can negotiate with your focus rules from within a coding session. See [MCP setup](#mcp-setup) below.
 - **User-confirmed reflections** — optional morning intentions and evening retrospectives use user-editable prompts, stay on the Mac, and are available to AI only through read-only MCP/CLI access.
+- **WidgetKit widgets** — small, medium, and large schedule/status views backed by the App Group.
+- **Authenticated privileged helper** — a root-owned daemon preserves active deadlines and schedules shutdown if the app heartbeat disappears.
+- **Sparkle updates** — signed updates from `https://curfew.hypertext.studio/appcast.xml`.
 - **Menu bar quick access** + first-launch onboarding.
 
-Deferred Pro surfaces stay conservative in default/debug builds until their
-signed-release entitlement and provisioning path has been validated.
+CloudKit sync and Calendar integration remain compiled for later releases but
+are hidden, dormant, and absent from the v0.1 Release entitlements.
 
-### Near term (v0.2) — stronger enforcement
-- Privileged helper via `SMAppService` (packaging landed; signed install/recovery validation still required).
-- Localization, Sparkle autoupdate.
+### Near term (v0.2)
+- CloudKit multi-device sync and Calendar context, after provisioning and signed-device validation.
+- Localization and additional enforcement hardening.
 
 ### Near term — reflection depth
 Morning intent and evening retrospective are available now. Midday check-ins and on-device AI-generated prompt suggestions remain future work; agents will never write a user's reflections.
@@ -122,9 +125,9 @@ Pro adds features with ongoing infrastructure cost. Upgrade at [curfew.hypertext
 | This Week retrospective | ✓ | ✓ |
 | `curfew-ctl` CLI | ✓ | ✓ |
 | `curfew-mcp` MCP server | ✓ | ✓ |
-| **CloudKit multi-device sync** | — | Not enabled until production container validation |
-| **WidgetKit widgets** | — | Not enabled until signed-release validation |
-| **Calendar integration** | — | Not enabled until signed-release validation |
+| **WidgetKit widgets** | — | ✓ |
+| **CloudKit multi-device sync** | — | Not in v0.1 |
+| **Calendar integration** | — | Not in v0.1 |
 
 Pricing: **$20 flat**. License key is verified offline via Ed25519 — no account required after purchase.
 
@@ -146,8 +149,9 @@ Press ⌘R to run. First launch opens Getting Started, which walks through sched
 
 **Debug launches are safe by default** — enforcement stays disarmed unless you set `CURFEW_ENABLE_ENFORCEMENT=1`. Release builds arm on launch.
 
-Release-only validation for shutdown, WidgetKit, the privileged helper, and
-CloudKit is documented in [`Documentation/RELEASE.md`](Documentation/RELEASE.md).
+Release-only validation for shutdown, WidgetKit, the privileged helper,
+Sparkle, signing, and notarization is documented in
+[`Documentation/RELEASE.md`](Documentation/RELEASE.md).
 
 ---
 
@@ -194,8 +198,7 @@ Curfew/App/      @MainActor app model, routing, overlay coordinator, key interce
 Curfew/UI/       SwiftUI views — main window, settings, lockout overlay, onboarding.
 
 CurfewWidget/    WidgetKit extension. Links CurfewKit and imports the Domain/Storage/
-                 Settings types it needs; signed release/App Group validation still
-                 requires a provisioned build.
+                 Settings types it needs; enabled in the v0.1 shipping preset.
 
 CurfewTests/     Unit tests covering every CurfewKit module and app model behavior.
 ```

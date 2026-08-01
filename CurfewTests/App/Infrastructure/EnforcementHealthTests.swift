@@ -57,13 +57,50 @@ struct EnforcementHealthTests {
         let health = EnforcementHealth.resolve(
             isAccessibilityTrusted: true,
             tapExpectedActive: false,
-            tapIsActive: false
+            tapIsActive: false,
+            helperAvailability: .ready
         )
 
         #expect(health == .active)
         #expect(health.isFullyActive)
         #expect(health.bannerTitle == nil)
         #expect(health.menuBarBadgeSymbol == nil)
+    }
+
+    @Test("Privileged helper failures degrade enforcement health")
+    func helperFailuresDegradeEnforcementHealth() {
+        let expected: [(PrivilegedEnforcementAvailability, EnforcementHealth)] = [
+            (.unavailable, .degradedHelperUnavailable),
+            (.unauthorized, .degradedHelperUnauthorized),
+            (.stale, .degradedHelperStale),
+            (.registrationFailed, .degradedHelperRegistration)
+        ]
+
+        for (availability, expectedHealth) in expected {
+            let health = EnforcementHealth.resolve(
+                isAccessibilityTrusted: true,
+                tapExpectedActive: false,
+                tapIsActive: false,
+                helperAvailability: availability
+            )
+
+            #expect(health == expectedHealth)
+            #expect(health.isFullyActive == false)
+            #expect(health.bannerDetail?.contains("helper") == true)
+            #expect(health.offersAccessibilityRemediation == false)
+        }
+    }
+
+    @Test("A disabled helper feature does not degrade enforcement health")
+    func helperNotRequiredIsHealthy() {
+        let health = EnforcementHealth.resolve(
+            isAccessibilityTrusted: true,
+            tapExpectedActive: false,
+            tapIsActive: false,
+            helperAvailability: .notRequired
+        )
+
+        #expect(health == .active)
     }
 
     @Test("Degraded banner copy states enforcement is not active and how to fix it")

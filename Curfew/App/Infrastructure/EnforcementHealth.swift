@@ -9,6 +9,15 @@
 /// Surfaced as a settings/menu banner and a menu-bar badge so a silently
 /// degraded shield (revoked Accessibility, a downed event tap) cannot masquerade
 /// as active enforcement.
+enum PrivilegedEnforcementAvailability: Equatable {
+    case notRequired
+    case ready
+    case unavailable
+    case unauthorized
+    case stale
+    case registrationFailed
+}
+
 enum EnforcementHealth: Equatable {
     /// Enforcement is fully operational — Accessibility is trusted and the
     /// keyboard shield is running whenever it is expected to be.
@@ -20,6 +29,11 @@ enum EnforcementHealth: Equatable {
     /// Accessibility is trusted and the shield was expected to be running, but
     /// its event tap is down — keystrokes are no longer being intercepted.
     case degradedTapDown
+
+    case degradedHelperUnavailable
+    case degradedHelperUnauthorized
+    case degradedHelperStale
+    case degradedHelperRegistration
 
     /// Whether enforcement is fully operational. `true` only for ``active``.
     var isFullyActive: Bool {
@@ -41,14 +55,26 @@ enum EnforcementHealth: Equatable {
     static func resolve(
         isAccessibilityTrusted: Bool,
         tapExpectedActive: Bool,
-        tapIsActive: Bool
+        tapIsActive: Bool,
+        helperAvailability: PrivilegedEnforcementAvailability = .notRequired
     ) -> EnforcementHealth {
         if !isAccessibilityTrusted {
             .degradedNoAccessibility
         } else if tapExpectedActive, !tapIsActive {
             .degradedTapDown
         } else {
-            .active
+            switch helperAvailability {
+            case .notRequired, .ready:
+                .active
+            case .unavailable:
+                .degradedHelperUnavailable
+            case .unauthorized:
+                .degradedHelperUnauthorized
+            case .stale:
+                .degradedHelperStale
+            case .registrationFailed:
+                .degradedHelperRegistration
+            }
         }
     }
 
@@ -62,6 +88,9 @@ enum EnforcementHealth: Equatable {
             Self.noAccessibilityBannerTitle
         case .degradedTapDown:
             Self.tapDownBannerTitle
+        case .degradedHelperUnavailable, .degradedHelperUnauthorized,
+             .degradedHelperStale, .degradedHelperRegistration:
+            Self.helperBannerTitle
         }
     }
 
@@ -75,6 +104,18 @@ enum EnforcementHealth: Equatable {
             Self.noAccessibilityBannerDetail
         case .degradedTapDown:
             Self.tapDownBannerDetail
+        case .degradedHelperUnavailable:
+            "The privileged helper is unavailable. Install or approve it in "
+                + "Settings → Integrations."
+        case .degradedHelperUnauthorized:
+            "The privileged helper rejected Curfew's signature. Reinstall a "
+                + "signed release build."
+        case .degradedHelperStale:
+            "The privileged helper heartbeat is stale. Relaunch Curfew before "
+                + "relying on enforcement."
+        case .degradedHelperRegistration:
+            "The privileged helper could not register. Review Settings → "
+                + "Integrations and try again."
         }
     }
 
@@ -84,7 +125,9 @@ enum EnforcementHealth: Equatable {
         switch self {
         case .active:
             nil
-        case .degradedNoAccessibility, .degradedTapDown:
+        case .degradedNoAccessibility, .degradedTapDown,
+             .degradedHelperUnavailable, .degradedHelperUnauthorized,
+             .degradedHelperStale, .degradedHelperRegistration:
             Self.degradedBadgeSymbol
         }
     }
@@ -102,6 +145,14 @@ enum EnforcementHealth: Equatable {
                 + "without Accessibility access."
         case .degradedTapDown:
             "Enforcement is not active — the keyboard shield was interrupted."
+        case .degradedHelperUnavailable:
+            "Enforcement is not active — the privileged helper is unavailable."
+        case .degradedHelperUnauthorized:
+            "Enforcement is not active — the privileged helper rejected this build."
+        case .degradedHelperStale:
+            "Enforcement is not active — the privileged helper heartbeat is stale."
+        case .degradedHelperRegistration:
+            "Enforcement is not active — the privileged helper could not register."
         }
     }
 
@@ -116,6 +167,9 @@ enum EnforcementHealth: Equatable {
             Self.noAccessibilityBannerTitle
         case .degradedTapDown:
             Self.tapDownBannerTitle
+        case .degradedHelperUnavailable, .degradedHelperUnauthorized,
+             .degradedHelperStale, .degradedHelperRegistration:
+            Self.helperBannerTitle
         }
     }
 
@@ -130,7 +184,7 @@ enum EnforcementHealth: Equatable {
     /// Accessibility (or relaunching) is the remediation for both — and
     /// `false` when ``active``.
     var offersAccessibilityRemediation: Bool {
-        !isFullyActive
+        self == .degradedNoAccessibility || self == .degradedTapDown
     }
 
     /// Headline shown when Accessibility trust is missing.
@@ -152,6 +206,8 @@ enum EnforcementHealth: Equatable {
         "The keyboard shield was interrupted, so shortcuts are no longer "
             + "blocked. Re-grant Accessibility to Curfew or relaunch the app to "
             + "restore enforcement."
+
+    static let helperBannerTitle = "Enforcement is not active"
 
     /// SF Symbol used for every degraded menu-bar badge.
     static let degradedBadgeSymbol = "exclamationmark.triangle.fill"

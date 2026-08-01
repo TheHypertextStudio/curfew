@@ -1,23 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
     "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<!--
-  Curfew privileged daemon — installed by SMAppService.daemon(plistName:).
-
-  Responsibilities (v0.2):
-    1. Holds the SMAppService / LaunchDaemon packaging path open with a real
-       executable so install + status plumbing can be validated on signed builds.
-    2. Emits a lightweight heartbeat while the lockout sentinel exists.
-    3. Defers jailbreak detection + forced shutdown to a later enforcement pass.
-
-  SMAppService launch daemons now embed their plist at
-  Curfew.app/Contents/Library/LaunchDaemons/<label>.plist and reference the
-  helper executable via BundleProgram relative to the app bundle.
-
-  NOTE: This plist is bundled into the app but the daemon is NOT automatically
-  installed. The user must explicitly click "Install Privileged Helper" in
-  Settings → Integrations, which triggers an SMAppService authorisation prompt.
--->
+<!-- Curfew privileged daemon installed by SMAppService.daemon(plistName:). -->
 <plist version="1.0">
 <dict>
     <key>Label</key>
@@ -26,22 +10,13 @@
     <key>BundleProgram</key>
     <string>Contents/Resources/curfew-daemon</string>
 
-    <!--
-      Run on demand while the sentinel exists. The helper exits cleanly when the
-      file disappears; later versions can extend the same service with actual
-      anti-bypass enforcement.
-    -->
-    <key>KeepAlive</key>
-    <dict>
-        <key>PathState</key>
-        <dict>
-            <key>/Library/Application Support/Curfew/lockout-active</key>
-            <true/>
-        </dict>
-    </dict>
+    <key>RunAtLoad</key>
+    <true/>
 
-    <!-- Restrict network access — the daemon only reads the local state file. -->
-    <key>Sockets</key>
-    <dict/>
+    <key>MachServices</key>
+    <dict>
+        <key>studio.hypertext.curfew.daemon</key>
+        <true/>
+    </dict>
 </dict>
 </plist>

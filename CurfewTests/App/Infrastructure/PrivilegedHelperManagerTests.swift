@@ -51,6 +51,88 @@ struct PrivilegedHelperManagerTests {
 
         #expect(manager.daemonStatus == SMAppService.Status.notRegistered)
         #expect(manager.lastError == StubServiceError.registerFailed.localizedDescription)
+        #expect(manager.connectionState == .registrationFailed)
+    }
+
+    @Test("daemon status reconciliation exposes the authoritative active record")
+    func daemonStatusReconciliation() async {
+        let record = LockoutDeadlineRecord(
+            lockoutStartedAt: Date(),
+            scheduledUnlockAt: Date().addingTimeInterval(600),
+            kind: .scheduledTime
+        )
+        let rpc = StubDaemonRPC(statusResult: .success(PrivilegedDaemonStatus(
+            activeRecord: record,
+            lastHeartbeatAt: Date(),
+            shutdownIssued: false
+        )))
+        let manager = PrivilegedHelperManager(
+            daemonService: StubAppService(status: .enabled),
+            loginItemService: StubAppService(status: .notRegistered),
+            daemonRPC: rpc
+        )
+
+        let status = await manager.reconcileDaemonStatus()
+
+        #expect(status?.activeRecord == record)
+        #expect(manager.connectionState == .ready)
+    }
+
+    @Test("unavailable daemon RPC is surfaced as enforcement health")
+    func unavailableDaemonRPCIsSurfaced() async {
+        let rpc = StubDaemonRPC(statusResult: .failure(PrivilegedDaemonRPCError.unavailable))
+        let manager = PrivilegedHelperManager(
+            daemonService: StubAppService(status: .enabled),
+            loginItemService: StubAppService(status: .notRegistered),
+            daemonRPC: rpc
+        )
+
+        _ = await manager.reconcileDaemonStatus()
+
+        #expect(manager.connectionState == .unavailable)
+        #expect(manager.enforcementAvailability == .unavailable)
+        #expect(manager.lastError == PrivilegedDaemonRPCError.unavailable.localizedDescription)
+    }
+
+    @Test("connection states map to enforcement availability")
+    func connectionStatesMapToEnforcementAvailability() {
+        let manager = PrivilegedHelperManager(
+            daemonService: StubAppService(status: .notRegistered),
+            loginItemService: StubAppService(status: .notRegistered)
+        )
+
+        #expect(manager.enforcementAvailability == .unavailable)
+        manager.seedConnectionStateForTesting(.unauthorized)
+        #expect(manager.enforcementAvailability == .unauthorized)
+        manager.seedConnectionStateForTesting(.stale)
+        #expect(manager.enforcementAvailability == .stale)
+        manager.seedConnectionStateForTesting(.registrationFailed)
+        #expect(manager.enforcementAvailability == .registrationFailed)
+        manager.seedConnectionStateForTesting(.ready)
+        #expect(manager.enforcementAvailability == .ready)
+    }
+
+    @Test("uninstall does not unregister the daemon during an active lockout")
+    func uninstallRejectedDuringActiveLockout() async {
+        let daemon = StubAppService(status: .enabled)
+        let rpc = StubDaemonRPC(
+            statusResult: .success(PrivilegedDaemonStatus(
+                activeRecord: nil,
+                lastHeartbeatAt: nil,
+                shutdownIssued: false
+            )),
+            prepareResult: .failure(PrivilegedDaemonRPCError.activeLockout)
+        )
+        let manager = PrivilegedHelperManager(
+            daemonService: daemon,
+            loginItemService: StubAppService(status: .notRegistered),
+            daemonRPC: rpc
+        )
+
+        await manager.uninstallDaemon()
+
+        #expect(daemon.unregisterCallCount == 0)
+        #expect(manager.lastError == PrivilegedDaemonRPCError.activeLockout.localizedDescription)
     }
 
     @Test("registerLoginItem and unregisterLoginItem use the login item service")
@@ -70,6 +152,30 @@ struct PrivilegedHelperManagerTests {
         manager.unregisterLoginItem()
         #expect(loginItem.unregisterCallCount == 1)
         #expect(manager.loginItemStatus == SMAppService.Status.notRegistered)
+    }
+}
+
+private final class StubDaemonRPC: PrivilegedDaemonRPCControlling, @unchecked Sendable {
+    let statusResult: Result<PrivilegedDaemonStatus, Error>
+    let prepareResult: Result<Void, Error>
+
+    init(
+        statusResult: Result<PrivilegedDaemonStatus, Error>,
+        prepareResult: Result<Void, Error> = .success(())
+    ) {
+        self.statusResult = statusResult
+        self.prepareResult = prepareResult
+    }
+
+    func armLockout(_: LockoutDeadlineRecord) async throws {}
+    func heartbeat(lockoutID _: UUID) async throws {}
+    func completeLockout(lockoutID _: UUID, reason _: PrivilegedCompletionReason) async throws {}
+    func status() async throws -> PrivilegedDaemonStatus {
+        try statusResult.get()
+    }
+
+    func prepareForUninstall() async throws {
+        try prepareResult.get()
     }
 }
 

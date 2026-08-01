@@ -16,6 +16,7 @@ struct TimeRemainingIntent: AppIntent {
 
     static var openAppWhenRun = false
 
+    @MainActor
     func perform() async throws -> some IntentResult & ProvidesDialog & ReturnsValue<Int> {
         let eval = CurfewIntentSupport.currentEvaluation()
         let minutes = eval.minutesRemaining

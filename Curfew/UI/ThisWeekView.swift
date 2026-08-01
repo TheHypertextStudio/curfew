@@ -336,13 +336,7 @@ private extension ThisWeekView {
               let weekEnd = cal.date(byAdding: .day, value: 7, to: weekStart) else { return }
         let range = weekStart ... weekEnd
 
-        let csv: String
-        do {
-            csv = try model.exportActivityCSV(in: range)
-        } catch {
-            NSApp.presentError(error)
-            return
-        }
+        let csv = model.exportActivityCSV(in: range)
 
         guard csv.split(separator: "\n", omittingEmptySubsequences: true).count > 1 else {
             let alert = NSAlert()

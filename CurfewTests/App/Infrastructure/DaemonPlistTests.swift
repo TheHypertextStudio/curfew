@@ -28,8 +28,9 @@ struct DaemonPlistTests {
         #expect(plist["BundleProgram"] as? String == "Contents/Resources/curfew-daemon")
         #expect(plist["ProgramArguments"] == nil)
 
-        let keepAlive = try #require(plist["KeepAlive"] as? [String: Any])
-        let pathState = try #require(keepAlive["PathState"] as? [String: Bool])
-        #expect(pathState[SharedPaths.lockoutActiveSentinel.path] == true)
+        #expect(plist["RunAtLoad"] as? Bool == true)
+        let machServices = try #require(plist["MachServices"] as? [String: Bool])
+        #expect(machServices[PrivilegedDaemonConstants.machServiceName] == true)
+        #expect(plist["KeepAlive"] == nil)
     }
 }

@@ -63,13 +63,11 @@ final class CloudKitSyncEngine {
     private static let payloadKey = "payload"
     private static let modifiedKey = "modifiedAt"
 
-    /// Creates a sync engine targeting `containerID`. `nonisolated` so it
-    /// can be used as a default parameter value in the MainActor-isolated
-    /// `CurfewAppModel.init`, which evaluates defaults off-actor.
-    nonisolated init(
-        containerID: String = CloudKitSchema.containerID
+    /// Creates a sync engine targeting `containerID` on the main actor.
+    init(
+        containerID: String? = nil
     ) {
-        self.containerID = containerID
+        self.containerID = containerID ?? CloudKitSchema.containerID
     }
 
     private var resolvedContainer: CKContainer {

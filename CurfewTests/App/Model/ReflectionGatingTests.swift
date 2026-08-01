@@ -15,7 +15,8 @@ struct ReflectionGatingTests {
         return CurfewAppModel(
             settingsStore: CurfewSettingsStore(defaults: defaults),
             appRouter: AppRouterSpy(),
-            activityRecorder: NullActivityRecording()
+            activityRecorder: NullActivityRecording(),
+            lockoutDeadlineStore: .ephemeralForTesting()
         )
     }
 
