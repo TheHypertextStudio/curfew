@@ -40,6 +40,7 @@ struct LicenseKey: Codable, Equatable {
         case expiresAt = "expires_at"
         case refreshToken = "refresh_token"
     }
+
     init(
         email: String,
         product: String,

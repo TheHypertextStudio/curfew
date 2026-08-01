@@ -146,8 +146,8 @@ function phaseWorker() {
 function phaseKeypair() {
   if (env.SKIP_KEYPAIR) return warn("Skipping keypair (SKIP_KEYPAIR).");
   step("Signing keypair");
-  // Match scripts/gen-license-keypair.sh: raw 32-byte seed (base64url) for the
-  // Worker secret, raw 32-byte public (standard base64) for LicenseGate.swift.
+  // Match license-worker.mjs keygen: raw 32-byte seed (base64url) for the Worker
+  // secret, raw 32-byte public (standard base64) for LicenseGate.swift.
   const { privateKey, publicKey } = generateKeyPairSync("ed25519");
   const seed = privateKey.export({ type: "pkcs8", format: "der" }).subarray(-32);
   const rawPub = publicKey.export({ type: "spki", format: "der" }).subarray(-32);
