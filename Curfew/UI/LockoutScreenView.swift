@@ -174,16 +174,21 @@ struct LockoutScreenView: View {
                     Color.white.opacity(0.22)
                         .clipShape(Capsule())
                         .scaleEffect(x: holdProgress, y: 1, anchor: .leading)
-                        .animation(.linear(duration: holdProgress == 0 ? 0 : holdDuration), value: holdProgress)
-                    Text("Hold \(Int(holdDuration))s to unlock for \(model.settings.overrideDurationMinutes) min")
-                        .font(.system(size: 14, weight: .semibold, design: .rounded))
-                        .foregroundStyle(SundownPalette.warmWhite)
+                        .animation(
+                            .linear(duration: holdProgress == 0 ? 0 : holdDuration),
+                            value: holdProgress
+                        )
+                    Text(
+                        "Hold \(Int(holdDuration))s to unlock for \(model.settings.overrideDurationMinutes) min"
+                    )
+                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                    .foregroundStyle(SundownPalette.warmWhite)
                 }
                 .frame(width: 340, height: 44)
                 .onLongPressGesture(
                     minimumDuration: holdDuration,
                     pressing: { isPressing in
-                        if isPressing && model.canConfirmOverride {
+                        if isPressing, model.canConfirmOverride {
                             holdProgress = 1
                         } else {
                             withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {

@@ -153,18 +153,18 @@ struct CurfewApp: App {
         .defaultSize(width: 1080, height: 720)
         .windowStyle(.hiddenTitleBar)
         #if DEBUG
-        .defaultLaunchBehavior(.presented)
+            .defaultLaunchBehavior(.presented)
         #endif
-        .commands {
-            if CurfewUpdater.isAvailable {
-                CommandGroup(after: .appInfo) {
-                    Button("Check for Updates…") {
-                        updater.checkForUpdates()
+            .commands {
+                if CurfewUpdater.isAvailable {
+                    CommandGroup(after: .appInfo) {
+                        Button("Check for Updates…") {
+                            updater.checkForUpdates()
+                        }
+                        .disabled(!updater.canCheckForUpdates)
                     }
-                    .disabled(!updater.canCheckForUpdates)
                 }
             }
-        }
 
         MenuBarExtra("Curfew", systemImage: model.menuBarSymbolName) {
             ContentView()

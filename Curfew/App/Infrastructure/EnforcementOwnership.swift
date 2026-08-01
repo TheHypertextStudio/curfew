@@ -99,7 +99,11 @@ enum EnforcementOwnership {
         // Free, dead, stale, or already ours → (re)assert ownership. Skip the
         // write when the record already names this process, to avoid rewriting
         // (and bumping the timestamp on) the lock every tick.
-        let alreadyOurs = incumbent.map { isOwnedByUs($0, pid: pid, bundleIdentifier: bundleIdentifier) } ?? false
+        let alreadyOurs = incumbent.map { isOwnedByUs(
+            $0,
+            pid: pid,
+            bundleIdentifier: bundleIdentifier
+        ) } ?? false
         if !alreadyOurs {
             writeOwner(mine, at: lockURL)
         }
@@ -154,7 +158,11 @@ enum EnforcementOwnership {
     /// Returns `true` when `owner` was written by this process — same pid AND
     /// bundle identifier. Used by both `acquire` and `release` so the two-field
     /// ownership predicate lives in one place.
-    private static func isOwnedByUs(_ owner: EnforcementOwner, pid: Int32, bundleIdentifier: String) -> Bool {
+    private static func isOwnedByUs(
+        _ owner: EnforcementOwner,
+        pid: Int32,
+        bundleIdentifier: String
+    ) -> Bool {
         owner.processIdentifier == pid && owner.bundleIdentifier == bundleIdentifier
     }
 
