@@ -11,6 +11,9 @@ project := "Curfew.xcodeproj"
 scheme := "Curfew"
 destination := "platform=macOS"
 source_dirs := "Curfew CurfewTests CurfewUITests"
+# Optional command-line Xcode build settings for CI-only validation (for
+# example, unsigned fork-safe builds). Local developer commands remain signed.
+xcodebuild_settings := env_var_or_default("CURFEW_XCODEBUILD_SETTINGS", "")
 
 # Default recipe when no target is given. Mirrors the ship-gate from
 
@@ -44,7 +47,7 @@ test:
         -scheme {{ scheme }} \
         -allowProvisioningUpdates \
         -destination '{{ destination }}' \
-        -only-testing:CurfewTests
+        -only-testing:CurfewTests {{ xcodebuild_settings }}
 
 # Full UI-test suite. Heavier; kept separate from `just test`.
 test-ui:
@@ -101,7 +104,7 @@ build:
         -scheme {{ scheme }} \
         -allowProvisioningUpdates \
         -configuration Debug \
-        -destination '{{ destination }}'
+        -destination '{{ destination }}' {{ xcodebuild_settings }}
 
 # Release build. Does not sign / notarise; the release workflow handles that.
 build-release:

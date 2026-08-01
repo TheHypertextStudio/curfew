@@ -295,10 +295,11 @@ xcrun stapler validate "$APP"
 
 The pull-request CI workflow also runs on `macos-26` so its test host matches
 Curfew's macOS 26 deployment target; running it on an older macOS image cannot
-execute the app or its tests. Its Debug test/build artifacts deliberately disable
-code signing because fork-safe GitHub runners have no Apple account or
-provisioning profile. Signed release archives, notarization, and the distribution
-smoke test remain release-only steps with explicit Apple credentials.
+execute the app or its tests. Its Debug test/build artifacts deliberately pass
+unsigned build settings on the `xcodebuild` command line because fork-safe GitHub
+runners have no Apple account or provisioning profile. Signed release archives,
+notarization, and the distribution smoke test remain release-only steps with
+explicit Apple credentials.
 
 ## Rollback
 
