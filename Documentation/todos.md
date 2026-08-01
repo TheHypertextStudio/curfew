@@ -177,7 +177,9 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 
 ## 18.1 Distribution scaffolding (you complete externally)
 
-- [x] `wrangler.toml` — Cloudflare Worker config with `LICENSE_KV` namespace + secrets.
+- [x] `web/worker/wrangler.toml.example` + `scripts/license-worker.mjs` — one
+      template-only Worker path with caller-owned rendered config and no
+      committed identifiers or secrets.
 - [x] `Casks/curfew.rb` — Homebrew Cask formula with signed release URL and zap paths.
 - [x] `scripts/gen-sparkle-keypair.sh` — local Ed25519 keygen with paste-into-Info.plist instructions.
 - [x] `scripts/generate-appcast.sh` — CI-invoked Sparkle appcast builder.
@@ -198,7 +200,9 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 - [x] Caller-owned rendered Worker configs resolve the entry point from the clone, so a fresh-clone dry-run and dashboard bundle do not need a repo-local config workaround.
 - [x] `Documentation/license-worker-bootstrap.md` — fresh-clone bootstrap and rollout boundary.
 - [x] Production Ed25519 public key embedded; matching private seed is retained only outside the repository for Worker secret provisioning. If it is exposed at any point, rotate both the Worker signer and app verifier before distribution.
-- [ ] Stripe account + Curfew Pro product + webhook configured. (external launch gate)
+- [ ] Production Curfew Plus Stripe products, Worker secrets, webhook, and
+      purchase-to-license delivery verified. Keep the landing sale gate closed
+      until this external launch gate is complete.
 
 ## 16. Onboarding
 
