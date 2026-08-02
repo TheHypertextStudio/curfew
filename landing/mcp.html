@@ -7,32 +7,40 @@
   <meta name="description" content="Set up Curfew with Claude Desktop or another MCP-compatible app." />
   <link rel="stylesheet" href="style.css" />
 </head>
-<body>
-  <a class="skip-link" href="#main-content">Skip to setup</a>
+<body class="docs-page">
+  <a class="skip-link" href="#main-content">Skip to content</a>
   <header class="site-header">
     <nav aria-label="Primary">
       <a href="/" class="wordmark">Curfew</a>
+      <span class="docs-product">Documentation</span>
       <a class="nav-back" href="/">Back to Curfew</a>
     </nav>
   </header>
 
-  <main id="main-content">
-    <section class="docs-hero">
-      <div class="section-inner">
+  <main class="docs-layout" id="main-content">
+    <aside class="docs-sidebar" aria-label="Guide sections">
+      <p class="docs-sidebar-title">MCP guide</p>
+      <nav>
+        <a href="#overview" aria-current="page">Overview</a>
+        <a href="#claude-desktop">Claude Desktop</a>
+        <a href="#access">Permissions</a>
+        <a href="#command-line">Command line</a>
+        <a href="#local-http">Local HTTP</a>
+      </nav>
+      <a class="docs-sidebar-link" href="privacy.html">Privacy</a>
+    </aside>
+
+    <div class="docs-article">
+    <section class="docs-hero" id="overview">
+      <div>
         <p class="eyebrow">MCP setup</p>
         <h1>Connect Curfew to Claude Desktop.</h1>
         <p class="docs-lede">Curfew includes a local MCP server. Claude Desktop and other compatible apps can use it on your Mac.</p>
-        <nav class="docs-nav" aria-label="On this page">
-          <a href="#claude-desktop">Claude Desktop</a>
-          <a href="#access">Access and control</a>
-          <a href="#command-line">Command line</a>
-          <a href="#local-http">Local HTTP</a>
-        </nav>
       </div>
     </section>
 
     <section class="docs-section" id="claude-desktop">
-      <div class="section-inner docs-content">
+      <div class="docs-content">
         <div class="section-heading">
           <h2>Claude Desktop</h2>
           <p>Curfew’s standard connection runs on your Mac using stdio. You usually only need to set it up once.</p>
@@ -82,7 +90,7 @@
     </section>
 
     <section class="docs-section docs-section-surface" id="access">
-      <div class="section-inner docs-content">
+      <div class="docs-content">
         <div class="section-heading">
           <h2>Permissions</h2>
           <p>Curfew keeps the connection local. It can share only the information and actions its MCP server supports.</p>
@@ -111,7 +119,7 @@
     </section>
 
     <section class="docs-section" id="command-line">
-      <div class="section-inner docs-content docs-split">
+      <div class="docs-content docs-split">
         <div class="section-heading">
           <p class="eyebrow">Optional</p>
           <h2>Use Curfew from the command line</h2>
@@ -134,7 +142,7 @@
     </section>
 
     <section class="docs-section docs-section-surface" id="local-http">
-      <div class="section-inner docs-content docs-split">
+      <div class="docs-content docs-split">
         <div class="section-heading">
           <p class="eyebrow">Advanced</p>
           <h2>Connect over local HTTP</h2>
@@ -148,10 +156,11 @@
     </section>
 
     <section class="docs-section docs-closing">
-      <div class="section-inner docs-content">
+      <div class="docs-content">
         <p>Want the details on how Curfew handles information? <a href="privacy.html">Read the privacy policy</a>.</p>
       </div>
     </section>
+    </div>
   </main>
 
   <footer>
