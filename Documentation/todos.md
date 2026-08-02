@@ -23,6 +23,11 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 > a deliberate deployment source is configured; it must stay aligned with the
 > public guide in the meantime.
 
+> **Marketing capture safety:** `scripts/capture-marketing.sh` launches and
+> captures only its own fixture process. It never kills an existing Curfew
+> process or substitutes a full-screen desktop capture when no fixture window
+> is found.
+
 ---
 
 ## 0. Foundation and Project Structure

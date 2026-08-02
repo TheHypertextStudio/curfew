@@ -2,10 +2,10 @@
 # Usage: capture-marketing.sh
 #
 # Local, high-fidelity marketing screenshots. Builds the Debug app, then for
-# each demo-fixture scenario launches it, drives it into a curated state, and
-# captures a PNG into build/screenshots/. Windowed scenarios are captured
-# per-window (with the macOS drop shadow); the full-screen lockout / warning
-# overlays are captured as a full-screen grab.
+# each demo-fixture scenario launches an isolated process, drives it into a
+# curated state, and captures only that process's window into build/screenshots/.
+# It never stops an already-running Curfew app and never falls back to a desktop
+# grab, so it cannot capture someone else's screen or background windows.
 #
 # REQUIRES Screen Recording permission for the controlling terminal:
 #   System Settings > Privacy & Security > Screen Recording.
@@ -21,10 +21,8 @@ BIN="$APP/Contents/MacOS/Curfew"
 OUT="$ROOT/build/screenshots"
 SETTLE="${CURFEW_CAPTURE_SETTLE:-3}"
 
-# Windowed surfaces: capture just the app window (keeps the drop shadow).
-WINDOWED_SCENARIOS=(overview configuration settings getting-started this-week)
-# Overlay surfaces: full-screen grab (the overlay covers the whole display).
-FULLSCREEN_SCENARIOS=(warning lockout)
+SCENARIOS=(overview configuration settings getting-started this-week warning lockout)
+CAPTURE_PID=""
 
 echo "==> Pre-building bundled CLI tools (so the app's bundle step succeeds)"
 swift build -c release --product curfew-ctl --product curfew-mcp --product curfew-daemon
@@ -41,36 +39,29 @@ xcodebuild build \
 mkdir -p "$OUT"
 
 launch() {
-    pkill -x Curfew 2>/dev/null || true
-    sleep 0.4
     CURFEW_DEMO_FIXTURE=1 CURFEW_DEMO_SCENARIO="$1" "$BIN" >/dev/null 2>&1 &
+    CAPTURE_PID="$!"
     sleep "$SETTLE"
 }
 
 stop() {
-    pkill -x Curfew 2>/dev/null || true
+    if [[ -n "$CAPTURE_PID" ]] && kill -0 "$CAPTURE_PID" 2>/dev/null; then
+        kill "$CAPTURE_PID" 2>/dev/null || true
+        wait "$CAPTURE_PID" 2>/dev/null || true
+    fi
+    CAPTURE_PID=""
     sleep 0.3
 }
 
-for scenario in "${WINDOWED_SCENARIOS[@]}"; do
+for scenario in "${SCENARIOS[@]}"; do
     echo "==> Capturing window: $scenario"
     launch "$scenario"
-    if window_id="$(swift "$ROOT/scripts/window-id.swift" Curfew 2>/dev/null)"; then
+    if window_id="$(swift "$ROOT/scripts/window-id.swift" Curfew "$CAPTURE_PID" 2>/dev/null)"; then
         screencapture -x -l "$window_id" "$OUT/curfew-$scenario.png" || \
             echo "    !! screencapture failed (Screen Recording permission?)"
     else
-        echo "    !! no Curfew window found; falling back to full screen"
-        screencapture -x "$OUT/curfew-$scenario.png" || \
-            echo "    !! screencapture failed (Screen Recording permission?)"
+        echo "    !! no window found for the capture process; skipped"
     fi
-    stop
-done
-
-for scenario in "${FULLSCREEN_SCENARIOS[@]}"; do
-    echo "==> Capturing full screen: $scenario"
-    launch "$scenario"
-    screencapture -x "$OUT/curfew-$scenario.png" || \
-        echo "    !! screencapture failed (Screen Recording permission?)"
     stop
 done
 
