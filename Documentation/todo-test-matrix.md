@@ -216,7 +216,7 @@ only.
 - `The public static MCP guide and the repository-owned Mintlify source give
   the same correct Claude Desktop configuration and permissions boundary until
   Mintlify is intentionally published.`
-  - Manual review of `landing/mcp.html` and `docs/mcp.mdx`
+  - Manual review of `landing/docs.html` and `docs/mcp.mdx`
   - Browser review of the deployed static MCP guide (external launch proof)
   - Verify the static guide retains its documentation navigation and readable
     article layout at desktop and mobile widths
