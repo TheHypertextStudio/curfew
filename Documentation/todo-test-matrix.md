@@ -220,6 +220,10 @@ only.
   - Browser review of the deployed static MCP guide (external launch proof)
   - Verify the static guide retains its documentation navigation and readable
     article layout at desktop and mobile widths
+- `Marketing capture targets only the fixture process and never captures the
+  desktop as a fallback.`
+  - Review `scripts/capture-marketing.sh` and `scripts/window-id.swift` before
+    running a local marketing capture
 - `Hide deferred integration panels in default builds until their feature flags are enabled.`
   - `FeatureFlagTests/deferredPanelsAreHiddenByDefault()`
   - `DeferredIntegrationVisibilityTests/visiblePanelsFollowEnabledFlags()`

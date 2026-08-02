@@ -1,5 +1,5 @@
 #!/usr/bin/env swift
-// Usage: swift scripts/window-id.swift [ownerName]
+// Usage: swift scripts/window-id.swift [ownerName] [ownerPID]
 //
 // Prints the CGWindowID of the largest on-screen window owned by `ownerName`
 // (default "Curfew"), suitable for `screencapture -l <id>`. Exits non-zero
@@ -10,6 +10,14 @@ import CoreGraphics
 import Foundation
 
 let owner = CommandLine.arguments.count > 1 ? CommandLine.arguments[1] : "Curfew"
+let ownerPID = CommandLine.arguments.count > 2
+    ? Int32(CommandLine.arguments[2])
+    : nil
+
+if CommandLine.arguments.count > 2, ownerPID == nil {
+    FileHandle.standardError.write(Data("window-id: ownerPID must be a process ID\n".utf8))
+    exit(2)
+}
 
 guard let windows = CGWindowListCopyWindowInfo(
     [.optionOnScreenOnly, .excludeDesktopElements],
@@ -28,6 +36,8 @@ var best: Candidate?
 for window in windows {
     guard let windowOwner = window[kCGWindowOwnerName as String] as? String,
           windowOwner == owner,
+          let processID = (window[kCGWindowOwnerPID as String] as? NSNumber)?.int32Value,
+          ownerPID == nil || processID == ownerPID,
           let number = window[kCGWindowNumber as String] as? CGWindowID,
           let boundsDict = window[kCGWindowBounds as String] as? [String: Any],
           let bounds = CGRect(dictionaryRepresentation: boundsDict as CFDictionary)
