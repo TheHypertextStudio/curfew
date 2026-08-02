@@ -256,7 +256,7 @@ only.
 
 - `Embed the provisioned Ed25519 public key for the external Worker signing
   seed, including a recovery rotation whenever no retained signer can be
-  matched or a signer is exposed and must be discarded.`
+  matched or a signer is exposed and must be discarded before deployment.`
   - `LicenseEnvelopeContractTests/embedsProvisionedPublicKey()`
 - `Decode and enforce Curfew Plus subscription claims while retaining legacy lifetime continuity.`
   - `LicenseEnvelopeContractTests/decodesCurfewPlusSubscriptionEnvelope()`
