@@ -19,9 +19,9 @@
   <main id="main-content">
     <section class="docs-hero">
       <div class="section-inner">
-        <p class="eyebrow">Curfew guide</p>
+        <p class="eyebrow">MCP setup</p>
         <h1>Connect Curfew to Claude Desktop.</h1>
-        <p class="docs-lede">Check in on your schedule, time, and reflections without leaving the conversation. Other MCP-compatible apps can use Curfew too.</p>
+        <p class="docs-lede">Curfew includes a local MCP server. Claude Desktop and other compatible apps can use it on your Mac.</p>
         <nav class="docs-nav" aria-label="On this page">
           <a href="#claude-desktop">Claude Desktop</a>
           <a href="#access">Access and control</a>
@@ -34,8 +34,7 @@
     <section class="docs-section" id="claude-desktop">
       <div class="section-inner docs-content">
         <div class="section-heading">
-          <p class="eyebrow">Most people start here</p>
-          <h2>Set up Claude Desktop</h2>
+          <h2>Claude Desktop</h2>
           <p>Curfew’s standard connection runs on your Mac using stdio. You usually only need to set it up once.</p>
         </div>
 
@@ -66,7 +65,7 @@
         <details class="manual-config">
           <summary>Add it manually instead</summary>
           <div class="manual-config-body">
-            <p>Use <strong>Copy Claude Desktop Config</strong> in Curfew, then place it under <code>mcpServers</code> in <code>~/Library/Application Support/Claude/claude_desktop_config.json</code>. Restart Claude Desktop when you’re done.</p>
+            <p>Use <strong>Copy Claude Desktop Config</strong> in Curfew. If the config file is empty, replace it with this complete file. Otherwise, add the <code>curfew</code> entry inside its existing <code>mcpServers</code> object. The file is <code>~/Library/Application Support/Claude/claude_desktop_config.json</code>. Restart Claude Desktop when you’re done.</p>
             <div class="code-block">
 <pre><code>{
   "mcpServers": {
@@ -85,20 +84,19 @@
     <section class="docs-section docs-section-surface" id="access">
       <div class="section-inner docs-content">
         <div class="section-heading">
-          <p class="eyebrow">Your data, your call</p>
-          <h2>What a connected assistant can access</h2>
+          <h2>Permissions</h2>
           <p>Curfew keeps the connection local. It can share only the information and actions its MCP server supports.</p>
         </div>
 
         <div class="access-grid">
           <article class="access-card">
             <p class="card-label">It can read</p>
-            <h3>Your Curfew context</h3>
-            <p>Status, schedule, budget, activity, and reflections you choose to share.</p>
+            <h3>Curfew data</h3>
+            <p>Status, schedule, budget, activity, and your reflections.</p>
           </article>
           <article class="access-card">
             <p class="card-label">It can request</p>
-            <h3>A limited change</h3>
+            <h3>Supported changes</h3>
             <p>An extension or a schedule change. It cannot write reflections or request an override through MCP.</p>
           </article>
         </div>

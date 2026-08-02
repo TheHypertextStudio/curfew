@@ -16,6 +16,11 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 > release. Items below marked `[ ]` are external release gates or v0.2+ targets
 > unless noted otherwise.
 
+> **Public MCP guide:** `landing/mcp.html` is the current public setup guide.
+> The repository-owned Mintlify source under `docs/` remains unpublished until
+> a deliberate deployment source is configured; it must stay aligned with the
+> public guide in the meantime.
+
 ---
 
 ## 0. Foundation and Project Structure

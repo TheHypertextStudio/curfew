@@ -4,7 +4,7 @@ description: Use Curfew with Claude Desktop or another MCP-compatible app.
 ---
 
 Curfew includes a local MCP server. It can share your status, schedule, budget,
-activity, and the reflections you choose to share with a connected client.
+activity, and reflections with a connected client.
 
 ## Claude Desktop
 
@@ -16,8 +16,10 @@ Curfew adds the connection to Claude Desktop’s configuration for you.
 
 ## Add it manually
 
-Use **Copy Claude Desktop Config** in Curfew, then add this under
-`mcpServers` in `~/Library/Application Support/Claude/claude_desktop_config.json`.
+Use **Copy Claude Desktop Config** in Curfew. If the config file is empty,
+replace it with this complete file. Otherwise, add the `curfew` entry inside
+its existing `mcpServers` object. The file is
+`~/Library/Application Support/Claude/claude_desktop_config.json`.
 
 ```json
 {
@@ -34,7 +36,7 @@ Restart Claude Desktop after changing its configuration.
 
 ## What an assistant can do
 
-- Read your status, schedule, budget, activity, and selected reflections.
+- Read your status, schedule, budget, activity, and reflections.
 - Request an extension or a schedule change.
 - Never write reflections or request an override through MCP.
 
