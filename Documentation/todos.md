@@ -201,7 +201,7 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 - [x] `scripts/license-worker.mjs` — explicit-path keygen, fail-closed config validation, dry-run and HTTPS health verification.
 - [x] Caller-owned rendered Worker configs resolve the entry point from the clone, so a fresh-clone dry-run and dashboard bundle do not need a repo-local config workaround.
 - [x] `Documentation/license-worker-bootstrap.md` — fresh-clone bootstrap and rollout boundary.
-- [x] Production Ed25519 public key embedded; the matching private seed is retained only outside the repository for Worker secret provisioning. The verifier was rotated on 2026-08-01 after no retained seed matched the prior key. If a seed is exposed at any point, rotate both the Worker signer and app verifier before distribution.
+- [x] Production Ed25519 public key embedded; the matching private seed is retained only outside the repository for Worker secret provisioning. The verifier is rotated whenever a prior signer is unavailable or exposed; an exposed draft is discarded before it can reach Worker runtime. The matching Worker secret must be rotated with the deployed app verifier before distribution.
 - [x] Initial-release app UI has no hosted checkout destination. Existing keys can
       still activate locally; a future checkout change must follow the separate
       production purchase-to-license verification gate.
