@@ -137,6 +137,8 @@ extension CurfewAppModel {
         case .failed: "failed"
         case .permissionDenied: "permission_denied"
         case .completed: "completed"
+        case .deferred: "deferred"
+        case .releasedByBreakGlass: "released_by_break_glass"
         }
     }
 
@@ -150,12 +152,17 @@ extension CurfewAppModel {
         case .failed: .shutdownFailed
         case .permissionDenied: .shutdownPermissionDenied
         case .completed: .shutdownExecuted
+        case .deferred: .shutdownDeferred
+        case .releasedByBreakGlass: .shutdownReleasedByBreakGlass
         }
     }
 
+    /// The moment a queued phase acts, or the bound a deferred one runs to.
+    /// Both answer "when does this stop waiting?", which is what the record's
+    /// `fireAt` means to a reader.
     static func auditShutdownFireDate(for phase: ShutdownWorkflow.Phase) -> Date? {
         switch phase {
-        case .scheduled(let date), .retryScheduled(let date): date
+        case .scheduled(let date), .retryScheduled(let date), .deferred(let date): date
         default: nil
         }
     }

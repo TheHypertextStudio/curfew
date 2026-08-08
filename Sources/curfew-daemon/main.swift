@@ -117,15 +117,13 @@ private func runShutdown() {
     do {
         try process.run()
         daemonLogger.notice("/sbin/shutdown -h +1 issued by daemon")
-        AuditLog.shared.emit(
-            .daemonShutdownIssued,
-            actor: .daemon,
-            detail: ["command": .string("/sbin/shutdown -h +1")]
-        )
     } catch {
         daemonLogger.error(
             "shutdown invocation failed: \(error.localizedDescription, privacy: .public)"
         )
+        // `DaemonEnforcementRuntime` already recorded `daemon.shutdown_issued`
+        // for this tick. Only the launch failure is visible from here, so the
+        // pair reads "commanded, then failed to start".
         AuditLog.shared.emit(
             .daemonShutdownFailed,
             actor: .daemon,
@@ -199,15 +197,18 @@ private func writeDeferralStart(_ start: Date?) {
 /// Writes the audit records for what this tick *observed*, before anything is
 /// decided or done about it.
 ///
-/// Deliberately separate from the decision: these are readings — a deadline
-/// file, a heartbeat mtime — and they are the inputs an auditor needs to judge
-/// whether whatever followed was warranted. Each is deduplicated on its value,
-/// because the loop runs every fifteen seconds and a quiet night must not
-/// produce five thousand identical lines.
+/// Split from the decision and from `DaemonEnforcementRuntime` on purpose.
+/// These are readings — a deadline file, a heartbeat mtime, a claims file, a
+/// break-glass record — and they are the inputs an auditor needs in order to
+/// judge whether the action that followed was warranted. Every one is
+/// deduplicated on its value, because the loop runs every fifteen seconds and
+/// a steady night must not produce five thousand identical lines.
 private func recordObservations(
     now: Date,
     record: LockoutDeadlineRecord?,
-    heartbeatAge: TimeInterval
+    heartbeatAge: TimeInterval,
+    hasProtectedWork: Bool,
+    breakGlass: BreakGlassRelease?
 ) {
     let log = AuditLog.shared
 
@@ -266,6 +267,28 @@ private func recordObservations(
         ],
         at: now
     )
+
+    log.emitIfChanged(
+        key: "protectedWork",
+        to: hasProtectedWork ? "active" : "none",
+        event: hasProtectedWork ? .protectedWorkActive : .protectedWorkCleared,
+        actor: .daemon,
+        at: now
+    )
+
+    if let breakGlass {
+        log.emitIfChanged(
+            key: "breakGlass",
+            to: breakGlass.id.uuidString,
+            event: .breakGlassObserved,
+            actor: .daemon,
+            detail: [
+                "releaseId": .string(breakGlass.id.uuidString),
+                "issuedAt": .string(AuditTimestamp.string(from: breakGlass.issuedAt))
+            ],
+            at: now
+        )
+    }
 }
 
 // MARK: - Effects
@@ -322,7 +345,7 @@ AuditLog.shared.emit(
 private let protectedWorkStore = ProtectedWorkStore()
 private let breakGlassStore = BreakGlassStore()
 private let effects = SystemDaemonEffects()
-var runtime = DaemonEnforcementRuntime()
+var runtime = DaemonEnforcementRuntime(auditLog: .shared)
 
 // Read the world, ask, apply, log, sleep. Nothing in this loop decides
 // anything and nothing in it touches the machine directly — every judgement
@@ -339,7 +362,18 @@ while true {
         breakGlassStore.activeRelease(now: now, issuedAfter: deadline.lockoutStartedAt)
     }
     let heartbeatAge = appHeartbeatAge(now: now)
-    recordObservations(now: now, record: record, heartbeatAge: heartbeatAge)
+    let hasProtectedWork = protectedWorkStore.hasActiveWork(now: now)
+
+    // The loop records what it *read*; `DaemonEnforcementRuntime` records what
+    // was *done* about it. Keeping the two apart means no fact is written by a
+    // layer that had to guess it.
+    recordObservations(
+        now: now,
+        record: record,
+        heartbeatAge: heartbeatAge,
+        hasProtectedWork: hasProtectedWork,
+        breakGlass: breakGlass
+    )
 
     let outcome = DaemonEnforcementDecision.evaluate(
         DaemonEnforcementDecision.Input(
@@ -348,14 +382,14 @@ while true {
             breakGlassActive: breakGlass != nil,
             heartbeatAge: heartbeatAge,
             heartbeatTimeout: appHeartbeatTimeout,
-            hasActiveProtectedWork: protectedWorkStore.hasActiveWork(now: now),
+            hasActiveProtectedWork: hasProtectedWork,
             maximumDeferral: ProtectedWorkPolicy.loadMirror().maximumDeferral,
             persistedDeferralStart: loadDeferralStart(),
             shutdownAlreadyIssued: runtime.shutdownIssued
         )
     )
 
-    switch runtime.apply(outcome, effects: effects) {
+    switch runtime.apply(outcome, effects: effects, now: now) {
     case .exiting:
         daemonLogger.info("no lockout left to enforce; daemon exiting")
     case .standingDown:

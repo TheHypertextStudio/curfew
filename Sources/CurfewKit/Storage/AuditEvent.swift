@@ -199,6 +199,14 @@ public enum AuditEventType: String, Codable, Equatable, CaseIterable, Sendable {
     /// was turned off before the fire date.
     case shutdownCancelled = "shutdown.cancelled"
 
+    /// A protected-work claim is holding the app's shutdown back, bounded by
+    /// `ProtectedWorkPolicy.maximumDeferral`.
+    case shutdownDeferred = "shutdown.deferred"
+
+    /// A verified break-glass release stood the app's shutdown down. Not
+    /// terminal — revoking the release re-arms the workflow.
+    case shutdownReleasedByBreakGlass = "shutdown.released_by_break_glass"
+
     // MARK: MCP / CLI
 
     /// A write request arrived on the MCP queue. `actor` names the origin.
@@ -215,6 +223,21 @@ public enum AuditEventType: String, Codable, Equatable, CaseIterable, Sendable {
 
     /// The request was refused, by policy or by a human.
     case mcpRequestDenied = "mcp.request_denied"
+
+    // MARK: Protected-work carve-out
+
+    /// An unexpired protected-work claim exists, so a destructive enforcement
+    /// action may be held back. The antecedent for any `*.deferred` or
+    /// `daemon.shutdown_held` line that follows.
+    case protectedWorkActive = "protected_work.active"
+
+    /// No unexpired claim remains, so nothing is holding enforcement back.
+    case protectedWorkCleared = "protected_work.cleared"
+
+    /// A verified break-glass release covering the lockout window in progress
+    /// was read. Carries the release identifier so an auditor can trace it to
+    /// the `curfew-ctl` invocation that issued it.
+    case breakGlassObserved = "break_glass.observed"
 
     // MARK: Daemon
 
@@ -244,6 +267,28 @@ public enum AuditEventType: String, Codable, Equatable, CaseIterable, Sendable {
 
     /// The daemon could not invoke `/sbin/shutdown`.
     case daemonShutdownFailed = "daemon.shutdown_failed"
+
+    /// A due shutdown is being held back because protected work is live. The
+    /// `until` bound is the deferral budget, not a promise.
+    case daemonShutdownHeld = "daemon.shutdown_held"
+
+    /// A `/sbin/shutdown` this daemon already issued was called off. The
+    /// highest-consequence line the daemon can write: it is the difference
+    /// between the machine powering off in under a minute and not.
+    case daemonShutdownCancelled = "daemon.shutdown_cancelled"
+
+    /// A verified break-glass release covers this lockout window, so the
+    /// daemon stood down. This is the privileged escape hatch from an
+    /// enforced lockout, so it is recorded on every use.
+    case daemonStandDown = "daemon.stand_down"
+
+    /// The bounded deferral window opened — the clock that limits how long
+    /// protected work may hold enforcement off started here.
+    case daemonDeferralOpened = "daemon.deferral_opened"
+
+    /// The bounded deferral window closed, either because the work finished
+    /// or because the daemon no longer has an action to defer.
+    case daemonDeferralClosed = "daemon.deferral_closed"
 }
 
 /// A JSON scalar allowed inside a record's `detail` object.

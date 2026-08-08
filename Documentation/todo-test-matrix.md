@@ -304,6 +304,16 @@ only.
   - `AuditGrantWiringTests/consentSheetDenialIsAttributedToUser()`
   - `AuditGrantWiringTests/consentSheetApprovalIsAttributedToUser()`
   - `AuditGrantWiringTests/autoApprovalWritesOneAppRecord()`
+- `Daemon actions are recorded where the decision becomes a machine action.`
+  - `DaemonAuditWiringTests/shutdownIssueIsRecorded()`
+  - `DaemonAuditWiringTests/protectedWorkCancellationIsRecorded()`
+  - `DaemonAuditWiringTests/breakGlassCancellationIsRecorded()`
+  - `DaemonAuditWiringTests/lockoutEndCancellationIsRecorded()`
+  - `DaemonAuditWiringTests/recoveredHeartbeatRecordsNoCancellation()`
+  - `DaemonAuditWiringTests/standDownIsRecordedOnce()`
+  - `DaemonAuditWiringTests/holdIsRecordedOncePerWindow()`
+  - `DaemonAuditWiringTests/deferralWindowOpenAndCloseAreRecorded()`
+  - `DaemonAuditWiringTests/noSpuriousDeferralCloseOnStart()`
 - `The respawn deterrent's arm, disarm, and arm-failure outcomes are recorded.`
   - `AuditRespawnGuardTests/respawnGuardArmIsRecorded()`
   - `AuditRespawnGuardTests/respawnGuardDisarmIsRecorded()`

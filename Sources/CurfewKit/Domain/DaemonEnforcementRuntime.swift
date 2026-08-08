@@ -56,24 +56,57 @@ public struct DaemonEnforcementRuntime {
     /// emitted once rather than on every pass.
     private var isStandingDown = false
 
-    public init() {}
+    /// Where this runtime records what it did to the machine.
+    ///
+    /// The audit calls live here rather than in the loop or behind
+    /// ``DaemonEnforcementEffects`` for two reasons. The same `if` that calls
+    /// an effect writes the record, so the log cannot claim a cancellation
+    /// that never happened or miss one that did. And the two facts a record
+    /// needs — *why* a shutdown was called off, and whether a stand-down is a
+    /// transition or the ninetieth identical tick — exist only here; the
+    /// effects protocol carries no reason, so a decorator on it would have had
+    /// to re-derive both from a second copy of this switch.
+    private let auditLog: AuditLog
+
+    /// Creates a runtime. `auditLog` defaults to the process-wide log, which
+    /// is a no-op until a process bootstraps one — so tests that do not care
+    /// about auditing need not mention it.
+    public init(auditLog: AuditLog = .shared) {
+        self.auditLog = auditLog
+        // The daemon starts with no deferral window. Seeding the memo stops
+        // the first tick reporting "closed" as though one had just ended.
+        auditLog.seed(key: "daemonDeferralWindow", value: "none")
+    }
 
     /// Applies `outcome`, and returns what the caller should log.
+    ///
+    /// - Parameter now: the tick's clock reading, stamped on the audit
+    ///   records this writes so they line up with the ones `main.swift`
+    ///   emits for the same tick. Defaults to the wall clock so callers that
+    ///   are not exercising the audit trail need not supply it.
     @discardableResult
     public mutating func apply(
         _ outcome: DaemonEnforcementDecision.Outcome,
-        effects: any DaemonEnforcementEffects
+        effects: any DaemonEnforcementEffects,
+        now: Date = Date()
     ) -> LogEvent {
         // Unconditional, including nil. A heartbeat that recovers must close
         // its window here or the next incident in this lockout inherits a
         // spent budget.
         effects.persistDeferralStart(outcome.deferralStartedAt)
+        recordDeferralWindow(outcome.deferralStartedAt, now: now)
 
         // One site, driven by the outcome, so no action can be added later
         // that quietly forgets to call off a shutdown it just decided against.
         if outcome.cancelsPendingShutdown {
             effects.cancelPendingShutdown()
             shutdownIssued = false
+            auditLog.emit(
+                .daemonShutdownCancelled,
+                actor: .daemon,
+                detail: ["reason": .string(Self.cancellationReason(outcome.action))],
+                at: now
+            )
         }
 
         switch outcome.action {
@@ -86,21 +119,76 @@ public struct DaemonEnforcementRuntime {
         case .standDown:
             let isTransition = !isStandingDown
             isStandingDown = true
+            if isTransition {
+                auditLog.emit(.daemonStandDown, actor: .daemon, at: now)
+            }
             return isTransition ? .standingDown : .idle
 
         case .hold(let until):
             isStandingDown = false
+            // Keyed on the bound, which is fixed for one deferral window, so
+            // a hold that spans forty ticks writes one line rather than forty.
+            auditLog.emitIfChanged(
+                key: "daemonShutdownHold",
+                to: AuditTimestamp.string(from: until),
+                event: .daemonShutdownHeld,
+                actor: .daemon,
+                detail: [
+                    "until": .string(AuditTimestamp.string(from: until)),
+                    "shutdownWasInFlight": .bool(outcome.cancelsPendingShutdown)
+                ],
+                at: now
+            )
             return .holding(until: until)
 
         case .shutDown:
             isStandingDown = false
             effects.issueShutdown()
             shutdownIssued = true
+            // Records that the command was dispatched. A failure to launch it
+            // surfaces only inside the effects implementation, which writes
+            // `daemon.shutdown_failed` — so an `issued` line with no `failed`
+            // line after it means the process really started.
+            auditLog.emit(.daemonShutdownIssued, actor: .daemon, at: now)
             return .issuedShutdown
 
         case .wait:
             isStandingDown = false
             return .idle
+        }
+    }
+
+    /// Records the bounded deferral window opening and closing.
+    ///
+    /// The marker is rewritten every tick by design, so this keys off the
+    /// value: one line when a window opens and one when it closes, not one
+    /// every fifteen seconds in between.
+    private func recordDeferralWindow(_ startedAt: Date?, now: Date) {
+        let token = startedAt.map { AuditTimestamp.string(from: $0) } ?? "none"
+        var detail: [String: AuditValue] = [:]
+        if let startedAt {
+            detail["startedAt"] = .string(AuditTimestamp.string(from: startedAt))
+            detail["openForSeconds"] = .int(max(0, Int(now.timeIntervalSince(startedAt))))
+        }
+        auditLog.emitIfChanged(
+            key: "daemonDeferralWindow",
+            to: token,
+            event: startedAt == nil ? .daemonDeferralClosed : .daemonDeferralOpened,
+            actor: .daemon,
+            detail: detail,
+            at: now
+        )
+    }
+
+    /// Why a `/sbin/shutdown` in flight was called off, as a stable token.
+    private static func cancellationReason(
+        _ action: DaemonEnforcementDecision.Action
+    ) -> String {
+        switch action {
+        case .hold: "protected_work"
+        case .standDown: "break_glass"
+        case .exit: "lockout_ended"
+        case .shutDown, .wait: "unknown"
         }
     }
 }

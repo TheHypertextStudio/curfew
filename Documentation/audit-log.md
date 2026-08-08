@@ -272,10 +272,17 @@ reading a `shutdown.scheduled` line.
 | `shutdown.executed` | `delayMinutes`, `activeDevice` |
 | `shutdown.permission_denied` | `delayMinutes`, `activeDevice` |
 | `shutdown.failed` | `delayMinutes`, `activeDevice` |
+| `shutdown.deferred` | `fireAt` (the deferral bound), `delayMinutes`, `activeDevice` |
+| `shutdown.released_by_break_glass` | `delayMinutes`, `activeDevice` |
 | `shutdown.cancelled` | reserved; the workflow returning to idle is currently recorded only by the absence of a further transition |
 
 This is the app's Apple Events path, which the user can decline. The daemon's
 `/sbin/shutdown` path is separate and lives in the daemon stream.
+
+`shutdown.deferred` and `shutdown.released_by_break_glass` are the app-side
+mirror of the protected-work carve-out below. `fireAt` on a deferred record is
+the bound the deferral runs to, not a promise the shutdown fires then — the
+work finishing first closes the window earlier.
 
 ### MCP and CLI — `stream: app`
 
@@ -310,6 +317,27 @@ one `mcp.request_received` and exactly one of the four verdicts. An approval is
 never written twice: a policy auto-approval emits `mcp.request_auto_approved`
 alone, never that plus a `mcp.request_approved`.
 
+### Protected-work carve-out
+
+| Event | Stream | `detail` |
+|-------|--------|----------|
+| `protected_work.active` | `daemon` | — |
+| `protected_work.cleared` | `daemon` | — |
+| `break_glass.observed` | `daemon` | `releaseId`, `issuedAt` |
+
+A protected-work claim is an agent telling Curfew that killing this machine
+right now would destroy work in flight; a break-glass release is the privileged
+way out of an enforced lockout. Both change what the daemon is willing to do,
+so both are recorded before anything acts on them. `protected_work.active` is
+the antecedent for any `daemon.shutdown_held` or `daemon.shutdown_cancelled`
+with `reason: protected_work` that follows, and `break_glass.observed` carries
+the release identifier that traces back to the `curfew-ctl` invocation that
+issued it.
+
+Only the daemon writes these today. The app reads the same two facts through
+`protectedWorkContext()`, and its view of them surfaces as `shutdown.deferred`
+and `shutdown.released_by_break_glass` instead.
+
 ### Daemon — `stream: daemon`
 
 | Event | `detail` |
@@ -320,8 +348,13 @@ alone, never that plus a `mcp.request_approved`.
 | `daemon.deadline_elapsed` | `scheduledUnlockAt` |
 | `daemon.heartbeat_stale` | `ageSeconds` (`-1` when the heartbeat file is absent entirely), `thresholdSeconds`, `heartbeatPresent` |
 | `daemon.heartbeat_recovered` | same fields as above |
-| `daemon.shutdown_issued` | `command` |
+| `daemon.shutdown_issued` | — |
 | `daemon.shutdown_failed` | `error` |
+| `daemon.shutdown_cancelled` | `reason`: `protected_work`, `break_glass`, or `lockout_ended` |
+| `daemon.shutdown_held` | `until` (the deferral bound), `shutdownWasInFlight` |
+| `daemon.stand_down` | — |
+| `daemon.deferral_opened` | `startedAt`, `openForSeconds` |
+| `daemon.deferral_closed` | — |
 
 These are the highest-stakes records Curfew writes: the daemon runs as root and
 can power the machine off. The sequence that matters reads
@@ -329,13 +362,29 @@ can power the machine off. The sequence that matters reads
 `daemon.shutdown_issued`, and it means the app process disappeared during an
 enforced lockout and root shut the Mac down ninety seconds later.
 
+**`daemon.shutdown_cancelled` is the counterpart, and it changes what that
+sequence means.** `/sbin/shutdown -h +1` runs about a minute after it is
+issued, so a `daemon.shutdown_issued` followed by a `daemon.shutdown_cancelled`
+inside the next minute means the machine did *not* power off. Read the two
+together or you will conclude the opposite of what happened. The `reason`
+distinguishes the three ways it can occur: an agent claimed protected work, a
+break-glass release was honored, or the lockout window simply ended.
+
+`daemon.shutdown_failed` means `/sbin/shutdown` could not be launched at all.
+It follows the `daemon.shutdown_issued` for the same tick, because the record
+that the command was dispatched is written before the process starts. An
+`issued` line with no `failed` after it means the process really started.
+
 `source: shadow` on `daemon.deadline_observed` means the user-writable deadline
 file was gone and the daemon fell back to its root-owned copy — someone deleted
 the record mid-lockout.
 
-The daemon writes `daemon.heartbeat_stale` and `daemon.heartbeat_recovered`
-only on a change, so a healthy lockout produces one `recovered` line, not one
-every fifteen seconds.
+Deduplication matters here more than anywhere else, because the loop runs every
+fifteen seconds. `daemon.heartbeat_stale` / `daemon.heartbeat_recovered` are
+written on a change only; `daemon.stand_down` on the transition only;
+`daemon.shutdown_held` once per deferral window, keyed on its bound; and the
+deferral pair once each per window. A quiet night produces a handful of lines,
+not five thousand.
 
 ## Rotation and retention
 
@@ -489,7 +538,8 @@ jq -r '"\(.ts)  \(.event)  \(.detail | tostring)"' /Library/Logs/Curfew/curfew-d
 | Domain-to-token mapping, schedule digest | `Sources/CurfewKit/Storage/AuditTokens.swift` |
 | App-side emitters | `Curfew/App/Model/CurfewAppModel+Audit.swift`, `+AuditGrants.swift`, `+AuditLifecycle.swift` |
 | MCP consent resolution and its attribution | `Curfew/App/Model/CurfewAppModel+MCPConsent.swift` |
-| Daemon-side emitters | `Sources/curfew-daemon/main.swift` |
+| Daemon actions (what was done) | `Sources/CurfewKit/Domain/DaemonEnforcementRuntime.swift` |
+| Daemon observations (what was read) | `Sources/curfew-daemon/main.swift` |
 
 ## Known gaps
 
@@ -500,6 +550,10 @@ jq -r '"\(.ts)  \(.event)  \(.detail | tostring)"' /Library/Logs/Curfew/curfew-d
 - **`shutdown.cancelled` and `extension.requested` are defined but not
   emitted.** They are in the enum so adding them later does not look like a
   schema change.
+- **The app does not record protected-work claims or break-glass releases.**
+  Only the daemon does, so a claim filed while the app is alive and the daemon
+  is not leaves no line. The app's view surfaces indirectly, as
+  `shutdown.deferred`.
 - **Nothing verifies the chain at runtime.** Verification is an offline
   activity using the script above. Curfew does not warn the user when its own
   log has been edited, because a warning it cannot act on is noise.
