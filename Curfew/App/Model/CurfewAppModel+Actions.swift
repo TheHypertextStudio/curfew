@@ -92,10 +92,12 @@ extension CurfewAppModel {
     /// `canRequestExtension` is false or the budget is exhausted.
     func confirmExtensionRequest() {
         guard state.canRequestExtension else {
+            recordAuditExtensionDenied(reason: "not_offered", actor: .user)
             return
         }
         guard extensionTracker.requestExtension(at: currentTime) else {
             extensionsRemaining = extensionTracker.remaining
+            recordAuditExtensionDenied(reason: "budget_exhausted", actor: .user)
             return
         }
 
@@ -104,6 +106,10 @@ extension CurfewAppModel {
         activityRecorder.recordExtensionGranted(
             minutes: settings.extensionDurationMinutes,
             at: currentTime
+        )
+        recordAuditExtensionGranted(
+            minutes: settings.extensionDurationMinutes,
+            actor: .user
         )
         tick()
     }
@@ -122,10 +128,12 @@ extension CurfewAppModel {
     /// weekly override budget is exhausted.
     func beginOverrideRequest() {
         guard state.phase == .locked else {
+            recordAuditOverrideDenied(reason: "not_locked", actor: .user)
             return
         }
         guard overridesRemaining > 0 else {
             isOverrideComposerVisible = false
+            recordAuditOverrideDenied(reason: "budget_exhausted", actor: .user)
             return
         }
         isOverrideComposerVisible = true
@@ -136,10 +144,13 @@ extension CurfewAppModel {
     /// gate check.
     func confirmOverride() {
         guard canConfirmOverride else {
+            recordAuditOverrideDenied(reason: "gate_failed", actor: .user)
             return
         }
+        recordAuditOverrideRequested(reason: trimmedOverrideReason)
         guard overrideTracker.requestExtension(at: currentTime) else {
             overridesRemaining = overrideTracker.remaining
+            recordAuditOverrideDenied(reason: "budget_exhausted", actor: .user)
             return
         }
         let reason = trimmedOverrideReason
@@ -166,6 +177,7 @@ extension CurfewAppModel {
     /// approve it silently.
     func handleNewMCPRequests(_ requests: [MCPPendingRequest]) {
         for request in requests {
+            recordAuditMCPRequestReceived(request)
             if request.tool == .requestOverride {
                 denyMCPRequest(
                     request,
@@ -176,12 +188,14 @@ extension CurfewAppModel {
             let policy = effectiveConsentPolicy(for: request)
             switch policy {
             case .autoApprove:
+                recordAuditMCPDecision(.mcpRequestAutoApproved, request: request, actor: .app)
                 approveMCPRequest(request)
             case .deny:
                 denyMCPRequest(request, reason: "Consent policy set to deny all.")
             case .queue:
                 if !pendingMCPRequests.contains(where: { $0.id == request.id }) {
                     pendingMCPRequests.append(request)
+                    recordAuditMCPDecision(.mcpRequestQueued, request: request, actor: .app)
                 }
             }
         }
@@ -202,6 +216,7 @@ extension CurfewAppModel {
     /// Approves the given MCP request, applies the action, and updates the
     /// queue file so `curfew-mcp` can return success to the client.
     func approveMCPRequest(_ request: MCPPendingRequest) {
+        recordAuditMCPDecision(.mcpRequestApproved, request: request, actor: .user)
         applyMCPAction(request)
         var updated = request
         updated.status = .approved
@@ -213,6 +228,12 @@ extension CurfewAppModel {
     /// Denies the given MCP request and updates the queue file so
     /// `curfew-mcp` returns a refusal to the client.
     func denyMCPRequest(_ request: MCPPendingRequest, reason: String = "") {
+        recordAuditMCPDecision(
+            .mcpRequestDenied,
+            request: request,
+            actor: .user,
+            denialReason: reason
+        )
         var updated = request
         updated.status = .denied
         updated.resolvedAt = Date()
@@ -235,7 +256,14 @@ extension CurfewAppModel {
                     minutes: settings.extensionDurationMinutes,
                     at: currentTime
                 )
+                recordAuditExtensionGranted(
+                    minutes: settings.extensionDurationMinutes,
+                    actor: Self.auditActor(for: request)
+                )
                 tick()
+            } else {
+                let origin = Self.auditActor(for: request)
+                recordAuditExtensionDenied(reason: "not_offered", actor: origin)
             }
         case .requestOverride:
             // Override grants are user-only. The friction model — 5-minute
@@ -292,7 +320,7 @@ extension CurfewAppModel {
             exception: currentRule.exception
         )
         let proposed = WeeklySchedule(rules: proposedRules)
-        queueScheduleUpdate(proposed)
+        queueScheduleUpdate(proposed, requestedBy: Self.auditActor(for: request))
     }
 
     /// Local version of the `weekdayFromName` helper that lives in the MCP
@@ -354,6 +382,7 @@ extension CurfewAppModel {
             reason: event.reason,
             at: event.timestamp
         )
+        recordAuditOverrideGranted(event: event)
     }
 
     private func decodedReason(from argumentsJSON: String) -> String {

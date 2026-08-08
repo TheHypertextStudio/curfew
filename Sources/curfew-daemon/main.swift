@@ -117,9 +117,19 @@ private func runShutdown() {
     do {
         try process.run()
         daemonLogger.notice("/sbin/shutdown -h +1 issued by daemon")
+        AuditLog.shared.emit(
+            .daemonShutdownIssued,
+            actor: .daemon,
+            detail: ["command": .string("/sbin/shutdown -h +1")]
+        )
     } catch {
         daemonLogger.error(
             "shutdown invocation failed: \(error.localizedDescription, privacy: .public)"
+        )
+        AuditLog.shared.emit(
+            .daemonShutdownFailed,
+            actor: .daemon,
+            detail: ["error": .string(error.localizedDescription)]
         )
     }
 }
@@ -184,6 +194,80 @@ private func writeDeferralStart(_ start: Date?) {
     }
 }
 
+// MARK: - Audit observations
+
+/// Writes the audit records for what this tick *observed*, before anything is
+/// decided or done about it.
+///
+/// Deliberately separate from the decision: these are readings — a deadline
+/// file, a heartbeat mtime — and they are the inputs an auditor needs to judge
+/// whether whatever followed was warranted. Each is deduplicated on its value,
+/// because the loop runs every fifteen seconds and a quiet night must not
+/// produce five thousand identical lines.
+private func recordObservations(
+    now: Date,
+    record: LockoutDeadlineRecord?,
+    heartbeatAge: TimeInterval
+) {
+    let log = AuditLog.shared
+
+    if let record {
+        log.emitIfChanged(
+            key: "deadline",
+            to: String(record.scheduledUnlockAt.timeIntervalSince1970),
+            event: .daemonDeadlineObserved,
+            actor: .daemon,
+            detail: [
+                "lockoutStartedAt": .string(AuditTimestamp.string(from: record.lockoutStartedAt)),
+                "scheduledUnlockAt": .string(
+                    AuditTimestamp.string(from: record.scheduledUnlockAt)
+                ),
+                "kind": .string(record.kind.rawValue),
+                // Which copy answered. `shadow` means the user-writable file
+                // was gone and the root-owned one carried the window — someone
+                // deleted the record mid-lockout.
+                "source": .string(
+                    fileManager.fileExists(atPath: SharedPaths.lockoutDeadline.path)
+                        ? "user"
+                        : "shadow"
+                )
+            ],
+            at: now
+        )
+        if now >= record.scheduledUnlockAt {
+            log.emitIfChanged(
+                key: "deadlineElapsed",
+                to: String(record.scheduledUnlockAt.timeIntervalSince1970),
+                event: .daemonDeadlineElapsed,
+                actor: .daemon,
+                detail: [
+                    "scheduledUnlockAt": .string(
+                        AuditTimestamp.string(from: record.scheduledUnlockAt)
+                    )
+                ],
+                at: now
+            )
+        }
+    }
+
+    let isStale = heartbeatAge > appHeartbeatTimeout
+    log.emitIfChanged(
+        key: "heartbeat",
+        to: isStale ? "stale" : "fresh",
+        event: isStale ? .daemonHeartbeatStale : .daemonHeartbeatRecovered,
+        actor: .daemon,
+        detail: [
+            // A missing heartbeat file reads as infinite age; -1 keeps the
+            // field an integer instead of a JSON `null` a parser would have to
+            // special-case.
+            "ageSeconds": .int(heartbeatAge.isFinite ? Int(heartbeatAge) : -1),
+            "thresholdSeconds": .int(Int(appHeartbeatTimeout)),
+            "heartbeatPresent": .bool(heartbeatAge.isFinite)
+        ],
+        at: now
+    )
+}
+
 // MARK: - Effects
 
 /// The real machine. Every branch that used to be inline in the loop below now
@@ -217,6 +301,24 @@ private final class SystemDaemonEffects: DaemonEnforcementEffects {
 
 daemonLogger.info("curfew-daemon launched")
 
+// The daemon writes its own audit stream at /Library/Logs/Curfew/. Separate
+// file, separate hash chain: this process runs as root while the app runs as
+// the user, and giving them one file would mean either a lock protocol across
+// a privilege boundary or interleaved lines. Root ownership of this file is
+// also what makes its chain worth having — the person being audited cannot
+// rewrite it without escalating first. See `Documentation/audit-log.md`.
+AuditLog.bootstrap(stream: .daemon)
+AuditLog.shared.emit(
+    .daemonStarted,
+    actor: .daemon,
+    detail: [
+        "pid": .int(Int(ProcessInfo.processInfo.processIdentifier)),
+        "uid": .int(Int(getuid())),
+        "loopIntervalSeconds": .int(Int(loopInterval)),
+        "heartbeatTimeoutSeconds": .int(Int(appHeartbeatTimeout))
+    ]
+)
+
 private let protectedWorkStore = ProtectedWorkStore()
 private let breakGlassStore = BreakGlassStore()
 private let effects = SystemDaemonEffects()
@@ -236,13 +338,15 @@ while true {
     let breakGlass = record.flatMap { deadline in
         breakGlassStore.activeRelease(now: now, issuedAfter: deadline.lockoutStartedAt)
     }
+    let heartbeatAge = appHeartbeatAge(now: now)
+    recordObservations(now: now, record: record, heartbeatAge: heartbeatAge)
 
     let outcome = DaemonEnforcementDecision.evaluate(
         DaemonEnforcementDecision.Input(
             now: now,
             deadline: record,
             breakGlassActive: breakGlass != nil,
-            heartbeatAge: appHeartbeatAge(now: now),
+            heartbeatAge: heartbeatAge,
             heartbeatTimeout: appHeartbeatTimeout,
             hasActiveProtectedWork: protectedWorkStore.hasActiveWork(now: now),
             maximumDeferral: ProtectedWorkPolicy.loadMirror().maximumDeferral,
@@ -277,3 +381,8 @@ while true {
 }
 
 daemonLogger.info("curfew-daemon exiting")
+AuditLog.shared.emit(
+    .daemonStopped,
+    actor: .daemon,
+    detail: ["shutdownIssued": .bool(runtime.shutdownIssued)]
+)

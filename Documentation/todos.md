@@ -77,8 +77,6 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 - [x] Implement shutdown retry once after 60 seconds on failure.
 - [x] Keep lockout active if shutdown ultimately fails.
 - [x] Gate auto-shutdown UI/runtime behind Apple Events capability; release builds carry the entitlement while debug/ad-hoc builds hide the feature. The Settings panel and generated Info.plist now explain that Curfew asks `System Events` to shut down the Mac, and a denied Automation prompt now keeps lockout active without retrying while pointing users to **Privacy & Security → Automation → Curfew → System Events**.
-- [x] Graceful termination skips everything on the user's protected-work allowlist, so shutting the Mac down no longer takes a terminal's background agents with it. See `Documentation/protected-work.md`.
-- [x] Shutdown defers while a protected-work claim is live, bounded at 30 minutes (ceiling 120) measured from when the shutdown first came due, so a wedged claim cannot disable enforcement.
 
 ## 5. Bypass Protection + Privileged Layer
 
@@ -90,13 +88,6 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 - [x] Implement user-space respawning LaunchAgent (`PersistentLockdown`) for v0.1 bypass deterrence.
 - [x] Register login items for compatibility requirements. (v0.2)
 - [x] Implement event tap behavior for keyboard shortcut interception during lockout.
-- [x] Daemon defers its root `/sbin/shutdown` while protected work is live, under the same bound as the app, with the deferral window persisted root-side so a daemon restart cannot rewind it.
-- [x] Daemon tick logic extracted to `DaemonEnforcementDecision`, a pure function, so it can be tested at all. The persisted deferral window now closes when the app heartbeat recovers and is ignored when it predates the current lockout — without either rule a second incident in one night got zero grace and killed live agent work.
-- [x] Daemon's action handling extracted to `DaemonEnforcementRuntime` behind a `DaemonEnforcementEffects` protocol, so the code that *acts* is testable too. Cancelling a `/sbin/shutdown` already in flight is now carried on the decision outcome — `.hold` used to only log, and the machine powered off mid-protected-work anyway.
-- [x] `ProtectedWorkWiringTests` drives `CurfewAppModel` itself, so settings, live claims, break-glass scoping, and rollover cleanup are proven to reach the shutdown workflow rather than being hand-fed to it.
-- [x] App and daemon share one `DestructiveActionGate` for the whole "may I act?" question, and a parity suite asserts they agree tick by tick. Sharing only `ProtectedWorkDeferral` was not enough — the app treated a release as terminal while the daemon re-read it, so revoke re-armed only one of them.
-- [x] Break-glass emergency release (`curfew-ctl break-glass`) stands root-level enforcement down for the current lockout window and, under sudo, cancels a `/sbin/shutdown` already in flight. Signed, scoped to one window, and reachable without the display. **The daemon must not be installed until this has been exercised on a signed build.** See `Documentation/protected-work.md`.
-- [x] `SharedPaths` resolves the console user's home when running as root, so the daemon reads the files the app actually writes instead of `/var/root`. Behaviour change: this is the first build in which the daemon's shutdown path can fire at all.
 
 ## 6. Extension and Override Systems
 
@@ -165,6 +156,26 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 - [x] CSV export. (v0.2)
 - [x] Device-attributed insights. Surfaced in `ThisWeekView` when 2+ overrides exist and in `curfew_get_weekly_summary`'s `overrides_by_device` field.
 
+## 11.5 Audit log
+
+Distinct from §11: the activity store is a queryable rollup that feeds the
+retrospective, so it records the dozen event kinds the UI aggregates. The audit
+log is a low-level, append-only, human-readable record of what Curfew *did* —
+including the decisions that never surface in the UI, such as a deferred
+schedule change, a consent verdict on an MCP request, Accessibility trust lost
+mid-lockout, and every action the root daemon takes. Format specification:
+[`Documentation/audit-log.md`](./audit-log.md).
+
+- [x] JSON Lines records with schema version, ISO-8601 timestamp with offset, per-stream sequence, writing stream, actor, event type, and before→after state.
+- [x] Separate file per writer — app under `~/Library/Logs/Curfew/`, root daemon under `/Library/Logs/Curfew/` — so the two never interleave and no cross-privilege lock protocol is needed.
+- [x] SHA-256 hash chain per stream, spanning rotations, recovered from the file on restart. Tamper-*evident*, not tamper-proof; the daemon stream is root-owned and therefore the stronger of the two.
+- [x] Size + age rotation with a 25 MiB per-stream ceiling (5 MiB × 5 segments) and 90-day retention on rotated segments.
+- [x] Redaction: reflection prose and override justifications are never written; a length and a truncated digest go in their place. MCP tool arguments are digested for the same reason.
+- [x] Wired to enforcement phase transitions, lockout start/end with an end reason, schedule requested/deferred/applied/cancelled, extension and override grants and refusals with budget, MCP consent verdicts with the calling origin, app launch/quit/permission/respawn-guard state, presence, and the app-side auto-shutdown workflow.
+- [x] Daemon wiring: start, deadline observed (user file vs. root shadow), heartbeat stale/recovered, shutdown issued/failed/deferred, stop with a reason.
+- [ ] Attribute `curfew-ctl` separately from `curfew-mcp`. Needs a `client` field on `MCPPendingRequest`, which is a `curfew-protocols` change and therefore a three-repo ceremony.
+- [ ] Surface the log from the app UI or `curfew-ctl` (e.g. `curfew-ctl audit --since`). Reading it today means `jq` on the file.
+
 ## 12. WidgetKit (Pro)
 
 - [x] Small widget: phase-tinted Gauge ring with in-ring phase icon and time remaining.
@@ -188,7 +199,6 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 - [x] `AIConsentPolicy`: queue (default), autoApprove, deny.
 - [x] `MCPConsentSheet` for user approval of queued write requests.
 - [x] Settings → Integrations: MCP toggle, Claude Desktop config copy, consent policy picker.
-- [x] Protected-work tools: `curfew_declare_work`, `curfew_release_work`. Deliberately off the consent queue — they postpone shutdown, never the curfew — and gated on `ProtectedWorkPolicy.acceptsAgentClaims`. Rationale in `Documentation/protected-work.md`.
 
 ## 14. CLI (`curfew-ctl`)
 
@@ -197,8 +207,6 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 - [x] `budget` — extension and override budgets remaining.
 - [x] `activity` — recent activity log entries.
 - [x] `override` — enqueue an override request for the running app to approve.
-- [x] `work claim|list|release` — declare, inspect, and drop protected-work leases from a shell wrapper.
-- [x] `break-glass` — emergency release for root-level enforcement; run under sudo to cancel a pending `/sbin/shutdown`.
 - [x] Bundled at `Curfew.app/Contents/Resources/curfew-ctl`.
 
 ## 18.1 Distribution scaffolding (you complete externally)

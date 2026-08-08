@@ -19,7 +19,11 @@ Curfew.app
 │   │   ├── ActivityEvent / ActivityStore  sqlite3 C API — lifecycle/extension/override events
 │   │   ├── ActivityRollups          Daily/weekly aggregation for This Week view
 │   │   ├── ReflectionStore          sqlite3 C API — morning/evening reflection content
-│   │   └── LockoutDeadlineStore     Durable lockout deadline survives reboot
+│   │   ├── LockoutDeadlineStore     Durable lockout deadline survives reboot
+│   │   ├── AuditEvent / AuditLog    Append-only JSONL audit trail (see audit-log.md)
+│   │   ├── AuditLineEncoder         Canonical serialization + SHA-256 hash chain
+│   │   ├── AuditLogWriter           O_APPEND writer, rotation, chain recovery
+│   │   └── AuditTokens              Stable wire tokens + schedule digest
 │   ├── Settings/
 │   │   ├── CurfewSettingsStore      UserDefaults persistence for CurfewSettings + reflection config
 │   │   ├── ReflectionConfiguration  User-editable per-gate prompts + enable flags

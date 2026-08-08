@@ -10,12 +10,21 @@ extension CurfewAppModel {
     /// the result as a `PendingScheduleChange` stamped with the earliest
     /// legal effective date. Also MCP's `curfew.set_schedule` entry
     /// point — shared path means shared anti-bypass semantics.
-    func queueScheduleUpdate(_ proposedSchedule: WeeklySchedule) {
+    func queueScheduleUpdate(
+        _ proposedSchedule: WeeklySchedule,
+        requestedBy actor: AuditActor = .user
+    ) {
         let classification = policyEngine.classifyChange(
             from: settings.schedule,
             to: proposedSchedule
         )
         if classification == .noChange {
+            // Only worth a record when it cancels something. A no-op submit
+            // fires on every stepper nudge in the schedule editor, and the
+            // log must not fill with lines describing nothing happening.
+            if let cancelled = settings.pendingScheduleChange {
+                recordAuditScheduleCancelled(pending: cancelled, actor: actor)
+            }
             settings.pendingScheduleChange = nil
             persistSettings()
             tick()
@@ -25,6 +34,12 @@ extension CurfewAppModel {
         let effectiveDate = policyEngine.earliestEffectiveDate(
             for: classification,
             requestedAt: currentTime
+        )
+        recordAuditScheduleRequested(
+            proposed: proposedSchedule,
+            classification: classification,
+            effectiveAt: effectiveDate,
+            actor: actor
         )
         settings.pendingScheduleChange = PendingScheduleChange(
             proposedSchedule: proposedSchedule,
@@ -53,8 +68,10 @@ extension CurfewAppModel {
             return
         }
         if state.phase == .locked, pending.classification == .weaker {
+            recordAuditScheduleDeferred(pending: pending, reason: "weaker_change_during_lockout")
             return
         }
+        recordAuditScheduleApplied(pending: pending)
         settings.schedule = pending.proposedSchedule
         settings.pendingScheduleChange = nil
         persistSettings()

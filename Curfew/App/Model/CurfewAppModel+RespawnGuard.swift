@@ -18,18 +18,22 @@ extension CurfewAppModel {
         if state.phase == .locked {
             do {
                 try respawnGuard.arm()
+                recordAuditRespawnGuard(to: "armed", failure: nil)
             } catch {
                 logger.error(
                     "respawn guard arm failed: \(error.localizedDescription, privacy: .public)"
                 )
+                recordAuditRespawnGuard(to: "arm_failed", failure: error)
             }
         } else if previousPhase == .locked {
             do {
                 try respawnGuard.disarm()
+                recordAuditRespawnGuard(to: "disarmed", failure: nil)
             } catch {
                 logger.error(
                     "respawn guard disarm failed: \(error.localizedDescription, privacy: .public)"
                 )
+                recordAuditRespawnGuard(to: "disarm_failed", failure: error)
             }
         }
     }

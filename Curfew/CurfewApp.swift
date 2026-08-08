@@ -31,6 +31,15 @@ struct AppCoordinator: AppCoordinating {
         // rather than splitting light/dark when the system is in Dark Mode.
         NSApplication.shared.appearance = NSAppearance(named: .aqua)
 
+        // Open the audit stream before anything can transition, so the first
+        // enforcement decision of the process has a line above it explaining
+        // what state the app booted into. Skipped in the unit-test host: the
+        // suite must never append to the user's real ~/Library/Logs/Curfew.
+        if !RuntimeEnvironment.isUnitTestHost {
+            AuditLog.bootstrap(stream: .app)
+            model.recordAuditAppLaunched(enforcementArmed: shouldStartEnforcement)
+        }
+
         if shouldStartEnforcement {
             model.start()
         }
@@ -203,5 +212,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// recovers. No-ops when not locked.
     func applicationDidBecomeActive(_ notification: Notification) {
         model?.reassertEnforcementIfNeeded()
+    }
+
+    /// Closes the audit trail on a normal quit. A launch with no preceding
+    /// `app.terminating` is how a reader — and the privileged daemon — tells
+    /// a crash or a force-quit from an ordinary exit.
+    func applicationWillTerminate(_ notification: Notification) {
+        model?.recordAuditAppTerminating()
     }
 }

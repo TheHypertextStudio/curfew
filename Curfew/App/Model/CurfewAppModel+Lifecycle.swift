@@ -112,6 +112,9 @@ extension CurfewAppModel {
         updateShutdownWorkflow()
         overlayCoordinator.updateOverlays(for: state, model: self, lockoutMessage: lockoutMessage)
         checkCalendarCurfewOverlap()
+        // Last, so every transition this tick produced is already settled.
+        // Observes only — see `CurfewAppModel+Audit.swift`.
+        recordAuditTickState(previousPhase: previousPhase)
     }
 
     private func propagatePhaseTransition(from previousPhase: EnforcementPhase) {

@@ -244,6 +244,61 @@ only.
 - `Build Settings app sections: schedule, enforcement, integrations, devices, advanced.`
   - `SettingsSectionTests/sectionSet()`
 
+## 11.5 Audit log
+
+- `JSON Lines records with schema version, ISO-8601 timestamp with offset, per-stream sequence, writing stream, actor, event type, and before→after state.`
+  - `AuditLineEncoderTests/singleLine()`
+  - `AuditLineEncoderTests/envelopeFields()`
+  - `AuditLineEncoderTests/timestampKeepsOffset()`
+  - `AuditLineEncoderTests/omitsEmptyFields()`
+  - `AuditLineEncoderTests/detailIsDeterministic()`
+  - `AuditLineEncoderTests/escapesControlCharacters()`
+  - `AuditLineEncoderTests/actorTokenIsSanitised()`
+  - `AuditLogWriterTests/sequenceIsMonotonic()`
+  - `AuditLogWriterTests/appendIsAppendOnly()`
+- `Separate file per writer so the app and the root daemon never interleave.`
+  - `AuditLogRotationTests/streamsAreSeparateFiles()`
+  - `AuditLogRotationTests/concurrentStreamsDoNotInterleave()`
+  - `AuditLogWriterTests/writerOwnsStreamField()`
+  - `AuditLogRotationTests/appStreamIsUserOnly()`
+- `SHA-256 hash chain per stream, spanning rotations, recovered from the file on restart.`
+  - `AuditLineEncoderTests/lineVerifies()`
+  - `AuditLineEncoderTests/tamperingBreaksVerification()`
+  - `AuditLineEncoderTests/truncatedLineFailsVerification()`
+  - `AuditLineEncoderTests/chainLinks()`
+  - `AuditLineEncoderTests/chainCoversPrev()`
+  - `AuditLogWriterTests/chainIsIntactAcrossAppends()`
+  - `AuditLogWriterTests/chainSurvivesProcessRestart()`
+  - `AuditLogRotationTests/chainSpansRotation()`
+  - `AuditLogWriterTests/streamOpenedReportsChainRecovery()`
+- `Size + age rotation with a 25 MiB per-stream ceiling and 90-day retention on rotated segments.`
+  - `AuditLogRotationTests/rotatesAtSizeCap()`
+  - `AuditLogRotationTests/rotationEnforcesSegmentCap()`
+  - `AuditLogRotationTests/rotationIsRecorded()`
+  - `AuditLogRotationTests/retentionPrunesOldSegments()`
+- `Redaction: reflection prose and override justifications are never written; MCP arguments are digested.`
+  - `AuditRedactionTests/redactionKeepsNoProse()`
+  - `AuditRedactionTests/digestIsStable()`
+  - `AuditRedactionTests/digestDiscriminates()`
+  - `AuditRedactionTests/encodedOverrideLineIsClean()`
+  - `AuditRedactionTests/mcpArgumentsAreRedacted()`
+  - `AuditGrantWiringTests/overrideGrantRedactsProse()`
+- `Wired to enforcement, schedule, grant, MCP consent, and lifecycle paths.`
+  - `AuditGrantWiringTests/phaseTransitionRecordsLockoutStart()`
+  - `AuditGrantWiringTests/lockoutEndAttributesOverride()`
+  - `AuditGrantWiringTests/steadyTicksAreSilent()`
+  - `AuditGrantWiringTests/accessibilityLossIsRecorded()`
+  - `AuditWiringTests/weakerScheduleChangeIsRecorded()`
+  - `AuditWiringTests/mcpScheduleChangeIsAttributed()`
+  - `AuditWiringTests/appliedScheduleChangeIsRecorded()`
+  - `AuditWiringTests/deferralIsRecordedOnce()`
+  - `AuditGrantWiringTests/extensionGrantIsRecorded()`
+  - `AuditGrantWiringTests/extensionDenialIsRecorded()`
+  - `AuditGrantWiringTests/overrideOutsideLockoutIsDenied()`
+  - `AuditGrantWiringTests/mcpDenialIsRecorded()`
+  - `AuditGrantWiringTests/mcpQueuedIsRecorded()`
+  - `AuditGrantWiringTests/disabledLogDropsRecords()`
+
 ## 12. WidgetKit
 
 - `Mirror widget settings + activity data into shared storage before wiring the WidgetKit target.`
