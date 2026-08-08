@@ -173,6 +173,7 @@ mid-lockout, and every action the root daemon takes. Format specification:
 - [x] Redaction: reflection prose and override justifications are never written; a length and a truncated digest go in their place. MCP tool arguments are digested for the same reason.
 - [x] Wired to enforcement phase transitions, lockout start/end with an end reason, schedule requested/deferred/applied/cancelled, extension and override grants and refusals with budget, MCP consent verdicts with the calling origin, app launch/quit/permission/respawn-guard state, presence, and the app-side auto-shutdown workflow.
 - [x] Daemon wiring: start, deadline observed (user file vs. root shadow), heartbeat stale/recovered, shutdown issued/failed/deferred, stop with a reason.
+- [x] MCP consent resolution is split by *who decided* (`approveMCPRequest`/`denyMCPRequest` for the consent sheet, `autoApproveMCPRequest`/`denyMCPRequestByPolicy` for the policy engine) so the actor is structural. The first shape shared one function between human clicks and automatic policy and recorded every policy refusal as a user decision, and every auto-approval twice.
 - [ ] Attribute `curfew-ctl` separately from `curfew-mcp`. Needs a `client` field on `MCPPendingRequest`, which is a `curfew-protocols` change and therefore a three-repo ceremony.
 - [ ] Surface the log from the app UI or `curfew-ctl` (e.g. `curfew-ctl audit --since`). Reading it today means `jq` on the file.
 

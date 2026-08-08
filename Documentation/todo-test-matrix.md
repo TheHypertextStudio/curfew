@@ -298,6 +298,16 @@ only.
   - `AuditGrantWiringTests/mcpDenialIsRecorded()`
   - `AuditGrantWiringTests/mcpQueuedIsRecorded()`
   - `AuditGrantWiringTests/disabledLogDropsRecords()`
+- `MCP consent verdicts name who actually decided, and an auto-approval writes one record.`
+  - `AuditGrantWiringTests/overrideGuardDenialIsAttributedToApp()`
+  - `AuditGrantWiringTests/policyDenialIsAttributedToApp()`
+  - `AuditGrantWiringTests/consentSheetDenialIsAttributedToUser()`
+  - `AuditGrantWiringTests/consentSheetApprovalIsAttributedToUser()`
+  - `AuditGrantWiringTests/autoApprovalWritesOneAppRecord()`
+- `The respawn deterrent's arm, disarm, and arm-failure outcomes are recorded.`
+  - `AuditRespawnGuardTests/respawnGuardArmIsRecorded()`
+  - `AuditRespawnGuardTests/respawnGuardDisarmIsRecorded()`
+  - `AuditRespawnGuardTests/respawnGuardArmFailureIsRecorded()`
 
 ## 12. WidgetKit
 

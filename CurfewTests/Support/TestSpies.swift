@@ -56,6 +56,11 @@ final class RecordingRespawnGuard: RespawnGuardControlling {
     /// non-empty, the head of the queue is dequeued; empty means succeed.
     var installErrors: [Error] = []
 
+    /// Same queue semantics as ``installErrors``, for `arm()`. A guard that
+    /// fails to arm is the interesting case for audit coverage: the model
+    /// swallows the error, so the log is the only place it survives.
+    var armErrors: [Error] = []
+
     /// Default init for use in test scopes; `nonisolated` to mirror the
     /// pattern used by other test spies that can be constructed off-actor.
     init() {}
@@ -72,6 +77,8 @@ final class RecordingRespawnGuard: RespawnGuardControlling {
 
     func arm() throws {
         callLog.append("arm")
+        guard !armErrors.isEmpty else { return }
+        throw armErrors.removeFirst()
     }
 
     func disarm() throws {

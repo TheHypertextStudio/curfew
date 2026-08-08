@@ -279,13 +279,13 @@ This is the app's Apple Events path, which the user can decline. The daemon's
 
 ### MCP and CLI — `stream: app`
 
-| Event | `detail` |
-|-------|----------|
-| `mcp.request_received` | `requestId`, `tool`, `signed`, `signatureValid`, `policy`, `argumentsLength`, `argumentsDigest` |
-| `mcp.request_auto_approved` | `requestId`, `tool`, `policy` |
-| `mcp.request_queued` | `requestId`, `tool`, `policy` |
-| `mcp.request_approved` | `requestId`, `tool`, `policy` |
-| `mcp.request_denied` | `requestId`, `tool`, `policy`, `denialReason` |
+| Event | `actor` | `detail` |
+|-------|---------|----------|
+| `mcp.request_received` | the origin: `mcp`, `mcp:<client>`, or `cli` | `requestId`, `tool`, `signed`, `signatureValid`, `policy`, `argumentsLength`, `argumentsDigest` |
+| `mcp.request_auto_approved` | always `app` | `requestId`, `tool`, `policy` |
+| `mcp.request_queued` | always `app` | `requestId`, `tool`, `policy` |
+| `mcp.request_approved` | always `user` | `requestId`, `tool`, `policy` |
+| `mcp.request_denied` | `user` or `app` — see below | `requestId`, `tool`, `policy`, `denialReason` |
 
 `tool` is the wire name: `curfew.request_extension`, `curfew.request_override`,
 or `curfew.set_schedule`. `policy` is the consent setting in force:  `queue`,
@@ -294,8 +294,21 @@ or `curfew.set_schedule`. `policy` is the consent setting in force:  `queue`,
 forged request to the consent sheet even under auto-approve, and this pair of
 fields is how you check that it did.
 
+**The actor on a verdict is load-bearing, so read it precisely.** A person can
+only ever produce two of these: `mcp.request_approved` and a
+`mcp.request_denied` with `actor: "user"`. Both mean somebody saw the consent
+sheet and clicked. Everything else was decided with no human in the loop:
+`mcp.request_auto_approved` is the auto-approve policy, `mcp.request_queued` is
+the app parking a request for a sheet nobody has answered yet, and a
+`mcp.request_denied` with `actor: "app"` is either the deny-all policy or the
+guard that refuses `curfew.request_override` outright. If you are auditing
+whether a person consented to something, `actor` is the field that answers it —
+not the event name.
+
 Join a request to its verdict on `requestId`. Every request produces exactly
-one `mcp.request_received` and exactly one of the four verdicts.
+one `mcp.request_received` and exactly one of the four verdicts. An approval is
+never written twice: a policy auto-approval emits `mcp.request_auto_approved`
+alone, never that plus a `mcp.request_approved`.
 
 ### Daemon — `stream: daemon`
 
@@ -474,7 +487,8 @@ jq -r '"\(.ts)  \(.event)  \(.detail | tostring)"' /Library/Logs/Curfew/curfew-d
 | Append, rotation, chain recovery | `Sources/CurfewKit/Storage/AuditLogWriter.swift` |
 | Process-wide facade, transition dedup | `Sources/CurfewKit/Storage/AuditLog.swift` |
 | Domain-to-token mapping, schedule digest | `Sources/CurfewKit/Storage/AuditTokens.swift` |
-| App-side emitters | `Curfew/App/Model/CurfewAppModel+Audit.swift` |
+| App-side emitters | `Curfew/App/Model/CurfewAppModel+Audit.swift`, `+AuditGrants.swift`, `+AuditLifecycle.swift` |
+| MCP consent resolution and its attribution | `Curfew/App/Model/CurfewAppModel+MCPConsent.swift` |
 | Daemon-side emitters | `Sources/curfew-daemon/main.swift` |
 
 ## Known gaps

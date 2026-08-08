@@ -8,7 +8,9 @@ import Testing
 /// suite covers the schedule paths and documents the shared approach.
 @MainActor
 struct AuditGrantWiringTests {
-    private func makeModel() -> (model: CurfewAppModel, writer: RecordingAuditWriter) {
+    private func makeModel(
+        respawnGuard: any RespawnGuardControlling = NoOpRespawnGuard()
+    ) -> (model: CurfewAppModel, writer: RecordingAuditWriter) {
         let suite = "studio.hypertext.curfew.tests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite) ?? .standard
         defaults.removePersistentDomain(forName: suite)
@@ -17,6 +19,7 @@ struct AuditGrantWiringTests {
             appRouter: AppRouterSpy(),
             gettingStartedPresenter: GettingStartedPresenterSpy(),
             activityRecorder: NullActivityRecording(),
+            respawnGuard: respawnGuard,
             accessibilityAuthorization: FakeAccessibilityAuthorization(trusted: true)
         )
         let writer = RecordingAuditWriter()
@@ -148,6 +151,61 @@ struct AuditGrantWiringTests {
         #expect(detailString(denied, "denialReason")?.isEmpty == false)
     }
 
+    @Test("The override guard's refusal is attributed to the app, not to a person")
+    func overrideGuardDenialIsAttributedToApp() throws {
+        let (model, writer) = makeModel()
+
+        // No human sees this one. The legacy `request_override` guard refuses
+        // before the consent sheet exists, so filing it as a user decision
+        // would put a person's name on a choice they never made.
+        model.handleNewMCPRequests([
+            MCPPendingRequest(tool: .requestOverride, argumentsJSON: "{}")
+        ])
+
+        let denied = try #require(writer.first(.mcpRequestDenied))
+        #expect(denied.actor.token == "app")
+    }
+
+    @Test("A deny-all policy refusal is attributed to the app, not to a person")
+    func policyDenialIsAttributedToApp() throws {
+        let (model, writer) = makeModel()
+
+        model.aiConsentPolicy = .deny
+        model.handleNewMCPRequests([
+            MCPPendingRequest(tool: .requestExtension, argumentsJSON: "{}")
+        ])
+
+        let denied = try #require(writer.first(.mcpRequestDenied))
+        #expect(denied.actor.token == "app")
+        #expect(detailString(denied, "policy") == "deny")
+    }
+
+    @Test("A refusal in the consent sheet is attributed to the person who clicked")
+    func consentSheetDenialIsAttributedToUser() throws {
+        let (model, writer) = makeModel()
+
+        let request = MCPPendingRequest(tool: .requestExtension, argumentsJSON: "{}")
+        model.denyMCPRequest(request, reason: "Not tonight.")
+
+        let denied = try #require(writer.first(.mcpRequestDenied))
+        #expect(denied.actor.token == "user")
+        #expect(detailString(denied, "denialReason") == "Not tonight.")
+    }
+
+    @Test("An approval in the consent sheet writes one record attributed to the person")
+    func consentSheetApprovalIsAttributedToUser() throws {
+        let (model, writer) = makeModel()
+
+        model.approveMCPRequest(
+            MCPPendingRequest(tool: .requestExtension, argumentsJSON: "{}")
+        )
+
+        #expect(writer.records(ofType: .mcpRequestApproved).count == 1)
+        #expect(writer.records(ofType: .mcpRequestAutoApproved).isEmpty)
+        let approved = try #require(writer.first(.mcpRequestApproved))
+        #expect(approved.actor.token == "user")
+    }
+
     @Test("A queued MCP request records the consent policy that parked it")
     func mcpQueuedIsRecorded() throws {
         let (model, writer) = makeModel()
@@ -162,6 +220,25 @@ struct AuditGrantWiringTests {
         let queued = try #require(writer.first(.mcpRequestQueued))
         #expect(detailString(queued, "policy") == "queue")
         #expect(model.pendingMCPRequests.count == 1)
+    }
+
+    @Test("A policy auto-approval writes exactly one record, attributed to the app")
+    func autoApprovalWritesOneAppRecord() throws {
+        let (model, writer) = makeModel()
+
+        model.aiConsentPolicy = .autoApprove
+        model.autoApproveMCPRequest(
+            MCPPendingRequest(tool: .requestExtension, argumentsJSON: "{}")
+        )
+
+        // One decision, one line. The earlier shape emitted an app-attributed
+        // `auto_approved` and then a user-attributed `approved` for the same
+        // choice, which read as a person approving something never shown.
+        #expect(writer.records(ofType: .mcpRequestAutoApproved).count == 1)
+        #expect(writer.records(ofType: .mcpRequestApproved).isEmpty)
+        let approved = try #require(writer.first(.mcpRequestAutoApproved))
+        #expect(approved.actor.token == "app")
+        #expect(detailString(approved, "policy") == "autoApprove")
     }
 
     // MARK: - Tick loop

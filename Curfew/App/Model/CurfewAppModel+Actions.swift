@@ -179,7 +179,7 @@ extension CurfewAppModel {
         for request in requests {
             recordAuditMCPRequestReceived(request)
             if request.tool == .requestOverride {
-                denyMCPRequest(
+                denyMCPRequestByPolicy(
                     request,
                     reason: "Override grants are user-only — confirm one in-app."
                 )
@@ -188,10 +188,9 @@ extension CurfewAppModel {
             let policy = effectiveConsentPolicy(for: request)
             switch policy {
             case .autoApprove:
-                recordAuditMCPDecision(.mcpRequestAutoApproved, request: request, actor: .app)
-                approveMCPRequest(request)
+                autoApproveMCPRequest(request)
             case .deny:
-                denyMCPRequest(request, reason: "Consent policy set to deny all.")
+                denyMCPRequestByPolicy(request, reason: "Consent policy set to deny all.")
             case .queue:
                 if !pendingMCPRequests.contains(where: { $0.id == request.id }) {
                     pendingMCPRequests.append(request)
@@ -213,38 +212,13 @@ extension CurfewAppModel {
         return MCPRequestSigner.verify(request) ? .autoApprove : .queue
     }
 
-    /// Approves the given MCP request, applies the action, and updates the
-    /// queue file so `curfew-mcp` can return success to the client.
-    func approveMCPRequest(_ request: MCPPendingRequest) {
-        recordAuditMCPDecision(.mcpRequestApproved, request: request, actor: .user)
-        applyMCPAction(request)
-        var updated = request
-        updated.status = .approved
-        updated.resolvedAt = Date()
-        try? MCPRequestQueue.update(updated)
-        pendingMCPRequests.removeAll { $0.id == request.id }
-    }
-
-    /// Denies the given MCP request and updates the queue file so
-    /// `curfew-mcp` returns a refusal to the client.
-    func denyMCPRequest(_ request: MCPPendingRequest, reason: String = "") {
-        recordAuditMCPDecision(
-            .mcpRequestDenied,
-            request: request,
-            actor: .user,
-            denialReason: reason
-        )
-        var updated = request
-        updated.status = .denied
-        updated.resolvedAt = Date()
-        updated.denialReason = reason.isEmpty ? nil : reason
-        try? MCPRequestQueue.update(updated)
-        pendingMCPRequests.removeAll { $0.id == request.id }
-    }
-
     // MARK: - Private MCP helpers
 
-    private func applyMCPAction(_ request: MCPPendingRequest) {
+    /// Applies an approved request. Resolution, attribution, and the queue-file
+    /// update all live in `CurfewAppModel+MCPConsent.swift`; this only performs
+    /// the action itself. Internal rather than `private` because that file
+    /// calls it and Swift scopes `private` in an extension to one file.
+    func applyMCPAction(_ request: MCPPendingRequest) {
         switch request.tool {
         case .requestExtension:
             // Grant an extension if the budget allows and we're in warning phase.
