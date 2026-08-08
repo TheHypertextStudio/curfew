@@ -615,6 +615,7 @@
 				INFOPLIST_KEY_NSAccessibilityUsageDescription = "Curfew uses Accessibility to intercept keyboard shortcuts during lockout so you can't bypass your own curfew.";
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "Curfew reads today's calendar events to show meetings on the lockout screen and warn you before a meeting collides with curfew. Curfew never edits your calendar.";
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "Curfew reads today's calendar events to show meetings on the lockout screen and warn you before a meeting collides with curfew. Curfew never edits your calendar.";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Curfew can check the camera for a person so it can tell whether you stepped away or are sitting there reading. It looks for a human shape only — it never identifies anyone, never saves an image, and never sends anything anywhere. Off unless you turn it on in Settings.";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 Hypertext Studio. All rights reserved.";
 				INFOPLIST_KEY_SUFeedURL = "https://curfew.hypertext.studio/appcast.xml";
 				INFOPLIST_KEY_SUPublicEDKey = REPLACE_WITH_SPARKLE_PUBLIC_ED_KEY;
@@ -656,6 +657,7 @@
 				INFOPLIST_KEY_NSAccessibilityUsageDescription = "Curfew uses Accessibility to intercept keyboard shortcuts during lockout so you can't bypass your own curfew.";
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "Curfew reads today's calendar events to show meetings on the lockout screen and warn you before a meeting collides with curfew. Curfew never edits your calendar.";
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "Curfew reads today's calendar events to show meetings on the lockout screen and warn you before a meeting collides with curfew. Curfew never edits your calendar.";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Curfew can check the camera for a person so it can tell whether you stepped away or are sitting there reading. It looks for a human shape only — it never identifies anyone, never saves an image, and never sends anything anywhere. Off unless you turn it on in Settings.";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 Hypertext Studio. All rights reserved.";
 				INFOPLIST_KEY_SUFeedURL = "https://curfew.hypertext.studio/appcast.xml";
 				INFOPLIST_KEY_SUPublicEDKey = REPLACE_WITH_SPARKLE_PUBLIC_ED_KEY;

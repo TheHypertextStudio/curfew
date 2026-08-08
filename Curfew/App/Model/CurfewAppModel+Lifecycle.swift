@@ -41,6 +41,10 @@ extension CurfewAppModel {
         // before the engine runs. `sample()` fires `onIdleStateChanged`
         // only on transitions, so 1 Hz polling costs one CGEventSource read.
         idleWatcher.sample()
+        // Fuse that verdict with the camera, immediately after, so both halves
+        // describe the same instant. Also the camera's consent gate — see
+        // `CurfewAppModel+Presence.swift`.
+        samplePresence()
 
         // Touch the heartbeat file so the privileged daemon can tell
         // whether the app is still running. Stale heartbeat plus an
@@ -112,6 +116,9 @@ extension CurfewAppModel {
         updateShutdownWorkflow()
         overlayCoordinator.updateOverlays(for: state, model: self, lockoutMessage: lockoutMessage)
         checkCalendarCurfewOverlap()
+        // After the phase settles, so a nudge is never sent for a phase the
+        // engine is about to leave.
+        evaluateDistractionWarning()
         // Last, so every transition this tick produced is already settled.
         // Observes only — see `CurfewAppModel+Audit.swift`.
         recordAuditTickState(previousPhase: previousPhase)
@@ -154,44 +161,8 @@ extension CurfewAppModel {
         }
     }
 
-    /// Fires one notification per event when a calendar event starts
-    /// within 60 min of the curfew gate during working/warning phases.
-    /// No-ops when calendar is off, Pro isn't unlocked, no event is
-    /// in the window, or we've already prompted for this event today.
-    func checkCalendarCurfewOverlap() {
-        guard featureFlags.calendarEnabled, licenseGate.isProUnlocked else { return }
-        guard state.phase == .working || state.phase == .warning else { return }
-
-        let todayRule = settings.schedule.rule(for: Weekday(from: currentTime))
-        guard !todayRule.isDayOff else { return }
-
-        guard let event = calendarMonitor.eventNearingCurfew(
-            scheduleEndMinutes: todayRule.lockMinutes,
-            now: currentTime
-        ) else { return }
-
-        let eventID = event.eventIdentifier ?? event.title ?? ""
-        guard eventID != curfewOverlapPromptFiredForEventID else { return }
-        curfewOverlapPromptFiredForEventID = eventID
-
-        let content = UNMutableNotificationContent()
-        content.title = "Meeting near curfew"
-        let title = event.title ?? "A meeting"
-        let startText = event.startDate.map {
-            $0.formatted(date: .omitted, time: .shortened)
-        } ?? "soon"
-        content.body = "\(title) starts at \(startText). "
-            + "Request an extension before curfew fires."
-        content.categoryIdentifier = "CALENDAR_OVERLAP"
-        content.sound = .default
-
-        let request = UNNotificationRequest(
-            identifier: "curfew.calendar-overlap.\(eventID)",
-            content: content,
-            trigger: nil
-        )
-        UNUserNotificationCenter.current().add(request)
-    }
+    // `checkCalendarCurfewOverlap()` — the "a meeting is about to collide with
+    // curfew" prompt — now lives in `CurfewAppModel+CalendarOverlap.swift`.
 
     /// Resets the Convince Me composer when the device leaves lockout, and
     /// hides it if the weekly override budget is exhausted. Ticks after engine

@@ -258,10 +258,59 @@ assistant asked for. The override justification itself is never written — see
 | Event | `from`/`to` | `detail` |
 |-------|-------------|----------|
 | `presence.changed` | `active` ⇄ `idle` | `thresholdSeconds` |
+| `presence.state_changed` | `working` / `present_idle` / `absent` / `unknown` | `personSignal`, `hidIdle`, `idleThresholdSeconds`, `cameraEnabled`, `cameraLive`, `cameraAuthorization`, `phase` |
+| `presence.camera_started` | — | `authorization`, `analysisIntervalSeconds`, `phase` |
+| `presence.camera_stopped` | — | `reason`, `phase` |
+| `presence.camera_authorization_changed` | `not_determined` / `denied` / `restricted` / `authorized` | `cameraEnabled` |
+| `presence.distraction_warned` | — | `state`, `sustainedSeconds`, `thresholdSeconds`, `repeatSeconds`, `phase` |
 
-`actor` is `system`. Presence decides whether auto-shutdown uses the
-configured delay or the short two-minute idle grace, so it is load-bearing for
-reading a `shutdown.scheduled` line.
+`presence.changed` is the HID-only view and is **unchanged**: `active` when
+input arrived inside `thresholdSeconds`, `idle` otherwise. It decides whether
+auto-shutdown uses the configured delay or the short two-minute idle grace, so
+it is load-bearing for reading a `shutdown.scheduled` line.
+
+`presence.state_changed` is the fused HID + camera view, added alongside rather
+than instead of it, so a parser written against `presence.changed` keeps
+working. The two disagree by design — one signal cannot produce four states.
+Read the fused tokens as:
+
+| `to` | Meaning |
+|------|---------|
+| `working` | Input arrived inside the idle threshold. Someone is using the Mac. |
+| `present_idle` | No input, but the camera saw a person. Reading, thinking, on a call. |
+| `absent` | No input and the camera saw nobody. |
+| `unknown` | No input and no camera signal to say why. |
+
+**`unknown` is not a weaker `absent`.** It is what Curfew writes when it cannot
+see, which — because camera presence detection ships off — is the steady state
+on a default install. A reader treating `unknown` as absence will conclude the
+user left every time they stopped typing.
+
+`personSignal` is `detected`, `not_detected`, or `unavailable`, and
+`unavailable` covers all four reasons there is no reading: the feature is off,
+access was not granted, no capture device exists, or the last frame is older
+than the twenty-second staleness tolerance. `cameraLive: false` alongside
+`cameraEnabled: true` and `cameraAuthorization: "authorized"` is the signature
+of a camera that would not open.
+
+`actor` is `system` for `presence.changed`, `presence.state_changed`, and
+`presence.camera_authorization_changed` — macOS's idle clock, the camera, and
+TCC are what produced those. It is `app` for the camera lifecycle pair and for
+`presence.distraction_warned`, which are Curfew acting on a stored setting.
+
+`presence.camera_started` and `presence.camera_stopped` bound **every** window
+the camera was on. The start record is written before the first frame can be
+analysed, and the app emits a stop on clean termination as well, so an auditor
+asking "when could Curfew have been watching me?" can answer it from these two
+event names alone rather than by reconstructing settings history. A
+`camera_started` with no matching `camera_stopped` before the next
+`app.launched` means the app was killed with the camera live.
+
+`reason` on `presence.camera_stopped` is one of `setting_disabled`,
+`authorization_revoked`, `device_unavailable`, or `app_terminating`.
+
+**No presence record contains an image, a crop, a bounding box, a confidence,
+or a person count.** See [Privacy](#privacy).
 
 ### Auto-shutdown, app side — `stream: app`
 
@@ -497,6 +546,12 @@ what may appear in it is higher than for the SQLite stores.
 - MCP tool arguments. The payload arrives from an external process and can
   contain arbitrary text.
 - Calendar event titles.
+- Anything derived from a camera frame beyond the yes-or-no verdict. No image,
+  no crop, no thumbnail, no bounding box, no confidence score, no person count,
+  and no identity — Curfew detects a human shape and never recognises one. The
+  envelope makes this structural rather than merely disciplined: `detail` values
+  are JSON scalars only, so there is no representation a frame could occupy. See
+  [`presence-detection.md`](presence-detection.md).
 
 **Written instead, for the two redacted cases:** a `*Length` character count
 and a `*Digest`, 16 hex characters of unsalted SHA-256 over the text.
@@ -521,6 +576,11 @@ hold, since the composer enforces a 50-character minimum.
 cat ~/Library/Logs/Curfew/curfew-app.jsonl /Library/Logs/Curfew/curfew-daemon.jsonl \
   | jq -s 'sort_by(.ts) | .[] | select(.ts > "2025-11-24T17:00")'
 
+# Every window the camera was on, and what closed it.
+jq -r 'select(.event | startswith("presence.camera"))
+       | "\(.ts)  \(.event)  \(.detail.reason // "-")"' \
+  ~/Library/Logs/Curfew/curfew-app.jsonl
+
 # Every time the schedule was touched, and how the policy graded it.
 jq -r 'select(.event | startswith("schedule."))
        | "\(.ts)  \(.event)  \(.detail.classification // "-")  \(.actor)"' \
@@ -544,7 +604,7 @@ jq -r '"\(.ts)  \(.event)  \(.detail | tostring)"' /Library/Logs/Curfew/curfew-d
 | Append, rotation, chain recovery | `Sources/CurfewKit/Storage/AuditLogWriter.swift` |
 | Process-wide facade, transition dedup | `Sources/CurfewKit/Storage/AuditLog.swift` |
 | Domain-to-token mapping, schedule digest | `Sources/CurfewKit/Storage/AuditTokens.swift` |
-| App-side emitters | `Curfew/App/Model/CurfewAppModel+Audit.swift`, `+AuditGrants.swift`, `+AuditLifecycle.swift` |
+| App-side emitters | `Curfew/App/Model/CurfewAppModel+Audit.swift`, `+AuditGrants.swift`, `+AuditLifecycle.swift`, `+AuditPresence.swift` |
 | MCP consent resolution and its attribution | `Curfew/App/Model/CurfewAppModel+MCPConsent.swift` |
 | Daemon actions (what was done) | `Sources/CurfewKit/Domain/DaemonEnforcementRuntime.swift` |
 | Daemon observations (what was read) | `Sources/CurfewKit/Domain/DaemonAuditObserver.swift` |

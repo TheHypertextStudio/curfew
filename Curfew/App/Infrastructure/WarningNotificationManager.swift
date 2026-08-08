@@ -47,6 +47,12 @@ final class WarningNotificationManager: NSObject {
     /// notifications. Matched in `userNotificationCenter(_:didReceive:)`.
     static let snoozeActionIdentifier = "SNOOZE_ONE_MIN"
 
+    /// Category for the presence-driven "you're here but not working" nudge.
+    /// Separate from the curfew warnings so the user can mute one in System
+    /// Settings → Notifications without losing the other — a nudge is advice,
+    /// a T-5 warning is notice that the Mac is about to lock.
+    static let distractionCategoryIdentifier = "CURFEW_DISTRACTION"
+
     private let center: UNUserNotificationCenter
     private var lastDeliveredStage: WarningStage = .none
     private var deliveredDayToken: String = ""
@@ -114,6 +120,47 @@ final class WarningNotificationManager: NSObject {
         }
         lastDeliveredStage = stage
     }
+
+    /// Delivers the presence-driven distraction nudge.
+    ///
+    /// Cadence and eligibility are `DistractionWarningPolicy`'s job, not this
+    /// manager's — by the time this is called the decision has been made. The
+    /// per-stage dedup above deliberately does not apply: a distraction can
+    /// recur many times in a day, and the repeat window is what bounds it.
+    ///
+    /// The copy states the observation before the ask. Curfew knows the user
+    /// is at the machine and has not touched it, which is a claim it should
+    /// make out loud — a nudge that just said "get back to work" would leave
+    /// the user guessing how the app decided that.
+    func deliverDistractionNudge() {
+        let payload = Self.distractionPayload
+        let content = UNMutableNotificationContent()
+        content.title = payload.title
+        content.body = payload.body
+        content.categoryIdentifier = payload.categoryIdentifier
+        if payload.playsSound {
+            content.sound = .default
+        }
+        center.add(UNNotificationRequest(
+            identifier: "curfew.distraction.\(UUID().uuidString)",
+            content: content,
+            trigger: nil
+        ))
+    }
+
+    /// Copy for the distraction nudge. `static` so a test can assert the
+    /// wording without a live notification centre.
+    ///
+    /// Silent by design: the user is sitting right there, so a sound would be
+    /// a jolt where a banner is a glance. The curfew warnings escalate to
+    /// sound because they precede the Mac locking; this one does not.
+    static let distractionPayload = WarningNotificationPayload(
+        title: "Still here?",
+        body: "You're at your Mac but haven't touched it in a while. "
+            + "Pick the thread back up when you're ready.",
+        categoryIdentifier: distractionCategoryIdentifier,
+        playsSound: false
+    )
 
     /// Stable string token for a `WarningStage`, shared by the
     /// `LockoutState` CloudKit record so publishers and consumers agree
@@ -197,6 +244,10 @@ final class WarningNotificationManager: NSObject {
             ),
             WarningNotificationCategoryDefinition(
                 identifier: warningCategoryIdentifier,
+                actionIdentifiers: []
+            ),
+            WarningNotificationCategoryDefinition(
+                identifier: distractionCategoryIdentifier,
                 actionIdentifiers: []
             )
         ]

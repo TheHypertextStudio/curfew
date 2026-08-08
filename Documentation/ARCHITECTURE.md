@@ -14,6 +14,8 @@ Curfew.app
 │   │   ├── WarningStage              T-30 / T-15 / T-5 / T-2 / T-1 / lockout enum
 │   │   ├── ExtensionBudgetTracker    Weekly budget with reset-weekday logic
 │   │   ├── OverrideRequestPolicy     "Convince me" cooldown and justification gate
+│   │   ├── PresenceState             HID + camera fusion → working / present-idle / absent / unknown
+│   │   ├── DistractionWarningPolicy  When a present-but-idle user gets a nudge (see presence-detection.md)
 │   │   └── Reflection                Reflection gate value types (gate, prompt, answer, mood)
 │   ├── Storage/
 │   │   ├── ActivityEvent / ActivityStore  sqlite3 C API — lifecycle/extension/override events
@@ -25,6 +27,7 @@ Curfew.app
 │   │   ├── AuditLogWriter           O_APPEND writer, rotation, chain recovery
 │   │   └── AuditTokens              Stable wire tokens + schedule digest
 │   ├── Settings/
+│   │   ├── PresenceDetectionPolicy  Camera consent + nudge cadence; camera off by default
 │   │   ├── CurfewSettingsStore      UserDefaults persistence for CurfewSettings + reflection config
 │   │   ├── ReflectionConfiguration  User-editable per-gate prompts + enable flags
 │   │   ├── EnforcementSnapshot      Shared snapshot type for app + widget
@@ -36,6 +39,8 @@ Curfew.app
 │
 ├── Curfew/Core/Features/  App-only features that depend on Apple frameworks
 │   ├── IdleWatcher               CGEventSource idle detection, 5-min default cutoff
+│   ├── CameraPresenceSensor      AVFoundation + Vision person detection (opt-in, off by default)
+│   ├── PresenceMonitor           Fuses idle + camera; sole owner of the camera consent gate
 │   ├── LicenseGate               Ed25519 offline license key verification (CryptoKit)
 │   ├── LicenseKey                Codable payload: email, product, orderID, issuedAt
 │   ├── CalendarMonitor           EventKit — today's events, Pro + flag gated

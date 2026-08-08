@@ -73,6 +73,14 @@ struct ContentView: View {
             }
             .padding(.horizontal, 10)
             .padding(.top, 10)
+            // Renders only while a capture session is live. The popover is
+            // where a user goes when they notice the system's green camera
+            // light and want to know which app turned it on.
+            CompactCameraLiveIndicator(isLive: model.isPresenceCameraLive) {
+                model.openSettings()
+            }
+            .padding(.horizontal, 10)
+            .padding(.top, 10)
             actions(snapshot: snapshot)
         }
         .frame(width: 320)

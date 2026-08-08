@@ -151,6 +151,11 @@ public struct CurfewSettings: Codable, Equatable {
     /// See ``ProtectedWorkPolicy``.
     public var protectedWork: ProtectedWorkPolicy
 
+    /// Whether Curfew may use the camera to tell presence from absence, and
+    /// how it nudges a user who is present but idle. Camera off by default;
+    /// see ``PresenceDetectionPolicy``.
+    public var presence: PresenceDetectionPolicy
+
     private enum CodingKeys: String, CodingKey {
         case schedule
         case pendingScheduleChange
@@ -167,6 +172,7 @@ public struct CurfewSettings: Codable, Equatable {
         case mcpHTTPEnabled
         case mcpHTTPPort
         case protectedWork
+        case presence
     }
 
     /// Memberwise initialiser. `warningIntervals` is normalised on
@@ -189,7 +195,8 @@ public struct CurfewSettings: Codable, Equatable {
         mcpEnabled: Bool,
         mcpHTTPEnabled: Bool = false,
         mcpHTTPPort: Int = 9847,
-        protectedWork: ProtectedWorkPolicy = .default
+        protectedWork: ProtectedWorkPolicy = .default,
+        presence: PresenceDetectionPolicy = .default
     ) {
         self.schedule = schedule
         self.pendingScheduleChange = pendingScheduleChange
@@ -206,6 +213,7 @@ public struct CurfewSettings: Codable, Equatable {
         self.mcpHTTPEnabled = mcpHTTPEnabled
         self.mcpHTTPPort = mcpHTTPPort
         self.protectedWork = protectedWork
+        self.presence = presence
     }
 
     /// Custom decoder so pre-existing persisted settings (v0.1 payloads
@@ -256,6 +264,13 @@ public struct CurfewSettings: Codable, Equatable {
             ProtectedWorkPolicy.self,
             forKey: .protectedWork
         ) ?? .default
+        // Absent on every payload written before presence detection shipped,
+        // and `.default` has the camera off — so an upgrade cannot turn a
+        // camera on, and neither can a corrupted or truncated blob.
+        self.presence = try container.decodeIfPresent(
+            PresenceDetectionPolicy.self,
+            forKey: .presence
+        ) ?? .default
     }
 
     /// Encodes to JSON. `warningIntervals` is normalised before encoding so
@@ -278,13 +293,14 @@ public struct CurfewSettings: Codable, Equatable {
         try container.encode(mcpHTTPEnabled, forKey: .mcpHTTPEnabled)
         try container.encode(mcpHTTPPort, forKey: .mcpHTTPPort)
         try container.encode(protectedWork, forKey: .protectedWork)
+        try container.encode(presence, forKey: .presence)
     }
 
     /// Factory defaults for a fresh install: 9-to-5 schedule, 3 × 15 min
     /// extensions/week, 2 × 30 min overrides/week, Monday reset, auto-
     /// shutdown off, canonical warning intervals, MCP on, loopback HTTP
-    /// off. Consumed by `CurfewSettingsStore.load()` when the
-    /// `UserDefaults` key is absent.
+    /// off, camera presence detection off. Consumed by
+    /// `CurfewSettingsStore.load()` when the `UserDefaults` key is absent.
     public static let `default` = CurfewSettings(
         schedule: .standardNineToFive,
         pendingScheduleChange: nil,

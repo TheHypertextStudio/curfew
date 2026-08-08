@@ -318,6 +318,50 @@ as an opt-in feature per the user's product direction and is not blocking.
 - [x] **m6** — License re-verifies on day rollover so a tampered UserDefaults can't keep Pro alive indefinitely.
 - [x] **A1** — `LockoutDeadlineRecord` is now the single source of truth for "am I locked"; overlay/sentinel/daemon all derive from it.
 
+## 17.6 On-device presence detection (2026-08-08)
+
+Closes the two founding-document claims that HID idleness alone could not
+support: "Curfew can detect whether I am actually at my computer working" and
+"if I am distracted, Curfew will warn me to get back to work". Full
+specification — captured / derived / retained, consent, limitations — is in
+`Documentation/presence-detection.md`.
+
+- [x] **P1** — `PresenceFusion` crosses `IdleWatcher`'s verdict with a camera
+  person signal into four states: `working`, `present_idle`, `absent`,
+  `unknown`. HID activity wins outright; `unknown` is the honest answer when
+  there is no camera signal and is never collapsed into `absent`.
+- [x] **P2** — `VisionCameraPresenceSensor` detects a human shape on-device with
+  `VNDetectHumanRectanglesRequest`. No identification, no face print, no image
+  written or transmitted; frames exist for one Vision call and only a boolean
+  survives.
+- [x] **P3** — `PresenceMonitor` is the sole caller of `start()`, gated on the
+  user's setting **and** live TCC authorization, rechecked every tick so a
+  revocation in System Settings takes the camera down within a second.
+- [x] **P4** — `PresenceDetectionPolicy` defaults to `cameraEnabled: false`, and
+  every decode path (including a settings blob predating the feature) falls back
+  to that default. No migration turns the camera on.
+- [x] **P5** — `NSCameraUsageDescription` set on both Debug and Release app
+  configurations; `enablePresenceDetection()` prompts before persisting intent,
+  so a refused grant never leaves a stored intent to run a camera.
+- [x] **P6** — `CameraLiveIndicator` renders in Settings and the menu-bar
+  popover only while a session is live, alongside the system's own green light.
+- [x] **P7** — `DistractionWarningPolicy` nudges a sustained present-but-idle
+  user during `working` / `warning` only, never at an empty chair, never during
+  lockout or a day off, and at most once per repeat window.
+- [x] **P8** — Five audit events (`presence.state_changed`,
+  `presence.camera_started` / `_stopped`,
+  `presence.camera_authorization_changed`, `presence.distraction_warned`) follow
+  the existing envelope. `presence.changed` is unchanged so existing parsers keep
+  working. No record can carry image data.
+- [x] **P9** — Observation staleness (20 s) decays a wedged capture session to
+  `unavailable` rather than pinning a verdict; a future-dated reading is
+  rejected so a backwards clock step cannot extend a reading's life.
+
+Risk and rollback: the feature is inert until switched on, so the rollback is
+the shipped default. Reverting the commit removes the camera code entirely; a
+persisted `presence.cameraEnabled: true` on an older build decodes into an
+unknown key and is ignored.
+
 ## 18. Verification (v0.1 release candidate)
 
 - [x] `just check` passes (format + lint + tests + Debug build).

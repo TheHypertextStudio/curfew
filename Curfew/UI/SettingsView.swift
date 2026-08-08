@@ -23,6 +23,7 @@ struct SettingsView: View {
                 enforcementHealthPanel
                 extensionsPanel
                 warningPanel
+                presencePanel
                 shutdownPanel
                 protectedWorkPanel
             }

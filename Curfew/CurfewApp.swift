@@ -217,7 +217,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Closes the audit trail on a normal quit. A launch with no preceding
     /// `app.terminating` is how a reader — and the privileged daemon — tells
     /// a crash or a force-quit from an ordinary exit.
+    ///
+    /// Takes the presence camera down first. The process exiting would release
+    /// the device anyway, but doing it explicitly closes the
+    /// `presence.camera_started` record with a matching stop, so the log
+    /// always bounds the window the camera was on.
     func applicationWillTerminate(_ notification: Notification) {
+        model?.shutDownPresence()
         model?.recordAuditAppTerminating()
     }
 }
