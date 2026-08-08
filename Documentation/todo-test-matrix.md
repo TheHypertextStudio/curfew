@@ -282,7 +282,7 @@ only.
   - `AuditRedactionTests/digestDiscriminates()`
   - `AuditRedactionTests/encodedOverrideLineIsClean()`
   - `AuditRedactionTests/mcpArgumentsAreRedacted()`
-  - `AuditGrantWiringTests/overrideGrantRedactsProse()`
+  - `AuditOverrideRedactionTests/overrideGrantRedactsProse()`
 - `Wired to enforcement, schedule, grant, MCP consent, and lifecycle paths.`
   - `AuditGrantWiringTests/phaseTransitionRecordsLockoutStart()`
   - `AuditGrantWiringTests/lockoutEndAttributesOverride()`
@@ -304,6 +304,21 @@ only.
   - `AuditGrantWiringTests/consentSheetDenialIsAttributedToUser()`
   - `AuditGrantWiringTests/consentSheetApprovalIsAttributedToUser()`
   - `AuditGrantWiringTests/autoApprovalWritesOneAppRecord()`
+- `Daemon observations are recorded in both directions, including a break-glass release lifting.`
+  - `DaemonAuditObserverTests/breakGlassArrivalIsRecorded()`
+  - `DaemonAuditObserverTests/breakGlassEndingIsRecorded()`
+  - `DaemonAuditObserverTests/breakGlassKeyResetsAfterClearing()`
+  - `DaemonAuditObserverTests/breakGlassIsNotRepeated()`
+  - `DaemonAuditObserverTests/protectedWorkIsRecordedBothWays()`
+  - `DaemonAuditObserverTests/heartbeatIsRecordedBothWays()`
+  - `DaemonAuditObserverTests/missingHeartbeatRecordsSentinelAge()`
+  - `DaemonAuditObserverTests/shadowSourcedDeadlineIsRecorded()`
+  - `DaemonAuditObserverTests/deadlineIsNotRepeated()`
+- `A shutdown that fails to launch is never recorded as issued.`
+  - `DaemonAuditWiringTests/failedShutdownLaunchIsRecordedAsFailure()`
+- `Rotation writes its marker as the first line of the new segment, chained to the old one.`
+  - `AuditLogRotationTests/rotationIsRecorded()`
+  - `AuditLogRotationTests/chainSpansRotation()`
 - `Daemon actions are recorded where the decision becomes a machine action.`
   - `DaemonAuditWiringTests/shutdownIssueIsRecorded()`
   - `DaemonAuditWiringTests/protectedWorkCancellationIsRecorded()`

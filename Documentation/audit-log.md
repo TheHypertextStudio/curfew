@@ -324,6 +324,7 @@ alone, never that plus a `mcp.request_approved`.
 | `protected_work.active` | `daemon` | — |
 | `protected_work.cleared` | `daemon` | — |
 | `break_glass.observed` | `daemon` | `releaseId`, `issuedAt` |
+| `break_glass.cleared` | `daemon` | — |
 
 A protected-work claim is an agent telling Curfew that killing this machine
 right now would destroy work in flight; a break-glass release is the privileged
@@ -333,6 +334,12 @@ the antecedent for any `daemon.shutdown_held` or `daemon.shutdown_cancelled`
 with `reason: protected_work` that follows, and `break_glass.observed` carries
 the release identifier that traces back to the `curfew-ctl` invocation that
 issued it.
+
+All three pairs are written in **both** directions. A release lifting is the
+moment enforcement re-arms, so `break_glass.cleared` carries the identifier it
+replaced in `from` — an auditor who could see protection begin but never end
+could not bound the window it covered. The same holds for
+`protected_work.cleared`.
 
 Only the daemon writes these today. The app reads the same two facts through
 `protectedWorkContext()`, and its view of them surfaces as `shutdown.deferred`
@@ -370,10 +377,11 @@ together or you will conclude the opposite of what happened. The `reason`
 distinguishes the three ways it can occur: an agent claimed protected work, a
 break-glass release was honored, or the lockout window simply ended.
 
-`daemon.shutdown_failed` means `/sbin/shutdown` could not be launched at all.
-It follows the `daemon.shutdown_issued` for the same tick, because the record
-that the command was dispatched is written before the process starts. An
-`issued` line with no `failed` after it means the process really started.
+`daemon.shutdown_issued` and `daemon.shutdown_failed` are **mutually
+exclusive**: exactly one is written per attempt, chosen after the launch
+either succeeded or threw. There is no tick that produces both. A
+`daemon.shutdown_issued` therefore means the command really started — the log
+never asserts a root shutdown that did not happen.
 
 `source: shadow` on `daemon.deadline_observed` means the user-writable deadline
 file was gone and the daemon fell back to its root-owned copy — someone deleted
@@ -539,7 +547,8 @@ jq -r '"\(.ts)  \(.event)  \(.detail | tostring)"' /Library/Logs/Curfew/curfew-d
 | App-side emitters | `Curfew/App/Model/CurfewAppModel+Audit.swift`, `+AuditGrants.swift`, `+AuditLifecycle.swift` |
 | MCP consent resolution and its attribution | `Curfew/App/Model/CurfewAppModel+MCPConsent.swift` |
 | Daemon actions (what was done) | `Sources/CurfewKit/Domain/DaemonEnforcementRuntime.swift` |
-| Daemon observations (what was read) | `Sources/curfew-daemon/main.swift` |
+| Daemon observations (what was read) | `Sources/CurfewKit/Domain/DaemonAuditObserver.swift` |
+| Daemon file and process I/O | `Sources/curfew-daemon/main.swift` |
 
 ## Known gaps
 

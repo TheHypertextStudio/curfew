@@ -98,33 +98,6 @@ struct AuditGrantWiringTests {
         #expect(writer.first(.overrideGranted) == nil)
     }
 
-    @Test("A granted override records length and digest, never the justification")
-    func overrideGrantRedactsProse() throws {
-        let (model, writer) = makeModel()
-
-        let reason = String(
-            repeating: "the deploy window closes at midnight ",
-            count: 3
-        )
-        model.recordOverrideEvent(
-            OverrideEvent(
-                timestamp: model.currentTime,
-                deviceName: "Test Mac",
-                reason: reason,
-                grantedDurationMinutes: 20
-            )
-        )
-
-        let record = try #require(writer.first(.overrideGranted))
-        #expect(detailInt(record, "minutes") == 20)
-        #expect(detailInt(record, "reasonLength") == reason.count)
-        #expect(detailString(record, "reasonDigest") == AuditRedaction.digest(reason))
-        for value in record.detail.values {
-            guard case .string(let text) = value else { continue }
-            #expect(text.contains("deploy window") == false)
-        }
-    }
-
     // MARK: - MCP consent
 
     @Test("An inbound MCP request and its denial are both recorded with the origin")

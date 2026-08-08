@@ -110,7 +110,7 @@ private func appHeartbeatAge(now: Date) -> TimeInterval {
 /// makes `killall Curfew` a trap rather than an escape. The break-glass path
 /// in `curfew-ctl` is the documented way back out; see
 /// `Documentation/protected-work.md`.
-private func runShutdown() {
+private func runShutdown() throws {
     let process = Process()
     process.executableURL = URL(fileURLWithPath: "/sbin/shutdown")
     process.arguments = ["-h", "+1", "Curfew enforcement: app process missing during lockout."]
@@ -121,14 +121,10 @@ private func runShutdown() {
         daemonLogger.error(
             "shutdown invocation failed: \(error.localizedDescription, privacy: .public)"
         )
-        // `DaemonEnforcementRuntime` already recorded `daemon.shutdown_issued`
-        // for this tick. Only the launch failure is visible from here, so the
-        // pair reads "commanded, then failed to start".
-        AuditLog.shared.emit(
-            .daemonShutdownFailed,
-            actor: .daemon,
-            detail: ["error": .string(error.localizedDescription)]
-        )
+        // Rethrown rather than recorded here, so `DaemonEnforcementRuntime`
+        // writes one record describing what actually happened instead of an
+        // `issued` line followed by a contradicting `failed` line.
+        throw error
     }
 }
 
@@ -192,105 +188,6 @@ private func writeDeferralStart(_ start: Date?) {
     }
 }
 
-// MARK: - Audit observations
-
-/// Writes the audit records for what this tick *observed*, before anything is
-/// decided or done about it.
-///
-/// Split from the decision and from `DaemonEnforcementRuntime` on purpose.
-/// These are readings — a deadline file, a heartbeat mtime, a claims file, a
-/// break-glass record — and they are the inputs an auditor needs in order to
-/// judge whether the action that followed was warranted. Every one is
-/// deduplicated on its value, because the loop runs every fifteen seconds and
-/// a steady night must not produce five thousand identical lines.
-private func recordObservations(
-    now: Date,
-    record: LockoutDeadlineRecord?,
-    heartbeatAge: TimeInterval,
-    hasProtectedWork: Bool,
-    breakGlass: BreakGlassRelease?
-) {
-    let log = AuditLog.shared
-
-    if let record {
-        log.emitIfChanged(
-            key: "deadline",
-            to: String(record.scheduledUnlockAt.timeIntervalSince1970),
-            event: .daemonDeadlineObserved,
-            actor: .daemon,
-            detail: [
-                "lockoutStartedAt": .string(AuditTimestamp.string(from: record.lockoutStartedAt)),
-                "scheduledUnlockAt": .string(
-                    AuditTimestamp.string(from: record.scheduledUnlockAt)
-                ),
-                "kind": .string(record.kind.rawValue),
-                // Which copy answered. `shadow` means the user-writable file
-                // was gone and the root-owned one carried the window — someone
-                // deleted the record mid-lockout.
-                "source": .string(
-                    fileManager.fileExists(atPath: SharedPaths.lockoutDeadline.path)
-                        ? "user"
-                        : "shadow"
-                )
-            ],
-            at: now
-        )
-        if now >= record.scheduledUnlockAt {
-            log.emitIfChanged(
-                key: "deadlineElapsed",
-                to: String(record.scheduledUnlockAt.timeIntervalSince1970),
-                event: .daemonDeadlineElapsed,
-                actor: .daemon,
-                detail: [
-                    "scheduledUnlockAt": .string(
-                        AuditTimestamp.string(from: record.scheduledUnlockAt)
-                    )
-                ],
-                at: now
-            )
-        }
-    }
-
-    let isStale = heartbeatAge > appHeartbeatTimeout
-    log.emitIfChanged(
-        key: "heartbeat",
-        to: isStale ? "stale" : "fresh",
-        event: isStale ? .daemonHeartbeatStale : .daemonHeartbeatRecovered,
-        actor: .daemon,
-        detail: [
-            // A missing heartbeat file reads as infinite age; -1 keeps the
-            // field an integer instead of a JSON `null` a parser would have to
-            // special-case.
-            "ageSeconds": .int(heartbeatAge.isFinite ? Int(heartbeatAge) : -1),
-            "thresholdSeconds": .int(Int(appHeartbeatTimeout)),
-            "heartbeatPresent": .bool(heartbeatAge.isFinite)
-        ],
-        at: now
-    )
-
-    log.emitIfChanged(
-        key: "protectedWork",
-        to: hasProtectedWork ? "active" : "none",
-        event: hasProtectedWork ? .protectedWorkActive : .protectedWorkCleared,
-        actor: .daemon,
-        at: now
-    )
-
-    if let breakGlass {
-        log.emitIfChanged(
-            key: "breakGlass",
-            to: breakGlass.id.uuidString,
-            event: .breakGlassObserved,
-            actor: .daemon,
-            detail: [
-                "releaseId": .string(breakGlass.id.uuidString),
-                "issuedAt": .string(AuditTimestamp.string(from: breakGlass.issuedAt))
-            ],
-            at: now
-        )
-    }
-}
-
 // MARK: - Effects
 
 /// The real machine. Every branch that used to be inline in the loop below now
@@ -313,8 +210,8 @@ private final class SystemDaemonEffects: DaemonEnforcementEffects {
         canceller.cancelPendingShutdown()
     }
 
-    func issueShutdown() {
-        runShutdown()
+    func issueShutdown() throws {
+        try runShutdown()
     }
 
     func clearDeadlineShadow() {
@@ -345,6 +242,7 @@ AuditLog.shared.emit(
 private let protectedWorkStore = ProtectedWorkStore()
 private let breakGlassStore = BreakGlassStore()
 private let effects = SystemDaemonEffects()
+private let observer = DaemonAuditObserver(auditLog: .shared)
 var runtime = DaemonEnforcementRuntime(auditLog: .shared)
 
 // Read the world, ask, apply, log, sleep. Nothing in this loop decides
@@ -367,12 +265,18 @@ while true {
     // The loop records what it *read*; `DaemonEnforcementRuntime` records what
     // was *done* about it. Keeping the two apart means no fact is written by a
     // layer that had to guess it.
-    recordObservations(
-        now: now,
-        record: record,
-        heartbeatAge: heartbeatAge,
-        hasProtectedWork: hasProtectedWork,
-        breakGlass: breakGlass
+    observer.record(
+        DaemonAuditObserver.Observation(
+            now: now,
+            deadline: record,
+            deadlineCameFromUserFile: fileManager.fileExists(
+                atPath: SharedPaths.lockoutDeadline.path
+            ),
+            heartbeatAge: heartbeatAge,
+            heartbeatTimeout: appHeartbeatTimeout,
+            hasActiveProtectedWork: hasProtectedWork,
+            breakGlass: breakGlass
+        )
     )
 
     let outcome = DaemonEnforcementDecision.evaluate(

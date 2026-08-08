@@ -239,6 +239,11 @@ public enum AuditEventType: String, Codable, Equatable, CaseIterable, Sendable {
     /// the `curfew-ctl` invocation that issued it.
     case breakGlassObserved = "break_glass.observed"
 
+    /// No release is in force. Written when one expires or is revoked, which
+    /// is the moment enforcement re-arms — an auditor who can see protection
+    /// begin and never see it end cannot bound the window it covered.
+    case breakGlassCleared = "break_glass.cleared"
+
     // MARK: Daemon
 
     /// The privileged daemon started.

@@ -10,6 +10,11 @@ import Testing
 private final class AuditEffectsSpy: DaemonEnforcementEffects {
     private(set) var callLog: [String] = []
 
+    /// When set, `issueShutdown()` throws it. Models `/sbin/shutdown` failing
+    /// to launch, which is the case that must never leave the log claiming a
+    /// shutdown happened.
+    var shutdownLaunchError: Error?
+
     func persistDeferralStart(_ start: Date?) {
         callLog.append(start == nil ? "persist(nil)" : "persist(date)")
     }
@@ -18,8 +23,11 @@ private final class AuditEffectsSpy: DaemonEnforcementEffects {
         callLog.append("cancel")
     }
 
-    func issueShutdown() {
+    func issueShutdown() throws {
         callLog.append("shutdown")
+        if let shutdownLaunchError {
+            throw shutdownLaunchError
+        }
     }
 
     func clearDeadlineShadow() {
@@ -202,6 +210,22 @@ struct DaemonAuditWiringTests {
 
         #expect(effects.callLog.contains("cancel") == false)
         #expect(writer.records(ofType: .daemonShutdownCancelled).isEmpty)
+    }
+
+    @Test("A shutdown that fails to launch records the failure and never claims it issued")
+    func failedShutdownLaunchIsRecordedAsFailure() throws {
+        var harness = makeHarness()
+        let writer = harness.writer
+        let effects = harness.effects
+        effects.shutdownLaunchError = CocoaError(.fileNoSuchFile)
+
+        tick(&harness.runtime, effects: effects, at: lockoutStart.addingTimeInterval(300))
+
+        // The whole point: an audit trail must never assert that root powered
+        // the machine off when the command could not even start.
+        #expect(writer.records(ofType: .daemonShutdownIssued).isEmpty)
+        let record = try #require(writer.first(.daemonShutdownFailed))
+        #expect(detailString(record, "error")?.isEmpty == false)
     }
 
     // MARK: - Stand-down and hold

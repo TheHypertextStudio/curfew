@@ -15,7 +15,12 @@ public protocol DaemonEnforcementEffects: AnyObject {
     func cancelPendingShutdown()
 
     /// Runs `/sbin/shutdown -h +1` as root.
-    func issueShutdown()
+    ///
+    /// Throws when the command could not be launched at all. The audit record
+    /// for this action is written from the result, so an implementation that
+    /// swallows its own failure would make the log assert a shutdown that
+    /// never happened. A non-throwing implementation still satisfies this.
+    func issueShutdown() throws
 
     /// Removes the root-owned copy of the lockout deadline.
     func clearDeadlineShadow()
@@ -143,13 +148,25 @@ public struct DaemonEnforcementRuntime {
 
         case .shutDown:
             isStandingDown = false
-            effects.issueShutdown()
+            // Recorded from the outcome, not before it. Emitting `issued`
+            // ahead of the call meant a launch that threw left the log
+            // claiming a shutdown that never happened — the one assertion an
+            // audit trail must never make about a root action.
+            do {
+                try effects.issueShutdown()
+                auditLog.emit(.daemonShutdownIssued, actor: .daemon, at: now)
+            } catch {
+                auditLog.emit(
+                    .daemonShutdownFailed,
+                    actor: .daemon,
+                    detail: ["error": .string(error.localizedDescription)],
+                    at: now
+                )
+            }
+            // Set regardless of the launch result, preserving the enforcement
+            // behaviour this branch inherited: the decision suppresses a
+            // second attempt for this window either way.
             shutdownIssued = true
-            // Records that the command was dispatched. A failure to launch it
-            // surfaces only inside the effects implementation, which writes
-            // `daemon.shutdown_failed` — so an `issued` line with no `failed`
-            // line after it means the process really started.
-            auditLog.emit(.daemonShutdownIssued, actor: .daemon, at: now)
             return .issuedShutdown
 
         case .wait:

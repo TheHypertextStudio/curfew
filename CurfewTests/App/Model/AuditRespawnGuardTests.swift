@@ -99,3 +99,74 @@ struct AuditRespawnGuardTests {
         #expect(detailString(record, "error")?.isEmpty == false)
     }
 }
+
+/// The override-grant redaction proof.
+///
+/// Lives beside the respawn-guard suite rather than in `AuditGrantWiringTests`
+/// only because that suite is at its type-body budget; it is a redaction test
+/// and `AuditRedactionTests` covers the encoder half of the same contract.
+@MainActor
+struct AuditOverrideRedactionTests {
+    private func makeModel() -> (model: CurfewAppModel, writer: RecordingAuditWriter) {
+        let suite = "studio.hypertext.curfew.tests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite) ?? .standard
+        defaults.removePersistentDomain(forName: suite)
+        let model = CurfewAppModel(
+            settingsStore: CurfewSettingsStore(defaults: defaults),
+            appRouter: AppRouterSpy(),
+            gettingStartedPresenter: GettingStartedPresenterSpy(),
+            activityRecorder: NullActivityRecording(),
+            accessibilityAuthorization: FakeAccessibilityAuthorization(trusted: true)
+        )
+        let writer = RecordingAuditWriter()
+        model.auditLogOverride = AuditLog(stream: .app, writer: writer)
+        return (model, writer)
+    }
+
+    private func detailString(_ record: AuditRecord, _ key: String) -> String? {
+        guard case .string(let value)? = record.detail[key] else { return nil }
+        return value
+    }
+
+    private func detailInt(_ record: AuditRecord, _ key: String) -> Int? {
+        guard case .int(let value)? = record.detail[key] else { return nil }
+        return value
+    }
+
+    @Test("A granted override records length and digest, never the justification")
+    func overrideGrantRedactsProse() throws {
+        let (model, writer) = makeModel()
+
+        let reason = String(
+            repeating: "the deploy window closes at midnight ",
+            count: 3
+        )
+        model.recordOverrideEvent(
+            OverrideEvent(
+                timestamp: model.currentTime,
+                deviceName: "Test Mac",
+                reason: reason,
+                grantedDurationMinutes: 20
+            )
+        )
+
+        let record = try #require(writer.first(.overrideGranted))
+        #expect(detailInt(record, "minutes") == 20)
+
+        // Assert the redacted keys are present and hold exactly a count and a
+        // digest. Scanning only the values that happen to be strings would
+        // pass on a record that dropped `reasonDigest` altogether, or that
+        // never carried the reason at all.
+        #expect(detailInt(record, "reasonLength") == reason.count)
+        let digest = try #require(detailString(record, "reasonDigest"))
+        #expect(digest == AuditRedaction.digest(reason))
+        #expect(digest.range(of: "^[0-9a-f]{16}$", options: .regularExpression) != nil)
+
+        // And no field anywhere on the record carries a fragment of the prose.
+        let words = reason.split(separator: " ").filter { $0.count > 3 }
+        let encoded = AuditLineEncoder.encode(record, previousHash: auditGenesisHash).line
+        for word in words {
+            #expect(encoded.contains(word) == false)
+        }
+    }
+}

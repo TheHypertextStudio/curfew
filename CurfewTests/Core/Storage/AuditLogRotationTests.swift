@@ -77,11 +77,22 @@ struct AuditLogRotationTests {
             writer.append(record(detail: ["index": .int(index)]))
         }
 
-        let rotationMarkers = AuditTestSupport.records(in: writer.activeFileURL)
-            .filter { $0["event"] as? String == "audit.rotated" }
-        let marker = try #require(rotationMarkers.first)
+        // The marker has to be the *first* line of the new segment and has to
+        // chain to the segment it rolled into. Asserting only that it exists
+        // somewhere would pass even if a rotation left an unexplained gap,
+        // which is the entire reason the marker is written.
+        let activeLines = AuditTestSupport.lines(of: writer.activeFileURL)
+        let firstLine = try #require(activeLines.first)
+        let marker = try #require(AuditTestSupport.parse(firstLine))
+        #expect(marker["event"] as? String == "audit.rotated")
         let detail = try #require(marker["detail"] as? [String: Any])
         #expect((detail["rotatedTo"] as? String)?.hasSuffix(".1.jsonl") == true)
+
+        let rotatedLines = AuditTestSupport.lines(of: writer.rotatedFileURL(index: 1))
+        let lastRotated = try #require(rotatedLines.last)
+        let priorHash = try #require(AuditLineEncoder.hash(inLine: lastRotated))
+        #expect(marker["prev"] as? String == priorHash)
+        #expect(AuditLineEncoder.verify(line: firstLine))
     }
 
     @Test("The hash chain spans a rotation, so a deleted segment shows as a break")
