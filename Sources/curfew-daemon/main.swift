@@ -150,6 +150,10 @@ private func touchDaemonHeartbeat(now: Date) {
 /// memory because a daemon that restarts must not get a fresh 30 minutes.
 /// `launchd` will happily respawn this process, so an in-memory clock would
 /// make the bound meaningless.
+///
+/// Whether a marker found here still *applies* is not decided here —
+/// `DaemonEnforcementDecision` drops one that predates the current lockout
+/// window or is dated in the future.
 private func loadDeferralStart() -> Date? {
     let url = SharedPaths.enforcementDeferralMarker
     guard fileManager.fileExists(atPath: url.path),
@@ -194,39 +198,48 @@ var breakGlassHonored = false
 let protectedWorkStore = ProtectedWorkStore()
 let breakGlassStore = BreakGlassStore()
 
+// The loop is deliberately dumb: read the world, ask
+// `DaemonEnforcementDecision`, do what it says, persist what it returns.
+// Every judgement call lives in that pure type so it can be tested, which is
+// how the stale-marker bug below was caught. Nothing here may decide anything
+// on its own — least of all whether to skip a marker write.
 while true {
     let now = Date()
     touchDaemonHeartbeat(now: now)
 
-    guard let record = loadDeadline() else {
-        // No active lockout — daemon's job is done for this window.
-        clearShadow()
-        persistDeferralStart(nil)
-        daemonLogger.info("no lockout deadline found, daemon exiting")
-        break
+    let record = loadDeadline()
+    let breakGlass = record.flatMap { deadline in
+        breakGlassStore.activeRelease(now: now, issuedAfter: deadline.lockoutStartedAt)
     }
 
-    if now >= record.scheduledUnlockAt {
-        // Window elapsed naturally. Clear shadow + exit so we don't keep
-        // a process alive past the legitimate unlock time.
-        clearShadow()
-        persistDeferralStart(nil)
-        daemonLogger.info(
-            "lockout deadline elapsed at \(record.scheduledUnlockAt, privacy: .public)"
+    let outcome = DaemonEnforcementDecision.evaluate(
+        DaemonEnforcementDecision.Input(
+            now: now,
+            deadline: record,
+            breakGlassActive: breakGlass != nil,
+            heartbeatAge: appHeartbeatAge(now: now),
+            heartbeatTimeout: appHeartbeatTimeout,
+            hasActiveProtectedWork: protectedWorkStore.hasActiveWork(now: now),
+            maximumDeferral: ProtectedWorkPolicy.loadMirror().maximumDeferral,
+            persistedDeferralStart: loadDeferralStart(),
+            shutdownAlreadyIssued: shutdownIssued
         )
-        break
-    }
+    )
 
-    // Break-glass outranks everything. It is scoped to this lockout window by
-    // `issuedAfter`, so a release from a previous night cannot disarm tonight.
-    if let release = breakGlassStore.activeRelease(
-        now: now,
-        issuedAfter: record.lockoutStartedAt
-    ) {
+    // Unconditional, including nil. A heartbeat that recovers must close its
+    // window here, or the next genuine incident in this same lockout inherits
+    // a budget that is already spent and gets no grace at all.
+    persistDeferralStart(outcome.deferralStartedAt)
+
+    switch outcome.action {
+    case .exit:
+        clearShadow()
+        daemonLogger.info("no lockout left to enforce; daemon exiting")
+
+    case .standDown:
         if !breakGlassHonored {
-            daemonLogger.notice(
-                "break-glass release \(release.id.uuidString, privacy: .public) honored; standing down"
-            )
+            let id = breakGlass?.id.uuidString ?? "unknown"
+            daemonLogger.notice("break-glass release \(id, privacy: .public) honored; standing down")
             // Cancel a shutdown this daemon may already have issued. Without
             // this the release would arrive too late to matter:
             // `/sbin/shutdown -h +1` cannot be called off from user space.
@@ -235,41 +248,29 @@ while true {
             shutdownIssued = false
             breakGlassHonored = true
         }
-        persistDeferralStart(nil)
-        // Keep looping rather than exiting. `KeepAlive.PathState` would
-        // respawn us the moment we quit — the sentinel is still there — and a
-        // process that dies and returns every ten seconds is worse company
-        // than one that sits quietly until the window ends.
-        Thread.sleep(forTimeInterval: loopInterval)
-        continue
-    }
-    breakGlassHonored = false
 
-    let age = appHeartbeatAge(now: now)
-    if age > appHeartbeatTimeout, !shutdownIssued {
-        let policy = ProtectedWorkPolicy.loadMirror()
-        var deferral = ProtectedWorkDeferral(startedAt: loadDeferralStart())
-        let decision = deferral.evaluate(
-            now: now,
-            hasActiveWork: protectedWorkStore.hasActiveWork(now: now),
-            maximumDeferral: policy.maximumDeferral
+    case .hold(let until):
+        breakGlassHonored = false
+        daemonLogger.notice(
+            "app heartbeat stale but protected work is live; holding until \(until, privacy: .public)"
         )
-        persistDeferralStart(deferral.startedAt)
 
-        switch decision {
-        case .deferred(let until):
-            daemonLogger.notice(
-                "app heartbeat stale (\(age, privacy: .public)s) but protected work is live; holding until \(until, privacy: .public)"
-            )
-        case .proceed:
-            daemonLogger.notice(
-                "app heartbeat stale (\(age, privacy: .public)s); issuing shutdown"
-            )
-            issueShutdown()
-            shutdownIssued = true
-        }
+    case .shutDown:
+        breakGlassHonored = false
+        daemonLogger.notice("app heartbeat stale during lockout; issuing shutdown")
+        issueShutdown()
+        shutdownIssued = true
+
+    case .wait:
+        breakGlassHonored = false
     }
 
+    if outcome.action == .exit {
+        break
+    }
+    // Keep looping on stand-down rather than exiting: `KeepAlive.PathState`
+    // would respawn us the moment we quit, and a process that dies and returns
+    // every ten seconds is worse company than one that sits quietly.
     Thread.sleep(forTimeInterval: loopInterval)
 }
 

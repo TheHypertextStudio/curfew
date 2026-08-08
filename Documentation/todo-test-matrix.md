@@ -109,6 +109,17 @@ only.
   - `ProtectedWorkDeferralTests/deferralIsBounded()`
   - `ProtectedWorkDeferralTests/renewalCannotReopenTheWindow()`
   - `ProtectedWorkDeferralTests/restartResumesTheWindow()`
+- `The daemon's persisted deferral window closes when the app heartbeat recovers.`
+  - `DaemonEnforcementDecisionTests/recoveryClosesTheWindowWithinOneLockout()`
+  - `DaemonEnforcementDecisionTests/freshHeartbeatWaits()`
+  - `DaemonEnforcementDecisionTests/staleMarkerFromAPreviousWindowIsIgnored()`
+  - `DaemonEnforcementDecisionTests/futureDatedMarkerIsIgnored()`
+  - `DaemonEnforcementDecisionTests/continuousIncidentIsBounded()`
+  - `DaemonEnforcementDecisionTests/restartResumesTheSameWindow()`
+  - `DaemonEnforcementDecisionTests/noProtectedWorkShutsDown()`
+  - `DaemonEnforcementDecisionTests/shutdownIsNotReissued()`
+  - `DaemonEnforcementDecisionTests/breakGlassStandsDownAndClearsTheMarker()`
+  - `DaemonEnforcementDecisionTests/exitPathsClearTheMarker()`
 - `The deferral bound cannot be configured or hand-edited away.`
   - `ProtectedWorkPolicyTests/deferralIsClampedOnConstruction()`
   - `ProtectedWorkPolicyTests/decodingClampsDeferral()`

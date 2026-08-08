@@ -10,7 +10,7 @@ private let lockoutDeadlineLogger = Logger(
 /// metadata that the lockout screen, activity log, and any future
 /// remote-state surface can describe *why* the device is held without
 /// having to inspect the schedule that produced the original lock.
-public enum LockoutKind: String, Codable, Equatable {
+public enum LockoutKind: String, Codable, Equatable, Sendable {
     /// Wall-clock schedule fired (`.time` mode or `.combined` with the
     /// time deadline winning).
     case scheduledTime = "scheduled_time"
@@ -34,7 +34,7 @@ public enum LockoutKind: String, Codable, Equatable {
 /// is no easier than killing the app process — once the privileged
 /// daemon's enforcement landing zone is implemented (C3/C4), the daemon
 /// owns the file and the user no longer needs to read it.
-public struct LockoutDeadlineRecord: Codable, Equatable {
+public struct LockoutDeadlineRecord: Codable, Equatable, Sendable {
     /// Moment the lockout window opened. Carried for activity-log
     /// attribution; not used in apply-time decisions.
     public var lockoutStartedAt: Date

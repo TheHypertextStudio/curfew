@@ -103,6 +103,40 @@ The daemon persists the window's start to
 will happily respawn the daemon, so an in-memory clock would make the bound
 meaningless — restart the process, get a fresh 30 minutes.
 
+### The marker invariant
+
+A persisted window is dangerous in the other direction too, and the first cut
+of this branch got it wrong. Two rules now govern the marker, both enforced in
+`DaemonEnforcementDecision`:
+
+1. **The marker mirrors the in-memory window after every tick, `nil`
+   included.** A window is open only while a shutdown is *actually due* — that
+   is, while the heartbeat is stale *and* protected work is live. The gate is
+   fed `isShutdownDue && hasActiveProtectedWork`, so a recovered heartbeat
+   closes the window as a consequence of the invariant rather than as a special
+   case, and the caller writes that `nil` straight through.
+
+   Without it: the app blips out (crash and relaunch, or sleep/wake) while an
+   agent is working, a window opens, the app recovers, and the marker is left
+   behind. Later in the *same* lockout the app goes stale again for real. The
+   daemon reads the old start, sees a budget spent an hour ago, and fires
+   `/sbin/shutdown -h +1` on the first tick with no grace at all — killing the
+   live agent work this whole branch exists to protect.
+
+2. **A marker that predates the current `lockoutStartedAt` is ignored**, as is
+   one dated in the future. The marker is root-owned and outlives the daemon:
+   `launchctl bootout`, a panic, or a power cut all leave it on disk. Tuesday's
+   marker would otherwise hand Wednesday's first genuine incident a budget that
+   expired a day ago. This is the same scoping rule break-glass records already
+   follow.
+
+The daemon's whole decision now lives in
+`Sources/CurfewKit/Domain/DaemonEnforcementDecision.swift` as a pure function
+returning `(action, deferralStartedAt)`. `main.swift` reads files, calls it,
+does what it says, and writes the marker unconditionally. It was a bare
+`while true` loop with no test seam before, which is exactly how rule 1 came to
+be missing.
+
 ## Break-glass
 
 ### Why it has to exist
