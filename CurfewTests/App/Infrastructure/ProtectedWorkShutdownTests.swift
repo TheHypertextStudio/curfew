@@ -27,9 +27,11 @@ struct ProtectedWorkShutdownTests {
             delayMinutes: 10,
             controller: controller,
             isActiveDevice: true,
-            protectedWork: policy,
-            hasActiveProtectedWork: hasActiveProtectedWork,
-            isBreakGlassActive: isBreakGlassActive
+            context: ProtectedWorkContext(
+                policy: policy,
+                hasActiveWork: hasActiveProtectedWork,
+                isBreakGlassActive: isBreakGlassActive
+            )
         )
     }
 

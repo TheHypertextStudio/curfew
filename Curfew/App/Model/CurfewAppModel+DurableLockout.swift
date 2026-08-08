@@ -89,8 +89,8 @@ extension CurfewAppModel {
         // A break-glass release covers one window only. Clearing it here — at
         // the same moment the deadline goes away — is what stops tonight's
         // emergency from silently disarming tomorrow's curfew.
-        breakGlassStore.clear()
-        try? protectedWorkStore.clear()
+        protectedWork.breakGlass.clear()
+        try? protectedWork.claims.clear()
     }
 
     /// Overrides the engine's evaluation back to `.locked` when the

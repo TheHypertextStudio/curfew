@@ -233,6 +233,53 @@ question moved into one type.
 scenario through both paths tick by tick and asserts the verdicts are equal, so
 the next divergence fails there rather than at 22:00 on someone's Mac.
 
+## Cancelling a shutdown already in flight
+
+`/sbin/shutdown -h +1` executes about a minute after it is issued, so
+"the daemon decided not to shut down" and "the machine will not shut down" are
+different statements for sixty seconds. A protected-work claim arriving on a
+tick inside that minute has to *call the countdown off*, not merely be noted.
+
+Which actions cancel is carried on the decision's outcome
+(`cancelsPendingShutdown`) rather than inferred by the code that acts on it,
+because inferring it is exactly where this went wrong — `.hold` decided to wait
+and then only logged, and the machine powered off with the work anyway.
+
+- `.hold` and `.standDown` cancel. Something is telling the daemon not to
+  destroy the user's work, and a countdown already running would destroy it.
+- `.exit` cancels. The lockout window is over, so powering the Mac off after a
+  legitimate unlock is pure harm, and the bypass it buys is the seconds the
+  countdown had left.
+- `.wait` does **not**. Its main cause is the app heartbeat recovering, and
+  cancelling there would price the bypass at nothing: kill Curfew, enjoy an
+  unlocked screen, relaunch inside the minute, walk away without consequence.
+  The daemon's whole deterrent is that going missing during lockout costs you
+  the machine.
+
+Cancelling also resets `shutdownIssued`, so the reprieve is genuinely a
+reprieve: if the work never finishes, the bound expires and the daemon fires
+again.
+
+## Where the bugs were, and what changed about that
+
+All three findings across three review rounds were in imperative shell code
+that no test could reach, while the pure decision beside it was well covered.
+The daemon now has two testable halves and no third place to hide:
+
+- `DaemonEnforcementDecision.evaluate` — what to do, as a pure function.
+- `DaemonEnforcementRuntime.apply` — carrying it out, against a
+  `DaemonEnforcementEffects` protocol that tests replace with a recorder.
+
+`Sources/curfew-daemon/main.swift` reads files, calls those two, and logs. It
+decides nothing and touches the machine only through `effects`.
+
+The app half got the same treatment: `CurfewAppModel.protectedWorkContext()`
+assembles the carve-out's three inputs in one named function, and
+`ShutdownWorkflow.update` takes that context as a single value rather than
+three loose booleans that could be transposed.
+`CurfewTests/App/Model/ProtectedWorkWiringTests.swift` drives the model itself
+rather than calling `update` with hand-supplied arguments.
+
 ## A bug this uncovered
 
 The daemon runs as root, where `NSHomeDirectory()` answers `/var/root`. Every

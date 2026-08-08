@@ -204,3 +204,26 @@ public struct ProtectedWorkStore {
         )
     }
 }
+
+/// The two files the enforcement paths read to decide whether destroying the
+/// user's background work is safe right now.
+///
+/// Bundled so the app can hold one injectable value instead of two, which is
+/// what lets a wiring test point the whole carve-out at a temporary directory
+/// and assert that settings, live claims, and the emergency release actually
+/// reach the shutdown workflow.
+public struct ProtectedWorkStores {
+    /// Live protected-work leases.
+    public var claims: ProtectedWorkStore
+
+    /// The emergency release record.
+    public var breakGlass: BreakGlassStore
+
+    public init(
+        claims: ProtectedWorkStore = ProtectedWorkStore(),
+        breakGlass: BreakGlassStore = BreakGlassStore()
+    ) {
+        self.claims = claims
+        self.breakGlass = breakGlass
+    }
+}

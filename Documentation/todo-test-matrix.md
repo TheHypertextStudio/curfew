@@ -155,6 +155,22 @@ only.
   - `ProtectedWorkShutdownTests/revokeRestoresTheFullDeferralBudget()`
   - `DaemonEnforcementDecisionTests/revokeReArmsTheDaemon()`
   - `DaemonEnforcementDecisionTests/revokeRestoresTheFullDeferralBudget()`
+- `A shutdown already in flight is cancelled when protected work arrives.`
+  - `DaemonEnforcementRuntimeTests/holdCancelsAShutdownAlreadyInFlight()`
+  - `DaemonEnforcementRuntimeTests/cancellationDoesNotDisarmEnforcement()`
+  - `DaemonEnforcementRuntimeTests/standDownCancels()`
+  - `DaemonEnforcementRuntimeTests/exitCancels()`
+  - `DaemonEnforcementRuntimeTests/recoveryDoesNotCancel()`
+  - `DaemonEnforcementRuntimeTests/markerIsAlwaysWritten()`
+  - `DaemonEnforcementRuntimeTests/standDownLogsOnTheTransition()`
+  - `DaemonEnforcementRuntimeTests/exitClearsTheShadow()`
+  - `DaemonEnforcementRuntimeTests/shutdownIsNotReissued()`
+- `The app model actually feeds the shutdown workflow the carve-out's inputs.`
+  - `ProtectedWorkWiringTests/policyReachesTheContext()`
+  - `ProtectedWorkWiringTests/liveClaimReachesTheContext()`
+  - `ProtectedWorkWiringTests/breakGlassReachesTheContext()`
+  - `ProtectedWorkWiringTests/staleReleaseIsScopedOut()`
+  - `ProtectedWorkWiringTests/naturalUnlockClearsCarveOutState()`
 - `The app and the privileged daemon reach the same verdict on every tick.`
   - `EnforcementParityTests/revokeParity()`
   - `EnforcementParityTests/revokeWithLiveWorkParity()`

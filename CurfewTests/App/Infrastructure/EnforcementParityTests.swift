@@ -50,9 +50,11 @@ struct EnforcementParityTests {
                 delayMinutes: 10,
                 controller: controller,
                 isActiveDevice: true,
-                protectedWork: .default,
-                hasActiveProtectedWork: hasWork,
-                isBreakGlassActive: breakGlass
+                context: ProtectedWorkContext(
+                    policy: .default,
+                    hasActiveWork: hasWork,
+                    isBreakGlassActive: breakGlass
+                )
             )
             return controller.callLog.count > before ? .acted : .heldOff
         }

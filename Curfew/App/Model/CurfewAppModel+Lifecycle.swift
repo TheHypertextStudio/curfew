@@ -11,6 +11,10 @@ import WidgetKit
 /// has one obvious file to open.
 @MainActor
 extension CurfewAppModel {
+    /// How many seconds of activity log to keep. Matches the 52-week rolling
+    /// retention promise in PRIVACY.md.
+    static let activityRetentionSeconds: TimeInterval = 52 * 7 * 24 * 60 * 60
+
     /// One enforcement cycle. Invoked by the 1 Hz timer and opportunistically
     /// after user actions that should take effect immediately (extension
     /// grant, override confirm, schedule swap).
@@ -306,9 +310,7 @@ extension CurfewAppModel {
             delayMinutes: settings.autoShutdownDelayMinutes,
             controller: shutdownController,
             isActiveDevice: isActiveDevice,
-            protectedWork: settings.protectedWork,
-            hasActiveProtectedWork: protectedWorkStore.hasActiveWork(now: currentTime),
-            isBreakGlassActive: isBreakGlassActive()
+            context: protectedWorkContext()
         )
         shutdownStatusLine = shutdownWorkflow.statusLine(now: currentTime)
     }

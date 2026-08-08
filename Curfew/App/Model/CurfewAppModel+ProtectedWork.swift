@@ -10,25 +10,22 @@ private let protectedWorkLogger = Logger(
 /// honoring a break-glass release, and publishing the policy where the root
 /// daemon can see it.
 ///
-/// Both stores are computed rather than stored because they are tiny value
-/// types wrapping a URL, and because `CurfewAppModel` is already at its
-/// file-length budget. Constructing one per read costs nothing measurable next
-/// to the file access it is about to do.
-///
 /// Design notes and the break-glass runbook live in
 /// `Documentation/protected-work.md`.
 @MainActor
 extension CurfewAppModel {
-    /// Live protected-work leases, read every tick so the shutdown workflow
-    /// can hold off while a background agent is mid-task.
-    var protectedWorkStore: ProtectedWorkStore {
-        ProtectedWorkStore()
-    }
-
-    /// Emergency release record, read every tick so a break-glass issued from
-    /// a terminal takes effect without the app being touched.
-    var breakGlassStore: BreakGlassStore {
-        BreakGlassStore()
+    /// The carve-out's three inputs, read fresh every tick.
+    ///
+    /// This is the glue the shutdown workflow runs on, so it is a named
+    /// function rather than three arguments inlined at the call site: a
+    /// wiring test can assert that the user's policy, the live claims file,
+    /// and the emergency release all actually arrive.
+    func protectedWorkContext() -> ProtectedWorkContext {
+        ProtectedWorkContext(
+            policy: settings.protectedWork,
+            hasActiveWork: protectedWork.claims.hasActiveWork(now: currentTime),
+            isBreakGlassActive: isBreakGlassActive()
+        )
     }
 
     /// Whether a verified emergency release covers the lockout window in
@@ -38,7 +35,7 @@ extension CurfewAppModel {
     /// `lockoutStartedAt`: a release issued during last night's incident must
     /// not stand tonight's enforcement down.
     func isBreakGlassActive() -> Bool {
-        breakGlassStore.activeRelease(
+        protectedWork.breakGlass.activeRelease(
             now: currentTime,
             issuedAfter: lockoutDeadlineStore.load()?.lockoutStartedAt
         ) != nil

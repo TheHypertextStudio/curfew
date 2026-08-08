@@ -225,10 +225,6 @@ final class CurfewAppModel: NSObject, ObservableObject {
     /// Pro-gated module reconciliation when `licenseGate.activatedKey` flips.
     var cancellables = Set<AnyCancellable>()
 
-    /// How many seconds of activity log to keep. Matches the 52-week rolling
-    /// retention promise in PRIVACY.md.
-    static let activityRetentionSeconds: TimeInterval = 52 * 7 * 24 * 60 * 60
-
     /// When non-nil, "Convince Me" override is active until this date —
     /// the engine continues returning `.working` until `now >= overrideUntil`.
     var overrideUntil: Date?
@@ -236,6 +232,9 @@ final class CurfewAppModel: NSObject, ObservableObject {
     /// Value-typed state machine driving auto-shutdown after lockout begins.
     /// See ``ShutdownWorkflow``.
     var shutdownWorkflow = ShutdownWorkflow()
+
+    /// Protected-work leases + break-glass record; replaced in wiring tests.
+    var protectedWork = ProtectedWorkStores()
 
     /// The event identifier of the calendar event for which we've already
     /// delivered a "meeting near curfew" extension prompt today. Reset to

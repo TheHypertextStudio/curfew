@@ -80,7 +80,8 @@ public enum DaemonEnforcementDecision {
         }
     }
 
-    /// What to do, and what the marker must say afterwards.
+    /// What to do, what the marker must say afterwards, and whether a
+    /// shutdown already in flight has to be called off.
     public struct Outcome: Equatable, Sendable {
         /// The action to take.
         public let action: Action
@@ -89,20 +90,35 @@ public enum DaemonEnforcementDecision {
         /// what keeps a recovered heartbeat from leaving a spent window
         /// behind.
         public let deferralStartedAt: Date?
+        /// Whether the caller must kill a `/sbin/shutdown` this daemon already
+        /// issued.
+        ///
+        /// Carried on the outcome rather than inferred by the caller because
+        /// inferring it is where this went wrong: `.hold` used to only log,
+        /// so a claim arriving inside the shutdown's one-minute delay was
+        /// honored by the decision and ignored by the machine, which powered
+        /// off anyway. Deciding to wait and forgetting to call off the wait
+        /// are now the same fact.
+        public let cancelsPendingShutdown: Bool
 
-        public init(action: Action, deferralStartedAt: Date?) {
+        public init(
+            action: Action,
+            deferralStartedAt: Date?,
+            cancelsPendingShutdown: Bool = false
+        ) {
             self.action = action
             self.deferralStartedAt = deferralStartedAt
+            self.cancelsPendingShutdown = cancelsPendingShutdown
         }
     }
 
     /// Decides this tick.
     public static func evaluate(_ input: Input) -> Outcome {
         guard let deadline = input.deadline else {
-            return Outcome(action: .exit, deferralStartedAt: nil)
+            return finish(.exit, startedAt: nil, input: input)
         }
         guard input.now < deadline.scheduledUnlockAt else {
-            return Outcome(action: .exit, deferralStartedAt: nil)
+            return finish(.exit, startedAt: nil, input: input)
         }
 
         let isShutdownDue = input.heartbeatAge > input.heartbeatTimeout
@@ -122,16 +138,58 @@ public enum DaemonEnforcementDecision {
             maximumDeferral: input.maximumDeferral
         )
 
+        let started = gate.deferralStartedAt
         switch decision {
         case .standDown:
-            return Outcome(action: .standDown, deferralStartedAt: gate.deferralStartedAt)
+            return finish(.standDown, startedAt: started, input: input)
         case .hold(let until):
-            return Outcome(action: .hold(until: until), deferralStartedAt: gate.deferralStartedAt)
+            return finish(.hold(until: until), startedAt: started, input: input)
         case .proceed:
             guard isShutdownDue, !input.shutdownAlreadyIssued else {
-                return Outcome(action: .wait, deferralStartedAt: gate.deferralStartedAt)
+                return finish(.wait, startedAt: started, input: input)
             }
-            return Outcome(action: .shutDown, deferralStartedAt: gate.deferralStartedAt)
+            return finish(.shutDown, startedAt: started, input: input)
+        }
+    }
+
+    /// Packages an action with the marker value and the cancellation flag, so
+    /// every return path answers the cancellation question rather than only
+    /// the ones whose author remembered it.
+    private static func finish(
+        _ action: Action,
+        startedAt: Date?,
+        input: Input
+    ) -> Outcome {
+        Outcome(
+            action: action,
+            deferralStartedAt: startedAt,
+            cancelsPendingShutdown: cancelsPendingShutdown(action, input: input)
+        )
+    }
+
+    /// Whether a shutdown already in flight must be called off.
+    ///
+    /// `.hold` and `.standDown` cancel for the obvious reason: something is
+    /// telling the daemon not to destroy the user's work, and a countdown
+    /// already running would destroy it anyway. `.exit` cancels because the
+    /// lockout window is over — powering the Mac off after a legitimate unlock
+    /// is pure harm, and the bypass it buys is the sixty seconds the shutdown
+    /// had left.
+    ///
+    /// `.wait` deliberately does not. Its main cause is the app heartbeat
+    /// recovering, and cancelling there would price the bypass at nothing:
+    /// kill Curfew, enjoy an unlocked screen, relaunch inside the minute, walk
+    /// away with no consequence. The daemon's whole deterrent is that going
+    /// missing during lockout costs you the machine.
+    private static func cancelsPendingShutdown(_ action: Action, input: Input) -> Bool {
+        guard input.shutdownAlreadyIssued else {
+            return false
+        }
+        switch action {
+        case .exit, .standDown, .hold:
+            return true
+        case .shutDown, .wait:
+            return false
         }
     }
 

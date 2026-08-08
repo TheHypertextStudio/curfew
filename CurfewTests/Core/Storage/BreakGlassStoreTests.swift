@@ -89,14 +89,16 @@ struct BreakGlassStoreTests {
         let (store, directory) = makeStore()
         defer { try? FileManager.default.removeItem(at: directory) }
 
-        let lastNight = Date()
-        try store.issue(reason: goodReason, issuedBy: "willie@mac", now: lastNight)
+        // Two hours, not twenty: the record must still be inside
+        // `defaultValidity`, or this would pass on the aging rule alone and
+        // prove nothing about window scoping.
+        let earlierWindow = Date()
+        try store.issue(reason: goodReason, issuedBy: "willie@mac", now: earlierWindow)
 
-        let tonightStarted = lastNight.addingTimeInterval(20 * 60 * 60)
-        #expect(store.activeRelease(
-            now: tonightStarted.addingTimeInterval(60),
-            issuedAfter: tonightStarted
-        ) == nil)
+        let tonightStarted = earlierWindow.addingTimeInterval(2 * 60 * 60)
+        let now = tonightStarted.addingTimeInterval(60)
+        #expect(store.activeRelease(now: now) != nil)
+        #expect(store.activeRelease(now: now, issuedAfter: tonightStarted) == nil)
     }
 
     @Test("A forgotten release ages out even with no window to compare against")

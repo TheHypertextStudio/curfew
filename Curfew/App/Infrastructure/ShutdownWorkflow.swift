@@ -204,12 +204,10 @@ struct ShutdownWorkflow: Equatable {
     ///     first shutdown attempt. Clamped to a minimum of 1 minute.
     ///   - controller: injection point for graceful-terminate + shutdown.
     ///   - isActiveDevice: whether the user is present at this Mac.
-    ///   - protectedWork: allowlist + deferral bound. Passed through to the
-    ///     controller so the terminate sweep skips protected apps, and used
-    ///     to bound how long a live claim may hold the attempt back.
-    ///   - hasActiveProtectedWork: whether any unexpired claim exists.
-    ///   - isBreakGlassActive: whether a verified emergency release covers
-    ///     this lockout window.
+    ///   - context: the carve-out's three inputs, assembled by
+    ///     `CurfewAppModel.protectedWorkContext()`. Passed as one value rather
+    ///     than three loose parameters so the glue that fills it in can be
+    ///     tested on its own and cannot transpose two booleans.
     mutating func update(
         now: Date,
         isLocked: Bool,
@@ -217,21 +215,13 @@ struct ShutdownWorkflow: Equatable {
         delayMinutes: Int,
         controller: ShutdownControlling,
         isActiveDevice: Bool = true,
-        protectedWork: ProtectedWorkPolicy = .default,
-        hasActiveProtectedWork: Bool = false,
-        isBreakGlassActive: Bool = false
+        context: ProtectedWorkContext = ProtectedWorkContext()
     ) {
         guard isLocked, isEnabled else {
             phase = .idle
             gate = DestructiveActionGate()
             return
         }
-
-        let context = ProtectedWorkContext(
-            policy: protectedWork,
-            hasActiveWork: hasActiveProtectedWork,
-            isBreakGlassActive: isBreakGlassActive
-        )
 
         switch phase {
         case .idle:

@@ -110,7 +110,7 @@ private func appHeartbeatAge(now: Date) -> TimeInterval {
 /// makes `killall Curfew` a trap rather than an escape. The break-glass path
 /// in `curfew-ctl` is the documented way back out; see
 /// `Documentation/protected-work.md`.
-private func issueShutdown() {
+private func runShutdown() {
     let process = Process()
     process.executableURL = URL(fileURLWithPath: "/sbin/shutdown")
     process.arguments = ["-h", "+1", "Curfew enforcement: app process missing during lockout."]
@@ -164,7 +164,7 @@ private func loadDeferralStart() -> Date? {
     return ISO8601DateFormatter().date(from: text.trimmingCharacters(in: .whitespacesAndNewlines))
 }
 
-private func persistDeferralStart(_ start: Date?) {
+private func writeDeferralStart(_ start: Date?) {
     let url = SharedPaths.enforcementDeferralMarker
     guard let start else {
         try? fileManager.removeItem(at: url)
@@ -184,25 +184,50 @@ private func persistDeferralStart(_ start: Date?) {
     }
 }
 
+// MARK: - Effects
+
+/// The real machine. Every branch that used to be inline in the loop below now
+/// lives behind `DaemonEnforcementEffects`, so `DaemonEnforcementRuntime` can
+/// be driven by a recording spy in tests.
+private final class SystemDaemonEffects: DaemonEnforcementEffects {
+    private let canceller: any PendingShutdownCanceling
+
+    init(canceller: any PendingShutdownCanceling = SystemShutdownCanceller()) {
+        self.canceller = canceller
+    }
+
+    func persistDeferralStart(_ start: Date?) {
+        writeDeferralStart(start)
+    }
+
+    func cancelPendingShutdown() {
+        // `/sbin/shutdown -h +1` cannot be called off from user space, which
+        // is exactly why the daemon has to do it on the user's behalf.
+        canceller.cancelPendingShutdown()
+    }
+
+    func issueShutdown() {
+        runShutdown()
+    }
+
+    func clearDeadlineShadow() {
+        clearShadow()
+    }
+}
+
 daemonLogger.info("curfew-daemon launched")
 
-/// True once the daemon has issued a shutdown for the current lockout
-/// window. Set so the daemon doesn't fire the shutdown command twice
-/// while `/sbin/shutdown -h +1` is honoring its one-minute delay.
-var shutdownIssued = false
+private let protectedWorkStore = ProtectedWorkStore()
+private let breakGlassStore = BreakGlassStore()
+private let effects = SystemDaemonEffects()
+var runtime = DaemonEnforcementRuntime()
 
-/// True while a break-glass release is being honored, so the daemon logs and
-/// cancels once rather than on every fifteen-second pass.
-var breakGlassHonored = false
-
-let protectedWorkStore = ProtectedWorkStore()
-let breakGlassStore = BreakGlassStore()
-
-// The loop is deliberately dumb: read the world, ask
-// `DaemonEnforcementDecision`, do what it says, persist what it returns.
-// Every judgement call lives in that pure type so it can be tested, which is
-// how the stale-marker bug below was caught. Nothing here may decide anything
-// on its own — least of all whether to skip a marker write.
+// Read the world, ask, apply, log, sleep. Nothing in this loop decides
+// anything and nothing in it touches the machine directly — every judgement
+// is `DaemonEnforcementDecision` and every side effect is
+// `DaemonEnforcementRuntime` plus `effects`. Three review rounds found three
+// bugs on this branch and all three were in loop code shaped like this one
+// used to be, so keep it boring.
 while true {
     let now = Date()
     touchDaemonHeartbeat(now: now)
@@ -222,50 +247,27 @@ while true {
             hasActiveProtectedWork: protectedWorkStore.hasActiveWork(now: now),
             maximumDeferral: ProtectedWorkPolicy.loadMirror().maximumDeferral,
             persistedDeferralStart: loadDeferralStart(),
-            shutdownAlreadyIssued: shutdownIssued
+            shutdownAlreadyIssued: runtime.shutdownIssued
         )
     )
 
-    // Unconditional, including nil. A heartbeat that recovers must close its
-    // window here, or the next genuine incident in this same lockout inherits
-    // a budget that is already spent and gets no grace at all.
-    persistDeferralStart(outcome.deferralStartedAt)
-
-    switch outcome.action {
-    case .exit:
-        clearShadow()
+    switch runtime.apply(outcome, effects: effects) {
+    case .exiting:
         daemonLogger.info("no lockout left to enforce; daemon exiting")
-
-    case .standDown:
-        if !breakGlassHonored {
-            let id = breakGlass?.id.uuidString ?? "unknown"
-            daemonLogger.notice("break-glass release \(id, privacy: .public) honored; standing down")
-            // Cancel a shutdown this daemon may already have issued. Without
-            // this the release would arrive too late to matter:
-            // `/sbin/shutdown -h +1` cannot be called off from user space.
-            SystemShutdownCanceller().cancelPendingShutdown()
-            // Re-arm, so revoking the release mid-window puts enforcement back.
-            shutdownIssued = false
-            breakGlassHonored = true
-        }
-
-    case .hold(let until):
-        breakGlassHonored = false
+    case .standingDown:
+        let id = breakGlass?.id.uuidString ?? "unknown"
+        daemonLogger.notice("break-glass release \(id, privacy: .public) honored; standing down")
+    case .holding(let until):
         daemonLogger.notice(
-            "app heartbeat stale but protected work is live; holding until \(until, privacy: .public)"
+            "shutdown due but protected work is live; holding until \(until, privacy: .public)"
         )
-
-    case .shutDown:
-        breakGlassHonored = false
-        daemonLogger.notice("app heartbeat stale during lockout; issuing shutdown")
-        issueShutdown()
-        shutdownIssued = true
-
-    case .wait:
-        breakGlassHonored = false
+    case .issuedShutdown:
+        daemonLogger.notice("app heartbeat stale during lockout; issued shutdown")
+    case .idle:
+        break
     }
 
-    if outcome.action == .exit {
+    if runtime.shouldExit {
         break
     }
     // Keep looping on stand-down rather than exiting: `KeepAlive.PathState`
