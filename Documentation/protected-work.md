@@ -194,7 +194,8 @@ curfew-ctl break-glass --reason "debugging enforcement on this machine"
 # See what would happen first.
 curfew-ctl break-glass --reason "…" --dry-run
 
-# Re-arm before the window ends.
+# Re-arm before the window ends. Both the app and the daemon re-read the
+# record every tick, so this restores enforcement on both within one tick.
 curfew-ctl break-glass --revoke --reason "done"
 ```
 
@@ -204,6 +205,33 @@ than failing quietly, and the countdown keeps running.
 
 The release is cleared automatically when the lockout window ends naturally, in
 `clearDurableDeadlineIfNaturalUnlock()`.
+
+A release is a *hold*, never an ending. Both paths re-read it on every pass, so
+revoking one re-arms both: the app's `ShutdownWorkflow` leaves
+`.releasedByBreakGlass` and attempts the shutdown again, and the daemon resets
+`shutdownIssued` and fires on its next stale-heartbeat tick. Revoking also hands
+protected work a full grace window rather than a spent one, because standing
+down clears the deferral window on the way in.
+
+## One gate, both paths
+
+`DestructiveActionGate` in `Sources/CurfewKit/Domain/DestructiveActionGate.swift`
+owns the entire "may I destroy the user's work right now?" question —
+break-glass, protected work, and the bounded window together. The app's
+`ShutdownWorkflow.attemptOrHold` and the daemon's
+`DaemonEnforcementDecision.evaluate` both call it and neither decides anything
+on its own.
+
+Sharing a *helper* was not enough. An earlier cut had both paths consulting
+`ProtectedWorkDeferral` and they still drifted, because the app treated a
+break-glass release as terminal for the rest of the window while the daemon
+re-read it every tick: revoking re-armed the daemon and left the app stood down
+for the night. The answers matched until the question changed, so the whole
+question moved into one type.
+
+`CurfewTests/App/Infrastructure/EnforcementParityTests.swift` runs the same
+scenario through both paths tick by tick and asserts the verdicts are equal, so
+the next divergence fails there rather than at 22:00 on someone's Mac.
 
 ## A bug this uncovered
 

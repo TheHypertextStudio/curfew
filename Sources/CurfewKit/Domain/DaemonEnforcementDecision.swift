@@ -104,33 +104,34 @@ public enum DaemonEnforcementDecision {
         guard input.now < deadline.scheduledUnlockAt else {
             return Outcome(action: .exit, deferralStartedAt: nil)
         }
-        guard !input.breakGlassActive else {
-            return Outcome(action: .standDown, deferralStartedAt: nil)
-        }
 
         let isShutdownDue = input.heartbeatAge > input.heartbeatTimeout
 
-        var deferral = ProtectedWorkDeferral(
-            startedAt: carriedWindowStart(input, lockoutStartedAt: deadline.lockoutStartedAt)
+        // Break-glass, protected work, and the bounded window are all decided
+        // by `DestructiveActionGate`, which the app's `ShutdownWorkflow` also
+        // consults. Nothing about "may I act?" is decided here — that is the
+        // only way the two processes stay in step.
+        var gate = DestructiveActionGate(
+            deferralStartedAt: carriedWindowStart(input, lockoutStartedAt: deadline.lockoutStartedAt)
         )
-        // The conjunction is the whole fix. A window is open only while a
-        // shutdown is actually due; the moment the heartbeat recovers there is
-        // nothing to defer, `ProtectedWorkDeferral` clears its own start, and
-        // the caller writes that `nil` straight through to the marker.
-        let decision = deferral.evaluate(
+        let decision = gate.evaluate(
             now: input.now,
-            hasActiveWork: isShutdownDue && input.hasActiveProtectedWork,
+            isDue: isShutdownDue,
+            isBreakGlassActive: input.breakGlassActive,
+            hasActiveProtectedWork: input.hasActiveProtectedWork,
             maximumDeferral: input.maximumDeferral
         )
 
         switch decision {
-        case .deferred(let until):
-            return Outcome(action: .hold(until: until), deferralStartedAt: deferral.startedAt)
+        case .standDown:
+            return Outcome(action: .standDown, deferralStartedAt: gate.deferralStartedAt)
+        case .hold(let until):
+            return Outcome(action: .hold(until: until), deferralStartedAt: gate.deferralStartedAt)
         case .proceed:
             guard isShutdownDue, !input.shutdownAlreadyIssued else {
-                return Outcome(action: .wait, deferralStartedAt: deferral.startedAt)
+                return Outcome(action: .wait, deferralStartedAt: gate.deferralStartedAt)
             }
-            return Outcome(action: .shutDown, deferralStartedAt: deferral.startedAt)
+            return Outcome(action: .shutDown, deferralStartedAt: gate.deferralStartedAt)
         }
     }
 

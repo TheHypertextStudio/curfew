@@ -108,8 +108,27 @@ struct ProtectedWorkShutdownTests {
         #expect(workflow.phase == .completed)
     }
 
-    @Test("Break-glass stands auto-shutdown down for the rest of the window")
+    @Test("Break-glass holds auto-shutdown down for as long as it is in force")
     func breakGlassReleasesTheWorkflow() {
+        var workflow = ShutdownWorkflow()
+        let controller = ShutdownControllerSpy(results: [true])
+        let start = Date()
+
+        fire(&workflow, at: start, controller: controller)
+        for offset in [600.0, 900.0, 1200.0] {
+            fire(
+                &workflow,
+                at: start.addingTimeInterval(offset),
+                controller: controller,
+                isBreakGlassActive: true
+            )
+            #expect(workflow.phase == .releasedByBreakGlass)
+            #expect(controller.callLog.isEmpty)
+        }
+    }
+
+    @Test("Revoking the release re-arms the workflow, as it re-arms the daemon")
+    func breakGlassRevokeReArmsTheWorkflow() {
         var workflow = ShutdownWorkflow()
         let controller = ShutdownControllerSpy(results: [true])
         let start = Date()
@@ -121,14 +140,41 @@ struct ProtectedWorkShutdownTests {
             controller: controller,
             isBreakGlassActive: true
         )
-
         #expect(workflow.phase == .releasedByBreakGlass)
-        #expect(controller.callLog.isEmpty)
 
-        // Terminal: a later tick without the release still does not shut down,
-        // because the window is what was released, not the instant.
-        fire(&workflow, at: start.addingTimeInterval(1200), controller: controller)
+        // `curfew-ctl break-glass --revoke` removes the record. The next tick
+        // sees no release and must act — the daemon does, and an app that
+        // stayed released would leave the two enforcing different rules.
+        fire(&workflow, at: start.addingTimeInterval(660), controller: controller)
+        #expect(workflow.phase == .completed)
+        #expect(controller.callLog == ["graceful", "shutdown"])
+    }
+
+    @Test("Revoking hands protected work a full grace window, not a spent one")
+    func revokeRestoresTheFullDeferralBudget() {
+        var workflow = ShutdownWorkflow()
+        let controller = ShutdownControllerSpy(results: [true])
+        let start = Date()
+        let due = start.addingTimeInterval(600)
+        let bound = TimeInterval(ProtectedWorkPolicy.default.maximumDeferralMinutes * 60)
+
+        fire(&workflow, at: start, controller: controller)
+        // Work is live and a release is in force; the release wins and no
+        // deferral window opens underneath it.
+        fire(
+            &workflow,
+            at: due,
+            controller: controller,
+            hasActiveProtectedWork: true,
+            isBreakGlassActive: true
+        )
         #expect(workflow.phase == .releasedByBreakGlass)
+
+        // Revoked well past what would have been the deferral deadline. Work
+        // is still live, so it gets its own budget measured from now.
+        let revoked = due.addingTimeInterval(bound + 600)
+        fire(&workflow, at: revoked, controller: controller, hasActiveProtectedWork: true)
+        #expect(workflow.phase == .deferred(until: revoked.addingTimeInterval(bound)))
         #expect(controller.callLog.isEmpty)
     }
 

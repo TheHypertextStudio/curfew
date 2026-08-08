@@ -193,6 +193,39 @@ struct DaemonEnforcementDecisionTests {
         #expect(outcome.deferralStartedAt == nil)
     }
 
+    @Test("Revoking the release re-arms the daemon on the next tick")
+    func revokeReArmsTheDaemon() {
+        var marker: Date?
+        let incident = lockoutStart.addingTimeInterval(300)
+
+        var outcome = tick(at: incident, heartbeatAge: 120, hasWork: false, breakGlass: true)
+        marker = outcome.deferralStartedAt
+        #expect(outcome.action == .standDown)
+
+        outcome = tick(
+            at: incident.addingTimeInterval(60),
+            heartbeatAge: 120,
+            hasWork: false,
+            marker: marker
+        )
+        #expect(outcome.action == .shutDown)
+    }
+
+    @Test("Revoking hands protected work a full grace window, not a spent one")
+    func revokeRestoresTheFullDeferralBudget() {
+        var marker: Date?
+        let released = lockoutStart.addingTimeInterval(300)
+
+        var outcome = tick(at: released, heartbeatAge: 120, marker: marker, breakGlass: true)
+        marker = outcome.deferralStartedAt
+        #expect(outcome.action == .standDown)
+        #expect(marker == nil)
+
+        let revoked = released.addingTimeInterval(bound + 600)
+        outcome = tick(at: revoked, heartbeatAge: 120, marker: marker)
+        #expect(outcome.action == .hold(until: revoked.addingTimeInterval(bound)))
+    }
+
     @Test("No deadline, or an elapsed one, exits and clears the window")
     func exitPathsClearTheMarker() {
         let noDeadline = DaemonEnforcementDecision.evaluate(

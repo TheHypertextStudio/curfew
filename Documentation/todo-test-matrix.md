@@ -150,6 +150,17 @@ only.
   - `BreakGlassStoreTests/clearRemovesTheRelease()`
   - `ProtectedWorkShutdownTests/breakGlassReleasesTheWorkflow()`
   - `ProtectedWorkShutdownTests/breakGlassOutranksDeferral()`
+- `Revoking a break-glass release re-arms both the app and the daemon.`
+  - `ProtectedWorkShutdownTests/breakGlassRevokeReArmsTheWorkflow()`
+  - `ProtectedWorkShutdownTests/revokeRestoresTheFullDeferralBudget()`
+  - `DaemonEnforcementDecisionTests/revokeReArmsTheDaemon()`
+  - `DaemonEnforcementDecisionTests/revokeRestoresTheFullDeferralBudget()`
+- `The app and the privileged daemon reach the same verdict on every tick.`
+  - `EnforcementParityTests/revokeParity()`
+  - `EnforcementParityTests/revokeWithLiveWorkParity()`
+  - `EnforcementParityTests/releaseAfterDeferralParity()`
+  - `EnforcementParityTests/boundedDeferralParity()`
+  - `EnforcementParityTests/unblockedParity()`
 - `The privileged daemon resolves the console user's home rather than /var/root.`
   - `SharedPathsTests/nonRootIsUnchanged()`
   - `SharedPathsTests/rootRedirectsToTheConsoleUser()`

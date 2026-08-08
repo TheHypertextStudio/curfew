@@ -177,8 +177,9 @@ struct ShutdownWorkflow: Equatable {
         /// `until` at the latest. The bound comes from
         /// ``ProtectedWorkPolicy/maximumDeferral``.
         case deferred(until: Date)
-        /// A verified break-glass record stood auto-shutdown down for the
-        /// rest of this lockout window. Terminal until lockout ends.
+        /// A verified break-glass record is standing auto-shutdown down. Not
+        /// terminal: the release is re-read every tick, so revoking it re-arms
+        /// the workflow the same way it re-arms the daemon.
         case releasedByBreakGlass
     }
 
@@ -186,10 +187,10 @@ struct ShutdownWorkflow: Equatable {
     /// only by `update(now:isLocked:isEnabled:delayMinutes:controller:…)`.
     private(set) var phase: Phase = .idle
 
-    /// Tracks how much of the deferral bound has been spent. Lives here
-    /// rather than in the caller so the bound is measured from the moment the
-    /// shutdown first came due, not from the most recent tick.
-    private var deferral = ProtectedWorkDeferral()
+    /// The shared decision the privileged daemon also consults. Lives here
+    /// rather than in the caller so the deferral bound is measured from the
+    /// moment the shutdown first came due, not from the most recent tick.
+    private var gate = DestructiveActionGate()
 
     /// Advances the workflow given the current moment and enforcement state.
     ///
@@ -222,7 +223,7 @@ struct ShutdownWorkflow: Equatable {
     ) {
         guard isLocked, isEnabled else {
             phase = .idle
-            deferral = ProtectedWorkDeferral()
+            gate = DestructiveActionGate()
             return
         }
 
@@ -260,14 +261,17 @@ struct ShutdownWorkflow: Equatable {
                 context: context,
                 failurePhase: .failed
             )
-        case .deferred:
+        case .deferred, .releasedByBreakGlass:
+            // Both are holds, not endings. A release that gets revoked must
+            // re-arm the app exactly as it re-arms the daemon, so neither may
+            // be terminal — re-ask the gate every tick and let it decide.
             phase = attemptOrHold(
                 now: now,
                 controller: controller,
                 context: context,
                 failurePhase: .retryScheduled(date: now.addingTimeInterval(60))
             )
-        case .failed, .permissionDenied, .completed, .releasedByBreakGlass:
+        case .failed, .permissionDenied, .completed:
             return
         }
     }
@@ -309,28 +313,30 @@ struct ShutdownWorkflow: Equatable {
         }
     }
 
-    /// Break-glass, then the bounded deferral gate, then the actual attempt.
+    /// Asks the shared gate whether the attempt may run, and runs it if so.
     ///
-    /// Order matters: an emergency release outranks everything, because its
-    /// whole reason to exist is that the other paths have gone wrong.
+    /// Reached only once the scheduled delay has elapsed, which is why `isDue`
+    /// is `true` — the app's equivalent of the daemon's stale-heartbeat test
+    /// is the `now >= date` guard at the call site.
     private mutating func attemptOrHold(
         now: Date,
         controller: ShutdownControlling,
         context: ProtectedWorkContext,
         failurePhase: Phase
     ) -> Phase {
-        if context.isBreakGlassActive {
-            return .releasedByBreakGlass
-        }
-        switch deferral.evaluate(
+        switch gate.evaluate(
             now: now,
-            hasActiveWork: context.hasActiveWork,
+            isDue: true,
+            isBreakGlassActive: context.isBreakGlassActive,
+            hasActiveProtectedWork: context.hasActiveWork,
             maximumDeferral: context.policy.maximumDeferral
         ) {
-        case .deferred(let until):
-            return .deferred(until: until)
+        case .standDown:
+            .releasedByBreakGlass
+        case .hold(let until):
+            .deferred(until: until)
         case .proceed:
-            return performShutdownAttempt(
+            performShutdownAttempt(
                 controller: controller,
                 protectedWork: context.policy,
                 failurePhase: failurePhase
