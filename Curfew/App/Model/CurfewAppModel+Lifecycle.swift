@@ -206,6 +206,7 @@ extension CurfewAppModel {
     func persistSettings() {
         settingsStore.save(settings)
         syncWidgetSharedState()
+        mirrorProtectedWorkPolicy()
     }
 
     /// Reacts to `@Published settings` changes: rebuilds budget trackers
@@ -304,7 +305,10 @@ extension CurfewAppModel {
             isEnabled: settings.autoShutdownEnabled && ShutdownSupport.isAvailable,
             delayMinutes: settings.autoShutdownDelayMinutes,
             controller: shutdownController,
-            isActiveDevice: isActiveDevice
+            isActiveDevice: isActiveDevice,
+            protectedWork: settings.protectedWork,
+            hasActiveProtectedWork: protectedWorkStore.hasActiveWork(now: currentTime),
+            isBreakGlassActive: isBreakGlassActive()
         )
         shutdownStatusLine = shutdownWorkflow.statusLine(now: currentTime)
     }

@@ -92,6 +92,10 @@ final class ShutdownControllerSpy: ShutdownControlling {
     /// Ordered log of method names, e.g. `["graceful", "shutdown"]`.
     private(set) var callLog: [String] = []
 
+    /// Policy handed to the most recent `requestGracefulTermination` call, so
+    /// tests can assert the allowlist actually reaches the terminate sweep.
+    private(set) var lastSparedPolicy: ProtectedWorkPolicy?
+
     private var results: [ShutdownExecutionOutcome]
 
     init(results: [Bool]) {
@@ -102,8 +106,9 @@ final class ShutdownControllerSpy: ShutdownControlling {
         self.results = outcomes
     }
 
-    func requestGracefulTermination() {
+    func requestGracefulTermination(sparing policy: ProtectedWorkPolicy) {
         callLog.append("graceful")
+        lastSparedPolicy = policy
     }
 
     func executeShutdown() -> ShutdownExecutionOutcome {

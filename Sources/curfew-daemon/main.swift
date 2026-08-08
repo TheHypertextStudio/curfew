@@ -105,6 +105,11 @@ private func appHeartbeatAge(now: Date) -> TimeInterval {
 /// applications one minute to save unsaved work and surfaces a system
 /// dialog the user cannot dismiss from user-space (the AppleScript
 /// path the app uses can be cancelled; this one cannot).
+///
+/// Because it cannot be cancelled from user space, this is the command that
+/// makes `killall Curfew` a trap rather than an escape. The break-glass path
+/// in `curfew-ctl` is the documented way back out; see
+/// `Documentation/protected-work.md`.
 private func issueShutdown() {
     let process = Process()
     process.executableURL = URL(fileURLWithPath: "/sbin/shutdown")
@@ -137,12 +142,57 @@ private func touchDaemonHeartbeat(now: Date) {
     }
 }
 
+// MARK: - Bounded deferral, persisted across daemon restarts
+
+/// Reads when the current deferral window opened, if one is open.
+///
+/// The marker lives in the root-owned privileged directory rather than in
+/// memory because a daemon that restarts must not get a fresh 30 minutes.
+/// `launchd` will happily respawn this process, so an in-memory clock would
+/// make the bound meaningless.
+private func loadDeferralStart() -> Date? {
+    let url = SharedPaths.enforcementDeferralMarker
+    guard fileManager.fileExists(atPath: url.path),
+          let text = try? String(contentsOf: url, encoding: .utf8)
+    else {
+        return nil
+    }
+    return ISO8601DateFormatter().date(from: text.trimmingCharacters(in: .whitespacesAndNewlines))
+}
+
+private func persistDeferralStart(_ start: Date?) {
+    let url = SharedPaths.enforcementDeferralMarker
+    guard let start else {
+        try? fileManager.removeItem(at: url)
+        return
+    }
+    do {
+        try fileManager.createDirectory(
+            at: url.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        let payload = ISO8601DateFormatter().string(from: start)
+        try Data(payload.utf8).write(to: url, options: .atomic)
+    } catch {
+        daemonLogger.error(
+            "deferral marker write failed: \(error.localizedDescription, privacy: .public)"
+        )
+    }
+}
+
 daemonLogger.info("curfew-daemon launched")
 
 /// True once the daemon has issued a shutdown for the current lockout
 /// window. Set so the daemon doesn't fire the shutdown command twice
 /// while `/sbin/shutdown -h +1` is honoring its one-minute delay.
 var shutdownIssued = false
+
+/// True while a break-glass release is being honored, so the daemon logs and
+/// cancels once rather than on every fifteen-second pass.
+var breakGlassHonored = false
+
+let protectedWorkStore = ProtectedWorkStore()
+let breakGlassStore = BreakGlassStore()
 
 while true {
     let now = Date()
@@ -151,6 +201,7 @@ while true {
     guard let record = loadDeadline() else {
         // No active lockout — daemon's job is done for this window.
         clearShadow()
+        persistDeferralStart(nil)
         daemonLogger.info("no lockout deadline found, daemon exiting")
         break
     }
@@ -159,19 +210,64 @@ while true {
         // Window elapsed naturally. Clear shadow + exit so we don't keep
         // a process alive past the legitimate unlock time.
         clearShadow()
+        persistDeferralStart(nil)
         daemonLogger.info(
             "lockout deadline elapsed at \(record.scheduledUnlockAt, privacy: .public)"
         )
         break
     }
 
+    // Break-glass outranks everything. It is scoped to this lockout window by
+    // `issuedAfter`, so a release from a previous night cannot disarm tonight.
+    if let release = breakGlassStore.activeRelease(
+        now: now,
+        issuedAfter: record.lockoutStartedAt
+    ) {
+        if !breakGlassHonored {
+            daemonLogger.notice(
+                "break-glass release \(release.id.uuidString, privacy: .public) honored; standing down"
+            )
+            // Cancel a shutdown this daemon may already have issued. Without
+            // this the release would arrive too late to matter:
+            // `/sbin/shutdown -h +1` cannot be called off from user space.
+            SystemShutdownCanceller().cancelPendingShutdown()
+            // Re-arm, so revoking the release mid-window puts enforcement back.
+            shutdownIssued = false
+            breakGlassHonored = true
+        }
+        persistDeferralStart(nil)
+        // Keep looping rather than exiting. `KeepAlive.PathState` would
+        // respawn us the moment we quit — the sentinel is still there — and a
+        // process that dies and returns every ten seconds is worse company
+        // than one that sits quietly until the window ends.
+        Thread.sleep(forTimeInterval: loopInterval)
+        continue
+    }
+    breakGlassHonored = false
+
     let age = appHeartbeatAge(now: now)
     if age > appHeartbeatTimeout, !shutdownIssued {
-        daemonLogger.notice(
-            "app heartbeat stale (\(age, privacy: .public)s); issuing shutdown"
+        let policy = ProtectedWorkPolicy.loadMirror()
+        var deferral = ProtectedWorkDeferral(startedAt: loadDeferralStart())
+        let decision = deferral.evaluate(
+            now: now,
+            hasActiveWork: protectedWorkStore.hasActiveWork(now: now),
+            maximumDeferral: policy.maximumDeferral
         )
-        issueShutdown()
-        shutdownIssued = true
+        persistDeferralStart(deferral.startedAt)
+
+        switch decision {
+        case .deferred(let until):
+            daemonLogger.notice(
+                "app heartbeat stale (\(age, privacy: .public)s) but protected work is live; holding until \(until, privacy: .public)"
+            )
+        case .proceed:
+            daemonLogger.notice(
+                "app heartbeat stale (\(age, privacy: .public)s); issuing shutdown"
+            )
+            issueShutdown()
+            shutdownIssued = true
+        }
     }
 
     Thread.sleep(forTimeInterval: loopInterval)

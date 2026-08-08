@@ -146,6 +146,11 @@ public struct CurfewSettings: Codable, Equatable {
     /// Defaults to 9847 per plan.md §9.1.
     public var mcpHTTPPort: Int
 
+    /// Which applications enforcement must never terminate, and how long a
+    /// destructive action may wait for delegated work that is mid-flight.
+    /// See ``ProtectedWorkPolicy``.
+    public var protectedWork: ProtectedWorkPolicy
+
     private enum CodingKeys: String, CodingKey {
         case schedule
         case pendingScheduleChange
@@ -161,6 +166,7 @@ public struct CurfewSettings: Codable, Equatable {
         case mcpEnabled
         case mcpHTTPEnabled
         case mcpHTTPPort
+        case protectedWork
     }
 
     /// Memberwise initialiser. `warningIntervals` is normalised on
@@ -182,7 +188,8 @@ public struct CurfewSettings: Codable, Equatable {
         warningIntervals: WarningIntervals,
         mcpEnabled: Bool,
         mcpHTTPEnabled: Bool = false,
-        mcpHTTPPort: Int = 9847
+        mcpHTTPPort: Int = 9847,
+        protectedWork: ProtectedWorkPolicy = .default
     ) {
         self.schedule = schedule
         self.pendingScheduleChange = pendingScheduleChange
@@ -198,6 +205,7 @@ public struct CurfewSettings: Codable, Equatable {
         self.mcpEnabled = mcpEnabled
         self.mcpHTTPEnabled = mcpHTTPEnabled
         self.mcpHTTPPort = mcpHTTPPort
+        self.protectedWork = protectedWork
     }
 
     /// Custom decoder so pre-existing persisted settings (v0.1 payloads
@@ -244,6 +252,10 @@ public struct CurfewSettings: Codable, Equatable {
             Int.self,
             forKey: .mcpHTTPPort
         ) ?? 9847
+        self.protectedWork = try container.decodeIfPresent(
+            ProtectedWorkPolicy.self,
+            forKey: .protectedWork
+        ) ?? .default
     }
 
     /// Encodes to JSON. `warningIntervals` is normalised before encoding so
@@ -265,6 +277,7 @@ public struct CurfewSettings: Codable, Equatable {
         try container.encode(mcpEnabled, forKey: .mcpEnabled)
         try container.encode(mcpHTTPEnabled, forKey: .mcpHTTPEnabled)
         try container.encode(mcpHTTPPort, forKey: .mcpHTTPPort)
+        try container.encode(protectedWork, forKey: .protectedWork)
     }
 
     /// Factory defaults for a fresh install: 9-to-5 schedule, 3 × 15 min

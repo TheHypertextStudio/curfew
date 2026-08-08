@@ -39,7 +39,9 @@ struct MCPTool {
         reflectionsTool,
         requestExtensionTool,
         setScheduleTool,
-        requestStatusTool
+        requestStatusTool,
+        declareWorkTool,
+        releaseWorkTool
     ]
 }
 
@@ -86,6 +88,22 @@ private let statusTool = MCPTool(
         }
 
         lines.append("Can request extension: \(eval.canRequestExtension ? "yes" : "no")")
+
+        // Surfaced here so an agent can tell whether its own claim is still
+        // live without filing another one to find out.
+        let claims = ProtectedWorkStore().activeClaims(now: now)
+        if claims.isEmpty {
+            lines.append("Protected work: none")
+        } else {
+            lines.append("Protected work: \(claims.count) active claim(s)")
+            for claim in claims {
+                let remaining = max(0, Int(claim.expiresAt.timeIntervalSince(now)) / 60)
+                lines.append("  \(claim.label) — \(remaining) min left (\(claim.source.rawValue))")
+            }
+            lines.append(
+                "Max deferral: \(settings.protectedWork.maximumDeferralMinutes) min"
+            )
+        }
         return [textContent(lines.joined(separator: "\n"))]
     }
 )
@@ -605,6 +623,144 @@ private let requestStatusTool = MCPTool(
     }
 )
 
+// MARK: - Protected delegated work
+
+/// Lets an agent say "I am mid-task, do not shut this machine down yet."
+///
+/// This tool is deliberately *not* on the consent queue that
+/// `curfew_request_extension` and `curfew_set_schedule` use, and the reason is
+/// worth stating plainly. Those two weaken the curfew: they move when the user
+/// gets locked out, so a human has to say yes. This one does not. It cannot
+/// unlock the display, cannot move the lock time, and cannot extend the
+/// window. All it does is postpone the *destructive* half of enforcement —
+/// terminating apps and powering the Mac off — so unfinished background work
+/// is not thrown away.
+///
+/// Queueing it for approval would also be useless in the case that matters
+/// most. The daemon's shutdown fires precisely when the Curfew app has stopped
+/// responding, which is exactly when nobody can approve a consent sheet.
+///
+/// Three things keep it honest: the user can refuse agent claims outright via
+/// `ProtectedWorkPolicy.acceptsAgentClaims`, every claim expires on its own
+/// within one lease, and the total postponement is bounded by
+/// `ProtectedWorkPolicy.maximumDeferralMinutes` no matter how many claims
+/// arrive or how often they renew.
+private let declareWorkTool = MCPTool(
+    name: "curfew_declare_work",
+    description: """
+    Declares that background work is in flight so Curfew postpones \
+    terminating applications and shutting the Mac down. Pass a short \
+    `label` describing the work, an optional `minutes` lease, and an \
+    optional `claim_id` to renew an earlier claim (renew before the lease \
+    expires to stay protected). Returns the claim id and its expiry. \
+    This does NOT unlock the screen, change the schedule, or extend the \
+    curfew — the total postponement is capped by the user's policy.
+    """,
+    inputSchema: [
+        "type": "object",
+        "properties": [
+            "label": [
+                "type": "string",
+                "description": "Short description of the work, shown to the user."
+            ],
+            "minutes": [
+                "type": "integer",
+                "description": "Requested lease in minutes. Clamped to the user's ceiling."
+            ],
+            "claim_id": [
+                "type": "string",
+                "description": "UUID of an existing claim to renew."
+            ]
+        ] as [String: Any],
+        "required": ["label"]
+    ] as [String: Any],
+    call: { arguments in
+        guard let label = (arguments["label"] as? String)?
+            .trimmingCharacters(in: .whitespacesAndNewlines),
+            !label.isEmpty
+        else {
+            throw MCPToolError.invalidArgument("label is required.")
+        }
+
+        let policy = loadSharedSettings().protectedWork
+        guard policy.acceptsAgentClaims else {
+            throw MCPToolError.policyRefused(
+                "This Curfew is configured to refuse agent work claims. Ask the user to enable them in Settings, or use `curfew-ctl work claim`."
+            )
+        }
+
+        var claimID: UUID?
+        if let raw = arguments["claim_id"] as? String {
+            guard let parsed = UUID(uuidString: raw) else {
+                throw MCPToolError.invalidArgument("claim_id must be a UUID.")
+            }
+            claimID = parsed
+        }
+
+        let requested = (arguments["minutes"] as? Int)
+            ?? (arguments["minutes"] as? NSNumber)?.intValue
+
+        do {
+            let claim = try ProtectedWorkStore().claim(
+                id: claimID,
+                label: label,
+                source: .mcp,
+                leaseMinutes: requested,
+                now: Date(),
+                policy: policy
+            )
+            let payload: [String: Any] = [
+                "claim_id": claim.id.uuidString,
+                "label": claim.label,
+                "expires_at": ISO8601DateFormatter().string(from: claim.expiresAt),
+                "max_deferral_minutes": policy.maximumDeferralMinutes,
+                "note": "Renew before expiry to stay protected. This does not change the curfew."
+            ]
+            return [jsonContent(payload)]
+        } catch {
+            throw MCPToolError.queueUnavailable(
+                "Could not record the work claim: \(error.localizedDescription)"
+            )
+        }
+    }
+)
+
+/// Drops a claim early. Optional — a claim expires on its own — but releasing
+/// promptly means enforcement resumes the moment the work is actually done.
+private let releaseWorkTool = MCPTool(
+    name: "curfew_release_work",
+    description: """
+    Releases a protected-work claim filed by `curfew_declare_work`, letting \
+    Curfew resume normal enforcement immediately instead of waiting for the \
+    lease to lapse. Pass the `claim_id` you were given.
+    """,
+    inputSchema: [
+        "type": "object",
+        "properties": [
+            "claim_id": [
+                "type": "string",
+                "description": "UUID returned by curfew_declare_work."
+            ]
+        ] as [String: Any],
+        "required": ["claim_id"]
+    ] as [String: Any],
+    call: { arguments in
+        guard let raw = arguments["claim_id"] as? String,
+              let id = UUID(uuidString: raw)
+        else {
+            throw MCPToolError.invalidArgument("claim_id must be a UUID.")
+        }
+        do {
+            try ProtectedWorkStore().release(id: id)
+        } catch {
+            throw MCPToolError.queueUnavailable(
+                "Could not release the work claim: \(error.localizedDescription)"
+            )
+        }
+        return [textContent("Released claim \(id.uuidString).")]
+    }
+)
+
 // MARK: - Errors
 
 /// Failure modes for MCP tool `call` closures. Thrown values are mapped to
@@ -619,12 +775,18 @@ enum MCPToolError: Error, LocalizedError {
     /// confirming the app is running.
     case queueUnavailable(String)
 
+    /// The user's configuration forbids this call outright. Distinct from
+    /// `invalidArgument` because retrying with different arguments will not
+    /// help — only the user changing a setting will.
+    case policyRefused(String)
+
     /// Localised message surfaced back to the MCP client as the
     /// JSON-RPC error's `message` field.
     var errorDescription: String? {
         switch self {
         case .invalidArgument(let msg): msg
         case .queueUnavailable(let msg): msg
+        case .policyRefused(let msg): msg
         }
     }
 }

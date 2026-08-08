@@ -54,10 +54,12 @@ Morning intent and evening retrospective are available now. Midday check-ins and
 | `curfew_request_extension` | write* | Ask for a time extension |
 | `curfew_set_schedule` | write* | Update a single weekday (cannot weaken today without cooldown) |
 | `curfew_request_status` | read | Poll a queued write request for approval/denial |
+| `curfew_declare_work` | write | Declare background work so shutdown waits (bounded; never moves the curfew) |
+| `curfew_release_work` | write | Drop a work claim early |
 
 Two transports: stdio (default, used by Claude Desktop) and loopback-only Streamable HTTP on `127.0.0.1:9847` (opt-in, Settings → Advanced).
 
-\* Write operations queue for user approval by default (configurable in Settings → Integrations → AI Consent Policy).
+\* Write operations queue for user approval by default (configurable in Settings → Integrations → AI Consent Policy). `curfew_declare_work` and `curfew_release_work` are the exception: they postpone shutdown rather than weakening the curfew, so they apply immediately, expire on their own, and are capped by the deferral bound. Turn them off in Settings → Enforcement → Protected Work. See [`Documentation/protected-work.md`](Documentation/protected-work.md).
 
 **Add to Claude Desktop:**
 
@@ -101,7 +103,23 @@ curfew-ctl activity --days 7
 
 # Request an override (prompts for confirmation)
 curfew-ctl override --reason "shipping a fix, need 30 more minutes"
+
+# Tell Curfew a long-running job is in flight so shutdown waits for it
+curfew-ctl work claim --label "nightly build" --minutes 15
+curfew-ctl work list
+curfew-ctl work release <claim-id>
+
+# Emergency release: stand root-level enforcement down for this lockout and
+# cancel a /sbin/shutdown the privileged daemon already issued. Works over SSH.
+sudo curfew-ctl break-glass --reason "daemon fired mid agent run; investigating"
 ```
+
+Background work survives lockout on purpose, not by accident: shutdown skips an
+allowlist of terminal emulators and agent CLIs, and a declared claim postpones
+it for a bounded window. `break-glass` is the way out when the privileged daemon
+has already started a shutdown you cannot cancel from user space — read
+[`Documentation/protected-work.md`](Documentation/protected-work.md) before
+installing that daemon.
 
 `curfew-ctl` is bundled at `Curfew.app/Contents/Resources/curfew-ctl`. Add it to your `$PATH`:
 

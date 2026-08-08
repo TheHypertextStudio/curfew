@@ -27,10 +27,73 @@ public enum SharedPaths {
     /// appends the flavor-specific app folder) and the deliberately
     /// flavor-neutral ``enforcementOwnerLock``.
     private static var applicationSupportBase: URL {
-        FileManager.default.urls(
+        // Root processes must not resolve this through the system lookup: for a
+        // LaunchDaemon it answers `/var/root/Library/Application Support`, which
+        // is not where the app writes. ``userHomeDirectory`` redirects to the
+        // console user's home in that case and is a no-op for everyone else.
+        if geteuid() == 0 {
+            return userHomeDirectory
+                .appendingPathComponent("Library/Application Support", isDirectory: true)
+        }
+        return FileManager.default.urls(
             for: .applicationSupportDirectory,
             in: .userDomainMask
         ).first ?? URL(fileURLWithPath: NSHomeDirectory() + "/Library/Application Support")
+    }
+
+    // MARK: - Home resolution for privileged processes
+
+    /// Home directory of the human whose Curfew state these paths describe.
+    ///
+    /// Everything Curfew shares between processes lives under the user's home.
+    /// The privileged daemon runs as root, where `NSHomeDirectory()` answers
+    /// `/var/root` and every derived path silently misses the files the app
+    /// actually writes — a stale read that reads as "no lockout, no protected
+    /// work" and would let root-level enforcement run against nothing. Root
+    /// therefore resolves the console user's home instead.
+    public static var userHomeDirectory: URL {
+        URL(
+            fileURLWithPath: resolveHomeDirectory(
+                processHome: NSHomeDirectory(),
+                effectiveUserID: geteuid(),
+                consoleUserHome: consoleUserHomeDirectory()
+            ),
+            isDirectory: true
+        )
+    }
+
+    /// Pure resolution policy behind ``userHomeDirectory``, split out so tests
+    /// can drive the root branch without running as root.
+    ///
+    /// Non-root processes always get `processHome` back, so the resolved path
+    /// is byte-identical to what every existing caller already saw.
+    public static func resolveHomeDirectory(
+        processHome: String,
+        effectiveUserID: uid_t,
+        consoleUserHome: String?
+    ) -> String {
+        guard effectiveUserID == 0 else {
+            return processHome
+        }
+        guard let consoleUserHome, !consoleUserHome.isEmpty else {
+            return processHome
+        }
+        return consoleUserHome
+    }
+
+    /// Home directory of the user currently logged in at the display, found by
+    /// asking who owns `/dev/console`. Returns `nil` when nobody is logged in
+    /// or when the console is still owned by root (pre-login), in which case
+    /// there is no user state to read anyway.
+    private static func consoleUserHomeDirectory() -> String? {
+        var info = stat()
+        guard stat("/dev/console", &info) == 0, info.st_uid != 0 else {
+            return nil
+        }
+        guard let entry = getpwuid(info.st_uid), let directory = entry.pointee.pw_dir else {
+            return nil
+        }
+        return String(cString: directory)
     }
 
     /// App Group / shared-container identifier reserved for the future
@@ -58,12 +121,9 @@ public enum SharedPaths {
             return container
         }
 
-        return URL(
-            fileURLWithPath: NSHomeDirectory(),
-            isDirectory: true
-        )
-        .appendingPathComponent("Library/Group Containers", isDirectory: true)
-        .appendingPathComponent(widgetAppGroupIdentifier, isDirectory: true)
+        return userHomeDirectory
+            .appendingPathComponent("Library/Group Containers", isDirectory: true)
+            .appendingPathComponent(widgetAppGroupIdentifier, isDirectory: true)
     }
 
     /// Shared storage root used by the app, bundled CLI tools, and the future
@@ -183,6 +243,55 @@ public enum SharedPaths {
     /// authenticate against a stronger threat model.
     public static var mcpSharedSecret: URL {
         applicationSupport.appendingPathComponent(".mcp-secret")
+    }
+
+    // MARK: - Protected delegated work
+
+    /// JSON list of live ``ProtectedWorkClaim`` leases. Written by the app,
+    /// `curfew-ctl work claim`, and the `curfew_declare_work` MCP tool; read
+    /// by the app's shutdown workflow and by the privileged daemon.
+    ///
+    /// Deliberately in the app's own Application Support rather than the App
+    /// Group container: a non-sandboxed app touching its group container
+    /// raises the macOS "access data from other apps" prompt, and every
+    /// consumer here runs in the user context (or as root, which reads the
+    /// user's home through ``userHomeDirectory``).
+    public static var protectedWorkClaims: URL {
+        applicationSupport.appendingPathComponent("protected-work.json")
+    }
+
+    /// Mirror of the user's ``ProtectedWorkPolicy``, written by the app on
+    /// every settings save. The daemon runs as root and therefore cannot read
+    /// the user's `UserDefaults` domain; this file is how the policy reaches
+    /// it. A missing or malformed mirror leaves the daemon on
+    /// ``ProtectedWorkPolicy/default``.
+    public static var protectedWorkPolicySnapshot: URL {
+        applicationSupport.appendingPathComponent("protected-work-policy.json")
+    }
+
+    // MARK: - Break-glass emergency release
+
+    /// Signed ``BreakGlassRelease`` record written by `curfew-ctl break-glass`.
+    /// The app and the privileged daemon both honor a verified record whose
+    /// `issuedAt` falls inside the current lockout window, and both refuse to
+    /// take destructive action while one is present.
+    public static var breakGlassRelease: URL {
+        applicationSupport.appendingPathComponent("break-glass.json")
+    }
+
+    /// Symmetric key that authenticates ``BreakGlassRelease`` records, mode
+    /// 0600 owned by the user. Same threat model as ``mcpSharedSecret``: it
+    /// does not stop somebody with the user's shell, it stops a stray file
+    /// write or a stale record from standing enforcement down by accident.
+    public static var breakGlassSecret: URL {
+        applicationSupport.appendingPathComponent(".break-glass-secret")
+    }
+
+    /// Root-owned marker recording when the daemon *first* deferred a shutdown
+    /// for protected work. Persisting it means restarting the daemon cannot
+    /// reset the bounded-deferral clock.
+    public static var enforcementDeferralMarker: URL {
+        privilegedApplicationSupport.appendingPathComponent("deferral-started")
     }
 
     // MARK: - Cross-flavor enforcement ownership

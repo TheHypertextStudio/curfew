@@ -26,7 +26,9 @@ struct CurfewCLI: ParsableCommand {
             BudgetCommand.self,
             ActivityCommand.self,
             ReflectionCommand.self,
-            OverrideCommand.self
+            OverrideCommand.self,
+            WorkCommand.self,
+            BreakGlassCommand.self
         ],
         defaultSubcommand: StatusCommand.self
     )

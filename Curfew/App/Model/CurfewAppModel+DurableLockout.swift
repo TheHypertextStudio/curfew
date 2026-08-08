@@ -86,6 +86,11 @@ extension CurfewAppModel {
         guard let record = lockoutDeadlineStore.load() else { return }
         guard currentTime >= record.scheduledUnlockAt else { return }
         lockoutDeadlineStore.clear()
+        // A break-glass release covers one window only. Clearing it here — at
+        // the same moment the deadline goes away — is what stops tonight's
+        // emergency from silently disarming tomorrow's curfew.
+        breakGlassStore.clear()
+        try? protectedWorkStore.clear()
     }
 
     /// Overrides the engine's evaluation back to `.locked` when the

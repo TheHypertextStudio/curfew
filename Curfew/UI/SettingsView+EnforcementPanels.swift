@@ -176,6 +176,81 @@ extension SettingsView {
         }
     }
 
+    /// Which applications shutdown must leave alone, and how long a live
+    /// work claim may hold shutdown back.
+    ///
+    /// The list is one identifier per line because that is the shape people
+    /// already paste bundle identifiers in, and a table with add/remove
+    /// buttons would be more chrome than a list edited twice a year deserves.
+    var protectedWorkPanel: some View {
+        CurfewPanel {
+            CurfewSectionTitle(
+                title: "Protected Work",
+                subtitle: "What lockout must never kill"
+            )
+
+            Text("""
+            Shutting the Mac down closes terminals, and closing a terminal \
+            kills whatever was running inside it. Anything listed here is \
+            skipped, so background work survives the night.
+            """)
+            .font(CurfewTypography.body(13))
+            .foregroundStyle(CurfewTheme.mutedInk)
+            .fixedSize(horizontal: false, vertical: true)
+
+            Text("Bundle identifiers, one per line")
+                .font(CurfewTypography.bodyEmphasis(12))
+            TextEditor(text: protectedListBinding(\.protectedBundleIdentifiers))
+                .font(.system(.body, design: .monospaced))
+                .frame(minHeight: 88)
+
+            Text("Process names, one per line")
+                .font(CurfewTypography.bodyEmphasis(12))
+            TextEditor(text: protectedListBinding(\.protectedProcessNames))
+                .font(.system(.body, design: .monospaced))
+                .frame(minHeight: 88)
+
+            Divider()
+
+            Toggle(
+                "Let AI assistants declare work in progress",
+                isOn: $model.settings.protectedWork.acceptsAgentClaims
+            )
+
+            Stepper(
+                "Hold shutdown for at most: \(model.settings.protectedWork.maximumDeferralMinutes) min",
+                value: $model.settings.protectedWork.maximumDeferralMinutes,
+                in: 1 ... ProtectedWorkPolicy.deferralCeilingMinutes,
+                step: 5
+            )
+
+            Text("""
+            A declared task postpones shutdown, never the curfew itself — the \
+            screen stays locked either way. The hold expires after this many \
+            minutes even if the task never finishes.
+            """)
+            .font(CurfewTypography.body(13))
+            .foregroundStyle(CurfewTheme.mutedInk)
+            .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    /// Bridges a newline-separated text editor to a `[String]` on the policy,
+    /// dropping blank lines and surrounding whitespace on the way in.
+    func protectedListBinding(
+        _ keyPath: WritableKeyPath<ProtectedWorkPolicy, [String]>
+    ) -> Binding<String> {
+        Binding(
+            get: { model.settings.protectedWork[keyPath: keyPath].joined(separator: "\n") },
+            set: { newValue in
+                model.settings.protectedWork[keyPath: keyPath] = newValue
+                    .split(separator: "\n", omittingEmptySubsequences: true)
+                    .map { $0.trimmingCharacters(in: .whitespaces) }
+                    .filter { !$0.isEmpty }
+            }
+        )
+    }
+
     /// Builds a `Binding<Int>` that round-trips changes through
     /// `WarningIntervals.normalized`, so user edits can never produce an
     /// invalid (non-monotonic) interval set.

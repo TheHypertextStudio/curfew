@@ -77,6 +77,8 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 - [x] Implement shutdown retry once after 60 seconds on failure.
 - [x] Keep lockout active if shutdown ultimately fails.
 - [x] Gate auto-shutdown UI/runtime behind Apple Events capability; release builds carry the entitlement while debug/ad-hoc builds hide the feature. The Settings panel and generated Info.plist now explain that Curfew asks `System Events` to shut down the Mac, and a denied Automation prompt now keeps lockout active without retrying while pointing users to **Privacy & Security → Automation → Curfew → System Events**.
+- [x] Graceful termination skips everything on the user's protected-work allowlist, so shutting the Mac down no longer takes a terminal's background agents with it. See `Documentation/protected-work.md`.
+- [x] Shutdown defers while a protected-work claim is live, bounded at 30 minutes (ceiling 120) measured from when the shutdown first came due, so a wedged claim cannot disable enforcement.
 
 ## 5. Bypass Protection + Privileged Layer
 
@@ -88,6 +90,9 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 - [x] Implement user-space respawning LaunchAgent (`PersistentLockdown`) for v0.1 bypass deterrence.
 - [x] Register login items for compatibility requirements. (v0.2)
 - [x] Implement event tap behavior for keyboard shortcut interception during lockout.
+- [x] Daemon defers its root `/sbin/shutdown` while protected work is live, under the same bound as the app, with the deferral window persisted root-side so a daemon restart cannot rewind it.
+- [x] Break-glass emergency release (`curfew-ctl break-glass`) stands root-level enforcement down for the current lockout window and, under sudo, cancels a `/sbin/shutdown` already in flight. Signed, scoped to one window, and reachable without the display. **The daemon must not be installed until this has been exercised on a signed build.** See `Documentation/protected-work.md`.
+- [x] `SharedPaths` resolves the console user's home when running as root, so the daemon reads the files the app actually writes instead of `/var/root`. Behaviour change: this is the first build in which the daemon's shutdown path can fire at all.
 
 ## 6. Extension and Override Systems
 
@@ -179,6 +184,7 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 - [x] `AIConsentPolicy`: queue (default), autoApprove, deny.
 - [x] `MCPConsentSheet` for user approval of queued write requests.
 - [x] Settings → Integrations: MCP toggle, Claude Desktop config copy, consent policy picker.
+- [x] Protected-work tools: `curfew_declare_work`, `curfew_release_work`. Deliberately off the consent queue — they postpone shutdown, never the curfew — and gated on `ProtectedWorkPolicy.acceptsAgentClaims`. Rationale in `Documentation/protected-work.md`.
 
 ## 14. CLI (`curfew-ctl`)
 
@@ -187,6 +193,8 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 - [x] `budget` — extension and override budgets remaining.
 - [x] `activity` — recent activity log entries.
 - [x] `override` — enqueue an override request for the running app to approve.
+- [x] `work claim|list|release` — declare, inspect, and drop protected-work leases from a shell wrapper.
+- [x] `break-glass` — emergency release for root-level enforcement; run under sudo to cancel a pending `/sbin/shutdown`.
 - [x] Bundled at `Curfew.app/Contents/Resources/curfew-ctl`.
 
 ## 18.1 Distribution scaffolding (you complete externally)

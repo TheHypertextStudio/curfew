@@ -66,9 +66,10 @@ enum ShutdownExecutionOutcome: Equatable {
 /// the OS to power off. Production uses `SystemShutdownController`.
 protocol ShutdownControlling: AnyObject {
     /// Sends a graceful-terminate request to every running app except Curfew
-    /// itself. Apps receive the standard AppKit "unsaved changes?" flow and
-    /// may veto termination — that's fine; we retry with `executeShutdown`.
-    func requestGracefulTermination()
+    /// itself and anything `policy` protects. Apps receive the standard AppKit
+    /// "unsaved changes?" flow and may veto termination — that's fine; we
+    /// retry with `executeShutdown`.
+    func requestGracefulTermination(sparing policy: ProtectedWorkPolicy)
 
     /// Tells macOS to shut down. Returns a result that distinguishes a normal
     /// failure from the Apple Events permission being denied.
@@ -83,12 +84,24 @@ final class SystemShutdownController: ShutdownControlling {
         ShutdownSupport.isAvailable
     }
 
-    /// Terminates every running app except Curfew, giving them the standard
-    /// "save changes?" opportunity first.
-    func requestGracefulTermination() {
+    /// Terminates every running app except Curfew and anything `policy`
+    /// protects, giving the rest the standard "save changes?" opportunity
+    /// first.
+    ///
+    /// The allowlist is the difference between "the Mac went to sleep" and
+    /// "the Mac went to sleep and took eight hours of agent work with it":
+    /// terminating a terminal emulator kills every child process in it, so a
+    /// `claude` or `codex` run started before curfew dies with its window.
+    func requestGracefulTermination(sparing policy: ProtectedWorkPolicy) {
         let ownBundleIdentifier = Bundle.main.bundleIdentifier
         let applications = NSWorkspace.shared.runningApplications.filter { app in
-            app.bundleIdentifier != ownBundleIdentifier
+            guard app.bundleIdentifier != ownBundleIdentifier else {
+                return false
+            }
+            return !policy.protectsApplication(
+                bundleIdentifier: app.bundleIdentifier,
+                executableName: app.executableURL?.lastPathComponent
+            )
         }
         for application in applications {
             _ = application.terminate()
@@ -116,6 +129,17 @@ final class SystemShutdownController: ShutdownControlling {
         }
         return .failed
     }
+}
+
+/// The three protected-work inputs a shutdown decision needs, bundled so the
+/// decision helper takes one argument instead of three positional booleans.
+struct ProtectedWorkContext: Equatable {
+    /// Allowlist plus the deferral bound.
+    var policy: ProtectedWorkPolicy = .default
+    /// Whether any unexpired ``ProtectedWorkClaim`` exists.
+    var hasActiveWork = false
+    /// Whether a verified break-glass release covers this lockout window.
+    var isBreakGlassActive = false
 }
 
 /// Small state machine that drives the optional auto-shutdown sequence after
@@ -149,11 +173,23 @@ struct ShutdownWorkflow: Equatable {
         case permissionDenied
         /// Shutdown command was dispatched successfully.
         case completed
+        /// A protected-work claim is live, so the attempt is on hold until
+        /// `until` at the latest. The bound comes from
+        /// ``ProtectedWorkPolicy/maximumDeferral``.
+        case deferred(until: Date)
+        /// A verified break-glass record stood auto-shutdown down for the
+        /// rest of this lockout window. Terminal until lockout ends.
+        case releasedByBreakGlass
     }
 
     /// Externally read-only view of the workflow's current state. Mutated
-    /// only by `update(now:isLocked:isEnabled:delayMinutes:controller:)`.
+    /// only by `update(now:isLocked:isEnabled:delayMinutes:controller:…)`.
     private(set) var phase: Phase = .idle
+
+    /// Tracks how much of the deferral bound has been spent. Lives here
+    /// rather than in the caller so the bound is measured from the moment the
+    /// shutdown first came due, not from the most recent tick.
+    private var deferral = ProtectedWorkDeferral()
 
     /// Advances the workflow given the current moment and enforcement state.
     ///
@@ -166,18 +202,35 @@ struct ShutdownWorkflow: Equatable {
     ///   - delayMinutes: how long to wait after lockout begins before the
     ///     first shutdown attempt. Clamped to a minimum of 1 minute.
     ///   - controller: injection point for graceful-terminate + shutdown.
+    ///   - isActiveDevice: whether the user is present at this Mac.
+    ///   - protectedWork: allowlist + deferral bound. Passed through to the
+    ///     controller so the terminate sweep skips protected apps, and used
+    ///     to bound how long a live claim may hold the attempt back.
+    ///   - hasActiveProtectedWork: whether any unexpired claim exists.
+    ///   - isBreakGlassActive: whether a verified emergency release covers
+    ///     this lockout window.
     mutating func update(
         now: Date,
         isLocked: Bool,
         isEnabled: Bool,
         delayMinutes: Int,
         controller: ShutdownControlling,
-        isActiveDevice: Bool = true
+        isActiveDevice: Bool = true,
+        protectedWork: ProtectedWorkPolicy = .default,
+        hasActiveProtectedWork: Bool = false,
+        isBreakGlassActive: Bool = false
     ) {
         guard isLocked, isEnabled else {
             phase = .idle
+            deferral = ProtectedWorkDeferral()
             return
         }
+
+        let context = ProtectedWorkContext(
+            policy: protectedWork,
+            hasActiveWork: hasActiveProtectedWork,
+            isBreakGlassActive: isBreakGlassActive
+        )
 
         switch phase {
         case .idle:
@@ -191,16 +244,30 @@ struct ShutdownWorkflow: Equatable {
             guard now >= date else {
                 return
             }
-            phase = performShutdownAttempt(
+            phase = attemptOrHold(
+                now: now,
                 controller: controller,
+                context: context,
                 failurePhase: .retryScheduled(date: now.addingTimeInterval(60))
             )
         case .retryScheduled(let date):
             guard now >= date else {
                 return
             }
-            phase = performShutdownAttempt(controller: controller, failurePhase: .failed)
-        case .failed, .permissionDenied, .completed:
+            phase = attemptOrHold(
+                now: now,
+                controller: controller,
+                context: context,
+                failurePhase: .failed
+            )
+        case .deferred:
+            phase = attemptOrHold(
+                now: now,
+                controller: controller,
+                context: context,
+                failurePhase: .retryScheduled(date: now.addingTimeInterval(60))
+            )
+        case .failed, .permissionDenied, .completed, .releasedByBreakGlass:
             return
         }
     }
@@ -226,16 +293,57 @@ struct ShutdownWorkflow: Equatable {
             """
         case .failed:
             return "Shutdown failed. Lockout remains active."
+        case .deferred(let until):
+            let remaining = max(0, Int(until.timeIntervalSince(now)))
+            return """
+            Protected work is running. Shutdown is held for up to \
+            \(ShutdownWorkflow.format(seconds: remaining)) more. Lockout remains active.
+            """
+        case .releasedByBreakGlass:
+            return """
+            Emergency release in effect. Auto shutdown is standing down; \
+            lockout remains active.
+            """
         case .completed, .idle:
             return nil
         }
     }
 
-    private func performShutdownAttempt(
+    /// Break-glass, then the bounded deferral gate, then the actual attempt.
+    ///
+    /// Order matters: an emergency release outranks everything, because its
+    /// whole reason to exist is that the other paths have gone wrong.
+    private mutating func attemptOrHold(
+        now: Date,
         controller: ShutdownControlling,
+        context: ProtectedWorkContext,
         failurePhase: Phase
     ) -> Phase {
-        controller.requestGracefulTermination()
+        if context.isBreakGlassActive {
+            return .releasedByBreakGlass
+        }
+        switch deferral.evaluate(
+            now: now,
+            hasActiveWork: context.hasActiveWork,
+            maximumDeferral: context.policy.maximumDeferral
+        ) {
+        case .deferred(let until):
+            return .deferred(until: until)
+        case .proceed:
+            return performShutdownAttempt(
+                controller: controller,
+                protectedWork: context.policy,
+                failurePhase: failurePhase
+            )
+        }
+    }
+
+    private func performShutdownAttempt(
+        controller: ShutdownControlling,
+        protectedWork: ProtectedWorkPolicy,
+        failurePhase: Phase
+    ) -> Phase {
+        controller.requestGracefulTermination(sparing: protectedWork)
         switch controller.executeShutdown() {
         case .succeeded:
             return Phase.completed

@@ -24,6 +24,7 @@ struct SettingsView: View {
                 extensionsPanel
                 warningPanel
                 shutdownPanel
+                protectedWorkPanel
             }
             .tabItem { Label(
                 SettingsSection.enforcement.title,

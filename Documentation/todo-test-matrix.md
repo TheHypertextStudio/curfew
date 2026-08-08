@@ -96,6 +96,22 @@ only.
   - `ShutdownWorkflowTests/retriesOnceAfterFailure()`
 - `Keep lockout active if shutdown ultimately fails.`
   - `ShutdownWorkflowTests/failureAfterRetryKeepsLockoutState()`
+- `Graceful termination skips the protected-work allowlist.`
+  - `ProtectedWorkPolicyTests/defaultsProtectAgentHosts()`
+  - `ProtectedWorkPolicyTests/unlistedApplicationsAreTerminated()`
+  - `ProtectedWorkPolicyTests/matchingIsExactAndCaseInsensitive()`
+  - `ProtectedWorkShutdownTests/policyReachesTheController()`
+- `Shutdown defers while protected work is live, bounded.`
+  - `ProtectedWorkShutdownTests/activeWorkDefersTheShutdown()`
+  - `ProtectedWorkShutdownTests/deferralIsBounded()`
+  - `ProtectedWorkShutdownTests/finishingWorkResumesTheShutdown()`
+  - `ProtectedWorkShutdownTests/leavingLockoutResetsTheDeferral()`
+  - `ProtectedWorkDeferralTests/deferralIsBounded()`
+  - `ProtectedWorkDeferralTests/renewalCannotReopenTheWindow()`
+  - `ProtectedWorkDeferralTests/restartResumesTheWindow()`
+- `The deferral bound cannot be configured or hand-edited away.`
+  - `ProtectedWorkPolicyTests/deferralIsClampedOnConstruction()`
+  - `ProtectedWorkPolicyTests/decodingClampsDeferral()`
 - `Only surface auto-shutdown when the current build carries the Apple Events automation entitlement.`
   - `ShutdownSupportTests/shutdownAvailabilityMatchesEntitlements()`
   - `ShutdownPanelStateTests/unavailableStateCarriesReleaseGuidance()`
@@ -112,6 +128,30 @@ only.
   - `LockoutStatePersistenceTests/markLockoutActiveNoopsWithoutParentDirectory()`
 - `Package the embedded LaunchDaemon plist using SMAppService's BundleProgram layout.`
   - `DaemonPlistTests/plistUsesEmbeddedBundleProgram()`
+- `Break-glass emergency release stands root-level enforcement down without the display.`
+  - `BreakGlassStoreTests/issuedReleaseIsActive()`
+  - `BreakGlassStoreTests/shortReasonIsRefused()`
+  - `BreakGlassStoreTests/tamperedRecordIsRejected()`
+  - `BreakGlassStoreTests/unsignedRecordIsIgnored()`
+  - `BreakGlassStoreTests/releaseIsScopedToItsWindow()`
+  - `BreakGlassStoreTests/releaseAgesOut()`
+  - `BreakGlassStoreTests/futureDatedRecordIsIgnored()`
+  - `BreakGlassStoreTests/clearRemovesTheRelease()`
+  - `ProtectedWorkShutdownTests/breakGlassReleasesTheWorkflow()`
+  - `ProtectedWorkShutdownTests/breakGlassOutranksDeferral()`
+- `The privileged daemon resolves the console user's home rather than /var/root.`
+  - `SharedPathsTests/nonRootIsUnchanged()`
+  - `SharedPathsTests/rootRedirectsToTheConsoleUser()`
+  - `SharedPathsTests/rootWithoutConsoleUserFallsBack()`
+  - `SharedPathsTests/newPathsLiveWithTheOtherSharedState()`
+- `Protected-work claims are leases that expire on their own.`
+  - `ProtectedWorkStoreTests/claimMakesWorkActive()`
+  - `ProtectedWorkStoreTests/claimExpires()`
+  - `ProtectedWorkStoreTests/renewalExtendsWithoutDuplicating()`
+  - `ProtectedWorkStoreTests/leaseIsClamped()`
+  - `ProtectedWorkStoreTests/releaseDropsTheClaim()`
+  - `ProtectedWorkStoreTests/expiredClaimsArePruned()`
+  - `ProtectedWorkStoreTests/unreadableFileFailsClosed()`
 - `Mirror SMAppService daemon/login-item status into the Settings helper panel through testable service wrappers.`
   - `PrivilegedHelperManagerTests/refreshStatusMirrorsServices()`
   - `PrivilegedHelperManagerTests/installDaemonRegisters()`
