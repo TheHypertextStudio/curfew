@@ -112,7 +112,13 @@ public enum PresenceFusion {
 /// well-defined "no reading yet" value, and it is already older than any
 /// tolerance a caller could configure, so the staleness check handles the
 /// never-observed case with no extra branch.
-public struct PersonObservation: Equatable, Sendable {
+/// `nonisolated` as a whole type because the app target compiles with
+/// `-default-isolation=MainActor`, which would otherwise bind this value's
+/// initialiser and constants to the main actor — and the code that produces
+/// observations, ``CameraPresenceEngine``, runs on its own queue by design.
+/// Safe because every stored property is an immutable-in-practice `Sendable`
+/// value.
+public nonisolated struct PersonObservation: Equatable, Sendable {
     /// What the sensor saw.
     public var signal: PersonSignal
 

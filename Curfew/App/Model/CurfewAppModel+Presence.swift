@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import Foundation
 
 /// Per-model presence runtime, keyed by model identity.
@@ -8,6 +9,17 @@ import Foundation
 /// use — because the model class sits at its lint-enforced line budget. Every
 /// access is `@MainActor`, so the dictionary needs no lock.
 private struct PresenceRuntime {
+    /// The model this runtime was built for.
+    ///
+    /// Weak, and checked on every lookup, because the dictionary key is an
+    /// `ObjectIdentifier` — which is only an address. Once a model
+    /// deallocates, the allocator is free to hand that address to the next
+    /// model, and without this check that model would silently inherit its
+    /// predecessor's monitor: a stale fused verdict, and a sensor it never
+    /// installed. A suite creating one model per test hits this constantly.
+    /// `nil` here means "the owner is gone", which reads as a miss.
+    weak var owner: CurfewAppModel?
+
     /// The fusion + gating object. Created lazily on first use so a model that
     /// never ticks (previews, fixtures, half the test suite) never constructs
     /// a capture sensor at all.
@@ -22,8 +34,32 @@ private var presenceRuntimes: [ObjectIdentifier: PresenceRuntime] = [:]
 
 /// Test seam: a sensor to build the monitor around instead of the real
 /// camera-backed one. Assigned before the first ``CurfewAppModel/presenceMonitor``
-/// access. Entries are not reaped on deinit; production leaves this empty.
-private var presenceSensorOverrides: [ObjectIdentifier: any PersonPresenceSensing] = [:]
+/// access. Production leaves this empty.
+///
+/// Carries the same weak owner as ``PresenceRuntime`` and for the same reason:
+/// a recycled address must not hand one model the sensor another model
+/// installed.
+private struct PresenceSensorOverride {
+    /// The model the override was installed on. `nil` once it is gone, which
+    /// reads as a miss.
+    weak var owner: CurfewAppModel?
+
+    /// The sensor to build that model's monitor around.
+    var sensor: any PersonPresenceSensing
+}
+
+private var presenceSensorOverrides: [ObjectIdentifier: PresenceSensorOverride] = [:]
+
+/// The live runtime for `model`, or `nil` when there is none *belonging to it*.
+///
+/// Central because every read below has to make the same owner check; a single
+/// lookup that forgets it reintroduces the recycled-address bug for one
+/// property.
+private func liveRuntime(for model: CurfewAppModel) -> PresenceRuntime? {
+    guard let runtime = presenceRuntimes[ObjectIdentifier(model)],
+          runtime.owner === model else { return nil }
+    return runtime
+}
 
 /// Presence detection wiring for `CurfewAppModel`.
 ///
@@ -47,17 +83,20 @@ extension CurfewAppModel {
     /// `VisionCameraPresenceSensor.start()` is the only thing that does, and
     /// `PresenceMonitor` calls it only behind the consent gate.
     var presenceMonitor: PresenceMonitor {
-        let identity = ObjectIdentifier(self)
-        if let runtime = presenceRuntimes[identity] {
+        if let runtime = liveRuntime(for: self) {
             return runtime.monitor
         }
-        let sensor = presenceSensorOverrides[identity] ?? VisionCameraPresenceSensor()
+        let identity = ObjectIdentifier(self)
+        let override = presenceSensorOverrides[identity]
+        let sensor = override?.owner === self
+            ? override?.sensor ?? VisionCameraPresenceSensor()
+            : VisionCameraPresenceSensor()
         let monitor = PresenceMonitor(
             idleWatcher: idleWatcher,
             sensor: sensor,
             now: currentTime
         )
-        presenceRuntimes[identity] = PresenceRuntime(monitor: monitor)
+        presenceRuntimes[identity] = PresenceRuntime(owner: self, monitor: monitor)
         wirePresenceCallbacks(monitor)
         return monitor
     }
@@ -65,8 +104,21 @@ extension CurfewAppModel {
     /// Test seam. Assigning a sensor here builds this model's monitor around
     /// it, so a suite can drive presence without a camera.
     var presenceSensorOverride: (any PersonPresenceSensing)? {
-        get { presenceSensorOverrides[ObjectIdentifier(self)] }
-        set { presenceSensorOverrides[ObjectIdentifier(self)] = newValue }
+        get {
+            let override = presenceSensorOverrides[ObjectIdentifier(self)]
+            return override?.owner === self ? override?.sensor : nil
+        }
+        set {
+            let identity = ObjectIdentifier(self)
+            guard let newValue else {
+                presenceSensorOverrides[identity] = nil
+                return
+            }
+            presenceSensorOverrides[identity] = PresenceSensorOverride(
+                owner: self,
+                sensor: newValue
+            )
+        }
     }
 
     // MARK: - Published-equivalent reads
@@ -79,27 +131,27 @@ extension CurfewAppModel {
     /// The fused presence verdict. ``PresenceState/unknown`` before the first
     /// sample, which is also the steady state on a default install.
     var presenceState: PresenceState {
-        presenceRuntimes[ObjectIdentifier(self)]?.monitor.state ?? .unknown
+        liveRuntime(for: self)?.monitor.state ?? .unknown
     }
 
     /// The camera's contribution to the current verdict, after the staleness
     /// check. ``PersonSignal/unavailable`` whenever the camera is off — which
     /// is what a default install reports forever.
     var presenceSignal: PersonSignal {
-        presenceRuntimes[ObjectIdentifier(self)]?.monitor.personSignal ?? .unavailable
+        liveRuntime(for: self)?.monitor.personSignal ?? .unavailable
     }
 
     /// Whether the camera is on right now. Drives the in-app indicator, which
     /// must never claim the camera is off while a session is live.
     var isPresenceCameraLive: Bool {
-        presenceRuntimes[ObjectIdentifier(self)]?.monitor.isCameraLive ?? false
+        liveRuntime(for: self)?.monitor.isCameraLive ?? false
     }
 
     /// Whether Curfew wants the camera on but does not have it — access
     /// granted and the setting on, yet no session. Surfaced in Settings so a
     /// broken camera does not look like working presence detection.
     var isPresenceCameraStalled: Bool {
-        guard let monitor = presenceRuntimes[ObjectIdentifier(self)]?.monitor else {
+        guard let monitor = liveRuntime(for: self)?.monitor else {
             return false
         }
         return monitor.wantsCamera && !monitor.isCameraLive
@@ -109,7 +161,7 @@ extension CurfewAppModel {
     /// made in System Settings shows without a relaunch. Falls back to the
     /// process-wide status when no monitor exists yet.
     var presenceCameraAuthorization: CameraAuthorization {
-        guard let monitor = presenceRuntimes[ObjectIdentifier(self)]?.monitor else {
+        guard let monitor = liveRuntime(for: self)?.monitor else {
             return VisionCameraPresenceSensor.currentAuthorization
         }
         return monitor.authorization
@@ -140,8 +192,7 @@ extension CurfewAppModel {
     /// it, and something that seizes the screen would interrupt the reading or
     /// the call that Curfew cannot distinguish from drift.
     func evaluateDistractionWarning() {
-        let identity = ObjectIdentifier(self)
-        guard let runtime = presenceRuntimes[identity] else { return }
+        guard let runtime = liveRuntime(for: self) else { return }
         let presence = settings.presence
         let verdict = presence.distractionPolicy.decide(
             state: runtime.monitor.state,
@@ -158,14 +209,14 @@ extension CurfewAppModel {
         guard verdict.isWarn else { return }
 
         let sustained = runtime.monitor.secondsInState(at: currentTime)
-        presenceRuntimes[identity]?.lastWarnedAt = currentTime
+        presenceRuntimes[ObjectIdentifier(self)]?.lastWarnedAt = currentTime
         notificationManager.deliverDistractionNudge()
         recordAuditDistractionWarning(sustainedSeconds: sustained)
     }
 
     /// Stops the camera on quit and records the closing bracket.
     func shutDownPresence() {
-        guard let runtime = presenceRuntimes[ObjectIdentifier(self)] else { return }
+        guard let runtime = liveRuntime(for: self) else { return }
         runtime.monitor.shutDown()
     }
 

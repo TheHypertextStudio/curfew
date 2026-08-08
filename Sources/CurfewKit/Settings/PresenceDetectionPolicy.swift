@@ -30,7 +30,11 @@ public struct PresenceDetectionPolicy: Codable, Equatable, Sendable {
     /// Presence changes on the scale of minutes, so analysing more often buys
     /// nothing and costs battery. Frames arriving between analyses are
     /// discarded without being read.
-    public static let analysisIntervalSeconds: TimeInterval = 2
+    ///
+    /// `nonisolated` because the throttle that reads it lives on
+    /// `CameraPresenceEngine`'s private queue, off the main actor, and the app
+    /// target compiles with `-default-isolation=MainActor`.
+    public nonisolated static let analysisIntervalSeconds: TimeInterval = 2
 
     /// Whether Curfew may run the camera to detect whether a person is at the
     /// machine. **Off unless the user turned it on**, and the only thing that

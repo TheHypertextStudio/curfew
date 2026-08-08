@@ -146,6 +146,10 @@ struct PresenceAuditWiringTests {
         #expect(sensor.authorizationRequestCount == 1)
         #expect(!model.settings.presence.cameraEnabled)
         #expect(sensor.startCount == 0)
+        // The claim is about *stored* intent, so read the persisted blob back
+        // rather than trusting the in-memory value: a refused prompt must not
+        // leave a machine configured to open a camera on next launch.
+        #expect(!model.settingsStore.load().presence.cameraEnabled)
     }
 
     @Test("Granted camera access turns the setting on")

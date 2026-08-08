@@ -4,7 +4,11 @@ import Foundation
 import OSLog
 import Vision
 
-private let presenceLogger = Logger(
+/// `nonisolated` because the app target compiles with
+/// `-default-isolation=MainActor`, and every one of this logger's call sites is
+/// inside ``CameraPresenceEngine``, which is deliberately off the main actor.
+/// `Logger` is `Sendable`, so sharing one across actors is safe.
+private nonisolated let presenceLogger = Logger(
     subsystem: "studio.hypertext.curfew",
     category: "presence-camera"
 )
