@@ -1,25 +1,44 @@
 ---
 title: Connect an assistant
-description: Use Curfew with Claude Desktop or another MCP-compatible app.
+description: Wire the bundled MCP server into Claude Desktop, Claude Code, or any MCP host.
 ---
 
-Curfew includes a local MCP server. It can share your status, schedule, budget,
-activity, and reflections with a connected client.
+Curfew bundles `curfew-mcp`, a local Model Context Protocol server. It lets an
+assistant read your enforcement state and, with your approval, ask for an
+extension or a schedule change. It runs on your Mac, talks to nothing on the
+network, and reads the same files the app writes.
 
-## Claude Desktop
+For the full list of tools and their arguments, see
+[the tool reference](/mcp-tools).
 
-1. In Curfew, open **Settings → Integrations** and enable MCP.
-2. Choose **Add to Claude Desktop**.
-3. Restart Claude Desktop, then ask for your Curfew status.
+## Quick setup with Claude Desktop
 
-Curfew adds the connection to Claude Desktop’s configuration for you.
+<Steps>
+  <Step title="Enable MCP in Curfew">
+    Open **Settings → Integrations** and turn on the MCP server.
+  </Step>
+  <Step title="Add the connection">
+    Click **Add to Claude Desktop**. Curfew merges its server block into
+    Claude Desktop's configuration for you, preserving every other server you
+    have registered.
+  </Step>
+  <Step title="Restart Claude Desktop">
+    Then ask for your Curfew status. If the tool answers, you are connected.
+  </Step>
+</Steps>
 
-## Add it manually
+Curfew never overwrites an existing block silently. If `mcpServers.curfew`
+already points at the same binary it reports the connection as already
+registered; if it points somewhere else — because you moved the app — it asks
+before replacing it. The config file is written atomically and chmodded to
+`0600`, because it holds credentials for every MCP server you have registered.
 
-Use **Copy Claude Desktop Config** in Curfew. If the config file is empty,
-replace it with this complete file. Otherwise, add the `curfew` entry inside
-its existing `mcpServers` object. The file is
-`~/Library/Application Support/Claude/claude_desktop_config.json`.
+## Manual setup
+
+The config file lives at
+`~/Library/Application Support/Claude/claude_desktop_config.json`. If it is
+empty, use this whole file. Otherwise add the `curfew` entry inside the
+existing `mcpServers` object.
 
 ```json
 {
@@ -32,22 +51,184 @@ its existing `mcpServers` object. The file is
 }
 ```
 
-Restart Claude Desktop after changing its configuration.
+Restart Claude Desktop after editing it.
 
-## What an assistant can do
+<Note>
+A development build of Curfew registers itself under the key `curfew-dev` and
+adds `"env": {"CURFEW_FLAVOR": "development"}` so the spawned server reads the
+development data paths. A production build omits the `env` key entirely.
+</Note>
 
-- Read your status, schedule, budget, activity, and reflections.
-- Request an extension or a schedule change.
-- Never write reflections or request an override through MCP.
+## Claude Code
 
-## Approving changes
+Register the same binary as a stdio server:
 
-Curfew asks before change requests by default. In **Settings → Integrations**,
-you can keep that policy, deny requests automatically, or approve supported
-changes automatically.
+```bash
+claude mcp add curfew /Applications/Curfew.app/Contents/Resources/curfew-mcp
+```
 
-## Local HTTP
+Or add it to `.mcp.json` in a project so the whole team picks it up:
 
-The normal connection uses stdio. For a client that requires HTTP, enable
-loopback HTTP in **Settings → Advanced**. Curfew listens only at
-`127.0.0.1:9847`, so another machine cannot reach it.
+```json
+{
+  "mcpServers": {
+    "curfew": {
+      "type": "stdio",
+      "command": "/Applications/Curfew.app/Contents/Resources/curfew-mcp",
+      "args": []
+    }
+  }
+}
+```
+
+Any other MCP host works the same way. The server needs no arguments, no
+environment, and no working directory.
+
+## Transports
+
+### stdio — the default
+
+`curfew-mcp` speaks JSON-RPC 2.0 over newline-delimited JSON on stdin and
+stdout. One JSON object per line, one complete message. `stderr` carries
+diagnostics only and is never part of the protocol stream.
+
+The server is single-threaded: it reads one request, handles it, writes the
+response, and only then reads the next. MCP's stdio transport delivers requests
+serially, so no concurrency management is needed.
+
+It implements protocol version `2024-11-05` and answers `initialize`, `ping`,
+`tools/list`, and `tools/call`. Anything else returns JSON-RPC `-32601`.
+`serverInfo` reports `curfew-mcp` version `0.1.0`.
+
+### Loopback HTTP — opt-in
+
+For hosts that need HTTP — an editor over SSH, a multi-process setup — Curfew
+can bind a second transport. Turn it on in **Settings → Advanced → Expose MCP
+over localhost HTTP**, or run the binary directly:
+
+```bash
+/Applications/Curfew.app/Contents/Resources/curfew-mcp --http --port 9847
+```
+
+`--port` defaults to **9847**. The transport is off by default; the stdio path
+covers every in-the-box host.
+
+Both transports share one `MCPServer` instance and therefore one tool registry.
+
+<Warning>
+The HTTP listener is loopback-only, and Curfew enforces that at accept time
+rather than trusting the bind. Any connection whose remote endpoint is not
+`127.0.0.1`, `::1`, or `localhost` is cancelled before a byte is read. That
+check runs regardless of how the app was launched or which network interfaces
+happen to be up, so the tool surface is never reachable from another machine.
+</Warning>
+
+The wire format is deliberately minimal. The listener accepts a single `POST`
+with a JSON body and replies `HTTP/1.1 200` with
+`Content-Type: application/json` and `Connection: close`. Anything that is not
+a `POST` gets `405`; a request with no header/body boundary gets `400`. There
+is no SSE, because every Curfew tool is request/response today. No CORS headers
+are sent, since cross-origin access is not reachable on loopback.
+
+<Note>
+On some macOS versions the CLI binary needs the
+`com.apple.security.network.server` entitlement to bind, which requires
+codesigning with an Apple Developer certificate. Until the binary is signed by
+the release workflow, the listener may sit silently in a `waiting` state. Check
+`stderr` — it logs `HTTP ready on 127.0.0.1:9847` on success and
+`HTTP listener waiting:` otherwise. The stdio transport is unaffected.
+</Note>
+
+## The consent model
+
+Read tools answer inline from local storage and never ask you anything. Write
+tools never act directly. They append a signed request to a queue file and the
+Curfew app decides what to do with it, governed by the **AI consent policy** in
+**Settings → Integrations**.
+
+| Policy | Behavior |
+| --- | --- |
+| `queue` | Every write request raises a consent sheet in Curfew. You approve or deny before anything happens. **This is the default and the recommended setting.** |
+| `autoApprove` | Requests are granted immediately with no sheet. A banner notification tells you what was granted. There is no safety net. |
+| `deny` | Every write request is refused. Assistants keep full read access and cannot change anything. |
+
+The request lifecycle:
+
+<Steps>
+  <Step title="The server queues">
+    `curfew-mcp` writes an `MCPPendingRequest` with `status: pending` to
+    `~/Library/Application Support/Curfew/mcp-requests.json` and returns the
+    request ID to the client.
+  </Step>
+  <Step title="The app notices">
+    `MCPRequestMonitor` polls the queue file and raises a consent sheet for
+    each pending entry.
+  </Step>
+  <Step title="You decide">
+    The app updates `status` in place and sets `resolvedAt`, plus a
+    `denialReason` on refusal.
+  </Step>
+  <Step title="The client polls">
+    The assistant calls
+    [`curfew_request_status`](/mcp-tools#curfew-request-status) with the ID
+    until the status leaves `pending`. The documented client-side timeout is
+    120 seconds.
+  </Step>
+</Steps>
+
+The queue file is written atomically and chmodded to `0600`, because entries
+carry free-form justification text and should not be world-readable on a shared
+machine.
+
+## Request signing
+
+Every write request `curfew-mcp` queues is signed with HMAC-SHA256 over the
+canonical string:
+
+```
+{id}|{tool}|{argumentsJSON}|{requestedAt as ISO 8601}
+```
+
+The signature is hex-encoded and stored on the request itself, so the writer
+and the verifier stay symmetric with no side channel. The key is a 256-bit
+symmetric secret at `~/Library/Application Support/Curfew/.mcp-secret`,
+generated on first use and written with mode `0600`. The app and the
+`curfew-mcp` subprocess read the same file under the same UID.
+
+This is not a hard authentication boundary, and it is not pretending to be one.
+Anyone who can read that file already has your shell privileges and could write
+the queue directly. What the signature closes is the `autoApprove` bypass: a
+request with a missing, malformed, or forged signature is never auto-approved.
+It falls through to the consent sheet, where a human catches the spoof.
+
+## Two naming conventions
+
+You will see both `curfew_status` and `curfew.request_extension` in the code
+and in log output. They are different things.
+
+- **Tool names use underscores.** `curfew_status`, `curfew_request_extension`,
+  `curfew_set_schedule`. These are what `tools/list` returns and what you call.
+- **Queue payload identifiers use dots.** `curfew.request_extension`,
+  `curfew.request_override`, `curfew.set_schedule`. These are the raw values of
+  the `MCPWriteTool` enum, and they appear inside `mcp-requests.json` and in
+  `curfew-ctl override --json`.
+
+Call the underscore names.
+
+## Schedule changes are still policed
+
+`curfew_set_schedule` does not get a shortcut around the anti-bypass policy.
+Whatever an assistant proposes goes through the same `SchedulePolicyEngine` as
+an edit you make by hand: a weakening change waits out 24 hours, a
+strengthening change lands at the next midnight, and an identical schedule does
+nothing. Approving the consent sheet approves the *request*, not an immediate
+effect. See [Changing the schedule](/schedule#changing-the-schedule).
+
+## What an assistant can never do
+
+- **Grant an override.** `curfew_request_override` is not registered. See
+  [why](/overrides#why-overrides-are-not-an-mcp-tool).
+- **Write a reflection.** `curfew_get_reflections` is read-only and has no
+  write counterpart. Reflections are human-authored by design.
+- **Reach Curfew from another machine.** Neither transport is remotely
+  reachable.

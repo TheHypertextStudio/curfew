@@ -44,6 +44,16 @@ Thumbs.db
 # Playwright MCP scratch output (screenshots, console/page dumps)
 .playwright-mcp/
 
+# Wrangler's local dev state, written by `just docs-preview`.
+.wrangler/
+
+# Documentation site build output. `scripts/build-docs.mjs` renders docs/
+# into these paths so Cloudflare Pages serves them at /docs. It is ~800
+# generated files; the source of truth is docs/. Build before deploying —
+# `just deploy-landing` does that for you.
+landing/docs.html
+landing/docs/
+
 # CocoaPods / Carthage (if ever used)
 Pods/
 Carthage/Build/

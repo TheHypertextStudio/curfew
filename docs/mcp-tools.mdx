@@ -1,0 +1,272 @@
+---
+title: MCP tool reference
+description: Every tool curfew-mcp registers, its arguments, and what it returns.
+---
+
+`curfew-mcp` registers ten tools. Seven read local state and answer inline.
+Two queue a write request for your approval. One polls the status of a queued
+request.
+
+For setup, transports, and the consent model, see
+[Connect an assistant](/mcp).
+
+| Tool | Kind | Arguments |
+| --- | --- | --- |
+| [`curfew_status`](#curfew-status) | read | none |
+| [`curfew_schedule`](#curfew-schedule) | read | none |
+| [`curfew_budget`](#curfew-budget) | read | none |
+| [`curfew_activity`](#curfew-activity) | read | `period` |
+| [`curfew_get_time_remaining`](#curfew-get-time-remaining) | read | none |
+| [`curfew_get_weekly_summary`](#curfew-get-weekly-summary) | read | none |
+| [`curfew_get_reflections`](#curfew-get-reflections) | read | `period`, `gate` |
+| [`curfew_request_extension`](#curfew-request-extension) | write | `reason` |
+| [`curfew_set_schedule`](#curfew-set-schedule) | write | `weekday`, `lock_time`, `unlock_time`, `is_day_off` |
+| [`curfew_request_status`](#curfew-request-status) | read | `request_id` |
+
+<Note>
+`curfew_request_override` is **not** in this list and its absence is
+deliberate. See [why](/overrides#why-overrides-are-not-an-mcp-tool).
+</Note>
+
+Every tool returns MCP text content. The tools marked "JSON payload" below
+return a pretty-printed, key-sorted JSON document inside that text block,
+because the MCP spec has no first-class structured content type today.
+
+---
+
+## Read tools
+
+### curfew_status
+
+Current enforcement status as prose. No arguments.
+
+Returns the phase, and then either the unlock time (when locked), a day-off
+note, or the minutes remaining plus the lock time and the active warning stage.
+The last line always states whether an extension can be requested right now.
+
+```text
+Phase: warning
+Minutes remaining: 14
+Locks at: 6:00 PM
+Warning stage: fifteenMinutes
+Can request extension: yes
+```
+
+### curfew_schedule
+
+The full weekly schedule. No arguments.
+
+Lists all seven days as `lock → unlock` in `HH:MM`, or `day off`. When a
+schedule change is waiting out its cooldown, a final line gives the effective
+date.
+
+```text
+Weekly schedule:
+  Mon: 18:00 → 08:00
+  Tue: 18:00 → 08:00
+  Wed: 18:00 → 08:00
+  Thu: 18:00 → 08:00
+  Fri: 18:00 → 08:00
+  Sat: day off
+  Sun: day off
+Pending change effective: Aug 9, 2026
+```
+
+### curfew_budget
+
+This week's extension and override budget. No arguments.
+
+Counts `extension_granted` and `override_granted` events since the start of the
+current week and subtracts them from the configured limits.
+
+```text
+Extensions: 2/3 remaining (15 min each)
+Overrides:  2/2 remaining (30 min each)
+Resets:     Mon
+```
+
+This is the tool to call before deciding whether to suggest spending an
+extension.
+
+### curfew_activity
+
+Recent events from the local activity log.
+
+<ParamField body="period" type="string" default="week">
+  `"today"` or `"week"`. Anything else is rejected with a JSON-RPC error rather
+  than being coerced to the default.
+</ParamField>
+
+Returns newest-first lines of `ISO-8601 timestamp` plus a short event label.
+When the log file does not exist yet the tool says so rather than returning an
+empty list.
+
+```text
+Activity (today):
+  2026-08-08T18:00:04Z  lockout_started
+  2026-08-08T17:59:12Z  warning T-1 (1 min remaining)
+  2026-08-08T17:45:03Z  extension_granted +15 min
+```
+
+### curfew_get_time_remaining
+
+The compact machine-readable countdown. No arguments. JSON payload.
+
+```json
+{
+  "minutes": 14,
+  "phase": "warning",
+  "mode": "time",
+  "trigger": "time"
+}
+```
+
+Built for status bars, widgets, and assistants that want the number without
+parsing prose.
+
+<Warning>
+`mode` and `trigger` are currently hard-coded to `"time"` in this tool. The
+fields are in the response shape now so clients can pattern-match without a
+schema bump once hours-based enforcement is wired through this path. Do not
+treat them as a live reading of the day's `CurfewMode`; read
+[`curfew_schedule`](#curfew-schedule) for that.
+</Warning>
+
+### curfew_get_weekly_summary
+
+This week's rollup. No arguments. JSON payload.
+
+```json
+{
+  "week_of": "2026-08-03T00:00:00Z",
+  "days_held": 4,
+  "extensions_used": 1,
+  "extension_minutes": 15,
+  "overrides_used": 0,
+  "override_minutes": 0,
+  "streak": 4,
+  "device": "Willie's MacBook Pro",
+  "overrides_by_device": {}
+}
+```
+
+`device` echoes the local machine name. `overrides_by_device` is built from the
+persisted override log, so attribution stays correct even when `curfew-mcp` is
+invoked from a shell that never opened the app. Multi-device aggregation across
+the other fields arrives with CloudKit device records.
+
+### curfew_get_reflections
+
+The user's recorded morning intentions and evening retrospectives. JSON
+payload.
+
+<ParamField body="period" type="string" default="week">
+  `"today"` or `"week"`.
+</ParamField>
+
+<ParamField body="gate" type="string">
+  Optional. `"morning"` or `"evening"`.
+</ParamField>
+
+Each reflection carries its timestamp, its gate, and a list of answers shaped
+as `{prompt, type, value}`. Answers are free text, a 1–5 rating, or a
+five-point mood pick.
+
+**Read-only, permanently.** There is no write counterpart and there will not be
+one — a reflection an assistant wrote is not a reflection. See
+[Privacy](/privacy#reflections).
+
+---
+
+## Write tools
+
+Both write tools return a request ID immediately rather than a result. Poll
+[`curfew_request_status`](#curfew-request-status) until the status leaves
+`pending`; the documented client-side timeout is 120 seconds.
+
+### curfew_request_extension
+
+Queues a request for a work-session extension.
+
+<ParamField body="reason" type="string" required>
+  Why more time is needed. Shown to the user in the consent sheet.
+</ParamField>
+
+```text
+Extension request queued (ID: 6F2A1C77-84D0-4B31-A0E2-9B5C4D3E1A88).
+Open the Curfew app to approve, or poll with curfew_request_status.
+```
+
+Extensions are only granted during the T-30 and T-15 warning stages. Calling
+this at other times queues a request the app will not be able to honor, so
+check [`curfew_status`](#curfew-status) first — its
+`Can request extension` line is the authoritative answer.
+
+If the queue cannot be written, the tool throws and the client sees a JSON-RPC
+error advising a retry once the app is confirmed running.
+
+### curfew_set_schedule
+
+Queues a schedule change for a single weekday.
+
+<ParamField body="weekday" type="string" required>
+  One of `monday`, `tuesday`, `wednesday`, `thursday`, `friday`, `saturday`,
+  `sunday`.
+</ParamField>
+
+<ParamField body="lock_time" type="string" required>
+  24-hour `HH:MM`, for example `"18:00"`. Parsing is strict: `"24:00"`,
+  `"09:5"`, and anything with stray whitespace are rejected.
+</ParamField>
+
+<ParamField body="unlock_time" type="string">
+  Optional, same `HH:MM` format. Defaults to the day's current unlock time.
+</ParamField>
+
+<ParamField body="is_day_off" type="boolean">
+  Optional. Set true to mark the day off.
+</ParamField>
+
+Arguments are validated in the server and then stored verbatim, so the app can
+reconstruct the exact consent prompt you will see.
+
+Approving the request does not necessarily change anything today. The app runs
+the proposal through `SchedulePolicyEngine`: a weakening change — later lock,
+earlier unlock, a day turned off, or any mode change — waits out a 24-hour
+cooldown, a strengthening change applies at the next day boundary, and an
+identical schedule is a no-op. See
+[Changing the schedule](/schedule#changing-the-schedule).
+
+### curfew_request_status
+
+Polls a queued write request.
+
+<ParamField body="request_id" type="string" required>
+  The UUID returned by a write tool. A malformed UUID is rejected.
+</ParamField>
+
+```text
+Status: approved
+Resolved at: 2026-08-08T17:44:51Z
+```
+
+A denied request adds a `Denial reason` line. An ID that is not in the queue
+returns a note that it may have been pruned — resolved entries are cleared
+periodically, so a very late poll can lose the record.
+
+---
+
+## Errors
+
+| Code | Meaning |
+| --- | --- |
+| `-32700` | The line was not valid JSON |
+| `-32601` | Unknown method. Only `initialize`, `ping`, `tools/list`, and `tools/call` exist |
+| `-32602` | Missing tool name, or a tool name that is not registered |
+| `-32603` | The tool threw. The message carries the reason |
+
+Tool-level failures come in two shapes. `invalidArgument` covers a missing
+argument, a wrong type, or a value that fails a domain constraint.
+`queueUnavailable` means the request queue could not be written, which is
+usually a permissions problem; confirm the app has been launched at least once
+and retry.

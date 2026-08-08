@@ -34,6 +34,7 @@ roll it into the feature it serves.
 | `cli`         | curfew-ctl command-line tool                                   |
 | `build`       | Xcode config, CI, scripts, packaging — dev-internal            |
 | `landing`     | Marketing site — dev-internal                                  |
+| `docs`        | The published documentation site at curfew.hypertext.studio/docs |
 
 Implementation layers (`storage`, `overlay`, `daemon`) and singleton
 concepts (`app`, `sky`) are not scopes.

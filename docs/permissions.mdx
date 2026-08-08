@@ -1,0 +1,87 @@
+---
+title: Permissions
+description: What Curfew asks macOS for, and what stops working without it.
+---
+
+Curfew asks for two permissions during Getting Started and one more only if you
+turn on auto-shutdown. Each one buys a specific behavior, and each one fails in
+a specific way.
+
+## Accessibility — required
+
+**System Settings → Privacy & Security → Accessibility → Curfew.**
+
+Accessibility trust lets Curfew install a session-level `CGEventTap`. That tap
+is the only thing that swallows the keyboard shortcuts people reach for during
+a lockout — ⌘⇥, ⌘Q, ⌘⌥Esc, and the rest of the
+[blocked list](/lockout#what-the-key-interceptor-blocks).
+
+<Warning>
+Without Accessibility trust the interception **fails silently**.
+`CGEvent.tapCreate` still succeeds at install time, so nothing errors and no
+dialog appears — but macOS disables the tap the first time an event arrives,
+and every shortcut passes straight through. The lockout window is still drawn;
+it is just trivially escapable with ⌘⇥.
+</Warning>
+
+Because the failure is silent, the Getting Started permissions step refuses to
+advance until `AXIsProcessTrusted()` actually returns true. The check re-runs
+when the window appears, when the app is activated, and on a light refresh
+timer, so revoking the permission re-closes the gate rather than leaving you
+on a stale reading.
+
+Curfew reads the trust state with `AXIsProcessTrusted()` in normal operation
+and only calls the prompting variant, `AXIsProcessTrustedWithOptions`, when you
+ask it to open the System Settings pane. Reading never triggers a dialog.
+
+## Notifications — optional but recommended
+
+**System Settings → Notifications → Curfew.**
+
+Notifications deliver the warning banners. One fires per stage per day:
+
+| Stage | Body | Sound |
+| --- | --- | --- |
+| T-30 | 30 minutes of work time left. | no |
+| T-15 | 15 minutes left. Start wrapping up. | no |
+| T-5 | 5 minutes left. Save your work now. | yes |
+| T-2 | 2 minutes remaining. | yes |
+| T-1 | 1 minute left. Final save. | yes |
+| Lockout | Lockout has started. See you in the morning. | yes |
+
+The T-30 and T-15 banners carry a **Snooze 1 min** action; the later ones do
+not.
+
+Denying notifications is non-fatal. Curfew requests
+`[.alert, .sound, .badge]` and continues regardless of the answer — the
+on-screen dim, the floating countdown, and the lockout all still work. You just
+lose the banners, so the first thing you notice is the screen starting to
+darken at T-5.
+
+## Automation — only for auto-shutdown
+
+**System Settings → Privacy & Security → Automation → Curfew → System Events.**
+
+Auto-shutdown runs `tell application "System Events" to shut down` through
+`NSAppleScript`. That needs the `com.apple.security.automation.apple-events`
+entitlement on the signed binary *and* your approval for Curfew to control
+System Events.
+
+If you deny it, the shutdown workflow lands in its `permissionDenied` state and
+the lockout screen tells you so:
+
+> Auto shutdown needs permission in System Settings > Privacy & Security >
+> Automation > Curfew > System Events. Lockout remains active.
+
+Lockout is unaffected either way. The shutdown is an extra, not the mechanism.
+
+When the running bundle does not carry the automation entitlement at all, the
+Shutdown panel in Settings hides the toggle and explains why instead of
+offering a control that cannot work.
+
+## Calendar — Pro, and not enabled yet
+
+`CalendarMonitor` reads today's events through EventKit for contextual display
+and never writes. It sits behind both the `calendarEnabled` feature flag and
+the Pro license gate, and the flag is `false` in the shipping build. Curfew
+does not request Calendar access today.

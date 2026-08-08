@@ -1,0 +1,120 @@
+---
+title: Extensions and overrides
+description: The two ways past a deadline, the friction on each, and why one is not on MCP.
+---
+
+Curfew has two escape hatches. An **extension** pushes tonight's lock time back
+before it arrives. An **override** gets you back in after the lockout has
+started. They have different friction because they are different admissions.
+
+## Extensions
+
+Available only at T-30 and T-15, and only while your weekly budget has a slot
+left. Both conditions are folded into `canRequestExtension` on every
+evaluation, so the control is inert rather than error-producing when either
+fails.
+
+Hold the button for **2 seconds**. On confirmation Curfew consumes one budget
+slot, adds `extensionDurationMinutes` (default 15) to today's granted total,
+writes an `extension_granted` event to the activity log, and re-ticks
+immediately so the countdown updates.
+
+A tap rather than a hold does nothing at all. That is deliberate: an accidental
+click should not burn a slot.
+
+Extensions raise both the wall-clock deadline and, in hours or combined mode,
+the hours budget by the same number of minutes.
+
+## The "Convince Me" override
+
+Once you are locked out, the override is the only in-app way back in.
+`OverrideRequestPolicy` sets the gate.
+
+<Steps>
+  <Step title="Write a justification">
+    At least **50 non-whitespace characters**, measured after trimming. A word
+    or two will not pass. The composer opens with "Need to get back in?".
+  </Step>
+  <Step title="Have budget left">
+    `canConfirm` also requires `overridesRemaining > 0`. Default is 2 per week.
+  </Step>
+  <Step title="Hold to confirm">
+    Hold the button for **3 seconds**. The label reads "Hold 3s to unlock for
+    30 min", using your configured duration.
+  </Step>
+</Steps>
+
+On confirmation the Mac unlocks for `overrideDurationMinutes` (default 30).
+Curfew records an `override_granted` activity event with the duration in
+`minutes_value` and your justification verbatim in `note`, and appends an
+`OverrideEvent` carrying the timestamp, the device name, the reason, and the
+granted duration.
+
+<Note>
+There is **no cooldown timer** on overrides. An earlier revision had a
+five-minute dead time; it was removed because it only ever read as punishment.
+The written reason is the gate. Some older material, including the repository
+README, still mentions a 5-minute cooldown — the code does not implement one.
+</Note>
+
+During an override the phase stays `working`, but the warning stages keep
+escalating so your real deadline stays visible.
+
+## Why overrides are not an MCP tool
+
+`curfew_request_override` is **not registered** in the MCP tool list, and its
+absence is deliberate. The comment on `MCPTool.all` in
+`Sources/curfew-mcp/MCPTool.swift` gives the reasoning:
+
+> `request_override` is intentionally absent: override grants depend on the
+> in-app friction model (5-minute cooldown + 50-character reason + 3-second
+> confirm hold) which doesn't translate to a remote channel. The audit's C6
+> finding details the bypass that the previous surface created.
+
+The friction *is* the feature. A 50-character justification that a language
+model writes for you is not a justification, and a 3-second hold has no
+meaning when a tool call performs it. An earlier build did expose the tool, and
+a security audit recorded the resulting bypass as finding C6.
+
+An assistant can still see that you are locked out via
+[`curfew_status`](/mcp-tools#curfew-status) and can tell you how much override
+budget you have via [`curfew_budget`](/mcp-tools#curfew-budget). It cannot ask
+for one on your behalf.
+
+## Overrides from the command line
+
+`curfew-ctl override` exists, and it does **not** bypass anything. It never
+mutates enforcement directly. It validates the 50-character minimum, builds an
+`MCPPendingRequest` with the tool identifier `curfew.request_override`, and
+appends it to the same consent queue the MCP server writes to. The running app
+notices the entry and raises a consent sheet, exactly as it would for an
+assistant's request.
+
+```bash
+curfew-ctl override "the deploy is half finished and rolling back now would leave the database mid-migration"
+```
+
+```text
+queued:  0E5C1A9F-3F1B-4C0D-9E10-2A6C58C4B7D2
+status:  pending approval in the Curfew app
+```
+
+Add `--json` for `request_id`, `status`, and `tool`. A reason shorter than 50
+characters is rejected before anything is queued.
+
+Routing the CLI through the consent queue is what stops an unattended shell
+session from skipping the review sheet a foreground session would see.
+
+## The consent queue
+
+Both write paths land in `~/Library/Application Support/Curfew/mcp-requests.json`,
+a JSON array written atomically and chmodded to `0600` because entries carry
+free-form justification text.
+
+Each entry has an `id`, the `tool`, the verbatim `argumentsJSON`, a
+`requestedAt` timestamp, a `status` of `pending`, `approved`, or `denied`, an
+optional `resolvedAt`, an optional `denialReason`, and an HMAC `signature`.
+Resolved entries are pruned periodically.
+
+How the app responds to a pending entry depends on your
+[AI consent policy](/mcp#the-consent-model).

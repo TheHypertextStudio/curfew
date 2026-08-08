@@ -1,31 +1,58 @@
 ---
 title: Curfew documentation
-description: Set up Curfew and connect it to the tools you use.
+description: Give the workday an ending, and let your Mac hold you to it.
 ---
 
-Curfew is a macOS app for ending the workday on purpose. Set a schedule, get a
-warning as your time runs out, and let Curfew put a full-screen lockout in the
-way when the day is over.
+Curfew is a macOS app that ends your workday on purpose. You set a weekly
+schedule while you are thinking clearly. Later, Curfew warns you as the time
+runs down, puts a full-screen lockout in the way when the day is over, and
+optionally shuts the Mac down.
 
-## Get started
+Curfew is a commitment device, not a kernel-level lock. Someone with a terminal
+and enough determination can get around it. The goal is to make stopping the
+easy default, not to make working impossible.
 
-Set your work hours in Curfew, then choose what happens at the end of the day.
-You can use a different schedule for each day, mark days off, and choose whether
-Curfew should shut your Mac down after the lockout.
-
-## Use Curfew with other tools
+## Start here
 
 <CardGroup cols={2}>
-  <Card title="Connect an assistant" icon="robot" href="/docs/mcp">
-    Use the local MCP server with Claude Desktop or another compatible client.
+  <Card title="Install and first run" icon="download" href="/install">
+    Build Curfew, launch it, and walk through Getting Started.
   </Card>
-  <Card title="Command line" icon="terminal" href="/docs/cli">
-    Check your Curfew status, schedule, budget, and reflections from the shell.
+  <Card title="Grant permissions" icon="lock-open" href="/permissions">
+    Accessibility and Notifications, and what breaks without each.
+  </Card>
+  <Card title="Set your schedule" icon="calendar" href="/schedule">
+    Per-day lock and unlock times, days off, and hours-based curfews.
+  </Card>
+  <Card title="See how a day runs" icon="clock" href="/enforcement-day">
+    Sunrise, working window, warnings, lockout, and shutdown.
   </Card>
 </CardGroup>
 
+## Connect your tools
+
+<CardGroup cols={2}>
+  <Card title="Connect an assistant" icon="robot" href="/mcp">
+    Wire the bundled MCP server into Claude Desktop or Claude Code.
+  </Card>
+  <Card title="Command line" icon="terminal" href="/cli">
+    Read status, schedule, budget, activity, and reflections from a shell.
+  </Card>
+</CardGroup>
+
+## What ships today
+
+Curfew's first release enables the schedule, the warnings, the lockout, the
+activity log, the reflection gates, the `curfew-ctl` CLI, and the `curfew-mcp`
+MCP server. CloudKit multi-device sync, the WidgetKit widgets, Calendar
+awareness, and the root-owned privileged helper are compiled into the binary
+but disabled by a feature flag until each one passes its signed-release
+validation. Nothing in this documentation describes a surface you cannot reach
+unless it says otherwise.
+
 <Note>
-Curfew keeps its schedule, activity, and reflections on your Mac. A connected
-MCP client may send information to its own service, so review that client’s
-privacy policy before sharing reflections.
+Curfew keeps your schedule, activity, and reflections on your Mac. A connected
+MCP client can read that data and may send it to its own service, so read that
+client's privacy policy before you connect it. See
+[Privacy](/privacy) for what is stored and where.
 </Note>

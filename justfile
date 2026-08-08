@@ -222,6 +222,54 @@ landing-static port="8765":
     python3 -m http.server {{ port }} --directory landing --bind 127.0.0.1
 
 # -----------------------------------------------------------------------
+# Documentation site (docs/ → curfew.hypertext.studio/docs)
+# -----------------------------------------------------------------------
+
+# Mintlify's live preview of docs/. Serves at the site root, not /docs —
+# use `just docs-preview` when you need the real subpath behaviour.
+docs-dev:
+    cd docs && npx --yes mint@latest dev
+
+# Strict build validation plus a link check. Run before deploying.
+docs-check:
+    cd docs && npx --yes mint@latest validate
+    cd docs && npx --yes mint@latest broken-links
+
+# Export docs/ into landing/ so /docs is served by the same Cloudflare
+# Pages deploy as the marketing page. Output is gitignored — build it,
+# then deploy. See scripts/build-docs.mjs for the two transforms.
+docs-build:
+    node scripts/build-docs.mjs
+
+# Serve the assembled landing site through Cloudflare's own Pages runtime,
+# which is the only local server that resolves /docs the way production
+# does. Runs docs-build first so the two never drift.
+docs-preview port="8788": docs-build
+    npx --yes wrangler pages dev landing \
+        --port={{ port }} --ip=127.0.0.1 --compatibility-date=2026-05-03
+
+# Direct upload of the marketing page plus the built docs to Cloudflare
+# Pages. The `curfew-landing` project is Git-connected, so a push to main
+# already deploys — but only what is committed, and the docs build output
+# is not. Until the project carries a build command (see below) this
+# recipe is how /docs reaches production.
+#
+# Requires wrangler authenticated against the account that owns
+# hypertext.studio (2500680a3b2b0fe6a011c1c25fed5008); `wrangler whoami`
+# has to list it. CURFEW_PAGES_PROJECT defaults to the live project.
+#
+# The standing fix is to give the Pages project a build command so
+# Cloudflare renders the docs on every push and nobody has to remember
+# this recipe:
+#
+#     Build command:    node scripts/build-docs.mjs
+#     Output directory: landing
+#     Root directory:   /
+deploy-landing project=env_var_or_default("CURFEW_PAGES_PROJECT", "curfew-landing"): docs-build
+    npx --yes wrangler pages deploy landing \
+        --project-name={{ project }} --branch=main
+
+# -----------------------------------------------------------------------
 # Localization
 # -----------------------------------------------------------------------
 

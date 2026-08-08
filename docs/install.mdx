@@ -1,0 +1,127 @@
+---
+title: Install and first run
+description: Get Curfew onto your Mac and through the Getting Started flow.
+---
+
+## Requirements
+
+Curfew targets **macOS 26 (Tahoe)** and nothing earlier. The deployment target
+is set in the Xcode project, and the Homebrew cask declares
+`depends_on macos: ">= :tahoe"`. Building from source additionally needs
+**Xcode 26** or later, because the code is Swift 6.
+
+## Install from source
+
+There is no published release yet. The repository carries a Homebrew cask at
+`Casks/curfew.rb`, but its `sha256` is still the literal string
+`REPLACE_WITH_RELEASE_DMG_SHA256`, no `v1.0.0` tag or DMG has been published to
+GitHub Releases, and the cask has not been submitted to `homebrew-cask`. So
+`brew install --cask curfew` does not work today. Build it yourself instead.
+
+<Steps>
+  <Step title="Clone the repository">
+    ```bash
+    git clone https://github.com/TheHypertextStudio/curfew
+    cd curfew
+    ```
+  </Step>
+  <Step title="Open the Xcode project">
+    ```bash
+    open Curfew.xcodeproj
+    ```
+  </Step>
+  <Step title="Build and run">
+    Press ⌘R. Xcode builds the app, the widget extension, and the three
+    command-line binaries (`curfew-ctl`, `curfew-mcp`, `curfew-daemon`).
+  </Step>
+</Steps>
+
+If you prefer a command runner, the repository uses
+[`just`](https://github.com/casey/just):
+
+```bash
+brew install just swiftlint swiftformat
+just dev      # build and launch
+just check    # format, lint, test, and build — the CI gate
+```
+
+<Warning>
+A Debug build does not arm enforcement. `CurfewLaunchBehavior` keeps
+enforcement disarmed unless you set `CURFEW_ENABLE_ENFORCEMENT=1` in the scheme
+environment. Release builds arm on launch. If you build from Xcode and nothing
+ever locks, this is why.
+</Warning>
+
+## What the bundle contains
+
+The three helper binaries ship inside the app bundle rather than on your
+`$PATH`:
+
+| Binary | Path inside the bundle | What it does |
+| --- | --- | --- |
+| `curfew-ctl` | `Curfew.app/Contents/Resources/curfew-ctl` | Reads live state; queues override requests. See [the CLI reference](/cli). |
+| `curfew-mcp` | `Curfew.app/Contents/Resources/curfew-mcp` | The MCP server. See [Connect an assistant](/mcp). |
+| `curfew-daemon` | Installed via `SMAppService` | Root-owned shutdown enforcement. Disabled in the shipping build. |
+
+To call `curfew-ctl` by name, symlink it:
+
+```bash
+ln -s /Applications/Curfew.app/Contents/Resources/curfew-ctl /usr/local/bin/curfew-ctl
+```
+
+The Homebrew cask does this for you with `binary` stanzas once a release
+exists.
+
+## First run
+
+The first launch opens the **Getting Started** window. It has five steps, and
+two of them gate progress.
+
+<Steps>
+  <Step title="Welcome">
+    Explains the commitment model. Nothing to configure.
+  </Step>
+  <Step title="Schedule">
+    You cannot advance until you have opened the live schedule editor. Set your
+    work-end and work-resume times and mark your days off. See
+    [Schedule and curfew modes](/schedule).
+  </Step>
+  <Step title="Extension budget">
+    Set the weekly extension limit and the override duration. See
+    [Budgets](/budgets).
+  </Step>
+  <Step title="Permissions">
+    You cannot advance until macOS actually reports Curfew as Accessibility
+    trusted. The step reads `AXIsProcessTrusted()` rather than asking you to
+    tick a box. Notifications stay optional and never block progress. See
+    [Permissions](/permissions).
+  </Step>
+  <Step title="Confirmation">
+    Review the setup and enable Curfew. This sets `hasCompletedInitialSetup`
+    and starts the tick loop.
+  </Step>
+</Steps>
+
+Enforcement stays disarmed until you finish this flow, so a half-configured
+schedule cannot lock you out before you have looked at it.
+
+## Where Curfew keeps its files
+
+| File | Path |
+| --- | --- |
+| Settings | `~/Library/Preferences/studio.hypertext.curfew.plist` (key `curfew.settings.v1`) |
+| Activity log | `~/Library/Application Support/Curfew/activity.sqlite3` |
+| Reflections | `~/Library/Application Support/Curfew/reflections.sqlite3` |
+| MCP request queue | `~/Library/Application Support/Curfew/mcp-requests.json` |
+| MCP signing key | `~/Library/Application Support/Curfew/.mcp-secret` |
+
+A development build appends a suffix to all of these — the directory becomes
+`Curfew (Dev)` and the defaults suite becomes `studio.hypertext.curfew.dev` —
+so a debug run never touches the install you rely on.
+
+## Uninstall
+
+`scripts/uninstall.sh` in the repository removes the app and its data. The cask
+also declares a `zap` stanza covering the Application Support directory, the
+group container, the caches, the `studio.hypertext.curfew.lockdown` LaunchAgent
+plist, and the preferences plist.

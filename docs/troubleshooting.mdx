@@ -1,0 +1,181 @@
+---
+title: Troubleshooting
+description: The failure modes that do not announce themselves.
+---
+
+Most Curfew problems are silent by design — a permission that was never granted
+does not raise a dialog. Start here.
+
+## The lockout appears but ⌘⇥ still works
+
+Accessibility trust is missing or was revoked.
+
+`CGEvent.tapCreate` succeeds without it, so nothing errors at install time.
+macOS then disables the tap the first time an event arrives, and every blocked
+shortcut passes straight through. Grant it in **System Settings → Privacy &
+Security → Accessibility** and toggle the Curfew entry off and on if it is
+already listed — a rebuilt binary sometimes keeps a stale entry.
+
+The Getting Started permissions step reads the live state and refuses to
+advance until it is genuinely granted, so re-running that flow is a reliable
+way to confirm.
+
+## Nothing locks at all
+
+Work through these in order.
+
+<AccordionGroup>
+  <Accordion title="Getting Started was never finished">
+    Enforcement stays disarmed until `hasCompletedInitialSetup` is true. Open
+    Curfew and complete the flow.
+  </Accordion>
+  <Accordion title="You are running a Debug build">
+    Debug launches keep enforcement disarmed unless you set
+    `CURFEW_ENABLE_ENFORCEMENT=1` in the scheme environment. Release builds arm
+    on launch.
+  </Accordion>
+  <Accordion title="Today is a day off">
+    Run `curfew-ctl status`. A `dayOff` phase means the day's rule has
+    `isDayOff` set. Weekends are off in all three presets.
+  </Accordion>
+  <Accordion title="A schedule change is still pending">
+    Run `curfew-ctl schedule`. A "Pending change effective" line means the edit
+    you made has not applied yet — a weakening change waits 24 hours and a
+    strengthening one waits for midnight.
+  </Accordion>
+</AccordionGroup>
+
+## No warning notifications
+
+Check **System Settings → Notifications → Curfew**. Curfew requests
+authorization once and continues regardless of the answer, so a denial is
+silent.
+
+The visual escalation is independent of notifications. If the screen starts
+dimming at T-5 but no banner appeared at T-30, the engine is fine and only the
+notification permission is missing.
+
+Remember that a stage fires at most once per calendar day. Re-triggering the
+same stage within a day does not re-deliver its banner.
+
+## Auto-shutdown does nothing
+
+The lockout screen tells you which case you are in.
+
+| Status line | Cause |
+| --- | --- |
+| "Auto shutdown needs permission in System Settings > Privacy & Security > Automation > Curfew > System Events." | The Apple Events authorization was refused. |
+| "Shutdown failed. Lockout remains active." | Two attempts failed, 60 seconds apart. Usually an app blocking termination. |
+| No shutdown text at all | Auto-shutdown is off, or the running bundle lacks the `com.apple.security.automation.apple-events` entitlement, in which case the Settings panel hides the toggle. |
+
+Lockout stays active in every one of these cases.
+
+## The MCP server is not found
+
+<Steps>
+  <Step title="Check the binary path">
+    ```bash
+    ls -l /Applications/Curfew.app/Contents/Resources/curfew-mcp
+    ```
+    If the app is somewhere other than `/Applications`, the path in your client
+    config is wrong. Curfew's own "Add to Claude Desktop" writes the running
+    bundle's real path.
+  </Step>
+  <Step title="Run it by hand">
+    ```bash
+    echo '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' \
+      | /Applications/Curfew.app/Contents/Resources/curfew-mcp
+    ```
+    A JSON object listing ten tools means the server works and the problem is
+    in the client's configuration.
+  </Step>
+  <Step title="Restart the client">
+    Claude Desktop reads its configuration at launch. Editing the file while it
+    is running changes nothing until you restart it.
+  </Step>
+</Steps>
+
+## An assistant says a tool does not exist
+
+Check the spelling. Tool names use **underscores**: `curfew_status`, not
+`curfew.status`. The dotted names you may have seen are the queue payload
+identifiers in `mcp-requests.json`, not callable tools. See
+[the two naming conventions](/mcp#two-naming-conventions).
+
+`curfew_request_override` genuinely does not exist and is not going to. See
+[why](/overrides#why-overrides-are-not-an-mcp-tool).
+
+## The loopback HTTP transport never answers
+
+Read `stderr` from the server process. `curfew-mcp: HTTP ready on
+127.0.0.1:9847` means it bound successfully. `curfew-mcp: HTTP listener
+waiting:` means it did not.
+
+The usual cause is codesigning. On some macOS versions the binary needs the
+`com.apple.security.network.server` entitlement to bind, which requires an
+Apple Developer certificate. Until the release workflow signs it, the listener
+can sit in `waiting` indefinitely. The stdio transport is unaffected — use that
+instead.
+
+If the message is a port conflict, pass a different port with `--port` and
+update the client.
+
+## A write request never resolves
+
+Read tools answer inline; write tools queue. If a request sits at `pending`:
+
+- Confirm the Curfew app is running. Nothing services the queue when it is not.
+- Check the AI consent policy in **Settings → Integrations**. Under `deny`,
+  every write request is refused.
+- Look at the queue directly:
+
+  ```bash
+  cat ~/Library/Application\ Support/Curfew/mcp-requests.json
+  ```
+
+Clients should give up after 120 seconds. An ID that returns "not found" was
+pruned after resolution — the durable record of an approved override is the
+`override_granted` row in [the activity log](/activity-log).
+
+## An approved schedule change did not take effect
+
+Approving the consent sheet approves the *request*, not an immediate change.
+`SchedulePolicyEngine` still classifies it: a weakening change waits out 24
+hours from the request, and a strengthening change lands at the next calendar
+midnight. Run `curfew-ctl schedule` to see the pending effective date.
+
+Note that **any** mode change between `time`, `hours`, and `combined`
+classifies as weakening, even one that is objectively stricter, because real
+strictness depends on minutes already worked. That is intentional.
+
+## The CLI reports no data
+
+```text
+No activity log found. Has Curfew been launched yet?
+```
+
+The databases are created on first app launch. This message also appears when
+the CLI and the app disagree about which install they are looking at — a
+development build reads `Curfew (Dev)` and the `studio.hypertext.curfew.dev`
+defaults suite. Set `CURFEW_FLAVOR=development` to point the CLI at a dev
+install.
+
+## A CLI flag from the README does not work
+
+Some README examples are out of date. The working forms are:
+
+| Wrong | Right |
+| --- | --- |
+| `curfew-ctl schedule show` | `curfew-ctl schedule` |
+| `curfew-ctl activity --days 7` | `curfew-ctl activity` or `--today`; `--days` belongs to `reflections` |
+| `curfew-ctl override --reason "..."` | `curfew-ctl override "..."` |
+
+The [CLI reference](/cli) is generated from the actual argument definitions.
+
+## A Pro feature is missing
+
+CloudKit sync, the WidgetKit widgets, Calendar awareness, and the privileged
+helper are compiled into the binary but disabled by feature flag in the
+shipping build. They are not missing from your install; they are switched off
+until each passes signed-release validation. Only the MCP server is enabled
+among the flagged modules.

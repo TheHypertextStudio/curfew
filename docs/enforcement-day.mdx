@@ -1,0 +1,93 @@
+---
+title: How a day runs
+description: The arc from the morning gate through the warnings to the lockout.
+---
+
+Curfew calls the whole arc **the Curfew Flow**: an ordered sequence of surfaces
+as the day opens, runs down, and closes. The enforcement engine ticks once per
+second and re-evaluates where you are.
+
+```
+SUNRISE           DAY                DUSK                SUNDOWN            NIGHT
+morning intent →  working window  →  warnings T-30…T-1 →  lockout overlay →  optional
+(full screen)     (normal use)       (dim + timer)       + evening retro    shutdown
+```
+
+## Sunrise — the morning gate
+
+At the day's first transition into the working phase, Curfew raises a
+full-screen **Daybreak** overlay on every display and asks a short, editable
+set of prompts. It commands the screen the way the lockout does, because the
+day genuinely starts there.
+
+It is not enforcement. There is no key interception, no respawn, and no
+shutdown coupling, and a visible **Skip** hands the Mac back immediately. Each
+gate prompts at most once per day; saving or skipping marks it resolved, and
+the resolution survives a relaunch.
+
+## Day — the working window
+
+Normal use. The engine tracks wall-clock time toward `lockMinutes` and, in
+hours or combined mode, active minutes toward `hoursLimitMinutes`. Nothing is
+drawn on screen.
+
+## Dusk — the warnings
+
+From T-30 down, Curfew escalates through five stages: notifications first, then
+a deepening dim overlay from T-5, then a floating countdown. You can snooze at
+T-30 and T-15, and you can spend an extension at those same two stages. The
+full table is in [Warnings and the countdown](/warnings).
+
+## Sundown — the lockout
+
+At T-0 the full-screen lockout takes over every display at `.screenSaver`
+level, above the Dock and above any full-screen app. It captures mouse input,
+intercepts the escape-hatch keyboard shortcuts, and shows the time, an
+encouragement message, the unlock time, and the "Convince Me" override flow.
+See [The lockout](/lockout).
+
+When the evening reflection gate is enabled and still unresolved, it is
+presented *inside* the lockout screen as an optional closing ritual. It is
+non-blocking: saving or skipping it never delays or weakens enforcement, and
+the clock and the override flow stay live underneath it.
+
+## Night — optional shutdown
+
+If you enabled auto-shutdown, Curfew waits out the configured delay, asks every
+other app to quit gracefully, and then tells the Mac to shut down. Lockout
+stays active whether or not the shutdown succeeds. See
+[auto-shutdown](/lockout#auto-shutdown).
+
+## The engine underneath
+
+`CurfewEnforcementEngine` is a pure function. Given a schedule, a moment, the
+extension minutes already granted today, an override end date, the warning
+thresholds, and the minutes worked today, it returns a `CurfewEvaluation`:
+
+| Field | Meaning |
+| --- | --- |
+| `phase` | `working`, `warning`, `locked`, or `dayOff` |
+| `warningStage` | `none`, `T-30`, `T-15`, `T-5`, `T-2`, `T-1`, or `lockout` |
+| `minutesRemaining` | Minutes until the lock. `0` while locked, `Int.max` on a day off |
+| `canRequestExtension` | True only at T-30 and T-15 with budget left |
+| `lockDate` / `unlockDate` | Absolute dates, or `nil` on a day off |
+| `trigger` | `time` or `hours` — which clock is driving the countdown |
+
+The engine has no stored state and no side effects, so the same inputs always
+give the same evaluation. Everything downstream — the overlay coordinator, the
+notification manager, the menu bar item, the widget snapshot — reads that one
+value.
+
+## During an override
+
+An active override keeps the phase at `working` past the nominal lock time, but
+the warning stages **keep escalating underneath it**. You still see your real
+deadline approaching while the override is in effect, rather than having the
+countdown reset. When the override expires, the engine locks immediately if the
+window has passed.
+
+## Days off
+
+A day marked `isDayOff` produces no schedule window, and the engine returns the
+prebuilt `dayOff` evaluation. No warnings fire, no overlay is drawn, and
+nothing shuts down.

@@ -1,0 +1,80 @@
+---
+title: Extension and override budgets
+description: How many exceptions you get each week, and when they come back.
+---
+
+Curfew gives you two kinds of exception and rations both. Extensions push
+tonight's lock time back before it arrives. Overrides get you back in after the
+lockout has already started. Each has its own weekly limit, its own duration,
+and its own friction.
+
+## The defaults
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `extensionWeeklyLimit` | 3 | Extension requests allowed per week |
+| `extensionDurationMinutes` | 15 | Minutes added per extension |
+| `overrideWeeklyLimit` | 2 | Overrides allowed per week |
+| `overrideDurationMinutes` | 30 | Minutes unlocked per override |
+| `resetWeekday` | Monday | Day both budgets refill |
+
+All five are editable in Settings. The Getting Started flow walks you through
+the extension limit and the override duration on its fourth step.
+
+## The reset day
+
+`ExtensionBudgetTracker` holds one budget. The app keeps two instances — one
+for extensions and one for overrides — and both use the same `resetWeekday`, so
+your week starts on one day rather than two.
+
+The tracker recomputes the most recent reset boundary on every tick by walking
+back through the last seven days looking for the configured weekday. When that
+boundary is later than the last one it recorded, `remaining` goes back to the
+weekly limit. Checking every tick rather than only on use means the budget
+refills at the start of the reset day even in a week where you never asked for
+anything.
+
+If the calendar arithmetic cannot find a boundary in seven days, the tracker
+does nothing rather than falling back to today. Treating "could not find a
+boundary" as a no-op is what stops a pathological calendar from silently
+restoring your budget mid-week.
+
+Changing a weekly limit in Settings rebuilds the tracker. The new tracker is
+seeded with the old one's boundary, so editing the limit on a Wednesday does
+not hand you a fresh budget on the next tick.
+
+## What counts against a budget
+
+The budget displays in `curfew-ctl budget` and
+[`curfew_budget`](/mcp-tools#curfew-budget) count the `extension_granted` and
+`override_granted` events in the activity log since the start of the current
+week, and subtract those from the configured limits. A request that is denied,
+or an extension button you never held long enough to fire, does not consume a
+slot.
+
+## Checking what is left
+
+```bash
+curfew-ctl budget
+```
+
+```text
+Extensions:  2/3 remaining (15 min each)
+Overrides:   2/2 remaining (30 min each)
+Resets:      Mon
+```
+
+`--json` gives the same numbers with `used`, `remaining`, `weekly_limit`, and
+`duration_minutes` for each, plus `reset_weekday`.
+
+An assistant can read the same figures with
+[`curfew_budget`](/mcp-tools#curfew-budget). Deciding whether to spend an
+extension or escalate to an override is the main thing that tool is for.
+
+## Running out
+
+When the extension budget hits zero, `canRequestExtension` is false for the
+rest of the week and the hold-to-confirm control stays inert even at T-30.
+When the override budget hits zero, `OverrideRequestPolicy.canConfirm` returns
+false no matter how long your justification is. Neither one produces an error
+you can retry past — the week has to roll over.

@@ -11,12 +11,38 @@
     "groups": [
       {
         "group": "Get started",
-        "pages": ["index"]
+        "pages": ["index", "install", "permissions"]
       },
       {
-        "group": "Use Curfew",
-        "pages": ["mcp", "cli"]
+        "group": "Configure",
+        "pages": ["schedule", "warnings", "budgets"]
+      },
+      {
+        "group": "The enforcement day",
+        "pages": ["enforcement-day", "lockout", "overrides"]
+      },
+      {
+        "group": "Integrations",
+        "pages": ["mcp", "mcp-tools", "cli"]
+      },
+      {
+        "group": "Reference",
+        "pages": ["activity-log", "privacy", "troubleshooting"]
       }
     ]
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "Curfew",
+        "href": "https://curfew.hypertext.studio/"
+      }
+    ]
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/TheHypertextStudio/curfew",
+      "website": "https://hypertext.studio"
+    }
   }
 }

@@ -124,9 +124,22 @@ a later signed build.
 
 ### 8. Landing page hosting
 
-- [x] Cloudflare Pages project serves this repo's `landing/` directory.
+- [x] Cloudflare Pages project `curfew-landing` serves this repo's
+      `landing/` directory.
 - [x] Custom domain: `curfew.hypertext.studio` (HTTPS 200 verified 2026-08-01).
 - [x] Cloudflare Pages preview deployment runs for repository changes.
+- [ ] Give `curfew-landing` a build command so `/docs` ships with every
+      push. The documentation site lives in `docs/` and is rendered into
+      `landing/` by `scripts/build-docs.mjs`; that output is gitignored, so
+      a Git-triggered deploy publishes the marketing page **without the
+      docs** until the project is configured:
+
+      Build command:    node scripts/build-docs.mjs
+      Output directory: landing
+      Root directory:   /
+
+      Until then, `just deploy-landing` uploads both by hand and needs
+      wrangler signed in to the account that owns `hypertext.studio`.
 
 The completed hosting setup does **not** authorize a sale: keep the root
 landing sale gate closed until the production Stripe webhook and signed-app

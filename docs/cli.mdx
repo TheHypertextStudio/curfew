@@ -1,26 +1,194 @@
 ---
 title: Command line
-description: Query Curfew from a shell script, status bar, or terminal.
+description: The curfew-ctl reference — status, schedule, budget, activity, reflections, override.
 ---
 
-`curfew-ctl` ships inside the Curfew app bundle. Run it directly, or create an
-alias if you use it often.
+`curfew-ctl` reads the same settings and databases the Curfew app writes, so
+it reports live state whether or not the app is running. Five of its six
+subcommands are read-only. The sixth, `override`, never mutates enforcement
+directly — it queues a request for the running app to approve.
 
-## Status
+## Running it
+
+The binary ships inside the app bundle:
 
 ```bash
 /Applications/Curfew.app/Contents/Resources/curfew-ctl status
 ```
 
-## Schedule and budget
+Symlink it once and use the short name everywhere:
 
 ```bash
-/Applications/Curfew.app/Contents/Resources/curfew-ctl schedule show
-/Applications/Curfew.app/Contents/Resources/curfew-ctl budget
+ln -s /Applications/Curfew.app/Contents/Resources/curfew-ctl /usr/local/bin/curfew-ctl
 ```
 
-## Reflections
+Running `curfew-ctl` with no arguments is the same as `curfew-ctl status`.
+
+Every subcommand takes `--json` (or `-j`) and prints a pretty-printed,
+key-sorted JSON object instead of text. That is the form to parse; the plain
+output is for humans and may be reworded.
+
+## status
 
 ```bash
-/Applications/Curfew.app/Contents/Resources/curfew-ctl reflections --days 7
+curfew-ctl status
+curfew-ctl status --json
 ```
+
+```text
+phase:     warning
+remaining: 14 min
+locks at:  6:00 PM
+warning:   fifteenMinutes
+```
+
+While locked or on a day off, the output shows the unlock time instead of the
+remaining minutes. The warning line is omitted when no stage is active.
+
+The JSON form gives `phase`, `minutes_remaining`, `warning_stage` as one of
+`none`, `T-30`, `T-15`, `T-5`, `T-2`, `T-1`, `lockout`, `can_request_extension`,
+and ISO-8601 `lock_date` and `unlock_date` when they exist.
+
+## schedule
+
+```bash
+curfew-ctl schedule
+curfew-ctl schedule --json
+```
+
+```text
+Mon: 18:00 → 08:00
+Tue: 18:00 → 08:00
+Wed: 18:00 → 08:00
+Thu: 18:00 → 08:00
+Fri: 18:00 → 08:00
+Sat: day off
+Sun: day off
+
+Pending change effective: Aug 9, 2026
+```
+
+The JSON form returns `{"days": [...]}` where each entry has `day` and
+`day_off`, plus `lock` and `unlock` when the day is not off.
+
+<Warning>
+There is no `schedule show` subcommand. The repository README shows
+`curfew-ctl schedule show`, and that is wrong — the schedule command takes no
+positional argument.
+</Warning>
+
+## budget
+
+```bash
+curfew-ctl budget
+curfew-ctl budget --json
+```
+
+```text
+Extensions:  2/3 remaining (15 min each)
+Overrides:   2/2 remaining (30 min each)
+Resets:      Mon
+```
+
+The JSON form nests `used`, `remaining`, `weekly_limit`, and
+`duration_minutes` under `extensions` and `overrides`, and adds
+`reset_weekday`. See [Budgets](/budgets).
+
+## activity
+
+```bash
+curfew-ctl activity
+curfew-ctl activity --today
+curfew-ctl activity --json
+```
+
+Without a flag the command covers the current week. `--today` narrows it to
+today. Events print newest first with a short local time.
+
+```text
+  6:00 PM  Lockout started
+  5:59 PM  Warning: T-1 (1 min remaining)
+  5:45 PM  Extension granted +15 min
+  9:02 AM  Session started
+```
+
+The JSON form returns `{"events": [...]}` with `timestamp` in ISO 8601,
+`kind`, `gate_kind`, and optional `minutes` and `note`. The full event
+vocabulary is in [the activity log reference](/activity-log).
+
+<Warning>
+There is no `--days` option on `activity`. The README shows
+`curfew-ctl activity --days 7`; that flag exists on `reflections`, not here.
+</Warning>
+
+## reflections
+
+```bash
+curfew-ctl reflections
+curfew-ctl reflections --days 30
+curfew-ctl reflections --gate evening
+curfew-ctl reflections --json
+```
+
+<ParamField body="--days" type="int" default="7">
+  How many days back to include, counting from the start of that day.
+</ParamField>
+
+<ParamField body="--gate" type="string">
+  `morning` or `evening`. Anything else is a validation error.
+</ParamField>
+
+```text
+Aug 8, 2026 at 6:01 PM — Evening
+  • What did you finish today?
+      Shipped the schedule policy fix.
+  • How did the day feel?
+      good
+```
+
+Read-only. Reflections are authored in the app and nothing on the command line
+can write one.
+
+## override
+
+```bash
+curfew-ctl override "<reason>"
+curfew-ctl override "<reason>" --json
+```
+
+The reason is a **positional argument**, not a flag, and it must be at least
+50 characters after trimming. A shorter reason fails validation before anything
+is queued.
+
+```bash
+curfew-ctl override "the deploy is half finished and rolling back now would leave the database mid-migration"
+```
+
+```text
+queued:  0E5C1A9F-3F1B-4C0D-9E10-2A6C58C4B7D2
+status:  pending approval in the Curfew app
+```
+
+The JSON form returns `request_id`, `status`, and `tool` — the last being the
+queue identifier `curfew.request_override`.
+
+This does **not** grant an override. It appends an entry to the same consent
+queue the MCP server uses, and the running app raises a consent sheet. If the
+queue cannot be written, the command reports that and suggests checking that
+Curfew is installed. See [Extensions and overrides](/overrides).
+
+<Warning>
+The README shows `curfew-ctl override --reason "..."`. There is no `--reason`
+flag. Pass the reason positionally.
+</Warning>
+
+## Scripting notes
+
+`curfew-ctl` opens the shared databases read-only and returns a clear message
+rather than an error when they do not exist yet, so a status line in a shell
+prompt will not break on a machine where Curfew has never been launched.
+
+A development build reads a different defaults suite and a different
+Application Support directory. Set `CURFEW_FLAVOR=development` in the
+environment when you want the CLI to inspect a dev install instead of the
+production one.

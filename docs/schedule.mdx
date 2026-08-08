@@ -1,0 +1,138 @@
+---
+title: Schedule and curfew modes
+description: Per-day lock and unlock times, days off, hours limits, and presets.
+---
+
+A Curfew schedule is a `WeeklySchedule`: one `DayRule` per weekday. The engine
+resolves that into concrete dates once per second and decides what phase you
+are in.
+
+## `DayRule`
+
+Each day carries five fields.
+
+<ParamField path="isDayOff" type="Bool">
+  When true, no enforcement window exists for that day. The lock and unlock
+  times are still stored, so turning the day back on restores your previous
+  values instead of resetting them.
+</ParamField>
+
+<ParamField path="lockMinutes" type="Int">
+  Minutes past midnight at which the Mac locks. `1080` is 18:00.
+</ParamField>
+
+<ParamField path="unlockMinutes" type="Int">
+  Minutes past midnight at which the Mac unlocks. Any value less than or equal
+  to `lockMinutes` is read as the following calendar day, so `480` with a lock
+  at `1080` means 08:00 tomorrow.
+</ParamField>
+
+<ParamField path="mode" type="CurfewMode" default="time">
+  How the day's curfew triggers. See [Curfew modes](#curfew-modes).
+</ParamField>
+
+<ParamField path="hoursLimitMinutes" type="Int?">
+  In `hours` or `combined` mode, lock after this many minutes of active work.
+  `nil` in `time` mode. Typical values are `480` (8 hours) and `600`
+  (10 hours).
+</ParamField>
+
+Times are stored as minutes past midnight rather than as `Date` values so the
+schedule itself is timezone-independent. `WeeklySchedule.scheduleWindow` turns
+them into absolute dates at evaluation time using the device calendar, which is
+what makes daylight-saving transitions behave.
+
+<Note>
+`DayRule` also has an `exception` field. It is a `Codable` placeholder with no
+contents today and is always `nil`. It exists so per-day holiday overrides can
+land later without a schema migration.
+</Note>
+
+### Overnight windows
+
+Because `unlockMinutes <= lockMinutes` means "next day", a schedule can run
+past midnight. `scheduleWindow` also checks the *previous* day's rule first: if
+you are inside yesterday's lock-to-unlock span, that window is the one that
+applies. A 02:00 curfew with an 08:00 unlock therefore keeps enforcing at
+03:00, rather than falling into a gap.
+
+## Curfew modes
+
+`CurfewMode` has three cases.
+
+<AccordionGroup>
+  <Accordion title="time — wall clock (the default)">
+    The lock fires at `lockMinutes`. This is the v0.1 behavior and the default
+    for every rule, including rules decoded from older saved settings.
+  </Accordion>
+  <Accordion title="hours — accumulated work">
+    The lock fires once you have accumulated `hoursLimitMinutes` of active
+    work today. The effective lock time is recomputed each tick as
+    `now + (hoursLimit + extensions − worked)`. Idle time is excluded before
+    the engine sees the number; `IdleWatcher` uses a five-minute cutoff.
+  </Accordion>
+  <Accordion title="combined — whichever comes first">
+    Both deadlines are computed and the nearer one wins. The evaluation carries
+    a `trigger` of `time` or `hours` so the lockout screen and the MCP tools
+    can say which clock fired.
+  </Accordion>
+</AccordionGroup>
+
+Extensions apply to **both** clocks. Asking for fifteen more minutes pushes the
+wall-clock deadline out by fifteen minutes and raises the hours budget by
+fifteen minutes, because "fifteen more minutes tonight" should mean the same
+thing in every mode.
+
+## Presets
+
+`SchedulePreset` names three ready-made weekly schedules. All three mark
+Saturday and Sunday as days off.
+
+| Preset | Label in Settings | Lock | Unlock |
+| --- | --- | --- | --- |
+| `nineToFive` | 9-to-5 | 18:00 | 08:00 |
+| `startupHours` | Startup Hours | 20:00 | 08:00 |
+| `halfDay` | Half Day | 13:00 | 08:00 |
+
+Applying a preset is not a shortcut around the anti-bypass policy. It queues a
+schedule change like any other edit and is classified the same way.
+
+## Changing the schedule
+
+`SchedulePolicyEngine` compares your proposed schedule against the active one,
+day by day, and classifies the result.
+
+| Classification | What triggers it | When it takes effect |
+| --- | --- | --- |
+| `weaker` | Later lock, earlier unlock, a day turned off, any mode change, or a higher hours limit — on any single day | 24 hours after you request it |
+| `stricter` | Only tightening changes: earlier lock, later unlock, a day turned on, or a lower hours limit | The next calendar midnight |
+| `no_change` | Every day is identical | Immediately, and nothing is queued |
+
+A single loosening day makes the whole change `weaker`, even if six other days
+got stricter. That is the point: the policy exists so you cannot escape
+tonight's session by editing Settings at 17:55.
+
+Mode changes are deliberately conservative. Any transition between `time`,
+`hours`, and `combined` classifies as `weaker`, even when the new mode is
+objectively stricter, because the real strictness depends on how many minutes
+you have already worked and that cannot be evaluated at classification time.
+Waiting out 24 hours for a genuine tightening is the price of never letting a
+mode flip slip past the gate.
+
+A queued change lives in `pendingScheduleChange` with its `requestedAt`,
+`effectiveAt`, and classification. Both the schedule view and
+`curfew-ctl schedule` show the pending effective date. An assistant using
+[`curfew_set_schedule`](/mcp-tools#curfew-set-schedule) goes through exactly
+the same classifier.
+
+## Reading the schedule
+
+From the shell:
+
+```bash
+curfew-ctl schedule
+curfew-ctl schedule --json
+```
+
+From an assistant, [`curfew_schedule`](/mcp-tools#curfew-schedule) returns the
+same seven rules plus any pending change.

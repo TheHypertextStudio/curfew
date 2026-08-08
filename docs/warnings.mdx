@@ -1,0 +1,83 @@
+---
+title: Warnings and the countdown
+description: The five escalation stages, what each one changes, and how to retune them.
+---
+
+Curfew's warning stages are separate from its enforcement phase. The phase is
+coarse — `working`, `warning`, `locked`, `dayOff`. The stage is fine-grained
+and keeps escalating underneath it, which is why the app can tell you that
+T-30 has passed while you are still nominally working.
+
+## The five stages
+
+`WarningStage.stage(forMinutesRemaining:intervals:)` maps minutes left onto a
+stage. With the default thresholds:
+
+| Stage | Fires at | Dim overlay | Floating timer | Snooze | Extension |
+| --- | --- | --- | --- | --- | --- |
+| T-30 | 30 min left | none | no | yes | yes |
+| T-15 | 15 min left | none | no | yes | yes |
+| T-5 | 5 min left | 10% | yes | no | no |
+| T-2 | 2 min left | 25% | yes | no | no |
+| T-1 | 1 min left | 40% | yes | no | no |
+| Lockout | 0 min left | 100% | — | no | no |
+
+Nothing appears on screen at T-30 or T-15. The visual ramp starts at T-5, so
+the early warnings stay in Notification Center rather than dimming your display
+half an hour before you finish. Minutes remaining round **up**, so T-1 fires the
+moment you enter the final sixty seconds.
+
+The dim overlay is one borderless window per display at `.floating` level with
+mouse events passing through, so you can keep working through it. The floating
+countdown is a separate `.statusBar`-level pill, also click-through.
+
+## Snoozing
+
+The T-30 and T-15 notifications carry a **Snooze 1 min** action. Tapping it
+adds one minute to `snoozeMinutesGrantedToday` and re-ticks. Later stages do
+not offer it — late enough to be meaningful, early enough not to be trivially
+abused.
+
+## Extending
+
+The "hold for extension" control is live only at T-30 and T-15, and only while
+your weekly budget has a slot left. You hold it for **2 seconds**. See
+[Extensions and overrides](/overrides).
+
+## Retuning the thresholds
+
+`WarningIntervals` holds the five thresholds and lives in your settings. The
+default is 30 / 15 / 5 / 2 / 1. Settings exposes sliders.
+
+Curfew normalizes the values on every read and every write, so you cannot
+produce a non-monotone sequence by dragging sliders in an awkward order. Each
+stage is first clamped to its own ceiling and then forced below the stage above
+it:
+
+| Stage | Allowed range |
+| --- | --- |
+| T-1 | 1–30 min |
+| T-2 | 2–45 min |
+| T-5 | 5–90 min |
+| T-15 | 15–180 min |
+| T-30 | 30–360 min |
+
+After clamping, the ordering is re-enforced from the bottom up, so the
+sequence is always strictly increasing from the T-1 slot to the T-30 slot. The
+stage names keep their labels even when you retune them — a "T-30" configured
+at 45 minutes is still called T-30 in the activity log and in
+`curfew-ctl status`.
+
+## What gets recorded
+
+Each escalation writes a `warning_escalated` event to the activity log with the
+stage label in `note` and the minutes remaining in `minutes_value`. See
+[the activity log](/activity-log).
+
+## Multiple Macs
+
+When CloudKit sync is running, the `LockoutState` record carries the warning
+stages that have already fired today. A Mac joining mid-escalation suppresses
+a banner another Mac has already shown, so opening a laptop at T-5 does not
+re-fire the T-30 alarm you already saw. Sync is disabled by feature flag in the
+shipping build, so this path is inactive today.

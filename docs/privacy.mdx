@@ -1,0 +1,128 @@
+---
+title: Privacy
+description: What Curfew stores, where it stores it, and what never leaves the Mac.
+---
+
+Curfew stores everything locally and asks only for permissions it uses. It has
+no analytics, no telemetry, and no crash reporting.
+
+## What is stored, and where
+
+| Data | Location | Retention |
+| --- | --- | --- |
+| Schedule, budgets, warning thresholds, preferences | `~/Library/Preferences/studio.hypertext.curfew.plist`, key `curfew.settings.v1` | Until you uninstall |
+| Override history | Same plist, key `curfew.overrideEvents.v1` | Until you uninstall |
+| Reflection prompts and enable flags | Same plist, key `curfew.reflectionConfig.v1` | Until you uninstall |
+| Activity log | `~/Library/Application Support/Curfew/activity.sqlite3` | 52 weeks, rolling |
+| Reflection answers | `~/Library/Application Support/Curfew/reflections.sqlite3` | Until you uninstall |
+| Pending AI write requests | `~/Library/Application Support/Curfew/mcp-requests.json`, mode `0600` | Pruned after resolution |
+| MCP signing key | `~/Library/Application Support/Curfew/.mcp-secret`, mode `0600` | Until you uninstall |
+| Widget settings mirror | `~/Library/Group Containers/group.studio.hypertext.curfew/Curfew/widget-settings.json` | Until you uninstall |
+| License key (Pro) | `~/Library/Preferences/studio.hypertext.curfew.plist` | Until you deactivate |
+
+<Note>
+`PRIVACY.md` in the repository lists the activity database inside the group
+container. It moved: the canonical path is the app's own Application Support
+directory, as above. A non-sandboxed app touching its App Group container
+raises the macOS "access data from other apps" prompt, and the activity log has
+no cross-sandbox consumer, so it lives outside the container.
+</Note>
+
+The two files carrying free-form prose you wrote — the request queue and the
+signing key — are chmodded to `0600`. The queue is tightened explicitly after
+each atomic write, because `NSData.write` lands at `0644` on macOS and
+justification text should not be world-readable on a shared machine.
+
+## What Curfew does not do
+
+- No analytics, telemetry, or crash reporting.
+- No network requests, except iCloud sync (Pro, opt-in, currently disabled by
+  feature flag) and a one-time license verification that is offline afterward.
+- No reading of your files, browser history, or application content.
+- No keystroke logging. The lockout event tap inspects key codes and modifier
+  flags to decide block-or-allow, and records nothing.
+- No cursor or app-activity tracking. Idle detection reads a system-level idle
+  interval, not what you are doing.
+
+## Reflections
+
+Reflection answers are the most personal thing Curfew holds. Three rules apply
+to them.
+
+**They stay on the Mac.** They are written to a dedicated SQLite database
+beside the activity log, and nothing uploads them.
+
+**Nothing writes them but you.** There is no MCP write tool for reflections and
+there will not be one. The read tool,
+[`curfew_get_reflections`](/mcp-tools#curfew-get-reflections), has no write
+counterpart, and the CLI's `reflections` command is read-only. A reflection an
+assistant composed is not a reflection.
+
+**They are readable by an assistant you connect.** This is the part worth being
+precise about. Curfew exposes reflections read-only so an assistant can use
+"how did the user say the day went?" as context. If you connect one, it can
+read your reflection prose.
+
+<Warning>
+Curfew never sends your reflections anywhere. A connected MCP client is a
+different program with its own network behavior, and a cloud-backed assistant
+will transmit whatever it reads to its own service. If you do not want that,
+either set the AI consent policy to keep the connection read-only and accept
+that reads still happen, or do not connect an assistant at all. Curfew cannot
+police what a client does with data it has been given.
+</Warning>
+
+The same caveat applies to your activity log, your schedule, and your override
+justifications, which are all readable over MCP.
+
+## What the daemon does
+
+`curfew-daemon` runs as root, and its scope is deliberately narrow. It does
+exactly four things:
+
+1. Writes a heartbeat file so anything watching can tell it is alive.
+2. Reads the lockout deadline record, and keeps a root-owned shadow copy in
+   `/Library/Application Support/Curfew/` so deleting the user-side file does
+   not end a lockout early.
+3. Reads the modification time of the app's heartbeat file to tell whether the
+   Curfew app is still running.
+4. Runs `/sbin/shutdown -h +1` if the app heartbeat has been stale for 90
+   seconds while a lockout deadline is still in force.
+
+It reads no user content, opens no databases, and makes no network calls. It
+exits on its own once the deadline passes. It is gated behind the
+`privilegedHelperEnabled` feature flag, which is off in the shipping build, so
+it does not run on a stock install today.
+
+## Permissions
+
+| Permission | What it is for |
+| --- | --- |
+| Accessibility | Intercepting keyboard shortcuts during lockout. See [Permissions](/permissions). |
+| Notifications | Warning banners and the lockout alert. Optional. |
+| Automation → System Events | Auto-shutdown only. Requested only if you enable it. |
+| Calendars (Pro) | Reading today's events for display. Never written. Disabled by feature flag today. |
+
+## iCloud sync (Pro)
+
+When sync is enabled, Curfew writes four record types to **your private
+CloudKit database**: `Settings` (schedule, budgets, preferences),
+`Device` (per-Mac registration), `DeviceActivity` (a 60-second heartbeat with a
+timestamp and an active flag, and nothing else), and `LockoutState` (current
+phase and warning timestamps so a Mac joining mid-escalation aligns with the
+one that started).
+
+Heartbeats older than 7 days are pruned. Everything lives in your personal
+iCloud account, encrypted by Apple, and Hypertext Studio has no access to it.
+
+Sync is behind the `cloudSyncEnabled` feature flag, which is off in the
+shipping build, so no CloudKit records are written today.
+
+## Uninstalling
+
+`scripts/uninstall.sh` removes the app and its data. The Homebrew cask's `zap`
+stanza covers `~/Library/Application Support/Curfew`, the group container, the
+caches, the `studio.hypertext.curfew.lockdown` LaunchAgent plist, and the
+preferences plist.
+
+Questions: [hello@hypertext.studio](mailto:hello@hypertext.studio).

@@ -1,0 +1,146 @@
+---
+title: The lockout
+description: The overlay, the key interceptor, the respawn deterrent, and auto-shutdown.
+---
+
+At T-0 Curfew draws a full-screen lockout on every display and keeps it there
+until the unlock time. This page describes each layer and, for each one, what
+it does not stop.
+
+## The overlay
+
+`OverlayCoordinator` creates one borderless `NSWindow` per screen with:
+
+| Property | Value | Why |
+| --- | --- | --- |
+| `level` | `.screenSaver` | Above the Dock and above full-screen apps |
+| `ignoresMouseEvents` | `false` | Clicks are captured, not passed to the desktop |
+| `collectionBehavior` | `canJoinAllSpaces`, `fullScreenAuxiliary`, `stationary` | Follows you across every Space |
+| `hidesOnDeactivate` | `false` | Does not vanish when another app takes focus |
+| `isMovable` | `false` | Cannot be dragged aside |
+
+Windows are created lazily on first need, updated in place on later ticks, and
+torn down when the phase clears. Plugging in a second display mid-lockout gets
+its own window.
+
+The screen shows the current time, an encouragement message, the unlock time,
+and the "Convince Me" override control. When the evening reflection gate is
+still unresolved it also renders the reflection card, which never blocks
+anything.
+
+## What the key interceptor blocks
+
+`LockoutKeyInterceptor` installs a session-level `CGEventTap` at the head of
+the queue and consults a pure policy function for every key-down and
+modifier-change event.
+
+| Shortcut | Key code | Why it is blocked |
+| --- | --- | --- |
+| ⌘⇥ | 48 | App switcher moves focus off the overlay |
+| ⌘Q | 12 | Quits Curfew |
+| ⌘W | 13 | Closes the overlay window |
+| ⌘H | 4 | Hides the app |
+| ⌘M | 46 | Minimizes the window |
+| ⌘Space | 49 | Spotlight |
+| ⌘` | 50 | Cycles windows of the same app |
+| ⌘⌥Esc | 53 | Force-quit dialog |
+| Ctrl+←↑→↓ | 123–126 | Spaces navigation |
+| F3 | 160 | Mission Control |
+| F4 | 131 | Launchpad |
+| F11 | 103 | Show desktop |
+| F12 | 111 | Dashboard |
+
+Everything else passes through. The list is deliberately small — enough to
+deter the obvious escapes without reimplementing a kiosk-mode keyboard driver.
+
+<Warning>
+The tap needs Accessibility trust. Without it `CGEvent.tapCreate` still
+succeeds, macOS disables the tap at the first event, and every one of these
+shortcuts works normally. Nothing warns you. See [Permissions](/permissions).
+</Warning>
+
+### Keeping the tap alive
+
+macOS disables an event tap that responds too slowly (`tapDisabledByTimeout`)
+or after certain user input (`tapDisabledByUserInput`), and a tap can disappear
+entirely. Curfew handles both:
+
+- The C callback re-enables the tap immediately when it receives either
+  disable event.
+- A watchdog runs every **2 seconds**. If the tap is installed but disabled it
+  re-enables it; if the tap is gone it recreates it from scratch.
+
+## The respawn deterrent
+
+`PersistentLockdown` installs a user LaunchAgent, `studio.hypertext.curfew.lockdown`,
+whose `KeepAlive.PathState` watches a trigger file. While the file exists,
+launchd keeps Curfew running and respawns it within a second or two if you kill
+it. When the file is absent, launchd leaves Curfew alone and quitting from the
+menu bar works normally. Curfew creates the file on entering lockout and
+removes it on leaving.
+
+This is opt-in. Curfew ships the agent but does not install it automatically,
+and Debug builds substitute a no-op so a developer run never pollutes launchd
+state.
+
+## The privileged daemon
+
+`curfew-daemon` runs as root and exists for one case: the Curfew app dies
+mid-lockout. It loops every **15 seconds** and:
+
+1. Reads the lockout deadline record, preferring the user-side file and
+   falling back to a root-owned shadow copy in
+   `/Library/Application Support/Curfew/`. Deleting the user-side file does not
+   end the deadline, because the shadow is authoritative once written.
+2. Exits cleanly once the scheduled unlock time passes.
+3. Watches the app heartbeat file. If it has not been touched for **90
+   seconds**, the daemon runs `/sbin/shutdown -h +1`.
+
+That gives a worst-case bypass-detection window of roughly 90 to 105 seconds.
+The `+1` gives open applications a minute to save and raises a system dialog
+that user-space cannot cancel, unlike the AppleScript path the app itself uses.
+
+<Note>
+The daemon is installed through `SMAppService` and gated behind the
+`privilegedHelperEnabled` feature flag, which is **false** in the shipping
+build. It does not run on a stock install today. The packaging has landed;
+signed install and recovery validation has not.
+</Note>
+
+## Auto-shutdown
+
+Off by default. When you enable it, `ShutdownWorkflow` runs a small state
+machine.
+
+<Steps>
+  <Step title="Lockout starts">
+    The workflow schedules the first attempt for `now + delay`. The delay is
+    your configured value, adjustable from 1 to 60 minutes with a default of
+    10. On a Mac that is not the active device the delay is a flat 2 minutes,
+    since nobody is sitting there needing time to save.
+  </Step>
+  <Step title="The delay elapses">
+    Curfew asks every running application except itself to terminate, giving
+    each one the standard "save changes?" flow. Apps may veto; that is fine.
+    Then it runs `tell application "System Events" to shut down`.
+  </Step>
+  <Step title="It succeeds, fails, or is refused">
+    Success ends the workflow. A plain failure schedules one retry 60 seconds
+    later, and a second failure gives up. A refusal from the Automation
+    permission goes straight to `permissionDenied` with no retry.
+  </Step>
+</Steps>
+
+The lockout screen renders the countdown from the workflow's own status line —
+"Your Mac is going to sleep in 9:45." — and switches to "Retrying shutdown
+in 0:58." or an explanatory message on failure.
+
+**Lockout stays active regardless of the outcome.** Shutting down is a way to
+close the day, not the thing that enforces it.
+
+## What none of this stops
+
+Curfew is a commitment device. A user with a terminal, root access, or another
+machine can get around every layer here. The point is to make stopping the
+default and to make working past the deadline a deliberate, logged act rather
+than a drift.

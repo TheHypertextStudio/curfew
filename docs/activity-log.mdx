@@ -1,0 +1,154 @@
+---
+title: Activity and audit logs
+description: The append-only event log — schema, event kinds, retention, and export.
+---
+
+Curfew records what it did and what you asked it to do in a local, append-only
+SQLite log. It is the source of truth for the This Week retrospective, for CSV
+export, for the budget counts, and for the
+[`curfew_activity`](/mcp-tools#curfew-activity) tool.
+
+## Where it lives
+
+```
+~/Library/Application Support/Curfew/activity.sqlite3
+```
+
+A development build writes to `Curfew (Dev)` instead. The file is created on
+first launch; every reader — the app, `curfew-ctl`, and `curfew-mcp` — resolves
+the path through one shared constant so the three processes cannot disagree
+about where the log is.
+
+## Schema
+
+One table, one index.
+
+```sql
+CREATE TABLE IF NOT EXISTS events (
+    id            TEXT PRIMARY KEY,
+    timestamp     REAL NOT NULL,
+    gate_kind     TEXT NOT NULL,
+    kind          TEXT NOT NULL,
+    minutes_value INTEGER,
+    note          TEXT
+);
+
+CREATE INDEX IF NOT EXISTS events_timestamp_idx ON events(timestamp);
+```
+
+A single flat table rather than one table per event type, because every query
+anyone actually runs is "events in a time range, optionally filtered by kind",
+and because a new gate family slots in by writing rows with a different
+`gate_kind` rather than by migrating a schema.
+
+The store opens with `journal_mode = WAL` and `synchronous = NORMAL`, so a
+power loss or a force-kill mid-write rolls the in-flight row back instead of
+leaving a torn record. That matters more than it looks: hours-based enforcement
+reads this store on every tick, and a corrupt row would distort the worked
+count and fire the lockout early or late.
+
+Writes are append-only. `ActivityStore.append` inserts, and re-appending an
+event with an existing `id` raises `duplicateEventID` rather than overwriting.
+The only deletion path is the retention trim below.
+
+Every SQLite interaction goes through one serial dispatch queue, so callers can
+write from any thread.
+
+## Event kinds
+
+`kind` is a stable string. These values appear in the database, in CSV
+exports, and in MCP tool responses, so they are treated as a wire format and
+are not renamed without a migration plan.
+
+| `kind` | When it is written | `minutes_value` | `note` |
+| --- | --- | --- | --- |
+| `session_started` | First tick after the daily unlock | — | — |
+| `session_ended` | The working window ended at lockout | — | — |
+| `warning_escalated` | A warning stage fired | Minutes remaining | The stage label, e.g. `T-15` |
+| `lockout_started` | The lockout overlay appeared | — | — |
+| `lockout_ended` | Natural unlock or an override | — | — |
+| `extension_granted` | An extension was confirmed | Minutes added | — |
+| `override_granted` | A "Convince Me" override was confirmed | Minutes granted | Your justification, verbatim |
+| `day_off` | A scheduled day-off boundary was crossed | — | — |
+| `reflection_recorded` | A reflection was saved at a gate | — | — |
+
+## Gate kinds
+
+`gate_kind` names the gate family that produced the event.
+
+| Value | Meaning |
+| --- | --- |
+| `curfew` | The end-of-day curfew gate. Every enforcement event uses this. |
+| `morning` | Marker for a recorded morning-intent reflection. |
+| `evening` | Marker for a recorded evening retrospective. |
+
+A `reflection_recorded` row is a **marker only**. The gate is in `gate_kind`
+and the answers live in a separate database, so the timeline can note that a
+reflection happened without duplicating its contents into the activity log.
+
+## Retention
+
+`ActivityRecorder` trims the log on day rollover and enforces the 52-week
+retention window. A trim that fails is logged and swallowed, because a failed
+cleanup must never block the tick loop.
+
+## Reading it
+
+```bash
+curfew-ctl activity            # this week
+curfew-ctl activity --today
+curfew-ctl activity --json
+```
+
+An assistant reads the same rows through
+[`curfew_activity`](/mcp-tools#curfew-activity), and the weekly aggregate
+through [`curfew_get_weekly_summary`](/mcp-tools#curfew-get-weekly-summary).
+
+## CSV export
+
+`ActivityStore.exportCSV` produces RFC 4180 CSV for any date range, with the
+columns:
+
+```
+id,timestamp,gate_kind,kind,minutes_value,note
+```
+
+Timestamps are ISO 8601 in UTC. Note fields are double-quoted with internal
+quotes doubled, and rows are joined with CRLF, so a justification containing a
+newline survives a strict parser.
+
+## Override records
+
+Alongside the activity log, Curfew keeps a dedicated override history in the
+preferences plist under `curfew.overrideEvents.v1`. Each `OverrideEvent`
+carries the timestamp, the device name captured at grant time, the
+justification, and the granted duration. The device name is snapshotted rather
+than looked up later, so renaming a Mac does not rewrite history. This is what
+backs the `overrides_by_device` field in
+[`curfew_get_weekly_summary`](/mcp-tools#curfew-get-weekly-summary).
+
+## The consent queue
+
+MCP and CLI write requests are recorded separately, in
+`~/Library/Application Support/Curfew/mcp-requests.json` at mode `0600`. Each
+entry keeps its tool, its verbatim arguments, its request and resolution
+timestamps, its approval status, any denial reason, and its HMAC signature.
+Resolved entries are pruned periodically, so this is a working queue rather
+than a permanent record — the durable trace of an approved override is the
+`override_granted` row in the activity log.
+
+## The dedicated audit-log subsystem
+
+<Warning>
+**In progress.** A separate append-only audit-log subsystem, with its own
+format specification under `Documentation/` in the repository, is being built
+on the `feat/audit-logs` branch and has not landed on `main`. Nothing on this
+page describes it.
+
+This page documents the activity log that ships today, which is already
+append-only and already the durable record of every enforcement decision,
+extension, and override. When the audit-log specification lands, this page
+gains a section covering its record format, its file location, and its
+relationship to `activity.sqlite3`. Field names are deliberately not guessed
+here.
+</Warning>
