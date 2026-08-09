@@ -79,7 +79,10 @@ extension SettingsView {
                 value: $model.settings.statusReporting.heartbeatSeconds,
                 in: DeviceStatusReportingPolicy.heartbeatFloorSeconds
                     ... DeviceStatusReportingPolicy.heartbeatCeilingSeconds,
-                step: 60
+                // Half the floor, so the range the coordinator's freshness
+                // threshold leaves open (60–120 s) has a middle setting rather
+                // than being a two-position switch.
+                step: 30
             )
             .font(CurfewTypography.body(13))
         }

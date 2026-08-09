@@ -16,25 +16,34 @@ import Foundation
 public struct DeviceStatusReportingPolicy: Codable, Equatable, Sendable {
     /// The path appended to ``baseURL`` to form the publish endpoint.
     ///
-    /// Taken from `curfew-sync/Documentation/ARCHITECTURE.md` §"API surface",
-    /// which lists `POST /sync/heartbeat` as the HTTP status-report path for
-    /// devices not holding a WebSocket open, alongside `GET /sync/socket` for
-    /// those that are. It is the only device status-report path any authority
-    /// in the three repos actually names.
+    /// `POST /sync/status`, the route curfew-sync actually implements:
+    /// `src/routes/device-status.ts` mounted at `/sync` by `src/worker.ts`.
+    /// It parses the body as `sync.json#/definitions/DeviceStatusPublication`
+    /// and answers `204` on acceptance, `409` on a stale `statusVersion`.
     ///
-    /// Neither this path nor any other is implemented in curfew-sync today —
-    /// `src/plugins/device-sync.ts` declares `endpoints: {}` — so this constant
-    /// is unverified against a running server and is the single line to change
-    /// when the coordinator's route lands under a different name.
-    public static let statusPath = "sync/heartbeat"
+    /// Not `sync/heartbeat`, which `curfew-sync/Documentation/ARCHITECTURE.md`
+    /// §"API surface" lists as a *planned* liveness ping for devices that are
+    /// not holding a WebSocket open. It is unimplemented, and its job — telling
+    /// a coordinator this device is alive — is a strict subset of what a status
+    /// publication already does. Two paths would be two things to keep true.
+    public static let statusPath = "sync/status"
 
-    /// Narrowest and widest heartbeat cadence Curfew will honour. A minute is
-    /// as often as a status report can say anything new given enforcement moves
-    /// in minutes; an hour is the point past which a coordinator would call the
-    /// device offline anyway.
+    /// Narrowest and widest heartbeat cadence Curfew will honour, both taken
+    /// from the cadence `Documentation/curfew-sync.md` §"Sync model" documents
+    /// for the device registry: **60 s active, 120 s freshness threshold**,
+    /// reused from F14/F15.
+    ///
+    /// The floor is the documented active cadence, and also as often as a
+    /// status report can say anything new given enforcement moves in minutes.
+    /// The ceiling is the freshness threshold, and it is a real bound rather
+    /// than a round number: a device publishing less often than the coordinator
+    /// waits before calling it stale reads as offline *between its own
+    /// heartbeats*, which is worse than not reporting — it is reporting
+    /// something false. So the settable range is exactly the range in which the
+    /// contract holds.
     public static let heartbeatFloorSeconds = 60
     /// See ``heartbeatFloorSeconds``.
-    public static let heartbeatCeilingSeconds = 3600
+    public static let heartbeatCeilingSeconds = 120
 
     /// Whether Curfew may publish status at all. **Off unless the user turned
     /// it on**, and the only thing that permits a network request to exist.
@@ -148,13 +157,13 @@ public struct DeviceStatusReportingPolicy: Codable, Equatable, Sendable {
     }
 
     /// Factory defaults: **reporting off, no endpoint, no credential, no
-    /// device identifier**, five-minute heartbeat for whenever the user turns
-    /// it on.
+    /// device identifier**, and the documented 60-second active cadence for
+    /// whenever the user turns it on.
     public static let `default` = DeviceStatusReportingPolicy(
         isEnabled: false,
         baseURL: "",
         deviceToken: "",
         deviceID: "",
-        heartbeatSeconds: 300
+        heartbeatSeconds: Self.heartbeatFloorSeconds
     )
 }

@@ -230,7 +230,28 @@ struct DeviceStatusWiringTests {
         await harness.settle()
 
         let call = harness.transport.calls.first
-        #expect(call?.endpoint.absoluteString == "https://coordinator.example/sync/heartbeat")
+        // The path curfew-sync implements: `src/routes/device-status.ts`
+        // mounted at `/sync` by `src/worker.ts`. Written out rather than built
+        // from `DeviceStatusReportingPolicy.statusPath`, so renaming the
+        // constant fails here instead of silently agreeing with itself.
+        #expect(call?.endpoint.absoluteString == "https://coordinator.example/sync/status")
         #expect(call?.bearerToken == "test-token")
+    }
+
+    @Test("What reaches the transport is a DeviceStatusPublication, not a snapshot")
+    func publishedBodyIsAPublication() async throws {
+        let harness = DeviceStatusWiringHarness(
+            reporting: DeviceStatusWiringHarness.configured()
+        )
+
+        harness.model.publishDeviceStatus(trigger: .configuration)
+        await harness.settle()
+
+        let body = try #require(harness.transport.decodedBody(at: 0))
+        // `parseDeviceStatusPublication` rejects a body missing either of
+        // these, so a report without them is a guaranteed 400 on every publish.
+        #expect(body["type"] as? String == "status")
+        let cursor = try #require(body["cursor"] as? String)
+        #expect(cursor.range(of: "^[A-Za-z0-9_-]{22,128}$", options: .regularExpression) != nil)
     }
 }

@@ -1,3 +1,4 @@
+import CryptoKit
 @testable import Curfew
 import Foundation
 import Testing
@@ -5,17 +6,24 @@ import Testing
 /// The wire shape, asserted against the schema rather than against itself.
 ///
 /// Every expectation below is transcribed by hand from
-/// `curfew-protocols/schemas/device.json` → `#/definitions/DeviceStatusSnapshot`.
-/// None of it is derived from `DeviceStatusReport`, because a test that asks the
-/// encoder what the encoder produces passes with any key set at all — including
-/// a wrong one. This project has been bitten by exactly that, so the key
-/// literals here are duplicated on purpose: if the encoder is renamed and this
-/// file is not, the suite fails, which is the whole point.
+/// `curfew-protocols/schemas/sync.json` →
+/// `#/definitions/DeviceStatusPublication`, the definition
+/// `curfew-sync/src/routes/device-status.ts` parses `POST /sync/status` bodies
+/// against. None of it is derived from `DeviceStatusReport`, because a test that
+/// asks the encoder what the encoder produces passes with any key set at all —
+/// including a wrong one. This project has been bitten by exactly that (the
+/// first cut of this file transcribed `device.json` →
+/// `#/definitions/DeviceStatusSnapshot`, the *response* shape, and passed while
+/// every real request would have been rejected `400`), so the key literals here
+/// are duplicated on purpose: if the encoder is renamed and this file is not,
+/// the suite fails, which is the whole point.
 struct DeviceStatusReportPayloadTests {
     // MARK: - Schema transcription
 
-    /// `required` in `DeviceStatusSnapshot`, in schema order.
+    /// `required` in `DeviceStatusPublication`, in schema order.
     static let requiredKeys: Set<String> = [
+        "type",
+        "cursor",
         "deviceId",
         "phase",
         "timeZone",
@@ -33,6 +41,9 @@ struct DeviceStatusReportPayloadTests {
 
     /// The `DevicePhase` enum, verbatim.
     static let phaseValues: Set<String> = ["working", "warning", "locked", "day_off", "unknown"]
+
+    /// `sync.json#/definitions/Cursor`, verbatim.
+    static let cursorPattern = "^[A-Za-z0-9_-]{22,128}$"
 
     // MARK: - Fixtures
 
@@ -63,7 +74,7 @@ struct DeviceStatusReportPayloadTests {
 
     // MARK: - Key set
 
-    @Test("The encoded body's key set is exactly what DeviceStatusSnapshot defines")
+    @Test("The encoded body's key set is exactly what DeviceStatusPublication defines")
     func keySetMatchesTheSchemaExactly() throws {
         let body = try decoded(Self.sample())
 
@@ -92,6 +103,13 @@ struct DeviceStatusReportPayloadTests {
     @Test("Every value matches the schema's type and pattern")
     func valuesMatchTheSchemaPatterns() throws {
         let body = try decoded(Self.sample())
+
+        // `const: "status"` — the discriminator that tells the coordinator's
+        // top-level `oneOf` which frame this is.
+        #expect(body["type"] as? String == "status")
+
+        let cursor = try #require(body["cursor"] as? String)
+        #expect(matches(cursor, Self.cursorPattern))
 
         let deviceID = try #require(body["deviceId"] as? String)
         #expect(matches(deviceID, DeviceStatusReport.deviceIDPattern))
@@ -143,14 +161,68 @@ struct DeviceStatusReportPayloadTests {
         // round-tripped: this is the literal text a coordinator would receive.
         #expect(json == """
         {"activeLockoutEndsAt":"2027-01-15T09:00:00Z",\
+        "cursor":"Bd5Xt1ZHm3mQI6-higG-aglSo9xTHTpy4Z4lr_Sd97g",\
         "deviceId":"3f2504e0-4f89-41d3-9a0c-0305e82c3301",\
         "nextTransitionAt":"2027-01-15T08:00:00Z",\
         "observedAt":"2027-01-15T07:59:59Z",\
         "phase":"locked",\
         "scheduleDigest":"47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU",\
         "statusVersion":7,\
-        "timeZone":"America/Los_Angeles"}
+        "timeZone":"America/Los_Angeles",\
+        "type":"status"}
         """)
+    }
+
+    // MARK: - Cursor
+
+    @Test("The cursor is the documented digest of the device and its version")
+    func cursorIsTheDocumentedDigest() {
+        // Recomputed here from the rule
+        // `DeviceStatusReport.cursor(deviceID:statusVersion:)` documents —
+        // unpadded base64url SHA-256 over
+        // "curfew.device-status.v1\n<deviceID>\n<statusVersion>" — rather than
+        // read back off the encoder. The point is that the construction is
+        // written down somewhere a coordinator author could reimplement from.
+        let preimage = "curfew.device-status.v1\n3f2504e0-4f89-41d3-9a0c-0305e82c3301\n7"
+        let expected = Data(SHA256.hash(data: Data(preimage.utf8))).base64EncodedString()
+            .replacingOccurrences(of: "+", with: "-")
+            .replacingOccurrences(of: "/", with: "_")
+            .replacingOccurrences(of: "=", with: "")
+
+        #expect(Self.sample().cursor == expected)
+        #expect(matches(expected, Self.cursorPattern))
+    }
+
+    @Test("A cursor is stable for one publication and distinct across versions")
+    func cursorIsStablePerPublicationAndDistinctAcrossVersions() throws {
+        var report = Self.sample()
+        let first = report.cursor
+
+        // Idempotent by name: the same status encoded twice carries the same
+        // cursor, so a coordinator deduplicating by cursor sees one frame.
+        #expect(report.cursor == first)
+        #expect(try report.encodedBody() == report.encodedBody())
+
+        // And a different version is a different frame. `statusVersion` never
+        // repeats for this install, so cursors never collide across
+        // publications either.
+        report.statusVersion += 1
+        #expect(report.cursor != first)
+
+        // Two devices at the same version do not share a cursor.
+        var otherDevice = Self.sample()
+        otherDevice.deviceID = "3f2504e0-4f89-41d3-9a0c-0305e82c3302"
+        #expect(otherDevice.cursor != first)
+    }
+
+    @Test("A report whose cursor could not satisfy the pattern is not well-formed")
+    func cursorParticipatesInWellFormedness() {
+        // Belt and braces: the digest always lands inside 22–128 base64url
+        // characters, so this asserts the check is wired rather than that it
+        // ever fires. A cursor that stopped being schema-shaped would otherwise
+        // reach the coordinator and be answered `400`.
+        #expect(Self.sample().isWellFormed)
+        #expect(matches(Self.sample().cursor, DeviceStatusReport.cursorPattern))
     }
 
     // MARK: - Privacy

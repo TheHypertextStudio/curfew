@@ -55,8 +55,8 @@ private func liveStatusRuntime(for model: CurfewAppModel) -> StatusReportingRunt
 }
 
 /// What prompted a status report. Log vocabulary only — it never reaches the
-/// wire, because `DeviceStatusSnapshot` has no field for it and this file does
-/// not coin one.
+/// wire, because `DeviceStatusPublication` has no field for it and this file
+/// does not coin one.
 enum DeviceStatusTrigger: String {
     /// The enforcement engine moved between phases — a lockout started or
     /// ended, or a warning window opened. The transition D4 exists to make
@@ -130,11 +130,11 @@ extension CurfewAppModel {
     /// it publishes nothing.
     ///
     /// `trigger` records why, for the log. It is not on the wire:
-    /// `DeviceStatusSnapshot` has no field for it, and inventing one would
+    /// `DeviceStatusPublication` has no field for it, and inventing one would
     /// break the rule that wire-crossing shapes come from curfew-protocols.
     ///
     /// The presence trigger deserves a note, because what it does is narrower
-    /// than it looks. `DeviceStatusSnapshot` carries no presence field at all —
+    /// than it looks. `DeviceStatusPublication` carries no presence field —
     /// there is nowhere in the schema to say "a person is at this machine" — so
     /// a presence transition cannot publish presence. What it publishes is a
     /// fresh `observedAt` alongside the enforcement scalars: the coordinator

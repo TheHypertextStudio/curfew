@@ -99,7 +99,9 @@ struct DeviceStatusWiringHarness {
 
     /// A reporting policy pointed at a usable endpoint, with a device
     /// identifier already minted.
-    static func configured(heartbeatSeconds: Int = 300) -> DeviceStatusReportingPolicy {
+    static func configured(
+        heartbeatSeconds: Int = DeviceStatusReportingPolicy.heartbeatFloorSeconds
+    ) -> DeviceStatusReportingPolicy {
         DeviceStatusReportingPolicy(
             isEnabled: true,
             baseURL: "https://coordinator.example",

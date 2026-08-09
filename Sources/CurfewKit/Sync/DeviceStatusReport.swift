@@ -4,40 +4,44 @@ import Foundation
 /// One device-status body, ready to be published to a curfew-sync coordinator.
 ///
 /// **Shape authority.** Every key, every value format, and every constraint
-/// below is copied from `curfew-protocols/schemas/device.json`
-/// → `#/definitions/DeviceStatusSnapshot`. Nothing here is invented. If a
+/// below is copied from `curfew-protocols/schemas/sync.json`
+/// → `#/definitions/DeviceStatusPublication`. Nothing here is invented. If a
 /// future need cannot be expressed in that definition, the fix is a change to
 /// curfew-protocols and a regenerated schema, never a field coined here — the
 /// three-repo rule exists because a field the device sends and the coordinator
 /// has never heard of is worse than no field at all.
 ///
-/// `DeviceStatusSnapshot` is the right definition rather than
-/// `sync.json#/definitions/DeviceStatusPublication`, which describes the same
-/// state as it appears on the *device socket*. That one additionally requires
-/// `type: "status"` and a `cursor`, and a cursor is a coordinator-assigned
-/// stream position — a device has no way to mint one. The publication frame is
-/// what the coordinator emits; the snapshot is what a device reports.
+/// `DeviceStatusPublication` is the right definition because it is literally
+/// what the route parses: `curfew-sync/src/routes/device-status.ts` hands the
+/// body of `POST /sync/status` to `parseDeviceStatusPublication`, which enforces
+/// the definition's `required` list, its patterns, and `additionalProperties:
+/// false`. `device.json#/definitions/DeviceStatusSnapshot` is the *response*
+/// shape — what `GET /sync/status` hands a reader — and a body in that shape is
+/// rejected with `400 {"error":"invalid_status_publication"}` for want of `type`
+/// and `cursor`.
 ///
-/// **Privacy.** The eight keys below are the whole of what leaves the machine.
+/// **Privacy.** The ten keys below are the whole of what leaves the machine.
 /// There is no representation here for a camera frame, a window title, an
 /// application name, a URL, a document, or any user-authored text, and the type
 /// admits none: every field is a scalar the enforcement engine already computed
-/// for its own purposes. This mirrors the rule
-/// `CurfewAppModel+AuditPresence.swift` established for the audit log — derived
-/// verdicts leave, observations do not.
+/// for its own purposes, a constant, or a digest of the other two. This mirrors
+/// the rule `CurfewAppModel+AuditPresence.swift` established for the audit log —
+/// derived verdicts leave, observations do not.
 ///
 /// Notably absent: presence. ``PresenceState`` has no home in
-/// `DeviceStatusSnapshot`, so a Curfew device cannot report to a coordinator
+/// `DeviceStatusPublication`, so a Curfew device cannot report to a coordinator
 /// whether a person is at the machine. That is a gap in curfew-protocols, not
 /// something to paper over locally — see `Documentation/curfew-sync-status.md`.
 public struct DeviceStatusReport: Equatable {
-    /// The exact key set `DeviceStatusSnapshot` defines.
+    /// The exact key set `DeviceStatusPublication` defines.
     ///
     /// Public because it is the contract, and a test that asserts the encoder's
     /// output against a set it derives from the encoder itself would prove
     /// nothing. This constant is transcribed from the schema by hand and is the
     /// thing worth diffing when curfew-protocols moves.
     public static let schemaKeys: Set<String> = [
+        "type",
+        "cursor",
         "deviceId",
         "phase",
         "timeZone",
@@ -48,10 +52,12 @@ public struct DeviceStatusReport: Equatable {
         "activeLockoutEndsAt"
     ]
 
-    /// The six keys the schema marks `required`. The remaining two are
+    /// The eight keys the schema marks `required`. The remaining two are
     /// nullable, and this encoder always emits them explicitly as `null` rather
     /// than omitting them, so the body's key set never varies with state.
     public static let requiredSchemaKeys: Set<String> = [
+        "type",
+        "cursor",
         "deviceId",
         "phase",
         "timeZone",
@@ -59,6 +65,10 @@ public struct DeviceStatusReport: Equatable {
         "statusVersion",
         "observedAt"
     ]
+
+    /// Schema `type`: a constant discriminating this frame from the other
+    /// members of `sync.json`'s top-level `oneOf`.
+    public static let frameType = "status"
 
     /// Schema `CanonicalUUID`: lowercase, version nibble 1–8, RFC 4122 variant.
     public static let deviceIDPattern =
@@ -74,6 +84,15 @@ public struct DeviceStatusReport: Equatable {
 
     /// Schema `timeZone`: an IANA identifier with at least one `/`.
     public static let timeZonePattern = "^[A-Za-z_+-]+(?:/[A-Za-z0-9_+-]+)+$"
+
+    /// Schema `Cursor`: 22–128 base64url characters. The 43 characters
+    /// ``cursor(deviceID:statusVersion:)`` produces sit inside that range.
+    public static let cursorPattern = "^[A-Za-z0-9_-]{22,128}$"
+
+    /// Domain-separation prefix for the cursor preimage. Present so this
+    /// digest can never collide with ``scheduleDigest(for:)``, which hashes a
+    /// different string for a different purpose with the same algorithm.
+    private static let cursorDomain = "curfew.device-status.v1"
 
     /// This device's stable identifier. Minted once per install and persisted
     /// in settings; never derived from hardware, so it cannot be correlated
@@ -105,6 +124,12 @@ public struct DeviceStatusReport: Equatable {
     /// When the running lockout ends, or `nil` when no lockout is running.
     public var activeLockoutEndsAt: Date?
 
+    /// This publication's schema `cursor`, derived rather than stored — see
+    /// ``cursor(deviceID:statusVersion:)`` for why a device mints its own.
+    public var cursor: String {
+        Self.cursor(deviceID: deviceID, statusVersion: statusVersion)
+    }
+
     /// Memberwise initialiser.
     public init(
         deviceID: String,
@@ -127,7 +152,7 @@ public struct DeviceStatusReport: Equatable {
     }
 
     /// The JSON body, with keys and value formats exactly as
-    /// `DeviceStatusSnapshot` defines them.
+    /// `DeviceStatusPublication` defines them.
     ///
     /// Written as an explicit dictionary rather than a `Codable` conformance so
     /// the wire key set is legible on one screen and a rename shows up as a
@@ -139,6 +164,8 @@ public struct DeviceStatusReport: Equatable {
     ///   cannot for a dictionary of strings, integers, and `NSNull`.
     public func encodedBody() throws -> Data {
         let body: [String: Any] = [
+            "type": Self.frameType,
+            "cursor": cursor,
             "deviceId": deviceID,
             "phase": AuditTokens.phase(phase),
             "timeZone": timeZone,
@@ -168,7 +195,47 @@ public struct DeviceStatusReport: Equatable {
         deviceID.matches(Self.deviceIDPattern)
             && timeZone.matches(Self.timeZonePattern)
             && scheduleDigest.matches(Self.scheduleDigestPattern)
+            && cursor.matches(Self.cursorPattern)
             && statusVersion >= 0
+    }
+
+    /// The schema `cursor` for one publication: unpadded base64url SHA-256 over
+    /// `"curfew.device-status.v1\n<deviceID>\n<statusVersion>"`.
+    ///
+    /// **Why a device may mint this at all.** Neither
+    /// `sync.json#/definitions/Cursor` nor `POST /sync/status` requires a cursor
+    /// the server issued. The definition is a bare string pattern —
+    /// `^[A-Za-z0-9_-]{22,128}$` — with no issuer, no signature, and no
+    /// registry; `parseDeviceStatusPublication` checks only that pattern; and
+    /// the route stores `publication.cursor` verbatim on the `device_status` row
+    /// without comparing it against anything it ever handed out. The only place
+    /// a coordinator *does* mint one is the device socket, where
+    /// `DeviceSocketWelcome.cursor` is a stream position a client echoes back as
+    /// `DeviceSocketHello.resumeCursor`. On this HTTP path there is no such
+    /// stream and no such handshake, so the cursor is the publisher's own name
+    /// for the frame — which is why an HTTP-only device can publish at all.
+    ///
+    /// **Why derived rather than random.** A cursor that is a pure function of
+    /// `(deviceID, statusVersion)` makes a publication idempotent by name: the
+    /// same status re-sent carries the same cursor, so a coordinator that
+    /// deduplicates by cursor sees one frame rather than two, and a support
+    /// conversation can line a stored cursor up against the version that
+    /// produced it. A random token would give up both properties in exchange for
+    /// unlinkability the `deviceId` in the same body already forecloses. And
+    /// because ``DeviceStatusVersionCounter`` never reissues a version and
+    /// ``DeviceStatusReporter`` refuses to publish one twice, distinct
+    /// publications from this device always carry distinct cursors.
+    ///
+    /// **Why a digest rather than the values themselves.** `deviceId` and
+    /// `statusVersion` are already in the body, so hashing them hides nothing
+    /// from the coordinator. It is a shape decision: SHA-256 lands inside the
+    /// 22–128 window for every input, where `"<uuid>:<version>"` would be 38
+    /// characters of a 36-character alphabet the pattern does not admit
+    /// wholesale (a UUID's hyphens are fine, but nothing guarantees a future
+    /// identifier's punctuation would be).
+    public static func cursor(deviceID: String, statusVersion: Int) -> String {
+        let preimage = "\(cursorDomain)\n\(deviceID)\n\(statusVersion)"
+        return base64URL(SHA256.hash(data: Data(preimage.utf8)))
     }
 
     /// The schema-shaped digest of `schedule`: unpadded base64url SHA-256 over
@@ -180,8 +247,14 @@ public struct DeviceStatusReport: Equatable {
     /// encodings differ because the schema asks for 43 base64url characters and
     /// the audit format asks for 16 hex; the preimage is identical.
     public static func scheduleDigest(for schedule: WeeklySchedule) -> String {
-        let hash = SHA256.hash(data: Data(AuditScheduleSummary.canonical(schedule).utf8))
-        return Data(hash).base64EncodedString()
+        base64URL(SHA256.hash(data: Data(AuditScheduleSummary.canonical(schedule).utf8)))
+    }
+
+    /// A SHA-256 as the 43 unpadded base64url characters every digest in these
+    /// schemas is spelled with — `scheduleDigest`, `keyThumbprint`, and the
+    /// cursor this file mints.
+    private static func base64URL(_ hash: SHA256Digest) -> String {
+        Data(hash).base64EncodedString()
             .replacingOccurrences(of: "+", with: "-")
             .replacingOccurrences(of: "/", with: "_")
             .replacingOccurrences(of: "=", with: "")

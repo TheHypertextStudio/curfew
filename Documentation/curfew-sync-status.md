@@ -27,40 +27,98 @@ of work with its own schema (`curfew-protocols/schemas/remote-command.json`).
 | Wiring into the tick loop | `Curfew/App/Model/CurfewAppModel+StatusReporting.swift` |
 | The Settings surface | `Curfew/UI/SettingsView+SyncPanel.swift` |
 
+## The endpoint
+
+`POST <base URL>/sync/status`, with the body below and
+`Authorization: Bearer <credential>`.
+
+That is the route curfew-sync implements: `src/routes/device-status.ts`,
+mounted at `/sync` by `src/worker.ts`. It answers `204` when the publication
+became the stored status, `400` if the body is not a valid publication, `403`
+for a device the credential does not cover or one that has been revoked, `409`
+when `statusVersion` is not strictly greater than the stored one, and `500` if
+the write fails.
+
+Not `sync/heartbeat`, which `curfew-sync/Documentation/ARCHITECTURE.md` §"API
+surface" lists as a *planned* liveness ping for devices not holding a WebSocket
+open. It is unimplemented, and its job is a strict subset of what a status
+publication already does.
+
 ## The wire shape
 
-The body is `curfew-protocols/schemas/device.json` →
-`#/definitions/DeviceStatusSnapshot`, in full and unextended:
+The body is `curfew-protocols/schemas/sync.json` →
+`#/definitions/DeviceStatusPublication`, in full and unextended:
 
 ```json
 {
   "activeLockoutEndsAt": "2027-01-15T09:00:00Z",
+  "cursor": "Bd5Xt1ZHm3mQI6-higG-aglSo9xTHTpy4Z4lr_Sd97g",
   "deviceId": "3f2504e0-4f89-41d3-9a0c-0305e82c3301",
   "nextTransitionAt": "2027-01-15T08:00:00Z",
   "observedAt": "2027-01-15T07:59:59Z",
   "phase": "locked",
   "scheduleDigest": "47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU",
   "statusVersion": 7,
-  "timeZone": "America/Los_Angeles"
+  "timeZone": "America/Los_Angeles",
+  "type": "status"
 }
 ```
 
-`DeviceStatusSnapshot` rather than `sync.json` →
-`#/definitions/DeviceStatusPublication`, because the publication frame
-additionally requires `type: "status"` and a `cursor`, and a cursor is a
-coordinator-assigned stream position. A device has no way to mint one. The
-publication is what a coordinator emits on the device socket; the snapshot is
-what a device reports.
+`DeviceStatusPublication` because it is what the route parses:
+`parseDeviceStatusPublication` enforces the definition's `required` list, its
+patterns, and `additionalProperties: false`. `device.json` →
+`#/definitions/DeviceStatusSnapshot` is the *response* shape — what
+`GET /sync/status` hands a reader — and a body in that shape is answered
+`400 {"error":"invalid_status_publication"}` for want of `type` and `cursor`.
 
 `DeviceStatusReportPayloadTests` asserts the key set and every value pattern
 against literals transcribed by hand from the schema, not against the encoder.
 
+### Where the cursor comes from
+
+Curfew mints it, as unpadded base64url SHA-256 over
+`"curfew.device-status.v1\n<deviceId>\n<statusVersion>"`.
+
+**A device is allowed to.** `sync.json#/definitions/Cursor` is a bare string
+pattern — `^[A-Za-z0-9_-]{22,128}$` — with no issuer, no signature, and no
+registry. `POST /sync/status` checks only that pattern and stores the value
+verbatim on the `device_status` row; it never compares it against anything it
+handed out. The one place a coordinator does mint a cursor is the device socket,
+where `DeviceSocketWelcome.cursor` is a stream position a client echoes back as
+`DeviceSocketHello.resumeCursor`. There is no such stream on this HTTP path, so
+the cursor is the publisher's own name for the frame.
+
+**Derived, not random**, so a publication is idempotent by name: the same status
+re-sent carries the same cursor, and a coordinator deduplicating by cursor sees
+one frame rather than two. Because the version counter never reissues a version
+and the reporter refuses to publish one twice, distinct publications from this
+device always carry distinct cursors. Hashing hides nothing — `deviceId` and
+`statusVersion` are both in the same body — it is a shape decision, because a
+SHA-256 lands inside the 22–128 character window for every input.
+
+## Cadence
+
+`Documentation/curfew-sync.md` §"Sync model" documents the device registry's
+heartbeat as the F14/F15 cadence: **60 s active, 120 s freshness threshold**.
+Both numbers are in the code as bounds, not just as a default:
+`heartbeatFloorSeconds` is 60, `heartbeatCeilingSeconds` is 120, and the setting
+is clamped into that range on assignment and on decode.
+
+The ceiling is the interesting one. A device publishing less often than the
+coordinator waits before calling it stale reads as offline *between its own
+heartbeats* — reporting something false, which is worse than not reporting. So
+the settable range is exactly the range in which the documented contract holds,
+and a 300 s cadence persisted by an earlier build is corrected to 120 s when it
+decodes rather than honoured.
+
 ## Privacy
 
-The eight keys above are the whole of what leaves the machine. There is no key
+The ten keys above are the whole of what leaves the machine. There is no key
 for a camera frame, a window title, an application name, a URL, a document, or
 any user-authored text, and the encoder's type admits none: every value is a
-string, an integer, or null.
+string, an integer, or null. Two of the ten carry nothing new — `type` is the
+constant `"status"`, and `cursor` is a digest of the other two identifying
+fields.
 
 The schedule travels only as a one-way SHA-256 digest, so a coordinator can tell
 whether two devices are running the same schedule without learning either.
@@ -100,7 +158,8 @@ greater than the stored one". Curfew holds up its end three ways:
 ## Configuration
 
 Off by default with no endpoint. Settings → Integrations → Coordinator holds the
-switch, the base URL, the device credential, and the heartbeat cadence.
+switch, the base URL, the device credential, and the heartbeat cadence (60–120 s,
+defaulting to 60 — see *Cadence* above).
 
 No coordinator address is compiled in anywhere — no default host, no staging
 fallback, no "if empty, use ours". HTTPS is required and not configurable.
@@ -115,40 +174,50 @@ These are real and unfixed. They are recorded here rather than worked around,
 because every workaround available locally would mean coining a wire shape, and
 wire-crossing shapes come from curfew-protocols.
 
-### 1. No coordinator implements this endpoint
+### 1. No live round-trip has been run
 
-`curfew-sync/src/plugins/device-sync.ts` declares `endpoints: {}` and
-`UserCoordinator.fetch` answers `501` to every non-WebSocket request. There is
-no `POST /sync/status` and no `POST /sync/heartbeat` on the server today, so
-**no live round-trip has been proved.** Everything here is verified against the
-schema and a stubbed transport only.
+`POST /sync/status` **is implemented** on curfew-sync `main`
+(`src/routes/device-status.ts`, mounted by `src/worker.ts`), and everything in
+this document is verified against that route's source and against the schema it
+parses with. What has not happened is a request from this app reaching a
+deployed coordinator: the suite proves the shape against literals and a stubbed
+transport, not against a running Worker.
 
-The path Curfew posts to is `sync/heartbeat`, taken from
-`curfew-sync/Documentation/ARCHITECTURE.md` §"API surface", which is the only
-authority in the three repos that names a device status-report path. It is one
-constant — `DeviceStatusReportingPolicy.statusPath` — if the route lands under
-another name.
+What that leaves unproven is the parts no schema pins down — TLS and redirect
+behaviour through a real deployment, the `409` path against a coordinator that
+actually holds a newer version, and the credential (see gap 3).
 
 ### 2. The schema has no presence field
 
-`DeviceStatusSnapshot` has no representation for `PresenceState`. A Curfew
+`DeviceStatusPublication` has no representation for `PresenceState`. A Curfew
 device cannot tell a coordinator whether a person is at the machine, only what
 phase enforcement is in.
 
 Presence transitions therefore *trigger* a report — the coordinator gets a fresh
 `observedAt` at a moment that just mattered, which is real liveness information —
 but the verdict itself does not travel. Carrying it needs a field added to
-`curfew-protocols/schemas/device.json`, not one invented here.
+`curfew-protocols/schemas/sync.json`, not one invented here.
 
-### 3. Device authentication is a stand-in
+### 3. Curfew cannot mint its own credential
 
-curfew-sync's documented device-agent auth is a device session cookie issued by
-`POST /sync/enroll/start`; the socket path uses a compact JWS identity
-assertion. Neither enrollment nor the assertion exists on either side yet.
+The route's guard is `verifyRequestAssertion`, which reads
+`Authorization: Bearer <compactJws>` and verifies the JWS as HS512 against the
+coordinator's `AUTH_SECRET`; its payload is
+`sync.json#/definitions/InternalDeviceIdentityClaims`, and the route refuses any
+publication whose `deviceId` differs from the claim's.
 
-Curfew sends the user's configured credential as an HTTP bearer token — a
-standard mechanism rather than a coined wire shape, and explicitly a stand-in
-until the enrollment work lands.
+The transport mechanism therefore already matches — Curfew sends whatever the
+user pasted as a bearer token, which is exactly the header the route reads. What
+is missing is where that token comes from: enrollment (`POST /sync/enroll/start`)
+does not exist on either side, so the assertion has to be minted out of band by
+someone holding the coordinator secret and pasted into Settings by hand. Curfew
+also cannot mint one itself, and should not — an HS512 MAC over a shared secret
+is the coordinator's interim scheme, and the real thing is ES256 over the
+device's enrolled key.
+
+A consequence worth stating: the `deviceId` in the pasted assertion and the one
+Curfew minted on first enable must be the same UUID, or every publish is answered
+`403 {"error":"device_mismatch"}`.
 
 ### 4. A Mac set to a bare time zone will not report
 

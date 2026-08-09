@@ -266,7 +266,8 @@ extension CurfewAppModel {
             // change has to be announced by hand for SwiftUI to see it.
             self?.objectWillChange.send()
             // Tell the coordinator this Mac is live as of a moment that just
-            // mattered. The verdict itself does not travel — `DeviceStatusSnapshot`
+            // mattered. The verdict itself does not travel —
+            // `DeviceStatusPublication`
             // has no presence field — so what crosses the wire is the refreshed
             // `observedAt` and the enforcement scalars beside it.
             self?.publishDeviceStatus(trigger: .presence)
