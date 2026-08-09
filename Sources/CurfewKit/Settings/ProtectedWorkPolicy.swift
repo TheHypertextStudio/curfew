@@ -43,6 +43,34 @@ public struct ProtectedWorkPolicy: Codable, Equatable, Sendable {
     /// last path component of the executable URL.
     public var protectedProcessNames: [String]
 
+    /// Executable names whose *mere liveness* postpones a destructive action,
+    /// with no claim filed and nothing to remember. Matched case-insensitively
+    /// and exactly against a process's `p_comm` by
+    /// ``LiveProtectedWorkMonitor``.
+    ///
+    /// Deliberately a different, narrower list than
+    /// ``protectedProcessNames``, because the two answer different questions.
+    /// "Do not send this `terminate()`" is cheap to be generous with: sparing
+    /// a terminal emulator costs nothing if the Mac powers off anyway. "Hold
+    /// the shutdown while this is alive" is not — `tmux`, `screen`, and every
+    /// terminal emulator are alive on a working machine essentially always, so
+    /// reusing that list here would spend the full deferral window every
+    /// single night for most users. That is not a carve-out for delegated
+    /// work; that is enforcement quietly becoming thirty minutes weaker.
+    ///
+    /// So this list names things that are alive *because a job is running*
+    /// and exit when it finishes.
+    public var deferringProcessNames: [String]
+
+    /// Whether a live login session from another host postpones a destructive
+    /// action — someone working on this Mac over SSH.
+    ///
+    /// Separate from ``deferringProcessNames`` because the signal is
+    /// different in kind: `sshd` runs whenever Remote Login is enabled, so
+    /// only the login database can tell an accepting machine from an occupied
+    /// one. See ``LoginSession/isRemote``.
+    public var defersForRemoteSessions: Bool
+
     /// Whether an external agent may assert work-in-progress through the MCP
     /// `curfew_declare_work` tool. Off means only the app and `curfew-ctl` can
     /// file a claim.
@@ -60,6 +88,8 @@ public struct ProtectedWorkPolicy: Codable, Equatable, Sendable {
     private enum CodingKeys: String, CodingKey {
         case protectedBundleIdentifiers
         case protectedProcessNames
+        case deferringProcessNames
+        case defersForRemoteSessions
         case acceptsAgentClaims
         case maximumDeferralMinutes
         case defaultLeaseMinutes
@@ -71,12 +101,16 @@ public struct ProtectedWorkPolicy: Codable, Equatable, Sendable {
     public init(
         protectedBundleIdentifiers: [String],
         protectedProcessNames: [String],
+        deferringProcessNames: [String] = ProtectedWorkPolicy.defaultDeferringProcessNames,
+        defersForRemoteSessions: Bool = true,
         acceptsAgentClaims: Bool,
         maximumDeferralMinutes: Int,
         defaultLeaseMinutes: Int
     ) {
         self.protectedBundleIdentifiers = protectedBundleIdentifiers
         self.protectedProcessNames = protectedProcessNames
+        self.deferringProcessNames = deferringProcessNames
+        self.defersForRemoteSessions = defersForRemoteSessions
         self.acceptsAgentClaims = acceptsAgentClaims
         self.maximumDeferralMinutes = Self.clampDeferral(maximumDeferralMinutes)
         self.defaultLeaseMinutes = Self.clampLease(defaultLeaseMinutes)
@@ -95,6 +129,14 @@ public struct ProtectedWorkPolicy: Codable, Equatable, Sendable {
             [String].self,
             forKey: .protectedProcessNames
         ) ?? fallback.protectedProcessNames
+        self.deferringProcessNames = try container.decodeIfPresent(
+            [String].self,
+            forKey: .deferringProcessNames
+        ) ?? fallback.deferringProcessNames
+        self.defersForRemoteSessions = try container.decodeIfPresent(
+            Bool.self,
+            forKey: .defersForRemoteSessions
+        ) ?? fallback.defersForRemoteSessions
         self.acceptsAgentClaims = try container.decodeIfPresent(
             Bool.self,
             forKey: .acceptsAgentClaims
@@ -133,6 +175,18 @@ public struct ProtectedWorkPolicy: Codable, Equatable, Sendable {
         return false
     }
 
+    /// Whether a live process with this executable name should postpone a
+    /// destructive action for as long as it keeps running.
+    ///
+    /// Exact and case-insensitive, matching
+    /// ``protectsApplication(bundleIdentifier:executableName:)``. An empty
+    /// ``deferringProcessNames`` therefore turns liveness-based deferral off
+    /// completely, which is the supported way to opt out of it.
+    public func defersForProcess(named executableName: String) -> Bool {
+        deferringProcessNames
+            .contains { $0.caseInsensitiveCompare(executableName) == .orderedSame }
+    }
+
     /// ``maximumDeferralMinutes`` as a `TimeInterval`, for the gate.
     public var maximumDeferral: TimeInterval {
         TimeInterval(maximumDeferralMinutes * 60)
@@ -157,6 +211,25 @@ public struct ProtectedWorkPolicy: Codable, Equatable, Sendable {
     /// single agent turn and is a rounding error against a lockout window
     /// measured in hours, so a claim that never gets released costs the user
     /// half an hour of curfew rather than the whole night.
+    /// Agent CLIs whose liveness postpones a destructive action.
+    ///
+    /// Every entry is a foreground process that exists only while a job is
+    /// running, so an idle machine holds nothing. Note what is *absent*
+    /// relative to ``protectedProcessNames``: `tmux`, `screen`, `ssh`, and
+    /// `mosh` are all spared from `terminate()` but do not open a deferral
+    /// window, because a multiplexer or a parked client can sit alive for
+    /// weeks and would make the hold permanent rather than occasional.
+    ///
+    /// Held separately from ``default`` so the memberwise initialiser can
+    /// default to it without referring to a static that is still being built.
+    public static let defaultDeferringProcessNames = [
+        "claude",
+        "codex",
+        "aider",
+        "goose",
+        "gemini"
+    ]
+
     public static let `default` = ProtectedWorkPolicy(
         protectedBundleIdentifiers: [
             "com.apple.Terminal",
@@ -184,6 +257,8 @@ public struct ProtectedWorkPolicy: Codable, Equatable, Sendable {
             "tmux",
             "screen"
         ],
+        deferringProcessNames: defaultDeferringProcessNames,
+        defersForRemoteSessions: true,
         acceptsAgentClaims: true,
         maximumDeferralMinutes: 30,
         defaultLeaseMinutes: 10

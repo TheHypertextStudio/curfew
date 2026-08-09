@@ -48,6 +48,54 @@ struct DaemonEnforcementDecisionTests {
         )
     }
 
+    // MARK: - Where "has work" comes from
+
+    /// The daemon's `hasActiveProtectedWork` used to mean "a claim file exists"
+    /// and nothing else, so an agent that never announced itself — the normal
+    /// case for a `claude` run started from a shell — got the Mac powered off
+    /// underneath it. `main.swift` now ORs the claim store with
+    /// ``LiveProtectedWorkMonitor``; these pin that an observed process and an
+    /// observed network login each reach this decision and hold it.
+    @Test("Work observed on the machine holds the daemon exactly like a claim")
+    func observedWorkHoldsTheDaemon() {
+        let incident = lockoutStart.addingTimeInterval(60)
+
+        for observation in [
+            LiveProtectedWorkMonitor.observe(
+                policy: .default,
+                processes: [RunningProcess(processIdentifier: 11, executableName: "claude")],
+                sessions: []
+            ),
+            LiveProtectedWorkMonitor.observe(
+                policy: .default,
+                processes: [],
+                sessions: [LoginSession(user: "willie", line: "ttys004", remoteHost: "studio")]
+            )
+        ] {
+            let outcome = tick(at: incident, heartbeatAge: 120, hasWork: observation.isActive)
+            #expect(outcome.action == .hold(until: incident.addingTimeInterval(bound)))
+            #expect(outcome.deferralStartedAt == incident)
+        }
+    }
+
+    /// The carve-out must not become a general reprieve: a machine with
+    /// nothing on the list running still gets shut down on the same tick it
+    /// always did.
+    @Test("Observing nothing leaves the shutdown exactly as it was")
+    func observingNothingStillShutsDown() {
+        let incident = lockoutStart.addingTimeInterval(60)
+        let observation = LiveProtectedWorkMonitor.observe(
+            policy: .default,
+            processes: [RunningProcess(processIdentifier: 12, executableName: "Safari")],
+            sessions: [LoginSession(user: "willie", line: "console", remoteHost: "")]
+        )
+
+        let outcome = tick(at: incident, heartbeatAge: 120, hasWork: observation.isActive)
+
+        #expect(outcome.action == .shutDown)
+        #expect(outcome.deferralStartedAt == nil)
+    }
+
     // MARK: - The regression
 
     @Test(

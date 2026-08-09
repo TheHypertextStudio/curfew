@@ -239,7 +239,13 @@ AuditLog.shared.emit(
     ]
 )
 
-private let protectedWorkStore = ProtectedWorkStore()
+// The daemon watches the same two sources the app does — declared claims and
+// the live machine — through the one type that combines them, so root's answer
+// and the user's answer cannot drift. Unlike the app there is no test host to
+// keep deterministic here, so liveness is on unconditionally: this process
+// exists to power the Mac off, and it is the path an unclaimed agent run has no
+// other defence against.
+private let protectedWorkStores = ProtectedWorkStores(live: .system)
 private let breakGlassStore = BreakGlassStore()
 private let effects = SystemDaemonEffects()
 private let observer = DaemonAuditObserver(auditLog: .shared)
@@ -260,7 +266,12 @@ while true {
         breakGlassStore.activeRelease(now: now, issuedAfter: deadline.lockoutStartedAt)
     }
     let heartbeatAge = appHeartbeatAge(now: now)
-    let hasProtectedWork = protectedWorkStore.hasActiveWork(now: now)
+    // Read the mirror once: the same policy has to decide both which processes
+    // count as live work and how long the resulting hold may last.
+    let protectedWorkPolicy = ProtectedWorkPolicy.loadMirror()
+    let liveWork = protectedWorkStores.live.observe(policy: protectedWorkPolicy)
+    let hasProtectedWork = protectedWorkStores.claims.hasActiveWork(now: now)
+        || liveWork.isActive
 
     // The loop records what it *read*; `DaemonEnforcementRuntime` records what
     // was *done* about it. Keeping the two apart means no fact is written by a
@@ -287,7 +298,7 @@ while true {
             heartbeatAge: heartbeatAge,
             heartbeatTimeout: appHeartbeatTimeout,
             hasActiveProtectedWork: hasProtectedWork,
-            maximumDeferral: ProtectedWorkPolicy.loadMirror().maximumDeferral,
+            maximumDeferral: protectedWorkPolicy.maximumDeferral,
             persistedDeferralStart: loadDeferralStart(),
             shutdownAlreadyIssued: runtime.shutdownIssued
         )
@@ -300,8 +311,15 @@ while true {
         let id = breakGlass?.id.uuidString ?? "unknown"
         daemonLogger.notice("break-glass release \(id, privacy: .public) honored; standing down")
     case .holding(let until):
+        // Name what is holding. "Protected work is live" alone sent whoever
+        // was debugging this at 02:00 looking for a claim file that, for an
+        // undeclared agent run, was never going to be there.
+        let because = liveWork.summary.isEmpty ? "declared claim" : liveWork.summary
         daemonLogger.notice(
-            "shutdown due but protected work is live; holding until \(until, privacy: .public)"
+            """
+            shutdown due but protected work is live (\(because, privacy: .public)); \
+            holding until \(until, privacy: .public)
+            """
         )
     case .issuedShutdown:
         daemonLogger.notice("app heartbeat stale during lockout; issued shutdown")

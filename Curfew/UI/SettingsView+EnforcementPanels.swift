@@ -212,6 +212,30 @@ extension SettingsView {
 
             Divider()
 
+            Text("""
+            Shutdown also waits while one of these is actually running, with \
+            nothing to declare and nothing to remember. Keep the list to \
+            commands that exit when their job does — a terminal or a `tmux` \
+            server is alive all the time, so listing one here would spend the \
+            hold below every night.
+            """)
+            .font(CurfewTypography.body(13))
+            .foregroundStyle(CurfewTheme.mutedInk)
+            .fixedSize(horizontal: false, vertical: true)
+
+            Text("Commands that hold shutdown while running, one per line")
+                .font(CurfewTypography.bodyEmphasis(12))
+            TextEditor(text: protectedListBinding(\.deferringProcessNames))
+                .font(.system(.body, design: .monospaced))
+                .frame(minHeight: 88)
+
+            Toggle(
+                "Hold shutdown while someone is logged in over the network",
+                isOn: $model.settings.protectedWork.defersForRemoteSessions
+            )
+
+            Divider()
+
             Toggle(
                 "Let AI assistants declare work in progress",
                 isOn: $model.settings.protectedWork.acceptsAgentClaims

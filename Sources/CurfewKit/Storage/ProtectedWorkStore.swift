@@ -205,25 +205,48 @@ public struct ProtectedWorkStore {
     }
 }
 
-/// The two files the enforcement paths read to decide whether destroying the
+/// Everything the enforcement paths read to decide whether destroying the
 /// user's background work is safe right now.
 ///
-/// Bundled so the app can hold one injectable value instead of two, which is
+/// Bundled so the app can hold one injectable value instead of three, which is
 /// what lets a wiring test point the whole carve-out at a temporary directory
-/// and assert that settings, live claims, and the emergency release actually
-/// reach the shutdown workflow.
+/// and assert that settings, live claims, live processes, and the emergency
+/// release actually reach the shutdown workflow.
 public struct ProtectedWorkStores {
-    /// Live protected-work leases.
+    /// Declared protected-work leases.
     public var claims: ProtectedWorkStore
 
     /// The emergency release record.
     public var breakGlass: BreakGlassStore
 
+    /// Undeclared work observed on the machine itself — a running agent CLI
+    /// or someone logged in over the network.
+    ///
+    /// Defaults to ``LiveProtectedWorkMonitor/disabled`` rather than
+    /// ``LiveProtectedWorkMonitor/system`` on purpose. A default that reads
+    /// the real process table would make every test that builds a model
+    /// depend on what happens to be running on the machine at the time —
+    /// and the machine a Curfew developer runs the suite on is precisely the
+    /// machine most likely to have a `claude` process on it. Production opts
+    /// in explicitly through `CurfewAppModel.enableLiveProtectedWorkDetection()`.
+    public var live: LiveProtectedWorkMonitor
+
     public init(
         claims: ProtectedWorkStore = ProtectedWorkStore(),
-        breakGlass: BreakGlassStore = BreakGlassStore()
+        breakGlass: BreakGlassStore = BreakGlassStore(),
+        live: LiveProtectedWorkMonitor = .disabled
     ) {
         self.claims = claims
         self.breakGlass = breakGlass
+        self.live = live
+    }
+
+    /// Whether anything — declared or observed — should hold a destructive
+    /// action off at `now`.
+    ///
+    /// The single place the two sources are combined, so the app and the
+    /// daemon cannot answer this differently.
+    public func hasProtectedWork(now: Date, policy: ProtectedWorkPolicy) -> Bool {
+        claims.hasActiveWork(now: now) || live.observe(policy: policy).isActive
     }
 }

@@ -109,6 +109,33 @@ only.
   - `ProtectedWorkDeferralTests/deferralIsBounded()`
   - `ProtectedWorkDeferralTests/renewalCannotReopenTheWindow()`
   - `ProtectedWorkDeferralTests/restartResumesTheWindow()`
+- `Background agents survive lockout without having to declare themselves.`
+  - `LiveProtectedWorkTests/liveAgentProcessCounts()`
+  - `LiveProtectedWorkTests/unlistedProcessIsNotProtected()`
+  - `LiveProtectedWorkTests/matchingIsExactAndCaseInsensitive()`
+  - `LiveProtectedWorkTests/sparedProcessesDoNotAutomaticallyDefer()`
+  - `LiveProtectedWorkTests/emptyListDisablesLivenessDeferral()`
+  - `LiveProtectedWorkTests/sysctlReaderSeesASpawnedProcess()`
+  - `LiveProtectedWorkTests/terminatedProcessStopsCounting()`
+  - `ProtectedWorkLivenessTests/realAgentProcessDefersAutoShutdown()`
+  - `ProtectedWorkLivenessTests/realAgentProcessDefersDaemonShutdown()`
+  - `ProtectedWorkLivenessTests/bothPathsHoldThenResume()`
+  - `ProtectedWorkLivenessTests/livenessHoldIsBounded()`
+  - `ProtectedWorkShutdownTests/observedWorkDefersTheShutdown()`
+  - `DaemonEnforcementDecisionTests/observedWorkHoldsTheDaemon()`
+- `A session held over the network survives lockout.`
+  - `LiveProtectedWorkTests/remoteSessionCounts()`
+  - `LiveProtectedWorkTests/consoleSessionDoesNotCount()`
+  - `LiveProtectedWorkTests/remoteSessionsCanBeDisabled()`
+  - `LiveProtectedWorkTests/utmpxReaderReturnsWellFormedSessions()`
+  - `ProtectedWorkLivenessTests/sshSessionDefersAutoShutdown()`
+  - `ProtectedWorkLivenessTests/sshSessionDefersDaemonShutdown()`
+  - `ProtectedWorkLivenessTests/consoleSessionDefersNothing()`
+- `The carve-out never becomes a general escape hatch.`
+  - `ProtectedWorkLivenessTests/nonAllowlistedProcessIsStillTerminated()`
+  - `DaemonEnforcementDecisionTests/observingNothingStillShutsDown()`
+  - `ProtectedWorkPolicyTests/alwaysOnHostsDoNotDefer()`
+  - `ProtectedWorkPolicyTests/decodingTolerateAMissingLivenessConfiguration()`
 - `The daemon's persisted deferral window closes when the app heartbeat recovers.`
   - `DaemonEnforcementDecisionTests/recoveryClosesTheWindowWithinOneLockout()`
   - `DaemonEnforcementDecisionTests/freshHeartbeatWaits()`

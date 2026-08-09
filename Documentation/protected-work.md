@@ -60,6 +60,72 @@ prints a claim id for a shell wrapper to renew and release. The MCP tool
 `curfew_declare_work` does the same for an agent, and `curfew_release_work`
 drops it early. The app reads claims every tick.
 
+## The half claims do not cover
+
+Every one of those surfaces requires the work to *announce itself*. That
+covers cooperating callers and nothing else, and the two cases this whole
+carve-out exists for are usually not cooperating:
+
+- A `claude` or `codex` run started from a shell before curfew. It files
+  nothing, because nobody wrapped it in `curfew-ctl work claim`.
+- An engineer working on the Mac over SSH. There is no claim and no agent —
+  just a person whose machine is about to power off underneath them.
+
+The allowlist did not help either, and it is worth being precise about why.
+`protectedProcessNames` is read in exactly one place:
+`SystemShutdownController.requestGracefulTermination`, which filters
+`NSWorkspace.runningApplications`. That list holds LaunchServices
+applications; a bare CLI process is never in it. So `claude`, `ssh`, `tmux`,
+and `screen` sat in the default policy matching nothing, and sparing an
+application Curfew was never going to `terminate()` anyway is not a carve-out.
+Meanwhile the daemon's `/sbin/shutdown` does not care what is on any
+allowlist — it powers the machine off and takes everything with it.
+
+**`LiveProtectedWorkMonitor`** (`Sources/CurfewKit/Domain/LiveProtectedWork.swift`)
+closes that half. It reads the machine directly and feeds the answer into the
+same `hasActiveProtectedWork` input both paths already share, so nothing new
+decides anything:
+
+- `SysctlProcessEnumerator` walks `sysctl(KERN_PROC_ALL)` and matches `p_comm`
+  against `ProtectedWorkPolicy.deferringProcessNames`. `p_comm` rather than
+  `KERN_PROCARGS2` because the latter will not hand a non-root caller another
+  user's argv, and the app (user) and the daemon (root) must see one machine.
+  The kernel truncates `p_comm` at 16 characters.
+- `UtmpxLoginSessionEnumerator` reads `utmpx` — what `who` reads — and counts
+  a session as remote when `ut_host` is non-empty. That, and not the presence
+  of an `sshd` process, is the honest test: the `sshd` listener runs whenever
+  Remote Login is enabled, so matching on it would hold enforcement off every
+  night on any Mac that merely *accepts* SSH.
+
+`ProtectedWorkStores.hasProtectedWork(now:policy:)` is the single place claims
+and observations are OR-ed together, so root's answer and the user's answer
+cannot drift.
+
+### Why `deferringProcessNames` is a second, narrower list
+
+The obvious move is to reuse `protectedProcessNames` and it is wrong. The two
+lists answer different questions and one of them is much more expensive to be
+generous with.
+
+"Do not send this `terminate()`" costs nothing when over-applied: if the Mac
+powers off anyway, sparing a terminal changed nothing. "Hold the shutdown
+while this is alive" costs the full deferral window. `tmux`, `screen`, a
+parked `ssh`, and every terminal emulator are alive on a working machine
+essentially always — so reusing that list would spend thirty minutes of
+enforcement every single night for most users, whether or not any work was
+actually in flight. That is not a carve-out for delegated work; that is
+enforcement quietly becoming thirty minutes weaker.
+
+So `deferringProcessNames` names only commands that exist *because a job is
+running* and exit when it finishes: `claude`, `codex`, `aider`, `goose`,
+`gemini`. Emptying the list turns liveness-based deferral off entirely, and
+`defersForRemoteSessions` does the same for SSH. Both are in Settings →
+Enforcement → Protected Work.
+
+Everything downstream is unchanged: the observation only sets the same boolean
+a claim sets, so the 30-minute bound, the break-glass precedence, and the
+marker invariants below all apply to it exactly as written.
+
 ## Why `curfew_declare_work` is not on the consent queue
 
 `curfew_request_extension` and `curfew_set_schedule` weaken the curfew: they
@@ -312,3 +378,18 @@ can fire at all. Review it before installing the daemon.
 - `ProtectedWorkPolicy` matches an application exactly and case-insensitively.
   There is no pattern matching, deliberately — a prefix rule on reverse-DNS
   identifiers would let `com.apple.Terminal` shield everything Apple ships.
+  `deferringProcessNames` follows the same rule for the same reason.
+- No inbound SSH session has been exercised end to end. Creating one from a
+  test needs Remote Login enabled on the host and credentials to log in with,
+  and a test suite may not go and switch that on. What is covered:
+  `UtmpxLoginSessionEnumerator` is run against the live `utmpx` database and
+  asserted to return well-formed records, and the deferral both paths derive
+  from a remote session is driven from a record of the shape macOS writes.
+  The gap is the reader-to-record step on a machine someone is actually
+  logged into. Worth ten minutes on install day.
+- Liveness detection is on for the daemon unconditionally and opt-in for the
+  app (`CurfewAppModel.enableLiveProtectedWorkDetection()`, skipped in the
+  unit-test host). The default `ProtectedWorkStores.live` is
+  `.disabled` so the suite's verdicts never depend on what happens to be
+  running on the developer's machine — which, for this project, is reliably
+  a `claude`.

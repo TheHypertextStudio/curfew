@@ -38,6 +38,58 @@ struct ProtectedWorkPolicyTests {
         #expect(!policy.protectsApplication(bundleIdentifier: nil, executableName: nil))
     }
 
+    @Test("Defaults defer for agent CLIs and for network logins")
+    func defaultsDeferForLiveAgentWork() {
+        let policy = ProtectedWorkPolicy.default
+        #expect(policy.defersForProcess(named: "claude"))
+        #expect(policy.defersForProcess(named: "codex"))
+        #expect(policy.defersForRemoteSessions)
+    }
+
+    /// The deferring list is deliberately narrower than the spare-from-kill
+    /// list. Everything here is spared from `terminate()` and still must not
+    /// open a deferral window, because each one can sit alive indefinitely and
+    /// would turn an occasional hold into a nightly one.
+    @Test("Always-on hosts are spared from termination but never defer shutdown")
+    func alwaysOnHostsDoNotDefer() {
+        let policy = ProtectedWorkPolicy.default
+        for name in ["tmux", "screen", "ssh", "mosh"] {
+            #expect(policy.protectsApplication(bundleIdentifier: nil, executableName: name))
+            #expect(!policy.defersForProcess(named: name))
+        }
+    }
+
+    /// A settings file written before this branch carries neither key. It must
+    /// come back with the carve-out on rather than silently disabled — a
+    /// missing key is an old file, not a user who opted out.
+    @Test("A payload predating the liveness keys decodes to the defaults")
+    func decodingTolerateAMissingLivenessConfiguration() throws {
+        let json = Data("""
+        {"protectedProcessNames":["claude"],"maximumDeferralMinutes":30}
+        """.utf8)
+
+        let decoded = try JSONDecoder().decode(ProtectedWorkPolicy.self, from: json)
+
+        #expect(decoded.deferringProcessNames == ProtectedWorkPolicy.defaultDeferringProcessNames)
+        #expect(decoded.defersForRemoteSessions)
+    }
+
+    @Test("The liveness configuration survives a round trip")
+    func livenessConfigurationRoundTrips() throws {
+        var policy = ProtectedWorkPolicy.default
+        policy.deferringProcessNames = ["my-agent"]
+        policy.defersForRemoteSessions = false
+
+        let decoded = try JSONDecoder().decode(
+            ProtectedWorkPolicy.self,
+            from: JSONEncoder().encode(policy)
+        )
+
+        #expect(decoded.deferringProcessNames == ["my-agent"])
+        #expect(!decoded.defersForRemoteSessions)
+        #expect(decoded == policy)
+    }
+
     @Test("Matching ignores case but never matches on a prefix")
     func matchingIsExactAndCaseInsensitive() {
         let policy = ProtectedWorkPolicy.default

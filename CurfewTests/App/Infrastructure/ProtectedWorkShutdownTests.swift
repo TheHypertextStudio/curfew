@@ -74,6 +74,38 @@ struct ProtectedWorkShutdownTests {
         #expect(controller.callLog.isEmpty)
     }
 
+    /// The claim above is the *declared* half. This is the other half: work
+    /// nobody declared, observed on the machine itself. It reaches the
+    /// workflow through the same `hasActiveWork` input, which is the point —
+    /// the bound, the break-glass precedence, and the resume-on-finish
+    /// behaviour pinned by the rest of this suite apply to it unchanged.
+    @Test("Undeclared work observed on the machine defers the shutdown too")
+    func observedWorkDefersTheShutdown() {
+        let live = LiveProtectedWorkMonitor(
+            processSource: StubProcessEnumerator(
+                processes: [RunningProcess(processIdentifier: 99, executableName: "claude")]
+            ),
+            sessionSource: StubLoginSessionEnumerator(sessions: [])
+        )
+        var workflow = ShutdownWorkflow()
+        let controller = ShutdownControllerSpy(results: [true])
+        let start = Date()
+
+        fire(&workflow, at: start, controller: controller)
+        fire(
+            &workflow,
+            at: start.addingTimeInterval(600),
+            controller: controller,
+            hasActiveProtectedWork: live.observe(policy: .default).isActive
+        )
+
+        guard case .deferred = workflow.phase else {
+            Issue.record("expected deferred phase, got \(workflow.phase)")
+            return
+        }
+        #expect(controller.callLog.isEmpty)
+    }
+
     @Test("Deferral is bounded — the shutdown runs once the budget is spent")
     func deferralIsBounded() {
         var workflow = ShutdownWorkflow()

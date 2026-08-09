@@ -25,6 +25,7 @@ extension CurfewAppModel {
         reflectionState.configuration = settingsStore.loadReflectionConfiguration()
         seedReflectionGatesResolvedToday()
         configureNotificationCallback()
+        enableLiveProtectedWorkDetection()
     }
 
     /// Wires the notification manager's snooze callback and MCP request

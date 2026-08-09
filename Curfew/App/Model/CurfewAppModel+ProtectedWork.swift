@@ -23,9 +23,27 @@ extension CurfewAppModel {
     func protectedWorkContext() -> ProtectedWorkContext {
         ProtectedWorkContext(
             policy: settings.protectedWork,
-            hasActiveWork: protectedWork.claims.hasActiveWork(now: currentTime),
+            hasActiveWork: protectedWork.hasProtectedWork(
+                now: currentTime,
+                policy: settings.protectedWork
+            ),
             isBreakGlassActive: isBreakGlassActive()
         )
+    }
+
+    /// Points the carve-out at the real machine.
+    ///
+    /// Declared claims cover callers that cooperate. This covers the ones that
+    /// do not: a `claude` run started from a shell before curfew, or an
+    /// engineer working over SSH, neither of which files anything. Without it
+    /// the allowlist only ever spared applications from `terminate()`, which
+    /// is no help at all against the daemon's `/sbin/shutdown`.
+    ///
+    /// Opt-in rather than the default so the unit-test host keeps a
+    /// deterministic view of the world; see ``ProtectedWorkStores/live``.
+    func enableLiveProtectedWorkDetection() {
+        guard !RuntimeEnvironment.isUnitTestHost else { return }
+        protectedWork.live = .system
     }
 
     /// Whether a verified emergency release covers the lockout window in

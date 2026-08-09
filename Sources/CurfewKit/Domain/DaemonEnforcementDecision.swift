@@ -47,7 +47,10 @@ public enum DaemonEnforcementDecision {
         public var heartbeatAge: TimeInterval
         /// How stale the heartbeat must be before a shutdown is due.
         public var heartbeatTimeout: TimeInterval
-        /// Whether any unexpired ``ProtectedWorkClaim`` exists.
+        /// Whether work is in flight: an unexpired ``ProtectedWorkClaim``, or
+        /// an agent process / network login ``LiveProtectedWorkMonitor``
+        /// observed. `main.swift` combines both, because the agent runs that
+        /// most need this are exactly the ones that never declared themselves.
         public var hasActiveProtectedWork: Bool
         /// From ``ProtectedWorkPolicy/maximumDeferral``.
         public var maximumDeferral: TimeInterval

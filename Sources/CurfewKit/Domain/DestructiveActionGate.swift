@@ -55,7 +55,10 @@ public struct DestructiveActionGate: Equatable, Sendable {
     ///     the daemon passes `heartbeatAge > timeout`.
     ///   - isBreakGlassActive: whether a verified release covers this window.
     ///     Re-read every tick by both callers, so revoking one re-arms both.
-    ///   - hasActiveProtectedWork: whether any unexpired claim exists.
+    ///   - hasActiveProtectedWork: whether work is in flight — an unexpired
+    ///     ``ProtectedWorkClaim``, or something ``LiveProtectedWorkMonitor``
+    ///     observed running. Both callers combine the two through
+    ///     ``ProtectedWorkStores/hasProtectedWork(now:policy:)``.
     ///   - maximumDeferral: from ``ProtectedWorkPolicy/maximumDeferral``.
     public mutating func evaluate(
         now: Date,
