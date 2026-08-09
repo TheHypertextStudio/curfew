@@ -59,8 +59,8 @@ struct PresenceStoreFallbackTests {
         // `load()` falls back — and the fallback must not inherit the `true`
         // that was sitting in the file a moment ago.
         object["presence"] = "camera-please"
-        defaults.set(
-            try JSONSerialization.data(withJSONObject: object),
+        try defaults.set(
+            JSONSerialization.data(withJSONObject: object),
             forKey: Self.settingsDefaultsKey
         )
 

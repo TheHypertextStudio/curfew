@@ -274,9 +274,9 @@ extension CurfewAppModel {
             self?.objectWillChange.send()
             self?.recordAuditCameraStopped(reason)
         }
-        monitor.onAuthorizationChanged = { [weak self] from, to in
+        monitor.onAuthorizationChanged = { [weak self] previous, current in
             self?.objectWillChange.send()
-            self?.recordAuditCameraAuthorization(from: from, to: to)
+            self?.recordAuditCameraAuthorization(from: previous, to: current)
         }
     }
 }

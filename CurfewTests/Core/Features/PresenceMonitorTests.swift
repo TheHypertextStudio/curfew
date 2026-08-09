@@ -13,34 +13,40 @@ import Testing
 struct PresenceMonitorTests {
     private let epoch = Date(timeIntervalSince1970: 1_700_000_000)
 
-    /// A monitor over a settable idle source and a fake sensor.
+    /// A monitor plus the fakes it was built over, so a test can drive the
+    /// inputs it cares about and ignore the rest.
     ///
-    /// The watcher comes back alongside the source because `PresenceMonitor`
+    /// The watcher is held alongside the source because `PresenceMonitor`
     /// deliberately does not sample it — the tick loop does that first, and
     /// double-sampling would fire the watcher's own transition callback twice.
     /// Tests that move the idle needle therefore call `watcher.sample()` in the
     /// same order the tick loop does.
+    private struct MonitorHarness {
+        let monitor: PresenceMonitor
+        let sensor: FakePresenceSensor
+        let idle: MutableIdleSource
+        let watcher: IdleWatcher
+    }
+
+    /// A monitor over a settable idle source and a fake sensor.
     private func makeMonitor(
         idleSeconds: TimeInterval,
         authorization: CameraAuthorization = .authorized
-    ) -> (
-        monitor: PresenceMonitor,
-        sensor: FakePresenceSensor,
-        idle: MutableIdleSource,
-        watcher: IdleWatcher
-    ) {
+    ) -> MonitorHarness {
         let source = MutableIdleSource(seconds: idleSeconds)
         let watcher = IdleWatcher(source: source, idleThresholdSeconds: 300)
         let sensor = FakePresenceSensor(authorization: authorization)
         let monitor = PresenceMonitor(idleWatcher: watcher, sensor: sensor, now: epoch)
-        return (monitor, sensor, source, watcher)
+        return MonitorHarness(monitor: monitor, sensor: sensor, idle: source, watcher: watcher)
     }
 
     // MARK: - Gating
 
     @Test("A disabled camera is never started, however many ticks run")
     func disabledCameraNeverStarts() {
-        let (monitor, sensor, _, _) = makeMonitor(idleSeconds: 600)
+        let harness = makeMonitor(idleSeconds: 600)
+        let monitor = harness.monitor
+        let sensor = harness.sensor
 
         for tick in 0 ..< 50 {
             monitor.sample(
@@ -61,16 +67,21 @@ struct PresenceMonitorTests {
     @Test("An enabled camera is not started without granted access")
     func unauthorizedCameraNeverStarts() {
         for status in [CameraAuthorization.notDetermined, .denied, .restricted] {
-            let (monitor, sensor, _, _) = makeMonitor(idleSeconds: 600, authorization: status)
-            monitor.sample(now: epoch, cameraEnabled: true)
-            #expect(sensor.startCount == 0, "started the camera with \(status.rawValue) access")
-            #expect(monitor.state == .unknown)
+            let harness = makeMonitor(idleSeconds: 600, authorization: status)
+            harness.monitor.sample(now: epoch, cameraEnabled: true)
+            #expect(
+                harness.sensor.startCount == 0,
+                "started the camera with \(status.rawValue) access"
+            )
+            #expect(harness.monitor.state == .unknown)
         }
     }
 
     @Test("Enabling the setting with access granted starts the camera exactly once")
     func enabledCameraStartsOnce() {
-        let (monitor, sensor, _, _) = makeMonitor(idleSeconds: 600)
+        let harness = makeMonitor(idleSeconds: 600)
+        let monitor = harness.monitor
+        let sensor = harness.sensor
 
         for tick in 0 ..< 10 {
             monitor.sample(
@@ -85,7 +96,9 @@ struct PresenceMonitorTests {
 
     @Test("Turning the setting off stops the camera on the next sample")
     func disablingStopsTheCamera() {
-        let (monitor, sensor, _, _) = makeMonitor(idleSeconds: 600)
+        let harness = makeMonitor(idleSeconds: 600)
+        let monitor = harness.monitor
+        let sensor = harness.sensor
         var stopReasons: [CameraStopReason] = []
         monitor.onCameraStopped = { stopReasons.append($0) }
 
@@ -102,12 +115,14 @@ struct PresenceMonitorTests {
 
     @Test("Revoking camera access mid-session takes the camera down")
     func revokedAuthorizationStopsTheCamera() {
-        let (monitor, sensor, _, _) = makeMonitor(idleSeconds: 600)
+        let harness = makeMonitor(idleSeconds: 600)
+        let monitor = harness.monitor
+        let sensor = harness.sensor
         var stopReasons: [CameraStopReason] = []
         var authorizationMoves: [String] = []
         monitor.onCameraStopped = { stopReasons.append($0) }
-        monitor.onAuthorizationChanged = { from, to in
-            authorizationMoves.append("\(from.rawValue)->\(to.rawValue)")
+        monitor.onAuthorizationChanged = { previous, current in
+            authorizationMoves.append("\(previous.rawValue)->\(current.rawValue)")
         }
 
         monitor.sample(now: epoch, cameraEnabled: true)
@@ -125,7 +140,9 @@ struct PresenceMonitorTests {
 
     @Test("Quitting stops the camera and records the reason")
     func shutDownStopsTheCamera() {
-        let (monitor, sensor, _, _) = makeMonitor(idleSeconds: 600)
+        let harness = makeMonitor(idleSeconds: 600)
+        let monitor = harness.monitor
+        let sensor = harness.sensor
         var stopReasons: [CameraStopReason] = []
 
         monitor.sample(now: epoch, cameraEnabled: true)
@@ -139,7 +156,9 @@ struct PresenceMonitorTests {
 
     @Test("A camera that will not open is reported as stalled, not as running")
     func failedOpenIsReportedHonestly() {
-        let (monitor, sensor, _, _) = makeMonitor(idleSeconds: 600)
+        let harness = makeMonitor(idleSeconds: 600)
+        let monitor = harness.monitor
+        let sensor = harness.sensor
         sensor.failsToOpen = true
         var stopReasons: [CameraStopReason] = []
         monitor.onCameraStopped = { stopReasons.append($0) }
@@ -157,10 +176,12 @@ struct PresenceMonitorTests {
 
     @Test("Idle with a person in frame reports present-but-idle")
     func presentButIdleIsReported() {
-        let (monitor, sensor, _, _) = makeMonitor(idleSeconds: 600)
+        let harness = makeMonitor(idleSeconds: 600)
+        let monitor = harness.monitor
+        let sensor = harness.sensor
         var transitions: [String] = []
-        monitor.onStateChanged = { from, to in
-            transitions.append("\(from.rawValue)->\(to.rawValue)")
+        monitor.onStateChanged = { previous, current in
+            transitions.append("\(previous.rawValue)->\(current.rawValue)")
         }
 
         monitor.sample(now: epoch, cameraEnabled: true)
@@ -174,7 +195,9 @@ struct PresenceMonitorTests {
 
     @Test("Idle with an empty frame reports absent")
     func absentIsReported() {
-        let (monitor, sensor, _, _) = makeMonitor(idleSeconds: 600)
+        let harness = makeMonitor(idleSeconds: 600)
+        let monitor = harness.monitor
+        let sensor = harness.sensor
 
         monitor.sample(now: epoch, cameraEnabled: true)
         sensor.observe(.notDetected, at: epoch.addingTimeInterval(1))
@@ -185,13 +208,15 @@ struct PresenceMonitorTests {
 
     @Test("Input arriving while the camera sees nobody still reports working")
     func inputBeatsAnEmptyFrame() {
-        let (monitor, sensor, idle, watcher) = makeMonitor(idleSeconds: 600)
+        let harness = makeMonitor(idleSeconds: 600)
+        let monitor = harness.monitor
+        let sensor = harness.sensor
 
         monitor.sample(now: epoch, cameraEnabled: true)
         sensor.observe(.notDetected, at: epoch.addingTimeInterval(1))
         // The user is typing on an external keyboard, out of the lens' cone.
-        idle.seconds = 2
-        watcher.sample()
+        harness.idle.seconds = 2
+        harness.watcher.sample()
         monitor.sample(now: epoch.addingTimeInterval(2), cameraEnabled: true)
 
         #expect(monitor.state == .working)
@@ -199,7 +224,9 @@ struct PresenceMonitorTests {
 
     @Test("A camera reading that goes stale falls back to unknown, not absent")
     func staleReadingFallsBackToUnknown() {
-        let (monitor, sensor, _, _) = makeMonitor(idleSeconds: 600)
+        let harness = makeMonitor(idleSeconds: 600)
+        let monitor = harness.monitor
+        let sensor = harness.sensor
 
         monitor.sample(now: epoch, cameraEnabled: true)
         sensor.observe(.detected, at: epoch.addingTimeInterval(1))
@@ -219,7 +246,9 @@ struct PresenceMonitorTests {
 
     @Test("Transitions fire once per change, not once per tick")
     func transitionsAreDeduplicated() {
-        let (monitor, sensor, _, _) = makeMonitor(idleSeconds: 600)
+        let harness = makeMonitor(idleSeconds: 600)
+        let monitor = harness.monitor
+        let sensor = harness.sensor
         var changes = 0
         monitor.onStateChanged = { _, _ in changes += 1 }
 
@@ -235,7 +264,9 @@ struct PresenceMonitorTests {
 
     @Test("Time in state is measured from the transition, not from the tick")
     func secondsInStateTracksTheTransition() {
-        let (monitor, sensor, _, _) = makeMonitor(idleSeconds: 600)
+        let harness = makeMonitor(idleSeconds: 600)
+        let monitor = harness.monitor
+        let sensor = harness.sensor
 
         monitor.sample(now: epoch, cameraEnabled: true)
         sensor.observe(.detected, at: epoch.addingTimeInterval(1))
