@@ -38,9 +38,35 @@ public enum AuditTokens {
         granted ? "granted" : "denied"
     }
 
-    /// `idle` | `active`, for presence.
+    /// `idle` | `active`, for HID-only presence.
     public static func presence(isIdle: Bool) -> String {
         isIdle ? "idle" : "active"
+    }
+
+    /// `working` | `present_idle` | `absent` | `unknown`, for the fused
+    /// HID + camera presence verdict.
+    ///
+    /// The raw values are already the wire tokens, so this is a rename guard
+    /// rather than a translation: a Swift case rename changes the raw value
+    /// too, and going through here means the change shows up as a diff in the
+    /// one file that documents the on-disk vocabulary.
+    public static func presenceState(_ state: PresenceState) -> String {
+        state.rawValue
+    }
+
+    /// `detected` | `not_detected` | `unavailable`, for the camera signal.
+    ///
+    /// Records the *verdict*, never the frame it came from. There is no token
+    /// here — and no field anywhere in the audit envelope — that could carry
+    /// image data, a bounding box, or a count of people.
+    public static func personSignal(_ signal: PersonSignal) -> String {
+        signal.rawValue
+    }
+
+    /// `not_determined` | `denied` | `restricted` | `authorized`, for camera
+    /// authorization.
+    public static func cameraAuthorization(_ status: CameraAuthorization) -> String {
+        status.rawValue
     }
 
     /// `HH:MM` from minutes past midnight, for schedule rendering.

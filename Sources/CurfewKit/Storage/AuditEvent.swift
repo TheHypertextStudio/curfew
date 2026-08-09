@@ -176,7 +176,28 @@ public enum AuditEventType: String, Codable, Equatable, CaseIterable, Sendable {
     // MARK: Presence
 
     /// The user went idle or came back. `from`/`to` are `active` / `idle`.
+    /// The HID-only view, kept unchanged so existing parsers still work.
     case presenceChanged = "presence.changed"
+
+    /// The fused HID + camera presence verdict moved. `from`/`to` are
+    /// ``PresenceState`` tokens. This is the record that distinguishes an
+    /// empty chair from a user who is sitting right there reading.
+    case presenceStateChanged = "presence.state_changed"
+
+    /// A camera capture session started. Written *before* the camera can
+    /// produce a frame, so the log always bounds the window the light was on.
+    case presenceCameraStarted = "presence.camera_started"
+
+    /// A camera capture session stopped. The closing bracket for the above;
+    /// `detail.reason` says what closed it.
+    case presenceCameraStopped = "presence.camera_stopped"
+
+    /// Camera authorization changed. `from`/`to` are ``CameraAuthorization``
+    /// tokens — the paper trail for consent being given or withdrawn.
+    case presenceCameraAuthorizationChanged = "presence.camera_authorization_changed"
+
+    /// A distraction nudge was delivered to a present-but-idle user.
+    case presenceDistractionWarned = "presence.distraction_warned"
 
     // MARK: Auto-shutdown (app side)
 

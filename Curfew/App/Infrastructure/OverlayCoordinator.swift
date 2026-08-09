@@ -85,6 +85,24 @@ final class OverlayCoordinator {
         hidesOnDeactivate: false
     )
 
+    /// Whether this process must not put overlay windows on screen.
+    ///
+    /// True in a unit-test host, and false everywhere else — including the
+    /// Debug demo-capture launch, which exists precisely to photograph these
+    /// windows and opts in explicitly through `CURFEW_DEMO_FIXTURE=1`. The
+    /// exemption cannot weaken the unit suite (which sets no such variable)
+    /// or a Release build (where the demo machinery is not compiled).
+    static var suppressesWindows: Bool {
+        guard RuntimeEnvironment.isUnitTestHost else { return false }
+        #if DEBUG
+            return CurfewLaunchBehavior.demoScenario(
+                environment: ProcessInfo.processInfo.environment
+            ) == nil
+        #else
+            return true
+        #endif
+    }
+
     private var warningWindows: [ObjectIdentifier: NSWindow] = [:]
     private var lockoutWindows: [ObjectIdentifier: NSWindow] = [:]
     private var timerWindows: [ObjectIdentifier: NSWindow] = [:]
@@ -93,11 +111,21 @@ final class OverlayCoordinator {
     /// Reconciles the visible overlay windows with `state`. Called once per
     /// tick; creates, updates, or removes windows as needed. Hides irrelevant
     /// window kinds first to avoid z-order flicker.
+    ///
+    /// Guarded by ``suppressesWindows`` for the same reason as
+    /// ``LockoutKeyInterceptor`` — its paired half — and every other side
+    /// effect in the tick loop. Without it, any test that ticks a model into
+    /// `.locked` throws a real `.screenSaver`-level window over whoever is
+    /// running the suite, and the interceptor's own guard means the keyboard
+    /// still works while the screen is covered. Tests that need to assert on
+    /// overlay behaviour read the static `*WindowConfiguration` values, which
+    /// this guard leaves untouched.
     func updateOverlays(
         for state: CurfewEvaluation,
         model: CurfewAppModel,
         lockoutMessage: String
     ) {
+        guard !Self.suppressesWindows else { return }
         switch state.phase {
         case .locked where model.isEnforcingLockout:
             hideWarningWindows()
@@ -136,6 +164,9 @@ final class OverlayCoordinator {
     /// once per tick; creates windows on first need and tears them down when
     /// `presented` goes false.
     func syncDaybreakOverlay(presented: Bool, model: CurfewAppModel) {
+        // Independently reachable, and it raises a `.screenSaver` window of its
+        // own, so it carries the guard rather than inheriting the caller's.
+        guard !Self.suppressesWindows else { return }
         guard presented else {
             hideDaybreakWindows()
             return

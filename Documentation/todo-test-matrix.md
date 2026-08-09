@@ -442,3 +442,69 @@ only.
 - `Render a caller-owned Worker config whose entry point still resolves from
   the fresh clone.`
   - `scripts/license-worker.test.mjs`
+
+## 19. On-device presence detection
+
+- `Cross HID idleness with a camera person signal into working / present-but-idle
+  / absent, and an honest unknown when there is no camera signal.`
+  - `PresenceFusionTests/hidActivityWinsOutright()`
+  - `PresenceFusionTests/idleWithPersonIsPresentButIdle()`
+  - `PresenceFusionTests/idleWithoutPersonIsAbsent()`
+  - `PresenceFusionTests/idleWithoutCameraIsUnknown()`
+  - `PresenceFusionTests/knownPresenceIsNarrow()`
+  - `PresenceMonitorTests/presentButIdleIsReported()`
+  - `PresenceMonitorTests/absentIsReported()`
+  - `PresenceMonitorTests/inputBeatsAnEmptyFrame()`
+- `A stale camera reading decays to "no signal" rather than pinning a verdict,
+  and a future-dated reading is never treated as fresh.`
+  - `PresenceFusionTests/staleObservationDecaysToUnavailable()`
+  - `PresenceFusionTests/neverObservedIsNeverFresh()`
+  - `PresenceFusionTests/futureObservationIsNotFresh()`
+  - `PresenceMonitorTests/staleReadingFallsBackToUnknown()`
+- `The camera runs only when the user's setting is on and macOS reports access
+  granted, and stops immediately when either stops being true.`
+  - `PresenceMonitorTests/disabledCameraNeverStarts()`
+  - `PresenceMonitorTests/unauthorizedCameraNeverStarts()`
+  - `PresenceMonitorTests/enabledCameraStartsOnce()`
+  - `PresenceMonitorTests/disablingStopsTheCamera()`
+  - `PresenceMonitorTests/revokedAuthorizationStopsTheCamera()`
+  - `PresenceMonitorTests/shutDownStopsTheCamera()`
+  - `PresenceAuditWiringTests/defaultModelNeverStartsTheCamera()`
+  - `PresenceAuditWiringTests/settingDrivesTheCamera()`
+  - `PresenceAuditWiringTests/disablingIsImmediate()`
+- `Presence detection ships off and cannot be turned on by an upgrade, a partial
+  settings payload, or a refused camera prompt.`
+  - `PresenceDetectionPolicyTests/cameraIsOffByDefault()`
+  - `PresenceDetectionPolicyTests/legacySettingsDecodeWithCameraOff()`
+  - `PresenceDetectionPolicyTests/partialPayloadDecodesWithCameraOff()`
+  - `PresenceDetectionPolicyTests/presenceRoundTrips()`
+  - `PresenceAuditWiringTests/refusedAccessDoesNotPersistIntent()`
+  - `PresenceAuditWiringTests/grantedAccessPersistsIntent()`
+- `A camera that will not open is reported as stalled rather than as running.`
+  - `PresenceMonitorTests/failedOpenIsReportedHonestly()`
+- `Warn a sustained present-but-idle user during working hours only — never at
+  an empty chair, never during lockout or a day off, and never more than once
+  per repeat window.`
+  - `DistractionWarningPolicyTests/sustainedDistractionWarns()`
+  - `DistractionWarningPolicyTests/otherStatesHold()`
+  - `DistractionWarningPolicyTests/ineligiblePhasesHold()`
+  - `DistractionWarningPolicyTests/warningPhaseIsEligible()`
+  - `DistractionWarningPolicyTests/briefPauseHolds()`
+  - `DistractionWarningPolicyTests/repeatWindowHolds()`
+  - `DistractionWarningPolicyTests/disabledHolds()`
+  - `DistractionWarningPolicyTests/disabledOutranksEverything()`
+  - `DistractionWarningPolicyTests/windowsAreClamped()`
+  - `PresenceDetectionPolicyTests/derivedPolicyIsClamped()`
+  - `PresenceAuditWiringTests/sustainedDistractionIsNudgedOnce()`
+  - `PresenceAuditWiringTests/briefPauseStaysSilent()`
+  - `PresenceAuditWiringTests/noNudgeDuringLockout()`
+  - `PresenceAuditWiringTests/nudgeSwitchIsIndependent()`
+  - `PresenceAuditWiringTests/noNudgeWithoutTheCamera()`
+- `Record presence transitions, camera windows, and consent changes in the audit
+  log — and never an image.`
+  - `PresenceAuditWiringTests/fusedPresenceIsRecorded()`
+  - `PresenceAuditWiringTests/legacyPresenceRecordSurvives()`
+  - `PresenceAuditWiringTests/authorizationChangesAreRecorded()`
+  - `PresenceAuditWiringTests/presenceRecordsCarryNoImagery()`
+  - `PresenceMonitorTests/transitionsAreDeduplicated()`
+  - `PresenceMonitorTests/secondsInStateTracksTheTransition()`

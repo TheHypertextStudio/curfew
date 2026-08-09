@@ -24,6 +24,10 @@ private var auditLogOverrides: [ObjectIdentifier: AuditLog] = [:]
 ///   the bottom of `tick()`, using ``AuditLog/emitIfChanged(key:to:event:actor:detail:at:)``
 ///   for transition detection so the model needs no new stored state.
 ///
+/// Presence has two emitters, both reached from here: the HID-only
+/// `presence.changed` below, and the fused HID + camera `presence.state_changed`
+/// in `CurfewAppModel+AuditPresence.swift`.
+///
 /// Redaction lives at the call site, not in the writer: override reason prose
 /// never leaves this file as text. See ``AuditRedaction``.
 @MainActor
@@ -54,6 +58,7 @@ extension CurfewAppModel {
         recordAuditShutdownWorkflow()
         recordAuditEnforcementHealth()
         recordAuditPresence()
+        recordAuditPresenceState()
     }
 
     /// Writes `enforcement.phase_changed` plus, where applicable, the
