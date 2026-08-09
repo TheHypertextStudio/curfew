@@ -125,6 +125,13 @@
 			path = Sources/CurfewKit/MCP;
 			sourceTree = "<group>";
 		};
+		C0FE00000000000000000061 /* Sources/CurfewKit/Sync */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
+			path = Sources/CurfewKit/Sync;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -233,6 +240,7 @@
 				C0FE00000000000000000008 /* Sources/CurfewKit/Storage */,
 				C0FE00000000000000000009 /* Sources/CurfewKit/Settings */,
 				C0FE00000000000000000060 /* Sources/CurfewKit/MCP */,
+				C0FE00000000000000000061 /* Sources/CurfewKit/Sync */,
 			);
 			name = Curfew;
 			productName = Curfew;

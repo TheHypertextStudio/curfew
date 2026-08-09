@@ -265,6 +265,11 @@ extension CurfewAppModel {
             // The presence reads above are computed, not `@Published`, so the
             // change has to be announced by hand for SwiftUI to see it.
             self?.objectWillChange.send()
+            // Tell the coordinator this Mac is live as of a moment that just
+            // mattered. The verdict itself does not travel — `DeviceStatusSnapshot`
+            // has no presence field — so what crosses the wire is the refreshed
+            // `observedAt` and the enforcement scalars beside it.
+            self?.publishDeviceStatus(trigger: .presence)
         }
         monitor.onCameraStarted = { [weak self] in
             self?.objectWillChange.send()

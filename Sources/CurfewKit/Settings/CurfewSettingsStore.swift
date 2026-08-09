@@ -156,6 +156,11 @@ public struct CurfewSettings: Codable, Equatable {
     /// see ``PresenceDetectionPolicy``.
     public var presence: PresenceDetectionPolicy
 
+    /// Whether Curfew publishes this device's enforcement status to a
+    /// curfew-sync coordinator, and where. Off with no endpoint by default;
+    /// see ``DeviceStatusReportingPolicy``.
+    public var statusReporting: DeviceStatusReportingPolicy
+
     private enum CodingKeys: String, CodingKey {
         case schedule
         case pendingScheduleChange
@@ -173,6 +178,7 @@ public struct CurfewSettings: Codable, Equatable {
         case mcpHTTPPort
         case protectedWork
         case presence
+        case statusReporting
     }
 
     /// Memberwise initialiser. `warningIntervals` is normalised on
@@ -196,7 +202,8 @@ public struct CurfewSettings: Codable, Equatable {
         mcpHTTPEnabled: Bool = false,
         mcpHTTPPort: Int = 9847,
         protectedWork: ProtectedWorkPolicy = .default,
-        presence: PresenceDetectionPolicy = .default
+        presence: PresenceDetectionPolicy = .default,
+        statusReporting: DeviceStatusReportingPolicy = .default
     ) {
         self.schedule = schedule
         self.pendingScheduleChange = pendingScheduleChange
@@ -214,6 +221,7 @@ public struct CurfewSettings: Codable, Equatable {
         self.mcpHTTPPort = mcpHTTPPort
         self.protectedWork = protectedWork
         self.presence = presence
+        self.statusReporting = statusReporting
     }
 
     /// Custom decoder so pre-existing persisted settings (v0.1 payloads
@@ -271,6 +279,13 @@ public struct CurfewSettings: Codable, Equatable {
             PresenceDetectionPolicy.self,
             forKey: .presence
         ) ?? .default
+        // Absent on every payload written before status reporting shipped, and
+        // `.default` is off with no endpoint — so an upgrade cannot start
+        // talking to a coordinator, and neither can a truncated blob.
+        self.statusReporting = try container.decodeIfPresent(
+            DeviceStatusReportingPolicy.self,
+            forKey: .statusReporting
+        ) ?? .default
     }
 
     /// Encodes to JSON. `warningIntervals` is normalised before encoding so
@@ -294,12 +309,14 @@ public struct CurfewSettings: Codable, Equatable {
         try container.encode(mcpHTTPPort, forKey: .mcpHTTPPort)
         try container.encode(protectedWork, forKey: .protectedWork)
         try container.encode(presence, forKey: .presence)
+        try container.encode(statusReporting, forKey: .statusReporting)
     }
 
     /// Factory defaults for a fresh install: 9-to-5 schedule, 3 × 15 min
     /// extensions/week, 2 × 30 min overrides/week, Monday reset, auto-
     /// shutdown off, canonical warning intervals, MCP on, loopback HTTP
-    /// off, camera presence detection off. Consumed by
+    /// off, camera presence detection off, status reporting off with no
+    /// coordinator endpoint. Consumed by
     /// `CurfewSettingsStore.load()` when the `UserDefaults` key is absent.
     public static let `default` = CurfewSettings(
         schedule: .standardNineToFive,
@@ -345,6 +362,16 @@ public final class CurfewSettingsStore {
     /// to avoid polluting `UserDefaults.standard`.
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+    }
+
+    /// The suite this store reads and writes.
+    ///
+    /// Exposed so sibling persistence that must live in the *same* suite can
+    /// find it without a second injection point — currently
+    /// ``DeviceStatusVersionCounter``, whose monotonicity guarantee is only
+    /// worth anything if a test's isolated suite isolates it too.
+    public var storageDefaults: UserDefaults {
+        defaults
     }
 
     /// Returns the stored settings, or ``CurfewSettings/default`` when no

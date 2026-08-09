@@ -60,7 +60,7 @@ Full detail, including what the feature deliberately cannot do, is in
 ## What Curfew does NOT do
 
 - No analytics, telemetry, or crash reporting.
-- No network requests except: iCloud sync (Pro, opt-in) and license key verification (one-time, offline after first check).
+- No network requests except: iCloud sync (Pro, opt-in), coordinator status reporting (opt-in, off by default, to a server you name), and license key verification (one-time, offline after first check).
 - No access to your files, browser history, or app content.
 
 ## Permissions requested
@@ -82,6 +82,36 @@ When enabled, Curfew writes four record types to **your private CloudKit databas
 - `LockoutState` — current phase + warning timestamps so a Mac joining mid-warning aligns with whichever Mac entered warning first.
 
 Heartbeats older than 7 days are pruned. All other records survive until you sign out of iCloud or uninstall. Hypertext Studio has no access — everything lives in your personal iCloud account, encrypted by Apple.
+
+## Coordinator status reporting (opt-in, off by default)
+
+Curfew ships with this **off and with no server address configured**. There is no
+default coordinator: if you turn it on, you type the address of a server you run.
+Status reports are sent over HTTPS only.
+
+When enabled, Curfew POSTs eight values on every phase change, on every presence
+change, and on a heartbeat in between:
+
+- a device identifier Curfew generated for this purpose — not your Mac's hardware
+  UUID, so it cannot be joined against anything else that identifies this machine
+- the enforcement phase: `working`, `warning`, `locked`, or `day_off`
+- your IANA time zone
+- a one-way SHA-256 digest of your schedule — enough for a coordinator to tell
+  whether two Macs run the same schedule, not enough to read either
+- a counter, so a delayed report cannot overwrite a newer one
+- when the observation was taken, when the phase next changes, and when the
+  current lockout ends
+
+That is the entire list, and the payload has no room for more: every value is a
+string or a number. Your schedule itself, your reflections, the apps you use,
+window titles, and anything the camera sees never leave this Mac. Presence
+detection can *trigger* a report, but the presence verdict itself is not among
+the values sent.
+
+Reporting is best-effort. With it switched on and the server down, Curfew locks
+your Mac exactly when it said it would.
+
+Details, including the wire format: [`Documentation/curfew-sync-status.md`](Documentation/curfew-sync-status.md).
 
 ## MCP server
 

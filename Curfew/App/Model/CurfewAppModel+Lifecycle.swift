@@ -111,6 +111,11 @@ extension CurfewAppModel {
         // Last, so every transition this tick produced is already settled.
         // Observes only — see `CurfewAppModel+Audit.swift`.
         recordAuditTickState(previousPhase: previousPhase)
+        // Also last, and for the same reason. Event-driven reports already went
+        // out above; this only covers the long quiet stretches, so a device that
+        // has been `.working` all afternoon stays distinguishable from one that
+        // stopped running at lunchtime.
+        publishDeviceStatusHeartbeatIfDue()
     }
 
     /// Settle who owns enforcement this tick, then apply every effect that
@@ -148,6 +153,12 @@ extension CurfewAppModel {
         // drop out of warning so joining devices don't see stale data.
         if previousPhase != state.phase {
             publishLockoutStateIfSyncActive(previous: previousPhase)
+            // Publish the same transition to the curfew-sync coordinator, if
+            // the user configured one. Best-effort and non-blocking by
+            // construction — see `CurfewAppModel+StatusReporting.swift`. A
+            // coordinator that is down, unreachable, or nonexistent changes
+            // nothing about the lockout this line is reporting.
+            publishDeviceStatus(trigger: .enforcementPhase)
         }
         // Reload widget timelines on both phase transitions and warning-
         // stage transitions. The old behaviour only covered phase, so a

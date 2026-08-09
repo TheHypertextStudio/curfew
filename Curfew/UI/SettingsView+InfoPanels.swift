@@ -13,6 +13,7 @@ extension SettingsView {
             mcpConfigPanel
             aiConsentPanel
             otherIntegrationsPanel
+            coordinatorSyncPanel
             devicesPanel
         }
     }
