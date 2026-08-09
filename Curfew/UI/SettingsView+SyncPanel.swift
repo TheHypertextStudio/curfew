@@ -68,9 +68,22 @@ extension SettingsView {
             )
             .textFieldStyle(.roundedBorder)
 
+            TextField(
+                "Your account id on the coordinator",
+                text: $model.settings.statusReporting.userID
+            )
+            .textFieldStyle(.roundedBorder)
+
+            // The shared secret. Bound through the model rather than through
+            // `settings`, because it is the one value on this panel that is not
+            // written to the settings plist — it goes to the Keychain. See
+            // `DeviceAssertionSecretStore` for why.
             SecureField(
-                "Device token from enrollment",
-                text: $model.settings.statusReporting.deviceToken
+                "Coordinator signing secret",
+                text: Binding(
+                    get: { model.deviceAssertionSecret },
+                    set: { model.deviceAssertionSecret = $0 }
+                )
             )
             .textFieldStyle(.roundedBorder)
 
@@ -126,7 +139,9 @@ extension SettingsView {
     /// Shown when it does not.
     static let coordinatorIdleNote = """
     Not publishing. The address needs to be a complete HTTPS URL — status \
-    reports are not sent over plain HTTP.
+    reports are not sent over plain HTTP — and the account id and signing \
+    secret both need to be filled in, because every report is signed. The \
+    secret is kept in your Keychain, not in Curfew's settings file.
     """
 
     /// What leaves the Mac, exhaustively.

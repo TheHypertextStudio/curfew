@@ -18,6 +18,19 @@ struct DeviceStatusWiringHarness {
     /// The fake presence sensor installed on ``model``. Opens nothing.
     let sensor: FakePresenceSensor
 
+    /// The in-memory secret store installed on ``model``. Nothing here reaches
+    /// the login keychain, so a suite run neither writes a credential onto the
+    /// machine running it nor fails because that machine's keychain is locked.
+    let secretStore: InMemoryDeviceAssertionSecretStore
+
+    /// The shared secret every harness signs with unless told otherwise. A
+    /// literal, so a test can re-verify a minted assertion against it.
+    static let secret = "curfew-test-shared-secret"
+
+    /// The account id every harness reports under. `sync.json` asks only for
+    /// 1–128 characters.
+    static let userID = "user_01HZTESTACCOUNT"
+
     /// A schedule with every day off, so `tick()` can never evaluate into
     /// `.warning` or `.locked`. Keeps a suite run from putting a lockout
     /// overlay on the screen of whoever is running it.
@@ -53,11 +66,14 @@ struct DeviceStatusWiringHarness {
     ///   - schedule: The schedule to evaluate against. Defaults to all days off.
     ///   - outcome: What the fake transport answers every publish with.
     ///   - idleSeconds: How idle the fake HID source reports.
+    ///   - secret: The shared signing secret to seed the in-memory store with.
+    ///     Pass `""` for a model that has an address but no credential.
     init(
         reporting: DeviceStatusReportingPolicy = .default,
         schedule: WeeklySchedule? = nil,
         outcome: DeviceStatusPublishOutcome = .accepted,
-        idleSeconds: TimeInterval = 600
+        idleSeconds: TimeInterval = 600,
+        secret: String = DeviceStatusWiringHarness.secret
     ) {
         let suite = "studio.hypertext.curfew.tests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite) ?? .standard
@@ -91,22 +107,30 @@ struct DeviceStatusWiringHarness {
         model.deviceStatusTransportOverride = transport
         let sensor = FakePresenceSensor(authorization: .authorized)
         model.presenceSensorOverride = sensor
+        let secretStore = InMemoryDeviceAssertionSecretStore(secret: secret)
+        model.deviceAssertionSecretStoreOverride = secretStore
 
         self.model = model
         self.transport = transport
         self.sensor = sensor
+        self.secretStore = secretStore
     }
 
-    /// A reporting policy pointed at a usable endpoint, with a device
-    /// identifier already minted.
+    /// The device identifier every configured harness reports under. Shared
+    /// with the assertion, which must carry the same value or the route answers
+    /// `403 device_mismatch`.
+    static let deviceID = "3f2504e0-4f89-41d3-9a0c-0305e82c3301"
+
+    /// A reporting policy pointed at a usable endpoint, with an account and a
+    /// device identifier already set.
     static func configured(
         heartbeatSeconds: Int = DeviceStatusReportingPolicy.heartbeatFloorSeconds
     ) -> DeviceStatusReportingPolicy {
         DeviceStatusReportingPolicy(
             isEnabled: true,
             baseURL: "https://coordinator.example",
-            deviceToken: "test-token",
-            deviceID: "3f2504e0-4f89-41d3-9a0c-0305e82c3301",
+            userID: userID,
+            deviceID: deviceID,
             heartbeatSeconds: heartbeatSeconds
         )
     }

@@ -52,16 +52,26 @@ public struct DeviceStatusReportingPolicy: Codable, Equatable, Sendable {
     /// The coordinator's base URL, as the user typed it. Empty by default.
     public var baseURL: String
 
-    /// The device credential issued at enrollment, sent as an HTTP bearer
-    /// token. Empty by default.
+    /// The coordinator account this device reports to. Empty by default.
     ///
-    /// curfew-sync's documented device-agent auth is a device session cookie
-    /// issued by `POST /sync/enroll/start`, and enrollment is not implemented
-    /// on either side yet. A user-pasted bearer token is the least-invented
-    /// stand-in available: it is a standard HTTP mechanism rather than a coined
-    /// wire shape, and it is a stand-in — the real credential exchange belongs
-    /// with the enrollment work.
-    public var deviceToken: String
+    /// Becomes `userId` in the identity assertion Curfew signs for every
+    /// request — `sync.json#/definitions/InternalDeviceIdentityClaims`, which
+    /// constrains it to 1–128 characters and nothing else. `POST /sync/status`
+    /// writes it onto the device row and `GET /sync/status` filters a reader's
+    /// devices by it, so it is what makes two Macs show up as one person's
+    /// rather than two accounts'.
+    ///
+    /// Not a secret, and deliberately stored beside the rest of the
+    /// configuration: it names an account, it does not authenticate one. The
+    /// thing that authenticates lives in the Keychain — see
+    /// `DeviceAssertionSecretStore`.
+    ///
+    /// This replaces the pasted `deviceToken` an earlier build carried. That
+    /// field was a stand-in for a credential exchange that had not been
+    /// designed; the assertion is the designed one, and a pasted opaque token
+    /// can never satisfy `verifyRequestAssertion`, so keeping the field would
+    /// have meant a settings row that guarantees a 401.
+    public var userID: String
 
     /// This install's device identifier, minted once and kept.
     ///
@@ -76,7 +86,7 @@ public struct DeviceStatusReportingPolicy: Codable, Equatable, Sendable {
     private enum CodingKeys: String, CodingKey {
         case isEnabled
         case baseURL
-        case deviceToken
+        case userID
         case deviceID
         case heartbeatSeconds
     }
@@ -87,13 +97,13 @@ public struct DeviceStatusReportingPolicy: Codable, Equatable, Sendable {
     public init(
         isEnabled: Bool,
         baseURL: String,
-        deviceToken: String,
+        userID: String,
         deviceID: String,
         heartbeatSeconds: Int
     ) {
         self.isEnabled = isEnabled
         self.baseURL = baseURL
-        self.deviceToken = deviceToken
+        self.userID = userID
         self.deviceID = deviceID
         self.heartbeatSeconds = min(
             max(heartbeatSeconds, Self.heartbeatFloorSeconds),
@@ -116,10 +126,10 @@ public struct DeviceStatusReportingPolicy: Codable, Equatable, Sendable {
             String.self,
             forKey: .baseURL
         ) ?? fallback.baseURL
-        let deviceToken = try container.decodeIfPresent(
+        let userID = try container.decodeIfPresent(
             String.self,
-            forKey: .deviceToken
-        ) ?? fallback.deviceToken
+            forKey: .userID
+        ) ?? fallback.userID
         let deviceID = try container.decodeIfPresent(
             String.self,
             forKey: .deviceID
@@ -131,7 +141,7 @@ public struct DeviceStatusReportingPolicy: Codable, Equatable, Sendable {
         self.init(
             isEnabled: isEnabled,
             baseURL: baseURL,
-            deviceToken: deviceToken,
+            userID: userID,
             deviceID: deviceID,
             heartbeatSeconds: heartbeatSeconds
         )
@@ -162,7 +172,7 @@ public struct DeviceStatusReportingPolicy: Codable, Equatable, Sendable {
     public static let `default` = DeviceStatusReportingPolicy(
         isEnabled: false,
         baseURL: "",
-        deviceToken: "",
+        userID: "",
         deviceID: "",
         heartbeatSeconds: Self.heartbeatFloorSeconds
     )

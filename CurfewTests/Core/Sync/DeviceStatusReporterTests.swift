@@ -8,6 +8,11 @@ import Testing
 struct DeviceStatusReporterTests {
     private static let endpoint = URL(string: "https://coordinator.example/sync/heartbeat")!
 
+    /// A stand-in credential for the tests that are about ordering rather than
+    /// about authentication. The reporter only asks whether there is one; what
+    /// a real one looks like is `DeviceIdentityAssertionTests`' subject.
+    private static let credential = "assertion.for.ordering-tests"
+
     private func report(version: Int) -> DeviceStatusReport {
         var report = DeviceStatusReportPayloadTests.sample()
         report.statusVersion = version
@@ -37,14 +42,14 @@ struct DeviceStatusReporterTests {
         let transport = RecordingStatusTransport()
         let reporter = DeviceStatusReporter(transport: transport)
 
-        reporter.report(report(version: 5), endpoint: Self.endpoint, bearerToken: "")
+        reporter.report(report(version: 5), endpoint: Self.endpoint, bearerToken: Self.credential)
         await reporter.settle()
         // Arriving late, carrying an older observation. This is the write the
         // coordinator must never take.
-        reporter.report(report(version: 3), endpoint: Self.endpoint, bearerToken: "")
+        reporter.report(report(version: 3), endpoint: Self.endpoint, bearerToken: Self.credential)
         await reporter.settle()
         // Same version again — a caller that reused a number.
-        reporter.report(report(version: 5), endpoint: Self.endpoint, bearerToken: "")
+        reporter.report(report(version: 5), endpoint: Self.endpoint, bearerToken: Self.credential)
         await reporter.settle()
 
         #expect(transport.publishedVersions == [5])
@@ -57,13 +62,13 @@ struct DeviceStatusReporterTests {
         let reporter = DeviceStatusReporter(transport: transport)
 
         // v1 goes out and hangs.
-        reporter.report(report(version: 1), endpoint: Self.endpoint, bearerToken: "")
+        reporter.report(report(version: 1), endpoint: Self.endpoint, bearerToken: Self.credential)
         await pumpMainActor()
         #expect(transport.calls.count == 1)
 
         // v2 and v3 arrive while it is still open.
-        reporter.report(report(version: 2), endpoint: Self.endpoint, bearerToken: "")
-        reporter.report(report(version: 3), endpoint: Self.endpoint, bearerToken: "")
+        reporter.report(report(version: 2), endpoint: Self.endpoint, bearerToken: Self.credential)
+        reporter.report(report(version: 3), endpoint: Self.endpoint, bearerToken: Self.credential)
         await pumpMainActor()
 
         // Neither may start beside v1: two requests carrying different versions
@@ -86,7 +91,7 @@ struct DeviceStatusReporterTests {
         let transport = RecordingStatusTransport(outcome: .stale)
         let reporter = DeviceStatusReporter(transport: transport)
 
-        reporter.report(report(version: 9), endpoint: Self.endpoint, bearerToken: "")
+        reporter.report(report(version: 9), endpoint: Self.endpoint, bearerToken: Self.credential)
         await reporter.settle()
 
         // One attempt. Retrying would resend the report the coordinator has
@@ -109,7 +114,11 @@ struct DeviceStatusReporterTests {
             let transport = RecordingStatusTransport(outcome: outcome)
             let reporter = DeviceStatusReporter(transport: transport)
 
-            reporter.report(report(version: 1), endpoint: Self.endpoint, bearerToken: "")
+            reporter.report(
+                report(version: 1),
+                endpoint: Self.endpoint,
+                bearerToken: Self.credential
+            )
             await reporter.settle()
 
             #expect(transport.calls.count == 1, "\(outcome) should not be retried")
@@ -123,13 +132,56 @@ struct DeviceStatusReporterTests {
         var malformed = report(version: 1)
         malformed.deviceID = "not-a-uuid"
 
-        reporter.report(malformed, endpoint: Self.endpoint, bearerToken: "")
+        reporter.report(malformed, endpoint: Self.endpoint, bearerToken: Self.credential)
         await reporter.settle()
 
         #expect(transport.calls.isEmpty)
         // And it did not burn the version, so the next good report still
         // advances from where the last published one left off.
         #expect(reporter.highestPublishedVersion == -1)
+    }
+
+    // MARK: - Credential
+
+    @Test("An unsigned report never reaches the network, however well-formed it is")
+    func unsignedReportNeverLeaves() async {
+        let transport = RecordingStatusTransport()
+        let reporter = DeviceStatusReporter(transport: transport)
+
+        // The report itself is perfectly good. The only thing missing is the
+        // assertion, and that alone must stop it: `verifyRequestAssertion`
+        // answers 401 to a request with no bearer credential, so publishing it
+        // would put a device identifier and a schedule digest on someone's
+        // network for a request that cannot succeed.
+        reporter.report(report(version: 1), endpoint: Self.endpoint, bearerToken: "")
+        await reporter.settle()
+
+        #expect(transport.calls.isEmpty)
+        // And, as with a malformed report, it did not consume a version.
+        #expect(reporter.highestPublishedVersion == -1)
+
+        // The same report signed does go out, so this is the credential's doing
+        // and not something else about the report.
+        reporter.report(report(version: 1), endpoint: Self.endpoint, bearerToken: Self.credential)
+        await reporter.settle()
+        #expect(transport.calls.count == 1)
+    }
+
+    @Test("The credential reaches the transport verbatim, to become a bearer header")
+    func credentialIsHandedToTheTransportUnchanged() async {
+        let transport = RecordingStatusTransport()
+        let reporter = DeviceStatusReporter(transport: transport)
+        let assertion = DeviceIdentityAssertion(
+            userID: "user_01HZTESTACCOUNT",
+            deviceID: "3f2504e0-4f89-41d3-9a0c-0305e82c3301",
+            issuedAt: Date(timeIntervalSince1970: 1_800_000_000)
+        )
+        let jws = assertion.compactJWS(signedWith: "curfew-test-shared-secret")
+
+        reporter.report(report(version: 1), endpoint: Self.endpoint, bearerToken: jws ?? "")
+        await reporter.settle()
+
+        #expect(transport.calls.first?.bearerToken == jws)
     }
 }
 

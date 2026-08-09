@@ -1,3 +1,4 @@
+import Combine
 import Foundation
 import OSLog
 
@@ -46,6 +47,17 @@ private struct StatusTransportOverride {
 }
 
 private var statusTransportOverrides: [ObjectIdentifier: StatusTransportOverride] = [:]
+
+/// Test seam: a secret store to sign with instead of the login keychain.
+/// Production leaves this empty and resolves to
+/// ``KeychainDeviceAssertionSecretStore/shared``, which is why no suite run can
+/// write a credential onto the machine running it.
+private struct StatusSecretStoreOverride {
+    weak var owner: CurfewAppModel?
+    var store: any DeviceAssertionSecretStoring
+}
+
+private var statusSecretStoreOverrides: [ObjectIdentifier: StatusSecretStoreOverride] = [:]
 
 /// The live runtime for `model`, or `nil` when there is none belonging to it.
 private func liveStatusRuntime(for model: CurfewAppModel) -> StatusReportingRuntime? {
@@ -123,6 +135,70 @@ extension CurfewAppModel {
         }
     }
 
+    // MARK: - Credential
+
+    /// Where this model reads and writes the coordinator's shared signing
+    /// secret. Production is the login keychain; tests install an in-memory
+    /// store through ``deviceAssertionSecretStoreOverride``.
+    var deviceAssertionSecretStore: any DeviceAssertionSecretStoring {
+        let override = statusSecretStoreOverrides[ObjectIdentifier(self)]
+        guard let override, override.owner === self else {
+            return KeychainDeviceAssertionSecretStore.shared
+        }
+        return override.store
+    }
+
+    /// Test and preview seam. Assigning a store here makes this model sign with
+    /// it instead of touching the keychain.
+    var deviceAssertionSecretStoreOverride: (any DeviceAssertionSecretStoring)? {
+        get {
+            let override = statusSecretStoreOverrides[ObjectIdentifier(self)]
+            return override?.owner === self ? override?.store : nil
+        }
+        set {
+            let identity = ObjectIdentifier(self)
+            guard let newValue else {
+                statusSecretStoreOverrides[identity] = nil
+                return
+            }
+            statusSecretStoreOverrides[identity] = StatusSecretStoreOverride(
+                owner: self,
+                store: newValue
+            )
+        }
+    }
+
+    /// The shared secret, as the Settings panel reads and writes it. Empty when
+    /// the user has not configured one, which is the state a fresh install is
+    /// in and the state in which nothing is published.
+    ///
+    /// Writing publishes `objectWillChange` by hand: the value lives in the
+    /// keychain rather than in `settings`, so nothing else would tell the
+    /// Settings panel that ``isDeviceStatusReportingLive`` has just changed.
+    var deviceAssertionSecret: String {
+        get { deviceAssertionSecretStore.secret }
+        set {
+            objectWillChange.send()
+            deviceAssertionSecretStore.store(newValue)
+        }
+    }
+
+    /// The assertion this device would sign at `now`, ready for the
+    /// `Authorization` header — or `nil` when it cannot sign one.
+    ///
+    /// Every claim comes from configuration the user entered or Curfew minted:
+    /// the account, this install's device identifier, and the clock. There is
+    /// no path here that invents one.
+    func deviceStatusCredential(at now: Date) -> String? {
+        let policy = settings.statusReporting
+        let assertion = DeviceIdentityAssertion(
+            userID: policy.userID,
+            deviceID: policy.deviceID,
+            issuedAt: now
+        )
+        return assertion.compactJWS(signedWith: deviceAssertionSecretStore.secret)
+    }
+
     // MARK: - Publishing
 
     /// Publishes this device's current status, if the user has configured a
@@ -144,6 +220,12 @@ extension CurfewAppModel {
     func publishDeviceStatus(trigger: DeviceStatusTrigger) {
         let policy = settings.statusReporting
         guard let endpoint = policy.resolvedEndpoint else { return }
+        // The same "off unless configured" contract the endpoint has, extended
+        // to the credential: an unset shared secret, an unset account, or an
+        // unset device identifier means this device signs nothing and therefore
+        // sends nothing. Checked before the version counter is advanced, so a
+        // half-configured install does not silently consume `statusVersion`s.
+        guard let credential = deviceStatusCredential(at: currentTime) else { return }
         guard let runtime = liveStatusRuntimeEnsuringExists() else { return }
         let report = DeviceStatusReport(
             deviceID: policy.deviceID,
@@ -157,7 +239,7 @@ extension CurfewAppModel {
         )
         statusReportingRuntimes[ObjectIdentifier(self)]?.lastReportedAt = currentTime
         deviceStatusLogger.debug("Reporting device status (\(trigger.rawValue, privacy: .public))")
-        runtime.reporter.report(report, endpoint: endpoint, bearerToken: policy.deviceToken)
+        runtime.reporter.report(report, endpoint: endpoint, bearerToken: credential)
     }
 
     /// Publishes a heartbeat when the configured cadence has elapsed. Called
@@ -168,6 +250,9 @@ extension CurfewAppModel {
     /// device that has been sitting in one phase all afternoon distinguishable
     /// from one that crashed at lunchtime.
     func publishDeviceStatusHeartbeatIfDue() {
+        // Deliberately the cheap half of the gate. This runs once a second;
+        // `publishDeviceStatus` makes the credential check, which touches the
+        // keychain, and it only runs when the cadence has actually come round.
         guard settings.statusReporting.resolvedEndpoint != nil else { return }
         guard let runtime = liveStatusRuntimeEnsuringExists() else { return }
         let elapsed = currentTime.timeIntervalSince(runtime.lastReportedAt)
@@ -221,8 +306,20 @@ extension CurfewAppModel {
 
     /// Whether the current configuration would actually publish. Drives the
     /// Settings panel's status line, so a user who has switched reporting on
-    /// but typed an unusable URL is told so rather than left assuming.
+    /// but typed an unusable URL — or has not pasted the coordinator's shared
+    /// secret — is told so rather than left assuming.
+    ///
+    /// Both halves are required because both are required at the coordinator: a
+    /// report with no address goes nowhere, and a report with no assertion is
+    /// answered 401.
     var isDeviceStatusReportingLive: Bool {
-        settings.statusReporting.resolvedEndpoint != nil
+        guard settings.statusReporting.resolvedEndpoint != nil else { return false }
+        let policy = settings.statusReporting
+        let assertion = DeviceIdentityAssertion(
+            userID: policy.userID,
+            deviceID: policy.deviceID,
+            issuedAt: currentTime
+        )
+        return assertion.isWellFormed && !deviceAssertionSecretStore.secret.isEmpty
     }
 }

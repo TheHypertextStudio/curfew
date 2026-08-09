@@ -79,9 +79,11 @@ struct URLSessionDeviceStatusTransport: DeviceStatusTransporting {
         request.httpMethod = "POST"
         request.httpBody = body
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        if !bearerToken.isEmpty {
-            request.setValue("Bearer \(bearerToken)", forHTTPHeaderField: "Authorization")
-        }
+        // Unconditional: `DeviceStatusReporter` refuses to hand this transport
+        // an empty credential, so there is no case where omitting the header
+        // would be right, and a request that quietly went out unsigned would be
+        // answered 401 with nothing local to show why.
+        request.setValue("Bearer \(bearerToken)", forHTTPHeaderField: "Authorization")
         do {
             let (_, response) = try await session.data(for: request)
             guard let http = response as? HTTPURLResponse else { return .unreachable }
@@ -170,6 +172,16 @@ final class DeviceStatusReporter {
     func report(_ report: DeviceStatusReport, endpoint: URL, bearerToken: String) {
         guard report.isWellFormed else {
             logger.error("Refusing to publish a status report that violates the schema")
+            return
+        }
+        // No credential, no request. `verifyRequestAssertion` answers 401 to an
+        // absent or non-bearer `Authorization` header, so an unsigned publish is
+        // a guaranteed rejection — and, more to the point, this is the last
+        // place a report can be stopped before it reaches a socket. Refused
+        // ahead of the version bump so an unconfigured secret cannot burn
+        // `statusVersion`s that the coordinator will never see.
+        guard !bearerToken.isEmpty else {
+            logger.error("Refusing to publish a status report without a signed assertion")
             return
         }
         guard report.statusVersion > highestPublishedVersion else {

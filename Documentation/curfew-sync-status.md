@@ -21,6 +21,8 @@ of work with its own schema (`curfew-protocols/schemas/remote-command.json`).
 | Concern | Where |
 |---|---|
 | Payload shape and encoding | `Sources/CurfewKit/Sync/DeviceStatusReport.swift` |
+| The signed credential | `Sources/CurfewKit/Sync/DeviceIdentityAssertion.swift` |
+| Where the shared secret lives | `Curfew/Core/Features/DeviceAssertionSecretStore.swift` |
 | Monotonic `statusVersion` | `Sources/CurfewKit/Sync/DeviceStatusVersionCounter.swift` |
 | Settings, defaults, endpoint resolution | `Sources/CurfewKit/Settings/DeviceStatusReportingPolicy.swift` |
 | Transport and ordering guarantees | `Curfew/Core/Features/DeviceStatusReporter.swift` |
@@ -73,6 +75,90 @@ patterns, and `additionalProperties: false`. `device.json` →
 
 `DeviceStatusReportPayloadTests` asserts the key set and every value pattern
 against literals transcribed by hand from the schema, not against the encoder.
+
+## The credential
+
+Every request carries `Authorization: Bearer <compactJws>`, minted on the device
+immediately before it is sent. Nothing is published without one.
+
+The JWS is `sync.json#/definitions/CompactJWS`; its payload is
+`#/definitions/InternalDeviceIdentityClaims`, all six keys and no others:
+
+```json
+{
+  "audience": "curfew-user-coordinator",
+  "deviceId": "3f2504e0-4f89-41d3-9a0c-0305e82c3301",
+  "expiresAt": "2027-01-15T08:02:00Z",
+  "issuedAt": "2027-01-15T08:00:00Z",
+  "keyThumbprint": "J-XysTmp_T1ZipF5b6fSuK6W6Sqr7tSRAYQw82KMCys",
+  "userId": "user_01HZTESTACCOUNT"
+}
+```
+
+The header is `{"alg":"HS512"}` and the signature is HMAC-SHA-512 over
+`base64url(header).base64url(payload)`, keyed with the coordinator's shared
+`AUTH_SECRET`. All three segments are unpadded base64url. The algorithm is
+pinned by the wire format twice over: `verifyDeviceIdentityAssertion` rejects any
+header whose `alg` is not exactly `"HS512"`, and `CompactJWS`'s
+`[A-Za-z0-9_-]{86}` last segment is the encoding of a 64-byte MAC, which SHA-256
+cannot produce.
+
+`audience` is a constant, not a setting — the schema declares it `const`.
+`deviceId` is the same UUID the publication beside it carries, because the route
+answers `403 device_mismatch` when they differ. `userId` is the account the user
+enters in Settings.
+
+**The validity window is 120 seconds**, matching the coordinator's own freshness
+threshold and so the longest gap Curfew leaves between publishes: an assertion
+outlives the 10-second request it was minted for and dies before the report that
+would carry its replacement. The verifier adds 60 seconds of clock-skew
+tolerance on each end, so the real acceptance window is 180 seconds.
+
+`DeviceIdentityAssertionTests` pins the whole serialisation with a fixed vector:
+a fixed secret and fixed claims produce one exact string, computed with a
+separate HMAC-SHA-512 implementation. It also re-verifies a freshly minted
+signature the way the coordinator does, and asserts that the same claims signed
+with a different secret do not match.
+
+### Where the keyThumbprint comes from
+
+Curfew mints it, as unpadded base64url SHA-256 over
+`"curfew.device-key-thumbprint.v1\n<deviceId>"`.
+
+**Nothing validates it today.** `verifyDeviceIdentityAssertion` checks the
+header's `alg`, the MAC, and the two instants, and never reads `keyThumbprint`.
+The route stores it verbatim on the `device` row without comparing it against
+any registered key, because there is no enrollment yet to have registered one.
+The only live constraint is the schema's `^[A-Za-z0-9_-]{43}$`.
+
+**Derived, not random**, because the field's eventual meaning is "the thumbprint
+of this device's key" and its eventual behaviour is to stay put while that key
+does. A fresh random value per request would satisfy the pattern while rewriting
+the stored row on every heartbeat, and would turn the day enrollment starts
+checking it into an intermittent 401 rather than a clean one. It reveals nothing
+the assertion does not already carry in `deviceId` beside it. It is not a key
+thumbprint: when enrollment lands and a device holds a real
+`DevicePublicKeyJWK`, this becomes that key's RFC 7638 thumbprint and changes
+once, at enrollment.
+
+### Where the secret lives
+
+In the **Keychain**, as one generic-password item
+(`studio.hypertext.curfew.coordinator` / `device-assertion-secret`), and nowhere
+else. Not in `UserDefaults`, not in the settings plist, not in a bundled file.
+
+The rest of the coordinator configuration — address, cadence, account, device
+identifier — is configuration and lives in the settings plist. This is not: it
+is the credential that authenticates every report, and a plist is readable by
+anything running as this user, copied into backups, and printed in full by
+`defaults read`. A shared secret that leaks authenticates every device on the
+account.
+
+It is empty on a fresh install and must be entered by hand in Settings, which is
+the same "off unless the user turned it on" discipline every privacy-sensitive
+surface in Curfew follows. While it is empty, `publishDeviceStatus` returns
+before the version counter advances and `DeviceStatusReporter` refuses any report
+without a bearer credential, so an unconfigured Mac opens no socket at all.
 
 ### Where the cursor comes from
 
@@ -157,9 +243,11 @@ greater than the stored one". Curfew holds up its end three ways:
 
 ## Configuration
 
-Off by default with no endpoint. Settings → Integrations → Coordinator holds the
-switch, the base URL, the device credential, and the heartbeat cadence (60–120 s,
-defaulting to 60 — see *Cadence* above).
+Off by default with no endpoint and no credential. Settings → Integrations →
+Coordinator holds the switch, the base URL, the account id, the shared signing
+secret, and the heartbeat cadence (60–120 s, defaulting to 60 — see *Cadence*
+above). Everything but the secret is written to the settings plist; the secret
+goes to the Keychain, as above.
 
 No coordinator address is compiled in anywhere — no default host, no staging
 fallback, no "if empty, use ours". HTTPS is required and not configurable.
@@ -198,26 +286,27 @@ Presence transitions therefore *trigger* a report — the coordinator gets a fre
 but the verdict itself does not travel. Carrying it needs a field added to
 `curfew-protocols/schemas/sync.json`, not one invented here.
 
-### 3. Curfew cannot mint its own credential
+### 3. The credential is a shared secret, not a device key
 
-The route's guard is `verifyRequestAssertion`, which reads
-`Authorization: Bearer <compactJws>` and verifies the JWS as HS512 against the
-coordinator's `AUTH_SECRET`; its payload is
-`sync.json#/definitions/InternalDeviceIdentityClaims`, and the route refuses any
-publication whose `deviceId` differs from the claim's.
+Curfew now mints its own assertion (see *The credential* above), so nothing has
+to be pasted in out of band and the `deviceId` in the claims is the same UUID
+the publication carries by construction rather than by the user getting it
+right. What remains is what the scheme proves.
 
-The transport mechanism therefore already matches — Curfew sends whatever the
-user pasted as a bearer token, which is exactly the header the route reads. What
-is missing is where that token comes from: enrollment (`POST /sync/enroll/start`)
-does not exist on either side, so the assertion has to be minted out of band by
-someone holding the coordinator secret and pasted into Settings by hand. Curfew
-also cannot mint one itself, and should not — an HS512 MAC over a shared secret
-is the coordinator's interim scheme, and the real thing is ES256 over the
-device's enrolled key.
+An HS512 MAC over a secret the coordinator and every enrolled device hold proves
+the assertion was minted by *something holding that secret*. It does not prove
+possession of this device's own key, and a secret compromised on one Mac
+authenticates every Mac on the account. curfew-sync's own comment in
+`src/auth/device-assertion.ts` says the same and names the successor: ES256 over
+the enrolled `DevicePublicKeyJWK`, verified against the key stored at
+enrollment, with the Better Auth session as the browser-side path. Enrollment
+(`POST /sync/enroll/start`) does not exist on either side yet, which is why this
+is the scheme. When it lands, `DeviceIdentityAssertion` keeps its claims and its
+compact serialisation and changes only how the signature is computed — and
+`keyThumbprint` starts naming a real key.
 
-A consequence worth stating: the `deviceId` in the pasted assertion and the one
-Curfew minted on first enable must be the same UUID, or every publish is answered
-`403 {"error":"device_mismatch"}`.
+`keyThumbprint` is also unvalidated today; see *Where the keyThumbprint comes
+from* for exactly what it is and is not.
 
 ### 4. A Mac set to a bare time zone will not report
 

@@ -25,7 +25,7 @@ struct DeviceStatusReportingPolicyTests {
         let policy = DeviceStatusReportingPolicy(
             isEnabled: true,
             baseURL: "https://coordinator.example",
-            deviceToken: "token",
+            userID: "user_01HZTESTACCOUNT",
             deviceID: "3f2504e0-4f89-41d3-9a0c-0305e82c3301",
             heartbeatSeconds: 60
         )
@@ -41,7 +41,7 @@ struct DeviceStatusReportingPolicyTests {
         let policy = DeviceStatusReportingPolicy(
             isEnabled: true,
             baseURL: "https://example.test/curfew",
-            deviceToken: "",
+            userID: "",
             deviceID: "",
             heartbeatSeconds: 60
         )
@@ -73,7 +73,7 @@ struct DeviceStatusReportingPolicyTests {
         let tooSlow = DeviceStatusReportingPolicy(
             isEnabled: true,
             baseURL: "https://coordinator.example",
-            deviceToken: "",
+            userID: "",
             deviceID: "",
             heartbeatSeconds: 3600
         )
@@ -82,7 +82,7 @@ struct DeviceStatusReportingPolicyTests {
         let tooFast = DeviceStatusReportingPolicy(
             isEnabled: true,
             baseURL: "https://coordinator.example",
-            deviceToken: "",
+            userID: "",
             deviceID: "",
             heartbeatSeconds: 1
         )
@@ -95,7 +95,7 @@ struct DeviceStatusReportingPolicyTests {
         // that value is in real preferences files and must not survive.
         let stored = Data("""
         {"isEnabled":true,"baseURL":"https://coordinator.example",\
-        "deviceToken":"","deviceID":"","heartbeatSeconds":300}
+        "userID":"","deviceID":"","heartbeatSeconds":300}
         """.utf8)
 
         let policy = try JSONDecoder().decode(DeviceStatusReportingPolicy.self, from: stored)
@@ -111,7 +111,7 @@ struct DeviceStatusReportingPolicyTests {
 
         #expect(!policy.isEnabled)
         #expect(policy.baseURL.isEmpty)
-        #expect(policy.deviceToken.isEmpty)
+        #expect(policy.userID.isEmpty)
         #expect(policy.deviceID.isEmpty)
         #expect(policy.resolvedEndpoint == nil)
     }

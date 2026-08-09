@@ -220,8 +220,8 @@ struct DeviceStatusWiringTests {
         await harness.settle()
     }
 
-    @Test("The report goes to the configured endpoint with the configured credential")
-    func reportUsesTheConfiguredEndpointAndToken() async {
+    @Test("The report goes to the configured endpoint")
+    func reportUsesTheConfiguredEndpoint() async throws {
         let harness = DeviceStatusWiringHarness(
             reporting: DeviceStatusWiringHarness.configured()
         )
@@ -229,13 +229,12 @@ struct DeviceStatusWiringTests {
         harness.model.publishDeviceStatus(trigger: .configuration)
         await harness.settle()
 
-        let call = harness.transport.calls.first
+        let call = try #require(harness.transport.calls.first)
         // The path curfew-sync implements: `src/routes/device-status.ts`
         // mounted at `/sync` by `src/worker.ts`. Written out rather than built
         // from `DeviceStatusReportingPolicy.statusPath`, so renaming the
         // constant fails here instead of silently agreeing with itself.
-        #expect(call?.endpoint.absoluteString == "https://coordinator.example/sync/status")
-        #expect(call?.bearerToken == "test-token")
+        #expect(call.endpoint.absoluteString == "https://coordinator.example/sync/status")
     }
 
     @Test("What reaches the transport is a DeviceStatusPublication, not a snapshot")

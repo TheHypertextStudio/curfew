@@ -253,11 +253,11 @@ public struct DeviceStatusReport: Equatable {
     /// A SHA-256 as the 43 unpadded base64url characters every digest in these
     /// schemas is spelled with — `scheduleDigest`, `keyThumbprint`, and the
     /// cursor this file mints.
+    ///
+    /// The encoding itself lives in ``Base64URL``, so the assertion signer and
+    /// this file cannot drift into two spellings of the same transformation.
     private static func base64URL(_ hash: SHA256Digest) -> String {
-        Data(hash).base64EncodedString()
-            .replacingOccurrences(of: "+", with: "-")
-            .replacingOccurrences(of: "/", with: "_")
-            .replacingOccurrences(of: "=", with: "")
+        Base64URL.encode(Data(hash))
     }
 
     /// Formats `date` as a schema `UTCInstant` — RFC 3339, UTC, `Z`-suffixed,
