@@ -170,7 +170,7 @@ final class VisionCameraPresenceSensor: PersonPresenceSensing {
 /// `nonisolated` and `@unchecked Sendable`: the capture delegate is invoked on
 /// ``queue``, not the main actor, and every piece of shared state below is
 /// guarded by ``lock``.
-nonisolated final class CameraPresenceEngine: NSObject,
+final nonisolated class CameraPresenceEngine: NSObject,
     AVCaptureVideoDataOutputSampleBufferDelegate, @unchecked Sendable {
     /// Minimum Vision confidence for a detection to count as a person.
     ///

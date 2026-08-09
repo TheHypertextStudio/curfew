@@ -103,6 +103,24 @@ extension CurfewAppModel {
             alreadyFiredElsewhere: warningStagesFiredToday
         )
         recordWarningStageFiringIfNeeded()
+        applyEnforcementEffects()
+        checkCalendarCurfewOverlap()
+        // After the phase settles, so a nudge is never sent for a phase the
+        // engine is about to leave.
+        evaluateDistractionWarning()
+        // Last, so every transition this tick produced is already settled.
+        // Observes only — see `CurfewAppModel+Audit.swift`.
+        recordAuditTickState(previousPhase: previousPhase)
+    }
+
+    /// Settle who owns enforcement this tick, then apply every effect that
+    /// depends on that answer: the health verdict, the keyboard shield, the
+    /// shutdown workflow, and the overlays.
+    ///
+    /// Lifted out of `tick()` so the ordering constraint lives in one place.
+    /// All four effects below decide what to do based on whether *this* build
+    /// is the enforcer, so none of them may run before ownership is resolved.
+    private func applyEnforcementEffects() {
         // Resolve who owns the single-enforcer lock before applying any blocking
         // effect, so the key shield, overlay, and shutdown below all agree on
         // whether this build is the one enforcing.
@@ -115,13 +133,6 @@ extension CurfewAppModel {
         updateLockoutInterception(for: state.phase)
         updateShutdownWorkflow()
         overlayCoordinator.updateOverlays(for: state, model: self, lockoutMessage: lockoutMessage)
-        checkCalendarCurfewOverlap()
-        // After the phase settles, so a nudge is never sent for a phase the
-        // engine is about to leave.
-        evaluateDistractionWarning()
-        // Last, so every transition this tick produced is already settled.
-        // Observes only — see `CurfewAppModel+Audit.swift`.
-        recordAuditTickState(previousPhase: previousPhase)
     }
 
     private func propagatePhaseTransition(from previousPhase: EnforcementPhase) {
