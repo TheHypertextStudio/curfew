@@ -161,6 +161,12 @@ public struct CurfewSettings: Codable, Equatable {
     /// see ``DeviceStatusReportingPolicy``.
     public var statusReporting: DeviceStatusReportingPolicy
 
+    /// Optional Curfew Account enrollment and morning-release authority.
+    /// Private device keys and account root keys never enter this Codable
+    /// value; they remain in Keychain. When enrolled, account sync is the
+    /// canonical settings writer and CloudKit is disabled.
+    public var accountSync: AccountSyncConfiguration
+
     private enum CodingKeys: String, CodingKey {
         case schedule
         case pendingScheduleChange
@@ -179,6 +185,7 @@ public struct CurfewSettings: Codable, Equatable {
         case protectedWork
         case presence
         case statusReporting
+        case accountSync
     }
 
     /// Memberwise initialiser. `warningIntervals` is normalised on
@@ -203,7 +210,8 @@ public struct CurfewSettings: Codable, Equatable {
         mcpHTTPPort: Int = 9847,
         protectedWork: ProtectedWorkPolicy = .default,
         presence: PresenceDetectionPolicy = .default,
-        statusReporting: DeviceStatusReportingPolicy = .default
+        statusReporting: DeviceStatusReportingPolicy = .default,
+        accountSync: AccountSyncConfiguration = .accountFree
     ) {
         self.schedule = schedule
         self.pendingScheduleChange = pendingScheduleChange
@@ -222,6 +230,7 @@ public struct CurfewSettings: Codable, Equatable {
         self.protectedWork = protectedWork
         self.presence = presence
         self.statusReporting = statusReporting
+        self.accountSync = accountSync
     }
 
     /// Custom decoder so pre-existing persisted settings (v0.1 payloads
@@ -286,6 +295,10 @@ public struct CurfewSettings: Codable, Equatable {
             DeviceStatusReportingPolicy.self,
             forKey: .statusReporting
         ) ?? .default
+        self.accountSync = try container.decodeIfPresent(
+            AccountSyncConfiguration.self,
+            forKey: .accountSync
+        ) ?? .accountFree
     }
 
     /// Encodes to JSON. `warningIntervals` is normalised before encoding so
@@ -310,6 +323,7 @@ public struct CurfewSettings: Codable, Equatable {
         try container.encode(protectedWork, forKey: .protectedWork)
         try container.encode(presence, forKey: .presence)
         try container.encode(statusReporting, forKey: .statusReporting)
+        try container.encode(accountSync, forKey: .accountSync)
     }
 
     /// Factory defaults for a fresh install: 9-to-5 schedule, 3 × 15 min

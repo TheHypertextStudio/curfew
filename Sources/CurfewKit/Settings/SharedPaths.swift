@@ -220,6 +220,13 @@ public enum SharedPaths {
         widgetSharedSupport.appendingPathComponent("lockout-deadline.json")
     }
 
+    /// Last authenticated account wake status and its monotonic counters.
+    /// Persisting this independently of live connectivity lets a restarted
+    /// Mac preserve the same rollback gate and deterministic final deadline.
+    public static var accountWakeLedger: URL {
+        applicationSupport.appendingPathComponent("account-wake-ledger.json")
+    }
+
     /// Root-owned shadow copy of the durable lockout deadline. The daemon
     /// writes this from the user-side record once and re-reads it on
     /// every loop iteration; if the user deletes the user-side file the

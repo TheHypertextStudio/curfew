@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "checks": [
+    {
+      "id": "macos-wake-release",
+      "modes": ["alarm", "wake-proof"],
+      "argv": [
+        "xcodebuild",
+        "test",
+        "-project",
+        "Curfew.xcodeproj",
+        "-scheme",
+        "Curfew",
+        "-destination",
+        "platform=macOS",
+        "CODE_SIGNING_ALLOWED=NO",
+        "-only-testing:CurfewTests/AccountWakeReleaseTests",
+        "-only-testing:CurfewTests/AccountEncryptionTests"
+      ],
+      "timeoutSeconds": 900
+    }
+  ]
+}

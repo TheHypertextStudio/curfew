@@ -264,6 +264,11 @@ mid-lockout, and every action the root daemon takes. Format specification:
 - [x] `CONTRIBUTING.md`, `PRIVACY.md`, `Documentation/ARCHITECTURE.md`, `Documentation/RELEASE.md`.
 - [x] Signed-build validation runbook for shutdown, widget, privileged helper, and CloudKit lives in `Documentation/RELEASE.md`. (Actual Apple-credential execution is still tracked by the remaining unchecked release/provisioning items.)
 - [x] Landing page (`landing/`) — Cloudflare Pages deploy target.
+- [x] Account-era landing contract — every public header links to the optional
+      same-origin account portal, Android is labeled as coming soon, and the
+      privacy, security, retention, purchase, recovery, and remote-unlock
+      boundaries are published without implying that Google Play Services are
+      required. Approved Curfew service hostnames are enforced in CI.
 - [x] Mintlify documentation source lives in `docs/`.
 - [ ] Connect and publish the Mintlify source, then configure the Pages
       `/docs` reverse proxy and complete the required custom-domain TXT
@@ -277,8 +282,9 @@ mid-lockout, and every action the root daemon takes. Format specification:
 - [ ] Homebrew Cask. (v0.2)
 - [-] Sparkle autoupdate scaffolding present; framework wiring + signed appcast
   flow still pending. v0.1 releases publish only the notarized DMG. (v0.2)
-- [x] Support an isolated workers.dev license Worker configuration for Stripe
-  test-mode staging, with a distinct KV namespace and secrets.
+- [x] Support an isolated `curfew-license-staging.hypertext.studio` license
+      Worker configuration for Stripe test-mode staging, with a distinct KV
+      namespace and secrets; alternate Worker hostnames fail closed.
 - [x] Stripe Sandbox staging proof: an isolated `$1` test-only payment link
       completed with Stripe's `4242` test card; the fresh
       `checkout.session.completed` and `invoice.paid` deliveries both returned

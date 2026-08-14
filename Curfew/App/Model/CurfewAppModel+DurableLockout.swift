@@ -28,6 +28,9 @@ extension CurfewAppModel {
     /// aligned. Combines the two checks (enforce / clear-on-natural-unlock)
     /// so the tick body stays inside its lint-enforced length budget.
     func reconcileDurableLockoutDeadline() {
+        if reconcileAccountWakeDeadline() {
+            return
+        }
         enforceDurableDeadlineIfActive()
         clearDurableDeadlineIfNaturalUnlock()
     }
@@ -71,12 +74,123 @@ extension CurfewAppModel {
               state.phase == .locked,
               let unlock = state.unlockDate
         else { return }
-        let record = LockoutDeadlineRecord(
-            lockoutStartedAt: currentTime,
-            scheduledUnlockAt: unlock,
-            kind: state.trigger == .hours ? .scheduledHours : .scheduledTime
-        )
+        let currentWakeStatus = accountWakeLedger.current.flatMap {
+            $0.finalDeadlineAt > currentTime ? $0 : nil
+        }
+        let record: LockoutDeadlineRecord = if settings.accountSync.usesWakeCampaign {
+            WakeLockoutDeadlineResolver.record(
+                lockoutStartedAt: currentTime,
+                scheduleUnlockAt: unlock,
+                account: settings.accountSync,
+                wakeStatus: currentWakeStatus
+            )
+        } else {
+            LockoutDeadlineRecord(
+                lockoutStartedAt: currentTime,
+                scheduledUnlockAt: unlock,
+                kind: state.trigger == .hours ? .scheduledHours : .scheduledTime
+            )
+        }
         lockoutDeadlineStore.save(record)
+    }
+
+    /// Accepts only monotonic, authenticated wake projections, then persists
+    /// the new rollback gate before it may influence enforcement.
+    func acceptAccountWakeStatus(_ update: AccountWakeStatusUpdate) {
+        guard settings.accountSync.isEnrolled else { return }
+        var candidate = accountWakeLedger
+        do {
+            try candidate.accept(update, now: currentTime)
+            try accountWakeLedgerStore.save(candidate)
+            accountWakeLedger = candidate
+            alignActiveWakeDeadline(to: update)
+            reconcileDurableLockoutDeadline()
+            accountSyncEngine.markSynchronized(at: update.updatedAt)
+        } catch {
+            accountSyncEngine.reject("Rejected stale or invalid wake state.")
+        }
+    }
+
+    /// An early campaign can arrive before or after the evening boundary. If
+    /// the lock already has an account placeholder, replace its fallback clock
+    /// atomically with the campaign's deterministic final deadline.
+    private func alignActiveWakeDeadline(to update: AccountWakeStatusUpdate) {
+        guard update.finalDeadlineAt > currentTime,
+              let existing = lockoutDeadlineStore.load(),
+              existing.kind == .accountWakeCampaign,
+              existing.campaignID == nil || existing.campaignID == update.campaignID
+        else { return }
+        lockoutDeadlineStore.save(LockoutDeadlineRecord(
+            lockoutStartedAt: existing.lockoutStartedAt,
+            scheduledUnlockAt: update.finalDeadlineAt,
+            kind: .accountWakeCampaign,
+            campaignID: update.campaignID
+        ))
+    }
+
+    /// Returns true when an account-wake record owned reconciliation.
+    private func reconcileAccountWakeDeadline() -> Bool {
+        guard let record = lockoutDeadlineStore.load(),
+              record.kind == .accountWakeCampaign,
+              let localDeviceID = settings.accountSync.enrollment?.deviceID
+        else { return false }
+        let decision = WakeReleaseEngine().decision(
+            at: currentTime,
+            deadline: record,
+            wakeStatus: accountWakeLedger.current,
+            remoteOverride: accountRemoteOverride,
+            localDeviceID: localDeviceID
+        )
+        switch decision {
+        case .hold:
+            enforceDurableDeadlineIfActive()
+        case .release:
+            releaseAccountWakeDeadline(record)
+        case .legacyFixedUnlock:
+            return false
+        }
+        return true
+    }
+
+    private func releaseAccountWakeDeadline(_ record: LockoutDeadlineRecord) {
+        let releaseUntil = max(record.scheduledUnlockAt, state.unlockDate ?? .distantPast)
+        if currentTime < releaseUntil {
+            state = enforcementEngine.evaluate(
+                at: currentTime,
+                schedule: settings.schedule,
+                extensionMinutesGrantedToday:
+                extensionMinutesGrantedToday + snoozeMinutesGrantedToday,
+                overrideUntil: releaseUntil,
+                warningIntervals: settings.warningIntervals,
+                workedMinutesToday: workedMinutesToday(at: currentTime)
+            )
+        }
+        lockoutDeadlineStore.clear()
+        protectedWork.breakGlass.clear()
+        try? protectedWork.claims.clear()
+    }
+
+    /// Re-derives terminal release after process death even when the durable
+    /// record was already cleared. This prevents a satisfied campaign from
+    /// being re-locked by a legacy schedule clock on relaunch.
+    func accountWakeReleaseOverrideUntil(for baseline: CurfewEvaluation) -> Date? {
+        guard settings.accountSync.usesWakeCampaign,
+              let localDeviceID = settings.accountSync.enrollment?.deviceID
+        else { return nil }
+        let wake = accountWakeLedger.current
+        let terminal = wake?.state.isTerminal == true
+        let deadlineReached = wake.map { currentTime >= $0.finalDeadlineAt } ?? false
+        let activeOverride = accountRemoteOverride?.authorizes(
+            deviceID: localDeviceID,
+            at: currentTime
+        ) == true
+        guard terminal || deadlineReached || activeOverride else { return nil }
+        if activeOverride, let override = accountRemoteOverride, !terminal {
+            return override.startsAt.addingTimeInterval(
+                TimeInterval(override.durationMinutes * 60)
+            )
+        }
+        return max(wake?.finalDeadlineAt ?? currentTime, baseline.unlockDate ?? .distantPast)
     }
 
     /// Clears the record once the natural unlock time has arrived. Called

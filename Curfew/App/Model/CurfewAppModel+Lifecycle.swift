@@ -70,7 +70,7 @@ extension CurfewAppModel {
             overridesRemaining = overrideTracker.remaining
         }
 
-        let newState = enforcementEngine.evaluate(
+        var newState = enforcementEngine.evaluate(
             at: currentTime,
             schedule: settings.schedule,
             extensionMinutesGrantedToday: extensionMinutesGrantedToday + snoozeMinutesGrantedToday,
@@ -78,6 +78,17 @@ extension CurfewAppModel {
             warningIntervals: settings.warningIntervals,
             workedMinutesToday: workedMinutesToday(at: currentTime)
         )
+        if let accountOverride = accountWakeReleaseOverrideUntil(for: newState) {
+            newState = enforcementEngine.evaluate(
+                at: currentTime,
+                schedule: settings.schedule,
+                extensionMinutesGrantedToday:
+                extensionMinutesGrantedToday + snoozeMinutesGrantedToday,
+                overrideUntil: accountOverride,
+                warningIntervals: settings.warningIntervals,
+                workedMinutesToday: workedMinutesToday(at: currentTime)
+            )
+        }
         if state != newState {
             state = newState
         }
@@ -257,7 +268,14 @@ extension CurfewAppModel {
         }
 
         persistSettings()
-        cloudKitSyncEngine.push(settings)
+        if SyncAuthorityResolver.allowsCloudKit(account: settings.accountSync) {
+            cloudKitSyncEngine.push(settings)
+        } else {
+            accountSyncEngine.noteLocalSettingsChanged()
+        }
+        if settings.accountSync != oldValue.accountSync {
+            reconcileProGatedModules()
+        }
 
         // The MCP runtime is gated on BOTH the build-level feature flag and
         // the user-level setting. When the flag is off the start branch is

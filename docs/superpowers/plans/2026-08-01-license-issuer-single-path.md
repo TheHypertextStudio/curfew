@@ -140,7 +140,7 @@ Make these exact policy changes:
 - State that the canonical product is `curfew-plus` envelope-v2; do not publish a payment link or ungate `landing/index.html` until live delivery is proven.
 - In `Documentation/todos.md`, replace the legacy `wrangler.toml` completion claim and stale Curfew Pro wording with the canonical Worker/template and the remaining external production-delivery gate.
 - In `Documentation/todo-test-matrix.md`, map the new documentation contract test to the single-path requirement.
-- In `Documentation/RELEASE.md`, replace references to the removed bootstrap artifacts with `Documentation/license-worker-bootstrap.md` and distinguish staging workers.dev proof from the production custom-domain rollout.
+- In `Documentation/RELEASE.md`, replace references to the removed bootstrap artifacts with `Documentation/license-worker-bootstrap.md` and distinguish the staging Curfew hostname from the production rollout.
 
 - [ ] **Step 4: Re-run the documentation contract**
 
@@ -213,7 +213,7 @@ Run:
 
 ```sh
 curl -fsSL https://curfew.hypertext.studio/ | rg "Curfew Pro is not on sale yet"
-curl -fsS https://curfew-issue-license-staging.hypertext-studio.workers.dev/health
+curl -fsS https://curfew-license-staging.hypertext.studio/health
 ```
 
 Expected: the sale gate remains present and staging health reports envelope version 2.

@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Security — Curfew</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <nav aria-label="Primary">
+      <a href="/" class="wordmark">Curfew</a>
+      <a class="nav-account" href="/account">Open Account</a>
+    </nav>
+  </header>
+
+  <main>
+    <section>
+      <div class="section-inner" style="max-width:640px">
+        <h1 class="privacy-heading">Security</h1>
+        <p class="privacy-lede">
+          Curfew keeps its local-first design when you add an account. The
+          coordinator routes encrypted state; enrolled devices hold the keys.
+        </p>
+
+        <h2 class="privacy-section-title">Account protection</h2>
+        <p class="privacy-prose">
+          Sign-in uses Apple or Google in your system browser. Every interactive
+          sign-in must then complete fresh two-factor authentication with TOTP
+          or a one-time backup code. A social sign-in alone cannot open account,
+          purchase, device, synchronization, linking, or MCP consent settings.
+          Curfew does not offer a trusted-device bypass.
+        </p>
+
+        <h2 class="privacy-section-title">Encrypted synchronization</h2>
+        <p class="privacy-prose">
+          Curfew creates a random 256-bit account root key. Devices derive
+          separate namespace keys, encrypt records with AES-256-GCM, sign writes
+          with device keys, and enroll new devices through public-key envelopes.
+          The service stores ciphertext and the minimum routing metadata; it
+          never receives the account root key in plaintext.
+        </p>
+
+        <h2 class="privacy-section-title">Two different recovery tools</h2>
+        <p class="privacy-prose">
+          Better Auth backup codes recover sign-in only. Recovering encrypted
+          Curfew data requires both an AAL2 sign-in and the separate Curfew
+          Recovery Key. If every enrolled device and that key are lost, Hypertext
+          Studio cannot decrypt or restore the synchronized content.
+        </p>
+
+        <h2 class="privacy-section-title">Remote unlock</h2>
+        <p class="privacy-prose">
+          Web unlock requires fresh two-factor authentication. MCP clients ask
+          for approval by default; direct authority must be explicitly limited
+          to chosen clients and devices. Each unlock includes a reason, lasts
+          5–60 minutes, and is audited. Tokens are audience-bound, scoped,
+          revocable, and issued through OAuth 2.1 with PKCE.
+        </p>
+
+        <h2 class="privacy-section-title">Limits</h2>
+        <p class="privacy-prose">
+          Curfew is a self-control tool, not malware or device management.
+          Operating-system power controls, force stop, another macOS account,
+          recovery tools, and uninstall remain possible. Report a security issue
+          privately to <a href="mailto:hello@hypertext.studio">hello@hypertext.studio</a>.
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>Made by <a href="https://hypertext.studio">Hypertext Studio</a>.</p>
+    <p><a href="docs.html">MCP setup</a> · <a href="terms.html">Terms</a> · <a href="refund.html">Refund</a> · <a href="security.html">Security</a> · <a href="retention.html">Retention</a> · <a href="privacy.html">Privacy</a></p>
+  </footer>
+</body>
+</html>

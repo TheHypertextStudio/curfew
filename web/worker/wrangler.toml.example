@@ -3,8 +3,7 @@ name = "__CURFEW_LICENSE_WORKER_NAME__"
 main = "__CURFEW_LICENSE_WORKER_MAIN__"
 compatibility_date = "2026-07-31"
 
-# Routing is rendered either as a production custom hostname or an isolated
-# workers.dev endpoint for staging.
+# Production and staging both use an approved curfew-prefixed custom hostname.
 __CURFEW_LICENSE_WORKER_ROUTE__
 
 [[kv_namespaces]]
