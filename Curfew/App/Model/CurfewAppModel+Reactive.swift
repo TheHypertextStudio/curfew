@@ -29,7 +29,14 @@ extension CurfewAppModel {
     func reconcileProGatedModules() {
         let pro = licenseGate.isProUnlocked
 
-        if featureFlags.cloudSyncEnabled, pro {
+        if let enrollment = settings.accountSync.enrollment {
+            // Account sync is canonical once enrolled. Stop every legacy
+            // CloudKit writer before opening the coordinator connection.
+            cloudKitSyncEngine.stop()
+            deviceRegistry.stop()
+            accountSyncEngine.start(enrollment: enrollment)
+        } else if featureFlags.cloudSyncEnabled, pro {
+            accountSyncEngine.stop()
             cloudKitSyncEngine.start(
                 localSettings: settings,
                 localModifiedAt: Date()
@@ -50,6 +57,7 @@ extension CurfewAppModel {
             }
             deviceRegistry.start()
         } else {
+            accountSyncEngine.stop()
             cloudKitSyncEngine.stop()
             deviceRegistry.stop()
         }

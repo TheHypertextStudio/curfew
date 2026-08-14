@@ -61,17 +61,20 @@ function validateConfig() {
   if (missing.length > 0) throw new Error(`missing required configuration: ${missing.join(", ")}`);
   if (!/^[a-z0-9-]+$/.test(process.env.CURFEW_LICENSE_WORKER_NAME)) throw new Error("CURFEW_LICENSE_WORKER_NAME must be lowercase letters, digits, or hyphens");
   if (!/^[a-f0-9]{32}$/i.test(process.env.CURFEW_LICENSE_KV_NAMESPACE_ID)) throw new Error("CURFEW_LICENSE_KV_NAMESPACE_ID must be a 32-character hexadecimal KV namespace ID");
-  if (!/^[a-z0-9.-]+$/i.test(process.env.CURFEW_LICENSE_HOSTNAME)) throw new Error("CURFEW_LICENSE_HOSTNAME must be a hostname without a scheme or path");
+  if (!/^curfew(?:-[a-z0-9-]+)?\.hypertext\.studio$/.test(process.env.CURFEW_LICENSE_HOSTNAME)) {
+    throw new Error("CURFEW_LICENSE_HOSTNAME must be a curfew-prefixed Hypertext Studio hostname");
+  }
   console.log("License Worker configuration is structurally valid.");
 }
 
 async function renderConfig(arguments_) {
   validateConfig();
+  if (arguments_.includes("--workers-dev")) {
+    throw new Error("workers.dev routing is not supported; use a curfew-*.hypertext.studio custom hostname");
+  }
   const output = option(arguments_, "--output");
   if (!output) throw new Error("render-config requires --output <local-path>");
-  const route = arguments_.includes("--workers-dev")
-    ? "workers_dev = true"
-    : `routes = [{ pattern = "${process.env.CURFEW_LICENSE_HOSTNAME}", custom_domain = true }]`;
+  const route = `routes = [{ pattern = "${process.env.CURFEW_LICENSE_HOSTNAME}", custom_domain = true }]`;
   const template = await readFile(templatePath, "utf8");
   const rendered = template
     .replaceAll("__CURFEW_LICENSE_WORKER_NAME__", process.env.CURFEW_LICENSE_WORKER_NAME)

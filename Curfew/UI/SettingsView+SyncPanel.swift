@@ -63,7 +63,7 @@ extension SettingsView {
     private var coordinatorEndpointControls: some View {
         VStack(alignment: .leading, spacing: CurfewSpacing.small) {
             TextField(
-                "https://curfew-sync.example.com",
+                "https://curfew-sync.hypertext.studio",
                 text: $model.settings.statusReporting.baseURL
             )
             .textFieldStyle(.roundedBorder)

@@ -17,6 +17,9 @@ public enum LockoutKind: String, Codable, Equatable, Sendable {
     /// Hours-of-work budget fired (`.hours` mode or `.combined` with the
     /// hours deadline winning).
     case scheduledHours = "scheduled_hours"
+    /// Account wake campaign owns morning release. `scheduledUnlockAt` is
+    /// the campaign's deterministic final deadline, not an editable clock.
+    case accountWakeCampaign = "account_wake_campaign"
 }
 
 /// Authoritative lockout-deadline record persisted to disk so that:
@@ -48,14 +51,20 @@ public struct LockoutDeadlineRecord: Codable, Equatable, Sendable {
     /// What caused this lockout. See ``LockoutKind``.
     public var kind: LockoutKind
 
+    /// Campaign whose terminal state may release this record. Nil for legacy
+    /// fixed-unlock records written by account-free Curfew versions.
+    public var campaignID: UUID?
+
     public init(
         lockoutStartedAt: Date,
         scheduledUnlockAt: Date,
-        kind: LockoutKind
+        kind: LockoutKind,
+        campaignID: UUID? = nil
     ) {
         self.lockoutStartedAt = lockoutStartedAt
         self.scheduledUnlockAt = scheduledUnlockAt
         self.kind = kind
+        self.campaignID = campaignID
     }
 }
 

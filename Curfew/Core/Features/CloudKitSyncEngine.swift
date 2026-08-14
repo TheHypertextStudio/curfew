@@ -51,7 +51,10 @@ final class CloudKitSyncEngine: ObservableObject {
     // @MainActor isolation is established, which trips libMainThreadChecker.
     private var container: CKContainer?
     private let containerID: String
-    private var active = false
+    /// Whether this legacy CloudKit writer currently accepts reads/writes.
+    /// Account enrollment must keep this false so two coordinators can never
+    /// race to become the canonical settings writer.
+    private(set) var isActive = false
     private let encoder = JSONEncoder()
     private let decoder = JSONDecoder()
 
@@ -86,8 +89,8 @@ final class CloudKitSyncEngine: ObservableObject {
     /// changes arrive via silent push. Idempotent — repeat calls while
     /// already active no-op.
     func start(localSettings: CurfewSettings, localModifiedAt: Date) {
-        guard !active else { return }
-        active = true
+        guard !isActive else { return }
+        isActive = true
         syncLogger.info("CloudKit sync starting")
         Task {
             await pull(localSettings: localSettings, localModifiedAt: localModifiedAt)
@@ -135,7 +138,7 @@ final class CloudKitSyncEngine: ObservableObject {
     /// subsequent `start` re-activates. Subscriptions stay registered —
     /// removing them on every license flip would churn CloudKit quota.
     func stop() {
-        active = false
+        isActive = false
         syncLogger.info("CloudKit sync stopped")
     }
 
@@ -144,7 +147,7 @@ final class CloudKitSyncEngine: ObservableObject {
     /// Encodes `settings` and saves to the private CloudKit database.
     /// Silently no-ops when not active or when CloudKit is unavailable.
     func push(_ settings: CurfewSettings, modifiedAt: Date = Date()) {
-        guard active else { return }
+        guard isActive else { return }
         Task {
             await save(settings: settings, modifiedAt: modifiedAt)
         }
@@ -172,7 +175,7 @@ final class CloudKitSyncEngine: ObservableObject {
         unlocksAt: Date?,
         warningStagesFired: Set<String> = []
     ) {
-        guard active else { return }
+        guard isActive else { return }
         Task {
             await saveLockoutState(
                 phase: phase,
@@ -189,7 +192,7 @@ final class CloudKitSyncEngine: ObservableObject {
     /// sync start so a device that was offline when earlier stages
     /// fired learns about them before firing its own duplicates.
     func pullLockoutState() {
-        guard active else { return }
+        guard isActive else { return }
         Task {
             await loadLockoutState()
         }

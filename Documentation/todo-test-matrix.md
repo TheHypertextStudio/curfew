@@ -439,20 +439,30 @@ only.
   produce and upload the MarketingCapture PNG artifacts.`
   - `scripts/release-entitlements.test.mjs`
   - `scripts/extract-screenshots.sh` (local and hosted runtime coverage)
-- `Stripe test-mode staging can use a workers.dev license issuer without
-  attaching a production custom domain.`
+- `Stripe test-mode staging uses an isolated curfew-prefixed Hypertext Studio
+  hostname and rejects alternate Worker hostname conventions.`
   - `scripts/license-worker.test.mjs`
 - `A Stripe Sandbox checkout can exercise the isolated issuer without a real
   card or production endpoint; webhook delivery and subsequent session-license
   retrieval are recorded as an operator-run staging proof.`
   - `Documentation/license-worker-bootstrap.md` (operator procedure)
-  - Stripe Sandbox + isolated `workers.dev` Worker runtime evidence (external)
+  - Stripe Sandbox + isolated staging Worker runtime evidence (external)
 - `Operator documentation names only the envelope-v2 Worker bootstrap and
   cannot reintroduce a legacy deployment path.`
   - `scripts/license-worker-documentation.test.mjs`
 - `Initial-release app surfaces do not offer a hosted checkout until a release
   explicitly provides one.`
   - `PurchaseAvailabilityTests/checkoutIsUnavailable()`
+- `Every public Curfew page exposes the same optional account entry point and
+  the macOS download surface describes Android as coming soon.`
+  - `scripts/landing-contract.test.mjs`
+- `Published legal copy distinguishes local data, end-to-end encrypted account
+  content, unavoidable metadata, sign-in backup codes, the Curfew Recovery Key,
+  Stripe payment processing, retention, export/deletion, and audited remote unlocks.`
+  - `scripts/landing-contract.test.mjs`
+- `Curfew source, configuration, and documentation cannot reintroduce the
+  retired apex or a service hostname outside the curfew-*.hypertext.studio convention.`
+  - `scripts/landing-contract.test.mjs`
 
 ## 18. License issuer envelope v2
 

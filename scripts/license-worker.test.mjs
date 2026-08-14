@@ -48,25 +48,63 @@ test("rendered config resolves the Worker entry point from a caller-selected pat
         env: {
           CURFEW_LICENSE_WORKER_NAME: "curfew-license",
           CURFEW_LICENSE_KV_NAMESPACE_ID: "00000000000000000000000000000000",
-          CURFEW_LICENSE_HOSTNAME: "license.example.com",
+          CURFEW_LICENSE_HOSTNAME: "curfew-license.hypertext.studio",
         },
       }
     );
 
     assert.equal(result.status, 0, result.stderr);
-    assert.match(
-      await readFile(configFile, "utf8"),
-      /^main = ".*\/web\/worker\/src\/index\.ts"$/m
-    );
+    const config = await readFile(configFile, "utf8");
+    assert.match(config, /^main = ".*\/web\/worker\/src\/index\.ts"$/m);
+    assert.match(config, /^routes = \[\{ pattern = "curfew-license\.hypertext\.studio", custom_domain = true \}\]$/m);
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
 });
 
-test("workers.dev staging config omits production custom-domain routing", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "curfew-license-workers-dev-test-"));
+test("staging also uses an approved curfew-prefixed Hypertext Studio hostname", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "curfew-license-staging-test-"));
   const configFile = join(directory, "wrangler.toml");
 
+  try {
+    const result = spawnSync(
+      process.execPath,
+      ["scripts/license-worker.mjs", "render-config", "--output", configFile],
+      {
+        encoding: "utf8",
+        env: {
+          CURFEW_LICENSE_WORKER_NAME: "curfew-license-staging",
+          CURFEW_LICENSE_KV_NAMESPACE_ID: "00000000000000000000000000000000",
+          CURFEW_LICENSE_HOSTNAME: "curfew-license-staging.hypertext.studio",
+        },
+      }
+    );
+
+    assert.equal(result.status, 0, result.stderr);
+    const config = await readFile(configFile, "utf8");
+    assert.match(config, /^routes = \[\{ pattern = "curfew-license-staging\.hypertext\.studio", custom_domain = true \}\]$/m);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("config validation rejects hostnames outside the Curfew service namespace", () => {
+  const result = spawnSync(process.execPath, ["scripts/license-worker.mjs", "validate-config"], {
+    encoding: "utf8",
+    env: {
+      CURFEW_LICENSE_WORKER_NAME: "curfew-license",
+      CURFEW_LICENSE_KV_NAMESPACE_ID: "00000000000000000000000000000000",
+      CURFEW_LICENSE_HOSTNAME: "license.example.com",
+    },
+  });
+
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /curfew-prefixed Hypertext Studio hostname/);
+});
+
+test("the retired workers.dev rendering mode is rejected", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "curfew-license-retired-route-test-"));
+  const configFile = join(directory, "wrangler.toml");
   try {
     const result = spawnSync(
       process.execPath,
@@ -76,15 +114,12 @@ test("workers.dev staging config omits production custom-domain routing", async 
         env: {
           CURFEW_LICENSE_WORKER_NAME: "curfew-license-staging",
           CURFEW_LICENSE_KV_NAMESPACE_ID: "00000000000000000000000000000000",
-          CURFEW_LICENSE_HOSTNAME: "curfew-license-staging.example.workers.dev",
+          CURFEW_LICENSE_HOSTNAME: "curfew-license-staging.hypertext.studio",
         },
-      }
+      },
     );
-
-    assert.equal(result.status, 0, result.stderr);
-    const config = await readFile(configFile, "utf8");
-    assert.match(config, /^workers_dev = true$/m);
-    assert.doesNotMatch(config, /^routes = /m);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /workers.dev routing is not supported/);
   } finally {
     await rm(directory, { recursive: true, force: true });
   }

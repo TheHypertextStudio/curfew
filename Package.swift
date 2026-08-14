@@ -1,5 +1,18 @@
 // swift-tools-version: 5.9
+import Foundation
 import PackageDescription
+
+let curfewProtocolsDependency: Package.Dependency = if let localPath =
+    ProcessInfo.processInfo.environment["CURFEW_PROTOCOLS_LOCAL_PATH"],
+    !localPath.isEmpty
+{
+    .package(name: "curfew-protocols", path: localPath)
+} else {
+    .package(
+        url: "https://github.com/TheHypertextStudio/curfew-protocols.git",
+        exact: "0.2.0"
+    )
+}
 
 // Shared library and CLI/MCP/daemon executables. The Curfew app target and
 // the widget extension both *also* compile the files in Sources/CurfewKit/
@@ -17,6 +30,7 @@ let package = Package(
     platforms: [.macOS(.v14)],
     products: [
         .library(name: "CurfewKit", targets: ["CurfewKit"]),
+        .library(name: "CurfewProtocolBridge", targets: ["CurfewProtocolBridge"]),
         .executable(name: "curfew-ctl", targets: ["curfew-ctl"]),
         .executable(name: "curfew-mcp", targets: ["curfew-mcp"]),
         .executable(name: "curfew-daemon", targets: ["curfew-daemon"])
@@ -35,10 +49,7 @@ let package = Package(
         // implementation goal replaces the inline shapes in
         // Sources/CurfewKit/MCP/MCPPendingRequest.swift and the inputSchema
         // JSON literals in Sources/curfew-mcp/MCPTool.swift).
-        .package(
-            url: "https://github.com/TheHypertextStudio/curfew-protocols.git",
-            exact: "0.1.0"
-        )
+        curfewProtocolsDependency
         // Sparkle autoupdate is an Xcode-level framework dependency only.
         // It is NOT used by any SPM target (CLI/MCP don't need it).
         // Add it via Xcode → project → Package Dependencies when ready.
@@ -52,6 +63,14 @@ let package = Package(
                 .linkedLibrary("sqlite3")
             ]
         ),
+        .target(
+            name: "CurfewProtocolBridge",
+            dependencies: [
+                .target(name: "CurfewKit"),
+                .product(name: "CurfewProtocols", package: "curfew-protocols")
+            ],
+            path: "Sources/CurfewProtocolBridge"
+        ),
         .executableTarget(
             name: "curfew-ctl",
             dependencies: [
@@ -64,6 +83,7 @@ let package = Package(
             name: "curfew-mcp",
             dependencies: [
                 .target(name: "CurfewKit"),
+                .target(name: "CurfewProtocolBridge"),
                 .product(name: "CurfewProtocols", package: "curfew-protocols")
             ],
             path: "Sources/curfew-mcp"
@@ -74,6 +94,15 @@ let package = Package(
                 .target(name: "CurfewKit")
             ],
             path: "Sources/curfew-daemon"
+        ),
+        .testTarget(
+            name: "CurfewProtocolBridgeTests",
+            dependencies: [
+                .target(name: "CurfewKit"),
+                .target(name: "CurfewProtocolBridge"),
+                .product(name: "CurfewProtocols", package: "curfew-protocols")
+            ],
+            path: "Tests/CurfewProtocolBridgeTests"
         )
     ]
 )

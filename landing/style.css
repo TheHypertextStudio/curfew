@@ -76,6 +76,21 @@ code {
   font-size: 14px;
 }
 
+.nav-account {
+  color: var(--ink);
+  display: inline-flex;
+  align-items: center;
+  font-size: 14px;
+  min-height: 44px;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .site-header nav { gap: 16px; }
+  .docs-product,
+  .nav-back { display: none; }
+}
+
 .skip-link {
   position: fixed;
   left: 16px;

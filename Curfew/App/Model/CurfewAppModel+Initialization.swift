@@ -47,16 +47,33 @@ extension CurfewAppModel {
 
         cloudKitSyncEngine.onSettingsReceived = { [weak self] remoteSettings in
             guard let self else { return }
+            guard SyncAuthorityResolver.allowsCloudKit(account: settings.accountSync) else {
+                return
+            }
             settings = mergedSettingsApplyingRemote(remoteSettings)
             settingsStore.save(settings)
             syncWidgetSharedState(settings)
         }
         cloudKitSyncEngine.onLockoutStateReceived = { [weak self] snapshot in
-            self?.warningStagesFiredToday.formUnion(snapshot.warningStagesFired)
+            guard let self,
+                  SyncAuthorityResolver.allowsCloudKit(account: settings.accountSync)
+            else { return }
+            warningStagesFiredToday.formUnion(snapshot.warningStagesFired)
         }
+        configureAccountSyncCallbacks()
         subscribeToLicenseChanges()
         reconcileProGatedModules()
         refreshSubscriptionLicenseIfNeeded()
+    }
+
+    private func configureAccountSyncCallbacks() {
+        accountSyncEngine.onWakeStatusReceived = { [weak self] update in
+            self?.acceptAccountWakeStatus(update)
+        }
+        accountSyncEngine.onRemoteOverrideReceived = { [weak self] override in
+            self?.accountRemoteOverride = override
+            self?.reconcileDurableLockoutDeadline()
+        }
     }
 
     /// Merges a remote settings payload with the live local copy, deferring

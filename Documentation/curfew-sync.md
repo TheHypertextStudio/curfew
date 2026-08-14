@@ -38,7 +38,7 @@ Three components:
   AI host (Claude Desktop, web, etc.)
         │  OAuth 2.1 + PKCE
         ▼
-  Coordinator (sync.curfew.app)  ◀────── Curfew app on Mac A
+  Coordinator (curfew-sync.hypertext.studio)  ◀────── Curfew app on Mac A
         │                                Curfew app on Mac B
         │  encrypted deltas              Curfew app on iPhone (future)
         ▼
@@ -78,7 +78,7 @@ This means a compromised coordinator cannot push a "lock window shrinks to zero"
 
 This is the AI-control surface — the reason Sync exists beyond F13. Architectural sketch only; wire-level details are deferred to a future implementation doc.
 
-- **Transport:** Streamable HTTP per MCP spec 2025-03-26, exposed at the coordinator's public endpoint (illustratively `https://sync.curfew.app/mcp`; the production URL is an implementation detail). This is the same transport shape F9 already supports on loopback via `StreamableHTTPTransport` — Sync extends it to a public, authenticated endpoint.
+- **Transport:** Streamable HTTP per MCP spec 2025-03-26, exposed at `https://curfew-sync.hypertext.studio/mcp`. This is the same transport shape F9 already supports on loopback via `StreamableHTTPTransport` — Sync extends it to a public, authenticated endpoint.
 - **Authorization:** OAuth 2.1 with PKCE per the MCP spec. Authorization Code flow. Refresh tokens issued; access tokens short-lived. Tokens live on the AI host (the user's Claude Desktop config, browser keychain, etc.), never on Curfew's servers beyond what's needed to validate them on the way in. Dynamic client registration is supported where the host implements it; static registration is the fallback for hosts that don't.
 - **Scope categories.** Granted per-scope, not all-or-nothing. Named at the level of *kinds*:
   - Read scopes — status, activity, budget.

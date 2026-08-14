@@ -134,6 +134,15 @@ final class CurfewAppModel: NSObject, ObservableObject {
     /// lifecycle once both conditions are satisfied.
     let cloudKitSyncEngine: CloudKitSyncEngine
 
+    /// Canonical coordinator whenever `settings.accountSync` is enrolled.
+    /// Its API accepts authenticated domain events and encrypted outbound
+    /// records only; CloudKit is stopped before this engine starts.
+    let accountSyncEngine: AccountSyncEngine
+
+    let accountWakeLedgerStore: AccountWakeLedgerStore
+    @Published internal(set) var accountWakeLedger: AccountWakeLedger
+    @Published internal(set) var accountRemoteOverride: AccountRemoteOverride?
+
     /// Reads today's calendar events for contextual display on the lockout
     /// screen and This Week view. Requires `featureFlags.calendarEnabled`
     /// and `licenseGate.isProUnlocked`. Never started in free tier.
@@ -259,11 +268,13 @@ final class CurfewAppModel: NSObject, ObservableObject {
         mcpRequestMonitor: MCPRequestMonitor = MCPRequestMonitor(),
         licenseGate: LicenseGate = LicenseGate(),
         cloudKitSyncEngine: CloudKitSyncEngine = CloudKitSyncEngine(),
+        accountSyncEngine: AccountSyncEngine? = nil,
         calendarMonitor: CalendarMonitor = CalendarMonitor(),
         privilegedHelperManager: PrivilegedHelperManager = PrivilegedHelperManager(),
         idleWatcher: IdleWatcher = IdleWatcher(source: CGEventSourceIdleSource()),
         respawnGuard: any RespawnGuardControlling = NoOpRespawnGuard(),
         lockoutDeadlineStore: LockoutDeadlineStore = LockoutDeadlineStore(),
+        accountWakeLedgerStore: AccountWakeLedgerStore = AccountWakeLedgerStore(),
         accessibilityAuthorization: AccessibilityAuthorizing = SystemAccessibilityAuthorization()
     ) {
         self.settingsStore = settingsStore
@@ -283,11 +294,15 @@ final class CurfewAppModel: NSObject, ObservableObject {
         self.mcpSocketServer = MCPSocketServer()
         self.licenseGate = licenseGate
         self.cloudKitSyncEngine = cloudKitSyncEngine
+        self.accountSyncEngine = accountSyncEngine ?? AccountSyncEngine()
         self.calendarMonitor = calendarMonitor
         self.privilegedHelperManager = privilegedHelperManager
         self.idleWatcher = idleWatcher
         self.respawnGuard = respawnGuard
         self.lockoutDeadlineStore = lockoutDeadlineStore
+        self.accountWakeLedgerStore = accountWakeLedgerStore
+        self.accountWakeLedger = accountWakeLedgerStore.load() ?? AccountWakeLedger()
+        self.accountRemoteOverride = nil
         self.accessibilityAuthorization = accessibilityAuthorization
 
         let loadedSettings = settingsStore.load()

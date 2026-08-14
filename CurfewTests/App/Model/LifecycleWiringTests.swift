@@ -86,6 +86,49 @@ struct LifecycleWiringTests {
         #expect(model.licenseGate.isProUnlocked)
     }
 
+    @Test("Curfew Account enrollment makes account sync canonical over CloudKit")
+    func accountEnrollmentSuppressesCloudKit() throws {
+        let cloud = CloudKitSyncEngine()
+        let deviceID = UUID()
+        let account = try AccountSyncConfiguration(
+            enrollment: AccountDeviceEnrollment(
+                deviceID: deviceID,
+                keyEpoch: 1,
+                enrolledAt: Date()
+            ),
+            releasePolicy: .wakeCampaign(
+                campaignTemplateID: UUID(),
+                timeZone: "America/Los_Angeles",
+                localStartTime: "07:30"
+            )
+        )
+        let flags = FeatureFlags(
+            widgetKitEnabled: false,
+            cloudSyncEnabled: true,
+            mcpServerEnabled: false,
+            privilegedHelperEnabled: false,
+            calendarEnabled: false
+        )
+        let model = makeModel(
+            featureFlags: flags,
+            activityRecorder: NullActivityRecording(),
+            idleSource: StubIdleSource(seconds: 0),
+            accountSync: account,
+            cloudKitSyncEngine: cloud
+        )
+        model.licenseGate.testInjectActivatedKey(LicenseKey(
+            email: "tester@example.com",
+            product: "curfew-pro",
+            orderID: "account-sync-canonical",
+            issuedAt: Date()
+        ))
+
+        model.reconcileProGatedModules()
+
+        #expect(model.accountSyncEngine.isActive)
+        #expect(!cloud.isActive)
+    }
+
     @Test("Tick refreshes isAccessibilityTrusted from the injected checker")
     func tickRefreshesAccessibilityTrust() {
         let trust = FakeAccessibilityAuthorization(trusted: false)
@@ -257,16 +300,19 @@ struct LifecycleWiringTests {
         accessibilityAuthorization: AccessibilityAuthorizing = FakeAccessibilityAuthorization(
             trusted: true
         ),
-        setupComplete: Bool = false
+        setupComplete: Bool = false,
+        accountSync: AccountSyncConfiguration = .accountFree,
+        cloudKitSyncEngine: CloudKitSyncEngine = CloudKitSyncEngine()
     ) -> CurfewAppModel {
         let suite = "studio.hypertext.curfew.tests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite) ?? .standard
         defaults.removePersistentDomain(forName: suite)
         let watcher = IdleWatcher(source: idleSource, idleThresholdSeconds: 300)
         let store = CurfewSettingsStore(defaults: defaults)
-        if setupComplete {
+        if setupComplete || accountSync.isEnrolled {
             var settings = CurfewSettings.default
             settings.hasCompletedInitialSetup = true
+            settings.accountSync = accountSync
             store.save(settings)
         }
         // Tests use an isolated lockout-deadline file under the OS temp
@@ -281,6 +327,7 @@ struct LifecycleWiringTests {
             gettingStartedPresenter: GettingStartedPresenterSpy(),
             featureFlags: featureFlags,
             activityRecorder: activityRecorder,
+            cloudKitSyncEngine: cloudKitSyncEngine,
             idleWatcher: watcher,
             respawnGuard: respawnGuard,
             lockoutDeadlineStore: LockoutDeadlineStore(recordURL: deadlineURL),

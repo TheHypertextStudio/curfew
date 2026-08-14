@@ -13,6 +13,7 @@
 		C0FE00000000000000000041 /* CurfewWidgetEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FE00000000000000000015 /* CurfewWidgetEntry.swift */; };
 		C0FE00000000000000000042 /* CurfewWidgetProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FE00000000000000000016 /* CurfewWidgetProvider.swift */; };
 		C0FE00000000000000000043 /* CurfewWidgetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FE00000000000000000017 /* CurfewWidgetView.swift */; };
+		C0FE00000000000000000070 /* CurfewProtocols in Frameworks */ = {isa = PBXBuildFile; productRef = C0FE00000000000000000072 /* CurfewProtocols */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -139,6 +140,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C0FE00000000000000000070 /* CurfewProtocols in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -243,6 +245,9 @@
 				C0FE00000000000000000061 /* Sources/CurfewKit/Sync */,
 			);
 			name = Curfew;
+			packageProductDependencies = (
+				C0FE00000000000000000072 /* CurfewProtocols */,
+			);
 			productName = Curfew;
 			productReference = 9BD3FB822F4D4584007B2E95 /* Curfew.app */;
 			productType = "com.apple.product-type.application";
@@ -349,6 +354,9 @@
 			minimizedProjectReferenceProxies = 1;
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 9BD3FB832F4D4584007B2E95 /* Products */;
+			packageReferences = (
+				C0FE00000000000000000071 /* XCRemoteSwiftPackageReference "curfew-protocols" */,
+			);
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -359,6 +367,25 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		C0FE00000000000000000071 /* XCRemoteSwiftPackageReference "curfew-protocols" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/TheHypertextStudio/curfew-protocols.git";
+			requirement = {
+				kind = exactVersion;
+				version = 0.2.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		C0FE00000000000000000072 /* CurfewProtocols */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C0FE00000000000000000071 /* XCRemoteSwiftPackageReference "curfew-protocols" */;
+			productName = CurfewProtocols;
+		};
+/* End XCSwiftPackageProductDependency section */
 
 /* Begin PBXResourcesBuildPhase section */
 		9BD3FB802F4D4584007B2E95 /* Resources */ = {

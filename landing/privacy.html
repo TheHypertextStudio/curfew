@@ -10,6 +10,7 @@
   <header class="site-header">
     <nav>
       <a href="/" class="wordmark">Curfew</a>
+      <a class="nav-account" href="/account">Open Account</a>
     </nav>
   </header>
 
@@ -19,8 +20,8 @@
         <h1 class="privacy-heading">Privacy</h1>
 
         <p class="privacy-lede">
-          Curfew stores everything locally and requests only the permissions
-          it uses.
+          Accounts are optional. Curfew works locally without Apple, Google,
+          or a Hypertext Studio account, and requests only the permissions it uses.
         </p>
 
         <h2 class="privacy-section-title">What Curfew stores</h2>
@@ -30,7 +31,7 @@
             <tr>
               <td>Schedule, budgets, preferences, license key</td>
               <td><code>~/Library/Preferences/studio.hypertext.curfew.plist</code> and <code>~/Library/Group Containers/group.studio.hypertext.curfew/Curfew/widget-settings.json</code></td>
-              <td>Until uninstall</td>
+              <td>Until you remove it or uninstall Curfew</td>
             </tr>
             <tr>
               <td>Activity log (lockouts, extensions, overrides)</td>
@@ -53,9 +54,34 @@
         <h2 class="privacy-section-title">What Curfew does not do</h2>
         <ul class="privacy-list">
           <li>No analytics, telemetry, or crash reporting.</li>
-          <li>No network requests except iCloud sync (Pro, opt-in).</li>
+          <li>No advertising or sale of personal information.</li>
           <li>No access to your files, browser history, or app content.</li>
         </ul>
+
+        <h2 class="privacy-section-title">Optional Curfew Account</h2>
+        <p class="privacy-prose">
+          If you sign in, your schedules, wake settings, callback definitions,
+          and other synchronized content are end-to-end encrypted. Hypertext
+          Studio coordinates ciphertext but cannot read that content. A plain
+          Android build works without Google Play Services; the GMS build uses
+          them only to reduce notification and sync latency, never for correctness.
+        </p>
+        <p class="privacy-prose">
+          The service still needs unavoidable metadata to operate: your Apple
+          or Google sign-in identity, purchase entitlements, device public keys
+          and revocation state, encrypted-record headers and timing, routing
+          handles, OAuth and MCP grants, and remote unlock audit records. Card
+          details go directly to Stripe and never reach Curfew servers.
+        </p>
+
+        <h2 class="privacy-section-title">Recovery and deletion</h2>
+        <p class="privacy-prose">
+          Two-factor backup codes restore account access; they do not decrypt
+          synchronized content. That requires an enrolled device or your
+          separate Curfew Recovery Key. You can export your account data and
+          delete your Curfew account. See the <a href="retention.html">retention
+          policy</a> for what is removed and what must be retained.
+        </p>
 
         <h2 class="privacy-section-title">Permissions</h2>
         <table class="privacy-table">
@@ -93,6 +119,12 @@
           connect may send it to its own service. Check that service's privacy
           policy before sharing your reflections.
         </p>
+        <p class="privacy-prose">
+          Remote MCP clients receive only the scopes you approve. Remote unlock
+          requests include a reason, are time-bounded, and are written to a
+          remote unlock audit record. Direct unlock is off by default and can
+          be authorized only for selected clients and devices.
+        </p>
 
         <p class="privacy-prose">
           Questions:
@@ -110,6 +142,8 @@
       <a href="docs.html">MCP setup</a> ·
       <a href="terms.html">Terms</a> ·
       <a href="refund.html">Refund</a> ·
+      <a href="security.html">Security</a> ·
+      <a href="retention.html">Retention</a> ·
       <a href="privacy.html">Privacy</a>
     </p>
   </footer>

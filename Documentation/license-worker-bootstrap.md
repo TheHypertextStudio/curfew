@@ -55,20 +55,20 @@ hostname, or secret. Export these non-secret values only in the operator shell:
 ```sh
 export CURFEW_LICENSE_WORKER_NAME='example-worker-name'
 export CURFEW_LICENSE_KV_NAMESPACE_ID='00000000000000000000000000000000'
-export CURFEW_LICENSE_HOSTNAME='license.example.com'
+export CURFEW_LICENSE_HOSTNAME='curfew-license.hypertext.studio'
 node scripts/license-worker.mjs validate-config
 node scripts/license-worker.mjs render-config --output /secure/user-owned/wrangler.toml
 node scripts/license-worker.mjs dry-run --config /secure/user-owned/wrangler.toml
 ```
 
-For an isolated staging Worker, use a separate KV namespace and render a
-`workers.dev` endpoint rather than assigning a production custom domain:
+For an isolated staging Worker, use a separate KV namespace, secrets, and the
+same approved Curfew hostname convention:
 
 ```sh
 export CURFEW_LICENSE_WORKER_NAME='curfew-issue-license-staging'
 export CURFEW_LICENSE_KV_NAMESPACE_ID='your-staging-kv-namespace-id'
-export CURFEW_LICENSE_HOSTNAME='curfew-issue-license-staging.your-subdomain.workers.dev'
-node scripts/license-worker.mjs render-config --workers-dev \
+export CURFEW_LICENSE_HOSTNAME='curfew-license-staging.hypertext.studio'
+node scripts/license-worker.mjs render-config \
   --output /secure/user-owned/wrangler-staging.toml
 ```
 
