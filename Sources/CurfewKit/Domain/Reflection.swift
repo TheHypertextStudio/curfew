@@ -159,14 +159,14 @@ public enum ReflectionValue: Equatable, Hashable, Codable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         switch try container.decode(Discriminant.self, forKey: .type) {
         case .text:
-            self = .text(try container.decode(String.self, forKey: .text))
+            self = try .text(container.decode(String.self, forKey: .text))
         case .rating:
-            self = .rating(
-                value: try container.decode(Int.self, forKey: .rating),
-                scale: try container.decodeIfPresent(Int.self, forKey: .scale) ?? 5
+            self = try .rating(
+                value: container.decode(Int.self, forKey: .rating),
+                scale: container.decodeIfPresent(Int.self, forKey: .scale) ?? 5
             )
         case .mood:
-            self = .mood(try container.decode(ReflectionMood.self, forKey: .mood))
+            self = try .mood(container.decode(ReflectionMood.self, forKey: .mood))
         }
     }
 
@@ -203,7 +203,9 @@ public struct ReflectionAnswer: Identifiable, Equatable, Hashable, Codable {
 
     /// `ReflectionAnswer` is identified by the prompt it answers — one answer
     /// per prompt within a reflection.
-    public var id: UUID { promptID }
+    public var id: UUID {
+        promptID
+    }
 
     /// Memberwise initialiser.
     public init(promptID: UUID, promptTextSnapshot: String, value: ReflectionValue) {
@@ -362,7 +364,8 @@ public enum ReflectionExport {
             lines.append("")
             for reflection in byDay[day] ?? [] {
                 let gateName = reflection.gate == .morning ? "Morning" : "Evening"
-                lines.append("### \(gateName) · \(timeFormatter.string(from: reflection.timestamp))")
+                lines
+                    .append("### \(gateName) · \(timeFormatter.string(from: reflection.timestamp))")
                 for answer in reflection.answers {
                     switch answer.value {
                     case .text(let prose):
