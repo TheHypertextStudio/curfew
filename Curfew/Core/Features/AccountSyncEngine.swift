@@ -21,6 +21,7 @@ protocol AccountSyncTransporting: AnyObject {
         onRemoteOverride: @escaping (AccountRemoteOverride) -> Void,
         onFailure: @escaping (String) -> Void
     )
+    func publishDeviceStatus(_ report: DeviceStatusReport, deviceID: UUID)
     func disconnect()
 }
 
@@ -32,6 +33,7 @@ final class NoOpAccountSyncTransport: AccountSyncTransporting {
         onRemoteOverride _: @escaping (AccountRemoteOverride) -> Void,
         onFailure _: @escaping (String) -> Void
     ) {}
+    func publishDeviceStatus(_: DeviceStatusReport, deviceID _: UUID) {}
     func disconnect() {}
 }
 
@@ -72,6 +74,11 @@ final class AccountSyncEngine: ObservableObject {
         }
         isActive = false
         syncStatus = .accountFree
+    }
+
+    func publishDeviceStatus(_ report: DeviceStatusReport, deviceID: UUID) {
+        guard isActive else { return }
+        transport.publishDeviceStatus(report, deviceID: deviceID)
     }
 
     /// Marks a local mutation as waiting for the E2EE writer. No plaintext

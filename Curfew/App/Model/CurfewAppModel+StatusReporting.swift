@@ -218,6 +218,10 @@ extension CurfewAppModel {
     /// just mattered. Carrying the verdict itself needs a curfew-protocols
     /// change, not a field added here.
     func publishDeviceStatus(trigger: DeviceStatusTrigger) {
+        if let enrollment = settings.accountSync.enrollment {
+            publishAccountDeviceStatus(trigger: trigger, enrollment: enrollment)
+            return
+        }
         let policy = settings.statusReporting
         guard let endpoint = policy.resolvedEndpoint else { return }
         // The same "off unless configured" contract the endpoint has, extended
@@ -242,6 +246,35 @@ extension CurfewAppModel {
         runtime.reporter.report(report, endpoint: endpoint, bearerToken: credential)
     }
 
+    private func publishAccountDeviceStatus(
+        trigger: DeviceStatusTrigger,
+        enrollment: AccountDeviceEnrollment
+    ) {
+        guard let runtime = liveStatusRuntimeEnsuringExists() else { return }
+        let report = currentDeviceStatusReport(
+            deviceID: enrollment.deviceID.uuidString.lowercased(),
+            version: runtime.versions.next()
+        )
+        statusReportingRuntimes[ObjectIdentifier(self)]?.lastReportedAt = currentTime
+        deviceStatusLogger.debug(
+            "Reporting account device status (\(trigger.rawValue, privacy: .public))"
+        )
+        accountSyncEngine.publishDeviceStatus(report, deviceID: enrollment.deviceID)
+    }
+
+    private func currentDeviceStatusReport(deviceID: String, version: Int) -> DeviceStatusReport {
+        DeviceStatusReport(
+            deviceID: deviceID,
+            phase: state.phase,
+            timeZone: TimeZone.current.identifier,
+            scheduleDigest: DeviceStatusReport.scheduleDigest(for: settings.schedule),
+            statusVersion: version,
+            observedAt: currentTime,
+            nextTransitionAt: nextEnforcementTransition,
+            activeLockoutEndsAt: state.phase == .locked ? state.unlockDate : nil
+        )
+    }
+
     /// Publishes a heartbeat when the configured cadence has elapsed. Called
     /// once per tick; a no-op on every tick that isn't due, and on every tick
     /// at all when reporting is off.
@@ -253,10 +286,14 @@ extension CurfewAppModel {
         // Deliberately the cheap half of the gate. This runs once a second;
         // `publishDeviceStatus` makes the credential check, which touches the
         // keychain, and it only runs when the cadence has actually come round.
-        guard settings.statusReporting.resolvedEndpoint != nil else { return }
+        guard settings.accountSync.isEnrolled || settings.statusReporting.resolvedEndpoint != nil
+        else { return }
         guard let runtime = liveStatusRuntimeEnsuringExists() else { return }
         let elapsed = currentTime.timeIntervalSince(runtime.lastReportedAt)
-        guard elapsed >= Double(settings.statusReporting.heartbeatSeconds) else { return }
+        let cadence = settings.accountSync.isEnrolled
+            ? DeviceStatusReportingPolicy.heartbeatFloorSeconds
+            : settings.statusReporting.heartbeatSeconds
+        guard elapsed >= Double(cadence) else { return }
         publishDeviceStatus(trigger: .heartbeat)
     }
 
@@ -313,6 +350,9 @@ extension CurfewAppModel {
     /// report with no address goes nowhere, and a report with no assertion is
     /// answered 401.
     var isDeviceStatusReportingLive: Bool {
+        if settings.accountSync.isEnrolled {
+            return accountSyncEngine.isActive
+        }
         guard settings.statusReporting.resolvedEndpoint != nil else { return false }
         let policy = settings.statusReporting
         let assertion = DeviceIdentityAssertion(

@@ -14,7 +14,7 @@ final class NativeAccountSyncTransportTests: XCTestCase {
         let proof = try AccountDeviceProofFactory(
             now: { now },
             identifier: { identifier }
-        ).make(
+        ).make(.init(
             accessToken: "resource-bound-access-token",
             nonce: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
             method: "POST",
@@ -23,7 +23,7 @@ final class NativeAccountSyncTransportTests: XCTestCase {
             ),
             body: body,
             signingPrivateKey: key.rawRepresentation
-        )
+        ))
 
         let parts = proof.split(separator: ".")
         XCTAssertEqual(parts.count, 3)
@@ -88,6 +88,42 @@ final class NativeAccountSyncTransportTests: XCTestCase {
         XCTAssertNotNil(object["deviceProof"])
         XCTAssertNil(object["displayName"])
         XCTAssertNil(object["platform"])
+    }
+
+    func testPeerRootDistributionSkipsTheCurrentDevice() throws {
+        let currentID = try XCTUnwrap(UUID(uuidString: "018f4f45-cafe-7f00-9a82-e47805fb4d35"))
+        let peerID = try XCTUnwrap(UUID(uuidString: "018f4f45-cafe-7f00-9a82-e47805fb4d36"))
+        let current = enrollment(id: currentID, key: P256.KeyAgreement.PrivateKey().publicKey)
+        let peer = enrollment(id: peerID, key: P256.KeyAgreement.PrivateKey().publicKey)
+
+        let envelopes = try AccountPeerRootKeyDistributor.envelopes(
+            rootKey: Data(repeating: 0x42, count: 32),
+            currentDeviceID: currentID,
+            devices: [current, peer],
+            createdAt: Date(timeIntervalSince1970: 1_800_000_000)
+        )
+
+        XCTAssertEqual(envelopes.map(\.recipientDeviceID), [peerID.uuidString.lowercased()])
+    }
+
+    private func enrollment(
+        id: UUID,
+        key: P256.KeyAgreement.PublicKey
+    ) -> CurfewProtocols.AccountDeviceEnrollment {
+        let local = AccountPublicKeyJWK(agreementPublicKey: key)
+        let generated = CurfewProtocols.AccountPublicKeyJWK(
+            crv: .p256,
+            kty: .ec,
+            x: local.x,
+            y: local.y
+        )
+        return CurfewProtocols.AccountDeviceEnrollment(
+            deviceID: id.uuidString.lowercased(),
+            encryptionPublicKeyJwk: generated,
+            enrolledAt: "2026-08-10T14:00:00Z",
+            keyEpoch: 1,
+            signingPublicKeyJwk: generated
+        )
     }
 
     private func decode(_ value: String) -> Data? {
