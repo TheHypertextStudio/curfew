@@ -234,7 +234,7 @@ extension CurfewAppModel {
         let report = DeviceStatusReport(
             deviceID: policy.deviceID,
             phase: state.phase,
-            timeZone: TimeZone.current.identifier,
+            timeZone: DeviceStatusReport.wireTimeZoneIdentifier(for: .current),
             scheduleDigest: DeviceStatusReport.scheduleDigest(for: settings.schedule),
             statusVersion: runtime.versions.next(),
             observedAt: currentTime,
@@ -266,7 +266,7 @@ extension CurfewAppModel {
         DeviceStatusReport(
             deviceID: deviceID,
             phase: state.phase,
-            timeZone: TimeZone.current.identifier,
+            timeZone: DeviceStatusReport.wireTimeZoneIdentifier(for: .current),
             scheduleDigest: DeviceStatusReport.scheduleDigest(for: settings.schedule),
             statusVersion: version,
             observedAt: currentTime,

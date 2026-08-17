@@ -130,6 +130,22 @@ public struct DeviceStatusReport: Equatable {
         Self.cursor(deviceID: deviceID, statusVersion: statusVersion)
     }
 
+    /// Returns the schema-safe IANA identifier for a system time zone.
+    ///
+    /// Foundation reports a machine configured for UTC as `UTC` or `GMT` on
+    /// some headless hosts. Both are tzdb aliases, but the shared protocol
+    /// requires a regional identifier with a slash. `Etc/UTC` represents the
+    /// same zone and satisfies that wire constraint. Other non-regional fixed
+    /// offsets stay invalid because inventing a region would misstate the
+    /// device's daylight-saving rules.
+    public static func wireTimeZoneIdentifier(for timeZone: TimeZone) -> String {
+        let identifier = timeZone.identifier
+        if identifier.matches(Self.timeZonePattern) {
+            return identifier
+        }
+        return timeZone.secondsFromGMT() == 0 ? "Etc/UTC" : identifier
+    }
+
     /// Memberwise initialiser.
     public init(
         deviceID: String,
