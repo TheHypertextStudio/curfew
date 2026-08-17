@@ -5,6 +5,10 @@ import Foundation
 import OSLog
 import SwiftUI
 
+// The model owns the app's injected runtime graph. Splitting its stored state
+// across extensions would make initialization order impossible to audit.
+// swiftlint:disable file_length
+
 /// Central `@MainActor ObservableObject` for Curfew: holds all `@Published`
 /// state and drives the 1 Hz tick loop. Behaviour lives in `CurfewAppModel+*`.
 @MainActor
@@ -255,6 +259,10 @@ final class CurfewAppModel: NSObject, ObservableObject {
     /// class body.
     private var started = false
 
+    // The initializer assigns the complete injected runtime graph before
+    // subscriptions start. Extracting partial initialization would obscure
+    // which dependencies exist when the first tick runs.
+    // swiftlint:disable function_body_length
     /// Production / test-friendly designated initialiser; every other
     /// initialiser delegates here. Collaborators are injected so tests can
     /// substitute fakes. `@Published` state is assigned before `super.init()`.
@@ -335,6 +343,8 @@ final class CurfewAppModel: NSObject, ObservableObject {
         super.init()
         completeInitialization(with: loadedSettings)
     }
+
+    // swiftlint:enable function_body_length
 
     /// Zero-arg convenience used by `CurfewApp` at production launch; collaborators
     /// resolve to their `System*` defaults. Release wires the real ``PersistentLockdown``
