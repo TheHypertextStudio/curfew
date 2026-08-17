@@ -8,9 +8,8 @@ enum NativeAccountSyncError: Error {
     case rejected(Int)
 }
 
-nonisolated final class RejectingRedirectSessionDelegate: NSObject, URLSessionTaskDelegate,
-    @unchecked Sendable
-{
+final nonisolated class RejectingRedirectSessionDelegate: NSObject, URLSessionTaskDelegate,
+    @unchecked Sendable {
     func urlSession(
         _: URLSession,
         task _: URLSessionTask,
@@ -62,14 +61,14 @@ struct AccountDeviceProofFactory {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
         let header = Self.base64URL(Data(#"{"alg":"ES256","typ":"curfew-device-proof+jws"}"#.utf8))
-        let payload = Self.base64URL(try encoder.encode(claims))
+        let payload = try Self.base64URL(encoder.encode(claims))
         let signingInput = "\(header).\(payload)"
         let key = try P256.Signing.PrivateKey(rawRepresentation: signingPrivateKey)
         let signature = try key.signature(for: Data(signingInput.utf8)).rawRepresentation
         return "\(signingInput).\(Self.base64URL(signature))"
     }
 
-    private static func base64URL<S: DataProtocol>(_ data: S) -> String {
+    private static func base64URL(_ data: some DataProtocol) -> String {
         Data(data).base64EncodedString()
             .replacingOccurrences(of: "+", with: "-")
             .replacingOccurrences(of: "/", with: "_")
@@ -147,7 +146,7 @@ final class NativeAccountSyncTransport: AccountSyncTransporting {
                 accessToken: accessToken,
                 signingPrivateKey: keys.signingPrivateKey
             ) {
-                onWakeStatus?(try Self.wakeStatus(WakeStatus(data: data)))
+                try onWakeStatus?(Self.wakeStatus(WakeStatus(data: data)))
             }
             if let data = try await authorizedGET(
                 path: "/sync/remote-overrides/active",
@@ -155,7 +154,7 @@ final class NativeAccountSyncTransport: AccountSyncTransporting {
                 accessToken: accessToken,
                 signingPrivateKey: keys.signingPrivateKey
             ) {
-                onRemoteOverride?(try Self.remoteOverride(RemoteOverride(data: data)))
+                try onRemoteOverride?(Self.remoteOverride(RemoteOverride(data: data)))
             }
         } catch {
             onFailure?("Account sync is offline or rejected.")
@@ -187,7 +186,9 @@ final class NativeAccountSyncTransport: AccountSyncTransporting {
         guard let http = response as? HTTPURLResponse else {
             throw NativeAccountSyncError.invalidResponse
         }
-        if http.statusCode == 404 { return nil }
+        if http.statusCode == 404 {
+            return nil
+        }
         guard (200 ..< 300).contains(http.statusCode) else {
             throw NativeAccountSyncError.rejected(http.statusCode)
         }

@@ -408,6 +408,12 @@ only.
 
 ## 17. Build Gating and Distribution Accuracy
 
+- `macOS account enrollment binds PKCE to the Curfew sync resource, stores
+  private material in Keychain, sends privacy-minimal generated enrollment,
+  and cannot mark sync ready before Recovery Key acknowledgement or restore.`
+  - `AccountOAuthEnrollmentTests`
+  - `NativeAccountSyncTransportTests`
+  - `AccountEncryptionTests`
 - `Both the app project and command-line package consume the same immutable
   pre-1.0 Curfew protocol release.`
   - `swift package resolve`

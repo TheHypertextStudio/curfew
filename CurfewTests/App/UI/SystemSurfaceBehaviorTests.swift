@@ -121,3 +121,14 @@ struct ScheduleSurfaceCopyTests {
         #expect(ScheduleSurfaceCopy.workResumesLabel == "Work resumes")
     }
 }
+
+@MainActor
+struct AccountEnrollmentCopyTests {
+    @Test("Account panel separates sign-in recovery from encrypted-data recovery")
+    func recoveryFactorsAreExplainedSeparately() {
+        let copy = SettingsView.accountSecurityNote
+        #expect(copy.contains("2FA backup codes"))
+        #expect(copy.contains("Curfew Recovery Key"))
+        #expect(!copy.contains("Coordinator signing secret"))
+    }
+}

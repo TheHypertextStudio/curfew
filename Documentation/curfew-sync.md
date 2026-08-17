@@ -4,9 +4,17 @@
 
 **Description:** A cloud coordinator that lets a single user gate access across all of their devices, with a remote MCP endpoint authorized via OAuth 2.1 so external AI hosts (Claude Desktop, ChatGPT, Cursor, web-based assistants) can reach Curfew's tools without running locally on the user's Mac.
 
-Curfew Sync is **complementary** to F13 (CloudKit Sync), not a replacement. F13 already handles same-Apple-ID multi-device replication via the iCloud private database — no accounts, no third-party servers, ships behind the Pro gate. Sync adds the things F13 structurally cannot do: a publicly reachable MCP endpoint for AI hosts that aren't on the user's Mac, cross-Apple-ID coordination (a household with mixed iCloud accounts on shared hardware), and the AI-mediated / reflection-style use cases from horizons 2 and 3 of the product thesis. Sync is also a **peer** to F9 (local MCP server): F9 stays the on-device stdio/loopback surface for tools that spawn `curfew-mcp` as a subprocess; Sync exposes a strict subset of those same tools over an authenticated public endpoint.
+Curfew Sync is optional. An account-free device keeps its local schedule, signed
+offline license, alarm callbacks, and fixed morning release. Once a device
+enrolls in a Curfew Account, Curfew Sync becomes the only cross-device writer
+and the app disables competing CloudKit writes. The local MCP server remains
+available for tools that run on the Mac. The remote MCP endpoint exposes only
+the account metadata and bounded control tools defined by
+`curfew-protocols`.
 
-Sync is **not** a replacement for F13, **not** an admin / parent / manager product, and **not** MDM. There is no "control someone else's device" path; the account model is single-user by design.
+Sync is not an admin, parent, manager, or MDM product. One person owns an
+account and every enrolled device. Curfew does not provide a path for one
+account to control another person's device.
 
 ### Goals and non-goals
 
@@ -15,7 +23,8 @@ Sync is **not** a replacement for F13, **not** an admin / parent / manager produ
 - Coordinate schedule, budgets, pending requests, and lockout state across all of a user's devices, including devices on different Apple IDs.
 - Expose a remote MCP endpoint authorized via OAuth 2.1 so AI hosts that don't run locally can read status and queue extension / override / schedule requests.
 - Preserve Curfew's offline-first behavior: every device must continue enforcing locally with the last synced schedule when the coordinator is unreachable.
-- Compose cleanly with F13. A Pro user with two Macs on one Apple ID keeps using F13 between those Macs; enabling Sync additionally lets a remote AI host reach their tools.
+- Make account sync canonical when enabled so CloudKit and Curfew Sync never
+  race to write the same setting.
 
 **Non-goals (explicit, because the abuse surface is real):**
 
@@ -42,10 +51,14 @@ Three components:
         │                                Curfew app on Mac B
         │  encrypted deltas              Curfew app on iPhone (future)
         ▼
-  Per-device agent → local SchedulePolicyEngine → device lockout
+  Per-device agent → local policy and wake deadline → device lockout
 ```
 
-**Invariant:** *The device evaluates lockout locally against its last synced schedule. The coordinator is a publisher, not a real-time authority.* A compromised or partitioned coordinator cannot directly lock or unlock a device — it can only publish a delta the device chooses to apply (subject to the anti-bypass asymmetry).
+**Invariant:** Every device evaluates policy locally. An account wake campaign
+can release the morning gate after a signed terminal wake status or an
+authorized time-bounded override. Every selected device can compute the same
+final deadline, so a partitioned Mac releases at that deadline instead of
+remaining locked forever.
 
 ### Sync model
 
@@ -53,10 +66,14 @@ The coordinator holds:
 
 - **Schedule** — the same weekly schedule shape F13 already syncs, but account-scoped instead of Apple-ID-scoped.
 - **Budgets** — extension and override counters, weekly reset window.
-- **Pending MCP requests** — extension / override / schedule-change requests queued by remote AI hosts, mirroring the local `MCPRequestQueue` shape used by F9.
-- **Device registry** — one entry per enrolled device with last-seen timestamp, public key, and OS / app version. Heartbeats reuse the F14 / F15 cadence (60 s active, 120 s freshness threshold).
+- **Remote unlock requests** — reason-bearing requests with explicit device
+  targets, 5–60 minute bounds, approval state, and audit history.
+- **Device registry** — one entry per enrolled device with public signing and
+  encryption keys, key epoch, revocation state, and privacy-minimal wake status.
 
-**Relation to F13's last-write-wins.** Where F13 uses `modifiedAt` for conflict resolution on iCloud-private records, Sync uses the same scheme on coordinator records, with one strict addition: deltas are classified before they apply on the device.
+Encrypted records use optimistic versions and per-device writer counters. A
+stale writer receives a conflict and rebases after decrypting the current
+record. The coordinator never merges ciphertext.
 
 **Anti-bypass asymmetry (applied to sync):** schedule and budget deltas from the coordinator pass through the same `SchedulePolicyEngine` classification that already gates local edits.
 
@@ -68,11 +85,26 @@ This means a compromised coordinator cannot push a "lock window shrinks to zero"
 
 ### Account and device enrollment
 
-- **Authentication:** passkey-based. No passwords, no SMS 2FA. Account creation is a passkey ceremony; sign-in is passkey-only.
-- **Initial enrollment:** the first device enrolls during account creation and becomes the seed device.
-- **Adding a device:** a new device requesting enrollment must be approved from an *already-enrolled* device, not just from the account passkey. Approval surfaces in-app on the existing device with the new device's name, OS, and a short verification code shown side-by-side. This closes the credential-theft → enroll-attacker-device path.
-- **Single-user only.** Accounts have exactly one human owner. There is no admin role, no "family" container, no shared-account flow. Cross-references the matching non-goal above.
-- **Device removal.** Any device can remove itself locally without coordinator approval (mirrors uninstall). The coordinator can also be told from any enrolled device to remove another device; that operation requires the local passkey on the requesting device and a short cooldown before the removed device loses sync access.
+- **Authentication:** Apple or Google browser OAuth. Every interactive sign-in
+  remains restricted until the user completes TOTP or consumes a one-time
+  backup code. Curfew has no password or passkey account creation in this
+  release.
+- **Linking:** Curfew disables implicit same-email linking. The user must sign
+  in through an existing method, complete fresh 2FA, and approve the new
+  provider. Settings prevents removal of the last sign-in method.
+- **Encryption:** The first device creates a random 256-bit account root key
+  and a separate random 256-bit Curfew Recovery Key. HKDF-SHA256 and
+  AES-256-GCM protect the recovery envelope. HPKE envelopes distribute the
+  root key to enrolled device encryption keys.
+- **Recovery:** Better Auth backup codes recover sign-in only. Decrypting
+  account content after all enrolled keys are lost requires fresh AAL2 and the
+  Curfew Recovery Key.
+- **Native proof:** Device enrollment and every device, sync, and wake request
+  bind the resource-scoped OAuth token, method, URL, body digest, server nonce,
+  and one-time JTI to the enrolled ES256 signing key.
+- **Privacy:** Enrollment carries device identifiers and public keys. Device
+  names, platform, and presentation metadata remain inside encrypted account
+  settings.
 
 ### Remote MCP endpoint (OAuth 2.1)
 
@@ -84,10 +116,13 @@ This is the AI-control surface — the reason Sync exists beyond F13. Architectu
   - Read scopes — status, activity, budget.
   - Write scopes — `request_extension`, `request_override`, `set_schedule`. Each write scope is independently grantable.
   - Least-privilege defaults: the consent screen pre-selects read-only.
-- **Tool surface (subset of F9).** All read tools (`curfew_status`, `curfew_schedule`, `curfew_budget`, `curfew_activity`, `curfew_get_time_remaining`, `curfew_get_weekly_summary`) plus the queue-and-poll write tools (`curfew_request_extension`, `curfew_request_override`, `curfew_set_schedule`, `curfew_request_status`). Per-tool consent decisions still happen on the user's device — see *Authorization and consent* below.
+- **Tool surface.** The generated registry contains exactly `list_devices`,
+  `list_entitlements`, `get_wake_status`, `request_remote_unlock`,
+  `get_remote_unlock_request`, and `cancel_remote_unlock`.
 - **Revocation.** The Curfew app exposes a "Connected AI tools" panel listing every OAuth client with active tokens. Per-client revoke is one tap and takes effect on the next request the host makes; the coordinator's token cache is invalidated immediately.
 
-Deferred to a future implementation doc: exact endpoint paths, authorization-server metadata, exact token-lifetime numbers, host-by-host dynamic-client-registration support matrix, and wire-level error semantics.
+Access tokens last 15 minutes. Rotating refresh tokens last 30 days. Tokens are
+resource-bound, use PKCE, and remain subject to consent and live revocation.
 
 ### Authorization and consent
 
@@ -100,8 +135,9 @@ OAuth grants *transport* permission. Per-tool consent is a separate, on-device d
 
 ### Failure modes
 
-- **Coordinator unreachable.** *Fail-open by default.* The device honors its last synced schedule and continues operating normally. Curfew was offline-first before Sync and stays offline-first after. The menu bar surfaces a *"Sync offline — last synced 14 min ago"* status; nothing else changes.
-- **Opt-in fail-closed.** A setting — *"Lock harder if I haven't synced in 24 hours"* — lets users who specifically want the stricter posture opt in. Never the default. Even in fail-closed mode, the local emergency release (below) still works.
+- **Coordinator unreachable.** The device honors its last decrypted policy.
+  During a wake campaign, it keeps the morning gate until a valid terminal
+  update arrives or the deterministic campaign deadline passes.
 - **Network partition.** Same as coordinator unreachable. Deltas queued upstream from the partitioned device are sent on reconnect; deltas the device missed are applied in `modifiedAt` order on reconnect, subject to the anti-bypass asymmetry.
 - **Clock skew.** All timestamps are coordinator-issued for cross-device ordering. Device-local enforcement (warning escalations, lock windows) continues to use device-local time so clock-skew doesn't open or close lock windows incorrectly.
 - **Rate limits.** The coordinator rate-limits per-account and per-OAuth-client (a misbehaving AI host shouldn't be able to drain a week's override budget in 50 ms). Limits are communicated via standard `Retry-After`; hosts back off.
@@ -118,7 +154,9 @@ This protects against two distinct threats: account compromise leading to indefi
 
 ### UX notes
 
-- **Settings → Curfew Sync** is the entry point. Off by default. Enrollment is the passkey ceremony described above.
+- **Settings → Curfew Account** is the entry point. It opens browser OAuth,
+  completes 2FA, enrolls device keys, and requires the user to save or enter
+  the separate Curfew Recovery Key before sync starts.
 - **Devices panel.** Lists all enrolled devices with last-seen time, active-state pill from F15, and a per-device "Remove" action.
 - **Connected AI tools panel.** Lists every OAuth client (one row per token grant), with the granted scopes, last-used timestamp, and a "Revoke" button. New connections appear here within seconds of the OAuth flow completing.
 - **Sync status indicator.** Replaces F13's status string when Sync is enabled: *"Synced across 2 devices · 1 AI tool connected"*. Offline state: *"Sync offline — last synced 14 min ago"*.
@@ -129,13 +167,21 @@ This protects against two distinct threats: account compromise leading to indefi
 
 Curfew Sync is opt-in. When disabled, the offline-first defaults in `PRIVACY.md` apply unchanged.
 
-When enabled, user content is **end-to-end encrypted with user-held keys**. The coordinator stores schedule, activity, and override-reason payloads as ciphertext; it cannot read them even under subpoena. Keys are derived from the account passkey and held on enrolled devices, never on the server.
+When enabled, user content is end-to-end encrypted with user-held keys. The
+coordinator stores schedule, callback, campaign, and account-setting payloads
+as ciphertext. A random account root key protects namespace keys. Authentication
+credentials never derive this root key.
 
-What the coordinator *can* see (metadata, intentionally minimal): device count, sync timestamps, OAuth client identities, per-client tool-call counts for rate-limiting, and the device's IP address at request time (used only for transport-layer rate-limiting; not retained). What the coordinator *cannot* see: override reason text, schedule contents, activity event details, or the content of any tool argument that touches user data.
+The coordinator can see identities, entitlements, public device keys and
+revocation state, ciphertext headers and timing, routing handles, OAuth and MCP
+grants, and remote-unlock audits. The application does not retain request IP
+addresses. The coordinator cannot see schedules, callback secrets, campaign
+content, or account-wide settings.
 
 **Threat model summary:**
 
-- *Account compromise* → mitigated by passkey auth, device-to-device approval for new enrollments, and the local emergency release that the coordinator cannot block.
+- *Account compromise* → mitigated by mandatory AAL2, separate E2EE recovery,
+  per-device keys, revocation, and local deadline enforcement.
 - *Server compromise* → mitigated by E2E encryption; the server's worst-case disclosure is metadata.
 - *Coercion* → mitigated by local emergency release and the single-user-only account model.
 - *Operator subpoena* → mitigated by E2E encryption; Hypertext Studio cannot produce plaintext it does not have.
@@ -145,12 +191,11 @@ What the coordinator *can* see (metadata, intentionally minimal): device count, 
 
 See `PRIVACY.md` for the offline-first defaults; this section describes only what changes when Sync is enabled.
 
-### Open questions
+### Remaining release gates
 
-- Coordinator hosting region and provider (data-residency implications for GDPR / CCPA).
-- Free vs. Pro gating. F13 is gated as Pro today; Sync may be bundled with Pro, a separate paid layer, or free with a usage cap.
-- iOS device-agent strategy. iOS sandboxing constrains the agent shape; full design is its own future doc.
-- Retention defaults for coordinator-held ciphertext (rolling 90 days? per-record TTL? user-configurable?).
-- Choice of OAuth library / framework for the coordinator implementation.
-- Dynamic client registration support matrix across known AI hosts (Claude Desktop, web Claude, ChatGPT, Cursor) — needed to decide how heavy the static-registration fallback path has to be.
-- Whether the emergency-release cooldown should be configurable above 24h (Ulysses-contract framing) or capped at the 24h default to keep the safety guarantee uniform.
+- Complete live Apple and Google operator flows against the isolated Curfew
+  Better Auth deployment.
+- Prove token refresh and revocation, new-device recovery, epoch rotation, and
+  account deletion against staging.
+- Prove the seven cross-platform wake and remote-unlock scenarios before a
+  production rollout.

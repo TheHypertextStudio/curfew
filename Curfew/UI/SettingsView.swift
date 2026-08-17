@@ -15,6 +15,8 @@ struct SettingsView: View {
     /// The selected tab. Held as state so the window restores the last tab and
     /// callouts can navigate between tabs if needed.
     @State var selection: SettingsSection = .enforcement
+    @StateObject var accountEnrollment = AccountEnrollmentController()
+    @State var accountRecoveryKey = ""
 
     /// Tabbed settings layout.
     var body: some View {
