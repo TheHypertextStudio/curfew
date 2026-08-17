@@ -3,6 +3,10 @@ import CurfewProtocols
 import Foundation
 import Security
 
+// The account cryptography contract keeps its wire models and primitives in one
+// review unit so a protocol change cannot update one without the other.
+// swiftlint:disable file_length
+
 protocol AccountSecretStoring: AnyObject {
     func data(for account: String) throws -> Data?
     func save(_ data: Data, for account: String) throws
@@ -75,10 +79,13 @@ final class KeychainAccountSecretStore: AccountSecretStoring {
 struct AccountPublicKeyJWK: Codable, Equatable, Sendable {
     let kty = "EC"
     let crv = "P-256"
+    // JWK requires these exact one-character member names on the wire.
+    // swiftlint:disable identifier_name
     let x: String
     let y: String
 
     private enum CodingKeys: String, CodingKey { case kty, crv, x, y }
+    // swiftlint:enable identifier_name
 
     init(publicKey: P256.Signing.PublicKey) {
         let point = publicKey.x963Representation
@@ -142,9 +149,12 @@ struct AccountDeviceKeyMaterial: Codable, Equatable, Sendable {
     let encryptionPrivateKey: Data
 
     var signingPublicKey: AccountPublicKeyJWK {
-        AccountPublicKeyJWK(publicKey: try! P256.Signing.PrivateKey(
+        guard let privateKey = try? P256.Signing.PrivateKey(
             rawRepresentation: signingPrivateKey
-        ).publicKey)
+        ) else {
+            preconditionFailure("Stored account signing key is invalid")
+        }
+        return AccountPublicKeyJWK(publicKey: privateKey.publicKey)
     }
 }
 
@@ -359,6 +369,9 @@ struct AccountEncryptedRecord: Codable, Equatable, Sendable {
 }
 
 struct AccountRecordCrypto {
+    // These fields form the signed record header. Keeping them explicit at the
+    // call site prevents a caller from signing a header it did not construct.
+    // swiftlint:disable:next function_parameter_count function_body_length
     func seal(
         _ value: some Encodable,
         namespace: AccountEncryptedRecordNamespace,
@@ -502,6 +515,8 @@ private func namespaceKey(
     )
 }
 
+// These fields must match `seal` because this object is authenticated data.
+// swiftlint:disable:next function_parameter_count
 private func headerObject(
     namespace: AccountEncryptedRecordNamespace,
     recordID: UUID,

@@ -2,6 +2,9 @@
 import Foundation
 import XCTest
 
+// The scenarios share one transport and ledger fixture so they can assert the
+// complete wake-release contract without duplicating security setup.
+// swiftlint:disable:next type_body_length
 final class AccountWakeReleaseTests: XCTestCase {
     private let campaignID = UUID(uuidString: "018f4f45-cafe-7f00-9a82-e47805fb4d34")!
     private let deviceID = UUID(uuidString: "018f4f45-cafe-7f00-9a82-e47805fb4d35")!
@@ -111,6 +114,8 @@ final class AccountWakeReleaseTests: XCTestCase {
         XCTAssertEqual(decision, .release(.finalDeadline))
     }
 
+    // The cases keep every rejection reason beside the accepted override.
+    // swiftlint:disable:next function_body_length
     func testOnlyCurrentAuthorizedOverrideCanReleaseThisDevice() {
         let deadline = campaignStart.addingTimeInterval(16 * 60)
         let record = LockoutDeadlineRecord(

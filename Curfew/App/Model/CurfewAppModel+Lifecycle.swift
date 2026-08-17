@@ -5,6 +5,9 @@ import OSLog
 import UserNotifications
 import WidgetKit
 
+// Enforcement order is documented and kept in one lifecycle review unit.
+// swiftlint:disable file_length
+
 /// Engine-side internals of `CurfewAppModel` — the tick loop plus the
 /// private helpers translating engine output into published state.
 /// Split from actions/presentation so "why did lockout fire early?"
@@ -15,6 +18,9 @@ extension CurfewAppModel {
     /// retention promise in PRIVACY.md.
     static let activityRetentionSeconds: TimeInterval = 52 * 7 * 24 * 60 * 60
 
+    // The sequence is the enforcement invariant. Splitting it would hide the
+    // order in which state, durable lockout, effects, and status settle.
+    // swiftlint:disable function_body_length
     /// One enforcement cycle. Invoked by the 1 Hz timer and opportunistically
     /// after user actions that should take effect immediately (extension
     /// grant, override confirm, schedule swap).
@@ -129,6 +135,8 @@ extension CurfewAppModel {
         publishDeviceStatusHeartbeatIfDue()
     }
 
+    // swiftlint:enable function_body_length
+
     /// Settle who owns enforcement this tick, then apply every effect that
     /// depends on that answer: the health verdict, the keyboard shield, the
     /// shutdown workflow, and the overlays.
@@ -220,6 +228,8 @@ extension CurfewAppModel {
         mirrorProtectedWorkPolicy()
     }
 
+    // Both budget trackers must rebase before settings persist or sync.
+    // swiftlint:disable function_body_length
     /// Reacts to `@Published settings` changes: rebuilds budget trackers
     /// on limit/weekday changes, replays the week's usage so counts
     /// don't jump, pushes to CloudKit, and toggles the MCP monitor/
@@ -291,6 +301,8 @@ extension CurfewAppModel {
             }
         }
     }
+
+    // swiftlint:enable function_body_length
 
     /// Toggles the CGEventTap that intercepts ⌘⇥ / ⌘Q / ⌘⌥Esc during
     /// lockout. Called once per tick; tap lifecycle tracks enforcement.
