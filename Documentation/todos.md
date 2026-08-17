@@ -370,6 +370,8 @@ unknown key and is ignored.
 
 ## 18. Verification (v0.1 release candidate)
 
+- [x] Pin both SwiftPM entry points to the immutable pre-1.0
+      `curfew-protocols` 0.2.3 release.
 - [x] `just check` passes (format + lint + tests + Debug build).
 - [x] `xcodebuild archive` succeeds unsigned locally.
 - [x] `./curfew-ctl status` prints live state.

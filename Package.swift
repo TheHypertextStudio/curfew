@@ -10,7 +10,7 @@ let curfewProtocolsDependency: Package.Dependency = if let localPath =
 } else {
     .package(
         url: "https://github.com/TheHypertextStudio/curfew-protocols.git",
-        exact: "0.2.0"
+        exact: "0.2.3"
     )
 }
 

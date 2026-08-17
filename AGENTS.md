@@ -20,6 +20,10 @@ A change to a wire-format shape (MCP tool argument schemas, the `MCPPendingReque
 
 Do not invent new shapes in this repo. If a shape needs to exist on the wire (anything the local app sends to or receives from a remote AI host or the coordinator), it goes through `curfew-protocols` first.
 
+## Commit scopes
+
+Commit messages use one of these scopes: `app`, `ci`, `docs`, `dx`, `enforcement`, `license`, `mcp`, `sync`, `ui`, or `widget`.
+
 ## Project Context
 
 Curfew is a production-focused macOS app that enforces end-of-day boundaries with escalating warnings, lockout behavior, and optional shutdown.

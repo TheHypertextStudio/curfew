@@ -408,6 +408,11 @@ only.
 
 ## 17. Build Gating and Distribution Accuracy
 
+- `Both the app project and command-line package consume the same immutable
+  pre-1.0 Curfew protocol release.`
+  - `swift package resolve`
+  - `xcodebuild -resolvePackageDependencies -project Curfew.xcodeproj -scheme Curfew`
+  - `CurfewProtocolBridgeTests`
 - `The public static MCP guide and the repository-owned Mintlify source give
   the same correct Claude Desktop configuration and permissions boundary until
   Mintlify is intentionally published.`
