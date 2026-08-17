@@ -1,6 +1,7 @@
+@testable import Curfew
+import CurfewProtocols
 import Foundation
 import XCTest
-@testable import Curfew
 
 @MainActor
 final class AccountEncryptionTests: XCTestCase {
@@ -41,7 +42,7 @@ final class AccountEncryptionTests: XCTestCase {
         let record = try crypto.seal(
             settings,
             namespace: .accountSettings,
-            recordID: UUID(uuidString: "018f4f45-cafe-7f00-9a82-e47805fb4d36")!,
+            recordID: XCTUnwrap(UUID(uuidString: "018f4f45-cafe-7f00-9a82-e47805fb4d36")),
             version: 1,
             writerCounter: 1,
             writerDeviceID: deviceID,
@@ -57,7 +58,9 @@ final class AccountEncryptionTests: XCTestCase {
             signingPublicKey: keys.signingPublicKey
         )
 
-        XCTAssertFalse(String(decoding: encodedRecord, as: UTF8.self).contains("standardNineToFive"))
+        XCTAssertFalse(
+            String(bytes: encodedRecord, encoding: .utf8)?.contains("standardNineToFive") == true
+        )
         XCTAssertEqual(decoded, settings)
         XCTAssertEqual(record.cipherSuite, "AES-256-GCM")
         XCTAssertEqual(record.signatureAlgorithm, "ES256-P1363-SHA256")
@@ -91,11 +94,64 @@ final class AccountEncryptionTests: XCTestCase {
             )
         )
     }
+
+    func testRecoveryReplacesOnlyTheProvisionalRootKey() throws {
+        let secrets = MemoryAccountSecretStore()
+        let store = AccountDeviceKeyStore(secretStore: secrets)
+        _ = try store.createEnrollment(deviceID: deviceID, keyEpoch: 1, createdAt: createdAt)
+        let provisional = try XCTUnwrap(store.load(deviceID: deviceID))
+        let recoveredRoot = Data(repeating: 0x7A, count: 32)
+
+        try store.replaceAccountRootKey(recoveredRoot, deviceID: deviceID)
+
+        let restored = try XCTUnwrap(store.load(deviceID: deviceID))
+        XCTAssertEqual(restored.accountRootKey, recoveredRoot)
+        XCTAssertEqual(restored.signingPrivateKey, provisional.signingPrivateKey)
+        XCTAssertEqual(restored.encryptionPrivateKey, provisional.encryptionPrivateKey)
+    }
+
+    func testGeneratedRecoveryEnvelopeRoundTripsWithoutChangingCryptoInput() throws {
+        let store = AccountDeviceKeyStore(secretStore: MemoryAccountSecretStore())
+        let bootstrap = try store.createEnrollment(
+            deviceID: deviceID,
+            keyEpoch: 1,
+            createdAt: createdAt
+        )
+        let generated = AccountRecoveryEnvelopeBridge.generated(bootstrap.recoveryEnvelope)
+        let local = try AccountRecoveryEnvelopeBridge.local(generated)
+
+        XCTAssertEqual(generated.info, .curfewRecoveryWrapV2)
+        XCTAssertEqual(
+            try AccountRecoveryCrypto.unwrap(local, recoveryKey: bootstrap.recoveryKey),
+            try XCTUnwrap(store.load(deviceID: deviceID)).accountRootKey
+        )
+    }
+
+    func testIncompleteRecoveryEnrollmentSurvivesRelaunchUntilAcknowledged() throws {
+        let secrets = MemoryAccountSecretStore()
+        let pending = AccountEnrollmentPendingStore(secretStore: secrets)
+        let enrollment = AccountDeviceEnrollment(
+            deviceID: deviceID,
+            keyEpoch: 1,
+            enrolledAt: createdAt
+        )
+
+        try pending.save(enrollment: enrollment, recoveryKey: "recovery-key")
+        XCTAssertEqual(
+            try pending.load(),
+            .saveRecoveryKey("recovery-key", enrollment)
+        )
+
+        try pending.clear()
+        XCTAssertNil(try pending.load())
+    }
 }
 
 private final class MemoryAccountSecretStore: AccountSecretStoring {
     private(set) var records: [String: Data] = [:]
-    var values: [Data] { Array(records.values) }
+    var values: [Data] {
+        Array(records.values)
+    }
 
     func data(for account: String) throws -> Data? {
         records[account]

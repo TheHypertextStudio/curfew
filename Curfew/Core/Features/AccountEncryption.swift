@@ -1,4 +1,5 @@
 import CryptoKit
+import CurfewProtocols
 import Foundation
 import Security
 
@@ -23,11 +24,13 @@ final class KeychainAccountSecretStore: AccountSecretStoring {
             kSecAttrService: service,
             kSecAttrAccount: account,
             kSecReturnData: true,
-            kSecMatchLimit: kSecMatchLimitOne,
+            kSecMatchLimit: kSecMatchLimitOne
         ]
         var result: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &result)
-        if status == errSecItemNotFound { return nil }
+        if status == errSecItemNotFound {
+            return nil
+        }
         guard status == errSecSuccess, let data = result as? Data else {
             throw AccountEncryptionError.keychain(status)
         }
@@ -38,12 +41,12 @@ final class KeychainAccountSecretStore: AccountSecretStoring {
         let identity: [CFString: Any] = [
             kSecClass: kSecClassGenericPassword,
             kSecAttrService: service,
-            kSecAttrAccount: account,
+            kSecAttrAccount: account
         ]
         let attributes: [CFString: Any] = [
             kSecValueData: data,
             kSecAttrAccessible: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
-            kSecAttrSynchronizable: false,
+            kSecAttrSynchronizable: false
         ]
         let update = SecItemUpdate(identity as CFDictionary, attributes as CFDictionary)
         if update == errSecItemNotFound {
@@ -60,7 +63,7 @@ final class KeychainAccountSecretStore: AccountSecretStoring {
         let query: [CFString: Any] = [
             kSecClass: kSecClassGenericPassword,
             kSecAttrService: service,
-            kSecAttrAccount: account,
+            kSecAttrAccount: account
         ]
         let status = SecItemDelete(query as CFDictionary)
         guard status == errSecSuccess || status == errSecItemNotFound else {
@@ -79,14 +82,14 @@ struct AccountPublicKeyJWK: Codable, Equatable, Sendable {
 
     init(publicKey: P256.Signing.PublicKey) {
         let point = publicKey.x963Representation
-        x = Self.base64URL(point[1 ..< 33])
-        y = Self.base64URL(point[33 ..< 65])
+        self.x = Self.base64URL(point[1 ..< 33])
+        self.y = Self.base64URL(point[33 ..< 65])
     }
 
     init(agreementPublicKey: P256.KeyAgreement.PublicKey) {
         let point = agreementPublicKey.x963Representation
-        x = Self.base64URL(point[1 ..< 33])
-        y = Self.base64URL(point[33 ..< 65])
+        self.x = Self.base64URL(point[1 ..< 33])
+        self.y = Self.base64URL(point[33 ..< 65])
     }
 
     var signingPublicKey: P256.Signing.PublicKey? {
@@ -100,7 +103,7 @@ struct AccountPublicKeyJWK: Codable, Equatable, Sendable {
         return result
     }
 
-    fileprivate static func base64URL<S: DataProtocol>(_ data: S) -> String {
+    fileprivate static func base64URL(_ data: some DataProtocol) -> String {
         Data(data).base64EncodedString()
             .replacingOccurrences(of: "+", with: "-")
             .replacingOccurrences(of: "/", with: "_")
@@ -172,9 +175,9 @@ final class AccountDeviceKeyStore {
             for: accountName(deviceID)
         )
         let recoveryKey = AccountPublicKeyJWK.base64URL(recoveryKeyData)
-        return AccountEnrollmentBootstrap(
+        return try AccountEnrollmentBootstrap(
             recoveryKey: recoveryKey,
-            recoveryEnvelope: try AccountRecoveryCrypto.wrap(
+            recoveryEnvelope: AccountRecoveryCrypto.wrap(
                 rootKey,
                 recoveryKey: recoveryKey,
                 keyEpoch: keyEpoch,
@@ -190,6 +193,21 @@ final class AccountDeviceKeyStore {
     func load(deviceID: UUID) throws -> AccountDeviceKeyMaterial? {
         guard let data = try secretStore.data(for: accountName(deviceID)) else { return nil }
         return try JSONDecoder.curfew.decode(AccountDeviceKeyMaterial.self, from: data)
+    }
+
+    func replaceAccountRootKey(_ rootKey: Data, deviceID: UUID) throws {
+        guard rootKey.count == 32,
+              let existing = try load(deviceID: deviceID)
+        else { throw AccountEncryptionError.invalidKeyMaterial }
+        let recovered = AccountDeviceKeyMaterial(
+            accountRootKey: rootKey,
+            signingPrivateKey: existing.signingPrivateKey,
+            encryptionPrivateKey: existing.encryptionPrivateKey
+        )
+        try secretStore.save(
+            JSONEncoder.curfew.encode(recovered),
+            for: accountName(deviceID)
+        )
     }
 
     private func accountName(_ deviceID: UUID) -> String {
@@ -260,9 +278,42 @@ enum AccountRecoveryCrypto {
         )
         let aad = try canonicalJSON([
             "createdAt": wireDate(envelope.createdAt),
-            "keyEpoch": envelope.keyEpoch,
+            "keyEpoch": envelope.keyEpoch
         ])
         return try AES.GCM.open(box, using: key, authenticating: aad)
+    }
+}
+
+enum AccountRecoveryEnvelopeBridge {
+    static func generated(_ envelope: AccountRecoveryEnvelope) -> RecoveryKeyEnvelope {
+        RecoveryKeyEnvelope(
+            aead: .aes256Gcm,
+            ciphertext: envelope.ciphertext,
+            createdAt: wireDate(envelope.createdAt),
+            info: .curfewRecoveryWrapV2,
+            kdf: .hkdfSha256,
+            keyEpoch: envelope.keyEpoch,
+            nonce: envelope.nonce,
+            salt: envelope.salt
+        )
+    }
+
+    static func local(_ envelope: RecoveryKeyEnvelope) throws -> AccountRecoveryEnvelope {
+        guard envelope.aead == .aes256Gcm,
+              envelope.info == .curfewRecoveryWrapV2,
+              envelope.kdf == .hkdfSha256,
+              let createdAt = ISO8601DateFormatter.curfew.date(from: envelope.createdAt)
+        else { throw AccountEncryptionError.invalidKeyMaterial }
+        return AccountRecoveryEnvelope(
+            keyEpoch: envelope.keyEpoch,
+            kdf: envelope.kdf.rawValue,
+            aead: envelope.aead.rawValue,
+            info: envelope.info.rawValue,
+            salt: envelope.salt,
+            nonce: envelope.nonce,
+            ciphertext: envelope.ciphertext,
+            createdAt: createdAt
+        )
     }
 }
 
@@ -308,8 +359,8 @@ struct AccountEncryptedRecord: Codable, Equatable, Sendable {
 }
 
 struct AccountRecordCrypto {
-    func seal<Value: Encodable>(
-        _ value: Value,
+    func seal(
+        _ value: some Encodable,
         namespace: AccountEncryptedRecordNamespace,
         recordID: UUID,
         version: Int,
@@ -392,7 +443,7 @@ struct AccountRecordCrypto {
               combined.count >= 16
         else { throw AccountEncryptionError.invalidKeyMaterial }
         let signature = try P256.Signing.ECDSASignature(rawRepresentation: signatureData)
-        guard publicKey.isValidSignature(signature, for: try signatureInput(record)) else {
+        guard try publicKey.isValidSignature(signature, for: signatureInput(record)) else {
             throw AccountEncryptionError.authenticationFailed
         }
         let aad = try canonicalJSON(headerObject(
@@ -433,7 +484,7 @@ struct AccountRecordCrypto {
             "updatedAt": wireDate(record.updatedAt),
             "version": record.version,
             "writerCounter": record.writerCounter,
-            "writerDeviceId": record.writerDeviceID.uuidString.lowercased(),
+            "writerDeviceId": record.writerDeviceID.uuidString.lowercased()
         ])
     }
 }
@@ -468,12 +519,15 @@ private func headerObject(
         "updatedAt": wireDate(updatedAt),
         "version": version,
         "writerCounter": writerCounter,
-        "writerDeviceId": writerDeviceID.uuidString.lowercased(),
+        "writerDeviceId": writerDeviceID.uuidString.lowercased()
     ]
 }
 
 private func canonicalJSON(_ object: [String: Any]) throws -> Data {
-    try JSONSerialization.data(withJSONObject: object, options: [.sortedKeys, .withoutEscapingSlashes])
+    try JSONSerialization.data(
+        withJSONObject: object,
+        options: [.sortedKeys, .withoutEscapingSlashes]
+    )
 }
 
 private func wireDate(_ date: Date) -> String {
@@ -483,7 +537,8 @@ private func wireDate(_ date: Date) -> String {
 private func randomData(count: Int) -> Data {
     var bytes = Data(count: count)
     bytes.withUnsafeMutableBytes { pointer in
-        precondition(SecRandomCopyBytes(kSecRandomDefault, count, pointer.baseAddress!) == errSecSuccess)
+        precondition(SecRandomCopyBytes(kSecRandomDefault, count, pointer.baseAddress!) ==
+            errSecSuccess)
     }
     return bytes
 }

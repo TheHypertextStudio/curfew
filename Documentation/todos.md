@@ -372,6 +372,10 @@ unknown key and is ignored.
 
 - [x] Pin both SwiftPM entry points to the immutable pre-1.0
       `curfew-protocols` 0.2.3 release.
+- [-] Enroll macOS devices through browser OAuth, mandatory server-side AAL2,
+      generated first-party scopes, ES256 device proof, and separate Recovery
+      Key acknowledgement or restore. In-repo tests pass; live Apple/Google and
+      staging recovery proof remain external release gates.
 - [x] `just check` passes (format + lint + tests + Debug build).
 - [x] `xcodebuild archive` succeeds unsigned locally.
 - [x] `./curfew-ctl status` prints live state.
