@@ -4,8 +4,7 @@ import PackageDescription
 
 let curfewProtocolsDependency: Package.Dependency = if let localPath =
     ProcessInfo.processInfo.environment["CURFEW_PROTOCOLS_LOCAL_PATH"],
-    !localPath.isEmpty
-{
+    !localPath.isEmpty {
     .package(name: "curfew-protocols", path: localPath)
 } else {
     .package(
@@ -14,17 +13,17 @@ let curfewProtocolsDependency: Package.Dependency = if let localPath =
     )
 }
 
-// Shared library and CLI/MCP/daemon executables. The Curfew app target and
-// the widget extension both *also* compile the files in Sources/CurfewKit/
-// directly via the Xcode project's PBXFileSystemSynchronizedRootGroup
-// entries — there is no `import CurfewKit` from the app side. SPM exists
-// here so the three command-line products can share the same source.
-//
-// Folder contract: anything dropped in Sources/CurfewKit/ is auto-discovered
-// by SPM and auto-synced into the Xcode app + widget targets. Files that
-// must NOT ship to the CLI/MCP/daemon (anything depending on AppKit,
-// SwiftUI, UserNotifications, EventKit, CloudKit, SMAppService, etc.) stay
-// under Curfew/ and remain reachable only to the app/widget targets.
+/// Shared library and CLI/MCP/daemon executables. The Curfew app target and
+/// the widget extension both *also* compile the files in Sources/CurfewKit/
+/// directly via the Xcode project's PBXFileSystemSynchronizedRootGroup
+/// entries — there is no `import CurfewKit` from the app side. SPM exists
+/// here so the three command-line products can share the same source.
+///
+/// Folder contract: anything dropped in Sources/CurfewKit/ is auto-discovered
+/// by SPM and auto-synced into the Xcode app + widget targets. Files that
+/// must NOT ship to the CLI/MCP/daemon (anything depending on AppKit,
+/// SwiftUI, UserNotifications, EventKit, CloudKit, SMAppService, etc.) stay
+/// under Curfew/ and remain reachable only to the app/widget targets.
 let package = Package(
     name: "CurfewTools",
     platforms: [.macOS(.v14)],

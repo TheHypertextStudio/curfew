@@ -131,7 +131,10 @@ public enum DaemonEnforcementDecision {
         // consults. Nothing about "may I act?" is decided here — that is the
         // only way the two processes stay in step.
         var gate = DestructiveActionGate(
-            deferralStartedAt: carriedWindowStart(input, lockoutStartedAt: deadline.lockoutStartedAt)
+            deferralStartedAt: carriedWindowStart(
+                input,
+                lockoutStartedAt: deadline.lockoutStartedAt
+            )
         )
         let decision = gate.evaluate(
             now: input.now,

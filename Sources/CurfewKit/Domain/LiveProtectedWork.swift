@@ -262,12 +262,16 @@ public struct UtmpxLoginSessionEnumerator: LoginSessionEnumerating {
 public struct EmptyProcessEnumerator: RunningProcessEnumerating {
     public init() {}
 
-    public func runningProcesses() -> [RunningProcess] { [] }
+    public func runningProcesses() -> [RunningProcess] {
+        []
+    }
 }
 
 /// Sees no sessions. Used by ``LiveProtectedWorkMonitor/disabled``.
 public struct EmptyLoginSessionEnumerator: LoginSessionEnumerating {
     public init() {}
 
-    public func loginSessions() -> [LoginSession] { [] }
+    public func loginSessions() -> [LoginSession] {
+        []
+    }
 }

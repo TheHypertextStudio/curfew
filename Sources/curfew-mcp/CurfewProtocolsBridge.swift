@@ -24,7 +24,7 @@ import CurfewProtocols
 // Until then, keeping these typealiases under `internal` access avoids
 // polluting curfew-mcp's symbol surface.
 
-internal typealias BridgeMCPPendingRequest = CurfewProtocols.MCPPendingRequest
-internal typealias BridgeMCPWriteTool = CurfewProtocols.MCPWriteTool
-internal typealias BridgeMCPRequestStatus = CurfewProtocols.MCPRequestStatus
-internal typealias BridgeMCPToolRegistry = CurfewProtocols.MCPToolRegistry
+typealias BridgeMCPPendingRequest = CurfewProtocols.MCPPendingRequest
+typealias BridgeMCPWriteTool = CurfewProtocols.MCPWriteTool
+typealias BridgeMCPRequestStatus = CurfewProtocols.MCPRequestStatus
+typealias BridgeMCPToolRegistry = CurfewProtocols.MCPToolRegistry

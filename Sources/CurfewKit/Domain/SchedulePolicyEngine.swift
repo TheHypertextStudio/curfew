@@ -114,10 +114,18 @@ public struct SchedulePolicyEngine {
         proposed: DayRule
     ) -> ScheduleChangeClassification? {
         var stricter = false
-        if proposed.lockMinutes > current.lockMinutes { return .weaker }
-        if proposed.lockMinutes < current.lockMinutes { stricter = true }
-        if proposed.unlockMinutes < current.unlockMinutes { return .weaker }
-        if proposed.unlockMinutes > current.unlockMinutes { stricter = true }
+        if proposed.lockMinutes > current.lockMinutes {
+            return .weaker
+        }
+        if proposed.lockMinutes < current.lockMinutes {
+            stricter = true
+        }
+        if proposed.unlockMinutes < current.unlockMinutes {
+            return .weaker
+        }
+        if proposed.unlockMinutes > current.unlockMinutes {
+            stricter = true
+        }
         return stricter ? .stricter : nil
     }
 
@@ -137,8 +145,12 @@ public struct SchedulePolicyEngine {
         }
         let currentLimit = current.hoursLimitMinutes ?? 0
         let proposedLimit = proposed.hoursLimitMinutes ?? 0
-        if proposedLimit > currentLimit { return .weaker }
-        if proposedLimit < currentLimit { return .stricter }
+        if proposedLimit > currentLimit {
+            return .weaker
+        }
+        if proposedLimit < currentLimit {
+            return .stricter
+        }
         return .noChange
     }
 
