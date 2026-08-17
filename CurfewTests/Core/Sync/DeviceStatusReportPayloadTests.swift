@@ -296,6 +296,23 @@ struct DeviceStatusReportPayloadTests {
         #expect(!report.isWellFormed)
     }
 
+    @Test("UTC aliases normalize to the schema's canonical IANA identifier")
+    func utcAliasNormalizes() throws {
+        let utc = try #require(TimeZone(identifier: "UTC"))
+
+        #expect(DeviceStatusReport.wireTimeZoneIdentifier(for: utc) == "Etc/UTC")
+    }
+
+    @Test("Regional IANA identifiers pass through unchanged")
+    func regionalTimeZonePassesThrough() throws {
+        let regional = try #require(TimeZone(identifier: "America/Los_Angeles"))
+
+        #expect(
+            DeviceStatusReport.wireTimeZoneIdentifier(for: regional)
+                == "America/Los_Angeles"
+        )
+    }
+
     @Test("A well-formed report stays well-formed")
     func sampleIsWellFormed() {
         #expect(Self.sample().isWellFormed)

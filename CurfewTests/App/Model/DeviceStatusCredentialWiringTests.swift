@@ -38,7 +38,7 @@ struct DeviceStatusCredentialWiringTests {
     }
 
     @Test("Each report is signed afresh rather than reusing one assertion")
-    func eachReportIsSignedAfresh() async {
+    func eachReportIsSignedAfresh() async throws {
         let harness = DeviceStatusWiringHarness(
             reporting: DeviceStatusWiringHarness.configured()
         )
@@ -54,7 +54,7 @@ struct DeviceStatusCredentialWiringTests {
         await harness.settle()
 
         let tokens = harness.transport.calls.map(\.bearerToken)
-        #expect(tokens.count == 2)
+        try #require(tokens.count == 2)
         #expect(tokens[0] != tokens[1])
     }
 
