@@ -42,12 +42,15 @@ lint:
 
 # Full unit-test suite on macOS.
 test:
+    mkdir -p build
+    rm -rf build/CurfewTests.xcresult
     xcodebuild test \
         -project {{ project }} \
         -scheme {{ scheme }} \
         -allowProvisioningUpdates \
         -destination '{{ destination }}' \
-        -only-testing:CurfewTests {{ xcodebuild_settings }}
+        -only-testing:CurfewTests \
+        -resultBundlePath build/CurfewTests.xcresult {{ xcodebuild_settings }}
 
 # Full UI-test suite. Heavier; kept separate from `just test`.
 test-ui:

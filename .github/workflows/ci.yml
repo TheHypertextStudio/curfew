@@ -40,6 +40,14 @@ jobs:
           CURFEW_XCODEBUILD_SETTINGS: "CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO"
         run: just check
 
+      - name: Upload unit-test diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: curfew-unit-test-results
+          path: build/CurfewTests.xcresult
+          if-no-files-found: warn
+
   screenshots:
     name: Capture screenshots
     # Screenshot capture launches the app and therefore needs the same macOS
