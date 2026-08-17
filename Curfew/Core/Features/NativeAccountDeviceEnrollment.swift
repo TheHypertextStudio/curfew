@@ -44,14 +44,14 @@ struct AccountDeviceEnrollmentRequestBuilder {
         let endpoint = URL(
             string: "https://curfew-sync.hypertext.studio/sync/devices/enroll"
         )!
-        let proof = try proofFactory.make(
+        let proof = try proofFactory.make(.init(
             accessToken: input.accessToken,
             nonce: input.nonce,
             method: "POST",
             url: endpoint,
             body: unsignedBody,
             signingPrivateKey: input.keys.signingPrivateKey
-        )
+        ))
         return DeviceEnrollmentRequest(
             coordinatorNonce: input.nonce,
             deviceID: identifier,
@@ -297,14 +297,14 @@ final class NativeAccountDeviceEnrollmentService {
             deviceID: enrollment.deviceID,
             accessToken: accessToken
         )
-        let proof = try proofFactory.make(
+        let proof = try proofFactory.make(.init(
             accessToken: accessToken,
             nonce: nonce,
             method: "GET",
             url: endpoint,
             body: nil,
             signingPrivateKey: keys.signingPrivateKey
-        )
+        ))
         var request = URLRequest(url: endpoint)
         request.httpMethod = "GET"
         request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
@@ -330,14 +330,14 @@ final class NativeAccountDeviceEnrollmentService {
         let endpoint = baseURL.appending(path: "/sync/e2ee/recovery-envelope")
         let body = try envelope.jsonData()
         let nonce = try await challenge(deviceID: deviceID, accessToken: accessToken)
-        let proof = try proofFactory.make(
+        let proof = try proofFactory.make(.init(
             accessToken: accessToken,
             nonce: nonce,
             method: "PUT",
             url: endpoint,
             body: body,
             signingPrivateKey: signingPrivateKey
-        )
+        ))
         var request = URLRequest(url: endpoint)
         request.httpMethod = "PUT"
         request.httpBody = body
