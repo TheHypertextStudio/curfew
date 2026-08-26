@@ -61,9 +61,7 @@ public enum ProtocolV2Bridge {
             campaignID: campaignID,
             state: wakeState(value.state),
             attemptNumber: value.attemptNumber,
-            maximumAttempts: value.maximumAttempts,
             selectedDeviceIDs: selectedDeviceIDs,
-            finalDeadlineAt: date(value.finalDeadlineAt, field: "finalDeadlineAt"),
             statusVersion: value.statusVersion,
             updatedAt: date(value.updatedAt, field: "updatedAt")
         )
@@ -110,7 +108,6 @@ public enum ProtocolV2Bridge {
         case .ringingAttempt: .ringingAttempt
         case .quietInterval: .quietInterval
         case .satisfied: .satisfied
-        case .exhausted: .exhausted
         case .overridden: .overridden
         }
     }

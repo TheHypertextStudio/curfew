@@ -4,7 +4,6 @@ import Foundation
 extension NativeAccountSyncTransport {
     static func wakeStatus(_ value: WakeStatus) throws -> AccountWakeStatusUpdate {
         guard let campaignID = UUID(uuidString: value.campaignID),
-              let deadline = date(value.finalDeadlineAt),
               let updatedAt = date(value.updatedAt)
         else { throw NativeAccountSyncError.invalidResponse }
         let selected = try value.selectedDeviceIDS.map { identifier in
@@ -18,16 +17,13 @@ extension NativeAccountSyncTransport {
         case .ringingAttempt: .ringingAttempt
         case .quietInterval: .quietInterval
         case .satisfied: .satisfied
-        case .exhausted: .exhausted
         case .overridden: .overridden
         }
         return AccountWakeStatusUpdate(
             campaignID: campaignID,
             state: state,
             attemptNumber: value.attemptNumber,
-            maximumAttempts: value.maximumAttempts,
             selectedDeviceIDs: selected,
-            finalDeadlineAt: deadline,
             statusVersion: value.statusVersion,
             updatedAt: updatedAt
         )

@@ -74,9 +74,7 @@ extension CurfewAppModel {
               state.phase == .locked,
               let unlock = state.unlockDate
         else { return }
-        let currentWakeStatus = accountWakeLedger.current.flatMap {
-            $0.finalDeadlineAt > currentTime ? $0 : nil
-        }
+        let currentWakeStatus = accountWakeLedger.current
         let record: LockoutDeadlineRecord = if settings.accountSync.usesWakeCampaign {
             WakeLockoutDeadlineResolver.record(
                 lockoutStartedAt: currentTime,
@@ -111,18 +109,16 @@ extension CurfewAppModel {
         }
     }
 
-    /// An early campaign can arrive before or after the evening boundary. If
-    /// the lock already has an account placeholder, replace its fallback clock
-    /// atomically with the campaign's deterministic final deadline.
+    /// An early campaign can arrive before or after the evening boundary. The
+    /// account record stores its campaign identifier but never a release clock.
     private func alignActiveWakeDeadline(to update: AccountWakeStatusUpdate) {
-        guard update.finalDeadlineAt > currentTime,
-              let existing = lockoutDeadlineStore.load(),
+        guard let existing = lockoutDeadlineStore.load(),
               existing.kind == .accountWakeCampaign,
               existing.campaignID == nil || existing.campaignID == update.campaignID
         else { return }
         lockoutDeadlineStore.save(LockoutDeadlineRecord(
             lockoutStartedAt: existing.lockoutStartedAt,
-            scheduledUnlockAt: update.finalDeadlineAt,
+            scheduledUnlockAt: .distantFuture,
             kind: .accountWakeCampaign,
             campaignID: update.campaignID
         ))
@@ -153,18 +149,15 @@ extension CurfewAppModel {
     }
 
     private func releaseAccountWakeDeadline(_ record: LockoutDeadlineRecord) {
-        let releaseUntil = max(record.scheduledUnlockAt, state.unlockDate ?? .distantPast)
-        if currentTime < releaseUntil {
-            state = enforcementEngine.evaluate(
-                at: currentTime,
-                schedule: settings.schedule,
-                extensionMinutesGrantedToday:
-                extensionMinutesGrantedToday + snoozeMinutesGrantedToday,
-                overrideUntil: releaseUntil,
-                warningIntervals: settings.warningIntervals,
-                workedMinutesToday: workedMinutesToday(at: currentTime)
-            )
-        }
+        state = enforcementEngine.evaluate(
+            at: currentTime,
+            schedule: settings.schedule,
+            extensionMinutesGrantedToday:
+            extensionMinutesGrantedToday + snoozeMinutesGrantedToday,
+            overrideUntil: currentTime,
+            warningIntervals: settings.warningIntervals,
+            workedMinutesToday: workedMinutesToday(at: currentTime)
+        )
         lockoutDeadlineStore.clear()
         protectedWork.breakGlass.clear()
         try? protectedWork.claims.clear()
@@ -179,25 +172,26 @@ extension CurfewAppModel {
         else { return nil }
         let wake = accountWakeLedger.current
         let terminal = wake?.state.isTerminal == true
-        let deadlineReached = wake.map { currentTime >= $0.finalDeadlineAt } ?? false
         let activeOverride = accountRemoteOverride?.authorizes(
             deviceID: localDeviceID,
             at: currentTime
         ) == true
-        guard terminal || deadlineReached || activeOverride else { return nil }
+        guard terminal || activeOverride else { return nil }
         if activeOverride, let override = accountRemoteOverride, !terminal {
             return override.startsAt.addingTimeInterval(
                 TimeInterval(override.durationMinutes * 60)
             )
         }
-        return max(wake?.finalDeadlineAt ?? currentTime, baseline.unlockDate ?? .distantPast)
+        return currentTime
     }
 
     /// Clears the record once the natural unlock time has arrived. Called
     /// from the tick loop so the schedule resumes driving phase the
     /// moment `Date() >= scheduledUnlockAt`.
     func clearDurableDeadlineIfNaturalUnlock() {
-        guard let record = lockoutDeadlineStore.load() else { return }
+        guard let record = lockoutDeadlineStore.load(),
+              record.kind != .accountWakeCampaign
+        else { return }
         guard currentTime >= record.scheduledUnlockAt else { return }
         lockoutDeadlineStore.clear()
         // A break-glass release covers one window only. Clearing it here — at

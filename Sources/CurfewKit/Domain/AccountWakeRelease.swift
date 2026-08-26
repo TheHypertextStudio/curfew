@@ -180,15 +180,13 @@ public enum SyncAuthorityResolver {
 }
 
 /// App-domain projection of the generated WakeStatus. The coordinator keeps
-/// this privacy-minimal state server-readable so devices can converge and
-/// release at the deterministic deadline without decrypting a settings record.
+/// this privacy-minimal state server-readable so devices can converge without
+/// decrypting a settings record. A campaign remains active until release.
 public struct AccountWakeStatusUpdate: Codable, Equatable, Sendable {
     public let campaignID: UUID
     public let state: AccountWakeCampaignState
     public let attemptNumber: Int
-    public let maximumAttempts: Int
     public let selectedDeviceIDs: [UUID]
-    public let finalDeadlineAt: Date
     public let statusVersion: Int
     public let updatedAt: Date
 
@@ -196,18 +194,14 @@ public struct AccountWakeStatusUpdate: Codable, Equatable, Sendable {
         campaignID: UUID,
         state: AccountWakeCampaignState,
         attemptNumber: Int,
-        maximumAttempts: Int,
         selectedDeviceIDs: [UUID],
-        finalDeadlineAt: Date,
         statusVersion: Int,
         updatedAt: Date
     ) {
         self.campaignID = campaignID
         self.state = state
         self.attemptNumber = attemptNumber
-        self.maximumAttempts = maximumAttempts
         self.selectedDeviceIDs = selectedDeviceIDs
-        self.finalDeadlineAt = finalDeadlineAt
         self.statusVersion = statusVersion
         self.updatedAt = updatedAt
     }
@@ -218,12 +212,11 @@ public enum AccountWakeCampaignState: String, Codable, Equatable, Sendable {
     case ringingAttempt = "ringing_attempt"
     case quietInterval = "quiet_interval"
     case satisfied
-    case exhausted
     case overridden
 
     public var isTerminal: Bool {
         switch self {
-        case .satisfied, .exhausted, .overridden:
+        case .satisfied, .overridden:
             true
         case .scheduled, .ringingAttempt, .quietInterval:
             false
@@ -235,7 +228,6 @@ public enum AccountWakeLedgerError: Error, Equatable, Sendable {
     case invalidUpdate
     case staleCampaign
     case staleStatusVersion
-    case deadlineChanged
     case terminalRollback
 }
 
@@ -250,11 +242,9 @@ public struct AccountWakeLedger: Codable, Equatable, Sendable {
 
     public mutating func accept(_ update: AccountWakeStatusUpdate, now _: Date) throws {
         guard update.statusVersion >= 1,
-              (1 ... 24).contains(update.maximumAttempts),
-              (0 ... update.maximumAttempts).contains(update.attemptNumber),
+              update.attemptNumber >= 0,
               !update.selectedDeviceIDs.isEmpty,
-              Set(update.selectedDeviceIDs).count == update.selectedDeviceIDs.count,
-              update.finalDeadlineAt > update.updatedAt
+              Set(update.selectedDeviceIDs).count == update.selectedDeviceIDs.count
         else {
             throw AccountWakeLedgerError.invalidUpdate
         }
@@ -265,7 +255,6 @@ public struct AccountWakeLedger: Codable, Equatable, Sendable {
         }
         guard current.campaignID == update.campaignID else {
             guard current.state.isTerminal,
-                  update.finalDeadlineAt > current.finalDeadlineAt,
                   update.updatedAt > current.updatedAt
             else {
                 throw AccountWakeLedgerError.staleCampaign
@@ -275,9 +264,6 @@ public struct AccountWakeLedger: Codable, Equatable, Sendable {
         }
         guard update.statusVersion > current.statusVersion else {
             throw AccountWakeLedgerError.staleStatusVersion
-        }
-        guard update.finalDeadlineAt == current.finalDeadlineAt else {
-            throw AccountWakeLedgerError.deadlineChanged
         }
         guard !current.state.isTerminal || update.state.isTerminal else {
             throw AccountWakeLedgerError.terminalRollback
@@ -339,9 +325,7 @@ public struct AccountRemoteOverride: Codable, Equatable, Sendable {
 
 public enum WakeReleaseReason: Equatable, Sendable {
     case satisfied
-    case exhausted
     case authorizedOverride
-    case finalDeadline
 }
 
 public enum WakeReleaseDecision: Equatable, Sendable {
@@ -367,7 +351,7 @@ public enum WakeLockoutDeadlineResolver {
         }
         return LockoutDeadlineRecord(
             lockoutStartedAt: lockoutStartedAt,
-            scheduledUnlockAt: wakeStatus?.finalDeadlineAt ?? scheduleUnlockAt,
+            scheduledUnlockAt: .distantFuture,
             kind: .accountWakeCampaign,
             campaignID: wakeStatus?.campaignID
         )
@@ -387,26 +371,21 @@ public struct WakeReleaseEngine {
         guard deadline.kind == .accountWakeCampaign else {
             return .legacyFixedUnlock
         }
-        if date >= deadline.scheduledUnlockAt {
-            return .release(.finalDeadline)
-        }
         if remoteOverride?.authorizes(deviceID: localDeviceID, at: date) == true {
             return .release(.authorizedOverride)
         }
         guard let wakeStatus,
               wakeStatus.campaignID == deadline.campaignID
         else {
-            return .hold(until: deadline.scheduledUnlockAt)
+            return .hold(until: .distantFuture)
         }
         switch wakeStatus.state {
         case .satisfied:
             return .release(.satisfied)
-        case .exhausted:
-            return .release(.exhausted)
         case .overridden:
             return .release(.authorizedOverride)
         case .scheduled, .ringingAttempt, .quietInterval:
-            return .hold(until: deadline.scheduledUnlockAt)
+            return .hold(until: .distantFuture)
         }
     }
 }

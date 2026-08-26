@@ -28,8 +28,6 @@ final class CurfewProtocolBridgeTests: XCTestCase {
         let generatedStatus = CurfewProtocols.WakeStatus(
             attemptNumber: 1,
             campaignID: campaignID,
-            finalDeadlineAt: "2027-01-15T15:46:00Z",
-            maximumAttempts: 3,
             selectedDeviceIDS: [deviceID],
             state: .ringingAttempt,
             statusVersion: 4,
@@ -65,8 +63,6 @@ final class CurfewProtocolBridgeTests: XCTestCase {
         let status = CurfewProtocols.WakeStatus(
             attemptNumber: 0,
             campaignID: "not-a-uuid",
-            finalDeadlineAt: "2027-01-15T15:46:00Z",
-            maximumAttempts: 3,
             selectedDeviceIDS: [deviceID],
             state: .scheduled,
             statusVersion: 1,

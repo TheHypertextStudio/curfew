@@ -122,6 +122,7 @@ final class NativeAccountSyncTransportTests: XCTestCase {
             encryptionPublicKeyJwk: generated,
             enrolledAt: "2026-08-10T14:00:00Z",
             keyEpoch: 1,
+            protocolVersion: "0.3",
             signingPublicKeyJwk: generated
         )
     }

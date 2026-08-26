@@ -139,6 +139,7 @@ final class AccountEncryptionTests: XCTestCase {
             ),
             enrolledAt: "2026-08-10T14:00:00Z",
             keyEpoch: 1,
+            protocolVersion: "0.3",
             signingPublicKeyJwk: CurfewProtocols.AccountPublicKeyJWK(
                 crv: .p256,
                 kty: .ec,

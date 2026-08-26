@@ -374,7 +374,7 @@
 			repositoryURL = "https://github.com/TheHypertextStudio/curfew-protocols.git";
 			requirement = {
 				kind = exactVersion;
-				version = 0.2.3;
+				version = 0.3.0;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */

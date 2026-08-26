@@ -40,20 +40,15 @@ final class AccountWakeReleaseTests: XCTestCase {
         )
     }
 
-    func testEarlyCampaignPersistsAndPendingHoldsUntilDeterministicDeadline() throws {
-        let deadline = campaignStart.addingTimeInterval(16 * 60)
-        let update = wakeUpdate(
-            state: .scheduled,
-            finalDeadline: deadline,
-            statusVersion: 1
-        )
+    func testEarlyCampaignPersistsAndPendingHoldsUntilVerifiedRelease() throws {
+        let update = wakeUpdate(state: .scheduled, statusVersion: 1)
         var ledger = AccountWakeLedger()
 
         try ledger.accept(update, now: campaignStart.addingTimeInterval(-8 * 60 * 60))
 
         let record = LockoutDeadlineRecord(
             lockoutStartedAt: campaignStart.addingTimeInterval(-12 * 60 * 60),
-            scheduledUnlockAt: deadline,
+            scheduledUnlockAt: .distantFuture,
             kind: .accountWakeCampaign,
             campaignID: campaignID
         )
@@ -65,62 +60,34 @@ final class AccountWakeReleaseTests: XCTestCase {
             localDeviceID: deviceID
         )
 
-        XCTAssertEqual(decision, .hold(until: deadline))
+        XCTAssertEqual(decision, .hold(until: .distantFuture))
     }
 
-    func testTerminalSatisfiedAndExhaustedStatesReleaseImmediately() {
-        for state in [AccountWakeCampaignState.satisfied, .exhausted] {
-            let update = wakeUpdate(
-                state: state,
-                finalDeadline: campaignStart.addingTimeInterval(16 * 60),
-                statusVersion: 2
-            )
-            let record = LockoutDeadlineRecord(
-                lockoutStartedAt: campaignStart.addingTimeInterval(-12 * 60 * 60),
-                scheduledUnlockAt: update.finalDeadlineAt,
-                kind: .accountWakeCampaign,
-                campaignID: campaignID
-            )
-
-            let decision = WakeReleaseEngine().decision(
-                at: campaignStart.addingTimeInterval(2 * 60),
-                deadline: record,
-                wakeStatus: update,
-                remoteOverride: nil,
-                localDeviceID: deviceID
-            )
-
-            XCTAssertEqual(decision, .release(state == .satisfied ? .satisfied : .exhausted))
-        }
-    }
-
-    func testOfflineDeadlineReleasesWithoutCoordinatorState() {
-        let deadline = campaignStart.addingTimeInterval(16 * 60)
+    func testSatisfiedStateReleasesImmediately() {
         let record = LockoutDeadlineRecord(
             lockoutStartedAt: campaignStart.addingTimeInterval(-12 * 60 * 60),
-            scheduledUnlockAt: deadline,
+            scheduledUnlockAt: .distantFuture,
             kind: .accountWakeCampaign,
             campaignID: campaignID
         )
 
         let decision = WakeReleaseEngine().decision(
-            at: deadline,
+            at: campaignStart.addingTimeInterval(2 * 60),
             deadline: record,
-            wakeStatus: nil,
+            wakeStatus: wakeUpdate(state: .satisfied, statusVersion: 2),
             remoteOverride: nil,
             localDeviceID: deviceID
         )
 
-        XCTAssertEqual(decision, .release(.finalDeadline))
+        XCTAssertEqual(decision, .release(.satisfied))
     }
 
     // The cases keep every rejection reason beside the accepted override.
     // swiftlint:disable:next function_body_length
     func testOnlyCurrentAuthorizedOverrideCanReleaseThisDevice() {
-        let deadline = campaignStart.addingTimeInterval(16 * 60)
         let record = LockoutDeadlineRecord(
             lockoutStartedAt: campaignStart.addingTimeInterval(-12 * 60 * 60),
-            scheduledUnlockAt: deadline,
+            scheduledUnlockAt: .distantFuture,
             kind: .accountWakeCampaign,
             campaignID: campaignID
         )
@@ -152,7 +119,6 @@ final class AccountWakeReleaseTests: XCTestCase {
                 deadline: record,
                 wakeStatus: wakeUpdate(
                     state: .ringingAttempt,
-                    finalDeadline: deadline,
                     statusVersion: 2
                 ),
                 remoteOverride: active,
@@ -168,15 +134,14 @@ final class AccountWakeReleaseTests: XCTestCase {
                 remoteOverride: wrongDevice,
                 localDeviceID: deviceID
             ),
-            .hold(until: deadline)
+            .hold(until: .distantFuture)
         )
     }
 
-    func testLedgerRejectsStatusVersionRollbackAndDeadlineMutation() throws {
+    func testLedgerRejectsStatusVersionRollbackAndTerminalRollback() throws {
         var ledger = AccountWakeLedger()
         let current = wakeUpdate(
             state: .ringingAttempt,
-            finalDeadline: campaignStart.addingTimeInterval(16 * 60),
             statusVersion: 4
         )
         try ledger.accept(current, now: campaignStart)
@@ -185,23 +150,25 @@ final class AccountWakeReleaseTests: XCTestCase {
             try ledger.accept(
                 wakeUpdate(
                     state: .satisfied,
-                    finalDeadline: current.finalDeadlineAt,
                     statusVersion: 4
                 ),
                 now: campaignStart
             )
         ) { XCTAssertEqual($0 as? AccountWakeLedgerError, .staleStatusVersion) }
 
+        try ledger.accept(wakeUpdate(state: .satisfied, statusVersion: 5), now: campaignStart)
         XCTAssertThrowsError(
-            try ledger.accept(
-                wakeUpdate(
-                    state: .satisfied,
-                    finalDeadline: current.finalDeadlineAt.addingTimeInterval(60),
-                    statusVersion: 5
-                ),
-                now: campaignStart
-            )
-        ) { XCTAssertEqual($0 as? AccountWakeLedgerError, .deadlineChanged) }
+            try ledger.accept(wakeUpdate(state: .ringingAttempt, statusVersion: 6), now: campaignStart)
+        ) { XCTAssertEqual($0 as? AccountWakeLedgerError, .terminalRollback) }
+    }
+
+    func testLedgerAcceptsUnboundedAttempts() throws {
+        var ledger = AccountWakeLedger()
+        try ledger.accept(
+            wakeUpdate(state: .ringingAttempt, statusVersion: 1, attemptNumber: 10_000),
+            now: campaignStart
+        )
+        XCTAssertEqual(ledger.current?.attemptNumber, 10_000)
     }
 
     func testAccountEnrollmentMakesAccountSyncCanonical() throws {
@@ -283,7 +250,6 @@ final class AccountWakeReleaseTests: XCTestCase {
         var ledger = AccountWakeLedger()
         let accepted = wakeUpdate(
             state: .ringingAttempt,
-            finalDeadline: campaignStart.addingTimeInterval(16 * 60),
             statusVersion: 4
         )
         try ledger.accept(accepted, now: campaignStart)
@@ -295,7 +261,6 @@ final class AccountWakeReleaseTests: XCTestCase {
             try restored.accept(
                 wakeUpdate(
                     state: .satisfied,
-                    finalDeadline: accepted.finalDeadlineAt,
                     statusVersion: 4
                 ),
                 now: campaignStart
@@ -303,9 +268,8 @@ final class AccountWakeReleaseTests: XCTestCase {
         ) { XCTAssertEqual($0 as? AccountWakeLedgerError, .staleStatusVersion) }
     }
 
-    func testEveningBoundaryUsesEarlyCampaignDeadlineInsteadOfFixedUnlock() throws {
+    func testEveningBoundaryUsesNoDeadlineCampaignInsteadOfFixedUnlock() throws {
         let legacyUnlock = campaignStart.addingTimeInterval(30 * 60)
-        let campaignDeadline = campaignStart.addingTimeInterval(16 * 60)
         let account = try AccountSyncConfiguration(
             enrollment: AccountDeviceEnrollment(
                 deviceID: deviceID,
@@ -323,30 +287,24 @@ final class AccountWakeReleaseTests: XCTestCase {
             lockoutStartedAt: campaignStart.addingTimeInterval(-12 * 60 * 60),
             scheduleUnlockAt: legacyUnlock,
             account: account,
-            wakeStatus: wakeUpdate(
-                state: .scheduled,
-                finalDeadline: campaignDeadline,
-                statusVersion: 1
-            )
+            wakeStatus: wakeUpdate(state: .scheduled, statusVersion: 1)
         )
 
         XCTAssertEqual(record.kind, .accountWakeCampaign)
         XCTAssertEqual(record.campaignID, campaignID)
-        XCTAssertEqual(record.scheduledUnlockAt, campaignDeadline)
+        XCTAssertEqual(record.scheduledUnlockAt, .distantFuture)
     }
 
     private func wakeUpdate(
         state: AccountWakeCampaignState,
-        finalDeadline: Date,
-        statusVersion: Int
+        statusVersion: Int,
+        attemptNumber: Int? = nil
     ) -> AccountWakeStatusUpdate {
         AccountWakeStatusUpdate(
             campaignID: campaignID,
             state: state,
-            attemptNumber: state == .scheduled ? 0 : 1,
-            maximumAttempts: 3,
+            attemptNumber: attemptNumber ?? (state == .scheduled ? 0 : 1),
             selectedDeviceIDs: [deviceID],
-            finalDeadlineAt: finalDeadline,
             statusVersion: statusVersion,
             updatedAt: campaignStart
         )

@@ -31,6 +31,7 @@ struct AccountDeviceEnrollmentRequestBuilder {
             enrolledAt: enrolledAtValue,
             keyEpoch: 1,
             pkceChallenge: input.pkceChallenge,
+            protocolVersion: "0.3",
             signingPublicKeyJwk: Self.generatedJWK(input.bootstrap.signingPublicKey),
             state: input.state
         )
@@ -60,6 +61,7 @@ struct AccountDeviceEnrollmentRequestBuilder {
             enrolledAt: enrolledAtValue,
             keyEpoch: 1,
             pkceChallenge: input.pkceChallenge,
+            protocolVersion: "0.3",
             signingPublicKeyJwk: Self.generatedJWK(input.bootstrap.signingPublicKey),
             state: input.state
         )
