@@ -63,6 +63,32 @@ enum AuditTestSupport {
     }
 }
 
+/// Hermetic defaults for model tests that do not care about durable storage.
+/// A synthetic test lockout must never write into the developer's live Curfew
+/// support directory, especially when the login session is locked.
+enum ModelTestSupport {
+    static func lockoutDeadlineStore() -> LockoutDeadlineStore {
+        let recordURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("curfew-model-deadline-\(UUID().uuidString).json")
+        return LockoutDeadlineStore(recordURL: recordURL)
+    }
+
+    @MainActor
+    static func makeModel() -> CurfewAppModel {
+        let suite = "studio.hypertext.curfew.tests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite) ?? .standard
+        defaults.removePersistentDomain(forName: suite)
+        return CurfewAppModel(
+            settingsStore: CurfewSettingsStore(defaults: defaults),
+            appRouter: AppRouterSpy(),
+            gettingStartedPresenter: GettingStartedPresenterSpy(),
+            activityRecorder: NullActivityRecording(),
+            lockoutDeadlineStore: lockoutDeadlineStore(),
+            accessibilityAuthorization: FakeAccessibilityAuthorization(trusted: true)
+        )
+    }
+}
+
 /// In-memory ``AuditLogWriting`` that keeps records instead of writing them.
 ///
 /// Used by the wiring tests, which care that the right event was emitted with

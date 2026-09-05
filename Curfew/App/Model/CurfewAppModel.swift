@@ -106,7 +106,7 @@ final class CurfewAppModel: NSObject, ObservableObject {
 
     /// Delivers warning-stage user notifications and surfaces snooze taps
     /// back via `onSnoozeRequested`.
-    let notificationManager: WarningNotificationManager
+    let notificationManager: any WarningNotificationManaging
 
     /// Manages the dim / warning / lockout overlay NSWindows across displays.
     let overlayCoordinator: OverlayCoordinator
@@ -273,6 +273,7 @@ final class CurfewAppModel: NSObject, ObservableObject {
         featureFlags: FeatureFlags = .default,
         activityRecorder: any ActivityRecording,
         reflectionState: ReflectionRuntimeState = ReflectionRuntimeState(),
+        notificationManager: (any WarningNotificationManaging)? = nil,
         mcpRequestMonitor: MCPRequestMonitor = MCPRequestMonitor(),
         licenseGate: LicenseGate = LicenseGate(),
         cloudKitSyncEngine: CloudKitSyncEngine = CloudKitSyncEngine(),
@@ -289,7 +290,13 @@ final class CurfewAppModel: NSObject, ObservableObject {
         self.policyEngine = SchedulePolicyEngine()
         let enforcementEngine = CurfewEnforcementEngine()
         self.enforcementEngine = enforcementEngine
-        self.notificationManager = WarningNotificationManager()
+        if let notificationManager {
+            self.notificationManager = notificationManager
+        } else if RuntimeEnvironment.isUnitTestHost {
+            self.notificationManager = NoOpWarningNotificationManager()
+        } else {
+            self.notificationManager = WarningNotificationManager()
+        }
         self.overlayCoordinator = OverlayCoordinator()
         self.lockoutKeyInterceptor = LockoutKeyInterceptor()
         self.shutdownController = SystemShutdownController()

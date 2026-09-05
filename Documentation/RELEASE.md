@@ -68,6 +68,9 @@ prerequisites exist:
      - `Curfew.app/Contents/Resources/curfew-daemon`
      - `Curfew.app/Contents/Library/LaunchDaemons/studio.hypertext.curfew.daemon.plist`
    - The plist must keep `BundleProgram = Contents/Resources/curfew-daemon`.
+   - The Xcode bundle phase must sign `curfew-ctl`, `curfew-mcp`, and
+     `curfew-daemon` with `EXPANDED_CODE_SIGN_IDENTITY`; copying SwiftPM's
+     ad-hoc linker signature into `Contents/Resources` is not sufficient.
 
 ## Build a local signed release candidate
 
@@ -134,6 +137,9 @@ codesign --verify --deep --strict --verbose=2 "$APP"
 spctl --assess --type execute --verbose "$APP"
 codesign -d --entitlements :- "$APP"
 codesign -d --entitlements :- "$WIDGET"
+APP_TEAM="$(codesign -dv --verbose=4 "$APP" 2>&1 | sed -n 's/^TeamIdentifier=//p')"
+HELPER_TEAM="$(codesign -dv --verbose=4 "$HELPER" 2>&1 | sed -n 's/^TeamIdentifier=//p')"
+test -n "$APP_TEAM" && test "$HELPER_TEAM" = "$APP_TEAM"
 plutil -p "$HELPER_PLIST"
 ls "$WIDGET" "$HELPER" "$HELPER_PLIST"
 ```
@@ -225,11 +231,18 @@ running on a real machine.
    ```bash
    ls -l "/Library/Application Support/Curfew/lockout-active"
    ```
-6. Log out or reboot once and confirm:
+6. With the login session locked, deliver a signed staging remote-lock command
+   and confirm the daemon updates its root-owned deadline without waiting for
+   the session to unlock:
+   ```bash
+   sudo ls -l "/Library/Application Support/Curfew/lockout-deadline.json"
+   ```
+   Do not use a shutdown command for this acceptance check.
+7. Log out or reboot once and confirm:
    - Curfew relaunches as expected
    - the daemon remains installed/approved
    - helper status in Settings still reflects reality
-7. Uninstall via the app (or `scripts/uninstall.sh`) and confirm the helper and
+8. Uninstall via the app (or `scripts/uninstall.sh`) and confirm the helper and
    login-item statuses return to the uninstalled state.
 
 Treat the helper path as **not release-ready** if installation only appears to
@@ -288,7 +301,7 @@ xcrun stapler validate "$APP"
 
 1. Update `MARKETING_VERSION` + `CURRENT_PROJECT_VERSION` in `Curfew.xcodeproj`.
 2. Push the final commit to `main`; `just check` should already be green.
-3. Tag the release: `git tag v0.1.0 && git push origin v0.1.0`
+3. Tag the release: `git tag v0.0.1 && git push origin v0.0.1`
 4. `.github/workflows/release.yml` will resolve the public `curfew-protocols` SPM dependency without an additional repository secret, then:
    - run `just check`
    - archive with Developer ID signing

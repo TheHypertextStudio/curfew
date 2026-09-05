@@ -46,7 +46,9 @@ struct CurfewTests {
         let model = CurfewAppModel(
             settingsStore: store,
             appRouter: AppRouterSpy(),
-            gettingStartedPresenter: GettingStartedPresenterSpy()
+            gettingStartedPresenter: GettingStartedPresenterSpy(),
+            activityRecorder: NullActivityRecording(),
+            lockoutDeadlineStore: ModelTestSupport.lockoutDeadlineStore()
         )
 
         model.start()

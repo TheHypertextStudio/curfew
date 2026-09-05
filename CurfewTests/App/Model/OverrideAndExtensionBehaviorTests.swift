@@ -104,7 +104,7 @@ struct ExtensionResetConfigurationTests {
 struct ExtensionActivationInteractionTests {
     @Test("Tapping extension action alone does not consume budget")
     func tapDoesNotConsumeBudget() {
-        let model = CurfewAppModel()
+        let model = ModelTestSupport.makeModel()
         model.currentTime = Date(timeIntervalSince1970: 1_700_000_000)
         model.state = CurfewEvaluation(
             phase: .warning,
@@ -123,7 +123,7 @@ struct ExtensionActivationInteractionTests {
 
     @Test("Hold-confirm extension action consumes budget")
     func holdConfirmConsumesBudget() {
-        let model = CurfewAppModel()
+        let model = ModelTestSupport.makeModel()
         model.currentTime = Date()
         model.state = CurfewEvaluation(
             phase: .warning,
@@ -184,7 +184,9 @@ struct OverrideEventLoggingTests {
         let model = CurfewAppModel(
             settingsStore: store,
             appRouter: AppRouterSpy(),
-            gettingStartedPresenter: GettingStartedPresenterSpy()
+            gettingStartedPresenter: GettingStartedPresenterSpy(),
+            activityRecorder: NullActivityRecording(),
+            lockoutDeadlineStore: ModelTestSupport.lockoutDeadlineStore()
         )
 
         let now = Date(timeIntervalSince1970: 1_700_000_000)

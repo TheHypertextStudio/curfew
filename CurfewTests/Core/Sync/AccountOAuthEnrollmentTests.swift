@@ -4,6 +4,37 @@ import Foundation
 import Testing
 
 struct AccountOAuthEnrollmentTests {
+    @Test("Native OAuth uses the pre-provisioned PKCE client")
+    func nativeClientIsStable() {
+        #expect(AccountOAuthOfficialClient.clientID == "curfew-native-client")
+    }
+
+    @Test("Native token exchanges remain bound to Curfew Sync")
+    func tokenRequestsAreResourceBound() throws {
+        let authorization = AccountOAuthTokenRequest.authorizationCodeBody(
+            code: "authorization-code",
+            clientID: "curfew-native-client",
+            verifier: String(repeating: "v", count: 64),
+            redirectURI: "studio.hypertext.curfew://oauth/callback"
+        )
+        let refresh = AccountOAuthTokenRequest.refreshBody(
+            refreshToken: "rotating-refresh-token",
+            clientID: "curfew-native-client"
+        )
+
+        for body in [authorization, refresh] {
+            let encoded = try #require(String(bytes: body, encoding: .utf8))
+            let fields = try #require(URLComponents(
+                string: "?" + encoded
+            )?.queryItems)
+            let values = Dictionary(uniqueKeysWithValues: fields.compactMap { item in
+                item.value.map { (item.name, $0) }
+            })
+            #expect(values["resource"] == "https://curfew-sync.hypertext.studio")
+            #expect(values["client_id"] == "curfew-native-client")
+        }
+    }
+
     @Test("Native OAuth uses PKCE, the sync resource, and every first-party scope")
     func authorizationRequestIsResourceBound() throws {
         let request = try AccountOAuthEnrollmentRequest.create(
@@ -56,11 +87,11 @@ struct AccountOAuthEnrollmentTests {
 
     @Test("OAuth callback returns a code only for the exact one-time state")
     func callbackStateIsExact() throws {
+        let callbackValue = "studio.hypertext.curfew://oauth/callback?" +
+            "code=code-value&state=state-value"
         let callback =
             try #require(
-                URL(
-                    string: "studio.hypertext.curfew://oauth/callback?code=code-value&state=state-value"
-                )
+                URL(string: callbackValue)
             )
 
         #expect(try AccountOAuthCallback.authorizationCode(
@@ -77,11 +108,11 @@ struct AccountOAuthEnrollmentTests {
 
     @Test("OAuth callback surfaces provider rejection without accepting a code")
     func callbackProviderErrorFailsClosed() throws {
+        let callbackValue = "studio.hypertext.curfew://oauth/callback?" +
+            "error=access_denied&state=state-value"
         let callback =
             try #require(
-                URL(
-                    string: "studio.hypertext.curfew://oauth/callback?error=access_denied&state=state-value"
-                )
+                URL(string: callbackValue)
             )
 
         #expect(throws: AccountOAuthEnrollmentError.self) {
@@ -92,17 +123,13 @@ struct AccountOAuthEnrollmentTests {
         }
     }
 
-    @Test("OAuth wire responses require a public client id and rotating refresh token")
-    func tokenAndRegistrationResponsesFailClosed() throws {
-        let registration = try AccountOAuthWire.registration(
-            from: Data(#"{"client_id":"curfew-native-client"}"#.utf8)
-        )
+    @Test("OAuth wire responses require a rotating refresh token")
+    func tokenResponsesFailClosed() throws {
         let tokens = try AccountOAuthWire.tokens(
             from: Data(#"{"access_token":"access","refresh_token":"refresh","token_type":"Bearer"}"#
                 .utf8)
         )
 
-        #expect(registration.clientID == "curfew-native-client")
         #expect(tokens.accessToken == "access")
         #expect(tokens.refreshToken == "refresh")
         #expect(throws: AccountOAuthEnrollmentError.self) {

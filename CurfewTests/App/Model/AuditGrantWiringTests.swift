@@ -14,12 +14,15 @@ struct AuditGrantWiringTests {
         let suite = "studio.hypertext.curfew.tests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite) ?? .standard
         defaults.removePersistentDomain(forName: suite)
+        let deadlineURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("curfew-audit-deadline-\(UUID().uuidString).json")
         let model = CurfewAppModel(
             settingsStore: CurfewSettingsStore(defaults: defaults),
             appRouter: AppRouterSpy(),
             gettingStartedPresenter: GettingStartedPresenterSpy(),
             activityRecorder: NullActivityRecording(),
             respawnGuard: respawnGuard,
+            lockoutDeadlineStore: LockoutDeadlineStore(recordURL: deadlineURL),
             accessibilityAuthorization: FakeAccessibilityAuthorization(trusted: true)
         )
         let writer = RecordingAuditWriter()

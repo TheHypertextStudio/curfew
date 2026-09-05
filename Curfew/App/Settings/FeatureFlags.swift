@@ -57,8 +57,9 @@ struct FeatureFlags: Equatable {
     ///
     /// The local MCP server remains available so user-approved agent access to
     /// schedules, curfews and user-authored reflections ships as advertised.
-    /// CloudKit, WidgetKit, Calendar and the privileged helper stay disabled
-    /// until each has passed its signed-build and provisioning validation.
+    /// CloudKit, WidgetKit and Calendar stay disabled until each has passed its
+    /// provisioning validation. Remote MCP requires the privileged helper, so
+    /// shipping builds expose its installation/status UI and heartbeat path.
     /// Selected by ``resolved`` when the binary is compiled with the
     /// `RELEASE_FEATURES` condition. Debug / test builds never see this, so
     /// `.default` remains the value exercised by the unit-test host.
@@ -66,7 +67,7 @@ struct FeatureFlags: Equatable {
         widgetKitEnabled: false,
         cloudSyncEnabled: false,
         mcpServerEnabled: true,
-        privilegedHelperEnabled: false,
+        privilegedHelperEnabled: true,
         calendarEnabled: false
     )
 

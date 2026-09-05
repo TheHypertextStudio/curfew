@@ -10,7 +10,7 @@
 project := "Curfew.xcodeproj"
 scheme := "Curfew"
 destination := "platform=macOS"
-source_dirs := "Curfew CurfewTests CurfewUITests"
+source_dirs := "Curfew CurfewTests CurfewUITests Sources Tests"
 # Optional command-line Xcode build settings for CI-only validation (for
 # example, unsigned fork-safe builds). Local developer commands remain signed.
 xcodebuild_settings := env_var_or_default("CURFEW_XCODEBUILD_SETTINGS", "")

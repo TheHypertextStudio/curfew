@@ -1,4 +1,3 @@
-import CryptoKit
 @testable import Curfew
 import CurfewProtocols
 import Foundation
@@ -6,133 +5,320 @@ import XCTest
 
 @MainActor
 final class NativeAccountSyncTransportTests: XCTestCase {
-    func testDeviceProofBindsTokenMethodURLNonceAndBody() throws {
-        let key = P256.Signing.PrivateKey()
-        let now = Date(timeIntervalSince1970: 1_800_000_000)
-        let identifier = try XCTUnwrap(UUID(uuidString: "018f4f45-cafe-7f00-9a82-e47805fb4d34"))
-        let body = Data(#"{"deviceId":"018f4f45-cafe-7f00-9a82-e47805fb4d35"}"#.utf8)
-        let proof = try AccountDeviceProofFactory(
-            now: { now },
-            identifier: { identifier }
-        ).make(.init(
-            accessToken: "resource-bound-access-token",
-            nonce: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-            method: "POST",
-            url: XCTUnwrap(
-                URL(string: "https://curfew-sync.hypertext.studio/sync/devices/enroll")
-            ),
-            body: body,
-            signingPrivateKey: key.rawRepresentation
+    func testStatusPublicationRecordsTheExactLocalEligibilitySnapshot() throws {
+        let fixture = try makeFixture(accessToken: "resource-bound-access-token")
+        let root = temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let enrollmentStore = RemoteCommandEnrollmentStore(
+            recordURL: root.appendingPathComponent("enrollment.json")
+        )
+        try enrollmentStore.save(RemoteCommandEnrollment(
+            userID: "account_018f4f45cafe7f009a82e47805fb4d34",
+            deviceID: fixture.deviceID
         ))
+        let transport = makeTransport(
+            secrets: fixture.secrets,
+            enrollmentStore: enrollmentStore
+        )
+        let report = DeviceStatusReport(
+            deviceID: fixture.deviceID.uuidString.lowercased(),
+            phase: .warning,
+            timeZone: "America/Los_Angeles",
+            scheduleDigest: String(repeating: "S", count: 43),
+            statusVersion: 17,
+            observedAt: Date(timeIntervalSince1970: 1_800_000_000),
+            nextTransitionAt: nil,
+            activeLockoutEndsAt: nil
+        )
 
-        let parts = proof.split(separator: ".")
-        XCTAssertEqual(parts.count, 3)
-        let header = try XCTUnwrap(decode(String(parts[0])))
-        XCTAssertEqual(
-            try JSONSerialization.jsonObject(with: header) as? [String: String],
-            ["alg": "ES256", "typ": "curfew-device-proof+jws"]
-        )
-        let claims = try DeviceProofClaims(data: XCTUnwrap(decode(String(parts[1]))))
-        XCTAssertEqual(claims.httpMethod, "POST")
-        XCTAssertEqual(
-            claims.canonicalURL,
-            "https://curfew-sync.hypertext.studio/sync/devices/enroll"
-        )
-        XCTAssertEqual(claims.jti, identifier.uuidString.lowercased())
-        XCTAssertEqual(claims.nonce, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
-        XCTAssertNotNil(claims.accessTokenHash)
-        XCTAssertNotNil(claims.bodyDigest)
+        transport.publishDeviceStatus(report, deviceID: fixture.deviceID)
 
-        let signature = try P256.Signing.ECDSASignature(
-            rawRepresentation: XCTUnwrap(decode(String(parts[2])))
+        XCTAssertEqual(
+            try enrollmentStore.load()?.eligibility,
+            RemoteCommandEligibilitySnapshot(
+                statusVersion: 17,
+                scheduleDigest: String(repeating: "S", count: 43)
+            )
         )
-        XCTAssertTrue(key.publicKey.isValidSignature(
-            signature,
-            for: Data("\(parts[0]).\(parts[1])".utf8)
-        ))
     }
 
-    func testEnrollmentRequestUsesGeneratedPrivacyMinimalContract() throws {
-        let deviceID = try XCTUnwrap(UUID(uuidString: "018f4f45-cafe-7f00-9a82-e47805fb4d35"))
-        let createdAt = Date(timeIntervalSince1970: 1_800_000_000)
-        let store = AccountDeviceKeyStore(secretStore: NativeTransportMemorySecretStore())
-        let bootstrap = try store.createEnrollment(
+    func testPollStagesRemoteCommandsForPrivilegedVerification() async throws {
+        let fixture = try makeFixture(accessToken: "resource-bound-access-token")
+        let root = temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let inbox = RemoteCommandInboxStore(directoryURL: root)
+        let delivery = RemoteCommandDelivery(
+            commandEnvelope: CommandCommandEnvelope(compactJws: "header.payload.signature"),
+            cursor: "cursor_018f4f45cafe7f009a82e47805fb4d34",
+            type: .command
+        )
+        installPollingHandler(batch: RemoteCommandDeliveryBatch(commands: [delivery]))
+        defer { NativeTransportURLProtocol.handler = nil }
+        let transport = makeTransport(secrets: fixture.secrets, inboxStore: inbox)
+
+        await transport.pollOnce(deviceID: fixture.deviceID)
+
+        XCTAssertEqual(try inbox.pendingDeliveries(), [
+            PendingRemoteCommandDelivery(
+                cursor: delivery.cursor,
+                envelope: SignedRemoteLockoutCommandEnvelope(
+                    compactJWS: "header.payload.signature"
+                )
+            )
+        ])
+    }
+
+    func testExpiredAccessTokenRefreshesAndRetriesPoll() async throws {
+        let fixture = try makeFixture(
+            accessToken: "expired-access-token",
+            refreshToken: "rotating-refresh-token",
+            clientID: "curfew-native-client"
+        )
+        let events = NativeTransportEventRecorder()
+        installRefreshHandler(events: events)
+        defer { NativeTransportURLProtocol.handler = nil }
+        let transport = makeTransport(secrets: fixture.secrets)
+
+        await transport.pollOnce(deviceID: fixture.deviceID)
+
+        XCTAssertEqual(events.values, ["expired", "refresh", "commands"])
+        XCTAssertEqual(
+            try stringSecret("oauth-access-token", in: fixture.secrets),
+            "fresh-access-token"
+        )
+        XCTAssertEqual(
+            try stringSecret("oauth-refresh-token", in: fixture.secrets),
+            "fresh-refresh-token"
+        )
+    }
+
+    func testPollPublishesDaemonResultBeforeFetchingMoreCommands() async throws {
+        let fixture = try makeFixture(accessToken: "resource-bound-access-token")
+        let root = temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let exchange = RemoteCommandResultExchangeStore(
+            resultsURL: root.appendingPathComponent("results.json"),
+            acknowledgementsDirectoryURL: root.appendingPathComponent("ack", isDirectory: true)
+        )
+        let result = try daemonResult(deviceID: fixture.deviceID)
+        try exchange.publish([result])
+        let events = NativeTransportEventRecorder()
+        installResultHandler(events: events)
+        defer { NativeTransportURLProtocol.handler = nil }
+        let transport = makeTransport(
+            secrets: fixture.secrets,
+            inboxStore: RemoteCommandInboxStore(
+                directoryURL: root.appendingPathComponent("inbox", isDirectory: true)
+            ),
+            resultExchangeStore: exchange
+        )
+
+        await transport.pollOnce(deviceID: fixture.deviceID)
+
+        XCTAssertEqual(events.values, ["result", "commands"])
+        XCTAssertEqual(
+            try exchange.pendingReceipt(for: result)?.compactJWS,
+            Self.syntheticReceiptJWS
+        )
+    }
+}
+
+private extension NativeAccountSyncTransportTests {
+    func makeFixture(
+        accessToken: String,
+        refreshToken: String? = nil,
+        clientID: String? = nil
+    ) throws -> (deviceID: UUID, secrets: NativeTransportMemorySecretStore) {
+        let deviceID = try XCTUnwrap(
+            UUID(uuidString: "018f4f45-cafe-7f00-9a82-e47805fb4d35")
+        )
+        let secrets = NativeTransportMemorySecretStore()
+        try secrets.save(Data(accessToken.utf8), for: "oauth-access-token")
+        if let refreshToken {
+            try secrets.save(Data(refreshToken.utf8), for: "oauth-refresh-token")
+        }
+        if let clientID {
+            try secrets.save(Data(clientID.utf8), for: "oauth-client-id")
+        }
+        _ = try AccountDeviceKeyStore(secretStore: secrets).createEnrollment(
             deviceID: deviceID,
             keyEpoch: 1,
-            createdAt: createdAt
-        )
-        let keys = try XCTUnwrap(store.load(deviceID: deviceID))
-        let request = try AccountDeviceEnrollmentRequestBuilder(
-            proofFactory: AccountDeviceProofFactory(
-                now: { createdAt },
-                identifier: { UUID(uuidString: "018f4f45-cafe-7f00-9a82-e47805fb4d36")! }
-            )
-        ).make(AccountDeviceEnrollmentRequestInput(
-            accessToken: "resource-bound-access-token",
-            nonce: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-            deviceID: deviceID,
-            bootstrap: bootstrap,
-            keys: keys,
-            enrolledAt: createdAt,
-            pkceChallenge: "pkce-challenge",
-            state: "oauth-state"
-        ))
-        let encoded = try request.jsonData()
-        let object = try XCTUnwrap(
-            JSONSerialization.jsonObject(with: encoded) as? [String: Any]
-        )
-
-        XCTAssertEqual(request.deviceID, deviceID.uuidString.lowercased())
-        XCTAssertEqual(request.keyEpoch, 1)
-        XCTAssertEqual(request.state, "oauth-state")
-        XCTAssertNotNil(object["deviceProof"])
-        XCTAssertNil(object["displayName"])
-        XCTAssertNil(object["platform"])
-    }
-
-    func testPeerRootDistributionSkipsTheCurrentDevice() throws {
-        let currentID = try XCTUnwrap(UUID(uuidString: "018f4f45-cafe-7f00-9a82-e47805fb4d35"))
-        let peerID = try XCTUnwrap(UUID(uuidString: "018f4f45-cafe-7f00-9a82-e47805fb4d36"))
-        let current = enrollment(id: currentID, key: P256.KeyAgreement.PrivateKey().publicKey)
-        let peer = enrollment(id: peerID, key: P256.KeyAgreement.PrivateKey().publicKey)
-
-        let envelopes = try AccountPeerRootKeyDistributor.envelopes(
-            rootKey: Data(repeating: 0x42, count: 32),
-            currentDeviceID: currentID,
-            devices: [current, peer],
             createdAt: Date(timeIntervalSince1970: 1_800_000_000)
         )
-
-        XCTAssertEqual(envelopes.map(\.recipientDeviceID), [peerID.uuidString.lowercased()])
+        return (deviceID, secrets)
     }
 
-    private func enrollment(
-        id: UUID,
-        key: P256.KeyAgreement.PublicKey
-    ) -> CurfewProtocols.AccountDeviceEnrollment {
-        let local = AccountPublicKeyJWK(agreementPublicKey: key)
-        let generated = CurfewProtocols.AccountPublicKeyJWK(
-            crv: .p256,
-            kty: .ec,
-            x: local.x,
-            y: local.y
-        )
-        return CurfewProtocols.AccountDeviceEnrollment(
-            deviceID: id.uuidString.lowercased(),
-            encryptionPublicKeyJwk: generated,
-            enrolledAt: "2026-08-10T14:00:00Z",
-            keyEpoch: 1,
-            protocolVersion: "0.3",
-            signingPublicKeyJwk: generated
+    private func makeTransport(
+        secrets: NativeTransportMemorySecretStore,
+        inboxStore: RemoteCommandInboxStore? = nil,
+        resultExchangeStore: RemoteCommandResultExchangeStore? = nil,
+        enrollmentStore: RemoteCommandEnrollmentStore? = nil
+    ) -> NativeAccountSyncTransport {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [NativeTransportURLProtocol.self]
+        return NativeAccountSyncTransport(
+            secretStore: secrets,
+            session: URLSession(configuration: configuration),
+            inboxStore: inboxStore,
+            resultExchangeStore: resultExchangeStore,
+            enrollmentStore: enrollmentStore
         )
     }
 
-    private func decode(_ value: String) -> Data? {
-        var base64 = value.replacingOccurrences(of: "-", with: "+")
-            .replacingOccurrences(of: "_", with: "/")
-        base64 += String(repeating: "=", count: (4 - base64.count % 4) % 4)
-        return Data(base64Encoded: base64)
+    private func installPollingHandler(batch: RemoteCommandDeliveryBatch) {
+        NativeTransportURLProtocol.handler = { request in
+            let path = try XCTUnwrap(request.url?.path)
+            switch (request.httpMethod, path) {
+            case ("POST", "/sync/device-proof/challenge"):
+                return Self.challengeResponse()
+            case ("GET", "/sync/devices"):
+                return (200, Data("[]".utf8))
+            case ("GET", "/sync/wake/status"),
+                 ("GET", "/sync/remote-overrides/active"):
+                return (404, Data())
+            case ("GET", "/sync/remote-control/commands"):
+                return try (200, batch.jsonData())
+            default:
+                XCTFail("unexpected request: \(request.httpMethod ?? "nil") \(path)")
+                return (500, Data())
+            }
+        }
     }
+
+    private func installRefreshHandler(events: NativeTransportEventRecorder) {
+        NativeTransportURLProtocol.handler = { request in
+            let path = try XCTUnwrap(request.url?.path)
+            if path == "/api/auth/oauth2/token" {
+                events.append("refresh")
+                return Self.freshTokensResponse(for: request)
+            }
+            let authorization = request.value(forHTTPHeaderField: "Authorization")
+            if authorization == "Bearer expired-access-token" {
+                events.append("expired")
+                return (401, Data())
+            }
+            XCTAssertEqual(authorization, "Bearer fresh-access-token")
+            if path == "/sync/remote-control/commands" {
+                events.append("commands")
+            }
+            return try Self.pollingResponse(for: request)
+        }
+    }
+
+    private func installResultHandler(events: NativeTransportEventRecorder) {
+        NativeTransportURLProtocol.handler = { request in
+            let path = try XCTUnwrap(request.url?.path)
+            switch (request.httpMethod, path) {
+            case ("POST", "/sync/remote-control/commands/result"):
+                events.append("result")
+                return try (200, CurfewProtocols.SignedRemoteCommandResultReceiptEnvelope(
+                    compactJws: Self.syntheticReceiptJWS
+                ).jsonData())
+            case ("GET", "/sync/remote-control/commands"):
+                XCTAssertEqual(events.values, ["result"])
+                events.append("commands")
+                return try (200, RemoteCommandDeliveryBatch(commands: []).jsonData())
+            default:
+                return try Self.pollingResponse(for: request)
+            }
+        }
+    }
+
+    private static func pollingResponse(for request: URLRequest) throws -> (Int, Data) {
+        switch try (request.httpMethod, XCTUnwrap(request.url?.path)) {
+        case ("POST", "/sync/device-proof/challenge"):
+            return challengeResponse()
+        case ("GET", "/sync/devices"):
+            return (200, Data("[]".utf8))
+        case ("GET", "/sync/wake/status"),
+             ("GET", "/sync/remote-overrides/active"):
+            return (404, Data())
+        case ("GET", "/sync/remote-control/commands"):
+            return try (200, RemoteCommandDeliveryBatch(commands: []).jsonData())
+        default:
+            XCTFail(
+                "unexpected request: \(request.httpMethod ?? "nil") \(request.url?.path ?? "nil")"
+            )
+            return (500, Data())
+        }
+    }
+
+    private static func freshTokensResponse(for request: URLRequest) -> (Int, Data) {
+        XCTAssertEqual(request.httpMethod, "POST")
+        XCTAssertEqual(
+            request.value(forHTTPHeaderField: "Content-Type"),
+            "application/x-www-form-urlencoded; charset=UTF-8"
+        )
+        let json = #"{"access_token":"fresh-access-token","# +
+            #""refresh_token":"fresh-refresh-token","token_type":"Bearer"}"#
+        return (200, Data(json.utf8))
+    }
+
+    private static func challengeResponse() -> (Int, Data) {
+        let json = #"{"coordinatorNonce":"AAAAAAAAAAAAAAAAAAAAAA","# +
+            #""expiresAt":"2026-09-05T08:35:00Z","keyEpoch":1}"#
+        return (200, Data(json.utf8))
+    }
+
+    private static let syntheticReceiptJWS =
+        "eyJhbGciOiJFUzI1NiJ9.e30." + String(repeating: "A", count: 86)
+
+    private func daemonResult(deviceID: UUID) throws -> Curfew.RemoteCommandResult {
+        try Curfew.RemoteCommandResult(
+            commandID: XCTUnwrap(
+                UUID(uuidString: "018f4f45-cafe-7f00-9a82-e47805fb4d34")
+            ),
+            deviceID: deviceID,
+            sequence: 7,
+            stage: .applied,
+            resolvedAt: Date(timeIntervalSince1970: 1_800_000_000),
+            appliedDeadline: Date(timeIntervalSince1970: 1_800_000_900)
+        )
+    }
+
+    private func temporaryDirectory() -> URL {
+        FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+    }
+
+    private func stringSecret(
+        _ name: String,
+        in store: NativeTransportMemorySecretStore
+    ) throws -> String? {
+        try store.data(for: name).flatMap { String(data: $0, encoding: .utf8) }
+    }
+}
+
+private final class NativeTransportURLProtocol: URLProtocol, @unchecked Sendable {
+    nonisolated(unsafe) static var handler: ((URLRequest) throws -> (Int, Data))?
+
+    override static func canInit(with _: URLRequest) -> Bool {
+        true
+    }
+
+    override static func canonicalRequest(for request: URLRequest) -> URLRequest {
+        request
+    }
+
+    override func startLoading() {
+        do {
+            let handler = try XCTUnwrap(Self.handler)
+            let (status, data) = try handler(request)
+            let response = try XCTUnwrap(try HTTPURLResponse(
+                url: XCTUnwrap(request.url),
+                statusCode: status,
+                httpVersion: "HTTP/1.1",
+                headerFields: ["Content-Type": "application/json"]
+            ))
+            client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+            client?.urlProtocol(self, didLoad: data)
+            client?.urlProtocolDidFinishLoading(self)
+        } catch {
+            client?.urlProtocol(self, didFailWithError: error)
+        }
+    }
+
+    override func stopLoading() {}
 }
 
 private final class NativeTransportMemorySecretStore: AccountSecretStoring {
@@ -148,5 +334,22 @@ private final class NativeTransportMemorySecretStore: AccountSecretStoring {
 
     func delete(_ account: String) throws {
         values.removeValue(forKey: account)
+    }
+}
+
+private final class NativeTransportEventRecorder: @unchecked Sendable {
+    private let lock = NSLock()
+    private var storage: [String] = []
+
+    var values: [String] {
+        lock.lock()
+        defer { lock.unlock() }
+        return storage
+    }
+
+    func append(_ value: String) {
+        lock.lock()
+        storage.append(value)
+        lock.unlock()
     }
 }

@@ -30,5 +30,6 @@ struct DaemonPlistTests {
         let keepAlive = try #require(plist["KeepAlive"] as? [String: Any])
         let pathState = try #require(keepAlive["PathState"] as? [String: Bool])
         #expect(pathState[SharedPaths.lockoutActiveSentinel.path] == true)
+        #expect(plist["StartInterval"] as? Int == 15)
     }
 }

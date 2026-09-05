@@ -140,8 +140,7 @@ public enum BreakGlassSigner {
 
     private static func loadOrCreateSecret(at url: URL) -> SymmetricKey? {
         let fileManager = FileManager.default
-        if fileManager.fileExists(atPath: url.path),
-           let data = try? Data(contentsOf: url),
+        if let data = try? BoundedRegularFileReader.read(url, maximumBytes: 32),
            data.count == 32 {
             return SymmetricKey(data: data)
         }
@@ -255,9 +254,11 @@ public struct BreakGlassStore {
 
     /// Reads the record without checking it.
     public func load() -> BreakGlassRelease? {
-        guard fileManager.fileExists(atPath: recordURL.path),
-              let data = try? Data(contentsOf: recordURL),
-              let release = try? decoder.decode(BreakGlassRelease.self, from: data)
+        guard let data = try? BoundedRegularFileReader.read(
+            recordURL,
+            maximumBytes: 65536
+        ),
+            let release = try? decoder.decode(BreakGlassRelease.self, from: data)
         else {
             return nil
         }

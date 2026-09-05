@@ -23,4 +23,16 @@ public enum Base64URL {
             .replacingOccurrences(of: "/", with: "_")
             .replacingOccurrences(of: "=", with: "")
     }
+
+    /// Decodes a strictly unpadded base64url value.
+    public static func decode(_ value: String) -> Data? {
+        guard !value.isEmpty,
+              value.range(of: "^[A-Za-z0-9_-]+$", options: .regularExpression) != nil
+        else { return nil }
+        var base64 = value
+            .replacingOccurrences(of: "-", with: "+")
+            .replacingOccurrences(of: "_", with: "/")
+        base64 += String(repeating: "=", count: (4 - base64.count % 4) % 4)
+        return Data(base64Encoded: base64)
+    }
 }

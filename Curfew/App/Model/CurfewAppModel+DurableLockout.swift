@@ -109,6 +109,22 @@ extension CurfewAppModel {
         }
     }
 
+    /// Projects a command already authenticated and applied by the privileged
+    /// daemon into the running app. The projection is device-bound and may
+    /// only preserve or strengthen an active deadline, never shorten it.
+    func acceptRemoteCommandResult(_ result: RemoteCommandResult) {
+        guard let deviceID = settings.accountSync.enrollment?.deviceID else { return }
+        let current = lockoutDeadlineStore.load()
+        guard let projected = RemoteCommandLockoutProjection.resolve(
+            result: result,
+            enrolledDeviceID: deviceID,
+            now: currentTime,
+            current: current
+        ), projected != current else { return }
+        lockoutDeadlineStore.save(projected)
+        reconcileDurableLockoutDeadline()
+    }
+
     /// An early campaign can arrive before or after the evening boundary. The
     /// account record stores its campaign identifier but never a release clock.
     private func alignActiveWakeDeadline(to update: AccountWakeStatusUpdate) {
@@ -209,7 +225,9 @@ extension CurfewAppModel {
     func enforceDurableDeadlineIfActive() {
         guard let record = lockoutDeadlineStore.load() else { return }
         guard currentTime < record.scheduledUnlockAt else { return }
-        if let overrideUntil, currentTime < overrideUntil {
+        if record.kind != .remoteCommand,
+           let overrideUntil,
+           currentTime < overrideUntil {
             return
         }
         guard state.phase != .locked else { return }

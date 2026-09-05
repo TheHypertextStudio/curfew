@@ -419,6 +419,58 @@ only.
   - `swift package resolve`
   - `xcodebuild -resolvePackageDependencies -project Curfew.xcodeproj -scheme Curfew`
   - `CurfewProtocolBridgeTests`
+- `Signed app builds sign every embedded CLI/helper with the host identity,
+  while explicitly unsigned CI builds remain buildable.`
+  - `AppConfigurationBehaviorTests/bundledDaemonUsesHostSigningIdentity()`
+  - `scripts/release-entitlements.test.mjs` (`unsigned CI builds skip embedded tool signing`)
+- `An unlocked enrolled Mac periodically wakes its privileged daemon, accepts
+  only a coordinator-signed command for the enrolled account/device, and makes
+  the authenticated remote deadline visible to the existing enforcement loop.`
+  - `DaemonPlistTests`
+  - `RemoteCommandVerifierTests`
+  - `RemoteCommandInboxStoreTests`
+  - `RemoteCommandInboxStoreTests/embeddedCursorMustMatchEnumeratedFilename()`
+  - `RemoteCommandInboxStoreTests/poisonPrefixCannotPermanentlyStarveCommands()`
+  - `RemoteCommandInboxStoreTests/directoryPoisonCannotPermanentlyStarveCommands()`
+  - `DaemonRemoteCommandControllerTests`
+  - `DaemonCommandBackendTests/localBackendShadowsDeadline()`
+  - `DaemonCommandBackendTests/remoteBackendOwnsTransportAndDeadline()`
+  - `DaemonCommandBackendTests/backendSetIsolatesFailures()`
+  - `DaemonCommandBackendTests/synchronizationFailurePreservesDurableDeadline()`
+  - `DaemonLockoutDeadlineResolverTests`
+  - `AccountLifecycleWiringTests/authenticatedRemoteResultPresentsLockout()`
+  - `swift build --product curfew-daemon`
+  - `AppConfigurationTests/bundledDaemonUsesHostSigningIdentity()`
+- `A remote command must use the released lock-device wire kind and exactly
+  match the status version and schedule digest most recently published by this
+  Mac; missing or stale eligibility cannot create a deadline.`
+  - `RemoteCommandVerifierTests/acceptsValidES256Command()`
+  - `DaemonRemoteCommandControllerTests/rejectsCommandWithoutEligibilitySnapshot()`
+  - `DaemonRemoteCommandControllerTests/rejectsStaleStatusVersion()`
+  - `DaemonRemoteCommandControllerTests/rejectsStaleScheduleDigest()`
+  - `NativeAccountSyncTransportTests/testStatusPublicationRecordsTheExactLocalEligibilitySnapshot()`
+- `A daemon terminal result maps exactly to the released 0.0.9 result shape,
+  is acknowledged and published before another command fetch, and stays in the
+  durable outbox until the daemon consumes an exact publication acknowledgement.`
+  - `NativeAccountSyncMappingTests/testDaemonResultMapsExactlyToReleasedProtocol()`
+  - `NativeAccountSyncTransportTests/testPollPublishesDaemonResultBeforeFetchingMoreCommands()`
+  - `RemoteCommandInboxStoreTests/resultExchangeRoundTripsDurably()`
+  - `RemoteCommandInboxStoreTests/malformedAcknowledgementIsQuarantined()`
+  - `DaemonRemoteCommandControllerTests/backendReconcilesResultExchange()`
+  - `DaemonRemoteCommandControllerTests/rejectsMismatchedResultAcknowledgement()`
+- `The root daemon never follows a user-replaceable inbox/result/acknowledgement
+  symlink and rejects exchange directories not owned by root in production.`
+  - `RemoteCommandInboxStoreTests`
+  - `RemoteCommandInboxStoreTests/rejectsNonRootOwnedResultExchangeDirectory()`
+  - `SharedPathsTests`
+- `Durable deadlines are replaced atomically with private permissions, and
+  model tests never write synthetic lockouts into the developer's protected
+  Application Support directory.`
+  - `LockoutDeadlineStoreTests/saveReplacesTheRecordWithPrivatePermissions()`
+  - `AuditGrantWiringTests`
+  - `AuditWiringTests`
+  - `CurfewTests/enforcementArmsOnlyAfterSetupCompletion()`
+  - `SetupUXTests/completeOnboardingFlowUpdatesState()`
 - `The public static MCP guide and the repository-owned Mintlify source give
   the same correct Claude Desktop configuration and permissions boundary until
   Mintlify is intentionally published.`

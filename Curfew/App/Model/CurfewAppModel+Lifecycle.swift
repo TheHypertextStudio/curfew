@@ -228,13 +228,13 @@ extension CurfewAppModel {
         mirrorProtectedWorkPolicy()
     }
 
-    // Both budget trackers must rebase before settings persist or sync.
-    // swiftlint:disable function_body_length
+    /// Both budget trackers rebase before settings persist or sync.
     /// Reacts to `@Published settings` changes: rebuilds budget trackers
     /// on limit/weekday changes, replays the week's usage so counts
     /// don't jump, pushes to CloudKit, and toggles the MCP monitor/
     /// socket pair with the MCP master switch.
     func handleSettingsMutation(from oldValue: CurfewSettings) {
+        let remoteEligibilityChanged = settings.schedule != oldValue.schedule
         let extensionConfigChanged = settings.resetWeekday != oldValue.resetWeekday
             || settings.extensionWeeklyLimit != oldValue.extensionWeeklyLimit
             || settings.extensionDurationMinutes != oldValue.extensionDurationMinutes
@@ -283,26 +283,32 @@ extension CurfewAppModel {
         } else {
             accountSyncEngine.noteLocalSettingsChanged()
         }
+        if remoteEligibilityChanged, settings.accountSync.isEnrolled {
+            publishDeviceStatus(trigger: .configuration)
+        }
         if settings.accountSync != oldValue.accountSync {
             reconcileProGatedModules()
         }
 
+        reconcileMCPRuntime(from: oldValue)
+    }
+
+    private func reconcileMCPRuntime(from oldValue: CurfewSettings) {
         // The MCP runtime is gated on BOTH the build-level feature flag and
         // the user-level setting. When the flag is off the start branch is
         // unreachable, so a setting toggle never spins up the monitor/socket
         // on a build that doesn't ship MCP.
-        if featureFlags.mcpServerEnabled, settings.mcpEnabled != oldValue.mcpEnabled {
-            if settings.mcpEnabled {
-                mcpRequestMonitor.start()
-                mcpSocketServer.start()
-            } else {
-                mcpRequestMonitor.stop()
-                mcpSocketServer.stop()
-            }
+        guard featureFlags.mcpServerEnabled, settings.mcpEnabled != oldValue.mcpEnabled else {
+            return
+        }
+        if settings.mcpEnabled {
+            mcpRequestMonitor.start()
+            mcpSocketServer.start()
+        } else {
+            mcpRequestMonitor.stop()
+            mcpSocketServer.stop()
         }
     }
-
-    // swiftlint:enable function_body_length
 
     /// Toggles the CGEventTap that intercepts ⌘⇥ / ⌘Q / ⌘⌥Esc during
     /// lockout. Called once per tick; tap lifecycle tracks enforcement.

@@ -103,9 +103,11 @@ public struct ProtectedWorkStore {
 
     /// Every claim on disk, expired ones included.
     public func load() -> [ProtectedWorkClaim] {
-        guard fileManager.fileExists(atPath: recordURL.path),
-              let data = try? Data(contentsOf: recordURL),
-              let claims = try? decoder.decode([ProtectedWorkClaim].self, from: data)
+        guard let data = try? BoundedRegularFileReader.read(
+            recordURL,
+            maximumBytes: 1_048_576
+        ),
+            let claims = try? decoder.decode([ProtectedWorkClaim].self, from: data)
         else {
             return []
         }
