@@ -9,18 +9,62 @@
 import AppKit
 @testable import Curfew
 import Foundation
+import Security
 import Testing
 
 struct AppConfigurationTests {
     @Test("Host app disables LSUIElement so it launches as a normal app window")
     func hostAppIsWindowed() throws {
-        // Match the host app by its actual running bundle id — `…curfew` in
-        // production, `…curfew.dev` in a development build — rather than a
-        // hardcoded literal, so the flavor split doesn't break the assertion.
-        let appBundle = try #require(Bundle.allBundles
-            .first(where: { $0.bundleIdentifier == Bundle.main.bundleIdentifier }))
+        // The direct XCTest runner's main bundle is xctest itself. Resolve the
+        // containing test-host app so this checks Curfew's generated plist in
+        // both Xcode-hosted and direct test runs.
+        var bundleURL = Bundle(for: BundleAnchor.self).bundleURL
+        while bundleURL.pathExtension != "app", bundleURL.pathComponents.count > 1 {
+            bundleURL.deleteLastPathComponent()
+        }
+        let appBundle = try #require(Bundle(url: bundleURL))
         let value = appBundle.object(forInfoDictionaryKey: "LSUIElement") as? Bool
         #expect(value == false)
+    }
+
+    @Test("Bundled daemon carries the same Apple signing team as Curfew")
+    func bundledDaemonUsesHostSigningIdentity() throws {
+        let appURL = try hostAppURL()
+        let daemonURL = appURL.appendingPathComponent("Contents/Resources/curfew-daemon")
+        let appTeam = try signingTeamIdentifier(at: appURL)
+        let daemonTeam = try signingTeamIdentifier(at: daemonURL)
+
+        #expect(!appTeam.isEmpty)
+        #expect(daemonTeam == appTeam)
+    }
+
+    private final class BundleAnchor {}
+
+    private func hostAppURL() throws -> URL {
+        var bundleURL = Bundle(for: BundleAnchor.self).bundleURL
+        while bundleURL.pathExtension != "app", bundleURL.pathComponents.count > 1 {
+            bundleURL.deleteLastPathComponent()
+        }
+        return try #require(bundleURL.pathExtension == "app" ? bundleURL : nil)
+    }
+
+    private func signingTeamIdentifier(at url: URL) throws -> String {
+        var staticCode: SecStaticCode?
+        let createStatus = SecStaticCodeCreateWithPath(
+            url as CFURL,
+            SecCSFlags(),
+            &staticCode
+        )
+        #expect(createStatus == errSecSuccess)
+        var signingInformation: CFDictionary?
+        let informationStatus = try SecCodeCopySigningInformation(
+            #require(staticCode),
+            SecCSFlags(rawValue: kSecCSSigningInformation),
+            &signingInformation
+        )
+        #expect(informationStatus == errSecSuccess)
+        let information = try #require(signingInformation as? [CFString: Any])
+        return try #require(information[kSecCodeInfoTeamIdentifier] as? String)
     }
 }
 
@@ -81,13 +125,13 @@ struct FeatureFlagTests {
         #expect(DeferredFeaturePanel.visible(for: .default).isEmpty)
     }
 
-    @Test("Initial Release enables only the local MCP integration")
-    func shippingEnablesOnlyValidatedLocalIntegration() {
+    @Test("Shipping enables MCP and its required privileged enforcement backend")
+    func shippingEnablesRemoteEnforcementPath() {
         let flags = FeatureFlags.shipping
         #expect(flags.widgetKitEnabled == false)
         #expect(flags.cloudSyncEnabled == false)
         #expect(flags.mcpServerEnabled)
-        #expect(flags.privilegedHelperEnabled == false)
+        #expect(flags.privilegedHelperEnabled)
         #expect(flags.calendarEnabled == false)
     }
 

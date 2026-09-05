@@ -139,9 +139,9 @@ public struct DaemonRemoteMCPBackend: DaemonCommandBackend {
     }
 
     public func synchronize(at now: Date) throws -> [RemoteCommandDaemonReceipt] {
-        try commandProcessor.reconcileResultExchange(resultExchange)
+        try commandProcessor.reconcileResultExchange(resultExchange, at: now)
         let receipts = try commandProcessor.processPending(at: now)
-        try commandProcessor.reconcileResultExchange(resultExchange)
+        try commandProcessor.reconcileResultExchange(resultExchange, at: now)
         return receipts
     }
 

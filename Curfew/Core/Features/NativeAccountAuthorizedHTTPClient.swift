@@ -63,7 +63,7 @@ struct NativeAccountAuthorizedHTTPClient {
         accessToken: String,
         signingPrivateKey: Data
     ) async throws {
-        try await write(.init(
+        _ = try await write(.init(
             method: "PUT",
             path: path,
             body: body,
@@ -73,13 +73,14 @@ struct NativeAccountAuthorizedHTTPClient {
         ))
     }
 
+    @discardableResult
     func post(
         path: String,
         body: Data,
         deviceID: UUID,
         accessToken: String,
         signingPrivateKey: Data
-    ) async throws {
+    ) async throws -> Data {
         try await write(.init(
             method: "POST",
             path: path,
@@ -90,7 +91,7 @@ struct NativeAccountAuthorizedHTTPClient {
         ))
     }
 
-    private func write(_ input: NativeAuthorizedWrite) async throws {
+    private func write(_ input: NativeAuthorizedWrite) async throws -> Data {
         let nonce = try await challenge(deviceID: input.deviceID, accessToken: input.accessToken)
         let url = baseURL.appending(path: input.path)
         let proof = try proofFactory.make(.init(
@@ -111,13 +112,14 @@ struct NativeAccountAuthorizedHTTPClient {
             forHTTPHeaderField: "X-Curfew-Device-ID"
         )
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        let (_, response) = try await session.data(for: request)
+        let (data, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse else {
             throw NativeAccountSyncError.invalidResponse
         }
         guard (200 ..< 300).contains(http.statusCode) else {
             throw NativeAccountSyncError.rejected(http.statusCode)
         }
+        return data
     }
 
     private func challenge(deviceID: UUID, accessToken: String) async throws -> String {

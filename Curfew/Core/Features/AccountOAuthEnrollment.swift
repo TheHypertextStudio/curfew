@@ -39,10 +39,6 @@ enum AccountOAuthCallback {
     }
 }
 
-struct AccountOAuthRegistration: Equatable {
-    let clientID: String
-}
-
 struct AccountOAuthTokens: Equatable {
     let accessToken: String
     let refreshToken: String
@@ -54,19 +50,8 @@ struct AccountOAuthGrant: Equatable {
     let codeChallenge: String
 }
 
-enum AccountOAuthClientRegistration {
-    static func requestBody() throws -> Data {
-        try JSONSerialization.data(withJSONObject: [
-            "client_name": "Curfew for macOS",
-            "token_endpoint_auth_method": "none",
-            "application_type": "native",
-            "redirect_uris": ["studio.hypertext.curfew://oauth/callback"],
-            "grant_types": ["authorization_code", "refresh_token"],
-            "response_types": ["code"],
-            "scope": AccountOAuthEnrollmentRequest.requiredScopes.joined(separator: " "),
-            "resources": [FirstPartyResource.httpsCurfewSyncHypertextStudio.rawValue]
-        ])
-    }
+enum AccountOAuthOfficialClient {
+    static let clientID = "curfew-native-client"
 }
 
 enum AccountOAuthTokenRequest {
@@ -108,17 +93,6 @@ enum AccountOAuthTokenRequest {
 }
 
 enum AccountOAuthWire {
-    static func registration(from data: Data) throws -> AccountOAuthRegistration {
-        guard data.count <= 32 * 1024,
-              let response = try? decoder.decode(
-                  AccountOAuthRegistrationResponse.self,
-                  from: data
-              ),
-              !response.clientID.isEmpty
-        else { throw AccountOAuthEnrollmentError.invalidResponse }
-        return AccountOAuthRegistration(clientID: response.clientID)
-    }
-
     static func tokens(from data: Data) throws -> AccountOAuthTokens {
         guard data.count <= 32 * 1024,
               let response = try? decoder.decode(AccountOAuthTokenResponse.self, from: data),
@@ -176,11 +150,6 @@ final class AccountOAuthTokenRefresher {
     }
 }
 
-private struct AccountOAuthRegistrationResponse: Decodable {
-    let clientID: String
-    private enum CodingKeys: String, CodingKey { case clientID = "client_id" }
-}
-
 private struct AccountOAuthTokenResponse: Decodable {
     let accessToken: String
     let refreshToken: String
@@ -212,7 +181,7 @@ final class AccountOAuthEnrollmentService: NSObject,
     }
 
     func signIn() async throws -> AccountOAuthGrant {
-        let clientID = try await registeredClientID()
+        let clientID = AccountOAuthOfficialClient.clientID
         let request = try AccountOAuthEnrollmentRequest.create(
             clientID: clientID,
             callbackScheme: Self.callbackScheme,
@@ -225,6 +194,7 @@ final class AccountOAuthEnrollmentService: NSObject,
             expectedState: request.state
         )
         let tokens = try await exchange(code: code, clientID: clientID, request: request)
+        try secretStore.save(Data(clientID.utf8), for: "oauth-client-id")
         try secretStore.save(Data(tokens.accessToken.utf8), for: "oauth-access-token")
         try secretStore.save(Data(tokens.refreshToken.utf8), for: "oauth-refresh-token")
         return AccountOAuthGrant(
@@ -236,24 +206,6 @@ final class AccountOAuthEnrollmentService: NSObject,
 
     func presentationAnchor(for _: ASWebAuthenticationSession) -> ASPresentationAnchor {
         NSApplication.shared.keyWindow ?? NSApplication.shared.windows.first ?? NSWindow()
-    }
-
-    private func registeredClientID() async throws -> String {
-        if let stored = try secretStore.data(for: "oauth-client-id"),
-           let clientID = String(data: stored, encoding: .utf8),
-           !clientID.isEmpty {
-            return clientID
-        }
-        let endpoint = Self.accountOrigin.appending(path: "/api/auth/oauth2/register")
-        var request = URLRequest(url: endpoint)
-        request.httpMethod = "POST"
-        request.httpBody = try AccountOAuthClientRegistration.requestBody()
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-        let data = try await responseData(for: request)
-        let registration = try AccountOAuthWire.registration(from: data)
-        try secretStore.save(Data(registration.clientID.utf8), for: "oauth-client-id")
-        return registration.clientID
     }
 
     private func authenticate(_ request: AccountOAuthEnrollmentRequest) async throws -> URL {

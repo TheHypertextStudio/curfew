@@ -14,7 +14,10 @@ public struct AccountWakeLedgerStore {
     }
 
     public func load() -> AccountWakeLedger? {
-        guard let data = try? Data(contentsOf: recordURL) else { return nil }
+        guard let data = try? BoundedRegularFileReader.read(
+            recordURL,
+            maximumBytes: 1_048_576
+        ) else { return nil }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         return try? decoder.decode(AccountWakeLedger.self, from: data)

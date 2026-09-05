@@ -425,6 +425,9 @@ only.
   - `DaemonPlistTests`
   - `RemoteCommandVerifierTests`
   - `RemoteCommandInboxStoreTests`
+  - `RemoteCommandInboxStoreTests/embeddedCursorMustMatchEnumeratedFilename()`
+  - `RemoteCommandInboxStoreTests/poisonPrefixCannotPermanentlyStarveCommands()`
+  - `RemoteCommandInboxStoreTests/directoryPoisonCannotPermanentlyStarveCommands()`
   - `DaemonRemoteCommandControllerTests`
   - `DaemonCommandBackendTests/localBackendShadowsDeadline()`
   - `DaemonCommandBackendTests/remoteBackendOwnsTransportAndDeadline()`
@@ -433,7 +436,16 @@ only.
   - `DaemonLockoutDeadlineResolverTests`
   - `AccountLifecycleWiringTests/authenticatedRemoteResultPresentsLockout()`
   - `swift build --product curfew-daemon`
-- `A daemon terminal result maps exactly to the released 0.0.8 result shape,
+  - `AppConfigurationTests/bundledDaemonUsesHostSigningIdentity()`
+- `A remote command must use the released lock-device wire kind and exactly
+  match the status version and schedule digest most recently published by this
+  Mac; missing or stale eligibility cannot create a deadline.`
+  - `RemoteCommandVerifierTests/acceptsValidES256Command()`
+  - `DaemonRemoteCommandControllerTests/rejectsCommandWithoutEligibilitySnapshot()`
+  - `DaemonRemoteCommandControllerTests/rejectsStaleStatusVersion()`
+  - `DaemonRemoteCommandControllerTests/rejectsStaleScheduleDigest()`
+  - `NativeAccountSyncTransportTests/testStatusPublicationRecordsTheExactLocalEligibilitySnapshot()`
+- `A daemon terminal result maps exactly to the released 0.0.9 result shape,
   is acknowledged and published before another command fetch, and stays in the
   durable outbox until the daemon consumes an exact publication acknowledgement.`
   - `NativeAccountSyncMappingTests/testDaemonResultMapsExactlyToReleasedProtocol()`
@@ -442,6 +454,11 @@ only.
   - `RemoteCommandInboxStoreTests/malformedAcknowledgementIsQuarantined()`
   - `DaemonRemoteCommandControllerTests/backendReconcilesResultExchange()`
   - `DaemonRemoteCommandControllerTests/rejectsMismatchedResultAcknowledgement()`
+- `The root daemon never follows a user-replaceable inbox/result/acknowledgement
+  symlink and rejects exchange directories not owned by root in production.`
+  - `RemoteCommandInboxStoreTests`
+  - `RemoteCommandInboxStoreTests/rejectsNonRootOwnedResultExchangeDirectory()`
+  - `SharedPathsTests`
 - `Durable deadlines are replaced atomically with private permissions, and
   model tests never write synthetic lockouts into the developer's protected
   Application Support directory.`

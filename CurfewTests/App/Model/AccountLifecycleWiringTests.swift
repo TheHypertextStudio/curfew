@@ -72,6 +72,57 @@ struct AccountLifecycleWiringTests {
         #expect(model.lockoutDeadlineStore.load()?.kind == .remoteCommand)
     }
 
+    @Test("A daemon-applied remote deadline supersedes a local Convince Me override")
+    func remoteDeadlineSupersedesLocalOverride() throws {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let model = try makeModel(accountSync: configuration())
+        model.currentTime = now
+        model.overrideUntil = now.addingTimeInterval(3600)
+        model.state = CurfewEvaluation(
+            phase: .working,
+            warningStage: .none,
+            minutesRemaining: 60,
+            canRequestExtension: false,
+            lockDate: nil,
+            unlockDate: nil
+        )
+        model.lockoutDeadlineStore.save(LockoutDeadlineRecord(
+            lockoutStartedAt: now,
+            scheduledUnlockAt: now.addingTimeInterval(1800),
+            kind: .remoteCommand
+        ))
+
+        model.enforceDurableDeadlineIfActive()
+
+        #expect(model.state.phase == .locked)
+        #expect(model.state.unlockDate == now.addingTimeInterval(1800))
+    }
+
+    @Test("A schedule edit immediately publishes a new remote eligibility snapshot")
+    func scheduleEditImmediatelyInvalidatesRemoteEligibility() throws {
+        let transport = RemoteResultTransportSpy()
+        let account = try configuration()
+        let model = makeModel(
+            accountSync: account,
+            accountSyncEngine: AccountSyncEngine(transport: transport)
+        )
+        model.licenseGate.testInjectActivatedKey(LicenseKey(
+            email: "tester@example.com",
+            product: "curfew-pro",
+            orderID: "schedule-eligibility",
+            issuedAt: model.currentTime
+        ))
+        model.reconcileProGatedModules()
+        let publicationCountBeforeEdit = transport.publishedReports.count
+        model.settings.schedule.rules[.monday] = .weekendDefault
+
+        #expect(transport.publishedReports.count == publicationCountBeforeEdit + 1)
+        #expect(
+            transport.publishedReports.last?.scheduleDigest
+                == DeviceStatusReport.scheduleDigest(for: model.settings.schedule)
+        )
+    }
+
     private func configuration(
         deviceID: UUID = UUID(),
         enrolledAt: Date = Date(),
@@ -126,6 +177,7 @@ struct AccountLifecycleWiringTests {
 @MainActor
 private final class RemoteResultTransportSpy: AccountSyncTransporting {
     private var onRemoteCommandResult: ((RemoteCommandResult) -> Void)?
+    private(set) var publishedReports: [DeviceStatusReport] = []
 
     func connect(
         deviceID _: UUID,
@@ -137,7 +189,9 @@ private final class RemoteResultTransportSpy: AccountSyncTransporting {
         self.onRemoteCommandResult = onRemoteCommandResult
     }
 
-    func publishDeviceStatus(_: DeviceStatusReport, deviceID _: UUID) {}
+    func publishDeviceStatus(_ report: DeviceStatusReport, deviceID _: UUID) {
+        publishedReports.append(report)
+    }
 
     func disconnect() {
         onRemoteCommandResult = nil

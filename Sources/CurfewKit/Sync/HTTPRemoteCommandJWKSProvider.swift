@@ -25,6 +25,24 @@ private final class RemoteCommandJWKSResponseBox: @unchecked Sendable {
     }
 }
 
+private final class RemoteCommandJWKSCache: @unchecked Sendable {
+    private let lock = NSLock()
+    private var value: (jwks: RemoteCommandJWKS, fetchedAt: Date)?
+
+    func fresh(at now: Date, lifetime: TimeInterval) -> RemoteCommandJWKS? {
+        lock.lock()
+        defer { lock.unlock() }
+        guard let value, now.timeIntervalSince(value.fetchedAt) < lifetime else { return nil }
+        return value.jwks
+    }
+
+    func store(_ jwks: RemoteCommandJWKS, at now: Date) {
+        lock.lock()
+        value = (jwks, now)
+        lock.unlock()
+    }
+}
+
 private final class RemoteCommandRedirectDelegate: NSObject, URLSessionTaskDelegate,
     @unchecked Sendable {
     func urlSession(
@@ -46,11 +64,14 @@ public final class HTTPRemoteCommandJWKSProvider: RemoteCommandJWKSProvider,
     private let endpoint: URL
     private let session: URLSession
     private let timeout: TimeInterval
+    private let cacheLifetime: TimeInterval
+    private let cache = RemoteCommandJWKSCache()
 
     public init(
         endpoint: URL,
         session: URLSession? = nil,
-        timeout: TimeInterval = 10
+        timeout: TimeInterval = 2,
+        cacheLifetime: TimeInterval = 300
     ) {
         self.endpoint = endpoint
         self.session = session ?? URLSession(
@@ -59,9 +80,14 @@ public final class HTTPRemoteCommandJWKSProvider: RemoteCommandJWKSProvider,
             delegateQueue: nil
         )
         self.timeout = timeout
+        self.cacheLifetime = cacheLifetime
     }
 
     public func jwks() throws -> RemoteCommandJWKS {
+        let now = Date()
+        if let cached = cache.fresh(at: now, lifetime: cacheLifetime) {
+            return cached
+        }
         guard endpoint.scheme == "https",
               endpoint.user == nil,
               endpoint.password == nil,
@@ -99,6 +125,7 @@ public final class HTTPRemoteCommandJWKSProvider: RemoteCommandJWKSProvider,
               !jwks.keys.isEmpty,
               jwks.keys.count <= 8
         else { throw RemoteCommandJWKSFetchError.invalidResponse }
+        cache.store(jwks, at: now)
         return jwks
     }
 }

@@ -2,21 +2,6 @@ import CurfewProtocols
 import Foundation
 
 extension NativeAccountSyncTransport {
-    static func remoteCommandAcknowledgement(
-        _ result: RemoteCommandResult
-    ) throws -> CurfewProtocols.DAcknowledgement {
-        guard result.sequence > 0, result.sequence <= Int64(Int.max) else {
-            throw NativeAccountSyncError.invalidResponse
-        }
-        return CurfewProtocols.DAcknowledgement(
-            acknowledgedAt: wireDate(result.resolvedAt),
-            commandID: result.commandID.uuidString.lowercased(),
-            deviceID: result.deviceID.uuidString.lowercased(),
-            sequence: Int(result.sequence),
-            stage: .delivered
-        )
-    }
-
     static func remoteCommandResult(
         _ result: RemoteCommandResult
     ) throws -> CurfewProtocols.RemoteCommandResult {

@@ -5,6 +5,43 @@ import XCTest
 
 @MainActor
 final class NativeAccountSyncTransportTests: XCTestCase {
+    func testStatusPublicationRecordsTheExactLocalEligibilitySnapshot() throws {
+        let fixture = try makeFixture(accessToken: "resource-bound-access-token")
+        let root = temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let enrollmentStore = RemoteCommandEnrollmentStore(
+            recordURL: root.appendingPathComponent("enrollment.json")
+        )
+        try enrollmentStore.save(RemoteCommandEnrollment(
+            userID: "account_018f4f45cafe7f009a82e47805fb4d34",
+            deviceID: fixture.deviceID
+        ))
+        let transport = makeTransport(
+            secrets: fixture.secrets,
+            enrollmentStore: enrollmentStore
+        )
+        let report = DeviceStatusReport(
+            deviceID: fixture.deviceID.uuidString.lowercased(),
+            phase: .warning,
+            timeZone: "America/Los_Angeles",
+            scheduleDigest: String(repeating: "S", count: 43),
+            statusVersion: 17,
+            observedAt: Date(timeIntervalSince1970: 1_800_000_000),
+            nextTransitionAt: nil,
+            activeLockoutEndsAt: nil
+        )
+
+        transport.publishDeviceStatus(report, deviceID: fixture.deviceID)
+
+        XCTAssertEqual(
+            try enrollmentStore.load()?.eligibility,
+            RemoteCommandEligibilitySnapshot(
+                statusVersion: 17,
+                scheduleDigest: String(repeating: "S", count: 43)
+            )
+        )
+    }
+
     func testPollStagesRemoteCommandsForPrivilegedVerification() async throws {
         let fixture = try makeFixture(accessToken: "resource-bound-access-token")
         let root = temporaryDirectory()
@@ -78,14 +115,16 @@ final class NativeAccountSyncTransportTests: XCTestCase {
 
         await transport.pollOnce(deviceID: fixture.deviceID)
 
-        XCTAssertEqual(events.values, ["acknowledge", "result", "commands"])
+        XCTAssertEqual(events.values, ["result", "commands"])
         XCTAssertEqual(
-            try exchange.pendingAcknowledgements(),
-            [RemoteCommandResultIdentity(result: result)]
+            try exchange.pendingReceipt(for: result)?.compactJWS,
+            Self.syntheticReceiptJWS
         )
     }
+}
 
-    private func makeFixture(
+private extension NativeAccountSyncTransportTests {
+    func makeFixture(
         accessToken: String,
         refreshToken: String? = nil,
         clientID: String? = nil
@@ -112,7 +151,8 @@ final class NativeAccountSyncTransportTests: XCTestCase {
     private func makeTransport(
         secrets: NativeTransportMemorySecretStore,
         inboxStore: RemoteCommandInboxStore? = nil,
-        resultExchangeStore: RemoteCommandResultExchangeStore? = nil
+        resultExchangeStore: RemoteCommandResultExchangeStore? = nil,
+        enrollmentStore: RemoteCommandEnrollmentStore? = nil
     ) -> NativeAccountSyncTransport {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [NativeTransportURLProtocol.self]
@@ -120,7 +160,8 @@ final class NativeAccountSyncTransportTests: XCTestCase {
             secretStore: secrets,
             session: URLSession(configuration: configuration),
             inboxStore: inboxStore,
-            resultExchangeStore: resultExchangeStore
+            resultExchangeStore: resultExchangeStore,
+            enrollmentStore: enrollmentStore
         )
     }
 
@@ -170,12 +211,11 @@ final class NativeAccountSyncTransportTests: XCTestCase {
             switch (request.httpMethod, path) {
             case ("POST", "/sync/remote-control/commands/result"):
                 events.append("result")
-                return (200, Data("{}".utf8))
-            case ("POST", "/sync/remote-control/commands/acknowledge"):
-                events.append("acknowledge")
-                return (200, Data("{}".utf8))
+                return try (200, CurfewProtocols.SignedRemoteCommandResultReceiptEnvelope(
+                    compactJws: Self.syntheticReceiptJWS
+                ).jsonData())
             case ("GET", "/sync/remote-control/commands"):
-                XCTAssertEqual(events.values, ["acknowledge", "result"])
+                XCTAssertEqual(events.values, ["result"])
                 events.append("commands")
                 return try (200, RemoteCommandDeliveryBatch(commands: []).jsonData())
             default:
@@ -219,6 +259,9 @@ final class NativeAccountSyncTransportTests: XCTestCase {
             #""expiresAt":"2026-09-05T08:35:00Z","keyEpoch":1}"#
         return (200, Data(json.utf8))
     }
+
+    private static let syntheticReceiptJWS =
+        "eyJhbGciOiJFUzI1NiJ9.e30." + String(repeating: "A", count: 86)
 
     private func daemonResult(deviceID: UUID) throws -> Curfew.RemoteCommandResult {
         try Curfew.RemoteCommandResult(

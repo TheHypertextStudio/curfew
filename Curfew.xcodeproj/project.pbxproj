@@ -374,7 +374,7 @@
 			repositoryURL = "https://github.com/TheHypertextStudio/curfew-protocols.git";
 			requirement = {
 				kind = exactVersion;
-				version = 0.0.8;
+				version = 0.0.9;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
@@ -439,7 +439,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "set -e\ncd \"$SRCROOT\"\nmkdir -p \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Resources\"\nmkdir -p \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Library/LaunchDaemons\"\nswift build -c release --product curfew-ctl\nswift build -c release --product curfew-mcp\nswift build -c release --product curfew-daemon\ncp .build/release/curfew-ctl \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Resources/curfew-ctl\"\ncp .build/release/curfew-mcp \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Resources/curfew-mcp\"\ncp .build/release/curfew-daemon \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Resources/curfew-daemon\"\ncp Curfew/Resources/LaunchDaemons/studio.hypertext.curfew.daemon.plist \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Library/LaunchDaemons/studio.hypertext.curfew.daemon.plist\"\n";
+			shellScript = "set -e\ncd \"$SRCROOT\"\nmkdir -p \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Resources\"\nmkdir -p \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Library/LaunchDaemons\"\nswift build -c release --product curfew-ctl\nswift build -c release --product curfew-mcp\nswift build -c release --product curfew-daemon\ncp .build/release/curfew-ctl \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Resources/curfew-ctl\"\ncp .build/release/curfew-mcp \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Resources/curfew-mcp\"\ncp .build/release/curfew-daemon \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Resources/curfew-daemon\"\nfor tool in curfew-ctl curfew-mcp curfew-daemon; do\n    /usr/bin/codesign --force --sign \"$EXPANDED_CODE_SIGN_IDENTITY\" --options runtime \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Resources/$tool\"\ndone\ncp Curfew/Resources/LaunchDaemons/studio.hypertext.curfew.daemon.plist \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Library/LaunchDaemons/studio.hypertext.curfew.daemon.plist\"\n";
 		};
 		C0FE0000000000000000ABCD /* Require Signed Build */ = {
 			isa = PBXShellScriptBuildPhase;

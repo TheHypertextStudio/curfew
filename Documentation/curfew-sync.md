@@ -108,17 +108,28 @@ This means a compromised coordinator cannot push a "lock window shrinks to zero"
 
 ### Remote MCP endpoint (OAuth 2.1)
 
-This is the AI-control surface — the reason Sync exists beyond F13. Architectural sketch only; wire-level details are deferred to a future implementation doc.
+This is the AI-control surface — the reason Sync exists beyond F13. Its wire
+authority is the exact `@thehypertextstudio/curfew-protocols@0.0.9` release.
 
-- **Transport:** Streamable HTTP per MCP spec 2025-03-26, exposed at `https://curfew-sync.hypertext.studio/mcp`. This is the same transport shape F9 already supports on loopback via `StreamableHTTPTransport` — Sync extends it to a public, authenticated endpoint.
-- **Authorization:** OAuth 2.1 with PKCE per the MCP spec. Authorization Code flow. Refresh tokens issued; access tokens short-lived. Tokens live on the AI host (the user's Claude Desktop config, browser keychain, etc.), never on Curfew's servers beyond what's needed to validate them on the way in. Dynamic client registration is supported where the host implements it; static registration is the fallback for hosts that don't.
-- **Scope categories.** Granted per-scope, not all-or-nothing. Named at the level of *kinds*:
-  - Read scopes — status, activity, budget.
-  - Write scopes — `request_extension`, `request_override`, `set_schedule`. Each write scope is independently grantable.
-  - Least-privilege defaults: the consent screen pre-selects read-only.
+- **Transport:** Streamable HTTP and discovery per MCP `2026-07-28`, exposed at
+  `https://curfew-sync.hypertext.studio/mcp` with an MCP App resource for status
+  and strengthening-only controls.
+- **Authorization:** OAuth 2.1 Authorization Code with mandatory PKCE through
+  Better Auth's `oauthProvider()`. The deprecated Better Auth `mcp()` plugin is
+  not used. Access tokens are short-lived and resource-bound; refresh tokens
+  rotate. CIMD accepts standards-compliant public HTTPS client metadata, including
+  third-party AI hosts, through a no-redirect, bounded, SSRF-constrained fetch.
+- **Scope categories.** Granted per-scope, not all-or-nothing. Read scopes cover
+  devices, entitlements, wake state, and unlock-request state. The distinct
+  `curfew:lock:device` scope authorizes exactly one opted-in device per tool call;
+  only `curfew:lock:all` authorizes coordinator-side fan-out across every opted-in
+  device. Neither scope authorizes an unlock or weaker schedule.
 - **Tool surface.** The generated registry contains exactly `list_devices`,
   `list_entitlements`, `get_wake_status`, `request_remote_unlock`,
-  `get_remote_unlock_request`, and `cancel_remote_unlock`.
+  `get_remote_unlock_request`, `cancel_remote_unlock`, `curfew.lock.device`, and
+  `curfew.lock.all`. The two lock tools advertise destructive/idempotent hints,
+  while the MCP App itself requires a visible five-minute confirmation, awaits
+  the result, and announces queued or failed outcomes.
 - **Revocation.** The Curfew app exposes a "Connected AI tools" panel listing every OAuth client with active tokens. Per-client revoke is one tap and takes effect on the next request the host makes; the coordinator's token cache is invalidated immediately.
 
 Access tokens last 15 minutes. Rotating refresh tokens last 30 days. Tokens are
@@ -126,9 +137,22 @@ resource-bound, use PKCE, and remain subject to consent and live revocation.
 
 ### Authorization and consent
 
-OAuth grants *transport* permission. Per-tool consent is a separate, on-device decision.
+OAuth grants transport authority. Operations that could loosen Curfew remain a
+separate, on-device decision. A fixed remote lock is different: the explicit lock
+scope plus the MCP App confirmation authorizes a strengthening-only command so it
+can work while the user is away from the Mac.
 
-- A remote MCP `tools/call` for a write tool enqueues a pending request via the coordinator, exactly like F9's local write tools enqueue through `MCPRequestQueue`. The coordinator does not approve writes itself.
+- A remote unlock `tools/call` enqueues a pending request via the coordinator,
+  exactly like F9's local write tools enqueue through `MCPRequestQueue`. The
+  coordinator does not approve that request itself.
+- A remote lock is signed for one device at a time, or deterministically fanned
+  out under the all-device scope. The daemon accepts it only for its enrolled
+  account/device and only when the signed status version and schedule digest
+  equal the Mac's last locally recorded status publication.
+- The app stages opaque signed envelopes. The root daemon performs verification,
+  replay protection, eligibility comparison, and atomic deadline/result commit.
+  Cross-privilege inbox and result files live under root-owned Application Support
+  and are accessed with no-follow, directory-relative filesystem operations.
 - The approval prompt appears on whichever enrolled device the user is currently active on, picked using the same active-device heuristic F15 already uses (most recent input within 120 s). If no device is active, the request waits and surfaces a notification on every enrolled device.
 - The user's existing AI consent policy (`AIConsentPolicy` — auto-approve / ask-each-time / always-deny) is consulted locally. The coordinator never overrides it.
 - **Audit log.** Every server-driven device action — every remote MCP tool call that resulted in a state change, every consent prompt, every approval or denial — is visible in the in-app activity log with the OAuth client name, the originating device (if known), and a timestamp. Surprises are the failure mode here; the audit log is the antidote.

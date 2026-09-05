@@ -34,7 +34,7 @@ public enum RemoteCommandVerificationError: Error, Equatable {
 
 public struct RemoteCommandVerifier: Sendable {
     private let configuration: RemoteCommandVerifierConfiguration
-    private let jwksProvider: any RemoteCommandJWKSProvider
+    private let jwks: RemoteCommandJWKS
     private let nextScheduledUnlock: @Sendable (Date) -> Date?
 
     public init(
@@ -46,7 +46,7 @@ public struct RemoteCommandVerifier: Sendable {
             throw RemoteCommandVerificationError.invalidCommand
         }
         self.configuration = configuration
-        self.jwksProvider = jwksProvider
+        self.jwks = try jwksProvider.jwks()
         self.nextScheduledUnlock = nextScheduledUnlock
     }
 
@@ -83,7 +83,7 @@ public struct RemoteCommandVerifier: Sendable {
             throw RemoteCommandVerificationError.invalidHeader
         }
 
-        let matchingKeys = try jwksProvider.jwks().keys.filter { $0.keyID == header.keyID }
+        let matchingKeys = jwks.keys.filter { $0.keyID == header.keyID }
         guard !matchingKeys.isEmpty else {
             throw RemoteCommandVerificationError.unknownKey
         }
@@ -142,7 +142,7 @@ public struct RemoteCommandVerifier: Sendable {
     }
 
     private func validate(_ payload: RemoteLockoutCommandPayload, at now: Date) throws {
-        guard payload.kind == "remote_lock",
+        guard payload.kind == "lock_device",
               payload.userID == configuration.userID,
               !payload.userID.isEmpty,
               payload.userID.count <= 128,

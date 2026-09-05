@@ -68,6 +68,9 @@ prerequisites exist:
      - `Curfew.app/Contents/Resources/curfew-daemon`
      - `Curfew.app/Contents/Library/LaunchDaemons/studio.hypertext.curfew.daemon.plist`
    - The plist must keep `BundleProgram = Contents/Resources/curfew-daemon`.
+   - The Xcode bundle phase must sign `curfew-ctl`, `curfew-mcp`, and
+     `curfew-daemon` with `EXPANDED_CODE_SIGN_IDENTITY`; copying SwiftPM's
+     ad-hoc linker signature into `Contents/Resources` is not sufficient.
 
 ## Build a local signed release candidate
 
@@ -134,6 +137,9 @@ codesign --verify --deep --strict --verbose=2 "$APP"
 spctl --assess --type execute --verbose "$APP"
 codesign -d --entitlements :- "$APP"
 codesign -d --entitlements :- "$WIDGET"
+APP_TEAM="$(codesign -dv --verbose=4 "$APP" 2>&1 | sed -n 's/^TeamIdentifier=//p')"
+HELPER_TEAM="$(codesign -dv --verbose=4 "$HELPER" 2>&1 | sed -n 's/^TeamIdentifier=//p')"
+test -n "$APP_TEAM" && test "$HELPER_TEAM" = "$APP_TEAM"
 plutil -p "$HELPER_PLIST"
 ls "$WIDGET" "$HELPER" "$HELPER_PLIST"
 ```

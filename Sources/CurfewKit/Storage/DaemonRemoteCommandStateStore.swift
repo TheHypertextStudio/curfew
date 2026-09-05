@@ -54,17 +54,23 @@ public struct RemoteCommandResult: Codable, Equatable, Sendable {
 }
 
 public struct DaemonRemoteCommandState: Codable, Equatable, Sendable {
+    public var enrolledUserID: String?
+    public var enrolledDeviceID: UUID?
     public var highestSequence: Int64
     public var activeLockout: LockoutDeadlineRecord?
     public var pendingResults: [RemoteCommandResult]
     public var resultsByIdempotencyKey: [String: RemoteCommandResult]
 
     public init(
+        enrolledUserID: String? = nil,
+        enrolledDeviceID: UUID? = nil,
         highestSequence: Int64 = 0,
         activeLockout: LockoutDeadlineRecord? = nil,
         pendingResults: [RemoteCommandResult] = [],
         resultsByIdempotencyKey: [String: RemoteCommandResult] = [:]
     ) {
+        self.enrolledUserID = enrolledUserID
+        self.enrolledDeviceID = enrolledDeviceID
         self.highestSequence = highestSequence
         self.activeLockout = activeLockout
         self.pendingResults = pendingResults
@@ -81,10 +87,12 @@ public struct DaemonRemoteCommandStateStore: Sendable {
     }
 
     public func load() throws -> DaemonRemoteCommandState {
-        guard FileManager.default.fileExists(atPath: stateURL.path) else {
+        guard let data = try BoundedRegularFileReader.read(
+            stateURL,
+            maximumBytes: 1_048_576
+        ) else {
             return DaemonRemoteCommandState()
         }
-        let data = try Data(contentsOf: stateURL)
         return try Self.decoder.decode(DaemonRemoteCommandState.self, from: data)
     }
 

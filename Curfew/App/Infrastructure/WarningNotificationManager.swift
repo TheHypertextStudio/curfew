@@ -25,6 +25,33 @@ struct WarningNotificationCategoryDefinition: Equatable {
     let actionIdentifiers: [String]
 }
 
+@MainActor
+protocol WarningNotificationManaging: AnyObject {
+    var onSnoozeRequested: (() -> Void)? { get set }
+    func requestPermissionIfNeeded()
+    func update(
+        stage: WarningStage,
+        now: Date,
+        alreadyFiredElsewhere: Set<String>
+    )
+    func deliverDistractionNudge()
+}
+
+@MainActor
+final class NoOpWarningNotificationManager: WarningNotificationManaging {
+    var onSnoozeRequested: (() -> Void)?
+
+    func requestPermissionIfNeeded() {}
+
+    func update(
+        stage _: WarningStage,
+        now _: Date,
+        alreadyFiredElsewhere _: Set<String>
+    ) {}
+
+    func deliverDistractionNudge() {}
+}
+
 /// Delivers `UNUserNotification` banners for each ``WarningStage`` transition
 /// and routes the snooze action back to the app model.
 ///
@@ -119,6 +146,19 @@ final class WarningNotificationManager: NSObject {
             center.add(request)
         }
         lastDeliveredStage = stage
+    }
+
+    func update(
+        stage: WarningStage,
+        now: Date,
+        alreadyFiredElsewhere: Set<String>
+    ) {
+        update(
+            stage: stage,
+            now: now,
+            calendar: .current,
+            alreadyFiredElsewhere: alreadyFiredElsewhere
+        )
     }
 
     /// Delivers the presence-driven distraction nudge.
@@ -291,6 +331,8 @@ final class WarningNotificationManager: NSObject {
         center.setNotificationCategories(Set(categories))
     }
 }
+
+extension WarningNotificationManager: WarningNotificationManaging {}
 
 /// Delegate conformance that routes notification responses (snooze
 /// taps, tap-to-open) back into the app model on the main actor.

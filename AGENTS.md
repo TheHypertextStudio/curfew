@@ -8,15 +8,15 @@ Curfew lives across three repositories. Boundaries here matter — most edits st
 
 - **`curfew`** (this repo) — the macOS app, the local `curfew-mcp` and `curfew-ctl` and `curfew-daemon` binaries, the license-issuer Cloudflare Worker (`scripts/issue-license.ts` + root `wrangler.toml`), the landing site (`landing/`), the Homebrew cask (`Casks/`), and the product-level Curfew Sync design (`Documentation/curfew-sync.md`).
 - **`curfew-sync`** ([github.com/TheHypertextStudio/curfew-sync](https://github.com/TheHypertextStudio/curfew-sync)) — the Cloudflare-deployed Curfew Sync coordinator: Hono Worker, Durable Objects, D1, Better Auth, OAuth 2.1 MCP endpoint. Backend architecture lives in *that* repo's `Documentation/ARCHITECTURE.md`.
-- **`curfew-protocols`** ([github.com/TheHypertextStudio/curfew-protocols](https://github.com/TheHypertextStudio/curfew-protocols), npm `@hypertext/curfew-protocols`) — versioned JSON Schemas for MCP tools, pending-request shapes, and (in v0.2+) sync delta envelopes and OAuth payloads. Consumed by both `curfew` (via SPM) and `curfew-sync` (via npm). Tagged releases only — no floating `main` references.
+- **`curfew-protocols`** ([github.com/TheHypertextStudio/curfew-protocols](https://github.com/TheHypertextStudio/curfew-protocols), GitHub Packages `@thehypertextstudio/curfew-protocols`) — versioned JSON Schemas for MCP tools, pending-request shapes, sync delta envelopes, and OAuth payloads. Consumed by both `curfew` (via SPM) and `curfew-sync` (via pnpm with GitHub Packages credentials). Tagged `0.0.x` releases only — no floating `main` references.
 
 ## Cross-repo changes
 
 A change to a wire-format shape (MCP tool argument schemas, the `MCPPendingRequest` envelope, OAuth scope strings, sync deltas) is a **three-PR ceremony**, in this order:
 
-1. **`curfew-protocols`** — edit schema, run `pnpm codegen`, contract tests, bump version (semver: additive = minor, breaking = major), tag, `pnpm publish`.
-2. **`curfew-sync`** — bump `@hypertext/curfew-protocols` in `package.json`, update consuming code, deploy.
-3. **`curfew`** (this repo) — bump the SPM pin in `Package.swift` (currently `exact: "0.1.0"` for the curfew-mcp target), update consuming Swift code, ship in the next macOS release.
+1. **`curfew-protocols`** — edit schema, run `pnpm codegen`, contract tests, bump to the next `0.0.x` version, tag, and publish once to GitHub Packages.
+2. **`curfew-sync`** — bump `@thehypertextstudio/curfew-protocols` in `package.json`, update consuming code, and deploy with GitHub Packages read credentials.
+3. **`curfew`** (this repo) — bump the exact SPM tag in `Package.swift` (currently `0.0.8`), update consuming Swift code, and ship in the next macOS release.
 
 Do not invent new shapes in this repo. If a shape needs to exist on the wire (anything the local app sends to or receives from a remote AI host or the coordinator), it goes through `curfew-protocols` first.
 
@@ -32,7 +32,7 @@ Primary code and docs locations:
 
 - `Curfew/` app code (Swift/SwiftUI/AppKit + domain logic)
 - `Sources/CurfewKit/` shared Swift library (SPM target; also compiled into the Xcode app via PBXFileSystemSynchronizedRootGroup)
-- `Sources/curfew-mcp/` local MCP server binary; consumes `@hypertext/curfew-protocols` via SPM
+- `Sources/curfew-mcp/` local MCP server binary; consumes the same `@thehypertextstudio/curfew-protocols` release via SPM
 - `Sources/curfew-ctl/` CLI
 - `Sources/curfew-daemon/` privileged helper
 - `CurfewTests/` unit and behavior tests
@@ -115,10 +115,10 @@ Lint and format commands:
 
 ```bash
 # apply formatting
-swiftformat Curfew CurfewTests CurfewUITests
+swiftformat Curfew CurfewTests CurfewUITests Sources Tests
 
 # formatting check (must pass before completion claim)
-swiftformat Curfew CurfewTests CurfewUITests --lint
+swiftformat Curfew CurfewTests CurfewUITests Sources Tests --lint
 
 # lint check (must pass before completion claim)
 swiftlint lint --strict
@@ -209,8 +209,8 @@ Execution expectations:
 Required execution order:
 
 ```bash
-swiftformat Curfew CurfewTests CurfewUITests
-swiftformat Curfew CurfewTests CurfewUITests --lint
+swiftformat Curfew CurfewTests CurfewUITests Sources Tests
+swiftformat Curfew CurfewTests CurfewUITests Sources Tests --lint
 swiftlint lint --strict
 xcodebuild test -project Curfew.xcodeproj -scheme Curfew -destination 'platform=macOS' -only-testing:CurfewTests
 ```
@@ -270,7 +270,7 @@ xcodebuild test -project Curfew.xcodeproj -scheme Curfew -destination 'platform=
 - Lint command outcome
 - Minimum commands to report:
 ```bash
-swiftformat Curfew CurfewTests CurfewUITests --lint
+swiftformat Curfew CurfewTests CurfewUITests Sources Tests --lint
 swiftlint lint --strict
 ```
 

@@ -63,7 +63,8 @@ private let commandBackends = DaemonCommandBackendSet(backends: [
         stateStore: remoteCommandStateStore,
         resultExchange: RemoteCommandResultExchangeStore(
             resultsURL: SharedPaths.remoteCommandResults,
-            acknowledgementsDirectoryURL: SharedPaths.remoteCommandResultAcknowledgements
+            acknowledgementsDirectoryURL: SharedPaths.remoteCommandResultAcknowledgements,
+            requiredDirectoryOwnerUserID: 0
         )
     )
 ])
@@ -148,8 +149,8 @@ private func touchDaemonHeartbeat(now: Date) {
 /// window or is dated in the future.
 private func loadDeferralStart() -> Date? {
     let url = SharedPaths.enforcementDeferralMarker
-    guard fileManager.fileExists(atPath: url.path),
-          let text = try? String(contentsOf: url, encoding: .utf8)
+    guard let data = try? BoundedRegularFileReader.read(url, maximumBytes: 4096),
+          let text = String(data: data, encoding: .utf8)
     else {
         return nil
     }

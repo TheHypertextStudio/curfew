@@ -99,6 +99,7 @@ final class NativeAccountSyncTransport: AccountSyncTransporting {
     private let authorizedHTTP: NativeAccountAuthorizedHTTPClient
     private let inboxStore: RemoteCommandInboxStore
     private let resultExchangeStore: RemoteCommandResultExchangeStore
+    private let enrollmentStore: RemoteCommandEnrollmentStore
     private var pollingTask: Task<Void, Never>?
     private var onWakeStatus: ((AccountWakeStatusUpdate) -> Void)?
     private var onRemoteOverride: ((AccountRemoteOverride) -> Void)?
@@ -111,7 +112,8 @@ final class NativeAccountSyncTransport: AccountSyncTransporting {
         session: URLSession? = nil,
         proofFactory: AccountDeviceProofFactory? = nil,
         inboxStore: RemoteCommandInboxStore? = nil,
-        resultExchangeStore: RemoteCommandResultExchangeStore? = nil
+        resultExchangeStore: RemoteCommandResultExchangeStore? = nil,
+        enrollmentStore: RemoteCommandEnrollmentStore? = nil
     ) {
         self.secretStore = secretStore
         self.keyStore = AccountDeviceKeyStore(secretStore: secretStore)
@@ -133,7 +135,11 @@ final class NativeAccountSyncTransport: AccountSyncTransporting {
         )
         self.resultExchangeStore = resultExchangeStore ?? RemoteCommandResultExchangeStore(
             resultsURL: SharedPaths.remoteCommandResults,
-            acknowledgementsDirectoryURL: SharedPaths.remoteCommandResultAcknowledgements
+            acknowledgementsDirectoryURL: SharedPaths.remoteCommandResultAcknowledgements,
+            requiredDirectoryOwnerUserID: 0
+        )
+        self.enrollmentStore = enrollmentStore ?? RemoteCommandEnrollmentStore(
+            recordURL: SharedPaths.remoteCommandEnrollment
         )
     }
 
@@ -163,6 +169,15 @@ final class NativeAccountSyncTransport: AccountSyncTransporting {
     }
 
     func publishDeviceStatus(_ report: DeviceStatusReport, deviceID: UUID) {
+        do {
+            try enrollmentStore.recordEligibility(
+                statusVersion: report.statusVersion,
+                scheduleDigest: report.scheduleDigest
+            )
+        } catch {
+            onFailure?("Remote control is waiting for this Mac to finish enrollment.")
+            return
+        }
         Task { [weak self] in
             do {
                 guard let self,
@@ -262,23 +277,22 @@ final class NativeAccountSyncTransport: AccountSyncTransporting {
                 throw NativeAccountSyncError.invalidResponse
             }
             onRemoteCommandResult?(result)
-            let acknowledgement = try Self.remoteCommandAcknowledgement(result)
-            try await authorizedHTTP.post(
-                path: "/sync/remote-control/commands/acknowledge",
-                body: acknowledgement.jsonData(),
-                deviceID: deviceID,
-                accessToken: accessToken,
-                signingPrivateKey: signingPrivateKey
-            )
             let wire = try Self.remoteCommandResult(result)
-            try await authorizedHTTP.post(
+            let response = try await authorizedHTTP.post(
                 path: "/sync/remote-control/commands/result",
                 body: wire.jsonData(),
                 deviceID: deviceID,
                 accessToken: accessToken,
                 signingPrivateKey: signingPrivateKey
             )
-            try resultExchangeStore.acknowledge(RemoteCommandResultIdentity(result: result))
+            let receipt = try CurfewProtocols.SignedRemoteCommandResultReceiptEnvelope
+                .decodeValidated(response)
+            try resultExchangeStore.recordReceipt(
+                CoordinatorSignedRemoteCommandResultReceiptEnvelope(
+                    compactJWS: receipt.compactJws
+                ),
+                for: result
+            )
         }
     }
 

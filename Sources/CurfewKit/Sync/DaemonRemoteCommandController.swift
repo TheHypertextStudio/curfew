@@ -1,9 +1,5 @@
 import Foundation
 
-public enum RemoteCommandResultExchangeError: Error, Equatable {
-    case resultIdentityMismatch
-}
-
 public struct RemoteCommandDaemonReceipt: Equatable, Sendable {
     public let cursor: String
     public let result: RemoteCommandResult
@@ -38,6 +34,8 @@ public struct DaemonRemoteCommandBackend: Sendable {
 
     public func processPending(at now: Date = Date()) throws -> [RemoteCommandDaemonReceipt] {
         guard let enrollment = try enrollmentStore.load() else { return [] }
+        let deliveries = try inboxStore.pendingDeliveries(maximumCount: 32)
+        guard !deliveries.isEmpty else { return [] }
         let verifier = try RemoteCommandVerifier(
             configuration: RemoteCommandVerifierConfiguration(
                 userID: enrollment.userID,
@@ -48,24 +46,44 @@ public struct DaemonRemoteCommandBackend: Sendable {
         return try DaemonRemoteCommandProcessor(
             inboxStore: inboxStore,
             verifier: verifier,
-            controller: DaemonRemoteCommandController(store: stateStore)
-        ).processPending(at: now)
+            controller: DaemonRemoteCommandController(
+                store: stateStore,
+                eligibility: enrollment.eligibility
+            )
+        ).process(deliveries, at: now)
     }
 
     public func reconcileResultExchange(
-        _ exchange: RemoteCommandResultExchangeStore
+        _ exchange: RemoteCommandResultExchangeStore,
+        at now: Date = Date()
     ) throws {
-        let controller = DaemonRemoteCommandController(store: stateStore)
-        for identity in try exchange.pendingAcknowledgements() {
-            do {
-                try controller.markReported(identity)
-            } catch RemoteCommandResultExchangeError.resultIdentityMismatch {
-                // Stale duplicates and forged user-side acknowledgements have
-                // no authority over state and must not block valid results.
+        let controller = DaemonRemoteCommandController(store: stateStore, eligibility: nil)
+        let pending = try Array(stateStore.load().pendingResults.prefix(32))
+        var candidates: [(
+            RemoteCommandResult,
+            CoordinatorSignedRemoteCommandResultReceiptEnvelope
+        )] = []
+        for result in pending {
+            if let receipt = try exchange.pendingReceipt(for: result) {
+                candidates.append((result, receipt))
             }
-            try exchange.removeAcknowledgement(identity)
         }
-        try exchange.publish(stateStore.load().pendingResults)
+        if !candidates.isEmpty {
+            let verifier = try RemoteCommandResultReceiptVerifier(jwks: jwksProvider.jwks())
+            for (result, receipt) in candidates {
+                do {
+                    let identity = try verifier.verify(receipt, for: result, at: now)
+                    try controller.markReported(identity)
+                } catch is RemoteCommandResultReceiptVerificationError {
+                    // User-controlled receipt candidates carry no authority.
+                    // Removing the exact invalid entry allows the app to
+                    // replace it with a fresh coordinator proof on retry.
+                }
+                try exchange.removeReceipt(for: result)
+            }
+        }
+        let remaining = try Array(stateStore.load().pendingResults.prefix(32))
+        try exchange.publish(remaining)
     }
 }
 
@@ -89,16 +107,33 @@ public struct DaemonRemoteCommandProcessor: Sendable {
     }
 
     public func processPending(at now: Date = Date()) throws -> [RemoteCommandDaemonReceipt] {
-        var receipts: [RemoteCommandDaemonReceipt] = []
-        for delivery in try inboxStore.pendingDeliveries() {
+        try process(inboxStore.pendingDeliveries(maximumCount: 32), at: now)
+    }
+
+    public func process(
+        _ deliveries: [PendingRemoteCommandDelivery],
+        at now: Date = Date()
+    ) throws -> [RemoteCommandDaemonReceipt] {
+        var verified: [(PendingRemoteCommandDelivery, AuthenticatedRemoteCommand)] = []
+        for delivery in deliveries {
             let envelope = try JSONEncoder().encode(delivery.envelope)
-            let command: AuthenticatedRemoteCommand
             do {
-                command = try verifier.verifiedLockoutRecord(envelope: envelope, at: now)
+                try verified.append((
+                    delivery,
+                    verifier.verifiedLockoutRecord(envelope: envelope, at: now)
+                ))
             } catch is RemoteCommandVerificationError {
                 try inboxStore.remove(cursor: delivery.cursor)
-                continue
             }
+        }
+        verified.sort {
+            if $0.1.sequence == $1.1.sequence {
+                return $0.0.cursor < $1.0.cursor
+            }
+            return $0.1.sequence < $1.1.sequence
+        }
+        var receipts: [RemoteCommandDaemonReceipt] = []
+        for (delivery, command) in verified {
             let result = try controller.apply(command, at: now)
             try inboxStore.remove(cursor: delivery.cursor)
             receipts.append(RemoteCommandDaemonReceipt(cursor: delivery.cursor, result: result))
@@ -111,10 +146,15 @@ public struct DaemonRemoteCommandProcessor: Sendable {
 /// the result outbox are committed in one atomic state-file replacement.
 public final class DaemonRemoteCommandController: @unchecked Sendable {
     private let store: DaemonRemoteCommandStateStore
+    private let eligibility: RemoteCommandEligibilitySnapshot?
     private let lock = NSLock()
 
-    public init(store: DaemonRemoteCommandStateStore) {
+    public init(
+        store: DaemonRemoteCommandStateStore,
+        eligibility: RemoteCommandEligibilitySnapshot?
+    ) {
         self.store = store
+        self.eligibility = eligibility
     }
 
     public func apply(
@@ -125,7 +165,23 @@ public final class DaemonRemoteCommandController: @unchecked Sendable {
         defer { lock.unlock() }
 
         var state = try store.load()
+        let hadNoBinding = state.enrolledUserID == nil && state.enrolledDeviceID == nil
+        let bindingChanged = !hadNoBinding && (
+            state.enrolledUserID != command.userID || state.enrolledDeviceID != command.deviceID
+        )
+        if bindingChanged {
+            state.highestSequence = 0
+            state.pendingResults = []
+            state.resultsByIdempotencyKey = [:]
+        }
+        if hadNoBinding || bindingChanged {
+            state.enrolledUserID = command.userID
+            state.enrolledDeviceID = command.deviceID
+        }
         if let existing = state.resultsByIdempotencyKey[command.idempotencyKey] {
+            if hadNoBinding {
+                try store.save(state)
+            }
             return existing
         }
 
@@ -137,6 +193,25 @@ public final class DaemonRemoteCommandController: @unchecked Sendable {
                 sequence: command.sequence,
                 stage: .expired,
                 resolvedAt: now
+            )
+        } else if eligibility == nil {
+            result = RemoteCommandResult(
+                commandID: command.lockoutID,
+                deviceID: command.deviceID,
+                sequence: command.sequence,
+                stage: .rejected,
+                resolvedAt: now,
+                rejectionCode: .ineligible
+            )
+        } else if eligibility?.statusVersion != command.statusVersion
+            || eligibility?.scheduleDigest != command.scheduleDigest {
+            result = RemoteCommandResult(
+                commandID: command.lockoutID,
+                deviceID: command.deviceID,
+                sequence: command.sequence,
+                stage: .rejected,
+                resolvedAt: now,
+                rejectionCode: .staleStatus
             )
         } else if command.sequence <= state.highestSequence {
             result = RemoteCommandResult(

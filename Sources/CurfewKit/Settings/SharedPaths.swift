@@ -242,14 +242,17 @@ public enum SharedPaths {
     }
 
     /// Daemon-published terminal results waiting for the authenticated app
-    /// transport to return them to the coordinator.
+    /// transport to return them to the coordinator. The parent is root-owned;
+    /// the app receives read-only access to this file and cannot replace it.
     public static var remoteCommandResults: URL {
-        applicationSupport.appendingPathComponent("remote-command-results.json")
+        privilegedApplicationSupport.appendingPathComponent("remote-command-results.json")
     }
 
     /// Exact app acknowledgements written only after coordinator acceptance.
+    /// The daemon creates this root-owned drop box with write-only access for
+    /// the console user and consumes entries with no-follow dirfd operations.
     public static var remoteCommandResultAcknowledgements: URL {
-        applicationSupport.appendingPathComponent(
+        privilegedApplicationSupport.appendingPathComponent(
             "remote-command-result-acknowledgements",
             isDirectory: true
         )

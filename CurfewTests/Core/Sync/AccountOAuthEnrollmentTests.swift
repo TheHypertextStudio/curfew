@@ -4,17 +4,9 @@ import Foundation
 import Testing
 
 struct AccountOAuthEnrollmentTests {
-    @Test("Native client registration is bound to Curfew Sync before authorization")
-    func clientRegistrationIsResourceBound() throws {
-        let data = try AccountOAuthClientRegistration.requestBody()
-        let body = try #require(
-            JSONSerialization.jsonObject(with: data) as? [String: Any]
-        )
-
-        #expect(body["client_name"] as? String == "Curfew for macOS")
-        #expect(body["token_endpoint_auth_method"] as? String == "none")
-        #expect(body["resources"] as? [String] == ["https://curfew-sync.hypertext.studio"])
-        #expect((body["scope"] as? String)?.contains("curfew:sync:write") == true)
+    @Test("Native OAuth uses the pre-provisioned PKCE client")
+    func nativeClientIsStable() {
+        #expect(AccountOAuthOfficialClient.clientID == "curfew-native-client")
     }
 
     @Test("Native token exchanges remain bound to Curfew Sync")
@@ -131,17 +123,13 @@ struct AccountOAuthEnrollmentTests {
         }
     }
 
-    @Test("OAuth wire responses require a public client id and rotating refresh token")
-    func tokenAndRegistrationResponsesFailClosed() throws {
-        let registration = try AccountOAuthWire.registration(
-            from: Data(#"{"client_id":"curfew-native-client"}"#.utf8)
-        )
+    @Test("OAuth wire responses require a rotating refresh token")
+    func tokenResponsesFailClosed() throws {
         let tokens = try AccountOAuthWire.tokens(
             from: Data(#"{"access_token":"access","refresh_token":"refresh","token_type":"Bearer"}"#
                 .utf8)
         )
 
-        #expect(registration.clientID == "curfew-native-client")
         #expect(tokens.accessToken == "access")
         #expect(tokens.refreshToken == "refresh")
         #expect(throws: AccountOAuthEnrollmentError.self) {

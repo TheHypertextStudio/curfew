@@ -297,9 +297,11 @@ public extension ProtectedWorkPolicy {
     static func loadMirror(
         from url: URL = SharedPaths.protectedWorkPolicySnapshot
     ) -> ProtectedWorkPolicy {
-        guard FileManager.default.fileExists(atPath: url.path),
-              let data = try? Data(contentsOf: url),
-              let policy = try? JSONDecoder().decode(ProtectedWorkPolicy.self, from: data)
+        guard let data = try? BoundedRegularFileReader.read(
+            url,
+            maximumBytes: 65536
+        ),
+            let policy = try? JSONDecoder().decode(ProtectedWorkPolicy.self, from: data)
         else {
             return .default
         }

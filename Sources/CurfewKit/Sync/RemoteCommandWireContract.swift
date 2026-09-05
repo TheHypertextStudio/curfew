@@ -90,7 +90,7 @@ public struct RemoteLockoutCommandPayload: Codable, Equatable, Sendable {
         coordinatorAudience: String,
         statusVersion: Int,
         scheduleDigest: String,
-        kind: String = "remote_lock"
+        kind: String = "lock_device"
     ) {
         self.commandID = commandID
         self.idempotencyKey = idempotencyKey

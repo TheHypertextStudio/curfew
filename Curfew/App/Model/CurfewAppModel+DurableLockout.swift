@@ -225,7 +225,9 @@ extension CurfewAppModel {
     func enforceDurableDeadlineIfActive() {
         guard let record = lockoutDeadlineStore.load() else { return }
         guard currentTime < record.scheduledUnlockAt else { return }
-        if let overrideUntil, currentTime < overrideUntil {
+        if record.kind != .remoteCommand,
+           let overrideUntil,
+           currentTime < overrideUntil {
             return
         }
         guard state.phase != .locked else { return }

@@ -56,9 +56,7 @@ struct SharedPathsTests {
             SharedPaths.protectedWorkClaims,
             SharedPaths.protectedWorkPolicySnapshot,
             SharedPaths.breakGlassRelease,
-            SharedPaths.breakGlassSecret,
-            SharedPaths.remoteCommandResults,
-            SharedPaths.remoteCommandResultAcknowledgements
+            SharedPaths.breakGlassSecret
         ] {
             #expect(url.deletingLastPathComponent() == directory)
         }
@@ -70,6 +68,14 @@ struct SharedPathsTests {
         )
         #expect(
             SharedPaths.remoteCommandState.path
+                .hasPrefix("/Library/Application Support/Curfew")
+        )
+        #expect(
+            SharedPaths.remoteCommandResults.path
+                .hasPrefix("/Library/Application Support/Curfew")
+        )
+        #expect(
+            SharedPaths.remoteCommandResultAcknowledgements.path
                 .hasPrefix("/Library/Application Support/Curfew")
         )
     }

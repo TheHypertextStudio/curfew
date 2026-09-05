@@ -6,7 +6,9 @@ import Testing
 struct RemoteCommandVerifierTests {
     private let now = Date(timeIntervalSince1970: 1_800_000_000)
     private let deviceID = UUID(uuidString: "20000000-0000-4000-8000-000000000001")!
+}
 
+extension RemoteCommandVerifierTests {
     @Test("Signed remote envelope uses the protocol compactJws JSON key")
     func envelopeUsesProtocolJSONKey() throws {
         let envelope = SignedRemoteLockoutCommandEnvelope(compactJWS: "header.payload.signature")
@@ -55,6 +57,33 @@ struct RemoteCommandVerifierTests {
         #expect(fetched.keys == expected.keys)
     }
 
+    @Test("Daemon reuses one JWKS snapshot within the bounded cache window")
+    func cachesCoordinatorJWKS() throws {
+        let key = P256.Signing.PrivateKey()
+        let expected = RemoteCommandJWKS(keys: [
+            RemoteCommandJWK(keyID: "coordinator-key", publicKey: key.publicKey)
+        ])
+        var requestCount = 0
+        RemoteJWKSURLProtocol.handler = { _ in
+            requestCount += 1
+            return try (200, JSONEncoder().encode(expected))
+        }
+        defer { RemoteJWKSURLProtocol.handler = nil }
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [RemoteJWKSURLProtocol.self]
+        let provider = try HTTPRemoteCommandJWKSProvider(
+            endpoint: #require(URL(
+                string: "https://curfew-sync.hypertext.studio/.well-known/curfew-command-jwks.json"
+            )),
+            session: URLSession(configuration: configuration)
+        )
+
+        _ = try provider.jwks()
+        _ = try provider.jwks()
+
+        #expect(requestCount == 1)
+    }
+
     @Test("Daemon consumes a delivery only after verified state commits")
     func daemonConsumesOnlyAfterVerifiedCommit() throws {
         let fixture = try makeFixture()
@@ -78,7 +107,13 @@ struct RemoteCommandVerifierTests {
         let processor = DaemonRemoteCommandProcessor(
             inboxStore: inbox,
             verifier: fixture.verifier,
-            controller: DaemonRemoteCommandController(store: state)
+            controller: DaemonRemoteCommandController(
+                store: state,
+                eligibility: RemoteCommandEligibilitySnapshot(
+                    statusVersion: 4,
+                    scheduleDigest: String(repeating: "S", count: 43)
+                )
+            )
         )
 
         let receipts = try processor.processPending(at: now)
@@ -120,7 +155,13 @@ struct RemoteCommandVerifierTests {
         let processor = DaemonRemoteCommandProcessor(
             inboxStore: inbox,
             verifier: fixture.verifier,
-            controller: DaemonRemoteCommandController(store: state)
+            controller: DaemonRemoteCommandController(
+                store: state,
+                eligibility: RemoteCommandEligibilitySnapshot(
+                    statusVersion: 4,
+                    scheduleDigest: String(repeating: "S", count: 43)
+                )
+            )
         )
 
         let receipts = try processor.processPending(at: now)
@@ -136,6 +177,56 @@ struct RemoteCommandVerifierTests {
         let first = try fixture.verifier.verifiedLockoutRecord(envelope: fixture.envelope, at: now)
         let retry = try fixture.verifier.verifiedLockoutRecord(envelope: fixture.envelope, at: now)
         #expect(first == retry)
+    }
+
+    @Test("A bounded batch is applied in authenticated sequence order, never filename order")
+    func appliesAuthenticatedSequenceOrder() throws {
+        let key = P256.Signing.PrivateKey()
+        let keyID = "remote-command-order-key"
+        let verifier = try RemoteCommandVerifier(
+            configuration: RemoteCommandVerifierConfiguration(
+                userID: "remote-command-user",
+                deviceID: deviceID
+            ),
+            jwksProvider: StaticRemoteCommandJWKSProvider(keys: [
+                RemoteCommandJWK(keyID: keyID, publicKey: key.publicKey)
+            ])
+        )
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let state = DaemonRemoteCommandStateStore(stateURL: root.appendingPathComponent("state"))
+        let processor = DaemonRemoteCommandProcessor(
+            inboxStore: RemoteCommandInboxStore(directoryURL: root.appendingPathComponent("inbox")),
+            verifier: verifier,
+            controller: DaemonRemoteCommandController(
+                store: state,
+                eligibility: RemoteCommandEligibilitySnapshot(
+                    statusVersion: 4,
+                    scheduleDigest: String(repeating: "S", count: 43)
+                )
+            )
+        )
+        let sequenceTwo = try delivery(
+            cursor: "filename-sorts-first",
+            sequence: 2,
+            duration: 300,
+            key: key,
+            keyID: keyID
+        )
+        let sequenceOne = try delivery(
+            cursor: "filename-sorts-last",
+            sequence: 1,
+            duration: 3600,
+            key: key,
+            keyID: keyID
+        )
+
+        let receipts = try processor.process([sequenceTwo, sequenceOne], at: now)
+
+        #expect(receipts.map(\.result.sequence) == [1, 2])
+        #expect(try state.load().highestSequence == 2)
+        #expect(try state.load().activeLockout?.scheduledUnlockAt == now.addingTimeInterval(3600))
     }
 
     @Test(
@@ -210,8 +301,43 @@ struct RemoteCommandVerifierTests {
             try fixture.verifier.verifiedLockoutRecord(envelope: fixture.envelope, at: now)
         }
     }
+}
 
-    private func makeFixture(
+private extension RemoteCommandVerifierTests {
+    func delivery(
+        cursor: String,
+        sequence: Int64,
+        duration: Int,
+        key: P256.Signing.PrivateKey,
+        keyID: String
+    ) throws -> PendingRemoteCommandDelivery {
+        let payload = RemoteLockoutCommandPayload(
+            commandID: UUID(),
+            idempotencyKey: "key_\(sequence)_abcdefghijklmnopq",
+            userID: "remote-command-user",
+            deviceID: deviceID,
+            sequence: sequence,
+            deadlinePolicy: .fixedDuration(seconds: duration),
+            issuedAt: now.addingTimeInterval(-30),
+            expiresAt: now.addingTimeInterval(60),
+            nonce: "nonce_\(sequence)_abcdefghijklmnopq",
+            coordinatorAudience: "curfew-device-agent",
+            statusVersion: 4,
+            scheduleDigest: String(repeating: "S", count: 43)
+        )
+        return try PendingRemoteCommandDelivery(
+            cursor: cursor,
+            envelope: SignedRemoteLockoutCommandEnvelope(
+                compactJWS: RemoteCommandJWSTestSupport.sign(
+                    payload: payload,
+                    privateKey: key,
+                    keyID: keyID
+                )
+            )
+        )
+    }
+
+    func makeFixture(
         audience: String = "curfew-device-agent",
         durationSeconds: Int = 300,
         expiresAt: Date? = nil,
@@ -236,7 +362,8 @@ struct RemoteCommandVerifierTests {
             nonce: String(repeating: "N", count: 22),
             coordinatorAudience: audience,
             statusVersion: 4,
-            scheduleDigest: String(repeating: "S", count: 43)
+            scheduleDigest: String(repeating: "S", count: 43),
+            kind: "lock_device"
         )
         var compactJWS = try RemoteCommandJWSTestSupport.sign(
             payload: payload,
@@ -264,84 +391,5 @@ struct RemoteCommandVerifierTests {
             ),
             commandID: commandID
         )
-    }
-}
-
-private final class RemoteJWKSURLProtocol: URLProtocol, @unchecked Sendable {
-    nonisolated(unsafe) static var handler: ((URLRequest) throws -> (Int, Data))?
-
-    override static func canInit(with _: URLRequest) -> Bool {
-        true
-    }
-
-    override static func canonicalRequest(for request: URLRequest) -> URLRequest {
-        request
-    }
-
-    override func startLoading() {
-        do {
-            let handler = try #require(Self.handler)
-            let (status, data) = try handler(request)
-            let requestURL = try #require(request.url)
-            let response = try #require(HTTPURLResponse(
-                url: requestURL,
-                statusCode: status,
-                httpVersion: "HTTP/1.1",
-                headerFields: ["Content-Type": "application/json"]
-            ))
-            client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
-            client?.urlProtocol(self, didLoad: data)
-            client?.urlProtocolDidFinishLoading(self)
-        } catch {
-            client?.urlProtocol(self, didFailWithError: error)
-        }
-    }
-
-    override func stopLoading() {}
-}
-
-private struct RemoteCommandVerifierFixture {
-    let verifier: RemoteCommandVerifier
-    let envelope: Data
-    let commandID: UUID
-}
-
-private struct StaticRemoteCommandJWKSProvider: RemoteCommandJWKSProvider {
-    let keys: [RemoteCommandJWK]
-    func jwks() throws -> RemoteCommandJWKS {
-        RemoteCommandJWKS(keys: keys)
-    }
-}
-
-private enum RemoteCommandJWSTestSupport {
-    static func sign(
-        payload: RemoteLockoutCommandPayload,
-        privateKey: P256.Signing.PrivateKey,
-        keyID: String
-    ) throws -> String {
-        let header = try JSONSerialization.data(
-            withJSONObject: ["alg": "ES256", "kid": keyID, "typ": "curfew-command+jwt"],
-            options: [.sortedKeys]
-        )
-        let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .iso8601
-        let body = try encoder.encode(payload)
-        let signingInput = "\(base64URL(header)).\(base64URL(body))"
-        let signature = try privateKey.signature(for: Data(signingInput.utf8)).rawRepresentation
-        return "\(signingInput).\(base64URL(signature))"
-    }
-
-    static func tamper(_ compactJWS: String) -> String {
-        let parts = compactJWS.split(separator: ".", omittingEmptySubsequences: false)
-        guard parts.count == 3 else { return compactJWS }
-        let replacement = parts[2].first == "A" ? "B" : "A"
-        return "\(parts[0]).\(parts[1]).\(replacement)\(parts[2].dropFirst())"
-    }
-
-    private static func base64URL(_ data: Data) -> String {
-        data.base64EncodedString()
-            .replacingOccurrences(of: "+", with: "-")
-            .replacingOccurrences(of: "/", with: "_")
-            .replacingOccurrences(of: "=", with: "")
     }
 }

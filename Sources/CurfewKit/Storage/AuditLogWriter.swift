@@ -311,7 +311,7 @@ public final class AuditLogWriter: AuditLogWriting, @unchecked Sendable {
     /// segments are capped at a few megabytes and this runs once per process.
     private static func lastLine(of url: URL) -> String? {
         guard
-            let data = try? Data(contentsOf: url),
+            let data = try? BoundedRegularFileReader.read(url, maximumBytes: 16_777_216),
             let text = String(data: data, encoding: .utf8)
         else { return nil }
         return text

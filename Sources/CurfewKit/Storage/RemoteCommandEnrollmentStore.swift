@@ -1,14 +1,34 @@
 import Foundation
 
+public struct RemoteCommandEligibilitySnapshot: Codable, Equatable, Sendable {
+    public let statusVersion: Int
+    public let scheduleDigest: String
+
+    public init(statusVersion: Int, scheduleDigest: String) {
+        self.statusVersion = statusVersion
+        self.scheduleDigest = scheduleDigest
+    }
+}
+
+public enum RemoteCommandEnrollmentStoreError: Error, Equatable {
+    case missingEnrollment
+}
+
 /// Public account binding used by the privileged verifier. No OAuth token or
 /// private device key crosses into the daemon.
 public struct RemoteCommandEnrollment: Codable, Equatable, Sendable {
     public let userID: String
     public let deviceID: UUID
+    public let eligibility: RemoteCommandEligibilitySnapshot?
 
-    public init(userID: String, deviceID: UUID) {
+    public init(
+        userID: String,
+        deviceID: UUID,
+        eligibility: RemoteCommandEligibilitySnapshot? = nil
+    ) {
         self.userID = userID
         self.deviceID = deviceID
+        self.eligibility = eligibility
     }
 }
 
@@ -35,10 +55,32 @@ public struct RemoteCommandEnrollmentStore: Sendable {
     }
 
     public func load() throws -> RemoteCommandEnrollment? {
-        guard FileManager.default.fileExists(atPath: recordURL.path) else { return nil }
+        guard let data = try BoundedRegularFileReader.read(
+            recordURL,
+            maximumBytes: 65536
+        ) else { return nil }
         return try JSONDecoder().decode(
             RemoteCommandEnrollment.self,
-            from: Data(contentsOf: recordURL)
+            from: data
         )
+    }
+
+    /// Records the exact local status frame against which the daemon may
+    /// evaluate a subsequently delivered, coordinator-signed command. Updating
+    /// this before network publication is deliberately conservative: once the
+    /// local schedule changes, a command based on the older schedule must not
+    /// become applicable merely because the newer report is still in flight.
+    public func recordEligibility(statusVersion: Int, scheduleDigest: String) throws {
+        guard let enrollment = try load() else {
+            throw RemoteCommandEnrollmentStoreError.missingEnrollment
+        }
+        try save(RemoteCommandEnrollment(
+            userID: enrollment.userID,
+            deviceID: enrollment.deviceID,
+            eligibility: RemoteCommandEligibilitySnapshot(
+                statusVersion: statusVersion,
+                scheduleDigest: scheduleDigest
+            )
+        ))
     }
 }

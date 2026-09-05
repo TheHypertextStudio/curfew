@@ -113,9 +113,11 @@ public struct LockoutDeadlineStore {
     /// fails open so a tampered/corrupted record doesn't hold the user
     /// past their unlock time.
     public func load() -> LockoutDeadlineRecord? {
-        guard fileManager.fileExists(atPath: recordURL.path),
-              let data = try? Data(contentsOf: recordURL),
-              let record = try? decoder.decode(LockoutDeadlineRecord.self, from: data)
+        guard let data = try? BoundedRegularFileReader.read(
+            recordURL,
+            maximumBytes: 65536
+        ),
+            let record = try? decoder.decode(LockoutDeadlineRecord.self, from: data)
         else {
             return nil
         }
