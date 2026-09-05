@@ -3,6 +3,7 @@ import CryptoKit
 import Foundation
 import Testing
 
+@Suite(.serialized)
 struct RemoteCommandVerifierTests {
     private let now = Date(timeIntervalSince1970: 1_800_000_000)
     private let deviceID = UUID(uuidString: "20000000-0000-4000-8000-000000000001")!

@@ -34,8 +34,12 @@ struct AppConfigurationTests {
         let appTeam = try signingTeamIdentifier(at: appURL)
         let daemonTeam = try signingTeamIdentifier(at: daemonURL)
 
-        #expect(!appTeam.isEmpty)
-        #expect(daemonTeam == appTeam)
+        if let appTeam {
+            #expect(!appTeam.isEmpty)
+            #expect(daemonTeam == appTeam)
+        } else {
+            #expect(daemonTeam == nil)
+        }
     }
 
     private final class BundleAnchor {}
@@ -48,7 +52,7 @@ struct AppConfigurationTests {
         return try #require(bundleURL.pathExtension == "app" ? bundleURL : nil)
     }
 
-    private func signingTeamIdentifier(at url: URL) throws -> String {
+    private func signingTeamIdentifier(at url: URL) throws -> String? {
         var staticCode: SecStaticCode?
         let createStatus = SecStaticCodeCreateWithPath(
             url as CFURL,
@@ -64,7 +68,7 @@ struct AppConfigurationTests {
         )
         #expect(informationStatus == errSecSuccess)
         let information = try #require(signingInformation as? [CFString: Any])
-        return try #require(information[kSecCodeInfoTeamIdentifier] as? String)
+        return information[kSecCodeInfoTeamIdentifier] as? String
     }
 }
 

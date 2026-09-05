@@ -8,6 +8,7 @@ const ciWorkflow = await readFile(".github/workflows/ci.yml", "utf8");
 const releaseChecklist = await readFile("scripts/release-checklist.md", "utf8");
 const productPlan = await readFile("Documentation/plan.md", "utf8");
 const screenshotExtractor = await readFile("scripts/extract-screenshots.sh", "utf8");
+const projectFile = await readFile("Curfew.xcodeproj/project.pbxproj", "utf8");
 
 test("conservative initial Release keeps only the signed core entitlements", () => {
   assert.match(releaseEntitlements, /com\.apple\.security\.automation\.apple-events/);
@@ -54,4 +55,9 @@ test("CI preserves the unit-test result bundle when the check fails", () => {
     ciWorkflow,
     /- name: Upload unit-test diagnostics\n\s+if: failure\(\)\n\s+uses: actions\/upload-artifact@v4\n\s+with:\n\s+name: curfew-unit-test-results\n\s+path: build\/CurfewTests\.xcresult/,
   );
+});
+
+test("unsigned CI builds skip embedded tool signing", () => {
+  assert.match(projectFile, /CODE_SIGNING_ALLOWED.*NO/);
+  assert.match(projectFile, /EXPANDED_CODE_SIGN_IDENTITY/);
 });

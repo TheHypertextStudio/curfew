@@ -419,6 +419,10 @@ only.
   - `swift package resolve`
   - `xcodebuild -resolvePackageDependencies -project Curfew.xcodeproj -scheme Curfew`
   - `CurfewProtocolBridgeTests`
+- `Signed app builds sign every embedded CLI/helper with the host identity,
+  while explicitly unsigned CI builds remain buildable.`
+  - `AppConfigurationBehaviorTests/bundledDaemonUsesHostSigningIdentity()`
+  - `scripts/release-entitlements.test.mjs` (`unsigned CI builds skip embedded tool signing`)
 - `An unlocked enrolled Mac periodically wakes its privileged daemon, accepts
   only a coordinator-signed command for the enrolled account/device, and makes
   the authenticated remote deadline visible to the existing enforcement loop.`
