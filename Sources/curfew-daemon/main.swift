@@ -28,57 +28,45 @@ private let daemonHeartbeatURL = SharedPaths.privilegedApplicationSupport
 
 private let fileManager = FileManager.default
 
-private let encoder: JSONEncoder = {
-    let enc = JSONEncoder()
-    enc.dateEncodingStrategy = .iso8601
-    enc.outputFormatting = [.sortedKeys]
-    return enc
+private let remoteCommandJWKSURL: URL = {
+    guard let url = URL(
+        string: "https://curfew-sync.hypertext.studio/.well-known/curfew-command-jwks.json"
+    ) else {
+        preconditionFailure("Curfew remote command JWKS URL must be valid")
+    }
+    return url
 }()
 
-private let decoder: JSONDecoder = {
-    let dec = JSONDecoder()
-    dec.dateDecodingStrategy = .iso8601
-    return dec
-}()
+private let remoteCommandStateStore = DaemonRemoteCommandStateStore(
+    stateURL: SharedPaths.remoteCommandState
+)
 
-/// Reads the user-side deadline JSON, falling back to the daemon's
-/// shadow copy when the user file is absent (deleted or never written).
-/// The shadow is authoritative once a record has been observed.
-private func loadDeadline() -> LockoutDeadlineRecord? {
-    let userURL = SharedPaths.lockoutDeadline
-    let shadowURL = SharedPaths.lockoutDeadlineShadow
-    if fileManager.fileExists(atPath: userURL.path),
-       let data = try? Data(contentsOf: userURL),
-       let record = try? decoder.decode(LockoutDeadlineRecord.self, from: data) {
-        // Refresh the shadow so the daemon's view survives if the user
-        // deletes the user-side file mid-lockout.
-        writeShadow(record)
-        return record
-    }
-    if fileManager.fileExists(atPath: shadowURL.path),
-       let data = try? Data(contentsOf: shadowURL),
-       let record = try? decoder.decode(LockoutDeadlineRecord.self, from: data) {
-        return record
-    }
-    return nil
-}
-
-/// Persists `record` to the shadow copy so the daemon can recover it
-/// even if the user-writable original disappears.
-private func writeShadow(_ record: LockoutDeadlineRecord) {
-    do {
-        try fileManager.createDirectory(
-            at: SharedPaths.lockoutDeadlineShadow.deletingLastPathComponent(),
-            withIntermediateDirectories: true
+/// Daemon composition root. Local MCP and remote MCP supply the same narrow
+/// dependency, so enforcement policy does not know which transport produced a
+/// deadline and a failure in either backend cannot suppress the other.
+private let commandBackends = DaemonCommandBackendSet(backends: [
+    DaemonLocalCommandBackend(
+        userStore: LockoutDeadlineStore(recordURL: SharedPaths.lockoutDeadline),
+        shadowStore: LockoutDeadlineStore(recordURL: SharedPaths.lockoutDeadlineShadow)
+    ),
+    DaemonRemoteMCPBackend(
+        commandProcessor: DaemonRemoteCommandBackend(
+            enrollmentStore: RemoteCommandEnrollmentStore(
+                recordURL: SharedPaths.remoteCommandEnrollment
+            ),
+            inboxStore: RemoteCommandInboxStore(
+                directoryURL: SharedPaths.remoteCommandInbox
+            ),
+            stateStore: remoteCommandStateStore,
+            jwksProvider: HTTPRemoteCommandJWKSProvider(endpoint: remoteCommandJWKSURL)
+        ),
+        stateStore: remoteCommandStateStore,
+        resultExchange: RemoteCommandResultExchangeStore(
+            resultsURL: SharedPaths.remoteCommandResults,
+            acknowledgementsDirectoryURL: SharedPaths.remoteCommandResultAcknowledgements
         )
-        let data = try encoder.encode(record)
-        try data.write(to: SharedPaths.lockoutDeadlineShadow, options: .atomic)
-    } catch {
-        daemonLogger.error(
-            "shadow write failed: \(error.localizedDescription, privacy: .public)"
-        )
-    }
-}
+    )
+])
 
 /// Removes the shadow copy. Called after the deadline naturally elapses
 /// so the next launch starts clean.
@@ -261,7 +249,19 @@ while true {
     let now = Date()
     touchDaemonHeartbeat(now: now)
 
-    let record = loadDeadline()
+    let backendSnapshot = commandBackends.synchronize(at: now)
+    for receipt in backendSnapshot.receipts {
+        daemonLogger.notice(
+            "remote command \(receipt.result.commandID, privacy: .public) resolved as \(receipt.result.stage.rawValue, privacy: .public)"
+        )
+    }
+    for failure in backendSnapshot.failures {
+        daemonLogger.error(
+            "\(failure.backend, privacy: .public) backend failed: \(failure.message, privacy: .public)"
+        )
+    }
+
+    let record = backendSnapshot.deadline
     let breakGlass = record.flatMap { deadline in
         breakGlassStore.activeRelease(now: now, issuedAfter: deadline.lockoutStartedAt)
     }

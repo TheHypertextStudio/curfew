@@ -19,6 +19,7 @@ protocol AccountSyncTransporting: AnyObject {
         deviceID: UUID,
         onWakeStatus: @escaping (AccountWakeStatusUpdate) -> Void,
         onRemoteOverride: @escaping (AccountRemoteOverride) -> Void,
+        onRemoteCommandResult: @escaping (RemoteCommandResult) -> Void,
         onFailure: @escaping (String) -> Void
     )
     func publishDeviceStatus(_ report: DeviceStatusReport, deviceID: UUID)
@@ -31,6 +32,7 @@ final class NoOpAccountSyncTransport: AccountSyncTransporting {
         deviceID _: UUID,
         onWakeStatus _: @escaping (AccountWakeStatusUpdate) -> Void,
         onRemoteOverride _: @escaping (AccountRemoteOverride) -> Void,
+        onRemoteCommandResult _: @escaping (RemoteCommandResult) -> Void,
         onFailure _: @escaping (String) -> Void
     ) {}
     func publishDeviceStatus(_: DeviceStatusReport, deviceID _: UUID) {}
@@ -47,6 +49,7 @@ final class AccountSyncEngine: ObservableObject {
 
     var onWakeStatusReceived: ((AccountWakeStatusUpdate) -> Void)?
     var onRemoteOverrideReceived: ((AccountRemoteOverride) -> Void)?
+    var onRemoteCommandResultReceived: ((RemoteCommandResult) -> Void)?
 
     private let transport: any AccountSyncTransporting
 
@@ -64,6 +67,7 @@ final class AccountSyncEngine: ObservableObject {
             deviceID: enrollment.deviceID,
             onWakeStatus: { [weak self] in self?.receiveAuthenticatedWakeStatus($0) },
             onRemoteOverride: { [weak self] in self?.receiveAuthenticatedRemoteOverride($0) },
+            onRemoteCommandResult: { [weak self] in self?.receiveRemoteCommandResult($0) },
             onFailure: { [weak self] in self?.reject($0) }
         )
     }
@@ -96,6 +100,11 @@ final class AccountSyncEngine: ObservableObject {
     func receiveAuthenticatedRemoteOverride(_ override: AccountRemoteOverride) {
         guard isActive else { return }
         onRemoteOverrideReceived?(override)
+    }
+
+    func receiveRemoteCommandResult(_ result: RemoteCommandResult) {
+        guard isActive else { return }
+        onRemoteCommandResultReceived?(result)
     }
 
     func markSynchronized(at date: Date) {

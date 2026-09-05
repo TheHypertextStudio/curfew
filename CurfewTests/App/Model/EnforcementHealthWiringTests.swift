@@ -188,6 +188,7 @@ struct EnforcementHealthWiringTests {
             appRouter: AppRouterSpy(),
             gettingStartedPresenter: GettingStartedPresenterSpy(),
             activityRecorder: NullActivityRecording(),
+            lockoutDeadlineStore: ModelTestSupport.lockoutDeadlineStore(),
             accessibilityAuthorization: authorization
         )
     }

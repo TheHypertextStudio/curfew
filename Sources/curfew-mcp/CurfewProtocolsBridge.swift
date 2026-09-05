@@ -2,7 +2,7 @@ import CurfewProtocols
 
 // CurfewProtocols bridge for the curfew-mcp SPM target.
 //
-// As of the curfew-protocols v0.1.0 cut, the Swift face of the shared
+// As of the curfew-protocols v0.0.8 cut, the Swift face of the shared
 // wire-format contract is available at this binary's call sites. v0.1
 // of curfew-protocols ships the same `MCPPendingRequest`,
 // `MCPWriteTool`, and `MCPRequestStatus` shapes already declared in

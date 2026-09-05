@@ -74,6 +74,9 @@ extension CurfewAppModel {
             self?.accountRemoteOverride = override
             self?.reconcileDurableLockoutDeadline()
         }
+        accountSyncEngine.onRemoteCommandResultReceived = { [weak self] result in
+            self?.acceptRemoteCommandResult(result)
+        }
     }
 
     /// Merges a remote settings payload with the live local copy, deferring

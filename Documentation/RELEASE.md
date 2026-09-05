@@ -225,11 +225,18 @@ running on a real machine.
    ```bash
    ls -l "/Library/Application Support/Curfew/lockout-active"
    ```
-6. Log out or reboot once and confirm:
+6. With the login session locked, deliver a signed staging remote-lock command
+   and confirm the daemon updates its root-owned deadline without waiting for
+   the session to unlock:
+   ```bash
+   sudo ls -l "/Library/Application Support/Curfew/lockout-deadline.json"
+   ```
+   Do not use a shutdown command for this acceptance check.
+7. Log out or reboot once and confirm:
    - Curfew relaunches as expected
    - the daemon remains installed/approved
    - helper status in Settings still reflects reality
-7. Uninstall via the app (or `scripts/uninstall.sh`) and confirm the helper and
+8. Uninstall via the app (or `scripts/uninstall.sh`) and confirm the helper and
    login-item statuses return to the uninstalled state.
 
 Treat the helper path as **not release-ready** if installation only appears to
@@ -288,7 +295,7 @@ xcrun stapler validate "$APP"
 
 1. Update `MARKETING_VERSION` + `CURRENT_PROJECT_VERSION` in `Curfew.xcodeproj`.
 2. Push the final commit to `main`; `just check` should already be green.
-3. Tag the release: `git tag v0.1.0 && git push origin v0.1.0`
+3. Tag the release: `git tag v0.0.1 && git push origin v0.0.1`
 4. `.github/workflows/release.yml` will resolve the public `curfew-protocols` SPM dependency without an additional repository secret, then:
    - run `just check`
    - archive with Developer ID signing

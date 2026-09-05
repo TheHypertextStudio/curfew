@@ -56,7 +56,9 @@ struct SharedPathsTests {
             SharedPaths.protectedWorkClaims,
             SharedPaths.protectedWorkPolicySnapshot,
             SharedPaths.breakGlassRelease,
-            SharedPaths.breakGlassSecret
+            SharedPaths.breakGlassSecret,
+            SharedPaths.remoteCommandResults,
+            SharedPaths.remoteCommandResultAcknowledgements
         ] {
             #expect(url.deletingLastPathComponent() == directory)
         }
@@ -66,5 +68,44 @@ struct SharedPathsTests {
             SharedPaths.enforcementDeferralMarker.path
                 .hasPrefix("/Library/Application Support/Curfew")
         )
+        #expect(
+            SharedPaths.remoteCommandState.path
+                .hasPrefix("/Library/Application Support/Curfew")
+        )
+    }
+}
+
+struct LockoutDeadlineStoreTests {
+    @Test("A durable deadline is replaced atomically and remains private")
+    func saveReplacesTheRecordWithPrivatePermissions() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("curfew-deadline-store-\(UUID().uuidString)")
+        let recordURL = directory.appendingPathComponent("lockout-deadline.json")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = LockoutDeadlineStore(recordURL: recordURL)
+        let first = LockoutDeadlineRecord(
+            lockoutStartedAt: Date(timeIntervalSince1970: 100),
+            scheduledUnlockAt: Date(timeIntervalSince1970: 200),
+            kind: .scheduledTime
+        )
+        let replacement = LockoutDeadlineRecord(
+            lockoutStartedAt: Date(timeIntervalSince1970: 300),
+            scheduledUnlockAt: Date(timeIntervalSince1970: 400),
+            kind: .remoteCommand
+        )
+
+        store.save(first)
+        store.save(replacement)
+
+        #expect(store.load() == replacement)
+        let attributes = try FileManager.default.attributesOfItem(atPath: recordURL.path)
+        let permissions = try #require(attributes[.posixPermissions] as? NSNumber)
+        #expect(permissions.intValue & 0o777 == 0o600)
+        let siblings = try FileManager.default.contentsOfDirectory(
+            at: directory,
+            includingPropertiesForKeys: nil
+        )
+        #expect(siblings.count == 1)
+        #expect(siblings.first?.lastPathComponent == recordURL.lastPathComponent)
     }
 }

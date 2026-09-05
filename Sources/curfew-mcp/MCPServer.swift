@@ -13,7 +13,7 @@ import Foundation
 /// MCP's stdio transport guarantees requests arrive serially, so no
 /// concurrency management is needed.
 ///
-/// Protocol version: 2024-11-05 (initial stable MCP release).
+/// Protocol version: 2026-07-28.
 final class MCPServer {
     /// All tools exposed to MCP clients, each with its JSON Schema for
     /// input validation and a handler that produces the response content.
@@ -87,11 +87,11 @@ final class MCPServer {
 
     private func handleInitialize(rawID: Any?, params: [String: Any]?) -> String {
         let result: [String: Any] = [
-            "protocolVersion": "2024-11-05",
+            "protocolVersion": "2026-07-28",
             "capabilities": ["tools": [String: Any]()],
             "serverInfo": [
                 "name": "curfew-mcp",
-                "version": "0.1.0"
+                "version": "0.0.1"
             ]
         ]
         return successResponse(rawID: rawID, result: result)

@@ -54,6 +54,59 @@ struct AccountOAuthGrant: Equatable {
     let codeChallenge: String
 }
 
+enum AccountOAuthClientRegistration {
+    static func requestBody() throws -> Data {
+        try JSONSerialization.data(withJSONObject: [
+            "client_name": "Curfew for macOS",
+            "token_endpoint_auth_method": "none",
+            "application_type": "native",
+            "redirect_uris": ["studio.hypertext.curfew://oauth/callback"],
+            "grant_types": ["authorization_code", "refresh_token"],
+            "response_types": ["code"],
+            "scope": AccountOAuthEnrollmentRequest.requiredScopes.joined(separator: " "),
+            "resources": [FirstPartyResource.httpsCurfewSyncHypertextStudio.rawValue]
+        ])
+    }
+}
+
+enum AccountOAuthTokenRequest {
+    static func authorizationCodeBody(
+        code: String,
+        clientID: String,
+        verifier: String,
+        redirectURI: String
+    ) -> Data {
+        formBody([
+            "grant_type": "authorization_code",
+            "client_id": clientID,
+            "code": code,
+            "code_verifier": verifier,
+            "redirect_uri": redirectURI,
+            "resource": FirstPartyResource.httpsCurfewSyncHypertextStudio.rawValue
+        ])
+    }
+
+    static func refreshBody(refreshToken: String, clientID: String) -> Data {
+        formBody([
+            "grant_type": "refresh_token",
+            "refresh_token": refreshToken,
+            "client_id": clientID,
+            "resource": FirstPartyResource.httpsCurfewSyncHypertextStudio.rawValue
+        ])
+    }
+
+    private static func formBody(_ fields: [String: String]) -> Data {
+        let body = fields.sorted(by: { $0.key < $1.key }).map { key, value in
+            "\(formEncode(key))=\(formEncode(value))"
+        }.joined(separator: "&")
+        return Data(body.utf8)
+    }
+
+    private static func formEncode(_ value: String) -> String {
+        value.addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? ""
+    }
+}
+
 enum AccountOAuthWire {
     static func registration(from data: Data) throws -> AccountOAuthRegistration {
         guard data.count <= 32 * 1024,
@@ -80,6 +133,47 @@ enum AccountOAuthWire {
     }
 
     private static let decoder = JSONDecoder()
+}
+
+@MainActor
+final class AccountOAuthTokenRefresher {
+    private let secretStore: any AccountSecretStoring
+    private let session: URLSession
+
+    init(secretStore: any AccountSecretStoring, session: URLSession) {
+        self.secretStore = secretStore
+        self.session = session
+    }
+
+    func refresh() async throws {
+        guard let clientData = try secretStore.data(for: "oauth-client-id"),
+              let clientID = String(data: clientData, encoding: .utf8),
+              let refreshData = try secretStore.data(for: "oauth-refresh-token"),
+              let refreshToken = String(data: refreshData, encoding: .utf8)
+        else { throw AccountOAuthEnrollmentError.invalidResponse }
+        var request = URLRequest(
+            url: URL(string: "https://curfew-account.hypertext.studio/api/auth/oauth2/token")!
+        )
+        request.httpMethod = "POST"
+        request.httpBody = AccountOAuthTokenRequest.refreshBody(
+            refreshToken: refreshToken,
+            clientID: clientID
+        )
+        request.setValue(
+            "application/x-www-form-urlencoded; charset=UTF-8",
+            forHTTPHeaderField: "Content-Type"
+        )
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        let (data, response) = try await session.data(for: request)
+        guard let response = response as? HTTPURLResponse,
+              (200 ..< 300).contains(response.statusCode)
+        else { throw AccountOAuthEnrollmentError.invalidResponse }
+        let tokens = try AccountOAuthWire.tokens(from: data)
+        // Persist the rotated credential before exposing its paired access
+        // token so a crash cannot strand the account on a spent refresh token.
+        try secretStore.save(Data(tokens.refreshToken.utf8), for: "oauth-refresh-token")
+        try secretStore.save(Data(tokens.accessToken.utf8), for: "oauth-access-token")
+    }
 }
 
 private struct AccountOAuthRegistrationResponse: Decodable {
@@ -151,18 +245,9 @@ final class AccountOAuthEnrollmentService: NSObject,
             return clientID
         }
         let endpoint = Self.accountOrigin.appending(path: "/api/auth/oauth2/register")
-        let body = try JSONSerialization.data(withJSONObject: [
-            "client_name": "Curfew for macOS",
-            "token_endpoint_auth_method": "none",
-            "application_type": "native",
-            "redirect_uris": [Self.redirectURI],
-            "grant_types": ["authorization_code", "refresh_token"],
-            "response_types": ["code"],
-            "scope": AccountOAuthEnrollmentRequest.requiredScopes.joined(separator: " ")
-        ])
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
-        request.httpBody = body
+        request.httpBody = try AccountOAuthClientRegistration.requestBody()
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         let data = try await responseData(for: request)
@@ -202,19 +287,14 @@ final class AccountOAuthEnrollmentService: NSObject,
         clientID: String,
         request: AccountOAuthEnrollmentRequest
     ) async throws -> AccountOAuthTokens {
-        let fields = [
-            "grant_type": "authorization_code",
-            "client_id": clientID,
-            "code": code,
-            "code_verifier": request.verifier,
-            "redirect_uri": request.redirectURI
-        ]
-        let body = fields.sorted(by: { $0.key < $1.key }).map { key, value in
-            "\(Self.formEncode(key))=\(Self.formEncode(value))"
-        }.joined(separator: "&")
         var tokenRequest = URLRequest(url: request.tokenURL)
         tokenRequest.httpMethod = "POST"
-        tokenRequest.httpBody = Data(body.utf8)
+        tokenRequest.httpBody = AccountOAuthTokenRequest.authorizationCodeBody(
+            code: code,
+            clientID: clientID,
+            verifier: request.verifier,
+            redirectURI: request.redirectURI
+        )
         tokenRequest.setValue(
             "application/x-www-form-urlencoded; charset=UTF-8",
             forHTTPHeaderField: "Content-Type"
@@ -243,92 +323,7 @@ final class AccountOAuthEnrollmentService: NSObject,
             .replacingOccurrences(of: "=", with: "")
     }
 
-    private static func formEncode(_ value: String) -> String {
-        value.addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? ""
-    }
-
     private static let accountOrigin = URL(string: "https://curfew-account.hypertext.studio")!
     private static let callbackScheme = "studio.hypertext.curfew"
     private static let redirectURI = "\(callbackScheme)://oauth/callback"
-}
-
-struct AccountOAuthEnrollmentRequest: Equatable {
-    let authorizationURL: URL
-    let tokenURL: URL
-    let redirectURI: String
-    let state: String
-    let verifier: String
-    let codeChallenge: String
-
-    static func create(
-        clientID: String,
-        callbackScheme: String,
-        state: String,
-        verifier: String
-    ) throws -> AccountOAuthEnrollmentRequest {
-        guard !clientID.isEmpty else { throw AccountOAuthEnrollmentError.invalidClientID }
-        guard callbackScheme == "studio.hypertext.curfew" else {
-            throw AccountOAuthEnrollmentError.invalidCallbackScheme
-        }
-        guard !state.isEmpty else { throw AccountOAuthEnrollmentError.invalidState }
-        guard (43 ... 128).contains(verifier.count),
-              verifier.unicodeScalars.allSatisfy(pkceCharacters.contains)
-        else { throw AccountOAuthEnrollmentError.invalidVerifier }
-
-        let redirectURI = "\(callbackScheme)://oauth/callback"
-        let challenge = Self.base64URL(Data(SHA256.hash(data: Data(verifier.utf8))))
-        var components = URLComponents(
-            url: Self.accountOrigin.appending(path: "/api/auth/oauth2/authorize"),
-            resolvingAgainstBaseURL: false
-        )
-        components?.queryItems = [
-            URLQueryItem(name: "client_id", value: clientID),
-            URLQueryItem(name: "redirect_uri", value: redirectURI),
-            URLQueryItem(name: "response_type", value: "code"),
-            URLQueryItem(name: "scope", value: requiredScopes.joined(separator: " ")),
-            URLQueryItem(
-                name: "resource",
-                value: FirstPartyResource.httpsCurfewSyncHypertextStudio.rawValue
-            ),
-            URLQueryItem(name: "state", value: state),
-            URLQueryItem(name: "code_challenge", value: challenge),
-            URLQueryItem(name: "code_challenge_method", value: "S256")
-        ]
-        guard let authorizationURL = components?.url else {
-            throw AccountOAuthEnrollmentError.couldNotBuildAuthorizationURL
-        }
-        return AccountOAuthEnrollmentRequest(
-            authorizationURL: authorizationURL,
-            tokenURL: accountOrigin.appending(path: "/api/auth/oauth2/token"),
-            redirectURI: redirectURI,
-            state: state,
-            verifier: verifier,
-            codeChallenge: challenge
-        )
-    }
-
-    static let requiredScopes = [
-        "openid",
-        "offline_access",
-        CurfewFirstPartyOAuthScope.curfewAccountRead.rawValue,
-        CurfewFirstPartyOAuthScope.curfewDevicesRead.rawValue,
-        CurfewFirstPartyOAuthScope.curfewDevicesWrite.rawValue,
-        CurfewFirstPartyOAuthScope.curfewEntitlementsRead.rawValue,
-        CurfewFirstPartyOAuthScope.curfewSyncRead.rawValue,
-        CurfewFirstPartyOAuthScope.curfewSyncWrite.rawValue,
-        CurfewFirstPartyOAuthScope.curfewWakeRead.rawValue,
-        CurfewFirstPartyOAuthScope.curfewWakeWrite.rawValue
-    ]
-
-    private static let accountOrigin = URL(string: "https://curfew-account.hypertext.studio")!
-    private static let pkceCharacters = CharacterSet(
-        charactersIn: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~"
-    )
-
-    private static func base64URL(_ data: some DataProtocol) -> String {
-        Data(data).base64EncodedString()
-            .replacingOccurrences(of: "+", with: "-")
-            .replacingOccurrences(of: "/", with: "_")
-            .replacingOccurrences(of: "=", with: "")
-    }
 }

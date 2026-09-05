@@ -25,12 +25,15 @@ struct AuditWiringTests {
         if let settings {
             store.save(settings)
         }
+        let deadlineURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("curfew-audit-deadline-\(UUID().uuidString).json")
 
         let model = CurfewAppModel(
             settingsStore: store,
             appRouter: AppRouterSpy(),
             gettingStartedPresenter: GettingStartedPresenterSpy(),
             activityRecorder: NullActivityRecording(),
+            lockoutDeadlineStore: LockoutDeadlineStore(recordURL: deadlineURL),
             accessibilityAuthorization: FakeAccessibilityAuthorization(trusted: true)
         )
         let writer = RecordingAuditWriter()

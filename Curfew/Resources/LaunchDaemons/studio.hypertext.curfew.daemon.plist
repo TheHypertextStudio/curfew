@@ -27,10 +27,13 @@
     <string>Contents/Resources/curfew-daemon</string>
 
     <!--
-      Run on demand while the sentinel exists. The helper exits cleanly when the
-      file disappears; later versions can extend the same service with actual
-      anti-bypass enforcement.
+      Wake periodically so an unlocked Mac can discover a remotely delivered
+      command before a lockout sentinel exists. Once enforcement begins,
+      PathState keeps the helper resident for the duration of the lockout.
     -->
+    <key>StartInterval</key>
+    <integer>15</integer>
+
     <key>KeepAlive</key>
     <dict>
         <key>PathState</key>

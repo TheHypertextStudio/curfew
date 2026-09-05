@@ -8,13 +8,9 @@ enum NativeAccountSyncError: Error {
     case rejected(Int)
 }
 
-private struct NativeAuthorizedWrite {
-    let method: String
-    let path: String
-    let body: Data
-    let deviceID: UUID
-    let accessToken: String
-    let signingPrivateKey: Data
+struct NativeDeviceProofChallenge: Decodable {
+    let coordinatorNonce: String
+    let keyEpoch: Int
 }
 
 final nonisolated class RejectingRedirectSessionDelegate: NSObject, URLSessionTaskDelegate,
@@ -97,46 +93,65 @@ struct AccountDeviceProofFactory {
 
 @MainActor
 final class NativeAccountSyncTransport: AccountSyncTransporting {
-    private struct Challenge: Decodable { let nonce: String }
-    private let baseURL = URL(string: "https://curfew-sync.hypertext.studio")!
     private let secretStore: any AccountSecretStoring
     private let keyStore: AccountDeviceKeyStore
-    private let session: URLSession
-    private let proofFactory: AccountDeviceProofFactory
+    private let tokenRefresher: AccountOAuthTokenRefresher
+    private let authorizedHTTP: NativeAccountAuthorizedHTTPClient
+    private let inboxStore: RemoteCommandInboxStore
+    private let resultExchangeStore: RemoteCommandResultExchangeStore
     private var pollingTask: Task<Void, Never>?
     private var onWakeStatus: ((AccountWakeStatusUpdate) -> Void)?
     private var onRemoteOverride: ((AccountRemoteOverride) -> Void)?
+    private var onRemoteCommandResult: ((RemoteCommandResult) -> Void)?
     private var onFailure: ((String) -> Void)?
     private var distributedPeerEpochs: Set<String> = []
 
     init(
         secretStore: any AccountSecretStoring = KeychainAccountSecretStore(),
         session: URLSession? = nil,
-        proofFactory: AccountDeviceProofFactory? = nil
+        proofFactory: AccountDeviceProofFactory? = nil,
+        inboxStore: RemoteCommandInboxStore? = nil,
+        resultExchangeStore: RemoteCommandResultExchangeStore? = nil
     ) {
         self.secretStore = secretStore
         self.keyStore = AccountDeviceKeyStore(secretStore: secretStore)
-        self.session = session ?? URLSession(
+        let resolvedSession = session ?? URLSession(
             configuration: .ephemeral,
             delegate: RejectingRedirectSessionDelegate(),
             delegateQueue: nil
         )
-        self.proofFactory = proofFactory ?? AccountDeviceProofFactory()
+        self.authorizedHTTP = NativeAccountAuthorizedHTTPClient(
+            session: resolvedSession,
+            proofFactory: proofFactory ?? AccountDeviceProofFactory()
+        )
+        self.tokenRefresher = AccountOAuthTokenRefresher(
+            secretStore: secretStore,
+            session: resolvedSession
+        )
+        self.inboxStore = inboxStore ?? RemoteCommandInboxStore(
+            directoryURL: SharedPaths.remoteCommandInbox
+        )
+        self.resultExchangeStore = resultExchangeStore ?? RemoteCommandResultExchangeStore(
+            resultsURL: SharedPaths.remoteCommandResults,
+            acknowledgementsDirectoryURL: SharedPaths.remoteCommandResultAcknowledgements
+        )
     }
 
     func connect(
         deviceID: UUID,
         onWakeStatus: @escaping (AccountWakeStatusUpdate) -> Void,
         onRemoteOverride: @escaping (AccountRemoteOverride) -> Void,
+        onRemoteCommandResult: @escaping (RemoteCommandResult) -> Void,
         onFailure: @escaping (String) -> Void
     ) {
         disconnect()
         self.onWakeStatus = onWakeStatus
         self.onRemoteOverride = onRemoteOverride
+        self.onRemoteCommandResult = onRemoteCommandResult
         self.onFailure = onFailure
         pollingTask = Task { [weak self] in
             while !Task.isCancelled {
-                await self?.poll(deviceID: deviceID)
+                await self?.pollOnce(deviceID: deviceID)
                 try? await Task.sleep(for: .seconds(15))
             }
         }
@@ -155,7 +170,7 @@ final class NativeAccountSyncTransport: AccountSyncTransporting {
                       let accessToken = String(data: tokenData, encoding: .utf8),
                       let keys = try keyStore.load(deviceID: deviceID)
                 else { throw NativeAccountSyncError.missingCredentials }
-                try await authorizedPOST(
+                try await authorizedHTTP.post(
                     path: "/sync/status",
                     body: report.encodedBody(),
                     deviceID: deviceID,
@@ -168,41 +183,102 @@ final class NativeAccountSyncTransport: AccountSyncTransporting {
         }
     }
 
-    private func poll(deviceID: UUID) async {
+    func pollOnce(deviceID: UUID) async {
         do {
-            guard let tokenData = try secretStore.data(for: "oauth-access-token"),
-                  let accessToken = String(data: tokenData, encoding: .utf8),
-                  let keys = try keyStore.load(deviceID: deviceID)
-            else { throw NativeAccountSyncError.missingCredentials }
-
+            try await pollWithCurrentCredentials(deviceID: deviceID)
+        } catch NativeAccountSyncError.rejected(401) {
             do {
-                try await distributeRootKey(
-                    deviceID: deviceID,
-                    accessToken: accessToken,
-                    keys: keys
-                )
+                try await tokenRefresher.refresh()
+                try await pollWithCurrentCredentials(deviceID: deviceID)
             } catch {
-                onFailure?("Encrypted device-key distribution is offline or rejected.")
-            }
-
-            if let data = try await authorizedGET(
-                path: "/sync/wake/status",
-                deviceID: deviceID,
-                accessToken: accessToken,
-                signingPrivateKey: keys.signingPrivateKey
-            ) {
-                try onWakeStatus?(Self.wakeStatus(WakeStatus(data: data)))
-            }
-            if let data = try await authorizedGET(
-                path: "/sync/remote-overrides/active",
-                deviceID: deviceID,
-                accessToken: accessToken,
-                signingPrivateKey: keys.signingPrivateKey
-            ) {
-                try onRemoteOverride?(Self.remoteOverride(RemoteOverride(data: data)))
+                onFailure?("Account sync is offline or rejected.")
             }
         } catch {
             onFailure?("Account sync is offline or rejected.")
+        }
+    }
+
+    private func pollWithCurrentCredentials(deviceID: UUID) async throws {
+        guard let tokenData = try secretStore.data(for: "oauth-access-token"),
+              let accessToken = String(data: tokenData, encoding: .utf8),
+              let keys = try keyStore.load(deviceID: deviceID)
+        else { throw NativeAccountSyncError.missingCredentials }
+
+        try await publishPendingRemoteCommandResults(
+            deviceID: deviceID,
+            accessToken: accessToken,
+            signingPrivateKey: keys.signingPrivateKey
+        )
+
+        do {
+            try await distributeRootKey(
+                deviceID: deviceID,
+                accessToken: accessToken,
+                keys: keys
+            )
+        } catch NativeAccountSyncError.rejected(401) {
+            throw NativeAccountSyncError.rejected(401)
+        } catch {
+            onFailure?("Encrypted device-key distribution is offline or rejected.")
+        }
+
+        if let data = try await authorizedHTTP.get(
+            path: "/sync/wake/status",
+            deviceID: deviceID,
+            accessToken: accessToken,
+            signingPrivateKey: keys.signingPrivateKey
+        ) {
+            try onWakeStatus?(Self.wakeStatus(WakeStatus(data: data)))
+        }
+        if let data = try await authorizedHTTP.get(
+            path: "/sync/remote-overrides/active",
+            deviceID: deviceID,
+            accessToken: accessToken,
+            signingPrivateKey: keys.signingPrivateKey
+        ) {
+            try onRemoteOverride?(Self.remoteOverride(RemoteOverride(data: data)))
+        }
+        if let data = try await authorizedHTTP.get(
+            path: "/sync/remote-control/commands",
+            deviceID: deviceID,
+            accessToken: accessToken,
+            signingPrivateKey: keys.signingPrivateKey
+        ) {
+            for delivery in try Self.remoteCommandDeliveries(
+                RemoteCommandDeliveryBatch(data: data)
+            ) {
+                try inboxStore.stage(delivery)
+            }
+        }
+    }
+
+    private func publishPendingRemoteCommandResults(
+        deviceID: UUID,
+        accessToken: String,
+        signingPrivateKey: Data
+    ) async throws {
+        for result in try resultExchangeStore.pendingResults() {
+            guard result.deviceID == deviceID else {
+                throw NativeAccountSyncError.invalidResponse
+            }
+            onRemoteCommandResult?(result)
+            let acknowledgement = try Self.remoteCommandAcknowledgement(result)
+            try await authorizedHTTP.post(
+                path: "/sync/remote-control/commands/acknowledge",
+                body: acknowledgement.jsonData(),
+                deviceID: deviceID,
+                accessToken: accessToken,
+                signingPrivateKey: signingPrivateKey
+            )
+            let wire = try Self.remoteCommandResult(result)
+            try await authorizedHTTP.post(
+                path: "/sync/remote-control/commands/result",
+                body: wire.jsonData(),
+                deviceID: deviceID,
+                accessToken: accessToken,
+                signingPrivateKey: signingPrivateKey
+            )
+            try resultExchangeStore.acknowledge(RemoteCommandResultIdentity(result: result))
         }
     }
 
@@ -211,7 +287,7 @@ final class NativeAccountSyncTransport: AccountSyncTransporting {
         accessToken: String,
         keys: AccountDeviceKeyMaterial
     ) async throws {
-        guard let data = try await authorizedGET(
+        guard let data = try await authorizedHTTP.get(
             path: "/sync/devices",
             deviceID: deviceID,
             accessToken: accessToken,
@@ -229,7 +305,7 @@ final class NativeAccountSyncTransport: AccountSyncTransporting {
                 recipient: peer,
                 createdAt: Date()
             )
-            try await authorizedPUT(
+            try await authorizedHTTP.put(
                 path: "/sync/devices/\(peer.deviceID)/root-key-envelope",
                 body: envelope.jsonData(),
                 deviceID: deviceID,
@@ -238,122 +314,5 @@ final class NativeAccountSyncTransport: AccountSyncTransporting {
             )
             distributedPeerEpochs.insert(fingerprint)
         }
-    }
-
-    private func authorizedGET(
-        path: String,
-        deviceID: UUID,
-        accessToken: String,
-        signingPrivateKey: Data
-    ) async throws -> Data? {
-        let nonce = try await challenge(deviceID: deviceID, accessToken: accessToken)
-        let url = baseURL.appending(path: path)
-        let proof = try proofFactory.make(.init(
-            accessToken: accessToken,
-            nonce: nonce,
-            method: "GET",
-            url: url,
-            body: nil,
-            signingPrivateKey: signingPrivateKey
-        ))
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-        request.setValue(proof, forHTTPHeaderField: "DPoP")
-        request.setValue(deviceID.uuidString.lowercased(), forHTTPHeaderField: "X-Curfew-Device-ID")
-        let (data, response) = try await session.data(for: request)
-        guard let http = response as? HTTPURLResponse else {
-            throw NativeAccountSyncError.invalidResponse
-        }
-        if http.statusCode == 404 {
-            return nil
-        }
-        guard (200 ..< 300).contains(http.statusCode) else {
-            throw NativeAccountSyncError.rejected(http.statusCode)
-        }
-        return data
-    }
-
-    private func authorizedPUT(
-        path: String,
-        body: Data,
-        deviceID: UUID,
-        accessToken: String,
-        signingPrivateKey: Data
-    ) async throws {
-        try await authorizedWrite(.init(
-            method: "PUT",
-            path: path,
-            body: body,
-            deviceID: deviceID,
-            accessToken: accessToken,
-            signingPrivateKey: signingPrivateKey
-        ))
-    }
-
-    private func authorizedPOST(
-        path: String,
-        body: Data,
-        deviceID: UUID,
-        accessToken: String,
-        signingPrivateKey: Data
-    ) async throws {
-        try await authorizedWrite(.init(
-            method: "POST",
-            path: path,
-            body: body,
-            deviceID: deviceID,
-            accessToken: accessToken,
-            signingPrivateKey: signingPrivateKey
-        ))
-    }
-
-    private func authorizedWrite(_ input: NativeAuthorizedWrite) async throws {
-        let nonce = try await challenge(deviceID: input.deviceID, accessToken: input.accessToken)
-        let url = baseURL.appending(path: input.path)
-        let proof = try proofFactory.make(.init(
-            accessToken: input.accessToken,
-            nonce: nonce,
-            method: input.method,
-            url: url,
-            body: input.body,
-            signingPrivateKey: input.signingPrivateKey
-        ))
-        var request = URLRequest(url: url)
-        request.httpMethod = input.method
-        request.httpBody = input.body
-        request.setValue("Bearer \(input.accessToken)", forHTTPHeaderField: "Authorization")
-        request.setValue(proof, forHTTPHeaderField: "DPoP")
-        request.setValue(
-            input.deviceID.uuidString.lowercased(),
-            forHTTPHeaderField: "X-Curfew-Device-ID"
-        )
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        let (_, response) = try await session.data(for: request)
-        guard let http = response as? HTTPURLResponse else {
-            throw NativeAccountSyncError.invalidResponse
-        }
-        guard (200 ..< 300).contains(http.statusCode) else {
-            throw NativeAccountSyncError.rejected(http.statusCode)
-        }
-    }
-
-    private func challenge(deviceID: UUID, accessToken: String) async throws -> String {
-        let url = baseURL.appending(path: "/sync/device-proof/challenge")
-        let body = try JSONSerialization.data(
-            withJSONObject: ["deviceId": deviceID.uuidString.lowercased()],
-            options: [.sortedKeys]
-        )
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.httpBody = body
-        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        let (data, response) = try await session.data(for: request)
-        guard let http = response as? HTTPURLResponse,
-              (200 ..< 300).contains(http.statusCode),
-              let nonce = try? JSONDecoder().decode(Challenge.self, from: data).nonce
-        else { throw NativeAccountSyncError.invalidResponse }
-        return nonce
     }
 }

@@ -1,10 +1,10 @@
-import Combine
 import CurfewProtocols
 import Foundation
 
 struct AccountDeviceEnrollmentRequestInput {
     let accessToken: String
     let nonce: String
+    let keyEpoch: Int
     let deviceID: UUID
     let bootstrap: AccountEnrollmentBootstrap
     let keys: AccountDeviceKeyMaterial
@@ -29,9 +29,10 @@ struct AccountDeviceEnrollmentRequestBuilder {
             deviceProof: DeviceProof(compactJws: ""),
             encryptionPublicKeyJwk: Self.generatedJWK(input.bootstrap.encryptionPublicKey),
             enrolledAt: enrolledAtValue,
-            keyEpoch: 1,
+            keyEpoch: input.keyEpoch,
             pkceChallenge: input.pkceChallenge,
-            protocolVersion: "0.3",
+            protocolVersion: "0.0",
+            remoteControlEnabled: false,
             signingPublicKeyJwk: Self.generatedJWK(input.bootstrap.signingPublicKey),
             state: input.state
         )
@@ -59,9 +60,10 @@ struct AccountDeviceEnrollmentRequestBuilder {
             deviceProof: DeviceProof(compactJws: proof),
             encryptionPublicKeyJwk: Self.generatedJWK(input.bootstrap.encryptionPublicKey),
             enrolledAt: enrolledAtValue,
-            keyEpoch: 1,
+            keyEpoch: input.keyEpoch,
             pkceChallenge: input.pkceChallenge,
-            protocolVersion: "0.3",
+            protocolVersion: "0.0",
+            remoteControlEnabled: false,
             signingPublicKeyJwk: Self.generatedJWK(input.bootstrap.signingPublicKey),
             state: input.state
         )
@@ -78,146 +80,36 @@ struct AccountDeviceEnrollmentRequestBuilder {
     }()
 }
 
+struct RemoteCommandEnrollmentFinalizer {
+    let store: RemoteCommandEnrollmentStore
+
+    func install(receiptData: Data) throws {
+        let receipt = try NativeDeviceEnrollmentReceipt(data: receiptData)
+        try store.save(NativeAccountSyncTransport.remoteCommandEnrollment(receipt))
+    }
+}
+
 enum NativeAccountEnrollmentState: Equatable {
     case saveRecoveryKey(String, AccountDeviceEnrollment)
     case enterRecoveryKey(AccountDeviceEnrollment)
 }
 
-enum AccountEnrollmentUIState: Equatable {
-    case accountFree
-    case signingIn
-    case saveRecoveryKey(String, AccountDeviceEnrollment)
-    case enterRecoveryKey(AccountDeviceEnrollment)
-    case ready(AccountDeviceEnrollment)
-    case failed(String)
-}
-
-final class AccountEnrollmentPendingStore {
-    private let secretStore: any AccountSecretStoring
-
-    init(secretStore: any AccountSecretStoring) {
-        self.secretStore = secretStore
-    }
-
-    func save(enrollment: AccountDeviceEnrollment, recoveryKey: String?) throws {
-        try secretStore.save(
-            JSONEncoder().encode(enrollment),
-            for: "pending-account-enrollment"
-        )
-        if let recoveryKey {
-            try secretStore.save(Data(recoveryKey.utf8), for: "pending-recovery-key")
-        } else {
-            try secretStore.delete("pending-recovery-key")
-        }
-    }
-
-    func load() throws -> AccountEnrollmentUIState? {
-        guard let data = try secretStore.data(for: "pending-account-enrollment") else {
-            return nil
-        }
-        let enrollment = try JSONDecoder().decode(AccountDeviceEnrollment.self, from: data)
-        if let keyData = try secretStore.data(for: "pending-recovery-key"),
-           let key = String(data: keyData, encoding: .utf8),
-           !key.isEmpty {
-            return .saveRecoveryKey(key, enrollment)
-        }
-        return .enterRecoveryKey(enrollment)
-    }
-
-    func clear() throws {
-        try secretStore.delete("pending-account-enrollment")
-        try secretStore.delete("pending-recovery-key")
-    }
-}
-
-@MainActor
-final class AccountEnrollmentController: ObservableObject {
-    @Published private(set) var state: AccountEnrollmentUIState = .accountFree
-
-    private let secretStore: any AccountSecretStoring
-    private let oauth: AccountOAuthEnrollmentService
-    private let devices: NativeAccountDeviceEnrollmentService
-    private let pending: AccountEnrollmentPendingStore
-
-    init(secretStore: any AccountSecretStoring = KeychainAccountSecretStore()) {
-        self.secretStore = secretStore
-        self.oauth = AccountOAuthEnrollmentService(secretStore: secretStore)
-        self.devices = NativeAccountDeviceEnrollmentService(secretStore: secretStore)
-        self.pending = AccountEnrollmentPendingStore(secretStore: secretStore)
-        self.state = (try? pending.load()) ?? .accountFree
-    }
-
-    func signIn() async {
-        state = .signingIn
-        do {
-            let grant = try await oauth.signIn()
-            let outcome = try await devices.enroll(
-                grant: grant,
-                deviceID: deviceID()
-            )
-            switch outcome {
-            case .saveRecoveryKey(let key, let enrollment):
-                try pending.save(enrollment: enrollment, recoveryKey: key)
-                state = .saveRecoveryKey(key, enrollment)
-            case .enterRecoveryKey(let enrollment):
-                try pending.save(enrollment: enrollment, recoveryKey: nil)
-                state = .enterRecoveryKey(enrollment)
-            }
-        } catch {
-            state = .failed("Account sign-in or encrypted device enrollment failed.")
-        }
-    }
-
-    func restore(recoveryKey: String) async {
-        guard case .enterRecoveryKey(let enrollment) = state else { return }
-        do {
-            let restored = try await devices.restore(
-                recoveryKey: recoveryKey.trimmingCharacters(in: .whitespacesAndNewlines),
-                enrollment: enrollment
-            )
-            try pending.clear()
-            state = .ready(restored)
-        } catch {
-            state = .failed("That Recovery Key could not decrypt this Curfew account.")
-        }
-    }
-
-    func acknowledgeSavedRecoveryKey() throws -> AccountDeviceEnrollment? {
-        guard case .saveRecoveryKey(_, let enrollment) = state else { return nil }
-        try pending.clear()
-        state = .ready(enrollment)
-        return enrollment
-    }
-
-    private func deviceID() throws -> UUID {
-        if let data = try secretStore.data(for: "account-device-id"),
-           let text = String(data: data, encoding: .utf8),
-           let identifier = UUID(uuidString: text) {
-            return identifier
-        }
-        let identifier = UUID()
-        try secretStore.save(
-            Data(identifier.uuidString.lowercased().utf8),
-            for: "account-device-id"
-        )
-        return identifier
-    }
-}
-
 @MainActor
 final class NativeAccountDeviceEnrollmentService {
-    private struct Challenge: Decodable { let nonce: String }
-
     private let secretStore: any AccountSecretStoring
     private let keyStore: AccountDeviceKeyStore
     private let session: URLSession
     private let proofFactory: AccountDeviceProofFactory
+    private let remoteCommandFinalizer: RemoteCommandEnrollmentFinalizer
     private let baseURL = URL(string: "https://curfew-sync.hypertext.studio")!
 
     init(
         secretStore: any AccountSecretStoring = KeychainAccountSecretStore(),
         session: URLSession? = nil,
-        proofFactory: AccountDeviceProofFactory = AccountDeviceProofFactory()
+        proofFactory: AccountDeviceProofFactory = AccountDeviceProofFactory(),
+        remoteCommandEnrollmentStore: RemoteCommandEnrollmentStore = .init(
+            recordURL: SharedPaths.remoteCommandEnrollment
+        )
     ) {
         self.secretStore = secretStore
         self.keyStore = AccountDeviceKeyStore(secretStore: secretStore)
@@ -227,6 +119,9 @@ final class NativeAccountDeviceEnrollmentService {
             delegateQueue: nil
         )
         self.proofFactory = proofFactory
+        self.remoteCommandFinalizer = RemoteCommandEnrollmentFinalizer(
+            store: remoteCommandEnrollmentStore
+        )
     }
 
     func enroll(
@@ -234,21 +129,22 @@ final class NativeAccountDeviceEnrollmentService {
         deviceID: UUID,
         enrolledAt: Date = Date()
     ) async throws -> NativeAccountEnrollmentState {
+        let accessToken = grant.tokens.accessToken
+        let challenge = try await challenge(deviceID: deviceID, accessToken: accessToken)
         let bootstrap = try keyStore.createEnrollment(
             deviceID: deviceID,
-            keyEpoch: 1,
+            keyEpoch: challenge.keyEpoch,
             createdAt: enrolledAt
         )
         guard let keys = try keyStore.load(deviceID: deviceID) else {
             throw AccountOAuthEnrollmentError.invalidResponse
         }
-        let accessToken = grant.tokens.accessToken
-        let nonce = try await challenge(deviceID: deviceID, accessToken: accessToken)
         let enrollment = try AccountDeviceEnrollmentRequestBuilder(
             proofFactory: proofFactory
         ).make(AccountDeviceEnrollmentRequestInput(
             accessToken: accessToken,
-            nonce: nonce,
+            nonce: challenge.coordinatorNonce,
+            keyEpoch: challenge.keyEpoch,
             deviceID: deviceID,
             bootstrap: bootstrap,
             keys: keys,
@@ -256,21 +152,12 @@ final class NativeAccountDeviceEnrollmentService {
             pkceChallenge: grant.codeChallenge,
             state: grant.state
         ))
-        var enrollmentRequest = URLRequest(
-            url: baseURL.appending(path: "/sync/devices/enroll")
-        )
-        enrollmentRequest.httpMethod = "POST"
-        enrollmentRequest.httpBody = try enrollment.jsonData()
-        enrollmentRequest.setValue(
-            "Bearer \(accessToken)",
-            forHTTPHeaderField: "Authorization"
-        )
-        enrollmentRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        _ = try await responseData(for: enrollmentRequest, acceptedStatuses: 200 ..< 300)
+        let receiptData = try await submitEnrollment(enrollment, accessToken: accessToken)
+        try remoteCommandFinalizer.install(receiptData: receiptData)
 
         let localEnrollment = AccountDeviceEnrollment(
             deviceID: deviceID,
-            keyEpoch: 1,
+            keyEpoch: challenge.keyEpoch,
             enrolledAt: enrolledAt
         )
         let recoveryEnvelope = AccountRecoveryEnvelopeBridge.generated(bootstrap.recoveryEnvelope)
@@ -286,6 +173,18 @@ final class NativeAccountDeviceEnrollmentService {
         return .enterRecoveryKey(localEnrollment)
     }
 
+    private func submitEnrollment(
+        _ enrollment: DeviceEnrollmentRequest,
+        accessToken: String
+    ) async throws -> Data {
+        var request = URLRequest(url: baseURL.appending(path: "/sync/devices/enroll"))
+        request.httpMethod = "POST"
+        request.httpBody = try enrollment.jsonData()
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        return try await responseData(for: request, acceptedStatuses: 200 ..< 300)
+    }
+
     func restore(
         recoveryKey: String,
         enrollment: AccountDeviceEnrollment
@@ -295,13 +194,13 @@ final class NativeAccountDeviceEnrollmentService {
               let keys = try keyStore.load(deviceID: enrollment.deviceID)
         else { throw AccountOAuthEnrollmentError.invalidResponse }
         let endpoint = baseURL.appending(path: "/sync/e2ee/recovery-envelope")
-        let nonce = try await challenge(
+        let challenge = try await challenge(
             deviceID: enrollment.deviceID,
             accessToken: accessToken
         )
         let proof = try proofFactory.make(.init(
             accessToken: accessToken,
-            nonce: nonce,
+            nonce: challenge.coordinatorNonce,
             method: "GET",
             url: endpoint,
             body: nil,
@@ -331,10 +230,10 @@ final class NativeAccountDeviceEnrollmentService {
     ) async throws -> Bool {
         let endpoint = baseURL.appending(path: "/sync/e2ee/recovery-envelope")
         let body = try envelope.jsonData()
-        let nonce = try await challenge(deviceID: deviceID, accessToken: accessToken)
+        let challenge = try await challenge(deviceID: deviceID, accessToken: accessToken)
         let proof = try proofFactory.make(.init(
             accessToken: accessToken,
-            nonce: nonce,
+            nonce: challenge.coordinatorNonce,
             method: "PUT",
             url: endpoint,
             body: body,
@@ -363,7 +262,10 @@ final class NativeAccountDeviceEnrollmentService {
         return true
     }
 
-    private func challenge(deviceID: UUID, accessToken: String) async throws -> String {
+    private func challenge(
+        deviceID: UUID,
+        accessToken: String
+    ) async throws -> NativeDeviceProofChallenge {
         let endpoint = baseURL.appending(path: "/sync/device-proof/challenge")
         let body = try JSONSerialization.data(
             withJSONObject: ["deviceId": deviceID.uuidString.lowercased()]
@@ -374,7 +276,7 @@ final class NativeAccountDeviceEnrollmentService {
         request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         let data = try await responseData(for: request, acceptedStatuses: 200 ..< 300)
-        return try JSONDecoder().decode(Challenge.self, from: data).nonce
+        return try JSONDecoder().decode(NativeDeviceProofChallenge.self, from: data)
     }
 
     private func responseData(

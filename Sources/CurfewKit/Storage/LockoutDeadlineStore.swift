@@ -1,3 +1,4 @@
+import Darwin
 import Foundation
 import OSLog
 
@@ -20,6 +21,8 @@ public enum LockoutKind: String, Codable, Equatable, Sendable {
     /// Account wake campaign owns morning release. `scheduledUnlockAt` is
     /// the campaign's deterministic final deadline, not an editable clock.
     case accountWakeCampaign = "account_wake_campaign"
+    /// An authenticated command issued through the user's remote MCP account.
+    case remoteCommand = "remote_command"
 }
 
 /// Authoritative lockout-deadline record persisted to disk so that:
@@ -128,7 +131,7 @@ public struct LockoutDeadlineStore {
                 withIntermediateDirectories: true
             )
             let data = try encoder.encode(record)
-            try data.write(to: recordURL, options: .atomic)
+            try writeAtomically(data)
             lockoutDeadlineLogger.info(
                 "lockout-deadline saved (until: \(record.scheduledUnlockAt, privacy: .public))"
             )
@@ -151,5 +154,63 @@ public struct LockoutDeadlineStore {
                 "failed to clear lockout-deadline: \(error.localizedDescription, privacy: .public)"
             )
         }
+    }
+
+    /// Writes through a private sibling file and swaps it into place with the
+    /// kernel's same-volume `rename(2)`. Owning the temporary-file mode keeps
+    /// the record private, while the explicit rename preserves the original
+    /// all-or-nothing replacement guarantee for app and daemon writers.
+    private func writeAtomically(_ data: Data) throws {
+        let temporaryURL = recordURL.deletingLastPathComponent()
+            .appendingPathComponent(".\(recordURL.lastPathComponent).\(UUID().uuidString).tmp")
+        defer { try? fileManager.removeItem(at: temporaryURL) }
+
+        try writePrivateFile(data, to: temporaryURL)
+
+        let result = temporaryURL.path.withCString { sourcePath in
+            recordURL.path.withCString { destinationPath in
+                Darwin.rename(sourcePath, destinationPath)
+            }
+        }
+        guard result == 0 else {
+            throw currentPOSIXError()
+        }
+    }
+
+    /// Writes a complete private sibling before it becomes authoritative.
+    /// The daemon's root-owned shadow remains the locked-session authority;
+    /// user-home storage can still be subject to macOS data protection.
+    private func writePrivateFile(_ data: Data, to url: URL) throws {
+        let descriptor = url.path.withCString { path in
+            Darwin.open(path, O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC, S_IRUSR | S_IWUSR)
+        }
+        guard descriptor >= 0 else {
+            throw currentPOSIXError()
+        }
+        defer { Darwin.close(descriptor) }
+
+        try data.withUnsafeBytes { rawBuffer in
+            guard var cursor = rawBuffer.baseAddress else { return }
+            var remaining = rawBuffer.count
+            while remaining > 0 {
+                let written = Darwin.write(descriptor, cursor, remaining)
+                if written < 0, errno == EINTR {
+                    continue
+                }
+                guard written > 0 else {
+                    throw currentPOSIXError()
+                }
+                cursor = cursor.advanced(by: written)
+                remaining -= written
+            }
+        }
+
+        guard Darwin.fsync(descriptor) == 0 else {
+            throw currentPOSIXError()
+        }
+    }
+
+    private func currentPOSIXError() -> POSIXError {
+        POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)
     }
 }

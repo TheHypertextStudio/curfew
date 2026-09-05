@@ -82,8 +82,7 @@ final class AccountWakeReleaseTests: XCTestCase {
         XCTAssertEqual(decision, .release(.satisfied))
     }
 
-    // The cases keep every rejection reason beside the accepted override.
-    // swiftlint:disable:next function_body_length
+    /// The cases keep every rejection reason beside the accepted override.
     func testOnlyCurrentAuthorizedOverrideCanReleaseThisDevice() {
         let record = LockoutDeadlineRecord(
             lockoutStartedAt: campaignStart.addingTimeInterval(-12 * 60 * 60),
@@ -158,17 +157,20 @@ final class AccountWakeReleaseTests: XCTestCase {
 
         try ledger.accept(wakeUpdate(state: .satisfied, statusVersion: 5), now: campaignStart)
         XCTAssertThrowsError(
-            try ledger.accept(wakeUpdate(state: .ringingAttempt, statusVersion: 6), now: campaignStart)
+            try ledger.accept(
+                wakeUpdate(state: .ringingAttempt, statusVersion: 6),
+                now: campaignStart
+            )
         ) { XCTAssertEqual($0 as? AccountWakeLedgerError, .terminalRollback) }
     }
 
     func testLedgerAcceptsUnboundedAttempts() throws {
         var ledger = AccountWakeLedger()
         try ledger.accept(
-            wakeUpdate(state: .ringingAttempt, statusVersion: 1, attemptNumber: 10_000),
+            wakeUpdate(state: .ringingAttempt, statusVersion: 1, attemptNumber: 10000),
             now: campaignStart
         )
-        XCTAssertEqual(ledger.current?.attemptNumber, 10_000)
+        XCTAssertEqual(ledger.current?.attemptNumber, 10000)
     }
 
     func testAccountEnrollmentMakesAccountSyncCanonical() throws {

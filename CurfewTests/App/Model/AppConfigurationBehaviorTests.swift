@@ -168,7 +168,9 @@ struct AppCoordinatorTests {
         let model = CurfewAppModel(
             settingsStore: store,
             appRouter: AppRouterSpy(),
-            gettingStartedPresenter: presenter
+            gettingStartedPresenter: presenter,
+            activityRecorder: NullActivityRecording(),
+            lockoutDeadlineStore: ModelTestSupport.lockoutDeadlineStore()
         )
 
         let coordinator = AppCoordinator()
@@ -200,7 +202,9 @@ struct AppCoordinatorTests {
         let model = CurfewAppModel(
             settingsStore: store,
             appRouter: AppRouterSpy(),
-            gettingStartedPresenter: GettingStartedPresenterSpy()
+            gettingStartedPresenter: GettingStartedPresenterSpy(),
+            activityRecorder: NullActivityRecording(),
+            lockoutDeadlineStore: ModelTestSupport.lockoutDeadlineStore()
         )
 
         let coordinator = AppCoordinator()

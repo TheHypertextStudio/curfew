@@ -419,6 +419,37 @@ only.
   - `swift package resolve`
   - `xcodebuild -resolvePackageDependencies -project Curfew.xcodeproj -scheme Curfew`
   - `CurfewProtocolBridgeTests`
+- `An unlocked enrolled Mac periodically wakes its privileged daemon, accepts
+  only a coordinator-signed command for the enrolled account/device, and makes
+  the authenticated remote deadline visible to the existing enforcement loop.`
+  - `DaemonPlistTests`
+  - `RemoteCommandVerifierTests`
+  - `RemoteCommandInboxStoreTests`
+  - `DaemonRemoteCommandControllerTests`
+  - `DaemonCommandBackendTests/localBackendShadowsDeadline()`
+  - `DaemonCommandBackendTests/remoteBackendOwnsTransportAndDeadline()`
+  - `DaemonCommandBackendTests/backendSetIsolatesFailures()`
+  - `DaemonCommandBackendTests/synchronizationFailurePreservesDurableDeadline()`
+  - `DaemonLockoutDeadlineResolverTests`
+  - `AccountLifecycleWiringTests/authenticatedRemoteResultPresentsLockout()`
+  - `swift build --product curfew-daemon`
+- `A daemon terminal result maps exactly to the released 0.0.8 result shape,
+  is acknowledged and published before another command fetch, and stays in the
+  durable outbox until the daemon consumes an exact publication acknowledgement.`
+  - `NativeAccountSyncMappingTests/testDaemonResultMapsExactlyToReleasedProtocol()`
+  - `NativeAccountSyncTransportTests/testPollPublishesDaemonResultBeforeFetchingMoreCommands()`
+  - `RemoteCommandInboxStoreTests/resultExchangeRoundTripsDurably()`
+  - `RemoteCommandInboxStoreTests/malformedAcknowledgementIsQuarantined()`
+  - `DaemonRemoteCommandControllerTests/backendReconcilesResultExchange()`
+  - `DaemonRemoteCommandControllerTests/rejectsMismatchedResultAcknowledgement()`
+- `Durable deadlines are replaced atomically with private permissions, and
+  model tests never write synthetic lockouts into the developer's protected
+  Application Support directory.`
+  - `LockoutDeadlineStoreTests/saveReplacesTheRecordWithPrivatePermissions()`
+  - `AuditGrantWiringTests`
+  - `AuditWiringTests`
+  - `CurfewTests/enforcementArmsOnlyAfterSetupCompletion()`
+  - `SetupUXTests/completeOnboardingFlowUpdatesState()`
 - `The public static MCP guide and the repository-owned Mintlify source give
   the same correct Claude Desktop configuration and permissions boundary until
   Mintlify is intentionally published.`

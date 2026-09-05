@@ -227,12 +227,46 @@ public enum SharedPaths {
         applicationSupport.appendingPathComponent("account-wake-ledger.json")
     }
 
+    /// Opaque coordinator-signed command deliveries awaiting privileged
+    /// verification. The app may write this directory but cannot authorize a
+    /// lockout: the root daemon independently fetches trusted signing keys and
+    /// verifies every envelope before changing enforcement state.
+    public static var remoteCommandInbox: URL {
+        applicationSupport.appendingPathComponent("remote-command-inbox", isDirectory: true)
+    }
+
+    /// Authenticated account/device binding returned by native enrollment and
+    /// read by the privileged command verifier.
+    public static var remoteCommandEnrollment: URL {
+        applicationSupport.appendingPathComponent("remote-command-enrollment.json")
+    }
+
+    /// Daemon-published terminal results waiting for the authenticated app
+    /// transport to return them to the coordinator.
+    public static var remoteCommandResults: URL {
+        applicationSupport.appendingPathComponent("remote-command-results.json")
+    }
+
+    /// Exact app acknowledgements written only after coordinator acceptance.
+    public static var remoteCommandResultAcknowledgements: URL {
+        applicationSupport.appendingPathComponent(
+            "remote-command-result-acknowledgements",
+            isDirectory: true
+        )
+    }
+
     /// Root-owned shadow copy of the durable lockout deadline. The daemon
     /// writes this from the user-side record once and re-reads it on
     /// every loop iteration; if the user deletes the user-side file the
     /// shadow is still authoritative until `scheduledUnlockAt` passes.
     public static var lockoutDeadlineShadow: URL {
         privilegedApplicationSupport.appendingPathComponent("lockout-deadline.json")
+    }
+
+    /// Root-owned command transaction state: replay cursor, remote deadline,
+    /// and results waiting to be returned to the coordinator.
+    public static var remoteCommandState: URL {
+        privilegedApplicationSupport.appendingPathComponent("remote-command-state.json")
     }
 
     /// Timestamp file the app touches every tick so the daemon can tell

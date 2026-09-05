@@ -181,7 +181,9 @@ struct SetupUXTests {
         let model = CurfewAppModel(
             settingsStore: CurfewSettingsStore(defaults: defaults),
             appRouter: AppRouterSpy(),
-            gettingStartedPresenter: presenter
+            gettingStartedPresenter: presenter,
+            activityRecorder: NullActivityRecording(),
+            lockoutDeadlineStore: ModelTestSupport.lockoutDeadlineStore()
         )
 
         #expect(!model.settings.hasCompletedInitialSetup)
@@ -330,6 +332,7 @@ struct MenuBarPresentationModelTests {
             appRouter: AppRouterSpy(),
             gettingStartedPresenter: GettingStartedPresenterSpy(),
             activityRecorder: NullActivityRecording(),
+            lockoutDeadlineStore: ModelTestSupport.lockoutDeadlineStore(),
             accessibilityAuthorization: FakeAccessibilityAuthorization(trusted: true)
         )
     }

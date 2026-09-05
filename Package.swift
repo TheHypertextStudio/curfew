@@ -9,7 +9,7 @@ let curfewProtocolsDependency: Package.Dependency = if let localPath =
 } else {
     .package(
         url: "https://github.com/TheHypertextStudio/curfew-protocols.git",
-        exact: "0.3.0"
+        exact: "0.0.8"
     )
 }
 
@@ -40,7 +40,8 @@ let package = Package(
             from: "1.3.0"
         ),
         // Versioned wire-format contract shared with curfew-sync (the
-        // Cloudflare coordinator). The Swift face of @hypertext/curfew-protocols
+        // Cloudflare coordinator). The Swift face of
+        // @thehypertextstudio/curfew-protocols
         // on npm — JSON Schemas in the source repo, codegen'd to Codable
         // structs here. Wired into the SPM-only curfew-mcp target below;
         // the Xcode app target picks the package up separately when added
