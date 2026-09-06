@@ -181,7 +181,8 @@ final class NativeAccountSyncMappingTests: XCTestCase {
             keys: keys,
             enrolledAt: createdAt,
             pkceChallenge: "pkce-challenge",
-            state: "oauth-state"
+            state: "oauth-state",
+            syncResource: CurfewServiceEndpoints.production.syncResource
         ))
         let encoded = try request.jsonData()
         let object = try XCTUnwrap(

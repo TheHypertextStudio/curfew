@@ -6,7 +6,7 @@ extension SettingsView {
         CurfewPanel {
             CurfewSectionTitle(
                 title: "Curfew Account",
-                subtitle: "Sync encrypted policy, wake state, purchases, and devices"
+                subtitle: "Connect this Mac for encrypted sync and remote control"
             )
 
             Text(Self.accountExplanation)
@@ -28,12 +28,9 @@ extension SettingsView {
     @ViewBuilder
     private var accountEnrollmentControls: some View {
         if model.settings.accountSync.isEnrolled {
-            Label(
-                "This Mac uses end-to-end encrypted account sync.",
-                systemImage: "checkmark.shield"
-            )
-            .font(CurfewTypography.bodyEmphasis(13))
-            .foregroundStyle(CurfewTheme.accent)
+            Label("This Mac is securely connected.", systemImage: "checkmark.shield")
+                .font(CurfewTypography.bodyEmphasis(13))
+                .foregroundStyle(CurfewTheme.accent)
             openAccountButton
         } else {
             switch accountEnrollment.state {
@@ -98,18 +95,17 @@ extension SettingsView {
     }
 
     private var openAccountButton: some View {
-        Button("Open Account") {
-            NSWorkspace.shared.open(
-                URL(string: "https://curfew.hypertext.studio/account")!
-            )
+        Button("Manage devices and remote control") {
+            NSWorkspace.shared.open(CurfewServiceEndpoints.current.accountPortal)
         }
         .buttonStyle(CurfewSecondaryButtonStyle())
     }
 
     static let accountExplanation = """
-    A Curfew Account is optional. Local schedules, alarms, callbacks, and signed offline \
-    licenses continue to work without one. An account lets your devices share encrypted \
-    settings and one morning wake campaign.
+    A Curfew Account is optional. It lets you see your devices and securely lock this Mac \
+    from an AI assistant on your phone. Remote control is off until you turn it on for this \
+    device. Local schedules, alarms, callbacks, and signed offline licenses keep working \
+    without an account.
     """
 
     static let accountSecurityNote = """

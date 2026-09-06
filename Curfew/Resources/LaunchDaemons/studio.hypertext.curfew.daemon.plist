@@ -26,6 +26,12 @@
     <key>BundleProgram</key>
     <string>Contents/Resources/curfew-daemon</string>
 
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>CURFEW_FLAVOR</key>
+        <string>production</string>
+    </dict>
+
     <!--
       Wake periodically so an unlocked Mac can discover a remotely delivered
       command before a lockout sentinel exists. Once enforcement begins,

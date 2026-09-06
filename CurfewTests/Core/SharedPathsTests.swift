@@ -79,6 +79,18 @@ struct SharedPathsTests {
                 .hasPrefix("/Library/Application Support/Curfew")
         )
     }
+
+    @Test("Privileged state keeps production stable and development isolated")
+    func privilegedStateIsFlavorSpecific() {
+        #expect(
+            SharedPaths.privilegedApplicationSupport(for: .production).path
+                == "/Library/Application Support/Curfew"
+        )
+        #expect(
+            SharedPaths.privilegedApplicationSupport(for: .development).path
+                == "/Library/Application Support/Curfew (Dev)"
+        )
+    }
 }
 
 struct LockoutDeadlineStoreTests {

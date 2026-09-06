@@ -85,10 +85,12 @@ This means a compromised coordinator cannot push a "lock window shrinks to zero"
 
 ### Account and device enrollment
 
-- **Authentication:** Apple or Google browser OAuth. Every interactive sign-in
+- **Authentication:** User-verified passkeys are the default account creation
+  and sign-in method. Sign in with Apple appears only when its isolated Curfew
+  provider credentials are configured. An Apple callback establishes AAL1 and
   remains restricted until the user completes TOTP or consumes a one-time
-  backup code. Curfew has no password or passkey account creation in this
-  release.
+  backup code. Every account must confirm server-side recovery codes before it
+  can grant remote-control scopes. Curfew has no password accounts.
 - **Linking:** Curfew disables implicit same-email linking. The user must sign
   in through an existing method, complete fresh 2FA, and approve the new
   provider. Settings prevents removal of the last sign-in method.
@@ -181,6 +183,15 @@ This protects against two distinct threats: account compromise leading to indefi
 - **Settings → Curfew Account** is the entry point. It opens browser OAuth,
   completes 2FA, enrolls device keys, and requires the user to save or enter
   the separate Curfew Recovery Key before sync starts.
+- **Staging proof.** A build made with
+  `CURFEW_SERVICE_SWIFT_FLAG=CURFEW_STAGING` binds the app, OAuth exchanges,
+  sync transport, account portal, MCP resource, and embedded daemon JWKS trust
+  to the three `curfew-*-staging.hypertext.studio` hosts and selects an isolated
+  account-encryption Keychain service. It is restricted to Curfew's Debug
+  identity, separate development LaunchDaemon label, and separate user/root
+  storage paths. Release rejects the staging flag. Production remains the
+  compile-time default; runtime environment variables cannot redirect a shipped
+  helper to an arbitrary command signer.
 - **Devices panel.** Lists all enrolled devices with last-seen time, active-state pill from F15, and a per-device "Remove" action.
 - **Connected AI tools panel.** Lists every OAuth client (one row per token grant), with the granted scopes, last-used timestamp, and a "Revoke" button. New connections appear here within seconds of the OAuth flow completing.
 - **Sync status indicator.** Replaces F13's status string when Sync is enabled: *"Synced across 2 devices · 1 AI tool connected"*. Offline state: *"Sync offline — last synced 14 min ago"*.

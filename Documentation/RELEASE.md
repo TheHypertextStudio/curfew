@@ -72,6 +72,31 @@ prerequisites exist:
      `curfew-daemon` with `EXPANDED_CODE_SIGN_IDENTITY`; copying SwiftPM's
      ad-hoc linker signature into `Contents/Resources` is not sufficient.
 
+## Build against Curfew Sync staging
+
+Production hosts are the compile-time default. For staging acceptance, make the
+isolated Debug build with the single allowlisted flag below. It selects the staging account portal,
+OAuth issuer/resource, sync API, MCP resource, and daemon command JWKS together;
+the bundle phase forwards the same flag to every embedded SwiftPM executable.
+Staging also uses a separate account-encryption Keychain service, so acceptance
+testing cannot read or overwrite production account keys. The Debug app installs
+`studio.hypertext.curfew.dev.daemon`, and its root-owned state lives under
+`/Library/Application Support/Curfew (Dev)`.
+
+```bash
+xcodebuild build \
+  -project Curfew.xcodeproj \
+  -scheme Curfew \
+  -configuration Debug \
+  -destination 'platform=macOS' \
+  CURFEW_SERVICE_SWIFT_FLAG=CURFEW_STAGING
+```
+
+The build hard-fails if `CURFEW_STAGING` is combined with Release, if the helper
+plist does not match the app flavor, or if the flag has any other value. A
+staging build therefore cannot be archived as Curfew or replace the production
+LaunchDaemon.
+
 ## Build a local signed release candidate
 
 The CI release workflow uses the same archive/export path shown here. Running it

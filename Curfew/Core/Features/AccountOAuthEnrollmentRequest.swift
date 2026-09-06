@@ -14,7 +14,8 @@ struct AccountOAuthEnrollmentRequest: Equatable {
         clientID: String,
         callbackScheme: String,
         state: String,
-        verifier: String
+        verifier: String,
+        endpoints: CurfewServiceEndpoints = .current
     ) throws -> AccountOAuthEnrollmentRequest {
         guard !clientID.isEmpty else { throw AccountOAuthEnrollmentError.invalidClientID }
         guard callbackScheme == "studio.hypertext.curfew" else {
@@ -28,7 +29,7 @@ struct AccountOAuthEnrollmentRequest: Equatable {
         let redirectURI = "\(callbackScheme)://oauth/callback"
         let challenge = Self.base64URL(Data(SHA256.hash(data: Data(verifier.utf8))))
         var components = URLComponents(
-            url: Self.accountOrigin.appending(path: "/api/auth/oauth2/authorize"),
+            url: endpoints.accountOrigin.appending(path: "/api/auth/oauth2/authorize"),
             resolvingAgainstBaseURL: false
         )
         components?.queryItems = [
@@ -38,7 +39,7 @@ struct AccountOAuthEnrollmentRequest: Equatable {
             URLQueryItem(name: "scope", value: requiredScopes.joined(separator: " ")),
             URLQueryItem(
                 name: "resource",
-                value: FirstPartyResource.httpsCurfewSyncHypertextStudio.rawValue
+                value: endpoints.syncResource.absoluteString
             ),
             URLQueryItem(name: "state", value: state),
             URLQueryItem(name: "code_challenge", value: challenge),
@@ -49,7 +50,7 @@ struct AccountOAuthEnrollmentRequest: Equatable {
         }
         return AccountOAuthEnrollmentRequest(
             authorizationURL: authorizationURL,
-            tokenURL: accountOrigin.appending(path: "/api/auth/oauth2/token"),
+            tokenURL: endpoints.accountOrigin.appending(path: "/api/auth/oauth2/token"),
             redirectURI: redirectURI,
             state: state,
             verifier: verifier,
@@ -70,7 +71,6 @@ struct AccountOAuthEnrollmentRequest: Equatable {
         CurfewFirstPartyOAuthScope.curfewWakeWrite.rawValue
     ]
 
-    private static let accountOrigin = URL(string: "https://curfew-account.hypertext.studio")!
     private static let pkceCharacters = CharacterSet(
         charactersIn: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~"
     )

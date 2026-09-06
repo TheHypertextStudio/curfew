@@ -124,6 +124,14 @@ struct ScheduleSurfaceCopyTests {
 
 @MainActor
 struct AccountEnrollmentCopyTests {
+    @Test("Account panel explains phone locking and the safe per-device default")
+    func remoteControlIsPlainAndOptIn() {
+        let copy = SettingsView.accountExplanation
+        #expect(copy.contains("phone"))
+        #expect(copy.contains("lock this Mac"))
+        #expect(copy.contains("off until you turn it on"))
+    }
+
     @Test("Account panel separates sign-in recovery from encrypted-data recovery")
     func recoveryFactorsAreExplainedSeparately() {
         let copy = SettingsView.accountSecurityNote

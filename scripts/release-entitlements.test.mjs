@@ -61,3 +61,16 @@ test("unsigned CI builds skip embedded tool signing", () => {
   assert.match(projectFile, /CODE_SIGNING_ALLOWED.*NO/);
   assert.match(projectFile, /EXPANDED_CODE_SIGN_IDENTITY/);
 });
+
+test("a staging build compiles the app and every embedded tool for the same service boundary", () => {
+  assert.match(
+    projectFile,
+    /SWIFT_ACTIVE_COMPILATION_CONDITIONS = "[^"]*\$\(CURFEW_SERVICE_SWIFT_FLAG\)[^"]*";/,
+  );
+  assert.match(projectFile, /CURFEW_SERVICE_SWIFT_FLAG.*CURFEW_STAGING/);
+  assert.match(projectFile, /SWIFT_SERVICE_FLAGS=.*-Xswiftc -DCURFEW_STAGING/);
+  assert.match(projectFile, /swift build -c release --product curfew-daemon \$SWIFT_SERVICE_FLAGS/);
+  assert.match(projectFile, /if \[ \\"\$CONFIGURATION\\" != \\"Debug\\" \]/);
+  assert.match(projectFile, /CURFEW_STAGING requires the isolated Debug app and helper identity/);
+  assert.match(projectFile, /CURFEW_DAEMON_PLIST_NAME/);
+});

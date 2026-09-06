@@ -11,6 +11,7 @@ struct AccountDeviceEnrollmentRequestInput {
     let enrolledAt: Date
     let pkceChallenge: String
     let state: String
+    let syncResource: URL
 }
 
 struct AccountDeviceEnrollmentRequestBuilder {
@@ -43,9 +44,7 @@ struct AccountDeviceEnrollmentRequestBuilder {
         }
         body.removeValue(forKey: "deviceProof")
         let unsignedBody = try JSONSerialization.data(withJSONObject: body, options: [.sortedKeys])
-        let endpoint = URL(
-            string: "https://curfew-sync.hypertext.studio/sync/devices/enroll"
-        )!
+        let endpoint = input.syncResource.appending(path: "/sync/devices/enroll")
         let proof = try proofFactory.make(.init(
             accessToken: input.accessToken,
             nonce: input.nonce,
@@ -101,12 +100,13 @@ final class NativeAccountDeviceEnrollmentService {
     private let session: URLSession
     private let proofFactory: AccountDeviceProofFactory
     private let remoteCommandFinalizer: RemoteCommandEnrollmentFinalizer
-    private let baseURL = URL(string: "https://curfew-sync.hypertext.studio")!
+    private let baseURL: URL
 
     init(
         secretStore: any AccountSecretStoring = KeychainAccountSecretStore(),
         session: URLSession? = nil,
         proofFactory: AccountDeviceProofFactory = AccountDeviceProofFactory(),
+        endpoints: CurfewServiceEndpoints = .current,
         remoteCommandEnrollmentStore: RemoteCommandEnrollmentStore = .init(
             recordURL: SharedPaths.remoteCommandEnrollment
         )
@@ -119,6 +119,7 @@ final class NativeAccountDeviceEnrollmentService {
             delegateQueue: nil
         )
         self.proofFactory = proofFactory
+        self.baseURL = endpoints.syncResource
         self.remoteCommandFinalizer = RemoteCommandEnrollmentFinalizer(
             store: remoteCommandEnrollmentStore
         )
@@ -150,7 +151,8 @@ final class NativeAccountDeviceEnrollmentService {
             keys: keys,
             enrolledAt: enrolledAt,
             pkceChallenge: grant.codeChallenge,
-            state: grant.state
+            state: grant.state,
+            syncResource: baseURL
         ))
         let receiptData = try await submitEnrollment(enrollment, accessToken: accessToken)
         try remoteCommandFinalizer.install(receiptData: receiptData)
