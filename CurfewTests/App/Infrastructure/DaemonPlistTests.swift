@@ -3,33 +3,38 @@ import Foundation
 import Testing
 
 struct DaemonPlistTests {
-    @Test("LaunchDaemon plist uses BundleProgram for the embedded helper")
-    func plistUsesEmbeddedBundleProgram() throws {
-        let plistURL = URL(fileURLWithPath: #filePath)
+    @Test("Production and development helpers have isolated identities and paths")
+    func helperPlistsAreFlavorSpecific() throws {
+        let resources = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .deletingLastPathComponent()
-            .appendingPathComponent(
-                "Curfew/Resources/LaunchDaemons/studio.hypertext.curfew.daemon.plist"
+            .appendingPathComponent("Curfew/Resources/LaunchDaemons")
+
+        for flavor in CurfewFlavor.allCases {
+            let plistURL = resources.appendingPathComponent(flavor.daemonPlistName)
+            let data = try Data(contentsOf: plistURL)
+            let plist = try #require(
+                PropertyListSerialization.propertyList(
+                    from: data,
+                    options: [],
+                    format: nil
+                ) as? [String: Any]
             )
 
-        let data = try Data(contentsOf: plistURL)
-        let plist = try #require(
-            PropertyListSerialization.propertyList(
-                from: data,
-                options: [],
-                format: nil
-            ) as? [String: Any]
-        )
+            #expect(plist["Label"] as? String == flavor.daemonLabel)
+            #expect(plist["BundleProgram"] as? String == "Contents/Resources/curfew-daemon")
+            #expect(plist["ProgramArguments"] == nil)
+            let environment = try #require(plist["EnvironmentVariables"] as? [String: String])
+            #expect(environment["CURFEW_FLAVOR"] == flavor.environmentValue)
 
-        #expect(plist["Label"] as? String == "studio.hypertext.curfew.daemon")
-        #expect(plist["BundleProgram"] as? String == "Contents/Resources/curfew-daemon")
-        #expect(plist["ProgramArguments"] == nil)
-
-        let keepAlive = try #require(plist["KeepAlive"] as? [String: Any])
-        let pathState = try #require(keepAlive["PathState"] as? [String: Bool])
-        #expect(pathState[SharedPaths.lockoutActiveSentinel.path] == true)
-        #expect(plist["StartInterval"] as? Int == 15)
+            let keepAlive = try #require(plist["KeepAlive"] as? [String: Any])
+            let pathState = try #require(keepAlive["PathState"] as? [String: Bool])
+            let sentinel = SharedPaths.privilegedApplicationSupport(for: flavor)
+                .appendingPathComponent("lockout-active")
+            #expect(pathState[sentinel.path] == true)
+            #expect(plist["StartInterval"] as? Int == 15)
+        }
     }
 }

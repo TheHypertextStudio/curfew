@@ -414,6 +414,17 @@ only.
   - `AccountOAuthEnrollmentTests`
   - `NativeAccountSyncTransportTests`
   - `AccountEncryptionTests`
+- `A staging build selects one closed-world endpoint set for account UI, OAuth,
+  sync, MCP, daemon command-key trust, and account-key Keychain storage, while
+  production remains the default and account copy explains that phone locking
+  is a per-device opt-in.`
+  - `AccountOAuthEnrollmentTests/stagingEndpointsStayIsolated()`
+  - `AccountOAuthEnrollmentTests/currentEndpointsFollowBuildFlag()`
+  - `AccountEnrollmentCopyTests/remoteControlIsPlainAndOptIn()`
+  - `CurfewFlavorTests/derivedValues()`
+  - `SharedPathsTests/privilegedStateIsFlavorSpecific()`
+  - `DaemonPlistTests/helperPlistsAreFlavorSpecific()`
+  - `scripts/release-entitlements.test.mjs` (`a staging build compiles the app and every embedded tool for the same service boundary`)
 - `Both the app project and command-line package consume the same immutable
   pre-1.0 Curfew protocol release.`
   - `swift package resolve`

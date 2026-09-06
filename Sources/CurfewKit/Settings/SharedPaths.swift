@@ -194,11 +194,19 @@ public enum SharedPaths {
     // MARK: - Privileged daemon paths (root-readable, user-writable via App Group)
 
     /// `/Library/Application Support/Curfew/` — written by the app, read by
-    /// the privileged daemon. The app writes a sentinel file here when lockout
-    /// starts; the daemon uses `KeepAlive.PathState` to watch the sentinel so
-    /// it wakes up when the file appears and exits cleanly when it disappears.
+    /// the privileged daemon. Development uses `Curfew (Dev)` so its helper,
+    /// deadlines, and remote-command transaction state cannot touch production.
+    /// The app writes a sentinel file here when lockout starts; the daemon uses
+    /// `KeepAlive.PathState` to watch it.
     public static var privilegedApplicationSupport: URL {
-        URL(fileURLWithPath: "/Library/Application Support/Curfew", isDirectory: true)
+        privilegedApplicationSupport(for: CurfewFlavor.current)
+    }
+
+    public static func privilegedApplicationSupport(for flavor: CurfewFlavor) -> URL {
+        URL(
+            fileURLWithPath: "/Library/Application Support/Curfew\(flavor.displaySuffix)",
+            isDirectory: true
+        )
     }
 
     /// Sentinel file that signals an active lockout to the privileged daemon.

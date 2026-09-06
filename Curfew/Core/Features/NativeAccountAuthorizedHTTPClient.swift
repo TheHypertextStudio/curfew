@@ -10,13 +10,18 @@ private struct NativeAuthorizedWrite {
 }
 
 struct NativeAccountAuthorizedHTTPClient {
-    private let baseURL = URL(string: "https://curfew-sync.hypertext.studio")!
+    private let baseURL: URL
     private let session: URLSession
     private let proofFactory: AccountDeviceProofFactory
 
-    init(session: URLSession, proofFactory: AccountDeviceProofFactory) {
+    init(
+        session: URLSession,
+        proofFactory: AccountDeviceProofFactory,
+        endpoints: CurfewServiceEndpoints = .current
+    ) {
         self.session = session
         self.proofFactory = proofFactory
+        self.baseURL = endpoints.syncResource
     }
 
     func get(

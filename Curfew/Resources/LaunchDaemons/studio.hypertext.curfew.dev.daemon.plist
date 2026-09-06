@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+    "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Development-only privileged daemon for isolated staging acceptance. -->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>studio.hypertext.curfew.dev.daemon</string>
+
+    <key>BundleProgram</key>
+    <string>Contents/Resources/curfew-daemon</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>CURFEW_FLAVOR</key>
+        <string>development</string>
+    </dict>
+
+    <key>StartInterval</key>
+    <integer>15</integer>
+
+    <key>KeepAlive</key>
+    <dict>
+        <key>PathState</key>
+        <dict>
+            <key>/Library/Application Support/Curfew (Dev)/lockout-active</key>
+            <true/>
+        </dict>
+    </dict>
+
+    <key>Sockets</key>
+    <dict/>
+</dict>
+</plist>

@@ -376,8 +376,14 @@ unknown key and is ignored.
       `curfew-protocols` 0.0.9 release.
 - [-] Enroll macOS devices through browser OAuth, mandatory server-side AAL2,
       generated first-party scopes, ES256 device proof, and separate Recovery
-      Key acknowledgement or restore. In-repo tests pass; live Apple/Google and
-      staging recovery proof remain external release gates.
+      Key acknowledgement or restore. Passkey-first and configurable Apple
+      account behavior are reflected in the product copy. A single compile-time
+      endpoint set now keeps the app, OAuth exchange, sync transport, account
+      portal, MCP resource, daemon JWKS trust, and account-key Keychain namespace
+      together for staging or production. Staging is restricted to the Debug
+      app and its own helper label plus user/root state paths; Release rejects
+      the staging flag. In-repo tests pass; live account recovery and staging
+      proof remain external release gates.
 - [x] `just check` passes (format + lint + tests + Debug build).
 - [x] `xcodebuild archive` succeeds unsigned locally.
 - [x] `./curfew-ctl status` prints live state.

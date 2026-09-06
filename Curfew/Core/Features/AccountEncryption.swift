@@ -19,8 +19,12 @@ enum AccountEncryptionError: Error, Equatable {
     case authenticationFailed
 }
 
-final class KeychainAccountSecretStore: AccountSecretStoring {
-    private let service = "studio.hypertext.curfew.account-e2ee"
+final nonisolated class KeychainAccountSecretStore: AccountSecretStoring {
+    private let service: String
+
+    init(service: String = CurfewServiceEndpoints.current.keychainService) {
+        self.service = service
+    }
 
     func data(for account: String) throws -> Data? {
         let query: [CFString: Any] = [

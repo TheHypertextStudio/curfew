@@ -61,6 +61,11 @@ struct CurfewFlavorTests {
         #expect(CurfewFlavor.development.identifierSuffix == ".dev")
         #expect(CurfewFlavor.production.displaySuffix == "")
         #expect(CurfewFlavor.development.displaySuffix == " (Dev)")
+        #expect(CurfewFlavor.production.daemonPlistName == "studio.hypertext.curfew.daemon.plist")
+        #expect(
+            CurfewFlavor.development.daemonPlistName
+                == "studio.hypertext.curfew.dev.daemon.plist"
+        )
         #expect(
             CurfewFlavor.production.enforcementPriority
                 > CurfewFlavor.development.enforcementPriority

@@ -14,7 +14,7 @@ import Foundation
 /// and paths are byte-for-byte what they have always been. Only non-production
 /// flavors diverge, which means shipping the flavor split requires zero data
 /// migration for existing users.
-public enum CurfewFlavor: String, Sendable, CaseIterable {
+public nonisolated enum CurfewFlavor: String, Sendable, CaseIterable {
     /// The signed, notarised build the user installs and runs day to day.
     case production
     /// A local developer build (Debug configuration, bundle id `…curfew.dev`).
@@ -79,6 +79,16 @@ public enum CurfewFlavor: String, Sendable, CaseIterable {
     /// environment variable so they resolve the same flavor as their launcher.
     public var environmentValue: String {
         rawValue
+    }
+
+    /// LaunchDaemon identity for this flavor. Development must never replace
+    /// the production helper registration while staging is under test.
+    public var daemonLabel: String {
+        "studio.hypertext.curfew\(identifierSuffix).daemon"
+    }
+
+    public var daemonPlistName: String {
+        "\(daemonLabel).plist"
     }
 
     /// Precedence for the single-enforcer lock. The production install is the

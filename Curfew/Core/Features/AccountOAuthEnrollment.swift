@@ -59,7 +59,8 @@ enum AccountOAuthTokenRequest {
         code: String,
         clientID: String,
         verifier: String,
-        redirectURI: String
+        redirectURI: String,
+        resource: String = CurfewServiceEndpoints.current.syncResource.absoluteString
     ) -> Data {
         formBody([
             "grant_type": "authorization_code",
@@ -67,16 +68,20 @@ enum AccountOAuthTokenRequest {
             "code": code,
             "code_verifier": verifier,
             "redirect_uri": redirectURI,
-            "resource": FirstPartyResource.httpsCurfewSyncHypertextStudio.rawValue
+            "resource": resource
         ])
     }
 
-    static func refreshBody(refreshToken: String, clientID: String) -> Data {
+    static func refreshBody(
+        refreshToken: String,
+        clientID: String,
+        resource: String = CurfewServiceEndpoints.current.syncResource.absoluteString
+    ) -> Data {
         formBody([
             "grant_type": "refresh_token",
             "refresh_token": refreshToken,
             "client_id": clientID,
-            "resource": FirstPartyResource.httpsCurfewSyncHypertextStudio.rawValue
+            "resource": resource
         ])
     }
 
@@ -113,10 +118,16 @@ enum AccountOAuthWire {
 final class AccountOAuthTokenRefresher {
     private let secretStore: any AccountSecretStoring
     private let session: URLSession
+    private let endpoints: CurfewServiceEndpoints
 
-    init(secretStore: any AccountSecretStoring, session: URLSession) {
+    init(
+        secretStore: any AccountSecretStoring,
+        session: URLSession,
+        endpoints: CurfewServiceEndpoints = .current
+    ) {
         self.secretStore = secretStore
         self.session = session
+        self.endpoints = endpoints
     }
 
     func refresh() async throws {
@@ -126,12 +137,13 @@ final class AccountOAuthTokenRefresher {
               let refreshToken = String(data: refreshData, encoding: .utf8)
         else { throw AccountOAuthEnrollmentError.invalidResponse }
         var request = URLRequest(
-            url: URL(string: "https://curfew-account.hypertext.studio/api/auth/oauth2/token")!
+            url: endpoints.accountOrigin.appending(path: "/api/auth/oauth2/token")
         )
         request.httpMethod = "POST"
         request.httpBody = AccountOAuthTokenRequest.refreshBody(
             refreshToken: refreshToken,
-            clientID: clientID
+            clientID: clientID,
+            resource: endpoints.syncResource.absoluteString
         )
         request.setValue(
             "application/x-www-form-urlencoded; charset=UTF-8",
@@ -166,13 +178,16 @@ final class AccountOAuthEnrollmentService: NSObject,
     ASWebAuthenticationPresentationContextProviding {
     private let secretStore: any AccountSecretStoring
     private let session: URLSession
+    private let endpoints: CurfewServiceEndpoints
     private var browserSession: ASWebAuthenticationSession?
 
     init(
         secretStore: any AccountSecretStoring = KeychainAccountSecretStore(),
-        session: URLSession? = nil
+        session: URLSession? = nil,
+        endpoints: CurfewServiceEndpoints = .current
     ) {
         self.secretStore = secretStore
+        self.endpoints = endpoints
         self.session = session ?? URLSession(
             configuration: .ephemeral,
             delegate: RejectingRedirectSessionDelegate(),
@@ -186,7 +201,8 @@ final class AccountOAuthEnrollmentService: NSObject,
             clientID: clientID,
             callbackScheme: Self.callbackScheme,
             state: Self.randomURLSafe(byteCount: 32),
-            verifier: Self.randomURLSafe(byteCount: 64)
+            verifier: Self.randomURLSafe(byteCount: 64),
+            endpoints: endpoints
         )
         let callback = try await authenticate(request)
         let code = try AccountOAuthCallback.authorizationCode(
@@ -245,7 +261,8 @@ final class AccountOAuthEnrollmentService: NSObject,
             code: code,
             clientID: clientID,
             verifier: request.verifier,
-            redirectURI: request.redirectURI
+            redirectURI: request.redirectURI,
+            resource: endpoints.syncResource.absoluteString
         )
         tokenRequest.setValue(
             "application/x-www-form-urlencoded; charset=UTF-8",

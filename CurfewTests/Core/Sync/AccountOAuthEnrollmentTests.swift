@@ -15,11 +15,13 @@ struct AccountOAuthEnrollmentTests {
             code: "authorization-code",
             clientID: "curfew-native-client",
             verifier: String(repeating: "v", count: 64),
-            redirectURI: "studio.hypertext.curfew://oauth/callback"
+            redirectURI: "studio.hypertext.curfew://oauth/callback",
+            resource: CurfewServiceEndpoints.production.syncResource.absoluteString
         )
         let refresh = AccountOAuthTokenRequest.refreshBody(
             refreshToken: "rotating-refresh-token",
-            clientID: "curfew-native-client"
+            clientID: "curfew-native-client",
+            resource: CurfewServiceEndpoints.production.syncResource.absoluteString
         )
 
         for body in [authorization, refresh] {
@@ -41,7 +43,8 @@ struct AccountOAuthEnrollmentTests {
             clientID: "curfew-macos-test",
             callbackScheme: "studio.hypertext.curfew",
             state: "state-value",
-            verifier: String(repeating: "v", count: 64)
+            verifier: String(repeating: "v", count: 64),
+            endpoints: .production
         )
         let components = try #require(URLComponents(
             url: request.authorizationURL,
@@ -71,6 +74,55 @@ struct AccountOAuthEnrollmentTests {
             .curfewWakeWrite
         ].map(\.rawValue))
         #expect(scopes.isSuperset(of: required))
+    }
+
+    @Test("A staging build keeps account, OAuth, sync, MCP, and daemon trust on staging")
+    func stagingEndpointsStayIsolated() throws {
+        #expect(
+            CurfewServiceEndpoints.production.keychainService
+                == "studio.hypertext.curfew.account-e2ee"
+        )
+        let endpoints = CurfewServiceEndpoints.staging
+        #expect(endpoints.accountOrigin
+            .absoluteString == "https://curfew-account-staging.hypertext.studio")
+        #expect(endpoints.accountPortal
+            .absoluteString == "https://curfew-staging.hypertext.studio/account")
+        #expect(endpoints.syncResource
+            .absoluteString == "https://curfew-sync-staging.hypertext.studio")
+        #expect(endpoints.mcpResource
+            .absoluteString == "https://curfew-sync-staging.hypertext.studio/mcp")
+        #expect(endpoints.keychainService == "studio.hypertext.curfew.account-e2ee.staging")
+        #expect(
+            endpoints.remoteCommandJWKS.absoluteString
+                == "https://curfew-sync-staging.hypertext.studio/.well-known/curfew-command-jwks.json"
+        )
+
+        let request = try AccountOAuthEnrollmentRequest.create(
+            clientID: "curfew-macos-test",
+            callbackScheme: "studio.hypertext.curfew",
+            state: "state-value",
+            verifier: String(repeating: "v", count: 64),
+            endpoints: endpoints
+        )
+        let components = try #require(URLComponents(
+            url: request.authorizationURL,
+            resolvingAgainstBaseURL: false
+        ))
+        let query = try Dictionary(uniqueKeysWithValues: #require(components.queryItems).map {
+            try ($0.name, #require($0.value))
+        })
+        #expect(components.host == "curfew-account-staging.hypertext.studio")
+        #expect(query["resource"] == endpoints.syncResource.absoluteString)
+        #expect(request.tokenURL.host == "curfew-account-staging.hypertext.studio")
+    }
+
+    @Test("The selected endpoint set follows the whole-build service flag")
+    func currentEndpointsFollowBuildFlag() {
+        #if CURFEW_STAGING
+            #expect(CurfewServiceEndpoints.current == .staging)
+        #else
+            #expect(CurfewServiceEndpoints.current == .production)
+        #endif
     }
 
     @Test("Native OAuth rejects a callback scheme outside Curfew's package namespace")

@@ -41,8 +41,9 @@ private struct SystemAppServiceController: AppServiceControlling {
 ///    been unlocked (jailbroken from lockout) — providing a root-enforced
 ///    consequence that the user-space `PersistentLockdown` LaunchAgent cannot.
 ///
-/// The daemon plist lives at
-/// `Curfew.app/Contents/Library/LaunchDaemons/studio.hypertext.curfew.daemon.plist`.
+/// The daemon plist lives under `Curfew.app/Contents/Library/LaunchDaemons/`.
+/// Production and development use separate plist names and launchd labels so
+/// a staging acceptance build cannot replace the user's production helper.
 /// SMAppService handles the installation; the user authorises via an
 /// interactive macOS system prompt the first time `install()` is called.
 ///
@@ -62,15 +63,18 @@ final class PrivilegedHelperManager: ObservableObject {
 
     // MARK: - SMAppService handles
 
-    private static let daemonPlistName = "studio.hypertext.curfew.daemon.plist"
+    private nonisolated static var daemonPlistName: String {
+        CurfewFlavor.current.daemonPlistName
+    }
+
     private let daemonService: any AppServiceControlling
     private let loginItemService: any AppServiceControlling
 
     // MARK: - Lifecycle
 
-    /// Default-initialised — `SMAppService` handles are derived statically
-    /// from a constant plist name. `nonisolated` so `CurfewAppModel` can
-    /// construct this as a non-optional default property.
+    /// Default-initialised — the `SMAppService` handle uses the plist matching
+    /// the app's resolved flavor. `nonisolated` lets `CurfewAppModel` construct
+    /// this as a non-optional default property.
     nonisolated init(
         daemonService: (any AppServiceControlling)? = nil,
         loginItemService: (any AppServiceControlling)? = nil

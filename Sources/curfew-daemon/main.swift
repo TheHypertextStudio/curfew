@@ -28,14 +28,7 @@ private let daemonHeartbeatURL = SharedPaths.privilegedApplicationSupport
 
 private let fileManager = FileManager.default
 
-private let remoteCommandJWKSURL: URL = {
-    guard let url = URL(
-        string: "https://curfew-sync.hypertext.studio/.well-known/curfew-command-jwks.json"
-    ) else {
-        preconditionFailure("Curfew remote command JWKS URL must be valid")
-    }
-    return url
-}()
+private let remoteCommandJWKSURL = CurfewServiceEndpoints.current.remoteCommandJWKS
 
 private let remoteCommandStateStore = DaemonRemoteCommandStateStore(
     stateURL: SharedPaths.remoteCommandState
