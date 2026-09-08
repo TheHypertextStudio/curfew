@@ -173,6 +173,11 @@ public nonisolated enum WorkDestinationSelector: Codable, Equatable, Hashable, S
 
 public nonisolated struct WorkDestinationMapping: Codable, Equatable, Hashable, Identifiable,
     Sendable {
+    public nonisolated enum ValidationError: Error, Equatable {
+        case invalidIdentifier
+        case invalidDestination
+    }
+
     public let id: String
     public let selector: WorkDestinationSelector
     public let scope: BrowserDestinationScope
@@ -183,6 +188,37 @@ public nonisolated struct WorkDestinationMapping: Codable, Equatable, Hashable, 
         self.scope = scope
     }
 
+    public static func validated(
+        id: String,
+        selector: WorkDestinationSelector,
+        destination: String,
+        scopeKind: BrowserDestinationScope.Kind
+    ) throws -> Self {
+        let scope: BrowserDestinationScope
+        do {
+            switch scopeKind {
+            case .origin:
+                scope = try .validatedOrigin(destination)
+            case .pathPrefix:
+                scope = try .validatedPathPrefix(destination)
+            }
+        } catch {
+            throw ValidationError.invalidDestination
+        }
+        return try validated(id: id, selector: selector, scope: scope)
+    }
+
+    public static func validated(
+        id: String,
+        selector: WorkDestinationSelector,
+        scope: BrowserDestinationScope
+    ) throws -> Self {
+        guard isValidIdentifier(id), isValidIdentifier(selector.identifier) else {
+            throw ValidationError.invalidIdentifier
+        }
+        return Self(id: id, selector: selector, scope: scope)
+    }
+
     func matches(_ task: DocketActiveWorkTask) -> Bool {
         switch selector {
         case .task(let id):
@@ -191,6 +227,22 @@ public nonisolated struct WorkDestinationMapping: Codable, Equatable, Hashable, 
             task.project?.id == id
         case .label(let id):
             task.labels.contains { $0.id == id }
+        }
+    }
+
+    private static func isValidIdentifier(_ value: String) -> Bool {
+        guard (1 ... 256).contains(value.utf8.count) else { return false }
+        return value.unicodeScalars.allSatisfy {
+            CharacterSet.alphanumerics.contains($0) || "-_.".unicodeScalars.contains($0)
+        }
+    }
+}
+
+private extension WorkDestinationSelector {
+    var identifier: String {
+        switch self {
+        case .task(let id), .project(let id), .label(let id):
+            id
         }
     }
 }

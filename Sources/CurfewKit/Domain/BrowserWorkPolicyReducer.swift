@@ -117,11 +117,13 @@ public nonisolated struct BrowserWorkSessionReducer: Sendable {
         docketIsHealthy = false
     }
 
+    public var canBeginBreak: Bool {
+        guard let tracking = session?.tracking else { return false }
+        return (tracking == .paused || tracking == .idle) && session?.breakConsumed == false
+    }
+
     public mutating func beginBreak(at date: Date) -> Bool {
-        guard let tracking = session?.tracking,
-              tracking == .paused || tracking == .idle,
-              session?.breakConsumed == false
-        else { return false }
+        guard canBeginBreak else { return false }
         session?.breakEndsAt = date.addingTimeInterval(15 * 60)
         session?.breakConsumed = true
         return true

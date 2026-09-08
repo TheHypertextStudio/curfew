@@ -28,6 +28,7 @@ async function build(flavor: "development" | "production") {
   return {
     background: await readFile(resolve(output, "background.js"), "utf8"),
     blocker: await readFile(resolve(output, "blocker.html"), "utf8"),
+    blockerScript: await readFile(resolve(output, "blocker.js"), "utf8"),
     manifest: JSON.parse(await readFile(resolve(output, "manifest.json"), "utf8")) as {
       key: string;
     },
@@ -60,5 +61,13 @@ describe("extension build", () => {
     expect(output.blocker).not.toContain("challenge-answer");
     expect(output.blocker).not.toContain("http://");
     expect(output.blocker).not.toContain("https://");
+  });
+
+  it("removes the screenshot fixture from production blocker code", async () => {
+    const development = await build("development");
+    const production = await build("production");
+
+    expect(development.blockerScript).toContain("Complete LVBT social strategy");
+    expect(production.blockerScript).not.toContain("Complete LVBT social strategy");
   });
 });

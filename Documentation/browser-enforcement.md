@@ -12,10 +12,10 @@ rule. Curfew validates Athena's proposed scope and sets a maximum lifetime of
 30 minutes or the end of the current session, whichever comes first.
 
 The current implementation covers the domain reducer, direct Docket OAuth/MCP
-client, signed native host, and `@curfew/chrome-extension`. Settings health,
-signed-app/Web Store verification, and audit projection remain deferred. The
-sequence diagram in `Documentation/browser-policy-sequence.mmd` shows the
-implemented review boundary.
+client, signed native host, `@curfew/chrome-extension`, and the Task Browser
+Enforcement Settings panel. Signed-app/Web Store verification and audit
+projection remain deferred. The sequence diagram in
+`Documentation/browser-policy-sequence.mmd` shows the implemented review boundary.
 
 ## Session rules
 
@@ -75,6 +75,27 @@ whose `observedAt` value is older than the last accepted value. Exact-task reads
 use the retained session and task identifiers. Their Mac timestamps do not
 change the active-work observation watermark.
 
+## Settings and local setup state
+
+Settings stores Docket-connected-once and Chrome-connected-once facts in the
+same local defaults suite as the app. An authenticated active-work response
+records the Docket fact even when Docket returns no current task. A fresh
+extension heartbeat records the Chrome fact. Curfew does not erase either fact
+when Docket, Chrome, or the native host later becomes unavailable.
+
+The enforcement toggle stays off and disabled until both facts exist. After
+setup, live health and setup history remain separate. Settings marks a missing
+authorization, failed host installation, unavailable host, or heartbeat older
+than 60 seconds as unhealthy without clearing the retained policy. Turning the
+toggle off publishes an empty policy so the extension removes its rules.
+Turning it on republishes the current or retained session.
+
+Settings stores each validated task, project, or label mapping locally. It does
+not sync mappings or infer them from task content. The fixed break control calls
+the same reducer as native review and publishes the resulting 15-minute expiry.
+Running work, a missing session, and a consumed paused-session break disable the
+control.
+
 ## Privacy
 
 Curfew sends Athena the normalized origin and path, the task and organization
@@ -109,6 +130,13 @@ reviewer. A changed session can install its rules at once, and the late review
 response fails its session check. A host failure writes no heartbeat and leaves the cached
 restrictive policy in force.
 
+Debug builds provide isolated Settings and blocker fixtures for automated tests
+and screenshots. The Settings fixture uses a temporary signed browser store,
+in-memory Docket credentials, and shutdown-disabled app settings. The blocker
+fixture accepts only `curfew-demo=1` in development output. It never calls the
+native host and never stores or sends the text field. Production blocker output
+contains no fixture task data.
+
 ## Release and rollback
 
 The release must keep browser enforcement off until Docket authorization and
@@ -123,9 +151,8 @@ change Curfew Sync or `curfew-protocols` contracts.
 
 ## Open work
 
-The next slices must expose setup health in Settings, connect disable and
-uninstall to dynamic-rule cleanup, and add privacy-minimal audit events. Release
-work must create the Chrome Web Store draft, set the production identity in the
-signed app, verify the packaged host and extension together, and run the
-rollback drill. Administrator-level bypass prevention, other browsers, mobile
-enforcement, and network filtering remain outside the first release.
+The next slice must add privacy-minimal audit events. Release work must create
+the Chrome Web Store draft, set the production identity in the signed app,
+verify the packaged host and extension together, and run the rollback drill.
+Administrator-level bypass prevention, other browsers, mobile enforcement, and
+network filtering remain outside the first release.

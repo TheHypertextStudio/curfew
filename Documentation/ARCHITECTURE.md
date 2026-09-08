@@ -157,6 +157,11 @@ reads do not change the ordering watermark for active-work observations. The
 client permits one token-refresh retry after a 401 and one reinitialization retry
 after a dead MCP session. Both retry paths stop after the second failure.
 `BrowserNativeRuntime` publishes the snapshot through the signed browser store.
+`TaskBrowserEnforcementController` keeps the one Settings panel, persisted setup
+facts, local mappings, reducer actions, and native publications on the same
+runtime graph. It treats live health as a status signal rather than proof that
+initial setup never happened. This distinction prevents a transient outage from
+silently disabling a retained fail-closed session.
 The bundled native host exposes only `browser-host/1`. The
 `@curfew/chrome-extension` worker caches the snapshot and installs a missing
 base block before its first complete ruleset. Later policy or current-clock

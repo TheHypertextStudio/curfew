@@ -7,6 +7,7 @@ cover the app logic; this file covers the release-only path for:
 - Apple Events-backed shutdown
 - WidgetKit signing + App Group reads
 - `SMAppService` privileged helper install/status
+- task-scoped Chrome extension and native-host acceptance
 - CloudKit / push entitlements and real container access
 - notarization / Gatekeeper / DMG smoke testing
 
@@ -276,7 +277,29 @@ Treat the helper path as **not release-ready** if installation only appears to
 work in-app, the LaunchDaemon never shows up in `launchctl`, or the sentinel
 file never appears during a real lockout.
 
-### 4. CloudKit + push-backed sync
+### 4. Task-scoped Chrome enforcement
+
+Build the development extension and load `web/extension/dist/development` in
+Chrome. Confirm that Chrome reports extension ID
+`loammdknmfbkjnckaeeagnmakinknbck`. Launch the matching Debug app, install its
+development native host, and confirm that Settings reports a fresh extension
+heartbeat and a responding host.
+
+Use a non-production Docket task for acceptance. Connect Docket, let both setup
+facts become true, and enable browser enforcement. Verify an unknown top-level
+page blocks before it renders. Confirm that the blocker shows the current task,
+the normalized hostname, and the initial question. Exercise one challenge, one
+denial, one bounded grant, expiry, a task switch, the fixed paused-session break,
+and an offline host. Inspect `chrome.storage.local` and confirm that neither the
+justification nor the challenge answer exists.
+
+Disable enforcement before cleanup. Confirm that Chrome has no Curfew dynamic
+rules. Then remove the matching native-host manifest and unload the extension.
+The Debug screenshot fixtures prove layout only. They do not satisfy this
+acceptance check. The signed release and Web Store draft must repeat the same
+flow with the production identity before release.
+
+### 5. CloudKit + push-backed sync
 
 CloudKit requires real Apple-side provisioning plus a future signed build that
 adds the iCloud and APS entitlements when `cloudSyncEnabled` is enabled.
@@ -305,7 +328,7 @@ Treat CloudKit as **not release-ready** if the feature only works locally, the
 record types never appear in production, or the signed build still behaves like
 the entitlement/container are absent.
 
-### 5. Final signed-app / DMG smoke test
+### 6. Final signed-app / DMG smoke test
 
 After the feature-specific checks above, do a final sanity pass on the shipped
 artifact:

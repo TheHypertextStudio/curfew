@@ -18,6 +18,17 @@ struct SettingsView: View {
     @StateObject var accountEnrollment = AccountEnrollmentController()
     @State var accountRecoveryKey = ""
 
+    init() {
+        #if DEBUG
+            let environment = ProcessInfo.processInfo.environment
+            let showsBrowserFixture = environment["CURFEW_DEMO_FIXTURE"] == "1" &&
+                environment["CURFEW_DEMO_SCENARIO"] == DemoScenario.settings.rawValue
+            _selection = State(initialValue: showsBrowserFixture ? .integrations : .enforcement)
+        #else
+            _selection = State(initialValue: .enforcement)
+        #endif
+    }
+
     /// Tabbed settings layout.
     var body: some View {
         TabView(selection: $selection) {

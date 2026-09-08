@@ -84,6 +84,46 @@
             return settings
         }
 
+        static func browserIntegrationSettings() -> BrowserIntegrationSettings {
+            guard let mapping = try? WorkDestinationMapping.validated(
+                id: "demo-instagram",
+                selector: .task("lvbt-social-strategy"),
+                destination: "https://instagram.com",
+                scopeKind: .origin
+            ) else {
+                preconditionFailure("The browser demo mapping must remain valid.")
+            }
+            return BrowserIntegrationSettings(
+                docketConnectedOnce: true,
+                chromeConnectedOnce: true,
+                enforcementEnabled: true,
+                mappings: [mapping]
+            )
+        }
+
+        static func browserActiveWork(at date: Date) -> DocketActiveWork {
+            DocketActiveWork(
+                observedAt: date,
+                tracking: .paused,
+                recordID: "demo-work-session",
+                task: DocketActiveWorkTask(
+                    id: "lvbt-social-strategy",
+                    organizationID: "lvbt",
+                    title: "Complete LVBT social strategy",
+                    description: "Prepare the next social campaign.",
+                    stateType: "started",
+                    workspace: .init(id: "lvbt-workspace", name: "LVBT"),
+                    project: .init(
+                        id: "lvbt-outreach",
+                        name: "Public outreach",
+                        summary: nil
+                    ),
+                    labels: [.init(id: "social", name: "Social")],
+                    references: []
+                )
+            )
+        }
+
         /// A week of attractive-but-plausible activity: a three-day lockout
         /// streak, two extensions, and one override. Timestamped relative to
         /// `now` so the events land in the current calendar week that

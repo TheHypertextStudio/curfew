@@ -22,6 +22,13 @@ through `chrome://extensions` after enabling Developer mode. Chrome must show ID
 `loammdknmfbkjnckaeeagnmakinknbck`. The development worker calls only
 `studio.hypertext.curfew.dev.browser`.
 
+For an isolated blocker screenshot, open
+`chrome-extension://loammdknmfbkjnckaeeagnmakinknbck/blocker.html?curfew-demo=1`
+from the loaded development bundle. That explicit fixture shows the LVBT task,
+`instagram.com`, and the initial question without contacting the native host or
+storing the answer field. Production builds remove the fixture data and ignore
+that query. Do not use the screenshot fixture as enforcement acceptance.
+
 The production artifact is `web/extension/dist/production`. It calls only
 `studio.hypertext.curfew.browser`. As of 2026-09-08, both manifests include the
 public key from `BrowserNativeInstallation.developmentPublicKey`, so an unpacked

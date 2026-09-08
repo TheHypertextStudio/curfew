@@ -21,6 +21,7 @@ extension SettingsView {
         case .account: coordinatorSyncPanel
         case .localAI: mcpConfigPanel
         case .requestHandling: aiConsentPanel
+        case .taskBrowser: taskBrowserEnforcementPanel
         case .helper: otherIntegrationsPanel
         case .devices: devicesPanel
         }

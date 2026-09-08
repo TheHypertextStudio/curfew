@@ -22,12 +22,18 @@
         /// history are never touched. The scenario is applied separately via
         /// ``applyDemoScenario(_:)`` once the scene is on screen.
         static func demoModel() -> CurfewAppModel {
-            CurfewAppModel(
-                settingsStore: makeDemoSettingsStore(),
+            let now = Date()
+            let settingsStore = makeDemoSettingsStore()
+            return CurfewAppModel(
+                settingsStore: settingsStore,
                 appRouter: SystemAppRouter(),
                 gettingStartedPresenter: GettingStartedWindowPresenter(),
                 featureFlags: .default,
-                activityRecorder: makeDemoActivityRecorder(now: Date())
+                activityRecorder: makeDemoActivityRecorder(now: now),
+                browserNativeRuntime: makeDemoBrowserRuntime(
+                    defaults: settingsStore.storageDefaults,
+                    now: now
+                )
             )
         }
 
@@ -99,6 +105,73 @@
             } catch {
                 return NullActivityRecording()
             }
+        }
+
+        private static func makeDemoBrowserRuntime(
+            defaults: UserDefaults,
+            now: Date
+        ) -> BrowserNativeRuntime {
+            let directory = FileManager.default.temporaryDirectory.appendingPathComponent(
+                "curfew-demo-browser-\(UUID().uuidString)",
+                isDirectory: true
+            )
+            let nativeStore = BrowserNativeStore(directory: directory)
+            do {
+                try nativeStore.activate()
+                try nativeStore.recordHeartbeat(
+                    origin: "chrome-extension://curfew-demo",
+                    at: now
+                )
+            } catch {
+                preconditionFailure("The browser demo store could not be created: \(error)")
+            }
+
+            let credentials = DocketCredentialStore(secretStore: DemoBrowserSecretStore())
+            do {
+                try credentials.save(DocketOAuthTokens(
+                    accessToken: "demo-access-token",
+                    refreshToken: "demo-refresh-token",
+                    expiresAt: now.addingTimeInterval(3600)
+                ))
+            } catch {
+                preconditionFailure("The browser demo credentials could not be created: \(error)")
+            }
+            let coordinator = DocketBrowserPolicyCoordinator(
+                credentials: credentials,
+                oauth: DemoDocketOAuth()
+            )
+            let runtime = BrowserNativeRuntime(store: nativeStore, coordinator: coordinator)
+            coordinator.seedDemo(DemoFixture.browserActiveWork(at: now), at: now)
+            BrowserIntegrationSettingsStore(defaults: defaults)
+                .save(DemoFixture.browserIntegrationSettings())
+            return runtime
+        }
+    }
+
+    private final class DemoBrowserSecretStore: AccountSecretStoring {
+        private var values: [String: Data] = [:]
+
+        func data(for account: String) throws -> Data? {
+            values[account]
+        }
+
+        func save(_ data: Data, for account: String) throws {
+            values[account] = data
+        }
+
+        func delete(_ account: String) throws {
+            values.removeValue(forKey: account)
+        }
+    }
+
+    @MainActor
+    private final class DemoDocketOAuth: DocketOAuthAuthorizing {
+        func connect(at _: Date) async throws -> DocketOAuthTokens {
+            throw DocketClientError.unavailable
+        }
+
+        func refresh(now _: Date) async throws -> DocketOAuthTokens {
+            throw DocketClientError.unavailable
         }
     }
 #endif

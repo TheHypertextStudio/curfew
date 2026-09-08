@@ -104,6 +104,60 @@ struct BrowserWorkPolicyTests {
         }
     }
 
+    @Test("A stored mapping requires one valid selector and one normalized scope")
+    func mappingValidationAcceptsOneSelectorAndScope() throws {
+        let mapping = try WorkDestinationMapping.validated(
+            id: "mapping-1",
+            selector: .project("project-lvbt"),
+            destination: "https://instagram.com/lvbt",
+            scopeKind: .pathPrefix
+        )
+
+        #expect(mapping.id == "mapping-1")
+        #expect(mapping.selector == .project("project-lvbt"))
+        let expectedScope = try BrowserDestinationScope.validatedPathPrefix(
+            "https://instagram.com/lvbt"
+        )
+        #expect(mapping.scope == expectedScope)
+    }
+
+    @Test(
+        "Stored mappings reject invalid selector identifiers",
+        arguments: ["", " task-lvbt", "task lvbt", "task/lvbt", String(repeating: "a", count: 257)]
+    )
+    func mappingValidationRejectsInvalidIdentifiers(identifier: String) {
+        #expect(throws: WorkDestinationMapping.ValidationError.self) {
+            _ = try WorkDestinationMapping.validated(
+                id: "mapping-1",
+                selector: .task(identifier),
+                destination: "https://instagram.com",
+                scopeKind: .origin
+            )
+        }
+    }
+
+    @Test(
+        "Stored mappings reject private or non-normalized destinations",
+        arguments: [
+            "https://alice:secret@instagram.com",
+            "https://instagram.com?private=1",
+            "https://instagram.com#private",
+            "https://instagram.com:443",
+            "file:///tmp/strategy",
+            "instagram.com"
+        ]
+    )
+    func mappingValidationRejectsInvalidDestinations(destination: String) {
+        #expect(throws: WorkDestinationMapping.ValidationError.self) {
+            _ = try WorkDestinationMapping.validated(
+                id: "mapping-1",
+                selector: .label("social"),
+                destination: destination,
+                scopeKind: .origin
+            )
+        }
+    }
+
     @Test("A grant cannot cross from the reviewed destination to another origin")
     func crossOriginGrantIsRejected() throws {
         var reducer = reducer()
@@ -274,7 +328,9 @@ struct BrowserWorkPolicyTests {
     @Test("A break requires paused or idle tracking and ends after fifteen minutes")
     func breakEligibilityAndExpiry() throws {
         var reducer = reducer()
+        #expect(!reducer.canBeginBreak)
         reducer.observe(activeWork(tracking: .running), receivedAt: now)
+        #expect(!reducer.canBeginBreak)
         let runningBreak = reducer.beginBreak(at: now)
         #expect(!runningBreak)
 
@@ -282,13 +338,17 @@ struct BrowserWorkPolicyTests {
             activeWork(tracking: .paused, observedAt: now.addingTimeInterval(5)),
             receivedAt: now.addingTimeInterval(5)
         )
+        #expect(reducer.canBeginBreak)
         let pausedBreak = reducer.beginBreak(at: now.addingTimeInterval(5))
         #expect(pausedBreak)
+        #expect(!reducer.canBeginBreak)
         let unknown = try NormalizedHTTPDestination("https://youtube.com/watch")
         #expect(try #require(reducer.policy(at: now.addingTimeInterval(904)))
             .allows(unknown, at: now.addingTimeInterval(904)))
         let expiredBreakPolicy = try #require(reducer.policy(at: now.addingTimeInterval(905)))
         #expect(!expiredBreakPolicy.allows(unknown, at: now.addingTimeInterval(905)))
+        #expect(expiredBreakPolicy.breakEndsAt == now.addingTimeInterval(905))
+        #expect(!reducer.canBeginBreak)
     }
 
     @Test("A paused interval cannot renew its fifteen-minute break")

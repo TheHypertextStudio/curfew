@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { blockerPrompt, buildReviewMessage } from "../src/blocker-state";
+import {
+  blockerPrompt,
+  buildReviewMessage,
+  developmentBlockerFixture,
+} from "../src/blocker-state";
 
 describe("blocker state", () => {
   it("restores the targeted challenge after a blocker-page reload", () => {
@@ -27,5 +31,17 @@ describe("blocker state", () => {
       justification: "é".repeat(4_096),
     });
     expect(buildReviewMessage("request-1", "é".repeat(4_097), false)).toBeNull();
+  });
+
+  it("exposes the screenshot state only in an explicit development fixture", () => {
+    const href = "chrome-extension://curfew/blocker.html?curfew-demo=1";
+
+    expect(developmentBlockerFixture(href)).toEqual({
+      taskTitle: "Complete LVBT social strategy",
+      hostname: "instagram.com",
+      question:
+        "What will you do on instagram.com, and what will you produce for Complete LVBT social strategy?",
+    });
+    expect(developmentBlockerFixture("chrome-extension://curfew/blocker.html")).toBeNull();
   });
 });

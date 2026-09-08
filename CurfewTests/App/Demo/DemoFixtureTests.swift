@@ -95,6 +95,20 @@ struct DemoFixtureTests {
         #expect(DemoScenario(rawValue: "lockout") == .lockout)
     }
 
+    @Test("Browser demo state is connected, task scoped, and safe")
+    func browserDemoState() {
+        let settings = DemoFixture.browserIntegrationSettings()
+        let work = DemoFixture.browserActiveWork(at: midday(2026, 4, 16))
+
+        #expect(settings.setupIsComplete)
+        #expect(settings.enforcementEnabled)
+        #expect(settings.mappings.count == 1)
+        #expect(settings.mappings[0].selector == .task("lvbt-social-strategy"))
+        #expect(settings.mappings[0].scope.origin == "https://instagram.com")
+        #expect(work.tracking == .paused)
+        #expect(work.task?.title == "Complete LVBT social strategy")
+    }
+
     // MARK: - Helpers
 
     private func fixedCalendar() -> Calendar {

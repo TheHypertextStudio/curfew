@@ -130,7 +130,8 @@ final class CurfewAppModel: NSObject, ObservableObject {
 
     /// Watches the MCP request queue; paired with `mcpSocketServer` (Unix-socket fast path).
     let mcpRequestMonitor: MCPRequestMonitor
-    lazy var browserNativeRuntime = BrowserNativeRuntime()
+    let browserNativeRuntime: BrowserNativeRuntime
+    let taskBrowserEnforcement: TaskBrowserEnforcementController
     /// Unix-socket fast path for in-app MCP writes.
     let mcpSocketServer: MCPSocketServer
 
@@ -291,7 +292,8 @@ final class CurfewAppModel: NSObject, ObservableObject {
         respawnGuard: any RespawnGuardControlling = NoOpRespawnGuard(),
         lockoutDeadlineStore: LockoutDeadlineStore = LockoutDeadlineStore(),
         accountWakeLedgerStore: AccountWakeLedgerStore = AccountWakeLedgerStore(),
-        accessibilityAuthorization: AccessibilityAuthorizing = SystemAccessibilityAuthorization()
+        accessibilityAuthorization: AccessibilityAuthorizing = SystemAccessibilityAuthorization(),
+        browserNativeRuntime: BrowserNativeRuntime? = nil
     ) {
         self.settingsStore = settingsStore
         self.policyEngine = SchedulePolicyEngine()
@@ -313,6 +315,12 @@ final class CurfewAppModel: NSObject, ObservableObject {
         self.activityRecorder = activityRecorder
         self.reflectionState = reflectionState
         self.mcpRequestMonitor = mcpRequestMonitor
+        let browserRuntime = browserNativeRuntime ?? BrowserNativeRuntime()
+        self.browserNativeRuntime = browserRuntime
+        self.taskBrowserEnforcement = TaskBrowserEnforcementController(
+            runtime: browserRuntime,
+            settingsStore: BrowserIntegrationSettingsStore(defaults: settingsStore.storageDefaults)
+        )
         self.mcpSocketServer = MCPSocketServer()
         self.licenseGate = licenseGate
         self.cloudKitSyncEngine = cloudKitSyncEngine

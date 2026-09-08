@@ -784,6 +784,24 @@ only.
   - `DocketBrowserPolicyClientTests/nullTaskObservationChecksArchivedTask(tracking:)`
   - `DocketBrowserPolicyClientTests/failedNullTaskReadRetainsEnforcement(tracking:)`
   - `DocketBrowserPolicyClientTests/destinationReviewUsesNormalizedPayload()`
+- `Settings records setup once, reports current health, and gates enforcement
+  until both Docket and Chrome have connected.`
+  - `BrowserIntegrationSettingsStoreTests/setupFactsAndMappingsPersist()`
+  - `BrowserIntegrationSettingsStoreTests/setupGateRequiresBothConnections()`
+  - `TaskBrowserEnforcementViewModelTests/freshSetupIsReady()`
+  - `TaskBrowserEnforcementViewModelTests/staleHeartbeatIsUnhealthy()`
+  - `TaskBrowserEnforcementViewModelTests/missingSetupDisablesToggle()`
+  - `DocketBrowserPolicyClientTests/authenticatedIdlePollRecordsSetupSuccess()`
+- `The panel drives policy disable and restore, local mapping changes, one
+  paused-session break, and Docket connect and disconnect.`
+  - `BrowserNativeLifecycleTests/disablingEnforcementClearsAndReenablingRestoresTheRetainedPolicy()`
+  - `TaskBrowserEnforcementControllerTests/controllerDrivesPanelActions()`
+  - `TaskBrowserEnforcementPanelTests/panelCopyStaysTaskScoped()`
+  - `CurfewUITests/testTaskBrowserEnforcementPanelActions()`
+- `Development capture fixtures never enter the production blocker output.`
+  - `DemoFixtureTests/browserDemoState()`
+  - `blocker-state.test.ts` checks the explicit development fixture state.
+  - `build.test.ts` checks that production output omits the fixture task.
 - `Browser policy snapshots expose only the current task ID and title. They keep
   expiring grants separate from base scopes and evaluate temporary access at the
   caller's current time.`

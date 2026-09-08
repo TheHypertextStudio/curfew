@@ -12,6 +12,7 @@ final class BrowserNativeRuntime {
     private var processing = false
     private var stopped = false
     private(set) var installationError: String?
+    private(set) var enforcementEnabled = true
 
     init(
         store: BrowserNativeStore = BrowserNativeStore(),
@@ -22,7 +23,10 @@ final class BrowserNativeRuntime {
         self.coordinator.onPolicyChanged = { [weak self] policy in
             guard let self, !stopped else { return }
             do {
-                try publishPolicy(policy)
+                try publishPolicy(
+                    enforcementEnabled ? policy : nil,
+                    allowClearingRetainedPolicy: !enforcementEnabled
+                )
             } catch {
                 browserLogger.error("Browser policy snapshot could not be saved.")
             }
@@ -81,6 +85,19 @@ final class BrowserNativeRuntime {
         try? store.health(at: date)
     }
 
+    func isInstalled() -> Bool {
+        (try? store.isActive()) == true
+    }
+
+    func setEnforcementEnabled(_ enabled: Bool, at date: Date = Date()) throws {
+        enforcementEnabled = enabled
+        try publishPolicy(
+            enabled ? coordinator.policy(at: date) : nil,
+            at: date,
+            allowClearingRetainedPolicy: !enabled
+        )
+    }
+
     func processPending() async {
         guard !processing, !stopped else { return }
         processing = true
@@ -102,7 +119,10 @@ final class BrowserNativeRuntime {
                 )
                 let response = Self.response(result)
                 guard !stopped else { return }
-                try publishPolicy(coordinator.policy(at: Date()))
+                try publishPolicy(
+                    enforcementEnabled ? coordinator.policy(at: Date()) : nil,
+                    allowClearingRetainedPolicy: !enforcementEnabled
+                )
                 try store.resolve(id: entry.id, result: response, at: Date())
                 let hostname = destination.reviewURL.host ?? ""
                 let kind = response.scope?.kind.rawValue ?? "none"
@@ -116,14 +136,19 @@ final class BrowserNativeRuntime {
         }
     }
 
-    private func publishPolicy(_ policy: BrowserPolicySnapshot?) throws {
+    private func publishPolicy(
+        _ policy: BrowserPolicySnapshot?,
+        at date: Date = Date(),
+        allowClearingRetainedPolicy: Bool = false
+    ) throws {
         // A new coordinator has no in-memory session. An outage or idle first
         // poll cannot prove that the signed session from the last run ended.
-        if policy == nil, !coordinator.hasConfirmedPolicyObservation,
+        if policy == nil, !allowClearingRetainedPolicy,
+           !coordinator.hasConfirmedPolicyObservation,
            try store.readPolicy()?.policy != nil {
             return
         }
-        try store.writePolicy(policy, at: Date())
+        try store.writePolicy(policy, at: date)
     }
 
     private func watchDirectory() {

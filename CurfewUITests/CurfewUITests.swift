@@ -19,12 +19,28 @@ final class CurfewUITests: XCTestCase {
     }
 
     @MainActor
-    func testExample() {
-        // UI tests must launch the application that they test.
+    func testTaskBrowserEnforcementPanelActions() {
         let app = XCUIApplication()
+        app.launchEnvironment["CURFEW_DEMO_FIXTURE"] = "1"
+        app.launchEnvironment["CURFEW_DEMO_SCENARIO"] = "settings"
         app.launch()
 
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
+        XCTAssertTrue(app.staticTexts["Task Browser Enforcement"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Complete LVBT social strategy"].exists)
+        XCTAssertTrue(app.staticTexts["instagram.com"].exists)
+
+        let enforcementToggle = app.switches["task-browser-enforcement-toggle"]
+        XCTAssertTrue(enforcementToggle.isEnabled)
+
+        let breakButton = app.buttons["task-browser-break-button"]
+        XCTAssertTrue(breakButton.isEnabled)
+        breakButton.click()
+        XCTAssertTrue(app.staticTexts["Break ends"].waitForExistence(timeout: 2))
+
+        let removeButton = app.buttons["Remove instagram.com"]
+        XCTAssertTrue(removeButton.exists)
+        removeButton.click()
+        XCTAssertFalse(app.staticTexts["instagram.com"].exists)
     }
 
     @MainActor

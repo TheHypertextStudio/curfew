@@ -380,8 +380,8 @@ unknown key and is ignored.
 ## 17.7 Task-scoped browser enforcement (2026-09-08)
 
 This slice adds Curfew's local policy authority, direct Docket client, signed
-native host, and Chrome extension. Settings controls, signed-app/Web Store
-release verification, and audit projection remain separate delivery tasks. The
+native host, Chrome extension, and local Settings controls. Signed-app/Web Store
+release verification and audit projection remain separate delivery tasks. The
 architecture and privacy limits are in `Documentation/browser-enforcement.md`.
 
 - [x] Normalize only HTTP and HTTPS destinations. Curfew removes credentials,
@@ -428,10 +428,15 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
       expiry, refresh policy and heartbeat every 30 seconds, route blocked tabs
       through opaque request IDs, retain targeted challenge questions across
       reload, and keep both answers out of storage.
+- [x] Add one Task Browser Enforcement panel. Persist the two setup facts and
+      validated mappings locally. Show authorization, poll, extension, host,
+      active-task, and readiness state. Keep the toggle gated until setup has
+      succeeded once, and expose the reducer's one fixed 15-minute break.
+- [x] Add Debug-only Settings and blocker fixtures that use temporary or
+      in-memory state. Remove blocker fixture data from production output.
 - [-] Ship and verify the Chrome extension and native messaging host with a
       signed app. The Web Store draft, production extension identity, Settings
-      health controls, disable/uninstall cleanup, and release rollback drill
-      remain open.
+      acceptance, uninstall cleanup, and release rollback drill remain open.
 
 ## 18. Verification (v0.1 release candidate)
 

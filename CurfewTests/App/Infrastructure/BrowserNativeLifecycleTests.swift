@@ -95,6 +95,57 @@ struct BrowserNativeLifecycleTests {
         #expect(!FileManager.default.fileExists(atPath: directory.path))
     }
 
+    @Test func disablingEnforcementClearsAndReenablingRestoresTheRetainedPolicy() async throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = BrowserNativeStore(directory: directory)
+        try store.activate()
+        let now = Date(timeIntervalSince1970: 1_788_537_600)
+        let credentials = DocketCredentialStore(secretStore: FixedBrowserCredentials(now: now))
+        let coordinator = DocketBrowserPolicyCoordinator(
+            transport: ActiveBrowserTransport(now: now),
+            credentials: credentials
+        )
+        let runtime = BrowserNativeRuntime(store: store, coordinator: coordinator)
+        try runtime.setEnforcementEnabled(true, at: now)
+        await coordinator.poll(at: now)
+        let sessionID = try #require(try store.readPolicy()?.policy?.sessionID)
+
+        try runtime.setEnforcementEnabled(false, at: now.addingTimeInterval(1))
+        #expect(try store.readPolicy()?.policy == nil)
+
+        try runtime.setEnforcementEnabled(true, at: now.addingTimeInterval(2))
+        #expect(try store.readPolicy()?.policy?.sessionID == sessionID)
+    }
+
+    @Test func disabledEnforcementStaysClearedAfterAQueuedReview() async throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = BrowserNativeStore(directory: directory)
+        try store.activate()
+        let now = Date()
+        let coordinator = DocketBrowserPolicyCoordinator(
+            transport: ActiveBrowserTransport(now: now),
+            credentials: DocketCredentialStore(secretStore: FixedBrowserCredentials(now: now))
+        )
+        let runtime = BrowserNativeRuntime(store: store, coordinator: coordinator)
+        await coordinator.poll(at: now)
+        let sessionID = try #require(coordinator.policy(at: now)?.sessionID)
+        let request = try BrowserNativeRequest.decode(Data("""
+        {"schemaVersion":"browser-host/1","requestId":"disabled","type":"review_destination",
+        "sessionId":"\(sessionID.uuidString)","destination":{"origin":"https://example.com",
+        "path":"/"},"justification":"review while disabled"}
+        """.utf8))
+        _ = try store.enqueue(request, at: now)
+        try runtime.setEnforcementEnabled(false, at: now)
+
+        await runtime.processPending()
+
+        #expect(try store.readPolicy()?.policy == nil)
+    }
+
     @Test func uninstallRemovesBrowserManifestAndSignedState() throws {
         let home = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: home) }
@@ -152,4 +203,73 @@ private final class EmptyBrowserCredentials: AccountSecretStoring {
 
     func save(_: Data, for _: String) throws {}
     func delete(_: String) throws {}
+}
+
+@MainActor
+private final class FixedBrowserCredentials: AccountSecretStoring {
+    private var values: [String: Data]
+
+    init(now: Date) {
+        self.values = [
+            DocketCredentialStore.accessTokenAccount: Data("access".utf8),
+            DocketCredentialStore.refreshTokenAccount: Data("refresh".utf8),
+            DocketCredentialStore.expirationAccount: Data(
+                String(now.addingTimeInterval(3600).timeIntervalSince1970).utf8
+            )
+        ]
+    }
+
+    func data(for account: String) throws -> Data? {
+        values[account]
+    }
+
+    func save(_ data: Data, for account: String) throws {
+        values[account] = data
+    }
+
+    func delete(_ account: String) throws {
+        values[account] = nil
+    }
+}
+
+private actor ActiveBrowserTransport: DocketMCPTransporting {
+    let now: Date
+
+    init(now: Date) {
+        self.now = now
+    }
+
+    func readActiveWork(accessToken _: String) async throws -> DocketActiveWork {
+        DocketActiveWork(
+            observedAt: now,
+            tracking: .running,
+            recordID: "record-1",
+            task: .init(
+                id: "task-lvbt",
+                organizationID: "org-lvbt",
+                title: "Complete LVBT social strategy",
+                description: nil,
+                stateType: "started",
+                workspace: .init(id: "workspace-lvbt", name: "LVBT"),
+                project: nil,
+                labels: [],
+                references: []
+            )
+        )
+    }
+
+    func readTaskState(
+        organizationID _: String,
+        taskID _: String,
+        accessToken _: String
+    ) async throws -> DocketTaskStateObservation {
+        throw DocketClientError.unavailable
+    }
+
+    func reviewDestination(
+        _: DocketDestinationReviewInput,
+        accessToken _: String
+    ) async throws -> DocketDestinationReview {
+        .deny(reason: "Not used by this test.")
+    }
 }

@@ -1,3 +1,5 @@
+import AppKit
+import AuthenticationServices
 import CryptoKit
 import Foundation
 
@@ -209,10 +211,18 @@ final class DocketCredentialStore {
 }
 
 @MainActor
-final class DocketOAuthClient {
+protocol DocketOAuthAuthorizing: AnyObject {
+    func connect(at date: Date) async throws -> DocketOAuthTokens
+    func refresh(now: Date) async throws -> DocketOAuthTokens
+}
+
+@MainActor
+final class DocketOAuthClient: NSObject, DocketOAuthAuthorizing,
+    ASWebAuthenticationPresentationContextProviding {
     private let store: DocketCredentialStore
     private let session: URLSession
     private let endpoints: DocketServiceEndpoints
+    private var browserSession: ASWebAuthenticationSession?
 
     init(
         store: DocketCredentialStore? = nil,
@@ -222,6 +232,24 @@ final class DocketOAuthClient {
         self.store = store ?? DocketCredentialStore(endpoints: endpoints)
         self.session = session ?? URLSession(configuration: .ephemeral)
         self.endpoints = endpoints
+        super.init()
+    }
+
+    func connect(at date: Date) async throws -> DocketOAuthTokens {
+        let request = try await makeAuthorizationRequest(
+            state: Self.randomURLSafe(byteCount: 32),
+            verifier: Self.randomURLSafe(byteCount: 64)
+        )
+        let callback = try await authenticate(request)
+        let code = try DocketOAuthCallback.authorizationCode(
+            from: callback,
+            expectedState: request.state
+        )
+        return try await exchange(code: code, request: request, now: date)
+    }
+
+    func presentationAnchor(for _: ASWebAuthenticationSession) -> ASPresentationAnchor {
+        NSApplication.shared.keyWindow ?? NSApplication.shared.windows.first ?? NSWindow()
     }
 
     func exchange(
@@ -322,6 +350,30 @@ final class DocketOAuthClient {
         return tokens
     }
 
+    private func authenticate(_ request: DocketOAuthAuthorizationRequest) async throws -> URL {
+        try await withCheckedThrowingContinuation { continuation in
+            let browserSession = ASWebAuthenticationSession(
+                url: request.authorizationURL,
+                callbackURLScheme: DocketOAuthAuthorizationRequest.callbackScheme
+            ) { [weak self] callback, error in
+                self?.browserSession = nil
+                if let callback {
+                    continuation.resume(returning: callback)
+                } else {
+                    continuation.resume(throwing: error ?? DocketClientError.unauthorized)
+                }
+            }
+            browserSession.presentationContextProvider = self
+            browserSession.prefersEphemeralWebBrowserSession = true
+            self.browserSession = browserSession
+            guard browserSession.start() else {
+                self.browserSession = nil
+                continuation.resume(throwing: DocketClientError.unauthorized)
+                return
+            }
+        }
+    }
+
     private static func formBody(_ fields: [String: String]) -> Data {
         let value = fields.sorted { $0.key < $1.key }.map { key, value in
             "\(formEncode(key))=\(formEncode(value))"
@@ -331,6 +383,17 @@ final class DocketOAuthClient {
 
     private static func formEncode(_ value: String) -> String {
         value.addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? ""
+    }
+
+    private static func randomURLSafe(byteCount: Int) -> String {
+        var data = Data(count: byteCount)
+        data.withUnsafeMutableBytes { buffer in
+            _ = SecRandomCopyBytes(kSecRandomDefault, byteCount, buffer.baseAddress!)
+        }
+        return data.base64EncodedString()
+            .replacingOccurrences(of: "+", with: "-")
+            .replacingOccurrences(of: "/", with: "_")
+            .replacingOccurrences(of: "=", with: "")
     }
 
     private static let maximumOAuthResponseBytes = 32 * 1024
@@ -800,17 +863,19 @@ actor DocketMCPHTTPTransport: DocketMCPTransporting {
 @MainActor
 final class DocketBrowserPolicyCoordinator {
     var onPolicyChanged: ((BrowserPolicySnapshot?) -> Void)?
+    var onAuthenticatedPoll: ((Date) -> Void)?
     private(set) var hasConfirmedPolicyObservation = false
+    private(set) var lastSuccessfulPoll: Date?
     private let transport: any DocketMCPTransporting
     private let credentials: DocketCredentialStore
-    private let oauth: DocketOAuthClient
+    private let oauth: any DocketOAuthAuthorizing
     private var reducer: BrowserWorkSessionReducer
     private var pollingTask: Task<Void, Never>?
 
     init(
         transport: (any DocketMCPTransporting)? = nil,
         credentials: DocketCredentialStore? = nil,
-        oauth: DocketOAuthClient? = nil,
+        oauth: (any DocketOAuthAuthorizing)? = nil,
         docketWebOrigin: URL = DocketServiceEndpoints.current.webOrigin,
         mappings: [WorkDestinationMapping] = []
     ) {
@@ -819,6 +884,14 @@ final class DocketBrowserPolicyCoordinator {
         self.credentials = credentials
         self.oauth = oauth ?? DocketOAuthClient(store: credentials)
         self.reducer = .init(docketWebOrigin: docketWebOrigin, mappings: mappings)
+    }
+
+    var isAuthorized: Bool {
+        do {
+            return try credentials.load() != nil
+        } catch {
+            return false
+        }
     }
 
     func policy(at date: Date) -> BrowserPolicySnapshot? {
@@ -855,6 +928,8 @@ final class DocketBrowserPolicyCoordinator {
             let work = try await withAuthorizedAccess(at: date) { accessToken in
                 try await self.transport.readActiveWork(accessToken: accessToken)
             }
+            lastSuccessfulPoll = date
+            onAuthenticatedPoll?(date)
             if work.task != nil {
                 hasConfirmedPolicyObservation = true
             }
@@ -878,6 +953,46 @@ final class DocketBrowserPolicyCoordinator {
             reducer.markDocketUnavailable(at: date)
         }
     }
+
+    func connect(at date: Date) async throws {
+        let tokens = try await oauth.connect(at: date)
+        try credentials.save(tokens)
+        await poll(at: date)
+    }
+
+    func disconnect(at date: Date) async throws {
+        try credentials.clear()
+        await transport.resetSession()
+        reducer.markDocketUnavailable(at: date)
+        onPolicyChanged?(reducer.policy(at: date))
+    }
+
+    var canBeginBreak: Bool {
+        reducer.canBeginBreak
+    }
+
+    @discardableResult
+    func beginBreak(at date: Date) -> Bool {
+        let didBegin = reducer.beginBreak(at: date)
+        if didBegin {
+            onPolicyChanged?(reducer.policy(at: date))
+        }
+        return didBegin
+    }
+
+    func replaceMappings(_ mappings: [WorkDestinationMapping], at date: Date) {
+        reducer.replaceMappings(mappings)
+        onPolicyChanged?(reducer.policy(at: date))
+    }
+
+    #if DEBUG
+        func seedDemo(_ work: DocketActiveWork, at date: Date) {
+            reducer.observe(work, receivedAt: date)
+            lastSuccessfulPoll = date
+            hasConfirmedPolicyObservation = work.task != nil
+            onPolicyChanged?(reducer.policy(at: date))
+        }
+    #endif
 
     func review(
         rawDestination: String,

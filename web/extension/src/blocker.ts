@@ -1,6 +1,7 @@
 import {
   blockerPrompt,
   buildReviewMessage,
+  developmentBlockerFixture,
   invalidAnswerMessage,
 } from "./blocker-state";
 
@@ -36,6 +37,9 @@ const submit = document.querySelector<HTMLButtonElement>("#submit")!;
 const statusMessage = document.querySelector<HTMLElement>("#status")!;
 
 const requestID = new URL(location.href).searchParams.get("request");
+const demoContext = __CURFEW_BLOCKER_DEMO__
+  ? developmentBlockerFixture(location.href)
+  : null;
 let challengeIsVisible = false;
 
 function stop(message: string): void {
@@ -46,6 +50,14 @@ function stop(message: string): void {
 }
 
 async function load(): Promise<void> {
+  if (demoContext !== null) {
+    task.textContent = demoContext.taskTitle;
+    host.textContent = demoContext.hostname;
+    question.textContent = demoContext.question;
+    statusMessage.textContent = "Development fixture. Curfew will not send or save an answer.";
+    justification.focus();
+    return;
+  }
   if (requestID === null) {
     stop("This blocked request is missing its private request ID.");
     return;
@@ -71,6 +83,10 @@ async function load(): Promise<void> {
 
 form.addEventListener("submit", (event) => {
   event.preventDefault();
+  if (demoContext !== null) {
+    statusMessage.textContent = "Development fixture. Curfew did not send or save this answer.";
+    return;
+  }
   if (requestID === null) {
     return;
   }

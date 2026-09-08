@@ -35,6 +35,7 @@ await Promise.all([
     entryPoints: [resolve(packageDirectory, "src/blocker.ts")],
     outfile: resolve(outputDirectory, "blocker.js"),
     bundle: true,
+    define: { __CURFEW_BLOCKER_DEMO__: String(flavor === "development") },
     format: "esm",
     minify: flavor === "production",
     platform: "browser",

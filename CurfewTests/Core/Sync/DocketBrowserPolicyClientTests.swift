@@ -149,6 +149,110 @@ struct DocketBrowserPolicyClientTests {
         #expect(try store.load()?.expiresAt == now.addingTimeInterval(3600))
     }
 
+    @Test("An authenticated idle poll records Docket setup success")
+    func authenticatedIdlePollRecordsSetupSuccess() async throws {
+        let coordinator = try DocketBrowserPolicyCoordinator(
+            transport: RecordingDocketTransport(activeWork: [idleWork()]),
+            credentials: fixedCredentials(),
+            docketWebOrigin: DocketServiceEndpoints.production.webOrigin
+        )
+        var observedAt: Date?
+        coordinator.onAuthenticatedPoll = { observedAt = $0 }
+
+        await coordinator.poll(at: now)
+
+        #expect(coordinator.lastSuccessfulPoll == now)
+        #expect(observedAt == now)
+        #expect(coordinator.policy(at: now) == nil)
+        #expect(coordinator.isAuthorized)
+    }
+
+    @Test("Connecting completes OAuth and proves the connection with an idle poll")
+    func connectCompletesOAuthAndPolls() async throws {
+        let secrets = MemoryDocketSecretStore()
+        let credentials = DocketCredentialStore(secretStore: secrets)
+        let oauth = RecordingDocketOAuth(tokens: .init(
+            accessToken: "connected-access",
+            refreshToken: "connected-refresh",
+            expiresAt: now.addingTimeInterval(3600)
+        ))
+        let coordinator = DocketBrowserPolicyCoordinator(
+            transport: RecordingDocketTransport(activeWork: [idleWork()]),
+            credentials: credentials,
+            oauth: oauth,
+            docketWebOrigin: DocketServiceEndpoints.production.webOrigin
+        )
+
+        try await coordinator.connect(at: now)
+
+        #expect(oauth.connectCount == 1)
+        #expect(coordinator.isAuthorized)
+        #expect(coordinator.lastSuccessfulPoll == now)
+        #expect(try credentials.load()?.accessToken == "connected-access")
+    }
+
+    @Test("Disconnect clears authorization but retains the active policy fail closed")
+    func disconnectRetainsActivePolicy() async throws {
+        let credentials = try fixedCredentials()
+        let transport = RecordingDocketTransport(activeWork: [activeWork(.running)])
+        let coordinator = DocketBrowserPolicyCoordinator(
+            transport: transport,
+            credentials: credentials,
+            docketWebOrigin: DocketServiceEndpoints.production.webOrigin
+        )
+        await coordinator.poll(at: now)
+        let sessionID = try #require(coordinator.policy(at: now)?.sessionID)
+
+        try await coordinator.disconnect(at: now.addingTimeInterval(5))
+
+        let retained = try #require(coordinator.policy(at: now.addingTimeInterval(5)))
+        #expect(retained.sessionID == sessionID)
+        #expect(!retained.connectionIsHealthy)
+        #expect(!coordinator.isAuthorized)
+        #expect(try credentials.load() == nil)
+        #expect(await transport.resetCount == 1)
+    }
+
+    @Test("A coordinator break publishes its exact end once per pause")
+    func coordinatorBreakPublishesOnce() async throws {
+        let coordinator = try DocketBrowserPolicyCoordinator(
+            transport: RecordingDocketTransport(activeWork: [activeWork(.paused)]),
+            credentials: fixedCredentials(),
+            docketWebOrigin: DocketServiceEndpoints.production.webOrigin
+        )
+        var published: BrowserPolicySnapshot?
+        coordinator.onPolicyChanged = { published = $0 }
+        await coordinator.poll(at: now)
+
+        #expect(coordinator.canBeginBreak)
+        #expect(coordinator.beginBreak(at: now))
+        #expect(published?.breakEndsAt == now.addingTimeInterval(15 * 60))
+        #expect(!coordinator.canBeginBreak)
+        #expect(!coordinator.beginBreak(at: now.addingTimeInterval(1)))
+    }
+
+    @Test("Replacing mappings republishes the retained task policy")
+    func replaceMappingsRepublishesPolicy() async throws {
+        let coordinator = try DocketBrowserPolicyCoordinator(
+            transport: RecordingDocketTransport(activeWork: [activeWork(.running)]),
+            credentials: fixedCredentials(),
+            docketWebOrigin: DocketServiceEndpoints.production.webOrigin
+        )
+        await coordinator.poll(at: now)
+        let scope = try BrowserDestinationScope.validatedOrigin("https://instagram.com")
+        let mapping = WorkDestinationMapping(
+            id: "mapping-1",
+            selector: .task("task-lvbt"),
+            scope: scope
+        )
+        var published: BrowserPolicySnapshot?
+        coordinator.onPolicyChanged = { published = $0 }
+
+        coordinator.replaceMappings([mapping], at: now)
+
+        #expect(published?.scopes.contains(scope) == true)
+    }
+
     @Test("The HTTP transport sends real MCP initialize, resource, and review calls")
     // swiftlint:disable:next function_body_length
     func httpTransportUsesDocketMCPShapes() async throws {
@@ -1543,6 +1647,25 @@ private final class MemoryDocketSecretStore: AccountSecretStoring {
     }
 }
 
+@MainActor
+private final class RecordingDocketOAuth: DocketOAuthAuthorizing {
+    let tokens: DocketOAuthTokens
+    private(set) var connectCount = 0
+
+    init(tokens: DocketOAuthTokens) {
+        self.tokens = tokens
+    }
+
+    func connect(at _: Date) async throws -> DocketOAuthTokens {
+        connectCount += 1
+        return tokens
+    }
+
+    func refresh(now _: Date) async throws -> DocketOAuthTokens {
+        tokens
+    }
+}
+
 private final class DocketURLProtocol: URLProtocol, @unchecked Sendable {
     nonisolated(unsafe) static var handler: ((URLRequest) throws -> (HTTPURLResponse, Data))?
     nonisolated(unsafe) static var asyncHandler:
@@ -1628,6 +1751,7 @@ private actor RecordingDocketTransport: DocketMCPTransporting {
     private let reviewError: Error?
     private let taskStateError: Error?
     private(set) var taskReadCount = 0
+    private(set) var resetCount = 0
     private(set) var lastReview: DocketDestinationReviewInput?
 
     init(
@@ -1672,6 +1796,10 @@ private actor RecordingDocketTransport: DocketMCPTransporting {
         }
         guard !reviewQueue.isEmpty else { throw DocketClientError.unavailable }
         return reviewQueue.removeFirst()
+    }
+
+    func resetSession() {
+        resetCount += 1
     }
 }
 

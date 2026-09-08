@@ -5,6 +5,7 @@ extension SettingsView {
         case account
         case localAI
         case requestHandling
+        case taskBrowser
         case helper
         case devices
     }
@@ -13,6 +14,7 @@ extension SettingsView {
         .account,
         .localAI,
         .requestHandling,
+        .taskBrowser,
         .helper,
         .devices
     ]

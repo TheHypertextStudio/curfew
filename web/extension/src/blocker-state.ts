@@ -3,6 +3,11 @@ export interface BlockerPromptContext {
   challengeQuestion?: string;
 }
 
+export interface BlockerDisplayContext extends BlockerPromptContext {
+  taskTitle: string;
+  hostname: string;
+}
+
 export const invalidAnswerMessage = "Answer must be between 1 and 8,192 UTF-8 bytes.";
 
 const answerLimitBytes = 8_192;
@@ -16,6 +21,19 @@ export function blockerPrompt(context: BlockerPromptContext): {
     return { question: context.challengeQuestion, isChallenge: true };
   }
   return { question: context.question, isChallenge: false };
+}
+
+export function developmentBlockerFixture(href: string): BlockerDisplayContext | null {
+  const url = new URL(href);
+  if (url.searchParams.get("curfew-demo") !== "1") {
+    return null;
+  }
+  return {
+    taskTitle: "Complete LVBT social strategy",
+    hostname: "instagram.com",
+    question:
+      "What will you do on instagram.com, and what will you produce for Complete LVBT social strategy?",
+  };
 }
 
 export function buildReviewMessage(
