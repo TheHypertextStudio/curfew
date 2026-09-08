@@ -33,6 +33,8 @@ substitutes the development ID or a wildcard in a production manifest.
 The helper resolves its flavor and pinned ID from its containing app bundle.
 Chrome does not inherit the app's launch environment. This prevents a Debug
 helper from reading production state through the generic CLI flavor default.
+`Documentation/chrome-extension.md` records the extension build, permissions,
+dynamic-rule behavior, and joint release checks.
 
 ## Local protocol
 

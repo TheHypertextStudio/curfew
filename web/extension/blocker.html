@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Destination held by Curfew</title>
+    <link rel="stylesheet" href="blocker.css">
+  </head>
+  <body>
+    <main class="gate" aria-labelledby="page-title">
+      <header class="gate__header">
+        <span class="wordmark">CURFEW</span>
+        <span class="classification">DESTINATION HELD</span>
+      </header>
+      <section class="gate__body">
+        <p class="eyebrow">ACTIVE TASK</p>
+        <p class="task" id="task-title">Loading current task…</p>
+        <h1 id="page-title">Stop. Name the work.</h1>
+        <p class="host" id="target-host">Loading destination…</p>
+        <p class="question" id="question">Curfew is checking the blocked request.</p>
+
+        <form id="review-form">
+          <label for="justification">Your plan and deliverable</label>
+          <textarea
+            id="justification"
+            name="justification"
+            maxlength="8192"
+            required
+            rows="5"
+            autocomplete="off"
+            spellcheck="true"
+          ></textarea>
+
+          <section id="challenge" class="challenge" hidden>
+            <p class="challenge__label">ONE FOLLOW-UP</p>
+            <p id="challenge-question"></p>
+            <label for="challenge-answer">Specific answer</label>
+            <textarea
+              id="challenge-answer"
+              name="challenge-answer"
+              maxlength="8192"
+              rows="4"
+              autocomplete="off"
+              spellcheck="true"
+            ></textarea>
+          </section>
+
+          <div class="actions">
+            <button id="submit" type="submit">Ask Curfew</button>
+            <p id="status" role="status" aria-live="polite">
+              Your answer stays in memory only while Curfew reviews it.
+            </p>
+          </div>
+        </form>
+      </section>
+      <footer>Unknown destinations stay blocked when Curfew is offline.</footer>
+    </main>
+    <script type="module" src="blocker.js"></script>
+  </body>
+</html>

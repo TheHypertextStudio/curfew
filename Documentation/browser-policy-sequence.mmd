@@ -1,15 +1,28 @@
 sequenceDiagram
-    participant Extension as Chrome extension
-    participant Curfew as Curfew native host
+    participant Chrome as Chrome navigation
+    participant Extension as Extension worker
+    participant Blocker as Blocker page
+    participant Host as Curfew native host
+    participant Curfew as Curfew app
     participant Docket as Docket MCP server
     participant Athena as Athena reviewer
 
     Docket-->>Curfew: active-work/1 observation
     Curfew->>Curfew: Reduce session and allowlist
-    Extension->>Curfew: Review normalized destination
+    Curfew-->>Host: Signed browser-policy/1 snapshot
+    Extension->>Host: get_policy over browser-host/1
+    Host-->>Extension: Current snapshot
+    Extension->>Chrome: Replace complete dynamic ruleset
+    Chrome-->>Extension: Blocked main-frame navigation
+    Extension->>Blocker: Opaque request ID
+    Blocker->>Extension: Justification in memory
+    Extension->>Host: Normalized review_destination
+    Host->>Curfew: Signed pending review
     Curfew->>Docket: review_work_destination
     Docket->>Athena: Task context and justification
     Athena-->>Docket: Grant, challenge, or deny
     Docket-->>Curfew: Proposed decision and scope
     Curfew->>Curfew: Validate scope and set lifetime
-    Curfew-->>Extension: Policy result
+    Curfew-->>Host: Signed scrubbed result and policy
+    Host-->>Extension: Policy result
+    Extension->>Chrome: Replace rules before any reopen

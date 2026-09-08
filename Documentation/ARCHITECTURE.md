@@ -155,7 +155,10 @@ the request ID captured before the network wait, and requires the negotiated MCP
 protocol version. Concurrent first calls share one initialization. Exact-task
 reads do not change the ordering watermark for active-work observations. The
 client permits one token-refresh retry after a 401 and one reinitialization retry
-after a dead MCP session. Both retry paths stop after the second failure. The
-native host and Chrome extension will consume the snapshot in later slices. See
-`Documentation/browser-enforcement.md` and its linked sequence diagram for the
-boundary and privacy rules.
+after a dead MCP session. Both retry paths stop after the second failure.
+`BrowserNativeRuntime` publishes the snapshot through the signed browser store.
+The bundled native host exposes only `browser-host/1`. The
+`@curfew/chrome-extension` worker caches the snapshot and replaces its complete
+dynamic ruleset whenever policy or current-clock expiry changes. See
+`Documentation/browser-enforcement.md`, `Documentation/chrome-extension.md`,
+and the linked sequence diagram for the boundary and privacy rules.

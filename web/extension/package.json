@@ -1,0 +1,17 @@
+{
+  "name": "@curfew/chrome-extension",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs production",
+    "build:development": "node scripts/build.mjs development",
+    "test": "vitest run --maxWorkers=2",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "esbuild": "^0.28.1",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  }
+}

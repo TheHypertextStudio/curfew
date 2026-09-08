@@ -1,8 +1,8 @@
 # Task-scoped browser enforcement
 
 This document tells Curfew maintainers how to preserve the policy and privacy
-boundary when they connect the native host and Chrome extension. The next
-implementation must keep Curfew as the only owner of access rules and grants.
+boundary across the macOS app, native host, and Chrome extension. Maintainers
+must keep Curfew as the only owner of access rules and grants.
 
 ## Decision
 
@@ -11,11 +11,11 @@ Athena reviews an unknown destination. Neither service can install an allow
 rule. Curfew validates Athena's proposed scope and sets a maximum lifetime of
 30 minutes or the end of the current session, whichever comes first.
 
-The current implementation covers the domain reducer and the direct Docket
-OAuth/MCP client. The Chrome extension, native messaging host, Settings health,
-and audit projection remain deferred. The sequence diagram in
-`Documentation/browser-policy-sequence.mmd` shows the complete boundary that
-those later slices must preserve.
+The current implementation covers the domain reducer, direct Docket OAuth/MCP
+client, signed native host, and `@curfew/chrome-extension`. Settings health,
+signed-app/Web Store verification, and audit projection remain deferred. The
+sequence diagram in `Documentation/browser-policy-sequence.mmd` shows the
+implemented review boundary.
 
 ## Session rules
 
@@ -99,6 +99,12 @@ or denial. The discarded result cannot add a grant or cooldown to the new task.
 Curfew also rejects a decision that contains fields from more than one outcome.
 Every required decision string must contain a non-whitespace value.
 
+The extension reads policy and sends a native-host heartbeat every 30 seconds.
+It serializes that refresh with expiry rebuilds and review responses. A changed
+session replaces the complete ruleset before the heartbeat or any queued review
+can continue. A host failure writes no heartbeat and leaves the cached
+restrictive policy in force.
+
 ## Release and rollback
 
 The release must keep browser enforcement off until Docket authorization and
@@ -106,14 +112,16 @@ the extension connection both succeed once. Release verification must prove
 that an unknown page never loads before the extension blocks it. It must also
 prove stale-heartbeat and offline behavior with the native host absent.
 
-Rollback disables browser enforcement and removes the extension's dynamic
-rules. Docket can retain its generic active-work resource and reviewer. This
-slice does not add or change Curfew Sync or `curfew-protocols` contracts.
+Rollback must disable browser enforcement, remove the flavor's native-host
+manifest, and remove the extension's dynamic rules before uninstall. Docket can
+retain its generic active-work resource and reviewer. This slice does not add or
+change Curfew Sync or `curfew-protocols` contracts.
 
 ## Open work
 
-The next slices must persist the latest policy snapshot, add the signed native
-messaging queue, install and remove the native-host manifest, implement the MV3
-extension, expose setup health in Settings, and add privacy-minimal audit events.
-Administrator-level bypass prevention, other browsers, mobile enforcement, and
-network filtering remain outside the first release.
+The next slices must expose setup health in Settings, connect disable and
+uninstall to dynamic-rule cleanup, and add privacy-minimal audit events. Release
+work must create the Chrome Web Store draft, set the production identity in the
+signed app, verify the packaged host and extension together, and run the
+rollback drill. Administrator-level bypass prevention, other browsers, mobile
+enforcement, and network filtering remain outside the first release.

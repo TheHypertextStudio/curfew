@@ -379,10 +379,10 @@ unknown key and is ignored.
 
 ## 17.7 Task-scoped browser enforcement (2026-09-08)
 
-This slice adds Curfew's local policy authority and its direct Docket client.
-The native messaging host, Chrome extension, Settings controls, and audit
-projection remain separate delivery tasks. The architecture and privacy limits
-are in `Documentation/browser-enforcement.md`.
+This slice adds Curfew's local policy authority, direct Docket client, signed
+native host, and Chrome extension. Settings controls, signed-app/Web Store
+release verification, and audit projection remain separate delivery tasks. The
+architecture and privacy limits are in `Documentation/browser-enforcement.md`.
 
 - [x] Normalize only HTTP and HTTPS destinations. Curfew removes credentials,
       query strings, fragments, and default ports before a destination reaches
@@ -420,10 +420,17 @@ are in `Documentation/browser-enforcement.md`.
       scopes separate from temporary grants, and evaluate grant and break expiry
       against the current time after cache restoration. Keep Docket descriptions,
       project summaries, labels, and raw references inside Curfew.
-- [ ] Connect the policy coordinator to the app lifecycle and persistent policy
-      snapshot. This belongs to the native-host integration slice.
-- [ ] Ship and verify the Chrome extension, native messaging host, Settings
-      health, and release rollback path.
+- [x] Connect the policy coordinator to the app lifecycle and signed persistent
+      policy snapshot through the flavor-isolated native host.
+- [x] Build the `@curfew/chrome-extension` MV3 package. Block only top-level HTTP
+      and HTTPS navigation, derive one dynamic ruleset from cached policy, wake
+      at grant or break expiry, refresh policy and heartbeat every 30 seconds,
+      route blocked tabs through opaque request IDs, and keep justification text
+      out of storage.
+- [-] Ship and verify the Chrome extension and native messaging host with a
+      signed app. The Web Store draft, production extension identity, Settings
+      health controls, disable/uninstall cleanup, and release rollback drill
+      remain open.
 
 ## 18. Verification (v0.1 release candidate)
 

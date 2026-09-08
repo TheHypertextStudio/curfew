@@ -21,6 +21,12 @@ only.
   - `BrowserNativeStoreTests/oversizedDestinationCannotPoisonAnExistingQueue()`, `oversizedSignedResponseLeavesPriorQueueUnchanged()`, `requestByteBoundaryAndMaximumQueueStayReadable(unicodeAnswers:)`, and `completeSignedRecordAcceptsItsLastFittingSize()` check request and record size boundaries.
   - `BrowserNativeHostTests/liveHostCannotRecreateStateAfterUninstall()` and `revokedMarkerBlocksEveryMutationWithoutCreatingFiles()` check marker revocation.
   - `BrowserNativeLifecycleTests/uninstallRevokesAWaitingHostAndPreservesOtherFlavor()` checks the app uninstall path with a waiting host.
+- `Build the task-scoped Chrome MV3 extension.`
+  - `destination.test.ts` checks removal of credentials, query strings, fragments, default ports, and unsupported schemes before review.
+  - `rules.test.ts` checks one low-priority top-level block, higher-priority exact-origin and path-prefix allows, subresource exclusion, and current-clock grant and break expiry.
+  - `controller.test.ts` checks cached-policy restoration, 30-second policy refresh and heartbeat, task-switch replacement ordering, complete one-call rule replacement, opaque blocker routing, grant-before-reopen ordering, one challenge, denial/cooldown, host failure, and private request expiry.
+  - `manifest.test.ts` checks the MV3 permissions, HTTP and HTTPS host access, service-worker declaration, and the public-key-pinned development identity.
+  - `build.test.ts` builds both flavors without Chrome and checks that each artifact contains only its allowed native-host name and an extension-local blocker form.
 
 - `Convert app shell to a standard macOS app window (LSUIElement = false) with menu bar quick access.`
   - `AppConfigurationTests/hostAppIsWindowed()`
