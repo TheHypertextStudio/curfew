@@ -11,7 +11,7 @@ public enum BoundedRegularFileReadError: Error, Equatable {
 /// block a privileged caller. The descriptor is nonblocking and no-follow,
 /// the opened object must be a single-link regular file, and the byte limit is
 /// enforced while reading rather than trusted from a racy `st_size` snapshot.
-public enum BoundedRegularFileReader {
+public nonisolated enum BoundedRegularFileReader {
     public static func read(
         _ url: URL,
         maximumBytes: Int

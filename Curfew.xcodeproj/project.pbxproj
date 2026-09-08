@@ -80,6 +80,11 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+        C0FE00000000000000000062 /* Sources/CurfewKit/Browser */ = {
+            isa = PBXFileSystemSynchronizedRootGroup;
+            path = Sources/CurfewKit/Browser;
+            sourceTree = "<group>";
+        };
 		1F56E9B021971B57F3DE957D /* CurfewWidget */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -254,6 +259,7 @@
 				C0FE00000000000000000009 /* Sources/CurfewKit/Settings */,
 				C0FE00000000000000000060 /* Sources/CurfewKit/MCP */,
 				C0FE00000000000000000061 /* Sources/CurfewKit/Sync */,
+                C0FE00000000000000000062 /* Sources/CurfewKit/Browser */,
 			);
 			name = Curfew;
 			packageProductDependencies = (
@@ -446,11 +452,12 @@
 				"$(BUILT_PRODUCTS_DIR)/$(CONTENTS_FOLDER_PATH)/Resources/curfew-ctl",
 				"$(BUILT_PRODUCTS_DIR)/$(CONTENTS_FOLDER_PATH)/Resources/curfew-mcp",
 				"$(BUILT_PRODUCTS_DIR)/$(CONTENTS_FOLDER_PATH)/Resources/curfew-daemon",
+                "$(BUILT_PRODUCTS_DIR)/$(CONTENTS_FOLDER_PATH)/Resources/studio.hypertext.curfew.browser",
 				"$(BUILT_PRODUCTS_DIR)/$(CONTENTS_FOLDER_PATH)/Library/LaunchDaemons/$(CURFEW_DAEMON_PLIST_NAME)",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "set -e\ncd \"$SRCROOT\"\nmkdir -p \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Resources\"\nmkdir -p \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Library/LaunchDaemons\"\ncase \"$CONFIGURATION\" in\n    Debug) EXPECTED_DAEMON_PLIST=\"studio.hypertext.curfew.dev.daemon.plist\" ;;\n    Release) EXPECTED_DAEMON_PLIST=\"studio.hypertext.curfew.daemon.plist\" ;;\n    *) echo \"Unsupported Curfew build configuration: $CONFIGURATION\" >&2; exit 1 ;;\nesac\nif [ \"$CURFEW_DAEMON_PLIST_NAME\" != \"$EXPECTED_DAEMON_PLIST\" ]; then\n    echo \"Curfew daemon identity does not match $CONFIGURATION\" >&2\n    exit 1\nfi\nSWIFT_SERVICE_FLAGS=\"\"\nif [ -n \"$CURFEW_SERVICE_SWIFT_FLAG\" ]; then\n    if [ \"$CURFEW_SERVICE_SWIFT_FLAG\" != \"CURFEW_STAGING\" ]; then\n        echo \"Unsupported Curfew service environment: $CURFEW_SERVICE_SWIFT_FLAG\" >&2\n        exit 1\n    fi\n    if [ \"$CONFIGURATION\" != \"Debug\" ]; then\n        echo \"CURFEW_STAGING requires the isolated Debug app and helper identity\" >&2\n        exit 1\n    fi\n    SWIFT_SERVICE_FLAGS=\"-Xswiftc -DCURFEW_STAGING\"\nfi\nswift build -c release --product curfew-ctl $SWIFT_SERVICE_FLAGS\nswift build -c release --product curfew-mcp $SWIFT_SERVICE_FLAGS\nswift build -c release --product curfew-daemon $SWIFT_SERVICE_FLAGS\ncp .build/release/curfew-ctl \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Resources/curfew-ctl\"\ncp .build/release/curfew-mcp \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Resources/curfew-mcp\"\ncp .build/release/curfew-daemon \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Resources/curfew-daemon\"\nif [ \"$CODE_SIGNING_ALLOWED\" != \"NO\" ]; then\n    for tool in curfew-ctl curfew-mcp curfew-daemon; do\n        /usr/bin/codesign --force --sign \"$EXPANDED_CODE_SIGN_IDENTITY\" --options runtime \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Resources/$tool\"\n    done\nfi\ncp \"Curfew/Resources/LaunchDaemons/$CURFEW_DAEMON_PLIST_NAME\" \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Library/LaunchDaemons/$CURFEW_DAEMON_PLIST_NAME\"\n";
+			shellScript = "set -e\ncd \"$SRCROOT\"\nmkdir -p \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Resources\"\nmkdir -p \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Library/LaunchDaemons\"\ncase \"$CONFIGURATION\" in\n    Debug) EXPECTED_DAEMON_PLIST=\"studio.hypertext.curfew.dev.daemon.plist\" ;;\n    Release) EXPECTED_DAEMON_PLIST=\"studio.hypertext.curfew.daemon.plist\" ;;\n    *) echo \"Unsupported Curfew build configuration: $CONFIGURATION\" >&2; exit 1 ;;\nesac\nif [ \"$CURFEW_DAEMON_PLIST_NAME\" != \"$EXPECTED_DAEMON_PLIST\" ]; then\n    echo \"Curfew daemon identity does not match $CONFIGURATION\" >&2\n    exit 1\nfi\nSWIFT_SERVICE_FLAGS=\"\"\nif [ -n \"$CURFEW_SERVICE_SWIFT_FLAG\" ]; then\n    if [ \"$CURFEW_SERVICE_SWIFT_FLAG\" != \"CURFEW_STAGING\" ]; then\n        echo \"Unsupported Curfew service environment: $CURFEW_SERVICE_SWIFT_FLAG\" >&2\n        exit 1\n    fi\n    if [ \"$CONFIGURATION\" != \"Debug\" ]; then\n        echo \"CURFEW_STAGING requires the isolated Debug app and helper identity\" >&2\n        exit 1\n    fi\n    SWIFT_SERVICE_FLAGS=\"-Xswiftc -DCURFEW_STAGING\"\nfi\nswift build -c release --jobs 2 --product curfew-ctl $SWIFT_SERVICE_FLAGS\nswift build -c release --jobs 2 --product curfew-mcp $SWIFT_SERVICE_FLAGS\nswift build -c release --jobs 2 --product curfew-daemon $SWIFT_SERVICE_FLAGS\nswift build -c release --jobs 2 --product studio.hypertext.curfew.browser $SWIFT_SERVICE_FLAGS\ncp .build/release/studio.hypertext.curfew.browser \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Resources/studio.hypertext.curfew.browser\"\ncp .build/release/curfew-ctl \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Resources/curfew-ctl\"\ncp .build/release/curfew-mcp \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Resources/curfew-mcp\"\ncp .build/release/curfew-daemon \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Resources/curfew-daemon\"\nif [ \"$CODE_SIGNING_ALLOWED\" != \"NO\" ]; then\n    for tool in curfew-ctl curfew-mcp curfew-daemon studio.hypertext.curfew.browser; do\n        /usr/bin/codesign --force --sign \"$EXPANDED_CODE_SIGN_IDENTITY\" --options runtime \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Resources/$tool\"\n    done\nfi\ncp \"Curfew/Resources/LaunchDaemons/$CURFEW_DAEMON_PLIST_NAME\" \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Library/LaunchDaemons/$CURFEW_DAEMON_PLIST_NAME\"\n";
 		};
 		C0FE0000000000000000ABCD /* Require Signed Build */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -649,6 +656,7 @@
 				CODE_SIGN_ENTITLEMENTS = Curfew/Curfew.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURFEW_DAEMON_PLIST_NAME = studio.hypertext.curfew.dev.daemon.plist;
+                INFOPLIST_KEY_CurfewBrowserExtensionID = "loammdknmfbkjnckaeeagnmakinknbck";
 				DEVELOPMENT_TEAM = 39AB9DY3K8;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
@@ -693,6 +701,8 @@
 				CODE_SIGN_ENTITLEMENTS = "Curfew/Curfew-Release.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURFEW_DAEMON_PLIST_NAME = studio.hypertext.curfew.daemon.plist;
+                CURFEW_BROWSER_EXTENSION_ID = "";
+                INFOPLIST_KEY_CurfewBrowserExtensionID = "$(CURFEW_BROWSER_EXTENSION_ID)";
 				DEVELOPMENT_TEAM = 39AB9DY3K8;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;

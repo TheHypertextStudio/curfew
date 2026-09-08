@@ -7,7 +7,7 @@ import Foundation
 /// about where settings, the activity log, or MCP request queues live.
 /// All three processes must read from / write to the same files; any
 /// divergence here silently produces stale reads.
-public enum SharedPaths {
+public nonisolated enum SharedPaths {
     /// `~/Library/Application Support/Curfew/` — or `Curfew (Dev)` for a
     /// development build, so a dev run's database, request queue, and settings
     /// never touch the production install the user relies on. The suffix is

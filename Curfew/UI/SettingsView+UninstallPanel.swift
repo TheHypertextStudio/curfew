@@ -64,6 +64,7 @@ extension SettingsView {
 
         guard alert.runModal() == .alertFirstButtonReturn else { return }
 
+        model.browserNativeRuntime.stop()
         let outcome = UninstallCoordinator.performUninstall()
         presentUninstallResult(outcome)
     }

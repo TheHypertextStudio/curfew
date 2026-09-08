@@ -79,10 +79,13 @@ enum UninstallCoordinator {
         home: URL = URL(
             fileURLWithPath: NSHomeDirectory(),
             isDirectory: true
-        )
+        ),
+        defaultsSuiteName: String = SharedPaths.defaultsSuiteName
     ) -> Outcome {
         var removed: [String] = []
         var failed: [(path: String, reason: String)] = []
+
+        removeBrowserManifest(home: home, failed: &failed)
 
         // 1. Unload the LaunchAgent before deleting its plist so launchd
         //    does not respawn the app between `rm` and `launchctl`. The
@@ -145,21 +148,37 @@ enum UninstallCoordinator {
         //    API but does not always flush the plist file. We follow up
         //    with a direct unlink so the file is gone even on machines
         //    where the defaults daemon hasn't flushed yet.
-        UserDefaults.standard.removePersistentDomain(forName: SharedPaths.defaultsSuiteName)
+        UserDefaults.standard.removePersistentDomain(forName: defaultsSuiteName)
         UserDefaults.standard.synchronize()
         let prefs = home
             .appendingPathComponent("Library/Preferences", isDirectory: true)
-            .appendingPathComponent("\(SharedPaths.defaultsSuiteName).plist")
+            .appendingPathComponent("\(defaultsSuiteName).plist")
         if fileManager.fileExists(atPath: prefs.path) {
             remove(at: prefs, via: fileManager, removed: &removed, failed: &failed)
         } else {
             // Still record the domain clear as a positive outcome so the
             // user sees that their settings were cleared.
-            removed.append("UserDefaults: \(SharedPaths.defaultsSuiteName)")
+            removed.append("UserDefaults: \(defaultsSuiteName)")
         }
 
         uninstallLogger.info("Uninstall complete: \(removed.count) removed, \(failed.count) failed")
         return Outcome(removed: removed, failed: failed)
+    }
+
+    private static func removeBrowserManifest(
+        home: URL,
+        failed: inout [(path: String, reason: String)]
+    ) {
+        do {
+            try BrowserNativeInstallation.removeManifest(
+                home: home,
+                executable: Bundle.main.bundleURL.appendingPathComponent(
+                    "Contents/Resources/studio.hypertext.curfew.browser"
+                )
+            )
+        } catch {
+            failed.append(("Chrome native host", "Could not remove the native host manifest."))
+        }
     }
 
     /// Shells out to `launchctl`. Returns the exit status — callers usually

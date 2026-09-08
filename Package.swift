@@ -32,7 +32,8 @@ let package = Package(
         .library(name: "CurfewProtocolBridge", targets: ["CurfewProtocolBridge"]),
         .executable(name: "curfew-ctl", targets: ["curfew-ctl"]),
         .executable(name: "curfew-mcp", targets: ["curfew-mcp"]),
-        .executable(name: "curfew-daemon", targets: ["curfew-daemon"])
+        .executable(name: "curfew-daemon", targets: ["curfew-daemon"]),
+        .executable(name: "studio.hypertext.curfew.browser", targets: ["curfew-browser"])
     ],
     dependencies: [
         .package(
@@ -51,6 +52,15 @@ let package = Package(
         // Add it via Xcode → project → Package Dependencies when ready.
     ],
     targets: [
+        .executableTarget(
+            name: "curfew-browser", dependencies: [.target(name: "CurfewKit")],
+            path: "Sources/curfew-browser"
+        ),
+        .testTarget(
+            name: "BrowserNativeHostTests",
+            dependencies: [.target(name: "CurfewKit")],
+            path: "Tests/BrowserNativeHostTests"
+        ),
         .target(
             name: "CurfewKit",
             dependencies: [],

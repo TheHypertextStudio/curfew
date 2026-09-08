@@ -799,6 +799,8 @@ actor DocketMCPHTTPTransport: DocketMCPTransporting {
 
 @MainActor
 final class DocketBrowserPolicyCoordinator {
+    var onPolicyChanged: ((BrowserPolicySnapshot?) -> Void)?
+    private(set) var hasConfirmedPolicyObservation = false
     private let transport: any DocketMCPTransporting
     private let credentials: DocketCredentialStore
     private let oauth: DocketOAuthClient
@@ -846,11 +848,15 @@ final class DocketBrowserPolicyCoordinator {
     }
 
     func poll(at date: Date) async {
+        defer { onPolicyChanged?(reducer.policy(at: date)) }
         do {
             let priorTask = reducer.currentTask()
             let priorSessionID = reducer.currentSessionID()
             let work = try await withAuthorizedAccess(at: date) { accessToken in
                 try await self.transport.readActiveWork(accessToken: accessToken)
+            }
+            if work.task != nil {
+                hasConfirmedPolicyObservation = true
             }
             reducer.observe(work, receivedAt: date)
             if work.task == nil, let priorTask, let priorSessionID {
@@ -877,10 +883,15 @@ final class DocketBrowserPolicyCoordinator {
         rawDestination: String,
         justification: String,
         challengeAnswer: String?,
-        at date: Date
+        at date: Date,
+        expectedSessionID: UUID? = nil,
+        requestIsFresh: () -> Bool = { true }
     ) async -> DocketDestinationReview {
+        defer { onPolicyChanged?(reducer.policy(at: date)) }
         guard let destination = try? NormalizedHTTPDestination(rawDestination),
               let sessionID = reducer.policy(at: date)?.sessionID,
+              expectedSessionID == nil || expectedSessionID == sessionID,
+              requestIsFresh(),
               let task = reducer.currentTask(),
               reducer.canReview(destination, at: date)
         else { return .deny(reason: "This destination cannot be reviewed now.") }
@@ -897,6 +908,9 @@ final class DocketBrowserPolicyCoordinator {
             }
             guard reducer.policy(at: date)?.sessionID == sessionID else {
                 return .deny(reason: "Work changed while Docket reviewed this destination.")
+            }
+            guard requestIsFresh() else {
+                return .deny(reason: "The destination request expired during review.")
             }
             switch result {
             case .grant(_, let scope):

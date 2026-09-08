@@ -27,6 +27,9 @@ extension CurfewAppModel {
         configureNotificationCallback()
         enableLiveProtectedWorkDetection()
         subscribeToAccessibilityTrustChanges()
+        if !RuntimeEnvironment.isUnitTestHost {
+            browserNativeRuntime.start()
+        }
     }
 
     /// Wires the notification manager's snooze callback and MCP request

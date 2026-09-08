@@ -9,6 +9,14 @@ only.
 
 ## 0. Foundation and Project Structure
 
+- `Bundle the pinned Chrome native messaging host.`
+  - `BrowserNativeProtocolTests` checks versioning, strict fields, correlation, and framing limits.
+  - `BrowserNativeStoreTests` checks signed state, tampering, expiry, permissions, scrubbing, and pruning.
+  - `BrowserNativeHostTests` checks offline snapshot reads, signed heartbeat state, and bounded review waits.
+  - `BrowserNativeInstallationTests` checks the public-key-derived development ID, origin validation, and manifest ownership.
+  - `BrowserNativeLifecycleTests` checks app queue processing and uninstall cleanup.
+  - `DocketBrowserPolicyClientTests/queuedReviewRejectsStaleResponse()` and `queuedReviewRejectsAnotherSession()` check rejection before applying a grant.
+
 - `Convert app shell to a standard macOS app window (LSUIElement = false) with menu bar quick access.`
   - `AppConfigurationTests/hostAppIsWindowed()`
 - `Default debug/Xcode launch starts with enforcement disarmed unless explicitly enabled.`

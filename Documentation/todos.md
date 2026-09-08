@@ -33,6 +33,8 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 
 ## 0. Foundation and Project Structure
 
+- [x] Bundle the pinned Chrome native messaging host with signed browser queues, atomic policy snapshots, stale-review rejection, heartbeat health, and uninstall cleanup. See [browser native host](browser-native-host.md). The production Web Store draft and `CURFEW_BROWSER_EXTENSION_ID` remain release work.
+
 - [x] Create `CurfewKit` SPM library for shared domain models (Sources/CurfewKit/). App/CLI/MCP all depend on it via public types.
 - [x] Convert app shell to a standard macOS app window (`LSUIElement = false`) with menu bar quick access.
 - [x] Default debug/Xcode launch starts with enforcement disarmed unless explicitly enabled.

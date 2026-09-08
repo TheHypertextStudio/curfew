@@ -130,6 +130,7 @@ final class CurfewAppModel: NSObject, ObservableObject {
 
     /// Watches the MCP request queue; paired with `mcpSocketServer` (Unix-socket fast path).
     let mcpRequestMonitor: MCPRequestMonitor
+    lazy var browserNativeRuntime = BrowserNativeRuntime()
     /// Unix-socket fast path for in-app MCP writes.
     let mcpSocketServer: MCPSocketServer
 

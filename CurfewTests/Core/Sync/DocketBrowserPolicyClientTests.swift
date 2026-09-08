@@ -1288,6 +1288,50 @@ struct DocketBrowserPolicyClientTests {
         #expect(coordinator.policy(at: now)?.allows(destination, at: now) == false)
     }
 
+    @Test("A stale queued review never adds an Athena grant")
+    func queuedReviewRejectsStaleResponse() async throws {
+        let transport = try RecordingDocketTransport(
+            activeWork: [activeWork(.running)],
+            reviews: [.grant(
+                reason: "Supports the task.",
+                scope: .validatedOrigin("https://example.com")
+            )]
+        )
+        let coordinator = try DocketBrowserPolicyCoordinator(
+            transport: transport,
+            credentials: fixedCredentials()
+        )
+        await coordinator.poll(at: now)
+        var freshnessChecks = 0
+        let result = await coordinator.review(
+            rawDestination: "https://example.com/private", justification: "private",
+            challengeAnswer: nil,
+            at: now, requestIsFresh: {
+                freshnessChecks += 1
+                return freshnessChecks == 1
+            }
+        )
+        #expect(!result.isGrant)
+        #expect(coordinator.policy(at: now)?.grants.isEmpty == true)
+    }
+
+    @Test("The browser queue rejects another session before contacting Athena")
+    func queuedReviewRejectsAnotherSession() async throws {
+        let transport = RecordingDocketTransport(activeWork: [activeWork(.running)])
+        let coordinator = try DocketBrowserPolicyCoordinator(
+            transport: transport,
+            credentials: fixedCredentials()
+        )
+        await coordinator.poll(at: now)
+        let result = await coordinator.review(
+            rawDestination: "https://example.com/private", justification: "private",
+            challengeAnswer: nil,
+            at: now, expectedSessionID: UUID()
+        )
+        #expect(!result.isGrant)
+        #expect(await transport.lastReview == nil)
+    }
+
     private func fixedCredentials() throws -> DocketCredentialStore {
         let secrets = MemoryDocketSecretStore()
         let store = DocketCredentialStore(secretStore: secrets)
