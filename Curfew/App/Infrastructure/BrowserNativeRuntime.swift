@@ -40,7 +40,6 @@ final class BrowserNativeRuntime {
         else { return }
         stopped = false
         do {
-            try BrowserNativeFiles.prepareDirectory(store.directory)
             try install()
             watchDirectory()
             coordinator.startPolling()

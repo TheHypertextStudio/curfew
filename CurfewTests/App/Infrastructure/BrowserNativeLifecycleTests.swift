@@ -4,11 +4,63 @@ import Testing
 
 @MainActor
 struct BrowserNativeLifecycleTests {
+    @Test func uninstallRevokesAWaitingHostAndPreservesOtherFlavor() async throws {
+        let home = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: home) }
+        let executable = Bundle.main.bundleURL
+            .appendingPathComponent("Contents/Resources/studio.hypertext.curfew.browser")
+        let id = BrowserNativeInstallation.developmentExtensionID
+        let other: CurfewFlavor = CurfewFlavor.current == .development ? .production : .development
+        let otherManifest = try BrowserNativeInstallation.install(
+            extensionID: id,
+            executable: executable,
+            home: home,
+            flavor: other
+        )
+        let otherData = try Data(contentsOf: otherManifest)
+        _ = try BrowserNativeInstallation.install(
+            extensionID: id,
+            executable: executable,
+            home: home
+        )
+        let directory = BrowserNativeInstallation.browserDirectory(home: home, flavor: .current)
+        let store = BrowserNativeStore(directory: directory)
+        let request = try BrowserNativeRequest.decode(Data("""
+        {"schemaVersion":"browser-host/1","requestId":"live","type":"review_destination",
+        "sessionId":"00000000-0000-0000-0000-000000000001",
+        "destination":{"origin":"https://example.com","path":"/"},"justification":"test"}
+        """.utf8))
+        let host = BrowserNativeHost(store: store, callerOrigin: "test", reviewTimeout: 0.15)
+        let waiting = Task { await host.handle(request) }
+        for _ in 0 ..< 100 {
+            if try !store.pending(at: Date()).isEmpty {
+                break
+            }
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        #expect(try store.pending(at: Date()).count == 1)
+        let outcome = UninstallCoordinator.performUninstall(
+            home: home,
+            defaultsSuiteName: "studio.hypertext.curfew.tests.\(UUID().uuidString)"
+        )
+        #expect(outcome.allSucceeded)
+        let response = await waiting.value
+        #expect(response.error == "host_unavailable")
+        #expect(!FileManager.default.fileExists(atPath: directory.path))
+        #expect(try Data(contentsOf: otherManifest) == otherData)
+        let otherStore = BrowserNativeStore(directory: BrowserNativeInstallation.browserDirectory(
+            home: home,
+            flavor: other
+        ))
+        #expect(try otherStore.isActive())
+    }
+
     @Test func failedFirstPollPreservesSignedPolicyAcrossRuntimeRestart() async throws {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: directory) }
         let store = BrowserNativeStore(directory: directory)
+        try store.activate()
         let now = Date(timeIntervalSince1970: 1_788_537_600)
         let policy = BrowserPolicySnapshot(
             schemaVersion: "browser-policy/1", sessionID: UUID(),
@@ -58,6 +110,7 @@ struct BrowserNativeLifecycleTests {
                 "Library/Application Support/Curfew\(CurfewFlavor.current.displaySuffix)/browser"
             )
         let store = BrowserNativeStore(directory: directory)
+        try store.activate()
         try store.writePolicy(nil, at: Date())
         let outcome = UninstallCoordinator.performUninstall(
             home: home, defaultsSuiteName: "studio.hypertext.curfew.tests.\(UUID().uuidString)"
@@ -72,6 +125,7 @@ struct BrowserNativeLifecycleTests {
             .appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: directory) }
         let store = BrowserNativeStore(directory: directory)
+        try store.activate()
         let data = Data("""
         {"schemaVersion":"browser-host/1","requestId":"one","type":"review_destination",
         "sessionId":"00000000-0000-0000-0000-000000000001",

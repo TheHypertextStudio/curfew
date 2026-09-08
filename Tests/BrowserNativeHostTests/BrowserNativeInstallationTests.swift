@@ -3,6 +3,79 @@ import Foundation
 import Testing
 
 struct BrowserNativeInstallationTests {
+    @Test func developmentAndProductionInstallAndUninstallIndependently() throws {
+        let home = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: home) }
+        let production = home.appendingPathComponent("Production.app/helper")
+        let development = home.appendingPathComponent("Development.app/helper")
+        try createExecutable(at: production)
+        try createExecutable(at: development)
+        let productionManifest = try BrowserNativeInstallation.install(
+            extensionID: "abcdefghijklmnopabcdefghijklmnop", executable: production, home: home,
+            flavor: .production
+        )
+        let productionData = try Data(contentsOf: productionManifest)
+        let developmentManifest = try BrowserNativeInstallation.install(
+            extensionID: BrowserNativeInstallation.developmentExtensionID, executable: development,
+            home: home, flavor: .development
+        )
+        #expect(productionManifest.lastPathComponent == "studio.hypertext.curfew.browser.json")
+        #expect(developmentManifest.lastPathComponent == "studio.hypertext.curfew.dev.browser.json")
+        #expect(try Data(contentsOf: productionManifest) == productionData)
+        let object = try #require(JSONSerialization
+            .jsonObject(with: Data(contentsOf: developmentManifest)) as? [String: Any])
+        #expect(object["name"] as? String == "studio.hypertext.curfew.dev.browser")
+        try BrowserNativeInstallation.removeManifest(
+            home: home,
+            executable: development,
+            flavor: .development
+        )
+        #expect(!FileManager.default.fileExists(atPath: developmentManifest.path))
+        #expect(try Data(contentsOf: productionManifest) == productionData)
+        let productionStore = BrowserNativeStore(directory: BrowserNativeInstallation
+            .browserDirectory(
+                home: home,
+                flavor: .production
+            ))
+        #expect(try productionStore.isActive())
+    }
+
+    @Test(arguments: ["missing", "directory", "symlink", "nonExecutable"])
+    func installationRejectsUnsafeExecutable(kind: String) throws {
+        let home = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: home) }
+        try FileManager.default.createDirectory(at: home, withIntermediateDirectories: true)
+        let executable = home.appendingPathComponent("helper")
+        switch kind {
+        case "directory":
+            try FileManager.default.createDirectory(
+                at: executable,
+                withIntermediateDirectories: true
+            )
+        case "symlink":
+            try FileManager.default.createSymbolicLink(
+                at: executable,
+                withDestinationURL: URL(fileURLWithPath: "/usr/bin/true")
+            )
+        case "nonExecutable":
+            try Data("not executable".utf8).write(to: executable)
+            try FileManager.default.setAttributes(
+                [.posixPermissions: 0o600],
+                ofItemAtPath: executable.path
+            )
+        default: break
+        }
+        #expect(throws: (any Error).self) {
+            try BrowserNativeInstallation.install(
+                extensionID: BrowserNativeInstallation.developmentExtensionID,
+                executable: executable,
+                home: home
+            )
+        }
+        #expect(!FileManager.default
+            .fileExists(atPath: BrowserNativeInstallation.manifestURL(home: home).path))
+    }
+
     @Test func uninstallPreservesManifestReplacedByAnotherFlavor() throws {
         let home = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: home) }
@@ -10,6 +83,7 @@ struct BrowserNativeInstallationTests {
             .appendingPathComponent(
                 "Production.app/Contents/Resources/studio.hypertext.curfew.browser"
             )
+        try createExecutable(at: installed)
         let manifest = try BrowserNativeInstallation.install(
             extensionID: BrowserNativeInstallation.developmentExtensionID,
             executable: installed,
@@ -31,6 +105,7 @@ struct BrowserNativeInstallationTests {
         let id = "abcdefghijklmnopabcdefghijklmnop"
         let executable = home
             .appendingPathComponent("Curfew.app/Contents/Resources/studio.hypertext.curfew.browser")
+        try createExecutable(at: executable)
         let manifestURL = try BrowserNativeInstallation.install(
             extensionID: id,
             executable: executable,
@@ -76,5 +151,14 @@ struct BrowserNativeInstallationTests {
         #expect(try BrowserNativeInstallation
             .origin(extensionID: BrowserNativeInstallation.developmentExtensionID)
             .hasPrefix("chrome-extension://"))
+    }
+
+    private func createExecutable(at url: URL) throws {
+        try FileManager.default.createDirectory(
+            at: url.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        try Data("#!/bin/sh\nexit 0\n".utf8).write(to: url)
+        try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: url.path)
     }
 }

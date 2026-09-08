@@ -8,13 +8,17 @@ public nonisolated enum BrowserNativeError: Error, Equatable {
     case unsafeFile
     case invalidSignature
     case queueFull
+    case inactiveInstallation
 }
 
 public nonisolated enum BrowserNativeJSON {
     public static func encode(_ value: some Encodable) throws -> Data {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
-        encoder.outputFormatting = [.sortedKeys]
+        // Escaping slashes in the base64 envelope makes its expansion depend
+        // on request bytes. Fixed base64 expansion keeps 128 bounded requests
+        // below the signed-record reader limit, including Unicode answers.
+        encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
         return try encoder.encode(value)
     }
 
@@ -47,6 +51,7 @@ public nonisolated enum BrowserNativeFraming {
 }
 
 public nonisolated struct BrowserNativeRequest: Codable, Equatable, Sendable {
+    public static let maximumEncodedBytes = 20 * 1024
     public nonisolated enum MessageType: String, Codable, Sendable {
         case getPolicy = "get_policy"
         case reviewDestination = "review_destination"
@@ -62,7 +67,7 @@ public nonisolated struct BrowserNativeRequest: Codable, Equatable, Sendable {
     public var challengeAnswer: String?
 
     public static func decode(_ data: Data) throws -> Self {
-        guard data.count <= BrowserNativeFraming.maximumInboundBytes,
+        guard data.count <= maximumEncodedBytes,
               let object = try JSONSerialization.jsonObject(with: data) as? [String: Any],
               let typeValue = object["type"] as? String,
               let type = MessageType(rawValue: typeValue)
@@ -80,6 +85,9 @@ public nonisolated struct BrowserNativeRequest: Codable, Equatable, Sendable {
         }
         guard Set(object.keys).isSubset(of: keys) else { throw BrowserNativeError.invalidRequest }
         let result = try BrowserNativeJSON.decode(Self.self, from: data)
+        guard try BrowserNativeJSON.encode(result).count <= maximumEncodedBytes else {
+            throw BrowserNativeError.messageTooLarge
+        }
         guard result.schemaVersion == "browser-host/1",
               !result.requestID.isEmpty, result.requestID.utf8.count <= 128
         else { throw BrowserNativeError.invalidRequest }

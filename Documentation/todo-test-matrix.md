@@ -16,6 +16,11 @@ only.
   - `BrowserNativeInstallationTests` checks the public-key-derived development ID, origin validation, and manifest ownership.
   - `BrowserNativeLifecycleTests` checks app queue processing and uninstall cleanup.
   - `DocketBrowserPolicyClientTests/queuedReviewRejectsStaleResponse()` and `queuedReviewRejectsAnotherSession()` check rejection before applying a grant.
+- `Isolate native host flavors and revoke live hosts before uninstall.`
+  - `BrowserNativeInstallationTests/developmentAndProductionInstallAndUninstallIndependently()` and `installationRejectsUnsafeExecutable(kind:)` check manifest isolation and executable validation.
+  - `BrowserNativeStoreTests/oversizedDestinationCannotPoisonAnExistingQueue()`, `oversizedSignedResponseLeavesPriorQueueUnchanged()`, `requestByteBoundaryAndMaximumQueueStayReadable(unicodeAnswers:)`, and `completeSignedRecordAcceptsItsLastFittingSize()` check request and record size boundaries.
+  - `BrowserNativeHostTests/liveHostCannotRecreateStateAfterUninstall()` and `revokedMarkerBlocksEveryMutationWithoutCreatingFiles()` check marker revocation.
+  - `BrowserNativeLifecycleTests/uninstallRevokesAWaitingHostAndPreservesOtherFlavor()` checks the app uninstall path with a waiting host.
 
 - `Convert app shell to a standard macOS app window (LSUIElement = false) with menu bar quick access.`
   - `AppConfigurationTests/hostAppIsWindowed()`

@@ -28,6 +28,8 @@ public nonisolated struct BrowserNativeHost: Sendable {
                 let id = try store.enqueue(request, at: Date())
                 let deadline = ContinuousClock.now.advanced(by: .seconds(reviewTimeout))
                 while ContinuousClock.now < deadline, !Task.isCancelled {
+                    guard try store.isActive()
+                    else { throw BrowserNativeError.inactiveInstallation }
                     if let entry = try store.response(id: id) {
                         response.result = entry.result
                         response.policy = try store.readPolicy()?.policy

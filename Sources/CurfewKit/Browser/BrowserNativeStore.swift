@@ -30,9 +30,14 @@ private nonisolated struct BrowserSignedRecord: Codable {
     let signature: Data
 }
 
+private nonisolated struct BrowserNativeActivation: Codable {
+    let installedAt: Date
+}
+
 /// The host and app use an HMAC-authenticated file queue under one UID, as
 /// the MCP queue does. A lock prevents concurrent Chrome hosts losing entries.
 public nonisolated struct BrowserNativeStore: Sendable {
+    public static let maximumRecordBytes = 4 * 1024 * 1024
     public let directory: URL
     public var queueURL: URL {
         directory.appendingPathComponent("requests.json")
@@ -50,6 +55,10 @@ public nonisolated struct BrowserNativeStore: Sendable {
         directory.appendingPathComponent("heartbeat.json")
     }
 
+    public var activeURL: URL {
+        directory.appendingPathComponent("active.json")
+    }
+
     public init(directory: URL = SharedPaths.applicationSupport.appendingPathComponent(
         "browser",
         isDirectory: true
@@ -57,8 +66,38 @@ public nonisolated struct BrowserNativeStore: Sendable {
         self.directory = directory
     }
 
-    public func enqueue(_ request: BrowserNativeRequest, at date: Date) throws -> UUID {
+    public func activate() throws {
         try BrowserNativeFiles.locked(directory: directory) {
+            _ = try key(create: true)
+            try save(BrowserNativeActivation(installedAt: Date()), to: activeURL)
+        }
+    }
+
+    public func isActive() throws -> Bool {
+        try load(BrowserNativeActivation.self, from: activeURL) != nil
+    }
+
+    public func deactivate() throws {
+        guard FileManager.default.fileExists(atPath: activeURL.path) else { return }
+        try BrowserNativeFiles.locked(directory: directory, createDirectory: false) {
+            if FileManager.default.fileExists(atPath: activeURL.path) {
+                try FileManager.default.removeItem(at: activeURL)
+            }
+        }
+    }
+
+    private func whileActive<T>(_ operation: () throws -> T) throws -> T {
+        // Only installation creates the directory and lock. A host that
+        // outlives uninstall must never recreate either while checking access.
+        try BrowserNativeFiles.locked(directory: directory, createDirectory: false) {
+            guard try isActive() else { throw BrowserNativeError.inactiveInstallation }
+            return try operation()
+        }
+    }
+
+    public func enqueue(_ request: BrowserNativeRequest, at date: Date) throws -> UUID {
+        try whileActive {
+            _ = try BrowserNativeRequest.decode(BrowserNativeJSON.encode(request))
             var entries = try loadEntries()
             entries = pruned(entries, at: date)
             guard entries.count < 128 else { throw BrowserNativeError.queueFull }
@@ -74,7 +113,7 @@ public nonisolated struct BrowserNativeStore: Sendable {
     }
 
     public func resolve(id: UUID, result: BrowserNativeReviewResult, at date: Date) throws {
-        try BrowserNativeFiles.locked(directory: directory) {
+        try whileActive {
             var entries = try loadEntries()
             guard let index = entries.firstIndex(where: { $0.id == id && $0.result == nil })
             else { return }
@@ -95,7 +134,7 @@ public nonisolated struct BrowserNativeStore: Sendable {
     }
 
     public func prune(at date: Date) throws {
-        try BrowserNativeFiles.locked(directory: directory) {
+        try whileActive {
             let entries = try loadEntries()
             let remaining = pruned(entries, at: date)
             if remaining != entries {
@@ -105,7 +144,7 @@ public nonisolated struct BrowserNativeStore: Sendable {
     }
 
     public func writePolicy(_ policy: BrowserPolicySnapshot?, at date: Date) throws {
-        try BrowserNativeFiles.locked(directory: directory) {
+        try whileActive {
             try save(BrowserNativePolicyRecord(policy: policy, generatedAt: date), to: policyURL)
         }
     }
@@ -115,7 +154,7 @@ public nonisolated struct BrowserNativeStore: Sendable {
     }
 
     public func recordHeartbeat(origin: String, at date: Date) throws {
-        try BrowserNativeFiles.locked(directory: directory) {
+        try whileActive {
             try save(
                 BrowserNativeHealth(
                     extensionOrigin: origin,
@@ -171,16 +210,20 @@ public nonisolated struct BrowserNativeStore: Sendable {
         let payload = try BrowserNativeJSON.encode(value)
         let signature = try Data(HMAC<SHA256>.authenticationCode(
             for: payload,
-            using: key(create: true)
+            using: key(create: false)
         ))
-        try BrowserNativeFiles.write(
-            BrowserNativeJSON.encode(BrowserSignedRecord(payload: payload, signature: signature)),
-            to: url
-        )
+        let record = try BrowserNativeJSON.encode(BrowserSignedRecord(
+            payload: payload,
+            signature: signature
+        ))
+        guard record.count <= Self.maximumRecordBytes
+        else { throw BrowserNativeError.messageTooLarge }
+        try BrowserNativeFiles.write(record, to: url)
     }
 
     private func load<T: Decodable>(_ type: T.Type, from url: URL) throws -> T? {
-        guard let data = try BrowserNativeFiles.read(url) else { return nil }
+        guard let data = try BrowserNativeFiles.read(url, maximumBytes: Self.maximumRecordBytes)
+        else { return nil }
         let record = try BrowserNativeJSON.decode(BrowserSignedRecord.self, from: data)
         guard try HMAC<SHA256>.isValidAuthenticationCode(
             record.signature,

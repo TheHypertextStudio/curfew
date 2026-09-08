@@ -85,6 +85,9 @@ enum UninstallCoordinator {
         var removed: [String] = []
         var failed: [(path: String, reason: String)] = []
 
+        guard revokeBrowserInstallation(home: home, failed: &failed) else {
+            return Outcome(removed: removed, failed: failed)
+        }
         removeBrowserManifest(home: home, failed: &failed)
 
         // 1. Unload the LaunchAgent before deleting its plist so launchd
@@ -112,12 +115,10 @@ enum UninstallCoordinator {
         // 2. Application Support directory (MCP queue, Unix socket, activity
         //    DBs, etc.). Flavor-suffixed — a dev uninstall clears `Curfew (Dev)`
         //    and leaves the production `Curfew` directory untouched.
-        let appSupport = home
-            .appendingPathComponent("Library/Application Support", isDirectory: true)
-            .appendingPathComponent(
-                "Curfew\(CurfewFlavor.current.displaySuffix)",
-                isDirectory: true
-            )
+        let appSupport = home.appendingPathComponent(
+            "Library/Application Support/Curfew\(CurfewFlavor.current.displaySuffix)",
+            isDirectory: true
+        )
         if fileManager.fileExists(atPath: appSupport.path) {
             remove(at: appSupport, via: fileManager, removed: &removed, failed: &failed)
         }
@@ -163,6 +164,20 @@ enum UninstallCoordinator {
 
         uninstallLogger.info("Uninstall complete: \(removed.count) removed, \(failed.count) failed")
         return Outcome(removed: removed, failed: failed)
+    }
+
+    private static func revokeBrowserInstallation(
+        home: URL,
+        failed: inout [(path: String, reason: String)]
+    ) -> Bool {
+        do {
+            let directory = BrowserNativeInstallation.browserDirectory(home: home, flavor: .current)
+            try BrowserNativeStore(directory: directory).deactivate()
+            return true
+        } catch {
+            failed.append(("Chrome native host", "Could not revoke the native host installation."))
+            return false
+        }
     }
 
     private static func removeBrowserManifest(

@@ -65,11 +65,17 @@ public nonisolated enum BrowserNativeFiles {
         return try BoundedRegularFileReader.read(url, maximumBytes: maximumBytes)
     }
 
-    static func locked<T>(directory: URL, operation: () throws -> T) throws -> T {
-        try prepareDirectory(directory)
+    static func locked<T>(
+        directory: URL,
+        createDirectory: Bool = true,
+        operation: () throws -> T
+    ) throws -> T {
+        if createDirectory {
+            try prepareDirectory(directory)
+        }
         let descriptor = open(
             directory.appendingPathComponent(".lock").path,
-            O_RDWR | O_CREAT | O_NOFOLLOW | O_CLOEXEC,
+            O_RDWR | O_NOFOLLOW | O_CLOEXEC | (createDirectory ? O_CREAT : 0),
             0o600
         )
         guard descriptor >= 0 else { throw BrowserNativeError.unsafeFile }

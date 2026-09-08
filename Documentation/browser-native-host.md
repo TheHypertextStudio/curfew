@@ -8,6 +8,11 @@ Curfew bundles `studio.hypertext.curfew.browser` in `Contents/Resources`.
 The app installs a user native-host manifest under
 `Library/Application Support/Google/Chrome/NativeMessagingHosts`. The manifest
 allows one exact extension origin and names the helper with an absolute path.
+The production host name is `studio.hypertext.curfew.browser`. The development
+host name is `studio.hypertext.curfew.dev.browser`. Each flavor installs its own
+manifest filename, so both installations can coexist. Both manifests point to
+the helper in their respective app bundles. Curfew rejects a helper path that
+is missing, a directory, a symlink, or a file without executable permission.
 Chrome supplies the caller origin as the helper's first argument. The helper
 rejects a different origin before reading requests or writing local state.
 
@@ -50,7 +55,9 @@ response echoes it. Requests reject unknown fields. For example:
 `origin` and `path`. For example, the origin can be `https://example.com` and
 the path can be `/research`. The host rejects credentials, query strings,
 fragments, noncanonical origins, and invalid path prefixes. Each private
-answer has an 8192-byte limit.
+answer has an 8192-byte limit. The complete request has a 20 KiB limit, which
+Curfew checks against both the received JSON and its canonical encoding.
+This limit includes the destination origin and path.
 
 Responses contain `schemaVersion`, `requestId`, `type`, and `generatedAt`.
 They may contain `policy`, `result`, or `error`. Error tokens include
@@ -100,6 +107,12 @@ same atomic write that publishes the result. Curfew prunes resolved entries
 after 120 seconds and drops stale pending entries. The queue holds at most
 128 entries. Curfew logs only the hostname, decision, and scope kind for reviews.
 
+Every signed file must fit the 4 MiB reader limit before atomic replacement.
+An oversized request or result leaves the previous queue unchanged. The JSON
+encoder does not escape slashes in the base64 envelope, so Unicode answers
+cannot enlarge that envelope beyond base64's fixed expansion. A queue of 128
+maximum-size requests fits below 4 MiB.
+
 After an app restart, Curfew preserves a signed active snapshot until Docket
 confirms a replacement task or terminal task. An unavailable or idle first
 poll cannot clear that snapshot. If Docket only returns idle after the task
@@ -113,9 +126,15 @@ The claim proves that the host accepted a message from the configured caller.
 It does not prove that Chrome still has a tab open or that an extension cannot
 be disabled.
 
-Uninstall removes the browser files with Curfew's Application Support state.
-Curfew removes the Chrome manifest only when it still names this app's helper.
-An uninstall must preserve a manifest subsequently installed by another flavor.
+Installation creates a signed active marker. Every mutation verifies that
+marker under the same file lock used by uninstall. A waiting host checks it
+on each response poll. Uninstall removes the marker before deleting browser
+files. A host that outlives uninstall cannot recreate the directory, lock,
+secret, queue, snapshot, or heartbeat. Reinstall may create a new marker.
+
+Uninstall removes the browser files with its flavor's Application Support state.
+Curfew removes only its flavor's Chrome manifest, and only when that manifest
+still names this app's helper. The other flavor's manifest and state remain.
 Reinstalling the integration recreates the manifest and secret. Removing or
 rolling back the helper must not cause the extension to discard a cached active
 policy.
@@ -123,7 +142,8 @@ policy.
 ## Verification limits
 
 Swift tests cover framing, signing, tampering, file modes, queue scrubbing,
-policy expiry, caller origins, manifest ownership, stale results, and uninstall.
+policy expiry, caller origins, flavor isolation, executable validation, signed
+record size boundaries, stale results, and hosts that outlive uninstall.
 The release engineer must still verify the signed app and the published Chrome
 extension together. This repository cannot prove a Chrome Web Store identity
 before the draft exists.
