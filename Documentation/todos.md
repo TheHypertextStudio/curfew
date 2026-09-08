@@ -387,9 +387,11 @@ are in `Documentation/browser-enforcement.md`.
       or cross-origin recommendations cannot broaden access.
 - [x] Build the allowlist from the configured Docket web origin, task
       references, and mappings that select exactly one task, project, or label.
-- [x] Retain the current task when Docket reports an idle timer. End the session
-      only when Docket reports that task as completed or canceled, or returns an
-      `archivedAt` timestamp. Missing and unauthorized task resources fail closed.
+- [x] Retain the current task whenever Docket returns a null active-work task.
+      Read that exact task even when tracking says running or paused. End the
+      session only when Docket reports that task as completed or canceled, or
+      returns an `archivedAt` timestamp. Missing and unauthorized task resources
+      fail closed.
 - [x] Revoke grants when the task changes. Limit grants to 30 minutes and
       denial cooldowns to five minutes.
 - [x] Permit one 15-minute break for each transition into paused or idle. A

@@ -752,6 +752,8 @@ only.
   - `DocketBrowserPolicyClientTests/pollCadenceTracksRetainedSession()`
   - `DocketBrowserPolicyClientTests/idleObservationChecksTerminalTask()`
   - `DocketBrowserPolicyClientTests/idleObservationChecksArchivedTask()`
+  - `DocketBrowserPolicyClientTests/nullTaskObservationChecksArchivedTask(tracking:)`
+  - `DocketBrowserPolicyClientTests/failedNullTaskReadRetainsEnforcement(tracking:)`
   - `DocketBrowserPolicyClientTests/destinationReviewUsesNormalizedPayload()`
 - `Browser policy snapshots expose only the current task ID and title.`
   - `BrowserWorkPolicyTests/snapshotSerializationOmitsDocketTaskContext()`

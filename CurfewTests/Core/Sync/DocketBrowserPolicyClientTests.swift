@@ -812,6 +812,57 @@ struct DocketBrowserPolicyClientTests {
         #expect(coordinator.policy(at: now.addingTimeInterval(5)) == nil)
     }
 
+    @Test(
+        "A null running or paused observation checks the retained task for archive",
+        arguments: [DocketTrackingState.running, .paused]
+    )
+    func nullTaskObservationChecksArchivedTask(tracking: DocketTrackingState) async throws {
+        let transport = RecordingDocketTransport(
+            activeWork: [activeWork(.running), workWithoutTask(tracking)],
+            taskStates: [.init(
+                taskID: "task-lvbt",
+                stateType: "started",
+                archivedAt: now.addingTimeInterval(5),
+                observedAt: now.addingTimeInterval(5)
+            )]
+        )
+        let coordinator = try DocketBrowserPolicyCoordinator(
+            transport: transport,
+            credentials: fixedCredentials(),
+            docketWebOrigin: DocketServiceEndpoints.production.webOrigin
+        )
+
+        await coordinator.poll(at: now)
+        await coordinator.poll(at: now.addingTimeInterval(5))
+
+        #expect(coordinator.policy(at: now.addingTimeInterval(5)) == nil)
+        #expect(await transport.taskReadCount == 1)
+    }
+
+    @Test(
+        "A failed exact-task read retains enforcement for null running or paused work",
+        arguments: [DocketTrackingState.running, .paused]
+    )
+    func failedNullTaskReadRetainsEnforcement(tracking: DocketTrackingState) async throws {
+        let transport = RecordingDocketTransport(activeWork: [
+            activeWork(.running), workWithoutTask(tracking)
+        ])
+        let coordinator = try DocketBrowserPolicyCoordinator(
+            transport: transport,
+            credentials: fixedCredentials(),
+            docketWebOrigin: DocketServiceEndpoints.production.webOrigin
+        )
+
+        await coordinator.poll(at: now)
+        await coordinator.poll(at: now.addingTimeInterval(5))
+
+        let policy = try #require(coordinator.policy(at: now.addingTimeInterval(5)))
+        #expect(policy.task.id == "task-lvbt")
+        #expect(!policy.connectionIsHealthy)
+        #expect(await transport.taskReadCount == 1)
+        #expect(try !policy.allows(NormalizedHTTPDestination("https://youtube.com/watch")))
+    }
+
     @Test("A late active-work response cannot switch the coordinator backward")
     func coordinatorRejectsStaleResponse() async throws {
         let transport = RecordingDocketTransport(activeWork: [
@@ -1033,9 +1084,13 @@ struct DocketBrowserPolicyClientTests {
     }
 
     private func idleWork() -> DocketActiveWork {
+        workWithoutTask(.idle)
+    }
+
+    private func workWithoutTask(_ tracking: DocketTrackingState) -> DocketActiveWork {
         .init(
             observedAt: now.addingTimeInterval(5),
-            tracking: .idle,
+            tracking: tracking,
             recordID: nil,
             task: nil
         )

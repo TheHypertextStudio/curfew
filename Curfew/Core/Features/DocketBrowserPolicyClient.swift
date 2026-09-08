@@ -806,7 +806,7 @@ final class DocketBrowserPolicyCoordinator {
                 try await self.transport.readActiveWork(accessToken: accessToken)
             }
             reducer.observe(work, receivedAt: date)
-            if work.tracking == .idle, let priorTask {
+            if work.task == nil, let priorTask {
                 let state = try await withAuthorizedAccess(at: date) { accessToken in
                     try await self.transport.readTaskState(
                         organizationID: priorTask.organizationID,

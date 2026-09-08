@@ -132,13 +132,15 @@ through `review_work_destination`. These contracts do not use Curfew Sync or
 
 `BrowserWorkSessionReducer` accepts timestamped Docket observations and emits a
 deterministic local policy snapshot. A timer stop changes tracking to idle but
-does not end the session. A matching terminal task state ends the session. A
-task change creates a new session identifier and drops every grant and cooldown.
-The reducer keeps known scopes during a service failure and blocks every unknown
-destination. The extension-facing snapshot contains only the current task ID
-and title. Curfew validates every scope before the reducer can store it. Curfew
-also rejects a destination-review result when its captured session ID no longer
-matches the current session.
+does not end the session. Any active-work response with a null task triggers an
+exact read of the retained task, even when tracking says running or paused. Only
+an explicit terminal state or archive timestamp ends the session. A task change
+creates a new session identifier and drops every grant and cooldown. The reducer
+keeps known scopes during a service failure and blocks every unknown destination.
+The extension-facing snapshot contains only the current task ID and title.
+Curfew validates every scope before the reducer can store it. Curfew also rejects
+a destination-review result when its captured session ID no longer matches the
+current session.
 
 `DocketBrowserPolicyClient` registers an OAuth public client at Docket, requests
 only `work:read`, `agents:run`, and `offline_access`, and stores its client ID and

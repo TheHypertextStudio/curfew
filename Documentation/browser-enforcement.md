@@ -20,11 +20,12 @@ those later slices must preserve.
 ## Session rules
 
 Docket's `active-work/1` observation starts or continues a session when it
-contains a running or paused task. An idle observation retains the prior task
-locally. Curfew then reads that task's ordinary Docket resource. A completed or
-canceled state ends the session. An `archivedAt` timestamp also ends it. Missing
-or unauthorized task resources leave the retained session unhealthy and fail
-closed. A different task creates a new session and revokes old grants.
+contains a task. Any observation with a null task retains the prior task locally,
+whether tracking says running, paused, or idle. Curfew then reads that exact
+task's ordinary Docket resource. A completed or canceled state ends the session.
+An `archivedAt` timestamp also ends it. Missing or unauthorized task resources
+leave the retained session unhealthy and fail closed. A different task creates
+a new session and revokes old grants.
 
 Curfew permits one 15-minute break after each transition into paused or idle.
 Starting the break consumes that eligibility. More paused or idle observations
