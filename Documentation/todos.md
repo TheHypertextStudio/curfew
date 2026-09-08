@@ -423,10 +423,11 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
 - [x] Connect the policy coordinator to the app lifecycle and signed persistent
       policy snapshot through the flavor-isolated native host.
 - [x] Build the `@curfew/chrome-extension` MV3 package. Block only top-level HTTP
-      and HTTPS navigation, install the base block before validated allow rules,
-      wake at grant or break expiry, refresh policy and heartbeat every 30
-      seconds, route blocked tabs through opaque request IDs, retain targeted
-      challenge questions across reload, and keep both answers out of storage.
+      and HTTPS navigation, install a missing base block before validated allow
+      rules, replace a persisted ruleset atomically, wake at grant or break
+      expiry, refresh policy and heartbeat every 30 seconds, route blocked tabs
+      through opaque request IDs, retain targeted challenge questions across
+      reload, and keep both answers out of storage.
 - [-] Ship and verify the Chrome extension and native messaging host with a
       signed app. The Web Store draft, production extension identity, Settings
       health controls, disable/uninstall cleanup, and release rollback drill

@@ -82,7 +82,7 @@ function harness(options: {
         if (options.dynamicRulesGet) {
           return options.dynamicRulesGet();
         }
-        return [{ id: 76 }, { id: 77 }];
+        return [{ id: 1 }, { id: 1_000 }];
       },
       async replace(update) {
         calls.push("rules");
@@ -161,8 +161,8 @@ async function routeBlockedPage(
 }
 
 describe("BrowserPolicyController", () => {
-  it("installs the base block before validating and adding allow rules", async () => {
-    const testHarness = harness();
+  it("installs the base block before validating a first active policy", async () => {
+    const testHarness = harness({ dynamicRulesGet: async () => [] });
 
     await testHarness.controller.cachePolicy(policy());
 
@@ -203,13 +203,30 @@ describe("BrowserPolicyController", () => {
       expect.objectContaining({ id: 1, action: { type: "block" } }),
     ]);
     expect(testHarness.regexChecks.some((regex) => regex.includes("docket"))).toBe(true);
+    expect(testHarness.ruleEvents.slice(0, 2)).toEqual(["validate", "replace:1"]);
     expect(testHarness.data.browserPolicy).toEqual(policy());
+  });
+
+  it("falls back to block-only when Chrome's regex validation rejects", async () => {
+    const testHarness = harness({
+      regexSupport: async () => {
+        throw new Error("Chrome regex validation failed");
+      },
+    });
+
+    await expect(testHarness.controller.cachePolicy(policy())).resolves.toBeUndefined();
+
+    expect(testHarness.ruleEvents).toEqual(["validate", "replace:1"]);
+    expect(testHarness.ruleUpdates).toHaveLength(1);
+    expect(testHarness.ruleUpdates[0].addRules).toEqual([
+      expect.objectContaining({ id: 1, action: { type: "block" } }),
+    ]);
   });
 
   it("keeps block-only when Chrome rejects the validated allow update", async () => {
     const testHarness = harness({
       dynamicRulesReplace: async (_update, call) => {
-        if (call === 2) {
+        if (call === 1) {
           throw new Error("Chrome rejected the complete allow ruleset");
         }
       },
@@ -217,7 +234,8 @@ describe("BrowserPolicyController", () => {
 
     await testHarness.controller.cachePolicy(policy());
 
-    expect(testHarness.ruleUpdates[0].addRules).toEqual([
+    expect(testHarness.ruleUpdates).toHaveLength(2);
+    expect(testHarness.ruleUpdates.at(-1)?.addRules).toEqual([
       expect.objectContaining({ id: 1, action: { type: "block" } }),
     ]);
     expect(testHarness.data.browserPolicy).toEqual(policy());
@@ -231,16 +249,17 @@ describe("BrowserPolicyController", () => {
     expect(testHarness.scheduledRefreshes).toEqual([0.5]);
   });
 
-  it("restores cached policy block-first when the host is unavailable", async () => {
+  it("restores cached policy with one complete update when the base block persists", async () => {
     const testHarness = harness({ stored: { browserPolicy: policy() } });
 
     await testHarness.controller.initialize();
 
-    expect(testHarness.ruleUpdates).toHaveLength(2);
-    expect(testHarness.ruleUpdates[0].removeRuleIds).toEqual([76, 77]);
-    expect(testHarness.ruleUpdates.at(-1)?.addRules).toEqual(
+    expect(testHarness.ruleUpdates).toHaveLength(1);
+    expect(testHarness.ruleUpdates[0].removeRuleIds).toEqual([1, 1_000]);
+    expect(testHarness.ruleUpdates[0].addRules).toEqual(
       expect.arrayContaining([expect.objectContaining({ action: { type: "block" } })]),
     );
+    expect(testHarness.ruleUpdates[0].addRules).toHaveLength(2);
     expect(testHarness.data.browserPolicy).toEqual(policy());
   });
 
@@ -258,7 +277,7 @@ describe("BrowserPolicyController", () => {
 
     await testHarness.controller.rebuildForExpiry(new Date("2026-09-08T18:00:03.000Z"));
 
-    expect(testHarness.ruleUpdates).toHaveLength(2);
+    expect(testHarness.ruleUpdates).toHaveLength(1);
     expect(JSON.stringify(testHarness.ruleUpdates.at(-1)?.addRules)).not.toContain("temporary");
     expect(testHarness.ruleUpdates.at(-1)?.addRules).toHaveLength(2);
     expect(testHarness.scheduledExpirations.at(-1)).toBeNull();
@@ -287,7 +306,7 @@ describe("BrowserPolicyController", () => {
 
     await testHarness.controller.refreshPolicy();
 
-    expect(testHarness.calls).toEqual(["rules", "rules", "heartbeat"]);
+    expect(testHarness.calls).toEqual(["rules", "heartbeat"]);
     expect(testHarness.data.browserPolicy).toEqual(switched);
     expect(JSON.stringify(testHarness.ruleUpdates.at(-1))).not.toContain("previous");
     expect(JSON.stringify(testHarness.ruleUpdates.at(-1))).toContain("release");
@@ -313,7 +332,7 @@ describe("BrowserPolicyController", () => {
 
     await testHarness.controller.initialize();
 
-    expect(testHarness.ruleUpdates).toHaveLength(2);
+    expect(testHarness.ruleUpdates).toHaveLength(1);
     expect(testHarness.ruleUpdates[0].addRules).toEqual(
       expect.arrayContaining([expect.objectContaining({ action: { type: "block" } })]),
     );
@@ -493,9 +512,25 @@ describe("BrowserPolicyController", () => {
     );
   });
 
-  it("ignores a block event for a destination that the Curfew policy allows", async () => {
-    const testHarness = harness();
-    await testHarness.controller.cachePolicy(policy());
+  it("does not claim another extension's error during first activation", async () => {
+    let signalValidationStarted!: () => void;
+    let releaseValidation!: () => void;
+    const validationStarted = new Promise<void>((resolve) => {
+      signalValidationStarted = resolve;
+    });
+    const validationRelease = new Promise<void>((resolve) => {
+      releaseValidation = resolve;
+    });
+    const testHarness = harness({
+      dynamicRulesGet: async () => [],
+      regexSupport: async () => {
+        signalValidationStarted();
+        await validationRelease;
+        return true;
+      },
+    });
+    const activation = testHarness.controller.cachePolicy(policy());
+    await validationStarted;
 
     await testHarness.controller.handleNavigationError({
       tabId: 14,
@@ -503,6 +538,8 @@ describe("BrowserPolicyController", () => {
       error: "net::ERR_BLOCKED_BY_CLIENT",
       url: "https://docket.example/allowed",
     });
+    releaseValidation();
+    await activation;
 
     expect(testHarness.tabUpdates).toHaveLength(0);
     expect(Object.keys(testHarness.data).filter((key) => key.startsWith("browserRequest:")))
@@ -576,7 +613,7 @@ describe("BrowserPolicyController", () => {
     });
 
     expect(outcome).toEqual({ status: "grant" });
-    expect(testHarness.calls).toEqual(["rules", "rules", "tab"]);
+    expect(testHarness.calls).toEqual(["rules", "tab"]);
     expect(testHarness.tabUpdates.at(-1)?.url).toBe(
       "https://alice:secret@Research.Example:443/private/../notes?q=secret#fragment",
     );
@@ -712,7 +749,7 @@ describe("BrowserPolicyController", () => {
     });
 
     expect(outcome).toEqual({ status: "stale_session" });
-    expect(testHarness.calls).toEqual(["rules", "rules"]);
+    expect(testHarness.calls).toEqual(["rules"]);
     expect(testHarness.data.browserPolicy).toEqual(switched);
     expect(JSON.stringify(testHarness.ruleUpdates.at(-1))).not.toContain("research\\.example");
   });

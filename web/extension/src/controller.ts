@@ -278,20 +278,36 @@ export class BrowserPolicyController {
       });
     } else {
       const blockOnly = rules.slice(0, 1);
-      await this.dependencies.dynamicRules.replace({
-        removeRuleIds: dynamicRules.map((rule) => rule.id),
-        addRules: blockOnly,
-      });
+      const installedRuleIDs = dynamicRules.map((rule) => rule.id);
+      const baseBlockIsInstalled = dynamicRules.some((rule) => rule.id === blockOnly[0].id);
+      if (!baseBlockIsInstalled) {
+        await this.dependencies.dynamicRules.replace({
+          removeRuleIds: installedRuleIDs,
+          addRules: blockOnly,
+        });
+      }
       const allowRules = rules.slice(1);
       if (rules.length <= 1_000 && await this.supportsEveryRegex(allowRules)) {
         try {
           await this.dependencies.dynamicRules.replace({
-            removeRuleIds: blockOnly.map((rule) => rule.id),
+            removeRuleIds: baseBlockIsInstalled
+              ? installedRuleIDs
+              : blockOnly.map((rule) => rule.id),
             addRules: rules,
           });
         } catch {
-          // The atomic update leaves the already-installed block-only rule in place.
+          if (baseBlockIsInstalled) {
+            await this.dependencies.dynamicRules.replace({
+              removeRuleIds: installedRuleIDs,
+              addRules: blockOnly,
+            });
+          }
         }
+      } else if (baseBlockIsInstalled) {
+        await this.dependencies.dynamicRules.replace({
+          removeRuleIds: installedRuleIDs,
+          addRules: blockOnly,
+        });
       }
     }
     if (policy === null) {
@@ -555,14 +571,18 @@ export class BrowserPolicyController {
   }
 
   private async supportsEveryRegex(rules: DynamicRule[]): Promise<boolean> {
-    for (const rule of rules) {
-      const support = await this.dependencies.dynamicRules.isRegexSupported({
-        regex: rule.condition.regexFilter,
-        isCaseSensitive: true,
-      });
-      if (!support.isSupported) {
-        return false;
+    try {
+      for (const rule of rules) {
+        const support = await this.dependencies.dynamicRules.isRegexSupported({
+          regex: rule.condition.regexFilter,
+          isCaseSensitive: true,
+        });
+        if (!support.isSupported) {
+          return false;
+        }
       }
+    } catch {
+      return false;
     }
     return true;
   }

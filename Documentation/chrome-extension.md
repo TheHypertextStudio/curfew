@@ -50,13 +50,14 @@ priority 100. Path matching is case-sensitive, while URL parsing still
 canonicalizes origin hosts. Every rule names only `main_frame`, so images,
 scripts, API calls, and other subresources remain outside this release.
 
-The worker treats dynamic rules as derived state. It first replaces every
-current rule with the base block. It then refuses more than 999 allow rules and
-checks each allow expression through Chrome's regex support API. Only a valid
-set receives a second atomic replacement with the base block and all allows.
-An unsupported expression, an oversized expression, a quota overflow, or a
-rejected full update leaves the base block installed. This two-stage order keeps
-the first active policy fail closed.
+The worker treats dynamic rules as derived state. When the base block is absent,
+it first replaces every current rule with that block. It then refuses more than
+999 allow rules and checks each allow expression through Chrome's regex support
+API. When the base block already exists, the worker validates first and installs
+the complete set in one atomic replacement. An unsupported expression, an
+oversized expression, a quota overflow, or a rejected full update falls back to
+the base block. Only the first active policy needs two successful updates, since
+its fail-closed invariant outranks transient access to an existing allowed site.
 
 The worker caches the latest valid `browser-policy/1` snapshot in
 `chrome.storage.local`. It rebuilds rules from that cache before it asks the

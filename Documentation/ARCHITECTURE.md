@@ -158,8 +158,8 @@ client permits one token-refresh retry after a 401 and one reinitialization retr
 after a dead MCP session. Both retry paths stop after the second failure.
 `BrowserNativeRuntime` publishes the snapshot through the signed browser store.
 The bundled native host exposes only `browser-host/1`. The
-`@curfew/chrome-extension` worker caches the snapshot, installs the base block,
-and replaces it with a complete validated dynamic ruleset whenever policy or
-current-clock expiry changes. See
+`@curfew/chrome-extension` worker caches the snapshot and installs a missing
+base block before its first complete ruleset. Later policy or current-clock
+expiry changes replace the persisted ruleset with one validated atomic update. See
 `Documentation/browser-enforcement.md`, `Documentation/chrome-extension.md`,
 and the linked sequence diagram for the boundary and privacy rules.
