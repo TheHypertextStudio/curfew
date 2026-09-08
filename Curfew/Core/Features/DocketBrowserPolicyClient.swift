@@ -866,6 +866,7 @@ final class DocketBrowserPolicyCoordinator {
     var onAuthenticatedPoll: ((Date) -> Void)?
     private(set) var hasConfirmedPolicyObservation = false
     private(set) var lastSuccessfulPoll: Date?
+    private(set) var lastPollIsHealthy = false
     private let transport: any DocketMCPTransporting
     private let credentials: DocketCredentialStore
     private let oauth: any DocketOAuthAuthorizing
@@ -929,6 +930,7 @@ final class DocketBrowserPolicyCoordinator {
                 try await self.transport.readActiveWork(accessToken: accessToken)
             }
             lastSuccessfulPoll = date
+            lastPollIsHealthy = true
             onAuthenticatedPoll?(date)
             if work.task != nil {
                 hasConfirmedPolicyObservation = true
@@ -950,6 +952,7 @@ final class DocketBrowserPolicyCoordinator {
                 )
             }
         } catch {
+            lastPollIsHealthy = false
             reducer.markDocketUnavailable(at: date)
         }
     }
@@ -963,6 +966,7 @@ final class DocketBrowserPolicyCoordinator {
     func disconnect(at date: Date) async throws {
         try credentials.clear()
         await transport.resetSession()
+        lastPollIsHealthy = false
         reducer.markDocketUnavailable(at: date)
         onPolicyChanged?(reducer.policy(at: date))
     }

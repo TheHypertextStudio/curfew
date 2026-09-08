@@ -90,12 +90,12 @@ final class BrowserNativeRuntime {
     }
 
     func setEnforcementEnabled(_ enabled: Bool, at date: Date = Date()) throws {
-        enforcementEnabled = enabled
         try publishPolicy(
             enabled ? coordinator.policy(at: date) : nil,
             at: date,
             allowClearingRetainedPolicy: !enabled
         )
+        enforcementEnabled = enabled
     }
 
     func processPending() async {

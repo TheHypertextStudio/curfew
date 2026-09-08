@@ -23,6 +23,7 @@ nonisolated struct TaskBrowserEnforcementViewModel: Equatable, Sendable {
         settings: BrowserIntegrationSettings,
         isAuthorized: Bool,
         lastSuccessfulPoll: Date?,
+        docketIsHealthy: Bool,
         nativeHealth: BrowserNativeHealth?,
         hostIsInstalled: Bool,
         installationError: String?,
@@ -30,7 +31,7 @@ nonisolated struct TaskBrowserEnforcementViewModel: Equatable, Sendable {
         canBeginBreak: Bool,
         now: Date
     ) {
-        let pollIsFresh = Self.isFresh(lastSuccessfulPoll, at: now)
+        let pollIsFresh = docketIsHealthy && Self.isFresh(lastSuccessfulPoll, at: now)
         let extensionIsFresh = Self.isFresh(nativeHealth?.extensionSeenAt, at: now)
         let hostIsFresh = Self.isFresh(nativeHealth?.hostSeenAt, at: now)
         let hostIsHealthy = installationError == nil && hostIsInstalled && hostIsFresh
@@ -95,11 +96,13 @@ final class TaskBrowserEnforcementController: ObservableObject {
     private let runtime: BrowserNativeRuntime
     private let settingsStore: BrowserIntegrationSettingsStore
     private let now: () -> Date
+    private var healthMonitorTask: Task<Void, Never>?
 
     init(
         runtime: BrowserNativeRuntime,
         settingsStore: BrowserIntegrationSettingsStore,
-        now: @escaping () -> Date = Date.init
+        now: @escaping () -> Date = Date.init,
+        healthUpdates: AsyncStream<Date>? = nil
     ) {
         self.runtime = runtime
         self.settingsStore = settingsStore
@@ -118,6 +121,17 @@ final class TaskBrowserEnforcementController: ObservableObject {
         try? runtime.setEnforcementEnabled(settings.enforcementEnabled, at: date)
         runtime.coordinator.replaceMappings(settings.mappings, at: date)
         refresh(at: date)
+        let updates = healthUpdates ?? Self.fiveSecondHealthUpdates(now: now)
+        self.healthMonitorTask = Task { @MainActor [weak self] in
+            for await date in updates {
+                guard !Task.isCancelled else { return }
+                self?.refresh(at: date)
+            }
+        }
+    }
+
+    deinit {
+        healthMonitorTask?.cancel()
     }
 
     func refresh(at date: Date? = nil) {
@@ -134,16 +148,20 @@ final class TaskBrowserEnforcementController: ObservableObject {
     @discardableResult
     func setEnforcementEnabled(_ enabled: Bool, at date: Date? = nil) -> Bool {
         let date = date ?? now()
-        guard settings.setEnforcementEnabled(enabled) else {
+        var updatedSettings = settings
+        guard updatedSettings.setEnforcementEnabled(enabled) else {
             refresh(at: date)
             return false
         }
-        settingsStore.save(settings)
         do {
             try runtime.setEnforcementEnabled(enabled, at: date)
+            settings = updatedSettings
+            settingsStore.save(settings)
             errorMessage = nil
         } catch {
             errorMessage = "Curfew could not update Chrome browser enforcement."
+            refresh(at: date)
+            return false
         }
         refresh(at: date)
         return true
@@ -235,6 +253,7 @@ final class TaskBrowserEnforcementController: ObservableObject {
             settings: settings,
             isAuthorized: runtime.coordinator.isAuthorized,
             lastSuccessfulPoll: runtime.coordinator.lastSuccessfulPoll,
+            docketIsHealthy: runtime.coordinator.lastPollIsHealthy,
             nativeHealth: runtime.health(at: date),
             hostIsInstalled: runtime.isInstalled(),
             installationError: runtime.installationError,
@@ -246,5 +265,23 @@ final class TaskBrowserEnforcementController: ObservableObject {
 
     private static func isFresh(_ date: Date, at now: Date) -> Bool {
         date <= now.addingTimeInterval(5) && now.timeIntervalSince(date) <= 60
+    }
+
+    private static func fiveSecondHealthUpdates(
+        now: @escaping () -> Date
+    ) -> AsyncStream<Date> {
+        AsyncStream { continuation in
+            let task = Task { @MainActor in
+                while !Task.isCancelled {
+                    do {
+                        try await Task.sleep(for: .seconds(5))
+                    } catch {
+                        return
+                    }
+                    continuation.yield(now())
+                }
+            }
+            continuation.onTermination = { _ in task.cancel() }
+        }
     }
 }

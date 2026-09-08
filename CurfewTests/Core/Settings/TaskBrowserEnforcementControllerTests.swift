@@ -16,6 +16,7 @@ struct TaskBrowserEnforcementViewModelTests {
             ),
             isAuthorized: true,
             lastSuccessfulPoll: now.addingTimeInterval(-30),
+            docketIsHealthy: true,
             nativeHealth: .init(
                 extensionOrigin: "chrome-extension://curfew",
                 extensionSeenAt: now.addingTimeInterval(-10),
@@ -51,6 +52,7 @@ struct TaskBrowserEnforcementViewModelTests {
             ),
             isAuthorized: true,
             lastSuccessfulPoll: now,
+            docketIsHealthy: true,
             nativeHealth: .init(
                 extensionOrigin: "chrome-extension://curfew",
                 extensionSeenAt: now.addingTimeInterval(-61),
@@ -80,6 +82,7 @@ struct TaskBrowserEnforcementViewModelTests {
             settings: .init(),
             isAuthorized: false,
             lastSuccessfulPoll: nil,
+            docketIsHealthy: false,
             nativeHealth: nil,
             hostIsInstalled: false,
             installationError: "Chrome browser integration could not be installed.",
@@ -171,6 +174,73 @@ struct TaskBrowserEnforcementControllerTests {
         #expect(try nativeStore.readPolicy()?.policy != nil)
         #expect(!coordinator.isAuthorized)
         #expect(oauth.connectCount == 1)
+    }
+
+    @Test("A failed Docket poll makes a ready panel unhealthy without user action")
+    func failedPollUpdatesLiveHealth() async throws {
+        let fixture = try LiveHealthFixture()
+        let controller = await fixture.makeController()
+        #expect(controller.viewModel.enforcementReadiness.isHealthy)
+
+        await fixture.transport.setUnavailable(true)
+        fixture.clock.now = fixture.clock.now.addingTimeInterval(1)
+        await fixture.coordinator.poll(at: fixture.clock.now)
+        fixture.pulseHealthMonitor()
+        await waitUntil { !controller.viewModel.docketPoll.isHealthy }
+
+        #expect(!controller.viewModel.docketPoll.isHealthy)
+        #expect(!controller.viewModel.enforcementReadiness.isHealthy)
+    }
+
+    @Test("A ready panel expires a 61-second Chrome heartbeat without user action")
+    func heartbeatExpiryUpdatesLiveHealth() async throws {
+        let fixture = try LiveHealthFixture()
+        let controller = await fixture.makeController()
+        #expect(controller.viewModel.enforcementReadiness.isHealthy)
+
+        fixture.clock.now = fixture.clock.now.addingTimeInterval(61)
+        fixture.pulseHealthMonitor()
+        await waitUntil { !controller.viewModel.extensionHeartbeat.isHealthy }
+
+        #expect(!controller.viewModel.extensionHeartbeat.isHealthy)
+        #expect(!controller.viewModel.nativeHost.isHealthy)
+        #expect(!controller.viewModel.enforcementReadiness.isHealthy)
+    }
+
+    @Test("A failed disable keeps the runtime, UI, and stored toggle enabled")
+    func failedDisableRollsBackEveryToggleLayer() async throws {
+        let fixture = try LiveHealthFixture(enforcementEnabled: true)
+        let controller = await fixture.makeController()
+        try fixture.nativeStore.deactivate()
+
+        let didDisable = controller.setEnforcementEnabled(false, at: fixture.clock.now)
+
+        #expect(!didDisable)
+        #expect(controller.settings.enforcementEnabled)
+        #expect(controller.viewModel.enforcementEnabled)
+        #expect(fixture.settingsStore.load().enforcementEnabled)
+        #expect(fixture.runtime.enforcementEnabled)
+    }
+
+    @Test("A failed enable keeps the runtime, UI, and stored toggle disabled")
+    func failedEnableRollsBackEveryToggleLayer() async throws {
+        let fixture = try LiveHealthFixture(enforcementEnabled: false)
+        let controller = await fixture.makeController()
+        try fixture.nativeStore.deactivate()
+
+        let didEnable = controller.setEnforcementEnabled(true, at: fixture.clock.now)
+
+        #expect(!didEnable)
+        #expect(!controller.settings.enforcementEnabled)
+        #expect(!controller.viewModel.enforcementEnabled)
+        #expect(!fixture.settingsStore.load().enforcementEnabled)
+        #expect(!fixture.runtime.enforcementEnabled)
+    }
+
+    private func waitUntil(_ condition: @escaping @MainActor () -> Bool) async {
+        for _ in 0 ..< 1000 where !condition() {
+            await Task.yield()
+        }
     }
 
     private func testMappingActions(
