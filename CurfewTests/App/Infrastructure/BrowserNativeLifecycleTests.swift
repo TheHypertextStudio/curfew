@@ -75,6 +75,7 @@ struct BrowserNativeLifecycleTests {
                 credentials: DocketCredentialStore(secretStore: EmptyBrowserCredentials())
             )
         )
+        runtime.configureEnforcementForStartup(true)
         await runtime.coordinator.poll(at: now)
         let host = BrowserNativeHost(store: store, callerOrigin: "test")
         let request = try BrowserNativeRequest.decode(Data(

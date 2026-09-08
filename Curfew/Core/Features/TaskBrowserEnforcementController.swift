@@ -118,7 +118,7 @@ final class TaskBrowserEnforcementController: ObservableObject {
         runtime.coordinator.onAuthenticatedPoll = { [weak self] date in
             self?.recordDocketConnection(at: date)
         }
-        try? runtime.setEnforcementEnabled(settings.enforcementEnabled, at: date)
+        runtime.configureEnforcementForStartup(settings.enforcementEnabled)
         runtime.coordinator.replaceMappings(settings.mappings, at: date)
         refresh(at: date)
         let updates = healthUpdates ?? Self.fiveSecondHealthUpdates(now: now)

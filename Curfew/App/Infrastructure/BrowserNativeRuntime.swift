@@ -11,17 +11,27 @@ final class BrowserNativeRuntime {
     private var maintenance: Task<Void, Never>?
     private var processing = false
     private var stopped = false
+    private var acceptsPolicyCallbacks = false
+    private let startupIsAllowed: () -> Bool
+    private let installForStartup: (() throws -> Void)?
     private(set) var installationError: String?
-    private(set) var enforcementEnabled = true
+    private(set) var enforcementEnabled = false
 
     init(
         store: BrowserNativeStore = BrowserNativeStore(),
-        coordinator: DocketBrowserPolicyCoordinator? = nil
+        coordinator: DocketBrowserPolicyCoordinator? = nil,
+        startupIsAllowed: (() -> Bool)? = nil,
+        installForStartup: (() throws -> Void)? = nil
     ) {
         self.store = store
         self.coordinator = coordinator ?? DocketBrowserPolicyCoordinator()
+        self.startupIsAllowed = startupIsAllowed ?? {
+            !RuntimeEnvironment.isUnitTestHost &&
+                ProcessInfo.processInfo.environment["CURFEW_DEMO_FIXTURE"] != "1"
+        }
+        self.installForStartup = installForStartup
         self.coordinator.onPolicyChanged = { [weak self] policy in
-            guard let self, !stopped else { return }
+            guard let self, !stopped, acceptsPolicyCallbacks else { return }
             do {
                 try publishPolicy(
                     enforcementEnabled ? policy : nil,
@@ -39,12 +49,19 @@ final class BrowserNativeRuntime {
     }
 
     func start() {
-        guard maintenance == nil, !RuntimeEnvironment.isUnitTestHost,
-              ProcessInfo.processInfo.environment["CURFEW_DEMO_FIXTURE"] != "1"
-        else { return }
-        stopped = false
+        guard maintenance == nil, startupIsAllowed() else { return }
         do {
-            try install()
+            if let installForStartup {
+                try installForStartup()
+            } else {
+                try install()
+            }
+            try publishPolicy(
+                enforcementEnabled ? coordinator.policy(at: Date()) : nil,
+                allowClearingRetainedPolicy: !enforcementEnabled
+            )
+            acceptsPolicyCallbacks = true
+            stopped = false
             watchDirectory()
             coordinator.startPolling()
             maintenance = Task { [weak self] in
@@ -55,6 +72,7 @@ final class BrowserNativeRuntime {
                 }
             }
         } catch {
+            stopped = true
             installationError = "Chrome browser integration could not be installed."
             browserLogger.error("Browser integration installation failed.")
         }
@@ -66,6 +84,7 @@ final class BrowserNativeRuntime {
         source = nil
         maintenance?.cancel()
         maintenance = nil
+        acceptsPolicyCallbacks = false
         coordinator.stopPolling()
     }
 
@@ -89,6 +108,10 @@ final class BrowserNativeRuntime {
         (try? store.isActive()) == true
     }
 
+    func configureEnforcementForStartup(_ enabled: Bool) {
+        enforcementEnabled = enabled
+    }
+
     func setEnforcementEnabled(_ enabled: Bool, at date: Date = Date()) throws {
         try publishPolicy(
             enabled ? coordinator.policy(at: date) : nil,
@@ -96,6 +119,7 @@ final class BrowserNativeRuntime {
             allowClearingRetainedPolicy: !enabled
         )
         enforcementEnabled = enabled
+        acceptsPolicyCallbacks = true
     }
 
     func processPending() async {
