@@ -583,6 +583,33 @@ describe("BrowserPolicyController", () => {
     );
   });
 
+  it("routes a slashless parent through the blocker for a trailing-slash scope", async () => {
+    const testHarness = harness();
+    await testHarness.controller.cachePolicy(policy({
+      scopes: [{
+        kind: "path_prefix",
+        origin: "https://research.example",
+        path: "/notes/",
+      }],
+    }));
+    testHarness.tabUpdates.length = 0;
+
+    await testHarness.controller.handleNavigationError({
+      tabId: 14,
+      frameId: 0,
+      error: "net::ERR_BLOCKED_BY_CLIENT",
+      url: "https://research.example/notes",
+    });
+
+    expect(testHarness.tabUpdates).toEqual([{
+      tabId: 14,
+      url: "chrome-extension://extension-id/blocker.html?request=request-1",
+    }]);
+    expect(testHarness.data["browserRequest:request-1"]).toMatchObject({
+      destination: { origin: "https://research.example", path: "/notes" },
+    });
+  });
+
   it("does not claim another extension's error during first activation", async () => {
     let signalValidationStarted!: () => void;
     let releaseValidation!: () => void;
@@ -696,6 +723,39 @@ describe("BrowserPolicyController", () => {
       destination: { origin: "https://research.example", path: "/notes" },
       justification: "I need the release notes for the implementation.",
     });
+  });
+
+  it("rejects a trailing-slash grant for its slashless parent", async () => {
+    const mismatchedPolicy = policy({
+      grants: [{
+        scope: {
+          kind: "path_prefix",
+          origin: "https://research.example",
+          path: "/notes/",
+        },
+        expiresAt: "2026-09-08T18:30:00.000Z",
+      }],
+    });
+    const testHarness = harness({
+      native: async (request) => response(request, {
+        policy: mismatchedPolicy,
+        result: {
+          decision: "grant",
+          reason: "The scope does not contain the requested path.",
+          scope: mismatchedPolicy.grants[0].scope,
+        },
+      }),
+    });
+    await routeBlockedPage(testHarness, "https://research.example/notes");
+
+    const outcome = await testHarness.controller.reviewDestination({
+      requestID: "request-1",
+      justification: "I will compare the release notes for the task.",
+    });
+
+    expect(outcome).toEqual({ status: "host_failure" });
+    expect(testHarness.data["browserRequest:request-1"]).toBeDefined();
+    expect(testHarness.tabUpdates).toHaveLength(1);
   });
 
   it("retains the original justification only until one targeted challenge resolves", async () => {

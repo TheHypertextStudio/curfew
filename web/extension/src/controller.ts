@@ -177,8 +177,10 @@ function scopeAllows(
   if (scope.kind === "origin" || scope.path === "/") {
     return true;
   }
-  const prefix = scope.path.endsWith("/") ? scope.path.slice(0, -1) : scope.path;
-  return destination.path === prefix || destination.path.startsWith(`${prefix}/`);
+  if (scope.path.endsWith("/")) {
+    return destination.path.startsWith(scope.path);
+  }
+  return destination.path === scope.path || destination.path.startsWith(`${scope.path}/`);
 }
 
 function policyAllows(
