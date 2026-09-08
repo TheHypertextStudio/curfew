@@ -6,6 +6,7 @@ export interface DynamicRule {
   action: { type: "allow" | "block" };
   condition: {
     regexFilter: string;
+    isUrlFilterCaseSensitive: true;
     resourceTypes: ["main_frame"];
   };
 }
@@ -14,14 +15,22 @@ const blockRule: DynamicRule = {
   id: 1,
   priority: 1,
   action: { type: "block" },
-  condition: { regexFilter: "^https?://", resourceTypes: ["main_frame"] },
+  condition: {
+    regexFilter: "^https?://",
+    isUrlFilterCaseSensitive: true,
+    resourceTypes: ["main_frame"],
+  },
 };
 
 const breakRule: DynamicRule = {
   id: 2,
   priority: 100,
   action: { type: "allow" },
-  condition: { regexFilter: "^https?://", resourceTypes: ["main_frame"] },
+  condition: {
+    regexFilter: "^https?://",
+    isUrlFilterCaseSensitive: true,
+    resourceTypes: ["main_frame"],
+  },
 };
 
 function escapeRegex(value: string): string {
@@ -71,7 +80,11 @@ export function buildDynamicRules(
       id: 1_000 + index,
       priority: 100,
       action: { type: "allow" },
-      condition: { regexFilter: scopeRegex(scope), resourceTypes: ["main_frame"] },
+      condition: {
+        regexFilter: scopeRegex(scope),
+        isUrlFilterCaseSensitive: true,
+        resourceTypes: ["main_frame"],
+      },
     })),
   );
   return rules;

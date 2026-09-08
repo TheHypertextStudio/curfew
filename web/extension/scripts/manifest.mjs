@@ -7,6 +7,7 @@ export const DEVELOPMENT_PUBLIC_KEY = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCA
 export function buildManifest(flavor) {
   return {
     manifest_version: 3,
+    minimum_chrome_version: "120",
     name: flavor === "development" ? "Curfew Browser (Development)" : "Curfew Browser",
     description: "Keeps Chrome destinations bound to the current Curfew task.",
     version: "0.1.0",

@@ -10,6 +10,9 @@ import { buildDynamicRules, type DynamicRule } from "./rules";
 const policyKey = "browserPolicy";
 const requestKeyPrefix = "browserRequest:";
 const requestLifetimeMilliseconds = 2 * 60 * 1_000;
+const answerLimitBytes = 8_192;
+const invalidAnswerReason = "Answer must be between 1 and 8,192 UTF-8 bytes.";
+const textEncoder = new TextEncoder();
 
 interface StoredBrowserRequest {
   id: string;
@@ -19,8 +22,15 @@ interface StoredBrowserRequest {
   sessionID: string;
   task: BrowserPolicySnapshot["task"];
   challengeIssued: boolean;
+  challengeQuestion?: string;
   createdAt: string;
   expiresAt: string;
+}
+
+interface PreparedBrowserReview {
+  request: StoredBrowserRequest;
+  nativeRequestID: string;
+  nativeRequest: Record<string, unknown>;
 }
 
 export interface BrowserControllerDependencies {
@@ -32,6 +42,10 @@ export interface BrowserControllerDependencies {
   dynamicRules: {
     get(): Promise<Array<{ id: number }>>;
     replace(update: { removeRuleIds: number[]; addRules: DynamicRule[] }): Promise<void>;
+    isRegexSupported(options: {
+      regex: string;
+      isCaseSensitive: boolean;
+    }): Promise<{ isSupported: boolean }>;
   };
   tabs: {
     update(tabId: number, update: { url: string }): Promise<void>;
@@ -64,7 +78,8 @@ export type BrowserReviewOutcome =
   | { status: "deny"; reason: string }
   | { status: "stale_session" }
   | { status: "host_failure" }
-  | { status: "expired" };
+  | { status: "expired" }
+  | { status: "invalid_answer"; reason: string };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -72,6 +87,14 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function hasValidDate(value: unknown): value is string {
   return typeof value === "string" && Number.isFinite(Date.parse(value));
+}
+
+function normalizedAnswer(value: string): string | null {
+  const answer = value.trim();
+  if (answer.length === 0 || textEncoder.encode(answer).byteLength > answerLimitBytes) {
+    return null;
+  }
+  return answer;
 }
 
 function isScope(value: unknown): value is BrowserDestinationScope {
@@ -120,14 +143,18 @@ function isPolicy(value: unknown): value is BrowserPolicySnapshot {
 }
 
 function isStoredRequest(value: unknown): value is StoredBrowserRequest {
-  return isRecord(value) && typeof value.id === "string" &&
-    Number.isInteger(value.tabId) && typeof value.originalURL === "string" &&
-    isRecord(value.destination) && typeof value.destination.origin === "string" &&
-    typeof value.destination.path === "string" && typeof value.sessionID === "string" &&
-    isRecord(value.task) && typeof value.task.id === "string" &&
-    typeof value.task.title === "string" && typeof value.challengeIssued === "boolean" &&
-    hasValidDate(value.createdAt) &&
-    hasValidDate(value.expiresAt);
+  if (!isRecord(value) || typeof value.id !== "string" ||
+      !Number.isInteger(value.tabId) || typeof value.originalURL !== "string" ||
+      !isRecord(value.destination) || typeof value.destination.origin !== "string" ||
+      typeof value.destination.path !== "string" || typeof value.sessionID !== "string" ||
+      !isRecord(value.task) || typeof value.task.id !== "string" ||
+      typeof value.task.title !== "string" || typeof value.challengeIssued !== "boolean" ||
+      !hasValidDate(value.createdAt) || !hasValidDate(value.expiresAt)) {
+    return false;
+  }
+  return value.challengeIssued
+    ? typeof value.challengeQuestion === "string" && value.challengeQuestion.trim().length > 0
+    : value.challengeQuestion === undefined;
 }
 
 function scopeAllows(
@@ -243,10 +270,30 @@ export class BrowserPolicyController {
 
   async cachePolicy(policy: BrowserPolicySnapshot | null, at = this.dependencies.now()): Promise<void> {
     const dynamicRules = await this.dependencies.dynamicRules.get();
-    await this.dependencies.dynamicRules.replace({
-      removeRuleIds: dynamicRules.map((rule) => rule.id),
-      addRules: buildDynamicRules(policy, at),
-    });
+    const rules = buildDynamicRules(policy, at);
+    if (policy === null) {
+      await this.dependencies.dynamicRules.replace({
+        removeRuleIds: dynamicRules.map((rule) => rule.id),
+        addRules: [],
+      });
+    } else {
+      const blockOnly = rules.slice(0, 1);
+      await this.dependencies.dynamicRules.replace({
+        removeRuleIds: dynamicRules.map((rule) => rule.id),
+        addRules: blockOnly,
+      });
+      const allowRules = rules.slice(1);
+      if (rules.length <= 1_000 && await this.supportsEveryRegex(allowRules)) {
+        try {
+          await this.dependencies.dynamicRules.replace({
+            removeRuleIds: blockOnly.map((rule) => rule.id),
+            addRules: rules,
+          });
+        } catch {
+          // The atomic update leaves the already-installed block-only rule in place.
+        }
+      }
+    }
     if (policy === null) {
       await this.dependencies.storage.remove(policyKey);
     } else {
@@ -277,6 +324,9 @@ export class BrowserPolicyController {
       return;
     }
     const createdAt = this.dependencies.now();
+    if (policyAllows(policy, destination, createdAt)) {
+      return;
+    }
     const id = this.dependencies.randomID();
     const request: StoredBrowserRequest = {
       id,
@@ -300,6 +350,7 @@ export class BrowserPolicyController {
     taskTitle: string;
     hostname: string;
     question: string;
+    challengeQuestion?: string;
   } | null> {
     const request = await this.readStoredRequest(requestID);
     if (request === null) {
@@ -310,6 +361,9 @@ export class BrowserPolicyController {
       taskTitle: request.task.title,
       hostname,
       question: `What will you do on ${hostname}, and what will you produce for ${request.task.title}?`,
+      ...(request.challengeQuestion === undefined
+        ? {}
+        : { challengeQuestion: request.challengeQuestion }),
     };
   }
 
@@ -318,54 +372,85 @@ export class BrowserPolicyController {
     justification: string;
     challengeAnswer?: string;
   }): Promise<BrowserReviewOutcome> {
-    return this.serializePolicyOperation(() => this.reviewDestinationNow(input));
-  }
-
-  private async reviewDestinationNow(input: {
-    requestID: string;
-    justification: string;
-    challengeAnswer?: string;
-  }): Promise<BrowserReviewOutcome> {
-    const request = await this.readStoredRequest(input.requestID);
-    if (request === null) {
-      return { status: "expired" };
+    const justification = normalizedAnswer(input.justification);
+    const challengeAnswer = input.challengeAnswer === undefined
+      ? undefined
+      : normalizedAnswer(input.challengeAnswer);
+    if (justification === null || challengeAnswer === null) {
+      return { status: "invalid_answer", reason: invalidAnswerReason };
     }
-    const policy = await this.readPolicy();
-    if (policy === null || policy.sessionID !== request.sessionID) {
-      await this.removeStoredRequest(input.requestID, policy);
-      return { status: "stale_session" };
-    }
+    const prepared = await this.serializePolicyOperation<
+      PreparedBrowserReview | BrowserReviewOutcome
+    >(async () => {
+      const request = await this.readStoredRequest(input.requestID);
+      if (request === null) {
+        return { status: "expired" } as const;
+      }
+      const policy = await this.readPolicy();
+      if (policy === null || policy.sessionID !== request.sessionID) {
+        await this.removeStoredRequest(input.requestID, policy);
+        return { status: "stale_session" } as const;
+      }
+      if (request.challengeIssued && challengeAnswer === undefined) {
+        return { status: "invalid_answer", reason: invalidAnswerReason } as const;
+      }
 
-    const nativeRequestID = this.dependencies.randomID();
-    const nativeRequest: Record<string, unknown> = {
-      schemaVersion: "browser-host/1",
-      requestId: nativeRequestID,
-      type: "review_destination",
-      sessionId: request.sessionID,
-      destination: request.destination,
-      justification: input.justification,
-    };
-    if (input.challengeAnswer !== undefined && request.challengeIssued) {
-      nativeRequest.challengeAnswer = input.challengeAnswer;
+      const nativeRequestID = this.dependencies.randomID();
+      const nativeRequest: Record<string, unknown> = {
+        schemaVersion: "browser-host/1",
+        requestId: nativeRequestID,
+        type: "review_destination",
+        sessionId: request.sessionID,
+        destination: request.destination,
+        justification,
+      };
+      if (challengeAnswer !== undefined && request.challengeIssued) {
+        nativeRequest.challengeAnswer = challengeAnswer;
+      }
+      return { request, nativeRequestID, nativeRequest } satisfies PreparedBrowserReview;
+    });
+    if ("status" in prepared) {
+      return prepared;
     }
 
     let response: NativeResponse;
     try {
       response = readNativeResponse(
-        await this.dependencies.native.send(this.dependencies.nativeHostName, nativeRequest),
-        nativeRequestID,
+        await this.dependencies.native.send(
+          this.dependencies.nativeHostName,
+          prepared.nativeRequest,
+        ),
+        prepared.nativeRequestID,
         "review_destination",
       );
     } catch {
       return { status: "host_failure" };
     }
+    return this.serializePolicyOperation(() =>
+      this.applyReviewResponse(input.requestID, prepared.request, response));
+  }
 
-    if (response.policy !== undefined) {
-      await this.cachePolicy(response.policy);
+  private async applyReviewResponse(
+    requestID: string,
+    request: StoredBrowserRequest,
+    response: NativeResponse,
+  ): Promise<BrowserReviewOutcome> {
+    const currentPolicy = await this.readPolicy();
+    if (currentPolicy === null || currentPolicy.sessionID !== request.sessionID) {
+      await this.removeStoredRequest(requestID, currentPolicy);
+      return { status: "stale_session" };
+    }
+    const storedRequest = await this.readStoredRequest(requestID);
+    if (storedRequest === null) {
+      return { status: "expired" };
     }
     if (response.policy !== undefined && response.policy.sessionID !== request.sessionID) {
-      await this.removeStoredRequest(input.requestID, response.policy);
+      await this.cachePolicy(response.policy);
+      await this.removeStoredRequest(requestID, response.policy);
       return { status: "stale_session" };
+    }
+    if (response.policy !== undefined) {
+      await this.cachePolicy(response.policy);
     }
     if (response.error !== undefined || response.result === undefined) {
       return { status: "host_failure" };
@@ -374,27 +459,31 @@ export class BrowserPolicyController {
       if (!response.result.question) {
         return { status: "host_failure" };
       }
-      if (request.challengeIssued) {
-        await this.removeStoredRequest(input.requestID, response.policy ?? policy);
+      if (storedRequest.challengeIssued) {
+        await this.removeStoredRequest(requestID, response.policy ?? currentPolicy);
         return { status: "deny", reason: response.result.reason };
       }
       await this.dependencies.storage.set({
-        [`${requestKeyPrefix}${input.requestID}`]: { ...request, challengeIssued: true },
+        [`${requestKeyPrefix}${requestID}`]: {
+          ...storedRequest,
+          challengeIssued: true,
+          challengeQuestion: response.result.question,
+        },
       });
       return { status: "challenge", question: response.result.question };
     }
     if (response.result.decision === "deny") {
-      await this.removeStoredRequest(input.requestID, response.policy ?? policy);
+      await this.removeStoredRequest(requestID, response.policy ?? currentPolicy);
       return { status: "deny", reason: response.result.reason };
     }
     if (response.policy === undefined || response.result.scope === undefined ||
-        !scopeAllows(response.result.scope, request.destination) ||
-        !policyAllows(response.policy, request.destination, this.dependencies.now())) {
+        !scopeAllows(response.result.scope, storedRequest.destination) ||
+        !policyAllows(response.policy, storedRequest.destination, this.dependencies.now())) {
       return { status: "host_failure" };
     }
 
-    await this.removeStoredRequest(input.requestID, response.policy);
-    await this.dependencies.tabs.update(request.tabId, { url: request.originalURL });
+    await this.removeStoredRequest(requestID, response.policy);
+    await this.dependencies.tabs.update(storedRequest.tabId, { url: storedRequest.originalURL });
     return { status: "grant" };
   }
 
@@ -463,6 +552,19 @@ export class BrowserPolicyController {
     const result = this.policyOperations.then(operation, operation);
     this.policyOperations = result.then(() => undefined, () => undefined);
     return result;
+  }
+
+  private async supportsEveryRegex(rules: DynamicRule[]): Promise<boolean> {
+    for (const rule of rules) {
+      const support = await this.dependencies.dynamicRules.isRegexSupported({
+        regex: rule.condition.regexFilter,
+        isCaseSensitive: true,
+      });
+      if (!support.isSupported) {
+        return false;
+      }
+    }
+    return true;
   }
 
   private async sendHeartbeat(): Promise<void> {

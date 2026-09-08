@@ -42,7 +42,11 @@ describe("buildDynamicRules", () => {
       id: 1,
       priority: 1,
       action: { type: "block" },
-      condition: { regexFilter: "^https?://", resourceTypes: ["main_frame"] },
+      condition: {
+        regexFilter: "^https?://",
+        isUrlFilterCaseSensitive: true,
+        resourceTypes: ["main_frame"],
+      },
     });
     expect(allows).toHaveLength(3);
     expect(allows.every((rule) => rule.priority > 1)).toBe(true);
@@ -61,6 +65,23 @@ describe("buildDynamicRules", () => {
     expect(regex.test("https://docs.example/curfew")).toBe(true);
     expect(regex.test("https://docs.example/curfew/release?q=one")).toBe(true);
     expect(regex.test("https://docs.example/curfew-notes")).toBe(false);
+  });
+
+  it("keeps path matching case-sensitive", () => {
+    const rule = buildDynamicRules(
+      policy({
+        scopes: [
+          { kind: "path_prefix", origin: "https://docs.example", path: "/Admin" },
+        ],
+        grants: [],
+      }),
+      at,
+    ).find((candidate) => candidate.action.type === "allow");
+
+    expect(rule?.condition.isUrlFilterCaseSensitive).toBe(true);
+    const regex = new RegExp(rule!.condition.regexFilter);
+    expect(regex.test("https://docs.example/Admin/users")).toBe(true);
+    expect(regex.test("https://docs.example/admin/users")).toBe(false);
   });
 
   it("excludes every subresource type", () => {
@@ -94,7 +115,11 @@ describe("buildDynamicRules", () => {
       id: 2,
       priority: 100,
       action: { type: "allow" },
-      condition: { regexFilter: "^https?://", resourceTypes: ["main_frame"] },
+      condition: {
+        regexFilter: "^https?://",
+        isUrlFilterCaseSensitive: true,
+        resourceTypes: ["main_frame"],
+      },
     });
     expect(expired.some((rule) => rule.id === 2)).toBe(false);
   });

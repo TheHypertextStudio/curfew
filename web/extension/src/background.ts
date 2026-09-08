@@ -15,6 +15,10 @@ interface ChromeAPI {
   };
   declarativeNetRequest: {
     getDynamicRules(): Promise<Array<{ id: number }>>;
+    isRegexSupported(options: {
+      regex: string;
+      isCaseSensitive: boolean;
+    }): Promise<{ isSupported: boolean }>;
     updateDynamicRules(update: {
       removeRuleIds: number[];
       addRules: DynamicRule[];
@@ -58,6 +62,8 @@ const controller = new BrowserPolicyController({
   dynamicRules: {
     get: () => chromeAPI.declarativeNetRequest.getDynamicRules(),
     replace: (update) => chromeAPI.declarativeNetRequest.updateDynamicRules(update),
+    isRegexSupported: (options) =>
+      chromeAPI.declarativeNetRequest.isRegexSupported(options),
   },
   tabs: {
     update: async (tabId, update) => {

@@ -56,7 +56,8 @@ describe("extension build", () => {
 
     expect(output.blocker).toContain('<form id="review-form"');
     expect(output.blocker).toContain('id="justification"');
-    expect(output.blocker).toContain('id="challenge"');
+    expect(output.blocker.match(/<textarea/g)).toHaveLength(1);
+    expect(output.blocker).not.toContain("challenge-answer");
     expect(output.blocker).not.toContain("http://");
     expect(output.blocker).not.toContain("https://");
   });

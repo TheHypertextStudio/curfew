@@ -1,7 +1,14 @@
+import {
+  blockerPrompt,
+  buildReviewMessage,
+  invalidAnswerMessage,
+} from "./blocker-state";
+
 interface BlockerContext {
   taskTitle: string;
   hostname: string;
   question: string;
+  challengeQuestion?: string;
 }
 
 export {};
@@ -10,6 +17,7 @@ type ReviewOutcome =
   | { status: "grant" }
   | { status: "challenge"; question: string }
   | { status: "deny"; reason: string }
+  | { status: "invalid_answer"; reason: string }
   | { status: "stale_session" | "host_failure" | "expired" };
 
 interface BlockerChromeAPI {
@@ -24,21 +32,16 @@ const host = document.querySelector<HTMLElement>("#target-host")!;
 const question = document.querySelector<HTMLElement>("#question")!;
 const form = document.querySelector<HTMLFormElement>("#review-form")!;
 const justification = document.querySelector<HTMLTextAreaElement>("#justification")!;
-const challenge = document.querySelector<HTMLElement>("#challenge")!;
-const challengeQuestion = document.querySelector<HTMLElement>("#challenge-question")!;
-const challengeAnswer = document.querySelector<HTMLTextAreaElement>("#challenge-answer")!;
 const submit = document.querySelector<HTMLButtonElement>("#submit")!;
 const statusMessage = document.querySelector<HTMLElement>("#status")!;
 
 const requestID = new URL(location.href).searchParams.get("request");
-let firstJustification: string | null = null;
 let challengeIsVisible = false;
 
 function stop(message: string): void {
   statusMessage.textContent = message;
   statusMessage.dataset.tone = "blocked";
   justification.disabled = true;
-  challengeAnswer.disabled = true;
   submit.disabled = true;
 }
 
@@ -57,7 +60,12 @@ async function load(): Promise<void> {
   }
   task.textContent = response.taskTitle;
   host.textContent = response.hostname;
-  question.textContent = response.question;
+  const prompt = blockerPrompt(response);
+  question.textContent = prompt.question;
+  challengeIsVisible = prompt.isChallenge;
+  if (prompt.isChallenge) {
+    submit.textContent = "Answer once";
+  }
   justification.focus();
 }
 
@@ -66,39 +74,39 @@ form.addEventListener("submit", (event) => {
   if (requestID === null) {
     return;
   }
-  const plan = (firstJustification ?? justification.value).trim();
-  const followUp = challengeIsVisible ? challengeAnswer.value.trim() : undefined;
-  if (plan.length === 0 || (challengeIsVisible && followUp?.length === 0)) {
+  const message = buildReviewMessage(requestID, justification.value, challengeIsVisible);
+  if (message === null) {
+    statusMessage.textContent = invalidAnswerMessage;
+    statusMessage.dataset.tone = "blocked";
     return;
   }
   submit.disabled = true;
   statusMessage.textContent = "Curfew is checking this request.";
   statusMessage.dataset.tone = "working";
-  void chromeAPI.runtime.sendMessage({
-    type: "review_destination",
-    requestID,
-    justification: plan,
-    ...(followUp === undefined ? {} : { challengeAnswer: followUp }),
-  }).then((value) => {
+  void chromeAPI.runtime.sendMessage(message).then((value) => {
     const outcome = value as ReviewOutcome;
     if (outcome.status === "grant") {
       statusMessage.textContent = "Access granted. Returning to the destination.";
       return;
     }
     if (outcome.status === "challenge") {
-      firstJustification = plan;
       challengeIsVisible = true;
-      justification.readOnly = true;
-      challenge.hidden = false;
-      challengeQuestion.textContent = outcome.question;
+      question.textContent = outcome.question;
+      justification.value = "";
       submit.textContent = "Answer once";
       submit.disabled = false;
       statusMessage.textContent = "Curfew needs one more specific answer.";
-      challengeAnswer.focus();
+      justification.focus();
       return;
     }
     if (outcome.status === "deny") {
       stop(outcome.reason);
+      return;
+    }
+    if (outcome.status === "invalid_answer") {
+      statusMessage.textContent = outcome.reason;
+      statusMessage.dataset.tone = "blocked";
+      submit.disabled = false;
       return;
     }
     if (outcome.status === "stale_session") {

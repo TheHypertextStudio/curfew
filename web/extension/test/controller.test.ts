@@ -41,12 +41,19 @@ function harness(options: {
   stored?: Record<string, unknown>;
   native?: (request: Record<string, unknown>) => Promise<NativeResponse>;
   dynamicRulesGet?: () => Promise<Array<{ id: number }>>;
+  dynamicRulesReplace?: (
+    update: { removeRuleIds: number[]; addRules: unknown[] },
+    call: number,
+  ) => Promise<void>;
+  regexSupport?: (regex: string) => Promise<boolean>;
 } = {}) {
   const data: Record<string, unknown> = { ...options.stored };
   const calls: string[] = [];
   const storageWrites: Record<string, unknown>[] = [];
   const nativeRequests: Record<string, unknown>[] = [];
   const ruleUpdates: Array<{ removeRuleIds: number[]; addRules: unknown[] }> = [];
+  const ruleEvents: string[] = [];
+  const regexChecks: string[] = [];
   const tabUpdates: Array<{ tabId: number; url: string }> = [];
   const scheduledExpirations: Array<Date | null> = [];
   const scheduledRefreshes: number[] = [];
@@ -80,6 +87,13 @@ function harness(options: {
       async replace(update) {
         calls.push("rules");
         ruleUpdates.push(structuredClone(update));
+        ruleEvents.push(`replace:${update.addRules.length}`);
+        await options.dynamicRulesReplace?.(update, ruleUpdates.length);
+      },
+      async isRegexSupported({ regex }) {
+        regexChecks.push(regex);
+        ruleEvents.push("validate");
+        return { isSupported: await (options.regexSupport?.(regex) ?? true) };
       },
     },
     tabs: {
@@ -121,6 +135,8 @@ function harness(options: {
     data,
     calls,
     nativeRequests,
+    regexChecks,
+    ruleEvents,
     ruleUpdates,
     scheduledRefreshes,
     storageWrites,
@@ -145,6 +161,68 @@ async function routeBlockedPage(
 }
 
 describe("BrowserPolicyController", () => {
+  it("installs the base block before validating and adding allow rules", async () => {
+    const testHarness = harness();
+
+    await testHarness.controller.cachePolicy(policy());
+
+    expect(testHarness.ruleEvents.slice(0, 2)).toEqual(["replace:1", "validate"]);
+    expect(testHarness.ruleUpdates[0].addRules).toEqual([
+      expect.objectContaining({ id: 1, action: { type: "block" } }),
+    ]);
+    expect(testHarness.ruleUpdates.at(-1)?.addRules.length).toBeGreaterThan(1);
+  });
+
+  it("falls back to block-only when policy exceeds Chrome's regex-rule limit", async () => {
+    const scopes = Array.from({ length: 1_000 }, (_, index) => ({
+      kind: "origin" as const,
+      origin: `https://scope-${index}.example`,
+    }));
+    const oversizedPolicy = policy({ scopes });
+    const testHarness = harness();
+
+    await testHarness.controller.cachePolicy(oversizedPolicy);
+
+    expect(testHarness.ruleUpdates).toHaveLength(1);
+    expect(testHarness.ruleUpdates[0].addRules).toEqual([
+      expect.objectContaining({ id: 1, action: { type: "block" } }),
+    ]);
+    expect(testHarness.regexChecks).toHaveLength(0);
+    expect(testHarness.data.browserPolicy).toEqual(oversizedPolicy);
+  });
+
+  it("falls back to block-only when Chrome rejects one allow regex", async () => {
+    const testHarness = harness({
+      regexSupport: async (regex) => !regex.includes("docket"),
+    });
+
+    await testHarness.controller.cachePolicy(policy());
+
+    expect(testHarness.ruleUpdates).toHaveLength(1);
+    expect(testHarness.ruleUpdates[0].addRules).toEqual([
+      expect.objectContaining({ id: 1, action: { type: "block" } }),
+    ]);
+    expect(testHarness.regexChecks.some((regex) => regex.includes("docket"))).toBe(true);
+    expect(testHarness.data.browserPolicy).toEqual(policy());
+  });
+
+  it("keeps block-only when Chrome rejects the validated allow update", async () => {
+    const testHarness = harness({
+      dynamicRulesReplace: async (_update, call) => {
+        if (call === 2) {
+          throw new Error("Chrome rejected the complete allow ruleset");
+        }
+      },
+    });
+
+    await testHarness.controller.cachePolicy(policy());
+
+    expect(testHarness.ruleUpdates[0].addRules).toEqual([
+      expect.objectContaining({ id: 1, action: { type: "block" } }),
+    ]);
+    expect(testHarness.data.browserPolicy).toEqual(policy());
+  });
+
   it("schedules Chrome's minimum reliable 30-second policy refresh", async () => {
     const testHarness = harness();
 
@@ -153,14 +231,14 @@ describe("BrowserPolicyController", () => {
     expect(testHarness.scheduledRefreshes).toEqual([0.5]);
   });
 
-  it("restores cached policy in one complete DNR replacement when the host is unavailable", async () => {
+  it("restores cached policy block-first when the host is unavailable", async () => {
     const testHarness = harness({ stored: { browserPolicy: policy() } });
 
     await testHarness.controller.initialize();
 
-    expect(testHarness.ruleUpdates).toHaveLength(1);
+    expect(testHarness.ruleUpdates).toHaveLength(2);
     expect(testHarness.ruleUpdates[0].removeRuleIds).toEqual([76, 77]);
-    expect(testHarness.ruleUpdates[0].addRules).toEqual(
+    expect(testHarness.ruleUpdates.at(-1)?.addRules).toEqual(
       expect.arrayContaining([expect.objectContaining({ action: { type: "block" } })]),
     );
     expect(testHarness.data.browserPolicy).toEqual(policy());
@@ -180,9 +258,9 @@ describe("BrowserPolicyController", () => {
 
     await testHarness.controller.rebuildForExpiry(new Date("2026-09-08T18:00:03.000Z"));
 
-    expect(testHarness.ruleUpdates).toHaveLength(1);
-    expect(JSON.stringify(testHarness.ruleUpdates[0].addRules)).not.toContain("temporary");
-    expect(testHarness.ruleUpdates[0].addRules).toHaveLength(2);
+    expect(testHarness.ruleUpdates).toHaveLength(2);
+    expect(JSON.stringify(testHarness.ruleUpdates.at(-1)?.addRules)).not.toContain("temporary");
+    expect(testHarness.ruleUpdates.at(-1)?.addRules).toHaveLength(2);
     expect(testHarness.scheduledExpirations.at(-1)).toBeNull();
   });
 
@@ -209,7 +287,7 @@ describe("BrowserPolicyController", () => {
 
     await testHarness.controller.refreshPolicy();
 
-    expect(testHarness.calls).toEqual(["rules", "heartbeat"]);
+    expect(testHarness.calls).toEqual(["rules", "rules", "heartbeat"]);
     expect(testHarness.data.browserPolicy).toEqual(switched);
     expect(JSON.stringify(testHarness.ruleUpdates.at(-1))).not.toContain("previous");
     expect(JSON.stringify(testHarness.ruleUpdates.at(-1))).toContain("release");
@@ -235,7 +313,7 @@ describe("BrowserPolicyController", () => {
 
     await testHarness.controller.initialize();
 
-    expect(testHarness.ruleUpdates).toHaveLength(1);
+    expect(testHarness.ruleUpdates).toHaveLength(2);
     expect(testHarness.ruleUpdates[0].addRules).toEqual(
       expect.arrayContaining([expect.objectContaining({ action: { type: "block" } })]),
     );
@@ -320,6 +398,67 @@ describe("BrowserPolicyController", () => {
     expect(JSON.stringify(testHarness.ruleUpdates.at(-1))).not.toContain("previous");
   });
 
+  it("lets a task-switch refresh run while a native review is waiting", async () => {
+    const switched = policy({
+      sessionID: "39f9fbe2-3c34-487d-ad75-c954237c3184",
+      task: { id: "task-2", title: "Write the release runbook" },
+      scopes: [{ kind: "origin", origin: "https://release.example" }],
+    });
+    let signalReviewStarted!: () => void;
+    let releaseReview!: () => void;
+    const reviewStarted = new Promise<void>((resolve) => {
+      signalReviewStarted = resolve;
+    });
+    const reviewRelease = new Promise<void>((resolve) => {
+      releaseReview = resolve;
+    });
+    const testHarness = harness({
+      native: async (request) => {
+        if (request.type === "review_destination") {
+          signalReviewStarted();
+          await reviewRelease;
+          return response(request, {
+            policy: policy({
+              grants: [{
+                scope: { kind: "origin", origin: "https://research.example" },
+                expiresAt: "2026-09-08T18:30:00.000Z",
+              }],
+            }),
+            result: {
+              decision: "grant",
+              reason: "This response belongs to the prior task.",
+              scope: { kind: "origin", origin: "https://research.example" },
+            },
+          });
+        }
+        return response(request, {
+          ...(request.type === "get_policy" ? { policy: switched } : {}),
+        });
+      },
+    });
+    await routeBlockedPage(testHarness, "https://research.example/notes");
+
+    const review = testHarness.controller.reviewDestination({
+      requestID: "request-1",
+      justification: "This request is waiting on Athena.",
+    });
+    await reviewStarted;
+    const refresh = testHarness.controller.refreshPolicy();
+    for (let step = 0; step < 10; step += 1) {
+      await Promise.resolve();
+    }
+    const refreshStartedBeforeReviewReturned = testHarness.nativeRequests.some(
+      (request) => request.type === "get_policy",
+    );
+    releaseReview();
+    const [reviewOutcome] = await Promise.all([review, refresh]);
+
+    expect(refreshStartedBeforeReviewReturned).toBe(true);
+    expect(reviewOutcome).toEqual({ status: "stale_session" });
+    expect(testHarness.data.browserPolicy).toEqual(switched);
+    expect(testHarness.tabUpdates).toHaveLength(1);
+  });
+
   it("routes only blocked top-level HTTP navigation through an opaque request ID", async () => {
     const testHarness = harness();
     await routeBlockedPage(testHarness);
@@ -352,6 +491,22 @@ describe("BrowserPolicyController", () => {
     expect(testHarness.scheduledExpirations.at(-1)?.toISOString()).toBe(
       "2026-09-08T18:02:00.000Z",
     );
+  });
+
+  it("ignores a block event for a destination that the Curfew policy allows", async () => {
+    const testHarness = harness();
+    await testHarness.controller.cachePolicy(policy());
+
+    await testHarness.controller.handleNavigationError({
+      tabId: 14,
+      frameId: 0,
+      error: "net::ERR_BLOCKED_BY_CLIENT",
+      url: "https://docket.example/allowed",
+    });
+
+    expect(testHarness.tabUpdates).toHaveLength(0);
+    expect(Object.keys(testHarness.data).filter((key) => key.startsWith("browserRequest:")))
+      .toHaveLength(0);
   });
 
   it("preserves an unexpired blocker request for the cached session across restart", async () => {
@@ -421,7 +576,7 @@ describe("BrowserPolicyController", () => {
     });
 
     expect(outcome).toEqual({ status: "grant" });
-    expect(testHarness.calls).toEqual(["rules", "tab"]);
+    expect(testHarness.calls).toEqual(["rules", "rules", "tab"]);
     expect(testHarness.tabUpdates.at(-1)?.url).toBe(
       "https://alice:secret@Research.Example:443/private/../notes?q=secret#fragment",
     );
@@ -453,17 +608,59 @@ describe("BrowserPolicyController", () => {
 
     expect(outcome).toEqual({ status: "challenge", question });
     expect(testHarness.tabUpdates).toHaveLength(1);
-    expect(testHarness.data["browserRequest:request-1"]).toBeDefined();
+    expect(testHarness.data["browserRequest:request-1"]).toMatchObject({
+      challengeIssued: true,
+      challengeQuestion: question,
+    });
     expect(JSON.stringify(testHarness.storageWrites)).not.toContain("I need this for work.");
+    await expect(testHarness.controller.getBlockerContext("request-1")).resolves.toEqual({
+      taskTitle: "Ship the Chrome gate",
+      hostname: "research.example",
+      question:
+        "What will you do on research.example, and what will you produce for Ship the Chrome gate?",
+      challengeQuestion: question,
+    });
+
+    const missingChallengeAnswer = await testHarness.controller.reviewDestination({
+      requestID: "request-1",
+      justification: "The packaging section.",
+    });
+    expect(missingChallengeAnswer).toEqual({
+      status: "invalid_answer",
+      reason: "Answer must be between 1 and 8,192 UTF-8 bytes.",
+    });
+    expect(testHarness.nativeRequests).toHaveLength(1);
 
     const secondOutcome = await testHarness.controller.reviewDestination({
       requestID: "request-1",
-      justification: "I need this for work.",
+      justification: "The packaging section.",
       challengeAnswer: "The packaging section.",
     });
     expect(secondOutcome).toEqual({ status: "deny", reason: "Narrow the request." });
+    expect(testHarness.nativeRequests.at(-1)).toMatchObject({
+      type: "review_destination",
+      justification: "The packaging section.",
+      challengeAnswer: "The packaging section.",
+    });
     expect(testHarness.data["browserRequest:request-1"]).toBeUndefined();
     expect(JSON.stringify(testHarness.storageWrites)).not.toContain("The packaging section.");
+  });
+
+  it("rejects an answer over the native UTF-8 byte limit before native messaging", async () => {
+    const testHarness = harness();
+    await routeBlockedPage(testHarness);
+
+    const outcome = await testHarness.controller.reviewDestination({
+      requestID: "request-1",
+      justification: "é".repeat(4_097),
+    });
+
+    expect(outcome).toEqual({
+      status: "invalid_answer",
+      reason: "Answer must be between 1 and 8,192 UTF-8 bytes.",
+    });
+    expect(testHarness.nativeRequests).toHaveLength(0);
+    expect(testHarness.data["browserRequest:request-1"]).toBeDefined();
   });
 
   it("keeps a denied destination blocked and removes its resolved request", async () => {
@@ -515,7 +712,7 @@ describe("BrowserPolicyController", () => {
     });
 
     expect(outcome).toEqual({ status: "stale_session" });
-    expect(testHarness.calls).toEqual(["rules"]);
+    expect(testHarness.calls).toEqual(["rules", "rules"]);
     expect(testHarness.data.browserPolicy).toEqual(switched);
     expect(JSON.stringify(testHarness.ruleUpdates.at(-1))).not.toContain("research\\.example");
   });

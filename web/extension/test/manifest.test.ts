@@ -13,6 +13,7 @@ describe("buildManifest", () => {
       const manifest = buildManifest(flavor);
 
       expect(manifest.manifest_version).toBe(3);
+      expect(manifest.minimum_chrome_version).toBe("120");
       expect(manifest.permissions).toEqual([
         "declarativeNetRequest",
         "storage",

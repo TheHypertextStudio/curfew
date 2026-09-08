@@ -25,7 +25,8 @@ through `chrome://extensions` after enabling Developer mode. Chrome must show ID
 The production artifact is `web/extension/dist/production`. It calls only
 `studio.hypertext.curfew.browser`. As of 2026-09-08, both manifests include the
 public key from `BrowserNativeInstallation.developmentPublicKey`, so an unpacked
-production artifact keeps the pinned development identity. The release engineer
+production artifact keeps the pinned development identity. Both manifests
+require Chrome 120 or later. The release engineer
 must create the Chrome Web Store draft before shipping. If the store assigns a
 different production ID, the engineer must set `CURFEW_BROWSER_EXTENSION_ID` to
 that exact ID and verify the signed app's native-host manifest against the
@@ -45,10 +46,17 @@ review can run.
 
 An active policy installs one priority-1 block rule for HTTP and HTTPS
 `main_frame` requests. Exact-origin and segment-bounded path-prefix rules use
-priority 100. Every rule names only `main_frame`, so images, scripts, API calls,
-and other subresources remain outside this release. The worker treats dynamic
-rules as derived state. It removes every current rule and adds the replacement
-rules in one `updateDynamicRules` call.
+priority 100. Path matching is case-sensitive, while URL parsing still
+canonicalizes origin hosts. Every rule names only `main_frame`, so images,
+scripts, API calls, and other subresources remain outside this release.
+
+The worker treats dynamic rules as derived state. It first replaces every
+current rule with the base block. It then refuses more than 999 allow rules and
+checks each allow expression through Chrome's regex support API. Only a valid
+set receives a second atomic replacement with the base block and all allows.
+An unsupported expression, an oversized expression, a quota overflow, or a
+rejected full update leaves the base block installed. This two-stage order keeps
+the first active policy fail closed.
 
 The worker caches the latest valid `browser-policy/1` snapshot in
 `chrome.storage.local`. It rebuilds rules from that cache before it asks the
@@ -63,15 +71,22 @@ clock.
 
 Chrome reports a blocked top-level request as `ERR_BLOCKED_BY_CLIENT`. The worker
 stores the original URL under a random request ID for at most two minutes. The
-blocker URL contains only that ID. The blocker page receives the current task
+worker ignores that event when its current policy already allows the target,
+because another extension can produce the same Chrome error. The blocker URL
+contains only that ID. The blocker page receives the current task
 title, target hostname, and this question:
 
 > What will you do on &lt;host&gt;, and what will you produce for &lt;task&gt;?
 
 The worker sends only a normalized origin and path to `browser-host/1`. It
 removes credentials, query strings, fragments, default ports, and dot segments
-before review. The blocker keeps the justification and one challenge answer in
-page memory. Neither value enters extension storage. A grant must return a
+before review. The worker accepts at most 8,192 UTF-8 bytes for each answer, and
+the blocker page applies the same byte limit before native messaging. A
+challenge replaces the one visible question and clears the one answer field.
+The worker persists only the challenge state and targeted question, so a reload
+continues the challenge without storing either answer. `browser-host/1`
+requires a nonempty justification, so the challenge answer fills both the
+justification and `challengeAnswer` fields on the second request. A grant must return a
 bounded scope and a same-session policy that permits the destination at the
 current time. The worker installs that complete policy before it reopens the
 original URL. A denial, cooldown, stale session, invalid response, or host error

@@ -82,6 +82,9 @@ identifiers, and the user's current justification or challenge answer. Curfew
 must not persist the justification or challenge answer. It must not send URL
 credentials, queries, or fragments. Later audit work may store the hostname,
 decision, and scope kind. It must not store the full path or justification.
+The extension may persist that a challenge exists and the reviewer's targeted
+question. It uses the new answer as both the required nonempty justification and
+the challenge answer. It never stores or reuses the initial answer.
 
 The browser policy snapshot contains only the task ID and title. It keeps
 expiring grants separate from base scopes, and consumers evaluate grant and
@@ -100,9 +103,10 @@ Curfew also rejects a decision that contains fields from more than one outcome.
 Every required decision string must contain a non-whitespace value.
 
 The extension reads policy and sends a native-host heartbeat every 30 seconds.
-It serializes that refresh with expiry rebuilds and review responses. A changed
-session replaces the complete ruleset before the heartbeat or any queued review
-can continue. A host failure writes no heartbeat and leaves the cached
+It serializes policy refreshes, expiry rebuilds, review preparation, and review
+response application. It does not hold that queue while it waits for the native
+reviewer. A changed session can install its rules at once, and the late review
+response fails its session check. A host failure writes no heartbeat and leaves the cached
 restrictive policy in force.
 
 ## Release and rollback

@@ -23,10 +23,11 @@ only.
   - `BrowserNativeLifecycleTests/uninstallRevokesAWaitingHostAndPreservesOtherFlavor()` checks the app uninstall path with a waiting host.
 - `Build the task-scoped Chrome MV3 extension.`
   - `destination.test.ts` checks removal of credentials, query strings, fragments, default ports, and unsupported schemes before review.
-  - `rules.test.ts` checks one low-priority top-level block, higher-priority exact-origin and path-prefix allows, subresource exclusion, and current-clock grant and break expiry.
-  - `controller.test.ts` checks cached-policy restoration, 30-second policy refresh and heartbeat, task-switch replacement ordering, complete one-call rule replacement, opaque blocker routing, grant-before-reopen ordering, one challenge, denial/cooldown, host failure, and private request expiry.
-  - `manifest.test.ts` checks the MV3 permissions, HTTP and HTTPS host access, service-worker declaration, and the public-key-pinned development identity.
-  - `build.test.ts` builds both flavors without Chrome and checks that each artifact contains only its allowed native-host name and an extension-local blocker form.
+  - `rules.test.ts` checks one low-priority top-level block, higher-priority exact-origin and case-sensitive path-prefix allows, subresource exclusion, and current-clock grant and break expiry.
+  - `controller.test.ts` checks block-first rule installation, the 1,000-regex quota, Chrome regex rejection, 30-second refresh and heartbeat, task-switch response rejection without queue starvation, opaque blocker routing, foreign-blocker event exclusion, grant-before-reopen ordering, persisted challenge state without answers, the 8,192-byte UTF-8 limit, host failure, and private request expiry.
+  - `blocker-state.test.ts` checks targeted-question restoration, one-field challenge submission, and the 8,192-byte UTF-8 limit without Chrome.
+  - `manifest.test.ts` checks the MV3 permissions, minimum Chrome 120, HTTP and HTTPS host access, service-worker declaration, and the public-key-pinned development identity.
+  - `build.test.ts` builds both flavors without Chrome and checks that each artifact contains only its allowed native-host name and one extension-local blocker prompt.
 
 - `Convert app shell to a standard macOS app window (LSUIElement = false) with menu bar quick access.`
   - `AppConfigurationTests/hostAppIsWindowed()`
