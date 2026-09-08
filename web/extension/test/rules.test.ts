@@ -67,6 +67,25 @@ describe("buildDynamicRules", () => {
     expect(regex.test("https://docs.example/curfew-notes")).toBe(false);
   });
 
+  it("does not broaden a trailing slash prefix to its parent path", () => {
+    const rule = buildDynamicRules(
+      policy({
+        scopes: [
+          { kind: "path_prefix", origin: "https://docs.example", path: "/curfew/" },
+        ],
+        grants: [],
+      }),
+      at,
+    ).find((candidate) => candidate.action.type === "allow");
+
+    expect(rule).toBeDefined();
+    const regex = new RegExp(rule!.condition.regexFilter);
+    expect(regex.test("https://docs.example/curfew")).toBe(false);
+    expect(regex.test("https://docs.example/curfew/")).toBe(true);
+    expect(regex.test("https://docs.example/curfew/release?q=one")).toBe(true);
+    expect(regex.test("https://docs.example/curfew-notes")).toBe(false);
+  });
+
   it("keeps path matching case-sensitive", () => {
     const rule = buildDynamicRules(
       policy({

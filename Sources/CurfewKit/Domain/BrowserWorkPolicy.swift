@@ -129,8 +129,10 @@ public nonisolated struct BrowserDestinationScope: Codable, Equatable, Hashable,
         if path == "/" {
             return true
         }
-        let prefix = path.hasSuffix("/") ? String(path.dropLast()) : path
-        return destination.path == prefix || destination.path.hasPrefix(prefix + "/")
+        if path.hasSuffix("/") {
+            return destination.path.hasPrefix(path)
+        }
+        return destination.path == path || destination.path.hasPrefix(path + "/")
     }
 
     public init(from decoder: Decoder) throws {

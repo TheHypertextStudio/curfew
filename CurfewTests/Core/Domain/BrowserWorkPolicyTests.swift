@@ -49,6 +49,18 @@ struct BrowserWorkPolicyTests {
         #expect(try !scope.allows(NormalizedHTTPDestination("https://other.example/research")))
     }
 
+    @Test("A trailing slash path prefix does not include the parent path")
+    func trailingSlashPathScopeKeepsItsBoundary() throws {
+        let scope = try BrowserDestinationScope.validatedPathPrefix(
+            "https://example.com/research/"
+        )
+
+        #expect(try !scope.allows(NormalizedHTTPDestination("https://example.com/research")))
+        #expect(try scope.allows(NormalizedHTTPDestination("https://example.com/research/")))
+        #expect(try scope.allows(NormalizedHTTPDestination("https://example.com/research/posts")))
+        #expect(try !scope.allows(NormalizedHTTPDestination("https://example.com/researcher")))
+    }
+
     @Test("A root path prefix allows every path on only its exact origin")
     func rootPathPrefixHasOriginWideSemantics() throws {
         let scope = try BrowserDestinationScope.validatedPathPrefix("https://example.com/")

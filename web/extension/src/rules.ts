@@ -46,8 +46,10 @@ function scopeRegex(scope: BrowserDestinationScope): string {
   if (scope.kind === "origin" || scope.path === "/") {
     return `^${origin}(/|$)`;
   }
-  const path = scope.path.endsWith("/") ? scope.path.slice(0, -1) : scope.path;
-  return `^${origin}${escapeRegex(path)}(/|[?#]|$)`;
+  if (scope.path.endsWith("/")) {
+    return `^${origin}${escapeRegex(scope.path)}`;
+  }
+  return `^${origin}${escapeRegex(scope.path)}(/|[?#]|$)`;
 }
 
 export function buildDynamicRules(
