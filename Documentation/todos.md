@@ -374,6 +374,38 @@ the shipped default. Reverting the commit removes the camera code entirely; a
 persisted `presence.cameraEnabled: true` on an older build decodes into an
 unknown key and is ignored.
 
+## 17.7 Task-scoped browser enforcement (2026-09-08)
+
+This slice adds Curfew's local policy authority and its direct Docket client.
+The native messaging host, Chrome extension, Settings controls, and audit
+projection remain separate delivery tasks. The architecture and privacy limits
+are in `Documentation/browser-enforcement.md`.
+
+- [x] Normalize only HTTP and HTTPS destinations. Curfew removes credentials,
+      query strings, fragments, and default ports before a destination reaches
+      policy or review.
+- [x] Build the allowlist from the configured Docket web origin, task
+      references, and mappings that select exactly one task, project, or label.
+- [x] Retain the current task when Docket reports an idle timer. End the session
+      only when Docket reports that task as completed, canceled, or archived.
+- [x] Revoke grants when the task changes. Limit grants to 30 minutes and
+      denial cooldowns to five minutes.
+- [x] Permit one 15-minute break for each transition into paused or idle. A
+      running observation cancels the break and creates eligibility for a later
+      pause or idle transition.
+- [x] Fail closed for unknown destinations when Docket or Athena is unavailable.
+      Curfew retains known scopes while it marks the connection unhealthy.
+- [x] Register a public OAuth client with Docket on first use. Store the issued
+      client identifier and rotating tokens in the separate
+      `studio.hypertext.curfew.docket` Keychain service.
+- [x] Poll `docket://hub/active-work` every 30 seconds without a session and
+      every five seconds while Curfew retains a session. Reject responses whose
+      Docket observation time moves backward.
+- [ ] Connect the policy coordinator to the app lifecycle and persistent policy
+      snapshot. This belongs to the native-host integration slice.
+- [ ] Ship and verify the Chrome extension, native messaging host, Settings
+      health, and release rollback path.
+
 ## 18. Verification (v0.1 release candidate)
 
 - [x] Pin both SwiftPM entry points to the immutable pre-1.0

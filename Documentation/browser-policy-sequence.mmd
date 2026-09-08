@@ -1,0 +1,15 @@
+sequenceDiagram
+    participant Extension as Chrome extension
+    participant Curfew as Curfew native host
+    participant Docket as Docket MCP server
+    participant Athena as Athena reviewer
+
+    Docket-->>Curfew: active-work/1 observation
+    Curfew->>Curfew: Reduce session and allowlist
+    Extension->>Curfew: Review normalized destination
+    Curfew->>Docket: review_work_destination
+    Docket->>Athena: Task context and justification
+    Athena-->>Docket: Grant, challenge, or deny
+    Docket-->>Curfew: Proposed decision and scope
+    Curfew->>Curfew: Validate scope and set lifetime
+    Curfew-->>Extension: Policy result

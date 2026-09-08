@@ -687,3 +687,47 @@ only.
   - `PresenceAuditWiringTests/presenceRecordsCarryNoImagery()`
   - `PresenceMonitorTests/transitionsAreDeduplicated()`
   - `PresenceMonitorTests/secondsInStateTracksTheTransition()`
+
+## 20. Task-scoped browser policy and Docket client
+
+- `URL review never receives credentials, queries, fragments, default ports,
+  unsupported schemes, or unresolved dot segments.`
+  - `BrowserWorkPolicyTests/destinationNormalizationRemovesPrivateParts()`
+  - `BrowserWorkPolicyTests/destinationNormalizationResolvesDotSegments()`
+  - `BrowserWorkPolicyTests/destinationNormalizationRejectsOtherSchemes()`
+- `A session allowlist is the union of the Docket origin, task references, and
+  exact task, project, or label mappings.`
+  - `BrowserWorkPolicyTests/initialPolicyUsesEveryTaskOwnedSource()`
+- `Idle timer state retains enforcement, while a task switch or terminal task
+  state revokes the old session and its grants.`
+  - `BrowserWorkPolicyTests/idleTrackingRetainsTask()`
+  - `BrowserWorkPolicyTests/switchingTaskRevokesGrants()`
+  - `BrowserWorkPolicyTests/terminalTaskEndsSession(stateType:)`
+- `A grant expires after 30 minutes. A denial blocks review for five minutes.`
+  - `BrowserWorkPolicyTests/grantExpiresAfterThirtyMinutes()`
+  - `BrowserWorkPolicyTests/denialCreatesFiveMinuteCooldown()`
+- `One 15-minute break is available for each paused or idle transition. It
+  cannot renew until tracking resumes, and resume cancels an active break.`
+  - `BrowserWorkPolicyTests/breakEligibilityAndExpiry()`
+  - `BrowserWorkPolicyTests/breakCannotRenewWithoutResuming()`
+  - `BrowserWorkPolicyTests/resumeCancelsBreak()`
+- `Unknown destinations fail closed during Docket or Athena failure, and stale
+  Docket observations cannot restore old work.`
+  - `BrowserWorkPolicyTests/unavailableDocketFailsClosed()`
+  - `BrowserWorkPolicyTests/staleResponseIsIgnored()`
+  - `DocketBrowserPolicyClientTests/reviewFailureFailsClosed()`
+  - `DocketBrowserPolicyClientTests/coordinatorRejectsStaleResponse()`
+- `Curfew registers and reuses a Docket OAuth client, stores tokens separately,
+  and refreshes rotating credentials.`
+  - `DocketBrowserPolicyClientTests/oauthRequestUsesSeparateDocketScopes()`
+  - `DocketBrowserPolicyClientTests/oauthRegistrationIsPersistedAndReused()`
+  - `DocketBrowserPolicyClientTests/oauthRefreshRotatesCredentials()`
+- `The production transport sends MCP initialize, initialized notification,
+  resource-read, and destination-review JSON-RPC messages.`
+  - `DocketBrowserPolicyClientTests/httpTransportUsesDocketMCPShapes()`
+  - `DocketBrowserPolicyClientTests/activeWorkDecodingUsesPublicContract()`
+- `The coordinator polls at 30 seconds while idle and five seconds while it
+  retains work. It reads the retained task after Docket reports idle.`
+  - `DocketBrowserPolicyClientTests/pollCadenceTracksRetainedSession()`
+  - `DocketBrowserPolicyClientTests/idleObservationChecksTerminalTask()`
+  - `DocketBrowserPolicyClientTests/destinationReviewUsesNormalizedPayload()`

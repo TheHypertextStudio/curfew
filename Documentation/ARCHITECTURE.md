@@ -16,6 +16,8 @@ Curfew.app
 │   │   ├── OverrideRequestPolicy     "Convince me" cooldown and justification gate
 │   │   ├── PresenceState             HID + camera fusion → working / present-idle / absent / unknown
 │   │   ├── DistractionWarningPolicy  When a present-but-idle user gets a nudge (see presence-detection.md)
+│   │   ├── BrowserWorkPolicy       Task-scoped destinations, mappings, grants, breaks, and cooldowns
+│   │   ├── BrowserWorkPolicyReducer  Deterministic session transitions and fail-closed snapshots
 │   │   └── Reflection                Reflection gate value types (gate, prompt, answer, mood)
 │   ├── Storage/
 │   │   ├── ActivityEvent / ActivityStore  sqlite3 C API — lifecycle/extension/override events
@@ -45,6 +47,7 @@ Curfew.app
 │   ├── LicenseKey                Codable payload: email, product, orderID, issuedAt
 │   ├── CalendarMonitor           EventKit — today's events, Pro + flag gated
 │   ├── CloudKitSyncEngine        CKRecord last-write-wins sync (Pro, flag gated)
+│   ├── DocketBrowserPolicyClient Separate OAuth, MCP polling, and destination-review client
 │   └── WorkTimeAggregator        Per-day work-minute aggregation from ActivityStore
 │
 ├── Curfew/App/           @MainActor orchestration
@@ -119,3 +122,24 @@ Two transports share the same `MCPServer.handle(line:)` dispatcher:
 - **Streamable HTTP** — opt-in via Settings → Advanced → Expose MCP over localhost HTTP. Binds `127.0.0.1:9847` with accept-time filtering so non-loopback remotes are rejected. Useful for editors-over-SSH and multi-process setups.
 
 Writes use a Unix-socket seam (`~/Library/Application Support/Curfew/mcp.sock`) that falls through to the JSON request queue when the socket is unavailable. v0.2 ships the client API + the app-side server seam; the POSIX listener itself lands in a later revision.
+
+### Task-scoped browser policy
+
+Curfew owns browser policy. Docket reports active work through the public
+`docket://hub/active-work` resource, and Athena reviews unknown destinations
+through `review_work_destination`. These contracts do not use Curfew Sync or
+`curfew-protocols`.
+
+`BrowserWorkSessionReducer` accepts timestamped Docket observations and emits a
+deterministic local policy snapshot. A timer stop changes tracking to idle but
+does not end the session. A matching terminal task state ends the session. A
+task change creates a new session identifier and drops every grant and cooldown.
+The reducer keeps known scopes during a service failure and blocks every unknown
+destination.
+
+`DocketBrowserPolicyClient` registers an OAuth public client at Docket, requests
+only `work:read`, `agents:run`, and `offline_access`, and stores its client ID and
+tokens in a Docket-specific Keychain service. It polls every 30 seconds without
+a session and every five seconds with one. The native host and Chrome extension
+will consume the snapshot in later slices. See `Documentation/browser-enforcement.md`
+and its linked sequence diagram for the boundary and privacy rules.
