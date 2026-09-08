@@ -134,10 +134,14 @@ through `review_work_destination`. These contracts do not use Curfew Sync or
 deterministic local policy snapshot. A timer stop changes tracking to idle but
 does not end the session. Any active-work response with a null task triggers an
 exact read of the retained task, even when tracking says running or paused. Only
-an explicit terminal state or archive timestamp ends the session. A task change
-creates a new session identifier and drops every grant and cooldown. The reducer
-keeps known scopes during a service failure and blocks every unknown destination.
-The extension-facing snapshot contains only the current task ID and title.
+an explicit terminal state or archive timestamp from the exact-task read ends
+retained work. Any terminal task in active work ends the retained session, even
+when its identifier differs. A task change creates a new session identifier and
+drops every grant and cooldown. The reducer keeps known scopes during a service
+failure and blocks every unknown destination. The extension-facing snapshot
+contains only the current task ID and title. It serializes temporary grants with
+their expirations separately from base scopes. Consumers evaluate grant and
+break expiration against their current clock after restoring a cache.
 Curfew validates every scope before the reducer can store it. Curfew also rejects
 a destination-review result when its captured session ID no longer matches the
 current session.
@@ -146,9 +150,12 @@ current session.
 only `work:read`, `agents:run`, and `offline_access`, and stores its client ID and
 tokens in a Docket-specific Keychain service. It polls every 30 seconds without
 a session and every five seconds with one. The transport parses Docket's
-Streamable HTTP SSE envelope and matches each JSON-RPC response ID. It permits
-one token-refresh retry after a 401 and one reinitialization retry after a dead
-MCP session. Both retry paths stop after the second failure. The native host and
-Chrome extension will consume the snapshot in later slices. See
+Streamable HTTP SSE envelope. It requires JSON-RPC 2.0, matches each response to
+the request ID captured before the network wait, and requires the negotiated MCP
+protocol version. Concurrent first calls share one initialization. Exact-task
+reads do not change the ordering watermark for active-work observations. The
+client permits one token-refresh retry after a 401 and one reinitialization retry
+after a dead MCP session. Both retry paths stop after the second failure. The
+native host and Chrome extension will consume the snapshot in later slices. See
 `Documentation/browser-enforcement.md` and its linked sequence diagram for the
 boundary and privacy rules.

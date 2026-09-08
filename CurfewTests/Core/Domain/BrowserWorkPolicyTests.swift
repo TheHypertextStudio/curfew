@@ -114,7 +114,7 @@ struct BrowserWorkPolicyTests {
         let granted = reducer.grant(scope, for: reviewed, at: now)
         #expect(!granted)
         #expect(try !#require(reducer.policy(at: now))
-            .allows(NormalizedHTTPDestination("https://youtube.com/watch")))
+            .allows(NormalizedHTTPDestination("https://youtube.com/watch"), at: now))
     }
 
     @Test("The initial policy unions matching mappings, task references, and Docket")
@@ -151,16 +151,25 @@ struct BrowserWorkPolicyTests {
         reducer.observe(activeWork(tracking: .running), receivedAt: now)
         let policy = try #require(reducer.policy(at: now))
 
-        #expect(try policy.allows(NormalizedHTTPDestination("https://canva.com/design/1")))
+        #expect(try policy.allows(
+            NormalizedHTTPDestination("https://canva.com/design/1"),
+            at: now
+        ))
         #expect(try policy.allows(NormalizedHTTPDestination(
             "https://transitcenter.org/research/bus-social"
-        )))
-        #expect(try policy.allows(NormalizedHTTPDestination("https://instagram.com/lvbt")))
+        ), at: now))
+        #expect(try policy.allows(
+            NormalizedHTTPDestination("https://instagram.com/lvbt"),
+            at: now
+        ))
         #expect(try policy
-            .allows(NormalizedHTTPDestination("https://docs.google.com/document/d/1")))
+            .allows(NormalizedHTTPDestination("https://docs.google.com/document/d/1"), at: now))
         #expect(try policy
-            .allows(NormalizedHTTPDestination("https://docket.hypertext.studio/today")))
-        #expect(try !policy.allows(NormalizedHTTPDestination("https://youtube.com/watch?v=1")))
+            .allows(NormalizedHTTPDestination("https://docket.hypertext.studio/today"), at: now))
+        #expect(try !policy.allows(
+            NormalizedHTTPDestination("https://youtube.com/watch?v=1"),
+            at: now
+        ))
     }
 
     @Test("Stopping a timer retains the prior task and its policy")
@@ -202,7 +211,7 @@ struct BrowserWorkPolicyTests {
         )
 
         let policy = try #require(reducer.policy(at: now.addingTimeInterval(5)))
-        #expect(!policy.allows(destination))
+        #expect(!policy.allows(destination, at: now.addingTimeInterval(5)))
         #expect(policy.task.id == "task-new")
     }
 
@@ -215,9 +224,39 @@ struct BrowserWorkPolicyTests {
         let granted = reducer.grant(scope, for: destination, at: now)
         #expect(granted)
 
-        #expect(try #require(reducer.policy(at: now.addingTimeInterval(1799))).allows(destination))
+        #expect(try #require(reducer.policy(at: now.addingTimeInterval(1799)))
+            .allows(destination, at: now.addingTimeInterval(1799)))
         let expiredPolicy = try #require(reducer.policy(at: now.addingTimeInterval(1800)))
-        #expect(!expiredPolicy.allows(destination))
+        #expect(!expiredPolicy.allows(destination, at: now.addingTimeInterval(1800)))
+    }
+
+    @Test("A cached policy evaluates grant and break expiry against the current time")
+    func cachedPolicyExpiresTemporaryAccess() throws {
+        var reducer = reducer()
+        reducer.observe(activeWork(tracking: .paused), receivedAt: now)
+        let destination = try NormalizedHTTPDestination("https://transitcenter.org/news")
+        let scope = try BrowserDestinationScope.validatedOrigin(destination.origin)
+        let granted = reducer.grant(scope, for: destination, at: now)
+        let beganBreak = reducer.beginBreak(at: now)
+        #expect(granted)
+        #expect(beganBreak)
+        let cached = try #require(reducer.policy(at: now))
+        let restored = try JSONDecoder().decode(
+            BrowserPolicySnapshot.self,
+            from: JSONEncoder().encode(cached)
+        )
+
+        #expect(!restored.scopes.contains(scope))
+        #expect(restored.grants == [BrowserSessionGrant(
+            scope: scope,
+            expiresAt: now.addingTimeInterval(30 * 60)
+        )])
+        #expect(restored.allows(destination, at: now.addingTimeInterval(15 * 60 - 1)))
+        #expect(restored.allows(destination, at: now.addingTimeInterval(30 * 60 - 1)))
+        #expect(!restored.allows(destination, at: now.addingTimeInterval(30 * 60)))
+        let unknown = try NormalizedHTTPDestination("https://youtube.com/watch")
+        #expect(restored.allows(unknown, at: now.addingTimeInterval(15 * 60 - 1)))
+        #expect(!restored.allows(unknown, at: now.addingTimeInterval(15 * 60)))
     }
 
     @Test("A denial prevents another review for five minutes")
@@ -246,9 +285,10 @@ struct BrowserWorkPolicyTests {
         let pausedBreak = reducer.beginBreak(at: now.addingTimeInterval(5))
         #expect(pausedBreak)
         let unknown = try NormalizedHTTPDestination("https://youtube.com/watch")
-        #expect(try #require(reducer.policy(at: now.addingTimeInterval(904))).allows(unknown))
+        #expect(try #require(reducer.policy(at: now.addingTimeInterval(904)))
+            .allows(unknown, at: now.addingTimeInterval(904)))
         let expiredBreakPolicy = try #require(reducer.policy(at: now.addingTimeInterval(905)))
-        #expect(!expiredBreakPolicy.allows(unknown))
+        #expect(!expiredBreakPolicy.allows(unknown, at: now.addingTimeInterval(905)))
     }
 
     @Test("A paused interval cannot renew its fifteen-minute break")
@@ -265,7 +305,7 @@ struct BrowserWorkPolicyTests {
         #expect(!renewedBreak)
         let unknown = try NormalizedHTTPDestination("https://youtube.com/watch")
         let policy = try #require(reducer.policy(at: now.addingTimeInterval(901)))
-        #expect(!policy.allows(unknown))
+        #expect(!policy.allows(unknown, at: now.addingTimeInterval(901)))
     }
 
     @Test("Resuming tracked work cancels an active break")
@@ -285,7 +325,7 @@ struct BrowserWorkPolicyTests {
 
         let unknown = try NormalizedHTTPDestination("https://youtube.com/watch")
         let policy = try #require(reducer.policy(at: now.addingTimeInterval(5)))
-        #expect(!policy.allows(unknown))
+        #expect(!policy.allows(unknown, at: now.addingTimeInterval(5)))
     }
 
     @Test("Paused to idle creates one new break eligibility")
@@ -389,29 +429,50 @@ struct BrowserWorkPolicyTests {
         "A terminal task ends the retained session",
         arguments: ["completed", "canceled", "archived"]
     )
-    func terminalTaskEndsSession(stateType: String) {
+    func terminalTaskEndsSession(stateType: String) throws {
+        var reducer = reducer()
+        reducer.observe(activeWork(tracking: .running), receivedAt: now)
+        let sessionID = try #require(reducer.policy(at: now)?.sessionID)
+
+        reducer.observeTaskState(
+            sessionID: sessionID,
+            taskID: "task-lvbt",
+            stateType: stateType,
+            archivedAt: nil
+        )
+
+        #expect(reducer.policy(at: now.addingTimeInterval(5)) == nil)
+    }
+
+    @Test("An incoming terminal task ends retained work even when its ID differs")
+    func differentTerminalTaskEndsSession() {
         var reducer = reducer()
         reducer.observe(activeWork(tracking: .running), receivedAt: now)
 
-        reducer.observeTaskState(
-            taskID: "task-lvbt",
-            stateType: stateType,
-            observedAt: now.addingTimeInterval(5)
+        reducer.observe(
+            activeWork(
+                tracking: .running,
+                taskID: "task-terminal",
+                stateType: "completed",
+                observedAt: now.addingTimeInterval(5)
+            ),
+            receivedAt: now.addingTimeInterval(5)
         )
 
         #expect(reducer.policy(at: now.addingTimeInterval(5)) == nil)
     }
 
     @Test("An archive timestamp ends a retained session")
-    func archiveTimestampEndsSession() {
+    func archiveTimestampEndsSession() throws {
         var reducer = reducer()
         reducer.observe(activeWork(tracking: .running), receivedAt: now)
+        let sessionID = try #require(reducer.policy(at: now)?.sessionID)
 
         reducer.observeTaskState(
+            sessionID: sessionID,
             taskID: "task-lvbt",
             stateType: "started",
-            archivedAt: now.addingTimeInterval(5),
-            observedAt: now.addingTimeInterval(5)
+            archivedAt: now.addingTimeInterval(5)
         )
 
         #expect(reducer.policy(at: now.addingTimeInterval(5)) == nil)
@@ -442,9 +503,15 @@ struct BrowserWorkPolicyTests {
 
         let policy = try #require(reducer.policy(at: now.addingTimeInterval(5)))
         #expect(policy.connectionIsHealthy == false)
-        #expect(try !policy.allows(NormalizedHTTPDestination("https://youtube.com/watch")))
+        #expect(try !policy.allows(
+            NormalizedHTTPDestination("https://youtube.com/watch"),
+            at: now.addingTimeInterval(5)
+        ))
         #expect(try policy
-            .allows(NormalizedHTTPDestination("https://docs.google.com/document/d/1")))
+            .allows(
+                NormalizedHTTPDestination("https://docs.google.com/document/d/1"),
+                at: now.addingTimeInterval(5)
+            ))
     }
 
     private func reducer() -> BrowserWorkSessionReducer {
@@ -457,6 +524,7 @@ struct BrowserWorkPolicyTests {
     private func activeWork(
         tracking: DocketTrackingState,
         taskID: String = "task-lvbt",
+        stateType: String = "started",
         observedAt: Date? = nil
     ) -> DocketActiveWork {
         DocketActiveWork(
@@ -468,7 +536,7 @@ struct BrowserWorkPolicyTests {
                 organizationID: "org-lvbt",
                 title: "Complete LVBT social strategy",
                 description: "Write the channel strategy.",
-                stateType: "started",
+                stateType: stateType,
                 workspace: .init(id: "workspace-lvbt", name: "LVBT"),
                 project: .init(
                     id: "project-lvbt",

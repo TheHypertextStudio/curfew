@@ -16,15 +16,19 @@ public nonisolated struct BrowserPolicySnapshot: Codable, Equatable, Sendable {
     public let task: BrowserVisibleTask
     public let tracking: DocketTrackingState
     public let scopes: Set<BrowserDestinationScope>
+    public let grants: [BrowserSessionGrant]
     public let breakEndsAt: Date?
     public let connectionIsHealthy: Bool
     public let generatedAt: Date
 
-    public func allows(_ destination: NormalizedHTTPDestination) -> Bool {
-        if let breakEndsAt, breakEndsAt > generatedAt {
+    public func allows(_ destination: NormalizedHTTPDestination, at date: Date) -> Bool {
+        if let breakEndsAt, breakEndsAt > date {
             return true
         }
-        return scopes.contains { $0.allows(destination) }
+        if scopes.contains(where: { $0.allows(destination) }) {
+            return true
+        }
+        return grants.contains { $0.expiresAt > date && $0.scope.allows(destination) }
     }
 }
 
@@ -76,9 +80,7 @@ public nonisolated struct BrowserWorkSessionReducer: Sendable {
             return
         }
         if task.isTerminal {
-            if session?.task.id == task.id {
-                session = nil
-            }
+            session = nil
             return
         }
 
@@ -99,16 +101,12 @@ public nonisolated struct BrowserWorkSessionReducer: Sendable {
     }
 
     public mutating func observeTaskState(
+        sessionID: UUID,
         taskID: String,
         stateType: String,
-        archivedAt: Date? = nil,
-        observedAt: Date
+        archivedAt: Date? = nil
     ) {
-        guard session?.task.id == taskID else { return }
-        if let lastDocketObservation, observedAt < lastDocketObservation {
-            return
-        }
-        lastDocketObservation = observedAt
+        guard session?.id == sessionID, session?.task.id == taskID else { return }
         docketIsHealthy = true
         if archivedAt != nil || DocketActiveWorkTask.isTerminal(stateType) {
             session = nil
@@ -159,20 +157,22 @@ public nonisolated struct BrowserWorkSessionReducer: Sendable {
         session?.task
     }
 
+    func currentSessionID() -> UUID? {
+        session?.id
+    }
+
     public func policy(at date: Date) -> BrowserPolicySnapshot? {
         guard let session else { return nil }
         var scopes: Set<BrowserDestinationScope> = [docketScope]
         scopes.formUnion(mappings.lazy.filter { $0.matches(session.task) }.map(\.scope))
         scopes.formUnion(session.task.references.compactMap(Self.scope(for:)))
-        scopes.formUnion(
-            session.grants.lazy.filter { $0.expiresAt > date }.map(\.scope)
-        )
         return BrowserPolicySnapshot(
             schemaVersion: "browser-policy/1",
             sessionID: session.id,
             task: BrowserVisibleTask(id: session.task.id, title: session.task.title),
             tracking: session.tracking,
             scopes: scopes,
+            grants: session.grants.filter { $0.expiresAt > date },
             breakEndsAt: session.breakEndsAt,
             connectionIsHealthy: docketIsHealthy,
             generatedAt: date

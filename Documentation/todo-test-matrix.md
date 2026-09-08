@@ -707,9 +707,12 @@ only.
   - `BrowserWorkPolicyTests/idleTrackingRetainsTask()`
   - `BrowserWorkPolicyTests/switchingTaskRevokesGrants()`
   - `BrowserWorkPolicyTests/terminalTaskEndsSession(stateType:)`
+  - `BrowserWorkPolicyTests/differentTerminalTaskEndsSession()`
   - `BrowserWorkPolicyTests/archiveTimestampEndsSession()`
-- `A grant expires after 30 minutes. A denial blocks review for five minutes.`
+- `A grant expires after 30 minutes, including after a cached policy is restored.
+  A denial blocks review for five minutes.`
   - `BrowserWorkPolicyTests/grantExpiresAfterThirtyMinutes()`
+  - `BrowserWorkPolicyTests/cachedPolicyExpiresTemporaryAccess()`
   - `BrowserWorkPolicyTests/denialCreatesFiveMinuteCooldown()`
 - `One 15-minute break is available for each paused or idle transition. It
   cannot renew until tracking resumes, and resume cancels an active break.`
@@ -724,6 +727,7 @@ only.
   - `BrowserWorkPolicyTests/staleResponseIsIgnored()`
   - `DocketBrowserPolicyClientTests/reviewFailureFailsClosed()`
   - `DocketBrowserPolicyClientTests/coordinatorRejectsStaleResponse()`
+  - `DocketBrowserPolicyClientTests/exactTaskReadDoesNotAdvanceActiveWorkWatermark()`
   - `DocketBrowserPolicyClientTests/taskSwitchInvalidatesReviewResult(kind:)`
   - `DocketBrowserPolicyClientTests/missingTaskResourceFailsClosed()`
   - `DocketBrowserPolicyClientTests/unauthorizedTaskResourceFailsClosed()`
@@ -741,6 +745,11 @@ only.
   - `DocketBrowserPolicyClientTests/activeWorkDecodingUsesPublicContract()`
   - `DocketBrowserPolicyClientTests/mcpRejectsInvalidSSEDataCardinality(frame:)`
   - `DocketBrowserPolicyClientTests/mcpRejectsMismatchedResponseID()`
+  - `DocketBrowserPolicyClientTests/mcpRequiresJSONRPCVersionOnEveryResponse()`
+  - `DocketBrowserPolicyClientTests/mcpRequiresNegotiatedProtocolVersion(protocolVersion:)`
+  - `DocketBrowserPolicyClientTests/reviewRejectsNonDisjointOrEmptyDecision(value:)`
+  - `DocketBrowserPolicyClientTests/concurrentFirstCallsCoalesceInitialization()`
+  - `DocketBrowserPolicyClientTests/concurrentCallsUseCapturedRequestIDs()`
   - `DocketBrowserPolicyClientTests/taskResourceDecodesArchivedAt()`
   - `DocketBrowserPolicyClientTests/mcpReinitializesAfterOneDeadSession()`
   - `DocketBrowserPolicyClientTests/mcpDoesNotLoopOnSecondDeadSession()`
@@ -755,5 +764,8 @@ only.
   - `DocketBrowserPolicyClientTests/nullTaskObservationChecksArchivedTask(tracking:)`
   - `DocketBrowserPolicyClientTests/failedNullTaskReadRetainsEnforcement(tracking:)`
   - `DocketBrowserPolicyClientTests/destinationReviewUsesNormalizedPayload()`
-- `Browser policy snapshots expose only the current task ID and title.`
+- `Browser policy snapshots expose only the current task ID and title. They keep
+  expiring grants separate from base scopes and evaluate temporary access at the
+  caller's current time.`
   - `BrowserWorkPolicyTests/snapshotSerializationOmitsDocketTaskContext()`
+  - `BrowserWorkPolicyTests/cachedPolicyExpiresTemporaryAccess()`

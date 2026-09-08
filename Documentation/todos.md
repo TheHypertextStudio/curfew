@@ -389,9 +389,9 @@ are in `Documentation/browser-enforcement.md`.
       references, and mappings that select exactly one task, project, or label.
 - [x] Retain the current task whenever Docket returns a null active-work task.
       Read that exact task even when tracking says running or paused. End the
-      session only when Docket reports that task as completed or canceled, or
-      returns an `archivedAt` timestamp. Missing and unauthorized task resources
-      fail closed.
+      session when any active-work task is completed, canceled, or archived.
+      End a retained session when its exact task returns an `archivedAt`
+      timestamp. Missing and unauthorized task resources fail closed.
 - [x] Revoke grants when the task changes. Limit grants to 30 minutes and
       denial cooldowns to five minutes.
 - [x] Permit one 15-minute break for each transition into paused or idle. A
@@ -406,14 +406,17 @@ are in `Documentation/browser-enforcement.md`.
 - [x] Poll `docket://hub/active-work` every 30 seconds without a session and
       every five seconds while Curfew retains a session. Reject responses whose
       Docket observation time moves backward.
-- [x] Parse one real Streamable HTTP SSE message and match its JSON-RPC request
-      identifier. Limit MCP responses to 1 MiB. Retry once after a 401 or dead
-      session, and fail closed after the second failure.
+- [x] Parse one real Streamable HTTP SSE message. Require JSON-RPC 2.0, the
+      negotiated MCP version, and the request's exact identifier. Coalesce
+      concurrent initialization. Limit MCP responses to 1 MiB. Retry once after
+      a 401 or dead session, and fail closed after the second failure.
 - [x] Bind an Athena result to the session that requested it. Discard a late
       grant, challenge, or denial after a task switch without changing the new
       task's grants or cooldowns.
-- [x] Expose only the task ID and title in browser policy snapshots. Keep Docket
-      descriptions, project summaries, labels, and raw references inside Curfew.
+- [x] Expose only the task ID and title in browser policy snapshots. Keep base
+      scopes separate from temporary grants, and evaluate grant and break expiry
+      against the current time after cache restoration. Keep Docket descriptions,
+      project summaries, labels, and raw references inside Curfew.
 - [ ] Connect the policy coordinator to the app lifecycle and persistent policy
       snapshot. This belongs to the native-host integration slice.
 - [ ] Ship and verify the Chrome extension, native messaging host, Settings

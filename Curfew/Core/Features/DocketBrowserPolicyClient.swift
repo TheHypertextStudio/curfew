@@ -420,13 +420,19 @@ nonisolated enum DocketMCPWire {
     static func decodeReview(_ data: Data) throws -> DocketDestinationReview {
         let object = try jsonObject(data)
         guard let decision = object["decision"] as? String,
-              let reason = object["reason"] as? String
+              let reason = object["reason"] as? String,
+              !reason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         else { throw DocketClientError.invalidResponse }
+        let hasScope = object.keys.contains("scope")
+        let hasQuestion = object.keys.contains("question")
         switch decision {
         case "grant":
-            guard let scope = object["scope"] as? [String: Any],
+            guard !hasQuestion,
+                  let scope = object["scope"] as? [String: Any],
                   let kind = scope["kind"] as? String,
-                  let value = scope["value"] as? String
+                  let value = scope["value"] as? String,
+                  !kind.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                  !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             else { throw DocketClientError.invalidResponse }
             if kind == "origin" {
                 return try .grant(
@@ -439,11 +445,17 @@ nonisolated enum DocketMCPWire {
             else { throw DocketClientError.invalidResponse }
             return .grant(reason: reason, scope: scope)
         case "challenge":
-            guard let question = object["question"] as? String else {
+            guard !hasScope,
+                  let question = object["question"] as? String,
+                  !question.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            else {
                 throw DocketClientError.invalidResponse
             }
             return .challenge(reason: reason, question: question)
         case "deny":
+            guard !hasScope, !hasQuestion else {
+                throw DocketClientError.invalidResponse
+            }
             return .deny(reason: reason)
         default:
             throw DocketClientError.invalidResponse
@@ -508,11 +520,14 @@ extension DocketMCPTransporting {
     func resetSession() async {}
 }
 
+// swiftlint:disable:next type_body_length
 actor DocketMCPHTTPTransport: DocketMCPTransporting {
     private let endpoint: URL
     private let session: URLSession
     private var sessionID: String?
     private var requestID = 0
+    private var initializationIsInProgress = false
+    private var initializationWaiters: [CheckedContinuation<String, any Error>] = []
 
     init(
         endpoint: URL = DocketServiceEndpoints.current.mcpResource,
@@ -598,32 +613,12 @@ actor DocketMCPHTTPTransport: DocketMCPTransporting {
         parameters: [String: Any],
         accessToken: String
     ) async throws -> [String: Any] {
-        if sessionID == nil {
-            let initialized = try await post(
-                method: "initialize",
-                parameters: [
-                    "protocolVersion": "2025-11-25",
-                    "capabilities": [:] as [String: Any],
-                    "clientInfo": ["name": "Curfew", "version": "1"]
-                ],
-                accessToken: accessToken,
-                sessionID: nil
-            )
-            guard initialized.result != nil, let establishedSession = initialized.sessionID else {
-                throw DocketClientError.invalidResponse
-            }
-            sessionID = establishedSession
-            _ = try await postNotification(
-                method: "notifications/initialized",
-                accessToken: accessToken,
-                sessionID: establishedSession
-            )
-        }
+        let establishedSession = try await establishSession(accessToken: accessToken)
         let response = try await post(
             method: method,
             parameters: parameters,
             accessToken: accessToken,
-            sessionID: sessionID
+            sessionID: establishedSession
         )
         guard let result = response.result else { throw DocketClientError.invalidResponse }
         return result
@@ -636,22 +631,72 @@ actor DocketMCPHTTPTransport: DocketMCPTransporting {
         sessionID: String?
     ) async throws -> (result: [String: Any]?, sessionID: String?) {
         requestID += 1
+        let expectedRequestID = requestID
         let body: [String: Any] = [
             "jsonrpc": "2.0",
-            "id": requestID,
+            "id": expectedRequestID,
             "method": method,
             "params": parameters
         ]
         let (data, http) = try await send(body, accessToken: accessToken, sessionID: sessionID)
         let payload = try Self.responsePayload(data, response: http)
         let envelope = try jsonObject(payload)
-        guard envelope["error"] == nil,
-              (envelope["id"] as? NSNumber)?.intValue == requestID
+        guard envelope["jsonrpc"] as? String == "2.0",
+              envelope["error"] == nil,
+              (envelope["id"] as? NSNumber)?.intValue == expectedRequestID
         else { throw DocketClientError.invalidResponse }
         return (
             envelope["result"] as? [String: Any],
             http.value(forHTTPHeaderField: "Mcp-Session-Id")
         )
+    }
+
+    private func establishSession(accessToken: String) async throws -> String {
+        if let sessionID {
+            return sessionID
+        }
+        if initializationIsInProgress {
+            return try await withCheckedThrowingContinuation { continuation in
+                initializationWaiters.append(continuation)
+            }
+        }
+
+        initializationIsInProgress = true
+        do {
+            let initialized = try await post(
+                method: "initialize",
+                parameters: [
+                    "protocolVersion": Self.protocolVersion,
+                    "capabilities": [:] as [String: Any],
+                    "clientInfo": ["name": "Curfew", "version": "1"]
+                ],
+                accessToken: accessToken,
+                sessionID: nil
+            )
+            guard initialized.result?["protocolVersion"] as? String == Self.protocolVersion,
+                  let establishedSession = initialized.sessionID
+            else { throw DocketClientError.invalidResponse }
+            _ = try await postNotification(
+                method: "notifications/initialized",
+                accessToken: accessToken,
+                sessionID: establishedSession
+            )
+            sessionID = establishedSession
+            finishInitialization(with: .success(establishedSession))
+            return establishedSession
+        } catch {
+            finishInitialization(with: .failure(error))
+            throw error
+        }
+    }
+
+    private func finishInitialization(with result: Result<String, any Error>) {
+        initializationIsInProgress = false
+        let waiters = initializationWaiters
+        initializationWaiters.removeAll()
+        for waiter in waiters {
+            waiter.resume(with: result)
+        }
     }
 
     private func postNotification(
@@ -749,6 +794,7 @@ actor DocketMCPHTTPTransport: DocketMCPTransporting {
     /// Docket's browser-policy messages are small. One MiB leaves room for task
     /// context growth while bounding authenticated JSON and SSE parsing.
     private static let maximumMCPResponseBytes = 1024 * 1024
+    private static let protocolVersion = "2025-11-25"
 }
 
 @MainActor
@@ -802,11 +848,12 @@ final class DocketBrowserPolicyCoordinator {
     func poll(at date: Date) async {
         do {
             let priorTask = reducer.currentTask()
+            let priorSessionID = reducer.currentSessionID()
             let work = try await withAuthorizedAccess(at: date) { accessToken in
                 try await self.transport.readActiveWork(accessToken: accessToken)
             }
             reducer.observe(work, receivedAt: date)
-            if work.task == nil, let priorTask {
+            if work.task == nil, let priorTask, let priorSessionID {
                 let state = try await withAuthorizedAccess(at: date) { accessToken in
                     try await self.transport.readTaskState(
                         organizationID: priorTask.organizationID,
@@ -815,10 +862,10 @@ final class DocketBrowserPolicyCoordinator {
                     )
                 }
                 reducer.observeTaskState(
+                    sessionID: priorSessionID,
                     taskID: state.taskID,
                     stateType: state.stateType,
-                    archivedAt: state.archivedAt,
-                    observedAt: state.observedAt
+                    archivedAt: state.archivedAt
                 )
             }
         } catch {
