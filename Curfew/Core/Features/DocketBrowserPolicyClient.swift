@@ -41,7 +41,7 @@ nonisolated struct DocketServiceEndpoints: Equatable, Sendable {
             webOrigin: webURL,
             mcpResource: apiURL.appending(path: "/mcp"),
             authorizationEndpoint: webURL.appending(path: "/api/auth/oauth2/authorize"),
-            registrationEndpoint: apiURL.appending(path: "/api/auth/mcp/register"),
+            registrationEndpoint: apiURL.appending(path: "/api/auth/oauth2/register"),
             tokenEndpoint: apiURL.appending(path: "/api/auth/oauth2/token"),
             keychainService: keychainService
         )

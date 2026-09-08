@@ -60,7 +60,7 @@ struct DocketBrowserPolicyClientTests {
             requestCount += 1
             #expect(request.httpMethod == "POST")
             #expect(request.url?.absoluteString ==
-                "https://docket-api.hypertext.studio/api/auth/mcp/register")
+                "https://docket-api.hypertext.studio/api/auth/oauth2/register")
             let body = try requestBody(request)
             let object = try #require(
                 JSONSerialization.jsonObject(with: body) as? [String: Any]

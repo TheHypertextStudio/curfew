@@ -48,7 +48,7 @@ Unknown destinations remain blocked during Docket or Athena failure.
 ## OAuth and service boundary
 
 Curfew does not hardcode a Docket client ID. It registers a public OAuth client
-through `/api/auth/mcp/register` and stores the issued ID before it starts
+through `/api/auth/oauth2/register` and stores the issued ID before it starts
 authorization. The client requests only `work:read`, `agents:run`, and
 `offline_access`. Curfew stores the client ID, access token, refresh token, and
 expiration in the `studio.hypertext.curfew.docket` Keychain service. The
