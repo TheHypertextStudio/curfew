@@ -21,9 +21,10 @@ those later slices must preserve.
 
 Docket's `active-work/1` observation starts or continues a session when it
 contains a running or paused task. An idle observation retains the prior task
-locally. Curfew then reads that task's ordinary Docket resource. A completed,
-canceled, or archived state ends the session. A different task creates a new
-session and revokes old grants.
+locally. Curfew then reads that task's ordinary Docket resource. A completed or
+canceled state ends the session. An `archivedAt` timestamp also ends it. Missing
+or unauthorized task resources leave the retained session unhealthy and fail
+closed. A different task creates a new session and revokes old grants.
 
 Curfew permits one 15-minute break after each transition into paused or idle.
 Starting the break consumes that eligibility. More paused or idle observations
@@ -39,22 +40,33 @@ normalized path because Athena may recommend a path-prefix grant.
 A persistent mapping selects exactly one task ID, project ID, or label ID. Its
 scope is one exact origin or one path prefix. The initial allowlist is the union
 of matching mappings, normalized task references, and the configured Docket web
-origin. Unknown destinations remain blocked during Docket or Athena failure.
+origin. One validated constructor handles mapping, reference, and Athena scopes.
+It rejects credentials, queries, fragments, relative paths, default-port drift,
+and cross-origin grants. A root path prefix covers only its exact origin.
+Unknown destinations remain blocked during Docket or Athena failure.
 
 ## OAuth and service boundary
 
 Curfew does not hardcode a Docket client ID. It registers a public OAuth client
-through `/api/auth/oauth2/register` and stores the issued ID before it starts
+through `/api/auth/mcp/register` and stores the issued ID before it starts
 authorization. The client requests only `work:read`, `agents:run`, and
 `offline_access`. Curfew stores the client ID, access token, refresh token, and
 expiration in the `studio.hypertext.curfew.docket` Keychain service. The
 staging build uses a separate endpoint set and Keychain service.
 
 The MCP transport sends `initialize`, `notifications/initialized`,
-`resources/read`, and `tools/call` over Streamable HTTP. Curfew reads
-`docket://hub/active-work` every 30 seconds without a session and every five
-seconds while it retains a session. Curfew rejects a Docket observation whose
-`observedAt` value is older than the last accepted value.
+`resources/read`, and `tools/call` over Streamable HTTP. It accepts one
+`event: message` SSE event with one `data` field. It rejects malformed frames
+and JSON-RPC responses whose identifier does not match the request. OAuth
+registration and token responses have a 32 KiB limit. MCP responses have a
+1 MiB limit.
+
+One HTTP 401 resets the MCP session, refreshes OAuth, and retries the operation
+once. One HTTP 404 or 410 from an established MCP session resets that session,
+initializes a new one, and retries once. A second failure does not loop. Curfew
+reads `docket://hub/active-work` every 30 seconds without a session and every
+five seconds while it retains a session. Curfew rejects a Docket observation
+whose `observedAt` value is older than the last accepted value.
 
 ## Privacy
 
@@ -64,9 +76,16 @@ must not persist the justification or challenge answer. It must not send URL
 credentials, queries, or fragments. Later audit work may store the hostname,
 decision, and scope kind. It must not store the full path or justification.
 
-The system does not inspect page subresources in this release. It reviews only
-top-level destinations. Curfew stores OAuth secrets in Keychain. It must not
-place them in the policy snapshot, extension storage, logs, or audit records.
+The browser policy snapshot contains only the task ID and title. It does not
+contain task descriptions, workspace names, project summaries, label names, or
+raw reference URLs. The system does not inspect page subresources in this
+release. It reviews only top-level destinations. Curfew stores OAuth secrets in
+Keychain. It must not place them in the policy snapshot, extension storage,
+logs, or audit records.
+
+Curfew binds each destination review to the session ID that existed before the
+Athena request. A task change during that request discards any grant, challenge,
+or denial. The discarded result cannot add a grant or cooldown to the new task.
 
 ## Release and rollback
 

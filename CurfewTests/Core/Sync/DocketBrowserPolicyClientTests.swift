@@ -34,6 +34,22 @@ struct DocketBrowserPolicyClientTests {
             "studio.hypertext.curfew.docket")
     }
 
+    @Test(
+        "OAuth callback rejects duplicate security parameters without trapping",
+        arguments: [
+            "studio.hypertext.curfew://docket-oauth/callback?state=s&state=s&code=c",
+            "studio.hypertext.curfew://docket-oauth/callback?state=s&code=c&code=c",
+            "studio.hypertext.curfew://docket-oauth/callback?state=s&code=c&error=e&error=e"
+        ]
+    )
+    func oauthCallbackRejectsDuplicateParameters(value: String) throws {
+        let callback = try #require(URL(string: value))
+
+        #expect(throws: DocketClientError.invalidResponse) {
+            _ = try DocketOAuthCallback.authorizationCode(from: callback, expectedState: "s")
+        }
+    }
+
     @Test("Docket OAuth registers a public client once and reuses its Keychain identifier")
     func oauthRegistrationIsPersistedAndReused() async throws {
         let secrets = MemoryDocketSecretStore()
@@ -44,7 +60,7 @@ struct DocketBrowserPolicyClientTests {
             requestCount += 1
             #expect(request.httpMethod == "POST")
             #expect(request.url?.absoluteString ==
-                "https://docket-api.hypertext.studio/api/auth/oauth2/register")
+                "https://docket-api.hypertext.studio/api/auth/mcp/register")
             let body = try requestBody(request)
             let object = try #require(
                 JSONSerialization.jsonObject(with: body) as? [String: Any]
@@ -151,21 +167,17 @@ struct DocketBrowserPolicyClientTests {
             case "initialize":
                 let params = try #require(object["params"] as? [String: Any])
                 #expect(params["protocolVersion"] as? String == "2025-11-25")
-                return (
-                    HTTPURLResponse(
-                        url: responseURL,
-                        statusCode: 200,
-                        httpVersion: nil,
-                        headerFields: [
-                            "Content-Type": "application/json",
-                            "Mcp-Session-Id": "session-1"
+                return try sseResponse(
+                    [
+                        "jsonrpc": "2.0", "id": object["id"]!,
+                        "result": [
+                            "protocolVersion": "2025-11-25",
+                            "capabilities": [:],
+                            "serverInfo": ["name": "Docket", "version": "1"]
                         ]
-                    )!,
-                    Data(
-                        // swiftlint:disable:next line_length
-                        #"{"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-11-25","capabilities":{},"serverInfo":{"name":"Docket","version":"1"}}}"#
-                            .utf8
-                    )
+                    ],
+                    url: responseURL,
+                    sessionID: "session-1"
                 )
             case "notifications/initialized":
                 #expect(request.value(forHTTPHeaderField: "Mcp-Session-Id") == "session-1")
@@ -187,7 +199,7 @@ struct DocketBrowserPolicyClientTests {
                     "jsonrpc": "2.0", "id": object["id"]!,
                     "result": ["contents": [["uri": "docket://hub/active-work", "text": text]]]
                 ]
-                return try jsonResponse(payload, url: responseURL)
+                return try sseResponse(payload, url: responseURL)
             case "tools/call":
                 let params = try #require(object["params"] as? [String: Any])
                 #expect(params["name"] as? String == "review_work_destination")
@@ -203,7 +215,7 @@ struct DocketBrowserPolicyClientTests {
                         "structuredContent": ["decision": "deny", "reason": "No."]
                     ]
                 ]
-                return try jsonResponse(payload, url: responseURL)
+                return try sseResponse(payload, url: responseURL)
             default:
                 throw DocketClientError.invalidResponse
             }
@@ -228,6 +240,497 @@ struct DocketBrowserPolicyClientTests {
         #expect(methods == [
             "initialize", "notifications/initialized", "resources/read", "tools/call"
         ])
+    }
+
+    @Test(
+        "MCP rejects a missing or duplicate SSE data event",
+        arguments: [
+            "data: {\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{}}\n\n",
+            "event: message\ndata: {\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{}}\n" +
+                "data: {\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{}}\n\n",
+            "event: message\ndata: \n\n"
+        ]
+    )
+    func mcpRejectsInvalidSSEDataCardinality(frame: String) async {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [DocketURLProtocol.self]
+        DocketURLProtocol.handler = { request in
+            try (
+                HTTPURLResponse(
+                    url: #require(request.url),
+                    statusCode: 200,
+                    httpVersion: nil,
+                    headerFields: [
+                        "Content-Type": "text/event-stream",
+                        "Mcp-Session-Id": "session-1"
+                    ]
+                )!,
+                Data(frame.utf8)
+            )
+        }
+        defer { DocketURLProtocol.handler = nil }
+        let transport = DocketMCPHTTPTransport(
+            endpoint: DocketServiceEndpoints.production.mcpResource,
+            session: URLSession(configuration: configuration)
+        )
+
+        await #expect(throws: DocketClientError.self) {
+            _ = try await transport.readActiveWork(accessToken: "access")
+        }
+    }
+
+    @Test("MCP rejects a JSON-RPC response for another request")
+    func mcpRejectsMismatchedResponseID() async {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [DocketURLProtocol.self]
+        DocketURLProtocol.handler = { request in
+            try sseResponse(
+                ["jsonrpc": "2.0", "id": 999, "result": [:]],
+                url: #require(request.url),
+                sessionID: "session-1"
+            )
+        }
+        defer { DocketURLProtocol.handler = nil }
+        let transport = DocketMCPHTTPTransport(
+            endpoint: DocketServiceEndpoints.production.mcpResource,
+            session: URLSession(configuration: configuration)
+        )
+
+        await #expect(throws: DocketClientError.self) {
+            _ = try await transport.readActiveWork(accessToken: "access")
+        }
+    }
+
+    @Test("An archived task resource is terminal even when its state type is active")
+    func taskResourceDecodesArchivedAt() async throws {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [DocketURLProtocol.self]
+        DocketURLProtocol.handler = { request in
+            let object = try #require(
+                JSONSerialization.jsonObject(with: requestBody(request)) as? [String: Any]
+            )
+            let method = try #require(object["method"] as? String)
+            let responseURL = try #require(request.url)
+            if method == "notifications/initialized" {
+                return (
+                    HTTPURLResponse(
+                        url: responseURL,
+                        statusCode: 202,
+                        httpVersion: nil,
+                        headerFields: nil
+                    )!,
+                    Data()
+                )
+            }
+            if method == "initialize" {
+                return try sseResponse(
+                    ["jsonrpc": "2.0", "id": object["id"]!, "result": [:]],
+                    url: responseURL,
+                    sessionID: "session-1"
+                )
+            }
+            let text =
+                #"{"id":"task-lvbt","stateType":"started","archivedAt":"2026-09-08T09:00:00Z"}"#
+            return try sseResponse(
+                [
+                    "jsonrpc": "2.0", "id": object["id"]!,
+                    "result": ["contents": [[
+                        "uri": "docket://org-lvbt/task/task-lvbt", "text": text
+                    ]]]
+                ],
+                url: responseURL
+            )
+        }
+        defer { DocketURLProtocol.handler = nil }
+        let transport = DocketMCPHTTPTransport(
+            endpoint: DocketServiceEndpoints.production.mcpResource,
+            session: URLSession(configuration: configuration)
+        )
+
+        let state = try await transport.readTaskState(
+            organizationID: "org-lvbt",
+            taskID: "task-lvbt",
+            accessToken: "access"
+        )
+
+        #expect(state.archivedAt != nil)
+        #expect(state.isTerminal)
+    }
+
+    @Test("OAuth registration rejects a response larger than 32 KiB")
+    func oauthRegistrationRejectsOversizedResponse() async {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [DocketURLProtocol.self]
+        DocketURLProtocol.handler = { request in
+            let padding = String(repeating: "x", count: 33 * 1024)
+            let data = try JSONSerialization.data(withJSONObject: [
+                "client_id": "issued-client", "padding": padding
+            ])
+            return try jsonResponse([:], url: #require(request.url), data: data)
+        }
+        defer { DocketURLProtocol.handler = nil }
+        let client = DocketOAuthClient(
+            store: DocketCredentialStore(secretStore: MemoryDocketSecretStore()),
+            session: URLSession(configuration: configuration),
+            endpoints: .production
+        )
+
+        await #expect(throws: DocketClientError.self) {
+            _ = try await client.registerClientIfNeeded()
+        }
+    }
+
+    @Test("OAuth token exchange rejects a response larger than 32 KiB")
+    func oauthTokenExchangeRejectsOversizedResponse() async throws {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [DocketURLProtocol.self]
+        DocketURLProtocol.handler = { request in
+            let padding = String(repeating: "x", count: 33 * 1024)
+            let data = try JSONSerialization.data(withJSONObject: [
+                "access_token": "access",
+                "refresh_token": "refresh",
+                "token_type": "Bearer",
+                "expires_in": 3600,
+                "padding": padding
+            ])
+            return try jsonResponse([:], url: #require(request.url), data: data)
+        }
+        defer { DocketURLProtocol.handler = nil }
+        let client = DocketOAuthClient(
+            store: DocketCredentialStore(secretStore: MemoryDocketSecretStore()),
+            session: URLSession(configuration: configuration),
+            endpoints: .production
+        )
+        let request = try DocketOAuthAuthorizationRequest.create(
+            clientID: "issued-client",
+            state: "state",
+            verifier: String(repeating: "v", count: 64),
+            endpoints: .production
+        )
+
+        await #expect(throws: DocketClientError.self) {
+            _ = try await client.exchange(code: "code", request: request, now: now)
+        }
+    }
+
+    @Test("MCP rejects a response larger than its one MiB wire limit")
+    func mcpRejectsOversizedResponse() async {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [DocketURLProtocol.self]
+        DocketURLProtocol.handler = { request in
+            let padding = String(repeating: "x", count: 1_048_576)
+            return try sseResponse(
+                ["jsonrpc": "2.0", "id": 1, "result": ["padding": padding]],
+                url: #require(request.url),
+                sessionID: "session-1"
+            )
+        }
+        defer { DocketURLProtocol.handler = nil }
+        let transport = DocketMCPHTTPTransport(
+            endpoint: DocketServiceEndpoints.production.mcpResource,
+            session: URLSession(configuration: configuration)
+        )
+
+        await #expect(throws: DocketClientError.self) {
+            _ = try await transport.readActiveWork(accessToken: "access")
+        }
+    }
+
+    @Test("MCP resets a rejected session and reinitializes once")
+    // swiftlint:disable:next function_body_length
+    func mcpReinitializesAfterOneDeadSession() async throws {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [DocketURLProtocol.self]
+        var methods: [String] = []
+        var initializationCount = 0
+        var resourceCount = 0
+        DocketURLProtocol.handler = { request in
+            let object = try #require(
+                JSONSerialization.jsonObject(with: requestBody(request)) as? [String: Any]
+            )
+            let method = try #require(object["method"] as? String)
+            methods.append(method)
+            let responseURL = try #require(request.url)
+            switch method {
+            case "initialize":
+                initializationCount += 1
+                return try sseResponse(
+                    ["jsonrpc": "2.0", "id": object["id"]!, "result": [:]],
+                    url: responseURL,
+                    sessionID: "session-\(initializationCount)"
+                )
+            case "notifications/initialized":
+                return (
+                    HTTPURLResponse(
+                        url: responseURL,
+                        statusCode: 202,
+                        httpVersion: nil,
+                        headerFields: nil
+                    )!,
+                    Data()
+                )
+            case "resources/read":
+                resourceCount += 1
+                if resourceCount == 1 {
+                    return (
+                        HTTPURLResponse(
+                            url: responseURL,
+                            statusCode: 404,
+                            httpVersion: nil,
+                            headerFields: nil
+                        )!,
+                        Data()
+                    )
+                }
+                return try activeWorkSseResponse(
+                    id: #require(object["id"]),
+                    url: responseURL
+                )
+            default:
+                throw DocketClientError.invalidResponse
+            }
+        }
+        defer { DocketURLProtocol.handler = nil }
+        let transport = DocketMCPHTTPTransport(
+            endpoint: DocketServiceEndpoints.production.mcpResource,
+            session: URLSession(configuration: configuration)
+        )
+
+        let work = try await transport.readActiveWork(accessToken: "access")
+
+        #expect(work.task?.id == "task-lvbt")
+        #expect(methods == [
+            "initialize", "notifications/initialized", "resources/read",
+            "initialize", "notifications/initialized", "resources/read"
+        ])
+    }
+
+    @Test("MCP stops after one dead-session retry")
+    func mcpDoesNotLoopOnSecondDeadSession() async {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [DocketURLProtocol.self]
+        var initializationCount = 0
+        var resourceCount = 0
+        DocketURLProtocol.handler = { request in
+            let object = try #require(
+                JSONSerialization.jsonObject(with: requestBody(request)) as? [String: Any]
+            )
+            let method = try #require(object["method"] as? String)
+            let responseURL = try #require(request.url)
+            if method == "initialize" {
+                initializationCount += 1
+                return try sseResponse(
+                    ["jsonrpc": "2.0", "id": object["id"]!, "result": [:]],
+                    url: responseURL,
+                    sessionID: "session-\(initializationCount)"
+                )
+            }
+            if method == "notifications/initialized" {
+                return (
+                    HTTPURLResponse(
+                        url: responseURL,
+                        statusCode: 202,
+                        httpVersion: nil,
+                        headerFields: nil
+                    )!,
+                    Data()
+                )
+            }
+            resourceCount += 1
+            return (
+                HTTPURLResponse(
+                    url: responseURL,
+                    statusCode: 404,
+                    httpVersion: nil,
+                    headerFields: nil
+                )!,
+                Data()
+            )
+        }
+        defer { DocketURLProtocol.handler = nil }
+        let transport = DocketMCPHTTPTransport(
+            endpoint: DocketServiceEndpoints.production.mcpResource,
+            session: URLSession(configuration: configuration)
+        )
+
+        await #expect(throws: DocketClientError.staleSession) {
+            _ = try await transport.readActiveWork(accessToken: "access")
+        }
+        #expect(initializationCount == 2)
+        #expect(resourceCount == 2)
+    }
+
+    @Test("A 401 resets MCP, refreshes OAuth, and retries once")
+    // swiftlint:disable:next function_body_length
+    func coordinatorRefreshesAfterUnauthorized() async throws {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [DocketURLProtocol.self]
+        let secrets = MemoryDocketSecretStore()
+        try secrets.save(Data("issued-client".utf8), for: DocketCredentialStore.clientIDAccount)
+        let store = DocketCredentialStore(secretStore: secrets)
+        try store.save(.init(
+            accessToken: "old-access",
+            refreshToken: "old-refresh",
+            expiresAt: now.addingTimeInterval(3600)
+        ))
+        var sequence: [String] = []
+        var initializationCount = 0
+        var resourceCount = 0
+        DocketURLProtocol.handler = { request in
+            let responseURL = try #require(request.url)
+            if responseURL == DocketServiceEndpoints.production.tokenEndpoint {
+                sequence.append("token")
+                return try jsonResponse([
+                    "access_token": "fresh-access",
+                    "refresh_token": "fresh-refresh",
+                    "token_type": "Bearer",
+                    "expires_in": 3600
+                ], url: responseURL)
+            }
+            let object = try #require(
+                JSONSerialization.jsonObject(with: requestBody(request)) as? [String: Any]
+            )
+            let method = try #require(object["method"] as? String)
+            let token = request.value(forHTTPHeaderField: "Authorization") ?? "missing"
+            sequence.append("\(method):\(token)")
+            if method == "initialize" {
+                initializationCount += 1
+                return try sseResponse(
+                    ["jsonrpc": "2.0", "id": object["id"]!, "result": [:]],
+                    url: responseURL,
+                    sessionID: "session-\(initializationCount)"
+                )
+            }
+            if method == "notifications/initialized" {
+                return (
+                    HTTPURLResponse(
+                        url: responseURL,
+                        statusCode: 202,
+                        httpVersion: nil,
+                        headerFields: nil
+                    )!,
+                    Data()
+                )
+            }
+            resourceCount += 1
+            if resourceCount == 1 {
+                return (
+                    HTTPURLResponse(
+                        url: responseURL,
+                        statusCode: 401,
+                        httpVersion: nil,
+                        headerFields: nil
+                    )!,
+                    Data()
+                )
+            }
+            return try activeWorkSseResponse(id: #require(object["id"]), url: responseURL)
+        }
+        defer { DocketURLProtocol.handler = nil }
+        let session = URLSession(configuration: configuration)
+        let coordinator = DocketBrowserPolicyCoordinator(
+            transport: DocketMCPHTTPTransport(
+                endpoint: DocketServiceEndpoints.production.mcpResource,
+                session: session
+            ),
+            credentials: store,
+            oauth: DocketOAuthClient(store: store, session: session, endpoints: .production),
+            docketWebOrigin: DocketServiceEndpoints.production.webOrigin
+        )
+
+        await coordinator.poll(at: now)
+
+        #expect(coordinator.policy(at: now)?.task.id == "task-lvbt")
+        #expect(sequence == [
+            "initialize:Bearer old-access",
+            "notifications/initialized:Bearer old-access",
+            "resources/read:Bearer old-access",
+            "token",
+            "initialize:Bearer fresh-access",
+            "notifications/initialized:Bearer fresh-access",
+            "resources/read:Bearer fresh-access"
+        ])
+    }
+
+    @Test("A second 401 fails closed without another refresh")
+    // swiftlint:disable:next function_body_length
+    func coordinatorDoesNotLoopOnSecondUnauthorized() async throws {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [DocketURLProtocol.self]
+        let secrets = MemoryDocketSecretStore()
+        try secrets.save(Data("issued-client".utf8), for: DocketCredentialStore.clientIDAccount)
+        let store = DocketCredentialStore(secretStore: secrets)
+        try store.save(.init(
+            accessToken: "old-access",
+            refreshToken: "old-refresh",
+            expiresAt: now.addingTimeInterval(3600)
+        ))
+        var refreshCount = 0
+        var resourceCount = 0
+        var initializationCount = 0
+        DocketURLProtocol.handler = { request in
+            let responseURL = try #require(request.url)
+            if responseURL == DocketServiceEndpoints.production.tokenEndpoint {
+                refreshCount += 1
+                return try jsonResponse([
+                    "access_token": "fresh-access",
+                    "refresh_token": "fresh-refresh",
+                    "token_type": "Bearer",
+                    "expires_in": 3600
+                ], url: responseURL)
+            }
+            let object = try #require(
+                JSONSerialization.jsonObject(with: requestBody(request)) as? [String: Any]
+            )
+            let method = try #require(object["method"] as? String)
+            if method == "initialize" {
+                initializationCount += 1
+                return try sseResponse(
+                    ["jsonrpc": "2.0", "id": object["id"]!, "result": [:]],
+                    url: responseURL,
+                    sessionID: "session-\(initializationCount)"
+                )
+            }
+            if method == "notifications/initialized" {
+                return (
+                    HTTPURLResponse(
+                        url: responseURL,
+                        statusCode: 202,
+                        httpVersion: nil,
+                        headerFields: nil
+                    )!,
+                    Data()
+                )
+            }
+            resourceCount += 1
+            return (
+                HTTPURLResponse(
+                    url: responseURL,
+                    statusCode: 401,
+                    httpVersion: nil,
+                    headerFields: nil
+                )!,
+                Data()
+            )
+        }
+        defer { DocketURLProtocol.handler = nil }
+        let session = URLSession(configuration: configuration)
+        let coordinator = DocketBrowserPolicyCoordinator(
+            transport: DocketMCPHTTPTransport(
+                endpoint: DocketServiceEndpoints.production.mcpResource,
+                session: session
+            ),
+            credentials: store,
+            oauth: DocketOAuthClient(store: store, session: session, endpoints: .production),
+            docketWebOrigin: DocketServiceEndpoints.production.webOrigin
+        )
+
+        await coordinator.poll(at: now)
+
+        #expect(coordinator.policy(at: now) == nil)
+        #expect(refreshCount == 1)
+        #expect(resourceCount == 2)
+        #expect(initializationCount == 2)
     }
 
     @Test("The MCP decoder reads the exact active-work version")
@@ -286,6 +789,29 @@ struct DocketBrowserPolicyClientTests {
         #expect(await transport.taskReadCount == 1)
     }
 
+    @Test("An idle observation ends a retained task that has an archive timestamp")
+    func idleObservationChecksArchivedTask() async throws {
+        let transport = RecordingDocketTransport(
+            activeWork: [activeWork(.running), idleWork()],
+            taskStates: [.init(
+                taskID: "task-lvbt",
+                stateType: "started",
+                archivedAt: now.addingTimeInterval(5),
+                observedAt: now.addingTimeInterval(5)
+            )]
+        )
+        let coordinator = try DocketBrowserPolicyCoordinator(
+            transport: transport,
+            credentials: fixedCredentials(),
+            docketWebOrigin: DocketServiceEndpoints.production.webOrigin
+        )
+
+        await coordinator.poll(at: now)
+        await coordinator.poll(at: now.addingTimeInterval(5))
+
+        #expect(coordinator.policy(at: now.addingTimeInterval(5)) == nil)
+    }
+
     @Test("A late active-work response cannot switch the coordinator backward")
     func coordinatorRejectsStaleResponse() async throws {
         let transport = RecordingDocketTransport(activeWork: [
@@ -304,13 +830,128 @@ struct DocketBrowserPolicyClientTests {
         #expect(coordinator.policy(at: now.addingTimeInterval(11))?.task.id == "task-new")
     }
 
+    @Test(
+        "A task switch invalidates every in-flight destination review result",
+        arguments: ["grant", "challenge", "deny"]
+    )
+    func taskSwitchInvalidatesReviewResult(kind: String) async throws {
+        let staleResult: DocketDestinationReview = switch kind {
+        case "grant": try .grant(
+                reason: "Allowed.",
+                scope: BrowserDestinationScope.validatedOrigin("https://instagram.com")
+            )
+        case "challenge": .challenge(reason: "More detail.", question: "What will you record?")
+        default: .deny(reason: "No.")
+        }
+        let transport = SuspendedReviewDocketTransport(activeWork: [
+            activeWork(.running),
+            activeWork(.running, taskID: "task-new", observedAt: now.addingTimeInterval(5))
+        ])
+        let coordinator = try DocketBrowserPolicyCoordinator(
+            transport: transport,
+            credentials: fixedCredentials(),
+            docketWebOrigin: DocketServiceEndpoints.production.webOrigin
+        )
+        await coordinator.poll(at: now)
+        let reviewTask = Task {
+            await coordinator.review(
+                rawDestination: "https://instagram.com/research",
+                justification: "I will record three patterns.",
+                challengeAnswer: nil,
+                at: now
+            )
+        }
+        await transport.waitUntilReviewStarts()
+
+        await coordinator.poll(at: now.addingTimeInterval(5))
+        await transport.resolveFirstReview(with: staleResult)
+        let result = await reviewTask.value
+
+        #expect(result == .deny(reason: "Work changed while Docket reviewed this destination."))
+        let destination = try NormalizedHTTPDestination("https://instagram.com/research")
+        #expect(coordinator.policy(at: now.addingTimeInterval(5))?.allows(destination) == false)
+        let second = await coordinator.review(
+            rawDestination: "https://instagram.com/research",
+            justification: "I will record three patterns.",
+            challengeAnswer: nil,
+            at: now.addingTimeInterval(5)
+        )
+        #expect(second == .challenge(reason: "Fresh review.", question: "Name the output."))
+        #expect(await transport.reviewCount == 2)
+    }
+
+    @Test("An idle task-resource failure retains a fail-closed unhealthy session")
+    func missingTaskResourceFailsClosed() async throws {
+        let transport = RecordingDocketTransport(activeWork: [activeWork(.running), idleWork()])
+        let coordinator = try DocketBrowserPolicyCoordinator(
+            transport: transport,
+            credentials: fixedCredentials(),
+            docketWebOrigin: DocketServiceEndpoints.production.webOrigin
+        )
+
+        await coordinator.poll(at: now)
+        await coordinator.poll(at: now.addingTimeInterval(5))
+
+        let policy = try #require(coordinator.policy(at: now.addingTimeInterval(5)))
+        #expect(policy.task.id == "task-lvbt")
+        #expect(!policy.connectionIsHealthy)
+        #expect(try !policy.allows(NormalizedHTTPDestination("https://youtube.com/watch")))
+    }
+
+    @Test("An unauthorized task resource remains fail closed after one token retry")
+    func unauthorizedTaskResourceFailsClosed() async throws {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [DocketURLProtocol.self]
+        let secrets = MemoryDocketSecretStore()
+        try secrets.save(Data("issued-client".utf8), for: DocketCredentialStore.clientIDAccount)
+        let store = DocketCredentialStore(secretStore: secrets)
+        try store.save(.init(
+            accessToken: "access",
+            refreshToken: "refresh",
+            expiresAt: now.addingTimeInterval(3600)
+        ))
+        var refreshCount = 0
+        DocketURLProtocol.handler = { request in
+            refreshCount += 1
+            return try jsonResponse([
+                "access_token": "fresh-access",
+                "refresh_token": "fresh-refresh",
+                "token_type": "Bearer",
+                "expires_in": 3600
+            ], url: #require(request.url))
+        }
+        defer { DocketURLProtocol.handler = nil }
+        let session = URLSession(configuration: configuration)
+        let transport = RecordingDocketTransport(
+            activeWork: [activeWork(.running), idleWork()],
+            taskStateError: DocketClientError.unauthorized
+        )
+        let coordinator = DocketBrowserPolicyCoordinator(
+            transport: transport,
+            credentials: store,
+            oauth: DocketOAuthClient(store: store, session: session, endpoints: .production),
+            docketWebOrigin: DocketServiceEndpoints.production.webOrigin
+        )
+
+        await coordinator.poll(at: now)
+        await coordinator.poll(at: now.addingTimeInterval(5))
+
+        let policy = try #require(coordinator.policy(at: now.addingTimeInterval(5)))
+        #expect(policy.task.id == "task-lvbt")
+        #expect(!policy.connectionIsHealthy)
+        #expect(refreshCount == 1)
+        #expect(await transport.taskReadCount == 2)
+        #expect(try !policy.allows(NormalizedHTTPDestination("https://youtube.com/watch")))
+    }
+
     @Test("Review sends only the normalized origin and path")
     func destinationReviewUsesNormalizedPayload() async throws {
-        let transport = RecordingDocketTransport(
+        let transport = try RecordingDocketTransport(
             activeWork: [activeWork(.running)],
-            reviews: [.grant(reason: "Specific research supports the plan.", scope: .origin(
-                "https://instagram.com"
-            ))]
+            reviews: [.grant(
+                reason: "Specific research supports the plan.",
+                scope: BrowserDestinationScope.validatedOrigin("https://instagram.com")
+            )]
         )
         let coordinator = try DocketBrowserPolicyCoordinator(
             transport: transport,
@@ -403,7 +1044,8 @@ struct DocketBrowserPolicyClientTests {
 
 private func jsonResponse(
     _ object: [String: Any],
-    url: URL
+    url: URL,
+    data: Data? = nil
 ) throws -> (HTTPURLResponse, Data) {
     try (
         HTTPURLResponse(
@@ -412,7 +1054,59 @@ private func jsonResponse(
             httpVersion: nil,
             headerFields: ["Content-Type": "application/json"]
         )!,
-        JSONSerialization.data(withJSONObject: object)
+        data ?? JSONSerialization.data(withJSONObject: object)
+    )
+}
+
+private func sseResponse(
+    _ object: [String: Any],
+    url: URL,
+    sessionID: String? = nil
+) throws -> (HTTPURLResponse, Data) {
+    let payload = try JSONSerialization.data(withJSONObject: object)
+    let json = try #require(String(data: payload, encoding: .utf8))
+    var headers = ["Content-Type": "text/event-stream"]
+    headers["Mcp-Session-Id"] = sessionID
+    return (
+        HTTPURLResponse(
+            url: url,
+            statusCode: 200,
+            httpVersion: nil,
+            headerFields: headers
+        )!,
+        Data("event: message\ndata: \(json)\n\n".utf8)
+    )
+}
+
+private func activeWorkSseResponse(
+    id: Any,
+    url: URL
+) throws -> (HTTPURLResponse, Data) {
+    let text = #"""
+    {
+      "schemaVersion": "active-work/1",
+      "observedAt": "2026-09-08T08:00:00Z",
+      "tracking": "running",
+      "recordId": "record-1",
+      "task": {
+        "id": "task-lvbt",
+        "organizationId": "org-lvbt",
+        "title": "Complete LVBT social strategy",
+        "description": null,
+        "stateType": "started",
+        "workspace": { "id": "workspace-lvbt", "name": "LVBT" },
+        "project": null,
+        "labels": [],
+        "references": []
+      }
+    }
+    """#
+    return try sseResponse(
+        [
+            "jsonrpc": "2.0", "id": id,
+            "result": ["contents": [["uri": "docket://hub/active-work", "text": text]]]
+        ],
+        url: url
     )
 }
 
@@ -486,6 +1180,7 @@ private actor RecordingDocketTransport: DocketMCPTransporting {
     private var taskStateQueue: [DocketTaskStateObservation]
     private var reviewQueue: [DocketDestinationReview]
     private let reviewError: Error?
+    private let taskStateError: Error?
     private(set) var taskReadCount = 0
     private(set) var lastReview: DocketDestinationReviewInput?
 
@@ -493,12 +1188,14 @@ private actor RecordingDocketTransport: DocketMCPTransporting {
         activeWork: [DocketActiveWork],
         taskStates: [DocketTaskStateObservation] = [],
         reviews: [DocketDestinationReview] = [],
-        reviewError: Error? = nil
+        reviewError: Error? = nil,
+        taskStateError: Error? = nil
     ) {
         self.activeWorkQueue = activeWork
         self.taskStateQueue = taskStates
         self.reviewQueue = reviews
         self.reviewError = reviewError
+        self.taskStateError = taskStateError
     }
 
     func readActiveWork(accessToken _: String) async throws -> DocketActiveWork {
@@ -512,6 +1209,9 @@ private actor RecordingDocketTransport: DocketMCPTransporting {
         accessToken _: String
     ) async throws -> DocketTaskStateObservation {
         taskReadCount += 1
+        if let taskStateError {
+            throw taskStateError
+        }
         guard !taskStateQueue.isEmpty else { throw DocketClientError.unavailable }
         return taskStateQueue.removeFirst()
     }
@@ -526,5 +1226,52 @@ private actor RecordingDocketTransport: DocketMCPTransporting {
         }
         guard !reviewQueue.isEmpty else { throw DocketClientError.unavailable }
         return reviewQueue.removeFirst()
+    }
+}
+
+private actor SuspendedReviewDocketTransport: DocketMCPTransporting {
+    private var activeWorkQueue: [DocketActiveWork]
+    private var firstReviewContinuation: CheckedContinuation<DocketDestinationReview, Never>?
+    private(set) var reviewCount = 0
+
+    init(activeWork: [DocketActiveWork]) {
+        self.activeWorkQueue = activeWork
+    }
+
+    func readActiveWork(accessToken _: String) async throws -> DocketActiveWork {
+        guard !activeWorkQueue.isEmpty else { throw DocketClientError.unavailable }
+        return activeWorkQueue.removeFirst()
+    }
+
+    func readTaskState(
+        organizationID _: String,
+        taskID _: String,
+        accessToken _: String
+    ) async throws -> DocketTaskStateObservation {
+        throw DocketClientError.unavailable
+    }
+
+    func reviewDestination(
+        _ input: DocketDestinationReviewInput,
+        accessToken _: String
+    ) async throws -> DocketDestinationReview {
+        reviewCount += 1
+        if reviewCount > 1 {
+            return .challenge(reason: "Fresh review.", question: "Name the output.")
+        }
+        return await withCheckedContinuation { continuation in
+            firstReviewContinuation = continuation
+        }
+    }
+
+    func waitUntilReviewStarts() async {
+        while firstReviewContinuation == nil {
+            await Task.yield()
+        }
+    }
+
+    func resolveFirstReview(with result: DocketDestinationReview) {
+        firstReviewContinuation?.resume(returning: result)
+        firstReviewContinuation = nil
     }
 }

@@ -383,11 +383,13 @@ are in `Documentation/browser-enforcement.md`.
 
 - [x] Normalize only HTTP and HTTPS destinations. Curfew removes credentials,
       query strings, fragments, and default ports before a destination reaches
-      policy or review.
+      policy or review. All stored scopes use one validated constructor. Invalid
+      or cross-origin recommendations cannot broaden access.
 - [x] Build the allowlist from the configured Docket web origin, task
       references, and mappings that select exactly one task, project, or label.
 - [x] Retain the current task when Docket reports an idle timer. End the session
-      only when Docket reports that task as completed, canceled, or archived.
+      only when Docket reports that task as completed or canceled, or returns an
+      `archivedAt` timestamp. Missing and unauthorized task resources fail closed.
 - [x] Revoke grants when the task changes. Limit grants to 30 minutes and
       denial cooldowns to five minutes.
 - [x] Permit one 15-minute break for each transition into paused or idle. A
@@ -397,10 +399,19 @@ are in `Documentation/browser-enforcement.md`.
       Curfew retains known scopes while it marks the connection unhealthy.
 - [x] Register a public OAuth client with Docket on first use. Store the issued
       client identifier and rotating tokens in the separate
-      `studio.hypertext.curfew.docket` Keychain service.
+      `studio.hypertext.curfew.docket` Keychain service. Reject duplicate callback
+      security parameters and responses over 32 KiB.
 - [x] Poll `docket://hub/active-work` every 30 seconds without a session and
       every five seconds while Curfew retains a session. Reject responses whose
       Docket observation time moves backward.
+- [x] Parse one real Streamable HTTP SSE message and match its JSON-RPC request
+      identifier. Limit MCP responses to 1 MiB. Retry once after a 401 or dead
+      session, and fail closed after the second failure.
+- [x] Bind an Athena result to the session that requested it. Discard a late
+      grant, challenge, or denial after a task switch without changing the new
+      task's grants or cooldowns.
+- [x] Expose only the task ID and title in browser policy snapshots. Keep Docket
+      descriptions, project summaries, labels, and raw references inside Curfew.
 - [ ] Connect the policy coordinator to the app lifecycle and persistent policy
       snapshot. This belongs to the native-host integration slice.
 - [ ] Ship and verify the Chrome extension, native messaging host, Settings

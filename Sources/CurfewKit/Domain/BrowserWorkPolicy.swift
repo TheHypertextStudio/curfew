@@ -64,31 +64,104 @@ public nonisolated struct NormalizedHTTPDestination: Codable, Equatable, Hashabl
     }
 }
 
-public nonisolated enum BrowserDestinationScope: Codable, Equatable, Hashable, Sendable {
-    case origin(String)
-    case pathPrefix(origin: String, path: String)
+public nonisolated struct BrowserDestinationScope: Codable, Equatable, Hashable, Sendable {
+    public nonisolated enum Kind: String, Codable, Equatable, Sendable {
+        case origin
+        case pathPrefix = "path_prefix"
+    }
 
-    public var origin: String {
-        switch self {
-        case .origin(let origin), .pathPrefix(let origin, _):
-            origin
+    public nonisolated enum ValidationError: Error, Equatable {
+        case invalidOrigin
+        case invalidPathPrefix
+    }
+
+    public let kind: Kind
+    public let origin: String
+    public let path: String?
+
+    private init(kind: Kind, origin: String, path: String?) {
+        self.kind = kind
+        self.origin = origin
+        self.path = path
+    }
+
+    public static func validatedOrigin(_ value: String) throws -> Self {
+        guard let components = URLComponents(string: value),
+              components.user == nil,
+              components.password == nil,
+              components.query == nil,
+              components.fragment == nil,
+              components.percentEncodedPath.isEmpty,
+              let destination = try? NormalizedHTTPDestination(value),
+              value == destination.origin
+        else { throw ValidationError.invalidOrigin }
+        return Self(kind: .origin, origin: destination.origin, path: nil)
+    }
+
+    public static func validatedPathPrefix(_ value: String) throws -> Self {
+        guard let components = URLComponents(string: value),
+              components.user == nil,
+              components.password == nil,
+              components.query == nil,
+              components.fragment == nil,
+              !components.percentEncodedPath.isEmpty,
+              components.percentEncodedPath.hasPrefix("/"),
+              let destination = try? NormalizedHTTPDestination(value),
+              value == destination.origin + destination.path
+        else { throw ValidationError.invalidPathPrefix }
+        return Self(
+            kind: .pathPrefix,
+            origin: destination.origin,
+            path: destination.path
+        )
+    }
+
+    public static func validatedPathPrefix(origin: String, path: String) throws -> Self {
+        guard !path.isEmpty, path.hasPrefix("/") else {
+            throw ValidationError.invalidPathPrefix
         }
+        return try validatedPathPrefix(origin + path)
     }
 
     public func allows(_ destination: NormalizedHTTPDestination) -> Bool {
-        switch self {
-        case .origin(let origin):
-            return destination.origin == origin
-        case .pathPrefix(let origin, let path):
-            guard destination.origin == origin else { return false }
-            let prefix = Self.normalizedPrefix(path)
-            return destination.path == prefix || destination.path.hasPrefix(prefix + "/")
+        guard destination.origin == origin else { return false }
+        guard kind == .pathPrefix, let path else { return true }
+        if path == "/" {
+            return true
+        }
+        let prefix = path.hasSuffix("/") ? String(path.dropLast()) : path
+        return destination.path == prefix || destination.path.hasPrefix(prefix + "/")
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let kind = try container.decode(Kind.self, forKey: .kind)
+        let origin = try container.decode(String.self, forKey: .origin)
+        switch kind {
+        case .origin:
+            guard !container.contains(.path) else {
+                throw DecodingError.dataCorruptedError(
+                    forKey: .path,
+                    in: container,
+                    debugDescription: "An origin scope cannot contain a path"
+                )
+            }
+            self = try Self.validatedOrigin(origin)
+        case .pathPrefix:
+            let path = try container.decode(String.self, forKey: .path)
+            self = try Self.validatedPathPrefix(origin: origin, path: path)
         }
     }
 
-    private static func normalizedPrefix(_ path: String) -> String {
-        guard path != "/" else { return "/" }
-        return path.hasSuffix("/") ? String(path.dropLast()) : path
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(kind, forKey: .kind)
+        try container.encode(origin, forKey: .origin)
+        try container.encodeIfPresent(path, forKey: .path)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case kind, origin, path
     }
 }
 

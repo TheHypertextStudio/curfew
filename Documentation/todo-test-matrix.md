@@ -695,6 +695,10 @@ only.
   - `BrowserWorkPolicyTests/destinationNormalizationRemovesPrivateParts()`
   - `BrowserWorkPolicyTests/destinationNormalizationResolvesDotSegments()`
   - `BrowserWorkPolicyTests/destinationNormalizationRejectsOtherSchemes()`
+  - `BrowserWorkPolicyTests/pathScopeRejectsUnnormalizedValues(value:)`
+  - `BrowserWorkPolicyTests/originScopeRejectsUnnormalizedValues(value:)`
+  - `BrowserWorkPolicyTests/rootPathPrefixHasOriginWideSemantics()`
+  - `BrowserWorkPolicyTests/crossOriginGrantIsRejected()`
 - `A session allowlist is the union of the Docket origin, task references, and
   exact task, project, or label mappings.`
   - `BrowserWorkPolicyTests/initialPolicyUsesEveryTaskOwnedSource()`
@@ -703,6 +707,7 @@ only.
   - `BrowserWorkPolicyTests/idleTrackingRetainsTask()`
   - `BrowserWorkPolicyTests/switchingTaskRevokesGrants()`
   - `BrowserWorkPolicyTests/terminalTaskEndsSession(stateType:)`
+  - `BrowserWorkPolicyTests/archiveTimestampEndsSession()`
 - `A grant expires after 30 minutes. A denial blocks review for five minutes.`
   - `BrowserWorkPolicyTests/grantExpiresAfterThirtyMinutes()`
   - `BrowserWorkPolicyTests/denialCreatesFiveMinuteCooldown()`
@@ -711,23 +716,42 @@ only.
   - `BrowserWorkPolicyTests/breakEligibilityAndExpiry()`
   - `BrowserWorkPolicyTests/breakCannotRenewWithoutResuming()`
   - `BrowserWorkPolicyTests/resumeCancelsBreak()`
+  - `BrowserWorkPolicyTests/pausedToIdleCreatesOneBreakEligibility()`
+  - `BrowserWorkPolicyTests/idleToPausedCreatesOneBreakEligibility()`
 - `Unknown destinations fail closed during Docket or Athena failure, and stale
   Docket observations cannot restore old work.`
   - `BrowserWorkPolicyTests/unavailableDocketFailsClosed()`
   - `BrowserWorkPolicyTests/staleResponseIsIgnored()`
   - `DocketBrowserPolicyClientTests/reviewFailureFailsClosed()`
   - `DocketBrowserPolicyClientTests/coordinatorRejectsStaleResponse()`
+  - `DocketBrowserPolicyClientTests/taskSwitchInvalidatesReviewResult(kind:)`
+  - `DocketBrowserPolicyClientTests/missingTaskResourceFailsClosed()`
+  - `DocketBrowserPolicyClientTests/unauthorizedTaskResourceFailsClosed()`
 - `Curfew registers and reuses a Docket OAuth client, stores tokens separately,
   and refreshes rotating credentials.`
   - `DocketBrowserPolicyClientTests/oauthRequestUsesSeparateDocketScopes()`
   - `DocketBrowserPolicyClientTests/oauthRegistrationIsPersistedAndReused()`
   - `DocketBrowserPolicyClientTests/oauthRefreshRotatesCredentials()`
+  - `DocketBrowserPolicyClientTests/oauthCallbackRejectsDuplicateParameters(value:)`
+  - `DocketBrowserPolicyClientTests/coordinatorRefreshesAfterUnauthorized()`
+  - `DocketBrowserPolicyClientTests/coordinatorDoesNotLoopOnSecondUnauthorized()`
 - `The production transport sends MCP initialize, initialized notification,
   resource-read, and destination-review JSON-RPC messages.`
   - `DocketBrowserPolicyClientTests/httpTransportUsesDocketMCPShapes()`
   - `DocketBrowserPolicyClientTests/activeWorkDecodingUsesPublicContract()`
+  - `DocketBrowserPolicyClientTests/mcpRejectsInvalidSSEDataCardinality(frame:)`
+  - `DocketBrowserPolicyClientTests/mcpRejectsMismatchedResponseID()`
+  - `DocketBrowserPolicyClientTests/taskResourceDecodesArchivedAt()`
+  - `DocketBrowserPolicyClientTests/mcpReinitializesAfterOneDeadSession()`
+  - `DocketBrowserPolicyClientTests/mcpDoesNotLoopOnSecondDeadSession()`
+  - `DocketBrowserPolicyClientTests/oauthRegistrationRejectsOversizedResponse()`
+  - `DocketBrowserPolicyClientTests/oauthTokenExchangeRejectsOversizedResponse()`
+  - `DocketBrowserPolicyClientTests/mcpRejectsOversizedResponse()`
 - `The coordinator polls at 30 seconds while idle and five seconds while it
   retains work. It reads the retained task after Docket reports idle.`
   - `DocketBrowserPolicyClientTests/pollCadenceTracksRetainedSession()`
   - `DocketBrowserPolicyClientTests/idleObservationChecksTerminalTask()`
+  - `DocketBrowserPolicyClientTests/idleObservationChecksArchivedTask()`
   - `DocketBrowserPolicyClientTests/destinationReviewUsesNormalizedPayload()`
+- `Browser policy snapshots expose only the current task ID and title.`
+  - `BrowserWorkPolicyTests/snapshotSerializationOmitsDocketTaskContext()`

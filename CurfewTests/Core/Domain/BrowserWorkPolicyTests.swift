@@ -2,6 +2,7 @@
 import Foundation
 import Testing
 
+// swiftlint:disable file_length
 // swiftlint:disable:next type_body_length
 struct BrowserWorkPolicyTests {
     private let now = Date(timeIntervalSince1970: 1_788_537_600)
@@ -39,9 +40,8 @@ struct BrowserWorkPolicyTests {
 
     @Test("Path scopes stop at a path-segment boundary")
     func pathScopeUsesSegmentBoundary() throws {
-        let scope = BrowserDestinationScope.pathPrefix(
-            origin: "https://example.com",
-            path: "/research"
+        let scope = try BrowserDestinationScope.validatedPathPrefix(
+            "https://example.com/research"
         )
 
         #expect(try scope.allows(NormalizedHTTPDestination("https://example.com/research/posts")))
@@ -49,28 +49,98 @@ struct BrowserWorkPolicyTests {
         #expect(try !scope.allows(NormalizedHTTPDestination("https://other.example/research")))
     }
 
+    @Test("A root path prefix allows every path on only its exact origin")
+    func rootPathPrefixHasOriginWideSemantics() throws {
+        let scope = try BrowserDestinationScope.validatedPathPrefix("https://example.com/")
+
+        #expect(try scope.allows(NormalizedHTTPDestination("https://example.com/anything")))
+        #expect(try scope.allows(NormalizedHTTPDestination("https://example.com/")))
+        #expect(try !scope.allows(NormalizedHTTPDestination("https://other.example/anything")))
+    }
+
+    @Test(
+        "Scope construction rejects values that are not exact normalized boundaries",
+        arguments: [
+            "https://alice:secret@example.com/research",
+            "https://example.com/research?private=1",
+            "https://example.com/research#private",
+            "https://example.com:443/research",
+            "research",
+            ""
+        ]
+    )
+    func pathScopeRejectsUnnormalizedValues(value: String) {
+        #expect(throws: BrowserDestinationScope.ValidationError.self) {
+            _ = try BrowserDestinationScope.validatedPathPrefix(value)
+        }
+    }
+
+    @Test(
+        "Origin scope construction rejects values that are not exact origins",
+        arguments: [
+            "https://alice:secret@example.com",
+            "https://example.com/research",
+            "https://example.com?private=1",
+            "https://example.com#private",
+            "https://example.com:443",
+            "example.com",
+            ""
+        ]
+    )
+    func originScopeRejectsUnnormalizedValues(value: String) {
+        #expect(throws: BrowserDestinationScope.ValidationError.self) {
+            _ = try BrowserDestinationScope.validatedOrigin(value)
+        }
+    }
+
+    @Test("Scope decoding cannot bypass normalized construction")
+    func scopeDecodingRejectsUnnormalizedValues() {
+        let data = Data(
+            #"{"kind":"origin","origin":"https://example.com:443"}"#.utf8
+        )
+
+        #expect(throws: (any Error).self) {
+            _ = try JSONDecoder().decode(BrowserDestinationScope.self, from: data)
+        }
+    }
+
+    @Test("A grant cannot cross from the reviewed destination to another origin")
+    func crossOriginGrantIsRejected() throws {
+        var reducer = reducer()
+        reducer.observe(activeWork(tracking: .running), receivedAt: now)
+        let reviewed = try NormalizedHTTPDestination("https://instagram.com/research")
+        let scope = try BrowserDestinationScope.validatedOrigin("https://youtube.com")
+
+        let granted = reducer.grant(scope, for: reviewed, at: now)
+        #expect(!granted)
+        #expect(try !#require(reducer.policy(at: now))
+            .allows(NormalizedHTTPDestination("https://youtube.com/watch")))
+    }
+
     @Test("The initial policy unions matching mappings, task references, and Docket")
     func initialPolicyUsesEveryTaskOwnedSource() throws {
-        let mappings = [
+        let mappings = try [
             WorkDestinationMapping(
                 id: "task-map",
                 selector: .task("task-lvbt"),
-                scope: .origin("https://canva.com")
+                scope: BrowserDestinationScope.validatedOrigin("https://canva.com")
             ),
             WorkDestinationMapping(
                 id: "project-map",
                 selector: .project("project-lvbt"),
-                scope: .pathPrefix(origin: "https://transitcenter.org", path: "/research")
+                scope: BrowserDestinationScope.validatedPathPrefix(
+                    "https://transitcenter.org/research"
+                )
             ),
             WorkDestinationMapping(
                 id: "label-map",
                 selector: .label("social"),
-                scope: .origin("https://instagram.com")
+                scope: BrowserDestinationScope.validatedOrigin("https://instagram.com")
             ),
             WorkDestinationMapping(
                 id: "wrong-project",
                 selector: .project("project-other"),
-                scope: .origin("https://youtube.com")
+                scope: BrowserDestinationScope.validatedOrigin("https://youtube.com")
             )
         ]
         var reducer = try BrowserWorkSessionReducer(
@@ -118,7 +188,8 @@ struct BrowserWorkPolicyTests {
         var reducer = reducer()
         reducer.observe(activeWork(tracking: .running), receivedAt: now)
         let destination = try NormalizedHTTPDestination("https://transitcenter.org/news")
-        let granted = reducer.grant(.origin(destination.origin), for: destination, at: now)
+        let scope = try BrowserDestinationScope.validatedOrigin(destination.origin)
+        let granted = reducer.grant(scope, for: destination, at: now)
         #expect(granted)
 
         reducer.observe(
@@ -140,7 +211,8 @@ struct BrowserWorkPolicyTests {
         var reducer = reducer()
         reducer.observe(activeWork(tracking: .running), receivedAt: now)
         let destination = try NormalizedHTTPDestination("https://transitcenter.org/news")
-        let granted = reducer.grant(.origin(destination.origin), for: destination, at: now)
+        let scope = try BrowserDestinationScope.validatedOrigin(destination.origin)
+        let granted = reducer.grant(scope, for: destination, at: now)
         #expect(granted)
 
         #expect(try #require(reducer.policy(at: now.addingTimeInterval(1799))).allows(destination))
@@ -216,6 +288,103 @@ struct BrowserWorkPolicyTests {
         #expect(!policy.allows(unknown))
     }
 
+    @Test("Paused to idle creates one new break eligibility")
+    func pausedToIdleCreatesOneBreakEligibility() {
+        var reducer = reducer()
+        reducer.observe(activeWork(tracking: .paused), receivedAt: now)
+        let pausedBreak = reducer.beginBreak(at: now)
+        #expect(pausedBreak)
+
+        let idleAt = now.addingTimeInterval(5)
+        reducer.observe(
+            DocketActiveWork(observedAt: idleAt, tracking: .idle, recordID: nil, task: nil),
+            receivedAt: idleAt
+        )
+
+        let idleBreak = reducer.beginBreak(at: idleAt)
+        #expect(idleBreak)
+        reducer.observe(
+            DocketActiveWork(
+                observedAt: idleAt.addingTimeInterval(1),
+                tracking: .idle,
+                recordID: nil,
+                task: nil
+            ),
+            receivedAt: idleAt.addingTimeInterval(1)
+        )
+        let repeatedIdleBreak = reducer.beginBreak(at: idleAt.addingTimeInterval(1))
+        #expect(!repeatedIdleBreak)
+    }
+
+    @Test("Idle to paused creates one new break eligibility")
+    func idleToPausedCreatesOneBreakEligibility() {
+        var reducer = reducer()
+        reducer.observe(activeWork(tracking: .idle), receivedAt: now)
+        let idleBreak = reducer.beginBreak(at: now)
+        #expect(idleBreak)
+
+        let pausedAt = now.addingTimeInterval(5)
+        reducer.observe(
+            activeWork(tracking: .paused, observedAt: pausedAt),
+            receivedAt: pausedAt
+        )
+
+        let pausedBreak = reducer.beginBreak(at: pausedAt)
+        #expect(pausedBreak)
+        reducer.observe(
+            activeWork(tracking: .paused, observedAt: pausedAt.addingTimeInterval(1)),
+            receivedAt: pausedAt.addingTimeInterval(1)
+        )
+        let repeatedPausedBreak = reducer.beginBreak(at: pausedAt.addingTimeInterval(1))
+        #expect(!repeatedPausedBreak)
+    }
+
+    @Test("A browser policy snapshot serializes only the task identity")
+    func snapshotSerializationOmitsDocketTaskContext() throws {
+        let task = DocketActiveWorkTask(
+            id: "task-lvbt",
+            organizationID: "org-lvbt",
+            title: "Complete LVBT social strategy",
+            description: "Confidential description",
+            stateType: "started",
+            workspace: .init(id: "workspace-lvbt", name: "Secret workspace"),
+            project: .init(id: "project-lvbt", name: "Secret project", summary: "Secret summary"),
+            labels: [.init(id: "social", name: "Secret label")],
+            references: [.init(
+                source: .projectResource,
+                title: "Secret reference",
+                url: "https://alice:password@example.com/research?token=secret#private"
+            )]
+        )
+        var reducer = reducer()
+        reducer.observe(
+            DocketActiveWork(
+                observedAt: now,
+                tracking: .running,
+                recordID: "record-1",
+                task: task
+            ),
+            receivedAt: now
+        )
+
+        let policy = try #require(reducer.policy(at: now))
+        let data = try JSONEncoder().encode(policy)
+        let json = try #require(String(bytes: data, encoding: .utf8))
+
+        #expect(json.contains("task-lvbt"))
+        #expect(json.contains("Complete LVBT social strategy"))
+        #expect(!json.contains("Confidential description"))
+        #expect(!json.contains("Secret workspace"))
+        #expect(!json.contains("Secret project"))
+        #expect(!json.contains("Secret summary"))
+        #expect(!json.contains("Secret label"))
+        #expect(!json.contains("Secret reference"))
+        #expect(!json.contains("alice"))
+        #expect(!json.contains("password"))
+        #expect(!json.contains("token"))
+        #expect(!json.contains("private"))
+    }
+
     @Test(
         "A terminal task ends the retained session",
         arguments: ["completed", "canceled", "archived"]
@@ -227,6 +396,21 @@ struct BrowserWorkPolicyTests {
         reducer.observeTaskState(
             taskID: "task-lvbt",
             stateType: stateType,
+            observedAt: now.addingTimeInterval(5)
+        )
+
+        #expect(reducer.policy(at: now.addingTimeInterval(5)) == nil)
+    }
+
+    @Test("An archive timestamp ends a retained session")
+    func archiveTimestampEndsSession() {
+        var reducer = reducer()
+        reducer.observe(activeWork(tracking: .running), receivedAt: now)
+
+        reducer.observeTaskState(
+            taskID: "task-lvbt",
+            stateType: "started",
+            archivedAt: now.addingTimeInterval(5),
             observedAt: now.addingTimeInterval(5)
         )
 

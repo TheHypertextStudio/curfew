@@ -5,10 +5,15 @@ public nonisolated struct BrowserSessionGrant: Codable, Equatable, Sendable {
     public let expiresAt: Date
 }
 
+public nonisolated struct BrowserVisibleTask: Codable, Equatable, Sendable {
+    public let id: String
+    public let title: String
+}
+
 public nonisolated struct BrowserPolicySnapshot: Codable, Equatable, Sendable {
     public let schemaVersion: String
     public let sessionID: UUID
-    public let task: DocketActiveWorkTask
+    public let task: BrowserVisibleTask
     public let tracking: DocketTrackingState
     public let scopes: Set<BrowserDestinationScope>
     public let breakEndsAt: Date?
@@ -44,7 +49,11 @@ public nonisolated struct BrowserWorkSessionReducer: Sendable {
         guard let normalized = try? NormalizedHTTPDestination(docketWebOrigin.absoluteString) else {
             preconditionFailure("The configured Docket web origin must use HTTP or HTTPS")
         }
-        self.docketScope = .origin(normalized.origin)
+        guard let docketScope = try? BrowserDestinationScope.validatedOrigin(normalized.origin)
+        else {
+            preconditionFailure("The configured Docket web origin must be an exact origin")
+        }
+        self.docketScope = docketScope
         self.mappings = mappings
     }
 
@@ -62,7 +71,7 @@ public nonisolated struct BrowserWorkSessionReducer: Sendable {
 
         guard let task = work.task else {
             if work.tracking == .idle {
-                session?.tracking = .idle
+                updateTracking(.idle)
             }
             return
         }
@@ -75,11 +84,7 @@ public nonisolated struct BrowserWorkSessionReducer: Sendable {
 
         if session?.task.id == task.id {
             session?.task = task
-            session?.tracking = work.tracking
-            if work.tracking == .running {
-                session?.breakEndsAt = nil
-                session?.breakConsumed = false
-            }
+            updateTracking(work.tracking)
             return
         }
         session = Session(
@@ -93,14 +98,19 @@ public nonisolated struct BrowserWorkSessionReducer: Sendable {
         )
     }
 
-    public mutating func observeTaskState(taskID: String, stateType: String, observedAt: Date) {
+    public mutating func observeTaskState(
+        taskID: String,
+        stateType: String,
+        archivedAt: Date? = nil,
+        observedAt: Date
+    ) {
         guard session?.task.id == taskID else { return }
         if let lastDocketObservation, observedAt < lastDocketObservation {
             return
         }
         lastDocketObservation = observedAt
         docketIsHealthy = true
-        if DocketActiveWorkTask.isTerminal(stateType) {
+        if archivedAt != nil || DocketActiveWorkTask.isTerminal(stateType) {
             session = nil
         }
     }
@@ -145,6 +155,10 @@ public nonisolated struct BrowserWorkSessionReducer: Sendable {
         return expiresAt <= date
     }
 
+    func currentTask() -> DocketActiveWorkTask? {
+        session?.task
+    }
+
     public func policy(at date: Date) -> BrowserPolicySnapshot? {
         guard let session else { return nil }
         var scopes: Set<BrowserDestinationScope> = [docketScope]
@@ -156,7 +170,7 @@ public nonisolated struct BrowserWorkSessionReducer: Sendable {
         return BrowserPolicySnapshot(
             schemaVersion: "browser-policy/1",
             sessionID: session.id,
-            task: session.task,
+            task: BrowserVisibleTask(id: session.task.id, title: session.task.title),
             tracking: session.tracking,
             scopes: scopes,
             breakEndsAt: session.breakEndsAt,
@@ -170,8 +184,22 @@ public nonisolated struct BrowserWorkSessionReducer: Sendable {
     ) -> BrowserDestinationScope? {
         guard let destination = try? NormalizedHTTPDestination(reference.url) else { return nil }
         if destination.path == "/" {
-            return .origin(destination.origin)
+            return try? BrowserDestinationScope.validatedOrigin(destination.origin)
         }
-        return .pathPrefix(origin: destination.origin, path: destination.path)
+        return try? BrowserDestinationScope.validatedPathPrefix(
+            origin: destination.origin,
+            path: destination.path
+        )
+    }
+
+    private mutating func updateTracking(_ tracking: DocketTrackingState) {
+        guard let previous = session?.tracking else { return }
+        session?.tracking = tracking
+        if tracking == .running {
+            session?.breakEndsAt = nil
+            session?.breakConsumed = false
+        } else if tracking != previous {
+            session?.breakConsumed = false
+        }
     }
 }

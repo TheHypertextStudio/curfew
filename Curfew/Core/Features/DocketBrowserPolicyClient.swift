@@ -41,7 +41,7 @@ nonisolated struct DocketServiceEndpoints: Equatable, Sendable {
             webOrigin: webURL,
             mcpResource: apiURL.appending(path: "/mcp"),
             authorizationEndpoint: webURL.appending(path: "/api/auth/oauth2/authorize"),
-            registrationEndpoint: apiURL.appending(path: "/api/auth/oauth2/register"),
+            registrationEndpoint: apiURL.appending(path: "/api/auth/mcp/register"),
             tokenEndpoint: apiURL.appending(path: "/api/auth/oauth2/token"),
             keychainService: keychainService
         )
@@ -53,6 +53,7 @@ enum DocketClientError: Error, Equatable {
     case invalidResponse
     case unauthorized
     case unavailable
+    case staleSession
 }
 
 nonisolated struct DocketOAuthAuthorizationRequest: Equatable, Sendable {
@@ -117,13 +118,17 @@ nonisolated enum DocketOAuthCallback {
               callback.path == "/callback",
               let components = URLComponents(url: callback, resolvingAgainstBaseURL: false)
         else { throw DocketClientError.invalidResponse }
-        let values = Dictionary(uniqueKeysWithValues: (components.queryItems ?? [])
-            .compactMap { item in
-                item.value.map { (item.name, $0) }
-            })
-        guard values["state"] == expectedState,
-              values["error"] == nil,
-              let code = values["code"],
+        let queryItems = components.queryItems ?? []
+        let securityNames = ["state", "code", "error"]
+        guard securityNames.allSatisfy({ name in
+            queryItems.filter { $0.name == name }.count <= 1
+        }) else { throw DocketClientError.invalidResponse }
+        let state = queryItems.first { $0.name == "state" }?.value
+        let code = queryItems.first { $0.name == "code" }?.value
+        let error = queryItems.first { $0.name == "error" }?.value
+        guard state == expectedState,
+              error == nil,
+              let code,
               !code.isEmpty
         else { throw DocketClientError.invalidResponse }
         return code
@@ -267,6 +272,7 @@ final class DocketOAuthClient {
         let (data, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse,
               (200 ..< 300).contains(http.statusCode),
+              data.count <= Self.maximumOAuthResponseBytes,
               let object = try JSONSerialization.jsonObject(with: data) as? [String: Any],
               let clientID = object["client_id"] as? String,
               !clientID.isEmpty
@@ -298,7 +304,8 @@ final class DocketOAuthClient {
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         let (data, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse,
-              (200 ..< 300).contains(http.statusCode)
+              (200 ..< 300).contains(http.statusCode),
+              data.count <= Self.maximumOAuthResponseBytes
         else { throw DocketClientError.invalidResponse }
         let wire = try JSONDecoder().decode(DocketTokenResponse.self, from: data)
         guard wire.tokenType.caseInsensitiveCompare("Bearer") == .orderedSame,
@@ -325,6 +332,8 @@ final class DocketOAuthClient {
     private static func formEncode(_ value: String) -> String {
         value.addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? ""
     }
+
+    private static let maximumOAuthResponseBytes = 32 * 1024
 }
 
 private nonisolated struct DocketTokenResponse: Decodable {
@@ -344,7 +353,19 @@ private nonisolated struct DocketTokenResponse: Decodable {
 nonisolated struct DocketTaskStateObservation: Equatable, Sendable {
     let taskID: String
     let stateType: String
+    let archivedAt: Date?
     let observedAt: Date
+
+    init(taskID: String, stateType: String, archivedAt: Date? = nil, observedAt: Date) {
+        self.taskID = taskID
+        self.stateType = stateType
+        self.archivedAt = archivedAt
+        self.observedAt = observedAt
+    }
+
+    var isTerminal: Bool {
+        archivedAt != nil || DocketActiveWorkTask.isTerminal(stateType)
+    }
 }
 
 nonisolated struct DocketDestinationReviewInput: Codable, Equatable, Sendable {
@@ -408,15 +429,15 @@ nonisolated enum DocketMCPWire {
                   let value = scope["value"] as? String
             else { throw DocketClientError.invalidResponse }
             if kind == "origin" {
-                return .grant(reason: reason, scope: .origin(value))
+                return try .grant(
+                    reason: reason,
+                    scope: BrowserDestinationScope.validatedOrigin(value)
+                )
             }
             guard kind == "path_prefix",
-                  let destination = try? NormalizedHTTPDestination(value)
+                  let scope = try? BrowserDestinationScope.validatedPathPrefix(value)
             else { throw DocketClientError.invalidResponse }
-            return .grant(
-                reason: reason,
-                scope: .pathPrefix(origin: destination.origin, path: destination.path)
-            )
+            return .grant(reason: reason, scope: scope)
         case "challenge":
             guard let question = object["question"] as? String else {
                 throw DocketClientError.invalidResponse
@@ -427,6 +448,25 @@ nonisolated enum DocketMCPWire {
         default:
             throw DocketClientError.invalidResponse
         }
+    }
+
+    static func decodeTaskState(_ data: Data, observedAt: Date) throws
+        -> DocketTaskStateObservation {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .custom { decoder in
+            let value = try decoder.singleValueContainer().decode(String.self)
+            guard let date = Self.iso8601.date(from: value) ?? Self.iso8601Fractional
+                .date(from: value)
+            else { throw DocketClientError.invalidResponse }
+            return date
+        }
+        let wire = try decoder.decode(DocketTaskStateWire.self, from: data)
+        return .init(
+            taskID: wire.id,
+            stateType: wire.stateType,
+            archivedAt: wire.archivedAt,
+            observedAt: observedAt
+        )
     }
 
     private static func jsonObject(_ data: Data) throws -> [String: Any] {
@@ -442,6 +482,12 @@ nonisolated enum DocketMCPWire {
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         return formatter
     }()
+
+    private struct DocketTaskStateWire: Decodable {
+        let id: String
+        let stateType: String
+        let archivedAt: Date?
+    }
 }
 
 nonisolated protocol DocketMCPTransporting: Sendable {
@@ -455,6 +501,11 @@ nonisolated protocol DocketMCPTransporting: Sendable {
         _ input: DocketDestinationReviewInput,
         accessToken: String
     ) async throws -> DocketDestinationReview
+    func resetSession() async
+}
+
+extension DocketMCPTransporting {
+    func resetSession() async {}
 }
 
 actor DocketMCPHTTPTransport: DocketMCPTransporting {
@@ -469,6 +520,10 @@ actor DocketMCPHTTPTransport: DocketMCPTransporting {
     ) {
         self.endpoint = endpoint
         self.session = session
+    }
+
+    func resetSession() {
+        sessionID = nil
     }
 
     func readActiveWork(accessToken: String) async throws -> DocketActiveWork {
@@ -490,11 +545,7 @@ actor DocketMCPHTTPTransport: DocketMCPTransporting {
             parameters: ["uri": "docket://\(organizationID)/task/\(taskID)"],
             accessToken: accessToken
         )
-        let object = try jsonObject(resourceText(from: result))
-        guard let returnedID = object["id"] as? String,
-              let stateType = object["stateType"] as? String
-        else { throw DocketClientError.invalidResponse }
-        return .init(taskID: returnedID, stateType: stateType, observedAt: Date())
+        return try DocketMCPWire.decodeTaskState(resourceText(from: result), observedAt: Date())
     }
 
     func reviewDestination(
@@ -522,6 +573,27 @@ actor DocketMCPHTTPTransport: DocketMCPTransporting {
     }
 
     private func call(
+        method: String,
+        parameters: [String: Any],
+        accessToken: String
+    ) async throws -> [String: Any] {
+        do {
+            return try await callOnce(
+                method: method,
+                parameters: parameters,
+                accessToken: accessToken
+            )
+        } catch DocketClientError.staleSession {
+            sessionID = nil
+            return try await callOnce(
+                method: method,
+                parameters: parameters,
+                accessToken: accessToken
+            )
+        }
+    }
+
+    private func callOnce(
         method: String,
         parameters: [String: Any],
         accessToken: String
@@ -571,8 +643,11 @@ actor DocketMCPHTTPTransport: DocketMCPTransporting {
             "params": parameters
         ]
         let (data, http) = try await send(body, accessToken: accessToken, sessionID: sessionID)
-        let envelope = try jsonObject(Self.unwrapSSE(data))
-        guard envelope["error"] == nil else { throw DocketClientError.invalidResponse }
+        let payload = try Self.responsePayload(data, response: http)
+        let envelope = try jsonObject(payload)
+        guard envelope["error"] == nil,
+              (envelope["id"] as? NSNumber)?.intValue == requestID
+        else { throw DocketClientError.invalidResponse }
         return (
             envelope["result"] as? [String: Any],
             http.value(forHTTPHeaderField: "Mcp-Session-Id")
@@ -609,8 +684,14 @@ actor DocketMCPHTTPTransport: DocketMCPTransporting {
         if http.statusCode == 401 {
             throw DocketClientError.unauthorized
         }
+        if sessionID != nil, http.statusCode == 404 || http.statusCode == 410 {
+            throw DocketClientError.staleSession
+        }
         guard (200 ..< 300).contains(http.statusCode) else {
             throw DocketClientError.unavailable
+        }
+        guard data.count <= Self.maximumMCPResponseBytes else {
+            throw DocketClientError.invalidResponse
         }
         return (data, http)
     }
@@ -636,14 +717,38 @@ actor DocketMCPHTTPTransport: DocketMCPTransporting {
         return result
     }
 
-    private nonisolated static func unwrapSSE(_ data: Data) -> Data {
-        guard let text = String(data: data, encoding: .utf8),
-              text.hasPrefix("data:")
+    private nonisolated static func responsePayload(
+        _ data: Data,
+        response: HTTPURLResponse
+    ) throws -> Data {
+        guard response.value(forHTTPHeaderField: "Content-Type")?
+            .lowercased().contains("text/event-stream") == true
         else { return data }
-        let payload = text.split(separator: "\n").first { $0.hasPrefix("data:") }?
-            .dropFirst("data:".count).trimmingCharacters(in: .whitespaces)
-        return payload.map { Data($0.utf8) } ?? data
+        guard let text = String(data: data, encoding: .utf8) else {
+            throw DocketClientError.invalidResponse
+        }
+        let normalized = text.replacingOccurrences(of: "\r\n", with: "\n")
+        let events = normalized.components(separatedBy: "\n\n").filter {
+            !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }
+        guard events.count == 1 else { throw DocketClientError.invalidResponse }
+        let lines = events[0].split(separator: "\n", omittingEmptySubsequences: false)
+        let eventLines = lines.filter { $0.hasPrefix("event:") }
+        let dataLines = lines.filter { $0.hasPrefix("data:") }
+        guard eventLines.count == 1,
+              eventLines[0].dropFirst("event:".count).trimmingCharacters(in: .whitespaces) ==
+              "message",
+              dataLines.count == 1
+        else { throw DocketClientError.invalidResponse }
+        let payload = dataLines[0].dropFirst("data:".count)
+            .trimmingCharacters(in: .whitespaces)
+        guard !payload.isEmpty else { throw DocketClientError.invalidResponse }
+        return Data(payload.utf8)
     }
+
+    /// Docket's browser-policy messages are small. One MiB leaves room for task
+    /// context growth while bounding authenticated JSON and SSE parsing.
+    private static let maximumMCPResponseBytes = 1024 * 1024
 }
 
 @MainActor
@@ -696,19 +801,23 @@ final class DocketBrowserPolicyCoordinator {
 
     func poll(at date: Date) async {
         do {
-            let accessToken = try await validAccessToken(at: date)
-            let priorTask = reducer.policy(at: date)?.task
-            let work = try await transport.readActiveWork(accessToken: accessToken)
+            let priorTask = reducer.currentTask()
+            let work = try await withAuthorizedAccess(at: date) { accessToken in
+                try await self.transport.readActiveWork(accessToken: accessToken)
+            }
             reducer.observe(work, receivedAt: date)
             if work.tracking == .idle, let priorTask {
-                let state = try await transport.readTaskState(
-                    organizationID: priorTask.organizationID,
-                    taskID: priorTask.id,
-                    accessToken: accessToken
-                )
+                let state = try await withAuthorizedAccess(at: date) { accessToken in
+                    try await self.transport.readTaskState(
+                        organizationID: priorTask.organizationID,
+                        taskID: priorTask.id,
+                        accessToken: accessToken
+                    )
+                }
                 reducer.observeTaskState(
                     taskID: state.taskID,
                     stateType: state.stateType,
+                    archivedAt: state.archivedAt,
                     observedAt: state.observedAt
                 )
             }
@@ -724,7 +833,8 @@ final class DocketBrowserPolicyCoordinator {
         at date: Date
     ) async -> DocketDestinationReview {
         guard let destination = try? NormalizedHTTPDestination(rawDestination),
-              let task = reducer.policy(at: date)?.task,
+              let sessionID = reducer.policy(at: date)?.sessionID,
+              let task = reducer.currentTask(),
               reducer.canReview(destination, at: date)
         else { return .deny(reason: "This destination cannot be reviewed now.") }
         let input = DocketDestinationReviewInput(
@@ -735,8 +845,12 @@ final class DocketBrowserPolicyCoordinator {
             challengeAnswer: challengeAnswer
         )
         do {
-            let accessToken = try await validAccessToken(at: date)
-            let result = try await transport.reviewDestination(input, accessToken: accessToken)
+            let result = try await withAuthorizedAccess(at: date) { accessToken in
+                try await self.transport.reviewDestination(input, accessToken: accessToken)
+            }
+            guard reducer.policy(at: date)?.sessionID == sessionID else {
+                return .deny(reason: "Work changed while Docket reviewed this destination.")
+            }
             switch result {
             case .grant(_, let scope):
                 guard reducer.grant(scope, for: destination, at: date) else {
@@ -750,6 +864,9 @@ final class DocketBrowserPolicyCoordinator {
             }
             return result
         } catch {
+            guard reducer.policy(at: date)?.sessionID == sessionID else {
+                return .deny(reason: "Work changed while Docket reviewed this destination.")
+            }
             reducer.deny(destination, at: date)
             return .deny(reason: "Docket could not review this destination.")
         }
@@ -760,5 +877,19 @@ final class DocketBrowserPolicyCoordinator {
             return tokens.accessToken
         }
         return try await oauth.refresh(now: date).accessToken
+    }
+
+    private func withAuthorizedAccess<Value>(
+        at date: Date,
+        operation: (String) async throws -> Value
+    ) async throws -> Value {
+        let accessToken = try await validAccessToken(at: date)
+        do {
+            return try await operation(accessToken)
+        } catch DocketClientError.unauthorized {
+            await transport.resetSession()
+            let freshToken = try await oauth.refresh(now: date).accessToken
+            return try await operation(freshToken)
+        }
     }
 }

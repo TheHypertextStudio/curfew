@@ -135,11 +135,18 @@ deterministic local policy snapshot. A timer stop changes tracking to idle but
 does not end the session. A matching terminal task state ends the session. A
 task change creates a new session identifier and drops every grant and cooldown.
 The reducer keeps known scopes during a service failure and blocks every unknown
-destination.
+destination. The extension-facing snapshot contains only the current task ID
+and title. Curfew validates every scope before the reducer can store it. Curfew
+also rejects a destination-review result when its captured session ID no longer
+matches the current session.
 
 `DocketBrowserPolicyClient` registers an OAuth public client at Docket, requests
 only `work:read`, `agents:run`, and `offline_access`, and stores its client ID and
 tokens in a Docket-specific Keychain service. It polls every 30 seconds without
-a session and every five seconds with one. The native host and Chrome extension
-will consume the snapshot in later slices. See `Documentation/browser-enforcement.md`
-and its linked sequence diagram for the boundary and privacy rules.
+a session and every five seconds with one. The transport parses Docket's
+Streamable HTTP SSE envelope and matches each JSON-RPC response ID. It permits
+one token-refresh retry after a 401 and one reinitialization retry after a dead
+MCP session. Both retry paths stop after the second failure. The native host and
+Chrome extension will consume the snapshot in later slices. See
+`Documentation/browser-enforcement.md` and its linked sequence diagram for the
+boundary and privacy rules.
