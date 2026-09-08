@@ -10,6 +10,54 @@ public nonisolated struct BrowserVisibleTask: Codable, Equatable, Sendable {
     public let title: String
 }
 
+public nonisolated struct BrowserRetainedSessionIdentity: Codable, Equatable, Sendable {
+    public nonisolated enum ValidationError: Error, Equatable {
+        case invalidIdentifier
+    }
+
+    public let sessionID: UUID
+    public let organizationID: String
+    public let taskID: String
+
+    public static func validated(
+        sessionID: UUID,
+        organizationID: String,
+        taskID: String
+    ) throws -> Self {
+        guard isValidIdentifier(organizationID), isValidIdentifier(taskID) else {
+            throw ValidationError.invalidIdentifier
+        }
+        return Self(sessionID: sessionID, organizationID: organizationID, taskID: taskID)
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self = try Self.validated(
+            sessionID: container.decode(UUID.self, forKey: .sessionID),
+            organizationID: container.decode(String.self, forKey: .organizationID),
+            taskID: container.decode(String.self, forKey: .taskID)
+        )
+    }
+
+    private init(sessionID: UUID, organizationID: String, taskID: String) {
+        self.sessionID = sessionID
+        self.organizationID = organizationID
+        self.taskID = taskID
+    }
+
+    private static func isValidIdentifier(_ value: String) -> Bool {
+        guard (1 ... 256).contains(value.utf8.count) else { return false }
+        return value.unicodeScalars.allSatisfy {
+            CharacterSet.alphanumerics.contains($0) || CharacterSet(charactersIn: "-_.")
+                .contains($0)
+        }
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case sessionID, organizationID, taskID
+    }
+}
+
 public nonisolated struct BrowserPolicySnapshot: Codable, Equatable, Sendable {
     public let schemaVersion: String
     public let sessionID: UUID

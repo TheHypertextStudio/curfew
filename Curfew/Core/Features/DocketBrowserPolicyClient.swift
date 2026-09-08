@@ -867,6 +867,8 @@ final class DocketBrowserPolicyCoordinator {
     private(set) var hasConfirmedPolicyObservation = false
     private(set) var lastSuccessfulPoll: Date?
     private(set) var lastPollIsHealthy = false
+    private(set) var retainedSessionIdentity: BrowserRetainedSessionIdentity?
+    private(set) var hasConfirmedRetainedSessionEnd = false
     private let transport: any DocketMCPTransporting
     private let credentials: DocketCredentialStore
     private let oauth: any DocketOAuthAuthorizing
@@ -900,7 +902,12 @@ final class DocketBrowserPolicyCoordinator {
     }
 
     func pollInterval(at date: Date) -> TimeInterval {
-        reducer.policy(at: date) == nil ? 30 : 5
+        reducer.policy(at: date) == nil && retainedSessionIdentity == nil ? 30 : 5
+    }
+
+    func restoreRetainedSessionIdentity(_ identity: BrowserRetainedSessionIdentity) {
+        guard reducer.currentSessionID() == nil else { return }
+        retainedSessionIdentity = identity
     }
 
     func startPolling() {
@@ -936,24 +943,74 @@ final class DocketBrowserPolicyCoordinator {
                 hasConfirmedPolicyObservation = true
             }
             reducer.observe(work, receivedAt: date)
-            if work.task == nil, let priorTask, let priorSessionID {
-                let state = try await withAuthorizedAccess(at: date) { accessToken in
-                    try await self.transport.readTaskState(
-                        organizationID: priorTask.organizationID,
-                        taskID: priorTask.id,
-                        accessToken: accessToken
-                    )
-                }
+            updateRetainedSessionIdentity(for: work.task)
+            try await reconcileRetainedTask(
+                after: work,
+                priorTask: priorTask,
+                priorSessionID: priorSessionID,
+                at: date
+            )
+        } catch {
+            lastPollIsHealthy = false
+            reducer.markDocketUnavailable(at: date)
+        }
+    }
+
+    private func updateRetainedSessionIdentity(for task: DocketActiveWorkTask?) {
+        guard let task else { return }
+        if task.isTerminal {
+            retainedSessionIdentity = nil
+            hasConfirmedRetainedSessionEnd = true
+        } else if let sessionID = reducer.currentSessionID() {
+            retainedSessionIdentity = try? .validated(
+                sessionID: sessionID,
+                organizationID: task.organizationID,
+                taskID: task.id
+            )
+            hasConfirmedRetainedSessionEnd = false
+        }
+    }
+
+    private func reconcileRetainedTask(
+        after work: DocketActiveWork,
+        priorTask: DocketActiveWorkTask?,
+        priorSessionID: UUID?,
+        at date: Date
+    ) async throws {
+        guard work.task == nil else { return }
+        let identity = retainedSessionIdentity ?? priorTask.flatMap { task in
+            guard let priorSessionID else { return nil }
+            return try? BrowserRetainedSessionIdentity.validated(
+                sessionID: priorSessionID,
+                organizationID: task.organizationID,
+                taskID: task.id
+            )
+        }
+        guard let identity else { return }
+        let state = try await withAuthorizedAccess(at: date) { accessToken in
+            try await self.transport.readTaskState(
+                organizationID: identity.organizationID,
+                taskID: identity.taskID,
+                accessToken: accessToken
+            )
+        }
+        guard state.taskID == identity.taskID else {
+            throw DocketClientError.invalidResponse
+        }
+        if state.isTerminal {
+            if priorSessionID == identity.sessionID {
                 reducer.observeTaskState(
-                    sessionID: priorSessionID,
+                    sessionID: identity.sessionID,
                     taskID: state.taskID,
                     stateType: state.stateType,
                     archivedAt: state.archivedAt
                 )
             }
-        } catch {
-            lastPollIsHealthy = false
-            reducer.markDocketUnavailable(at: date)
+            retainedSessionIdentity = nil
+            hasConfirmedRetainedSessionEnd = true
+        } else {
+            retainedSessionIdentity = identity
+            hasConfirmedRetainedSessionEnd = false
         }
     }
 

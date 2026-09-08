@@ -8,10 +8,13 @@ import type {
 import { buildDynamicRules, type DynamicRule } from "./rules";
 
 const policyKey = "browserPolicy";
+const policyRevisionKey = "browserPolicyRevision";
 const requestKeyPrefix = "browserRequest:";
 const requestLifetimeMilliseconds = 2 * 60 * 1_000;
 const answerLimitBytes = 8_192;
-const invalidAnswerReason = "Answer must be between 1 and 8,192 UTF-8 bytes.";
+const maximumAnswerCharacters = 1_000;
+const invalidJustificationReason = "Justification must contain 20 to 1,000 characters.";
+const invalidChallengeAnswerReason = "Challenge answer must contain 1 to 1,000 characters.";
 const textEncoder = new TextEncoder();
 
 interface StoredBrowserRequest {
@@ -23,6 +26,7 @@ interface StoredBrowserRequest {
   task: BrowserPolicySnapshot["task"];
   challengeIssued: boolean;
   challengeQuestion?: string;
+  originalJustification?: string;
   createdAt: string;
   expiresAt: string;
 }
@@ -31,6 +35,7 @@ interface PreparedBrowserReview {
   request: StoredBrowserRequest;
   nativeRequestID: string;
   nativeRequest: Record<string, unknown>;
+  justification: string;
 }
 
 export interface BrowserControllerDependencies {
@@ -89,9 +94,10 @@ function hasValidDate(value: unknown): value is string {
   return typeof value === "string" && Number.isFinite(Date.parse(value));
 }
 
-function normalizedAnswer(value: string): string | null {
+function normalizedAnswer(value: string, minimumCharacters: number): string | null {
   const answer = value.trim();
-  if (answer.length === 0 || textEncoder.encode(answer).byteLength > answerLimitBytes) {
+  if (answer.length < minimumCharacters || answer.length > maximumAnswerCharacters ||
+      textEncoder.encode(answer).byteLength > answerLimitBytes) {
     return null;
   }
   return answer;
@@ -152,9 +158,13 @@ function isStoredRequest(value: unknown): value is StoredBrowserRequest {
       !hasValidDate(value.createdAt) || !hasValidDate(value.expiresAt)) {
     return false;
   }
-  return value.challengeIssued
-    ? typeof value.challengeQuestion === "string" && value.challengeQuestion.trim().length > 0
-    : value.challengeQuestion === undefined;
+  if (value.challengeIssued) {
+    return typeof value.challengeQuestion === "string" &&
+      value.challengeQuestion.trim().length > 0 &&
+      typeof value.originalJustification === "string" &&
+      normalizedAnswer(value.originalJustification, 20) === value.originalJustification;
+  }
+  return value.challengeQuestion === undefined && value.originalJustification === undefined;
 }
 
 function scopeAllows(
@@ -224,6 +234,11 @@ function readNativeResponse(
   if ("error" in value && value.error !== undefined && typeof value.error !== "string") {
     throw new Error("The native host returned an invalid error");
   }
+  if ("policyRevision" in value && value.policyRevision !== undefined &&
+      (typeof value.policyRevision !== "string" || value.policyRevision.length === 0 ||
+        value.policyRevision.length > 128)) {
+    throw new Error("The native host returned an invalid policy revision");
+  }
   return value as unknown as NativeResponse;
 }
 
@@ -260,7 +275,7 @@ export class BrowserPolicyController {
         if (response.error !== undefined) {
           return;
         }
-        await this.cachePolicy(response.policy ?? null);
+        await this.cachePolicy(response.policy ?? null, this.dependencies.now(), response.policyRevision);
         await this.sendHeartbeat();
       } catch {
         // The cached dynamic rules remain authoritative while Curfew is unavailable.
@@ -268,7 +283,11 @@ export class BrowserPolicyController {
     });
   }
 
-  async cachePolicy(policy: BrowserPolicySnapshot | null, at = this.dependencies.now()): Promise<void> {
+  async cachePolicy(
+    policy: BrowserPolicySnapshot | null,
+    at = this.dependencies.now(),
+    revision?: string,
+  ): Promise<void> {
     const dynamicRules = await this.dependencies.dynamicRules.get();
     const rules = buildDynamicRules(policy, at);
     if (policy === null) {
@@ -312,8 +331,14 @@ export class BrowserPolicyController {
     }
     if (policy === null) {
       await this.dependencies.storage.remove(policyKey);
+      if (revision !== undefined) {
+        await this.dependencies.storage.set({ [policyRevisionKey]: revision });
+      }
     } else {
-      await this.dependencies.storage.set({ [policyKey]: policy });
+      await this.dependencies.storage.set({
+        [policyKey]: policy,
+        ...(revision === undefined ? {} : { [policyRevisionKey]: revision }),
+      });
     }
     await this.pruneStoredRequests(policy?.sessionID, at);
     await this.scheduleNextExpiry(policy, at);
@@ -343,6 +368,7 @@ export class BrowserPolicyController {
     if (policyAllows(policy, destination, createdAt)) {
       return;
     }
+    await this.discardStoredRequestsForTab(details.tabId);
     const id = this.dependencies.randomID();
     const request: StoredBrowserRequest = {
       id,
@@ -357,9 +383,19 @@ export class BrowserPolicyController {
     };
     await this.dependencies.storage.set({ [`${requestKeyPrefix}${id}`]: request });
     await this.scheduleNextExpiry(policy, createdAt);
-    const page = new URL(this.dependencies.extensionURL("blocker.html"));
-    page.searchParams.set("request", id);
-    await this.dependencies.tabs.update(details.tabId, { url: page.toString() });
+    await this.dependencies.tabs.update(details.tabId, { url: this.blockerURL(id) });
+  }
+
+  async handleTabClosed(tabId: number): Promise<void> {
+    await this.discardStoredRequestsForTab(tabId);
+    await this.scheduleNextExpiry(await this.readPolicy(), this.dependencies.now());
+  }
+
+  async handleTabURLChanged(tabId: number, url: string): Promise<void> {
+    const discarded = await this.discardStoredRequestsForTab(tabId, url);
+    if (discarded) {
+      await this.scheduleNextExpiry(await this.readPolicy(), this.dependencies.now());
+    }
   }
 
   async getBlockerContext(requestID: string): Promise<{
@@ -385,16 +421,9 @@ export class BrowserPolicyController {
 
   async reviewDestination(input: {
     requestID: string;
-    justification: string;
+    justification?: string;
     challengeAnswer?: string;
   }): Promise<BrowserReviewOutcome> {
-    const justification = normalizedAnswer(input.justification);
-    const challengeAnswer = input.challengeAnswer === undefined
-      ? undefined
-      : normalizedAnswer(input.challengeAnswer);
-    if (justification === null || challengeAnswer === null) {
-      return { status: "invalid_answer", reason: invalidAnswerReason };
-    }
     const prepared = await this.serializePolicyOperation<
       PreparedBrowserReview | BrowserReviewOutcome
     >(async () => {
@@ -407,8 +436,29 @@ export class BrowserPolicyController {
         await this.removeStoredRequest(input.requestID, policy);
         return { status: "stale_session" } as const;
       }
-      if (request.challengeIssued && challengeAnswer === undefined) {
-        return { status: "invalid_answer", reason: invalidAnswerReason } as const;
+      let justification: string;
+      let challengeAnswer: string | undefined;
+      if (request.challengeIssued) {
+        challengeAnswer = input.challengeAnswer === undefined
+          ? undefined
+          : normalizedAnswer(input.challengeAnswer, 1) ?? undefined;
+        if (challengeAnswer === undefined) {
+          return {
+            status: "invalid_answer",
+            reason: invalidChallengeAnswerReason,
+          } as const;
+        }
+        justification = request.originalJustification!;
+      } else {
+        justification = input.justification === undefined
+          ? ""
+          : normalizedAnswer(input.justification, 20) ?? "";
+        if (justification.length === 0 || input.challengeAnswer !== undefined) {
+          return {
+            status: "invalid_answer",
+            reason: invalidJustificationReason,
+          } as const;
+        }
       }
 
       const nativeRequestID = this.dependencies.randomID();
@@ -423,7 +473,12 @@ export class BrowserPolicyController {
       if (challengeAnswer !== undefined && request.challengeIssued) {
         nativeRequest.challengeAnswer = challengeAnswer;
       }
-      return { request, nativeRequestID, nativeRequest } satisfies PreparedBrowserReview;
+      return {
+        request,
+        nativeRequestID,
+        nativeRequest,
+        justification,
+      } satisfies PreparedBrowserReview;
     });
     if ("status" in prepared) {
       return prepared;
@@ -443,12 +498,18 @@ export class BrowserPolicyController {
       return { status: "host_failure" };
     }
     return this.serializePolicyOperation(() =>
-      this.applyReviewResponse(input.requestID, prepared.request, response));
+      this.applyReviewResponse(
+        input.requestID,
+        prepared.request,
+        prepared.justification,
+        response,
+      ));
   }
 
   private async applyReviewResponse(
     requestID: string,
     request: StoredBrowserRequest,
+    justification: string,
     response: NativeResponse,
   ): Promise<BrowserReviewOutcome> {
     const currentPolicy = await this.readPolicy();
@@ -484,6 +545,7 @@ export class BrowserPolicyController {
           ...storedRequest,
           challengeIssued: true,
           challengeQuestion: response.result.question,
+          originalJustification: justification,
         },
       });
       return { status: "challenge", question: response.result.question };
@@ -506,6 +568,54 @@ export class BrowserPolicyController {
   private async readPolicy(): Promise<BrowserPolicySnapshot | null> {
     const stored = (await this.dependencies.storage.get(policyKey))[policyKey];
     return isPolicy(stored) ? stored : null;
+  }
+
+  async waitForPolicyChange(): Promise<boolean> {
+    const prepared = await this.serializePolicyOperation(async () => {
+      const stored = (await this.dependencies.storage.get(policyRevisionKey))[policyRevisionKey];
+      return typeof stored === "string" && stored.length > 0 && stored.length <= 128
+        ? stored
+        : null;
+    });
+    if (prepared === null) {
+      return false;
+    }
+    const requestID = this.dependencies.randomID();
+    let response: NativeResponse;
+    try {
+      response = readNativeResponse(
+        await this.dependencies.native.send(this.dependencies.nativeHostName, {
+          schemaVersion: "browser-host/1",
+          requestId: requestID,
+          type: "get_policy",
+          knownPolicyRevision: prepared,
+        }),
+        requestID,
+        "get_policy",
+      );
+    } catch {
+      return false;
+    }
+    if (response.error !== undefined || response.policyRevision === undefined) {
+      return false;
+    }
+    await this.serializePolicyOperation(async () => {
+      const current = (await this.dependencies.storage.get(policyRevisionKey))[policyRevisionKey];
+      if (current !== prepared) {
+        return;
+      }
+      await this.cachePolicy(
+        response.policy ?? null,
+        this.dependencies.now(),
+        response.policyRevision,
+      );
+    });
+    try {
+      await this.sendHeartbeat();
+    } catch {
+      return false;
+    }
+    return true;
   }
 
   private async readStoredRequest(requestID: string): Promise<StoredBrowserRequest | null> {
@@ -533,6 +643,25 @@ export class BrowserPolicyController {
     if (expired.length > 0) {
       await this.dependencies.storage.remove(expired);
     }
+  }
+
+  private blockerURL(requestID: string): string {
+    const page = new URL(this.dependencies.extensionURL("blocker.html"));
+    page.searchParams.set("request", requestID);
+    return page.toString();
+  }
+
+  private async discardStoredRequestsForTab(tabId: number, currentURL?: string): Promise<boolean> {
+    const stored = await this.dependencies.storage.get(null);
+    const abandoned = Object.entries(stored)
+      .filter(([key, value]) =>
+        key.startsWith(requestKeyPrefix) && isStoredRequest(value) && value.tabId === tabId &&
+        (currentURL === undefined || currentURL !== this.blockerURL(value.id)))
+      .map(([key]) => key);
+    if (abandoned.length > 0) {
+      await this.dependencies.storage.remove(abandoned);
+    }
+    return abandoned.length > 0;
   }
 
   private async scheduleNextExpiry(

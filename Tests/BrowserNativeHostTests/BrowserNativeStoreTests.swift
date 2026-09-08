@@ -112,11 +112,12 @@ struct BrowserNativeStoreTests {
         var object: [String: Any] = [
             "schemaVersion": "browser-host/1", "requestId": "size", "type": "review_destination",
             "sessionId": "00000000-0000-0000-0000-000000000001",
-            "destination": ["origin": "https://example.com", "path": "/"], "justification": "why"
+            "destination": ["origin": "https://example.com", "path": "/"],
+            "justification": "I need this task reference."
         ]
         if unicodeAnswers {
-            object["justification"] = String(repeating: "\u{FFFF}", count: 2730)
-            object["challengeAnswer"] = String(repeating: "\u{FFFF}", count: 2730)
+            object["justification"] = String(repeating: "\u{FFFF}", count: 1000)
+            object["challengeAnswer"] = String(repeating: "\u{FFFF}", count: 1000)
         }
         let base = try JSONSerialization.data(withJSONObject: object, options: [.sortedKeys]).count
         object["destination"] = [

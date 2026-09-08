@@ -2,6 +2,8 @@
 import Foundation
 import Testing
 
+// swiftlint:disable file_length
+
 @MainActor
 struct BrowserNativeLifecycleTests {
     @Test func uninstallRevokesAWaitingHostAndPreservesOtherFlavor() async throws {
@@ -28,7 +30,7 @@ struct BrowserNativeLifecycleTests {
         let request = try BrowserNativeRequest.decode(Data("""
         {"schemaVersion":"browser-host/1","requestId":"live","type":"review_destination",
         "sessionId":"00000000-0000-0000-0000-000000000001",
-        "destination":{"origin":"https://example.com","path":"/"},"justification":"test"}
+        "destination":{"origin":"https://example.com","path":"/"},"justification":"I need this reference for work."}
         """.utf8))
         let host = BrowserNativeHost(store: store, callerOrigin: "test", reviewTimeout: 0.15)
         let waiting = Task { await host.handle(request) }
@@ -84,6 +86,76 @@ struct BrowserNativeLifecycleTests {
         let response = await host.handle(request)
         #expect(response.policy?.sessionID == policy.sessionID)
         #expect(response.policy?.connectionIsHealthy == false)
+    }
+
+    @Test(arguments: ["completed", "canceled"])
+    func restartIdlePollClearsACompletedOrCanceledRetainedTask(stateType: String) async throws {
+        let fixture = try RestartBrowserFixture(
+            taskState: .init(
+                taskID: "task-retained",
+                stateType: stateType,
+                observedAt: Date(timeIntervalSince1970: 1_788_537_605)
+            )
+        )
+        defer { fixture.cleanUp() }
+
+        await fixture.poll()
+
+        #expect(try fixture.store.readPolicy()?.policy == nil)
+        #expect(await fixture.transport.taskReads == ["org-retained/task-retained"])
+    }
+
+    @Test func restartIdlePollClearsAnArchivedRetainedTask() async throws {
+        let fixture = try RestartBrowserFixture(
+            taskState: .init(
+                taskID: "task-retained",
+                stateType: "started",
+                archivedAt: Date(timeIntervalSince1970: 1_788_537_605),
+                observedAt: Date(timeIntervalSince1970: 1_788_537_605)
+            )
+        )
+        defer { fixture.cleanUp() }
+
+        await fixture.poll()
+
+        #expect(try fixture.store.readPolicy()?.policy == nil)
+        #expect(await fixture.transport.taskReads == ["org-retained/task-retained"])
+    }
+
+    @Test func restartIdlePollKeepsANonterminalRetainedTaskFailClosed() async throws {
+        let fixture = try RestartBrowserFixture(taskState: .init(
+            taskID: "task-retained",
+            stateType: "started",
+            observedAt: Date(timeIntervalSince1970: 1_788_537_605)
+        ))
+        defer { fixture.cleanUp() }
+
+        await fixture.poll()
+
+        #expect(try fixture.store.readPolicy()?.policy?.sessionID == fixture.sessionID)
+        #expect(await fixture.transport.taskReads == ["org-retained/task-retained"])
+    }
+
+    @Test(arguments: [DocketClientError.unavailable, .unauthorized])
+    func restartTaskReadFailureKeepsTheRetainedPolicy(error: DocketClientError) async throws {
+        let fixture = try RestartBrowserFixture(taskStateError: error)
+        defer { fixture.cleanUp() }
+
+        await fixture.poll()
+
+        #expect(try fixture.store.readPolicy()?.policy?.sessionID == fixture.sessionID)
+        let expectedReadCount = error == .unauthorized ? 2 : 1
+        #expect(await fixture.transport.taskReads.count == expectedReadCount)
+    }
+
+    @Test func oldSignedPolicyWithoutSessionIdentityRemainsFailClosed() async throws {
+        let fixture = try RestartBrowserFixture(includeIdentity: false)
+        defer { fixture.cleanUp() }
+
+        await fixture.poll()
+
+        #expect(try fixture.store.readPolicy()?.policy?.sessionID == fixture.sessionID)
+        #expect(await fixture.transport.taskReads.isEmpty)
     }
 
     @Test func stoppedRuntimeDoesNotRecreateUninstalledState() async {
@@ -181,7 +253,8 @@ struct BrowserNativeLifecycleTests {
         let data = Data("""
         {"schemaVersion":"browser-host/1","requestId":"one","type":"review_destination",
         "sessionId":"00000000-0000-0000-0000-000000000001",
-        "destination":{"origin":"https://example.com","path":"/private"},"justification":"private"}
+        "destination":{"origin":"https://example.com","path":"/private"},
+        "justification":"I need this reference for the active task."}
         """.utf8)
         let id = try store.enqueue(BrowserNativeRequest.decode(data), at: Date())
         let runtime = BrowserNativeRuntime(
@@ -193,6 +266,140 @@ struct BrowserNativeLifecycleTests {
         #expect(entry.result?.decision == "deny")
         #expect(entry.request.justification == nil)
         #expect(entry.request.challengeAnswer == nil)
+    }
+}
+
+@MainActor
+private final class RestartBrowserFixture {
+    let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    let now = Date(timeIntervalSince1970: 1_788_537_600)
+    let sessionID = UUID()
+    let store: BrowserNativeStore
+    let transport: RestartBrowserTransport
+    let coordinator: DocketBrowserPolicyCoordinator
+    let runtime: BrowserNativeRuntime
+
+    init(
+        taskState: DocketTaskStateObservation? = nil,
+        taskStateError: DocketClientError? = nil,
+        includeIdentity: Bool = true
+    ) throws {
+        let store = BrowserNativeStore(directory: directory)
+        self.store = store
+        try store.activate()
+        let policy = try BrowserPolicySnapshot(
+            schemaVersion: "browser-policy/1",
+            sessionID: sessionID,
+            task: .init(id: "task-retained", title: "Retained task"),
+            tracking: .idle,
+            scopes: [],
+            grants: [.init(
+                scope: BrowserDestinationScope.validatedOrigin("https://granted.example"),
+                expiresAt: now.addingTimeInterval(1800)
+            )],
+            breakEndsAt: nil,
+            connectionIsHealthy: false,
+            generatedAt: now
+        )
+        let identity = includeIdentity
+            ? try BrowserRetainedSessionIdentity.validated(
+                sessionID: sessionID,
+                organizationID: "org-retained",
+                taskID: "task-retained"
+            )
+            : nil
+        try store.writePolicy(policy, retainedSessionIdentity: identity, at: now)
+        let transport = RestartBrowserTransport(
+            activeWork: DocketActiveWork(
+                observedAt: now.addingTimeInterval(5),
+                tracking: .idle,
+                recordID: nil,
+                task: nil
+            ),
+            taskState: taskState,
+            taskStateError: taskStateError
+        )
+        self.transport = transport
+        let credentials = DocketCredentialStore(secretStore: FixedBrowserCredentials(now: now))
+        let coordinator = DocketBrowserPolicyCoordinator(
+            transport: transport,
+            credentials: credentials,
+            oauth: RestartBrowserOAuth(now: now),
+            docketWebOrigin: DocketServiceEndpoints.production.webOrigin
+        )
+        self.coordinator = coordinator
+        let runtime = BrowserNativeRuntime(store: store, coordinator: coordinator)
+        self.runtime = runtime
+        try runtime.setEnforcementEnabled(true, at: now)
+    }
+
+    func poll() async {
+        await coordinator.poll(at: now.addingTimeInterval(5))
+    }
+
+    func cleanUp() {
+        try? FileManager.default.removeItem(at: directory)
+    }
+}
+
+private actor RestartBrowserTransport: DocketMCPTransporting {
+    let activeWork: DocketActiveWork
+    let taskState: DocketTaskStateObservation?
+    let taskStateError: DocketClientError?
+    private(set) var taskReads: [String] = []
+
+    init(
+        activeWork: DocketActiveWork,
+        taskState: DocketTaskStateObservation?,
+        taskStateError: DocketClientError?
+    ) {
+        self.activeWork = activeWork
+        self.taskState = taskState
+        self.taskStateError = taskStateError
+    }
+
+    func readActiveWork(accessToken _: String) async throws -> DocketActiveWork {
+        activeWork
+    }
+
+    func readTaskState(
+        organizationID: String,
+        taskID: String,
+        accessToken _: String
+    ) async throws -> DocketTaskStateObservation {
+        taskReads.append("\(organizationID)/\(taskID)")
+        if let taskStateError {
+            throw taskStateError
+        }
+        return try #require(taskState)
+    }
+
+    func reviewDestination(
+        _: DocketDestinationReviewInput,
+        accessToken _: String
+    ) async throws -> DocketDestinationReview {
+        throw DocketClientError.unavailable
+    }
+}
+
+@MainActor
+private final class RestartBrowserOAuth: DocketOAuthAuthorizing {
+    let tokens: DocketOAuthTokens
+
+    init(now: Date) {
+        self.tokens = .init(
+            accessToken: "fresh-access",
+            refreshToken: "fresh-refresh",
+            expiresAt: now.addingTimeInterval(3600)
+        )
+    }
+
+    func connect(at _: Date) async throws -> DocketOAuthTokens {
+        tokens
+    }
+
+    func refresh(now _: Date) async throws -> DocketOAuthTokens {
+        tokens
     }
 }
 

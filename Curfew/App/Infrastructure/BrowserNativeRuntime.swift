@@ -30,6 +30,12 @@ final class BrowserNativeRuntime {
                 ProcessInfo.processInfo.environment["CURFEW_DEMO_FIXTURE"] != "1"
         }
         self.installForStartup = installForStartup
+        if let record = try? store.readPolicy(),
+           let policy = record.policy,
+           let identity = record.retainedSessionIdentity,
+           identity.sessionID == policy.sessionID {
+            self.coordinator.restoreRetainedSessionIdentity(identity)
+        }
         self.coordinator.onPolicyChanged = { [weak self] policy in
             guard let self, !stopped, acceptsPolicyCallbacks else { return }
             do {
@@ -169,10 +175,15 @@ final class BrowserNativeRuntime {
         // poll cannot prove that the signed session from the last run ended.
         if policy == nil, !allowClearingRetainedPolicy,
            !coordinator.hasConfirmedPolicyObservation,
+           !coordinator.hasConfirmedRetainedSessionEnd,
            try store.readPolicy()?.policy != nil {
             return
         }
-        try store.writePolicy(policy, at: date)
+        try store.writePolicy(
+            policy,
+            retainedSessionIdentity: coordinator.retainedSessionIdentity,
+            at: date
+        )
     }
 
     private func watchDirectory() {

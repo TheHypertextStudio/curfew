@@ -48,5 +48,6 @@ export interface NativeResponse {
   policy?: BrowserPolicySnapshot;
   result?: NativeReviewResult;
   error?: string;
+  policyRevision?: string;
   generatedAt: string;
 }

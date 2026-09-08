@@ -57,4 +57,69 @@ struct BrowserNativeProtocolTests {
         #expect(object["requestId"] as? String == "caller-123")
         #expect(object["schemaVersion"] as? String == "browser-host/1")
     }
+
+    @Test func policyRequestCarriesOnlyAnOptionalKnownRevision() throws {
+        let data = Data(
+            #"{"schemaVersion":"browser-host/1","requestId":"watch","type":"get_policy","knownPolicyRevision":"revision-1"}"#
+                .utf8
+        )
+
+        let request = try BrowserNativeRequest.decode(data)
+
+        #expect(request.type == .getPolicy)
+        #expect(request.knownPolicyRevision == "revision-1")
+        #expect(request.sessionID == nil)
+        #expect(request.destination == nil)
+    }
+
+    @Test(arguments: [19, 1001])
+    func reviewRejectsJustificationOutsideDocketCharacterLimits(length: Int) throws {
+        let data = try reviewRequest(justification: String(repeating: "x", count: length))
+
+        #expect(throws: BrowserNativeError.invalidRequest) {
+            try BrowserNativeRequest.decode(data)
+        }
+    }
+
+    @Test func reviewUsesDocketUTF16CharacterSemantics() throws {
+        let accepted = try reviewRequest(justification: String(repeating: "😀", count: 500))
+        let rejected = try reviewRequest(justification: String(repeating: "😀", count: 501))
+
+        #expect(try BrowserNativeRequest.decode(accepted).justification?.utf16.count == 1000)
+        #expect(throws: BrowserNativeError.invalidRequest) {
+            try BrowserNativeRequest.decode(rejected)
+        }
+    }
+
+    @Test func reviewRejectsAChallengeAnswerOverOneThousandUTF16Characters() throws {
+        let accepted = try reviewRequest(
+            justification: String(repeating: "x", count: 20),
+            challengeAnswer: String(repeating: "😀", count: 500)
+        )
+        let rejected = try reviewRequest(
+            justification: String(repeating: "x", count: 20),
+            challengeAnswer: String(repeating: "😀", count: 501)
+        )
+
+        #expect(try BrowserNativeRequest.decode(accepted).challengeAnswer?.utf16.count == 1000)
+        #expect(throws: BrowserNativeError.invalidRequest) {
+            try BrowserNativeRequest.decode(rejected)
+        }
+    }
+
+    private func reviewRequest(
+        justification: String,
+        challengeAnswer: String? = nil
+    ) throws -> Data {
+        var object: [String: Any] = [
+            "schemaVersion": "browser-host/1",
+            "requestId": "review",
+            "type": "review_destination",
+            "sessionId": "00000000-0000-0000-0000-000000000001",
+            "destination": ["origin": "https://example.com", "path": "/research"],
+            "justification": justification
+        ]
+        object["challengeAnswer"] = challengeAnswer
+        return try JSONSerialization.data(withJSONObject: object)
+    }
 }

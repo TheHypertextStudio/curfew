@@ -1,5 +1,6 @@
 import { BrowserPolicyController, type NavigationError } from "./controller";
 import { nativeHostName } from "./config";
+import { PolicyChangeWatcher } from "./policy-watch";
 import type { DynamicRule } from "./rules";
 
 const expiryAlarmName = "curfew-policy-expiry";
@@ -26,6 +27,12 @@ interface ChromeAPI {
   };
   tabs: {
     update(tabId: number, update: { url: string }): Promise<unknown>;
+    onUpdated: {
+      addListener(listener: (tabId: number, changeInfo: { url?: string }) => void): void;
+    };
+    onRemoved: {
+      addListener(listener: (tabId: number) => void): void;
+    };
   };
   runtime: {
     getURL(path: string): string;
@@ -94,16 +101,27 @@ const controller = new BrowserPolicyController({
   randomID: () => crypto.randomUUID(),
   nativeHostName,
 });
+const policyWatcher = new PolicyChangeWatcher(() => controller.waitForPolicyChange());
 
 chromeAPI.webNavigation.onErrorOccurred.addListener((details) => {
   void controller.handleNavigationError(details);
+});
+
+chromeAPI.tabs.onRemoved.addListener((tabId) => {
+  void controller.handleTabClosed(tabId);
+});
+
+chromeAPI.tabs.onUpdated.addListener((tabId, changeInfo) => {
+  if (changeInfo.url !== undefined) {
+    void controller.handleTabURLChanged(tabId, changeInfo.url);
+  }
 });
 
 chromeAPI.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === expiryAlarmName) {
     void controller.rebuildForExpiry();
   } else if (alarm.name === refreshAlarmName) {
-    void controller.refreshPolicy();
+    void controller.refreshPolicy().then(() => policyWatcher.start());
   }
 });
 
@@ -117,7 +135,7 @@ chromeAPI.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return true;
   }
   if (request.type === "review_destination" && typeof request.requestID === "string" &&
-      typeof request.justification === "string" &&
+      (request.justification === undefined || typeof request.justification === "string") &&
       (request.challengeAnswer === undefined || typeof request.challengeAnswer === "string")) {
     void controller.reviewDestination({
       requestID: request.requestID,
@@ -129,4 +147,4 @@ chromeAPI.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   return false;
 });
 
-void controller.initialize();
+void controller.initialize().then(() => policyWatcher.start());

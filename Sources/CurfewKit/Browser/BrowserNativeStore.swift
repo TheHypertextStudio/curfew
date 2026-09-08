@@ -15,7 +15,21 @@ public nonisolated struct BrowserNativeEntry: Codable, Equatable, Sendable {
 
 public nonisolated struct BrowserNativePolicyRecord: Codable, Equatable, Sendable {
     public let policy: BrowserPolicySnapshot?
+    public let retainedSessionIdentity: BrowserRetainedSessionIdentity?
+    public let revision: String?
     public let generatedAt: Date
+
+    public init(
+        policy: BrowserPolicySnapshot?,
+        retainedSessionIdentity: BrowserRetainedSessionIdentity? = nil,
+        revision: String? = nil,
+        generatedAt: Date
+    ) {
+        self.policy = policy
+        self.retainedSessionIdentity = retainedSessionIdentity
+        self.revision = revision
+        self.generatedAt = generatedAt
+    }
 }
 
 public nonisolated struct BrowserNativeHealth: Codable, Sendable {
@@ -143,14 +157,44 @@ public nonisolated struct BrowserNativeStore: Sendable {
         }
     }
 
-    public func writePolicy(_ policy: BrowserPolicySnapshot?, at date: Date) throws {
+    public func writePolicy(
+        _ policy: BrowserPolicySnapshot?,
+        retainedSessionIdentity: BrowserRetainedSessionIdentity? = nil,
+        at date: Date
+    ) throws {
         try whileActive {
-            try save(BrowserNativePolicyRecord(policy: policy, generatedAt: date), to: policyURL)
+            try save(BrowserNativePolicyRecord(
+                policy: policy,
+                retainedSessionIdentity: policy == nil ? nil : retainedSessionIdentity,
+                revision: UUID().uuidString,
+                generatedAt: date
+            ), to: policyURL)
         }
     }
 
     public func readPolicy() throws -> BrowserNativePolicyRecord? {
         try load(BrowserNativePolicyRecord.self, from: policyURL)
+    }
+
+    public func waitForPolicyChange(
+        after revision: String,
+        timeout: TimeInterval,
+        pollInterval: TimeInterval = 0.1
+    ) async throws -> BrowserNativePolicyRecord? {
+        let clock = ContinuousClock()
+        let deadline = clock.now.advanced(by: .seconds(max(0, timeout)))
+        repeat {
+            guard try isActive() else { throw BrowserNativeError.inactiveInstallation }
+            let record = try readPolicy()
+            if record?.revision != revision {
+                return record
+            }
+            if clock.now >= deadline {
+                return record
+            }
+            try await Task.sleep(for: .seconds(min(0.25, max(0.005, pollInterval))))
+        } while !Task.isCancelled
+        throw CancellationError()
     }
 
     public func recordHeartbeat(origin: String, at date: Date) throws {

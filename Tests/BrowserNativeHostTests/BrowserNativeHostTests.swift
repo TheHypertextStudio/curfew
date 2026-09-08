@@ -102,6 +102,39 @@ struct BrowserNativeHostTests {
         #expect(try store.pending(at: Date()).isEmpty)
     }
 
+    @Test func policyLongPollReturnsAsSoonAsTheSignedRevisionChanges() async throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = BrowserNativeStore(directory: directory)
+        try store.activate()
+        try store.writePolicy(nil, at: Date())
+        let first = try #require(try store.readPolicy())
+        let firstRevision = try #require(first.revision)
+        let host = BrowserNativeHost(
+            store: store,
+            callerOrigin: "test",
+            reviewTimeout: 0.15,
+            policyWaitTimeout: 0.5
+        )
+        let watch = try BrowserNativeRequest.decode(Data(
+            """
+            {"schemaVersion":"browser-host/1","requestId":"watch","type":"get_policy",
+            "knownPolicyRevision":"\(firstRevision)"}
+            """.utf8
+        ))
+        let waiting = Task { await host.handle(watch) }
+        try await Task.sleep(for: .milliseconds(40))
+
+        try store.writePolicy(nil, at: Date().addingTimeInterval(1))
+        let response = await waiting.value
+
+        #expect(response.error == nil)
+        #expect(response.policyRevision != firstRevision)
+        let finalRevision = try store.readPolicy()?.revision
+        #expect(response.policyRevision == finalRevision)
+    }
+
     private func request(type: String) throws -> BrowserNativeRequest {
         var object: [String: Any] = [
             "schemaVersion": "browser-host/1",
@@ -111,7 +144,7 @@ struct BrowserNativeHostTests {
         if type == "review_destination" {
             object["sessionId"] = UUID().uuidString
             object["destination"] = ["origin": "https://example.com", "path": "/private"]
-            object["justification"] = "I need a reference."
+            object["justification"] = "I need this task reference."
         }
         return try BrowserNativeRequest.decode(JSONSerialization.data(withJSONObject: object))
     }

@@ -61,6 +61,7 @@ public nonisolated struct BrowserNativeRequest: Codable, Equatable, Sendable {
     public let schemaVersion: String
     public let requestID: String
     public let type: MessageType
+    public let knownPolicyRevision: String?
     public let sessionID: UUID?
     public let destination: NormalizedHTTPDestination?
     public var justification: String?
@@ -73,6 +74,9 @@ public nonisolated struct BrowserNativeRequest: Codable, Equatable, Sendable {
               let type = MessageType(rawValue: typeValue)
         else { throw BrowserNativeError.invalidRequest }
         var keys: Set = ["schemaVersion", "requestId", "type"]
+        if type == .getPolicy {
+            keys.insert("knownPolicyRevision")
+        }
         if type == .reviewDestination {
             keys.formUnion(["sessionId", "destination", "justification", "challengeAnswer"])
             guard let destination = object["destination"] as? [String: Any],
@@ -94,16 +98,23 @@ public nonisolated struct BrowserNativeRequest: Codable, Equatable, Sendable {
         if type == .reviewDestination {
             guard result.sessionID != nil, result.destination != nil,
                   let justification = result.justification,
-                  !justification.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                  justification == justification.trimmingCharacters(in: .whitespacesAndNewlines),
+                  (20 ... 1000).contains(justification.utf16.count),
                   justification.utf8.count <= 8192,
+                  (result.challengeAnswer?.utf16.count ?? 1) <= 1000,
+                  result.challengeAnswer?.isEmpty == false || result.challengeAnswer == nil,
                   (result.challengeAnswer?.utf8.count ?? 0) <= 8192
             else { throw BrowserNativeError.invalidRequest }
+        }
+        if let revision = result.knownPolicyRevision,
+           revision.isEmpty || revision.utf8.count > 128 {
+            throw BrowserNativeError.invalidRequest
         }
         return result
     }
 
     private enum CodingKeys: String, CodingKey {
-        case schemaVersion, type, destination, justification, challengeAnswer
+        case schemaVersion, type, knownPolicyRevision, destination, justification, challengeAnswer
         case requestID = "requestId"
         case sessionID = "sessionId"
     }
@@ -135,6 +146,7 @@ public nonisolated struct BrowserNativeResponse: Codable, Sendable {
     public var policy: BrowserPolicySnapshot?
     public var result: BrowserNativeReviewResult?
     public var error: String?
+    public var policyRevision: String?
     public var generatedAt: Date
 
     public init(requestID: String, type: BrowserNativeRequest.MessageType, at date: Date = Date()) {
@@ -144,7 +156,7 @@ public nonisolated struct BrowserNativeResponse: Codable, Sendable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case schemaVersion, type, policy, result, error, generatedAt
+        case schemaVersion, type, policy, result, error, policyRevision, generatedAt
         case requestID = "requestId"
     }
 }

@@ -57,6 +57,7 @@ function harness(options: {
   const tabUpdates: Array<{ tabId: number; url: string }> = [];
   const scheduledExpirations: Array<Date | null> = [];
   const scheduledRefreshes: number[] = [];
+  const policyEvents: string[] = [];
   let nextID = 0;
   const dependencies: BrowserControllerDependencies = {
     storage: {
@@ -69,10 +70,16 @@ function harness(options: {
       },
       async set(items) {
         storageWrites.push(structuredClone(items));
+        if ("browserPolicy" in items || "browserPolicyRevision" in items) {
+          policyEvents.push("storage");
+        }
         Object.assign(data, items);
       },
       async remove(keys) {
         for (const key of typeof keys === "string" ? [keys] : keys) {
+          if (key === "browserPolicy" || key === "browserPolicyRevision") {
+            policyEvents.push("storage");
+          }
           delete data[key];
         }
       },
@@ -86,6 +93,7 @@ function harness(options: {
       },
       async replace(update) {
         calls.push("rules");
+        policyEvents.push("rules");
         ruleUpdates.push(structuredClone(update));
         ruleEvents.push(`replace:${update.addRules.length}`);
         await options.dynamicRulesReplace?.(update, ruleUpdates.length);
@@ -142,6 +150,7 @@ function harness(options: {
     storageWrites,
     scheduledExpirations,
     tabUpdates,
+    policyEvents,
   };
 }
 
@@ -310,6 +319,68 @@ describe("BrowserPolicyController", () => {
     expect(testHarness.data.browserPolicy).toEqual(switched);
     expect(JSON.stringify(testHarness.ruleUpdates.at(-1))).not.toContain("previous");
     expect(JSON.stringify(testHarness.ruleUpdates.at(-1))).toContain("release");
+  });
+
+  it.each([
+    {
+      name: "task switch",
+      nextPolicy: policy({
+        sessionID: "39f9fbe2-3c34-487d-ad75-c954237c3184",
+        task: { id: "task-2", title: "Write the release runbook" },
+        scopes: [{ kind: "origin" as const, origin: "https://release.example" }],
+      }),
+    },
+    { name: "task completion", nextPolicy: undefined },
+  ])("revokes an old grant from a $name long poll without an alarm", async ({ nextPolicy }) => {
+    const previous = policy({
+      grants: [{
+        scope: { kind: "origin", origin: "https://previous.example" },
+        expiresAt: "2026-09-08T18:30:00.000Z",
+      }],
+    });
+    const testHarness = harness({
+      stored: {
+        browserPolicy: previous,
+        browserPolicyRevision: "revision-old",
+      },
+      native: async (request) => response(request, {
+        policyRevision: "revision-new",
+        ...(nextPolicy === undefined ? {} : { policy: nextPolicy }),
+      }),
+    });
+
+    await testHarness.controller.waitForPolicyChange();
+
+    expect(testHarness.nativeRequests[0]).toMatchObject({
+      type: "get_policy",
+      knownPolicyRevision: "revision-old",
+    });
+    expect(JSON.stringify(testHarness.ruleUpdates.at(-1))).not.toContain("previous");
+    expect(testHarness.policyEvents[0]).toBe("rules");
+    expect(testHarness.data.browserPolicy).toEqual(nextPolicy);
+    expect(testHarness.data.browserPolicyRevision).toBe("revision-new");
+    expect(testHarness.scheduledRefreshes).toHaveLength(0);
+  });
+
+  it("keeps cached rules when the native host drops a policy long poll", async () => {
+    const previous = policy({
+      grants: [{
+        scope: { kind: "origin", origin: "https://previous.example" },
+        expiresAt: "2026-09-08T18:30:00.000Z",
+      }],
+    });
+    const testHarness = harness({
+      stored: {
+        browserPolicy: previous,
+        browserPolicyRevision: "revision-old",
+      },
+    });
+
+    await expect(testHarness.controller.waitForPolicyChange()).resolves.toBe(false);
+
+    expect(testHarness.ruleUpdates).toHaveLength(0);
+    expect(testHarness.data.browserPolicy).toEqual(previous);
+    expect(testHarness.data.browserPolicyRevision).toBe("revision-old");
   });
 
   it("sends one heartbeat after each successful policy refresh", async () => {
@@ -627,7 +698,7 @@ describe("BrowserPolicyController", () => {
     });
   });
 
-  it("returns only one targeted challenge without persisting either private answer", async () => {
+  it("retains the original justification only until one targeted challenge resolves", async () => {
     const question = "Which release section do you need?";
     const testHarness = harness({
       native: async (request) =>
@@ -649,8 +720,18 @@ describe("BrowserPolicyController", () => {
       challengeIssued: true,
       challengeQuestion: question,
     });
-    expect(JSON.stringify(testHarness.storageWrites)).not.toContain("I need this for work.");
-    await expect(testHarness.controller.getBlockerContext("request-1")).resolves.toEqual({
+    expect(testHarness.data["browserRequest:request-1"]).toMatchObject({
+      originalJustification: "I need this for work.",
+    });
+    const reloadedHarness = harness({
+      stored: structuredClone(testHarness.data),
+      native: async (request) =>
+        response(request, {
+          policy: policy(),
+          result: { decision: "deny", reason: "Narrow the request." },
+        }),
+    });
+    await expect(reloadedHarness.controller.getBlockerContext("request-1")).resolves.toEqual({
       taskTitle: "Ship the Chrome gate",
       hostname: "research.example",
       question:
@@ -658,46 +739,138 @@ describe("BrowserPolicyController", () => {
       challengeQuestion: question,
     });
 
-    const missingChallengeAnswer = await testHarness.controller.reviewDestination({
+    const missingChallengeAnswer = await reloadedHarness.controller.reviewDestination({
       requestID: "request-1",
-      justification: "The packaging section.",
     });
     expect(missingChallengeAnswer).toEqual({
       status: "invalid_answer",
-      reason: "Answer must be between 1 and 8,192 UTF-8 bytes.",
+      reason: "Challenge answer must contain 1 to 1,000 characters.",
     });
-    expect(testHarness.nativeRequests).toHaveLength(1);
+    expect(reloadedHarness.nativeRequests).toHaveLength(0);
 
-    const secondOutcome = await testHarness.controller.reviewDestination({
+    const secondOutcome = await reloadedHarness.controller.reviewDestination({
       requestID: "request-1",
-      justification: "The packaging section.",
       challengeAnswer: "The packaging section.",
     });
     expect(secondOutcome).toEqual({ status: "deny", reason: "Narrow the request." });
-    expect(testHarness.nativeRequests.at(-1)).toMatchObject({
+    expect(reloadedHarness.nativeRequests.at(-1)).toMatchObject({
       type: "review_destination",
-      justification: "The packaging section.",
+      justification: "I need this for work.",
       challengeAnswer: "The packaging section.",
     });
-    expect(testHarness.data["browserRequest:request-1"]).toBeUndefined();
-    expect(JSON.stringify(testHarness.storageWrites)).not.toContain("The packaging section.");
+    expect(reloadedHarness.data["browserRequest:request-1"]).toBeUndefined();
+    expect(JSON.stringify(reloadedHarness.storageWrites)).not.toContain("The packaging section.");
   });
 
-  it("rejects an answer over the native UTF-8 byte limit before native messaging", async () => {
+  it("discards a challenged request when the tab moves to another destination", async () => {
+    const question = "Which release section do you need?";
+    const testHarness = harness({
+      native: async (request) =>
+        response(request, {
+          policy: policy(),
+          result: { decision: "challenge", reason: "Narrow the request.", question },
+        }),
+    });
+    await routeBlockedPage(testHarness, "https://research.example/notes");
+    await testHarness.controller.reviewDestination({
+      requestID: "request-1",
+      justification: "I need the packaging release notes.",
+    });
+
+    await testHarness.controller.handleNavigationError({
+      tabId: 14,
+      frameId: 0,
+      error: "net::ERR_BLOCKED_BY_CLIENT",
+      url: "https://another.example/reference",
+    });
+
+    expect(testHarness.data["browserRequest:request-1"]).toBeUndefined();
+    expect(testHarness.data["browserRequest:request-3"]).toMatchObject({
+      destination: { origin: "https://another.example", path: "/reference" },
+      challengeIssued: false,
+    });
+    expect(JSON.stringify(testHarness.data)).not.toContain("I need the packaging release notes.");
+  });
+
+  it("discards a challenged request when its tab closes", async () => {
+    const testHarness = harness({
+      native: async (request) =>
+        response(request, {
+          policy: policy(),
+          result: {
+            decision: "challenge",
+            reason: "Narrow the request.",
+            question: "Which release section do you need?",
+          },
+        }),
+    });
+    await routeBlockedPage(testHarness, "https://research.example/notes");
+    await testHarness.controller.reviewDestination({
+      requestID: "request-1",
+      justification: "I need the packaging release notes.",
+    });
+
+    await testHarness.controller.handleTabClosed(14);
+
+    expect(testHarness.data["browserRequest:request-1"]).toBeUndefined();
+    expect(JSON.stringify(testHarness.data)).not.toContain("I need the packaging release notes.");
+  });
+
+  it("discards a challenged request when its tab leaves the blocker page", async () => {
+    const testHarness = harness({
+      native: async (request) =>
+        response(request, {
+          policy: policy(),
+          result: {
+            decision: "challenge",
+            reason: "Narrow the request.",
+            question: "Which release section do you need?",
+          },
+        }),
+    });
+    await routeBlockedPage(testHarness, "https://research.example/notes");
+    await testHarness.controller.reviewDestination({
+      requestID: "request-1",
+      justification: "I need the packaging release notes.",
+    });
+
+    await testHarness.controller.handleTabURLChanged(14, "https://docket.example/tasks/1");
+
+    expect(testHarness.data["browserRequest:request-1"]).toBeUndefined();
+    expect(JSON.stringify(testHarness.data)).not.toContain("I need the packaging release notes.");
+  });
+
+  it("rejects a short initial justification with a specific client error", async () => {
     const testHarness = harness();
     await routeBlockedPage(testHarness);
 
     const outcome = await testHarness.controller.reviewDestination({
       requestID: "request-1",
-      justification: "é".repeat(4_097),
+      justification: "Too short",
     });
 
     expect(outcome).toEqual({
       status: "invalid_answer",
-      reason: "Answer must be between 1 and 8,192 UTF-8 bytes.",
+      reason: "Justification must contain 20 to 1,000 characters.",
     });
     expect(testHarness.nativeRequests).toHaveLength(0);
     expect(testHarness.data["browserRequest:request-1"]).toBeDefined();
+  });
+
+  it("uses Docket's UTF-16 character ceiling before native messaging", async () => {
+    const testHarness = harness();
+    await routeBlockedPage(testHarness);
+
+    const outcome = await testHarness.controller.reviewDestination({
+      requestID: "request-1",
+      justification: "😀".repeat(501),
+    });
+
+    expect(outcome).toEqual({
+      status: "invalid_answer",
+      reason: "Justification must contain 20 to 1,000 characters.",
+    });
+    expect(testHarness.nativeRequests).toHaveLength(0);
   });
 
   it("keeps a denied destination blocked and removes its resolved request", async () => {
@@ -712,7 +885,7 @@ describe("BrowserPolicyController", () => {
 
     const outcome = await testHarness.controller.reviewDestination({
       requestID: "request-1",
-      justification: "I want to check it.",
+      justification: "I will check this source for the task.",
     });
 
     expect(outcome).toEqual({
@@ -761,7 +934,7 @@ describe("BrowserPolicyController", () => {
 
     const outcome = await testHarness.controller.reviewDestination({
       requestID: "request-1",
-      justification: "The host is gone.",
+      justification: "I will use this source for the task.",
     });
 
     expect(outcome).toEqual({ status: "host_failure" });

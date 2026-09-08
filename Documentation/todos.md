@@ -421,13 +421,17 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
       against the current time after cache restoration. Keep Docket descriptions,
       project summaries, labels, and raw references inside Curfew.
 - [x] Connect the policy coordinator to the app lifecycle and signed persistent
-      policy snapshot through the flavor-isolated native host.
+      policy snapshot through the flavor-isolated native host. Persist only the
+      retained session, organization, and task identifiers needed to resolve an
+      idle restart without weakening fail-closed behavior for old records or
+      failed exact-task reads.
 - [x] Build the `@curfew/chrome-extension` MV3 package. Block only top-level HTTP
       and HTTPS navigation, install a missing base block before validated allow
       rules, replace a persisted ruleset atomically, wake at grant or break
-      expiry, refresh policy and heartbeat every 30 seconds, route blocked tabs
-      through opaque request IDs, retain targeted challenge questions across
-      reload, and keep both answers out of storage.
+      expiry, long-poll signed policy revisions with one watcher, retain the
+      30-second refresh as recovery and heartbeat fallback, route blocked tabs
+      through opaque request IDs, and retain one original justification only
+      while its targeted challenge can continue across reload.
 - [x] Add one Task Browser Enforcement panel. Persist the two setup facts and
       validated mappings locally. Show authorization, poll, extension, host,
       active-task, and readiness state. Keep the toggle gated until setup has

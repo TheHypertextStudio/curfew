@@ -21,16 +21,27 @@ describe("blocker state", () => {
     expect(buildReviewMessage("request-1", "The packaging section.", true)).toEqual({
       type: "review_destination",
       requestID: "request-1",
-      justification: "The packaging section.",
       challengeAnswer: "The packaging section.",
     });
   });
 
-  it("rejects answers over 8,192 UTF-8 bytes in the blocker page", () => {
-    expect(buildReviewMessage("request-1", "é".repeat(4_096), false)).toMatchObject({
-      justification: "é".repeat(4_096),
+  it("uses Docket's UTF-16 character limits for an initial justification", () => {
+    expect(buildReviewMessage("request-1", "😀".repeat(10), false)).toMatchObject({
+      justification: "😀".repeat(10),
     });
-    expect(buildReviewMessage("request-1", "é".repeat(4_097), false)).toBeNull();
+    expect(buildReviewMessage("request-1", "short", false)).toBeNull();
+    expect(buildReviewMessage("request-1", "😀".repeat(500), false)).not.toBeNull();
+    expect(buildReviewMessage("request-1", "😀".repeat(501), false)).toBeNull();
+  });
+
+  it("accepts one through 1,000 UTF-16 characters for a challenge answer", () => {
+    expect(buildReviewMessage("request-1", "x", true)).toEqual({
+      type: "review_destination",
+      requestID: "request-1",
+      challengeAnswer: "x",
+    });
+    expect(buildReviewMessage("request-1", "😀".repeat(500), true)).not.toBeNull();
+    expect(buildReviewMessage("request-1", "😀".repeat(501), true)).toBeNull();
   });
 
   it("exposes the screenshot state only in an explicit development fixture", () => {

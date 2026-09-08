@@ -47,9 +47,13 @@ for HTTP and HTTPS. The `alarms` permission is required because Chrome can
 suspend a Manifest V3 worker. A timer in the worker cannot revoke an expired
 grant or break. The worker keeps one next-expiry alarm and rebuilds the complete
 ruleset against the current clock when that alarm fires. A separate 30-second
-alarm reads policy and sends a heartbeat through `browser-host/1`. A returned
-session change replaces the complete ruleset before the heartbeat or any later
-review can run.
+alarm reads policy and sends a heartbeat through `browser-host/1`. The worker
+also keeps one bounded `get_policy` native-message wait open with the revision
+of its installed signed policy. Curfew ends the wait when it publishes a new
+revision. The worker replaces the complete ruleset before it stores that
+revision as active. A host failure stops the wait without changing cached rules.
+The next alarm refresh starts one new wait after the host recovers. Repeated
+alarm events cannot create duplicate waits.
 
 An active policy installs one priority-1 block rule for HTTP and HTTPS
 `main_frame` requests. Exact-origin and segment-bounded path-prefix rules use
@@ -86,15 +90,20 @@ title, target hostname, and this question:
 
 > What will you do on &lt;host&gt;, and what will you produce for &lt;task&gt;?
 
-The worker sends only a normalized origin and path to `browser-host/1`. It
+The worker sends only a normalized origin and path to `browser-host/1`. The
+initial justification must contain 20 through 1,000 JavaScript characters after
+trimming. A challenge answer must contain 1 through 1,000 characters. The worker
+shows these errors before native messaging, so invalid text does not become a
+host failure or cooldown. It
 removes credentials, query strings, fragments, default ports, and dot segments
 before review. The worker accepts at most 8,192 UTF-8 bytes for each answer, and
 the blocker page applies the same byte limit before native messaging. A
 challenge replaces the one visible question and clears the one answer field.
-The worker persists only the challenge state and targeted question, so a reload
-continues the challenge without storing either answer. `browser-host/1`
-requires a nonempty justification, so the challenge answer fills both the
-justification and `challengeAnswer` fields on the second request. A grant must return a
+The worker retains the original justification with the pending challenged
+request, so a reload can send it unchanged as `justification`. The worker sends
+only the new text as `challengeAnswer`. It never persists the challenge answer.
+It removes the pending request and both strings after a grant, denial, task or
+destination change, expiry, or abandonment. A grant must return a
 bounded scope and a same-session policy that permits the destination at the
 current time. The worker installs that complete policy before it reopens the
 original URL. A denial, cooldown, stale session, invalid response, or host error
@@ -108,8 +117,8 @@ that an unknown page never renders, the blocker shows the current task and
 hostname, one challenge works, a denial stays blocked, a grant opens only its
 returned scope, expiry revokes that scope, a task switch revokes old grants, and
 stopping the host leaves unknown destinations blocked. The engineer must also
-inspect `chrome.storage.local` and confirm that no justification or challenge
-answer exists.
+inspect `chrome.storage.local` and confirm that a justification exists only for
+one live challenged request and that no challenge answer exists.
 
 Task 7 owns the Settings connection and interactive blocker capture. The current
 automated suite does not claim that signed-app or Web Store acceptance has

@@ -5,6 +5,7 @@ import Testing
 
 // swiftlint:disable file_length
 
+@Suite(.serialized)
 @MainActor
 // swiftlint:disable:next type_body_length
 struct DocketBrowserPolicyClientTests {
@@ -1389,6 +1390,38 @@ struct DocketBrowserPolicyClientTests {
 
         #expect(result == .deny(reason: "Docket could not review this destination."))
         let destination = try NormalizedHTTPDestination("https://instagram.com/explore")
+        #expect(coordinator.policy(at: now)?.allows(destination, at: now) == false)
+    }
+
+    @Test("A recommended path prefix must cover the destination Curfew reviewed")
+    func reviewRejectsUnusablePathPrefix() async throws {
+        let transport = try RecordingDocketTransport(
+            activeWork: [activeWork(.running)],
+            reviews: [.grant(
+                reason: "The recommendation points at another path.",
+                scope: BrowserDestinationScope.validatedPathPrefix(
+                    "https://instagram.com/unrelated"
+                )
+            )]
+        )
+        let coordinator = try DocketBrowserPolicyCoordinator(
+            transport: transport,
+            credentials: fixedCredentials(),
+            docketWebOrigin: DocketServiceEndpoints.production.webOrigin
+        )
+        await coordinator.poll(at: now)
+
+        let result = await coordinator.review(
+            rawDestination: "https://instagram.com/transitcenter/posts",
+            justification: "I will compare three posts and record patterns in the strategy.",
+            challengeAnswer: nil,
+            at: now
+        )
+
+        #expect(result == .deny(reason: "Docket returned an invalid destination scope."))
+        let destination = try NormalizedHTTPDestination(
+            "https://instagram.com/transitcenter/posts"
+        )
         #expect(coordinator.policy(at: now)?.allows(destination, at: now) == false)
     }
 

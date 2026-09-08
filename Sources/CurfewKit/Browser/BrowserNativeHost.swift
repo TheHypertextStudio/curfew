@@ -4,11 +4,18 @@ public nonisolated struct BrowserNativeHost: Sendable {
     private let store: BrowserNativeStore
     private let callerOrigin: String
     private let reviewTimeout: TimeInterval
+    private let policyWaitTimeout: TimeInterval
 
-    public init(store: BrowserNativeStore, callerOrigin: String, reviewTimeout: TimeInterval = 55) {
+    public init(
+        store: BrowserNativeStore,
+        callerOrigin: String,
+        reviewTimeout: TimeInterval = 55,
+        policyWaitTimeout: TimeInterval = 25
+    ) {
         self.store = store
         self.callerOrigin = callerOrigin
         self.reviewTimeout = min(55, max(0, reviewTimeout))
+        self.policyWaitTimeout = min(25, max(0, policyWaitTimeout))
     }
 
     public func handle(_ request: BrowserNativeRequest) async -> BrowserNativeResponse {
@@ -16,11 +23,22 @@ public nonisolated struct BrowserNativeHost: Sendable {
         do {
             switch request.type {
             case .getPolicy:
-                guard let record = try store.readPolicy() else {
+                guard var record = try store.readPolicy() else {
                     response.error = "policy_unavailable"
                     return response
                 }
+                if let revision = request.knownPolicyRevision, record.revision == revision {
+                    guard let changed = try await store.waitForPolicyChange(
+                        after: revision,
+                        timeout: policyWaitTimeout
+                    ) else {
+                        response.error = "policy_unavailable"
+                        return response
+                    }
+                    record = changed
+                }
                 response.policy = record.policy
+                response.policyRevision = record.revision
                 response.generatedAt = record.generatedAt
             case .heartbeat:
                 try store.recordHeartbeat(origin: callerOrigin, at: Date())
@@ -32,7 +50,9 @@ public nonisolated struct BrowserNativeHost: Sendable {
                     else { throw BrowserNativeError.inactiveInstallation }
                     if let entry = try store.response(id: id) {
                         response.result = entry.result
-                        response.policy = try store.readPolicy()?.policy
+                        let record = try store.readPolicy()
+                        response.policy = record?.policy
+                        response.policyRevision = record?.revision
                         return response
                     }
                     try await Task.sleep(for: .milliseconds(25))

@@ -2,7 +2,8 @@ import {
   blockerPrompt,
   buildReviewMessage,
   developmentBlockerFixture,
-  invalidAnswerMessage,
+  invalidChallengeAnswerMessage,
+  invalidJustificationMessage,
 } from "./blocker-state";
 
 interface BlockerContext {
@@ -92,7 +93,9 @@ form.addEventListener("submit", (event) => {
   }
   const message = buildReviewMessage(requestID, justification.value, challengeIsVisible);
   if (message === null) {
-    statusMessage.textContent = invalidAnswerMessage;
+    statusMessage.textContent = challengeIsVisible
+      ? invalidChallengeAnswerMessage
+      : invalidJustificationMessage;
     statusMessage.dataset.tone = "blocked";
     return;
   }

@@ -9,13 +9,16 @@ sequenceDiagram
 
     Docket-->>Curfew: active-work/1 observation
     Curfew->>Curfew: Reduce session and allowlist
-    Curfew-->>Host: Signed browser-policy/1 snapshot
-    Extension->>Host: get_policy over browser-host/1
-    Host-->>Extension: Current snapshot
+    Curfew-->>Host: Atomically signed policy, retained identity, and revision
+    Extension->>Host: get_policy with installed revision
+    Host->>Host: Wait up to 25 seconds on the signed record
+    Curfew-->>Host: Task switch or completion publishes a new revision
+    Host-->>Extension: Changed policy and revision
     Extension->>Chrome: Replace complete dynamic ruleset
+    Extension->>Extension: Store the installed revision
     Chrome-->>Extension: Blocked main-frame navigation
     Extension->>Blocker: Opaque request ID
-    Blocker->>Extension: Justification in memory
+    Blocker->>Extension: Initial justification
     Extension->>Host: Normalized review_destination
     Host->>Curfew: Signed pending review
     Curfew->>Docket: review_work_destination
@@ -25,4 +28,9 @@ sequenceDiagram
     Curfew->>Curfew: Validate scope and set lifetime
     Curfew-->>Host: Signed scrubbed result and policy
     Host-->>Extension: Policy result
+    opt One challenge
+        Extension->>Extension: Retain original justification with pending request
+        Blocker->>Extension: New challenge answer
+        Extension->>Host: Original justification plus new challengeAnswer
+    end
     Extension->>Chrome: Replace rules before any reopen

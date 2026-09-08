@@ -12,9 +12,9 @@ only.
 - `Bundle the pinned Chrome native messaging host.`
   - `BrowserNativeProtocolTests` checks versioning, strict fields, correlation, and framing limits.
   - `BrowserNativeStoreTests` checks signed state, tampering, expiry, permissions, scrubbing, and pruning.
-  - `BrowserNativeHostTests` checks offline snapshot reads, signed heartbeat state, and bounded review waits.
+  - `BrowserNativeHostTests` checks offline snapshot reads, signed heartbeat state, bounded review waits, and bounded signed-policy revision waits.
   - `BrowserNativeInstallationTests` checks the public-key-derived development ID, origin validation, and manifest ownership.
-  - `BrowserNativeLifecycleTests` checks app queue processing and uninstall cleanup.
+  - `BrowserNativeLifecycleTests` checks app queue processing, restart exact-task resolution, fail-closed migration behavior, and uninstall cleanup.
   - `DocketBrowserPolicyClientTests/queuedReviewRejectsStaleResponse()` and `queuedReviewRejectsAnotherSession()` check rejection before applying a grant.
 - `Isolate native host flavors and revoke live hosts before uninstall.`
   - `BrowserNativeInstallationTests/developmentAndProductionInstallAndUninstallIndependently()` and `installationRejectsUnsafeExecutable(kind:)` check manifest isolation and executable validation.
@@ -24,8 +24,9 @@ only.
 - `Build the task-scoped Chrome MV3 extension.`
   - `destination.test.ts` checks removal of credentials, query strings, fragments, default ports, and unsupported schemes before review.
   - `rules.test.ts` checks one low-priority top-level block, higher-priority exact-origin and case-sensitive path-prefix allows, subresource exclusion, and current-clock grant and break expiry.
-  - `controller.test.ts` checks first-activation block-first installation, one-update restoration, refresh, grant, and expiry when the base block persists, block-only fallback after unsupported or rejected regex validation, the 1,000-regex quota, 30-second heartbeat, task-switch response rejection without queue starvation, opaque blocker routing, first-activation foreign-blocker exclusion, grant-before-reopen ordering, persisted challenge state without answers, the 8,192-byte UTF-8 limit, host failure, and private request expiry.
-  - `blocker-state.test.ts` checks targeted-question restoration, one-field challenge submission, and the 8,192-byte UTF-8 limit without Chrome.
+  - `controller.test.ts` checks first-activation block-first installation, one-update restoration, revision long-poll revocation without an alarm, refresh, grant, and expiry when the base block persists, block-only fallback after unsupported or rejected regex validation, the 1,000-regex quota, 30-second heartbeat, task-switch response rejection without queue starvation, opaque blocker routing, first-activation foreign-blocker exclusion, grant-before-reopen ordering, one-challenge justification retention and clearing, the 1,000-character contract, the 8,192-byte UTF-8 limit, host failure, and private request expiry.
+  - `policy-watch.test.ts` checks restart after native-host recovery and rejects duplicate long polls.
+  - `blocker-state.test.ts` checks targeted-question restoration, original-justification preservation, one-field challenge submission, and character and byte limits without Chrome.
   - `manifest.test.ts` checks the MV3 permissions, minimum Chrome 120, HTTP and HTTPS host access, service-worker declaration, and the public-key-pinned development identity.
   - `build.test.ts` builds both flavors without Chrome and checks that each artifact contains only its allowed native-host name and one extension-local blocker prompt.
 
@@ -783,6 +784,11 @@ only.
   - `DocketBrowserPolicyClientTests/idleObservationChecksArchivedTask()`
   - `DocketBrowserPolicyClientTests/nullTaskObservationChecksArchivedTask(tracking:)`
   - `DocketBrowserPolicyClientTests/failedNullTaskReadRetainsEnforcement(tracking:)`
+  - `BrowserNativeLifecycleTests/restartIdlePollClearsACompletedOrCanceledRetainedTask(stateType:)`
+  - `BrowserNativeLifecycleTests/restartIdlePollClearsAnArchivedRetainedTask()`
+  - `BrowserNativeLifecycleTests/restartIdlePollKeepsANonterminalRetainedTaskFailClosed()`
+  - `BrowserNativeLifecycleTests/restartTaskReadFailureKeepsTheRetainedPolicy(error:)`
+  - `BrowserNativeLifecycleTests/oldSignedPolicyWithoutSessionIdentityRemainsFailClosed()`
   - `DocketBrowserPolicyClientTests/destinationReviewUsesNormalizedPayload()`
 - `Settings records setup once, reports current health, and gates enforcement
   until both Docket and Chrome have connected.`

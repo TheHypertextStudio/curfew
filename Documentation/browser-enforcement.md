@@ -104,8 +104,11 @@ must not persist the justification or challenge answer. It must not send URL
 credentials, queries, or fragments. Later audit work may store the hostname,
 decision, and scope kind. It must not store the full path or justification.
 The extension may persist that a challenge exists and the reviewer's targeted
-question. It uses the new answer as both the required nonempty justification and
-the challenge answer. It never stores or reuses the initial answer.
+question. It retains the initial justification only while that challenged
+request can continue across a reload. The follow-up sends that original value
+as `justification` and sends only the new value as `challengeAnswer`. The
+extension never persists the challenge answer. It clears both fields when the
+review resolves, expires, changes session or destination, or is abandoned.
 
 The browser policy snapshot contains only the task ID and title. It keeps
 expiring grants separate from base scopes, and consumers evaluate grant and
@@ -123,12 +126,17 @@ or denial. The discarded result cannot add a grant or cooldown to the new task.
 Curfew also rejects a decision that contains fields from more than one outcome.
 Every required decision string must contain a non-whitespace value.
 
-The extension reads policy and sends a native-host heartbeat every 30 seconds.
+The extension keeps one bounded native-host policy wait open against the
+revision in Curfew's signed record. Curfew publishes a new random revision in
+the same atomic write as each policy. The extension installs that policy's
+rules before storing its revision. It also reads policy and sends a native-host
+heartbeat every 30 seconds.
 It serializes policy refreshes, expiry rebuilds, review preparation, and review
 response application. It does not hold that queue while it waits for the native
 reviewer. A changed session can install its rules at once, and the late review
 response fails its session check. A host failure writes no heartbeat and leaves the cached
-restrictive policy in force.
+restrictive policy in force. The next alarm refresh restarts the single policy
+watch after the host recovers.
 
 Debug builds provide isolated Settings and blocker fixtures for automated tests
 and screenshots. The Settings fixture uses a temporary signed browser store,

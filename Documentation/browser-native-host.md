@@ -51,18 +51,27 @@ response echoes it. Requests reject unknown fields. For example:
 {"schemaVersion":"browser-host/1","requestId":"policy-1","type":"get_policy"}
 ```
 
-`get_policy` and `heartbeat` accept only those three fields.
+`heartbeat` accepts only those three fields. `get_policy` also accepts an
+optional `knownPolicyRevision`. When that value matches the current signed
+record, the host waits up to 25 seconds for Curfew to publish another revision.
+The host checks the signed record every 100 milliseconds during that bounded
+wait. This is polling over native messaging and the signed file boundary. It
+does not add a socket or bypass record authentication.
 `review_destination` also requires `sessionId`, `destination`, and
 `justification`. It permits `challengeAnswer`. The destination contains only
 `origin` and `path`. For example, the origin can be `https://example.com` and
 the path can be `/research`. The host rejects credentials, query strings,
-fragments, noncanonical origins, and invalid path prefixes. Each private
-answer has an 8192-byte limit. The complete request has a 20 KiB limit, which
-Curfew checks against both the received JSON and its canonical encoding.
-This limit includes the destination origin and path.
+fragments, noncanonical origins, and invalid path prefixes. The initial
+justification must contain 20 through 1,000 UTF-16 code units after trimming.
+A challenge answer must contain 1 through 1,000 UTF-16 code units. JavaScript
+and Docket use the same character count. Each private answer also has an
+8,192-byte UTF-8 limit as a native safety bound. The complete request has a
+20 KiB limit, which Curfew checks against both the received JSON and its
+canonical encoding. This limit includes the destination origin and path.
 
 Responses contain `schemaVersion`, `requestId`, `type`, and `generatedAt`.
-They may contain `policy`, `result`, or `error`. Error tokens include
+They may contain `policy`, `policyRevision`, `result`, or `error`. Every
+successful policy read returns the revision from the signed record. Error tokens include
 `invalid_request`, `policy_unavailable`, `review_timeout`, `host_unavailable`,
 and `response_too_large`. A successful policy response with no `policy` means
 Curfew has no latched work session. A `policy_unavailable` response means the
@@ -96,7 +105,8 @@ Application Support directory's `browser` folder. This follows the existing
 signed MCP file-queue pattern. Curfew uses a separate browser queue and does
 not use the unused socket interface. A file lock serializes queue mutations
 from multiple Chrome host processes. Atomic replacement prevents partial
-policy reads. Files have mode 0600 before replacement; the browser directory
+policy reads. Curfew publishes the policy, retained session identity, and
+random revision in one signed replacement. Files have mode 0600 before replacement; the browser directory
 has mode 0700. The local secret authenticates records against accidental or
 unrelated writes. It does not defend against someone with the user's shell.
 
@@ -116,11 +126,20 @@ cannot enlarge that envelope beyond base64's fixed expansion. A queue of 128
 maximum-size requests fits below 4 MiB.
 
 After an app restart, Curfew preserves a signed active snapshot until Docket
-confirms a replacement task or terminal task. An unavailable or idle first
-poll cannot clear that snapshot. If Docket only returns idle after the task
-completed while Curfew was stopped, the cached policy stays active until Docket
-returns task context again. The snapshot lacks organization context for a
-separate terminal-task lookup after restart.
+confirms a replacement task or terminal task. The signed record stores only the
+retained session ID, organization ID, and task ID needed to read that exact
+Docket task. If active work returns idle, Curfew reads the retained task and
+clears the policy when that task is completed, canceled, or archived. An
+unavailable or unauthorized exact-task read keeps the cached policy active and
+marks the connection unhealthy. A record from an older Curfew version that
+lacks the identity also stays active because Curfew cannot prove the task ended.
+
+The extension keeps one `get_policy` wait open with its last installed revision.
+A task switch or completion atomically changes the signed revision. The host
+returns that record, and the extension replaces Chrome's complete dynamic
+ruleset before it stores the new revision as active. The 30-second alarm remains
+a heartbeat and recovery fallback. It restarts a stopped watcher after a native
+host failure, but it does not drive normal policy revocation.
 
 An accepted heartbeat stores the caller's extension origin and two timestamps
 in a signed record. Settings can report communication as healthy for 60 seconds.
