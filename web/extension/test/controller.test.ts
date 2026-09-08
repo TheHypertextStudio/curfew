@@ -46,6 +46,7 @@ function harness(options: {
     call: number,
   ) => Promise<void>;
   regexSupport?: (regex: string) => Promise<boolean>;
+  storageSet?: (items: Record<string, unknown>, call: number) => Promise<void>;
 } = {}) {
   const data: Record<string, unknown> = { ...options.stored };
   const calls: string[] = [];
@@ -58,6 +59,7 @@ function harness(options: {
   const scheduledExpirations: Array<Date | null> = [];
   const scheduledRefreshes: number[] = [];
   const policyEvents: string[] = [];
+  let storageSetCount = 0;
   let nextID = 0;
   const dependencies: BrowserControllerDependencies = {
     storage: {
@@ -70,6 +72,8 @@ function harness(options: {
       },
       async set(items) {
         storageWrites.push(structuredClone(items));
+        storageSetCount += 1;
+        await options.storageSet?.(items, storageSetCount);
         if ("browserPolicy" in items || "browserPolicyRevision" in items) {
           policyEvents.push("storage");
         }
@@ -581,6 +585,54 @@ describe("BrowserPolicyController", () => {
     expect(testHarness.scheduledExpirations.at(-1)?.toISOString()).toBe(
       "2026-09-08T18:02:00.000Z",
     );
+  });
+
+  it("restarts block-only after rules change but matching policy storage fails", async () => {
+    const previous = policy({
+      grants: [{
+        scope: { kind: "origin", origin: "https://previous.example" },
+        expiresAt: "2026-09-08T18:30:00.000Z",
+      }],
+    });
+    const switched = policy({
+      sessionID: "39f9fbe2-3c34-487d-ad75-c954237c3184",
+      task: { id: "task-2", title: "Write the release runbook" },
+      scopes: [{ kind: "origin", origin: "https://release.example" }],
+    });
+    const interrupted = harness({
+      stored: {
+        browserPolicy: previous,
+        browserPolicyRevision: "revision-a",
+      },
+      storageSet: async (items) => {
+        if ("browserPolicy" in items) {
+          throw new Error("Chrome failed to store the switched policy");
+        }
+      },
+    });
+
+    await expect(
+      interrupted.controller.cachePolicy(switched, now, "revision-b"),
+    ).rejects.toThrow("Chrome failed to store the switched policy");
+    expect(interrupted.data.browserPolicy).toEqual(previous);
+    expect(interrupted.data.browserPolicyTransition).toBe(true);
+    const interruptedRuleText = JSON.stringify(interrupted.ruleUpdates.at(-1)?.addRules);
+    expect(interruptedRuleText).toContain("release");
+    expect(interruptedRuleText).not.toContain("previous");
+
+    const restarted = harness({
+      stored: structuredClone(interrupted.data),
+      dynamicRulesGet: async () => [{ id: 1 }, { id: 1_000 }],
+    });
+    await restarted.controller.initialize();
+
+    expect(restarted.ruleUpdates[0].addRules).toEqual([
+      expect.objectContaining({ id: 1, action: { type: "block" } }),
+    ]);
+    expect(JSON.stringify(restarted.ruleUpdates)).not.toContain("previous");
+    expect(restarted.data.browserPolicy).toBeUndefined();
+    expect(restarted.data.browserPolicyRevision).toBeUndefined();
+    expect(restarted.data.browserPolicyTransition).toBeUndefined();
   });
 
   it("routes a slashless parent through the blocker for a trailing-slash scope", async () => {

@@ -5,10 +5,11 @@ import type {
   NativeResponse,
   NormalizedDestination,
 } from "./protocol";
-import { buildDynamicRules, type DynamicRule } from "./rules";
+import { buildDynamicRules, buildFailClosedRules, type DynamicRule } from "./rules";
 
 const policyKey = "browserPolicy";
 const policyRevisionKey = "browserPolicyRevision";
+const policyTransitionKey = "browserPolicyTransition";
 const requestKeyPrefix = "browserRequest:";
 const requestLifetimeMilliseconds = 2 * 60 * 1_000;
 const answerLimitBytes = 8_192;
@@ -251,7 +252,8 @@ export class BrowserPolicyController {
 
   async initialize(): Promise<void> {
     await this.serializePolicyOperation(async () => {
-      const cached = await this.readPolicy();
+      const interruptedTransition = await this.recoverInterruptedPolicyTransition();
+      const cached = interruptedTransition ? null : await this.readPolicy();
       await this.pruneStoredRequests(cached?.sessionID);
       if (cached !== null) {
         await this.cachePolicy(cached);
@@ -290,6 +292,7 @@ export class BrowserPolicyController {
     at = this.dependencies.now(),
     revision?: string,
   ): Promise<void> {
+    await this.dependencies.storage.set({ [policyTransitionKey]: true });
     const dynamicRules = await this.dependencies.dynamicRules.get();
     const rules = buildDynamicRules(policy, at);
     if (policy === null) {
@@ -342,6 +345,7 @@ export class BrowserPolicyController {
         ...(revision === undefined ? {} : { [policyRevisionKey]: revision }),
       });
     }
+    await this.dependencies.storage.remove(policyTransitionKey);
     await this.pruneStoredRequests(policy?.sessionID, at);
     await this.scheduleNextExpiry(policy, at);
   }
@@ -570,6 +574,21 @@ export class BrowserPolicyController {
   private async readPolicy(): Promise<BrowserPolicySnapshot | null> {
     const stored = (await this.dependencies.storage.get(policyKey))[policyKey];
     return isPolicy(stored) ? stored : null;
+  }
+
+  private async recoverInterruptedPolicyTransition(): Promise<boolean> {
+    const stored = await this.dependencies.storage.get(policyTransitionKey);
+    if (stored[policyTransitionKey] !== true) {
+      return false;
+    }
+    const dynamicRules = await this.dependencies.dynamicRules.get();
+    await this.dependencies.dynamicRules.replace({
+      removeRuleIds: dynamicRules.map((rule) => rule.id),
+      addRules: buildFailClosedRules(),
+    });
+    await this.dependencies.storage.remove([policyKey, policyRevisionKey]);
+    await this.dependencies.storage.remove(policyTransitionKey);
+    return true;
   }
 
   async waitForPolicyChange(): Promise<boolean> {

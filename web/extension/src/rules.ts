@@ -33,6 +33,10 @@ const breakRule: DynamicRule = {
   },
 };
 
+export function buildFailClosedRules(): DynamicRule[] {
+  return [blockRule];
+}
+
 function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -60,7 +64,7 @@ export function buildDynamicRules(
     return [];
   }
 
-  const rules = [blockRule];
+  const rules = buildFailClosedRules();
   if (policy.breakEndsAt !== null && new Date(policy.breakEndsAt).getTime() > now.getTime()) {
     rules.push(breakRule);
     return rules;
