@@ -76,6 +76,31 @@ struct TaskBrowserEnforcementViewModelTests {
         #expect(viewModel.breakEndsAt == nil)
     }
 
+    @Test("A missing extension heartbeat is shown as never")
+    func missingHeartbeatIsNever() {
+        let viewModel = TaskBrowserEnforcementViewModel(
+            settings: .init(),
+            isAuthorized: false,
+            lastSuccessfulPoll: nil,
+            docketIsHealthy: false,
+            nativeHealth: .init(
+                extensionOrigin: "",
+                extensionSeenAt: .distantPast,
+                hostSeenAt: .distantPast,
+                isHealthy: false
+            ),
+            hostIsInstalled: true,
+            installationError: nil,
+            policy: nil,
+            canBeginBreak: false,
+            now: now
+        )
+
+        #expect(!viewModel.extensionHeartbeat.isHealthy)
+        #expect(viewModel.extensionHeartbeat.detail == "Never")
+        #expect(!viewModel.nativeHost.isHealthy)
+    }
+
     @Test("Missing setup keeps enforcement off and disabled")
     func missingSetupDisablesToggle() {
         let viewModel = TaskBrowserEnforcementViewModel(

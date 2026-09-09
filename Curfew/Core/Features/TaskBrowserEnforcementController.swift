@@ -32,7 +32,13 @@ nonisolated struct TaskBrowserEnforcementViewModel: Equatable, Sendable {
         now: Date
     ) {
         let pollIsFresh = docketIsHealthy && Self.isFresh(lastSuccessfulPoll, at: now)
-        let extensionIsFresh = Self.isFresh(nativeHealth?.extensionSeenAt, at: now)
+        let extensionSeenAt: Date? = nativeHealth.flatMap { health -> Date? in
+            guard !health.extensionOrigin.isEmpty, health.extensionSeenAt != .distantPast else {
+                return nil
+            }
+            return health.extensionSeenAt
+        }
+        let extensionIsFresh = Self.isFresh(extensionSeenAt, at: now)
         let hostIsFresh = Self.isFresh(nativeHealth?.hostSeenAt, at: now)
         let hostIsHealthy = installationError == nil && hostIsInstalled && hostIsFresh
         let isReady = settings.setupIsComplete && isAuthorized && pollIsFresh &&
@@ -47,8 +53,7 @@ nonisolated struct TaskBrowserEnforcementViewModel: Equatable, Sendable {
             isHealthy: pollIsFresh
         )
         self.extensionHeartbeat = .init(
-            detail: nativeHealth.map { Self.lastSeen($0.extensionSeenAt, at: now) }
-                ?? "No heartbeat",
+            detail: extensionSeenAt.map { Self.lastSeen($0, at: now) } ?? "Never",
             isHealthy: extensionIsFresh
         )
         if let installationError {

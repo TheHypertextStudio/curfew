@@ -796,6 +796,7 @@ only.
   - `BrowserIntegrationSettingsStoreTests/setupGateRequiresBothConnections()`
   - `TaskBrowserEnforcementViewModelTests/freshSetupIsReady()`
   - `TaskBrowserEnforcementViewModelTests/staleHeartbeatIsUnhealthy()`
+  - `TaskBrowserEnforcementViewModelTests/missingHeartbeatIsNever()`
   - `TaskBrowserEnforcementViewModelTests/missingSetupDisablesToggle()`
   - `DocketBrowserPolicyClientTests/authenticatedIdlePollRecordsSetupSuccess()`
 - `The panel drives policy disable and restore, local mapping changes, one

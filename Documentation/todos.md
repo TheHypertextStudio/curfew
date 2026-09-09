@@ -434,8 +434,10 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
       while its targeted challenge can continue across reload.
 - [x] Add one Task Browser Enforcement panel. Persist the two setup facts and
       validated mappings locally. Show authorization, poll, extension, host,
-      active-task, and readiness state. Keep the toggle gated until setup has
-      succeeded once, and expose the reducer's one fixed 15-minute break.
+      active-task, and readiness state. Show `Never` before Chrome sends its
+      first heartbeat instead of formatting the store's sentinel date. Keep the
+      toggle gated until setup has succeeded once, and expose the reducer's one
+      fixed 15-minute break.
 - [x] Add Debug-only Settings and blocker fixtures that use temporary or
       in-memory state. Remove blocker fixture data from production output.
 - [-] Ship and verify the Chrome extension and native messaging host with a
