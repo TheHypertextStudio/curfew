@@ -1,9 +1,26 @@
+import AuthenticationServices
 @testable import Curfew
 import CurfewProtocols
 import Foundation
 import Testing
 
 struct AccountOAuthEnrollmentTests {
+    @MainActor
+    @Test("Native OAuth preserves the browser session that owns existing passkeys")
+    func browserSessionPreservesPasskeys() throws {
+        let authorizationURL = try #require(
+            URL(string: "https://curfew-account-staging.hypertext.studio/api/auth/oauth2/authorize")
+        )
+        let session = ASWebAuthenticationSession(
+            url: authorizationURL,
+            callbackURLScheme: "studio.hypertext.curfew"
+        ) { _, _ in }
+
+        AccountOAuthBrowserPolicy.configure(session)
+
+        #expect(session.prefersEphemeralWebBrowserSession == false)
+    }
+
     @Test("Native OAuth uses the pre-provisioned PKCE client")
     func nativeClientIsStable() {
         #expect(AccountOAuthOfficialClient.clientID == "curfew-native-client")
