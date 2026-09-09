@@ -160,6 +160,15 @@ struct AccountDeviceKeyMaterial: Codable, Equatable, Sendable {
         }
         return AccountPublicKeyJWK(publicKey: privateKey.publicKey)
     }
+
+    var encryptionPublicKey: AccountPublicKeyJWK {
+        guard let privateKey = try? P256.KeyAgreement.PrivateKey(
+            rawRepresentation: encryptionPrivateKey
+        ) else {
+            preconditionFailure("Stored account encryption key is invalid")
+        }
+        return AccountPublicKeyJWK(agreementPublicKey: privateKey.publicKey)
+    }
 }
 
 final class AccountDeviceKeyStore {

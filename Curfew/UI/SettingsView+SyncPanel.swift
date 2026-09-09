@@ -42,6 +42,34 @@ extension SettingsView {
                 openAccountButton
             case .signingIn:
                 ProgressView("Waiting for secure sign-in and 2FA…")
+            case .finishDeviceRegistration:
+                Text(
+                    "You’re signed in. Curfew still needs to finish connecting this Mac. "
+                        + "No new sign-in is needed."
+                )
+                .font(CurfewTypography.bodyEmphasis(13))
+                .foregroundStyle(CurfewTheme.warning)
+                .fixedSize(horizontal: false, vertical: true)
+                enrollmentRetryStatus
+                Button("Finish connecting this Mac") {
+                    Task { await accountEnrollment.finishDeviceRegistration() }
+                }
+                .buttonStyle(CurfewPrimaryButtonStyle())
+                .disabled(accountEnrollment.isFinishingEnrollment)
+            case .finishRecoverySetup:
+                Text(
+                    "You’re signed in and this Mac is registered. Curfew still needs to "
+                        + "finish recovery setup before remote control can turn on."
+                )
+                .font(CurfewTypography.bodyEmphasis(13))
+                .foregroundStyle(CurfewTheme.warning)
+                .fixedSize(horizontal: false, vertical: true)
+                enrollmentRetryStatus
+                Button("Finish recovery setup") {
+                    Task { await accountEnrollment.finishRecoverySetup() }
+                }
+                .buttonStyle(CurfewPrimaryButtonStyle())
+                .disabled(accountEnrollment.isFinishingEnrollment)
             case .saveRecoveryKey(let key, _):
                 Text(
                     "Save this Recovery Key outside Curfew. "
@@ -91,6 +119,16 @@ extension SettingsView {
                 .buttonStyle(CurfewSecondaryButtonStyle())
                 openAccountButton
             }
+        }
+    }
+
+    @ViewBuilder
+    private var enrollmentRetryStatus: some View {
+        if accountEnrollment.isFinishingEnrollment {
+            ProgressView("Finishing secure connection…")
+        } else if let message = accountEnrollment.enrollmentRetryError {
+            Label(message, systemImage: "exclamationmark.triangle")
+                .foregroundStyle(CurfewTheme.warning)
         }
     }
 

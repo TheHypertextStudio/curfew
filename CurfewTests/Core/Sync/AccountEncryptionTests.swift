@@ -185,6 +185,73 @@ final class AccountEncryptionTests: XCTestCase {
         try pending.clear()
         XCTAssertNil(try pending.load())
     }
+
+    func testRegisteredDeviceRecoverySetupSurvivesRelaunchAsResumable() throws {
+        let secrets = MemoryAccountSecretStore()
+        let pending = AccountEnrollmentPendingStore(secretStore: secrets)
+        let enrollment = AccountDeviceEnrollment(
+            deviceID: deviceID,
+            keyEpoch: 1,
+            enrolledAt: createdAt
+        )
+        let envelope = RecoveryKeyEnvelope(
+            aead: .aes256Gcm,
+            ciphertext: String(repeating: "A", count: 64),
+            createdAt: "2026-08-10T14:00:00.000Z",
+            info: .curfewRecoveryWrapV2,
+            kdf: .hkdfSha256,
+            keyEpoch: 1,
+            nonce: String(repeating: "B", count: 16),
+            salt: String(repeating: "C", count: 22)
+        )
+
+        try pending.saveRecoverySetup(
+            enrollment: enrollment,
+            recoveryKey: "recovery-key",
+            recoveryEnvelope: envelope,
+            receiptData: Data("receipt".utf8)
+        )
+
+        XCTAssertEqual(
+            try pending.load(),
+            .finishRecoverySetup("recovery-key", enrollment)
+        )
+        XCTAssertNotNil(try pending.loadRecoverySetup())
+    }
+
+    func testPendingDeviceRegistrationSurvivesBeforeCoordinatorResponse() throws {
+        let secrets = MemoryAccountSecretStore()
+        let pending = AccountEnrollmentPendingStore(secretStore: secrets)
+        let enrollment = AccountDeviceEnrollment(
+            deviceID: deviceID,
+            keyEpoch: 1,
+            enrolledAt: createdAt
+        )
+        let envelope = RecoveryKeyEnvelope(
+            aead: .aes256Gcm,
+            ciphertext: String(repeating: "A", count: 64),
+            createdAt: "2026-08-10T14:00:00.000Z",
+            info: .curfewRecoveryWrapV2,
+            kdf: .hkdfSha256,
+            keyEpoch: 1,
+            nonce: String(repeating: "B", count: 16),
+            salt: String(repeating: "C", count: 22)
+        )
+
+        try pending.saveDeviceRegistration(
+            enrollment: enrollment,
+            recoveryKey: "recovery-key",
+            recoveryEnvelope: envelope,
+            oauthState: "oauth-state",
+            pkceChallenge: "pkce-challenge"
+        )
+
+        XCTAssertEqual(
+            try pending.load(),
+            .finishDeviceRegistration("recovery-key", enrollment)
+        )
+        XCTAssertNil(try pending.loadRecoverySetup()?.receiptData)
+    }
 }
 
 private func decode(_ value: String) -> Data {
