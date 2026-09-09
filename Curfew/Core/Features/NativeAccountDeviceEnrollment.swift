@@ -1,105 +1,27 @@
 import CurfewProtocols
 import Foundation
 
-struct AccountDeviceEnrollmentRequestInput {
-    let accessToken: String
-    let nonce: String
-    let keyEpoch: Int
-    let deviceID: UUID
-    let bootstrap: AccountEnrollmentBootstrap
-    let keys: AccountDeviceKeyMaterial
-    let enrolledAt: Date
-    let pkceChallenge: String
-    let state: String
-    let syncResource: URL
-}
-
-struct AccountDeviceEnrollmentRequestBuilder {
-    let proofFactory: AccountDeviceProofFactory
-
-    init(proofFactory: AccountDeviceProofFactory = AccountDeviceProofFactory()) {
-        self.proofFactory = proofFactory
-    }
-
-    func make(_ input: AccountDeviceEnrollmentRequestInput) throws -> DeviceEnrollmentRequest {
-        let identifier = input.deviceID.uuidString.lowercased()
-        let enrolledAtValue = Self.dateFormatter.string(from: input.enrolledAt)
-        let unsigned = DeviceEnrollmentRequest(
-            coordinatorNonce: input.nonce,
-            deviceID: identifier,
-            deviceProof: DeviceProof(compactJws: ""),
-            encryptionPublicKeyJwk: Self.generatedJWK(input.bootstrap.encryptionPublicKey),
-            enrolledAt: enrolledAtValue,
-            keyEpoch: input.keyEpoch,
-            pkceChallenge: input.pkceChallenge,
-            protocolVersion: "0.0",
-            remoteControlEnabled: false,
-            signingPublicKeyJwk: Self.generatedJWK(input.bootstrap.signingPublicKey),
-            state: input.state
-        )
-        guard var body = try JSONSerialization.jsonObject(
-            with: unsigned.jsonData()
-        ) as? [String: Any] else {
-            throw AccountOAuthEnrollmentError.invalidResponse
-        }
-        body.removeValue(forKey: "deviceProof")
-        let unsignedBody = try JSONSerialization.data(withJSONObject: body, options: [.sortedKeys])
-        let endpoint = input.syncResource.appending(path: "/sync/devices/enroll")
-        let proof = try proofFactory.make(.init(
-            accessToken: input.accessToken,
-            nonce: input.nonce,
-            method: "POST",
-            url: endpoint,
-            body: unsignedBody,
-            signingPrivateKey: input.keys.signingPrivateKey
-        ))
-        return DeviceEnrollmentRequest(
-            coordinatorNonce: input.nonce,
-            deviceID: identifier,
-            deviceProof: DeviceProof(compactJws: proof),
-            encryptionPublicKeyJwk: Self.generatedJWK(input.bootstrap.encryptionPublicKey),
-            enrolledAt: enrolledAtValue,
-            keyEpoch: input.keyEpoch,
-            pkceChallenge: input.pkceChallenge,
-            protocolVersion: "0.0",
-            remoteControlEnabled: false,
-            signingPublicKeyJwk: Self.generatedJWK(input.bootstrap.signingPublicKey),
-            state: input.state
-        )
-    }
-
-    private static func generatedJWK(_ value: AccountPublicKeyJWK) -> DevicePublicKeyJWK {
-        DevicePublicKeyJWK(crv: .p256, kty: .ec, x: value.x, y: value.y)
-    }
-
-    private static let dateFormatter: ISO8601DateFormatter = {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return formatter
-    }()
-}
-
-struct RemoteCommandEnrollmentFinalizer {
-    let store: RemoteCommandEnrollmentStore
-
-    func install(receiptData: Data) throws {
-        let receipt = try NativeDeviceEnrollmentReceipt(data: receiptData)
-        try store.save(NativeAccountSyncTransport.remoteCommandEnrollment(receipt))
-    }
-}
+// Enrollment and its crash-recovery state machine stay in one review unit so
+// checkpoint ordering cannot drift from the network operations it protects.
+// swiftlint:disable file_length
 
 enum NativeAccountEnrollmentState: Equatable {
+    case finishDeviceRegistration(String, AccountDeviceEnrollment)
+    case finishRecoverySetup(String, AccountDeviceEnrollment)
     case saveRecoveryKey(String, AccountDeviceEnrollment)
     case enterRecoveryKey(AccountDeviceEnrollment)
 }
 
 @MainActor
+// swiftlint:disable:next type_body_length
 final class NativeAccountDeviceEnrollmentService {
     private let secretStore: any AccountSecretStoring
     private let keyStore: AccountDeviceKeyStore
     private let session: URLSession
+    private let tokenRefresher: AccountOAuthTokenRefresher
     private let proofFactory: AccountDeviceProofFactory
     private let remoteCommandFinalizer: RemoteCommandEnrollmentFinalizer
+    private let pending: AccountEnrollmentPendingStore
     private let baseURL: URL
 
     init(
@@ -120,6 +42,12 @@ final class NativeAccountDeviceEnrollmentService {
         )
         self.proofFactory = proofFactory
         self.baseURL = endpoints.syncResource
+        self.tokenRefresher = AccountOAuthTokenRefresher(
+            secretStore: secretStore,
+            session: self.session,
+            endpoints: endpoints
+        )
+        self.pending = AccountEnrollmentPendingStore(secretStore: secretStore)
         self.remoteCommandFinalizer = RemoteCommandEnrollmentFinalizer(
             store: remoteCommandEnrollmentStore
         )
@@ -130,49 +58,109 @@ final class NativeAccountDeviceEnrollmentService {
         deviceID: UUID,
         enrolledAt: Date = Date()
     ) async throws -> NativeAccountEnrollmentState {
-        let accessToken = grant.tokens.accessToken
-        let challenge = try await challenge(deviceID: deviceID, accessToken: accessToken)
-        let bootstrap = try keyStore.createEnrollment(
+        let prepared = try await prepareRegistration(
+            grant: grant,
             deviceID: deviceID,
-            keyEpoch: challenge.keyEpoch,
-            createdAt: enrolledAt
-        )
-        guard let keys = try keyStore.load(deviceID: deviceID) else {
-            throw AccountOAuthEnrollmentError.invalidResponse
-        }
-        let enrollment = try AccountDeviceEnrollmentRequestBuilder(
-            proofFactory: proofFactory
-        ).make(AccountDeviceEnrollmentRequestInput(
-            accessToken: accessToken,
-            nonce: challenge.coordinatorNonce,
-            keyEpoch: challenge.keyEpoch,
-            deviceID: deviceID,
-            bootstrap: bootstrap,
-            keys: keys,
-            enrolledAt: enrolledAt,
-            pkceChallenge: grant.codeChallenge,
-            state: grant.state,
-            syncResource: baseURL
-        ))
-        let receiptData = try await submitEnrollment(enrollment, accessToken: accessToken)
-        try remoteCommandFinalizer.install(receiptData: receiptData)
-
-        let localEnrollment = AccountDeviceEnrollment(
-            deviceID: deviceID,
-            keyEpoch: challenge.keyEpoch,
             enrolledAt: enrolledAt
         )
-        let recoveryEnvelope = AccountRecoveryEnvelopeBridge.generated(bootstrap.recoveryEnvelope)
-        let uploaded = try await uploadRecoveryEnvelope(
-            recoveryEnvelope,
-            deviceID: deviceID,
-            accessToken: accessToken,
-            signingPrivateKey: keys.signingPrivateKey
+        try pending.saveDeviceRegistration(
+            enrollment: prepared.localEnrollment,
+            recoveryKey: prepared.bootstrap.recoveryKey,
+            recoveryEnvelope: prepared.recoveryEnvelope,
+            oauthState: grant.state,
+            pkceChallenge: grant.codeChallenge
         )
-        if uploaded {
-            return .saveRecoveryKey(bootstrap.recoveryKey, localEnrollment)
+        let receiptData: Data
+        do {
+            receiptData = try await submitEnrollment(
+                prepared.request,
+                accessToken: grant.tokens.accessToken
+            )
+            try pending.saveRegistrationReceipt(receiptData)
+        } catch {
+            return .finishDeviceRegistration(
+                prepared.bootstrap.recoveryKey,
+                prepared.localEnrollment
+            )
         }
-        return .enterRecoveryKey(localEnrollment)
+        do {
+            return try await completeRecoverySetup(
+                recoverySetupCheckpoint(
+                    recoveryKey: prepared.bootstrap.recoveryKey,
+                    enrollment: prepared.localEnrollment
+                )
+            )
+        } catch {
+            return .finishRecoverySetup(
+                prepared.bootstrap.recoveryKey,
+                prepared.localEnrollment
+            )
+        }
+    }
+
+    func resumeDeviceRegistration(
+        recoveryKey: String,
+        enrollment: AccountDeviceEnrollment
+    ) async throws -> NativeAccountEnrollmentState {
+        let checkpoint = try recoverySetupCheckpoint(
+            recoveryKey: recoveryKey,
+            enrollment: enrollment
+        )
+        guard checkpoint.receiptData == nil,
+              let keys = try keyStore.load(deviceID: enrollment.deviceID)
+        else { throw AccountOAuthEnrollmentError.invalidResponse }
+        let receiptData = try await withRefreshingAccessToken { accessToken in
+            let challenge = try await self.challenge(
+                deviceID: enrollment.deviceID,
+                accessToken: accessToken
+            )
+            guard challenge.keyEpoch == enrollment.keyEpoch else {
+                throw AccountOAuthEnrollmentError.invalidResponse
+            }
+            let bootstrap = try AccountEnrollmentBootstrap(
+                recoveryKey: checkpoint.recoveryKey,
+                recoveryEnvelope: AccountRecoveryEnvelopeBridge.local(
+                    checkpoint.recoveryEnvelope
+                ),
+                encryptionPublicKey: keys.encryptionPublicKey,
+                signingPublicKey: keys.signingPublicKey
+            )
+            let request = try AccountDeviceEnrollmentRequestBuilder(
+                proofFactory: self.proofFactory
+            ).make(AccountDeviceEnrollmentRequestInput(
+                accessToken: accessToken,
+                nonce: challenge.coordinatorNonce,
+                keyEpoch: challenge.keyEpoch,
+                deviceID: enrollment.deviceID,
+                bootstrap: bootstrap,
+                keys: keys,
+                enrolledAt: enrollment.enrolledAt,
+                pkceChallenge: checkpoint.pkceChallenge,
+                state: checkpoint.oauthState,
+                syncResource: self.baseURL
+            ))
+            return try await self.submitEnrollment(request, accessToken: accessToken)
+        }
+        try pending.saveRegistrationReceipt(receiptData)
+        do {
+            return try await completeRecoverySetup(
+                recoverySetupCheckpoint(recoveryKey: recoveryKey, enrollment: enrollment)
+            )
+        } catch {
+            return .finishRecoverySetup(recoveryKey, enrollment)
+        }
+    }
+
+    func resumeRecoverySetup(
+        recoveryKey: String,
+        enrollment: AccountDeviceEnrollment
+    ) async throws -> NativeAccountEnrollmentState {
+        try await completeRecoverySetup(
+            recoverySetupCheckpoint(
+                recoveryKey: recoveryKey,
+                enrollment: enrollment
+            )
+        )
     }
 
     private func submitEnrollment(
@@ -187,36 +175,79 @@ final class NativeAccountDeviceEnrollmentService {
         return try await responseData(for: request, acceptedStatuses: 200 ..< 300)
     }
 
+    private func prepareRegistration(
+        grant: AccountOAuthGrant,
+        deviceID: UUID,
+        enrolledAt: Date
+    ) async throws -> PreparedDeviceRegistration {
+        let accessToken = grant.tokens.accessToken
+        let challenge = try await challenge(deviceID: deviceID, accessToken: accessToken)
+        let bootstrap = try keyStore.createEnrollment(
+            deviceID: deviceID,
+            keyEpoch: challenge.keyEpoch,
+            createdAt: enrolledAt
+        )
+        guard let keys = try keyStore.load(deviceID: deviceID) else {
+            throw AccountOAuthEnrollmentError.invalidResponse
+        }
+        let request = try AccountDeviceEnrollmentRequestBuilder(
+            proofFactory: proofFactory
+        ).make(AccountDeviceEnrollmentRequestInput(
+            accessToken: accessToken,
+            nonce: challenge.coordinatorNonce,
+            keyEpoch: challenge.keyEpoch,
+            deviceID: deviceID,
+            bootstrap: bootstrap,
+            keys: keys,
+            enrolledAt: enrolledAt,
+            pkceChallenge: grant.codeChallenge,
+            state: grant.state,
+            syncResource: baseURL
+        ))
+        return PreparedDeviceRegistration(
+            request: request,
+            localEnrollment: AccountDeviceEnrollment(
+                deviceID: deviceID,
+                keyEpoch: challenge.keyEpoch,
+                enrolledAt: enrolledAt
+            ),
+            bootstrap: bootstrap,
+            recoveryEnvelope: AccountRecoveryEnvelopeBridge.generated(
+                bootstrap.recoveryEnvelope
+            )
+        )
+    }
+
     func restore(
         recoveryKey: String,
         enrollment: AccountDeviceEnrollment
     ) async throws -> AccountDeviceEnrollment {
-        guard let tokenData = try secretStore.data(for: "oauth-access-token"),
-              let accessToken = String(data: tokenData, encoding: .utf8),
-              let keys = try keyStore.load(deviceID: enrollment.deviceID)
+        guard let keys = try keyStore.load(deviceID: enrollment.deviceID)
         else { throw AccountOAuthEnrollmentError.invalidResponse }
-        let endpoint = baseURL.appending(path: "/sync/e2ee/recovery-envelope")
-        let challenge = try await challenge(
-            deviceID: enrollment.deviceID,
-            accessToken: accessToken
-        )
-        let proof = try proofFactory.make(.init(
-            accessToken: accessToken,
-            nonce: challenge.coordinatorNonce,
-            method: "GET",
-            url: endpoint,
-            body: nil,
-            signingPrivateKey: keys.signingPrivateKey
-        ))
-        var request = URLRequest(url: endpoint)
-        request.httpMethod = "GET"
-        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-        request.setValue(proof, forHTTPHeaderField: "DPoP")
-        request.setValue(
-            enrollment.deviceID.uuidString.lowercased(),
-            forHTTPHeaderField: "X-Curfew-Device-ID"
-        )
-        let data = try await responseData(for: request, acceptedStatuses: 200 ..< 300)
+        let data = try await withRefreshingAccessToken { accessToken in
+            let endpoint = self.baseURL.appending(path: "/sync/e2ee/recovery-envelope")
+            let challenge = try await self.challenge(
+                deviceID: enrollment.deviceID,
+                accessToken: accessToken
+            )
+            let proof = try self.proofFactory.make(.init(
+                accessToken: accessToken,
+                nonce: challenge.coordinatorNonce,
+                method: "GET",
+                url: endpoint,
+                body: nil,
+                signingPrivateKey: keys.signingPrivateKey
+            ))
+            var request = URLRequest(url: endpoint)
+            request.httpMethod = "GET"
+            request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+            request.setValue(proof, forHTTPHeaderField: "DPoP")
+            request.setValue(
+                enrollment.deviceID.uuidString.lowercased(),
+                forHTTPHeaderField: "X-Curfew-Device-ID"
+            )
+            return try await self.responseData(for: request, acceptedStatuses: 200 ..< 300)
+        }
         let generated = try RecoveryKeyEnvelope(data: data)
         let local = try AccountRecoveryEnvelopeBridge.local(generated)
         let rootKey = try AccountRecoveryCrypto.unwrap(local, recoveryKey: recoveryKey)
@@ -259,12 +290,86 @@ final class NativeAccountDeviceEnrollmentService {
             return false
         }
         guard (200 ..< 300).contains(response.statusCode) else {
-            throw AccountOAuthEnrollmentError.invalidResponse
+            throw NativeAccountSyncError.rejected(response.statusCode)
         }
         return true
     }
+}
 
-    private func challenge(
+private extension NativeAccountDeviceEnrollmentService {
+    func recoverySetupCheckpoint(
+        recoveryKey: String,
+        enrollment: AccountDeviceEnrollment
+    ) throws -> AccountRecoverySetupCheckpoint {
+        guard let checkpoint = try pending.loadRecoverySetup(),
+              checkpoint.recoveryKey == recoveryKey,
+              checkpoint.enrollment == enrollment
+        else { throw AccountOAuthEnrollmentError.invalidResponse }
+        return checkpoint
+    }
+
+    func completeRecoverySetup(
+        _ checkpoint: AccountRecoverySetupCheckpoint
+    ) async throws -> NativeAccountEnrollmentState {
+        guard let receiptData = checkpoint.receiptData,
+              let keys = try keyStore.load(deviceID: checkpoint.enrollment.deviceID)
+        else { throw AccountOAuthEnrollmentError.invalidResponse }
+        try remoteCommandFinalizer.install(receiptData: receiptData)
+        let recoveryEnvelopeIsOurs = try await withRefreshingAccessToken { accessToken in
+            let uploaded = try await self.uploadRecoveryEnvelope(
+                checkpoint.recoveryEnvelope,
+                deviceID: checkpoint.enrollment.deviceID,
+                accessToken: accessToken,
+                signingPrivateKey: keys.signingPrivateKey
+            )
+            if uploaded {
+                return true
+            }
+            return try await self.storedRecoveryEnvelopeMatches(
+                checkpoint.recoveryEnvelope,
+                deviceID: checkpoint.enrollment.deviceID,
+                accessToken: accessToken,
+                signingPrivateKey: keys.signingPrivateKey
+            )
+        }
+        if recoveryEnvelopeIsOurs {
+            try pending.save(
+                enrollment: checkpoint.enrollment,
+                recoveryKey: checkpoint.recoveryKey
+            )
+            return .saveRecoveryKey(checkpoint.recoveryKey, checkpoint.enrollment)
+        }
+        try pending.save(enrollment: checkpoint.enrollment, recoveryKey: nil)
+        return .enterRecoveryKey(checkpoint.enrollment)
+    }
+
+    func storedRecoveryEnvelopeMatches(
+        _ expected: RecoveryKeyEnvelope,
+        deviceID: UUID,
+        accessToken: String,
+        signingPrivateKey: Data
+    ) async throws -> Bool {
+        let endpoint = baseURL.appending(path: "/sync/e2ee/recovery-envelope")
+        let challenge = try await challenge(deviceID: deviceID, accessToken: accessToken)
+        let proof = try proofFactory.make(.init(
+            accessToken: accessToken,
+            nonce: challenge.coordinatorNonce,
+            method: "GET",
+            url: endpoint,
+            body: nil,
+            signingPrivateKey: signingPrivateKey
+        ))
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "GET"
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        request.setValue(proof, forHTTPHeaderField: "DPoP")
+        request.setValue(deviceID.uuidString.lowercased(), forHTTPHeaderField: "X-Curfew-Device-ID")
+        let data = try await responseData(for: request, acceptedStatuses: 200 ..< 300)
+        let stored = try RecoveryKeyEnvelope(data: data)
+        return try canonicalJSON(stored.jsonData()) == canonicalJSON(expected.jsonData())
+    }
+
+    func challenge(
         deviceID: UUID,
         accessToken: String
     ) async throws -> NativeDeviceProofChallenge {
@@ -281,15 +386,43 @@ final class NativeAccountDeviceEnrollmentService {
         return try JSONDecoder().decode(NativeDeviceProofChallenge.self, from: data)
     }
 
-    private func responseData(
+    func responseData(
         for request: URLRequest,
         acceptedStatuses: Range<Int>
     ) async throws -> Data {
         let (data, response) = try await session.data(for: request)
-        guard let response = response as? HTTPURLResponse,
-              acceptedStatuses.contains(response.statusCode),
-              data.count <= 32 * 1024
-        else { throw AccountOAuthEnrollmentError.invalidResponse }
+        guard let response = response as? HTTPURLResponse else {
+            throw AccountOAuthEnrollmentError.invalidResponse
+        }
+        guard acceptedStatuses.contains(response.statusCode) else {
+            throw NativeAccountSyncError.rejected(response.statusCode)
+        }
+        guard data.count <= 32 * 1024 else {
+            throw AccountOAuthEnrollmentError.invalidResponse
+        }
         return data
+    }
+
+    func withRefreshingAccessToken<T>(
+        _ operation: (String) async throws -> T
+    ) async throws -> T {
+        func accessToken() throws -> String {
+            guard let data = try secretStore.data(for: "oauth-access-token"),
+                  let token = String(data: data, encoding: .utf8),
+                  !token.isEmpty
+            else { throw AccountOAuthEnrollmentError.invalidResponse }
+            return token
+        }
+        do {
+            return try await operation(accessToken())
+        } catch NativeAccountSyncError.rejected(401) {
+            try await tokenRefresher.refresh()
+            return try await operation(accessToken())
+        }
+    }
+
+    func canonicalJSON(_ data: Data) throws -> Data {
+        let object = try JSONSerialization.jsonObject(with: data)
+        return try JSONSerialization.data(withJSONObject: object, options: [.sortedKeys])
     }
 }

@@ -16,6 +16,7 @@ enum AccountOAuthEnrollmentError: Error {
     case invalidResponse
     case missingPresentationAnchor
     case authenticationInProgress
+    case browserCompletedConnectionFailed
 }
 
 @MainActor
@@ -268,15 +269,21 @@ final class AccountOAuthEnrollmentService: NSObject {
             from: callback,
             expectedState: request.state
         )
-        let tokens = try await exchange(code: code, clientID: clientID, request: request)
-        try secretStore.save(Data(clientID.utf8), for: "oauth-client-id")
-        try secretStore.save(Data(tokens.accessToken.utf8), for: "oauth-access-token")
-        try secretStore.save(Data(tokens.refreshToken.utf8), for: "oauth-refresh-token")
-        return AccountOAuthGrant(
-            tokens: tokens,
-            state: request.state,
-            codeChallenge: request.codeChallenge
-        )
+        do {
+            let tokens = try await exchange(code: code, clientID: clientID, request: request)
+            try secretStore.save(Data(clientID.utf8), for: "oauth-client-id")
+            // Persist the refresh token before its paired access token so an
+            // interrupted write cannot expose an access token with no renewal path.
+            try secretStore.save(Data(tokens.refreshToken.utf8), for: "oauth-refresh-token")
+            try secretStore.save(Data(tokens.accessToken.utf8), for: "oauth-access-token")
+            return AccountOAuthGrant(
+                tokens: tokens,
+                state: request.state,
+                codeChallenge: request.codeChallenge
+            )
+        } catch {
+            throw AccountOAuthEnrollmentError.browserCompletedConnectionFailed
+        }
     }
 
     private func authenticate(_ request: AccountOAuthEnrollmentRequest) async throws -> URL {

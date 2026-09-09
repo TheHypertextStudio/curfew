@@ -374,6 +374,9 @@ unknown key and is ignored.
 
 - [x] Pin both SwiftPM entry points to the immutable pre-1.0
       `curfew-protocols` 0.0.9 release.
+- [x] Keep every user-facing release surface in the `0.0.x` line. The Xcode
+      targets and Homebrew cask now agree on `0.0.1`, with a release-contract
+      regression preventing an accidental `1.x` or minor-version jump.
 - [-] Enroll macOS devices through browser OAuth, mandatory server-side AAL2,
       generated first-party scopes, ES256 device proof, and separate Recovery
       Key acknowledgement or restore. Passkey-first and configurable Apple
@@ -395,8 +398,17 @@ unknown key and is ignored.
       current callback-based AuthenticationServices initializer rather than the
       deprecated callback-scheme initializer. Controller and service
       single-flight guards prevent repeated activation from replacing an active
-      system session or orphaning its completion. In-repo tests pass; live
-      account recovery and staging proof remain external release gates.
+      system session or orphaning its completion. The enrollment UI now keeps
+      browser authorization and device enrollment as separate states: once the
+      browser callback succeeds, token exchange or local credential failure is
+      reported as a native connection failure, never as a failed passkey or
+      unfinished browser sign-in. Before device registration, Curfew persists
+      the exact OAuth-bound request inputs, Recovery Key, and encrypted envelope;
+      it adds the authenticated receipt before finalization. Ambiguous registration,
+      expired-token, upload-failure, and relaunch paths resume that checkpoint
+      once at a time without another OAuth or passkey ceremony.
+      In-repo tests pass; live account recovery and staging proof remain
+      external release gates.
       Rollback may disable native enrollment, but must not restore the
       unregistered callback, guessed-window behavior, or concurrent sessions.
 - [x] `just check` passes (format + lint + tests + Debug build).

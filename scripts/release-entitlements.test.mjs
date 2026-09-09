@@ -9,6 +9,7 @@ const releaseChecklist = await readFile("scripts/release-checklist.md", "utf8");
 const productPlan = await readFile("Documentation/plan.md", "utf8");
 const screenshotExtractor = await readFile("scripts/extract-screenshots.sh", "utf8");
 const projectFile = await readFile("Curfew.xcodeproj/project.pbxproj", "utf8");
+const homebrewCask = await readFile("Casks/curfew.rb", "utf8");
 
 test("conservative initial Release keeps only the signed core entitlements", () => {
   assert.match(releaseEntitlements, /com\.apple\.security\.automation\.apple-events/);
@@ -73,4 +74,16 @@ test("a staging build compiles the app and every embedded tool for the same serv
   assert.match(projectFile, /if \[ \\"\$CONFIGURATION\\" != \\"Debug\\" \]/);
   assert.match(projectFile, /CURFEW_STAGING requires the isolated Debug app and helper identity/);
   assert.match(projectFile, /CURFEW_DAEMON_PLIST_NAME/);
+});
+
+test("every user-facing release version is the same 0.0.x version", () => {
+  const marketingVersions = [
+    ...projectFile.matchAll(/MARKETING_VERSION = (\d+\.\d+\.\d+);/g),
+  ].map((match) => match[1]);
+  const caskVersion = /version "(\d+\.\d+\.\d+)"/.exec(homebrewCask)?.[1];
+
+  assert.ok(marketingVersions.length > 0, "Xcode must declare a marketing version");
+  assert.equal(new Set(marketingVersions).size, 1, "all Xcode targets must agree");
+  assert.match(marketingVersions[0], /^0\.0\.\d+$/);
+  assert.equal(caskVersion, marketingVersions[0]);
 });

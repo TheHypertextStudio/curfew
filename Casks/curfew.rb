@@ -1,5 +1,5 @@
 cask "curfew" do
-  version "1.0.0"
+  version "0.0.1"
   sha256 "REPLACE_WITH_RELEASE_DMG_SHA256"
 
   url "https://github.com/TheHypertextStudio/curfew/releases/download/v#{version}/Curfew-v#{version}.dmg",
