@@ -74,8 +74,11 @@ struct FeatureFlags: Equatable {
     /// The flag set the running app should use, chosen from the build
     /// configuration with a developer escape hatch.
     ///
-    /// Returns ``shipping`` when the binary is built with the
-    /// `RELEASE_FEATURES` compilation condition, otherwise ``default``.
+    /// Returns ``shipping`` when the binary is built with either the
+    /// `RELEASE_FEATURES` condition or the closed-world `CURFEW_STAGING`
+    /// service environment, otherwise ``default``. Staging must expose the
+    /// helper installation and MCP controls or it cannot exercise the remote
+    /// lock path it exists to validate.
     /// Setting the environment variable `CURFEW_CONSERVATIVE_FLAGS=1` forces
     /// ``default`` even under `RELEASE_FEATURES`, mirroring the Debug-only
     /// `CURFEW_SKIP_ENFORCEMENT` escape hatch used by ``CurfewLaunchBehavior``
@@ -87,8 +90,16 @@ struct FeatureFlags: Equatable {
         #else
             let releaseFeaturesEnabled = false
         #endif
+
+        #if CURFEW_STAGING
+            let stagingFeaturesEnabled = true
+        #else
+            let stagingFeaturesEnabled = false
+        #endif
+
         return resolve(
             releaseFeaturesEnabled: releaseFeaturesEnabled,
+            stagingFeaturesEnabled: stagingFeaturesEnabled,
             environment: ProcessInfo.processInfo.environment
         )
     }
@@ -100,12 +111,15 @@ struct FeatureFlags: Equatable {
     /// - Parameters:
     ///   - releaseFeaturesEnabled: whether the `RELEASE_FEATURES` condition is
     ///     compiled in.
+    ///   - stagingFeaturesEnabled: whether the staging service environment is
+    ///     compiled in for full remote-control acceptance.
     ///   - environment: the process environment to consult for the escape hatch.
     static func resolve(
         releaseFeaturesEnabled: Bool,
+        stagingFeaturesEnabled: Bool = false,
         environment: [String: String]
     ) -> FeatureFlags {
-        guard releaseFeaturesEnabled else { return .default }
+        guard releaseFeaturesEnabled || stagingFeaturesEnabled else { return .default }
         if environment["CURFEW_CONSERVATIVE_FLAGS"] == "1" {
             return .default
         }

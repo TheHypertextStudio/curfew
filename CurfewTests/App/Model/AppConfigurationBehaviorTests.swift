@@ -165,8 +165,23 @@ struct FeatureFlagTests {
     @Test("Resolution returns shipping when RELEASE_FEATURES is present")
     func resolveWithReleaseFeatures() {
         #expect(
-            FeatureFlags.resolve(releaseFeaturesEnabled: true, environment: [:])
+            FeatureFlags.resolve(
+                releaseFeaturesEnabled: true,
+                stagingFeaturesEnabled: false,
+                environment: [:]
+            )
                 == .shipping
+        )
+    }
+
+    @Test("Staging exposes the complete remote-control acceptance surface")
+    func resolveWithStagingFeatures() {
+        #expect(
+            FeatureFlags.resolve(
+                releaseFeaturesEnabled: false,
+                stagingFeaturesEnabled: true,
+                environment: [:]
+            ) == .shipping
         )
     }
 
@@ -185,13 +200,24 @@ struct FeatureFlagTests {
                 environment: ["CURFEW_CONSERVATIVE_FLAGS": "0"]
             ) == .shipping
         )
+        #expect(
+            FeatureFlags.resolve(
+                releaseFeaturesEnabled: false,
+                stagingFeaturesEnabled: true,
+                environment: ["CURFEW_CONSERVATIVE_FLAGS": "1"]
+            ) == .default
+        )
     }
 
-    @Test("Resolved is .default in the Debug/test build (no RELEASE_FEATURES)")
-    func resolvedMatchesDebugBuild() {
-        // The test host is a Debug build and never defines RELEASE_FEATURES,
-        // so the live `resolved` accessor must collapse to the all-off default.
-        #expect(FeatureFlags.resolved == .default)
+    @Test("Resolved matches the build's acceptance surface")
+    func resolvedMatchesBuild() {
+        #if RELEASE_FEATURES || CURFEW_STAGING
+            #expect(FeatureFlags.resolved == .shipping)
+        #else
+            // The ordinary Debug test host defines neither RELEASE_FEATURES
+            // nor CURFEW_STAGING, so deferred modules remain safely off.
+            #expect(FeatureFlags.resolved == .default)
+        #endif
     }
 }
 

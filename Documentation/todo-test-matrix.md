@@ -223,6 +223,9 @@ only.
   - `PrivilegedHelperManagerTests/installDaemonStoresError()`
   - `PrivilegedHelperManagerTests/loginItemRegistrationFlows()`
   - `PrivilegedHelperStatusCopyTests/helperStatusDescriptions()`
+- `Expose the shipping MCP and privileged-helper controls in the isolated staging build so signed-device acceptance can install the daemon.`
+  - `FeatureFlagTests/resolveWithStagingFeatures()`
+  - `FeatureFlagTests/resolvedMatchesBuild()` (run with `CURFEW_SERVICE_SWIFT_FLAG=CURFEW_STAGING`)
 
 ## 6. Extension and Override Systems
 
