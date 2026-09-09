@@ -6,6 +6,64 @@ import Testing
 
 struct AccountOAuthEnrollmentTests {
     @MainActor
+    @Test("Native OAuth permits only one active authorization session")
+    func authenticationSessionIsSingleFlight() throws {
+        let gate = AccountOAuthAuthenticationGate()
+
+        try gate.begin()
+        #expect(throws: AccountOAuthEnrollmentError.authenticationInProgress) {
+            try gate.begin()
+        }
+        gate.finish()
+        #expect(throws: Never.self) {
+            try gate.begin()
+        }
+    }
+
+    @Test("Enrollment ignores another sign-in while one is active")
+    func enrollmentSignInIsSingleFlight() {
+        #expect(AccountEnrollmentSignInPolicy.canStart(from: .accountFree))
+        #expect(!AccountEnrollmentSignInPolicy.canStart(from: .signingIn))
+        #expect(AccountEnrollmentSignInPolicy.canStart(from: .failed("Try again")))
+    }
+
+    @MainActor
+    @Test("Settings reports its concrete window when attached")
+    func settingsReportsAttachedWindow() {
+        var reportedWindow: NSWindow?
+        let reader = SettingsWindowReaderView { reportedWindow = $0 }
+        let settingsWindow = NSWindow()
+
+        settingsWindow.contentView = reader
+
+        #expect(reportedWindow === settingsWindow)
+    }
+
+    @MainActor
+    @Test("Native OAuth presents from the Settings window that started enrollment")
+    func presentationUsesTriggeringSettingsWindow() throws {
+        let settingsWindow = NSWindow()
+        let context = AccountOAuthPresentationContext()
+
+        context.settingsWindow = settingsWindow
+        try context.prepareForPresentation()
+
+        #expect(context.activePresentationWindow === settingsWindow)
+        context.finishPresentation()
+        #expect(context.activePresentationWindow == nil)
+    }
+
+    @MainActor
+    @Test("Native OAuth fails before starting when Settings has no presentation window")
+    func presentationRequiresSettingsWindow() {
+        let context = AccountOAuthPresentationContext()
+
+        #expect(throws: AccountOAuthEnrollmentError.missingPresentationAnchor) {
+            try context.prepareForPresentation()
+        }
+    }
+
+    @MainActor
     @Test("Native OAuth preserves the browser session that owns existing passkeys")
     func browserSessionPreservesPasskeys() throws {
         let authorizationURL = try #require(
@@ -13,7 +71,7 @@ struct AccountOAuthEnrollmentTests {
         )
         let session = ASWebAuthenticationSession(
             url: authorizationURL,
-            callbackURLScheme: "studio.hypertext.curfew"
+            callback: .customScheme("studio.hypertext.curfew")
         ) { _, _ in }
 
         AccountOAuthBrowserPolicy.configure(session)

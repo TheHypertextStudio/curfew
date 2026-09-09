@@ -185,7 +185,16 @@ This protects against two distinct threats: account compromise leading to indefi
   the separate Curfew Recovery Key before sync starts. The native authorization
   session is non-ephemeral so the user's existing account and passkey provider
   remain available; Curfew does not create an isolated sign-in context that
-  loses those credentials.
+  loses those credentials. The macOS app registers
+  `studio.hypertext.curfew://oauth/callback` with Launch Services in both Debug
+  and Release, allowing the system authorization session to return control to
+  the initiating Curfew process. The authorization UI is anchored to the exact
+  Settings window where enrollment began; Curfew retains that window for the
+  session lifetime and fails enrollment before launch when no window is
+  attached, rather than guessing an unrelated window or waiting indefinitely.
+  Enrollment is single-flight at both the Settings controller and native
+  authorization service, so repeated activation cannot replace an in-progress
+  system session or orphan its completion.
 - **Staging proof.** A build made with
   `CURFEW_SERVICE_SWIFT_FLAG=CURFEW_STAGING` binds the app, OAuth exchanges,
   sync transport, account portal, MCP resource, and embedded daemon JWKS trust

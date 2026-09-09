@@ -14,6 +14,50 @@ enum AccountOAuthEnrollmentError: Error {
     case stateMismatch
     case authorizationRejected
     case invalidResponse
+    case missingPresentationAnchor
+    case authenticationInProgress
+}
+
+@MainActor
+final class AccountOAuthAuthenticationGate {
+    private var isActive = false
+
+    func begin() throws {
+        guard !isActive else {
+            throw AccountOAuthEnrollmentError.authenticationInProgress
+        }
+        isActive = true
+    }
+
+    func finish() {
+        isActive = false
+    }
+}
+
+@MainActor
+final class AccountOAuthPresentationContext: NSObject,
+    ASWebAuthenticationPresentationContextProviding {
+    weak var settingsWindow: NSWindow?
+    private(set) var activePresentationWindow: NSWindow?
+
+    func prepareForPresentation() throws {
+        guard let settingsWindow else {
+            throw AccountOAuthEnrollmentError.missingPresentationAnchor
+        }
+        activePresentationWindow = settingsWindow
+    }
+
+    func finishPresentation() {
+        activePresentationWindow = nil
+    }
+
+    func presentationAnchor(for _: ASWebAuthenticationSession) -> ASPresentationAnchor {
+        precondition(
+            activePresentationWindow != nil,
+            "OAuth presentation was requested without the Settings window"
+        )
+        return activePresentationWindow!
+    }
 }
 
 enum AccountOAuthCallback {
@@ -183,11 +227,12 @@ private struct AccountOAuthTokenResponse: Decodable {
 }
 
 @MainActor
-final class AccountOAuthEnrollmentService: NSObject,
-    ASWebAuthenticationPresentationContextProviding {
+final class AccountOAuthEnrollmentService: NSObject {
     private let secretStore: any AccountSecretStoring
     private let session: URLSession
     private let endpoints: CurfewServiceEndpoints
+    private let authenticationGate = AccountOAuthAuthenticationGate()
+    private let presentationContext = AccountOAuthPresentationContext()
     private var browserSession: ASWebAuthenticationSession?
 
     init(
@@ -204,7 +249,12 @@ final class AccountOAuthEnrollmentService: NSObject,
         )
     }
 
-    func signIn() async throws -> AccountOAuthGrant {
+    func signIn(presentationWindow: NSWindow?) async throws -> AccountOAuthGrant {
+        try authenticationGate.begin()
+        defer { authenticationGate.finish() }
+        presentationContext.settingsWindow = presentationWindow
+        try presentationContext.prepareForPresentation()
+        defer { presentationContext.finishPresentation() }
         let clientID = AccountOAuthOfficialClient.clientID
         let request = try AccountOAuthEnrollmentRequest.create(
             clientID: clientID,
@@ -229,15 +279,11 @@ final class AccountOAuthEnrollmentService: NSObject,
         )
     }
 
-    func presentationAnchor(for _: ASWebAuthenticationSession) -> ASPresentationAnchor {
-        NSApplication.shared.keyWindow ?? NSApplication.shared.windows.first ?? NSWindow()
-    }
-
     private func authenticate(_ request: AccountOAuthEnrollmentRequest) async throws -> URL {
         try await withCheckedThrowingContinuation { continuation in
             let browserSession = ASWebAuthenticationSession(
                 url: request.authorizationURL,
-                callbackURLScheme: Self.callbackScheme
+                callback: .customScheme(Self.callbackScheme)
             ) { [weak self] callback, error in
                 self?.browserSession = nil
                 if let callback {
@@ -248,7 +294,7 @@ final class AccountOAuthEnrollmentService: NSObject,
                     )
                 }
             }
-            browserSession.presentationContextProvider = self
+            browserSession.presentationContextProvider = presentationContext
             AccountOAuthBrowserPolicy.configure(browserSession)
             self.browserSession = browserSession
             guard browserSession.start() else {

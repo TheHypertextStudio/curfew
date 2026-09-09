@@ -60,6 +60,11 @@ struct SettingsView: View {
                 .tag(SettingsSection.about)
         }
         .tint(CurfewTheme.accent)
+        .background {
+            SettingsWindowReader { window in
+                accountEnrollment.presentationWindow = window
+            }
+        }
     }
 
     /// Wraps a panel's content in the shared scroll + padding treatment used
@@ -78,5 +83,37 @@ struct SettingsView: View {
         .scrollIndicators(.hidden)
         .background(CurfewTheme.canvas)
         .foregroundStyle(CurfewTheme.ink)
+    }
+}
+
+final class SettingsWindowReaderView: NSView {
+    var resolve: @MainActor (NSWindow?) -> Void
+
+    init(resolve: @escaping @MainActor (NSWindow?) -> Void) {
+        self.resolve = resolve
+        super.init(frame: .zero)
+    }
+
+    @available(*, unavailable)
+    required init?(coder _: NSCoder) {
+        nil
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        resolve(window)
+    }
+}
+
+private struct SettingsWindowReader: NSViewRepresentable {
+    let resolve: @MainActor (NSWindow?) -> Void
+
+    func makeNSView(context _: Context) -> SettingsWindowReaderView {
+        SettingsWindowReaderView(resolve: resolve)
+    }
+
+    func updateNSView(_ view: SettingsWindowReaderView, context _: Context) {
+        view.resolve = resolve
+        resolve(view.window)
     }
 }

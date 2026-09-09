@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDisplayName</key>
+	<string>$(INFOPLIST_KEY_CFBundleDisplayName)</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>$(PRODUCT_NAME)</string>
+	<key>CFBundlePackageType</key>
+	<string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
+	<key>CFBundleShortVersionString</key>
+	<string>$(MARKETING_VERSION)</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>studio.hypertext.curfew.oauth</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>studio.hypertext.curfew</string>
+			</array>
+		</dict>
+	</array>
+	<key>CFBundleVersion</key>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
+	<key>LSUIElement</key>
+	<false/>
+	<key>NSAccessibilityUsageDescription</key>
+	<string>$(INFOPLIST_KEY_NSAccessibilityUsageDescription)</string>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>$(INFOPLIST_KEY_NSAppleEventsUsageDescription)</string>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>$(INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription)</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>$(INFOPLIST_KEY_NSCalendarsUsageDescription)</string>
+	<key>NSCameraUsageDescription</key>
+	<string>$(INFOPLIST_KEY_NSCameraUsageDescription)</string>
+	<key>NSHumanReadableCopyright</key>
+	<string>$(INFOPLIST_KEY_NSHumanReadableCopyright)</string>
+	<key>SUFeedURL</key>
+	<string>$(INFOPLIST_KEY_SUFeedURL)</string>
+	<key>SUPublicEDKey</key>
+	<string>$(INFOPLIST_KEY_SUPublicEDKey)</string>
+</dict>
+</plist>

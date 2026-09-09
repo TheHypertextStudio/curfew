@@ -1,3 +1,4 @@
+import AppKit
 import Combine
 import Foundation
 
@@ -8,6 +9,15 @@ enum AccountEnrollmentUIState: Equatable {
     case enterRecoveryKey(AccountDeviceEnrollment)
     case ready(AccountDeviceEnrollment)
     case failed(String)
+}
+
+enum AccountEnrollmentSignInPolicy {
+    static func canStart(from state: AccountEnrollmentUIState) -> Bool {
+        if case .signingIn = state {
+            return false
+        }
+        return true
+    }
 }
 
 final class AccountEnrollmentPendingStore {
@@ -56,6 +66,7 @@ final class AccountEnrollmentController: ObservableObject {
     private let oauth: AccountOAuthEnrollmentService
     private let devices: NativeAccountDeviceEnrollmentService
     private let pending: AccountEnrollmentPendingStore
+    weak var presentationWindow: NSWindow?
 
     init(secretStore: any AccountSecretStoring = KeychainAccountSecretStore()) {
         self.secretStore = secretStore
@@ -66,9 +77,10 @@ final class AccountEnrollmentController: ObservableObject {
     }
 
     func signIn() async {
+        guard AccountEnrollmentSignInPolicy.canStart(from: state) else { return }
         state = .signingIn
         do {
-            let grant = try await oauth.signIn()
+            let grant = try await oauth.signIn(presentationWindow: presentationWindow)
             let outcome = try await devices.enroll(
                 grant: grant,
                 deviceID: deviceID()
