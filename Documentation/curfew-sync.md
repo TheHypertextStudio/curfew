@@ -182,7 +182,10 @@ This protects against two distinct threats: account compromise leading to indefi
 
 - **Settings → Curfew Account** is the entry point. It opens browser OAuth,
   completes 2FA, enrolls device keys, and requires the user to save or enter
-  the separate Curfew Recovery Key before sync starts.
+  the separate Curfew Recovery Key before sync starts. The native authorization
+  session is non-ephemeral so the user's existing account and passkey provider
+  remain available; Curfew does not create an isolated sign-in context that
+  loses those credentials.
 - **Staging proof.** A build made with
   `CURFEW_SERVICE_SWIFT_FLAG=CURFEW_STAGING` binds the app, OAuth exchanges,
   sync transport, account portal, MCP resource, and embedded daemon JWKS trust

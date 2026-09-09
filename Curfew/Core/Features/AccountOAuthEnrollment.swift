@@ -54,6 +54,15 @@ enum AccountOAuthOfficialClient {
     static let clientID = "curfew-native-client"
 }
 
+enum AccountOAuthBrowserPolicy {
+    static func configure(_ session: ASWebAuthenticationSession) {
+        // Account enrollment is passkey-first. Preserve the normal browser
+        // session so the user's existing account and credential provider are
+        // available to the authorization flow.
+        session.prefersEphemeralWebBrowserSession = false
+    }
+}
+
 enum AccountOAuthTokenRequest {
     static func authorizationCodeBody(
         code: String,
@@ -240,7 +249,7 @@ final class AccountOAuthEnrollmentService: NSObject,
                 }
             }
             browserSession.presentationContextProvider = self
-            browserSession.prefersEphemeralWebBrowserSession = true
+            AccountOAuthBrowserPolicy.configure(browserSession)
             self.browserSession = browserSession
             guard browserSession.start() else {
                 self.browserSession = nil

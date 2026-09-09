@@ -382,8 +382,12 @@ unknown key and is ignored.
       portal, MCP resource, daemon JWKS trust, and account-key Keychain namespace
       together for staging or production. Staging is restricted to the Debug
       app and its own helper label plus user/root state paths; Release rejects
-      the staging flag. In-repo tests pass; live account recovery and staging
-      proof remain external release gates.
+      the staging flag. Native authorization now preserves the user's normal
+      browser session instead of forcing an ephemeral one, so an existing
+      account and its passkey provider remain available during enrollment.
+      In-repo tests pass; live account recovery and staging proof remain
+      external release gates. Rollback is to restore an ephemeral browser
+      session, which also restores the known passkey/profile failure mode.
 - [x] `just check` passes (format + lint + tests + Debug build).
 - [x] `xcodebuild archive` succeeds unsigned locally.
 - [x] `./curfew-ctl status` prints live state.
