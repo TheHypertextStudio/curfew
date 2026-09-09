@@ -27,6 +27,21 @@ struct AppConfigurationTests {
         #expect(value == false)
     }
 
+    @Test("Host app owns the native OAuth callback scheme")
+    func hostAppOwnsOAuthCallbackScheme() throws {
+        let appBundle = try #require(try Bundle(url: hostAppURL()))
+        let urlTypes = try #require(
+            appBundle.object(forInfoDictionaryKey: "CFBundleURLTypes")
+                as? [[String: Any]]
+        )
+        let ownsCallbackScheme = urlTypes.contains { urlType in
+            let schemes = urlType["CFBundleURLSchemes"] as? [String]
+            return schemes?.contains("studio.hypertext.curfew") == true
+        }
+
+        #expect(ownsCallbackScheme)
+    }
+
     @Test("Bundled daemon carries the same Apple signing team as Curfew")
     func bundledDaemonUsesHostSigningIdentity() throws {
         let appURL = try hostAppURL()

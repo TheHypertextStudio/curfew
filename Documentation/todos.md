@@ -384,10 +384,21 @@ unknown key and is ignored.
       app and its own helper label plus user/root state paths; Release rejects
       the staging flag. Native authorization now preserves the user's normal
       browser session instead of forcing an ephemeral one, so an existing
-      account and its passkey provider remain available during enrollment.
-      In-repo tests pass; live account recovery and staging proof remain
-      external release gates. Rollback is to restore an ephemeral browser
-      session, which also restores the known passkey/profile failure mode.
+      account and its passkey provider remain available during enrollment. The
+      app bundle now owns the `studio.hypertext.curfew` OAuth callback scheme;
+      without that Launch Services registration, AuthenticationServices could
+      accept the request while leaving enrollment waiting with no usable return
+      path. Native authorization also uses the concrete Settings window that
+      initiated enrollment, retains it for the authorization lifetime, and
+      fails immediately when no attached window exists instead of fabricating
+      an invalid presentation anchor and leaving a spinner running. It uses the
+      current callback-based AuthenticationServices initializer rather than the
+      deprecated callback-scheme initializer. Controller and service
+      single-flight guards prevent repeated activation from replacing an active
+      system session or orphaning its completion. In-repo tests pass; live
+      account recovery and staging proof remain external release gates.
+      Rollback may disable native enrollment, but must not restore the
+      unregistered callback, guessed-window behavior, or concurrent sessions.
 - [x] `just check` passes (format + lint + tests + Debug build).
 - [x] `xcodebuild archive` succeeds unsigned locally.
 - [x] `./curfew-ctl status` prints live state.

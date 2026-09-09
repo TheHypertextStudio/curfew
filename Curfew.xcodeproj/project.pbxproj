@@ -69,6 +69,16 @@
 		C0FE0000000000000000001E /* CurfewWidget-Debug.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CurfewWidget-Debug.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		C0FE00000000000000000201 /* Exceptions for "Curfew" folder in "Curfew" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 9BD3FB812F4D4584007B2E95 /* Curfew */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		1F56E9B021971B57F3DE957D /* CurfewWidget */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
@@ -80,6 +90,7 @@
 		9BD3FB842F4D4584007B2E95 /* Curfew */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
+				C0FE00000000000000000201 /* Exceptions for "Curfew" folder in "Curfew" target */,
 			);
 			path = Curfew;
 			sourceTree = "<group>";
@@ -645,7 +656,8 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
-				GENERATE_INFOPLIST_FILE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Curfew/Info.plist;
 				INFOPLIST_KEY_LSUIElement = NO;
 				INFOPLIST_KEY_NSAppleEventsUsageDescription = "Curfew uses System Events to shut down your Mac after lockout when you turn on auto shutdown.";
 				INFOPLIST_KEY_NSAccessibilityUsageDescription = "Curfew uses Accessibility to intercept keyboard shortcuts during lockout so you can't bypass your own curfew.";
@@ -688,7 +700,8 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
-				GENERATE_INFOPLIST_FILE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Curfew/Info.plist;
 				INFOPLIST_KEY_LSUIElement = NO;
 				INFOPLIST_KEY_NSAppleEventsUsageDescription = "Curfew uses System Events to shut down your Mac after lockout when you turn on auto shutdown.";
 				INFOPLIST_KEY_NSAccessibilityUsageDescription = "Curfew uses Accessibility to intercept keyboard shortcuts during lockout so you can't bypass your own curfew.";
