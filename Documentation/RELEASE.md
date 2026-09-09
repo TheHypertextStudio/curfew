@@ -95,7 +95,9 @@ xcodebuild build \
 The build hard-fails if `CURFEW_STAGING` is combined with Release, if the helper
 plist does not match the app flavor, or if the flag has any other value. A
 staging build therefore cannot be archived as Curfew or replace the production
-LaunchDaemon.
+LaunchDaemon. `CURFEW_STAGING` also exposes the shipping MCP and privileged-helper
+controls in Debug so this build can complete the documented enrollment and
+remote-lock acceptance path; an ordinary Debug build keeps deferred modules off.
 
 ## Build a local signed release candidate
 
