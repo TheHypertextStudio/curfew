@@ -48,6 +48,11 @@
               <td><code>~/Library/Application Support/Curfew/mcp-requests.json</code></td>
               <td>Until resolved</td>
             </tr>
+            <tr>
+              <td>Browser decision audit metadata (hostname, decision, and scope type)</td>
+              <td><code>~/Library/Logs/Curfew</code></td>
+              <td>Rotated segments for 90 days; the current segment until rotation</td>
+            </tr>
           </tbody>
         </table>
 
@@ -55,7 +60,8 @@
         <ul class="privacy-list">
           <li>No analytics, telemetry, or crash reporting.</li>
           <li>No advertising or sale of personal information.</li>
-          <li>No access to your files, browser history, or app content.</li>
+          <li>No access to your files or app content.</li>
+          <li>No reading of page content, page subresources, or general browser history.</li>
         </ul>
 
         <h2 class="privacy-section-title">Optional Curfew Account</h2>
@@ -99,8 +105,32 @@
               <td>Accessibility (optional)</td>
               <td>Keyboard shortcut interception during lockout.</td>
             </tr>
+            <tr>
+              <td>Chrome navigation (optional)</td>
+              <td>Observe top-level HTTP and HTTPS navigation while task enforcement is active.</td>
+            </tr>
           </tbody>
         </table>
+
+        <h2 class="privacy-section-title">Task-scoped browser enforcement</h2>
+        <p class="privacy-prose">
+          When you enable task-scoped browser enforcement, the Chrome extension
+          observes top-level HTTP and HTTPS navigation so Curfew can allow known
+          destinations and block unknown ones before they load. Curfew does not
+          inspect page content or subresources. Known destinations stay on your
+          Mac. For an unknown destination only, Curfew sends the normalized
+          origin and path to Docket and Athena with the current task and your
+          answer for review. Curfew removes URL credentials, query strings, and
+          fragments first.
+        </p>
+        <p class="privacy-prose">
+          Curfew retains an initial justification only while one live challenge
+          remains pending, so the challenge can survive a page reload. Curfew
+          never persists a completed justification or a challenge answer. The
+          local audit log records only the hostname, decision, and scope type. It
+          never records a full path, query, fragment, credential, justification,
+          challenge answer, reviewer reason, or reviewer question.
+        </p>
 
         <h2 class="privacy-section-title">iCloud sync (Pro)</h2>
         <p class="privacy-prose">

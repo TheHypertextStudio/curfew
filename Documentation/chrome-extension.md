@@ -14,7 +14,6 @@ pnpm install --frozen-lockfile
 pnpm --filter @curfew/chrome-extension test
 pnpm --filter @curfew/chrome-extension typecheck
 pnpm --filter @curfew/chrome-extension build:development
-pnpm --filter @curfew/chrome-extension build
 ```
 
 The development artifact is `web/extension/dist/development`. Load that folder
@@ -30,14 +29,23 @@ storing the answer field. Production builds remove the fixture data and ignore
 that query. Do not use the screenshot fixture as enforcement acceptance.
 
 The production artifact is `web/extension/dist/production`. It calls only
-`studio.hypertext.curfew.browser`. As of 2026-09-08, both manifests include the
-public key from `BrowserNativeInstallation.developmentPublicKey`, so an unpacked
-production artifact keeps the pinned development identity. Both manifests
-require Chrome 120 or later. The release engineer
-must create the Chrome Web Store draft before shipping. If the store assigns a
-different production ID, the engineer must set `CURFEW_BROWSER_EXTENSION_ID` to
-that exact ID and verify the signed app's native-host manifest against the
-published extension. The engineer must not ship an empty production ID.
+`studio.hypertext.curfew.browser`. The production build requires the separate
+Web Store public key and the matching 32-character extension ID:
+
+```sh
+CURFEW_BROWSER_EXTENSION_PUBLIC_KEY='<Web Store public key>' \
+CURFEW_BROWSER_EXTENSION_ID='<Web Store item ID>' \
+pnpm --filter @curfew/chrome-extension package:production
+```
+
+The command derives the extension ID from the public key and rejects a mismatch.
+It never falls back to the development identity. It writes the built extension
+to `web/extension/dist/production` and the upload archive to
+`web/extension/dist/curfew-browser-production.zip`. The archive contains only
+the current build files. Both manifests require Chrome 120 or later. The release
+engineer must copy the public key and item ID from the Chrome Web Store draft
+before building. The engineer must then set the same item ID as
+`CURFEW_BROWSER_EXTENSION_ID` in the signed app build.
 
 ## Permissions and rule lifetime
 
@@ -90,7 +98,11 @@ title, target hostname, and this question:
 
 > What will you do on &lt;host&gt;, and what will you produce for &lt;task&gt;?
 
-The worker sends only a normalized origin and path to `browser-host/1`. The
+The worker observes top-level HTTP and HTTPS navigation while enforcement is
+active. It does not inspect page content or subresources. Known destinations
+stay local. For an unknown destination only, the worker sends a normalized
+origin and path through `browser-host/1` to Curfew, which sends them to Docket
+and Athena for review. The
 initial justification must contain 20 through 1,000 JavaScript characters after
 trimming. A challenge answer must contain 1 through 1,000 characters. The worker
 shows these errors before native messaging, so invalid text does not become a
@@ -102,7 +114,8 @@ challenge replaces the one visible question and clears the one answer field.
 The worker retains the original justification with the pending challenged
 request, so a reload can send it unchanged as `justification`. The worker sends
 only the new text as `challengeAnswer`. It never persists the challenge answer.
-It removes the pending request and both strings after a grant, denial, task or
+It does not persist a completed justification. It removes the pending request
+and both strings after a grant, denial, task or
 destination change, expiry, or abandonment. A grant must return a
 bounded scope and a same-session policy that permits the destination at the
 current time. The worker installs that complete policy before it reopens the

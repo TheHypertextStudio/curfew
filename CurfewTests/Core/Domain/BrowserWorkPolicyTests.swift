@@ -210,7 +210,7 @@ struct BrowserWorkPolicyTests {
             )
         ]
         var reducer = try BrowserWorkSessionReducer(
-            docketWebOrigin: #require(URL(string: "https://docket.hypertext.studio")),
+            docketWebOrigin: #require(URL(string: "https://clearthedocket.com")),
             mappings: mappings
         )
 
@@ -231,7 +231,7 @@ struct BrowserWorkPolicyTests {
         #expect(try policy
             .allows(NormalizedHTTPDestination("https://docs.google.com/document/d/1"), at: now))
         #expect(try policy
-            .allows(NormalizedHTTPDestination("https://docket.hypertext.studio/today"), at: now))
+            .allows(NormalizedHTTPDestination("https://clearthedocket.com/today"), at: now))
         #expect(try !policy.allows(
             NormalizedHTTPDestination("https://youtube.com/watch?v=1"),
             at: now
@@ -588,7 +588,7 @@ struct BrowserWorkPolicyTests {
 
     private func reducer() -> BrowserWorkSessionReducer {
         BrowserWorkSessionReducer(
-            docketWebOrigin: URL(string: "https://docket.hypertext.studio")!,
+            docketWebOrigin: URL(string: "https://clearthedocket.com")!,
             mappings: []
         )
     }

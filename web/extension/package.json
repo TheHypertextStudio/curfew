@@ -5,6 +5,7 @@
   "scripts": {
     "build": "node scripts/build.mjs production",
     "build:development": "node scripts/build.mjs development",
+    "package:production": "node scripts/package.mjs",
     "test": "vitest run --maxWorkers=2",
     "typecheck": "tsc --noEmit"
   },

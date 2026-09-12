@@ -138,6 +138,11 @@ public enum AuditEventType: String, Codable, Equatable, CaseIterable, Sendable {
     /// or a day-off boundary ended it.
     case lockoutEnded = "lockout.ended"
 
+    /// Athena returned a destination decision that Curfew accepted for the
+    /// still-current browser work session. The detail is deliberately limited
+    /// to `hostname`, `decision`, and `scopeKind`.
+    case browserDestinationReviewed = "browser.destination_reviewed"
+
     // MARK: Schedule
 
     /// A schedule change was submitted and classified by `SchedulePolicyEngine`.

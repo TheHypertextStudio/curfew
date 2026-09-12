@@ -27,13 +27,17 @@ struct DocketBrowserPolicyClientTests {
             try ($0.name, #require($0.value))
         })
 
-        #expect(components.host == "docket.hypertext.studio")
-        #expect(query["resource"] == "https://docket-api.hypertext.studio/mcp")
+        #expect(components.host == "clearthedocket.com")
+        #expect(query["resource"] == "https://api.clearthedocket.com/mcp")
         #expect(try Set(#require(query["scope"]).split(separator: " ").map(String.init)) == [
             "work:read", "agents:run", "offline_access"
         ])
         #expect(DocketServiceEndpoints.production.keychainService ==
             "studio.hypertext.curfew.docket")
+        #expect(DocketServiceEndpoints.staging.webOrigin.absoluteString ==
+            "https://docket-staging.hypertext.studio")
+        #expect(DocketServiceEndpoints.staging.mcpResource.absoluteString ==
+            "https://docket-api-staging.hypertext.studio/mcp")
     }
 
     @Test(
@@ -62,7 +66,7 @@ struct DocketBrowserPolicyClientTests {
             requestCount += 1
             #expect(request.httpMethod == "POST")
             #expect(request.url?.absoluteString ==
-                "https://docket-api.hypertext.studio/api/auth/oauth2/register")
+                "https://api.clearthedocket.com/api/auth/oauth2/register")
             let body = try requestBody(request)
             let object = try #require(
                 JSONSerialization.jsonObject(with: body) as? [String: Any]
@@ -120,7 +124,7 @@ struct DocketBrowserPolicyClientTests {
             #expect(fields["grant_type"] == "refresh_token")
             #expect(fields["refresh_token"] == "old-refresh")
             #expect(request.url?.absoluteString ==
-                "https://docket-api.hypertext.studio/api/auth/oauth2/token")
+                "https://api.clearthedocket.com/api/auth/oauth2/token")
             return try (
                 HTTPURLResponse(
                     url: #require(request.url),
@@ -1223,6 +1227,7 @@ struct DocketBrowserPolicyClientTests {
         arguments: ["grant", "challenge", "deny"]
     )
     func taskSwitchInvalidatesReviewResult(kind: String) async throws {
+        let auditWriter = RecordingAuditWriter()
         let staleResult: DocketDestinationReview = switch kind {
         case "grant": try .grant(
                 reason: "Allowed.",
@@ -1238,7 +1243,8 @@ struct DocketBrowserPolicyClientTests {
         let coordinator = try DocketBrowserPolicyCoordinator(
             transport: transport,
             credentials: fixedCredentials(),
-            docketWebOrigin: DocketServiceEndpoints.production.webOrigin
+            docketWebOrigin: DocketServiceEndpoints.production.webOrigin,
+            auditLog: AuditLog(stream: .app, writer: auditWriter)
         )
         await coordinator.poll(at: now)
         let reviewTask = Task {
@@ -1256,6 +1262,7 @@ struct DocketBrowserPolicyClientTests {
         let result = await reviewTask.value
 
         #expect(result == .deny(reason: "Work changed while Docket reviewed this destination."))
+        #expect(auditWriter.records(ofType: .browserDestinationReviewed).isEmpty)
         let destination = try NormalizedHTTPDestination("https://instagram.com/research")
         #expect(coordinator.policy(at: now.addingTimeInterval(5))?
             .allows(destination, at: now.addingTimeInterval(5)) == false)
@@ -1267,6 +1274,7 @@ struct DocketBrowserPolicyClientTests {
         )
         #expect(second == .challenge(reason: "Fresh review.", question: "Name the output."))
         #expect(await transport.reviewCount == 2)
+        #expect(auditWriter.records(ofType: .browserDestinationReviewed).count == 1)
     }
 
     @Test("An idle task-resource failure retains a fail-closed unhealthy session")
@@ -1366,6 +1374,58 @@ struct DocketBrowserPolicyClientTests {
         let input = try #require(await transport.lastReview)
         #expect(input.destination.origin == "https://instagram.com")
         #expect(input.destination.path == "/transitcenter")
+    }
+
+    @Test("Accepted Athena decisions create privacy-minimal browser audit records")
+    func acceptedDestinationReviewsAreAuditedWithoutPrivateInput() async throws {
+        let auditWriter = RecordingAuditWriter()
+        let transport = try RecordingDocketTransport(
+            activeWork: [activeWork(.running)],
+            reviews: [
+                .challenge(
+                    reason: "The reviewer reason is private.",
+                    question: "The reviewer question is private."
+                ),
+                .grant(
+                    reason: "The final reviewer reason is private.",
+                    scope: .validatedPathPrefix("https://instagram.com/transitcenter")
+                ),
+                .deny(reason: "The denial reason is private.")
+            ]
+        )
+        let coordinator = try DocketBrowserPolicyCoordinator(
+            transport: transport,
+            credentials: fixedCredentials(),
+            docketWebOrigin: DocketServiceEndpoints.production.webOrigin,
+            auditLog: AuditLog(stream: .app, writer: auditWriter)
+        )
+        await coordinator.poll(at: now)
+
+        await submitPrivateAuditReviewSequence(to: coordinator)
+
+        let records = auditWriter.records(ofType: .browserDestinationReviewed)
+        #expect(AuditEventType.browserDestinationReviewed.rawValue ==
+            "browser.destination_reviewed")
+        #expect(records.map(\.detail) == [
+            [
+                "hostname": .string("instagram.com"),
+                "decision": .string("challenge"),
+                "scopeKind": .string("none")
+            ],
+            [
+                "hostname": .string("instagram.com"),
+                "decision": .string("grant"),
+                "scopeKind": .string("path_prefix")
+            ],
+            [
+                "hostname": .string("youtube.com"),
+                "decision": .string("deny"),
+                "scopeKind": .string("none")
+            ]
+        ])
+        #expect(records.allSatisfy { Set($0.detail.keys) == [
+            "hostname", "decision", "scopeKind"
+        ] })
     }
 
     @Test("Athena failure leaves the destination blocked and starts no grant")
@@ -1478,6 +1538,31 @@ struct DocketBrowserPolicyClientTests {
             expiresAt: now.addingTimeInterval(3600)
         ))
         return store
+    }
+
+    private func submitPrivateAuditReviewSequence(
+        to coordinator: DocketBrowserPolicyCoordinator
+    ) async {
+        let instagram =
+            "https://alice:secret@Instagram.COM:443/transitcenter/posts?private=1#private"
+        _ = await coordinator.review(
+            rawDestination: instagram,
+            justification: "The first justification is private.",
+            challengeAnswer: nil,
+            at: now
+        )
+        _ = await coordinator.review(
+            rawDestination: instagram,
+            justification: "The second justification is private.",
+            challengeAnswer: "The challenge answer is private.",
+            at: now
+        )
+        _ = await coordinator.review(
+            rawDestination: "https://youtube.com/watch?v=private#private",
+            justification: "The third justification is private.",
+            challengeAnswer: nil,
+            at: now
+        )
     }
 
     private func activeWork(

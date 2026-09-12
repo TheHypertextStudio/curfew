@@ -381,7 +381,7 @@ unknown key and is ignored.
 
 This slice adds Curfew's local policy authority, direct Docket client, signed
 native host, Chrome extension, and local Settings controls. Signed-app/Web Store
-release verification and audit projection remain separate delivery tasks. The
+release verification remains a separate delivery task. The
 architecture and privacy limits are in `Documentation/browser-enforcement.md`.
 
 - [x] Normalize only HTTP and HTTPS destinations. Curfew removes credentials,
@@ -416,6 +416,9 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
 - [x] Bind an Athena result to the session that requested it. Discard a late
       grant, challenge, or denial after a task switch without changing the new
       task's grants or cooldowns.
+- [x] Write `browser.destination_reviewed` for each accepted Athena result.
+      Store only the hostname, decision, and scope kind. Discarded stale-session
+      results and private review text never reach the audit log.
 - [x] Expose only the task ID and title in browser policy snapshots. Keep base
       scopes separate from temporary grants, and evaluate grant and break expiry
       against the current time after cache restoration. Keep Docket descriptions,
@@ -432,6 +435,9 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
       30-second refresh as recovery and heartbeat fallback, route blocked tabs
       through opaque request IDs, and retain one original justification only
       while its targeted challenge can continue across reload.
+- [x] Package 16, 32, 48, and 128 pixel Chrome icons. Require a separate,
+      matching Web Store public key and item ID for production builds. Produce
+      an upload ZIP containing only the current production build files.
 - [x] Add one Task Browser Enforcement panel. Persist the two setup facts and
       validated mappings locally. Show authorization, poll, extension, host,
       active-task, and readiness state. Show `Never` before Chrome sends its

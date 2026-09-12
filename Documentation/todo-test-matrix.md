@@ -27,8 +27,11 @@ only.
   - `controller.test.ts` checks first-activation block-first installation, one-update restoration, revision long-poll revocation without an alarm, refresh, grant, and expiry when the base block persists, block-only fallback after unsupported or rejected regex validation, the 1,000-regex quota, 30-second heartbeat, task-switch response rejection without queue starvation, opaque blocker routing, first-activation foreign-blocker exclusion, grant-before-reopen ordering, one-challenge justification retention and clearing, the 1,000-character contract, the 8,192-byte UTF-8 limit, host failure, and private request expiry.
   - `policy-watch.test.ts` checks restart after native-host recovery and rejects duplicate long polls.
   - `blocker-state.test.ts` checks targeted-question restoration, original-justification preservation, one-field challenge submission, and character and byte limits without Chrome.
-  - `manifest.test.ts` checks the MV3 permissions, minimum Chrome 120, HTTP and HTTPS host access, service-worker declaration, and the public-key-pinned development identity.
-  - `build.test.ts` builds both flavors without Chrome and checks that each artifact contains only its allowed native-host name and one extension-local blocker prompt.
+  - `manifest.test.ts` checks the MV3 permissions, minimum Chrome 120, HTTP and HTTPS host access, service-worker declaration, icons, homepage, public-key-derived development identity, and explicit matching production identity.
+  - `build.test.ts` checks both flavors, production identity failure, native-host isolation, packaged icon dimensions, and the extension-local blocker prompt.
+  - `package.test.ts` checks that the production upload ZIP refuses a missing identity and contains only files from a fresh production build.
+  - `DocketBrowserPolicyClientTests/acceptedDestinationReviewsAreAuditedWithoutPrivateInput()` checks the stable event name, one event for each accepted challenge, grant, and denial, and the three-field redacted detail.
+  - `DocketBrowserPolicyClientTests/taskSwitchInvalidatesReviewResult(kind:)` checks that stale-session Athena results do not write browser audit records.
 
 - `Convert app shell to a standard macOS app window (LSUIElement = false) with menu bar quick access.`
   - `AppConfigurationTests/hostAppIsWindowed()`

@@ -14,8 +14,8 @@ nonisolated struct DocketServiceEndpoints: Equatable, Sendable {
     let keychainService: String
 
     static let production = make(
-        webOrigin: "https://docket.hypertext.studio",
-        apiOrigin: "https://docket-api.hypertext.studio",
+        webOrigin: "https://clearthedocket.com",
+        apiOrigin: "https://api.clearthedocket.com",
         keychainService: "studio.hypertext.curfew.docket"
     )
 
@@ -861,6 +861,7 @@ actor DocketMCPHTTPTransport: DocketMCPTransporting {
 }
 
 @MainActor
+// swiftlint:disable:next type_body_length
 final class DocketBrowserPolicyCoordinator {
     var onPolicyChanged: ((BrowserPolicySnapshot?) -> Void)?
     var onAuthenticatedPoll: ((Date) -> Void)?
@@ -872,6 +873,7 @@ final class DocketBrowserPolicyCoordinator {
     private let transport: any DocketMCPTransporting
     private let credentials: DocketCredentialStore
     private let oauth: any DocketOAuthAuthorizing
+    private let auditLog: AuditLog?
     private var reducer: BrowserWorkSessionReducer
     private var pollingTask: Task<Void, Never>?
 
@@ -880,12 +882,14 @@ final class DocketBrowserPolicyCoordinator {
         credentials: DocketCredentialStore? = nil,
         oauth: (any DocketOAuthAuthorizing)? = nil,
         docketWebOrigin: URL = DocketServiceEndpoints.current.webOrigin,
-        mappings: [WorkDestinationMapping] = []
+        mappings: [WorkDestinationMapping] = [],
+        auditLog: AuditLog? = nil
     ) {
         let credentials = credentials ?? DocketCredentialStore()
         self.transport = transport ?? DocketMCPHTTPTransport()
         self.credentials = credentials
         self.oauth = oauth ?? DocketOAuthClient(store: credentials)
+        self.auditLog = auditLog
         self.reducer = .init(docketWebOrigin: docketWebOrigin, mappings: mappings)
     }
 
@@ -1099,6 +1103,7 @@ final class DocketBrowserPolicyCoordinator {
             case .challenge:
                 break
             }
+            recordAcceptedReview(result, destination: destination, at: date)
             return result
         } catch {
             guard reducer.policy(at: date)?.sessionID == sessionID else {
@@ -1128,5 +1133,37 @@ final class DocketBrowserPolicyCoordinator {
             let freshToken = try await oauth.refresh(now: date).accessToken
             return try await operation(freshToken)
         }
+    }
+}
+
+private extension DocketBrowserPolicyCoordinator {
+    func recordAcceptedReview(
+        _ result: DocketDestinationReview,
+        destination: NormalizedHTTPDestination,
+        at date: Date
+    ) {
+        let decision: String
+        let scopeKind: String
+        switch result {
+        case .grant(_, let scope):
+            decision = "grant"
+            scopeKind = scope.kind.rawValue
+        case .challenge:
+            decision = "challenge"
+            scopeKind = "none"
+        case .deny:
+            decision = "deny"
+            scopeKind = "none"
+        }
+        (auditLog ?? AuditLog.shared).emit(
+            .browserDestinationReviewed,
+            actor: .app,
+            detail: [
+                "hostname": .string(destination.reviewURL.host ?? ""),
+                "decision": .string(decision),
+                "scopeKind": .string(scopeKind)
+            ],
+            at: date
+        )
     }
 }

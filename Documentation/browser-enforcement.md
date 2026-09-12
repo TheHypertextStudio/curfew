@@ -13,8 +13,9 @@ rule. Curfew validates Athena's proposed scope and sets a maximum lifetime of
 
 The current implementation covers the domain reducer, direct Docket OAuth/MCP
 client, signed native host, `@curfew/chrome-extension`, and the Task Browser
-Enforcement Settings panel. Signed-app/Web Store verification and audit
-projection remain deferred. The sequence diagram in
+Enforcement Settings panel. Curfew also writes a privacy-minimal audit event for
+each accepted Athena decision. Signed-app and Web Store verification remain
+deferred. The sequence diagram in
 `Documentation/browser-policy-sequence.mmd` shows the implemented review boundary.
 
 ## Session rules
@@ -98,17 +99,26 @@ control.
 
 ## Privacy
 
-Curfew sends Athena the normalized origin and path, the task and organization
-identifiers, and the user's current justification or challenge answer. Curfew
-must not persist the justification or challenge answer. It must not send URL
-credentials, queries, or fragments. Later audit work may store the hostname,
-decision, and scope kind. It must not store the full path or justification.
-The extension may persist that a challenge exists and the reviewer's targeted
+During enforcement, the extension observes top-level HTTP and HTTPS navigation
+so it can apply Curfew's local rules. Known destinations stay local. For an
+unknown destination only, Curfew sends Docket and Athena the normalized origin
+and path, the task and organization identifiers, and the user's current
+justification or challenge answer. Normalization removes URL credentials,
+queries, and fragments before review.
+
+Curfew does not persist a completed justification or any challenge answer. The
+extension may persist that a challenge exists and the reviewer's targeted
 question. It retains the initial justification only while that challenged
 request can continue across a reload. The follow-up sends that original value
 as `justification` and sends only the new value as `challengeAnswer`. The
 extension never persists the challenge answer. It clears both fields when the
 review resolves, expires, changes session or destination, or is abandoned.
+
+Each accepted Athena result writes `browser.destination_reviewed` with only the
+hostname, `grant | challenge | deny`, and `origin | path_prefix | none`. The
+audit event never contains a full path, query, fragment, URL credential,
+justification, challenge answer, reviewer reason, or reviewer question. Curfew
+does not write an event for a result discarded after the session changes.
 
 The browser policy snapshot contains only the task ID and title. It keeps
 expiring grants separate from base scopes, and consumers evaluate grant and
@@ -159,8 +169,8 @@ change Curfew Sync or `curfew-protocols` contracts.
 
 ## Open work
 
-The next slice must add privacy-minimal audit events. Release work must create
-the Chrome Web Store draft, set the production identity in the signed app,
-verify the packaged host and extension together, and run the rollback drill.
+Release work must create the Chrome Web Store draft, set the production identity
+in the signed app, verify the packaged host and extension together, and run the
+rollback drill.
 Administrator-level bypass prevention, other browsers, mobile enforcement, and
 network filtering remain outside the first release.

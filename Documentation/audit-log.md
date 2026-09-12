@@ -192,6 +192,7 @@ file: it says the keyboard shield was down during an enforced lockout.
 | `enforcement.warning_stage_changed` | `none` / `T-30` / `T-15` / `T-5` / `T-2` / `T-1` / `lockout` | `minutesRemaining`, `phase` |
 | `lockout.started` | — | everything from `enforcement.phase_changed`, plus `durableDeadlineActive` |
 | `lockout.ended` | — | everything from `enforcement.phase_changed`, plus `reason`: `schedule`, `override`, or `day_off` |
+| `browser.destination_reviewed` | — | `hostname`, `decision` (`grant`/`challenge`/`deny`), `scopeKind` (`origin`/`path_prefix`/`none`) |
 
 `lockout.started` and `lockout.ended` are redundant with the phase transition
 on purpose. They are the two lines an auditor greps for first, and forcing that
@@ -545,6 +546,9 @@ what may appear in it is higher than for the SQLite stores.
   thing in the app.
 - MCP tool arguments. The payload arrives from an external process and can
   contain arbitrary text.
+- Browser destination paths, queries, fragments, credentials, justifications,
+  challenge answers, reviewer reasons, and reviewer questions. A browser review
+  records only the hostname, decision, and scope kind.
 - Calendar event titles.
 - Anything derived from a camera frame beyond the yes-or-no verdict. No image,
   no crop, no thumbnail, no bounding box, no confidence score, no person count,

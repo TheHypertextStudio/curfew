@@ -18,8 +18,13 @@ const outputDirectory = outputArgument === -1
 const hostName = flavor === "development"
   ? "studio.hypertext.curfew.dev.browser"
   : "studio.hypertext.curfew.browser";
+const manifest = buildManifest(flavor, {
+  productionPublicKey: process.env.CURFEW_BROWSER_EXTENSION_PUBLIC_KEY,
+  productionExtensionID: process.env.CURFEW_BROWSER_EXTENSION_ID,
+});
 
 await mkdir(outputDirectory, { recursive: true });
+await mkdir(resolve(outputDirectory, "icons"), { recursive: true });
 await Promise.all([
   build({
     entryPoints: [resolve(packageDirectory, "src/background.ts")],
@@ -43,8 +48,12 @@ await Promise.all([
   }),
   copyFile(resolve(packageDirectory, "blocker.html"), resolve(outputDirectory, "blocker.html")),
   copyFile(resolve(packageDirectory, "blocker.css"), resolve(outputDirectory, "blocker.css")),
+  ...[16, 32, 48, 128].map((size) => copyFile(
+    resolve(packageDirectory, `icons/icon-${size}.png`),
+    resolve(outputDirectory, `icons/icon-${size}.png`),
+  )),
   writeFile(
     resolve(outputDirectory, "manifest.json"),
-    `${JSON.stringify(buildManifest(flavor), null, 2)}\n`,
+    `${JSON.stringify(manifest, null, 2)}\n`,
   ),
 ]);
