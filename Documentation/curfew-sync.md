@@ -21,7 +21,7 @@ account to control another person's device.
 **Goals:**
 
 - Coordinate schedule, budgets, pending requests, and lockout state across all of a user's devices, including devices on different Apple IDs.
-- Expose a remote MCP endpoint authorized via OAuth 2.1 so AI hosts that don't run locally can read status and queue extension / override / schedule requests.
+- Expose a remote MCP endpoint authorized via OAuth 2.1 so AI hosts that don't run locally can read status, lock one or all opted-in devices, and request a temporary unlock (or use a narrow, owner-created direct-unlock authorization).
 - Preserve Curfew's offline-first behavior: every device must continue enforcing locally with the last synced schedule when the coordinator is unreachable.
 - Make account sync canonical when enabled so CloudKit and Curfew Sync never
   race to write the same setting.
@@ -234,7 +234,7 @@ This protects against two distinct threats: account compromise leading to indefi
 - **Devices panel.** Lists all enrolled devices with last-seen time, active-state pill from F15, and a per-device "Remove" action.
 - **Connected AI tools panel.** Lists every OAuth client (one row per token grant), with the granted scopes, last-used timestamp, and a "Revoke" button. New connections appear here within seconds of the OAuth flow completing.
 - **Sync status indicator.** Replaces F13's status string when Sync is enabled: *"Synced across 2 devices · 1 AI tool connected"*. Offline state: *"Sync offline — last synced 14 min ago"*.
-- **Remote-driven lockout surface.** When a remote MCP call triggers an extension or schedule change on the current device, the standard consent prompt appears with the originating client named inline: *"Claude (web) is requesting +15 minutes. Reason: 'shipping a release.' Approve?"*
+- **Remote-driven control surface.** When a remote MCP call locks the current device, Curfew enters its standard lockout and records the originating client in the activity log. A remote unlock request remains a separate, explicit approval flow; remote MCP cannot change the schedule or silently extend time.
 - **Emergency release UI.** A dedicated screen with the cooldown clearly visible: *"This device will exit Curfew Sync in 23h 47m. The coordinator cannot stop or extend this."* The user can cancel during the cooldown; cancellation is also local.
 
 ### Security & Privacy
