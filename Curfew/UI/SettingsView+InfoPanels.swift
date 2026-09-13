@@ -6,15 +6,23 @@ import SwiftUI
 /// enforcement directly: Integrations, Devices, Advanced, and the setup
 /// re-entry panel.
 extension SettingsView {
-    /// Integrations panel: MCP server setup, Claude Desktop config snippet,
-    /// and AI consent policy picker.
+    /// Account, local AI, helper, and device integrations.
     var integrationsPanel: some View {
         VStack(spacing: CurfewSpacing.section) {
-            mcpConfigPanel
-            aiConsentPanel
-            otherIntegrationsPanel
-            coordinatorSyncPanel
-            devicesPanel
+            ForEach(Self.integrationSectionOrder, id: \.self) { section in
+                integrationSection(section)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func integrationSection(_ section: IntegrationSection) -> some View {
+        switch section {
+        case .account: coordinatorSyncPanel
+        case .localAI: mcpConfigPanel
+        case .requestHandling: aiConsentPanel
+        case .helper: otherIntegrationsPanel
+        case .devices: devicesPanel
         }
     }
 
@@ -33,35 +41,25 @@ extension SettingsView {
     private var enabledMCPConfigPanel: some View {
         CurfewPanel {
             CurfewSectionTitle(
-                title: "MCP Control Plane",
-                subtitle: "Allow AI assistants to control your device"
-                    + " via the Model Context Protocol."
+                title: Self.localAISectionTitle,
+                subtitle: "Connect Claude Desktop or another compatible app running here."
             )
 
-            Toggle("Enable MCP Control Plane", isOn: $model.settings.mcpEnabled)
+            Toggle("Allow local AI assistants", isOn: $model.settings.mcpEnabled)
 
-            Text(
-                "When enabled, AI assistants can lock and unlock your device, "
-                    + "request time extensions, and manage Curfew settings. They can "
-                    + "also read your status, schedule, and daily reflections (your "
-                    + "journal stays on this Mac — it's never uploaded). "
-                    + "Only enable if you trust the AI clients you're connecting."
-            )
-            .font(CurfewTypography.body(13))
-            .foregroundStyle(CurfewTheme.mutedInk)
-
-            if model.settings.mcpEnabled {
-                Text("""
-                `curfew-mcp` is a stdio MCP server bundled with Curfew. Add it to \
-                Claude Desktop (or any MCP host) by pasting the config snippet below \
-                into your `claude_desktop_config.json` under `mcpServers`.
-                """)
+            Text(Self.localAIExplanation)
                 .font(CurfewTypography.body(13))
                 .foregroundStyle(CurfewTheme.mutedInk)
                 .fixedSize(horizontal: false, vertical: true)
 
+            if model.settings.mcpEnabled {
+                Text(Self.localAISetupExplanation)
+                    .font(CurfewTypography.body(13))
+                    .foregroundStyle(CurfewTheme.mutedInk)
+                    .fixedSize(horizontal: false, vertical: true)
+
                 HStack(spacing: 8) {
-                    Button("Copy Claude Desktop Config") {
+                    Button("Copy Configuration") {
                         copyClaudeDesktopConfig()
                     }
                     .buttonStyle(CurfewSecondaryButtonStyle())
@@ -84,15 +82,15 @@ extension SettingsView {
         }
     }
 
-    /// AI consent policy picker.
+    /// Controls whether local extension and schedule requests need approval.
     private var aiConsentPanel: some View {
         CurfewPanel {
             CurfewSectionTitle(
-                title: "AI Consent Policy",
-                subtitle: "Choose how Curfew handles AI-requested changes."
+                title: "Requests from local AI assistants",
+                subtitle: "Choose whether Curfew asks before applying a requested change."
             )
 
-            Picker("Policy", selection: $model.aiConsentPolicy) {
+            Picker("When an assistant asks", selection: $model.aiConsentPolicy) {
                 ForEach(AIConsentPolicy.allCases, id: \.self) { policy in
                     Text(policy.displayName).tag(policy)
                 }

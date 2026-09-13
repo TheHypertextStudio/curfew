@@ -99,6 +99,13 @@ let package = Package(
                 .product(name: "CurfewProtocols", package: "curfew-protocols")
             ],
             path: "Tests/CurfewProtocolBridgeTests"
+        ),
+        .testTarget(
+            name: "CurfewMCPTests",
+            dependencies: [
+                .target(name: "curfew-mcp")
+            ],
+            path: "Tests/CurfewMCPTests"
         )
     ]
 )

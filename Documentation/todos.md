@@ -407,6 +407,18 @@ unknown key and is ignored.
       it adds the authenticated receipt before finalization. Ambiguous registration,
       expired-token, upload-failure, and relaunch paths resume that checkpoint
       once at a time without another OAuth or passkey ceremony.
+      Settings now leads with the account path used for phone-based remote
+      control and labels the separate desktop-only assistant integration in
+      plain language. Its copy matches the shipped local tool boundary: an
+      assistant may read explicitly listed data and request changes, but cannot
+      grant an override, end an active lockout, or disable enforcement. It also
+      states that reflection text is shared with the assistant when requested
+      instead of incorrectly promising that it never leaves the Mac. Turning
+      local AI access off now makes the standalone MCP server return no tools
+      and refuse cached tool calls, so an existing Claude Desktop entry cannot
+      keep reading data. The page also discloses that the separately controlled
+      protected-work tool may postpone shutdown without approval while leaving
+      the lockout itself intact.
       In-repo tests pass; live account recovery and staging proof remain
       external release gates.
       Rollback may disable native enrollment, but must not restore the

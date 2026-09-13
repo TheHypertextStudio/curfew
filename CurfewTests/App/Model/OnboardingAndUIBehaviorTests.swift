@@ -135,6 +135,26 @@ struct GettingStartedCopyTests {
         #expect(message.contains("work ends"))
         #expect(message.contains("work resumes"))
     }
+
+    @Test("Local AI setup describes its real authority without implying remote unlock")
+    func localAISetupCopyIsTruthfulAndPlain() {
+        #expect(SettingsView.integrationSectionOrder.prefix(2) == [.account, .localAI])
+
+        let title = SettingsView.localAISectionTitle.lowercased()
+        let explanation = SettingsView.localAIExplanation.lowercased()
+        let setup = SettingsView.localAISetupExplanation.lowercased()
+
+        #expect(title.contains("on this mac"))
+        #expect(explanation.contains("cannot grant an override"))
+        #expect(explanation.contains("cannot end an active lockout"))
+        #expect(!explanation.contains("lock and unlock"))
+        #expect(explanation.contains("declare work in progress"))
+        #expect(explanation.contains("postpone shutdown"))
+        #expect(explanation.contains("without asking"))
+        #expect(setup.contains("add to claude desktop"))
+        #expect(!setup.contains("stdio"))
+        #expect(!setup.contains("mcpservers"))
+    }
 }
 
 @MainActor
