@@ -443,6 +443,24 @@ only.
   - `AIConsentPolicyTests/policyCopyMatchesLocalToolAuthority()`
   - `MCPGatingTests/standaloneServerUsesPersistedAccessSetting()`
   - `CurfewMCPAccessTests/disabledAccessClosesBothDispatcherPaths()`
+- `An enrolled Mac reports the live remote connection state without claiming
+  that enrollment alone means remote control is working or enabled.`
+  - `AccountConnectionPresentationTests/statesStayPlainAndAccurate()`
+  - `AccountStatusSyncTests/testSuccessfulAuthenticatedPollMarksTheAccountConnectionSynchronized()`
+  - `AccountStatusSyncTests/testReadOnlyPollDoesNotClaimPendingEncryptedChangesWereSaved()`
+  - `AccountStatusSyncTests/testPendingEncryptedChangesSurviveOfflineRecovery()`
+  - `AccountStatusSyncTests/testPendingEncryptedChangesSurviveRejectedRecovery()`
+  - `AccountStatusSyncTests/testNetworkFailureMarksTheAccountConnectionOffline()`
+  - `NativeAccountSyncTransportTests/testPollClearsAnOverrideAndReportsAHealthyConnectionWithoutAWakeCampaign()`
+  - `NativeAccountSyncTransportTests/testOverrideFailureCannotBeOverwrittenByAHealthyAccountPoll()`
+  - `NativeAccountSyncTransportTests/testRootKeyDistributionFailureCannotBeOverwrittenByAHealthyAccountPoll()`
+  - `NativeAccountSyncTransportTests/testFailedStatusPublicationRemainsUnhealthyAfterSuccessfulPolls()`
+  - `NativeAccountSyncTransportTests/testOlderStatusSuccessCannotOverwriteTheLatestStatusFailure()`
+  - `NativeAccountSyncTransportTests/testReconnectIgnoresFailureFromThePreviousPollingSession()`
+  - `NativeAccountSyncTransportTests/testRejectedRefreshTokenRequiresSignInInsteadOfReportingOffline()`
+- `Returning from System Settings refreshes live Accessibility trust even when
+  Curfew's enforcement timer is off.`
+  - `EnforcementHealthWiringTests/appActivationRefreshesAccessibilityTrustWithoutEnforcementTimer()`
 - `A staging build selects one closed-world endpoint set for account UI, OAuth,
   sync, MCP, daemon command-key trust, and account-key Keychain storage, while
   production remains the default and account copy explains that phone locking

@@ -75,3 +75,20 @@ final class NativeTransportEventRecorder: @unchecked Sendable {
         lock.unlock()
     }
 }
+
+final class NativeTransportResponseDelayStore: @unchecked Sendable {
+    private let lock = NSLock()
+    private var delays: [String: TimeInterval] = [:]
+
+    func set(_ delay: TimeInterval, for key: String) {
+        lock.lock()
+        delays[key] = delay
+        lock.unlock()
+    }
+
+    func delay(for key: String) -> TimeInterval {
+        lock.lock()
+        defer { lock.unlock() }
+        return delays[key] ?? 0
+    }
+}

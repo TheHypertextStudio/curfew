@@ -28,9 +28,7 @@ extension SettingsView {
     @ViewBuilder
     private var accountEnrollmentControls: some View {
         if model.settings.accountSync.isEnrolled {
-            Label("This Mac is securely connected.", systemImage: "checkmark.shield")
-                .font(CurfewTypography.bodyEmphasis(13))
-                .foregroundStyle(CurfewTheme.accent)
+            AccountConnectionStatusView(engine: model.accountSyncEngine)
             openAccountButton
         } else {
             switch accountEnrollment.state {
@@ -152,4 +150,121 @@ extension SettingsView {
     encrypted-data recovery remain separate: 2FA backup codes restore access, while the Curfew \
     Recovery Key restores encrypted data.
     """
+}
+
+enum AccountConnectionTone: Equatable {
+    case neutral
+    case ready
+    case warning
+}
+
+struct AccountConnectionPresentation: Equatable {
+    let title: String
+    let detail: String
+    let systemImage: String
+    let tone: AccountConnectionTone
+    let lastConfirmedAt: Date?
+
+    init(
+        title: String,
+        detail: String,
+        systemImage: String,
+        tone: AccountConnectionTone,
+        lastConfirmedAt: Date? = nil
+    ) {
+        self.title = title
+        self.detail = detail
+        self.systemImage = systemImage
+        self.tone = tone
+        self.lastConfirmedAt = lastConfirmedAt
+    }
+
+    static func resolve(_ status: AccountSyncStatus) -> AccountConnectionPresentation {
+        switch status {
+        case .accountFree:
+            AccountConnectionPresentation(
+                title: "This Mac is not connected",
+                detail: "Connect a Curfew Account to use encrypted sync and remote control.",
+                systemImage: "circle",
+                tone: .neutral
+            )
+        case .connecting:
+            AccountConnectionPresentation(
+                title: "Connecting this Mac…",
+                detail: "Curfew is securely connecting to your account. "
+                    + "Your local schedule keeps working.",
+                systemImage: "arrow.triangle.2.circlepath",
+                tone: .neutral
+            )
+        case .synchronized(let date):
+            AccountConnectionPresentation(
+                title: "This Mac is connected",
+                detail: "Curfew is checking for remote commands. "
+                    + "Choose which assistants and devices have access in your account.",
+                systemImage: "checkmark.circle.fill",
+                tone: .ready,
+                lastConfirmedAt: date
+            )
+        case .pendingEncryption:
+            AccountConnectionPresentation(
+                title: "Encrypted changes are waiting to sync",
+                detail: "Remote commands keep using your last confirmed settings.",
+                systemImage: "lock.rotation",
+                tone: .neutral
+            )
+        case .offline:
+            AccountConnectionPresentation(
+                title: "Remote control is offline",
+                detail: "This Mac is still protected by its local schedule. "
+                    + "Curfew will reconnect automatically.",
+                systemImage: "wifi.slash",
+                tone: .warning
+            )
+        case .rejected:
+            AccountConnectionPresentation(
+                title: "Remote control is temporarily unavailable",
+                detail: "This Mac is still protected locally. "
+                    + "Open your account to check access, or try again shortly.",
+                systemImage: "exclamationmark.triangle.fill",
+                tone: .warning
+            )
+        }
+    }
+}
+
+private struct AccountConnectionStatusView: View {
+    @ObservedObject var engine: AccountSyncEngine
+
+    private var presentation: AccountConnectionPresentation {
+        AccountConnectionPresentation.resolve(engine.syncStatus)
+    }
+
+    var body: some View {
+        HStack(alignment: .top, spacing: CurfewSpacing.small) {
+            Image(systemName: presentation.systemImage)
+                .foregroundStyle(statusColor)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(presentation.title)
+                    .font(CurfewTypography.bodyEmphasis(13))
+                Text(presentation.detail)
+                    .font(CurfewTypography.body(12))
+                    .foregroundStyle(CurfewTheme.mutedInk)
+                    .fixedSize(horizontal: false, vertical: true)
+                if let lastConfirmedAt = presentation.lastConfirmedAt {
+                    Text("Last confirmed \(lastConfirmedAt, style: .relative)")
+                        .font(CurfewTypography.body(11))
+                        .foregroundStyle(CurfewTheme.mutedInk)
+                }
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private var statusColor: Color {
+        switch presentation.tone {
+        case .neutral: CurfewTheme.mutedInk
+        case .ready: CurfewTheme.accent
+        case .warning: CurfewTheme.warning
+        }
+    }
 }

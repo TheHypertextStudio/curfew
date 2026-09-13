@@ -357,14 +357,8 @@ private final class RemoteResultTransportSpy: AccountSyncTransporting {
     private var onRemoteCommandResult: ((RemoteCommandResult) -> Void)?
     private(set) var publishedReports: [DeviceStatusReport] = []
 
-    func connect(
-        deviceID _: UUID,
-        onWakeStatus _: @escaping (AccountWakeStatusUpdate) -> Void,
-        onRemoteOverride _: @escaping (AccountRemoteOverride?) -> Void,
-        onRemoteCommandResult: @escaping (RemoteCommandResult) -> Void,
-        onFailure _: @escaping (String) -> Void
-    ) {
-        self.onRemoteCommandResult = onRemoteCommandResult
+    func connect(deviceID _: UUID, callbacks: AccountSyncTransportCallbacks) {
+        onRemoteCommandResult = callbacks.onRemoteCommandResult
     }
 
     func publishDeviceStatus(_ report: DeviceStatusReport, deviceID _: UUID) {

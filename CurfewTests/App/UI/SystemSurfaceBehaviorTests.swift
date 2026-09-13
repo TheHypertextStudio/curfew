@@ -140,3 +140,51 @@ struct AccountEnrollmentCopyTests {
         #expect(!copy.contains("Coordinator signing secret"))
     }
 }
+
+@MainActor
+struct AccountConnectionPresentationTests {
+    @Test("Account status explains the live remote connection without overstating permission")
+    func statesStayPlainAndAccurate() {
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+
+        #expect(AccountConnectionPresentation.resolve(.connecting) == .init(
+            title: "Connecting this Mac…",
+            detail: "Curfew is securely connecting to your account. "
+                + "Your local schedule keeps working.",
+            systemImage: "arrow.triangle.2.circlepath",
+            tone: .neutral,
+            lastConfirmedAt: nil
+        ))
+        #expect(AccountConnectionPresentation.resolve(.synchronized(now)) == .init(
+            title: "This Mac is connected",
+            detail: "Curfew is checking for remote commands. "
+                + "Choose which assistants and devices have access in your account.",
+            systemImage: "checkmark.circle.fill",
+            tone: .ready,
+            lastConfirmedAt: now
+        ))
+        #expect(AccountConnectionPresentation.resolve(.pendingEncryption) == .init(
+            title: "Encrypted changes are waiting to sync",
+            detail: "Remote commands keep using your last confirmed settings.",
+            systemImage: "lock.rotation",
+            tone: .neutral,
+            lastConfirmedAt: nil
+        ))
+        #expect(AccountConnectionPresentation.resolve(.offline) == .init(
+            title: "Remote control is offline",
+            detail: "This Mac is still protected by its local schedule. "
+                + "Curfew will reconnect automatically.",
+            systemImage: "wifi.slash",
+            tone: .warning,
+            lastConfirmedAt: nil
+        ))
+        #expect(AccountConnectionPresentation.resolve(.rejected("internal detail")) == .init(
+            title: "Remote control is temporarily unavailable",
+            detail: "This Mac is still protected locally. "
+                + "Open your account to check access, or try again shortly.",
+            systemImage: "exclamationmark.triangle.fill",
+            tone: .warning,
+            lastConfirmedAt: nil
+        ))
+    }
+}
