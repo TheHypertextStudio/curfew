@@ -189,7 +189,7 @@ final class AccountOAuthTokenRefresher {
               let clientID = String(data: clientData, encoding: .utf8),
               let refreshData = try secretStore.data(for: "oauth-refresh-token"),
               let refreshToken = String(data: refreshData, encoding: .utf8)
-        else { throw AccountOAuthEnrollmentError.invalidResponse }
+        else { throw AccountOAuthTokenRefreshError.missingCredentials }
         var request = URLRequest(
             url: endpoints.accountOrigin.appending(path: "/api/auth/oauth2/token")
         )
@@ -205,15 +205,27 @@ final class AccountOAuthTokenRefresher {
         )
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         let (data, response) = try await session.data(for: request)
-        guard let response = response as? HTTPURLResponse,
-              (200 ..< 300).contains(response.statusCode)
-        else { throw AccountOAuthEnrollmentError.invalidResponse }
+        guard let response = response as? HTTPURLResponse else {
+            throw AccountOAuthTokenRefreshError.invalidResponse
+        }
+        guard (200 ..< 300).contains(response.statusCode) else {
+            if [400, 401, 403].contains(response.statusCode) {
+                throw AccountOAuthTokenRefreshError.rejected(response.statusCode)
+            }
+            throw AccountOAuthTokenRefreshError.invalidResponse
+        }
         let tokens = try AccountOAuthWire.tokens(from: data)
         // Persist the rotated credential before exposing its paired access
         // token so a crash cannot strand the account on a spent refresh token.
         try secretStore.save(Data(tokens.refreshToken.utf8), for: "oauth-refresh-token")
         try secretStore.save(Data(tokens.accessToken.utf8), for: "oauth-access-token")
     }
+}
+
+enum AccountOAuthTokenRefreshError: Error {
+    case missingCredentials
+    case rejected(Int)
+    case invalidResponse
 }
 
 private struct AccountOAuthTokenResponse: Decodable {

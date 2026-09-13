@@ -1,3 +1,5 @@
+import AppKit
+import Combine
 import Foundation
 
 // Enforcement-health wiring for `CurfewAppModel`: the per-tick poll that
@@ -17,6 +19,18 @@ private var hasShownAccessibilityPrompt = false
 
 @MainActor
 extension CurfewAppModel {
+    /// Refreshes Accessibility trust whenever Curfew becomes active again.
+    /// This covers the common grant flow: the user leaves Curfew for System
+    /// Settings, enables the existing Curfew entry, then returns while the
+    /// enforcement timer is off.
+    func subscribeToAccessibilityTrustChanges() {
+        NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)
+            .sink { [weak self] _ in
+                self?.refreshAccessibilityTrust()
+            }
+            .store(in: &cancellables)
+    }
+
     /// Initial ``enforcementHealth`` seed, computed from the same facts the
     /// per-tick poll uses so the two published enforcement properties agree
     /// from t0 rather than `enforcementHealth` defaulting to ``/EnforcementHealth/active``

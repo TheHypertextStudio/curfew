@@ -26,6 +26,7 @@ extension CurfewAppModel {
         seedReflectionGatesResolvedToday()
         configureNotificationCallback()
         enableLiveProtectedWorkDetection()
+        subscribeToAccessibilityTrustChanges()
     }
 
     /// Wires the notification manager's snooze callback and MCP request

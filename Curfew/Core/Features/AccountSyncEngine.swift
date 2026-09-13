@@ -15,26 +15,23 @@ enum AccountSyncStatus: Equatable {
 /// sending decrypted settings across a process boundary.
 @MainActor
 protocol AccountSyncTransporting: AnyObject {
-    func connect(
-        deviceID: UUID,
-        onWakeStatus: @escaping (AccountWakeStatusUpdate) -> Void,
-        onRemoteOverride: @escaping (AccountRemoteOverride?) -> Void,
-        onRemoteCommandResult: @escaping (RemoteCommandResult) -> Void,
-        onFailure: @escaping (String) -> Void
-    )
+    func connect(deviceID: UUID, callbacks: AccountSyncTransportCallbacks)
     func publishDeviceStatus(_ report: DeviceStatusReport, deviceID: UUID)
     func disconnect()
 }
 
+struct AccountSyncTransportCallbacks {
+    let onSynchronized: (Date) -> Void
+    let onOffline: () -> Void
+    let onWakeStatus: (AccountWakeStatusUpdate) -> Void
+    let onRemoteOverride: (AccountRemoteOverride?) -> Void
+    let onRemoteCommandResult: (RemoteCommandResult) -> Void
+    let onFailure: (String) -> Void
+}
+
 @MainActor
 final class NoOpAccountSyncTransport: AccountSyncTransporting {
-    func connect(
-        deviceID _: UUID,
-        onWakeStatus _: @escaping (AccountWakeStatusUpdate) -> Void,
-        onRemoteOverride _: @escaping (AccountRemoteOverride?) -> Void,
-        onRemoteCommandResult _: @escaping (RemoteCommandResult) -> Void,
-        onFailure _: @escaping (String) -> Void
-    ) {}
+    func connect(deviceID _: UUID, callbacks _: AccountSyncTransportCallbacks) {}
     func publishDeviceStatus(_: DeviceStatusReport, deviceID _: UUID) {}
     func disconnect() {}
 }
@@ -52,6 +49,7 @@ final class AccountSyncEngine: ObservableObject {
     var onRemoteCommandResultReceived: ((RemoteCommandResult) -> Void)?
 
     private let transport: any AccountSyncTransporting
+    private var hasPendingEncryptedChanges = false
 
     init(
         transport: (any AccountSyncTransporting)? = nil
@@ -65,10 +63,14 @@ final class AccountSyncEngine: ObservableObject {
         syncStatus = .connecting
         transport.connect(
             deviceID: enrollment.deviceID,
-            onWakeStatus: { [weak self] in self?.receiveAuthenticatedWakeStatus($0) },
-            onRemoteOverride: { [weak self] in self?.receiveAuthenticatedRemoteOverride($0) },
-            onRemoteCommandResult: { [weak self] in self?.receiveRemoteCommandResult($0) },
-            onFailure: { [weak self] in self?.reject($0) }
+            callbacks: AccountSyncTransportCallbacks(
+                onSynchronized: { [weak self] in self?.markSynchronized(at: $0) },
+                onOffline: { [weak self] in self?.markOffline() },
+                onWakeStatus: { [weak self] in self?.receiveAuthenticatedWakeStatus($0) },
+                onRemoteOverride: { [weak self] in self?.receiveAuthenticatedRemoteOverride($0) },
+                onRemoteCommandResult: { [weak self] in self?.receiveRemoteCommandResult($0) },
+                onFailure: { [weak self] in self?.reject($0) }
+            )
         )
     }
 
@@ -77,6 +79,7 @@ final class AccountSyncEngine: ObservableObject {
             transport.disconnect()
         }
         isActive = false
+        hasPendingEncryptedChanges = false
         syncStatus = .accountFree
     }
 
@@ -89,6 +92,7 @@ final class AccountSyncEngine: ObservableObject {
     /// settings value is accepted by this API.
     func noteLocalSettingsChanged() {
         guard isActive else { return }
+        hasPendingEncryptedChanges = true
         syncStatus = .pendingEncryption
     }
 
@@ -109,7 +113,12 @@ final class AccountSyncEngine: ObservableObject {
 
     func markSynchronized(at date: Date) {
         guard isActive else { return }
-        syncStatus = .synchronized(date)
+        syncStatus = hasPendingEncryptedChanges ? .pendingEncryption : .synchronized(date)
+    }
+
+    func markOffline() {
+        guard isActive else { return }
+        syncStatus = .offline
     }
 
     func reject(_ reason: String) {

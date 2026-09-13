@@ -411,6 +411,22 @@ unknown key and is ignored.
       it adds the authenticated receipt before finalization. Ambiguous registration,
       expired-token, upload-failure, and relaunch paths resume that checkpoint
       once at a time without another OAuth or passkey ceremony.
+      After enrollment, Settings observes the live account-sync engine instead
+      of treating saved enrollment as proof of a working connection. It explains
+      connecting, encrypted-waiting, synchronized, offline, and rejected states in
+      plain language, keeps local-schedule protection explicit during failures,
+      and directs assistant/device permission changes to the web account.
+      A read-only remote-command poll cannot claim queued encrypted changes were
+      saved, including after an offline or rejected connection recovers. The
+      connection is healthy only after account-state, direct-unlock, and any
+      attempted status-publication work succeed. Network failures are shown as
+      reconnecting; missing, revoked, or rejected credentials remain an
+      account-access error that requires sign-in. Out-of-order status responses
+      cannot overwrite the health of the newest published status, and an old
+      polling session cannot report into a newly reconnected account session.
+      Accessibility trust is also re-polled whenever Curfew becomes active,
+      so the Today warning clears after the user grants access in System
+      Settings even when Curfew's enforcement timer is off.
       Settings now leads with the account path used for phone-based remote
       control and labels the separate desktop-only assistant integration in
       plain language. Its copy matches the shipped local tool boundary: an

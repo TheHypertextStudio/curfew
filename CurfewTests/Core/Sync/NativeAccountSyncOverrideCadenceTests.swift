@@ -25,10 +25,14 @@ final class NativeAccountSyncOverrideCadenceTests: XCTestCase {
 
         transport.connect(
             deviceID: fixture.deviceID,
-            onWakeStatus: { _ in },
-            onRemoteOverride: { _ in },
-            onRemoteCommandResult: { _ in },
-            onFailure: { _ in }
+            callbacks: AccountSyncTransportCallbacks(
+                onSynchronized: { _ in },
+                onOffline: {},
+                onWakeStatus: { _ in },
+                onRemoteOverride: { _ in },
+                onRemoteCommandResult: { _ in },
+                onFailure: { _ in }
+            )
         )
 
         await fulfillment(of: [polledTwice], timeout: 0.15)
@@ -61,10 +65,14 @@ final class NativeAccountSyncOverrideCadenceTests: XCTestCase {
 
         transport.connect(
             deviceID: fixture.deviceID,
-            onWakeStatus: { _ in },
-            onRemoteOverride: { _ in },
-            onRemoteCommandResult: { _ in },
-            onFailure: { _ in }
+            callbacks: AccountSyncTransportCallbacks(
+                onSynchronized: { _ in },
+                onOffline: {},
+                onWakeStatus: { _ in },
+                onRemoteOverride: { _ in },
+                onRemoteCommandResult: { _ in },
+                onFailure: { _ in }
+            )
         )
         try await Task.sleep(for: .milliseconds(250))
         transport.disconnect()

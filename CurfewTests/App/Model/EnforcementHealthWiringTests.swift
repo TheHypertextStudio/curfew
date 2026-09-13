@@ -1,3 +1,4 @@
+import AppKit
 @testable import Curfew
 import Foundation
 import Testing
@@ -161,6 +162,22 @@ struct EnforcementHealthWiringTests {
         fake.trusted = false
         model.refreshAccessibilityTrust()
         #expect(model.isAccessibilityTrusted == false)
+        #expect(fake.promptForTrustCallCount == 0)
+    }
+
+    @Test("Returning from System Settings refreshes Accessibility trust while Curfew is off")
+    func appActivationRefreshesAccessibilityTrustWithoutEnforcementTimer() {
+        let fake = FakeAccessibilityAuthorization(trusted: false)
+        let model = makeModel(authorization: fake)
+        #expect(model.isAccessibilityTrusted == false)
+
+        fake.trusted = true
+        NotificationCenter.default.post(
+            name: NSApplication.didBecomeActiveNotification,
+            object: nil
+        )
+
+        #expect(model.isAccessibilityTrusted)
         #expect(fake.promptForTrustCallCount == 0)
     }
 
