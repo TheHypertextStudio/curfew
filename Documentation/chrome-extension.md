@@ -16,6 +16,19 @@ pnpm --filter @curfew/chrome-extension typecheck
 pnpm --filter @curfew/chrome-extension build:development
 ```
 
+The extension icons are Chrome-sized exports of the shipping Curfew app icon,
+not a separate illustration. Regenerate them from the repository root after
+changing `Curfew/AppIcon.icon`:
+
+```sh
+swift scripts/generate-extension-icons.swift
+```
+
+The generator compiles the Icon Composer source, then writes the 16, 32, 48,
+and 128 pixel PNGs with transparent outer padding. The 128 pixel export keeps
+the visible mark inside Chrome's 96 pixel artwork area. The extension test suite
+rejects committed icons that no longer match the app icon source.
+
 The development artifact is `web/extension/dist/development`. Load that folder
 through `chrome://extensions` after enabling Developer mode. Chrome must show ID
 `loammdknmfbkjnckaeeagnmakinknbck`. The development worker calls only

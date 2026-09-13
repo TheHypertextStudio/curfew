@@ -29,6 +29,7 @@ only.
   - `blocker-state.test.ts` checks targeted-question restoration, original-justification preservation, one-field challenge submission, and character and byte limits without Chrome.
   - `manifest.test.ts` checks the MV3 permissions, minimum Chrome 120, HTTP and HTTPS host access, service-worker declaration, icons, homepage, a keyless first-upload draft, the public-key-derived development identity, valid RSA production keys, and rejection of malformed or reused development identities.
   - `build.test.ts` checks development, keyless draft, and production flavors, production identity failure, native-host isolation, packaged icon dimensions, and the extension-local blocker prompt.
+  - `icon.test.ts` compiles the shipping Curfew app icon, checks that every Chrome export retains transparency, and rejects committed extension icons that drift from that source.
   - `package.test.ts` checks that the keyless draft can create the first Web Store item and that the production upload ZIP refuses a missing identity, contains only files from a fresh production build, and repeats byte for byte from the same inputs.
   - `DocketBrowserPolicyClientTests/acceptedDestinationReviewsAreAuditedWithoutPrivateInput()` checks the stable event name, one event for each accepted challenge, grant, and denial, and the three-field redacted detail.
   - `DocketBrowserPolicyClientTests/taskSwitchInvalidatesReviewResult(kind:)` checks that stale-session Athena results do not write browser audit records.

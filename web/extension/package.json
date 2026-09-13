@@ -5,6 +5,7 @@
   "scripts": {
     "build": "node scripts/build.mjs production",
     "build:development": "node scripts/build.mjs development",
+    "icons:generate": "swift ../../scripts/generate-extension-icons.swift",
     "package:draft": "node scripts/package.mjs --draft",
     "package:production": "node scripts/package.mjs",
     "test": "vitest run --maxWorkers=2",
@@ -12,7 +13,9 @@
   },
   "devDependencies": {
     "@types/node": "^24.3.0",
+    "@types/pngjs": "^6.0.5",
     "esbuild": "^0.28.1",
+    "pngjs": "^7.0.0",
     "typescript": "^5.9.2",
     "vitest": "^3.2.4"
   }
