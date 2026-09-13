@@ -33,12 +33,17 @@ The production artifact is `web/extension/dist/production`. It calls only
 Web Store public key and the matching 32-character extension ID:
 
 ```sh
+pnpm --filter @curfew/chrome-extension package:draft
+
+# Upload the draft ZIP, then copy its Web Store public key and item ID.
 CURFEW_BROWSER_EXTENSION_PUBLIC_KEY='<Web Store public key>' \
 CURFEW_BROWSER_EXTENSION_ID='<Web Store item ID>' \
 pnpm --filter @curfew/chrome-extension package:production
 ```
 
-The command parses the public key as an RSA DER SPKI key. It derives the
+The draft command writes `web/extension/dist/curfew-browser-draft.zip` without a
+manifest key. That artifact exists only to create the first Web Store item. The
+production command parses the assigned public key as an RSA DER SPKI key. It derives the
 extension ID and rejects a mismatch. It also rejects the development key or ID
 when either appears in a production build. It writes the built extension to
 `web/extension/dist/production` and the upload archive to
@@ -48,6 +53,10 @@ change. Both manifests require Chrome 120 or later. The release
 engineer must copy the public key and item ID from the Chrome Web Store draft
 before building. The engineer must then set the same item ID as
 `CURFEW_BROWSER_EXTENSION_ID` in the signed app build.
+
+The exact dashboard copy and permission declarations live in
+`web/extension/store-listing.md`. The release engineer must use that file rather
+than rewriting the privacy claims during submission.
 
 ## Permissions and rule lifetime
 

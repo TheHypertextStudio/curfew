@@ -19,6 +19,24 @@ afterEach(async () => {
 });
 
 describe("production upload package", () => {
+  it("creates the keyless artifact used to open a Web Store draft", async () => {
+    const directory = await mkdtemp(resolve(tmpdir(), "curfew-extension-draft-"));
+    temporaryDirectories.push(directory);
+    const output = resolve(directory, "curfew-browser-draft.zip");
+
+    await run(
+      process.execPath,
+      [resolve("scripts/package.mjs"), "--draft", "--output", output],
+      { env: process.env },
+    );
+
+    const manifest = JSON.parse((await run("/usr/bin/unzip", [
+      "-p", output, "manifest.json",
+    ])).stdout) as { key?: string; name: string };
+    expect(manifest.name).toBe("Curfew Browser");
+    expect(manifest.key).toBeUndefined();
+  });
+
   it("contains only the built extension files", async () => {
     const directory = await mkdtemp(resolve(tmpdir(), "curfew-extension-package-"));
     temporaryDirectories.push(directory);

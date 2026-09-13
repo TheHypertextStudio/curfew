@@ -8,8 +8,8 @@ import { buildManifest } from "./manifest.mjs";
 
 const packageDirectory = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const flavor = process.argv[2];
-if (flavor !== "development" && flavor !== "production") {
-  throw new Error("Build flavor must be development or production");
+if (flavor !== "development" && flavor !== "draft" && flavor !== "production") {
+  throw new Error("Build flavor must be development, draft, or production");
 }
 const outputArgument = process.argv.indexOf("--outdir");
 const outputDirectory = outputArgument === -1
@@ -32,7 +32,7 @@ await Promise.all([
     bundle: true,
     define: { __CURFEW_NATIVE_HOST__: JSON.stringify(hostName) },
     format: "esm",
-    minify: flavor === "production",
+    minify: flavor !== "development",
     platform: "browser",
     target: "chrome120",
   }),
@@ -42,7 +42,7 @@ await Promise.all([
     bundle: true,
     define: { __CURFEW_BLOCKER_DEMO__: String(flavor === "development") },
     format: "esm",
-    minify: flavor === "production",
+    minify: flavor !== "development",
     platform: "browser",
     target: "chrome120",
   }),

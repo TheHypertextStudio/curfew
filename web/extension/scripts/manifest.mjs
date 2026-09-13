@@ -55,23 +55,25 @@ function validatedProductionIdentity(productionPublicKey, productionExtensionID)
 }
 
 /**
- * @param {"development" | "production"} flavor
+ * @param {"development" | "draft" | "production"} flavor
  * @param {{productionPublicKey?: string, productionExtensionID?: string}} [identity]
  */
 export function buildManifest(flavor, identity = {}) {
   const publicKey = flavor === "development"
     ? DEVELOPMENT_PUBLIC_KEY
-    : validatedProductionIdentity(
-      identity.productionPublicKey,
-      identity.productionExtensionID,
-    ).publicKey;
+    : flavor === "production"
+      ? validatedProductionIdentity(
+        identity.productionPublicKey,
+        identity.productionExtensionID,
+      ).publicKey
+      : undefined;
   return {
     manifest_version: 3,
     minimum_chrome_version: "120",
     name: flavor === "development" ? "Curfew Browser (Development)" : "Curfew Browser",
     description: "Keeps Chrome destinations bound to the current Curfew task.",
     version: "0.1.0",
-    key: publicKey,
+    ...(publicKey ? { key: publicKey } : {}),
     homepage_url: "https://curfew.hypertext.studio",
     icons: {
       16: "icons/icon-16.png",

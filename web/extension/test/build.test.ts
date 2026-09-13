@@ -21,7 +21,7 @@ afterEach(async () => {
 });
 
 async function build(
-  flavor: "development" | "production",
+  flavor: "development" | "draft" | "production",
   environment: NodeJS.ProcessEnv = {},
 ) {
   const output = await mkdtemp(resolve(tmpdir(), `curfew-extension-${flavor}-`));
@@ -36,7 +36,8 @@ async function build(
     blocker: await readFile(resolve(output, "blocker.html"), "utf8"),
     blockerScript: await readFile(resolve(output, "blocker.js"), "utf8"),
     manifest: JSON.parse(await readFile(resolve(output, "manifest.json"), "utf8")) as {
-      key: string;
+      key?: string;
+      name: string;
       homepage_url: string;
       icons: Record<string, string>;
     },
@@ -59,6 +60,16 @@ describe("extension build", () => {
     expect(output.manifest.key).toBe(TEST_PRODUCTION_PUBLIC_KEY);
     expect(output.background).toContain("studio.hypertext.curfew.browser");
     expect(output.background).not.toContain("studio.hypertext.curfew.dev.browser");
+  });
+
+  it("builds a keyless first-upload draft against the production native host", async () => {
+    const output = await build("draft");
+
+    expect(output.manifest.name).toBe("Curfew Browser");
+    expect(output.manifest.key).toBeUndefined();
+    expect(output.background).toContain("studio.hypertext.curfew.browser");
+    expect(output.background).not.toContain("studio.hypertext.curfew.dev.browser");
+    expect(output.blockerScript).not.toContain("Complete LVBT social strategy");
   });
 
   it("packages the blocker as an extension-local justification form", async () => {

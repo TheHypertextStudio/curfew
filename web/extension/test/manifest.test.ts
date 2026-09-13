@@ -54,7 +54,14 @@ describe("buildManifest", () => {
       productionExtensionID: TEST_PRODUCTION_EXTENSION_ID,
     });
     expect(manifest.key).toBe(TEST_PRODUCTION_PUBLIC_KEY);
-    expect(extensionIDFromPublicKey(manifest.key)).toBe(TEST_PRODUCTION_EXTENSION_ID);
+    expect(extensionIDFromPublicKey(manifest.key ?? "")).toBe(TEST_PRODUCTION_EXTENSION_ID);
+  });
+
+  it("builds a keyless draft before the Web Store assigns its identity", () => {
+    const manifest = buildManifest("draft");
+
+    expect(manifest.name).toBe("Curfew Browser");
+    expect(manifest).not.toHaveProperty("key");
   });
 
   it("rejects malformed keys and the development identity in production", () => {
