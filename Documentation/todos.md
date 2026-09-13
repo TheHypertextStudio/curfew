@@ -304,7 +304,11 @@ as an opt-in feature per the user's product direction and is not blocking.
 - [x] **C2** — `PersistentLockdown` auto-installs in Release via the new `RespawnGuardControlling` seam; Debug uses `NoOpRespawnGuard`.
 - [x] **C5** — `SchedulePolicyEngine.classifyChange` covers `mode` and `hoursLimitMinutes`; mode flips and hours-budget bumps trigger the 24-hour cooldown.
 - [x] **C7** — `applyPendingScheduleIfNeeded` defers `.weaker` pending changes during active lockout.
-- [x] **M3** — Accessibility-trust state polled each tick; Overview banner deep-links to System Settings.
+- [x] **M3** — Accessibility-trust state is read from `AXIsProcessTrusted` at
+      launch, on each enforcement tick, and whenever the app becomes active;
+      the Overview banner deep-links to System Settings. Interactive builds now
+      reject an unresolved signing identity instead of producing an ad-hoc app
+      whose changing code hash makes an enabled TCC row misleading.
 
 ### Phase 2 — v0.2 hardening
 - [x] **C3** — Privileged daemon now enforces: detects stale app heartbeat during lockout and invokes `/sbin/shutdown -h +1` as root.
@@ -436,3 +440,9 @@ unknown key and is ignored.
   lives in `scripts/release-entitlements.test.mjs`.
 - [x] Restored CI demo-capture artifacts by forwarding the screenshot job's
   unsigned build settings into `scripts/extract-screenshots.sh`.
+- [x] Corrected the signed-build guard to validate Xcode's resolved certificate
+  identity. The prior guard inspected only the requested `CODE_SIGN_IDENTITY`
+  label, allowing an ad-hoc `Curfew (Dev)` binary when the local development
+  certificate was revoked. Unsigned CI/demo builds remain explicitly supported;
+  interactive builds now fail with the recovery action before producing a TCC-
+  unstable app. Rollback is the single build-phase predicate change.

@@ -63,6 +63,28 @@ test("unsigned CI builds skip embedded tool signing", () => {
   assert.match(projectFile, /EXPANDED_CODE_SIGN_IDENTITY/);
 });
 
+test("interactive builds reject an unresolved signing identity before TCC can mislead", () => {
+  assert.match(
+    projectFile,
+    /CODE_SIGNING_ALLOWED[^]*EXPANDED_CODE_SIGN_IDENTITY[^]*requires a resolved Apple Development certificate/,
+  );
+  assert.doesNotMatch(
+    projectFile,
+    /if \[\[ \\"\$CODE_SIGN_IDENTITY\" == \\"-\" \]\]/,
+  );
+  const buildPhases = projectFile.indexOf("buildPhases = (");
+  const signedBuildGuard = projectFile.indexOf(
+    "C0FE0000000000000000ABCD /* Require Signed Build */",
+    buildPhases,
+  );
+  const bundleTools = projectFile.indexOf(
+    "9BD3FBCC2F4D4584007B2E95 /* Bundle CLI Tools */",
+    buildPhases,
+  );
+  assert.ok(signedBuildGuard >= 0 && bundleTools >= 0);
+  assert.ok(signedBuildGuard < bundleTools);
+});
+
 test("a staging build compiles the app and every embedded tool for the same service boundary", () => {
   assert.match(
     projectFile,
