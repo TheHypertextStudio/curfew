@@ -249,6 +249,12 @@ final class CurfewAppModel: NSObject, ObservableObject {
     /// Protected-work leases + break-glass record; replaced in wiring tests.
     var protectedWork = ProtectedWorkStores()
 
+    /// Coordinator-bounded release mirrored for the privileged daemon without
+    /// overwriting the user's independent emergency break-glass record.
+    var remoteOverrideReleaseStore = BreakGlassStore(
+        recordURL: SharedPaths.remoteOverrideRelease
+    )
+
     /// The event identifier of the calendar event for which we've already
     /// delivered a "meeting near curfew" extension prompt today. Reset to
     /// `nil` on day rollover so the next day's events get their own prompt.

@@ -104,7 +104,9 @@ extension NativeAccountSyncTransport {
     }
 
     private static func date(_ value: String) -> Date? {
-        ISO8601DateFormatter().date(from: value)
+        let fractional = ISO8601DateFormatter()
+        fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return fractional.date(from: value) ?? ISO8601DateFormatter().date(from: value)
     }
 
     private static func remoteResultDisposition(

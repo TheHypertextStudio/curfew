@@ -84,7 +84,7 @@ extension CurfewAppModel {
             warningIntervals: settings.warningIntervals,
             workedMinutesToday: workedMinutesToday(at: currentTime)
         )
-        if let accountOverride = accountWakeReleaseOverrideUntil(for: newState) {
+        if let accountOverride = accountReleaseOverrideUntil() {
             newState = enforcementEngine.evaluate(
                 at: currentTime,
                 schedule: settings.schedule,

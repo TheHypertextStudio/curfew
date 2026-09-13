@@ -18,7 +18,7 @@ protocol AccountSyncTransporting: AnyObject {
     func connect(
         deviceID: UUID,
         onWakeStatus: @escaping (AccountWakeStatusUpdate) -> Void,
-        onRemoteOverride: @escaping (AccountRemoteOverride) -> Void,
+        onRemoteOverride: @escaping (AccountRemoteOverride?) -> Void,
         onRemoteCommandResult: @escaping (RemoteCommandResult) -> Void,
         onFailure: @escaping (String) -> Void
     )
@@ -31,7 +31,7 @@ final class NoOpAccountSyncTransport: AccountSyncTransporting {
     func connect(
         deviceID _: UUID,
         onWakeStatus _: @escaping (AccountWakeStatusUpdate) -> Void,
-        onRemoteOverride _: @escaping (AccountRemoteOverride) -> Void,
+        onRemoteOverride _: @escaping (AccountRemoteOverride?) -> Void,
         onRemoteCommandResult _: @escaping (RemoteCommandResult) -> Void,
         onFailure _: @escaping (String) -> Void
     ) {}
@@ -48,7 +48,7 @@ final class AccountSyncEngine: ObservableObject {
     private(set) var isActive = false
 
     var onWakeStatusReceived: ((AccountWakeStatusUpdate) -> Void)?
-    var onRemoteOverrideReceived: ((AccountRemoteOverride) -> Void)?
+    var onRemoteOverrideReceived: ((AccountRemoteOverride?) -> Void)?
     var onRemoteCommandResultReceived: ((RemoteCommandResult) -> Void)?
 
     private let transport: any AccountSyncTransporting
@@ -97,7 +97,7 @@ final class AccountSyncEngine: ObservableObject {
         onWakeStatusReceived?(update)
     }
 
-    func receiveAuthenticatedRemoteOverride(_ override: AccountRemoteOverride) {
+    func receiveAuthenticatedRemoteOverride(_ override: AccountRemoteOverride?) {
         guard isActive else { return }
         onRemoteOverrideReceived?(override)
     }

@@ -38,6 +38,35 @@ final class NativeAccountSyncMappingTests: XCTestCase {
         ])
     }
 
+    func testRemoteOverrideMappingAcceptsProtocolUTCPrecisionRange() throws {
+        let expected = try XCTUnwrap(
+            ISO8601DateFormatter().date(from: "2026-09-05T08:30:00Z")
+        )
+        for startsAt in [
+            "2026-09-05T08:30:00Z",
+            "2026-09-05T08:30:00.0Z",
+            "2026-09-05T08:30:00.000Z",
+            "2026-09-05T08:30:00.000000000Z"
+        ] {
+            let wire = CurfewProtocols.RemoteOverride(
+                authorizedBy: .mcpPreauthorizedClient,
+                durationMinutes: 30,
+                overrideID: "018f4f45-cafe-7f00-9a82-e47805fb4d36",
+                reason: "Finish an active remote maintenance session.",
+                requestID: "018f4f45-cafe-7f00-9a82-e47805fb4d37",
+                startsAt: startsAt,
+                status: .active,
+                targetDeviceIDS: ["018f4f45-cafe-7f00-9a82-e47805fb4d35"]
+            )
+
+            XCTAssertEqual(
+                try NativeAccountSyncTransport.remoteOverride(wire).startsAt,
+                expected,
+                startsAt
+            )
+        }
+    }
+
     func testDaemonResultMapsExactlyToReleasedProtocol() throws {
         let commandID = try XCTUnwrap(
             UUID(uuidString: "018f4f45-cafe-7f00-9a82-e47805fb4d34")

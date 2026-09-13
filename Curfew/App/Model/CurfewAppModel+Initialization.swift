@@ -71,8 +71,7 @@ extension CurfewAppModel {
             self?.acceptAccountWakeStatus(update)
         }
         accountSyncEngine.onRemoteOverrideReceived = { [weak self] override in
-            self?.accountRemoteOverride = override
-            self?.reconcileDurableLockoutDeadline()
+            self?.acceptAccountRemoteOverride(override)
         }
         accountSyncEngine.onRemoteCommandResultReceived = { [weak self] result in
             self?.acceptRemoteCommandResult(result)

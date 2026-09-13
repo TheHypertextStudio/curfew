@@ -56,6 +56,7 @@ struct SharedPathsTests {
             SharedPaths.protectedWorkClaims,
             SharedPaths.protectedWorkPolicySnapshot,
             SharedPaths.breakGlassRelease,
+            SharedPaths.remoteOverrideRelease,
             SharedPaths.breakGlassSecret
         ] {
             #expect(url.deletingLastPathComponent() == directory)
