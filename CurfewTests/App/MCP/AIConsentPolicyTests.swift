@@ -25,6 +25,18 @@ struct AIConsentPolicyTests {
         }
     }
 
+    @Test("Policy copy describes only the write tools Curfew actually exposes")
+    func policyCopyMatchesLocalToolAuthority() {
+        #expect(AIConsentPolicy.queue.displayName == "Ask every time (recommended)")
+        #expect(AIConsentPolicy.autoApprove.displayName == "Apply requests automatically")
+        #expect(
+            AIConsentPolicy.deny.displayName == "Reject extension and schedule requests"
+        )
+        #expect(AIConsentPolicy.deny.rationale.contains("extension and schedule requests"))
+        #expect(AIConsentPolicy.autoApprove.rationale.contains("extension or schedule"))
+        #expect(!AIConsentPolicy.autoApprove.rationale.contains("override"))
+    }
+
     @Test("AIConsentPolicy round-trips through JSON")
     func jsonRoundTrip() throws {
         for policy in AIConsentPolicy.allCases {

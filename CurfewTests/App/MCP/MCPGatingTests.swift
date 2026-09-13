@@ -50,6 +50,23 @@ struct MCPGatingTests {
         #expect(!flagOn.mcpRequestMonitor.isStarted)
     }
 
+    @Test("The standalone MCP server follows the persisted local access switch")
+    func standaloneServerUsesPersistedAccessSetting() {
+        let suite = "studio.hypertext.curfew.mcp-access.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite) ?? .standard
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let store = CurfewSettingsStore(defaults: defaults)
+        var settings = CurfewSettings.default
+
+        settings.mcpEnabled = false
+        store.save(settings)
+        #expect(!LocalMCPAccessPolicy.isEnabled(in: store))
+
+        settings.mcpEnabled = true
+        store.save(settings)
+        #expect(LocalMCPAccessPolicy.isEnabled(in: store))
+    }
+
     // MARK: - Helpers
 
     /// Feature flags with only the MCP server enabled; every other deferred

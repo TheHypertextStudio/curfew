@@ -18,6 +18,7 @@ final class MCPServer {
     /// All tools exposed to MCP clients, each with its JSON Schema for
     /// input validation and a handler that produces the response content.
     private let tools: [MCPTool]
+    private let isAccessEnabled: () -> Bool
 
     /// Re-usable formatters; created once rather than per-call.
     private let encoder = JSONEncoder()
@@ -26,8 +27,11 @@ final class MCPServer {
     /// Creates a server with the full tool set. `MCPTool.all` is resolved
     /// eagerly so schema validation errors surface at process start,
     /// not mid-session on first `tools/list`.
-    init() {
+    init(isAccessEnabled: @escaping () -> Bool = {
+        LocalMCPAccessPolicy.isEnabledInSharedSettings()
+    }) {
         self.tools = MCPTool.all
+        self.isAccessEnabled = isAccessEnabled
         encoder.outputFormatting = [.sortedKeys]
     }
 
@@ -75,8 +79,18 @@ final class MCPServer {
         case "ping":
             return successResponse(rawID: rawID, result: [:])
         case "tools/list":
+            guard isAccessEnabled() else {
+                return successResponse(rawID: rawID, result: ["tools": []])
+            }
             return handleToolsList(rawID: rawID)
         case "tools/call":
+            guard isAccessEnabled() else {
+                return errorResponse(
+                    rawID: rawID,
+                    code: -32001,
+                    message: "Local AI access is turned off in Curfew Settings."
+                )
+            }
             return handleToolsCall(rawID: rawID, params: params)
         default:
             return errorResponse(rawID: rawID, code: -32601, message: "Method not found: \(method)")

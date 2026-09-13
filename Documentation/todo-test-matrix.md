@@ -436,6 +436,13 @@ only.
   - `AppConfigurationTests/hostAppOwnsOAuthCallbackScheme()`
   - `NativeAccountSyncTransportTests`
   - `AccountEncryptionTests`
+- `Settings presents phone-based account enrollment before local desktop AI
+  setup, and local AI copy describes its real read/write and reflection-sharing
+  boundary without promising remote unlock or bypass authority.`
+  - `GettingStartedCopyTests/localAISetupCopyIsTruthfulAndPlain()`
+  - `AIConsentPolicyTests/policyCopyMatchesLocalToolAuthority()`
+  - `MCPGatingTests/standaloneServerUsesPersistedAccessSetting()`
+  - `CurfewMCPAccessTests/disabledAccessClosesBothDispatcherPaths()`
 - `A staging build selects one closed-world endpoint set for account UI, OAuth,
   sync, MCP, daemon command-key trust, and account-key Keychain storage, while
   production remains the default and account copy explains that phone locking
