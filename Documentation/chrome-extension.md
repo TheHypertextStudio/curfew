@@ -122,6 +122,11 @@ title, target hostname, and this question:
 
 > What will you do on &lt;host&gt;, and what will you produce for &lt;task&gt;?
 
+The blocker presents that context as one narrow access request. It shows the
+Curfew mark, task title, hostname, current question, one answer field, one
+action, and a status only after the state changes. It does not repeat policy,
+offline, or privacy explanations around the form.
+
 The worker observes top-level HTTP and HTTPS navigation while enforcement is
 active. It does not inspect page content or subresources. Known destinations
 stay local. For an unknown destination only, the worker sends a normalized

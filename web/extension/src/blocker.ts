@@ -55,12 +55,11 @@ async function load(): Promise<void> {
     task.textContent = demoContext.taskTitle;
     host.textContent = demoContext.hostname;
     question.textContent = demoContext.question;
-    statusMessage.textContent = "Development fixture. Curfew will not send or save an answer.";
     justification.focus();
     return;
   }
   if (requestID === null) {
-    stop("This blocked request is missing its private request ID.");
+    stop("This request is no longer available. Open the destination again.");
     return;
   }
   const response = await chromeAPI.runtime.sendMessage({
@@ -68,7 +67,7 @@ async function load(): Promise<void> {
     requestID,
   }) as BlockerContext | null;
   if (response === null) {
-    stop("This request expired. Return to the task before opening another destination.");
+    stop("This request expired. Open the destination again.");
     return;
   }
   task.textContent = response.taskTitle;
@@ -77,7 +76,7 @@ async function load(): Promise<void> {
   question.textContent = prompt.question;
   challengeIsVisible = prompt.isChallenge;
   if (prompt.isChallenge) {
-    submit.textContent = "Answer once";
+    submit.textContent = "Submit answer";
   }
   justification.focus();
 }
@@ -85,7 +84,7 @@ async function load(): Promise<void> {
 form.addEventListener("submit", (event) => {
   event.preventDefault();
   if (demoContext !== null) {
-    statusMessage.textContent = "Development fixture. Curfew did not send or save this answer.";
+    statusMessage.textContent = "Preview only.";
     return;
   }
   if (requestID === null) {
@@ -100,21 +99,21 @@ form.addEventListener("submit", (event) => {
     return;
   }
   submit.disabled = true;
-  statusMessage.textContent = "Curfew is checking this request.";
+  statusMessage.textContent = "Checking…";
   statusMessage.dataset.tone = "working";
   void chromeAPI.runtime.sendMessage(message).then((value) => {
     const outcome = value as ReviewOutcome;
     if (outcome.status === "grant") {
-      statusMessage.textContent = "Access granted. Returning to the destination.";
+      statusMessage.textContent = "Opening destination…";
       return;
     }
     if (outcome.status === "challenge") {
       challengeIsVisible = true;
       question.textContent = outcome.question;
       justification.value = "";
-      submit.textContent = "Answer once";
+      submit.textContent = "Submit answer";
       submit.disabled = false;
-      statusMessage.textContent = "Curfew needs one more specific answer.";
+      statusMessage.textContent = "More detail needed.";
       justification.focus();
       return;
     }
@@ -129,23 +128,23 @@ form.addEventListener("submit", (event) => {
       return;
     }
     if (outcome.status === "stale_session") {
-      stop("The active task changed. This request cannot carry over to the new task.");
+      stop("The task changed. Open the destination again if you still need it.");
       return;
     }
     if (outcome.status === "expired") {
-      stop("This request expired. Return to the task before trying again.");
+      stop("This request expired. Open the destination again.");
       return;
     }
-    statusMessage.textContent = "Curfew could not reach its local host. The destination remains blocked.";
+    statusMessage.textContent = "Review is unavailable. Try again.";
     statusMessage.dataset.tone = "blocked";
     submit.disabled = false;
   }).catch(() => {
-    statusMessage.textContent = "Curfew could not reach its local host. The destination remains blocked.";
+    statusMessage.textContent = "Review is unavailable. Try again.";
     statusMessage.dataset.tone = "blocked";
     submit.disabled = false;
   });
 });
 
 void load().catch(() => {
-  stop("Curfew could not load this request. The destination remains blocked.");
+  stop("This request could not be loaded. Open the destination again.");
 });

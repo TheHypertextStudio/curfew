@@ -83,6 +83,27 @@ describe("extension build", () => {
     expect(output.blocker).not.toContain("https://");
   });
 
+  it("builds one focused access request without self-narrating chrome", async () => {
+    const output = await build("production", TEST_PRODUCTION_IDENTITY);
+
+    expect(output.blocker).toContain('src="icons/icon-32.png"');
+    expect(output.blocker).toContain('<h1 class="task" id="task-title"');
+    expect(output.blocker).toContain('id="target-host"');
+    expect(output.blocker).toContain('id="question"');
+    expect(output.blocker).toContain('id="justification"');
+    expect(output.blocker).toContain(">Request access</button>");
+
+    for (const narration of [
+      "DESTINATION HELD",
+      "ACTIVE TASK",
+      "Stop. Name the work.",
+      "Your plan and deliverable",
+      "Unknown destinations stay blocked",
+    ]) {
+      expect(output.blocker).not.toContain(narration);
+    }
+  });
+
   it("removes the screenshot fixture from production blocker code", async () => {
     const development = await build("development");
     const production = await build("production", TEST_PRODUCTION_IDENTITY);
