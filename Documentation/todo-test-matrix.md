@@ -465,6 +465,7 @@ only.
   while explicitly unsigned CI builds remain buildable.`
   - `AppConfigurationBehaviorTests/bundledDaemonUsesHostSigningIdentity()`
   - `scripts/release-entitlements.test.mjs` (`unsigned CI builds skip embedded tool signing`)
+  - `scripts/release-entitlements.test.mjs` (`interactive builds reject an unresolved signing identity before TCC can mislead`)
 - `An unlocked enrolled Mac periodically wakes its privileged daemon, accepts
   only a coordinator-signed command for the enrolled account/device, and makes
   the authenticated remote deadline visible to the existing enforcement loop.`

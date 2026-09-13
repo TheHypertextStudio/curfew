@@ -239,8 +239,8 @@
 				9BD3FB7F2F4D4584007B2E95 /* Frameworks */,
 				9BD3FB802F4D4584007B2E95 /* Resources */,
 				C0FE00000000000000000003 /* Embed App Extensions */,
-				9BD3FBCC2F4D4584007B2E95 /* Bundle CLI Tools */,
 				C0FE0000000000000000ABCD /* Require Signed Build */,
+				9BD3FBCC2F4D4584007B2E95 /* Bundle CLI Tools */,
 			);
 			buildRules = (
 			);
@@ -468,7 +468,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "if [[ \"$CODE_SIGN_IDENTITY\" == \"-\" ]] || [[ -z \"$CODE_SIGN_IDENTITY\" ]]; then\n    echo \"error: Curfew requires a real Apple Development certificate. Ad-hoc or unsigned builds cannot register with macOS TCC — set DEVELOPMENT_TEAM in project settings.\"\n    exit 1\nfi\n";
+			shellScript = "if [ \"$CODE_SIGNING_ALLOWED\" != \"NO\" ] && { [ -z \"$EXPANDED_CODE_SIGN_IDENTITY\" ] || [ \"$EXPANDED_CODE_SIGN_IDENTITY\" = \"-\" ]; }; then\n    echo \"error: Curfew requires a resolved Apple Development certificate. Ad-hoc or unsigned builds cannot retain macOS Accessibility access after a rebuild — refresh the Hypertext Studio development certificate in Xcode.\"\n    exit 1\nfi\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
