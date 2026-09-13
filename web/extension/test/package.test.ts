@@ -7,17 +7,12 @@ import { promisify } from "node:util";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
-  DEVELOPMENT_EXTENSION_ID,
-  DEVELOPMENT_PUBLIC_KEY,
-} from "../scripts/manifest.mjs";
+  TEST_PRODUCTION_IDENTITY,
+  TEST_PRODUCTION_PUBLIC_KEY,
+} from "./production-identity";
 
 const run = promisify(execFile);
 const temporaryDirectories: string[] = [];
-const productionIdentity = {
-  CURFEW_BROWSER_EXTENSION_PUBLIC_KEY: DEVELOPMENT_PUBLIC_KEY,
-  CURFEW_BROWSER_EXTENSION_ID: DEVELOPMENT_EXTENSION_ID,
-};
-
 afterEach(async () => {
   await Promise.all(temporaryDirectories.splice(0).map((directory) =>
     rm(directory, { recursive: true, force: true })));
@@ -35,7 +30,7 @@ describe("production upload package", () => {
     await run(
       process.execPath,
       [resolve("scripts/package.mjs"), "--output", output],
-      { env: { ...process.env, ...productionIdentity } },
+      { env: { ...process.env, ...TEST_PRODUCTION_IDENTITY } },
     );
 
     const { stdout } = await run("/usr/bin/unzip", ["-Z1", output]);
@@ -53,7 +48,7 @@ describe("production upload package", () => {
     const manifest = JSON.parse((await run("/usr/bin/unzip", [
       "-p", output, "manifest.json",
     ])).stdout) as { key: string };
-    expect(manifest.key).toBe(DEVELOPMENT_PUBLIC_KEY);
+    expect(manifest.key).toBe(TEST_PRODUCTION_PUBLIC_KEY);
     expect((await readFile(output)).byteLength).toBeGreaterThan(0);
     await rm(staleBuildFile, { force: true });
   });
@@ -68,5 +63,22 @@ describe("production upload package", () => {
       [resolve("scripts/package.mjs"), "--output", output],
       { env: process.env },
     )).rejects.toThrow(/production public key.*extension ID/i);
+  });
+
+  it("produces byte-identical archives from the same inputs", async () => {
+    const directory = await mkdtemp(resolve(tmpdir(), "curfew-extension-package-"));
+    temporaryDirectories.push(directory);
+    const firstOutput = resolve(directory, "first.zip");
+    const secondOutput = resolve(directory, "second.zip");
+
+    for (const output of [firstOutput, secondOutput]) {
+      await run(
+        process.execPath,
+        [resolve("scripts/package.mjs"), "--output", output],
+        { env: { ...process.env, ...TEST_PRODUCTION_IDENTITY } },
+      );
+    }
+
+    expect(await readFile(firstOutput)).toEqual(await readFile(secondOutput));
   });
 });

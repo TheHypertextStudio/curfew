@@ -6,10 +6,11 @@ import { promisify } from "node:util";
 
 import { afterEach, describe, expect, it } from "vitest";
 
+import { DEVELOPMENT_PUBLIC_KEY } from "../scripts/manifest.mjs";
 import {
-  DEVELOPMENT_EXTENSION_ID,
-  DEVELOPMENT_PUBLIC_KEY,
-} from "../scripts/manifest.mjs";
+  TEST_PRODUCTION_IDENTITY,
+  TEST_PRODUCTION_PUBLIC_KEY,
+} from "./production-identity";
 
 const run = promisify(execFile);
 const temporaryDirectories: string[] = [];
@@ -18,11 +19,6 @@ afterEach(async () => {
   await Promise.all(temporaryDirectories.splice(0).map((directory) =>
     rm(directory, { recursive: true, force: true })));
 });
-
-const productionIdentity = {
-  CURFEW_BROWSER_EXTENSION_PUBLIC_KEY: DEVELOPMENT_PUBLIC_KEY,
-  CURFEW_BROWSER_EXTENSION_ID: DEVELOPMENT_EXTENSION_ID,
-};
 
 async function build(
   flavor: "development" | "production",
@@ -58,15 +54,15 @@ describe("extension build", () => {
   });
 
   it("uses the explicit production identity and only the production native host", async () => {
-    const output = await build("production", productionIdentity);
+    const output = await build("production", TEST_PRODUCTION_IDENTITY);
 
-    expect(output.manifest.key).toBe(DEVELOPMENT_PUBLIC_KEY);
+    expect(output.manifest.key).toBe(TEST_PRODUCTION_PUBLIC_KEY);
     expect(output.background).toContain("studio.hypertext.curfew.browser");
     expect(output.background).not.toContain("studio.hypertext.curfew.dev.browser");
   });
 
   it("packages the blocker as an extension-local justification form", async () => {
-    const output = await build("production", productionIdentity);
+    const output = await build("production", TEST_PRODUCTION_IDENTITY);
 
     expect(output.blocker).toContain('<form id="review-form"');
     expect(output.blocker).toContain('id="justification"');
@@ -78,7 +74,7 @@ describe("extension build", () => {
 
   it("removes the screenshot fixture from production blocker code", async () => {
     const development = await build("development");
-    const production = await build("production", productionIdentity);
+    const production = await build("production", TEST_PRODUCTION_IDENTITY);
 
     expect(development.blockerScript).toContain("Complete LVBT social strategy");
     expect(production.blockerScript).not.toContain("Complete LVBT social strategy");

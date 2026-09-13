@@ -38,11 +38,13 @@ CURFEW_BROWSER_EXTENSION_ID='<Web Store item ID>' \
 pnpm --filter @curfew/chrome-extension package:production
 ```
 
-The command derives the extension ID from the public key and rejects a mismatch.
-It never falls back to the development identity. It writes the built extension
-to `web/extension/dist/production` and the upload archive to
+The command parses the public key as an RSA DER SPKI key. It derives the
+extension ID and rejects a mismatch. It also rejects the development key or ID
+when either appears in a production build. It writes the built extension to
+`web/extension/dist/production` and the upload archive to
 `web/extension/dist/curfew-browser-production.zip`. The archive contains only
-the current build files. Both manifests require Chrome 120 or later. The release
+the current build files and repeats byte for byte when those files do not
+change. Both manifests require Chrome 120 or later. The release
 engineer must copy the public key and item ID from the Chrome Web Store draft
 before building. The engineer must then set the same item ID as
 `CURFEW_BROWSER_EXTENSION_ID` in the signed app build.

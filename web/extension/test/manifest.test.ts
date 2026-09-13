@@ -6,6 +6,11 @@ import {
   buildManifest,
   extensionIDFromPublicKey,
 } from "../scripts/manifest.mjs";
+import {
+  TEST_NON_RSA_PUBLIC_KEY,
+  TEST_PRODUCTION_EXTENSION_ID,
+  TEST_PRODUCTION_PUBLIC_KEY,
+} from "./production-identity";
 
 describe("buildManifest", () => {
   it("builds a least-privilege MV3 development manifest with its pinned identity", () => {
@@ -40,15 +45,32 @@ describe("buildManifest", () => {
       /production public key.*extension ID/i,
     );
     expect(() => buildManifest("production", {
-      productionPublicKey: DEVELOPMENT_PUBLIC_KEY,
+      productionPublicKey: TEST_PRODUCTION_PUBLIC_KEY,
       productionExtensionID: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     })).toThrowError(/does not match/i);
 
     const manifest = buildManifest("production", {
+      productionPublicKey: TEST_PRODUCTION_PUBLIC_KEY,
+      productionExtensionID: TEST_PRODUCTION_EXTENSION_ID,
+    });
+    expect(manifest.key).toBe(TEST_PRODUCTION_PUBLIC_KEY);
+    expect(extensionIDFromPublicKey(manifest.key)).toBe(TEST_PRODUCTION_EXTENSION_ID);
+  });
+
+  it("rejects malformed keys and the development identity in production", () => {
+    for (const malformedKey of ["not base64", "AQIDBA=="]) {
+      expect(() => buildManifest("production", {
+        productionPublicKey: malformedKey,
+        productionExtensionID: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      })).toThrowError(/public key/i);
+    }
+    expect(() => buildManifest("production", {
       productionPublicKey: DEVELOPMENT_PUBLIC_KEY,
       productionExtensionID: DEVELOPMENT_EXTENSION_ID,
-    });
-    expect(manifest.key).toBe(DEVELOPMENT_PUBLIC_KEY);
-    expect(extensionIDFromPublicKey(manifest.key)).toBe(DEVELOPMENT_EXTENSION_ID);
+    })).toThrowError(/development identity/i);
+    expect(() => buildManifest("production", {
+      productionPublicKey: TEST_NON_RSA_PUBLIC_KEY,
+      productionExtensionID: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    })).toThrowError(/RSA public key/i);
   });
 });
