@@ -484,6 +484,24 @@ only.
   - `AccountLifecycleWiringTests/authenticatedRemoteResultPresentsLockout()`
   - `swift build --product curfew-daemon`
   - `AppConfigurationTests/bundledDaemonUsesHostSigningIdentity()`
+- `A coordinator-authorized remote override temporarily releases scheduled and
+  daemon-issued Curfew lockouts for its exact enrolled device, preserves both
+  ordinary and wake-campaign durable deadlines for re-lock, and clears locally
+  when the authenticated coordinator reports that no override remains active.`
+  - `AccountLifecycleWiringTests/authenticatedAccountOverrideReleasesRemoteDeadline()`
+  - `AccountLifecycleWiringTests/authenticatedAccountOverrideMirrorsDaemonRelease()`
+  - `AccountLifecycleWiringTests/directOverrideExpiryPreservesRemoteCommandDeadline()`
+  - `AccountLifecycleWiringTests/revokedAccountOverrideRestoresWakeDeadline()`
+  - `BreakGlassStoreTests/boundedReleaseExpiresAtGrantDeadline()`
+  - `BreakGlassStoreTests/boundedReleasePredatingLockoutRemainsActive()`
+  - `BreakGlassStoreTests/coordinatorReleaseRequiresBoundedRemoteGrant()`
+  - `NativeAccountSyncTransportTests/testPollClearsAnOverrideThatIsNoLongerActive()`
+  - `NativeAccountSyncTransportTests/testPollClearsAnOverrideWhenWakeStatusFails()`
+  - `NativeAccountSyncTransportTests/testPollDeliversCoordinatorOverrideWithFractionalTimestamp()`
+  - `NativeAccountSyncMappingTests/testRemoteOverrideMappingAcceptsProtocolUTCPrecisionRange()`
+  - `NativeAccountSyncOverrideCadenceTests/testOverridePollingContinuesWhileWakeStatusHangs()`
+  - `NativeAccountSyncOverrideCadenceTests/testStaggeredStaleTokenResponsesShareOneRefreshGeneration()`
+  - `AccountWakeReleaseTests/testOnlyCurrentAuthorizedOverrideCanReleaseThisDevice()`
 - `A remote command must use the released lock-device wire kind and exactly
   match the status version and schedule digest most recently published by this
   Mac; missing or stale eligibility cannot create a deadline.`

@@ -74,6 +74,10 @@ extension CurfewAppModel {
               state.phase == .locked,
               let unlock = state.unlockDate
         else { return }
+        if let existing = lockoutDeadlineStore.load(),
+           currentTime < existing.scheduledUnlockAt {
+            return
+        }
         let currentWakeStatus = accountWakeLedger.current
         let record: LockoutDeadlineRecord = if settings.accountSync.usesWakeCampaign {
             WakeLockoutDeadlineResolver.record(
@@ -125,6 +129,34 @@ extension CurfewAppModel {
         reconcileDurableLockoutDeadline()
     }
 
+    /// Mirrors a proof-bound account release into a separately signed local
+    /// record so the privileged daemon honors the same exact expiry if the app
+    /// stops heartbeating. Revocation clears only this remote record and never
+    /// the user's independent emergency break-glass release.
+    func acceptAccountRemoteOverride(_ override: AccountRemoteOverride?) {
+        accountRemoteOverride = override
+        guard let override,
+              let expiresAt = activeAccountRemoteOverrideUntil()
+        else {
+            remoteOverrideReleaseStore.clear()
+            reconcileDurableLockoutDeadline()
+            return
+        }
+        do {
+            try remoteOverrideReleaseStore.issue(
+                reason: "Remote MCP authorized a bounded direct unlock.",
+                issuedBy: "remote-mcp@curfew",
+                now: override.startsAt,
+                expiresAt: expiresAt
+            )
+        } catch {
+            accountRemoteOverride = nil
+            remoteOverrideReleaseStore.clear()
+            accountSyncEngine.reject("Could not authorize remote unlock on this Mac.")
+        }
+        reconcileDurableLockoutDeadline()
+    }
+
     /// An early campaign can arrive before or after the evening boundary. The
     /// account record stores its campaign identifier but never a release clock.
     private func alignActiveWakeDeadline(to update: AccountWakeStatusUpdate) {
@@ -146,11 +178,18 @@ extension CurfewAppModel {
               record.kind == .accountWakeCampaign,
               let localDeviceID = settings.accountSync.enrollment?.deviceID
         else { return false }
+        // A coordinator override suspends enforcement only for its bounded
+        // lifetime. Keep the wake record so expiry or revocation restores the
+        // same campaign instead of silently turning the grant permanent.
+        if activeAccountRemoteOverrideUntil() != nil {
+            enforceDurableDeadlineIfActive()
+            return true
+        }
         let decision = WakeReleaseEngine().decision(
             at: currentTime,
             deadline: record,
             wakeStatus: accountWakeLedger.current,
-            remoteOverride: accountRemoteOverride,
+            remoteOverride: nil,
             localDeviceID: localDeviceID
         )
         switch decision {
@@ -179,26 +218,28 @@ extension CurfewAppModel {
         try? protectedWork.claims.clear()
     }
 
-    /// Re-derives terminal release after process death even when the durable
-    /// record was already cleared. This prevents a satisfied campaign from
-    /// being re-locked by a legacy schedule clock on relaunch.
-    func accountWakeReleaseOverrideUntil(for baseline: CurfewEvaluation) -> Date? {
-        guard settings.accountSync.usesWakeCampaign,
-              let localDeviceID = settings.accountSync.enrollment?.deviceID
-        else { return nil }
+    /// Projects either a current account override or a terminal wake release
+    /// into the enforcement engine. Remote overrides apply to every Curfew
+    /// lock source; terminal wake state remains specific to wake campaigns.
+    func accountReleaseOverrideUntil() -> Date? {
+        if let remoteOverrideUntil = activeAccountRemoteOverrideUntil() {
+            return remoteOverrideUntil
+        }
+        guard settings.accountSync.usesWakeCampaign else { return nil }
         let wake = accountWakeLedger.current
         let terminal = wake?.state.isTerminal == true
-        let activeOverride = accountRemoteOverride?.authorizes(
-            deviceID: localDeviceID,
-            at: currentTime
-        ) == true
-        guard terminal || activeOverride else { return nil }
-        if activeOverride, let override = accountRemoteOverride, !terminal {
-            return override.startsAt.addingTimeInterval(
-                TimeInterval(override.durationMinutes * 60)
-            )
-        }
+        guard terminal else { return nil }
         return currentTime
+    }
+
+    private func activeAccountRemoteOverrideUntil() -> Date? {
+        guard let localDeviceID = settings.accountSync.enrollment?.deviceID,
+              let override = accountRemoteOverride,
+              override.authorizes(deviceID: localDeviceID, at: currentTime)
+        else { return nil }
+        return override.startsAt.addingTimeInterval(
+            TimeInterval(override.durationMinutes * 60)
+        )
     }
 
     /// Clears the record once the natural unlock time has arrived. Called
@@ -225,6 +266,9 @@ extension CurfewAppModel {
     func enforceDurableDeadlineIfActive() {
         guard let record = lockoutDeadlineStore.load() else { return }
         guard currentTime < record.scheduledUnlockAt else { return }
+        if activeAccountRemoteOverrideUntil() != nil {
+            return
+        }
         if record.kind != .remoteCommand,
            let overrideUntil,
            currentTime < overrideUntil {

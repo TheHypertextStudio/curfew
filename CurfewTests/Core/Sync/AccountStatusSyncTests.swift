@@ -77,7 +77,7 @@ private final class RecordingAccountSyncTransport: AccountSyncTransporting {
     func connect(
         deviceID _: UUID,
         onWakeStatus _: @escaping (AccountWakeStatusUpdate) -> Void,
-        onRemoteOverride _: @escaping (AccountRemoteOverride) -> Void,
+        onRemoteOverride _: @escaping (AccountRemoteOverride?) -> Void,
         onRemoteCommandResult: @escaping (RemoteCommandResult) -> Void,
         onFailure _: @escaping (String) -> Void
     ) {

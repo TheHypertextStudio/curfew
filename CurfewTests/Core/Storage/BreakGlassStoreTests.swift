@@ -113,6 +113,57 @@ struct BreakGlassStoreTests {
         #expect(store.activeRelease(now: later) == nil)
     }
 
+    @Test("A coordinator-bounded release expires at its exact grant deadline")
+    func boundedReleaseExpiresAtGrantDeadline() throws {
+        let (store, directory) = makeStore()
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let issued = Date()
+        let expires = issued.addingTimeInterval(5 * 60)
+        try store.issue(
+            reason: goodReason,
+            issuedBy: "remote-mcp@curfew",
+            now: issued,
+            expiresAt: expires
+        )
+
+        #expect(store.activeRelease(now: expires.addingTimeInterval(-1)) != nil)
+        #expect(store.activeRelease(now: expires) == nil)
+    }
+
+    @Test("A coordinator release already active when lockout begins remains active")
+    func boundedReleasePredatingLockoutRemainsActive() throws {
+        let (store, directory) = makeStore()
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let issued = Date()
+        let lockoutStarted = issued.addingTimeInterval(5 * 60)
+        let expires = issued.addingTimeInterval(60 * 60)
+        try store.issue(
+            reason: goodReason,
+            issuedBy: "remote-mcp@curfew",
+            now: issued,
+            expiresAt: expires
+        )
+
+        #expect(store.activeCoordinatorRelease(
+            now: lockoutStarted.addingTimeInterval(60)
+        ) != nil)
+    }
+
+    @Test("The coordinator release path rejects an ordinary break-glass record")
+    func coordinatorReleaseRequiresBoundedRemoteGrant() throws {
+        let (store, directory) = makeStore()
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let issued = Date()
+        try store.issue(reason: goodReason, issuedBy: "willie@mac", now: issued)
+
+        #expect(store.activeCoordinatorRelease(
+            now: issued.addingTimeInterval(60)
+        ) == nil)
+    }
+
     @Test("A future-dated record is ignored")
     func futureDatedRecordIsIgnored() throws {
         let (store, directory) = makeStore()

@@ -229,6 +229,9 @@ AuditLog.shared.emit(
 // other defence against.
 private let protectedWorkStores = ProtectedWorkStores(live: .system)
 private let breakGlassStore = BreakGlassStore()
+private let remoteOverrideReleaseStore = BreakGlassStore(
+    recordURL: SharedPaths.remoteOverrideRelease
+)
 private let effects = SystemDaemonEffects()
 private let observer = DaemonAuditObserver(auditLog: .shared)
 var runtime = DaemonEnforcementRuntime(auditLog: .shared)
@@ -258,6 +261,7 @@ while true {
     let record = backendSnapshot.deadline
     let breakGlass = record.flatMap { deadline in
         breakGlassStore.activeRelease(now: now, issuedAfter: deadline.lockoutStartedAt)
+            ?? remoteOverrideReleaseStore.activeCoordinatorRelease(now: now)
     }
     let heartbeatAge = appHeartbeatAge(now: now)
     // Read the mirror once: the same policy has to decide both which processes

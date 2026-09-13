@@ -13,19 +13,6 @@ struct NativeDeviceProofChallenge: Decodable {
     let keyEpoch: Int
 }
 
-final nonisolated class RejectingRedirectSessionDelegate: NSObject, URLSessionTaskDelegate,
-    @unchecked Sendable {
-    func urlSession(
-        _: URLSession,
-        task _: URLSessionTask,
-        willPerformHTTPRedirection _: HTTPURLResponse,
-        newRequest _: URLRequest,
-        completionHandler: @escaping @Sendable (URLRequest?) -> Void
-    ) {
-        completionHandler(nil)
-    }
-}
-
 struct AccountDeviceProofFactory {
     struct Input {
         let accessToken: String
@@ -100,9 +87,12 @@ final class NativeAccountSyncTransport: AccountSyncTransporting {
     private let inboxStore: RemoteCommandInboxStore
     private let resultExchangeStore: RemoteCommandResultExchangeStore
     private let enrollmentStore: RemoteCommandEnrollmentStore
+    private let pollingInterval: Duration
     private var pollingTask: Task<Void, Never>?
+    private var overridePollingTask: Task<Void, Never>?
+    private var tokenRefreshTask: Task<Void, Error>?
     private var onWakeStatus: ((AccountWakeStatusUpdate) -> Void)?
-    private var onRemoteOverride: ((AccountRemoteOverride) -> Void)?
+    private var onRemoteOverride: ((AccountRemoteOverride?) -> Void)?
     private var onRemoteCommandResult: ((RemoteCommandResult) -> Void)?
     private var onFailure: ((String) -> Void)?
     private var distributedPeerEpochs: Set<String> = []
@@ -113,7 +103,8 @@ final class NativeAccountSyncTransport: AccountSyncTransporting {
         proofFactory: AccountDeviceProofFactory? = nil,
         inboxStore: RemoteCommandInboxStore? = nil,
         resultExchangeStore: RemoteCommandResultExchangeStore? = nil,
-        enrollmentStore: RemoteCommandEnrollmentStore? = nil
+        enrollmentStore: RemoteCommandEnrollmentStore? = nil,
+        pollingInterval: Duration = .seconds(15)
     ) {
         self.secretStore = secretStore
         self.keyStore = AccountDeviceKeyStore(secretStore: secretStore)
@@ -141,12 +132,16 @@ final class NativeAccountSyncTransport: AccountSyncTransporting {
         self.enrollmentStore = enrollmentStore ?? RemoteCommandEnrollmentStore(
             recordURL: SharedPaths.remoteCommandEnrollment
         )
+        self.pollingInterval = pollingInterval
     }
+}
 
+@MainActor
+extension NativeAccountSyncTransport {
     func connect(
         deviceID: UUID,
         onWakeStatus: @escaping (AccountWakeStatusUpdate) -> Void,
-        onRemoteOverride: @escaping (AccountRemoteOverride) -> Void,
+        onRemoteOverride: @escaping (AccountRemoteOverride?) -> Void,
         onRemoteCommandResult: @escaping (RemoteCommandResult) -> Void,
         onFailure: @escaping (String) -> Void
     ) {
@@ -155,10 +150,18 @@ final class NativeAccountSyncTransport: AccountSyncTransporting {
         self.onRemoteOverride = onRemoteOverride
         self.onRemoteCommandResult = onRemoteCommandResult
         self.onFailure = onFailure
+        overridePollingTask = Task { [weak self] in
+            while !Task.isCancelled {
+                await self?.pollRemoteOverrideOnce(deviceID: deviceID)
+                guard let interval = self?.pollingInterval else { return }
+                try? await Task.sleep(for: interval)
+            }
+        }
         pollingTask = Task { [weak self] in
             while !Task.isCancelled {
-                await self?.pollOnce(deviceID: deviceID)
-                try? await Task.sleep(for: .seconds(15))
+                await self?.pollAccountStateOnce(deviceID: deviceID)
+                guard let interval = self?.pollingInterval else { return }
+                try? await Task.sleep(for: interval)
             }
         }
     }
@@ -166,6 +169,8 @@ final class NativeAccountSyncTransport: AccountSyncTransporting {
     func disconnect() {
         pollingTask?.cancel()
         pollingTask = nil
+        overridePollingTask?.cancel()
+        overridePollingTask = nil
     }
 
     func publishDeviceStatus(_ report: DeviceStatusReport, deviceID: UUID) {
@@ -199,12 +204,33 @@ final class NativeAccountSyncTransport: AccountSyncTransporting {
     }
 
     func pollOnce(deviceID: UUID) async {
+        await pollRemoteOverrideOnce(deviceID: deviceID)
+        await pollAccountStateOnce(deviceID: deviceID)
+    }
+
+    private func pollRemoteOverrideOnce(deviceID: UUID) async {
+        await pollWithRefresh(deviceID: deviceID) { [self] in
+            try await onRemoteOverride?(fetchRemoteOverride(deviceID: deviceID))
+        }
+    }
+
+    private func pollAccountStateOnce(deviceID: UUID) async {
+        await pollWithRefresh(deviceID: deviceID) { [self] in
+            try await pollAccountStateWithCurrentCredentials(deviceID: deviceID)
+        }
+    }
+
+    private func pollWithRefresh(
+        deviceID _: UUID,
+        operation: @MainActor () async throws -> Void
+    ) async {
+        let rejectedAccessToken = try? storedAccessToken()
         do {
-            try await pollWithCurrentCredentials(deviceID: deviceID)
+            try await operation()
         } catch NativeAccountSyncError.rejected(401) {
             do {
-                try await tokenRefresher.refresh()
-                try await pollWithCurrentCredentials(deviceID: deviceID)
+                try await refreshAccessToken(rejectedAccessToken: rejectedAccessToken)
+                try await operation()
             } catch {
                 onFailure?("Account sync is offline or rejected.")
             }
@@ -213,23 +239,64 @@ final class NativeAccountSyncTransport: AccountSyncTransporting {
         }
     }
 
-    private func pollWithCurrentCredentials(deviceID: UUID) async throws {
+    private func refreshAccessToken(rejectedAccessToken: String?) async throws {
+        if let rejectedAccessToken,
+           try storedAccessToken() != rejectedAccessToken {
+            return
+        }
+        if let tokenRefreshTask {
+            try await tokenRefreshTask.value
+            return
+        }
+        let task = Task { [tokenRefresher] in
+            try await tokenRefresher.refresh()
+        }
+        tokenRefreshTask = task
+        defer { tokenRefreshTask = nil }
+        try await task.value
+    }
+
+    private func storedAccessToken() throws -> String {
         guard let tokenData = try secretStore.data(for: "oauth-access-token"),
-              let accessToken = String(data: tokenData, encoding: .utf8),
-              let keys = try keyStore.load(deviceID: deviceID)
+              let accessToken = String(data: tokenData, encoding: .utf8)
         else { throw NativeAccountSyncError.missingCredentials }
+        return accessToken
+    }
+
+    private func currentCredentials(
+        deviceID: UUID
+    ) throws -> (accessToken: String, keys: AccountDeviceKeyMaterial) {
+        guard let keys = try keyStore.load(deviceID: deviceID)
+        else { throw NativeAccountSyncError.missingCredentials }
+        return try (storedAccessToken(), keys)
+    }
+
+    func fetchRemoteOverride(deviceID: UUID) async throws -> AccountRemoteOverride? {
+        let credentials = try currentCredentials(deviceID: deviceID)
+        return try await authorizedHTTP.get(
+            path: "/sync/remote-overrides/active",
+            deviceID: deviceID,
+            accessToken: credentials.accessToken,
+            signingPrivateKey: credentials.keys.signingPrivateKey
+        ).map { data in
+            try Self.remoteOverride(RemoteOverride(data: data))
+        }
+    }
+
+    private func pollAccountStateWithCurrentCredentials(deviceID: UUID) async throws {
+        let credentials = try currentCredentials(deviceID: deviceID)
 
         try await publishPendingRemoteCommandResults(
             deviceID: deviceID,
-            accessToken: accessToken,
-            signingPrivateKey: keys.signingPrivateKey
+            accessToken: credentials.accessToken,
+            signingPrivateKey: credentials.keys.signingPrivateKey
         )
 
         do {
             try await distributeRootKey(
                 deviceID: deviceID,
-                accessToken: accessToken,
-                keys: keys
+                accessToken: credentials.accessToken,
+                keys: credentials.keys
             )
         } catch NativeAccountSyncError.rejected(401) {
             throw NativeAccountSyncError.rejected(401)
@@ -240,24 +307,16 @@ final class NativeAccountSyncTransport: AccountSyncTransporting {
         if let data = try await authorizedHTTP.get(
             path: "/sync/wake/status",
             deviceID: deviceID,
-            accessToken: accessToken,
-            signingPrivateKey: keys.signingPrivateKey
+            accessToken: credentials.accessToken,
+            signingPrivateKey: credentials.keys.signingPrivateKey
         ) {
             try onWakeStatus?(Self.wakeStatus(WakeStatus(data: data)))
         }
         if let data = try await authorizedHTTP.get(
-            path: "/sync/remote-overrides/active",
-            deviceID: deviceID,
-            accessToken: accessToken,
-            signingPrivateKey: keys.signingPrivateKey
-        ) {
-            try onRemoteOverride?(Self.remoteOverride(RemoteOverride(data: data)))
-        }
-        if let data = try await authorizedHTTP.get(
             path: "/sync/remote-control/commands",
             deviceID: deviceID,
-            accessToken: accessToken,
-            signingPrivateKey: keys.signingPrivateKey
+            accessToken: credentials.accessToken,
+            signingPrivateKey: credentials.keys.signingPrivateKey
         ) {
             for delivery in try Self.remoteCommandDeliveries(
                 RemoteCommandDeliveryBatch(data: data)

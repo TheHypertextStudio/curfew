@@ -125,7 +125,10 @@ authority is the exact `@thehypertextstudio/curfew-protocols@0.0.9` release.
   devices, entitlements, wake state, and unlock-request state. The distinct
   `curfew:lock:device` scope authorizes exactly one opted-in device per tool call;
   only `curfew:lock:all` authorizes coordinator-side fan-out across every opted-in
-  device. Neither scope authorizes an unlock or weaker schedule.
+  device. Neither lock scope authorizes an unlock or weaker schedule. Direct
+  release requires both `curfew:unlock:request` and `curfew:unlock:direct`, plus
+  a separate owner-created authorization bounded to the exact OAuth client,
+  devices, duration, and expiry.
 - **Tool surface.** The generated registry contains exactly `list_devices`,
   `list_entitlements`, `get_wake_status`, `request_remote_unlock`,
   `get_remote_unlock_request`, `cancel_remote_unlock`, `curfew.lock.device`, and
@@ -146,7 +149,31 @@ can work while the user is away from the Mac.
 
 - A remote unlock `tools/call` enqueues a pending request via the coordinator,
   exactly like F9's local write tools enqueue through `MCPRequestQueue`. The
-  coordinator does not approve that request itself.
+  coordinator does not approve that request itself unless the owner previously
+  created a still-valid direct-release authorization for that client and the
+  call carries both unlock scopes. A direct release suspends Curfew's overlay
+  and its daemon shutdown enforcement; it does not unlock the macOS login
+  screen, supply credentials, or bypass FileVault.
+- The Mac polls the proof-bound active-override endpoint on an independent
+  15-second cadence. A
+  valid targeted override temporarily suspends scheduled, wake-campaign, and
+  daemon-issued remote lock deadlines without deleting the original deadline,
+  so enforcement resumes when the override expires. The app mirrors the exact
+  coordinator expiry into a separately signed daemon release record, keeping
+  it independent from the user's emergency break-glass release even if the app
+  quits or crashes. The daemon validates that record as a signed, bounded
+  coordinator grant rather than requiring it to postdate the lockout: a grant
+  that was already active when a later lock begins remains effective until its
+  exact expiry. The native decoder accepts the protocol's whole-second and
+  1-to-9-digit fractional UTC timestamps, including JavaScript `toISOString()`
+  values emitted by the coordinator. An authenticated 404 means
+  no override is active and clears the cached release immediately, making
+  cancellation and grant revocation effective on the next poll. That revocation
+  loop is independent from result publication and wake-status polling, so an
+  unrelated slow or failed sync operation cannot extend a cached grant. Token
+  refresh is keyed to the rejected access-token generation, so staggered 401s
+  from the two polling loops reuse the newly rotated credentials rather than
+  rotating the refresh token twice.
 - A remote lock is signed for one device at a time, or deterministically fanned
   out under the all-device scope. The daemon accepts it only for its enrolled
   account/device and only when the signed status version and schedule digest

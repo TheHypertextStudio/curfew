@@ -331,6 +331,13 @@ public enum SharedPaths {
         applicationSupport.appendingPathComponent("break-glass.json")
     }
 
+    /// Separately signed, coordinator-bounded release mirrored by the app for
+    /// the privileged daemon. Keeping it separate prevents remote revocation
+    /// from deleting a user's explicit break-glass release.
+    public static var remoteOverrideRelease: URL {
+        applicationSupport.appendingPathComponent("remote-override-release.json")
+    }
+
     /// Symmetric key that authenticates ``BreakGlassRelease`` records, mode
     /// 0600 owned by the user. Same threat model as ``mcpSharedSecret``: it
     /// does not stop somebody with the user's shell, it stops a stray file

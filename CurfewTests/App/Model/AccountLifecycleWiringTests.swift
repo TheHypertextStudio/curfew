@@ -97,6 +97,184 @@ struct AccountLifecycleWiringTests {
         #expect(model.state.phase == .locked)
         #expect(model.state.unlockDate == now.addingTimeInterval(1800))
     }
+}
+
+@MainActor
+extension AccountLifecycleWiringTests {
+    @Test("An authenticated account override temporarily releases a daemon remote lock")
+    func authenticatedAccountOverrideReleasesRemoteDeadline() throws {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let deviceID = try #require(
+            UUID(uuidString: "018f4f45-cafe-7f00-9a82-e47805fb4d35")
+        )
+        let model = try makeModel(accountSync: configuration(deviceID: deviceID))
+        model.currentTime = now
+        model.state = CurfewEvaluation(
+            phase: .working,
+            warningStage: .none,
+            minutesRemaining: 30,
+            canRequestExtension: false,
+            lockDate: nil,
+            unlockDate: nil
+        )
+        model.accountRemoteOverride = AccountRemoteOverride(
+            overrideID: UUID(),
+            requestID: UUID(),
+            targetDeviceIDs: [deviceID],
+            reason: "The account owner authorized temporary access from Claude.",
+            durationMinutes: 5,
+            startsAt: now.addingTimeInterval(-30),
+            authorizedBy: .mcpPreauthorizedClient,
+            status: .active
+        )
+        model.lockoutDeadlineStore.save(LockoutDeadlineRecord(
+            lockoutStartedAt: now.addingTimeInterval(-60),
+            scheduledUnlockAt: now.addingTimeInterval(1800),
+            kind: .remoteCommand
+        ))
+
+        model.enforceDurableDeadlineIfActive()
+
+        #expect(model.state.phase == .working)
+        #expect(
+            model.accountReleaseOverrideUntil()
+                == now.addingTimeInterval(270)
+        )
+        #expect(model.lockoutDeadlineStore.load()?.kind == .remoteCommand)
+    }
+
+    @Test("An authenticated account override mirrors its exact lifetime to the daemon")
+    func authenticatedAccountOverrideMirrorsDaemonRelease() throws {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let deviceID = try #require(
+            UUID(uuidString: "018f4f45-cafe-7f00-9a82-e47805fb4d35")
+        )
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let breakGlass = BreakGlassStore(
+            recordURL: directory.appendingPathComponent("release.json"),
+            secretURL: directory.appendingPathComponent("secret")
+        )
+        let model = try makeModel(accountSync: configuration(deviceID: deviceID))
+        model.currentTime = now
+        model.remoteOverrideReleaseStore = breakGlass
+        let override = AccountRemoteOverride(
+            overrideID: UUID(),
+            requestID: UUID(),
+            targetDeviceIDs: [deviceID],
+            reason: "The account owner authorized temporary access from Claude.",
+            durationMinutes: 5,
+            startsAt: now,
+            authorizedBy: .mcpPreauthorizedClient,
+            status: .active
+        )
+
+        model.acceptAccountRemoteOverride(override)
+
+        #expect(breakGlass.activeRelease(now: now) != nil)
+        #expect(breakGlass.activeRelease(now: now.addingTimeInterval(300)) == nil)
+
+        model.acceptAccountRemoteOverride(nil)
+        #expect(breakGlass.load() == nil)
+    }
+
+    @Test("Direct override expiry preserves remote-command provenance through ticks")
+    func directOverrideExpiryPreservesRemoteCommandDeadline() throws {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let deviceID = try #require(
+            UUID(uuidString: "018f4f45-cafe-7f00-9a82-e47805fb4d35")
+        )
+        let model = try makeModel(accountSync: configuration(deviceID: deviceID))
+        model.currentTime = now
+        model.overrideUntil = now.addingTimeInterval(3600)
+        model.state = CurfewEvaluation(
+            phase: .working,
+            warningStage: .none,
+            minutesRemaining: 60,
+            canRequestExtension: false,
+            lockDate: nil,
+            unlockDate: nil
+        )
+        model.accountRemoteOverride = AccountRemoteOverride(
+            overrideID: UUID(),
+            requestID: UUID(),
+            targetDeviceIDs: [deviceID],
+            reason: "The account owner authorized temporary access from Claude.",
+            durationMinutes: 5,
+            startsAt: now.addingTimeInterval(-600),
+            authorizedBy: .mcpPreauthorizedClient,
+            status: .active
+        )
+        model.lockoutDeadlineStore.save(LockoutDeadlineRecord(
+            lockoutStartedAt: now.addingTimeInterval(-900),
+            scheduledUnlockAt: now.addingTimeInterval(1800),
+            kind: .remoteCommand
+        ))
+
+        model.tick()
+
+        #expect(model.state.phase == .locked)
+        #expect(model.lockoutDeadlineStore.load()?.kind == .remoteCommand)
+
+        model.tick()
+
+        #expect(model.state.phase == .locked)
+        #expect(model.lockoutDeadlineStore.load()?.kind == .remoteCommand)
+    }
+
+    @Test("Revoking an account override restores the same wake-campaign lock")
+    func revokedAccountOverrideRestoresWakeDeadline() throws {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let deviceID = try #require(
+            UUID(uuidString: "018f4f45-cafe-7f00-9a82-e47805fb4d35")
+        )
+        let campaignID = UUID()
+        let model = try makeModel(accountSync: configuration(
+            deviceID: deviceID,
+            releasePolicy: .wakeCampaign(
+                campaignTemplateID: UUID(),
+                timeZone: "America/Los_Angeles",
+                localStartTime: "07:30"
+            )
+        ))
+        model.currentTime = now
+        model.state = CurfewEvaluation(
+            phase: .working,
+            warningStage: .none,
+            minutesRemaining: 30,
+            canRequestExtension: false,
+            lockDate: nil,
+            unlockDate: nil
+        )
+        model.accountRemoteOverride = AccountRemoteOverride(
+            overrideID: UUID(),
+            requestID: UUID(),
+            targetDeviceIDs: [deviceID],
+            reason: "The account owner authorized temporary access from Claude.",
+            durationMinutes: 5,
+            startsAt: now.addingTimeInterval(-30),
+            authorizedBy: .mcpPreauthorizedClient,
+            status: .active
+        )
+        model.lockoutDeadlineStore.save(LockoutDeadlineRecord(
+            lockoutStartedAt: now.addingTimeInterval(-3600),
+            scheduledUnlockAt: .distantFuture,
+            kind: .accountWakeCampaign,
+            campaignID: campaignID
+        ))
+
+        model.reconcileDurableLockoutDeadline()
+
+        #expect(model.state.phase == .working)
+        #expect(model.lockoutDeadlineStore.load()?.campaignID == campaignID)
+
+        model.accountRemoteOverride = nil
+        model.reconcileDurableLockoutDeadline()
+
+        #expect(model.state.phase == .locked)
+        #expect(model.lockoutDeadlineStore.load()?.campaignID == campaignID)
+    }
 
     @Test("A schedule edit immediately publishes a new remote eligibility snapshot")
     func scheduleEditImmediatelyInvalidatesRemoteEligibility() throws {
@@ -182,7 +360,7 @@ private final class RemoteResultTransportSpy: AccountSyncTransporting {
     func connect(
         deviceID _: UUID,
         onWakeStatus _: @escaping (AccountWakeStatusUpdate) -> Void,
-        onRemoteOverride _: @escaping (AccountRemoteOverride) -> Void,
+        onRemoteOverride _: @escaping (AccountRemoteOverride?) -> Void,
         onRemoteCommandResult: @escaping (RemoteCommandResult) -> Void,
         onFailure _: @escaping (String) -> Void
     ) {

@@ -1,5 +1,18 @@
 import Foundation
 
+final nonisolated class RejectingRedirectSessionDelegate: NSObject, URLSessionTaskDelegate,
+    @unchecked Sendable {
+    func urlSession(
+        _: URLSession,
+        task _: URLSessionTask,
+        willPerformHTTPRedirection _: HTTPURLResponse,
+        newRequest _: URLRequest,
+        completionHandler: @escaping @Sendable (URLRequest?) -> Void
+    ) {
+        completionHandler(nil)
+    }
+}
+
 private struct NativeAuthorizedWrite {
     let method: String
     let path: String

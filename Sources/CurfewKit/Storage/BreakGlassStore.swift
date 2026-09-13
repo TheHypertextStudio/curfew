@@ -43,6 +43,10 @@ public struct BreakGlassRelease: Codable, Equatable, Identifiable, Sendable {
     /// `user@host` of whoever issued it, captured for the audit trail.
     public let issuedBy: String
 
+    /// Optional tighter expiry used by coordinator-authorized releases. A
+    /// missing value preserves the legacy per-window/default-validity rules.
+    public let expiresAt: Date?
+
     /// Hex-encoded HMAC-SHA256 over the fields above. Absent means unsigned,
     /// which every consumer treats as invalid.
     public var signature: String?
@@ -52,12 +56,14 @@ public struct BreakGlassRelease: Codable, Equatable, Identifiable, Sendable {
         issuedAt: Date,
         reason: String,
         issuedBy: String,
+        expiresAt: Date? = nil,
         signature: String? = nil
     ) {
         self.id = id
         self.issuedAt = issuedAt
         self.reason = reason
         self.issuedBy = issuedBy
+        self.expiresAt = expiresAt
         self.signature = signature
     }
 }
@@ -130,12 +136,16 @@ public enum BreakGlassSigner {
     /// changing either invalidates every record already on disk.
     private static func canonicalString(for release: BreakGlassRelease) -> String {
         let timestamp = ISO8601DateFormatter.curfewBreakGlass.string(from: release.issuedAt)
-        return [
+        var fields = [
             release.id.uuidString,
             timestamp,
             release.reason,
             release.issuedBy
-        ].joined(separator: "|")
+        ]
+        if let expiresAt = release.expiresAt {
+            fields.append(ISO8601DateFormatter.curfewBreakGlass.string(from: expiresAt))
+        }
+        return fields.joined(separator: "|")
     }
 
     private static func loadOrCreateSecret(at url: URL) -> SymmetricKey? {
@@ -215,7 +225,8 @@ public struct BreakGlassStore {
     public func issue(
         reason: String,
         issuedBy: String,
-        now: Date
+        now: Date,
+        expiresAt: Date? = nil
     ) throws -> BreakGlassRelease {
         let trimmed = reason.trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed.count >= Self.minimumReasonCharacters else {
@@ -225,7 +236,8 @@ public struct BreakGlassStore {
         var release = BreakGlassRelease(
             issuedAt: now,
             reason: trimmed,
-            issuedBy: issuedBy
+            issuedBy: issuedBy,
+            expiresAt: expiresAt
         )
         guard let signature = BreakGlassSigner.sign(release, secretURL: secretURL) else {
             throw BreakGlassError.signingUnavailable
@@ -289,12 +301,28 @@ public struct BreakGlassStore {
             breakGlassLogger.error("break-glass record is dated in the future; ignoring")
             return nil
         }
+        if let expiresAt = release.expiresAt,
+           now >= expiresAt {
+            return nil
+        }
         if let issuedAfter, release.issuedAt < issuedAfter {
             return nil
         }
         guard now.timeIntervalSince(release.issuedAt) <= validity else {
             return nil
         }
+        return release
+    }
+
+    /// Returns an active coordinator-issued release without binding it to the
+    /// lockout's start time. A direct-unlock grant may legitimately begin
+    /// before the lock it releases, so its signed exact expiry is the bound.
+    public func activeCoordinatorRelease(now: Date) -> BreakGlassRelease? {
+        guard let release = activeRelease(now: now, validity: .infinity),
+              release.issuedBy == "remote-mcp@curfew",
+              let expiresAt = release.expiresAt,
+              expiresAt > release.issuedAt
+        else { return nil }
         return release
     }
 

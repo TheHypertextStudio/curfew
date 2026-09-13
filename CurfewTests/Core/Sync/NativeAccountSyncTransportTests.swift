@@ -68,6 +68,93 @@ final class NativeAccountSyncTransportTests: XCTestCase {
         ])
     }
 
+    func testPollClearsAnOverrideThatIsNoLongerActive() async throws {
+        let fixture = try makeFixture(accessToken: "resource-bound-access-token")
+        let cleared = expectation(description: "inactive remote override cleared")
+        let completed = expectation(description: "poll completed")
+        installPollingHandler(
+            batch: RemoteCommandDeliveryBatch(commands: []),
+            onCommands: { completed.fulfill() }
+        )
+        defer { NativeTransportURLProtocol.handler = nil }
+        let transport = makeTransport(secrets: fixture.secrets)
+
+        transport.connect(
+            deviceID: fixture.deviceID,
+            onWakeStatus: { _ in },
+            onRemoteOverride: { override in
+                XCTAssertNil(override)
+                cleared.fulfill()
+            },
+            onRemoteCommandResult: { _ in },
+            onFailure: { _ in }
+        )
+
+        await fulfillment(of: [cleared, completed], timeout: 1)
+        transport.disconnect()
+    }
+
+    func testPollDeliversCoordinatorOverrideWithFractionalTimestamp() async throws {
+        let fixture = try makeFixture(accessToken: "resource-bound-access-token")
+        let startsAt = "2026-09-05T08:30:00.000Z"
+        NativeTransportURLProtocol.handler = { request in
+            if request.url?.path == "/sync/remote-overrides/active" {
+                let json = #"{"authorizedBy":"mcp_preauthorized_client","durationMinutes":30,"overrideId":"018f4f45-cafe-7f00-9a82-e47805fb4d36","reason":"Finish an active remote maintenance session.","requestId":"018f4f45-cafe-7f00-9a82-e47805fb4d37","startsAt":"\#(startsAt)","status":"active","targetDeviceIds":["\#(fixture.deviceID.uuidString.lowercased())"]}"#
+                return (200, Data(json.utf8))
+            }
+            return try Self.pollingResponse(for: request)
+        }
+        defer { NativeTransportURLProtocol.handler = nil }
+        let transport = makeTransport(secrets: fixture.secrets)
+
+        let override = try await transport.fetchRemoteOverride(deviceID: fixture.deviceID)
+
+        XCTAssertEqual(
+            override?.startsAt,
+            ISO8601DateFormatter().date(from: "2026-09-05T08:30:00Z")
+        )
+    }
+
+    func testPollClearsAnOverrideWhenWakeStatusFails() async throws {
+        let fixture = try makeFixture(accessToken: "resource-bound-access-token")
+        NativeTransportURLProtocol.handler = { request in
+            let path = try XCTUnwrap(request.url?.path)
+            switch (request.httpMethod, path) {
+            case ("POST", "/sync/device-proof/challenge"):
+                return Self.challengeResponse()
+            case ("GET", "/sync/devices"):
+                return (200, Data("[]".utf8))
+            case ("GET", "/sync/wake/status"):
+                return (500, Data())
+            case ("GET", "/sync/remote-overrides/active"):
+                return (404, Data())
+            case ("GET", "/sync/remote-control/commands"):
+                return try (200, RemoteCommandDeliveryBatch(commands: []).jsonData())
+            default:
+                XCTFail("unexpected request: \(request.httpMethod ?? "nil") \(path)")
+                return (500, Data())
+            }
+        }
+        defer { NativeTransportURLProtocol.handler = nil }
+        let transport = makeTransport(secrets: fixture.secrets)
+        let cleared = expectation(description: "inactive override cleared despite wake failure")
+        let failed = expectation(description: "wake failure reported after override clear")
+
+        transport.connect(
+            deviceID: fixture.deviceID,
+            onWakeStatus: { _ in },
+            onRemoteOverride: { override in
+                XCTAssertNil(override)
+                cleared.fulfill()
+            },
+            onRemoteCommandResult: { _ in },
+            onFailure: { _ in failed.fulfill() }
+        )
+
+        await fulfillment(of: [cleared, failed], timeout: 1)
+        transport.disconnect()
+    }
+
     func testExpiredAccessTokenRefreshesAndRetriesPoll() async throws {
         let fixture = try makeFixture(
             accessToken: "expired-access-token",
@@ -152,7 +239,8 @@ private extension NativeAccountSyncTransportTests {
         secrets: NativeTransportMemorySecretStore,
         inboxStore: RemoteCommandInboxStore? = nil,
         resultExchangeStore: RemoteCommandResultExchangeStore? = nil,
-        enrollmentStore: RemoteCommandEnrollmentStore? = nil
+        enrollmentStore: RemoteCommandEnrollmentStore? = nil,
+        pollingInterval: Duration = .seconds(15)
     ) -> NativeAccountSyncTransport {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [NativeTransportURLProtocol.self]
@@ -161,11 +249,15 @@ private extension NativeAccountSyncTransportTests {
             session: URLSession(configuration: configuration),
             inboxStore: inboxStore,
             resultExchangeStore: resultExchangeStore,
-            enrollmentStore: enrollmentStore
+            enrollmentStore: enrollmentStore,
+            pollingInterval: pollingInterval
         )
     }
 
-    private func installPollingHandler(batch: RemoteCommandDeliveryBatch) {
+    private func installPollingHandler(
+        batch: RemoteCommandDeliveryBatch,
+        onCommands: (() -> Void)? = nil
+    ) {
         NativeTransportURLProtocol.handler = { request in
             let path = try XCTUnwrap(request.url?.path)
             switch (request.httpMethod, path) {
@@ -177,6 +269,7 @@ private extension NativeAccountSyncTransportTests {
                  ("GET", "/sync/remote-overrides/active"):
                 return (404, Data())
             case ("GET", "/sync/remote-control/commands"):
+                onCommands?()
                 return try (200, batch.jsonData())
             default:
                 XCTFail("unexpected request: \(request.httpMethod ?? "nil") \(path)")
@@ -286,70 +379,5 @@ private extension NativeAccountSyncTransportTests {
         in store: NativeTransportMemorySecretStore
     ) throws -> String? {
         try store.data(for: name).flatMap { String(data: $0, encoding: .utf8) }
-    }
-}
-
-private final class NativeTransportURLProtocol: URLProtocol, @unchecked Sendable {
-    nonisolated(unsafe) static var handler: ((URLRequest) throws -> (Int, Data))?
-
-    override static func canInit(with _: URLRequest) -> Bool {
-        true
-    }
-
-    override static func canonicalRequest(for request: URLRequest) -> URLRequest {
-        request
-    }
-
-    override func startLoading() {
-        do {
-            let handler = try XCTUnwrap(Self.handler)
-            let (status, data) = try handler(request)
-            let response = try XCTUnwrap(try HTTPURLResponse(
-                url: XCTUnwrap(request.url),
-                statusCode: status,
-                httpVersion: "HTTP/1.1",
-                headerFields: ["Content-Type": "application/json"]
-            ))
-            client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
-            client?.urlProtocol(self, didLoad: data)
-            client?.urlProtocolDidFinishLoading(self)
-        } catch {
-            client?.urlProtocol(self, didFailWithError: error)
-        }
-    }
-
-    override func stopLoading() {}
-}
-
-private final class NativeTransportMemorySecretStore: AccountSecretStoring {
-    private var values: [String: Data] = [:]
-
-    func data(for account: String) throws -> Data? {
-        values[account]
-    }
-
-    func save(_ data: Data, for account: String) throws {
-        values[account] = data
-    }
-
-    func delete(_ account: String) throws {
-        values.removeValue(forKey: account)
-    }
-}
-
-private final class NativeTransportEventRecorder: @unchecked Sendable {
-    private let lock = NSLock()
-    private var storage: [String] = []
-
-    var values: [String] {
-        lock.lock()
-        defer { lock.unlock() }
-        return storage
-    }
-
-    func append(_ value: String) {
-        lock.lock()
-        storage.append(value)
-        lock.unlock()
     }
 }
