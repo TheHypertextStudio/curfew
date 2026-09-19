@@ -12,6 +12,7 @@ Curfew is designed to store everything locally and request only the permissions 
 | Audit log (what Curfew did and why) | `~/Library/Logs/Curfew/curfew-app.jsonl`, plus `/Library/Logs/Curfew/curfew-daemon.jsonl` when the privileged helper is installed | 90 days, or 25 MB per file, whichever comes first |
 | License key (Pro) | `~/Library/Preferences/studio.hypertext.curfew.plist` | Until you deactivate |
 | Presence verdict (opt-in camera) | Memory only — one yes/no answer plus a timestamp | Until the next reading, or until the camera stops |
+| Pending browser challenge | Chrome extension local storage | Until the one live challenge is answered, abandoned, expires, or the work session changes |
 
 ## The audit log
 
@@ -27,6 +28,27 @@ was, and a short fingerprint — never the words. The full format is documented
 in [`Documentation/audit-log.md`](Documentation/audit-log.md).
 
 Nothing reads this file. It is written and never sent anywhere.
+
+## Task-scoped browser enforcement
+
+When you enable task-scoped browser enforcement, the Chrome extension observes
+top-level HTTP and HTTPS navigation so Curfew can allow known destinations and
+block unknown ones before they load. Curfew does not inspect page content or
+page subresources. Known destinations stay on your Mac.
+
+For an unknown destination, Curfew sends the normalized origin and path to
+Docket and Athena with the current organization and task identifiers, the
+justification you submit, and one challenge answer when Athena asks a follow-up
+question. Normalization removes URL credentials, query strings, fragments, and
+default ports before review.
+
+The extension retains the initial justification only while one live challenge
+is pending, so the challenge can survive a page reload. It never persists a
+completed justification or a challenge answer. The local audit log records only
+the hostname, the `grant`, `challenge`, or `deny` decision, and the `origin`,
+`path_prefix`, or `none` scope kind. It never records a full path, query,
+fragment, credential, justification, challenge answer, reviewer reason, or
+reviewer question.
 
 ## Camera presence detection (opt-in, off by default)
 
@@ -60,8 +82,8 @@ Full detail, including what the feature deliberately cannot do, is in
 ## What Curfew does NOT do
 
 - No analytics, telemetry, or crash reporting.
-- No network requests except: iCloud sync (Pro, opt-in), coordinator status reporting (opt-in, off by default, to a server you name), and license key verification (one-time, offline after first check).
-- No access to your files, browser history, or app content.
+- No network requests except: Docket and Athena destination review when task-scoped browser enforcement is enabled, iCloud sync (Pro, opt-in), coordinator status reporting (opt-in, off by default, to a server you name), and license key verification (one-time, offline after first check).
+- No access to your files, page content, page subresources, app content, or general browser history. Task-scoped browser enforcement observes only top-level navigation while it is active.
 
 ## Permissions requested
 
@@ -71,6 +93,7 @@ Full detail, including what the feature deliberately cannot do, is in
 | Notifications | Warning countdowns and lockout alerts. |
 | Accessibility (optional) | Keyboard shortcut interception during lockout. |
 | Camera (optional, off by default) | Detect whether a person is at the Mac. Requested only when you turn presence detection on. No images stored or sent; nobody is identified. |
+| Chrome website access (optional) | Review and enforce top-level HTTP and HTTPS destinations while a Docket task is active. Curfew does not inspect page content or subresources. |
 
 ## iCloud sync (Pro)
 
