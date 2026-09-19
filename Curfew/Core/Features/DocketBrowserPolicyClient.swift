@@ -5,51 +5,6 @@ import Foundation
 
 // swiftlint:disable file_length
 
-nonisolated struct DocketServiceEndpoints: Equatable, Sendable {
-    let webOrigin: URL
-    let mcpResource: URL
-    let authorizationEndpoint: URL
-    let registrationEndpoint: URL
-    let tokenEndpoint: URL
-    let keychainService: String
-
-    static let production = make(
-        webOrigin: "https://clearthedocket.com",
-        apiOrigin: "https://api.clearthedocket.com",
-        keychainService: "studio.hypertext.curfew.docket"
-    )
-
-    static let staging = make(
-        webOrigin: "https://docket-staging.hypertext.studio",
-        apiOrigin: "https://docket-api-staging.hypertext.studio",
-        keychainService: "studio.hypertext.curfew.docket.staging"
-    )
-
-    #if CURFEW_STAGING
-        static let current = staging
-    #else
-        static let current = production
-    #endif
-
-    private static func make(
-        webOrigin: String,
-        apiOrigin: String,
-        keychainService: String
-    ) -> DocketServiceEndpoints {
-        guard let webURL = URL(string: webOrigin),
-              let apiURL = URL(string: apiOrigin)
-        else { preconditionFailure("Docket endpoints must be valid HTTPS URLs") }
-        return DocketServiceEndpoints(
-            webOrigin: webURL,
-            mcpResource: apiURL.appending(path: "/mcp"),
-            authorizationEndpoint: webURL.appending(path: "/api/auth/oauth2/authorize"),
-            registrationEndpoint: apiURL.appending(path: "/api/auth/oauth2/register"),
-            tokenEndpoint: apiURL.appending(path: "/api/auth/oauth2/token"),
-            keychainService: keychainService
-        )
-    }
-}
-
 enum DocketClientError: Error, Equatable {
     case invalidOAuthRequest
     case invalidResponse
@@ -134,79 +89,6 @@ nonisolated enum DocketOAuthCallback {
               !code.isEmpty
         else { throw DocketClientError.invalidResponse }
         return code
-    }
-}
-
-nonisolated struct DocketOAuthTokens: Codable, Equatable, Sendable {
-    let accessToken: String
-    let refreshToken: String
-    let expiresAt: Date
-}
-
-@MainActor
-final class DocketCredentialStore {
-    static let clientIDAccount = "oauth-client-id"
-    static let accessTokenAccount = "oauth-access-token"
-    static let refreshTokenAccount = "oauth-refresh-token"
-    static let expirationAccount = "oauth-expiration"
-
-    private let secretStore: any AccountSecretStoring
-
-    init(
-        secretStore: (any AccountSecretStoring)? = nil,
-        endpoints: DocketServiceEndpoints = .current
-    ) {
-        self.secretStore = secretStore ?? KeychainAccountSecretStore(
-            service: endpoints.keychainService
-        )
-    }
-
-    func load() throws -> DocketOAuthTokens? {
-        guard let accessData = try secretStore.data(for: Self.accessTokenAccount),
-              let accessToken = String(data: accessData, encoding: .utf8),
-              let refreshData = try secretStore.data(for: Self.refreshTokenAccount),
-              let refreshToken = String(data: refreshData, encoding: .utf8),
-              let expirationData = try secretStore.data(for: Self.expirationAccount),
-              let expirationString = String(data: expirationData, encoding: .utf8),
-              let expiration = TimeInterval(expirationString)
-        else { return nil }
-        return .init(
-            accessToken: accessToken,
-            refreshToken: refreshToken,
-            expiresAt: Date(timeIntervalSince1970: expiration)
-        )
-    }
-
-    func loadClientID() throws -> String? {
-        guard let data = try secretStore.data(for: Self.clientIDAccount) else { return nil }
-        return String(data: data, encoding: .utf8)
-    }
-
-    func saveClientID(_ clientID: String) throws {
-        try secretStore.save(Data(clientID.utf8), for: Self.clientIDAccount)
-    }
-
-    func loadRefreshToken() throws -> String? {
-        guard let data = try secretStore.data(for: Self.refreshTokenAccount) else { return nil }
-        return String(data: data, encoding: .utf8)
-    }
-
-    func save(_ tokens: DocketOAuthTokens) throws {
-        // Save the rotating credential first. A crash cannot leave a spent
-        // refresh token paired with a newer access token.
-        try secretStore.save(Data(tokens.refreshToken.utf8), for: Self.refreshTokenAccount)
-        try secretStore.save(Data(tokens.accessToken.utf8), for: Self.accessTokenAccount)
-        try secretStore.save(
-            Data(String(tokens.expiresAt.timeIntervalSince1970).utf8),
-            for: Self.expirationAccount
-        )
-    }
-
-    func clear() throws {
-        try secretStore.delete(Self.clientIDAccount)
-        try secretStore.delete(Self.accessTokenAccount)
-        try secretStore.delete(Self.refreshTokenAccount)
-        try secretStore.delete(Self.expirationAccount)
     }
 }
 

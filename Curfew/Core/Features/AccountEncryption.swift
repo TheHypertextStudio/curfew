@@ -1,104 +1,11 @@
 import CryptoKit
 import CurfewProtocols
 import Foundation
-import LocalAuthentication
 import Security
 
 // The account cryptography contract keeps its wire models and primitives in one
 // review unit so a protocol change cannot update one without the other.
 // swiftlint:disable file_length
-
-protocol AccountSecretStoring: AnyObject {
-    func data(for account: String) throws -> Data?
-    func save(_ data: Data, for account: String) throws
-    func delete(_ account: String) throws
-}
-
-enum AccountEncryptionError: Error, Equatable {
-    case invalidKeyMaterial
-    case keychain(OSStatus)
-    case authenticationFailed
-}
-
-final nonisolated class KeychainAccountSecretStore: AccountSecretStoring {
-    private let service: String
-
-    init(service: String = CurfewServiceEndpoints.current.keychainService) {
-        self.service = service
-    }
-
-    func data(for account: String) throws -> Data? {
-        let query = Self.backgroundReadQuery(service: service, account: account)
-        var result: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &result)
-        if status == errSecItemNotFound {
-            return nil
-        }
-        guard status == errSecSuccess, let data = result as? Data else {
-            throw AccountEncryptionError.keychain(status)
-        }
-        return data
-    }
-
-    static func backgroundReadQuery(service: String, account: String) -> [CFString: Any] {
-        [
-            kSecClass: kSecClassGenericPassword,
-            kSecAttrService: service,
-            kSecAttrAccount: account,
-            kSecReturnData: true,
-            kSecMatchLimit: kSecMatchLimitOne,
-            // A timer-driven credential read must fail closed instead of
-            // turning an app update into a repeating system prompt.
-            kSecUseAuthenticationContext: nonInteractiveContext()
-        ]
-    }
-
-    func save(_ data: Data, for account: String) throws {
-        let identity: [CFString: Any] = [
-            kSecClass: kSecClassGenericPassword,
-            kSecAttrService: service,
-            kSecAttrAccount: account
-        ]
-        let attributes: [CFString: Any] = [
-            kSecValueData: data,
-            kSecAttrAccessible: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
-            kSecAttrSynchronizable: false
-        ]
-        var nonInteractiveIdentity = identity
-        nonInteractiveIdentity[kSecUseAuthenticationContext] = Self.nonInteractiveContext()
-        let update = SecItemUpdate(
-            nonInteractiveIdentity as CFDictionary,
-            attributes as CFDictionary
-        )
-        if update == errSecItemNotFound {
-            var insertion = identity
-            attributes.forEach { insertion[$0.key] = $0.value }
-            let status = SecItemAdd(insertion as CFDictionary, nil)
-            guard status == errSecSuccess else { throw AccountEncryptionError.keychain(status) }
-        } else if update != errSecSuccess {
-            throw AccountEncryptionError.keychain(update)
-        }
-    }
-
-    func delete(_ account: String) throws {
-        let query: [CFString: Any] = [
-            kSecClass: kSecClassGenericPassword,
-            kSecAttrService: service,
-            kSecAttrAccount: account,
-            kSecUseAuthenticationContext: Self.nonInteractiveContext()
-        ]
-        let status = SecItemDelete(query as CFDictionary)
-        guard status == errSecSuccess || status == errSecItemNotFound else {
-            throw AccountEncryptionError.keychain(status)
-        }
-    }
-
-    private static func nonInteractiveContext() -> LAContext {
-        let context = LAContext()
-        context.interactionNotAllowed = true
-        return context
-    }
-}
 
 struct AccountPublicKeyJWK: Codable, Equatable, Sendable {
     let kty = "EC"

@@ -61,6 +61,11 @@ let package = Package(
             dependencies: [.target(name: "CurfewKit")],
             path: "Tests/BrowserNativeHostTests"
         ),
+        .testTarget(
+            name: "CurfewKitTests",
+            dependencies: [.target(name: "CurfewKit")],
+            path: "Tests/CurfewKitTests"
+        ),
         .target(
             name: "CurfewKit",
             dependencies: [],

@@ -1,5 +1,4 @@
 import Foundation
-import LocalAuthentication
 import OSLog
 import Security
 
@@ -40,11 +39,11 @@ protocol DeviceAssertionSecretStoring: AnyObject {
 /// authenticates *every* device on the account, which is exactly the blast
 /// radius that argues for the stronger store.
 ///
-/// **Which keychain.** The file-based login keychain, i.e. the default when
-/// `kSecUseDataProtectionKeychain` is not set. Curfew is deliberately not
-/// sandboxed (see `Curfew.entitlements`) and carries no
-/// `keychain-access-groups`; the data-protection keychain would require one and
-/// would make an ad-hoc-signed local build unable to read its own secret.
+/// **Which keychain.** The Data Protection Keychain. It honors Curfew's
+/// noninteractive authentication context, while the legacy file-based login
+/// keychain can still display authorization UI for a background request.
+/// Unsigned test hosts have no application identity for this keychain and fail
+/// closed instead of reading a production credential.
 final class KeychainDeviceAssertionSecretStore: DeviceAssertionSecretStoring {
     /// The process-wide store. A single instance because the underlying item is
     /// process-wide too, and because the Settings panel and the reporter must
@@ -62,9 +61,7 @@ final class KeychainDeviceAssertionSecretStore: DeviceAssertionSecretStoring {
     private let logger = Logger(subsystem: "studio.hypertext.curfew", category: "sync")
 
     var secret: String {
-        var query = Self.nonInteractiveQuery
-        query[kSecReturnData as String] = true
-        query[kSecMatchLimit as String] = kSecMatchLimitOne
+        let query = BackgroundKeychainQuery.read(service: Self.service, account: Self.account)
 
         var item: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &item)
@@ -87,22 +84,22 @@ final class KeychainDeviceAssertionSecretStore: DeviceAssertionSecretStoring {
     func store(_ secret: String) -> Bool {
         guard !secret.isEmpty else { return clear() }
 
-        let attributes: [String: Any] = [kSecValueData as String: Data(secret.utf8)]
+        let attributes: [CFString: Any] = [kSecValueData: Data(secret.utf8)]
         let updated = SecItemUpdate(
-            Self.nonInteractiveQuery as CFDictionary,
+            Self.identityQuery as CFDictionary,
             attributes as CFDictionary
         )
         if updated == errSecSuccess {
             return true
         }
 
-        var insert = Self.baseQuery
-        insert[kSecValueData as String] = Data(secret.utf8)
+        var insert = Self.identityQuery
+        insert[kSecValueData] = Data(secret.utf8)
         // Available whenever the user is logged in, which is whenever Curfew is
         // running. Not `...ThisDeviceOnly`'s synchronisable counterpart: this
         // secret must not ride iCloud Keychain to devices the user never
         // enrolled.
-        insert[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlock
+        insert[kSecAttrAccessible] = kSecAttrAccessibleAfterFirstUnlock
         let added = SecItemAdd(insert as CFDictionary, nil)
         guard added == errSecSuccess else {
             logger.error("Could not store the coordinator secret: \(added, privacy: .public)")
@@ -115,26 +112,14 @@ final class KeychainDeviceAssertionSecretStore: DeviceAssertionSecretStoring {
     /// the caller asked for an empty store and an empty store is what it gets.
     @discardableResult
     private func clear() -> Bool {
-        let status = SecItemDelete(Self.nonInteractiveQuery as CFDictionary)
+        let status = SecItemDelete(Self.identityQuery as CFDictionary)
         return status == errSecSuccess || status == errSecItemNotFound
     }
 
     /// The item's identity, shared by every operation so a typo cannot make the
     /// reader and the writer disagree about which item they mean.
-    private static var baseQuery: [String: Any] {
-        [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: account
-        ]
-    }
-
-    private static var nonInteractiveQuery: [String: Any] {
-        var query = baseQuery
-        let context = LAContext()
-        context.interactionNotAllowed = true
-        query[kSecUseAuthenticationContext as String] = context
-        return query
+    private static var identityQuery: [CFString: Any] {
+        BackgroundKeychainQuery.identity(service: service, account: account)
     }
 }
 
