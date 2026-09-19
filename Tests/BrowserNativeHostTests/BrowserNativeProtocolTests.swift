@@ -58,6 +58,33 @@ struct BrowserNativeProtocolTests {
         #expect(object["schemaVersion"] as? String == "browser-host/1")
     }
 
+    @Test func inactiveBreakEncodesAsRequiredNullInNativePolicy() throws {
+        let policy = BrowserPolicySnapshot(
+            schemaVersion: "browser-policy/1",
+            sessionID: try #require(UUID(uuidString: "00000000-0000-0000-0000-000000000001")),
+            task: .init(id: "task", title: "Task"),
+            tracking: .paused,
+            scopes: [],
+            grants: [],
+            breakEndsAt: nil,
+            connectionIsHealthy: true,
+            generatedAt: Date(timeIntervalSince1970: 1_788_537_600)
+        )
+        var response = BrowserNativeResponse(
+            requestID: "policy",
+            type: .getPolicy,
+            at: Date(timeIntervalSince1970: 1_788_537_601)
+        )
+        response.policy = policy
+
+        let object = try #require(JSONSerialization
+            .jsonObject(with: BrowserNativeJSON.encode(response)) as? [String: Any])
+        let encodedPolicy = try #require(object["policy"] as? [String: Any])
+
+        #expect(encodedPolicy.keys.contains("breakEndsAt"))
+        #expect(encodedPolicy["breakEndsAt"] is NSNull)
+    }
+
     @Test func policyRequestCarriesOnlyAnOptionalKnownRevision() throws {
         let data = Data(
             #"{"schemaVersion":"browser-host/1","requestId":"watch","type":"get_policy","knownPolicyRevision":"revision-1"}"#

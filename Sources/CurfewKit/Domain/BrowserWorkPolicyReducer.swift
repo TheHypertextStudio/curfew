@@ -69,6 +69,28 @@ public nonisolated struct BrowserPolicySnapshot: Codable, Equatable, Sendable {
     public let connectionIsHealthy: Bool
     public let generatedAt: Date
 
+    private enum CodingKeys: String, CodingKey {
+        case schemaVersion, sessionID, task, tracking, scopes, grants, breakEndsAt
+        case connectionIsHealthy, generatedAt
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(schemaVersion, forKey: .schemaVersion)
+        try container.encode(sessionID, forKey: .sessionID)
+        try container.encode(task, forKey: .task)
+        try container.encode(tracking, forKey: .tracking)
+        try container.encode(scopes, forKey: .scopes)
+        try container.encode(grants, forKey: .grants)
+        if let breakEndsAt {
+            try container.encode(breakEndsAt, forKey: .breakEndsAt)
+        } else {
+            try container.encodeNil(forKey: .breakEndsAt)
+        }
+        try container.encode(connectionIsHealthy, forKey: .connectionIsHealthy)
+        try container.encode(generatedAt, forKey: .generatedAt)
+    }
+
     public func allows(_ destination: NormalizedHTTPDestination, at date: Date) -> Bool {
         if let breakEndsAt, breakEndsAt > date {
             return true
