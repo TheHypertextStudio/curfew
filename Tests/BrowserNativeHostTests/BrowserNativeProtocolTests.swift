@@ -59,9 +59,9 @@ struct BrowserNativeProtocolTests {
     }
 
     @Test func inactiveBreakEncodesAsRequiredNullInNativePolicy() throws {
-        let policy = BrowserPolicySnapshot(
+        let policy = try BrowserPolicySnapshot(
             schemaVersion: "browser-policy/1",
-            sessionID: try #require(UUID(uuidString: "00000000-0000-0000-0000-000000000001")),
+            sessionID: #require(UUID(uuidString: "00000000-0000-0000-0000-000000000001")),
             task: .init(id: "task", title: "Task"),
             tracking: .paused,
             scopes: [],

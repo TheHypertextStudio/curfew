@@ -1,4 +1,5 @@
 import Foundation
+import LocalAuthentication
 import OSLog
 import Security
 
@@ -61,7 +62,7 @@ final class KeychainDeviceAssertionSecretStore: DeviceAssertionSecretStoring {
     private let logger = Logger(subsystem: "studio.hypertext.curfew", category: "sync")
 
     var secret: String {
-        var query = Self.baseQuery
+        var query = Self.nonInteractiveQuery
         query[kSecReturnData as String] = true
         query[kSecMatchLimit as String] = kSecMatchLimitOne
 
@@ -87,7 +88,10 @@ final class KeychainDeviceAssertionSecretStore: DeviceAssertionSecretStoring {
         guard !secret.isEmpty else { return clear() }
 
         let attributes: [String: Any] = [kSecValueData as String: Data(secret.utf8)]
-        let updated = SecItemUpdate(Self.baseQuery as CFDictionary, attributes as CFDictionary)
+        let updated = SecItemUpdate(
+            Self.nonInteractiveQuery as CFDictionary,
+            attributes as CFDictionary
+        )
         if updated == errSecSuccess {
             return true
         }
@@ -111,7 +115,7 @@ final class KeychainDeviceAssertionSecretStore: DeviceAssertionSecretStoring {
     /// the caller asked for an empty store and an empty store is what it gets.
     @discardableResult
     private func clear() -> Bool {
-        let status = SecItemDelete(Self.baseQuery as CFDictionary)
+        let status = SecItemDelete(Self.nonInteractiveQuery as CFDictionary)
         return status == errSecSuccess || status == errSecItemNotFound
     }
 
@@ -123,6 +127,14 @@ final class KeychainDeviceAssertionSecretStore: DeviceAssertionSecretStoring {
             kSecAttrService as String: service,
             kSecAttrAccount as String: account
         ]
+    }
+
+    private static var nonInteractiveQuery: [String: Any] {
+        var query = baseQuery
+        let context = LAContext()
+        context.interactionNotAllowed = true
+        query[kSecUseAuthenticationContext as String] = context
+        return query
     }
 }
 

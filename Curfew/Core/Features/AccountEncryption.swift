@@ -1,6 +1,7 @@
 import CryptoKit
 import CurfewProtocols
 import Foundation
+import LocalAuthentication
 import Security
 
 // The account cryptography contract keeps its wire models and primitives in one
@@ -27,13 +28,7 @@ final nonisolated class KeychainAccountSecretStore: AccountSecretStoring {
     }
 
     func data(for account: String) throws -> Data? {
-        let query: [CFString: Any] = [
-            kSecClass: kSecClassGenericPassword,
-            kSecAttrService: service,
-            kSecAttrAccount: account,
-            kSecReturnData: true,
-            kSecMatchLimit: kSecMatchLimitOne
-        ]
+        let query = Self.backgroundReadQuery(service: service, account: account)
         var result: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &result)
         if status == errSecItemNotFound {
@@ -43,6 +38,19 @@ final nonisolated class KeychainAccountSecretStore: AccountSecretStoring {
             throw AccountEncryptionError.keychain(status)
         }
         return data
+    }
+
+    static func backgroundReadQuery(service: String, account: String) -> [CFString: Any] {
+        [
+            kSecClass: kSecClassGenericPassword,
+            kSecAttrService: service,
+            kSecAttrAccount: account,
+            kSecReturnData: true,
+            kSecMatchLimit: kSecMatchLimitOne,
+            // A timer-driven credential read must fail closed instead of
+            // turning an app update into a repeating system prompt.
+            kSecUseAuthenticationContext: nonInteractiveContext()
+        ]
     }
 
     func save(_ data: Data, for account: String) throws {
@@ -56,7 +64,12 @@ final nonisolated class KeychainAccountSecretStore: AccountSecretStoring {
             kSecAttrAccessible: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
             kSecAttrSynchronizable: false
         ]
-        let update = SecItemUpdate(identity as CFDictionary, attributes as CFDictionary)
+        var nonInteractiveIdentity = identity
+        nonInteractiveIdentity[kSecUseAuthenticationContext] = Self.nonInteractiveContext()
+        let update = SecItemUpdate(
+            nonInteractiveIdentity as CFDictionary,
+            attributes as CFDictionary
+        )
         if update == errSecItemNotFound {
             var insertion = identity
             attributes.forEach { insertion[$0.key] = $0.value }
@@ -71,12 +84,19 @@ final nonisolated class KeychainAccountSecretStore: AccountSecretStoring {
         let query: [CFString: Any] = [
             kSecClass: kSecClassGenericPassword,
             kSecAttrService: service,
-            kSecAttrAccount: account
+            kSecAttrAccount: account,
+            kSecUseAuthenticationContext: Self.nonInteractiveContext()
         ]
         let status = SecItemDelete(query as CFDictionary)
         guard status == errSecSuccess || status == errSecItemNotFound else {
             throw AccountEncryptionError.keychain(status)
         }
+    }
+
+    private static func nonInteractiveContext() -> LAContext {
+        let context = LAContext()
+        context.interactionNotAllowed = true
+        return context
     }
 }
 
