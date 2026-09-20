@@ -442,7 +442,9 @@ only.
   preserves the user's normal browser session for existing passkeys, and
   owns its native OAuth callback scheme in the shipped app bundle so the
   authorization session can return, and cannot mark sync ready before Recovery
-  Key acknowledgement or restore.`
+  Key acknowledgement or restore. First-device setup displays the Recovery Key
+  before uploading its envelope and resumes the exact acknowledged step after
+  a failure or relaunch.`
   - `AccountOAuthEnrollmentTests`
   - `AccountOAuthEnrollmentTests/browserSessionPreservesPasskeys()`
   - `AccountOAuthEnrollmentTests/settingsReportsAttachedWindow()`
@@ -463,7 +465,7 @@ only.
   - `AccountEnrollmentRecoveryTests/recoveryRetryIsSingleFlight()`
   - `AccountOAuthEnrollmentTests/authenticationSessionIsSingleFlight()`
   - `AccountEncryptionTests/testRegisteredDeviceRecoverySetupSurvivesRelaunchAsResumable()`
-  - `NativeAccountSyncTransportTests/testDeviceRegistrationPersistsAResumableCheckpointBeforeRecoveryUpload()`
+  - `NativeAccountSyncTransportTests/testDeviceRegistrationShowsRecoveryKeyBeforeRecoveryUpload()`
   - `NativeAccountSyncTransportTests/testAmbiguousRegistrationResponseResumesTheExactDeviceWithoutOAuth()`
   - `AccountEncryptionTests/testPendingDeviceRegistrationSurvivesBeforeCoordinatorResponse()`
   - `AppConfigurationTests/hostAppOwnsOAuthCallbackScheme()`

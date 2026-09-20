@@ -52,6 +52,19 @@ protocol AccountDeviceEnrolling {
         recoveryKey: String,
         enrollment: AccountDeviceEnrollment
     ) async throws -> AccountDeviceEnrollment
+    func acknowledgeSavedRecoveryKey(
+        recoveryKey: String,
+        enrollment: AccountDeviceEnrollment
+    ) async throws -> NativeAccountEnrollmentState
+}
+
+extension AccountDeviceEnrolling {
+    func acknowledgeSavedRecoveryKey(
+        recoveryKey: String,
+        enrollment: AccountDeviceEnrollment
+    ) async throws -> NativeAccountEnrollmentState {
+        try await resumeRecoverySetup(recoveryKey: recoveryKey, enrollment: enrollment)
+    }
 }
 
 extension AccountOAuthEnrollmentService: AccountOAuthEnrolling {}
@@ -103,135 +116,6 @@ enum AccountEnrollmentFailureCopy {
             + "Your browser session is still active; try again."
     static let retryConnection =
         "Curfew still couldn’t finish connecting this Mac. No new sign-in is needed; try again."
-}
-
-final class AccountEnrollmentPendingStore {
-    private let secretStore: any AccountSecretStoring
-
-    init(secretStore: any AccountSecretStoring) {
-        self.secretStore = secretStore
-    }
-
-    func save(enrollment: AccountDeviceEnrollment, recoveryKey: String?) throws {
-        try secretStore.save(
-            JSONEncoder().encode(enrollment),
-            for: "pending-account-enrollment"
-        )
-        if let recoveryKey {
-            try secretStore.save(Data(recoveryKey.utf8), for: "pending-recovery-key")
-        } else {
-            try secretStore.delete("pending-recovery-key")
-        }
-        try secretStore.delete("pending-recovery-setup")
-    }
-
-    func saveRecoverySetup(
-        enrollment: AccountDeviceEnrollment,
-        recoveryKey: String,
-        recoveryEnvelope: RecoveryKeyEnvelope,
-        receiptData: Data,
-        oauthState: String = "",
-        pkceChallenge: String = ""
-    ) throws {
-        let checkpoint = AccountRecoverySetupCheckpoint(
-            enrollment: enrollment,
-            recoveryKey: recoveryKey,
-            recoveryEnvelope: recoveryEnvelope,
-            oauthState: oauthState,
-            pkceChallenge: pkceChallenge,
-            receiptData: receiptData
-        )
-        try secretStore.save(
-            JSONEncoder().encode(checkpoint),
-            for: "pending-recovery-setup"
-        )
-    }
-
-    func saveDeviceRegistration(
-        enrollment: AccountDeviceEnrollment,
-        recoveryKey: String,
-        recoveryEnvelope: RecoveryKeyEnvelope,
-        oauthState: String,
-        pkceChallenge: String
-    ) throws {
-        let checkpoint = AccountRecoverySetupCheckpoint(
-            enrollment: enrollment,
-            recoveryKey: recoveryKey,
-            recoveryEnvelope: recoveryEnvelope,
-            oauthState: oauthState,
-            pkceChallenge: pkceChallenge,
-            receiptData: nil
-        )
-        try save(checkpoint)
-    }
-
-    func saveRegistrationReceipt(_ receiptData: Data) throws {
-        guard let checkpoint = try loadRecoverySetup() else {
-            throw AccountOAuthEnrollmentError.invalidResponse
-        }
-        try save(AccountRecoverySetupCheckpoint(
-            enrollment: checkpoint.enrollment,
-            recoveryKey: checkpoint.recoveryKey,
-            recoveryEnvelope: checkpoint.recoveryEnvelope,
-            oauthState: checkpoint.oauthState,
-            pkceChallenge: checkpoint.pkceChallenge,
-            receiptData: receiptData
-        ))
-    }
-
-    private func save(_ checkpoint: AccountRecoverySetupCheckpoint) throws {
-        try secretStore.save(
-            JSONEncoder().encode(checkpoint),
-            for: "pending-recovery-setup"
-        )
-    }
-
-    func loadRecoverySetup() throws -> AccountRecoverySetupCheckpoint? {
-        guard let data = try secretStore.data(for: "pending-recovery-setup") else {
-            return nil
-        }
-        return try JSONDecoder().decode(AccountRecoverySetupCheckpoint.self, from: data)
-    }
-
-    func load() throws -> AccountEnrollmentUIState? {
-        if let checkpoint = try loadRecoverySetup() {
-            if checkpoint.receiptData == nil {
-                return .finishDeviceRegistration(
-                    checkpoint.recoveryKey,
-                    checkpoint.enrollment
-                )
-            }
-            return .finishRecoverySetup(
-                checkpoint.recoveryKey,
-                checkpoint.enrollment
-            )
-        }
-        guard let data = try secretStore.data(for: "pending-account-enrollment") else {
-            return nil
-        }
-        let enrollment = try JSONDecoder().decode(AccountDeviceEnrollment.self, from: data)
-        if let keyData = try secretStore.data(for: "pending-recovery-key"),
-           let key = String(data: keyData, encoding: .utf8),
-           !key.isEmpty {
-            return .saveRecoveryKey(key, enrollment)
-        }
-        return .enterRecoveryKey(enrollment)
-    }
-
-    func clear() throws {
-        try secretStore.delete("pending-account-enrollment")
-        try secretStore.delete("pending-recovery-key")
-        try secretStore.delete("pending-recovery-setup")
-    }
-}
-
-struct AccountRecoverySetupCheckpoint: Codable {
-    let enrollment: AccountDeviceEnrollment
-    let recoveryKey: String
-    let recoveryEnvelope: RecoveryKeyEnvelope
-    let oauthState: String
-    let pkceChallenge: String
-    let receiptData: Data?
 }
 
 @MainActor
@@ -302,6 +186,9 @@ final class AccountEnrollmentController: ObservableObject {
             case .enterRecoveryKey(let enrollment):
                 try pending.save(enrollment: enrollment, recoveryKey: nil)
                 state = .enterRecoveryKey(enrollment)
+            case .ready(let enrollment):
+                try pending.clear()
+                state = .ready(enrollment)
             }
         } catch {
             state = .failed(AccountEnrollmentFailureCopy.deviceConnection)
@@ -359,6 +246,9 @@ final class AccountEnrollmentController: ObservableObject {
         case .enterRecoveryKey(let enrollment):
             try pending.save(enrollment: enrollment, recoveryKey: nil)
             state = .enterRecoveryKey(enrollment)
+        case .ready(let enrollment):
+            try pending.clear()
+            state = .ready(enrollment)
         }
     }
 
@@ -376,11 +266,24 @@ final class AccountEnrollmentController: ObservableObject {
         }
     }
 
-    func acknowledgeSavedRecoveryKey() throws -> AccountDeviceEnrollment? {
-        guard case .saveRecoveryKey(_, let enrollment) = state else { return nil }
-        try pending.clear()
-        state = .ready(enrollment)
-        return enrollment
+    func acknowledgeSavedRecoveryKey() async -> AccountDeviceEnrollment? {
+        guard !isFinishingEnrollment,
+              case .saveRecoveryKey(let key, let enrollment) = state else { return nil }
+        isFinishingEnrollment = true
+        enrollmentRetryError = nil
+        defer { isFinishingEnrollment = false }
+        do {
+            try await apply(devices.acknowledgeSavedRecoveryKey(
+                recoveryKey: key,
+                enrollment: enrollment
+            ))
+            guard case .ready(let completed) = state else { return nil }
+            return completed
+        } catch {
+            state = .finishRecoverySetup(key, enrollment)
+            enrollmentRetryError = AccountEnrollmentFailureCopy.retryConnection
+            return nil
+        }
     }
 
     private func deviceID() throws -> UUID {

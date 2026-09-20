@@ -505,7 +505,10 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
       the exact OAuth-bound request inputs, Recovery Key, and encrypted envelope;
       it adds the authenticated receipt before finalization. Ambiguous registration,
       expired-token, upload-failure, and relaunch paths resume that checkpoint
-      once at a time without another OAuth or passkey ceremony.
+      once at a time without another OAuth or passkey ceremony. The app keeps
+      the receipt-backed checkpoint while it shows the generated Recovery Key,
+      uploads the encrypted envelope only after the user selects “I saved the
+      Recovery Key,” and cannot report ready before the coordinator accepts it.
       After enrollment, Settings observes the live account-sync engine instead
       of treating saved enrollment as proof of a working connection. It explains
       connecting, encrypted-waiting, synchronized, offline, and rejected states in

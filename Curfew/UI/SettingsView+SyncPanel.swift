@@ -100,11 +100,14 @@ extension SettingsView {
                     .textSelection(.enabled)
                     .accessibilityLabel("Curfew Recovery Key")
                 Button("I saved the Recovery Key") {
-                    if let enrollment = try? accountEnrollment.acknowledgeSavedRecoveryKey() {
-                        model.settings.accountSync.enrollment = enrollment
+                    Task {
+                        if let enrollment = await accountEnrollment.acknowledgeSavedRecoveryKey() {
+                            model.settings.accountSync.enrollment = enrollment
+                        }
                     }
                 }
                 .buttonStyle(CurfewPrimaryButtonStyle())
+                .disabled(accountEnrollment.isFinishingEnrollment)
             case .enterRecoveryKey:
                 SecureField("Curfew Recovery Key", text: $accountRecoveryKey)
                     .textFieldStyle(.roundedBorder)

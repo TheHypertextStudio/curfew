@@ -214,9 +214,16 @@ final class AccountEncryptionTests: XCTestCase {
 
         XCTAssertEqual(
             try pending.load(),
-            .finishRecoverySetup("recovery-key", enrollment)
+            .saveRecoveryKey("recovery-key", enrollment)
         )
         XCTAssertNotNil(try pending.loadRecoverySetup())
+
+        try pending.markRecoveryKeySaved()
+
+        XCTAssertEqual(
+            try pending.load(),
+            .finishRecoverySetup("recovery-key", enrollment)
+        )
     }
 
     func testPendingDeviceRegistrationSurvivesBeforeCoordinatorResponse() throws {

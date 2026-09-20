@@ -127,8 +127,12 @@ struct AccountEnrollmentRecoveryTests {
         await controller.finishRecoverySetup()
 
         #expect(controller.state == .saveRecoveryKey("recovery-key", devices.enrollment))
+        let completed = await controller.acknowledgeSavedRecoveryKey()
+        #expect(completed == devices.enrollment)
+        #expect(controller.state == .ready(devices.enrollment))
         #expect(oauth.signInCount == 1)
         #expect(devices.resumeCount == 1)
+        #expect(devices.acknowledgeCount == 1)
     }
 
     @MainActor
@@ -267,6 +271,7 @@ private final class ResumableAccountDeviceEnrollment: AccountDeviceEnrolling {
         enrolledAt: Date(timeIntervalSince1970: 1_800_000_000)
     )
     private(set) var resumeCount = 0
+    private(set) var acknowledgeCount = 0
 
     func enroll(
         grant _: AccountOAuthGrant,
@@ -295,6 +300,14 @@ private final class ResumableAccountDeviceEnrollment: AccountDeviceEnrolling {
         enrollment _: Curfew.AccountDeviceEnrollment
     ) async throws -> NativeAccountEnrollmentState {
         .finishRecoverySetup("recovery-key", enrollment)
+    }
+
+    func acknowledgeSavedRecoveryKey(
+        recoveryKey _: String,
+        enrollment: AccountDeviceEnrollment
+    ) async throws -> NativeAccountEnrollmentState {
+        acknowledgeCount += 1
+        return .ready(enrollment)
     }
 }
 
