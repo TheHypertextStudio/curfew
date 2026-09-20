@@ -75,10 +75,10 @@ prerequisites exist:
 
 ## Build against Curfew Sync staging
 
-Production hosts are the compile-time default. For staging acceptance, make the
-isolated Debug build with the single allowlisted flag below. It selects the staging account portal,
-OAuth issuer/resource, sync API, MCP resource, and daemon command JWKS together;
-the bundle phase forwards the same flag to every embedded SwiftPM executable.
+The isolated Dev app's Debug configuration selects staging by default. It binds
+the staging account portal, OAuth issuer/resource, sync API, MCP resource, and
+daemon command JWKS together; the bundle phase forwards the same setting to
+every embedded SwiftPM executable.
 Staging also uses a separate account-encryption Keychain service, so acceptance
 testing cannot read or overwrite production account keys. The Debug app installs
 `studio.hypertext.curfew.dev.daemon`, and its root-owned state lives under
@@ -89,16 +89,15 @@ xcodebuild build \
   -project Curfew.xcodeproj \
   -scheme Curfew \
   -configuration Debug \
-  -destination 'platform=macOS' \
-  CURFEW_SERVICE_SWIFT_FLAG=CURFEW_STAGING
+  -destination 'platform=macOS'
 ```
 
 The build hard-fails if `CURFEW_STAGING` is combined with Release, if the helper
 plist does not match the app flavor, or if the flag has any other value. A
 staging build therefore cannot be archived as Curfew or replace the production
-LaunchDaemon. `CURFEW_STAGING` also exposes the shipping MCP and privileged-helper
-controls in Debug so this build can complete the documented enrollment and
-remote-lock acceptance path; an ordinary Debug build keeps deferred modules off.
+LaunchDaemon. Debug also exposes the shipping MCP and privileged-helper controls
+so the Dev app can complete the documented enrollment and remote-lock acceptance
+path. Release selects production services and features.
 
 ## Build a local signed release candidate
 
