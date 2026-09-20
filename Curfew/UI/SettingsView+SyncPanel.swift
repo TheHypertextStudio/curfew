@@ -40,6 +40,25 @@ extension SettingsView {
                 openAccountButton
             case .signingIn:
                 ProgressView("Waiting for secure sign-in and 2FA…")
+                if accountEnrollment.browserSignInURL != nil {
+                    Text(
+                        "Did Curfew open the wrong browser profile? Copy this temporary, private "
+                            + "sign-in link and paste it into the profile that stores your passkey."
+                    )
+                    .font(CurfewTypography.body(12))
+                    .foregroundStyle(CurfewTheme.mutedInk)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                    Button {
+                        accountEnrollment.copyBrowserSignInLink()
+                    } label: {
+                        Label("Copy sign-in link", systemImage: "doc.on.doc")
+                    }
+                    .buttonStyle(CurfewSecondaryButtonStyle())
+                    .accessibilityIdentifier("settings-copy-account-sign-in-link")
+                }
+            case .connectingDevice:
+                ProgressView("Securely connecting this Mac…")
             case .finishDeviceRegistration:
                 Text(
                     "You’re signed in. Curfew still needs to finish connecting this Mac. "

@@ -6,6 +6,7 @@ import Foundation
 enum AccountEnrollmentUIState: Equatable {
     case accountFree
     case signingIn
+    case connectingDevice
     case finishDeviceRegistration(String, AccountDeviceEnrollment)
     case finishRecoverySetup(String, AccountDeviceEnrollment)
     case saveRecoveryKey(String, AccountDeviceEnrollment)
@@ -16,16 +17,21 @@ enum AccountEnrollmentUIState: Equatable {
 
 enum AccountEnrollmentSignInPolicy {
     static func canStart(from state: AccountEnrollmentUIState) -> Bool {
-        if case .signingIn = state {
-            return false
+        switch state {
+        case .signingIn, .connectingDevice:
+            false
+        default:
+            true
         }
-        return true
     }
 }
 
 @MainActor
 protocol AccountOAuthEnrolling {
-    func signIn(presentationWindow: NSWindow?) async throws -> AccountOAuthGrant
+    func signIn(
+        presentationWindow: NSWindow?,
+        authorizationURLHandler: @escaping @MainActor (URL) -> Void
+    ) async throws -> AccountOAuthGrant
 }
 
 @MainActor
@@ -56,6 +62,32 @@ extension NativeAccountDeviceEnrollmentService: AccountDeviceEnrolling {
         deviceID: UUID
     ) async throws -> NativeAccountEnrollmentState {
         try await enroll(grant: grant, deviceID: deviceID, enrolledAt: Date())
+    }
+}
+
+@MainActor
+protocol AccountAuthorizationLinkCopying: AnyObject {
+    func copy(_ url: URL)
+    func clearIfUnchanged()
+}
+
+@MainActor
+final class SystemAccountAuthorizationLinkClipboard: AccountAuthorizationLinkCopying {
+    private var copiedValue: String?
+
+    func copy(_ url: URL) {
+        let value = url.absoluteString
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(value, forType: .string)
+        copiedValue = value
+    }
+
+    func clearIfUnchanged() {
+        defer { copiedValue = nil }
+        guard let copiedValue,
+              NSPasteboard.general.string(forType: .string) == copiedValue
+        else { return }
+        NSPasteboard.general.clearContents()
     }
 }
 
@@ -207,31 +239,45 @@ final class AccountEnrollmentController: ObservableObject {
     @Published private(set) var state: AccountEnrollmentUIState = .accountFree
     @Published private(set) var isFinishingEnrollment = false
     @Published private(set) var enrollmentRetryError: String?
+    @Published private(set) var browserSignInURL: URL?
 
     private let secretStore: any AccountSecretStoring
     private let oauth: any AccountOAuthEnrolling
     private let devices: any AccountDeviceEnrolling
     private let pending: AccountEnrollmentPendingStore
+    private let authorizationLinkClipboard: any AccountAuthorizationLinkCopying
     weak var presentationWindow: NSWindow?
 
     init(
         secretStore: any AccountSecretStoring = KeychainAccountSecretStore(),
         oauth: (any AccountOAuthEnrolling)? = nil,
-        devices: (any AccountDeviceEnrolling)? = nil
+        devices: (any AccountDeviceEnrolling)? = nil,
+        authorizationLinkClipboard: (any AccountAuthorizationLinkCopying)? = nil
     ) {
         self.secretStore = secretStore
         self.oauth = oauth ?? AccountOAuthEnrollmentService(secretStore: secretStore)
         self.devices = devices ?? NativeAccountDeviceEnrollmentService(secretStore: secretStore)
         self.pending = AccountEnrollmentPendingStore(secretStore: secretStore)
+        self.authorizationLinkClipboard = authorizationLinkClipboard
+            ?? SystemAccountAuthorizationLinkClipboard()
         self.state = (try? pending.load()) ?? .accountFree
     }
 
     func signIn() async {
         guard AccountEnrollmentSignInPolicy.canStart(from: state) else { return }
         state = .signingIn
+        browserSignInURL = nil
         let grant: AccountOAuthGrant
         do {
-            grant = try await oauth.signIn(presentationWindow: presentationWindow)
+            defer {
+                browserSignInURL = nil
+                authorizationLinkClipboard.clearIfUnchanged()
+            }
+            grant = try await oauth.signIn(
+                presentationWindow: presentationWindow
+            ) { [weak self] authorizationURL in
+                self?.browserSignInURL = authorizationURL
+            }
         } catch AccountOAuthEnrollmentError.browserCompletedConnectionFailed {
             state = .failed(AccountEnrollmentFailureCopy.browserCompleted)
             return
@@ -239,6 +285,7 @@ final class AccountEnrollmentController: ObservableObject {
             state = .failed(AccountEnrollmentFailureCopy.authorization)
             return
         }
+        state = .connectingDevice
         do {
             let outcome = try await devices.enroll(
                 grant: grant,
@@ -259,6 +306,13 @@ final class AccountEnrollmentController: ObservableObject {
         } catch {
             state = .failed(AccountEnrollmentFailureCopy.deviceConnection)
         }
+    }
+
+    @discardableResult
+    func copyBrowserSignInLink() -> Bool {
+        guard let browserSignInURL else { return false }
+        authorizationLinkClipboard.copy(browserSignInURL)
+        return true
     }
 
     func finishDeviceRegistration() async {

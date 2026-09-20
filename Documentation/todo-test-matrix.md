@@ -450,6 +450,13 @@ only.
   - `AccountOAuthEnrollmentTests/enrollmentSignInIsSingleFlight()`
   - `AccountEnrollmentRecoveryTests/deviceEnrollmentFailurePreservesSignInTruth()`
   - `AccountEnrollmentRecoveryTests/postBrowserFailurePreservesBrowserSignInTruth()`
+  - `AccountEnrollmentRecoveryTests/browserSignInLinkCanMoveToThePasskeyProfile()`
+  - `AccountEnrollmentRecoveryTests/browserSignInLinkCleanupPreservesNewClipboardContents()`
+  - `AccountEnrollmentRecoveryTests/browserSignInLinkClearsBeforeDeviceEnrollment()`
+  - `AccountOAuthEnrollmentTests/callbackStateIsExact()`
+  - `AccountOAuthExternalCallbackTests/externalBrowserCallbackRoutesByExactState()`
+  - `AccountOAuthExternalCallbackTests/externalBrowserCallbackIsConsumedOnce()`
+  - `AccountOAuthExternalCallbackTests/appDelegateForwardsExternalOAuthCallback()`
   - `AccountEnrollmentRecoveryTests/registeredMacResumesWithoutSigningInAgain()`
   - `AccountEnrollmentRecoveryTests/recoveryRetryFailureStaysAtTheRecoveryStep()`
   - `AccountEnrollmentRecoveryTests/recoveryRetryIsSingleFlight()`

@@ -61,29 +61,6 @@ final class AccountOAuthPresentationContext: NSObject,
     }
 }
 
-enum AccountOAuthCallback {
-    static func authorizationCode(from callback: URL, expectedState: String) throws -> String {
-        guard callback.scheme == "studio.hypertext.curfew",
-              callback.host == "oauth",
-              callback.path == "/callback",
-              let components = URLComponents(url: callback, resolvingAgainstBaseURL: false)
-        else { throw AccountOAuthEnrollmentError.invalidCallback }
-        let query = Dictionary(
-            uniqueKeysWithValues: (components.queryItems ?? []).compactMap { item in
-                item.value.map { (item.name, $0) }
-            }
-        )
-        guard query["state"] == expectedState else {
-            throw AccountOAuthEnrollmentError.stateMismatch
-        }
-        guard query["error"] == nil,
-              let code = query["code"],
-              !code.isEmpty
-        else { throw AccountOAuthEnrollmentError.authorizationRejected }
-        return code
-    }
-}
-
 struct AccountOAuthTokens: Equatable {
     let accessToken: String
     let refreshToken: String
@@ -244,17 +221,22 @@ final class AccountOAuthEnrollmentService: NSObject {
     private let secretStore: any AccountSecretStoring
     private let session: URLSession
     private let endpoints: CurfewServiceEndpoints
+    private let callbackRouter: any AccountOAuthCallbackRouting
     private let authenticationGate = AccountOAuthAuthenticationGate()
     private let presentationContext = AccountOAuthPresentationContext()
     private var browserSession: ASWebAuthenticationSession?
+    private var callbackRegistration: UUID?
+    private var authenticationContinuation: CheckedContinuation<URL, any Error>?
 
     init(
         secretStore: any AccountSecretStoring = KeychainAccountSecretStore(),
         session: URLSession? = nil,
-        endpoints: CurfewServiceEndpoints = .current
+        endpoints: CurfewServiceEndpoints = .current,
+        callbackRouter: (any AccountOAuthCallbackRouting)? = nil
     ) {
         self.secretStore = secretStore
         self.endpoints = endpoints
+        self.callbackRouter = callbackRouter ?? AccountOAuthCallbackRouter.shared
         self.session = session ?? URLSession(
             configuration: .ephemeral,
             delegate: RejectingRedirectSessionDelegate(),
@@ -262,7 +244,10 @@ final class AccountOAuthEnrollmentService: NSObject {
         )
     }
 
-    func signIn(presentationWindow: NSWindow?) async throws -> AccountOAuthGrant {
+    func signIn(
+        presentationWindow: NSWindow?,
+        authorizationURLHandler: @escaping @MainActor (URL) -> Void
+    ) async throws -> AccountOAuthGrant {
         try authenticationGate.begin()
         defer { authenticationGate.finish() }
         presentationContext.settingsWindow = presentationWindow
@@ -276,6 +261,7 @@ final class AccountOAuthEnrollmentService: NSObject {
             verifier: Self.randomURLSafe(byteCount: 64),
             endpoints: endpoints
         )
+        authorizationURLHandler(request.authorizationURL)
         let callback = try await authenticate(request)
         let code = try AccountOAuthCallback.authorizationCode(
             from: callback,
@@ -300,16 +286,28 @@ final class AccountOAuthEnrollmentService: NSObject {
 
     private func authenticate(_ request: AccountOAuthEnrollmentRequest) async throws -> URL {
         try await withCheckedThrowingContinuation { continuation in
+            authenticationContinuation = continuation
+            do {
+                callbackRegistration = try callbackRouter.register(
+                    expectedState: request.state
+                ) { [weak self] callback in
+                    self?.finishAuthentication(with: .success(callback))
+                }
+            } catch {
+                finishAuthentication(with: .failure(error))
+                return
+            }
             let browserSession = ASWebAuthenticationSession(
                 url: request.authorizationURL,
                 callback: .customScheme(Self.callbackScheme)
             ) { [weak self] callback, error in
-                self?.browserSession = nil
                 if let callback {
-                    continuation.resume(returning: callback)
+                    self?.finishAuthentication(with: .success(callback))
                 } else {
-                    continuation.resume(
-                        throwing: error ?? AccountOAuthEnrollmentError.authorizationRejected
+                    self?.finishAuthentication(
+                        with: .failure(
+                            error ?? AccountOAuthEnrollmentError.authorizationRejected
+                        )
                     )
                 }
             }
@@ -317,11 +315,25 @@ final class AccountOAuthEnrollmentService: NSObject {
             AccountOAuthBrowserPolicy.configure(browserSession)
             self.browserSession = browserSession
             guard browserSession.start() else {
-                self.browserSession = nil
-                continuation.resume(throwing: AccountOAuthEnrollmentError.authorizationRejected)
+                finishAuthentication(with: .failure(
+                    AccountOAuthEnrollmentError.authorizationRejected
+                ))
                 return
             }
         }
+    }
+
+    private func finishAuthentication(with result: Swift.Result<URL, any Error>) {
+        guard let continuation = authenticationContinuation else { return }
+        authenticationContinuation = nil
+        if let callbackRegistration {
+            callbackRouter.unregister(callbackRegistration)
+            self.callbackRegistration = nil
+        }
+        let activeSession = browserSession
+        browserSession = nil
+        activeSession?.cancel()
+        continuation.resume(with: result)
     }
 
     private func exchange(

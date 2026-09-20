@@ -24,6 +24,7 @@ struct AccountOAuthEnrollmentTests {
     func enrollmentSignInIsSingleFlight() {
         #expect(AccountEnrollmentSignInPolicy.canStart(from: .accountFree))
         #expect(!AccountEnrollmentSignInPolicy.canStart(from: .signingIn))
+        #expect(!AccountEnrollmentSignInPolicy.canStart(from: .connectingDevice))
         #expect(AccountEnrollmentSignInPolicy.canStart(from: .failed("Try again")))
     }
 
@@ -231,6 +232,21 @@ struct AccountOAuthEnrollmentTests {
                 expectedState: "different-state"
             )
         }
+
+        for ambiguousValue in [
+            "code=first&code=second&state=state-value",
+            "code=code-value&state=state-value&state=state-value"
+        ] {
+            let ambiguous = try #require(URL(
+                string: "studio.hypertext.curfew://oauth/callback?\(ambiguousValue)"
+            ))
+            #expect(throws: AccountOAuthEnrollmentError.self) {
+                _ = try AccountOAuthCallback.authorizationCode(
+                    from: ambiguous,
+                    expectedState: "state-value"
+                )
+            }
+        }
     }
 
     @Test("OAuth callback surfaces provider rejection without accepting a code")
@@ -248,8 +264,78 @@ struct AccountOAuthEnrollmentTests {
                 expectedState: "state-value"
             )
         }
+        let ambiguous = try #require(URL(
+            string: callbackValue + "&error=server_error&code=unexpected-code"
+        ))
+        #expect(throws: AccountOAuthEnrollmentError.self) {
+            _ = try AccountOAuthCallback.authorizationCode(
+                from: ambiguous,
+                expectedState: "state-value"
+            )
+        }
+    }
+}
+
+struct AccountOAuthExternalCallbackTests {
+    @MainActor
+    @Test("A callback opened by another browser profile reaches only its pending OAuth state")
+    func externalBrowserCallbackRoutesByExactState() throws {
+        let router = AccountOAuthCallbackRouter()
+        var received: URL?
+        let registration = try router.register(expectedState: "expected-state") { callback in
+            received = callback
+        }
+        let wrongState = try #require(URL(
+            string: "studio.hypertext.curfew://oauth/callback?code=code&state=wrong-state"
+        ))
+        let expected = try #require(URL(
+            string: "studio.hypertext.curfew://oauth/callback?code=code&state=expected-state"
+        ))
+
+        #expect(!router.route(wrongState))
+        #expect(received == nil)
+        #expect(router.route(expected))
+        #expect(received == expected)
+
+        router.unregister(registration)
+        #expect(!router.route(expected))
     }
 
+    @MainActor
+    @Test("An accepted external callback is delivered only once")
+    func externalBrowserCallbackIsConsumedOnce() throws {
+        let router = AccountOAuthCallbackRouter()
+        let callback = try #require(URL(
+            string: "studio.hypertext.curfew://oauth/callback?code=code&state=expected-state"
+        ))
+        var deliveryCount = 0
+        _ = try router.register(expectedState: "expected-state") { _ in
+            deliveryCount += 1
+        }
+
+        #expect(router.route(callback))
+        #expect(!router.route(callback))
+        #expect(deliveryCount == 1)
+    }
+
+    @MainActor
+    @Test("The app delegate forwards custom-scheme callbacks from ordinary browser tabs")
+    func appDelegateForwardsExternalOAuthCallback() throws {
+        let router = AccountOAuthCallbackRouter()
+        let delegate = AppDelegate(callbackRouter: router)
+        let callback = try #require(URL(
+            string: "studio.hypertext.curfew://oauth/callback?code=code&state=expected-state"
+        ))
+        var received: URL?
+        _ = try router.register(expectedState: "expected-state") { received = $0 }
+
+        delegate.application(NSApplication.shared, open: [callback])
+
+        #expect(received == callback)
+    }
+}
+
+struct AccountOAuthWireTests {
     @Test("OAuth wire responses require a rotating refresh token")
     func tokenResponsesFailClosed() throws {
         let tokens = try AccountOAuthWire.tokens(

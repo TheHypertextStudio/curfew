@@ -16,6 +16,19 @@ Sync is not an admin, parent, manager, or MDM product. One person owns an
 account and every enrolled device. Curfew does not provide a path for one
 account to control another person's device.
 
+The macOS app starts account OAuth with `ASWebAuthenticationSession`. macOS may
+open that session in a different browser profile from the one that stores the
+user's passkey, so Settings keeps the exact authorization URL visible for
+copying while the session is active. PKCE and a one-time state value protect the
+pending transaction when that same URL is completed in the correct profile;
+Curfew clears it as soon as authorization finishes, before device enrollment.
+A callback launched by that ordinary tab is routed back into
+the pending native transaction only when its custom-scheme path and one-time
+state match exactly. If the user copies the link, Curfew also removes it from
+the pasteboard when the attempt ends, unless the user has copied something else
+in the meantime. Settings then reports that it is connecting the Mac instead of
+continuing to claim that browser sign-in or 2FA is still pending.
+
 ### Goals and non-goals
 
 **Goals:**
