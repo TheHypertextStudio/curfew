@@ -262,6 +262,44 @@ describe("BrowserPolicyController", () => {
     expect(testHarness.scheduledRefreshes).toEqual([0.5]);
   });
 
+  it("recovers when cached-rule restoration fails during worker startup", async () => {
+    const refreshed = policy({
+      sessionID: "39f9fbe2-3c34-487d-ad75-c954237c3184",
+      task: { id: "task-2", title: "Write the release runbook" },
+      scopes: [{ kind: "origin", origin: "https://release.example" }],
+    });
+    let ruleReadCount = 0;
+    const testHarness = harness({
+      stored: { browserPolicy: policy() },
+      dynamicRulesGet: async () => {
+        ruleReadCount += 1;
+        if (ruleReadCount === 1) {
+          throw new Error("Chrome could not read cached dynamic rules");
+        }
+        return [{ id: 1 }, { id: 1_000 }];
+      },
+      native: async (request) => response(request, {
+        ...(request.type === "get_policy"
+          ? { policy: refreshed, policyRevision: "revision-fresh" }
+          : {}),
+      }),
+    });
+
+    await expect(testHarness.controller.initialize()).resolves.toBeUndefined();
+
+    expect(testHarness.scheduledRefreshes).toEqual([0.5]);
+    expect(testHarness.ruleUpdates[0].addRules).toEqual([
+      expect.objectContaining({ id: 1, action: { type: "block" } }),
+    ]);
+    expect(testHarness.nativeRequests.map((request) => request.type)).toEqual([
+      "get_policy",
+      "heartbeat",
+    ]);
+    expect(testHarness.data.browserPolicy).toEqual(refreshed);
+    expect(testHarness.data.browserPolicyRevision).toBe("revision-fresh");
+    expect(JSON.stringify(testHarness.ruleUpdates.at(-1))).toContain("release");
+  });
+
   it("restores cached policy with one complete update when the base block persists", async () => {
     const testHarness = harness({ stored: { browserPolicy: policy() } });
 

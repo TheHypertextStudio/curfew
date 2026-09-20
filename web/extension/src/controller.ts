@@ -251,15 +251,31 @@ export class BrowserPolicyController {
   constructor(private readonly dependencies: BrowserControllerDependencies) {}
 
   async initialize(): Promise<void> {
+    try {
+      await this.dependencies.refresh.scheduleRecurring(0.5);
+    } catch {
+      // A failed alarm must not prevent the immediate policy refresh below.
+    }
     await this.serializePolicyOperation(async () => {
-      const interruptedTransition = await this.recoverInterruptedPolicyTransition();
-      const cached = interruptedTransition ? null : await this.readPolicy();
-      await this.pruneStoredRequests(cached?.sessionID);
-      if (cached !== null) {
-        await this.cachePolicy(cached);
+      try {
+        const interruptedTransition = await this.recoverInterruptedPolicyTransition();
+        const cached = interruptedTransition ? null : await this.readPolicy();
+        await this.pruneStoredRequests(cached?.sessionID);
+        if (cached !== null) {
+          await this.cachePolicy(cached);
+        }
+      } catch {
+        try {
+          const dynamicRules = await this.dependencies.dynamicRules.get();
+          await this.dependencies.dynamicRules.replace({
+            removeRuleIds: dynamicRules.map((rule) => rule.id),
+            addRules: buildFailClosedRules(),
+          });
+        } catch {
+          // Chrome keeps its last persisted DNR rules when rule recovery is unavailable.
+        }
       }
     });
-    await this.dependencies.refresh.scheduleRecurring(0.5);
     await this.refreshPolicy();
   }
 

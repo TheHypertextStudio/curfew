@@ -109,7 +109,9 @@ and its block rule in place. The failed refresh does not write a heartbeat, so
 Settings can mark the connection unhealthy. A successful empty policy removes
 the cache and the rules. Grant and break timestamps never become durable
 permission because every ruleset build compares them with the caller's current
-clock.
+clock. A storage or dynamic-rule failure during cache restoration does not end
+worker startup. The worker installs the block-only ruleset when Chrome permits
+it, keeps the recurring refresh alarm, and requests fresh policy immediately.
 
 ## Blocker privacy and review
 

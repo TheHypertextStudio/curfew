@@ -437,7 +437,10 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
       expiry, long-poll signed policy revisions with one watcher, retain the
       30-second refresh as recovery and heartbeat fallback, route blocked tabs
       through opaque request IDs, and retain one original justification only
-      while its targeted challenge can continue across reload.
+      while its targeted challenge can continue across reload. Keep startup
+      alive after cached storage or DNR restoration fails, install block-only
+      recovery when Chrome permits it, and request fresh policy without a
+      manual extension reload.
 - [x] Package 16, 32, 48, and 128 pixel Chrome icons as transparent-padded
       exports of the shipping Curfew app icon. Reject icon drift in tests.
       Require a separate, matching Web Store public key and item ID for
