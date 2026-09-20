@@ -55,11 +55,11 @@ Production uses only:
 - `https://curfew.hypertext.studio/account`
 - `https://curfew-sync.hypertext.studio`
 
-The `CURFEW_STAGING` Debug flavor selects the three corresponding
-`curfew-*-staging.hypertext.studio` hosts, an isolated Keychain service, the
-development helper label, and separate user/root state paths. Release rejects
-that flag. Runtime input cannot redirect the daemon to a different command
-signer.
+The Dev app's Debug configuration selects `CURFEW_STAGING` by default and uses
+the three corresponding `curfew-*-staging.hypertext.studio` hosts, an isolated
+Keychain service, the development helper label, and separate user/root state
+paths. Release rejects that flag. Runtime input cannot redirect the daemon to a
+different command signer.
 
 ## Wire publication
 

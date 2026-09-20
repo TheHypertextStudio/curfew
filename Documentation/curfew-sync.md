@@ -235,15 +235,14 @@ This protects against two distinct threats: account compromise leading to indefi
   Enrollment is single-flight at both the Settings controller and native
   authorization service, so repeated activation cannot replace an in-progress
   system session or orphan its completion.
-- **Staging proof.** A build made with
-  `CURFEW_SERVICE_SWIFT_FLAG=CURFEW_STAGING` binds the app, OAuth exchanges,
-  sync transport, account portal, MCP resource, and embedded daemon JWKS trust
-  to the three `curfew-*-staging.hypertext.studio` hosts and selects an isolated
+- **Staging proof.** The Dev app's Debug configuration binds the app, OAuth
+  exchanges, sync transport, account portal, MCP resource, and embedded daemon
+  JWKS trust to the three `curfew-*-staging.hypertext.studio` hosts and selects an isolated
   account-encryption Keychain service. It is restricted to Curfew's Debug
   identity, separate development LaunchDaemon label, and separate user/root
-  storage paths. Release rejects the staging flag. Production remains the
-  compile-time default; runtime environment variables cannot redirect a shipped
-  helper to an arbitrary command signer.
+  storage paths. Release rejects the staging flag and selects production;
+  runtime environment variables cannot redirect a shipped helper to an
+  arbitrary command signer.
 - **Devices panel.** Lists all enrolled devices with last-seen time, active-state pill from F15, and a per-device "Remove" action.
 - **Connected AI tools panel.** Lists every OAuth client (one row per token grant), with the granted scopes, last-used timestamp, and a "Revoke" button. New connections appear here within seconds of the OAuth flow completing.
 - **Sync status indicator.** Replaces F13's status string when Sync is enabled: *"Synced across 2 devices · 1 AI tool connected"*. Offline state: *"Sync offline — last synced 14 min ago"*.

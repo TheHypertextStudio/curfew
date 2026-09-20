@@ -11,6 +11,15 @@ const screenshotExtractor = await readFile("scripts/extract-screenshots.sh", "ut
 const projectFile = await readFile("Curfew.xcodeproj/project.pbxproj", "utf8");
 const homebrewCask = await readFile("Casks/curfew.rb", "utf8");
 
+function buildConfigurationBlock(id, name) {
+  const marker = `\t\t${id} /* ${name} */ = {`;
+  const start = projectFile.indexOf(marker);
+  assert.notEqual(start, -1, `missing ${name} build configuration ${id}`);
+  const end = projectFile.indexOf("\n\t\t};", start);
+  assert.notEqual(end, -1, `unterminated ${name} build configuration ${id}`);
+  return projectFile.slice(start, end + "\n\t\t};".length);
+}
+
 test("conservative initial Release keeps only the signed core entitlements", () => {
   assert.match(releaseEntitlements, /com\.apple\.security\.automation\.apple-events/);
   assert.match(releaseEntitlements, /group\.studio\.hypertext\.curfew/);
@@ -86,11 +95,16 @@ test("interactive builds reject an unresolved signing identity before TCC can mi
 });
 
 test("a staging build compiles the app and every embedded tool for the same service boundary", () => {
+  const projectDebug = buildConfigurationBlock("9BD3FBA32F4D4587007B2E95", "Debug");
+  const projectRelease = buildConfigurationBlock("9BD3FBA42F4D4587007B2E95", "Release");
+  const appRelease = buildConfigurationBlock("9BD3FBA72F4D4587007B2E95", "Release");
   assert.match(
-    projectFile,
+    projectDebug,
     /SWIFT_ACTIVE_COMPILATION_CONDITIONS = "[^"]*\$\(CURFEW_SERVICE_SWIFT_FLAG\)[^"]*";/,
   );
-  assert.match(projectFile, /CURFEW_SERVICE_SWIFT_FLAG.*CURFEW_STAGING/);
+  assert.match(projectDebug, /CURFEW_SERVICE_SWIFT_FLAG = CURFEW_STAGING;/);
+  assert.doesNotMatch(projectRelease, /CURFEW_SERVICE_SWIFT_FLAG/);
+  assert.doesNotMatch(appRelease, /CURFEW_SERVICE_SWIFT_FLAG/);
   assert.match(projectFile, /SWIFT_SERVICE_FLAGS=.*-Xswiftc -DCURFEW_STAGING/);
   assert.match(projectFile, /swift build -c release --jobs 2 --product curfew-daemon \$SWIFT_SERVICE_FLAGS/);
   assert.match(projectFile, /if \[ \\"\$CONFIGURATION\\" != \\"Debug\\" \]/);

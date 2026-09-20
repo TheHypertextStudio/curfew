@@ -250,7 +250,8 @@ only.
   - `PrivilegedHelperStatusCopyTests/helperStatusDescriptions()`
 - `Expose the shipping MCP and privileged-helper controls in the isolated staging build so signed-device acceptance can install the daemon.`
   - `FeatureFlagTests/resolveWithStagingFeatures()`
-  - `FeatureFlagTests/resolvedMatchesBuild()` (run with `CURFEW_SERVICE_SWIFT_FLAG=CURFEW_STAGING`)
+  - `FeatureFlagTests/resolvedMatchesBuild()`
+  - `scripts/release-entitlements.test.mjs` (`a staging build compiles the app and every embedded tool for the same service boundary`)
 
 ## 6. Extension and Override Systems
 
@@ -493,10 +494,10 @@ only.
 - `Returning from System Settings refreshes live Accessibility trust even when
   Curfew's enforcement timer is off.`
   - `EnforcementHealthWiringTests/appActivationRefreshesAccessibilityTrustWithoutEnforcementTimer()`
-- `A staging build selects one closed-world endpoint set for account UI, OAuth,
-  sync, MCP, daemon command-key trust, and account-key Keychain storage, while
-  production remains the default and account copy explains that phone locking
-  is a per-device opt-in.`
+- `The Dev app's Debug configuration selects one closed-world staging endpoint
+  set for account UI, OAuth, sync, MCP, daemon command-key trust, and account-key
+  Keychain storage without a manual build override; Release selects production,
+  and account copy explains that phone locking is a per-device opt-in.`
   - `AccountOAuthEnrollmentTests/stagingEndpointsStayIsolated()`
   - `AccountOAuthEnrollmentTests/currentEndpointsFollowBuildFlag()`
   - `AccountEnrollmentCopyTests/remoteControlIsPlainAndOptIn()`
