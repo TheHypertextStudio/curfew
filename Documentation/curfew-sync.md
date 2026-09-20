@@ -23,8 +23,12 @@ copying while the session is active. PKCE and a one-time state value protect the
 pending transaction when that same URL is completed in the correct profile;
 Curfew clears it as soon as authorization finishes, before device enrollment.
 A callback launched by that ordinary tab is routed back into
-the pending native transaction only when its custom-scheme path and one-time
-state match exactly. If the user copies the link, Curfew also removes it from
+the pending native transaction only when its Hypertext-owned claimed HTTPS
+origin, callback path, and one-time state match exactly. AuthenticationServices
+uses the domain's `webcredentials` association, while the same narrowly scoped
+universal link lets another browser profile return to the signed Curfew app.
+The former private-use callback scheme is not accepted as first-party identity.
+If the user copies the link, Curfew also removes it from
 the pasteboard when the attempt ends, unless the user has copied something else
 in the meantime. Settings then reports that it is connecting the Mac instead of
 continuing to claim that browser sign-in or 2FA is still pending.

@@ -12,21 +12,17 @@ struct AccountOAuthEnrollmentRequest: Equatable {
 
     static func create(
         clientID: String,
-        callbackScheme: String,
         state: String,
         verifier: String,
         endpoints: CurfewServiceEndpoints = .current
     ) throws -> AccountOAuthEnrollmentRequest {
         guard !clientID.isEmpty else { throw AccountOAuthEnrollmentError.invalidClientID }
-        guard callbackScheme == "studio.hypertext.curfew" else {
-            throw AccountOAuthEnrollmentError.invalidCallbackScheme
-        }
         guard !state.isEmpty else { throw AccountOAuthEnrollmentError.invalidState }
         guard (43 ... 128).contains(verifier.count),
               verifier.unicodeScalars.allSatisfy(pkceCharacters.contains)
         else { throw AccountOAuthEnrollmentError.invalidVerifier }
 
-        let redirectURI = "\(callbackScheme)://oauth/callback"
+        let redirectURI = AccountOAuthClaimedCallback.redirectURI(for: endpoints)
         let challenge = Self.base64URL(Data(SHA256.hash(data: Data(verifier.utf8))))
         var components = URLComponents(
             url: endpoints.accountOrigin.appending(path: "/api/auth/oauth2/authorize"),
@@ -80,5 +76,13 @@ struct AccountOAuthEnrollmentRequest: Equatable {
             .replacingOccurrences(of: "+", with: "-")
             .replacingOccurrences(of: "/", with: "_")
             .replacingOccurrences(of: "=", with: "")
+    }
+}
+
+enum AccountOAuthClaimedCallback {
+    static let path = "/oauth/callback/native/macos"
+
+    static func redirectURI(for endpoints: CurfewServiceEndpoints) -> String {
+        endpoints.accountOrigin.appending(path: path).absoluteString
     }
 }
