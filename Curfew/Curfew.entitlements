@@ -31,6 +31,15 @@
         <string>group.studio.hypertext.curfew</string>
     </array>
 
+    <!-- Bind the OAuth callback to Hypertext Studio's verified HTTPS origins. -->
+    <key>com.apple.developer.associated-domains</key>
+    <array>
+        <string>applinks:curfew-account-staging.hypertext.studio</string>
+        <string>applinks:curfew-account.hypertext.studio</string>
+        <string>webcredentials:curfew-account-staging.hypertext.studio</string>
+        <string>webcredentials:curfew-account.hypertext.studio</string>
+    </array>
+
     <!--
       Silent-push for CloudKit `CKDatabaseSubscription` is configured
       only in Curfew-Release.entitlements — requesting `aps-environment`

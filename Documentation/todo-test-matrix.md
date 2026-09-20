@@ -440,8 +440,9 @@ only.
 - `macOS account enrollment binds PKCE to the Curfew sync resource, stores
   private material in Keychain, sends privacy-minimal generated enrollment,
   preserves the user's normal browser session for existing passkeys, and
-  owns its native OAuth callback scheme in the shipped app bundle so the
-  authorization session can return, and cannot mark sync ready before Recovery
+  owns a claimed HTTPS OAuth callback through Associated Domains so the
+  authorization session can return without trusting a forgeable custom scheme,
+  and cannot mark sync ready before Recovery
   Key acknowledgement or restore. First-device setup displays the Recovery Key
   before uploading its envelope and resumes the exact acknowledged step after
   a failure or relaunch.`
@@ -457,6 +458,7 @@ only.
   - `AccountEnrollmentRecoveryTests/browserSignInLinkCleanupPreservesNewClipboardContents()`
   - `AccountEnrollmentRecoveryTests/browserSignInLinkClearsBeforeDeviceEnrollment()`
   - `AccountOAuthEnrollmentTests/callbackStateIsExact()`
+  - `AccountOAuthEnrollmentTests/callbackIsClaimedHTTPS()`
   - `AccountOAuthExternalCallbackTests/externalBrowserCallbackRoutesByExactState()`
   - `AccountOAuthExternalCallbackTests/externalBrowserCallbackIsConsumedOnce()`
   - `AccountOAuthExternalCallbackTests/appDelegateForwardsExternalOAuthCallback()`

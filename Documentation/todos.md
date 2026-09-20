@@ -478,11 +478,13 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
       user/root state paths; Release rejects the staging flag. Native
       authorization now preserves the user's normal browser session instead of
       forcing an ephemeral one, so an existing account and its passkey provider
-      remain available during enrollment. The app bundle now owns the
-      `studio.hypertext.curfew` OAuth callback scheme;
-      without that Launch Services registration, AuthenticationServices could
-      accept the request while leaving enrollment waiting with no usable return
-      path. Native authorization also uses the concrete Settings window that
+      remain available during enrollment. The app now owns a claimed HTTPS OAuth
+      callback through Associated Domains. The account service publishes both
+      the `webcredentials` association required by AuthenticationServices and
+      the narrow universal link used when the user finishes a copied
+      authorization URL in another browser profile; a public client ID and
+      private-use scheme are not treated as proof that the caller is Curfew.
+      Native authorization also uses the concrete Settings window that
       initiated enrollment, retains it for the authorization lifetime, and
       fails immediately when no attached window exists instead of fabricating
       an invalid presentation anchor and leaving a spinner running. It uses the
@@ -494,9 +496,10 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
       into the browser profile that actually stores their passkey instead of
       being trapped in macOS's default profile. The URL disappears as soon as
       browser authorization ends, before device enrollment begins, and its temporary pasteboard value is removed
-      unless the user has since copied something else. Launch Services callbacks
+      unless the user has since copied something else. Claimed HTTPS callbacks
       from an ordinary browser tab are routed into only the active transaction
-      after exact callback-path and one-time-state validation. The enrollment UI now keeps
+      after exact origin, callback-path, and one-time-state validation; the former
+      custom scheme is rejected. The enrollment UI now keeps
       browser authorization and device enrollment as separate states: once the
       browser callback succeeds, Settings reports that it is connecting the Mac;
       token exchange or local credential failure is

@@ -6,7 +6,6 @@ import Foundation
 
 enum AccountOAuthEnrollmentError: Error {
     case invalidClientID
-    case invalidCallbackScheme
     case invalidState
     case invalidVerifier
     case couldNotBuildAuthorizationURL
@@ -82,6 +81,23 @@ enum AccountOAuthBrowserPolicy {
         // session so the user's existing account and credential provider are
         // available to the authorization flow.
         session.prefersEphemeralWebBrowserSession = false
+    }
+}
+
+enum AccountOAuthCallbackPolicy {
+    static func callback(for endpoints: CurfewServiceEndpoints) -> ASWebAuthenticationSession
+        .Callback {
+        guard let host = endpoints.accountOrigin.host else {
+            preconditionFailure("Curfew account origin must have an HTTPS host")
+        }
+        return .https(host: host, path: AccountOAuthClaimedCallback.path)
+    }
+
+    static func accepts(_ url: URL, for endpoints: CurfewServiceEndpoints) -> Bool {
+        guard let expectedHost = endpoints.accountOrigin.host else { return false }
+        return url.scheme == "https" &&
+            url.host == expectedHost &&
+            url.path == AccountOAuthClaimedCallback.path
     }
 }
 
@@ -256,7 +272,6 @@ final class AccountOAuthEnrollmentService: NSObject {
         let clientID = AccountOAuthOfficialClient.clientID
         let request = try AccountOAuthEnrollmentRequest.create(
             clientID: clientID,
-            callbackScheme: Self.callbackScheme,
             state: Self.randomURLSafe(byteCount: 32),
             verifier: Self.randomURLSafe(byteCount: 64),
             endpoints: endpoints
@@ -265,7 +280,8 @@ final class AccountOAuthEnrollmentService: NSObject {
         let callback = try await authenticate(request)
         let code = try AccountOAuthCallback.authorizationCode(
             from: callback,
-            expectedState: request.state
+            expectedState: request.state,
+            expectedRedirectURI: request.redirectURI
         )
         do {
             let tokens = try await exchange(code: code, clientID: clientID, request: request)
@@ -289,7 +305,8 @@ final class AccountOAuthEnrollmentService: NSObject {
             authenticationContinuation = continuation
             do {
                 callbackRegistration = try callbackRouter.register(
-                    expectedState: request.state
+                    expectedState: request.state,
+                    expectedRedirectURI: request.redirectURI
                 ) { [weak self] callback in
                     self?.finishAuthentication(with: .success(callback))
                 }
@@ -299,7 +316,7 @@ final class AccountOAuthEnrollmentService: NSObject {
             }
             let browserSession = ASWebAuthenticationSession(
                 url: request.authorizationURL,
-                callback: .customScheme(Self.callbackScheme)
+                callback: AccountOAuthCallbackPolicy.callback(for: endpoints)
             ) { [weak self] callback, error in
                 if let callback {
                     self?.finishAuthentication(with: .success(callback))
@@ -379,6 +396,5 @@ final class AccountOAuthEnrollmentService: NSObject {
     }
 
     private static let accountOrigin = URL(string: "https://curfew-account.hypertext.studio")!
-    private static let callbackScheme = "studio.hypertext.curfew"
-    private static let redirectURI = "\(callbackScheme)://oauth/callback"
+    private static let redirectURI = AccountOAuthClaimedCallback.redirectURI(for: .current)
 }
