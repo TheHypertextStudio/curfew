@@ -1,0 +1,14 @@
+#!/bin/sh
+set -eu
+root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+if [ "${BOOTSTRAP_OFFLINE:-0}" = 1 ]; then
+  printf '%s\n' 'Xcode has no strict offline resolver. Use --no-install to preserve offline setup.' >&2
+  exit 1
+fi
+(cd "$root/web" && pnpm rebuild esbuild workerd sharp)
+cd "$root"
+exec xcodebuild -resolvePackageDependencies \
+  -project Curfew.xcodeproj -scheme Curfew \
+  -clonedSourcePackagesDirPath "$root/.build/xcode-packages" \
+  -onlyUsePackageVersionsFromResolvedFile -disableAutomaticPackageResolution \
+  -skipPackageUpdates

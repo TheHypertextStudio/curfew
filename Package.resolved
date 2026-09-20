@@ -1,0 +1,23 @@
+{
+  "pins" : [
+    {
+      "identity" : "curfew-protocols",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/TheHypertextStudio/curfew-protocols.git",
+      "state" : {
+        "revision" : "a4bced6ea7189a9aa3c28d1704ea6e906214fc4a",
+        "version" : "0.0.9"
+      }
+    },
+    {
+      "identity" : "swift-argument-parser",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-argument-parser",
+      "state" : {
+        "revision" : "6a52f3251125d74daf04fcbd5e6f08a75d074382",
+        "version" : "1.8.2"
+      }
+    }
+  ],
+  "version" : 2
+}

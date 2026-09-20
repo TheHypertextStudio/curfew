@@ -320,3 +320,11 @@ Include this in final handoff notes:
 - Align with existing architecture and naming conventions.
 - Avoid introducing process exceptions without explicit maintainer approval.
 - Never skip test, lint, or documentation gates due to time pressure.
+
+## Worktree preparation
+
+Run `./bootstrap worktree prepare` for a fresh worktree. Keep native shared
+caches intact and keep `node_modules`, `.build`, DerivedData, and application
+state local to the checkout. Use existing build and test commands after setup.
+Do not replace the shared engine with another dependency installer or setup
+framework.

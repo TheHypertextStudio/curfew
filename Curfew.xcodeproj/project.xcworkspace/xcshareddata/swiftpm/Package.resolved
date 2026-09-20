@@ -1,0 +1,15 @@
+{
+  "originHash" : "4be0060e24de308e959ef5174f35e0c6c22475d2c79ce0c9e9cbf90913835e76",
+  "pins" : [
+    {
+      "identity" : "curfew-protocols",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/TheHypertextStudio/curfew-protocols.git",
+      "state" : {
+        "revision" : "a4bced6ea7189a9aa3c28d1704ea6e906214fc4a",
+        "version" : "0.0.9"
+      }
+    }
+  ],
+  "version" : 3
+}

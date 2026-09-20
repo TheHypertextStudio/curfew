@@ -20,7 +20,6 @@ xcuserdata/
 # Swift Package Manager
 .swiftpm/
 .build/
-Package.resolved
 Packages/
 
 # Swift compile artifacts
