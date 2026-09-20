@@ -205,6 +205,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// The live app model, injected by `CurfewApp`. `weak` so the delegate
     /// observes rather than owns the model.
     weak var model: CurfewAppModel?
+    private let callbackRouter: any AccountOAuthCallbackRouting
+
+    override convenience init() {
+        self.init(callbackRouter: AccountOAuthCallbackRouter.shared)
+    }
+
+    init(callbackRouter: any AccountOAuthCallbackRouting) {
+        self.callbackRouter = callbackRouter
+        super.init()
+    }
+
+    /// A callback opened from a normal browser tab reaches Launch Services,
+    /// not necessarily the AuthenticationServices browser session. Forward it
+    /// to the one pending OAuth request; the router enforces the exact state.
+    func application(_: NSApplication, open urls: [URL]) {
+        for url in urls where callbackRouter.route(url) {
+            break
+        }
+    }
 
     /// AppKit calls this whenever Curfew becomes the active app — including the
     /// user clicking back into a Curfew window after being away. Re-assert

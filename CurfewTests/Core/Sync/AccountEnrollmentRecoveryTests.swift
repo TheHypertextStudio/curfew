@@ -37,6 +37,80 @@ struct AccountEnrollmentRecoveryTests {
     }
 
     @MainActor
+    @Test("A live browser sign-in link remains available while authorization is waiting")
+    func browserSignInLinkCanMoveToThePasskeyProfile() async {
+        let oauth = SuspendedAccountOAuthEnrollment()
+        let clipboard = MemoryAccountAuthorizationLinkClipboard()
+        let controller = AccountEnrollmentController(
+            secretStore: EnrollmentRecoveryMemorySecretStore(),
+            oauth: oauth,
+            devices: FailingAccountDeviceEnrollment(),
+            authorizationLinkClipboard: clipboard
+        )
+
+        let signIn = Task { await controller.signIn() }
+        await oauth.waitUntilStarted()
+
+        #expect(controller.browserSignInURL == oauth.authorizationURL)
+        #expect(controller.copyBrowserSignInLink())
+        #expect(clipboard.contents == oauth.authorizationURL.absoluteString)
+
+        oauth.fail()
+        await signIn.value
+        #expect(controller.browserSignInURL == nil)
+        #expect(clipboard.contents == nil)
+    }
+
+    @MainActor
+    @Test("Finishing sign-in never erases something the user copied afterward")
+    func browserSignInLinkCleanupPreservesNewClipboardContents() async {
+        let oauth = SuspendedAccountOAuthEnrollment()
+        let clipboard = MemoryAccountAuthorizationLinkClipboard()
+        let controller = AccountEnrollmentController(
+            secretStore: EnrollmentRecoveryMemorySecretStore(),
+            oauth: oauth,
+            devices: FailingAccountDeviceEnrollment(),
+            authorizationLinkClipboard: clipboard
+        )
+
+        let signIn = Task { await controller.signIn() }
+        await oauth.waitUntilStarted()
+        #expect(controller.copyBrowserSignInLink())
+        clipboard.contents = "new clipboard contents"
+
+        oauth.fail()
+        await signIn.value
+
+        #expect(clipboard.contents == "new clipboard contents")
+    }
+
+    @MainActor
+    @Test("A consumed sign-in link disappears before device enrollment finishes")
+    func browserSignInLinkClearsBeforeDeviceEnrollment() async {
+        let oauth = LinkedSuccessfulAccountOAuthEnrollment()
+        let devices = SuspendedAccountDeviceEnrollment()
+        let clipboard = MemoryAccountAuthorizationLinkClipboard()
+        let controller = AccountEnrollmentController(
+            secretStore: EnrollmentRecoveryMemorySecretStore(),
+            oauth: oauth,
+            devices: devices,
+            authorizationLinkClipboard: clipboard
+        )
+
+        let signIn = Task { await controller.signIn() }
+        await oauth.waitUntilLinkPublished()
+        #expect(controller.copyBrowserSignInLink())
+        await devices.waitUntilStarted()
+
+        #expect(controller.state == .connectingDevice)
+        #expect(controller.browserSignInURL == nil)
+        #expect(clipboard.contents == nil)
+
+        devices.fail()
+        await signIn.value
+    }
+
+    @MainActor
     @Test("A registered Mac resumes recovery setup without another browser sign-in")
     func registeredMacResumesWithoutSigningInAgain() async {
         let oauth = CountingAccountOAuthEnrollment()
@@ -97,7 +171,10 @@ struct AccountEnrollmentRecoveryTests {
 
 @MainActor
 private struct PostBrowserFailingAccountOAuthEnrollment: AccountOAuthEnrolling {
-    func signIn(presentationWindow _: NSWindow?) async throws -> AccountOAuthGrant {
+    func signIn(
+        presentationWindow _: NSWindow?,
+        authorizationURLHandler _: @escaping @MainActor (URL) -> Void
+    ) async throws -> AccountOAuthGrant {
         throw AccountOAuthEnrollmentError.browserCompletedConnectionFailed
     }
 }
@@ -120,7 +197,10 @@ private final class EnrollmentRecoveryMemorySecretStore: AccountSecretStoring {
 
 @MainActor
 private struct SuccessfulAccountOAuthEnrollment: AccountOAuthEnrolling {
-    func signIn(presentationWindow _: NSWindow?) async throws -> AccountOAuthGrant {
+    func signIn(
+        presentationWindow _: NSWindow?,
+        authorizationURLHandler _: @escaping @MainActor (URL) -> Void
+    ) async throws -> AccountOAuthGrant {
         AccountOAuthGrant(
             tokens: AccountOAuthTokens(accessToken: "access", refreshToken: "refresh"),
             state: "state",
@@ -166,7 +246,10 @@ private struct FailingAccountDeviceEnrollment: AccountDeviceEnrolling {
 private final class CountingAccountOAuthEnrollment: AccountOAuthEnrolling {
     private(set) var signInCount = 0
 
-    func signIn(presentationWindow _: NSWindow?) async throws -> AccountOAuthGrant {
+    func signIn(
+        presentationWindow _: NSWindow?,
+        authorizationURLHandler _: @escaping @MainActor (URL) -> Void
+    ) async throws -> AccountOAuthGrant {
         signInCount += 1
         return AccountOAuthGrant(
             tokens: AccountOAuthTokens(accessToken: "access", refreshToken: "refresh"),

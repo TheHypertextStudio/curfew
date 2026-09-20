@@ -486,9 +486,17 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
       current callback-based AuthenticationServices initializer rather than the
       deprecated callback-scheme initializer. Controller and service
       single-flight guards prevent repeated activation from replacing an active
-      system session or orphaning its completion. The enrollment UI now keeps
+      system session or orphaning its completion. While that session is live,
+      Settings exposes its exact PKCE- and state-protected authorization URL so a user can copy it
+      into the browser profile that actually stores their passkey instead of
+      being trapped in macOS's default profile. The URL disappears as soon as
+      browser authorization ends, before device enrollment begins, and its temporary pasteboard value is removed
+      unless the user has since copied something else. Launch Services callbacks
+      from an ordinary browser tab are routed into only the active transaction
+      after exact callback-path and one-time-state validation. The enrollment UI now keeps
       browser authorization and device enrollment as separate states: once the
-      browser callback succeeds, token exchange or local credential failure is
+      browser callback succeeds, Settings reports that it is connecting the Mac;
+      token exchange or local credential failure is
       reported as a native connection failure, never as a failed passkey or
       unfinished browser sign-in. Before device registration, Curfew persists
       the exact OAuth-bound request inputs, Recovery Key, and encrypted envelope;
