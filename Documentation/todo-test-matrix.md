@@ -757,7 +757,9 @@ only.
   - `DocketBrowserPolicyClientTests/missingTaskResourceFailsClosed()`
   - `DocketBrowserPolicyClientTests/unauthorizedTaskResourceFailsClosed()`
 - `Curfew registers and reuses a Docket OAuth client, stores tokens separately,
-  and refreshes rotating credentials.`
+  refreshes rotating credentials, and can recover from a stored refresh token
+  when the access-token record is incomplete.`
+  - `DocketCredentialStoreTests/loadsRefreshTokenIndependently()`
   - `DocketBrowserPolicyClientTests/oauthRequestUsesSeparateDocketScopes()`
   - `DocketBrowserPolicyClientTests/oauthRegistrationIsPersistedAndReused()`
   - `DocketBrowserPolicyClientTests/oauthRefreshRotatesCredentials()`

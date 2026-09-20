@@ -16,6 +16,8 @@ final class DocketCredentialStore {
     private let secretStore: any AccountSecretStoring
     private var cachedTokens: DocketOAuthTokens?
     private var hasLoadedTokens = false
+    private var cachedRefreshToken: String?
+    private var hasLoadedRefreshToken = false
     private var cachedClientID: String?
     private var hasLoadedClientID = false
 
@@ -34,8 +36,7 @@ final class DocketCredentialStore {
         }
         guard let accessData = try secretStore.data(for: Self.accessTokenAccount),
               let accessToken = String(data: accessData, encoding: .utf8),
-              let refreshData = try secretStore.data(for: Self.refreshTokenAccount),
-              let refreshToken = String(data: refreshData, encoding: .utf8),
+              let refreshToken = try loadRefreshToken(),
               let expirationData = try secretStore.data(for: Self.expirationAccount),
               let expirationString = String(data: expirationData, encoding: .utf8),
               let expiration = TimeInterval(expirationString)
@@ -72,7 +73,14 @@ final class DocketCredentialStore {
     }
 
     func loadRefreshToken() throws -> String? {
-        try load()?.refreshToken
+        if hasLoadedRefreshToken {
+            return cachedRefreshToken
+        }
+        let refreshToken = try secretStore.data(for: Self.refreshTokenAccount)
+            .flatMap { String(data: $0, encoding: .utf8) }
+        cachedRefreshToken = refreshToken
+        hasLoadedRefreshToken = true
+        return refreshToken
     }
 
     func save(_ tokens: DocketOAuthTokens) throws {
@@ -84,6 +92,8 @@ final class DocketCredentialStore {
             Data(String(tokens.expiresAt.timeIntervalSince1970).utf8),
             for: Self.expirationAccount
         )
+        cachedRefreshToken = tokens.refreshToken
+        hasLoadedRefreshToken = true
         cachedTokens = tokens
         hasLoadedTokens = true
     }
@@ -91,6 +101,8 @@ final class DocketCredentialStore {
     func clear() throws {
         cachedClientID = nil
         hasLoadedClientID = true
+        cachedRefreshToken = nil
+        hasLoadedRefreshToken = true
         cachedTokens = nil
         hasLoadedTokens = true
         try secretStore.delete(Self.clientIDAccount)

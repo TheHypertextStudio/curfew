@@ -29,6 +29,22 @@ struct DocketCredentialStoreTests {
         ])
     }
 
+    @Test("Loads a refresh token without requiring an access-token record")
+    func loadsRefreshTokenIndependently() throws {
+        let persistence = CountingSecretStore(values: [
+            DocketCredentialStore.refreshTokenAccount: Data("refresh".utf8)
+        ])
+        let store = DocketCredentialStore(secretStore: persistence)
+
+        #expect(try store.loadRefreshToken() == "refresh")
+        #expect(try store.loadRefreshToken() == "refresh")
+        #expect(try store.load() == nil)
+        #expect(persistence.reads == [
+            DocketCredentialStore.accessTokenAccount: 1,
+            DocketCredentialStore.refreshTokenAccount: 1
+        ])
+    }
+
     @Test("Refresh saves replace the process cache")
     func saveReplacesCache() throws {
         let persistence = CountingSecretStore()

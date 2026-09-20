@@ -406,6 +406,9 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
       client identifier and rotating tokens in the separate
       `studio.hypertext.curfew.docket` Keychain service. Reject duplicate callback
       security parameters and responses over 32 KiB.
+- [x] Cache Docket credentials once per process without making refresh recovery
+      depend on a complete access-token record. A stored rotating refresh token
+      remains usable when the access token or expiration is absent.
 - [x] Poll `docket://hub/active-work` every 30 seconds without a session and
       every five seconds while Curfew retains a session. Reject responses whose
       Docket observation time moves backward.
