@@ -27,7 +27,13 @@ extension SettingsView {
 
     @ViewBuilder
     private var accountEnrollmentControls: some View {
-        if model.settings.accountSync.isEnrolled {
+        if case .ready(let enrollment) = accountEnrollment.state,
+           model.settings.accountSync.enrollment != enrollment {
+            Label("Encrypted account sync is ready.", systemImage: "checkmark.shield")
+                .onAppear {
+                    model.settings.accountSync.enrollment = enrollment
+                }
+        } else if model.settings.accountSync.isEnrolled {
             AccountConnectionStatusView(engine: model.accountSyncEngine)
             openAccountButton
         } else {
@@ -129,7 +135,9 @@ extension SettingsView {
                 .disabled(accountRecoveryKey.isEmpty)
             case .ready(let enrollment):
                 Label("Encrypted account sync is ready.", systemImage: "checkmark.shield")
-                    .onAppear { model.settings.accountSync.enrollment = enrollment }
+                    .onAppear {
+                        model.settings.accountSync.enrollment = enrollment
+                    }
             case .failed(let message):
                 Label(message, systemImage: "exclamationmark.triangle")
                     .foregroundStyle(CurfewTheme.warning)

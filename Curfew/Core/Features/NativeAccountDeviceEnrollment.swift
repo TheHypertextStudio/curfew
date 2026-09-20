@@ -342,7 +342,7 @@ private extension NativeAccountDeviceEnrollmentService {
             )
         }
         if recoveryEnvelopeIsOurs {
-            try pending.clear()
+            try pending.markReady(checkpoint.enrollment)
             return .ready(checkpoint.enrollment)
         }
         try pending.save(enrollment: checkpoint.enrollment, recoveryKey: nil)
