@@ -44,7 +44,7 @@ extension NativeAccountSyncTransportTests {
         XCTAssertEqual(try enrollmentStore.load()?.deviceID, fixture.deviceID)
     }
 
-    func testDeviceRegistrationPersistsAResumableCheckpointBeforeRecoveryUpload() async throws {
+    func testDeviceRegistrationShowsRecoveryKeyBeforeRecoveryUpload() async throws {
         let fixture = try makeRecoveryFixture()
         let root = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString, isDirectory: true)
@@ -65,23 +65,23 @@ extension NativeAccountSyncTransportTests {
             deviceID: fixture.deviceID,
             enrolledAt: Date(timeIntervalSince1970: 1_800_000_000)
         )
-        guard case .finishRecoverySetup(let recoveryKey, let enrollment) = outcome else {
-            return XCTFail("expected resumable recovery setup after registration")
+        guard case .saveRecoveryKey(let recoveryKey, let enrollment) = outcome else {
+            return XCTFail("expected recovery key confirmation after registration")
         }
         XCTAssertFalse(recoveryKey.isEmpty)
         XCTAssertEqual(enrollment.deviceID, fixture.deviceID)
-        XCTAssertEqual(events.values, ["challenge", "registered", "challenge", "recovery-upload"])
+        XCTAssertEqual(events.values, ["challenge", "registered"])
         XCTAssertEqual(try enrollmentStore.load()?.deviceID, fixture.deviceID)
         let pending = AccountEnrollmentPendingStore(secretStore: fixture.secrets)
         let checkpoint = try XCTUnwrap(pending.loadRecoverySetup())
 
         installRecoveryResumeHandler(checkpoint: checkpoint)
-        let resumed = try await service.resumeRecoverySetup(
+        let resumed = try await service.acknowledgeSavedRecoveryKey(
             recoveryKey: recoveryKey,
             enrollment: enrollment
         )
 
-        XCTAssertEqual(resumed, .saveRecoveryKey(recoveryKey, enrollment))
+        XCTAssertEqual(resumed, .ready(enrollment))
         XCTAssertNil(try pending.loadRecoverySetup())
     }
 

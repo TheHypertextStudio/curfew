@@ -10,6 +10,7 @@ enum NativeAccountEnrollmentState: Equatable {
     case finishRecoverySetup(String, AccountDeviceEnrollment)
     case saveRecoveryKey(String, AccountDeviceEnrollment)
     case enterRecoveryKey(AccountDeviceEnrollment)
+    case ready(AccountDeviceEnrollment)
 }
 
 @MainActor
@@ -83,19 +84,10 @@ final class NativeAccountDeviceEnrollmentService {
                 prepared.localEnrollment
             )
         }
-        do {
-            return try await completeRecoverySetup(
-                recoverySetupCheckpoint(
-                    recoveryKey: prepared.bootstrap.recoveryKey,
-                    enrollment: prepared.localEnrollment
-                )
-            )
-        } catch {
-            return .finishRecoverySetup(
-                prepared.bootstrap.recoveryKey,
-                prepared.localEnrollment
-            )
-        }
+        return try prepareRecoveryKeyConfirmation(recoverySetupCheckpoint(
+            recoveryKey: prepared.bootstrap.recoveryKey,
+            enrollment: prepared.localEnrollment
+        ))
     }
 
     func resumeDeviceRegistration(
@@ -142,13 +134,19 @@ final class NativeAccountDeviceEnrollmentService {
             return try await self.submitEnrollment(request, accessToken: accessToken)
         }
         try pending.saveRegistrationReceipt(receiptData)
-        do {
-            return try await completeRecoverySetup(
-                recoverySetupCheckpoint(recoveryKey: recoveryKey, enrollment: enrollment)
-            )
-        } catch {
-            return .finishRecoverySetup(recoveryKey, enrollment)
-        }
+        return try prepareRecoveryKeyConfirmation(
+            recoverySetupCheckpoint(recoveryKey: recoveryKey, enrollment: enrollment)
+        )
+    }
+
+    func acknowledgeSavedRecoveryKey(
+        recoveryKey: String,
+        enrollment: AccountDeviceEnrollment
+    ) async throws -> NativeAccountEnrollmentState {
+        try pending.markRecoveryKeySaved()
+        return try await completeRecoverySetup(
+            recoverySetupCheckpoint(recoveryKey: recoveryKey, enrollment: enrollment)
+        )
     }
 
     func resumeRecoverySetup(
@@ -297,6 +295,16 @@ final class NativeAccountDeviceEnrollmentService {
 }
 
 private extension NativeAccountDeviceEnrollmentService {
+    func prepareRecoveryKeyConfirmation(
+        _ checkpoint: AccountRecoverySetupCheckpoint
+    ) throws -> NativeAccountEnrollmentState {
+        guard let receiptData = checkpoint.receiptData else {
+            throw AccountOAuthEnrollmentError.invalidResponse
+        }
+        try remoteCommandFinalizer.install(receiptData: receiptData)
+        return .saveRecoveryKey(checkpoint.recoveryKey, checkpoint.enrollment)
+    }
+
     func recoverySetupCheckpoint(
         recoveryKey: String,
         enrollment: AccountDeviceEnrollment
@@ -311,7 +319,8 @@ private extension NativeAccountDeviceEnrollmentService {
     func completeRecoverySetup(
         _ checkpoint: AccountRecoverySetupCheckpoint
     ) async throws -> NativeAccountEnrollmentState {
-        guard let receiptData = checkpoint.receiptData,
+        guard checkpoint.recoveryKeySaved == true,
+              let receiptData = checkpoint.receiptData,
               let keys = try keyStore.load(deviceID: checkpoint.enrollment.deviceID)
         else { throw AccountOAuthEnrollmentError.invalidResponse }
         try remoteCommandFinalizer.install(receiptData: receiptData)
@@ -333,11 +342,8 @@ private extension NativeAccountDeviceEnrollmentService {
             )
         }
         if recoveryEnvelopeIsOurs {
-            try pending.save(
-                enrollment: checkpoint.enrollment,
-                recoveryKey: checkpoint.recoveryKey
-            )
-            return .saveRecoveryKey(checkpoint.recoveryKey, checkpoint.enrollment)
+            try pending.clear()
+            return .ready(checkpoint.enrollment)
         }
         try pending.save(enrollment: checkpoint.enrollment, recoveryKey: nil)
         return .enterRecoveryKey(checkpoint.enrollment)

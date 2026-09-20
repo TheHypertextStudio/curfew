@@ -111,6 +111,12 @@ This means a compromised coordinator cannot push a "lock window shrinks to zero"
   and a separate random 256-bit Curfew Recovery Key. HKDF-SHA256 and
   AES-256-GCM protect the recovery envelope. HPKE envelopes distribute the
   root key to enrolled device encryption keys.
+- **First-device completion:** After browser authorization returns, the Mac
+  registers its keys and displays the Curfew Recovery Key before sending the
+  encrypted recovery envelope. Selecting “I saved the Recovery Key” persists
+  that transition, uploads the envelope, and only then marks the account ready.
+  A relaunch or network failure resumes the exact unfinished step without
+  repeating passkey sign-in.
 - **Recovery:** Better Auth backup codes recover sign-in only. Decrypting
   account content after all enrolled keys are lost requires fresh AAL2 and the
   Curfew Recovery Key.
