@@ -20,6 +20,9 @@ private let uninstallLogger = Logger(
 ///   4. `~/Library/Preferences/studio.hypertext.curfew.plist` — UserDefaults
 ///      domain holding schedule, budgets, license key, settings.
 ///   5. `~/Library/Caches/studio.hypertext.curfew/` — incidental cache files.
+///   6. Flavor-specific Curfew and Docket Keychain services — OAuth
+///      credentials, device keys, Recovery Key material, and enrollment
+///      checkpoints.
 ///
 /// The app bundle itself lives in `/Applications/` and is user-managed — the
 /// coordinator surfaces a drag-to-Trash prompt rather than deleting it
@@ -80,15 +83,15 @@ enum UninstallCoordinator {
             fileURLWithPath: NSHomeDirectory(),
             isDirectory: true
         ),
-        defaultsSuiteName: String = SharedPaths.defaultsSuiteName
+        defaultsSuiteName: String = SharedPaths.defaultsSuiteName,
+        eraseKeychainService: (String) throws -> Void = KeychainAccountSecretStore.deleteAll
     ) -> Outcome {
         var removed: [String] = []
         var failed: [(path: String, reason: String)] = []
 
-        guard revokeBrowserInstallation(home: home, failed: &failed) else {
+        guard prepareBrowserRemoval(home: home, failed: &failed) else {
             return Outcome(removed: removed, failed: failed)
         }
-        removeBrowserManifest(home: home, failed: &failed)
 
         // 1. Unload the LaunchAgent before deleting its plist so launchd
         //    does not respawn the app between `rm` and `launchctl`. The
@@ -101,16 +104,12 @@ enum UninstallCoordinator {
         //    deliberately flavor-neutral. So only a production uninstall may
         //    remove it — otherwise uninstalling a dev build would tear down
         //    the real install's respawn deterrent.
-        if CurfewFlavor.current == .production {
-            let agentPath = home
-                .appendingPathComponent("Library/LaunchAgents", isDirectory: true)
-                .appendingPathComponent("studio.hypertext.curfew.lockdown.plist")
-
-            if fileManager.fileExists(atPath: agentPath.path) {
-                _ = runLaunchctl(["unload", agentPath.path])
-                remove(at: agentPath, via: fileManager, removed: &removed, failed: &failed)
-            }
-        }
+        removeRespawnAgentIfNeeded(
+            home: home,
+            fileManager: fileManager,
+            removed: &removed,
+            failed: &failed
+        )
 
         // 2. Application Support directory (MCP queue, Unix socket, activity
         //    DBs, etc.). Flavor-suffixed — a dev uninstall clears `Curfew (Dev)`
@@ -149,21 +148,110 @@ enum UninstallCoordinator {
         //    API but does not always flush the plist file. We follow up
         //    with a direct unlink so the file is gone even on machines
         //    where the defaults daemon hasn't flushed yet.
-        UserDefaults.standard.removePersistentDomain(forName: defaultsSuiteName)
-        UserDefaults.standard.synchronize()
-        let prefs = home
-            .appendingPathComponent("Library/Preferences", isDirectory: true)
-            .appendingPathComponent("\(defaultsSuiteName).plist")
-        if fileManager.fileExists(atPath: prefs.path) {
-            remove(at: prefs, via: fileManager, removed: &removed, failed: &failed)
-        } else {
-            // Still record the domain clear as a positive outcome so the
-            // user sees that their settings were cleared.
-            removed.append("UserDefaults: \(defaultsSuiteName)")
-        }
+        eraseUserDefaults(
+            suiteName: defaultsSuiteName,
+            home: home,
+            fileManager: fileManager,
+            removed: &removed,
+            failed: &failed
+        )
+
+        // 6. Account Keychain state. The service follows the current flavor,
+        // so removing Curfew Dev never signs the production app out. This must
+        // include dynamic device-key accounts and the durable ready marker;
+        // deleting known account names individually would inevitably miss new
+        // credentials added later.
+        eraseAccountKeychain(
+            using: eraseKeychainService,
+            removed: &removed,
+            failed: &failed
+        )
 
         uninstallLogger.info("Uninstall complete: \(removed.count) removed, \(failed.count) failed")
         return Outcome(removed: removed, failed: failed)
+    }
+
+    private static func removeRespawnAgentIfNeeded(
+        home: URL,
+        fileManager: FileManager,
+        removed: inout [String],
+        failed: inout [(path: String, reason: String)]
+    ) {
+        guard CurfewFlavor.current == .production else { return }
+        let agentPath = home
+            .appendingPathComponent("Library/LaunchAgents", isDirectory: true)
+            .appendingPathComponent("studio.hypertext.curfew.lockdown.plist")
+        guard fileManager.fileExists(atPath: agentPath.path) else { return }
+        _ = runLaunchctl(["unload", agentPath.path])
+        remove(at: agentPath, via: fileManager, removed: &removed, failed: &failed)
+    }
+
+    private static func prepareBrowserRemoval(
+        home: URL,
+        failed: inout [(path: String, reason: String)]
+    ) -> Bool {
+        guard revokeBrowserInstallation(home: home, failed: &failed) else {
+            return false
+        }
+        removeBrowserManifest(home: home, failed: &failed)
+        return true
+    }
+
+    private static func eraseUserDefaults(
+        suiteName: String,
+        home: URL,
+        fileManager: FileManager,
+        removed: inout [String],
+        failed: inout [(path: String, reason: String)]
+    ) {
+        UserDefaults.standard.removePersistentDomain(forName: suiteName)
+        UserDefaults.standard.synchronize()
+        let prefs = home
+            .appendingPathComponent("Library/Preferences", isDirectory: true)
+            .appendingPathComponent("\(suiteName).plist")
+        if fileManager.fileExists(atPath: prefs.path) {
+            remove(at: prefs, via: fileManager, removed: &removed, failed: &failed)
+        } else {
+            removed.append("UserDefaults: \(suiteName)")
+        }
+    }
+
+    private static func eraseAccountKeychain(
+        using eraseKeychainService: (String) throws -> Void,
+        removed: inout [String],
+        failed: inout [(path: String, reason: String)]
+    ) {
+        let keychainServices = accountKeychainServices(
+            flavor: .current,
+            curfewService: CurfewServiceEndpoints.current.keychainService,
+            docketService: DocketServiceEndpoints.current.keychainService
+        )
+        for keychainService in keychainServices {
+            do {
+                try eraseKeychainService(keychainService)
+                removed.append("Keychain: \(keychainService)")
+            } catch {
+                failed.append((
+                    "Keychain: \(keychainService)",
+                    "Could not remove account credentials."
+                ))
+            }
+        }
+    }
+
+    /// Services safe for the running flavor to remove. The legacy coordinator
+    /// credential predates flavor isolation and is production-owned; a Dev
+    /// uninstall must preserve it rather than signing the real app out.
+    static func accountKeychainServices(
+        flavor: CurfewFlavor,
+        curfewService: String,
+        docketService: String
+    ) -> [String] {
+        var services = [curfewService, docketService]
+        if flavor == .production {
+            services.append(KeychainDeviceAssertionSecretStore.service)
+        }
+        return services
     }
 
     private static func revokeBrowserInstallation(
@@ -236,5 +324,18 @@ enum UninstallCoordinator {
                     "remove failed at \(url.path, privacy: .public): \(error.localizedDescription)"
                 )
         }
+    }
+}
+
+/// Guarantees that no live model can recreate state after uninstall cleanup.
+@MainActor
+enum UninstallLifecycle {
+    static func finish(
+        outcome: UninstallCoordinator.Outcome,
+        present: (UninstallCoordinator.Outcome) -> Void,
+        terminate: () -> Void
+    ) {
+        present(outcome)
+        terminate()
     }
 }

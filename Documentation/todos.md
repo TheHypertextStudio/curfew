@@ -509,6 +509,20 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
       the receipt-backed checkpoint while it shows the generated Recovery Key,
       uploads the encrypted envelope only after the user selects “I saved the
       Recovery Key,” and cannot report ready before the coordinator accepts it.
+      Coordinator acceptance is checkpointed as a durable completed-enrollment
+      mirror before the recovery setup is removed. That marker remains until an
+      explicit account reset, and a newer marker takes precedence over stale
+      settings, so a process exit or settings-write failure cannot silently
+      return the Mac to an unenrolled or older enrollment state.
+      A destructive uninstall erases the entire flavor-specific account and
+      Docket OAuth Keychain services, including this durable marker, OAuth
+      credentials, device identity, and dynamically named private keys, so
+      enrollment cannot resurrect after reinstall and the development app
+      cannot clear production. Curfew terminates after presenting the cleanup
+      result so its live settings model cannot recreate deleted enrollment.
+      Production uninstall also removes the older flavor-neutral coordinator
+      assertion credential; Dev deliberately preserves that production-owned
+      item until it can be retired or migrated to a flavor-specific service.
       After enrollment, Settings observes the live account-sync engine instead
       of treating saved enrollment as proof of a working connection. It explains
       connecting, encrypted-waiting, synchronized, offline, and rejected states in

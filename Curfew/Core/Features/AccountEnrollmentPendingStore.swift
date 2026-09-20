@@ -2,6 +2,7 @@ import CurfewProtocols
 import Foundation
 
 final class AccountEnrollmentPendingStore {
+    private static let readyKey = "pending-account-enrollment-ready"
     private let secretStore: any AccountSecretStoring
 
     init(secretStore: any AccountSecretStoring) {
@@ -67,6 +68,16 @@ final class AccountEnrollmentPendingStore {
         try save(checkpoint.updating(recoveryKeySaved: true))
     }
 
+    /// Records the completed enrollment before removing any earlier checkpoint.
+    /// Loading prioritizes this marker, so a crash during cleanup can never
+    /// roll a server-complete enrollment back into recovery setup.
+    func markReady(_ enrollment: AccountDeviceEnrollment) throws {
+        try secretStore.save(JSONEncoder().encode(enrollment), for: Self.readyKey)
+        try secretStore.delete("pending-account-enrollment")
+        try secretStore.delete("pending-recovery-key")
+        try secretStore.delete("pending-recovery-setup")
+    }
+
     private func save(_ checkpoint: AccountRecoverySetupCheckpoint) throws {
         try secretStore.save(JSONEncoder().encode(checkpoint), for: "pending-recovery-setup")
     }
@@ -77,6 +88,9 @@ final class AccountEnrollmentPendingStore {
     }
 
     func load() throws -> AccountEnrollmentUIState? {
+        if let data = try secretStore.data(for: Self.readyKey) {
+            return try .ready(JSONDecoder().decode(AccountDeviceEnrollment.self, from: data))
+        }
         if let checkpoint = try loadRecoverySetup() {
             if checkpoint.receiptData == nil {
                 return .finishDeviceRegistration(checkpoint.recoveryKey, checkpoint.enrollment)
@@ -96,6 +110,7 @@ final class AccountEnrollmentPendingStore {
     }
 
     func clear() throws {
+        try secretStore.delete(Self.readyKey)
         try secretStore.delete("pending-account-enrollment")
         try secretStore.delete("pending-recovery-key")
         try secretStore.delete("pending-recovery-setup")

@@ -187,7 +187,6 @@ final class AccountEnrollmentController: ObservableObject {
                 try pending.save(enrollment: enrollment, recoveryKey: nil)
                 state = .enterRecoveryKey(enrollment)
             case .ready(let enrollment):
-                try pending.clear()
                 state = .ready(enrollment)
             }
         } catch {
@@ -247,7 +246,6 @@ final class AccountEnrollmentController: ObservableObject {
             try pending.save(enrollment: enrollment, recoveryKey: nil)
             state = .enterRecoveryKey(enrollment)
         case .ready(let enrollment):
-            try pending.clear()
             state = .ready(enrollment)
         }
     }
@@ -259,7 +257,7 @@ final class AccountEnrollmentController: ObservableObject {
                 recoveryKey: recoveryKey.trimmingCharacters(in: .whitespacesAndNewlines),
                 enrollment: enrollment
             )
-            try pending.clear()
+            try pending.markReady(restored)
             state = .ready(restored)
         } catch {
             state = .failed("That Recovery Key could not decrypt this Curfew account.")

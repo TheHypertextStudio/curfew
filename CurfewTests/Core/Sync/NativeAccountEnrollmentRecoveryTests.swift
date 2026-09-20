@@ -83,6 +83,7 @@ extension NativeAccountSyncTransportTests {
 
         XCTAssertEqual(resumed, .ready(enrollment))
         XCTAssertNil(try pending.loadRecoverySetup())
+        XCTAssertEqual(try pending.load(), .ready(enrollment))
     }
 
     private var recoveryTestGrant: AccountOAuthGrant {

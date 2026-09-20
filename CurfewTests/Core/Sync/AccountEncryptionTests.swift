@@ -226,6 +226,33 @@ final class AccountEncryptionTests: XCTestCase {
         )
     }
 
+    func testCompletedEnrollmentSurvivesRelaunchUntilSettingsPersist() throws {
+        let secrets = MemoryAccountSecretStore()
+        let pending = AccountEnrollmentPendingStore(secretStore: secrets)
+        let enrollment = AccountDeviceEnrollment(
+            deviceID: deviceID,
+            keyEpoch: 1,
+            enrolledAt: createdAt
+        )
+
+        try pending.save(enrollment: enrollment, recoveryKey: "recovery-key")
+        try pending.markReady(enrollment)
+
+        XCTAssertEqual(try pending.load(), .ready(enrollment))
+        XCTAssertNil(try secrets.data(for: "pending-recovery-key"))
+
+        let staleEnrollment = try AccountDeviceEnrollment(
+            deviceID: XCTUnwrap(UUID(uuidString: "10000000-0000-4000-8000-000000000099")),
+            keyEpoch: 1,
+            enrolledAt: createdAt.addingTimeInterval(-60)
+        )
+        XCTAssertNotEqual(staleEnrollment, enrollment)
+        XCTAssertEqual(try pending.load(), .ready(enrollment))
+
+        try pending.clear()
+        XCTAssertNil(try pending.load())
+    }
+
     func testPendingDeviceRegistrationSurvivesBeforeCoordinatorResponse() throws {
         let secrets = MemoryAccountSecretStore()
         let pending = AccountEnrollmentPendingStore(secretStore: secrets)

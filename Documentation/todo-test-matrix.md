@@ -20,7 +20,7 @@ only.
   - `BrowserNativeInstallationTests/developmentAndProductionInstallAndUninstallIndependently()` and `installationRejectsUnsafeExecutable(kind:)` check manifest isolation and executable validation.
   - `BrowserNativeStoreTests/oversizedDestinationCannotPoisonAnExistingQueue()`, `oversizedSignedResponseLeavesPriorQueueUnchanged()`, `requestByteBoundaryAndMaximumQueueStayReadable(unicodeAnswers:)`, and `completeSignedRecordAcceptsItsLastFittingSize()` check request and record size boundaries.
   - `BrowserNativeHostTests/liveHostCannotRecreateStateAfterUninstall()` and `revokedMarkerBlocksEveryMutationWithoutCreatingFiles()` check marker revocation.
-  - `BrowserNativeLifecycleTests/uninstallRevokesAWaitingHostAndPreservesOtherFlavor()` checks the app uninstall path with a waiting host.
+  - `BrowserNativeLifecycleTests/uninstallRevokesAWaitingHostAndPreservesOtherFlavor()` checks the app uninstall path with a waiting host. Browser lifecycle fixtures inject an isolated Keychain eraser so unsigned CI validates browser state rather than depending on the runner's Keychain entitlements.
 - `Build the task-scoped Chrome MV3 extension.`
   - `destination.test.ts` checks removal of credentials, query strings, fragments, default ports, and unsupported schemes before review.
   - `rules.test.ts` checks one low-priority top-level block, higher-priority exact-origin and case-sensitive path-prefix allows, subresource exclusion, and current-clock grant and break expiry.
@@ -468,6 +468,11 @@ only.
   - `NativeAccountSyncTransportTests/testDeviceRegistrationShowsRecoveryKeyBeforeRecoveryUpload()`
   - `NativeAccountSyncTransportTests/testAmbiguousRegistrationResponseResumesTheExactDeviceWithoutOAuth()`
   - `AccountEncryptionTests/testPendingDeviceRegistrationSurvivesBeforeCoordinatorResponse()`
+  - `AccountEncryptionTests/testCompletedEnrollmentSurvivesRelaunchUntilSettingsPersist()`
+  - `UninstallCoordinatorTests/productionUninstallIncludesLegacyCoordinatorCredential()`
+  - `UninstallCoordinatorTests/developmentUninstallPreservesLegacyProductionCredential()`
+  - `UninstallCoordinatorTests/uninstallErasesFlavorScopedAccountKeychainState()`
+  - `UninstallCoordinatorTests/completedUninstallTerminatesAfterPresentingTheOutcome()`
   - `AppConfigurationTests/hostAppOwnsOAuthCallbackScheme()`
   - `NativeAccountSyncTransportTests`
   - `AccountEncryptionTests`

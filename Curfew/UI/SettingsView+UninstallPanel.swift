@@ -66,7 +66,11 @@ extension SettingsView {
 
         model.browserNativeRuntime.stop()
         let outcome = UninstallCoordinator.performUninstall()
-        presentUninstallResult(outcome)
+        UninstallLifecycle.finish(
+            outcome: outcome,
+            present: presentUninstallResult,
+            terminate: { NSApp.terminate(nil) }
+        )
     }
 
     private func presentUninstallResult(_ outcome: UninstallCoordinator.Outcome) {
