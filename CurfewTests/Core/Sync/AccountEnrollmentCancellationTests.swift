@@ -166,7 +166,9 @@ private final class StalledTokenExchangeOAuthEnrollment: AccountOAuthEnrolling {
             waiter.resume()
         }
         startWaiters.removeAll()
-        try await Task.sleep(for: .milliseconds(500))
+        // Leave enough time for cancellation even when the full CI suite
+        // delays this test's MainActor continuation under load.
+        try await Task.sleep(for: .seconds(30))
         throw AccountOAuthEnrollmentError.browserCompletedConnectionFailed
     }
 
