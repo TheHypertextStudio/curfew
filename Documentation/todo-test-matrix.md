@@ -457,6 +457,8 @@ only.
   - `AccountEnrollmentRecoveryTests/browserSignInLinkCanMoveToThePasskeyProfile()`
   - `AccountEnrollmentRecoveryTests/browserSignInLinkCleanupPreservesNewClipboardContents()`
   - `AccountEnrollmentRecoveryTests/browserSignInLinkClearsBeforeDeviceEnrollment()`
+  - `AccountEnrollmentCopyTests/recoveryKeyCanBeCopied()`
+  - `AccountEnrollmentCopyTests/recoveryKeyExportUsesOwnerOnlyFilePermissions()`
   - `AccountOAuthEnrollmentTests/callbackStateIsExact()`
   - `AccountOAuthEnrollmentTests/callbackIsClaimedHTTPS()`
   - `AccountOAuthExternalCallbackTests/externalBrowserCallbackRoutesByExactState()`

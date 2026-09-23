@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import UniformTypeIdentifiers
 
 extension SettingsView {
     var coordinatorSyncPanel: some View {
@@ -96,7 +97,8 @@ extension SettingsView {
             case .saveRecoveryKey(let key, _):
                 Text(
                     "Save this Recovery Key outside Curfew. "
-                        + "Better Auth backup codes cannot recover encrypted Curfew data."
+                        + "Copy it to a password manager or save a private file. "
+                        + "Account recovery codes cannot restore encrypted Curfew data."
                 )
                 .font(CurfewTypography.bodyEmphasis(13))
                 .foregroundStyle(CurfewTheme.warning)
@@ -105,6 +107,32 @@ extension SettingsView {
                     .font(.system(.body, design: .monospaced))
                     .textSelection(.enabled)
                     .accessibilityLabel("Curfew Recovery Key")
+                HStack {
+                    Button {
+                        recoveryKeyExportMessage = AccountRecoveryKeyClipboard.copy(key)
+                            ? "Recovery Key copied. Curfew clears it from the clipboard "
+                            + "after one minute."
+                            : "Curfew could not copy the Recovery Key. Select and copy it manually."
+                    } label: {
+                        Label("Copy Recovery Key", systemImage: "doc.on.doc")
+                    }
+                    .buttonStyle(CurfewSecondaryButtonStyle())
+                    .accessibilityIdentifier("settings-copy-recovery-key")
+
+                    Button {
+                        saveRecoveryKey(key)
+                    } label: {
+                        Label("Save Recovery Key…", systemImage: "arrow.down.doc")
+                    }
+                    .buttonStyle(CurfewSecondaryButtonStyle())
+                    .accessibilityIdentifier("settings-save-recovery-key")
+                }
+                if !recoveryKeyExportMessage.isEmpty {
+                    Text(recoveryKeyExportMessage)
+                        .font(CurfewTypography.body(12))
+                        .foregroundStyle(CurfewTheme.mutedInk)
+                        .accessibilityAddTraits(.updatesFrequently)
+                }
                 Button("I saved the Recovery Key") {
                     Task {
                         if let enrollment = await accountEnrollment.acknowledgeSavedRecoveryKey() {
@@ -113,6 +141,7 @@ extension SettingsView {
                     }
                 }
                 .buttonStyle(CurfewPrimaryButtonStyle())
+                .accessibilityIdentifier("settings-confirm-recovery-key-saved")
                 .disabled(accountEnrollment.isFinishingEnrollment)
             case .enterRecoveryKey:
                 SecureField("Curfew Recovery Key", text: $accountRecoveryKey)
@@ -165,6 +194,24 @@ extension SettingsView {
             NSWorkspace.shared.open(CurfewServiceEndpoints.current.accountPortal)
         }
         .buttonStyle(CurfewSecondaryButtonStyle())
+    }
+
+    private func saveRecoveryKey(_ key: String) {
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.plainText]
+        panel.nameFieldStringValue = AccountRecoveryKeyDocument.suggestedFilename
+        panel.message = "This file can restore your encrypted Curfew data. Keep it private."
+        panel.begin { response in
+            guard response == .OK, let destination = panel.url else { return }
+            do {
+                try AccountRecoveryKeyDocument(recoveryKey: key).write(to: destination)
+                recoveryKeyExportMessage = "Recovery Key saved. Keep the file somewhere private."
+            } catch {
+                recoveryKeyExportMessage = "Curfew could not save the Recovery Key. "
+                    + "Try another location."
+                NSApp.presentError(error)
+            }
+        }
     }
 
     static let accountExplanation = """

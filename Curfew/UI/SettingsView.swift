@@ -17,6 +17,7 @@ struct SettingsView: View {
     @State var selection: SettingsSection = .enforcement
     @StateObject var accountEnrollment = AccountEnrollmentController()
     @State var accountRecoveryKey = ""
+    @State var recoveryKeyExportMessage = ""
 
     init() {
         #if DEBUG
