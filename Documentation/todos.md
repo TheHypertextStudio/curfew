@@ -527,6 +527,16 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
       explicit account reset, and a newer marker takes precedence over stale
       settings, so a process exit or settings-write failure cannot silently
       return the Mac to an unenrolled or older enrollment state.
+      A Keychain read error or corrupt local enrollment checkpoint now leaves
+      Settings in a distinct saved-connection warning state instead of
+      pretending the account is empty. New sign-in is refused while that state
+      is unreadable, preventing replacement of an unfinished enrollment. The
+      user can retry a read without deleting keys or changing saved settings;
+      a successful read resumes the exact saved step. This does not stop an
+      independently running sync connection or claim remote control is off.
+      Persistent corruption needs support-led recovery; rollback must preserve
+      the fail-closed sign-in policy rather than restoring the old `try?`
+      fallback.
       A destructive uninstall erases the entire flavor-specific account and
       Docket OAuth Keychain services, including this durable marker, OAuth
       credentials, device identity, and dynamically named private keys, so

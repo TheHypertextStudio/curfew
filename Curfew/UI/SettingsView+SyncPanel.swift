@@ -28,8 +28,10 @@ extension SettingsView {
 
     @ViewBuilder
     private var accountEnrollmentControls: some View {
-        if case .ready(let enrollment) = accountEnrollment.state,
-           model.settings.accountSync.enrollment != enrollment {
+        if case .storageUnavailable = accountEnrollment.state {
+            storageUnavailableControls
+        } else if case .ready(let enrollment) = accountEnrollment.state,
+                  model.settings.accountSync.enrollment != enrollment {
             Label("Encrypted account sync is ready.", systemImage: "checkmark.shield")
                 .onAppear {
                     model.settings.accountSync.enrollment = enrollment
@@ -45,6 +47,8 @@ extension SettingsView {
                 }
                 .buttonStyle(CurfewPrimaryButtonStyle())
                 openAccountButton
+            case .storageUnavailable:
+                storageUnavailableControls
             case .signingIn:
                 ProgressView("Waiting for secure sign-in and 2FA…")
                 Button("Cancel sign-in") {
@@ -181,6 +185,28 @@ extension SettingsView {
                 .buttonStyle(CurfewSecondaryButtonStyle())
                 openAccountButton
             }
+        }
+    }
+
+    private var storageUnavailableControls: some View {
+        VStack(alignment: .leading, spacing: CurfewSpacing.small) {
+            Label(
+                "Curfew can’t check this Mac’s saved account connection right now.",
+                systemImage: "exclamationmark.triangle"
+            )
+            .foregroundStyle(CurfewTheme.warning)
+            Text(
+                "Your saved account and local protection have not been changed. "
+                    + "Try again. If this keeps happening, contact Curfew support before "
+                    + "starting a new sign-in."
+            )
+            .font(CurfewTypography.body(12))
+            .foregroundStyle(CurfewTheme.mutedInk)
+            Button("Check saved connection again") {
+                accountEnrollment.reloadSavedEnrollment()
+            }
+            .buttonStyle(CurfewSecondaryButtonStyle())
+            .accessibilityIdentifier("settings-retry-saved-account-connection")
         }
     }
 

@@ -470,6 +470,10 @@ only.
   - `AccountEnrollmentRecoveryTests/registeredMacResumesWithoutSigningInAgain()`
   - `AccountEnrollmentRecoveryTests/recoveryRetryFailureStaysAtTheRecoveryStep()`
   - `AccountEnrollmentRecoveryTests/recoveryRetryIsSingleFlight()`
+  - `AccountEnrollmentStorageRecoveryTests/unreadableEnrollmentFailsClosed()`
+  - `AccountEnrollmentStorageRecoveryTests/malformedEnrollmentFailsClosed(account:)`
+  - `AccountEnrollmentStorageRecoveryTests/storageRetryRestoresPendingStep()`
+  - `AccountEnrollmentStorageRecoveryTests/storageRetryWithNoCheckpointReturnsAccountFree()`
   - `AccountOAuthEnrollmentTests/authenticationSessionIsSingleFlight()`
   - `AccountEncryptionTests/testRegisteredDeviceRecoverySetupSurvivesRelaunchAsResumable()`
   - `NativeAccountSyncTransportTests/testDeviceRegistrationShowsRecoveryKeyBeforeRecoveryUpload()`
