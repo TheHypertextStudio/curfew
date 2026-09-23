@@ -32,6 +32,7 @@ protocol AccountOAuthEnrolling {
         presentationWindow: NSWindow?,
         authorizationURLHandler: @escaping @MainActor (URL) -> Void
     ) async throws -> AccountOAuthGrant
+    func cancelSignIn()
 }
 
 @MainActor
@@ -130,6 +131,8 @@ final class AccountEnrollmentController: ObservableObject {
     private let devices: any AccountDeviceEnrolling
     private let pending: AccountEnrollmentPendingStore
     private let authorizationLinkClipboard: any AccountAuthorizationLinkCopying
+    private var activeSignInTask: Task<AccountOAuthGrant, any Error>?
+    private var signInCancellationRequested = false
     weak var presentationWindow: NSWindow?
 
     init(
@@ -149,21 +152,17 @@ final class AccountEnrollmentController: ObservableObject {
 
     func signIn() async {
         guard AccountEnrollmentSignInPolicy.canStart(from: state) else { return }
+        signInCancellationRequested = false
         state = .signingIn
         browserSignInURL = nil
         let grant: AccountOAuthGrant
         do {
-            defer {
-                browserSignInURL = nil
-                authorizationLinkClipboard.clearIfUnchanged()
-            }
-            grant = try await oauth.signIn(
-                presentationWindow: presentationWindow
-            ) { [weak self] authorizationURL in
-                self?.browserSignInURL = authorizationURL
-            }
+            grant = try await authenticate()
         } catch AccountOAuthEnrollmentError.browserCompletedConnectionFailed {
             state = .failed(AccountEnrollmentFailureCopy.browserCompleted)
+            return
+        } catch is CancellationError {
+            state = .accountFree
             return
         } catch {
             state = .failed(AccountEnrollmentFailureCopy.authorization)
@@ -192,6 +191,47 @@ final class AccountEnrollmentController: ObservableObject {
         } catch {
             state = .failed(AccountEnrollmentFailureCopy.deviceConnection)
         }
+    }
+
+    private func authenticate() async throws -> AccountOAuthGrant {
+        let authorizationURLHandler: @MainActor (URL) -> Void = { [weak self] authorizationURL in
+            self?.browserSignInURL = authorizationURL
+        }
+        let authentication = Task {
+            try await oauth.signIn(
+                presentationWindow: presentationWindow,
+                authorizationURLHandler: authorizationURLHandler
+            )
+        }
+        activeSignInTask = authentication
+        defer {
+            activeSignInTask = nil
+            browserSignInURL = nil
+            authorizationLinkClipboard.clearIfUnchanged()
+        }
+        let grant = try await authentication.value
+        if signInCancellationRequested {
+            try discardCancelledGrant(grant)
+            throw CancellationError()
+        }
+        return grant
+    }
+
+    private func discardCancelledGrant(_ grant: AccountOAuthGrant) throws {
+        guard try secretStore
+            .data(for: "oauth-access-token") == Data(grant.tokens.accessToken.utf8),
+            try secretStore.data(for: "oauth-refresh-token") == Data(grant.tokens.refreshToken.utf8)
+        else { return }
+        try secretStore.delete("oauth-access-token")
+        try secretStore.delete("oauth-refresh-token")
+        try secretStore.delete("oauth-client-id")
+    }
+
+    func cancelSignIn() {
+        guard case .signingIn = state else { return }
+        signInCancellationRequested = true
+        activeSignInTask?.cancel()
+        oauth.cancelSignIn()
     }
 
     @discardableResult

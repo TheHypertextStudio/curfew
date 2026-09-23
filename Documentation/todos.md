@@ -499,7 +499,12 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
       unless the user has since copied something else. Claimed HTTPS callbacks
       from an ordinary browser tab are routed into only the active transaction
       after exact origin, callback-path, and one-time-state validation; the former
-      custom scheme is rejected. The enrollment UI now keeps
+      custom scheme is rejected. If the browser reaches the HTTPS callback
+      instead of returning to Curfew, Settings offers Cancel sign-in so the
+      user can start a fresh authorization without quitting the app. Cancelling
+      stops the active browser session, rejects any in-flight token result,
+      clears the temporary sign-in link, and re-enables sign-in. The enrollment
+      UI now keeps
       browser authorization and device enrollment as separate states: once the
       browser callback succeeds, Settings reports that it is connecting the Mac;
       token exchange or local credential failure is
@@ -564,6 +569,8 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
       If Copy or Save fails, the Recovery Key remains visible and Curfew does
       not acknowledge it automatically. Rolling back the export controls must
       retain the existing saved-key acknowledgement and envelope checkpoint.
+      Rolling back cancellation would restore the missed-callback spinner dead
+      end; cancellation is safe only before device enrollment begins.
       Rollback may disable native enrollment, but must not restore the
       unregistered callback, guessed-window behavior, or concurrent sessions.
 - [x] `just check` passes (format + lint + tests + Debug build).

@@ -47,6 +47,11 @@ extension SettingsView {
                 openAccountButton
             case .signingIn:
                 ProgressView("Waiting for secure sign-in and 2FA…")
+                Button("Cancel sign-in") {
+                    accountEnrollment.cancelSignIn()
+                }
+                .buttonStyle(CurfewSecondaryButtonStyle())
+                .accessibilityIdentifier("settings-cancel-account-sign-in")
                 if accountEnrollment.browserSignInURL != nil {
                     Text(
                         "Did Curfew open the wrong browser profile? Copy this temporary, private "

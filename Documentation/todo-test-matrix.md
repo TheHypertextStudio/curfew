@@ -455,6 +455,9 @@ only.
   - `AccountEnrollmentRecoveryTests/deviceEnrollmentFailurePreservesSignInTruth()`
   - `AccountEnrollmentRecoveryTests/postBrowserFailurePreservesBrowserSignInTruth()`
   - `AccountEnrollmentRecoveryTests/browserSignInLinkCanMoveToThePasskeyProfile()`
+  - `AccountEnrollmentCancellationTests/missedBrowserCallbackCanBeRetriedWithoutRelaunch()`
+  - `AccountEnrollmentCancellationTests/stalledTokenExchangeCanBeCancelled()`
+  - `AccountEnrollmentCancellationTests/cancelAfterOAuthCompletionPreventsDeviceEnrollment()`
   - `AccountEnrollmentRecoveryTests/browserSignInLinkCleanupPreservesNewClipboardContents()`
   - `AccountEnrollmentRecoveryTests/browserSignInLinkClearsBeforeDeviceEnrollment()`
   - `AccountEnrollmentCopyTests/recoveryKeyCanBeCopied()`
