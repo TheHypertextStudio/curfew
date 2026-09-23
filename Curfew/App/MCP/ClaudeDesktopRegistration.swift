@@ -70,9 +70,14 @@ enum ClaudeDesktopRegistration {
     /// `curfew`; a development build registers as `curfew-dev` so the two never
     /// clobber each other's entry in a shared Claude Desktop config.
     static var serverKey: String {
-        switch CurfewFlavor.current {
+        serverKey(for: .current)
+    }
+
+    nonisolated static func serverKey(for flavor: CurfewFlavor) -> String {
+        switch flavor {
         case .production: "curfew"
         case .development: "curfew-dev"
+        case .studioDevelopment: "curfew-studio-dev"
         }
     }
 

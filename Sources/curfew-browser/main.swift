@@ -16,6 +16,7 @@ enum CurfewBrowserMain {
                 environment: [:],
                 bundleIdentifier: bundle.bundleIdentifier
             )
+            guard flavor != .studioDevelopment else { throw BrowserNativeError.invalidIdentity }
             setenv("CURFEW_FLAVOR", flavor.environmentValue, 1)
             let extensionID = flavor == .development ? BrowserNativeInstallation
                 .developmentExtensionID

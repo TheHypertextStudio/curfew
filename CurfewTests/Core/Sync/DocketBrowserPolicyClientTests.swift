@@ -40,6 +40,40 @@ struct DocketBrowserPolicyClientTests {
             "https://docket-api-staging.hypertext.studio/mcp")
     }
 
+    @Test("Studio development Docket credentials and callbacks cannot alias personal development")
+    func studioDevelopmentDocketIdentity() throws {
+        let endpoints = DocketServiceEndpoints.forFlavor(.studioDevelopment)
+        #expect(endpoints.webOrigin.absoluteString == "https://docket-staging.hypertext.studio")
+        #expect(endpoints.keychainService == "studio.hypertext.curfew.docket.studio.dev")
+        #expect(endpoints.keychainService != DocketServiceEndpoints.staging.keychainService)
+
+        let request = try DocketOAuthAuthorizationRequest.create(
+            clientID: "registered-client",
+            state: "state-value",
+            verifier: String(repeating: "v", count: 64),
+            endpoints: endpoints,
+            flavor: .studioDevelopment
+        )
+        let studioCallback = "studio.hypertext.curfew.studio.dev://docket-oauth/callback"
+        #expect(request.redirectURI == studioCallback)
+        #expect(try DocketOAuthCallback.authorizationCode(
+            from: #require(
+                URL(string: "\(studioCallback)?state=s&code=c")
+            ),
+            expectedState: "s",
+            flavor: .studioDevelopment
+        ) == "c")
+        #expect(throws: DocketClientError.invalidResponse) {
+            _ = try DocketOAuthCallback.authorizationCode(
+                from: #require(
+                    URL(string: "studio.hypertext.curfew://docket-oauth/callback?state=s&code=c")
+                ),
+                expectedState: "s",
+                flavor: .studioDevelopment
+            )
+        }
+    }
+
     @Test(
         "OAuth callback rejects duplicate security parameters without trapping",
         arguments: [

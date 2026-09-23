@@ -96,6 +96,7 @@ test("interactive builds reject an unresolved signing identity before TCC can mi
 
 test("a staging build compiles the app and every embedded tool for the same service boundary", () => {
   const projectDebug = buildConfigurationBlock("9BD3FBA32F4D4587007B2E95", "Debug");
+  const projectStudioDev = buildConfigurationBlock("C0FE00000000000000000310", "StudioDev");
   const projectRelease = buildConfigurationBlock("9BD3FBA42F4D4587007B2E95", "Release");
   const appRelease = buildConfigurationBlock("9BD3FBA72F4D4587007B2E95", "Release");
   assert.match(
@@ -103,12 +104,17 @@ test("a staging build compiles the app and every embedded tool for the same serv
     /SWIFT_ACTIVE_COMPILATION_CONDITIONS = "[^"]*\$\(CURFEW_SERVICE_SWIFT_FLAG\)[^"]*";/,
   );
   assert.match(projectDebug, /CURFEW_SERVICE_SWIFT_FLAG = CURFEW_STAGING;/);
+  assert.match(
+    projectStudioDev,
+    /SWIFT_ACTIVE_COMPILATION_CONDITIONS = "[^"]*\$\(CURFEW_SERVICE_SWIFT_FLAG\)[^"]*";/,
+  );
+  assert.match(projectStudioDev, /CURFEW_SERVICE_SWIFT_FLAG = CURFEW_STAGING;/);
   assert.doesNotMatch(projectRelease, /CURFEW_SERVICE_SWIFT_FLAG/);
   assert.doesNotMatch(appRelease, /CURFEW_SERVICE_SWIFT_FLAG/);
   assert.match(projectFile, /SWIFT_SERVICE_FLAGS=.*-Xswiftc -DCURFEW_STAGING/);
   assert.match(projectFile, /swift build -c release --jobs 2 --product curfew-daemon \$SWIFT_SERVICE_FLAGS/);
   assert.match(projectFile, /if \[ \\"\$CONFIGURATION\\" != \\"Debug\\" \]/);
-  assert.match(projectFile, /CURFEW_STAGING requires the isolated Debug app and helper identity/);
+  assert.match(projectFile, /CURFEW_STAGING requires an isolated Debug or StudioDev app and helper identity/);
   assert.match(projectFile, /CURFEW_DAEMON_PLIST_NAME/);
 });
 

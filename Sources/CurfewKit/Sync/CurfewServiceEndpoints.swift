@@ -27,8 +27,23 @@ public nonisolated struct CurfewServiceEndpoints: Equatable, Sendable {
         keychainService: "studio.hypertext.curfew.account-e2ee.staging"
     )
 
+    public static let studioDevelopment = make(
+        accountOrigin: "https://curfew-account-staging.hypertext.studio",
+        accountPortal: "https://curfew-staging.hypertext.studio/account",
+        syncOrigin: "https://curfew-sync-staging.hypertext.studio",
+        keychainService: "studio.hypertext.curfew.account-e2ee.studio.dev"
+    )
+
+    public static func forFlavor(_ flavor: CurfewFlavor) -> CurfewServiceEndpoints {
+        switch flavor {
+        case .production: production
+        case .development: staging
+        case .studioDevelopment: studioDevelopment
+        }
+    }
+
     #if CURFEW_STAGING
-        public static let current = staging
+        public static let current = forFlavor(CurfewFlavor.current)
     #else
         public static let current = production
     #endif

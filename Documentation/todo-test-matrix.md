@@ -251,7 +251,7 @@ only.
 - `Expose the shipping MCP and privileged-helper controls in the isolated staging build so signed-device acceptance can install the daemon.`
   - `FeatureFlagTests/resolveWithStagingFeatures()`
   - `FeatureFlagTests/resolvedMatchesBuild()`
-  - `scripts/release-entitlements.test.mjs` (`a staging build compiles the app and every embedded tool for the same service boundary`)
+  - `scripts/release-entitlements.test.mjs` (`a staging build compiles the app and every embedded tool for the same service boundary`; checks Debug and StudioDev staging flags and excludes Release)
 
 ## 6. Extension and Override Systems
 
@@ -437,6 +437,24 @@ only.
 
 ## 17. Build Gating and Distribution Accuracy
 
+- `The company-signed Studio development vehicle is identity-isolated from
+  personal Debug and Release, resolves bundled helpers without trusting a
+  conflicting environment, cannot perform machine-wide shutdown effects or
+  accept a remote lock while a live higher-priority app owns enforcement,
+  and uninstalls only its own state. Artifact and live signed-device proof
+  remain separate release gates.`
+  - `CurfewFlavorTests/studioDevelopmentResolution()`
+  - `CurfewFlavorTests/bundledHelperUsesContainingAppIdentity()`
+  - `CurfewFlavorTests/studioMutableIdentitiesAreDisjoint()`
+  - `StudioDevDaemonSafetyTests/liveOwnerDeniesRemoteLock()`
+  - `StudioDevDaemonSafetyTests/staleHeartbeatCannotShutdown()`
+  - `StudioDevDaemonSafetyTests/rootShutdownEffectsAreInert()`
+  - `DaemonPlistTests/helperPlistsAreFlavorSpecific()`
+  - `UninstallCoordinatorTests/studioDevelopmentUninstallTouchesOnlyItsOwnState()`
+  - `UninstallCoordinatorTests/failedStudioRegistrationCleanupKeepsStateAndAppRunning()`
+  - `PrivilegedHelperManagerTests/studioUninstallRegistrationCleanup()`
+  - `BrowserNativeStartupTests/studioDevelopmentNeverClaimsChromeNativeHost()`
+  - `TaskBrowserEnforcementPanelTests/studioDevelopmentExplainsChromeIsUnavailableOnlyHere()`
 - `macOS account enrollment binds PKCE to the Curfew sync resource, stores
   private material in Keychain, sends privacy-minimal generated enrollment,
   preserves the user's normal browser session for existing passkeys, and

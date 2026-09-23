@@ -165,6 +165,30 @@ final class PrivilegedHelperManager: ObservableObject {
             )
         }
     }
+
+    /// An isolated app must remove its launchd registrations before erasing
+    /// state or asking the user to trash its bundle. Attempt both removals so
+    /// one failure does not leave the other registration behind.
+    func unregisterForUninstall() -> [String] {
+        var failures: [String] = []
+        if daemonService.status != .notRegistered, daemonService.status != .notFound {
+            do {
+                try daemonService.unregister()
+            } catch {
+                failures.append("Privileged daemon: \(error.localizedDescription)")
+            }
+        }
+        if loginItemService.status != .notRegistered, loginItemService.status != .notFound {
+            do {
+                try loginItemService.unregister()
+            } catch {
+                failures.append("Login item: \(error.localizedDescription)")
+            }
+        }
+        refreshStatus()
+        lastError = failures.first
+        return failures
+    }
 }
 
 private extension SMAppService.Status {

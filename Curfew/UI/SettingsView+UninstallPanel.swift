@@ -52,12 +52,13 @@ extension SettingsView {
     /// chaining reads better at statement level than inside a trailing
     /// closure.
     private func confirmUninstall() {
+        let appName = UninstallCoordinator.appBundleURL(for: .current).lastPathComponent
         let alert = NSAlert()
         alert.messageText = "Uninstall Curfew on this Mac?"
         alert.informativeText =
             "Curfew will remove its local state (activity log, settings, " +
             "license key, LaunchAgent). You'll then be prompted to drag " +
-            "Curfew.app to the Trash. This cannot be undone."
+            "\(appName) to the Trash. This cannot be undone."
         alert.alertStyle = .warning
         alert.addButton(withTitle: "Uninstall")
         alert.addButton(withTitle: "Cancel")
@@ -65,7 +66,9 @@ extension SettingsView {
         guard alert.runModal() == .alertFirstButtonReturn else { return }
 
         model.browserNativeRuntime.stop()
-        let outcome = UninstallCoordinator.performUninstall()
+        let outcome = UninstallCoordinator.performUninstall(
+            unregisterServices: { model.privilegedHelperManager.unregisterForUninstall() }
+        )
         UninstallLifecycle.finish(
             outcome: outcome,
             present: presentUninstallResult,
@@ -74,19 +77,30 @@ extension SettingsView {
     }
 
     private func presentUninstallResult(_ outcome: UninstallCoordinator.Outcome) {
+        if outcome.blockedBeforeCleanup {
+            let warning = NSAlert()
+            warning.alertStyle = .warning
+            warning.messageText = "Curfew Studio Dev could not be uninstalled yet."
+            warning.informativeText = outcome.summary +
+                "\n\nThe app and its saved state were kept. " +
+                "Retry from Settings before moving the app to Trash."
+            warning.runModal()
+            return
+        }
+        let appURL = UninstallCoordinator.appBundleURL(for: .current)
         let summary = NSAlert()
         summary.alertStyle = outcome.allSucceeded ? .informational : .warning
         summary.messageText = outcome.allSucceeded
             ? "Curfew's local state is cleared."
             : "Uninstall completed with some errors."
         summary.informativeText = outcome.summary + "\n\n" +
-            "Drag Curfew from /Applications to the Trash to finish removing the app."
+            "Drag \(appURL.lastPathComponent) from /Applications to the Trash to finish removing the app."
         summary.addButton(withTitle: "Reveal in Finder")
         summary.addButton(withTitle: "Done")
 
         if summary.runModal() == .alertFirstButtonReturn {
             NSWorkspace.shared.activateFileViewerSelecting([
-                URL(fileURLWithPath: "/Applications/Curfew.app")
+                appURL
             ])
         }
     }

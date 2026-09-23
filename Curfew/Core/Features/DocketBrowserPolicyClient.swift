@@ -21,19 +21,24 @@ nonisolated struct DocketOAuthAuthorizationRequest: Equatable, Sendable {
     let verifier: String
 
     static let scopes = ["work:read", "agents:run", "offline_access"]
-    static let callbackScheme = "studio.hypertext.curfew"
+    static func callbackScheme(for flavor: CurfewFlavor) -> String {
+        flavor == .studioDevelopment
+            ? "studio.hypertext.curfew.studio.dev"
+            : "studio.hypertext.curfew"
+    }
 
     static func create(
         clientID: String,
         state: String,
         verifier: String,
-        endpoints: DocketServiceEndpoints = .current
+        endpoints: DocketServiceEndpoints = .current,
+        flavor: CurfewFlavor = .current
     ) throws -> DocketOAuthAuthorizationRequest {
         guard !clientID.isEmpty, !state.isEmpty, (43 ... 128).contains(verifier.count) else {
             throw DocketClientError.invalidOAuthRequest
         }
         let challenge = base64URL(Data(SHA256.hash(data: Data(verifier.utf8))))
-        let redirectURI = "\(callbackScheme)://docket-oauth/callback"
+        let redirectURI = "\(callbackScheme(for: flavor))://docket-oauth/callback"
         var components = URLComponents(
             url: endpoints.authorizationEndpoint,
             resolvingAgainstBaseURL: false
@@ -69,8 +74,12 @@ nonisolated struct DocketOAuthAuthorizationRequest: Equatable, Sendable {
 }
 
 nonisolated enum DocketOAuthCallback {
-    static func authorizationCode(from callback: URL, expectedState: String) throws -> String {
-        guard callback.scheme == DocketOAuthAuthorizationRequest.callbackScheme,
+    static func authorizationCode(
+        from callback: URL,
+        expectedState: String,
+        flavor: CurfewFlavor = .current
+    ) throws -> String {
+        guard callback.scheme == DocketOAuthAuthorizationRequest.callbackScheme(for: flavor),
               callback.host == "docket-oauth",
               callback.path == "/callback",
               let components = URLComponents(url: callback, resolvingAgainstBaseURL: false)
@@ -104,16 +113,19 @@ final class DocketOAuthClient: NSObject, DocketOAuthAuthorizing,
     private let store: DocketCredentialStore
     private let session: URLSession
     private let endpoints: DocketServiceEndpoints
+    private let flavor: CurfewFlavor
     private var browserSession: ASWebAuthenticationSession?
 
     init(
         store: DocketCredentialStore? = nil,
         session: URLSession? = nil,
-        endpoints: DocketServiceEndpoints = .current
+        endpoints: DocketServiceEndpoints = .current,
+        flavor: CurfewFlavor = .current
     ) {
         self.store = store ?? DocketCredentialStore(endpoints: endpoints)
         self.session = session ?? URLSession(configuration: .ephemeral)
         self.endpoints = endpoints
+        self.flavor = flavor
         super.init()
     }
 
@@ -125,7 +137,8 @@ final class DocketOAuthClient: NSObject, DocketOAuthAuthorizing,
         let callback = try await authenticate(request)
         let code = try DocketOAuthCallback.authorizationCode(
             from: callback,
-            expectedState: request.state
+            expectedState: request.state,
+            flavor: flavor
         )
         return try await exchange(code: code, request: request, now: date)
     }
@@ -173,7 +186,9 @@ final class DocketOAuthClient: NSObject, DocketOAuthAuthorizing,
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.httpBody = try JSONSerialization.data(withJSONObject: [
             "client_name": "Curfew for macOS",
-            "redirect_uris": ["studio.hypertext.curfew://docket-oauth/callback"],
+            "redirect_uris": [
+                "\(DocketOAuthAuthorizationRequest.callbackScheme(for: flavor))://docket-oauth/callback"
+            ],
             "token_endpoint_auth_method": "none",
             "grant_types": ["authorization_code", "refresh_token"],
             "response_types": ["code"],
@@ -198,7 +213,8 @@ final class DocketOAuthClient: NSObject, DocketOAuthAuthorizing,
             clientID: clientID,
             state: state,
             verifier: verifier,
-            endpoints: endpoints
+            endpoints: endpoints,
+            flavor: flavor
         )
     }
 
@@ -236,7 +252,7 @@ final class DocketOAuthClient: NSObject, DocketOAuthAuthorizing,
         try await withCheckedThrowingContinuation { continuation in
             let browserSession = ASWebAuthenticationSession(
                 url: request.authorizationURL,
-                callbackURLScheme: DocketOAuthAuthorizationRequest.callbackScheme
+                callbackURLScheme: DocketOAuthAuthorizationRequest.callbackScheme(for: flavor)
             ) { [weak self] callback, error in
                 self?.browserSession = nil
                 if let callback {

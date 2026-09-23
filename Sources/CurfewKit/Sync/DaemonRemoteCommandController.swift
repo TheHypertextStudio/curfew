@@ -19,17 +19,20 @@ public struct DaemonRemoteCommandBackend: Sendable {
     private let inboxStore: RemoteCommandInboxStore
     private let stateStore: DaemonRemoteCommandStateStore
     private let jwksProvider: any RemoteCommandJWKSProvider
+    private let enforcementAllowed: @Sendable () -> Bool
 
     public init(
         enrollmentStore: RemoteCommandEnrollmentStore,
         inboxStore: RemoteCommandInboxStore,
         stateStore: DaemonRemoteCommandStateStore,
-        jwksProvider: any RemoteCommandJWKSProvider
+        jwksProvider: any RemoteCommandJWKSProvider,
+        enforcementAllowed: @escaping @Sendable () -> Bool = { true }
     ) {
         self.enrollmentStore = enrollmentStore
         self.inboxStore = inboxStore
         self.stateStore = stateStore
         self.jwksProvider = jwksProvider
+        self.enforcementAllowed = enforcementAllowed
     }
 
     public func processPending(at now: Date = Date()) throws -> [RemoteCommandDaemonReceipt] {
@@ -48,7 +51,8 @@ public struct DaemonRemoteCommandBackend: Sendable {
             verifier: verifier,
             controller: DaemonRemoteCommandController(
                 store: stateStore,
-                eligibility: enrollment.eligibility
+                eligibility: enrollment.eligibility,
+                enforcementAllowed: enforcementAllowed
             )
         ).process(deliveries, at: now)
     }
@@ -147,14 +151,17 @@ public struct DaemonRemoteCommandProcessor: Sendable {
 public final class DaemonRemoteCommandController: @unchecked Sendable {
     private let store: DaemonRemoteCommandStateStore
     private let eligibility: RemoteCommandEligibilitySnapshot?
+    private let enforcementAllowed: @Sendable () -> Bool
     private let lock = NSLock()
 
     public init(
         store: DaemonRemoteCommandStateStore,
-        eligibility: RemoteCommandEligibilitySnapshot?
+        eligibility: RemoteCommandEligibilitySnapshot?,
+        enforcementAllowed: @escaping @Sendable () -> Bool = { true }
     ) {
         self.store = store
         self.eligibility = eligibility
+        self.enforcementAllowed = enforcementAllowed
     }
 
     public func apply(
@@ -194,7 +201,7 @@ public final class DaemonRemoteCommandController: @unchecked Sendable {
                 stage: .expired,
                 resolvedAt: now
             )
-        } else if eligibility == nil {
+        } else if eligibility == nil || !enforcementAllowed() {
             result = RemoteCommandResult(
                 commandID: command.lockoutID,
                 deviceID: command.deviceID,

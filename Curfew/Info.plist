@@ -25,7 +25,7 @@
 			<string>studio.hypertext.curfew.oauth</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>studio.hypertext.curfew</string>
+				<string>$(CURFEW_DOCKET_CALLBACK_SCHEME)</string>
 			</array>
 		</dict>
 	</array>

@@ -70,6 +70,25 @@ struct PrivilegedHelperManagerTests {
         #expect(loginItem.unregisterCallCount == 1)
         #expect(manager.loginItemStatus == SMAppService.Status.notRegistered)
     }
+
+    @Test("Studio uninstall unregisters both services and reports any failure")
+    func studioUninstallRegistrationCleanup() {
+        let daemon = StubAppService(
+            status: .enabled,
+            unregisterResult: .failure(StubServiceError.unregisterFailed)
+        )
+        let loginItem = StubAppService(status: .enabled)
+        let manager = PrivilegedHelperManager(daemonService: daemon, loginItemService: loginItem)
+
+        let failures = manager.unregisterForUninstall()
+
+        #expect(daemon.unregisterCallCount == 1)
+        #expect(loginItem.unregisterCallCount == 1)
+        #expect(failures.count == 1)
+        #expect(failures[0].contains("daemon"))
+        #expect(manager.daemonStatus == .enabled)
+        #expect(manager.loginItemStatus == .notRegistered)
+    }
 }
 
 private final class StubAppService: AppServiceControlling {
@@ -112,11 +131,14 @@ private final class StubAppService: AppServiceControlling {
 
 private enum StubServiceError: LocalizedError {
     case registerFailed
+    case unregisterFailed
 
     var errorDescription: String? {
         switch self {
         case .registerFailed:
             "The service failed to register."
+        case .unregisterFailed:
+            "The service failed to unregister."
         }
     }
 }
