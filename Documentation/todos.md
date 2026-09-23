@@ -510,8 +510,13 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
       expired-token, upload-failure, and relaunch paths resume that checkpoint
       once at a time without another OAuth or passkey ceremony. The app keeps
       the receipt-backed checkpoint while it shows the generated Recovery Key,
-      uploads the encrypted envelope only after the user selects “I saved the
-      Recovery Key,” and cannot report ready before the coordinator accepts it.
+      offers Copy and Save-to-File actions so the user need not transcribe it,
+      and uploads the encrypted envelope only after the user selects “I saved
+      the Recovery Key.” The clipboard is cleared after one minute if its
+      contents have not changed; an exported plaintext file is created with
+      owner-only permissions. Neither action is proof that the user retained
+      the key. Curfew cannot report ready before the coordinator accepts the
+      envelope.
       Coordinator acceptance is checkpointed as a durable completed-enrollment
       mirror before the recovery setup is removed. That marker remains until an
       explicit account reset, and a newer marker takes precedence over stale
@@ -556,6 +561,9 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
       the lockout itself intact.
       In-repo tests pass; live account recovery and staging proof remain
       external release gates.
+      If Copy or Save fails, the Recovery Key remains visible and Curfew does
+      not acknowledge it automatically. Rolling back the export controls must
+      retain the existing saved-key acknowledgement and envelope checkpoint.
       Rollback may disable native enrollment, but must not restore the
       unregistered callback, guessed-window behavior, or concurrent sessions.
 - [x] `just check` passes (format + lint + tests + Debug build).

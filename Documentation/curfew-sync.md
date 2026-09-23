@@ -117,8 +117,11 @@ This means a compromised coordinator cannot push a "lock window shrinks to zero"
   root key to enrolled device encryption keys.
 - **First-device completion:** After browser authorization returns, the Mac
   registers its keys and displays the Curfew Recovery Key before sending the
-  encrypted recovery envelope. Selecting “I saved the Recovery Key” persists
-  that transition, uploads the envelope, and only then marks the account ready.
+  encrypted recovery envelope. The user can copy the key (with a one-minute
+  clipboard timeout if unchanged) or save it as an owner-readable plaintext
+  file through the macOS save dialog; the file must be kept private. Neither
+  action automatically confirms storage. Selecting “I saved the Recovery Key”
+  persists that transition, uploads the envelope, and only then marks the account ready.
   A relaunch or network failure resumes the exact unfinished step without
   repeating passkey sign-in.
 - **Recovery:** Better Auth backup codes recover sign-in only. Decrypting

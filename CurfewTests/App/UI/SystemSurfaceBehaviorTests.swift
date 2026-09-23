@@ -1,4 +1,6 @@
+import AppKit
 @testable import Curfew
+import Foundation
 import ServiceManagement
 import Testing
 
@@ -124,6 +126,37 @@ struct ScheduleSurfaceCopyTests {
 
 @MainActor
 struct AccountEnrollmentCopyTests {
+    @Test("Copying a Recovery Key puts that key on the selected pasteboard")
+    func recoveryKeyCanBeCopied() {
+        let pasteboard = NSPasteboard(name: NSPasteboard.Name("curfew-test-\(UUID().uuidString)"))
+        defer { pasteboard.clearContents() }
+
+        #expect(AccountRecoveryKeyClipboard.copy("TEST-RECOVERY-KEY", to: pasteboard))
+        #expect(pasteboard.string(forType: .string) == "TEST-RECOVERY-KEY")
+    }
+
+    @Test("Saving a Recovery Key replaces an existing file without exposing it to other users")
+    func recoveryKeyExportUsesOwnerOnlyFilePermissions() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(
+            "curfew-recovery-key-test-\(UUID().uuidString)",
+            isDirectory: true
+        )
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: false)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let destination = directory.appendingPathComponent("curfew-recovery-key.txt")
+        try "old key".write(to: destination, atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes(
+            [.posixPermissions: 0o644],
+            ofItemAtPath: destination.path
+        )
+
+        try AccountRecoveryKeyDocument(recoveryKey: "NEW-RECOVERY-KEY").write(to: destination)
+
+        #expect(try String(contentsOf: destination, encoding: .utf8) == "NEW-RECOVERY-KEY\n")
+        let attributes = try FileManager.default.attributesOfItem(atPath: destination.path)
+        #expect((attributes[.posixPermissions] as? NSNumber)?.intValue == 0o600)
+    }
+
     @Test("Account panel explains phone locking and the safe per-device default")
     func remoteControlIsPlainAndOptIn() {
         let copy = SettingsView.accountExplanation
