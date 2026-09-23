@@ -460,6 +460,31 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
 
 ## 18. Verification (v0.1 release candidate)
 
+- [-] Prove remote account enrollment and signed phone-to-Mac lock/unlock with
+      an isolated Hypertext Studio development app. The additive `StudioDev`
+      configuration builds `Curfew Studio Dev.app` with distinct app/widget IDs,
+      App Group, daemon label, local state, Keychain services, and callback
+      scheme; Debug and Release identities are unchanged. A Studio-bundled
+      helper recovers its flavor from the app even if launch environment is
+      missing or conflicting. Studio Dev does not claim the personal Chrome
+      native host, cannot issue or cancel root shutdown, yields remote lock
+      acceptance and daemon effects to a live higher-priority Curfew, and
+      uninstalls only its own state. Studio uninstall unregisters its daemon
+      and login item before erasing state; if either unregister fails, it
+      leaves the app and saved state in place with an actionable error.
+      Focused tests and an unsigned artifact build cover these boundaries.
+      The release-contract test also checks that both Debug and StudioDev
+      compile embedded tools for staging while Release does not.
+      The Studio App ID and App Group are registered in Apple Developer;
+      widget registration, provisioned company signing, staging
+      native-client/AASA admission, installation, and visible phone lock/unlock
+      remain unverified; an unsigned build is not a
+      release or runtime proof. Operationally, install only the correctly
+      provisioned Studio app after comparing the built team, entitlements,
+      destination, and personal install. Rollback removes only the Studio
+      bundle and its flavor-scoped state; do not run the production uninstall
+      script or change the existing personal App IDs. No version bump or
+      protocol wire-format change is needed.
 - [x] Pin both SwiftPM entry points to the immutable pre-1.0
       `curfew-protocols` 0.0.9 release.
 - [x] Keep every user-facing release surface in the `0.0.x` line. The Xcode

@@ -22,6 +22,25 @@ extension DaemonRemoteCommandControllerTests {
         #expect(persisted.activeLockout == nil)
     }
 
+    @Test("A signed lock is rejected while a higher-priority app owns enforcement")
+    func rejectsWhenOwnerPreventsEnforcement() throws {
+        let store = try makeStore()
+        let controller = DaemonRemoteCommandController(
+            store: store,
+            eligibility: RemoteCommandEligibilitySnapshot(
+                statusVersion: 4,
+                scheduleDigest: String(repeating: "S", count: 43)
+            ),
+            enforcementAllowed: { false }
+        )
+
+        let result = try controller.apply(makeCommand(sequence: 1, duration: 300), at: now)
+
+        #expect(result.stage == .rejected)
+        #expect(result.rejectionCode == .ineligible)
+        #expect(try store.load().activeLockout == nil)
+    }
+
     @Test("A command based on an older device status is rejected")
     func rejectsStaleStatusVersion() throws {
         let store = try makeStore()

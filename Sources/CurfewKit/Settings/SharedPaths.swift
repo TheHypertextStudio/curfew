@@ -106,7 +106,11 @@ public nonisolated enum SharedPaths {
     /// container through the filesystem fallback below, so the suffix needs no
     /// entitlement change.
     public static let widgetAppGroupIdentifier =
-        "group.studio.hypertext.curfew\(CurfewFlavor.current.identifierSuffix)"
+        widgetAppGroupIdentifier(for: CurfewFlavor.current)
+
+    public static func widgetAppGroupIdentifier(for flavor: CurfewFlavor) -> String {
+        "group.studio.hypertext.curfew\(flavor.identifierSuffix)"
+    }
 
     /// `~/Library/Group Containers/group.studio.hypertext.curfew/`
     ///
@@ -188,8 +192,11 @@ public nonisolated enum SharedPaths {
     /// Flavor-suffixed so the suite still equals the running app's bundle id
     /// (`studio.hypertext.curfew.dev` for development). Helper tools resolve the
     /// flavor from `CURFEW_FLAVOR`, so they read the matching plist.
-    public static let defaultsSuiteName =
-        "studio.hypertext.curfew\(CurfewFlavor.current.identifierSuffix)"
+    public static let defaultsSuiteName = defaultsSuiteName(for: CurfewFlavor.current)
+
+    public static func defaultsSuiteName(for flavor: CurfewFlavor) -> String {
+        "studio.hypertext.curfew\(flavor.identifierSuffix)"
+    }
 
     // MARK: - Privileged daemon paths (root-readable, user-writable via App Group)
 

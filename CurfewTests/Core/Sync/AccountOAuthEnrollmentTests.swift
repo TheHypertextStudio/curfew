@@ -197,6 +197,17 @@ struct AccountOAuthEnrollmentTests {
         #expect(request.tokenURL.host == "curfew-account-staging.hypertext.studio")
     }
 
+    @Test("Studio development shares staging origins but not its account secret")
+    func studioDevelopmentAccountEndpoints() {
+        let studio = CurfewServiceEndpoints.forFlavor(.studioDevelopment)
+        #expect(studio.accountOrigin
+            .absoluteString == "https://curfew-account-staging.hypertext.studio")
+        #expect(studio.mcpResource
+            .absoluteString == "https://curfew-sync-staging.hypertext.studio/mcp")
+        #expect(studio.keychainService == "studio.hypertext.curfew.account-e2ee.studio.dev")
+        #expect(studio.keychainService != CurfewServiceEndpoints.staging.keychainService)
+    }
+
     @Test("The selected endpoint set follows the whole-build service flag")
     func currentEndpointsFollowBuildFlag() {
         #if DEBUG

@@ -52,7 +52,15 @@ final class KeychainDeviceAssertionSecretStore: DeviceAssertionSecretStoring {
 
     /// `kSecAttrService` — Curfew's bundle identifier, suffixed so a future
     /// second credential gets its own item rather than overwriting this one.
-    static let service = "studio.hypertext.curfew.coordinator"
+    static var service: String {
+        service(for: .current)
+    }
+
+    static func service(for flavor: CurfewFlavor) -> String {
+        flavor == .studioDevelopment
+            ? "studio.hypertext.curfew.studio.dev.coordinator"
+            : "studio.hypertext.curfew.coordinator"
+    }
 
     /// `kSecAttrAccount`. Names what the item is, not who owns it: there is one
     /// coordinator secret per install.

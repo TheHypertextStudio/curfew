@@ -4,6 +4,29 @@ import Testing
 
 @MainActor
 struct BrowserNativeStartupTests {
+    @Test func studioDevelopmentNeverClaimsChromeNativeHost() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = BrowserNativeStore(directory: directory)
+        var installationAttempts = 0
+        let runtime = BrowserNativeRuntime(
+            store: store,
+            coordinator: makeCoordinator(),
+            flavor: .studioDevelopment,
+            startupIsAllowed: { true },
+            installForStartup: { installationAttempts += 1 }
+        )
+
+        runtime.start()
+
+        #expect(installationAttempts == 0)
+        #expect(!runtime.isInstalled())
+        #expect(throws: BrowserNativeError.invalidIdentity) {
+            try runtime.install()
+        }
+    }
+
     @Test func policyCallbacksDoNotWriteBeforeRuntimeStartup() throws {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString)
