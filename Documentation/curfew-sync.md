@@ -124,6 +124,12 @@ This means a compromised coordinator cannot push a "lock window shrinks to zero"
   persists that transition, uploads the envelope, and only then marks the account ready.
   A relaunch or network failure resumes the exact unfinished step without
   repeating passkey sign-in.
+  If the browser does not return the HTTPS callback to Curfew, the waiting
+  Settings panel offers Cancel sign-in and lets the user retry without
+  quitting. Cancellation also stops an in-flight token exchange, discards any
+  newly saved grant if authorization finished just before Cancel, and treats
+  the pending authorization as cancelled rather than treating the browser
+  sign-in as a connected Mac.
 - **Recovery:** Better Auth backup codes recover sign-in only. Decrypting
   account content after all enrolled keys are lost requires fresh AAL2 and the
   Curfew Recovery Key.

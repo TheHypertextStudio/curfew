@@ -33,6 +33,11 @@ final class SuspendedAccountOAuthEnrollment: AccountOAuthEnrolling {
         continuation?.resume(throwing: AccountOAuthEnrollmentError.authorizationRejected)
         continuation = nil
     }
+
+    func cancelSignIn() {
+        continuation?.resume(throwing: CancellationError())
+        continuation = nil
+    }
 }
 
 @MainActor
@@ -67,6 +72,8 @@ final class LinkedSuccessfulAccountOAuthEnrollment: AccountOAuthEnrolling {
         }
         await withCheckedContinuation { linkWaiters.append($0) }
     }
+
+    func cancelSignIn() {}
 }
 
 @MainActor

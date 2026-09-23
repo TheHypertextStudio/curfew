@@ -181,6 +181,8 @@ private struct PostBrowserFailingAccountOAuthEnrollment: AccountOAuthEnrolling {
     ) async throws -> AccountOAuthGrant {
         throw AccountOAuthEnrollmentError.browserCompletedConnectionFailed
     }
+
+    func cancelSignIn() {}
 }
 
 private final class EnrollmentRecoveryMemorySecretStore: AccountSecretStoring {
@@ -211,6 +213,8 @@ private struct SuccessfulAccountOAuthEnrollment: AccountOAuthEnrolling {
             codeChallenge: "challenge"
         )
     }
+
+    func cancelSignIn() {}
 }
 
 @MainActor
@@ -261,6 +265,8 @@ private final class CountingAccountOAuthEnrollment: AccountOAuthEnrolling {
             codeChallenge: "challenge"
         )
     }
+
+    func cancelSignIn() {}
 }
 
 @MainActor

@@ -75,32 +75,6 @@ enum AccountOAuthOfficialClient {
     static let clientID = "curfew-native-client"
 }
 
-enum AccountOAuthBrowserPolicy {
-    static func configure(_ session: ASWebAuthenticationSession) {
-        // Account enrollment is passkey-first. Preserve the normal browser
-        // session so the user's existing account and credential provider are
-        // available to the authorization flow.
-        session.prefersEphemeralWebBrowserSession = false
-    }
-}
-
-enum AccountOAuthCallbackPolicy {
-    static func callback(for endpoints: CurfewServiceEndpoints) -> ASWebAuthenticationSession
-        .Callback {
-        guard let host = endpoints.accountOrigin.host else {
-            preconditionFailure("Curfew account origin must have an HTTPS host")
-        }
-        return .https(host: host, path: AccountOAuthClaimedCallback.path)
-    }
-
-    static func accepts(_ url: URL, for endpoints: CurfewServiceEndpoints) -> Bool {
-        guard let expectedHost = endpoints.accountOrigin.host else { return false }
-        return url.scheme == "https" &&
-            url.host == expectedHost &&
-            url.path == AccountOAuthClaimedCallback.path
-    }
-}
-
 enum AccountOAuthTokenRequest {
     static func authorizationCodeBody(
         code: String,
@@ -243,6 +217,7 @@ final class AccountOAuthEnrollmentService: NSObject {
     private var browserSession: ASWebAuthenticationSession?
     private var callbackRegistration: UUID?
     private var authenticationContinuation: CheckedContinuation<URL, any Error>?
+    private var cancellationRequested = false
 
     init(
         secretStore: any AccountSecretStoring = KeychainAccountSecretStore(),
@@ -266,6 +241,8 @@ final class AccountOAuthEnrollmentService: NSObject {
     ) async throws -> AccountOAuthGrant {
         try authenticationGate.begin()
         defer { authenticationGate.finish() }
+        cancellationRequested = false
+        try Task.checkCancellation()
         presentationContext.settingsWindow = presentationWindow
         try presentationContext.prepareForPresentation()
         defer { presentationContext.finishPresentation() }
@@ -285,6 +262,8 @@ final class AccountOAuthEnrollmentService: NSObject {
         )
         do {
             let tokens = try await exchange(code: code, clientID: clientID, request: request)
+            guard !cancellationRequested else { throw CancellationError() }
+            try Task.checkCancellation()
             try secretStore.save(Data(clientID.utf8), for: "oauth-client-id")
             // Persist the refresh token before its paired access token so an
             // interrupted write cannot expose an access token with no renewal path.
@@ -295,9 +274,19 @@ final class AccountOAuthEnrollmentService: NSObject {
                 state: request.state,
                 codeChallenge: request.codeChallenge
             )
+        } catch is CancellationError {
+            throw CancellationError()
         } catch {
+            if cancellationRequested || Task.isCancelled {
+                throw CancellationError()
+            }
             throw AccountOAuthEnrollmentError.browserCompletedConnectionFailed
         }
+    }
+
+    func cancelSignIn() {
+        cancellationRequested = true
+        finishAuthentication(with: .failure(CancellationError()))
     }
 
     private func authenticate(_ request: AccountOAuthEnrollmentRequest) async throws -> URL {
