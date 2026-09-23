@@ -5,6 +5,7 @@ import Foundation
 
 enum AccountEnrollmentUIState: Equatable {
     case accountFree
+    case storageUnavailable
     case signingIn
     case connectingDevice
     case finishDeviceRegistration(String, AccountDeviceEnrollment)
@@ -18,7 +19,7 @@ enum AccountEnrollmentUIState: Equatable {
 enum AccountEnrollmentSignInPolicy {
     static func canStart(from state: AccountEnrollmentUIState) -> Bool {
         switch state {
-        case .signingIn, .connectingDevice:
+        case .storageUnavailable, .signingIn, .connectingDevice:
             false
         default:
             true
@@ -147,7 +148,15 @@ final class AccountEnrollmentController: ObservableObject {
         self.pending = AccountEnrollmentPendingStore(secretStore: secretStore)
         self.authorizationLinkClipboard = authorizationLinkClipboard
             ?? SystemAccountAuthorizationLinkClipboard()
-        self.state = (try? pending.load()) ?? .accountFree
+        reloadSavedEnrollment()
+    }
+
+    func reloadSavedEnrollment() {
+        do {
+            state = try pending.load() ?? .accountFree
+        } catch {
+            state = .storageUnavailable
+        }
     }
 
     func signIn() async {
