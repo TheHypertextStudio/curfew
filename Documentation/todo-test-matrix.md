@@ -545,7 +545,9 @@ only.
   pre-1.0 Curfew protocol release.`
   - `swift package resolve`
   - `xcodebuild -resolvePackageDependencies -project Curfew.xcodeproj -scheme Curfew`
-  - `CurfewProtocolBridgeTests`
+  - `CurfewProtocolBridgeTests/testReleasedUnlockTargetScopesRemainDistinct()`
+  - `curfew-sync/tests/mcp.test.ts` (published pending-unlock discovery is caller-isolated and paginated)
+  - `scripts/release-entitlements.test.mjs` (`app and command-line tools pin the same exact 0.0.x protocol release`)
 - `Every user-facing Curfew release surface uses the same version in the 0.0.x line.`
   - `scripts/release-entitlements.test.mjs` (`every user-facing release version is the same 0.0.x version`)
 - `Signed app builds sign every embedded CLI/helper with the host identity,

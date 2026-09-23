@@ -483,10 +483,14 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
       provisioned Studio app after comparing the built team, entitlements,
       destination, and personal install. Rollback removes only the Studio
       bundle and its flavor-scoped state; do not run the production uninstall
-      script or change the existing personal App IDs. No version bump or
-      protocol wire-format change is needed.
+      script or change the existing personal App IDs. The protocol consumer
+      now pins the separately released 0.0.11 contract; this is not signed
+      installation or phone-to-Mac proof.
 - [x] Pin both SwiftPM entry points to the immutable pre-1.0
-      `curfew-protocols` 0.0.9 release.
+      `curfew-protocols` 0.0.11 release. A Swift bridge test exercises the new
+      one/all-device unlock scopes and a release-contract check rejects
+      Xcode/SPM pin drift. Rollback of either consumer alone would make unlock
+      consent incompatible; roll forward together or disable remote consent.
 - [x] Keep every user-facing release surface in the `0.0.x` line. The Xcode
       targets and Homebrew cask now agree on `0.0.1`, with a release-contract
       regression preventing an accidental `1.x` or minor-version jump.

@@ -9,6 +9,7 @@ const releaseChecklist = await readFile("scripts/release-checklist.md", "utf8");
 const productPlan = await readFile("Documentation/plan.md", "utf8");
 const screenshotExtractor = await readFile("scripts/extract-screenshots.sh", "utf8");
 const projectFile = await readFile("Curfew.xcodeproj/project.pbxproj", "utf8");
+const packageManifest = await readFile("Package.swift", "utf8");
 const homebrewCask = await readFile("Casks/curfew.rb", "utf8");
 
 function buildConfigurationBlock(id, name) {
@@ -19,6 +20,14 @@ function buildConfigurationBlock(id, name) {
   assert.notEqual(end, -1, `unterminated ${name} build configuration ${id}`);
   return projectFile.slice(start, end + "\n\t\t};".length);
 }
+
+test("app and command-line tools pin the same exact 0.0.x protocol release", () => {
+  const swiftPin = packageManifest.match(/curfew-protocols\.git"[\s\S]*?exact: "(0\.0\.\d+)"/);
+  const xcodePin = projectFile.match(/repositoryURL = "https:\/\/github\.com\/TheHypertextStudio\/curfew-protocols\.git";[\s\S]*?version = (0\.0\.\d+);/);
+  assert.ok(swiftPin, "Swift package protocol pin missing");
+  assert.ok(xcodePin, "Xcode protocol pin missing");
+  assert.equal(xcodePin[1], swiftPin[1]);
+});
 
 test("conservative initial Release keeps only the signed core entitlements", () => {
   assert.match(releaseEntitlements, /com\.apple\.security\.automation\.apple-events/);
