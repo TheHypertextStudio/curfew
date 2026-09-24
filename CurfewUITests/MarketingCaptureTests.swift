@@ -100,6 +100,12 @@ final class MarketingCaptureTests: XCTestCase {
             _ = window.waitForExistence(timeout: 6)
         }
         if scenario == "settings" {
+            if !window.exists {
+                // The hosted runner cannot be inspected interactively. Emit
+                // the demo app's accessibility tree so a missing Settings
+                // scene can be distinguished from a wrong selected panel.
+                print("Settings capture accessibility tree:\n\(app.debugDescription)")
+            }
             XCTAssertTrue(
                 window.staticTexts["Curfew Account"].exists,
                 "The Settings capture must show the account panel"

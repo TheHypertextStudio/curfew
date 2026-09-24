@@ -671,7 +671,10 @@ only.
   - `scripts/release-entitlements.test.mjs`
 - `CI screenshot capture uses unsigned Xcode settings so hosted macOS runners
   produce and upload the MarketingCapture PNG artifacts, and a failed UI test
-  fails the job instead of silently exporting misleading images.`
+  fails the job instead of silently exporting misleading images. On a Settings
+  scene failure, the test logs the demo app accessibility tree and CI retains
+  the result bundle for diagnosis; only synthetic fixture account state is
+  present.`
   - `scripts/release-entitlements.test.mjs`
   - `scripts/extract-screenshots.test.mjs`
   - `MarketingCaptureTests/testCaptureSettings()`
