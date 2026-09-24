@@ -96,3 +96,11 @@ jobs:
           name: curfew-screenshots
           path: build/screenshots/curfew-*.png
           if-no-files-found: warn
+
+      - name: Upload screenshot-test diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: curfew-screenshot-test-results
+          path: build/screenshots.xcresult
+          if-no-files-found: warn
