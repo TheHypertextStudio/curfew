@@ -472,6 +472,24 @@ only.
   - `AccountOAuthEnrollmentTests/enrollmentSignInIsSingleFlight()`
   - `AccountEnrollmentRecoveryTests/deviceEnrollmentFailurePreservesSignInTruth()`
   - `AccountEnrollmentRecoveryTests/initialDeviceConnectionCanResumeAfterRelaunch()`
+  - `AccountEnrollmentRecoveryTests/rejectedInitialConnectionCanReauthorize()`
+  - `AccountEnrollmentRecoveryTests/missingInitialConnectionCredentialCanReauthorize()`
+  - `AccountOAuthUserInfoTests/testWrongAccountCannotReplaceSavedOAuthCredentials()`
+  - `AccountOAuthUserInfoTests/testSameAccountCanReplaceCredentialsAfterServerIdentityCheck()`
+  - `AccountOAuthUserInfoTests/testFailedCredentialWriteDoesNotReplaceExistingAccountTokens()`
+  - `AccountEnrollmentReauthorizationTests/sameAccountResumesSavedRegistration()`
+  - `AccountEnrollmentReauthorizationTests/differentAccountCannotTakeOverSavedRegistration()`
+  - `AccountEnrollmentReauthorizationTests/legacyCheckpointFailsClosed()`
+  - `AccountEnrollmentReauthorizationTests/registeredMacResumesRecoveryWithSameAccount()`
+  - `AccountEnrollmentReauthorizationTests/confirmationCanReauthorize()`
+  - `AccountEnrollmentReauthorizationTests/existingKeyRestorationCanReauthorize()`
+  - `NativeAccountCredentialRecoveryTests/testMissingAccessCredentialRequestsReauthorization()`
+  - `AccountCheckpointIdentityTests/testPendingRegistrationKeepsTheOriginalAccountForSafeReauthorization()`
+  - `AccountCheckpointIdentityTests/testLegacyRegisteredCheckpointUsesTheCoordinatorReceiptForReauthorization()`
+  - `AccountCheckpointIdentityTests/testDisplayingRecoveryKeyKeepsTheRegisteredDeviceReceipt()`
+  - `AccountCheckpointIdentityTests/testExistingKeyRecoveryKeepsAccountIdentityWithoutTheGeneratedKey()`
+  - `AccountEnrollmentCompletionTests/testBrowserGrantToSavedRecoveryKeyToReadyKeepsTheReceipt()`
+  - `AccountEnrollmentCompletionTests/testExistingEnvelopeKeepsAccountBindingForLaterKeyRestoration()`
   - `AccountEnrollmentRecoveryTests/wrongRecoveryKeyDoesNotRestartSignIn()`
   - `AccountEnrollmentRecoveryTests/postBrowserFailurePreservesBrowserSignInTruth()`
   - `AccountEnrollmentRecoveryTests/browserSignInLinkCanMoveToThePasskeyProfile()`

@@ -5,8 +5,16 @@ import XCTest
 
 @MainActor
 extension NativeAccountSyncTransportTests {
+    // Keep the refresh/challenge/registration sequence visible in one test.
+    // swiftlint:disable:next function_body_length
     func testInitialDeviceConnectionRefreshesExpiredGrantBeforeRegistration() async throws {
         let fixture = try makeRecoveryFixture()
+        let subject = Data(#"{"sub":"refreshed-account"}"#.utf8)
+            .base64EncodedString()
+            .replacingOccurrences(of: "+", with: "-")
+            .replacingOccurrences(of: "/", with: "_")
+            .replacingOccurrences(of: "=", with: "")
+        let freshAccessToken = "header.\(subject).signature"
         let root = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString, isDirectory: true)
         defer { try? FileManager.default.removeItem(at: root) }
@@ -21,7 +29,7 @@ extension NativeAccountSyncTransportTests {
             switch (request.httpMethod, path) {
             case ("POST", "/api/auth/oauth2/token"):
                 events.append("refresh")
-                let json = #"{"access_token":"fresh-access-token","# +
+                let json = #"{"access_token":"\#(freshAccessToken)","# +
                     #""refresh_token":"fresh-refresh-token","token_type":"Bearer"}"#
                 return (200, Data(json.utf8))
             case ("POST", "/sync/device-proof/challenge")
@@ -29,11 +37,11 @@ extension NativeAccountSyncTransportTests {
                 events.append("expired-challenge")
                 return (401, Data())
             case ("POST", "/sync/device-proof/challenge"):
-                XCTAssertEqual(authorization, "Bearer fresh-access-token")
+                XCTAssertEqual(authorization, "Bearer \(freshAccessToken)")
                 events.append("fresh-challenge")
                 return Self.recoveryChallengeResponse()
             case ("POST", "/sync/devices/enroll"):
-                XCTAssertEqual(authorization, "Bearer fresh-access-token")
+                XCTAssertEqual(authorization, "Bearer \(freshAccessToken)")
                 events.append("fresh-registration")
                 return (503, Data())
             default:
@@ -57,6 +65,11 @@ extension NativeAccountSyncTransportTests {
         XCTAssertEqual(events.values, [
             "expired-challenge", "refresh", "fresh-challenge", "fresh-registration"
         ])
+        XCTAssertEqual(
+            try AccountEnrollmentPendingStore(secretStore: fixture.secrets)
+                .loadRecoverySetup()?.accountUserID,
+            "refreshed-account"
+        )
     }
 
     func testAmbiguousRegistrationResponseResumesTheExactDeviceWithoutOAuth() async throws {
@@ -87,6 +100,10 @@ extension NativeAccountSyncTransportTests {
             AccountEnrollmentPendingStore(secretStore: fixture.secrets).loadRecoverySetup()
         )
         XCTAssertNil(checkpoint.receiptData)
+        XCTAssertEqual(
+            checkpoint.accountUserID,
+            "account_018f4f45cafe7f009a82e47805fb4d34"
+        )
 
         installRegistrationResumeHandler(deviceID: fixture.deviceID, replay: replay)
         let resumed = try await service.resumeDeviceRegistration(
@@ -147,7 +164,8 @@ extension NativeAccountSyncTransportTests {
                 refreshToken: "refresh-token"
             ),
             state: "state",
-            codeChallenge: "challenge"
+            codeChallenge: "challenge",
+            subjectID: "account_018f4f45cafe7f009a82e47805fb4d34"
         )
     }
 

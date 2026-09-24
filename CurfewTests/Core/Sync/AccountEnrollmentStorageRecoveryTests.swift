@@ -43,7 +43,7 @@ struct AccountEnrollmentStorageRecoveryTests {
     @MainActor
     @Test("A storage retry restores the exact unfinished Recovery Key step")
     func storageRetryRestoresPendingStep() throws {
-        let secrets = FailingReadEnrollmentSecretStore()
+        let secrets = FailingReadEnrollmentSecretStore(failsReads: false)
         let enrollment = try AccountDeviceEnrollment(
             deviceID: #require(UUID(uuidString: "018f4f45-cafe-7f00-9a82-e47805fb4d35")),
             keyEpoch: 1,
@@ -53,6 +53,7 @@ struct AccountEnrollmentStorageRecoveryTests {
             enrollment: enrollment,
             recoveryKey: "retained-recovery-key"
         )
+        secrets.failsReads = true
         let controller = AccountEnrollmentController(secretStore: secrets)
         #expect(controller.state == .storageUnavailable)
 

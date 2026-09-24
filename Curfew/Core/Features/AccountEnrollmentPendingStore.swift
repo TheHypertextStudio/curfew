@@ -4,6 +4,7 @@ import Foundation
 final class AccountEnrollmentPendingStore {
     private static let readyKey = "pending-account-enrollment-ready"
     private static let authorizedConnectionKey = "pending-account-authorized-connection"
+    private static let existingKeyRecoveryKey = "pending-account-existing-key-recovery"
     private let secretStore: any AccountSecretStoring
 
     init(secretStore: any AccountSecretStoring) {
@@ -11,6 +12,22 @@ final class AccountEnrollmentPendingStore {
     }
 
     func save(enrollment: AccountDeviceEnrollment, recoveryKey: String?) throws {
+        if let checkpoint = try loadRecoverySetup(), let recoveryKey {
+            guard checkpoint.receiptData != nil,
+                  checkpoint.recoveryKeySaved != true,
+                  checkpoint.enrollment == enrollment,
+                  checkpoint.recoveryKey == recoveryKey
+            else { throw AccountOAuthEnrollmentError.invalidResponse }
+            // A receipt-backed checkpoint already represents the displayed
+            // Recovery Key. Replacing it would discard the upload envelope.
+            return
+        }
+        if let checkpoint = try loadExistingKeyRecovery() {
+            guard recoveryKey == nil, checkpoint.enrollment == enrollment else {
+                throw AccountOAuthEnrollmentError.invalidResponse
+            }
+            return
+        }
         try secretStore.save(JSONEncoder().encode(enrollment), for: "pending-account-enrollment")
         if let recoveryKey {
             try secretStore.save(Data(recoveryKey.utf8), for: "pending-recovery-key")
@@ -25,6 +42,7 @@ final class AccountEnrollmentPendingStore {
         let checkpoint = AccountAuthorizedConnectionCheckpoint(
             oauthState: grant.state,
             pkceChallenge: grant.codeChallenge,
+            accountUserID: grant.subjectID,
             deviceID: deviceID
         )
         try secretStore.save(
@@ -40,8 +58,9 @@ final class AccountEnrollmentPendingStore {
             from: data
         )
         guard let accessData = try secretStore.data(for: "oauth-access-token"),
-              let refreshData = try secretStore.data(for: "oauth-refresh-token"),
-              let accessToken = String(data: accessData, encoding: .utf8),
+              let refreshData = try secretStore.data(for: "oauth-refresh-token")
+        else { throw AccountOAuthTokenRefreshError.missingCredentials }
+        guard let accessToken = String(data: accessData, encoding: .utf8),
               let refreshToken = String(data: refreshData, encoding: .utf8),
               !accessToken.isEmpty, !refreshToken.isEmpty
         else { throw AccountOAuthEnrollmentError.invalidResponse }
@@ -52,7 +71,8 @@ final class AccountEnrollmentPendingStore {
                     refreshToken: refreshToken
                 ),
                 state: checkpoint.oauthState,
-                codeChallenge: checkpoint.pkceChallenge
+                codeChallenge: checkpoint.pkceChallenge,
+                subjectID: checkpoint.accountUserID
             ),
             deviceID: checkpoint.deviceID
         )
@@ -85,7 +105,8 @@ final class AccountEnrollmentPendingStore {
         recoveryKey: String,
         recoveryEnvelope: RecoveryKeyEnvelope,
         oauthState: String,
-        pkceChallenge: String
+        pkceChallenge: String,
+        accountUserID: String? = nil
     ) throws {
         try save(AccountRecoverySetupCheckpoint(
             enrollment: enrollment,
@@ -93,6 +114,7 @@ final class AccountEnrollmentPendingStore {
             recoveryEnvelope: recoveryEnvelope,
             oauthState: oauthState,
             pkceChallenge: pkceChallenge,
+            accountUserID: accountUserID,
             receiptData: nil
         ))
     }
@@ -111,6 +133,31 @@ final class AccountEnrollmentPendingStore {
         try save(checkpoint.updating(recoveryKeySaved: true))
     }
 
+    func saveExistingKeyRecovery(from checkpoint: AccountRecoverySetupCheckpoint) throws {
+        guard let receiptData = checkpoint.receiptData else {
+            throw AccountOAuthEnrollmentError.invalidResponse
+        }
+        let userID = try checkpoint.expectedAccountUserID()
+        let receipt = try NativeDeviceEnrollmentReceipt(data: receiptData)
+        guard receipt.deviceID == checkpoint.enrollment.deviceID.uuidString.lowercased(),
+              receipt.userID == userID
+        else { throw AccountOAuthEnrollmentError.invalidResponse }
+        let recovery = AccountExistingKeyRecoveryCheckpoint(
+            enrollment: checkpoint.enrollment,
+            receiptData: receiptData
+        )
+        try secretStore.save(JSONEncoder().encode(recovery), for: Self.existingKeyRecoveryKey)
+        try secretStore.delete("pending-recovery-setup")
+        try secretStore.delete("pending-recovery-key")
+        try secretStore.delete("pending-account-enrollment")
+        try clearAuthorizedConnection()
+    }
+
+    func loadExistingKeyRecovery() throws -> AccountExistingKeyRecoveryCheckpoint? {
+        guard let data = try secretStore.data(for: Self.existingKeyRecoveryKey) else { return nil }
+        return try JSONDecoder().decode(AccountExistingKeyRecoveryCheckpoint.self, from: data)
+    }
+
     /// Records the completed enrollment before removing any earlier checkpoint.
     /// Loading prioritizes this marker, so a crash during cleanup can never
     /// roll a server-complete enrollment back into recovery setup.
@@ -119,6 +166,7 @@ final class AccountEnrollmentPendingStore {
         try secretStore.delete("pending-account-enrollment")
         try secretStore.delete("pending-recovery-key")
         try secretStore.delete("pending-recovery-setup")
+        try secretStore.delete(Self.existingKeyRecoveryKey)
         try clearAuthorizedConnection()
     }
 
@@ -135,6 +183,9 @@ final class AccountEnrollmentPendingStore {
     func load() throws -> AccountEnrollmentUIState? {
         if let data = try secretStore.data(for: Self.readyKey) {
             return try .ready(JSONDecoder().decode(AccountDeviceEnrollment.self, from: data))
+        }
+        if let checkpoint = try loadExistingKeyRecovery() {
+            return .enterRecoveryKey(checkpoint.enrollment)
         }
         if let checkpoint = try loadRecoverySetup() {
             if checkpoint.receiptData == nil {
@@ -164,13 +215,29 @@ final class AccountEnrollmentPendingStore {
         try secretStore.delete("pending-account-enrollment")
         try secretStore.delete("pending-recovery-key")
         try secretStore.delete("pending-recovery-setup")
+        try secretStore.delete(Self.existingKeyRecoveryKey)
         try clearAuthorizedConnection()
+    }
+}
+
+struct AccountExistingKeyRecoveryCheckpoint: Codable {
+    let enrollment: AccountDeviceEnrollment
+    let receiptData: Data
+
+    func expectedAccountUserID() throws -> String {
+        let receipt = try NativeDeviceEnrollmentReceipt(data: receiptData)
+        guard receipt.deviceID == enrollment.deviceID.uuidString.lowercased(),
+              !receipt.userID.isEmpty,
+              receipt.userID.utf8.count <= 128
+        else { throw AccountOAuthEnrollmentError.invalidResponse }
+        return receipt.userID
     }
 }
 
 struct AccountAuthorizedConnectionCheckpoint: Codable {
     let oauthState: String
     let pkceChallenge: String
+    let accountUserID: String?
     let deviceID: UUID
 }
 
@@ -185,6 +252,7 @@ struct AccountRecoverySetupCheckpoint: Codable {
     let recoveryEnvelope: RecoveryKeyEnvelope
     let oauthState: String
     let pkceChallenge: String
+    let accountUserID: String?
     let receiptData: Data?
     let recoveryKeySaved: Bool?
 
@@ -194,6 +262,7 @@ struct AccountRecoverySetupCheckpoint: Codable {
         recoveryEnvelope: RecoveryKeyEnvelope,
         oauthState: String,
         pkceChallenge: String,
+        accountUserID: String? = nil,
         receiptData: Data?,
         recoveryKeySaved: Bool? = false
     ) {
@@ -202,6 +271,7 @@ struct AccountRecoverySetupCheckpoint: Codable {
         self.recoveryEnvelope = recoveryEnvelope
         self.oauthState = oauthState
         self.pkceChallenge = pkceChallenge
+        self.accountUserID = accountUserID
         self.receiptData = receiptData
         self.recoveryKeySaved = recoveryKeySaved
     }
@@ -216,8 +286,22 @@ struct AccountRecoverySetupCheckpoint: Codable {
             recoveryEnvelope: recoveryEnvelope,
             oauthState: oauthState,
             pkceChallenge: pkceChallenge,
+            accountUserID: accountUserID,
             receiptData: receiptData ?? self.receiptData,
             recoveryKeySaved: recoveryKeySaved ?? self.recoveryKeySaved
         )
+    }
+
+    func expectedAccountUserID() throws -> String {
+        let receiptUserID = try receiptData
+            .map { try NativeDeviceEnrollmentReceipt(data: $0).userID }
+        if let accountUserID, let receiptUserID, accountUserID != receiptUserID {
+            throw AccountOAuthEnrollmentError.invalidResponse
+        }
+        guard let userID = accountUserID ?? receiptUserID,
+              !userID.isEmpty,
+              userID.utf8.count <= 128
+        else { throw AccountOAuthEnrollmentError.invalidResponse }
+        return userID
     }
 }

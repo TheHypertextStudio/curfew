@@ -87,33 +87,54 @@ extension SettingsView {
                 }
                 .buttonStyle(CurfewPrimaryButtonStyle())
             case .finishDeviceRegistration:
-                Text(
-                    "You’re signed in. Curfew still needs to finish connecting this Mac. "
-                        + "No new sign-in is needed."
-                )
-                .font(CurfewTypography.bodyEmphasis(13))
-                .foregroundStyle(CurfewTheme.warning)
-                .fixedSize(horizontal: false, vertical: true)
+                Text(accountEnrollment.requiresReauthorization
+                    ? "Curfew needs a fresh sign-in to finish connecting this same Mac."
+                    : "You’re signed in. Curfew still needs to finish connecting this Mac. "
+                    + "No new sign-in is needed.")
+                    .font(CurfewTypography.bodyEmphasis(13))
+                    .foregroundStyle(CurfewTheme.warning)
+                    .fixedSize(horizontal: false, vertical: true)
                 enrollmentRetryStatus
-                Button("Finish connecting this Mac") {
-                    Task { await accountEnrollment.finishDeviceRegistration() }
-                }
-                .buttonStyle(CurfewPrimaryButtonStyle())
-                .disabled(accountEnrollment.isFinishingEnrollment)
+                Button(accountEnrollment.requiresReauthorization
+                    ? "Sign in again to finish connecting"
+                    : "Finish connecting this Mac") {
+                        Task {
+                            if accountEnrollment.requiresReauthorization {
+                                await accountEnrollment.reauthorizeSavedEnrollment()
+                            } else {
+                                await accountEnrollment.finishDeviceRegistration()
+                            }
+                        }
+                    }
+                    .buttonStyle(CurfewPrimaryButtonStyle())
+                    .disabled(accountEnrollment.isFinishingEnrollment
+                        || (accountEnrollment.requiresReauthorization
+                            && !accountEnrollment.canReauthorizeSavedEnrollment))
             case .finishRecoverySetup:
-                Text(
-                    "You’re signed in and this Mac is registered. Curfew still needs to "
-                        + "finish recovery setup before remote control can turn on."
-                )
-                .font(CurfewTypography.bodyEmphasis(13))
-                .foregroundStyle(CurfewTheme.warning)
-                .fixedSize(horizontal: false, vertical: true)
+                Text(accountEnrollment.requiresReauthorization
+                    ? "This Mac is registered. Sign in again with the same account to "
+                    + "finish recovery setup."
+                    : "You’re signed in and this Mac is registered. Curfew still needs to "
+                    + "finish recovery setup before remote control can turn on.")
+                    .font(CurfewTypography.bodyEmphasis(13))
+                    .foregroundStyle(CurfewTheme.warning)
+                    .fixedSize(horizontal: false, vertical: true)
                 enrollmentRetryStatus
-                Button("Finish recovery setup") {
-                    Task { await accountEnrollment.finishRecoverySetup() }
-                }
-                .buttonStyle(CurfewPrimaryButtonStyle())
-                .disabled(accountEnrollment.isFinishingEnrollment)
+                Button(accountEnrollment.requiresReauthorization
+                    ? "Sign in again to finish recovery setup"
+                    : "Finish recovery setup") {
+                        Task {
+                            if accountEnrollment.requiresReauthorization {
+                                await accountEnrollment.reauthorizeSavedEnrollment()
+                            } else {
+                                await accountEnrollment.finishRecoverySetup()
+                            }
+                        }
+                    }
+                    .buttonStyle(CurfewPrimaryButtonStyle())
+                    .disabled(accountEnrollment.isFinishingEnrollment
+                        || (accountEnrollment.requiresReauthorization
+                            && !accountEnrollment.canReauthorizeSavedEnrollment))
             case .saveRecoveryKey(let key, _):
                 Text(
                     "Save this Recovery Key outside Curfew. "
@@ -167,6 +188,18 @@ extension SettingsView {
                 SecureField("Curfew Recovery Key", text: $accountRecoveryKey)
                     .textFieldStyle(.roundedBorder)
                 enrollmentRetryStatus
+                if accountEnrollment.requiresReauthorization {
+                    Text("Sign in again with the same Curfew account, then restore your "
+                        + "encrypted data with this Mac’s Recovery Key.")
+                        .font(CurfewTypography.bodyEmphasis(13))
+                        .foregroundStyle(CurfewTheme.warning)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Button("Sign in again to restore") {
+                        Task { await accountEnrollment.reauthorizeSavedEnrollment() }
+                    }
+                    .buttonStyle(CurfewPrimaryButtonStyle())
+                    .disabled(!accountEnrollment.canReauthorizeSavedEnrollment)
+                }
                 Text(
                     "The Recovery Key stays on this Mac. Curfew sends only the encrypted envelope."
                 )
@@ -182,7 +215,8 @@ extension SettingsView {
                     }
                 }
                 .buttonStyle(CurfewPrimaryButtonStyle())
-                .disabled(accountRecoveryKey.isEmpty)
+                .disabled(accountRecoveryKey.isEmpty
+                    || accountEnrollment.requiresReauthorization)
             case .ready(let enrollment):
                 Label("Encrypted account sync is ready.", systemImage: "checkmark.shield")
                     .onAppear {
@@ -348,43 +382,6 @@ struct AccountConnectionPresentation: Equatable {
                 systemImage: "exclamationmark.triangle.fill",
                 tone: .warning
             )
-        }
-    }
-}
-
-private struct AccountConnectionStatusView: View {
-    @ObservedObject var engine: AccountSyncEngine
-
-    private var presentation: AccountConnectionPresentation {
-        AccountConnectionPresentation.resolve(engine.syncStatus)
-    }
-
-    var body: some View {
-        HStack(alignment: .top, spacing: CurfewSpacing.small) {
-            Image(systemName: presentation.systemImage)
-                .foregroundStyle(statusColor)
-            VStack(alignment: .leading, spacing: 3) {
-                Text(presentation.title)
-                    .font(CurfewTypography.bodyEmphasis(13))
-                Text(presentation.detail)
-                    .font(CurfewTypography.body(12))
-                    .foregroundStyle(CurfewTheme.mutedInk)
-                    .fixedSize(horizontal: false, vertical: true)
-                if let lastConfirmedAt = presentation.lastConfirmedAt {
-                    Text("Last confirmed \(lastConfirmedAt, style: .relative)")
-                        .font(CurfewTypography.body(11))
-                        .foregroundStyle(CurfewTheme.mutedInk)
-                }
-            }
-        }
-        .accessibilityElement(children: .combine)
-    }
-
-    private var statusColor: Color {
-        switch presentation.tone {
-        case .neutral: CurfewTheme.mutedInk
-        case .ready: CurfewTheme.accent
-        case .warning: CurfewTheme.warning
         }
     }
 }
