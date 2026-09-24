@@ -471,6 +471,8 @@ only.
   - `AccountOAuthEnrollmentTests/presentationRequiresSettingsWindow()`
   - `AccountOAuthEnrollmentTests/enrollmentSignInIsSingleFlight()`
   - `AccountEnrollmentRecoveryTests/deviceEnrollmentFailurePreservesSignInTruth()`
+  - `AccountEnrollmentRecoveryTests/initialDeviceConnectionCanResumeAfterRelaunch()`
+  - `AccountEnrollmentRecoveryTests/wrongRecoveryKeyDoesNotRestartSignIn()`
   - `AccountEnrollmentRecoveryTests/postBrowserFailurePreservesBrowserSignInTruth()`
   - `AccountEnrollmentRecoveryTests/browserSignInLinkCanMoveToThePasskeyProfile()`
   - `AccountEnrollmentCancellationTests/missedBrowserCallbackCanBeRetriedWithoutRelaunch()`
@@ -496,6 +498,7 @@ only.
   - `AccountEncryptionTests/testRegisteredDeviceRecoverySetupSurvivesRelaunchAsResumable()`
   - `NativeAccountSyncTransportTests/testDeviceRegistrationShowsRecoveryKeyBeforeRecoveryUpload()`
   - `NativeAccountSyncTransportTests/testAmbiguousRegistrationResponseResumesTheExactDeviceWithoutOAuth()`
+  - `NativeAccountSyncTransportTests/testInitialDeviceConnectionRefreshesExpiredGrantBeforeRegistration()`
   - `AccountEncryptionTests/testPendingDeviceRegistrationSurvivesBeforeCoordinatorResponse()`
   - `AccountEncryptionTests/testCompletedEnrollmentSurvivesRelaunchUntilSettingsPersist()`
   - `UninstallCoordinatorTests/productionUninstallIncludesLegacyCoordinatorCredential()`

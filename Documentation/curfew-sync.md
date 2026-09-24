@@ -123,7 +123,11 @@ This means a compromised coordinator cannot push a "lock window shrinks to zero"
   action automatically confirms storage. Selecting “I saved the Recovery Key”
   persists that transition, uploads the envelope, and only then marks the account ready.
   A relaunch or network failure resumes the exact unfinished step without
-  repeating passkey sign-in.
+  repeating passkey sign-in. This includes a failure before the first device
+  registration: Curfew retains the authorized connection state, reuses the
+  current OAuth credentials in Keychain, and refreshes an expired access token
+  when registration is retried. If the user enters an incorrect Recovery Key,
+  the recovery form stays available for another attempt.
   If the browser does not return the HTTPS callback to Curfew, the waiting
   Settings panel offers Cancel sign-in and lets the user retry without
   quitting. Cancellation also stops an in-flight token exchange, discards any

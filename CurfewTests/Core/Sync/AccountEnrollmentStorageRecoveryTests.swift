@@ -60,7 +60,9 @@ struct AccountEnrollmentStorageRecoveryTests {
         controller.reloadSavedEnrollment()
 
         #expect(controller.state == .saveRecoveryKey("retained-recovery-key", enrollment))
-        #expect(secrets.deletedAccounts == ["pending-recovery-setup"])
+        #expect(secrets.deletedAccounts == [
+            "pending-recovery-setup", "pending-account-authorized-connection"
+        ])
     }
 
     @MainActor

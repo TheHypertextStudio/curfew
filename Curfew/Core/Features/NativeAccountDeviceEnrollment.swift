@@ -59,11 +59,24 @@ final class NativeAccountDeviceEnrollmentService {
         deviceID: UUID,
         enrolledAt: Date = Date()
     ) async throws -> NativeAccountEnrollmentState {
-        let prepared = try await prepareRegistration(
-            grant: grant,
-            deviceID: deviceID,
-            enrolledAt: enrolledAt
-        )
+        let (prepared, accessToken) = try await withRefreshingAccessToken { accessToken in
+            let currentGrant = AccountOAuthGrant(
+                tokens: AccountOAuthTokens(
+                    accessToken: accessToken,
+                    refreshToken: grant.tokens.refreshToken
+                ),
+                state: grant.state,
+                codeChallenge: grant.codeChallenge
+            )
+            return try await (
+                self.prepareRegistration(
+                    grant: currentGrant,
+                    deviceID: deviceID,
+                    enrolledAt: enrolledAt
+                ),
+                accessToken
+            )
+        }
         try pending.saveDeviceRegistration(
             enrollment: prepared.localEnrollment,
             recoveryKey: prepared.bootstrap.recoveryKey,
@@ -75,7 +88,7 @@ final class NativeAccountDeviceEnrollmentService {
         do {
             receiptData = try await submitEnrollment(
                 prepared.request,
-                accessToken: grant.tokens.accessToken
+                accessToken: accessToken
             )
             try pending.saveRegistrationReceipt(receiptData)
         } catch {

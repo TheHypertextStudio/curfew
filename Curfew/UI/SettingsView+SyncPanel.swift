@@ -75,6 +75,17 @@ extension SettingsView {
                 }
             case .connectingDevice:
                 ProgressView("Securely connecting this Mac…")
+            case .finishDeviceConnection:
+                Text("You’re signed in. Curfew still needs to connect this Mac. "
+                    + "No new sign-in is needed.")
+                    .font(CurfewTypography.bodyEmphasis(13))
+                    .foregroundStyle(CurfewTheme.warning)
+                    .fixedSize(horizontal: false, vertical: true)
+                enrollmentRetryStatus
+                Button("Finish connecting this Mac") {
+                    Task { await accountEnrollment.signIn() }
+                }
+                .buttonStyle(CurfewPrimaryButtonStyle())
             case .finishDeviceRegistration:
                 Text(
                     "You’re signed in. Curfew still needs to finish connecting this Mac. "
@@ -155,6 +166,7 @@ extension SettingsView {
             case .enterRecoveryKey:
                 SecureField("Curfew Recovery Key", text: $accountRecoveryKey)
                     .textFieldStyle(.roundedBorder)
+                enrollmentRetryStatus
                 Text(
                     "The Recovery Key stays on this Mac. Curfew sends only the encrypted envelope."
                 )

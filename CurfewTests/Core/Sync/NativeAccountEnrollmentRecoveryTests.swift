@@ -5,6 +5,60 @@ import XCTest
 
 @MainActor
 extension NativeAccountSyncTransportTests {
+    func testInitialDeviceConnectionRefreshesExpiredGrantBeforeRegistration() async throws {
+        let fixture = try makeRecoveryFixture()
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let enrollmentStore = RemoteCommandEnrollmentStore(
+            recordURL: root.appendingPathComponent("enrollment.json")
+        )
+        let service = makeEnrollmentService(fixture: fixture, enrollmentStore: enrollmentStore)
+        let events = RecoverySetupEventRecorder()
+        RecoverySetupURLProtocol.handler = { request in
+            let path = try XCTUnwrap(request.url?.path)
+            let authorization = request.value(forHTTPHeaderField: "Authorization")
+            switch (request.httpMethod, path) {
+            case ("POST", "/api/auth/oauth2/token"):
+                events.append("refresh")
+                let json = #"{"access_token":"fresh-access-token","# +
+                    #""refresh_token":"fresh-refresh-token","token_type":"Bearer"}"#
+                return (200, Data(json.utf8))
+            case ("POST", "/sync/device-proof/challenge")
+                where authorization == "Bearer resource-bound-access-token":
+                events.append("expired-challenge")
+                return (401, Data())
+            case ("POST", "/sync/device-proof/challenge"):
+                XCTAssertEqual(authorization, "Bearer fresh-access-token")
+                events.append("fresh-challenge")
+                return Self.recoveryChallengeResponse()
+            case ("POST", "/sync/devices/enroll"):
+                XCTAssertEqual(authorization, "Bearer fresh-access-token")
+                events.append("fresh-registration")
+                return (503, Data())
+            default:
+                XCTFail(
+                    "unexpected initial enrollment request: \(request.httpMethod ?? "nil") \(path)"
+                )
+                return (500, Data())
+            }
+        }
+        defer { RecoverySetupURLProtocol.handler = nil }
+
+        let outcome = try await service.enroll(
+            grant: recoveryTestGrant,
+            deviceID: fixture.deviceID,
+            enrolledAt: Date(timeIntervalSince1970: 1_800_000_000)
+        )
+
+        guard case .finishDeviceRegistration = outcome else {
+            return XCTFail("expected a resumable registration checkpoint")
+        }
+        XCTAssertEqual(events.values, [
+            "expired-challenge", "refresh", "fresh-challenge", "fresh-registration"
+        ])
+    }
+
     func testAmbiguousRegistrationResponseResumesTheExactDeviceWithoutOAuth() async throws {
         let fixture = try makeRecoveryFixture()
         let root = FileManager.default.temporaryDirectory
