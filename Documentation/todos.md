@@ -663,7 +663,7 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
 - [x] Marked the forward-looking PRD and Sparkle/appcast checklist steps so v0.1
   cannot be mistaken for a released sync/updater product; regression coverage
   lives in `scripts/release-entitlements.test.mjs`.
-- [x] Make CI demo captures prove the named screen. The screenshot job now
+- [-] Make CI demo captures prove the named screen. The screenshot job now
   forwards unsigned build settings and propagates UI-test failures instead of
   uploading a green artifact after a failed test. A regression assertion
   requires the Settings image to contain the account panel. The existing
@@ -671,10 +671,13 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
   rerun found no window containing the account panel. Its accessibility tree
   confirmed that Today was the only Curfew window: the old AppKit responder
   selector did not open the SwiftUI Settings scene. Curfew now registers the
-  active scene's `openSettings` action for Settings links, and the fixture
-  requests Settings after that registration. A focused routing test passes;
+  active scene's `openSettings` action for Settings links. Requests made before
+  scene appearance are coalesced and delivered when the action registers,
+  including account setup and fixture launch, rather than silently dropped.
+  Focused routing tests pass;
   hosted CI run `35946577127` passed and its exported `curfew-settings.png`
-  visibly shows Integrations and the Curfew Account panel. This is unsigned
+  visibly shows Integrations and the Curfew Account panel. Rerun the capture
+  after the deferred-opening change before closing this item. This is unsigned
   fixture proof, not signed account-enrollment proof. Failure bundles contain
   only synthetic demo-fixture account state; the failure-only artifact can be
   removed if it adds unnecessary CI storage.

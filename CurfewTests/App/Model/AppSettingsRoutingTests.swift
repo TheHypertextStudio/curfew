@@ -15,4 +15,18 @@ struct AppSettingsRoutingTests {
 
         #expect(openCount == 1)
     }
+
+    @Test("A Settings request before scene appearance opens once when the scene registers")
+    func earlySettingsRequestWaitsForScene() {
+        let router = SystemAppRouter()
+        var openCount = 0
+
+        router.showSettings()
+        router.showSettings()
+        router.registerSettingsOpener {
+            openCount += 1
+        }
+
+        #expect(openCount == 1)
+    }
 }

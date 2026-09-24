@@ -14,7 +14,8 @@ protocol AppRouting: AnyObject {
     /// so the window actually surfaces in front of the user.
     func activate()
 
-    /// Supplies the Settings action from an active SwiftUI scene.
+    /// Supplies the Settings action from an active SwiftUI scene and fulfills
+    /// any request made before that scene appeared.
     func registerSettingsOpener(_ opener: @escaping @MainActor () -> Void)
 
     /// Invokes the Settings action registered by the visible scene.
@@ -29,6 +30,7 @@ protocol AppRouting: AnyObject {
 @MainActor
 final class SystemAppRouter: AppRouting {
     private var settingsOpener: (@MainActor () -> Void)?
+    private var settingsOpenPending = false
 
     /// Activates the Curfew process, ignoring which app currently holds focus.
     func activate() {
@@ -37,11 +39,20 @@ final class SystemAppRouter: AppRouting {
 
     func registerSettingsOpener(_ opener: @escaping @MainActor () -> Void) {
         settingsOpener = opener
+        if settingsOpenPending {
+            settingsOpenPending = false
+            opener()
+        }
     }
 
-    /// Uses SwiftUI's scene action. `showSettingsWindow:` did not dispatch to
-    /// this app's Settings scene on the hosted macOS runner.
+    /// Uses SwiftUI's scene action, coalescing early requests until one exists.
+    /// `showSettingsWindow:` did not dispatch to this app's Settings scene on
+    /// the hosted macOS runner.
     func showSettings() {
-        settingsOpener?()
+        guard let settingsOpener else {
+            settingsOpenPending = true
+            return
+        }
+        settingsOpener()
     }
 }
