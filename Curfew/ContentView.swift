@@ -239,13 +239,6 @@ struct MainWindowView: View {
         }
         .onAppear {
             model.appRouter.registerSettingsOpener { openSettings() }
-            #if DEBUG
-                if CurfewLaunchBehavior.demoScenario(
-                    environment: ProcessInfo.processInfo.environment
-                ) == .settings {
-                    model.openSettings()
-                }
-            #endif
         }
     }
 

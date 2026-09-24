@@ -678,6 +678,7 @@ only.
   - `scripts/release-entitlements.test.mjs`
   - `scripts/extract-screenshots.test.mjs`
   - `AppSettingsRoutingTests/settingsRouteUsesSceneAction()`
+  - `AppSettingsRoutingTests/earlySettingsRequestWaitsForScene()`
   - `MarketingCaptureTests/testCaptureSettings()`
   - `scripts/extract-screenshots.sh` (local and hosted runtime coverage)
 - `Stripe test-mode staging uses an isolated curfew-prefixed Hypertext Studio
