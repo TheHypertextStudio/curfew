@@ -8,6 +8,7 @@ enum AccountEnrollmentUIState: Equatable {
     case storageUnavailable
     case signingIn
     case connectingDevice
+    case finishDeviceConnection
     case finishDeviceRegistration(String, AccountDeviceEnrollment)
     case finishRecoverySetup(String, AccountDeviceEnrollment)
     case saveRecoveryKey(String, AccountDeviceEnrollment)
@@ -19,7 +20,7 @@ enum AccountEnrollmentUIState: Equatable {
 enum AccountEnrollmentSignInPolicy {
     static func canStart(from state: AccountEnrollmentUIState) -> Bool {
         switch state {
-        case .storageUnavailable, .signingIn, .connectingDevice:
+        case .storageUnavailable, .signingIn, .connectingDevice, .finishDeviceConnection:
             false
         default:
             true
@@ -160,6 +161,10 @@ final class AccountEnrollmentController: ObservableObject {
     }
 
     func signIn() async {
+        if case .finishDeviceConnection = state {
+            await resumeAuthorizedConnection()
+            return
+        }
         guard AccountEnrollmentSignInPolicy.canStart(from: state) else { return }
         signInCancellationRequested = false
         state = .signingIn
@@ -177,12 +182,34 @@ final class AccountEnrollmentController: ObservableObject {
             state = .failed(AccountEnrollmentFailureCopy.authorization)
             return
         }
-        state = .connectingDevice
+        let identifier: UUID
         do {
-            let outcome = try await devices.enroll(
-                grant: grant,
-                deviceID: deviceID()
-            )
+            identifier = try deviceID()
+            try pending.saveAuthorizedConnection(grant: grant, deviceID: identifier)
+        } catch {
+            state = .storageUnavailable
+            return
+        }
+        await connectDevice(grant: grant, deviceID: identifier)
+    }
+
+    private func resumeAuthorizedConnection() async {
+        do {
+            guard let checkpoint = try pending.loadAuthorizedConnection() else {
+                reloadSavedEnrollment()
+                return
+            }
+            await connectDevice(grant: checkpoint.grant, deviceID: checkpoint.deviceID)
+        } catch {
+            state = .storageUnavailable
+        }
+    }
+
+    private func connectDevice(grant: AccountOAuthGrant, deviceID: UUID) async {
+        state = .connectingDevice
+        enrollmentRetryError = nil
+        do {
+            let outcome = try await devices.enroll(grant: grant, deviceID: deviceID)
             switch outcome {
             case .finishDeviceRegistration(let key, let enrollment):
                 state = .finishDeviceRegistration(key, enrollment)
@@ -195,10 +222,17 @@ final class AccountEnrollmentController: ObservableObject {
                 try pending.save(enrollment: enrollment, recoveryKey: nil)
                 state = .enterRecoveryKey(enrollment)
             case .ready(let enrollment):
+                try pending.markReady(enrollment)
                 state = .ready(enrollment)
             }
         } catch {
-            state = .failed(AccountEnrollmentFailureCopy.deviceConnection)
+            reloadSavedEnrollment()
+            if case .accountFree = state {
+                state = .failed(AccountEnrollmentFailureCopy.deviceConnection)
+            } else if case .storageUnavailable = state {
+                return
+            }
+            enrollmentRetryError = AccountEnrollmentFailureCopy.deviceConnection
         }
     }
 
@@ -301,6 +335,7 @@ final class AccountEnrollmentController: ObservableObject {
 
     func restore(recoveryKey: String) async {
         guard case .enterRecoveryKey(let enrollment) = state else { return }
+        enrollmentRetryError = nil
         do {
             let restored = try await devices.restore(
                 recoveryKey: recoveryKey.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -309,7 +344,9 @@ final class AccountEnrollmentController: ObservableObject {
             try pending.markReady(restored)
             state = .ready(restored)
         } catch {
-            state = .failed("That Recovery Key could not decrypt this Curfew account.")
+            state = .enterRecoveryKey(enrollment)
+            enrollmentRetryError = "Curfew couldn’t restore encrypted data. "
+                + "Check the Recovery Key and your connection, then try again."
         }
     }
 

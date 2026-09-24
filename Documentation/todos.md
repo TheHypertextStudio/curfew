@@ -538,7 +538,13 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
       browser callback succeeds, Settings reports that it is connecting the Mac;
       token exchange or local credential failure is
       reported as a native connection failure, never as a failed passkey or
-      unfinished browser sign-in. Before device registration, Curfew persists
+      unfinished browser sign-in. If the first device connection fails before
+      registration, Curfew keeps a small authorized-connection checkpoint and
+      offers a retry after relaunch without repeating browser sign-in. It reads
+      the current OAuth credentials from Keychain rather than copying tokens
+      into that checkpoint; a missing or unreadable credential fails closed.
+      Expired access tokens are refreshed even on this first registration path.
+      Before device registration, Curfew persists
       the exact OAuth-bound request inputs, Recovery Key, and encrypted envelope;
       it adds the authenticated receipt before finalization. Ambiguous registration,
       expired-token, upload-failure, and relaunch paths resume that checkpoint
@@ -550,7 +556,11 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
       contents have not changed; an exported plaintext file is created with
       owner-only permissions. Neither action is proof that the user retained
       the key. Curfew cannot report ready before the coordinator accepts the
-      envelope.
+      envelope. An incorrect Curfew Recovery Key leaves the Mac at the same
+      recovery-entry step with a retry message instead of starting sign-in
+      again. These local state-transition tests do not replace signed-device
+      staging proof; rollback should preserve saved checkpoints and Keychain
+      credentials so a completed browser grant is not discarded.
       Coordinator acceptance is checkpointed as a durable completed-enrollment
       mirror before the recovery setup is removed. That marker remains until an
       explicit account reset, and a newer marker takes precedence over stale

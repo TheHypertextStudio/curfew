@@ -3,6 +3,7 @@ import Foundation
 
 final class AccountEnrollmentPendingStore {
     private static let readyKey = "pending-account-enrollment-ready"
+    private static let authorizedConnectionKey = "pending-account-authorized-connection"
     private let secretStore: any AccountSecretStoring
 
     init(secretStore: any AccountSecretStoring) {
@@ -17,6 +18,48 @@ final class AccountEnrollmentPendingStore {
             try secretStore.delete("pending-recovery-key")
         }
         try secretStore.delete("pending-recovery-setup")
+        try clearAuthorizedConnection()
+    }
+
+    func saveAuthorizedConnection(grant: AccountOAuthGrant, deviceID: UUID) throws {
+        let checkpoint = AccountAuthorizedConnectionCheckpoint(
+            oauthState: grant.state,
+            pkceChallenge: grant.codeChallenge,
+            deviceID: deviceID
+        )
+        try secretStore.save(
+            JSONEncoder().encode(checkpoint),
+            for: Self.authorizedConnectionKey
+        )
+    }
+
+    func loadAuthorizedConnection() throws -> AccountAuthorizedConnection? {
+        guard let data = try secretStore.data(for: Self.authorizedConnectionKey) else { return nil }
+        let checkpoint = try JSONDecoder().decode(
+            AccountAuthorizedConnectionCheckpoint.self,
+            from: data
+        )
+        guard let accessData = try secretStore.data(for: "oauth-access-token"),
+              let refreshData = try secretStore.data(for: "oauth-refresh-token"),
+              let accessToken = String(data: accessData, encoding: .utf8),
+              let refreshToken = String(data: refreshData, encoding: .utf8),
+              !accessToken.isEmpty, !refreshToken.isEmpty
+        else { throw AccountOAuthEnrollmentError.invalidResponse }
+        return AccountAuthorizedConnection(
+            grant: AccountOAuthGrant(
+                tokens: AccountOAuthTokens(
+                    accessToken: accessToken,
+                    refreshToken: refreshToken
+                ),
+                state: checkpoint.oauthState,
+                codeChallenge: checkpoint.pkceChallenge
+            ),
+            deviceID: checkpoint.deviceID
+        )
+    }
+
+    func clearAuthorizedConnection() throws {
+        try secretStore.delete(Self.authorizedConnectionKey)
     }
 
     func saveRecoverySetup(
@@ -76,10 +119,12 @@ final class AccountEnrollmentPendingStore {
         try secretStore.delete("pending-account-enrollment")
         try secretStore.delete("pending-recovery-key")
         try secretStore.delete("pending-recovery-setup")
+        try clearAuthorizedConnection()
     }
 
     private func save(_ checkpoint: AccountRecoverySetupCheckpoint) throws {
         try secretStore.save(JSONEncoder().encode(checkpoint), for: "pending-recovery-setup")
+        try clearAuthorizedConnection()
     }
 
     func loadRecoverySetup() throws -> AccountRecoverySetupCheckpoint? {
@@ -99,14 +144,19 @@ final class AccountEnrollmentPendingStore {
                 ? .finishRecoverySetup(checkpoint.recoveryKey, checkpoint.enrollment)
                 : .saveRecoveryKey(checkpoint.recoveryKey, checkpoint.enrollment)
         }
-        guard let data = try secretStore.data(for: "pending-account-enrollment") else { return nil }
-        let enrollment = try JSONDecoder().decode(AccountDeviceEnrollment.self, from: data)
-        if let keyData = try secretStore.data(for: "pending-recovery-key"),
-           let key = String(data: keyData, encoding: .utf8),
-           !key.isEmpty {
-            return .saveRecoveryKey(key, enrollment)
+        if let data = try secretStore.data(for: "pending-account-enrollment") {
+            let enrollment = try JSONDecoder().decode(AccountDeviceEnrollment.self, from: data)
+            if let keyData = try secretStore.data(for: "pending-recovery-key"),
+               let key = String(data: keyData, encoding: .utf8),
+               !key.isEmpty {
+                return .saveRecoveryKey(key, enrollment)
+            }
+            return .enterRecoveryKey(enrollment)
         }
-        return .enterRecoveryKey(enrollment)
+        if try loadAuthorizedConnection() != nil {
+            return .finishDeviceConnection
+        }
+        return nil
     }
 
     func clear() throws {
@@ -114,7 +164,19 @@ final class AccountEnrollmentPendingStore {
         try secretStore.delete("pending-account-enrollment")
         try secretStore.delete("pending-recovery-key")
         try secretStore.delete("pending-recovery-setup")
+        try clearAuthorizedConnection()
     }
+}
+
+struct AccountAuthorizedConnectionCheckpoint: Codable {
+    let oauthState: String
+    let pkceChallenge: String
+    let deviceID: UUID
+}
+
+struct AccountAuthorizedConnection {
+    let grant: AccountOAuthGrant
+    let deviceID: UUID
 }
 
 struct AccountRecoverySetupCheckpoint: Codable {
