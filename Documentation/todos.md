@@ -542,14 +542,40 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
       registration, Curfew keeps a small authorized-connection checkpoint and
       offers a retry after relaunch without repeating browser sign-in. It reads
       the current OAuth credentials from Keychain rather than copying tokens
-      into that checkpoint; a missing or unreadable credential fails closed.
+      into that checkpoint; an unreadable credential stops enrollment.
       Expired access tokens are refreshed even on this first registration path.
+      If the saved OAuth credential is missing or the server rejects its
+      refresh, Curfew clears only that pre-registration authorization marker
+      and offers a fresh sign-in instead of trapping the user in retries.
+      A later device-registration or recovery checkpoint takes precedence and
+      is never discarded by that escape path. Actual Keychain read failures
+      still leave the saved connection unavailable rather than inventing an
+      empty account.
+      For these later checkpoints, a rejected or missing refresh credential
+      offers a separate same-account sign-in. The new token is staged until
+      UserInfo confirms the original account from the coordinator-accepted
+      token or registration receipt. A different account leaves saved keys,
+      Recovery Key, checkpoint, and old credentials untouched. A legacy
+      pre-receipt checkpoint without an account identity fails closed and
+      asks for support. This avoids registering an old device under a new
+      account while still making recoverable sign-in failures actionable.
+      When the coordinator already holds a different recovery envelope,
+      Curfew retains the registered-device receipt and account identity in a
+      separate existing-key checkpoint, without retaining the newly generated
+      Recovery Key. An expired credential during existing-key restoration
+      offers the same identity-bound sign-in, then returns to the Recovery Key
+      form; an incorrect key still stays at that form. This checkpoint must
+      survive relaunch and must not be replaced by the display-only record.
       Before device registration, Curfew persists
       the exact OAuth-bound request inputs, Recovery Key, and encrypted envelope;
       it adds the authenticated receipt before finalization. Ambiguous registration,
       expired-token, upload-failure, and relaunch paths resume that checkpoint
-      once at a time without another OAuth or passkey ceremony. The app keeps
+      once at a time without another OAuth or passkey ceremony while the saved
+      credential remains valid; an unrecoverable credential requires the
+      same-account sign-in above. The app keeps
       the receipt-backed checkpoint while it shows the generated Recovery Key,
+      rather than replacing it with the older display-only record (which lost
+      the receipt and blocked confirmation),
       offers Copy and Save-to-File actions so the user need not transcribe it,
       and uploads the encrypted envelope only after the user selects “I saved
       the Recovery Key.” The clipboard is cleared after one minute if its
@@ -560,7 +586,11 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
       recovery-entry step with a retry message instead of starting sign-in
       again. These local state-transition tests do not replace signed-device
       staging proof; rollback should preserve saved checkpoints and Keychain
-      credentials so a completed browser grant is not discarded.
+      credentials so a completed browser grant is not discarded. Reverting
+      the same-account retry UI without preserving these checkpoints would
+      leave registered Macs at a dead-end if their refresh credential expires;
+      release verification must exercise an expired grant and a wrong-account
+      attempt on a signed Studio build before claiming remote enrollment works.
       Coordinator acceptance is checkpointed as a durable completed-enrollment
       mirror before the recovery setup is removed. That marker remains until an
       explicit account reset, and a newer marker takes precedence over stale

@@ -3,129 +3,13 @@ import Combine
 import CurfewProtocols
 import Foundation
 
-enum AccountEnrollmentUIState: Equatable {
-    case accountFree
-    case storageUnavailable
-    case signingIn
-    case connectingDevice
-    case finishDeviceConnection
-    case finishDeviceRegistration(String, AccountDeviceEnrollment)
-    case finishRecoverySetup(String, AccountDeviceEnrollment)
-    case saveRecoveryKey(String, AccountDeviceEnrollment)
-    case enterRecoveryKey(AccountDeviceEnrollment)
-    case ready(AccountDeviceEnrollment)
-    case failed(String)
-}
-
-enum AccountEnrollmentSignInPolicy {
-    static func canStart(from state: AccountEnrollmentUIState) -> Bool {
-        switch state {
-        case .storageUnavailable, .signingIn, .connectingDevice, .finishDeviceConnection:
-            false
-        default:
-            true
-        }
-    }
-}
-
-@MainActor
-protocol AccountOAuthEnrolling {
-    func signIn(
-        presentationWindow: NSWindow?,
-        authorizationURLHandler: @escaping @MainActor (URL) -> Void
-    ) async throws -> AccountOAuthGrant
-    func cancelSignIn()
-}
-
-@MainActor
-protocol AccountDeviceEnrolling {
-    func enroll(
-        grant: AccountOAuthGrant,
-        deviceID: UUID
-    ) async throws -> NativeAccountEnrollmentState
-    func resumeRecoverySetup(
-        recoveryKey: String,
-        enrollment: AccountDeviceEnrollment
-    ) async throws -> NativeAccountEnrollmentState
-    func resumeDeviceRegistration(
-        recoveryKey: String,
-        enrollment: AccountDeviceEnrollment
-    ) async throws -> NativeAccountEnrollmentState
-    func restore(
-        recoveryKey: String,
-        enrollment: AccountDeviceEnrollment
-    ) async throws -> AccountDeviceEnrollment
-    func acknowledgeSavedRecoveryKey(
-        recoveryKey: String,
-        enrollment: AccountDeviceEnrollment
-    ) async throws -> NativeAccountEnrollmentState
-}
-
-extension AccountDeviceEnrolling {
-    func acknowledgeSavedRecoveryKey(
-        recoveryKey: String,
-        enrollment: AccountDeviceEnrollment
-    ) async throws -> NativeAccountEnrollmentState {
-        try await resumeRecoverySetup(recoveryKey: recoveryKey, enrollment: enrollment)
-    }
-}
-
-extension AccountOAuthEnrollmentService: AccountOAuthEnrolling {}
-
-extension NativeAccountDeviceEnrollmentService: AccountDeviceEnrolling {
-    func enroll(
-        grant: AccountOAuthGrant,
-        deviceID: UUID
-    ) async throws -> NativeAccountEnrollmentState {
-        try await enroll(grant: grant, deviceID: deviceID, enrolledAt: Date())
-    }
-}
-
-@MainActor
-protocol AccountAuthorizationLinkCopying: AnyObject {
-    func copy(_ url: URL)
-    func clearIfUnchanged()
-}
-
-@MainActor
-final class SystemAccountAuthorizationLinkClipboard: AccountAuthorizationLinkCopying {
-    private var copiedValue: String?
-
-    func copy(_ url: URL) {
-        let value = url.absoluteString
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(value, forType: .string)
-        copiedValue = value
-    }
-
-    func clearIfUnchanged() {
-        defer { copiedValue = nil }
-        guard let copiedValue,
-              NSPasteboard.general.string(forType: .string) == copiedValue
-        else { return }
-        NSPasteboard.general.clearContents()
-    }
-}
-
-enum AccountEnrollmentFailureCopy {
-    static let authorization =
-        "Curfew didn’t connect this Mac. Finish in the browser, then try again. "
-            + "Remote control is still off."
-    static let deviceConnection =
-        "You’re signed in. Curfew couldn’t connect this Mac, so remote control is still off. "
-            + "Try again."
-    static let browserCompleted =
-        "You’re signed in in the browser. Curfew couldn’t finish connecting this Mac. "
-            + "Your browser session is still active; try again."
-    static let retryConnection =
-        "Curfew still couldn’t finish connecting this Mac. No new sign-in is needed; try again."
-}
-
 @MainActor
 final class AccountEnrollmentController: ObservableObject {
     @Published private(set) var state: AccountEnrollmentUIState = .accountFree
     @Published private(set) var isFinishingEnrollment = false
     @Published private(set) var enrollmentRetryError: String?
+    @Published private(set) var requiresReauthorization = false
+    @Published private(set) var canReauthorizeSavedEnrollment = true
     @Published private(set) var browserSignInURL: URL?
 
     private let secretStore: any AccountSecretStoring
@@ -155,6 +39,8 @@ final class AccountEnrollmentController: ObservableObject {
     func reloadSavedEnrollment() {
         do {
             state = try pending.load() ?? .accountFree
+        } catch AccountOAuthTokenRefreshError.missingCredentials {
+            requireReauthorization()
         } catch {
             state = .storageUnavailable
         }
@@ -200,6 +86,8 @@ final class AccountEnrollmentController: ObservableObject {
                 return
             }
             await connectDevice(grant: checkpoint.grant, deviceID: checkpoint.deviceID)
+        } catch AccountOAuthTokenRefreshError.missingCredentials {
+            requireReauthorization()
         } catch {
             state = .storageUnavailable
         }
@@ -225,6 +113,8 @@ final class AccountEnrollmentController: ObservableObject {
                 try pending.markReady(enrollment)
                 state = .ready(enrollment)
             }
+        } catch AccountOAuthTokenRefreshError.rejected {
+            requireReauthorization()
         } catch {
             reloadSavedEnrollment()
             if case .accountFree = state {
@@ -236,15 +126,24 @@ final class AccountEnrollmentController: ObservableObject {
         }
     }
 
-    private func authenticate() async throws -> AccountOAuthGrant {
+    private func authenticate(expectedAccountUserID: String? = nil) async throws
+        -> AccountOAuthGrant {
         let authorizationURLHandler: @MainActor (URL) -> Void = { [weak self] authorizationURL in
             self?.browserSignInURL = authorizationURL
         }
         let authentication = Task {
-            try await oauth.signIn(
-                presentationWindow: presentationWindow,
-                authorizationURLHandler: authorizationURLHandler
-            )
+            if let expectedAccountUserID {
+                try await oauth.reauthorize(
+                    expectedAccountUserID: expectedAccountUserID,
+                    presentationWindow: presentationWindow,
+                    authorizationURLHandler: authorizationURLHandler
+                )
+            } else {
+                try await oauth.signIn(
+                    presentationWindow: presentationWindow,
+                    authorizationURLHandler: authorizationURLHandler
+                )
+            }
         }
         activeSignInTask = authentication
         defer {
@@ -254,7 +153,9 @@ final class AccountEnrollmentController: ObservableObject {
         }
         let grant = try await authentication.value
         if signInCancellationRequested {
-            try discardCancelledGrant(grant)
+            if expectedAccountUserID == nil {
+                try discardCancelledGrant(grant)
+            }
             throw CancellationError()
         }
         return grant
@@ -295,6 +196,9 @@ final class AccountEnrollmentController: ObservableObject {
                 recoveryKey: key,
                 enrollment: enrollment
             ))
+        } catch AccountOAuthTokenRefreshError.rejected,
+            AccountOAuthTokenRefreshError.missingCredentials {
+            requireSavedEnrollmentReauthorization()
         } catch {
             enrollmentRetryError = AccountEnrollmentFailureCopy.retryConnection
         }
@@ -311,8 +215,68 @@ final class AccountEnrollmentController: ObservableObject {
                 recoveryKey: key,
                 enrollment: enrollment
             ))
+        } catch AccountOAuthTokenRefreshError.rejected,
+            AccountOAuthTokenRefreshError.missingCredentials {
+            requireSavedEnrollmentReauthorization()
         } catch {
             enrollmentRetryError = AccountEnrollmentFailureCopy.retryConnection
+        }
+    }
+}
+
+extension AccountEnrollmentController {
+    func reauthorizeSavedEnrollment() async {
+        guard requiresReauthorization, canReauthorizeSavedEnrollment else { return }
+        let savedState = state
+        guard let step = SavedEnrollmentReauthorizationStep(state: savedState) else { return }
+        let expectedAccountUserID: String
+        do {
+            expectedAccountUserID = try accountUserID(for: step)
+        } catch AccountOAuthEnrollmentError.invalidResponse {
+            canReauthorizeSavedEnrollment = false
+            enrollmentRetryError = AccountEnrollmentFailureCopy.unanchoredCheckpoint
+            return
+        } catch {
+            enrollmentRetryError = AccountEnrollmentFailureCopy.retryConnection
+            return
+        }
+        signInCancellationRequested = false
+        state = .signingIn
+        browserSignInURL = nil
+        do {
+            _ = try await authenticate(expectedAccountUserID: expectedAccountUserID)
+            state = savedState
+            requiresReauthorization = false
+            enrollmentRetryError = nil
+            switch step {
+            case .deviceRegistration:
+                await finishDeviceRegistration()
+            case .recoverySetup:
+                await finishRecoverySetup()
+            case .existingKeyRecovery:
+                break
+            }
+        } catch AccountOAuthEnrollmentError.accountMismatch {
+            state = savedState
+            enrollmentRetryError = AccountEnrollmentFailureCopy.wrongAccount
+        } catch {
+            state = savedState
+            enrollmentRetryError = AccountEnrollmentFailureCopy.reauthorization
+        }
+    }
+
+    private func accountUserID(for step: SavedEnrollmentReauthorizationStep) throws -> String {
+        switch step {
+        case .deviceRegistration, .recoverySetup:
+            guard let checkpoint = try pending.loadRecoverySetup() else {
+                throw AccountOAuthEnrollmentError.invalidResponse
+            }
+            return try checkpoint.expectedAccountUserID()
+        case .existingKeyRecovery:
+            guard let checkpoint = try pending.loadExistingKeyRecovery() else {
+                throw AccountOAuthEnrollmentError.invalidResponse
+            }
+            return try checkpoint.expectedAccountUserID()
         }
     }
 
@@ -334,7 +298,8 @@ final class AccountEnrollmentController: ObservableObject {
     }
 
     func restore(recoveryKey: String) async {
-        guard case .enterRecoveryKey(let enrollment) = state else { return }
+        guard case .enterRecoveryKey(let enrollment) = state,
+              !requiresReauthorization else { return }
         enrollmentRetryError = nil
         do {
             let restored = try await devices.restore(
@@ -343,6 +308,10 @@ final class AccountEnrollmentController: ObservableObject {
             )
             try pending.markReady(restored)
             state = .ready(restored)
+        } catch AccountOAuthTokenRefreshError.rejected,
+            AccountOAuthTokenRefreshError.missingCredentials {
+            state = .enterRecoveryKey(enrollment)
+            requireSavedEnrollmentReauthorization()
         } catch {
             state = .enterRecoveryKey(enrollment)
             enrollmentRetryError = "Curfew couldn’t restore encrypted data. "
@@ -363,6 +332,11 @@ final class AccountEnrollmentController: ObservableObject {
             ))
             guard case .ready(let completed) = state else { return nil }
             return completed
+        } catch AccountOAuthTokenRefreshError.rejected,
+            AccountOAuthTokenRefreshError.missingCredentials {
+            state = .finishRecoverySetup(key, enrollment)
+            requireSavedEnrollmentReauthorization()
+            return nil
         } catch {
             state = .finishRecoverySetup(key, enrollment)
             enrollmentRetryError = AccountEnrollmentFailureCopy.retryConnection
@@ -382,5 +356,41 @@ final class AccountEnrollmentController: ObservableObject {
             for: "account-device-id"
         )
         return identifier
+    }
+}
+
+private enum SavedEnrollmentReauthorizationStep {
+    case deviceRegistration
+    case recoverySetup
+    case existingKeyRecovery
+
+    init?(state: AccountEnrollmentUIState) {
+        switch state {
+        case .finishDeviceRegistration:
+            self = .deviceRegistration
+        case .finishRecoverySetup:
+            self = .recoverySetup
+        case .enterRecoveryKey:
+            self = .existingKeyRecovery
+        default:
+            return nil
+        }
+    }
+}
+
+private extension AccountEnrollmentController {
+    func requireSavedEnrollmentReauthorization() {
+        requiresReauthorization = true
+        canReauthorizeSavedEnrollment = true
+        enrollmentRetryError = AccountEnrollmentFailureCopy.reauthorization
+    }
+
+    func requireReauthorization() {
+        do {
+            try pending.clearAuthorizedConnection()
+            state = try pending.load() ?? .failed(AccountEnrollmentFailureCopy.reauthorization)
+        } catch {
+            state = .storageUnavailable
+        }
     }
 }

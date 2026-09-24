@@ -282,3 +282,40 @@ final class RetryableInitialAccountDeviceEnrollment: AccountDeviceEnrolling {
         enrollment
     }
 }
+
+@MainActor
+final class RejectedInitialAccountDeviceEnrollment: AccountDeviceEnrolling {
+    private enum Failure: Error { case unavailable }
+
+    let enrollment = Curfew.AccountDeviceEnrollment(
+        deviceID: UUID(uuidString: "018f4f45-cafe-7f00-9a82-e47805fb4d35")!,
+        keyEpoch: 1,
+        enrolledAt: Date(timeIntervalSince1970: 1_800_000_000)
+    )
+    private var enrollCount = 0
+
+    func enroll(grant _: AccountOAuthGrant, deviceID _: UUID) async throws
+        -> NativeAccountEnrollmentState {
+        enrollCount += 1
+        switch enrollCount {
+        case 1: throw Failure.unavailable
+        case 2: throw AccountOAuthTokenRefreshError.rejected(400)
+        default: return .saveRecoveryKey("recovery-key", enrollment)
+        }
+    }
+
+    func resumeRecoverySetup(recoveryKey _: String, enrollment _: AccountDeviceEnrollment)
+        async throws -> NativeAccountEnrollmentState {
+        .saveRecoveryKey("recovery-key", enrollment)
+    }
+
+    func resumeDeviceRegistration(recoveryKey _: String, enrollment _: AccountDeviceEnrollment)
+        async throws -> NativeAccountEnrollmentState {
+        .saveRecoveryKey("recovery-key", enrollment)
+    }
+
+    func restore(recoveryKey _: String, enrollment: AccountDeviceEnrollment) async throws
+        -> AccountDeviceEnrollment {
+        enrollment
+    }
+}

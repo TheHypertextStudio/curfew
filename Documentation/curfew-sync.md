@@ -122,12 +122,27 @@ This means a compromised coordinator cannot push a "lock window shrinks to zero"
   file through the macOS save dialog; the file must be kept private. Neither
   action automatically confirms storage. Selecting “I saved the Recovery Key”
   persists that transition, uploads the envelope, and only then marks the account ready.
+  Showing the key keeps the receipt-backed checkpoint intact; replacing that
+  checkpoint with a simpler display record would lose the upload envelope and
+  prevent confirmation from ever completing.
   A relaunch or network failure resumes the exact unfinished step without
   repeating passkey sign-in. This includes a failure before the first device
   registration: Curfew retains the authorized connection state, reuses the
   current OAuth credentials in Keychain, and refreshes an expired access token
-  when registration is retried. If the user enters an incorrect Recovery Key,
-  the recovery form stays available for another attempt.
+  when registration is retried. A missing or server-rejected credential
+  instead offers a new sign-in, without erasing any later registration or
+  recovery checkpoint. After keys or a registration receipt have been saved,
+  a fresh sign-in is staged separately. Curfew checks the new token's account
+  with the account server before replacing credentials or resuming the same
+  device and Recovery Key. A different account cannot take over the saved Mac;
+  a legacy pre-receipt checkpoint with no account identity requires support
+  rather than guessing. If the user enters an incorrect Recovery Key,
+  the recovery form stays available for another attempt. If the coordinator
+  already has a different recovery envelope, Curfew discards the newly generated
+  key but preserves the registration receipt in an existing-key checkpoint.
+  A rejected refresh during restoration then offers identity-bound sign-in
+  before another Recovery Key attempt. Relaunch preserves this checkpoint;
+  clearing it would strand the user or permit an unintended account switch.
   If the browser does not return the HTTPS callback to Curfew, the waiting
   Settings panel offers Cancel sign-in and lets the user retry without
   quitting. Cancellation also stops an in-flight token exchange, discards any

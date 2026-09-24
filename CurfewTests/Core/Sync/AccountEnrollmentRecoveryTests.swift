@@ -226,4 +226,69 @@ struct AccountEnrollmentRecoveryTests {
         #expect(oauth.signInCount == 1)
         #expect(devices.enrollCount == 2)
     }
+
+    @MainActor
+    @Test("A rejected refresh credential lets the user sign in again")
+    func rejectedInitialConnectionCanReauthorize() async {
+        let secretStore = EnrollmentRecoveryMemorySecretStore()
+        let oauth = CountingAccountOAuthEnrollment(secretStore: secretStore)
+        let devices = RejectedInitialAccountDeviceEnrollment()
+        let controller = AccountEnrollmentController(
+            secretStore: secretStore,
+            oauth: oauth,
+            devices: devices
+        )
+
+        await controller.signIn()
+        #expect(controller.state == .finishDeviceConnection)
+
+        await controller.signIn()
+        if case .failed(let message) = controller.state {
+            #expect(message.contains("Sign in again"))
+        } else {
+            Issue.record("A rejected refresh credential must offer a new sign-in")
+        }
+
+        let relaunched = AccountEnrollmentController(
+            secretStore: secretStore,
+            oauth: oauth,
+            devices: devices
+        )
+        #expect(relaunched.state == .accountFree)
+
+        await controller.signIn()
+        #expect(controller.state == .saveRecoveryKey("recovery-key", devices.enrollment))
+        #expect(oauth.signInCount == 2)
+    }
+
+    @MainActor
+    @Test("A missing OAuth credential offers sign-in instead of a storage warning")
+    func missingInitialConnectionCredentialCanReauthorize() async throws {
+        let secretStore = EnrollmentRecoveryMemorySecretStore()
+        let oauth = CountingAccountOAuthEnrollment(secretStore: secretStore)
+        let devices = RetryableInitialAccountDeviceEnrollment()
+        let first = AccountEnrollmentController(
+            secretStore: secretStore,
+            oauth: oauth,
+            devices: devices
+        )
+        await first.signIn()
+        #expect(first.state == .finishDeviceConnection)
+
+        try secretStore.delete("oauth-refresh-token")
+        let relaunched = AccountEnrollmentController(
+            secretStore: secretStore,
+            oauth: oauth,
+            devices: devices
+        )
+        if case .failed(let message) = relaunched.state {
+            #expect(message.contains("Sign in again"))
+        } else {
+            Issue.record("A missing OAuth credential must offer a new sign-in")
+        }
+
+        await relaunched.signIn()
+        #expect(relaunched.state == .saveRecoveryKey("recovery-key", devices.enrollment))
+        #expect(oauth.signInCount == 2)
+    }
 }
