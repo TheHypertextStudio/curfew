@@ -663,7 +663,7 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
 - [x] Marked the forward-looking PRD and Sparkle/appcast checklist steps so v0.1
   cannot be mistaken for a released sync/updater product; regression coverage
   lives in `scripts/release-entitlements.test.mjs`.
-- [-] Make CI demo captures prove the named screen. The screenshot job now
+- [x] Make CI demo captures prove the named screen. The screenshot job now
   forwards unsigned build settings and propagates UI-test failures instead of
   uploading a green artifact after a failed test. A regression assertion
   requires the Settings image to contain the account panel. The existing
@@ -673,10 +673,11 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
   selector did not open the SwiftUI Settings scene. Curfew now registers the
   active scene's `openSettings` action for Settings links, and the fixture
   requests Settings after that registration. A focused routing test passes;
-  inspect the next hosted capture before marking this complete. The failure
-  bundle contains only synthetic demo-fixture account state. Roll back the
-  extra failure artifact after the capture is fixed if it adds unnecessary
-  CI storage.
+  hosted CI run `35946577127` passed and its exported `curfew-settings.png`
+  visibly shows Integrations and the Curfew Account panel. This is unsigned
+  fixture proof, not signed account-enrollment proof. Failure bundles contain
+  only synthetic demo-fixture account state; the failure-only artifact can be
+  removed if it adds unnecessary CI storage.
   Rollback must not restore the failure-masking `xcodebuild || true` path.
 - [x] Corrected the signed-build guard to validate Xcode's resolved certificate
   identity. The prior guard inspected only the requested `CODE_SIGN_IDENTITY`
