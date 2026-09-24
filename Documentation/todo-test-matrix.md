@@ -670,8 +670,11 @@ only.
   and Sparkle work.`
   - `scripts/release-entitlements.test.mjs`
 - `CI screenshot capture uses unsigned Xcode settings so hosted macOS runners
-  produce and upload the MarketingCapture PNG artifacts.`
+  produce and upload the MarketingCapture PNG artifacts, and a failed UI test
+  fails the job instead of silently exporting misleading images.`
   - `scripts/release-entitlements.test.mjs`
+  - `scripts/extract-screenshots.test.mjs`
+  - `MarketingCaptureTests/testCaptureSettings()`
   - `scripts/extract-screenshots.sh` (local and hosted runtime coverage)
 - `Stripe test-mode staging uses an isolated curfew-prefixed Hypertext Studio
   hostname and rejects alternate Worker hostname conventions.`

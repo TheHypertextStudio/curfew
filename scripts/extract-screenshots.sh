@@ -22,7 +22,6 @@ mkdir -p "$OUT"
 rm -f "$OUT"/curfew-*.png
 
 echo "==> Running MarketingCaptureTests"
-# `|| true`: a single scenario failing should not block exporting the rest.
 xcodebuild_arguments=(
     test
     -project Curfew.xcodeproj
@@ -37,7 +36,7 @@ if [[ -n "${CURFEW_XCODEBUILD_SETTINGS:-}" ]]; then
     read -r -a ci_xcodebuild_settings <<< "$CURFEW_XCODEBUILD_SETTINGS"
     xcodebuild_arguments+=("${ci_xcodebuild_settings[@]}")
 fi
-xcodebuild "${xcodebuild_arguments[@]}" || true
+xcodebuild "${xcodebuild_arguments[@]}"
 
 echo "==> Exporting attachments from result bundle"
 xcrun xcresulttool export attachments \

@@ -663,8 +663,13 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
 - [x] Marked the forward-looking PRD and Sparkle/appcast checklist steps so v0.1
   cannot be mistaken for a released sync/updater product; regression coverage
   lives in `scripts/release-entitlements.test.mjs`.
-- [x] Restored CI demo-capture artifacts by forwarding the screenshot job's
-  unsigned build settings into `scripts/extract-screenshots.sh`.
+- [-] Make CI demo captures prove the named screen. The screenshot job now
+  forwards unsigned build settings and propagates UI-test failures instead of
+  uploading a green artifact after a failed test. A regression assertion
+  requires the Settings image to contain the account panel. The existing
+  `curfew-settings.png` artifact showed Today, so the window-selection path
+  must be corrected and the resulting image inspected before this is complete.
+  Rollback must not restore the failure-masking `xcodebuild || true` path.
 - [x] Corrected the signed-build guard to validate Xcode's resolved certificate
   identity. The prior guard inspected only the requested `CODE_SIGN_IDENTITY`
   label, allowing an ad-hoc `Curfew (Dev)` binary when the local development

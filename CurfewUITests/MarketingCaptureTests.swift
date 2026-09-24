@@ -97,6 +97,12 @@ final class MarketingCaptureTests: XCTestCase {
             app.activate()
             _ = window.waitForExistence(timeout: 6)
         }
+        if scenario == "settings" {
+            XCTAssertTrue(
+                window.staticTexts["Curfew Account"].exists,
+                "The Settings capture must show the account panel"
+            )
+        }
 
         // Let the first frame, window placement, and any overlay settle before
         // the shot. Demo mode pins state, so there is nothing animating to race.
