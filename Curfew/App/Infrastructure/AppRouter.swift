@@ -14,9 +14,11 @@ protocol AppRouting: AnyObject {
     /// so the window actually surfaces in front of the user.
     func activate()
 
-    /// Invokes the standard Settings window opener. Uses the AppKit selector
-    /// `showSettingsWindow:` so the responder chain honours the current scene
-    /// configuration (which differs in Debug vs Release).
+    /// Supplies the Settings action from an active SwiftUI scene and fulfills
+    /// any request made before that scene appeared.
+    func registerSettingsOpener(_ opener: @escaping @MainActor () -> Void)
+
+    /// Invokes the Settings action registered by the visible scene.
     func showSettings()
 }
 
@@ -27,16 +29,30 @@ protocol AppRouting: AnyObject {
 /// together when we eventually add deep-link or URL-scheme handling.
 @MainActor
 final class SystemAppRouter: AppRouting {
+    private var settingsOpener: (@MainActor () -> Void)?
+    private var settingsOpenPending = false
+
     /// Activates the Curfew process, ignoring which app currently holds focus.
     func activate() {
         NSApp.activate(ignoringOtherApps: true)
     }
 
-    /// Sends `showSettingsWindow:` up the responder chain. SwiftUI's
-    /// `Settings` scene installs a handler for this selector at the app level,
-    /// which is why we route through `NSApp.sendAction` instead of calling a
-    /// specific window controller directly.
+    func registerSettingsOpener(_ opener: @escaping @MainActor () -> Void) {
+        settingsOpener = opener
+        if settingsOpenPending {
+            settingsOpenPending = false
+            opener()
+        }
+    }
+
+    /// Uses SwiftUI's scene action, coalescing early requests until one exists.
+    /// `showSettingsWindow:` did not dispatch to this app's Settings scene on
+    /// the hosted macOS runner.
     func showSettings() {
-        NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+        guard let settingsOpener else {
+            settingsOpenPending = true
+            return
+        }
+        settingsOpener()
     }
 }

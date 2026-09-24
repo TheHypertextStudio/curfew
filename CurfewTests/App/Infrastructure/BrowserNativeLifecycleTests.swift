@@ -43,7 +43,8 @@ struct BrowserNativeLifecycleTests {
         #expect(try store.pending(at: Date()).count == 1)
         let outcome = UninstallCoordinator.performUninstall(
             home: home,
-            defaultsSuiteName: "studio.hypertext.curfew.tests.\(UUID().uuidString)"
+            defaultsSuiteName: "studio.hypertext.curfew.tests.\(UUID().uuidString)",
+            eraseKeychainService: { _ in }
         )
         #expect(outcome.allSucceeded)
         let response = await waiting.value
@@ -237,7 +238,9 @@ struct BrowserNativeLifecycleTests {
         try store.activate()
         try store.writePolicy(nil, at: Date())
         let outcome = UninstallCoordinator.performUninstall(
-            home: home, defaultsSuiteName: "studio.hypertext.curfew.tests.\(UUID().uuidString)"
+            home: home,
+            defaultsSuiteName: "studio.hypertext.curfew.tests.\(UUID().uuidString)",
+            eraseKeychainService: { _ in }
         )
         #expect(outcome.allSucceeded)
         #expect(!FileManager.default.fileExists(atPath: manifest.path))

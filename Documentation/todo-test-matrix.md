@@ -20,7 +20,7 @@ only.
   - `BrowserNativeInstallationTests/developmentAndProductionInstallAndUninstallIndependently()` and `installationRejectsUnsafeExecutable(kind:)` check manifest isolation and executable validation.
   - `BrowserNativeStoreTests/oversizedDestinationCannotPoisonAnExistingQueue()`, `oversizedSignedResponseLeavesPriorQueueUnchanged()`, `requestByteBoundaryAndMaximumQueueStayReadable(unicodeAnswers:)`, and `completeSignedRecordAcceptsItsLastFittingSize()` check request and record size boundaries.
   - `BrowserNativeHostTests/liveHostCannotRecreateStateAfterUninstall()` and `revokedMarkerBlocksEveryMutationWithoutCreatingFiles()` check marker revocation.
-  - `BrowserNativeLifecycleTests/uninstallRevokesAWaitingHostAndPreservesOtherFlavor()` checks the app uninstall path with a waiting host.
+  - `BrowserNativeLifecycleTests/uninstallRevokesAWaitingHostAndPreservesOtherFlavor()` checks the app uninstall path with a waiting host. Browser lifecycle fixtures inject an isolated Keychain eraser so unsigned CI validates browser state rather than depending on the runner's Keychain entitlements.
 - `Build the task-scoped Chrome MV3 extension.`
   - `destination.test.ts` checks removal of credentials, query strings, fragments, default ports, and unsupported schemes before review.
   - `rules.test.ts` checks one low-priority top-level block, higher-priority exact-origin and case-sensitive path-prefix allows, subresource exclusion, and current-clock grant and break expiry.
@@ -251,7 +251,7 @@ only.
 - `Expose the shipping MCP and privileged-helper controls in the isolated staging build so signed-device acceptance can install the daemon.`
   - `FeatureFlagTests/resolveWithStagingFeatures()`
   - `FeatureFlagTests/resolvedMatchesBuild()`
-  - `scripts/release-entitlements.test.mjs` (`a staging build compiles the app and every embedded tool for the same service boundary`)
+  - `scripts/release-entitlements.test.mjs` (`a staging build compiles the app and every embedded tool for the same service boundary`; checks Debug and StudioDev staging flags and excludes Release)
 
 ## 6. Extension and Override Systems
 
@@ -437,11 +437,30 @@ only.
 
 ## 17. Build Gating and Distribution Accuracy
 
+- `The company-signed Studio development vehicle is identity-isolated from
+  personal Debug and Release, resolves bundled helpers without trusting a
+  conflicting environment, cannot perform machine-wide shutdown effects or
+  accept a remote lock while a live higher-priority app owns enforcement,
+  and uninstalls only its own state. Artifact and live signed-device proof
+  remain separate release gates.`
+  - `CurfewFlavorTests/studioDevelopmentResolution()`
+  - `CurfewFlavorTests/bundledHelperUsesContainingAppIdentity()`
+  - `CurfewFlavorTests/studioMutableIdentitiesAreDisjoint()`
+  - `StudioDevDaemonSafetyTests/liveOwnerDeniesRemoteLock()`
+  - `StudioDevDaemonSafetyTests/staleHeartbeatCannotShutdown()`
+  - `StudioDevDaemonSafetyTests/rootShutdownEffectsAreInert()`
+  - `DaemonPlistTests/helperPlistsAreFlavorSpecific()`
+  - `UninstallCoordinatorTests/studioDevelopmentUninstallTouchesOnlyItsOwnState()`
+  - `UninstallCoordinatorTests/failedStudioRegistrationCleanupKeepsStateAndAppRunning()`
+  - `PrivilegedHelperManagerTests/studioUninstallRegistrationCleanup()`
+  - `BrowserNativeStartupTests/studioDevelopmentNeverClaimsChromeNativeHost()`
+  - `TaskBrowserEnforcementPanelTests/studioDevelopmentExplainsChromeIsUnavailableOnlyHere()`
 - `macOS account enrollment binds PKCE to the Curfew sync resource, stores
   private material in Keychain, sends privacy-minimal generated enrollment,
   preserves the user's normal browser session for existing passkeys, and
-  owns its native OAuth callback scheme in the shipped app bundle so the
-  authorization session can return, and cannot mark sync ready before Recovery
+  owns a claimed HTTPS OAuth callback through Associated Domains so the
+  authorization session can return without trusting a forgeable custom scheme,
+  and cannot mark sync ready before Recovery
   Key acknowledgement or restore. First-device setup displays the Recovery Key
   before uploading its envelope and resumes the exact acknowledged step after
   a failure or relaunch.`
@@ -452,22 +471,58 @@ only.
   - `AccountOAuthEnrollmentTests/presentationRequiresSettingsWindow()`
   - `AccountOAuthEnrollmentTests/enrollmentSignInIsSingleFlight()`
   - `AccountEnrollmentRecoveryTests/deviceEnrollmentFailurePreservesSignInTruth()`
+  - `AccountEnrollmentRecoveryTests/initialDeviceConnectionCanResumeAfterRelaunch()`
+  - `AccountEnrollmentRecoveryTests/rejectedInitialConnectionCanReauthorize()`
+  - `AccountEnrollmentRecoveryTests/missingInitialConnectionCredentialCanReauthorize()`
+  - `AccountOAuthUserInfoTests/testWrongAccountCannotReplaceSavedOAuthCredentials()`
+  - `AccountOAuthUserInfoTests/testSameAccountCanReplaceCredentialsAfterServerIdentityCheck()`
+  - `AccountOAuthUserInfoTests/testFailedCredentialWriteDoesNotReplaceExistingAccountTokens()`
+  - `AccountEnrollmentReauthorizationTests/sameAccountResumesSavedRegistration()`
+  - `AccountEnrollmentReauthorizationTests/differentAccountCannotTakeOverSavedRegistration()`
+  - `AccountEnrollmentReauthorizationTests/legacyCheckpointFailsClosed()`
+  - `AccountEnrollmentReauthorizationTests/registeredMacResumesRecoveryWithSameAccount()`
+  - `AccountEnrollmentReauthorizationTests/confirmationCanReauthorize()`
+  - `AccountEnrollmentReauthorizationTests/existingKeyRestorationCanReauthorize()`
+  - `NativeAccountCredentialRecoveryTests/testMissingAccessCredentialRequestsReauthorization()`
+  - `AccountCheckpointIdentityTests/testPendingRegistrationKeepsTheOriginalAccountForSafeReauthorization()`
+  - `AccountCheckpointIdentityTests/testLegacyRegisteredCheckpointUsesTheCoordinatorReceiptForReauthorization()`
+  - `AccountCheckpointIdentityTests/testDisplayingRecoveryKeyKeepsTheRegisteredDeviceReceipt()`
+  - `AccountCheckpointIdentityTests/testExistingKeyRecoveryKeepsAccountIdentityWithoutTheGeneratedKey()`
+  - `AccountEnrollmentCompletionTests/testBrowserGrantToSavedRecoveryKeyToReadyKeepsTheReceipt()`
+  - `AccountEnrollmentCompletionTests/testExistingEnvelopeKeepsAccountBindingForLaterKeyRestoration()`
+  - `AccountEnrollmentRecoveryTests/wrongRecoveryKeyDoesNotRestartSignIn()`
   - `AccountEnrollmentRecoveryTests/postBrowserFailurePreservesBrowserSignInTruth()`
   - `AccountEnrollmentRecoveryTests/browserSignInLinkCanMoveToThePasskeyProfile()`
+  - `AccountEnrollmentCancellationTests/missedBrowserCallbackCanBeRetriedWithoutRelaunch()`
+  - `AccountEnrollmentCancellationTests/stalledTokenExchangeCanBeCancelled()`
+  - `AccountEnrollmentCancellationTests/cancelAfterOAuthCompletionPreventsDeviceEnrollment()`
   - `AccountEnrollmentRecoveryTests/browserSignInLinkCleanupPreservesNewClipboardContents()`
   - `AccountEnrollmentRecoveryTests/browserSignInLinkClearsBeforeDeviceEnrollment()`
+  - `AccountEnrollmentCopyTests/recoveryKeyCanBeCopied()`
+  - `AccountEnrollmentCopyTests/recoveryKeyExportUsesOwnerOnlyFilePermissions()`
   - `AccountOAuthEnrollmentTests/callbackStateIsExact()`
+  - `AccountOAuthEnrollmentTests/callbackIsClaimedHTTPS()`
   - `AccountOAuthExternalCallbackTests/externalBrowserCallbackRoutesByExactState()`
   - `AccountOAuthExternalCallbackTests/externalBrowserCallbackIsConsumedOnce()`
   - `AccountOAuthExternalCallbackTests/appDelegateForwardsExternalOAuthCallback()`
   - `AccountEnrollmentRecoveryTests/registeredMacResumesWithoutSigningInAgain()`
   - `AccountEnrollmentRecoveryTests/recoveryRetryFailureStaysAtTheRecoveryStep()`
   - `AccountEnrollmentRecoveryTests/recoveryRetryIsSingleFlight()`
+  - `AccountEnrollmentStorageRecoveryTests/unreadableEnrollmentFailsClosed()`
+  - `AccountEnrollmentStorageRecoveryTests/malformedEnrollmentFailsClosed(account:)`
+  - `AccountEnrollmentStorageRecoveryTests/storageRetryRestoresPendingStep()`
+  - `AccountEnrollmentStorageRecoveryTests/storageRetryWithNoCheckpointReturnsAccountFree()`
   - `AccountOAuthEnrollmentTests/authenticationSessionIsSingleFlight()`
   - `AccountEncryptionTests/testRegisteredDeviceRecoverySetupSurvivesRelaunchAsResumable()`
   - `NativeAccountSyncTransportTests/testDeviceRegistrationShowsRecoveryKeyBeforeRecoveryUpload()`
   - `NativeAccountSyncTransportTests/testAmbiguousRegistrationResponseResumesTheExactDeviceWithoutOAuth()`
+  - `NativeAccountSyncTransportTests/testInitialDeviceConnectionRefreshesExpiredGrantBeforeRegistration()`
   - `AccountEncryptionTests/testPendingDeviceRegistrationSurvivesBeforeCoordinatorResponse()`
+  - `AccountEncryptionTests/testCompletedEnrollmentSurvivesRelaunchUntilSettingsPersist()`
+  - `UninstallCoordinatorTests/productionUninstallIncludesLegacyCoordinatorCredential()`
+  - `UninstallCoordinatorTests/developmentUninstallPreservesLegacyProductionCredential()`
+  - `UninstallCoordinatorTests/uninstallErasesFlavorScopedAccountKeychainState()`
+  - `UninstallCoordinatorTests/completedUninstallTerminatesAfterPresentingTheOutcome()`
   - `AppConfigurationTests/hostAppOwnsOAuthCallbackScheme()`
   - `NativeAccountSyncTransportTests`
   - `AccountEncryptionTests`
@@ -511,7 +566,9 @@ only.
   pre-1.0 Curfew protocol release.`
   - `swift package resolve`
   - `xcodebuild -resolvePackageDependencies -project Curfew.xcodeproj -scheme Curfew`
-  - `CurfewProtocolBridgeTests`
+  - `CurfewProtocolBridgeTests/testReleasedUnlockTargetScopesRemainDistinct()`
+  - `curfew-sync/tests/mcp.test.ts` (published pending-unlock discovery is caller-isolated and paginated)
+  - `scripts/release-entitlements.test.mjs` (`app and command-line tools pin the same exact 0.0.x protocol release`)
 - `Every user-facing Curfew release surface uses the same version in the 0.0.x line.`
   - `scripts/release-entitlements.test.mjs` (`every user-facing release version is the same 0.0.x version`)
 - `Signed app builds sign every embedded CLI/helper with the host identity,
@@ -613,8 +670,16 @@ only.
   and Sparkle work.`
   - `scripts/release-entitlements.test.mjs`
 - `CI screenshot capture uses unsigned Xcode settings so hosted macOS runners
-  produce and upload the MarketingCapture PNG artifacts.`
+  produce and upload the MarketingCapture PNG artifacts, and a failed UI test
+  fails the job instead of silently exporting misleading images. On a Settings
+  scene failure, the test logs the demo app accessibility tree and CI retains
+  the result bundle for diagnosis; only synthetic fixture account state is
+  present.`
   - `scripts/release-entitlements.test.mjs`
+  - `scripts/extract-screenshots.test.mjs`
+  - `AppSettingsRoutingTests/settingsRouteUsesSceneAction()`
+  - `AppSettingsRoutingTests/earlySettingsRequestWaitsForScene()`
+  - `MarketingCaptureTests/testCaptureSettings()`
   - `scripts/extract-screenshots.sh` (local and hosted runtime coverage)
 - `Stripe test-mode staging uses an isolated curfew-prefixed Hypertext Studio
   hostname and rejects alternate Worker hostname conventions.`

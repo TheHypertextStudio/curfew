@@ -14,16 +14,19 @@ final class BrowserNativeRuntime {
     private var acceptsPolicyCallbacks = false
     private let startupIsAllowed: () -> Bool
     private let installForStartup: (() throws -> Void)?
+    private let flavor: CurfewFlavor
     private(set) var installationError: String?
     private(set) var enforcementEnabled = false
 
     init(
         store: BrowserNativeStore = BrowserNativeStore(),
         coordinator: DocketBrowserPolicyCoordinator? = nil,
+        flavor: CurfewFlavor = .current,
         startupIsAllowed: (() -> Bool)? = nil,
         installForStartup: (() throws -> Void)? = nil
     ) {
         self.store = store
+        self.flavor = flavor
         self.coordinator = coordinator ?? DocketBrowserPolicyCoordinator()
         self.startupIsAllowed = startupIsAllowed ?? {
             !RuntimeEnvironment.isUnitTestHost &&
@@ -55,7 +58,7 @@ final class BrowserNativeRuntime {
     }
 
     func start() {
-        guard maintenance == nil, startupIsAllowed() else { return }
+        guard flavor != .studioDevelopment, maintenance == nil, startupIsAllowed() else { return }
         do {
             if let installForStartup {
                 try installForStartup()
@@ -95,13 +98,15 @@ final class BrowserNativeRuntime {
     }
 
     func install() throws {
-        let extensionID = CurfewFlavor.current == .development
+        guard flavor != .studioDevelopment else { throw BrowserNativeError.invalidIdentity }
+        let extensionID = flavor == .development
             ? BrowserNativeInstallation.developmentExtensionID
             : Bundle.main.object(forInfoDictionaryKey: "CurfewBrowserExtensionID") as? String ?? ""
         try BrowserNativeInstallation.install(
             extensionID: extensionID,
             executable: Bundle.main.bundleURL
-                .appendingPathComponent("Contents/Resources/studio.hypertext.curfew.browser")
+                .appendingPathComponent("Contents/Resources/studio.hypertext.curfew.browser"),
+            flavor: flavor
         )
         installationError = nil
     }

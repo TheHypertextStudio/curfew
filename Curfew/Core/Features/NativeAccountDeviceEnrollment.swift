@@ -59,23 +59,39 @@ final class NativeAccountDeviceEnrollmentService {
         deviceID: UUID,
         enrolledAt: Date = Date()
     ) async throws -> NativeAccountEnrollmentState {
-        let prepared = try await prepareRegistration(
-            grant: grant,
-            deviceID: deviceID,
-            enrolledAt: enrolledAt
-        )
+        let (prepared, accessToken) = try await withRefreshingAccessToken { accessToken in
+            let currentGrant = AccountOAuthGrant(
+                tokens: AccountOAuthTokens(
+                    accessToken: accessToken,
+                    refreshToken: grant.tokens.refreshToken
+                ),
+                state: grant.state,
+                codeChallenge: grant.codeChallenge
+            )
+            return try await (
+                self.prepareRegistration(
+                    grant: currentGrant,
+                    deviceID: deviceID,
+                    enrolledAt: enrolledAt
+                ),
+                accessToken
+            )
+        }
         try pending.saveDeviceRegistration(
             enrollment: prepared.localEnrollment,
             recoveryKey: prepared.bootstrap.recoveryKey,
             recoveryEnvelope: prepared.recoveryEnvelope,
             oauthState: grant.state,
-            pkceChallenge: grant.codeChallenge
+            pkceChallenge: grant.codeChallenge,
+            accountUserID: accessToken == grant.tokens.accessToken
+                ? grant.subjectID
+                : AccountOAuthTokenSubject.extract(from: accessToken)
         )
         let receiptData: Data
         do {
             receiptData = try await submitEnrollment(
                 prepared.request,
-                accessToken: grant.tokens.accessToken
+                accessToken: accessToken
             )
             try pending.saveRegistrationReceipt(receiptData)
         } catch {
@@ -342,10 +358,10 @@ private extension NativeAccountDeviceEnrollmentService {
             )
         }
         if recoveryEnvelopeIsOurs {
-            try pending.clear()
+            try pending.markReady(checkpoint.enrollment)
             return .ready(checkpoint.enrollment)
         }
-        try pending.save(enrollment: checkpoint.enrollment, recoveryKey: nil)
+        try pending.saveExistingKeyRecovery(from: checkpoint)
         return .enterRecoveryKey(checkpoint.enrollment)
     }
 
@@ -416,7 +432,7 @@ private extension NativeAccountDeviceEnrollmentService {
             guard let data = try secretStore.data(for: "oauth-access-token"),
                   let token = String(data: data, encoding: .utf8),
                   !token.isEmpty
-            else { throw AccountOAuthEnrollmentError.invalidResponse }
+            else { throw AccountOAuthTokenRefreshError.missingCredentials }
             return token
         }
         do {

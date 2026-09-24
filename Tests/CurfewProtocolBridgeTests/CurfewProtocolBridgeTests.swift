@@ -7,6 +7,11 @@ final class CurfewProtocolBridgeTests: XCTestCase {
     private let campaignID = "018f4f45-cafe-7f00-9a82-e47805fb4d34"
     private let deviceID = "018f4f45-cafe-7f00-9a82-e47805fb4d35"
 
+    func testReleasedUnlockTargetScopesRemainDistinct() {
+        XCTAssertEqual(CurfewOAuthScope.curfewUnlockDevice.rawValue, "curfew:unlock:device")
+        XCTAssertEqual(CurfewOAuthScope.curfewUnlockAll.rawValue, "curfew:unlock:all")
+    }
+
     func testGeneratedWakePolicyMapsWithoutInventingFields() throws {
         let generated = CurfewProtocols.ReleasePolicy(
             dstResolution: .init(gap: .firstValidInstant, overlap: .firstOccurrence),

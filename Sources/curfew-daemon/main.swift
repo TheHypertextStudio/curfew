@@ -1,3 +1,4 @@
+import AppKit
 import CurfewKit
 import Foundation
 import OSLog
@@ -34,6 +35,26 @@ private let remoteCommandStateStore = DaemonRemoteCommandStateStore(
     stateURL: SharedPaths.remoteCommandState
 )
 
+/// The shared record is user-writable, so require a recognized bundle identity
+/// and a live process with that bundle before yielding to it.
+private func liveEnforcementOwner() -> EnforcementOwner? {
+    guard let owner = EnforcementOwnerStore.load(from: SharedPaths.enforcementOwnerLock),
+          owner.hasRecognizedIdentity,
+          let app = NSRunningApplication(processIdentifier: owner.processIdentifier),
+          app.bundleIdentifier == owner.bundleIdentifier
+    else { return nil }
+    return owner
+}
+
+private func studioDevMayApplyCommand() -> Bool {
+    let owner = liveEnforcementOwner()
+    return !StudioDevDaemonSafety.shouldStandDown(
+        flavor: .current,
+        owner: owner,
+        ownerIsLive: owner != nil
+    )
+}
+
 /// Daemon composition root. Local MCP and remote MCP supply the same narrow
 /// dependency, so enforcement policy does not know which transport produced a
 /// deadline and a failure in either backend cannot suppress the other.
@@ -51,7 +72,8 @@ private let commandBackends = DaemonCommandBackendSet(backends: [
                 directoryURL: SharedPaths.remoteCommandInbox
             ),
             stateStore: remoteCommandStateStore,
-            jwksProvider: HTTPRemoteCommandJWKSProvider(endpoint: remoteCommandJWKSURL)
+            jwksProvider: HTTPRemoteCommandJWKSProvider(endpoint: remoteCommandJWKSURL),
+            enforcementAllowed: { studioDevMayApplyCommand() }
         ),
         stateStore: remoteCommandStateStore,
         resultExchange: RemoteCommandResultExchangeStore(
@@ -232,7 +254,9 @@ private let breakGlassStore = BreakGlassStore()
 private let remoteOverrideReleaseStore = BreakGlassStore(
     recordURL: SharedPaths.remoteOverrideRelease
 )
-private let effects = SystemDaemonEffects()
+private let effects: any DaemonEnforcementEffects = CurfewFlavor.current == .studioDevelopment
+    ? StudioDevDaemonEffects(underlying: SystemDaemonEffects())
+    : SystemDaemonEffects()
 private let observer = DaemonAuditObserver(auditLog: .shared)
 var runtime = DaemonEnforcementRuntime(auditLog: .shared)
 
@@ -288,7 +312,8 @@ while true {
         )
     )
 
-    let outcome = DaemonEnforcementDecision.evaluate(
+    let owner = liveEnforcementOwner()
+    let outcome = StudioDevDaemonSafety.evaluate(
         DaemonEnforcementDecision.Input(
             now: now,
             deadline: record,
@@ -299,7 +324,10 @@ while true {
             maximumDeferral: protectedWorkPolicy.maximumDeferral,
             persistedDeferralStart: loadDeferralStart(),
             shutdownAlreadyIssued: runtime.shutdownIssued
-        )
+        ),
+        flavor: .current,
+        owner: owner,
+        ownerIsLive: owner != nil
     )
 
     switch runtime.apply(outcome, effects: effects, now: now) {

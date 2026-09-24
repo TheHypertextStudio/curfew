@@ -81,6 +81,9 @@ jobs:
       # permission is needed on the runner. The walkthrough video and the
       # shadowed per-window hero stills are local-only (they need that
       # permission) — see scripts/capture-marketing.sh / capture-video.sh.
+      - name: Verify screenshot capture failure handling
+        run: node --test scripts/extract-screenshots.test.mjs
+
       - name: Capture demo screenshots
         env:
           CURFEW_XCODEBUILD_SETTINGS: "CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO"
@@ -92,4 +95,12 @@ jobs:
         with:
           name: curfew-screenshots
           path: build/screenshots/curfew-*.png
+          if-no-files-found: warn
+
+      - name: Upload screenshot-test diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: curfew-screenshot-test-results
+          path: build/screenshots.xcresult
           if-no-files-found: warn

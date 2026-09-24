@@ -216,9 +216,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         super.init()
     }
 
-    /// A callback opened from a normal browser tab reaches Launch Services,
-    /// not necessarily the AuthenticationServices browser session. Forward it
-    /// to the one pending OAuth request; the router enforces the exact state.
+    /// Universal-link callbacks from another browser profile are accepted only
+    /// for the exact pending claimed-HTTPS OAuth transaction.
     func application(_: NSApplication, open urls: [URL]) {
         for url in urls where callbackRouter.route(url) {
             break

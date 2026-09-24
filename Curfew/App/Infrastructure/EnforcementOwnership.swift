@@ -7,28 +7,6 @@ private let ownershipLogger = Logger(
     category: "enforcement-ownership"
 )
 
-/// Identity of the Curfew that currently holds the user in lockout, persisted
-/// to the flavor-neutral lock file so any flavor can see who owns enforcement.
-struct EnforcementOwner: Codable, Equatable {
-    /// Raw ``CurfewFlavor`` value of the owning build.
-    let flavor: String
-    /// Bundle identifier of the owning process. Distinguishes flavors and lets
-    /// a liveness check detect a reused pid (different app, same number).
-    let bundleIdentifier: String
-    /// Human-facing name — `"Curfew"` or `"Curfew (Dev)"` — for UI copy.
-    let displayName: String
-    /// Process id of the owning app, used for liveness checks.
-    let processIdentifier: Int32
-    /// When ownership was taken. Informational / for debugging.
-    let acquiredAt: Date
-
-    /// Precedence of the owning flavor; an unknown raw value ranks below all
-    /// real flavors so a corrupt record can always be reclaimed.
-    var enforcementPriority: Int {
-        CurfewFlavor(rawValue: flavor)?.enforcementPriority ?? -1
-    }
-}
-
 /// Cross-flavor mutual exclusion for the *act of locking the user out*.
 ///
 /// Data is isolated per flavor (see ``CurfewFlavor``), but enforcement is
@@ -182,8 +160,7 @@ enum EnforcementOwnership {
     }
 
     private static func readOwner(at lockURL: URL) -> EnforcementOwner? {
-        guard let data = try? Data(contentsOf: lockURL) else { return nil }
-        return try? JSONDecoder().decode(EnforcementOwner.self, from: data)
+        EnforcementOwnerStore.load(from: lockURL)
     }
 
     private static func writeOwner(_ owner: EnforcementOwner, at lockURL: URL) {

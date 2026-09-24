@@ -61,6 +61,7 @@ struct ContentView: View {
     /// SwiftUI `openWindow` action so the popover can raise the main
     /// `WindowGroup` identified by `MainWorkspaceSection.windowID`.
     @Environment(\.openWindow) private var openWindow
+    @Environment(\.openSettings) private var openSettings
 
     /// Menu-bar popover content.
     var body: some View {
@@ -82,6 +83,9 @@ struct ContentView: View {
             .padding(.horizontal, 10)
             .padding(.top, 10)
             actions(snapshot: snapshot)
+        }
+        .onAppear {
+            model.appRouter.registerSettingsOpener { openSettings() }
         }
         .frame(width: 320)
         .background(CurfewTheme.canvas)
@@ -190,6 +194,7 @@ struct ContentView: View {
 struct MainWindowView: View {
     /// Live app state shared across detail panes.
     @EnvironmentObject private var model: CurfewAppModel
+    @Environment(\.openSettings) private var openSettings
     /// Currently-selected sidebar section. Defaults to `.today` (a Debug
     /// demo-capture launch can pin a different pane via `demoLaunchSelection`);
     /// SwiftUI restores the last selection between window appearances.
@@ -231,6 +236,9 @@ struct MainWindowView: View {
                 onApprove: { model.approveMCPRequest(request) },
                 onDeny: { model.denyMCPRequest(request) }
             )
+        }
+        .onAppear {
+            model.appRouter.registerSettingsOpener { openSettings() }
         }
     }
 

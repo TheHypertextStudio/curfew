@@ -460,8 +460,37 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
 
 ## 18. Verification (v0.1 release candidate)
 
+- [-] Prove remote account enrollment and signed phone-to-Mac lock/unlock with
+      an isolated Hypertext Studio development app. The additive `StudioDev`
+      configuration builds `Curfew Studio Dev.app` with distinct app/widget IDs,
+      App Group, daemon label, local state, Keychain services, and callback
+      scheme; Debug and Release identities are unchanged. A Studio-bundled
+      helper recovers its flavor from the app even if launch environment is
+      missing or conflicting. Studio Dev does not claim the personal Chrome
+      native host, cannot issue or cancel root shutdown, yields remote lock
+      acceptance and daemon effects to a live higher-priority Curfew, and
+      uninstalls only its own state. Studio uninstall unregisters its daemon
+      and login item before erasing state; if either unregister fails, it
+      leaves the app and saved state in place with an actionable error.
+      Focused tests and an unsigned artifact build cover these boundaries.
+      The release-contract test also checks that both Debug and StudioDev
+      compile embedded tools for staging while Release does not.
+      The Studio App ID and App Group are registered in Apple Developer;
+      widget registration, provisioned company signing, staging
+      native-client/AASA admission, installation, and visible phone lock/unlock
+      remain unverified; an unsigned build is not a
+      release or runtime proof. Operationally, install only the correctly
+      provisioned Studio app after comparing the built team, entitlements,
+      destination, and personal install. Rollback removes only the Studio
+      bundle and its flavor-scoped state; do not run the production uninstall
+      script or change the existing personal App IDs. The protocol consumer
+      now pins the separately released 0.0.11 contract; this is not signed
+      installation or phone-to-Mac proof.
 - [x] Pin both SwiftPM entry points to the immutable pre-1.0
-      `curfew-protocols` 0.0.9 release.
+      `curfew-protocols` 0.0.11 release. A Swift bridge test exercises the new
+      one/all-device unlock scopes and a release-contract check rejects
+      Xcode/SPM pin drift. Rollback of either consumer alone would make unlock
+      consent incompatible; roll forward together or disable remote consent.
 - [x] Keep every user-facing release surface in the `0.0.x` line. The Xcode
       targets and Homebrew cask now agree on `0.0.1`, with a release-contract
       regression preventing an accidental `1.x` or minor-version jump.
@@ -478,11 +507,13 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
       user/root state paths; Release rejects the staging flag. Native
       authorization now preserves the user's normal browser session instead of
       forcing an ephemeral one, so an existing account and its passkey provider
-      remain available during enrollment. The app bundle now owns the
-      `studio.hypertext.curfew` OAuth callback scheme;
-      without that Launch Services registration, AuthenticationServices could
-      accept the request while leaving enrollment waiting with no usable return
-      path. Native authorization also uses the concrete Settings window that
+      remain available during enrollment. The app now owns a claimed HTTPS OAuth
+      callback through Associated Domains. The account service publishes both
+      the `webcredentials` association required by AuthenticationServices and
+      the narrow universal link used when the user finishes a copied
+      authorization URL in another browser profile; a public client ID and
+      private-use scheme are not treated as proof that the caller is Curfew.
+      Native authorization also uses the concrete Settings window that
       initiated enrollment, retains it for the authorization lifetime, and
       fails immediately when no attached window exists instead of fabricating
       an invalid presentation anchor and leaving a spinner running. It uses the
@@ -494,21 +525,96 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
       into the browser profile that actually stores their passkey instead of
       being trapped in macOS's default profile. The URL disappears as soon as
       browser authorization ends, before device enrollment begins, and its temporary pasteboard value is removed
-      unless the user has since copied something else. Launch Services callbacks
+      unless the user has since copied something else. Claimed HTTPS callbacks
       from an ordinary browser tab are routed into only the active transaction
-      after exact callback-path and one-time-state validation. The enrollment UI now keeps
+      after exact origin, callback-path, and one-time-state validation; the former
+      custom scheme is rejected. If the browser reaches the HTTPS callback
+      instead of returning to Curfew, Settings offers Cancel sign-in so the
+      user can start a fresh authorization without quitting the app. Cancelling
+      stops the active browser session, rejects any in-flight token result,
+      clears the temporary sign-in link, and re-enables sign-in. The enrollment
+      UI now keeps
       browser authorization and device enrollment as separate states: once the
       browser callback succeeds, Settings reports that it is connecting the Mac;
       token exchange or local credential failure is
       reported as a native connection failure, never as a failed passkey or
-      unfinished browser sign-in. Before device registration, Curfew persists
+      unfinished browser sign-in. If the first device connection fails before
+      registration, Curfew keeps a small authorized-connection checkpoint and
+      offers a retry after relaunch without repeating browser sign-in. It reads
+      the current OAuth credentials from Keychain rather than copying tokens
+      into that checkpoint; an unreadable credential stops enrollment.
+      Expired access tokens are refreshed even on this first registration path.
+      If the saved OAuth credential is missing or the server rejects its
+      refresh, Curfew clears only that pre-registration authorization marker
+      and offers a fresh sign-in instead of trapping the user in retries.
+      A later device-registration or recovery checkpoint takes precedence and
+      is never discarded by that escape path. Actual Keychain read failures
+      still leave the saved connection unavailable rather than inventing an
+      empty account.
+      For these later checkpoints, a rejected or missing refresh credential
+      offers a separate same-account sign-in. The new token is staged until
+      UserInfo confirms the original account from the coordinator-accepted
+      token or registration receipt. A different account leaves saved keys,
+      Recovery Key, checkpoint, and old credentials untouched. A legacy
+      pre-receipt checkpoint without an account identity fails closed and
+      asks for support. This avoids registering an old device under a new
+      account while still making recoverable sign-in failures actionable.
+      When the coordinator already holds a different recovery envelope,
+      Curfew retains the registered-device receipt and account identity in a
+      separate existing-key checkpoint, without retaining the newly generated
+      Recovery Key. An expired credential during existing-key restoration
+      offers the same identity-bound sign-in, then returns to the Recovery Key
+      form; an incorrect key still stays at that form. This checkpoint must
+      survive relaunch and must not be replaced by the display-only record.
+      Before device registration, Curfew persists
       the exact OAuth-bound request inputs, Recovery Key, and encrypted envelope;
       it adds the authenticated receipt before finalization. Ambiguous registration,
       expired-token, upload-failure, and relaunch paths resume that checkpoint
-      once at a time without another OAuth or passkey ceremony. The app keeps
+      once at a time without another OAuth or passkey ceremony while the saved
+      credential remains valid; an unrecoverable credential requires the
+      same-account sign-in above. The app keeps
       the receipt-backed checkpoint while it shows the generated Recovery Key,
-      uploads the encrypted envelope only after the user selects “I saved the
-      Recovery Key,” and cannot report ready before the coordinator accepts it.
+      rather than replacing it with the older display-only record (which lost
+      the receipt and blocked confirmation),
+      offers Copy and Save-to-File actions so the user need not transcribe it,
+      and uploads the encrypted envelope only after the user selects “I saved
+      the Recovery Key.” The clipboard is cleared after one minute if its
+      contents have not changed; an exported plaintext file is created with
+      owner-only permissions. Neither action is proof that the user retained
+      the key. Curfew cannot report ready before the coordinator accepts the
+      envelope. An incorrect Curfew Recovery Key leaves the Mac at the same
+      recovery-entry step with a retry message instead of starting sign-in
+      again. These local state-transition tests do not replace signed-device
+      staging proof; rollback should preserve saved checkpoints and Keychain
+      credentials so a completed browser grant is not discarded. Reverting
+      the same-account retry UI without preserving these checkpoints would
+      leave registered Macs at a dead-end if their refresh credential expires;
+      release verification must exercise an expired grant and a wrong-account
+      attempt on a signed Studio build before claiming remote enrollment works.
+      Coordinator acceptance is checkpointed as a durable completed-enrollment
+      mirror before the recovery setup is removed. That marker remains until an
+      explicit account reset, and a newer marker takes precedence over stale
+      settings, so a process exit or settings-write failure cannot silently
+      return the Mac to an unenrolled or older enrollment state.
+      A Keychain read error or corrupt local enrollment checkpoint now leaves
+      Settings in a distinct saved-connection warning state instead of
+      pretending the account is empty. New sign-in is refused while that state
+      is unreadable, preventing replacement of an unfinished enrollment. The
+      user can retry a read without deleting keys or changing saved settings;
+      a successful read resumes the exact saved step. This does not stop an
+      independently running sync connection or claim remote control is off.
+      Persistent corruption needs support-led recovery; rollback must preserve
+      the fail-closed sign-in policy rather than restoring the old `try?`
+      fallback.
+      A destructive uninstall erases the entire flavor-specific account and
+      Docket OAuth Keychain services, including this durable marker, OAuth
+      credentials, device identity, and dynamically named private keys, so
+      enrollment cannot resurrect after reinstall and the development app
+      cannot clear production. Curfew terminates after presenting the cleanup
+      result so its live settings model cannot recreate deleted enrollment.
+      Production uninstall also removes the older flavor-neutral coordinator
+      assertion credential; Dev deliberately preserves that production-owned
+      item until it can be retired or migrated to a flavor-specific service.
       After enrollment, Settings observes the live account-sync engine instead
       of treating saved enrollment as proof of a working connection. It explains
       connecting, encrypted-waiting, synchronized, offline, and rejected states in
@@ -539,6 +645,11 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
       the lockout itself intact.
       In-repo tests pass; live account recovery and staging proof remain
       external release gates.
+      If Copy or Save fails, the Recovery Key remains visible and Curfew does
+      not acknowledge it automatically. Rolling back the export controls must
+      retain the existing saved-key acknowledgement and envelope checkpoint.
+      Rolling back cancellation would restore the missed-callback spinner dead
+      end; cancellation is safe only before device enrollment begins.
       Rollback may disable native enrollment, but must not restore the
       unregistered callback, guessed-window behavior, or concurrent sessions.
 - [x] `just check` passes (format + lint + tests + Debug build).
@@ -552,8 +663,25 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
 - [x] Marked the forward-looking PRD and Sparkle/appcast checklist steps so v0.1
   cannot be mistaken for a released sync/updater product; regression coverage
   lives in `scripts/release-entitlements.test.mjs`.
-- [x] Restored CI demo-capture artifacts by forwarding the screenshot job's
-  unsigned build settings into `scripts/extract-screenshots.sh`.
+- [x] Make CI demo captures prove the named screen. The screenshot job now
+  forwards unsigned build settings and propagates UI-test failures instead of
+  uploading a green artifact after a failed test. A regression assertion
+  requires the Settings image to contain the account panel. The existing
+  `curfew-settings.png` artifact showed Today, and the first targeted hosted
+  rerun found no window containing the account panel. Its accessibility tree
+  confirmed that Today was the only Curfew window: the old AppKit responder
+  selector did not open the SwiftUI Settings scene. Curfew now registers the
+  active scene's `openSettings` action for Settings links. Requests made before
+  scene appearance are coalesced and delivered when the action registers,
+  including account setup and fixture launch, rather than silently dropped.
+  Focused routing tests pass;
+  hosted CI run `35947559952` passed after the deferred-opening change, and
+  its exported `curfew-settings.png` visibly shows Integrations and the Curfew
+  Account panel. This is unsigned fixture proof, not signed account-enrollment
+  proof. Failure bundles contain
+  only synthetic demo-fixture account state; the failure-only artifact can be
+  removed if it adds unnecessary CI storage.
+  Rollback must not restore the failure-masking `xcodebuild || true` path.
 - [x] Corrected the signed-build guard to validate Xcode's resolved certificate
   identity. The prior guard inspected only the requested `CODE_SIGN_IDENTITY`
   label, allowing an ad-hoc `Curfew (Dev)` binary when the local development

@@ -72,7 +72,7 @@ struct AccountOAuthEnrollmentTests {
         )
         let session = ASWebAuthenticationSession(
             url: authorizationURL,
-            callback: .customScheme("studio.hypertext.curfew")
+            callback: AccountOAuthCallbackPolicy.callback(for: .staging)
         ) { _, _ in }
 
         AccountOAuthBrowserPolicy.configure(session)
@@ -91,7 +91,7 @@ struct AccountOAuthEnrollmentTests {
             code: "authorization-code",
             clientID: "curfew-native-client",
             verifier: String(repeating: "v", count: 64),
-            redirectURI: "studio.hypertext.curfew://oauth/callback",
+            redirectURI: "https://curfew-account.hypertext.studio/oauth/callback/native/macos",
             resource: CurfewServiceEndpoints.production.syncResource.absoluteString
         )
         let refresh = AccountOAuthTokenRequest.refreshBody(
@@ -117,7 +117,6 @@ struct AccountOAuthEnrollmentTests {
     func authorizationRequestIsResourceBound() throws {
         let request = try AccountOAuthEnrollmentRequest.create(
             clientID: "curfew-macos-test",
-            callbackScheme: "studio.hypertext.curfew",
             state: "state-value",
             verifier: String(repeating: "v", count: 64),
             endpoints: .production
@@ -135,7 +134,10 @@ struct AccountOAuthEnrollmentTests {
         #expect(query["resource"] == "https://curfew-sync.hypertext.studio")
         #expect(query["code_challenge_method"] == "S256")
         #expect(query["state"] == "state-value")
-        #expect(query["redirect_uri"] == "studio.hypertext.curfew://oauth/callback")
+        #expect(
+            query["redirect_uri"]
+                == "https://curfew-account.hypertext.studio/oauth/callback/native/macos"
+        )
         let scopes = try Set(#require(query["scope"]).split(separator: " ").map(String.init))
         #expect(scopes.contains("openid"))
         #expect(scopes.contains("offline_access"))
@@ -175,7 +177,6 @@ struct AccountOAuthEnrollmentTests {
 
         let request = try AccountOAuthEnrollmentRequest.create(
             clientID: "curfew-macos-test",
-            callbackScheme: "studio.hypertext.curfew",
             state: "state-value",
             verifier: String(repeating: "v", count: 64),
             endpoints: endpoints
@@ -189,7 +190,22 @@ struct AccountOAuthEnrollmentTests {
         })
         #expect(components.host == "curfew-account-staging.hypertext.studio")
         #expect(query["resource"] == endpoints.syncResource.absoluteString)
+        #expect(
+            query["redirect_uri"]
+                == "https://curfew-account-staging.hypertext.studio/oauth/callback/native/macos"
+        )
         #expect(request.tokenURL.host == "curfew-account-staging.hypertext.studio")
+    }
+
+    @Test("Studio development shares staging origins but not its account secret")
+    func studioDevelopmentAccountEndpoints() {
+        let studio = CurfewServiceEndpoints.forFlavor(.studioDevelopment)
+        #expect(studio.accountOrigin
+            .absoluteString == "https://curfew-account-staging.hypertext.studio")
+        #expect(studio.mcpResource
+            .absoluteString == "https://curfew-sync-staging.hypertext.studio/mcp")
+        #expect(studio.keychainService == "studio.hypertext.curfew.account-e2ee.studio.dev")
+        #expect(studio.keychainService != CurfewServiceEndpoints.staging.keychainService)
     }
 
     @Test("The selected endpoint set follows the whole-build service flag")
@@ -200,22 +216,27 @@ struct AccountOAuthEnrollmentTests {
             #expect(CurfewServiceEndpoints.current == .production)
         #endif
     }
+}
 
-    @Test("Native OAuth rejects a callback scheme outside Curfew's package namespace")
-    func callbackSchemeIsPinned() {
-        #expect(throws: AccountOAuthEnrollmentError.self) {
-            _ = try AccountOAuthEnrollmentRequest.create(
-                clientID: "curfew-macos-test",
-                callbackScheme: "curfew",
-                state: "state-value",
-                verifier: String(repeating: "v", count: 64)
-            )
-        }
+struct AccountOAuthCallbackTests {
+    @Test("Native OAuth accepts only the claimed account HTTPS callback")
+    func callbackIsClaimedHTTPS() throws {
+        _ = AccountOAuthCallbackPolicy.callback(for: .staging)
+
+        #expect(try AccountOAuthCallbackPolicy.accepts(#require(URL(
+            string: "https://curfew-account-staging.hypertext.studio/oauth/callback/native/macos"
+        )), for: .staging))
+        #expect(try !AccountOAuthCallbackPolicy.accepts(#require(URL(
+            string: "studio.hypertext.curfew://oauth/callback"
+        )), for: .staging))
+        #expect(try !AccountOAuthCallbackPolicy.accepts(#require(URL(
+            string: "https://curfew-account-staging.hypertext.studio/oauth/callback/native/windows"
+        )), for: .staging))
     }
 
     @Test("OAuth callback returns a code only for the exact one-time state")
     func callbackStateIsExact() throws {
-        let callbackValue = "studio.hypertext.curfew://oauth/callback?" +
+        let callbackValue = "https://curfew-account.hypertext.studio/oauth/callback/native/macos?" +
             "code=code-value&state=state-value"
         let callback =
             try #require(
@@ -224,12 +245,14 @@ struct AccountOAuthEnrollmentTests {
 
         #expect(try AccountOAuthCallback.authorizationCode(
             from: callback,
-            expectedState: "state-value"
+            expectedState: "state-value",
+            expectedRedirectURI: AccountOAuthClaimedCallback.redirectURI(for: .production)
         ) == "code-value")
         #expect(throws: AccountOAuthEnrollmentError.self) {
             _ = try AccountOAuthCallback.authorizationCode(
                 from: callback,
-                expectedState: "different-state"
+                expectedState: "different-state",
+                expectedRedirectURI: AccountOAuthClaimedCallback.redirectURI(for: .production)
             )
         }
 
@@ -238,12 +261,13 @@ struct AccountOAuthEnrollmentTests {
             "code=code-value&state=state-value&state=state-value"
         ] {
             let ambiguous = try #require(URL(
-                string: "studio.hypertext.curfew://oauth/callback?\(ambiguousValue)"
+                string: "https://curfew-account.hypertext.studio/oauth/callback/native/macos?\(ambiguousValue)"
             ))
             #expect(throws: AccountOAuthEnrollmentError.self) {
                 _ = try AccountOAuthCallback.authorizationCode(
                     from: ambiguous,
-                    expectedState: "state-value"
+                    expectedState: "state-value",
+                    expectedRedirectURI: AccountOAuthClaimedCallback.redirectURI(for: .production)
                 )
             }
         }
@@ -251,7 +275,7 @@ struct AccountOAuthEnrollmentTests {
 
     @Test("OAuth callback surfaces provider rejection without accepting a code")
     func callbackProviderErrorFailsClosed() throws {
-        let callbackValue = "studio.hypertext.curfew://oauth/callback?" +
+        let callbackValue = "https://curfew-account.hypertext.studio/oauth/callback/native/macos?" +
             "error=access_denied&state=state-value"
         let callback =
             try #require(
@@ -261,7 +285,8 @@ struct AccountOAuthEnrollmentTests {
         #expect(throws: AccountOAuthEnrollmentError.self) {
             _ = try AccountOAuthCallback.authorizationCode(
                 from: callback,
-                expectedState: "state-value"
+                expectedState: "state-value",
+                expectedRedirectURI: AccountOAuthClaimedCallback.redirectURI(for: .production)
             )
         }
         let ambiguous = try #require(URL(
@@ -270,29 +295,39 @@ struct AccountOAuthEnrollmentTests {
         #expect(throws: AccountOAuthEnrollmentError.self) {
             _ = try AccountOAuthCallback.authorizationCode(
                 from: ambiguous,
-                expectedState: "state-value"
+                expectedState: "state-value",
+                expectedRedirectURI: AccountOAuthClaimedCallback.redirectURI(for: .production)
             )
         }
     }
 }
 
 struct AccountOAuthExternalCallbackTests {
+    private let redirectURI = AccountOAuthClaimedCallback.redirectURI(for: .production)
+
     @MainActor
-    @Test("A callback opened by another browser profile reaches only its pending OAuth state")
+    @Test("A claimed HTTPS callback reaches only its pending OAuth state")
     func externalBrowserCallbackRoutesByExactState() throws {
         let router = AccountOAuthCallbackRouter()
         var received: URL?
-        let registration = try router.register(expectedState: "expected-state") { callback in
+        let registration = try router.register(
+            expectedState: "expected-state",
+            expectedRedirectURI: redirectURI
+        ) { callback in
             received = callback
         }
         let wrongState = try #require(URL(
-            string: "studio.hypertext.curfew://oauth/callback?code=code&state=wrong-state"
+            string: redirectURI + "?code=code&state=wrong-state"
+        ))
+        let customSchemeImpersonation = try #require(URL(
+            string: "studio.hypertext.curfew://oauth/callback?code=code&state=expected-state"
         ))
         let expected = try #require(URL(
-            string: "studio.hypertext.curfew://oauth/callback?code=code&state=expected-state"
+            string: redirectURI + "?code=code&state=expected-state"
         ))
 
         #expect(!router.route(wrongState))
+        #expect(!router.route(customSchemeImpersonation))
         #expect(received == nil)
         #expect(router.route(expected))
         #expect(received == expected)
@@ -302,14 +337,17 @@ struct AccountOAuthExternalCallbackTests {
     }
 
     @MainActor
-    @Test("An accepted external callback is delivered only once")
+    @Test("An accepted claimed HTTPS callback is delivered only once")
     func externalBrowserCallbackIsConsumedOnce() throws {
         let router = AccountOAuthCallbackRouter()
         let callback = try #require(URL(
-            string: "studio.hypertext.curfew://oauth/callback?code=code&state=expected-state"
+            string: redirectURI + "?code=code&state=expected-state"
         ))
         var deliveryCount = 0
-        _ = try router.register(expectedState: "expected-state") { _ in
+        _ = try router.register(
+            expectedState: "expected-state",
+            expectedRedirectURI: redirectURI
+        ) { _ in
             deliveryCount += 1
         }
 
@@ -319,15 +357,18 @@ struct AccountOAuthExternalCallbackTests {
     }
 
     @MainActor
-    @Test("The app delegate forwards custom-scheme callbacks from ordinary browser tabs")
+    @Test("The app delegate forwards the claimed HTTPS callback from another browser")
     func appDelegateForwardsExternalOAuthCallback() throws {
         let router = AccountOAuthCallbackRouter()
         let delegate = AppDelegate(callbackRouter: router)
         let callback = try #require(URL(
-            string: "studio.hypertext.curfew://oauth/callback?code=code&state=expected-state"
+            string: redirectURI + "?code=code&state=expected-state"
         ))
         var received: URL?
-        _ = try router.register(expectedState: "expected-state") { received = $0 }
+        _ = try router.register(
+            expectedState: "expected-state",
+            expectedRedirectURI: redirectURI
+        ) { received = $0 }
 
         delegate.application(NSApplication.shared, open: [callback])
 

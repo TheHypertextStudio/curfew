@@ -59,6 +59,21 @@ final nonisolated class KeychainAccountSecretStore: AccountSecretStoring {
         BackgroundKeychainQuery.read(service: service, account: account)
     }
 
+    /// Removes every account-scoped Curfew credential for one app flavor.
+    /// The service is flavor-specific, so uninstalling a development build
+    /// cannot erase a production installation's enrollment.
+    static func deleteAll(service: String = CurfewServiceEndpoints.current.keychainService) throws {
+        let query: [CFString: Any] = [
+            kSecClass: kSecClassGenericPassword,
+            kSecAttrService: service,
+            kSecUseDataProtectionKeychain: true
+        ]
+        let status = SecItemDelete(query as CFDictionary)
+        guard status == errSecSuccess || status == errSecItemNotFound else {
+            throw AccountEncryptionError.keychain(status)
+        }
+    }
+
     func save(_ data: Data, for account: String) throws {
         let identity = BackgroundKeychainQuery.identity(service: service, account: account)
         let attributes: [CFString: Any] = [

@@ -92,10 +92,24 @@ final class MarketingCaptureTests: XCTestCase {
         // For windowed scenarios, wait for the window element to register and
         // re-activate if it hasn't — then we screenshot the window itself,
         // which is captured regardless of z-order.
-        let window = app.windows.firstMatch
+        let window = scenario == "settings"
+            ? app.windows.containing(.staticText, identifier: "Curfew Account").firstMatch
+            : app.windows.firstMatch
         if !fullScreen, !window.waitForExistence(timeout: 6) {
             app.activate()
             _ = window.waitForExistence(timeout: 6)
+        }
+        if scenario == "settings" {
+            if !window.exists {
+                // The hosted runner cannot be inspected interactively. Emit
+                // the demo app's accessibility tree so a missing Settings
+                // scene can be distinguished from a wrong selected panel.
+                print("Settings capture accessibility tree:\n\(app.debugDescription)")
+            }
+            XCTAssertTrue(
+                window.staticTexts["Curfew Account"].exists,
+                "The Settings capture must show the account panel"
+            )
         }
 
         // Let the first frame, window placement, and any overlay settle before

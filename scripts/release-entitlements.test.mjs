@@ -9,6 +9,7 @@ const releaseChecklist = await readFile("scripts/release-checklist.md", "utf8");
 const productPlan = await readFile("Documentation/plan.md", "utf8");
 const screenshotExtractor = await readFile("scripts/extract-screenshots.sh", "utf8");
 const projectFile = await readFile("Curfew.xcodeproj/project.pbxproj", "utf8");
+const packageManifest = await readFile("Package.swift", "utf8");
 const homebrewCask = await readFile("Casks/curfew.rb", "utf8");
 
 function buildConfigurationBlock(id, name) {
@@ -19,6 +20,14 @@ function buildConfigurationBlock(id, name) {
   assert.notEqual(end, -1, `unterminated ${name} build configuration ${id}`);
   return projectFile.slice(start, end + "\n\t\t};".length);
 }
+
+test("app and command-line tools pin the same exact 0.0.x protocol release", () => {
+  const swiftPin = packageManifest.match(/curfew-protocols\.git"[\s\S]*?exact: "(0\.0\.\d+)"/);
+  const xcodePin = projectFile.match(/repositoryURL = "https:\/\/github\.com\/TheHypertextStudio\/curfew-protocols\.git";[\s\S]*?version = (0\.0\.\d+);/);
+  assert.ok(swiftPin, "Swift package protocol pin missing");
+  assert.ok(xcodePin, "Xcode protocol pin missing");
+  assert.equal(xcodePin[1], swiftPin[1]);
+});
 
 test("conservative initial Release keeps only the signed core entitlements", () => {
   assert.match(releaseEntitlements, /com\.apple\.security\.automation\.apple-events/);
@@ -96,6 +105,7 @@ test("interactive builds reject an unresolved signing identity before TCC can mi
 
 test("a staging build compiles the app and every embedded tool for the same service boundary", () => {
   const projectDebug = buildConfigurationBlock("9BD3FBA32F4D4587007B2E95", "Debug");
+  const projectStudioDev = buildConfigurationBlock("C0FE00000000000000000310", "StudioDev");
   const projectRelease = buildConfigurationBlock("9BD3FBA42F4D4587007B2E95", "Release");
   const appRelease = buildConfigurationBlock("9BD3FBA72F4D4587007B2E95", "Release");
   assert.match(
@@ -103,12 +113,17 @@ test("a staging build compiles the app and every embedded tool for the same serv
     /SWIFT_ACTIVE_COMPILATION_CONDITIONS = "[^"]*\$\(CURFEW_SERVICE_SWIFT_FLAG\)[^"]*";/,
   );
   assert.match(projectDebug, /CURFEW_SERVICE_SWIFT_FLAG = CURFEW_STAGING;/);
+  assert.match(
+    projectStudioDev,
+    /SWIFT_ACTIVE_COMPILATION_CONDITIONS = "[^"]*\$\(CURFEW_SERVICE_SWIFT_FLAG\)[^"]*";/,
+  );
+  assert.match(projectStudioDev, /CURFEW_SERVICE_SWIFT_FLAG = CURFEW_STAGING;/);
   assert.doesNotMatch(projectRelease, /CURFEW_SERVICE_SWIFT_FLAG/);
   assert.doesNotMatch(appRelease, /CURFEW_SERVICE_SWIFT_FLAG/);
   assert.match(projectFile, /SWIFT_SERVICE_FLAGS=.*-Xswiftc -DCURFEW_STAGING/);
   assert.match(projectFile, /swift build -c release --jobs 2 --product curfew-daemon \$SWIFT_SERVICE_FLAGS/);
   assert.match(projectFile, /if \[ \\"\$CONFIGURATION\\" != \\"Debug\\" \]/);
-  assert.match(projectFile, /CURFEW_STAGING requires the isolated Debug app and helper identity/);
+  assert.match(projectFile, /CURFEW_STAGING requires an isolated Debug or StudioDev app and helper identity/);
   assert.match(projectFile, /CURFEW_DAEMON_PLIST_NAME/);
 });
 

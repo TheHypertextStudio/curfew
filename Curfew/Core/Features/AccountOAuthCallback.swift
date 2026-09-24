@@ -1,19 +1,33 @@
 import Foundation
 
 enum AccountOAuthCallback {
-    static func matchesPendingRequest(_ callback: URL, expectedState: String) -> Bool {
-        guard callback.scheme == "studio.hypertext.curfew",
-              callback.host == "oauth",
-              callback.path == "/callback",
+    static func matchesPendingRequest(
+        _ callback: URL,
+        expectedState: String,
+        expectedRedirectURI: String
+    ) -> Bool {
+        guard let expected = URL(string: expectedRedirectURI),
+              callback.scheme == "https",
+              callback.scheme == expected.scheme,
+              callback.host == expected.host,
+              callback.path == expected.path,
               let components = URLComponents(url: callback, resolvingAgainstBaseURL: false),
               uniqueQueryValue(named: "state", in: components) == expectedState
         else { return false }
         return true
     }
 
-    static func authorizationCode(from callback: URL, expectedState: String) throws -> String {
-        guard matchesPendingRequest(callback, expectedState: expectedState),
-              let components = URLComponents(url: callback, resolvingAgainstBaseURL: false)
+    static func authorizationCode(
+        from callback: URL,
+        expectedState: String,
+        expectedRedirectURI: String
+    ) throws -> String {
+        guard matchesPendingRequest(
+            callback,
+            expectedState: expectedState,
+            expectedRedirectURI: expectedRedirectURI
+        ),
+            let components = URLComponents(url: callback, resolvingAgainstBaseURL: false)
         else { throw AccountOAuthEnrollmentError.invalidCallback }
         guard queryValues(named: "error", in: components).isEmpty,
               let code = uniqueQueryValue(named: "code", in: components),
@@ -43,6 +57,7 @@ enum AccountOAuthCallback {
 protocol AccountOAuthCallbackRouting: AnyObject {
     func register(
         expectedState: String,
+        expectedRedirectURI: String,
         handler: @escaping @MainActor (URL) -> Void
     ) throws -> UUID
     func unregister(_ registration: UUID)
@@ -56,6 +71,7 @@ final class AccountOAuthCallbackRouter: AccountOAuthCallbackRouting {
     private struct PendingCallback {
         let registration: UUID
         let expectedState: String
+        let expectedRedirectURI: String
         let handler: @MainActor (URL) -> Void
     }
 
@@ -63,6 +79,7 @@ final class AccountOAuthCallbackRouter: AccountOAuthCallbackRouting {
 
     func register(
         expectedState: String,
+        expectedRedirectURI: String,
         handler: @escaping @MainActor (URL) -> Void
     ) throws -> UUID {
         guard pending == nil else {
@@ -72,6 +89,7 @@ final class AccountOAuthCallbackRouter: AccountOAuthCallbackRouting {
         pending = PendingCallback(
             registration: registration,
             expectedState: expectedState,
+            expectedRedirectURI: expectedRedirectURI,
             handler: handler
         )
         return registration
@@ -87,7 +105,8 @@ final class AccountOAuthCallbackRouter: AccountOAuthCallbackRouting {
         guard let pending,
               AccountOAuthCallback.matchesPendingRequest(
                   callback,
-                  expectedState: pending.expectedState
+                  expectedState: pending.expectedState,
+                  expectedRedirectURI: pending.expectedRedirectURI
               )
         else { return false }
         self.pending = nil

@@ -23,8 +23,12 @@ copying while the session is active. PKCE and a one-time state value protect the
 pending transaction when that same URL is completed in the correct profile;
 Curfew clears it as soon as authorization finishes, before device enrollment.
 A callback launched by that ordinary tab is routed back into
-the pending native transaction only when its custom-scheme path and one-time
-state match exactly. If the user copies the link, Curfew also removes it from
+the pending native transaction only when its Hypertext-owned claimed HTTPS
+origin, callback path, and one-time state match exactly. AuthenticationServices
+uses the domain's `webcredentials` association, while the same narrowly scoped
+universal link lets another browser profile return to the signed Curfew app.
+The former private-use callback scheme is not accepted as first-party identity.
+If the user copies the link, Curfew also removes it from
 the pasteboard when the attempt ends, unless the user has copied something else
 in the meantime. Settings then reports that it is connecting the Mac instead of
 continuing to claim that browser sign-in or 2FA is still pending.
@@ -113,10 +117,38 @@ This means a compromised coordinator cannot push a "lock window shrinks to zero"
   root key to enrolled device encryption keys.
 - **First-device completion:** After browser authorization returns, the Mac
   registers its keys and displays the Curfew Recovery Key before sending the
-  encrypted recovery envelope. Selecting “I saved the Recovery Key” persists
-  that transition, uploads the envelope, and only then marks the account ready.
+  encrypted recovery envelope. The user can copy the key (with a one-minute
+  clipboard timeout if unchanged) or save it as an owner-readable plaintext
+  file through the macOS save dialog; the file must be kept private. Neither
+  action automatically confirms storage. Selecting “I saved the Recovery Key”
+  persists that transition, uploads the envelope, and only then marks the account ready.
+  Showing the key keeps the receipt-backed checkpoint intact; replacing that
+  checkpoint with a simpler display record would lose the upload envelope and
+  prevent confirmation from ever completing.
   A relaunch or network failure resumes the exact unfinished step without
-  repeating passkey sign-in.
+  repeating passkey sign-in. This includes a failure before the first device
+  registration: Curfew retains the authorized connection state, reuses the
+  current OAuth credentials in Keychain, and refreshes an expired access token
+  when registration is retried. A missing or server-rejected credential
+  instead offers a new sign-in, without erasing any later registration or
+  recovery checkpoint. After keys or a registration receipt have been saved,
+  a fresh sign-in is staged separately. Curfew checks the new token's account
+  with the account server before replacing credentials or resuming the same
+  device and Recovery Key. A different account cannot take over the saved Mac;
+  a legacy pre-receipt checkpoint with no account identity requires support
+  rather than guessing. If the user enters an incorrect Recovery Key,
+  the recovery form stays available for another attempt. If the coordinator
+  already has a different recovery envelope, Curfew discards the newly generated
+  key but preserves the registration receipt in an existing-key checkpoint.
+  A rejected refresh during restoration then offers identity-bound sign-in
+  before another Recovery Key attempt. Relaunch preserves this checkpoint;
+  clearing it would strand the user or permit an unintended account switch.
+  If the browser does not return the HTTPS callback to Curfew, the waiting
+  Settings panel offers Cancel sign-in and lets the user retry without
+  quitting. Cancellation also stops an in-flight token exchange, discards any
+  newly saved grant if authorization finished just before Cancel, and treats
+  the pending authorization as cancelled rather than treating the browser
+  sign-in as a connected Mac.
 - **Recovery:** Better Auth backup codes recover sign-in only. Decrypting
   account content after all enrolled keys are lost requires fresh AAL2 and the
   Curfew Recovery Key.
@@ -130,30 +162,39 @@ This means a compromised coordinator cannot push a "lock window shrinks to zero"
 ### Remote MCP endpoint (OAuth 2.1)
 
 This is the AI-control surface — the reason Sync exists beyond F13. Its wire
-authority is the exact `@thehypertextstudio/curfew-protocols@0.0.9` release.
+authority is the exact `@thehypertextstudio/curfew-protocols@0.0.11` release.
 
 - **Transport:** Streamable HTTP and discovery per MCP `2026-07-28`, exposed at
   `https://curfew-sync.hypertext.studio/mcp` with an MCP App resource for status
   and strengthening-only controls.
 - **Authorization:** OAuth 2.1 Authorization Code with mandatory PKCE through
-  Better Auth's `oauthProvider()`. The deprecated Better Auth `mcp()` plugin is
-  not used. Access tokens are short-lived and resource-bound; refresh tokens
-  rotate. CIMD accepts standards-compliant public HTTPS client metadata, including
+  Better Auth's `mcp()` plugin, which configures its OAuth provider rather than
+  requiring a second `oauthProvider()` mount. Access tokens are short-lived and
+  resource-bound; refresh tokens rotate. CIMD accepts standards-compliant
+  public HTTPS client metadata, including
   third-party AI hosts, through a no-redirect, bounded, SSRF-constrained fetch.
 - **Scope categories.** Granted per-scope, not all-or-nothing. Read scopes cover
   devices, entitlements, wake state, and unlock-request state. The distinct
   `curfew:lock:device` scope authorizes exactly one opted-in device per tool call;
   only `curfew:lock:all` authorizes coordinator-side fan-out across every opted-in
   device. Neither lock scope authorizes an unlock or weaker schedule. Direct
-  release requires both `curfew:unlock:request` and `curfew:unlock:direct`, plus
+  unlock of one device requires `curfew:unlock:request` and
+  `curfew:unlock:device`; all-device unlock instead requires
+  `curfew:unlock:request` and `curfew:unlock:all`. Direct release additionally
+  requires `curfew:unlock:direct`, plus
   a separate owner-created authorization bounded to the exact OAuth client,
   devices, duration, and expiry.
 - **Tool surface.** The generated registry contains exactly `list_devices`,
   `list_entitlements`, `get_wake_status`, `request_remote_unlock`,
-  `get_remote_unlock_request`, `cancel_remote_unlock`, `curfew.lock.device`, and
-  `curfew.lock.all`. The two lock tools advertise destructive/idempotent hints,
-  while the MCP App itself requires a visible five-minute confirmation, awaits
-  the result, and announces queued or failed outcomes.
+  `request_remote_unlock_all`, `get_remote_unlock_request`,
+  `list_pending_remote_unlock_requests`, `cancel_remote_unlock`,
+  `get_remote_lock_command`, `curfew.lock.device`, and
+  `curfew.lock.all`. The two lock tools advertise destructive/idempotent hints.
+  The MCP App confirms each lock, follows the resulting command receipts, and
+  offers approval-required one/all-device temporary unlock requests without
+  presenting a pending request or web approval as an applied unlock. It can
+  recover its own pending unlock IDs from the coordinator after a host remount,
+  even when browser storage is unavailable; other clients' requests stay hidden.
 - **Revocation.** The Curfew app exposes a "Connected AI tools" panel listing every OAuth client with active tokens. Per-client revoke is one tap and takes effect on the next request the host makes; the coordinator's token cache is invalidated immediately.
 
 Access tokens last 15 minutes. Rotating refresh tokens last 30 days. Tokens are

@@ -6,7 +6,6 @@ import Foundation
 
 enum AccountOAuthEnrollmentError: Error {
     case invalidClientID
-    case invalidCallbackScheme
     case invalidState
     case invalidVerifier
     case couldNotBuildAuthorizationURL
@@ -17,6 +16,7 @@ enum AccountOAuthEnrollmentError: Error {
     case missingPresentationAnchor
     case authenticationInProgress
     case browserCompletedConnectionFailed
+    case accountMismatch
 }
 
 @MainActor
@@ -70,19 +70,32 @@ struct AccountOAuthGrant: Equatable {
     let tokens: AccountOAuthTokens
     let state: String
     let codeChallenge: String
+    let subjectID: String?
+
+    init(
+        tokens: AccountOAuthTokens,
+        state: String,
+        codeChallenge: String,
+        subjectID: String? = nil
+    ) {
+        self.tokens = tokens
+        self.state = state
+        self.codeChallenge = codeChallenge
+        self.subjectID = subjectID
+    }
+
+    init(resourceTokens: AccountOAuthTokens, state: String, codeChallenge: String) {
+        self.init(
+            tokens: resourceTokens,
+            state: state,
+            codeChallenge: codeChallenge,
+            subjectID: AccountOAuthTokenSubject.extract(from: resourceTokens.accessToken)
+        )
+    }
 }
 
 enum AccountOAuthOfficialClient {
     static let clientID = "curfew-native-client"
-}
-
-enum AccountOAuthBrowserPolicy {
-    static func configure(_ session: ASWebAuthenticationSession) {
-        // Account enrollment is passkey-first. Preserve the normal browser
-        // session so the user's existing account and credential provider are
-        // available to the authorization flow.
-        session.prefersEphemeralWebBrowserSession = false
-    }
 }
 
 enum AccountOAuthTokenRequest {
@@ -128,94 +141,6 @@ enum AccountOAuthTokenRequest {
     }
 }
 
-enum AccountOAuthWire {
-    static func tokens(from data: Data) throws -> AccountOAuthTokens {
-        guard data.count <= 32 * 1024,
-              let response = try? decoder.decode(AccountOAuthTokenResponse.self, from: data),
-              response.tokenType.caseInsensitiveCompare("Bearer") == .orderedSame,
-              !response.accessToken.isEmpty,
-              !response.refreshToken.isEmpty
-        else { throw AccountOAuthEnrollmentError.invalidResponse }
-        return AccountOAuthTokens(
-            accessToken: response.accessToken,
-            refreshToken: response.refreshToken
-        )
-    }
-
-    private static let decoder = JSONDecoder()
-}
-
-@MainActor
-final class AccountOAuthTokenRefresher {
-    private let secretStore: any AccountSecretStoring
-    private let session: URLSession
-    private let endpoints: CurfewServiceEndpoints
-
-    init(
-        secretStore: any AccountSecretStoring,
-        session: URLSession,
-        endpoints: CurfewServiceEndpoints = .current
-    ) {
-        self.secretStore = secretStore
-        self.session = session
-        self.endpoints = endpoints
-    }
-
-    func refresh() async throws {
-        guard let clientData = try secretStore.data(for: "oauth-client-id"),
-              let clientID = String(data: clientData, encoding: .utf8),
-              let refreshData = try secretStore.data(for: "oauth-refresh-token"),
-              let refreshToken = String(data: refreshData, encoding: .utf8)
-        else { throw AccountOAuthTokenRefreshError.missingCredentials }
-        var request = URLRequest(
-            url: endpoints.accountOrigin.appending(path: "/api/auth/oauth2/token")
-        )
-        request.httpMethod = "POST"
-        request.httpBody = AccountOAuthTokenRequest.refreshBody(
-            refreshToken: refreshToken,
-            clientID: clientID,
-            resource: endpoints.syncResource.absoluteString
-        )
-        request.setValue(
-            "application/x-www-form-urlencoded; charset=UTF-8",
-            forHTTPHeaderField: "Content-Type"
-        )
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-        let (data, response) = try await session.data(for: request)
-        guard let response = response as? HTTPURLResponse else {
-            throw AccountOAuthTokenRefreshError.invalidResponse
-        }
-        guard (200 ..< 300).contains(response.statusCode) else {
-            if [400, 401, 403].contains(response.statusCode) {
-                throw AccountOAuthTokenRefreshError.rejected(response.statusCode)
-            }
-            throw AccountOAuthTokenRefreshError.invalidResponse
-        }
-        let tokens = try AccountOAuthWire.tokens(from: data)
-        // Persist the rotated credential before exposing its paired access
-        // token so a crash cannot strand the account on a spent refresh token.
-        try secretStore.save(Data(tokens.refreshToken.utf8), for: "oauth-refresh-token")
-        try secretStore.save(Data(tokens.accessToken.utf8), for: "oauth-access-token")
-    }
-}
-
-enum AccountOAuthTokenRefreshError: Error {
-    case missingCredentials
-    case rejected(Int)
-    case invalidResponse
-}
-
-private struct AccountOAuthTokenResponse: Decodable {
-    let accessToken: String
-    let refreshToken: String
-    let tokenType: String
-    private enum CodingKeys: String, CodingKey {
-        case accessToken = "access_token"
-        case refreshToken = "refresh_token"
-        case tokenType = "token_type"
-    }
-}
-
 @MainActor
 final class AccountOAuthEnrollmentService: NSObject {
     private let secretStore: any AccountSecretStoring
@@ -227,6 +152,7 @@ final class AccountOAuthEnrollmentService: NSObject {
     private var browserSession: ASWebAuthenticationSession?
     private var callbackRegistration: UUID?
     private var authenticationContinuation: CheckedContinuation<URL, any Error>?
+    private var cancellationRequested = false
 
     init(
         secretStore: any AccountSecretStoring = KeychainAccountSecretStore(),
@@ -248,15 +174,40 @@ final class AccountOAuthEnrollmentService: NSObject {
         presentationWindow: NSWindow?,
         authorizationURLHandler: @escaping @MainActor (URL) -> Void
     ) async throws -> AccountOAuthGrant {
+        try await authorize(
+            presentationWindow: presentationWindow,
+            authorizationURLHandler: authorizationURLHandler,
+            expectedAccountUserID: nil
+        )
+    }
+
+    func reauthorize(
+        expectedAccountUserID: String,
+        presentationWindow: NSWindow?,
+        authorizationURLHandler: @escaping @MainActor (URL) -> Void
+    ) async throws -> AccountOAuthGrant {
+        try await authorize(
+            presentationWindow: presentationWindow,
+            authorizationURLHandler: authorizationURLHandler,
+            expectedAccountUserID: expectedAccountUserID
+        )
+    }
+
+    private func authorize(
+        presentationWindow: NSWindow?,
+        authorizationURLHandler: @escaping @MainActor (URL) -> Void,
+        expectedAccountUserID: String?
+    ) async throws -> AccountOAuthGrant {
         try authenticationGate.begin()
         defer { authenticationGate.finish() }
+        cancellationRequested = false
+        try Task.checkCancellation()
         presentationContext.settingsWindow = presentationWindow
         try presentationContext.prepareForPresentation()
         defer { presentationContext.finishPresentation() }
         let clientID = AccountOAuthOfficialClient.clientID
         let request = try AccountOAuthEnrollmentRequest.create(
             clientID: clientID,
-            callbackScheme: Self.callbackScheme,
             state: Self.randomURLSafe(byteCount: 32),
             verifier: Self.randomURLSafe(byteCount: 64),
             endpoints: endpoints
@@ -265,23 +216,59 @@ final class AccountOAuthEnrollmentService: NSObject {
         let callback = try await authenticate(request)
         let code = try AccountOAuthCallback.authorizationCode(
             from: callback,
-            expectedState: request.state
+            expectedState: request.state,
+            expectedRedirectURI: request.redirectURI
         )
         do {
             let tokens = try await exchange(code: code, clientID: clientID, request: request)
-            try secretStore.save(Data(clientID.utf8), for: "oauth-client-id")
-            // Persist the refresh token before its paired access token so an
-            // interrupted write cannot expose an access token with no renewal path.
-            try secretStore.save(Data(tokens.refreshToken.utf8), for: "oauth-refresh-token")
-            try secretStore.save(Data(tokens.accessToken.utf8), for: "oauth-access-token")
-            return AccountOAuthGrant(
-                tokens: tokens,
+            guard !cancellationRequested else { throw CancellationError() }
+            try Task.checkCancellation()
+            let grant = AccountOAuthGrant(
+                resourceTokens: tokens,
                 state: request.state,
                 codeChallenge: request.codeChallenge
             )
+            try await persist(grant, expectedAccountUserID: expectedAccountUserID)
+            return grant
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch AccountOAuthEnrollmentError.accountMismatch {
+            throw AccountOAuthEnrollmentError.accountMismatch
         } catch {
+            if cancellationRequested || Task.isCancelled {
+                throw CancellationError()
+            }
             throw AccountOAuthEnrollmentError.browserCompletedConnectionFailed
         }
+    }
+
+    private func persist(
+        _ grant: AccountOAuthGrant,
+        expectedAccountUserID: String?
+    ) async throws {
+        if let expectedAccountUserID {
+            try await AccountOAuthReauthorization.commit(
+                grant: grant,
+                expectedAccountUserID: expectedAccountUserID,
+                secretStore: secretStore,
+                session: session,
+                endpoints: endpoints
+            )
+        } else {
+            try secretStore.save(
+                Data(AccountOAuthOfficialClient.clientID.utf8),
+                for: "oauth-client-id"
+            )
+            // Persist the refresh token before its paired access token so an
+            // interrupted write cannot expose an access token with no renewal path.
+            try secretStore.save(Data(grant.tokens.refreshToken.utf8), for: "oauth-refresh-token")
+            try secretStore.save(Data(grant.tokens.accessToken.utf8), for: "oauth-access-token")
+        }
+    }
+
+    func cancelSignIn() {
+        cancellationRequested = true
+        finishAuthentication(with: .failure(CancellationError()))
     }
 
     private func authenticate(_ request: AccountOAuthEnrollmentRequest) async throws -> URL {
@@ -289,7 +276,8 @@ final class AccountOAuthEnrollmentService: NSObject {
             authenticationContinuation = continuation
             do {
                 callbackRegistration = try callbackRouter.register(
-                    expectedState: request.state
+                    expectedState: request.state,
+                    expectedRedirectURI: request.redirectURI
                 ) { [weak self] callback in
                     self?.finishAuthentication(with: .success(callback))
                 }
@@ -299,7 +287,7 @@ final class AccountOAuthEnrollmentService: NSObject {
             }
             let browserSession = ASWebAuthenticationSession(
                 url: request.authorizationURL,
-                callback: .customScheme(Self.callbackScheme)
+                callback: AccountOAuthCallbackPolicy.callback(for: endpoints)
             ) { [weak self] callback, error in
                 if let callback {
                     self?.finishAuthentication(with: .success(callback))
@@ -379,6 +367,5 @@ final class AccountOAuthEnrollmentService: NSObject {
     }
 
     private static let accountOrigin = URL(string: "https://curfew-account.hypertext.studio")!
-    private static let callbackScheme = "studio.hypertext.curfew"
-    private static let redirectURI = "\(callbackScheme)://oauth/callback"
+    private static let redirectURI = AccountOAuthClaimedCallback.redirectURI(for: .current)
 }

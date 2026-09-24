@@ -7,6 +7,12 @@ nonisolated enum TaskBrowserPanelCopy {
     static let mappingAction = "Add destination"
     static let selectorKinds = ["Task", "Project", "Label"]
     static let scopeKinds = ["Origin", "Path prefix"]
+
+    static func availabilityMessage(for flavor: CurfewFlavor) -> String? {
+        flavor == .studioDevelopment
+            ? "Chrome task-browser enforcement is unavailable in this Studio Dev build."
+            : nil
+    }
 }
 
 extension SettingsView {
@@ -24,21 +30,27 @@ private struct TaskBrowserEnforcementPanel: View {
 
     var body: some View {
         CurfewPanel {
-            CurfewSectionTitle(
-                title: TaskBrowserPanelCopy.title,
-                subtitle: "Limit Chrome to destinations that match the work active in Docket."
-            )
+            if let unavailable = TaskBrowserPanelCopy.availabilityMessage(for: .current) {
+                CurfewSectionTitle(title: TaskBrowserPanelCopy.title, subtitle: unavailable)
+            } else {
+                CurfewSectionTitle(
+                    title: TaskBrowserPanelCopy.title,
+                    subtitle: "Limit Chrome to destinations that match the work active in Docket."
+                )
 
-            connectionControls
-            statusRows
-            Divider()
-            enforcementControls
-            Divider()
-            mappingControls
+                connectionControls
+                statusRows
+                Divider()
+                enforcementControls
+                Divider()
+                mappingControls
+            }
         }
         .accessibilityIdentifier("task-browser-enforcement-panel")
         .task {
-            controller.refresh()
+            if CurfewFlavor.current != .studioDevelopment {
+                controller.refresh()
+            }
         }
     }
 

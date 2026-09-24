@@ -7,15 +7,16 @@ struct AccountEnrollmentRecoveryTests {
     @MainActor
     @Test("A signed-in user sees a device connection failure, never a sign-in failure")
     func deviceEnrollmentFailurePreservesSignInTruth() async {
+        let secretStore = EnrollmentRecoveryMemorySecretStore()
         let controller = AccountEnrollmentController(
-            secretStore: EnrollmentRecoveryMemorySecretStore(),
-            oauth: SuccessfulAccountOAuthEnrollment(),
+            secretStore: secretStore,
+            oauth: CountingAccountOAuthEnrollment(secretStore: secretStore),
             devices: FailingAccountDeviceEnrollment()
         )
 
         await controller.signIn()
 
-        #expect(controller.state == .failed(AccountEnrollmentFailureCopy.deviceConnection))
+        #expect(controller.state == .finishDeviceConnection)
         #expect(AccountEnrollmentFailureCopy.deviceConnection.hasPrefix("You’re signed in."))
         #expect(!AccountEnrollmentFailureCopy.deviceConnection.contains("sign-in failed"))
     }
@@ -171,204 +172,123 @@ struct AccountEnrollmentRecoveryTests {
 
         #expect(devices.resumeCount == 1)
     }
-}
 
-@MainActor
-private struct PostBrowserFailingAccountOAuthEnrollment: AccountOAuthEnrolling {
-    func signIn(
-        presentationWindow _: NSWindow?,
-        authorizationURLHandler _: @escaping @MainActor (URL) -> Void
-    ) async throws -> AccountOAuthGrant {
-        throw AccountOAuthEnrollmentError.browserCompletedConnectionFailed
-    }
-}
-
-private final class EnrollmentRecoveryMemorySecretStore: AccountSecretStoring {
-    private var values: [String: Data] = [:]
-
-    func data(for account: String) throws -> Data? {
-        values[account]
-    }
-
-    func save(_ data: Data, for account: String) throws {
-        values[account] = data
-    }
-
-    func delete(_ account: String) throws {
-        values.removeValue(forKey: account)
-    }
-}
-
-@MainActor
-private struct SuccessfulAccountOAuthEnrollment: AccountOAuthEnrolling {
-    func signIn(
-        presentationWindow _: NSWindow?,
-        authorizationURLHandler _: @escaping @MainActor (URL) -> Void
-    ) async throws -> AccountOAuthGrant {
-        AccountOAuthGrant(
-            tokens: AccountOAuthTokens(accessToken: "access", refreshToken: "refresh"),
-            state: "state",
-            codeChallenge: "challenge"
+    @MainActor
+    @Test("A wrong Recovery Key keeps the same enrolled Mac ready for another key")
+    func wrongRecoveryKeyDoesNotRestartSignIn() async throws {
+        let secretStore = EnrollmentRecoveryMemorySecretStore()
+        let devices = RecoveryKeyAttemptDeviceEnrollment()
+        try AccountEnrollmentPendingStore(secretStore: secretStore).save(
+            enrollment: devices.enrollment,
+            recoveryKey: nil
         )
-    }
-}
-
-@MainActor
-private struct FailingAccountDeviceEnrollment: AccountDeviceEnrolling {
-    private enum Failure: Error { case unavailable }
-
-    func enroll(
-        grant _: AccountOAuthGrant,
-        deviceID _: UUID
-    ) async throws -> NativeAccountEnrollmentState {
-        throw Failure.unavailable
-    }
-
-    func restore(
-        recoveryKey _: String,
-        enrollment _: Curfew.AccountDeviceEnrollment
-    ) async throws -> Curfew.AccountDeviceEnrollment {
-        throw Failure.unavailable
-    }
-
-    func resumeRecoverySetup(
-        recoveryKey _: String,
-        enrollment _: Curfew.AccountDeviceEnrollment
-    ) async throws -> NativeAccountEnrollmentState {
-        throw Failure.unavailable
-    }
-
-    func resumeDeviceRegistration(
-        recoveryKey _: String,
-        enrollment _: Curfew.AccountDeviceEnrollment
-    ) async throws -> NativeAccountEnrollmentState {
-        throw Failure.unavailable
-    }
-}
-
-@MainActor
-private final class CountingAccountOAuthEnrollment: AccountOAuthEnrolling {
-    private(set) var signInCount = 0
-
-    func signIn(
-        presentationWindow _: NSWindow?,
-        authorizationURLHandler _: @escaping @MainActor (URL) -> Void
-    ) async throws -> AccountOAuthGrant {
-        signInCount += 1
-        return AccountOAuthGrant(
-            tokens: AccountOAuthTokens(accessToken: "access", refreshToken: "refresh"),
-            state: "state",
-            codeChallenge: "challenge"
+        let oauth = CountingAccountOAuthEnrollment()
+        let controller = AccountEnrollmentController(
+            secretStore: secretStore,
+            oauth: oauth,
+            devices: devices
         )
-    }
-}
 
-@MainActor
-private final class ResumableAccountDeviceEnrollment: AccountDeviceEnrolling {
-    let enrollment = Curfew.AccountDeviceEnrollment(
-        deviceID: UUID(uuidString: "018f4f45-cafe-7f00-9a82-e47805fb4d35")!,
-        keyEpoch: 1,
-        enrolledAt: Date(timeIntervalSince1970: 1_800_000_000)
+        await controller.restore(recoveryKey: "wrong-key")
+        #expect(controller.state == .enterRecoveryKey(devices.enrollment))
+        #expect(controller.enrollmentRetryError != nil)
+
+        await controller.restore(recoveryKey: "correct-key")
+        #expect(controller.state == .ready(devices.enrollment))
+        #expect(oauth.signInCount == 0)
+        #expect(devices.restoreCount == 2)
+    }
+
+    @MainActor
+    @Test(
+        "A connection failure before registration survives relaunch without another OAuth sign-in"
     )
-    private(set) var resumeCount = 0
-    private(set) var acknowledgeCount = 0
+    func initialDeviceConnectionCanResumeAfterRelaunch() async {
+        let secretStore = EnrollmentRecoveryMemorySecretStore()
+        let oauth = CountingAccountOAuthEnrollment(secretStore: secretStore)
+        let devices = RetryableInitialAccountDeviceEnrollment()
+        let first = AccountEnrollmentController(
+            secretStore: secretStore,
+            oauth: oauth,
+            devices: devices
+        )
 
-    func enroll(
-        grant _: AccountOAuthGrant,
-        deviceID _: UUID
-    ) async throws -> NativeAccountEnrollmentState {
-        .finishRecoverySetup("recovery-key", enrollment)
+        await first.signIn()
+        let relaunched = AccountEnrollmentController(
+            secretStore: secretStore,
+            oauth: oauth,
+            devices: devices
+        )
+        #expect(relaunched.state != .accountFree)
+
+        await relaunched.signIn()
+        #expect(relaunched.state == .saveRecoveryKey("recovery-key", devices.enrollment))
+        #expect(oauth.signInCount == 1)
+        #expect(devices.enrollCount == 2)
     }
 
-    func restore(
-        recoveryKey _: String,
-        enrollment _: Curfew.AccountDeviceEnrollment
-    ) async throws -> Curfew.AccountDeviceEnrollment {
-        enrollment
+    @MainActor
+    @Test("A rejected refresh credential lets the user sign in again")
+    func rejectedInitialConnectionCanReauthorize() async {
+        let secretStore = EnrollmentRecoveryMemorySecretStore()
+        let oauth = CountingAccountOAuthEnrollment(secretStore: secretStore)
+        let devices = RejectedInitialAccountDeviceEnrollment()
+        let controller = AccountEnrollmentController(
+            secretStore: secretStore,
+            oauth: oauth,
+            devices: devices
+        )
+
+        await controller.signIn()
+        #expect(controller.state == .finishDeviceConnection)
+
+        await controller.signIn()
+        if case .failed(let message) = controller.state {
+            #expect(message.contains("Sign in again"))
+        } else {
+            Issue.record("A rejected refresh credential must offer a new sign-in")
+        }
+
+        let relaunched = AccountEnrollmentController(
+            secretStore: secretStore,
+            oauth: oauth,
+            devices: devices
+        )
+        #expect(relaunched.state == .accountFree)
+
+        await controller.signIn()
+        #expect(controller.state == .saveRecoveryKey("recovery-key", devices.enrollment))
+        #expect(oauth.signInCount == 2)
     }
 
-    func resumeRecoverySetup(
-        recoveryKey _: String,
-        enrollment _: Curfew.AccountDeviceEnrollment
-    ) async throws -> NativeAccountEnrollmentState {
-        resumeCount += 1
-        return .saveRecoveryKey("recovery-key", enrollment)
-    }
+    @MainActor
+    @Test("A missing OAuth credential offers sign-in instead of a storage warning")
+    func missingInitialConnectionCredentialCanReauthorize() async throws {
+        let secretStore = EnrollmentRecoveryMemorySecretStore()
+        let oauth = CountingAccountOAuthEnrollment(secretStore: secretStore)
+        let devices = RetryableInitialAccountDeviceEnrollment()
+        let first = AccountEnrollmentController(
+            secretStore: secretStore,
+            oauth: oauth,
+            devices: devices
+        )
+        await first.signIn()
+        #expect(first.state == .finishDeviceConnection)
 
-    func resumeDeviceRegistration(
-        recoveryKey _: String,
-        enrollment _: Curfew.AccountDeviceEnrollment
-    ) async throws -> NativeAccountEnrollmentState {
-        .finishRecoverySetup("recovery-key", enrollment)
-    }
+        try secretStore.delete("oauth-refresh-token")
+        let relaunched = AccountEnrollmentController(
+            secretStore: secretStore,
+            oauth: oauth,
+            devices: devices
+        )
+        if case .failed(let message) = relaunched.state {
+            #expect(message.contains("Sign in again"))
+        } else {
+            Issue.record("A missing OAuth credential must offer a new sign-in")
+        }
 
-    func acknowledgeSavedRecoveryKey(
-        recoveryKey _: String,
-        enrollment: AccountDeviceEnrollment
-    ) async throws -> NativeAccountEnrollmentState {
-        acknowledgeCount += 1
-        return .ready(enrollment)
-    }
-}
-
-@MainActor
-private final class FailingRecoveryAccountDeviceEnrollment: AccountDeviceEnrolling {
-    private enum Failure: Error { case unavailable }
-    let enrollment = Curfew.AccountDeviceEnrollment(
-        deviceID: UUID(uuidString: "018f4f45-cafe-7f00-9a82-e47805fb4d35")!,
-        keyEpoch: 1,
-        enrolledAt: Date(timeIntervalSince1970: 1_800_000_000)
-    )
-
-    func enroll(grant _: AccountOAuthGrant, deviceID _: UUID) async throws
-        -> NativeAccountEnrollmentState {
-        .finishRecoverySetup("recovery-key", enrollment)
-    }
-
-    func resumeRecoverySetup(recoveryKey _: String, enrollment _: AccountDeviceEnrollment)
-        async throws -> NativeAccountEnrollmentState {
-        throw Failure.unavailable
-    }
-
-    func resumeDeviceRegistration(recoveryKey _: String, enrollment _: AccountDeviceEnrollment)
-        async throws -> NativeAccountEnrollmentState {
-        throw Failure.unavailable
-    }
-
-    func restore(recoveryKey _: String, enrollment _: AccountDeviceEnrollment) async throws
-        -> AccountDeviceEnrollment {
-        throw Failure.unavailable
-    }
-}
-
-@MainActor
-private final class SlowRecoveryAccountDeviceEnrollment: AccountDeviceEnrolling {
-    let enrollment = Curfew.AccountDeviceEnrollment(
-        deviceID: UUID(uuidString: "018f4f45-cafe-7f00-9a82-e47805fb4d35")!,
-        keyEpoch: 1,
-        enrolledAt: Date(timeIntervalSince1970: 1_800_000_000)
-    )
-    private(set) var resumeCount = 0
-
-    func enroll(grant _: AccountOAuthGrant, deviceID _: UUID) async throws
-        -> NativeAccountEnrollmentState {
-        .finishRecoverySetup("recovery-key", enrollment)
-    }
-
-    func resumeRecoverySetup(recoveryKey _: String, enrollment _: AccountDeviceEnrollment)
-        async throws -> NativeAccountEnrollmentState {
-        resumeCount += 1
-        try await Task.sleep(for: .milliseconds(50))
-        return .saveRecoveryKey("recovery-key", enrollment)
-    }
-
-    func resumeDeviceRegistration(recoveryKey _: String, enrollment _: AccountDeviceEnrollment)
-        async throws -> NativeAccountEnrollmentState {
-        .finishRecoverySetup("recovery-key", enrollment)
-    }
-
-    func restore(recoveryKey _: String, enrollment _: AccountDeviceEnrollment) async throws
-        -> AccountDeviceEnrollment {
-        enrollment
+        await relaunched.signIn()
+        #expect(relaunched.state == .saveRecoveryKey("recovery-key", devices.enrollment))
+        #expect(oauth.signInCount == 2)
     }
 }
