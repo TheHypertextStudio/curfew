@@ -92,7 +92,9 @@ final class MarketingCaptureTests: XCTestCase {
         // For windowed scenarios, wait for the window element to register and
         // re-activate if it hasn't — then we screenshot the window itself,
         // which is captured regardless of z-order.
-        let window = app.windows.firstMatch
+        let window = scenario == "settings"
+            ? app.windows.containing(.staticText, identifier: "Curfew Account").firstMatch
+            : app.windows.firstMatch
         if !fullScreen, !window.waitForExistence(timeout: 6) {
             app.activate()
             _ = window.waitForExistence(timeout: 6)
