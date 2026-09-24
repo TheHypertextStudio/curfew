@@ -663,7 +663,7 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
 - [x] Marked the forward-looking PRD and Sparkle/appcast checklist steps so v0.1
   cannot be mistaken for a released sync/updater product; regression coverage
   lives in `scripts/release-entitlements.test.mjs`.
-- [-] Make CI demo captures prove the named screen. The screenshot job now
+- [x] Make CI demo captures prove the named screen. The screenshot job now
   forwards unsigned build settings and propagates UI-test failures instead of
   uploading a green artifact after a failed test. A regression assertion
   requires the Settings image to contain the account panel. The existing
@@ -675,10 +675,10 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
   scene appearance are coalesced and delivered when the action registers,
   including account setup and fixture launch, rather than silently dropped.
   Focused routing tests pass;
-  hosted CI run `35946577127` passed and its exported `curfew-settings.png`
-  visibly shows Integrations and the Curfew Account panel. Rerun the capture
-  after the deferred-opening change before closing this item. This is unsigned
-  fixture proof, not signed account-enrollment proof. Failure bundles contain
+  hosted CI run `35947559952` passed after the deferred-opening change, and
+  its exported `curfew-settings.png` visibly shows Integrations and the Curfew
+  Account panel. This is unsigned fixture proof, not signed account-enrollment
+  proof. Failure bundles contain
   only synthetic demo-fixture account state; the failure-only artifact can be
   removed if it adds unnecessary CI storage.
   Rollback must not restore the failure-masking `xcodebuild || true` path.
