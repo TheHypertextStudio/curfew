@@ -21,6 +21,8 @@ final class AppRouterSpy: AppRouting {
         activateCallCount += 1
     }
 
+    func registerSettingsOpener(_: @escaping @MainActor () -> Void) {}
+
     func showSettings() {
         showSettingsCallCount += 1
     }

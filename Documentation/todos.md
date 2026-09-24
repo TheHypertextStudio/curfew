@@ -668,12 +668,15 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
   uploading a green artifact after a failed test. A regression assertion
   requires the Settings image to contain the account panel. The existing
   `curfew-settings.png` artifact showed Today, and the first targeted hosted
-  rerun found no window containing the account panel. The failing runner now
-  records its accessibility tree and result bundle so the scene-opening
-  failure can be diagnosed before changing the opener; inspect the eventual
-  image before marking this complete. The diagnostic bundle contains only
-  synthetic demo-fixture account state. Roll back the extra failure artifact
-  after the underlying capture is fixed if it adds unnecessary CI storage.
+  rerun found no window containing the account panel. Its accessibility tree
+  confirmed that Today was the only Curfew window: the old AppKit responder
+  selector did not open the SwiftUI Settings scene. Curfew now registers the
+  active scene's `openSettings` action for Settings links, and the fixture
+  requests Settings after that registration. A focused routing test passes;
+  inspect the next hosted capture before marking this complete. The failure
+  bundle contains only synthetic demo-fixture account state. Roll back the
+  extra failure artifact after the capture is fixed if it adds unnecessary
+  CI storage.
   Rollback must not restore the failure-masking `xcodebuild || true` path.
 - [x] Corrected the signed-build guard to validate Xcode's resolved certificate
   identity. The prior guard inspected only the requested `CODE_SIGN_IDENTITY`

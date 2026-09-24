@@ -54,7 +54,9 @@
 
             switch scenario {
             case .settings:
-                openSettings()
+                // The main scene opens Settings after it has installed its
+                // SwiftUI action; this model can run before scene appearance.
+                break
             case .gettingStarted:
                 showGettingStarted()
             case .overview, .configuration, .thisWeek, .menuBar:
