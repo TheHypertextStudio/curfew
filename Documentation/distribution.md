@@ -90,9 +90,9 @@ configuration and offers a dry run. This adoption does not redeploy the Worker,
 change its secret, open checkout, or change the landing site's production host.
 A reviewer must verify installed-app license delivery before promoting Curfew.
 
-The launcher pins shared release v0.1.0 at revision
-`8b43fa0cf0e5935774bf0a9dc0f68bf579ab789c`. Its published archive SHA-256 is
-`97e6d1c11d7cac26eb40ce28ba25311f8d0d86cf0815c2ae33c995eb557990f9`.
+The launcher pins shared release v0.1.1 at revision
+`52361b5370c319a8545ba72317fed86de06af565`. Its published archive SHA-256 is
+`da4e10c048bfc8cfa1bb5135cab7c41946dae93a580e164cd5b6fff7e6eba9c2`.
 The shared pin updater verified the downloaded bytes before updating the lock,
 launcher, workflows and native package requirement.
 
@@ -100,15 +100,17 @@ The first shared candidate explicitly selects version 0.0.2. Curfew's current
 native app and cask are 0.0.1, and this clone has no release tags. The override
 preserves the documented 0.0.x line instead of interpreting the entire history
 as a new minor release. Later candidate versions must still advance the released
-version. Maintainers must update this initial override after release acceptance.
+version. The engine consumes this override once 0.0.2 reaches production. The next push
+derives a new version from the commits since production.
 
 The infrastructure root binds product credentials to `hypertext-curfew-release`
 and immutable downloads to the shared `hypertext-studio-releases` bucket. Its
 private state backend uses `hypertext-curfew-release-state`. The root reads the
 workflow revision from the same product lock, so a pin update changes WIF's
-workflow binding with the provider module pins. The weekly pin caller can open a
-reviewable update only after its GitHub write credential is provisioned. A
-schedule declaration does not prove that automation ran.
+workflow binding with the provider module pins. The weekly pin caller uses a separate workload identity and a repository-scoped
+SSH deploy key stored in Secret Manager. That key and its binding are provisioned.
+The caller creates a reviewable branch. A schedule declaration does not prove
+that automation ran.
 
 ## Local verification
 
@@ -125,6 +127,6 @@ Local XCUITest capture remains open. macOS killed the unsigned UI runner before
 it established a test connection. A signed run with the normal entitlements
 failed because the local development App Groups profile is absent. A disposable
 Studio-signed demo build with CLI-only empty entitlements built successfully,
-but its UI runner exited with a signal kill before establishing a connection. The source and shipping entitlements were unchanged. The native
+but its UI runner exited with a signal kill before establishing a connection. The source and shipping entitlements were unchanged. PR CI renders headless fixtures instead of launching the UI runner. The native
 snapshot suite exported six headless images, including Today, Schedule and the
 lockout surface. These images do not count as UI capture or installed acceptance.

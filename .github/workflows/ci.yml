@@ -11,17 +11,17 @@ jobs:
   check:
     if: github.event_name == 'pull_request'
     name: Format · Lint · Test · Build
-    uses: TheHypertextStudio/release-engineering/.github/workflows/validate.yml@8b43fa0cf0e5935774bf0a9dc0f68bf579ab789c
+    uses: TheHypertextStudio/release-engineering/.github/workflows/validate.yml@52361b5370c319a8545ba72317fed86de06af565
     with:
-      tooling_revision: 8b43fa0cf0e5935774bf0a9dc0f68bf579ab789c
+      tooling_revision: 52361b5370c319a8545ba72317fed86de06af565
   screenshots:
-    name: Capture screenshots
+    name: Render snapshot fixtures
     # Screenshot capture launches the app and therefore needs the same macOS
     # deployment-target support as the test job.
     runs-on: macos-26
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
 
       - name: Select Xcode
         run: |
@@ -39,26 +39,24 @@ jobs:
         run: brew install just
 
       - name: Cache derived data
-        uses: actions/cache@v4
+        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809
         with:
           path: ~/Library/Developer/Xcode/DerivedData
           key: ${{ runner.os }}-derived-${{ hashFiles('**/*.xcodeproj/project.pbxproj') }}
           restore-keys: ${{ runner.os }}-derived-
 
-      # Drives the demo-fixture scenarios through XCUITest and exports the
-      # screenshots. Uses XCUIScreen.screenshot(), so no Screen Recording
-      # permission is needed on the runner. The walkthrough video and the
-      # shadowed per-window hero stills are local-only (they need that
-      # permission) — see scripts/capture-marketing.sh / capture-video.sh.
-      - name: Capture demo screenshots
-        env:
-          CURFEW_XCODEBUILD_SETTINGS: "CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO -jobs 2 -parallel-testing-enabled NO"
-        run: just capture
+      - name: Render headless snapshot fixtures
+        run: |
+          xcodebuild test -project Curfew.xcodeproj -scheme Curfew \
+            -configuration Debug -destination 'platform=macOS' \
+            -derivedDataPath build -jobs 2 -parallel-testing-enabled NO \
+            -only-testing:CurfewTests/DestinationSnapshotTests \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
 
-      - name: Upload screenshots
+      - name: Upload snapshot fixtures
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: curfew-screenshots
-          path: build/screenshots/curfew-*.png
-          if-no-files-found: warn
+          name: curfew-snapshots
+          path: build/snapshots/curfew-*.png
+          if-no-files-found: error
