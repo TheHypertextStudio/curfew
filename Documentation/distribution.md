@@ -127,6 +127,8 @@ Local XCUITest capture remains open. macOS killed the unsigned UI runner before
 it established a test connection. A signed run with the normal entitlements
 failed because the local development App Groups profile is absent. A disposable
 Studio-signed demo build with CLI-only empty entitlements built successfully,
-but its UI runner exited with a signal kill before establishing a connection. The source and shipping entitlements were unchanged. PR CI renders headless fixtures instead of launching the UI runner. The native
+but its UI runner exited with a signal kill before establishing a connection. The source and shipping entitlements were unchanged. PR CI renders headless fixtures instead of launching the UI runner.
+The bootstrap launcher downloads the unchanged v0.1.0 binaries from the public
+release-engineering mirror. Its original four platform digests remain pinned. The native
 snapshot suite exported six headless images, including Today, Schedule and the
 lockout surface. These images do not count as UI capture or installed acceptance.
