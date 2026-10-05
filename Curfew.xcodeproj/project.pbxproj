@@ -734,6 +734,7 @@
 				"ENABLE_PREVIEWS" = "YES";
 				"SWIFT_VERSION" = "5.0";
 				"CODE_SIGN_ENTITLEMENTS" = "Curfew/Curfew-Release.entitlements";
+				"PROVISIONING_PROFILE_SPECIFIER" = "$(STUDIO_APP_PROFILE)";
 				"LD_RUNPATH_SEARCH_PATHS" = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -866,6 +867,7 @@
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = CurfewWidget/CurfewWidget.entitlements;
+				PROVISIONING_PROFILE_SPECIFIER = "$(STUDIO_WIDGET_PROFILE)";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 39AB9DY3K8;
 				CURRENT_PROJECT_VERSION = 1;
@@ -945,7 +947,7 @@
 			"repositoryURL" = "https://github.com/TheHypertextStudio/release-engineering.git";
 			"requirement" = {
 				"kind" = "revision";
-				"revision" = "52361b5370c319a8545ba72317fed86de06af565";
+				"revision" = "83e35d9382bdfa6470fbdd84e033f8488e325e78";
 			};
 		};
 		4EC0587808FD802261CF6DF9 = {

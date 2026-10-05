@@ -16,8 +16,14 @@ keeps development launch alive, disables the command and records the error.
 Candidate preflight rejects missing or placeholder keys. The shared diagnostic
 recovered the public half of the existing repository secret on 2026-10-05. The
 app and declaration preserve that updater identity. Studio issued a Developer ID
-Application identity for team T95VDD3A4W on 2026-10-05. Credentialed candidate
-preparation and signed acceptance still remain separate gates.
+Application identity for team T95VDD3A4W on 2026-10-05. The certificate imports successfully into a temporary macOS keychain.
+A native Developer ID archive failed because the app and widget require App Groups
+provisioning profiles. Studio must register both explicit identifiers and their
+shared group before issuing those profiles. The declaration names `Curfew Developer ID`
+and `Curfew Widget Developer ID`; candidate credentials carry their encoded profiles.
+The shared adapter preserves each target's entitlements and verifies profile identity
+before signing. Credentialed candidate preparation and signed acceptance remain
+separate gates.
 
 Curfew's build phase signs its helper tools only in Debug to preserve development
 Accessibility behavior. The shared release adapter signs the archive's nested
@@ -66,8 +72,8 @@ than treating source integration as license delivery. Source tests still reject
 an all-zero licensing placeholder. The license key is currently real.
 
 PR validation calls the pinned shared validator without release credentials.
-The screenshot job still runs the existing Debug demo capture and saves its
-images. Default-branch pushes create immutable direct candidates. The candidate
+The screenshot job renders six headless native fixtures and saves its images.
+These fixtures supplement shipping review. Default-branch pushes create immutable direct candidates. The candidate
 workflow also accepts `component-ready` so a declared dependency can
 request reevaluation. Curfew currently declares no dependency candidates.
 
@@ -90,11 +96,11 @@ configuration and offers a dry run. This adoption does not redeploy the Worker,
 change its secret, open checkout, or change the landing site's production host.
 A reviewer must verify installed-app license delivery before promoting Curfew.
 
-The launcher pins shared release v0.1.1 at revision
-`52361b5370c319a8545ba72317fed86de06af565`. Its published archive SHA-256 is
-`da4e10c048bfc8cfa1bb5135cab7c41946dae93a580e164cd5b6fff7e6eba9c2`.
+The launcher pins shared release v0.1.2 at revision
+`83e35d9382bdfa6470fbdd84e033f8488e325e78`. Its published archive SHA-256 is
+`f7afda02e10eec9bd03c2359b8e5a27835155094f277d17c2f356c4e1387f426`.
 The shared pin updater verified the downloaded bytes before updating the lock,
-launcher, workflows and native package requirement.
+launcher, workflows, native package requirement and resolved dependency revision.
 
 The first shared candidate explicitly selects version 0.0.2. Curfew's current
 native app and cask are 0.0.1, and this clone has no release tags. The override
@@ -109,6 +115,7 @@ private state backend uses `hypertext-curfew-release-state`. The root reads the
 workflow revision from the same product lock, so a pin update changes WIF's
 workflow binding with the provider module pins. The weekly pin caller uses a separate workload identity and a repository-scoped
 SSH deploy key stored in Secret Manager. That key and its binding are provisioned.
+Candidate, promotion and pin identities use separate provider phase claims.
 The caller creates a reviewable branch. A schedule declaration does not prove
 that automation ran.
 
@@ -117,7 +124,8 @@ that automation ran.
 On 2026-10-05, native `CurfewTests` passed 830 tests with zero failures and
 zero skips against the pinned SDK. The targeted license and updater acceptance
 suite passed three tests. Release-policy, landing and license-Worker script
-contracts passed 23 tests. These runs used unsigned Debug builds with two Xcode
+contracts passed 22 tests after the obsolete screenshot-workflow text assertion
+was removed. These runs used unsigned Debug builds with two Xcode
 jobs and disabled parallel testing. The pinned launcher also passed setup, every declared check and the unsigned
 Release build. SwiftFormat, strict SwiftLint and actionlint passed. These checks
 prove local integration and preserve the distinction from signed installation
@@ -132,3 +140,15 @@ The bootstrap launcher downloads the unchanged v0.1.0 binaries from the public
 release-engineering mirror. Its original four platform digests remain pinned. The native
 snapshot suite exported six headless images, including Today, Schedule and the
 lockout surface. These images do not count as UI capture or installed acceptance.
+
+Shared v0.1.2 hosted CI passed 89 runtime tests and four Swift SDK tests.
+Curfew PR validation has proven public bootstrap downloads and headless snapshot
+artifacts. Full validation remains pending after the obsolete assertion removal.
+Automatic default-branch candidate creation remains unverified. No shipping
+installation, installed upgrade, license-delivery acceptance or production
+promotion has occurred.
+
+Setup now refreshes missing commits in the existing native Xcode cache while
+requiring the committed resolved versions. The previous `-skipPackageUpdates`
+flag prevented setup from fetching a newly pinned shared SDK revision. The
+standard setup command passed after removing that flag.

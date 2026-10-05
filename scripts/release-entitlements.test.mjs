@@ -5,10 +5,8 @@ import { spawnSync } from "node:child_process";
 
 const releaseEntitlements = await readFile("Curfew/Curfew-Release.entitlements", "utf8");
 const releaseWorkflow = await readFile("Documentation/legacy-release/release.yml.disabled", "utf8");
-const ciWorkflow = await readFile(".github/workflows/ci.yml", "utf8");
 const releaseChecklist = await readFile("scripts/release-checklist.md", "utf8");
 const productPlan = await readFile("Documentation/plan.md", "utf8");
-const screenshotExtractor = await readFile("scripts/extract-screenshots.sh", "utf8");
 const projectFile = await readFile("Curfew.xcodeproj/project.pbxproj", "utf8");
 const homebrewCask = await readFile("Casks/curfew.rb", "utf8");
 
@@ -52,14 +50,6 @@ test("v0.1 release docs distinguish the current core-only launch from future syn
     releaseChecklist,
     /If \(and only if\) a later release enables Sparkle, publish its generated\s+`appcast\.xml`/,
   );
-});
-
-test("CI screenshot capture forwards its unsigned build settings to Xcode", () => {
-  assert.match(
-    ciWorkflow,
-    /- name: Capture demo screenshots\n\s+env:\n\s+CURFEW_XCODEBUILD_SETTINGS: "CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO -jobs 2 -parallel-testing-enabled NO"\n\s+run: just capture/,
-  );
-  assert.match(screenshotExtractor, /\$\{CURFEW_XCODEBUILD_SETTINGS:-\}/);
 });
 
 test("native licensing acceptance rejects an unconfigured release verifier", async () => {

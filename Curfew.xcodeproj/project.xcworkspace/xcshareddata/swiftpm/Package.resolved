@@ -1,32 +1,32 @@
 {
-  "originHash" : "125564fc03c771a1c13a49caf6322f652d9f55e79c2225bdd69437eff2684787",
-  "pins" : [
+  "originHash": "125564fc03c771a1c13a49caf6322f652d9f55e79c2225bdd69437eff2684787",
+  "pins": [
     {
-      "identity" : "curfew-protocols",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/TheHypertextStudio/curfew-protocols.git",
-      "state" : {
-        "revision" : "a4bced6ea7189a9aa3c28d1704ea6e906214fc4a",
-        "version" : "0.0.9"
+      "identity": "curfew-protocols",
+      "kind": "remoteSourceControl",
+      "location": "https://github.com/TheHypertextStudio/curfew-protocols.git",
+      "state": {
+        "revision": "a4bced6ea7189a9aa3c28d1704ea6e906214fc4a",
+        "version": "0.0.9"
       }
     },
     {
-      "identity" : "release-engineering",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/TheHypertextStudio/release-engineering.git",
-      "state" : {
-        "revision" : "52361b5370c319a8545ba72317fed86de06af565"
+      "identity": "release-engineering",
+      "kind": "remoteSourceControl",
+      "location": "https://github.com/TheHypertextStudio/release-engineering.git",
+      "state": {
+        "revision": "83e35d9382bdfa6470fbdd84e033f8488e325e78"
       }
     },
     {
-      "identity" : "sparkle",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/sparkle-project/Sparkle",
-      "state" : {
-        "revision" : "eef1a539a373c1f1a320624b1130fc5de7b2e100",
-        "version" : "2.10.0"
+      "identity": "sparkle",
+      "kind": "remoteSourceControl",
+      "location": "https://github.com/sparkle-project/Sparkle",
+      "state": {
+        "revision": "eef1a539a373c1f1a320624b1130fc5de7b2e100",
+        "version": "2.10.0"
       }
     }
   ],
-  "version" : 3
+  "version": 3
 }

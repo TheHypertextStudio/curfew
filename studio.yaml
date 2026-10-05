@@ -24,6 +24,13 @@ components:
     architectures: [arm64]
     entitlements:
       direct: Curfew/Curfew-Release.entitlements
+    direct_provisioning_profiles:
+      studio.hypertext.curfew:
+        specifier: Curfew Developer ID
+        build_setting: STUDIO_APP_PROFILE
+      studio.hypertext.curfew.widget:
+        specifier: Curfew Widget Developer ID
+        build_setting: STUDIO_WIDGET_PROFILE
     nested_binaries:
       Contents/PlugIns/CurfewWidget.appex: CurfewWidget/CurfewWidget.entitlements
     build:
@@ -54,6 +61,7 @@ release:
     APPLE_API_PRIVATE_KEY: projects/hypertext-curfew-release/secrets/curfew-apple-api-private-key/versions/latest
     APPLE_API_KEY_ID: projects/hypertext-curfew-release/secrets/curfew-apple-api-key-id/versions/latest
     APPLE_API_ISSUER: projects/hypertext-curfew-release/secrets/curfew-apple-api-issuer/versions/latest
+    APPLE_PROVISIONING_PROFILES_BASE64: projects/hypertext-curfew-release/secrets/curfew-apple-provisioning-profiles/versions/latest
     SPARKLE_PRIVATE_KEY: projects/hypertext-curfew-release/secrets/curfew-sparkle-private-key/versions/latest
   macos:
     team_id: T95VDD3A4W
