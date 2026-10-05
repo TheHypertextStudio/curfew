@@ -1,0 +1,14 @@
+name: Update shared lifecycle pin
+on:
+  schedule:
+    - cron: "17 9 * * 1"
+  workflow_dispatch:
+permissions:
+  contents: write
+  id-token: write
+jobs:
+  update:
+    uses: TheHypertextStudio/release-engineering/.github/workflows/update-pins.yml@8b43fa0cf0e5935774bf0a9dc0f68bf579ab789c
+    with:
+      tooling_revision: 8b43fa0cf0e5935774bf0a9dc0f68bf579ab789c
+    secrets: inherit

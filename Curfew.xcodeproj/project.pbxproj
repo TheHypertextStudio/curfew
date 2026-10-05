@@ -152,13 +152,16 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		9BD3FB7F2F4D4584007B2E95 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				C0FE00000000000000000070 /* CurfewProtocols in Frameworks */,
+
+		9BD3FB7F2F4D4584007B2E95 = {
+			"isa" = "PBXFrameworksBuildPhase";
+			"buildActionMask" = "2147483647";
+			"files" = (
+				"C0FE00000000000000000070",
+				"7B31074DF3535B06BD263C1A",
+				"F176AB14334DC3A661248D75",
 			);
-			runOnlyForDeploymentPostprocessing = 0;
+			"runOnlyForDeploymentPostprocessing" = "0";
 		};
 		9BD3FB8E2F4D4587007B2E95 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
@@ -236,38 +239,41 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		9BD3FB812F4D4584007B2E95 /* Curfew */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 9BD3FBA52F4D4587007B2E95 /* Build configuration list for PBXNativeTarget "Curfew" */;
-			buildPhases = (
-				9BD3FB7E2F4D4584007B2E95 /* Sources */,
-				9BD3FB7F2F4D4584007B2E95 /* Frameworks */,
-				9BD3FB802F4D4584007B2E95 /* Resources */,
-				C0FE00000000000000000003 /* Embed App Extensions */,
-				C0FE0000000000000000ABCD /* Require Signed Build */,
-				9BD3FBCC2F4D4584007B2E95 /* Bundle CLI Tools */,
+
+		9BD3FB812F4D4584007B2E95 = {
+			"dependencies" = (
+				"C0FE00000000000000000010",
 			);
-			buildRules = (
+			"buildConfigurationList" = "9BD3FBA52F4D4587007B2E95";
+			"productReference" = "9BD3FB822F4D4584007B2E95";
+			"productType" = "com.apple.product-type.application";
+			"packageProductDependencies" = (
+				"C0FE00000000000000000072",
+				"836128202EED8BF0A56941F9",
+				"4EC0587808FD802261CF6DF9",
 			);
-			dependencies = (
-				C0FE00000000000000000010 /* PBXTargetDependency */,
+			"productName" = "Curfew";
+			"isa" = "PBXNativeTarget";
+			"fileSystemSynchronizedGroups" = (
+				"9BD3FB842F4D4584007B2E95",
+				"C0FE00000000000000000007",
+				"C0FE00000000000000000008",
+				"C0FE00000000000000000009",
+				"C0FE00000000000000000060",
+				"C0FE00000000000000000061",
+				"C0FE00000000000000000062",
 			);
-			fileSystemSynchronizedGroups = (
-				9BD3FB842F4D4584007B2E95 /* Curfew */,
-				C0FE00000000000000000007 /* Sources/CurfewKit/Domain */,
-				C0FE00000000000000000008 /* Sources/CurfewKit/Storage */,
-				C0FE00000000000000000009 /* Sources/CurfewKit/Settings */,
-				C0FE00000000000000000060 /* Sources/CurfewKit/MCP */,
-				C0FE00000000000000000061 /* Sources/CurfewKit/Sync */,
-                C0FE00000000000000000062 /* Sources/CurfewKit/Browser */,
+			"buildPhases" = (
+				"9BD3FB7E2F4D4584007B2E95",
+				"9BD3FB7F2F4D4584007B2E95",
+				"9BD3FB802F4D4584007B2E95",
+				"C0FE00000000000000000003",
+				"C0FE0000000000000000ABCD",
+				"9BD3FBCC2F4D4584007B2E95",
 			);
-			name = Curfew;
-			packageProductDependencies = (
-				C0FE00000000000000000072 /* CurfewProtocols */,
+			"name" = "Curfew";
+			"buildRules" = (
 			);
-			productName = Curfew;
-			productReference = 9BD3FB822F4D4584007B2E95 /* Curfew.app */;
-			productType = "com.apple.product-type.application";
 		};
 		9BD3FB902F4D4587007B2E95 /* CurfewTests */ = {
 			isa = PBXNativeTarget;
@@ -337,51 +343,53 @@
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		9BD3FB7A2F4D4584007B2E95 /* Project object */ = {
-			isa = PBXProject;
-			attributes = {
-				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 2620;
-				LastUpgradeCheck = 2620;
-				TargetAttributes = {
-					9BD3FB812F4D4584007B2E95 = {
-						CreatedOnToolsVersion = 26.2;
+
+		9BD3FB7A2F4D4584007B2E95 = {
+			"packageReferences" = (
+				"C0FE00000000000000000071",
+				"F6013302EA59B0016ED64D21",
+			);
+			"buildConfigurationList" = "9BD3FB7D2F4D4584007B2E95";
+			"targets" = (
+				"9BD3FB812F4D4584007B2E95",
+				"C0FE0000000000000000000C",
+				"9BD3FB902F4D4587007B2E95",
+				"9BD3FB9A2F4D4587007B2E95",
+			);
+			"minimizedProjectReferenceProxies" = "1";
+			"developmentRegion" = "en";
+			"knownRegions" = (
+				"en",
+				"Base",
+			);
+			"isa" = "PBXProject";
+			"productRefGroup" = "9BD3FB832F4D4584007B2E95";
+			"projectDirPath" = "";
+			"attributes" = {
+				"LastSwiftUpdateCheck" = "2620";
+				"BuildIndependentTargetsInParallel" = "1";
+				"LastUpgradeCheck" = "2620";
+				"TargetAttributes" = {
+					"9BD3FB9A2F4D4587007B2E95" = {
+						"TestTargetID" = "9BD3FB812F4D4584007B2E95";
+						"CreatedOnToolsVersion" = "26.2";
 					};
-					9BD3FB902F4D4587007B2E95 = {
-						CreatedOnToolsVersion = 26.2;
-						TestTargetID = 9BD3FB812F4D4584007B2E95;
+					"9BD3FB902F4D4587007B2E95" = {
+						"TestTargetID" = "9BD3FB812F4D4584007B2E95";
+						"CreatedOnToolsVersion" = "26.2";
 					};
-					9BD3FB9A2F4D4587007B2E95 = {
-						CreatedOnToolsVersion = 26.2;
-						TestTargetID = 9BD3FB812F4D4584007B2E95;
+					"C0FE0000000000000000000C" = {
+						"CreatedOnToolsVersion" = "26.2";
 					};
-					C0FE0000000000000000000C = {
-						CreatedOnToolsVersion = 26.2;
+					"9BD3FB812F4D4584007B2E95" = {
+						"CreatedOnToolsVersion" = "26.2";
 					};
 				};
 			};
-			buildConfigurationList = 9BD3FB7D2F4D4584007B2E95 /* Build configuration list for PBXProject "Curfew" */;
-			developmentRegion = en;
-			hasScannedForEncodings = 0;
-			knownRegions = (
-				en,
-				Base,
-			);
-			mainGroup = 9BD3FB792F4D4584007B2E95;
-			minimizedProjectReferenceProxies = 1;
-			preferredProjectObjectVersion = 77;
-			productRefGroup = 9BD3FB832F4D4584007B2E95 /* Products */;
-			packageReferences = (
-				C0FE00000000000000000071 /* XCRemoteSwiftPackageReference "curfew-protocols" */,
-			);
-			projectDirPath = "";
-			projectRoot = "";
-			targets = (
-				9BD3FB812F4D4584007B2E95 /* Curfew */,
-				C0FE0000000000000000000C /* CurfewWidget */,
-				9BD3FB902F4D4587007B2E95 /* CurfewTests */,
-				9BD3FB9A2F4D4587007B2E95 /* CurfewUITests */,
-			);
+			"hasScannedForEncodings" = "0";
+			"preferredProjectObjectVersion" = "77";
+			"mainGroup" = "9BD3FB792F4D4584007B2E95";
+			"projectRoot" = "";
 		};
 /* End PBXProject section */
 
@@ -436,46 +444,48 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		9BD3FBCC2F4D4584007B2E95 /* Bundle CLI Tools */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
+
+		9BD3FBCC2F4D4584007B2E95 = {
+			"inputFileListPaths" = (
 			);
-			inputFileListPaths = (
+			"inputPaths" = (
 			);
-			inputPaths = (
-			);
-			name = "Bundle CLI Tools";
-			outputFileListPaths = (
-			);
-			outputPaths = (
+			"buildActionMask" = "2147483647";
+			"shellPath" = "/bin/sh";
+			"isa" = "PBXShellScriptBuildPhase";
+			"outputPaths" = (
 				"$(BUILT_PRODUCTS_DIR)/$(CONTENTS_FOLDER_PATH)/Resources/curfew-ctl",
 				"$(BUILT_PRODUCTS_DIR)/$(CONTENTS_FOLDER_PATH)/Resources/curfew-mcp",
 				"$(BUILT_PRODUCTS_DIR)/$(CONTENTS_FOLDER_PATH)/Resources/curfew-daemon",
-                "$(BUILT_PRODUCTS_DIR)/$(CONTENTS_FOLDER_PATH)/Resources/studio.hypertext.curfew.browser",
+				"$(BUILT_PRODUCTS_DIR)/$(CONTENTS_FOLDER_PATH)/Resources/studio.hypertext.curfew.browser",
 				"$(BUILT_PRODUCTS_DIR)/$(CONTENTS_FOLDER_PATH)/Library/LaunchDaemons/$(CURFEW_DAEMON_PLIST_NAME)",
 			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "set -e\ncd \"$SRCROOT\"\nmkdir -p \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Resources\"\nmkdir -p \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Library/LaunchDaemons\"\ncase \"$CONFIGURATION\" in\n    Debug) EXPECTED_DAEMON_PLIST=\"studio.hypertext.curfew.dev.daemon.plist\" ;;\n    Release) EXPECTED_DAEMON_PLIST=\"studio.hypertext.curfew.daemon.plist\" ;;\n    *) echo \"Unsupported Curfew build configuration: $CONFIGURATION\" >&2; exit 1 ;;\nesac\nif [ \"$CURFEW_DAEMON_PLIST_NAME\" != \"$EXPECTED_DAEMON_PLIST\" ]; then\n    echo \"Curfew daemon identity does not match $CONFIGURATION\" >&2\n    exit 1\nfi\nSWIFT_SERVICE_FLAGS=\"\"\nif [ -n \"$CURFEW_SERVICE_SWIFT_FLAG\" ]; then\n    if [ \"$CURFEW_SERVICE_SWIFT_FLAG\" != \"CURFEW_STAGING\" ]; then\n        echo \"Unsupported Curfew service environment: $CURFEW_SERVICE_SWIFT_FLAG\" >&2\n        exit 1\n    fi\n    if [ \"$CONFIGURATION\" != \"Debug\" ]; then\n        echo \"CURFEW_STAGING requires the isolated Debug app and helper identity\" >&2\n        exit 1\n    fi\n    SWIFT_SERVICE_FLAGS=\"-Xswiftc -DCURFEW_STAGING\"\nfi\nswift build -c release --jobs 2 --product curfew-ctl $SWIFT_SERVICE_FLAGS\nswift build -c release --jobs 2 --product curfew-mcp $SWIFT_SERVICE_FLAGS\nswift build -c release --jobs 2 --product curfew-daemon $SWIFT_SERVICE_FLAGS\nswift build -c release --jobs 2 --product studio.hypertext.curfew.browser $SWIFT_SERVICE_FLAGS\ncp .build/release/studio.hypertext.curfew.browser \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Resources/studio.hypertext.curfew.browser\"\ncp .build/release/curfew-ctl \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Resources/curfew-ctl\"\ncp .build/release/curfew-mcp \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Resources/curfew-mcp\"\ncp .build/release/curfew-daemon \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Resources/curfew-daemon\"\nif [ \"$CODE_SIGNING_ALLOWED\" != \"NO\" ]; then\n    for tool in curfew-ctl curfew-mcp curfew-daemon studio.hypertext.curfew.browser; do\n        /usr/bin/codesign --force --sign \"$EXPANDED_CODE_SIGN_IDENTITY\" --options runtime \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Resources/$tool\"\n    done\nfi\ncp \"Curfew/Resources/LaunchDaemons/$CURFEW_DAEMON_PLIST_NAME\" \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Library/LaunchDaemons/$CURFEW_DAEMON_PLIST_NAME\"\n";
+			"runOnlyForDeploymentPostprocessing" = "0";
+			"shellScript" = "set -e\ncd \"$SRCROOT\"\nmkdir -p \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Resources\"\nmkdir -p \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Library/LaunchDaemons\"\ncase \"$CONFIGURATION\" in\n    Debug) EXPECTED_DAEMON_PLIST=\"studio.hypertext.curfew.dev.daemon.plist\" ;;\n    Release) EXPECTED_DAEMON_PLIST=\"studio.hypertext.curfew.daemon.plist\" ;;\n    *) echo \"Unsupported Curfew build configuration: $CONFIGURATION\" >&2; exit 1 ;;\nesac\nif [ \"$CURFEW_DAEMON_PLIST_NAME\" != \"$EXPECTED_DAEMON_PLIST\" ]; then\n    echo \"Curfew daemon identity does not match $CONFIGURATION\" >&2\n    exit 1\nfi\nSWIFT_SERVICE_FLAGS=\"\"\nif [ -n \"$CURFEW_SERVICE_SWIFT_FLAG\" ]; then\n    if [ \"$CURFEW_SERVICE_SWIFT_FLAG\" != \"CURFEW_STAGING\" ]; then\n        echo \"Unsupported Curfew service environment: $CURFEW_SERVICE_SWIFT_FLAG\" >&2\n        exit 1\n    fi\n    if [ \"$CONFIGURATION\" != \"Debug\" ]; then\n        echo \"CURFEW_STAGING requires the isolated Debug app and helper identity\" >&2\n        exit 1\n    fi\n    SWIFT_SERVICE_FLAGS=\"-Xswiftc -DCURFEW_STAGING\"\nfi\nswift build -c release --jobs 2 --product curfew-ctl $SWIFT_SERVICE_FLAGS\nswift build -c release --jobs 2 --product curfew-mcp $SWIFT_SERVICE_FLAGS\nswift build -c release --jobs 2 --product curfew-daemon $SWIFT_SERVICE_FLAGS\nswift build -c release --jobs 2 --product studio.hypertext.curfew.browser $SWIFT_SERVICE_FLAGS\ncp .build/release/studio.hypertext.curfew.browser \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Resources/studio.hypertext.curfew.browser\"\ncp .build/release/curfew-ctl \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Resources/curfew-ctl\"\ncp .build/release/curfew-mcp \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Resources/curfew-mcp\"\ncp .build/release/curfew-daemon \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Resources/curfew-daemon\"\nif [ \"$CONFIGURATION\" = \"Debug\" ] && [ \"$CODE_SIGNING_ALLOWED\" != \"NO\" ]; then\n    for tool in curfew-ctl curfew-mcp curfew-daemon studio.hypertext.curfew.browser; do\n        /usr/bin/codesign --force --sign \"$EXPANDED_CODE_SIGN_IDENTITY\" --options runtime \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Resources/$tool\"\n    done\nfi\ncp \"Curfew/Resources/LaunchDaemons/$CURFEW_DAEMON_PLIST_NAME\" \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Library/LaunchDaemons/$CURFEW_DAEMON_PLIST_NAME\"\n";
+			"outputFileListPaths" = (
+			);
+			"files" = (
+			);
+			"name" = "Bundle CLI Tools";
 		};
-		C0FE0000000000000000ABCD /* Require Signed Build */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
+
+		C0FE0000000000000000ABCD = {
+			"inputFileListPaths" = (
 			);
-			inputFileListPaths = (
+			"inputPaths" = (
 			);
-			inputPaths = (
+			"buildActionMask" = "2147483647";
+			"shellPath" = "/bin/sh";
+			"isa" = "PBXShellScriptBuildPhase";
+			"outputPaths" = (
 			);
-			name = "Require Signed Build";
-			outputFileListPaths = (
+			"runOnlyForDeploymentPostprocessing" = "0";
+			"shellScript" = "if [ \"$CONFIGURATION\" = \"Debug\" ] && [ \"$CODE_SIGNING_ALLOWED\" != \"NO\" ] && { [ -z \"$EXPANDED_CODE_SIGN_IDENTITY\" ] || [ \"$EXPANDED_CODE_SIGN_IDENTITY\" = \"-\" ]; }; then\n    echo \"error: Curfew requires a resolved Apple Development certificate. Ad-hoc or unsigned builds cannot retain macOS Accessibility access after a rebuild \u2014 refresh the Hypertext Studio development certificate in Xcode.\"\n    exit 1\nfi\n";
+			"outputFileListPaths" = (
 			);
-			outputPaths = (
+			"files" = (
 			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "if [ \"$CODE_SIGNING_ALLOWED\" != \"NO\" ] && { [ -z \"$EXPANDED_CODE_SIGN_IDENTITY\" ] || [ \"$EXPANDED_CODE_SIGN_IDENTITY\" = \"-\" ]; }; then\n    echo \"error: Curfew requires a resolved Apple Development certificate. Ad-hoc or unsigned builds cannot retain macOS Accessibility access after a rebuild — refresh the Hypertext Studio development certificate in Xcode.\"\n    exit 1\nfi\n";
+			"name" = "Require Signed Build";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -649,97 +659,101 @@
 			};
 			name = Release;
 		};
-		9BD3FBA62F4D4587007B2E95 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = Curfew/Curfew.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				CURFEW_DAEMON_PLIST_NAME = studio.hypertext.curfew.dev.daemon.plist;
-                INFOPLIST_KEY_CurfewBrowserExtensionID = "loammdknmfbkjnckaeeagnmakinknbck";
-				DEVELOPMENT_TEAM = 39AB9DY3K8;
-				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
-				ENABLE_APP_SANDBOX = NO;
-				ENABLE_HARDENED_RUNTIME = YES;
-				ENABLE_PREVIEWS = YES;
-				ENABLE_USER_SELECTED_FILES = readonly;
-				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = Curfew/Info.plist;
-				INFOPLIST_KEY_LSUIElement = NO;
-				INFOPLIST_KEY_NSAppleEventsUsageDescription = "Curfew uses System Events to shut down your Mac after lockout when you turn on auto shutdown.";
-				INFOPLIST_KEY_NSAccessibilityUsageDescription = "Curfew uses Accessibility to intercept keyboard shortcuts during lockout so you can't bypass your own curfew.";
-				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "Curfew reads today's calendar events to show meetings on the lockout screen and warn you before a meeting collides with curfew. Curfew never edits your calendar.";
-				INFOPLIST_KEY_NSCalendarsUsageDescription = "Curfew reads today's calendar events to show meetings on the lockout screen and warn you before a meeting collides with curfew. Curfew never edits your calendar.";
-				INFOPLIST_KEY_NSCameraUsageDescription = "Curfew can check the camera for a person so it can tell whether you stepped away or are sitting there reading. It looks for a human shape only — it never identifies anyone, never saves an image, and never sends anything anywhere. Off unless you turn it on in Settings.";
-				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 Hypertext Studio. All rights reserved.";
-				INFOPLIST_KEY_SUFeedURL = "https://curfew.hypertext.studio/appcast.xml";
-				INFOPLIST_KEY_SUPublicEDKey = REPLACE_WITH_SPARKLE_PUBLIC_ED_KEY;
-				LD_RUNPATH_SEARCH_PATHS = (
+
+		9BD3FBA62F4D4587007B2E95 = {
+			"isa" = "XCBuildConfiguration";
+			"buildSettings" = {
+				"PRODUCT_BUNDLE_IDENTIFIER" = "studio.hypertext.curfew.dev";
+				"CURFEW_DAEMON_PLIST_NAME" = "studio.hypertext.curfew.dev.daemon.plist";
+				"INFOPLIST_KEY_SUPublicEDKey" = "/nTixzbNLaV9ZMpWlLHn6E03k4FDhWp+rolbmGAV8Is=";
+				"MARKETING_VERSION" = "0.0.1";
+				"SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY" = "YES";
+				"INFOPLIST_KEY_NSAppleEventsUsageDescription" = "Curfew uses System Events to shut down your Mac after lockout when you turn on auto shutdown.";
+				"INFOPLIST_KEY_LSUIElement" = "NO";
+				"REGISTER_APP_GROUPS" = "YES";
+				"ASSETCATALOG_COMPILER_APPICON_NAME" = "AppIcon";
+				"CODE_SIGN_STYLE" = "Automatic";
+				"ENABLE_USER_SELECTED_FILES" = "readonly";
+				"STRING_CATALOG_GENERATE_SYMBOLS" = "YES";
+				"SWIFT_DEFAULT_ACTOR_ISOLATION" = "MainActor";
+				"PRODUCT_NAME" = "$(TARGET_NAME)";
+				"SWIFT_APPROACHABLE_CONCURRENCY" = "YES";
+				"SWIFT_EMIT_LOC_STRINGS" = "YES";
+				"INFOPLIST_KEY_NSAccessibilityUsageDescription" = "Curfew uses Accessibility to intercept keyboard shortcuts during lockout so you can't bypass your own curfew.";
+				"SWIFT_VERSION" = "5.0";
+				"INFOPLIST_KEY_NSCameraUsageDescription" = "Curfew can check the camera for a person so it can tell whether you stepped away or are sitting there reading. It looks for a human shape only \u2014 it never identifies anyone, never saves an image, and never sends anything anywhere. Off unless you turn it on in Settings.";
+				"INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription" = "Curfew reads today's calendar events to show meetings on the lockout screen and warn you before a meeting collides with curfew. Curfew never edits your calendar.";
+				"INFOPLIST_KEY_SUFeedURL" = "https://storage.googleapis.com/hypertext-studio-releases/curfew/appcast.xml";
+				"ENABLE_PREVIEWS" = "YES";
+				"CODE_SIGN_ENTITLEMENTS" = "Curfew/Curfew.entitlements";
+				"LD_RUNPATH_SEARCH_PATHS" = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.0.1;
-				INFOPLIST_KEY_CFBundleDisplayName = "Curfew (Dev)";
-				PRODUCT_BUNDLE_IDENTIFIER = studio.hypertext.curfew.dev;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				REGISTER_APP_GROUPS = YES;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
+				"INFOPLIST_FILE" = "Curfew/Info.plist";
+				"ENABLE_APP_SANDBOX" = "NO";
+				"CURRENT_PROJECT_VERSION" = "1";
+				"INFOPLIST_KEY_NSCalendarsUsageDescription" = "Curfew reads today's calendar events to show meetings on the lockout screen and warn you before a meeting collides with curfew. Curfew never edits your calendar.";
+				"INFOPLIST_KEY_CurfewBrowserExtensionID" = "loammdknmfbkjnckaeeagnmakinknbck";
+				"GENERATE_INFOPLIST_FILE" = "NO";
+				"ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME" = "AccentColor";
+				"COMBINE_HIDPI_IMAGES" = "YES";
+				"INFOPLIST_KEY_CFBundleDisplayName" = "Curfew (Dev)";
+				"INFOPLIST_KEY_NSHumanReadableCopyright" = "\u00a9 2026 Hypertext Studio. All rights reserved.";
+				"ENABLE_HARDENED_RUNTIME" = "YES";
+				"DEVELOPMENT_TEAM" = "39AB9DY3K8";
+				"SWIFT_ACTIVE_COMPILATION_CONDITIONS[sdk=macosx*]" = "$(inherited) STUDIO_DIRECT_DISTRIBUTION";
 			};
-			name = Debug;
+			"name" = "Debug";
 		};
-		9BD3FBA72F4D4587007B2E95 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = "Curfew/Curfew-Release.entitlements";
-				CODE_SIGN_STYLE = Automatic;
-				CURFEW_DAEMON_PLIST_NAME = studio.hypertext.curfew.daemon.plist;
-                CURFEW_BROWSER_EXTENSION_ID = "";
-                INFOPLIST_KEY_CurfewBrowserExtensionID = "$(CURFEW_BROWSER_EXTENSION_ID)";
-				DEVELOPMENT_TEAM = 39AB9DY3K8;
-				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
-				ENABLE_APP_SANDBOX = NO;
-				ENABLE_HARDENED_RUNTIME = YES;
-				ENABLE_PREVIEWS = YES;
-				ENABLE_USER_SELECTED_FILES = readonly;
-				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = Curfew/Info.plist;
-				INFOPLIST_KEY_LSUIElement = NO;
-				INFOPLIST_KEY_NSAppleEventsUsageDescription = "Curfew uses System Events to shut down your Mac after lockout when you turn on auto shutdown.";
-				INFOPLIST_KEY_NSAccessibilityUsageDescription = "Curfew uses Accessibility to intercept keyboard shortcuts during lockout so you can't bypass your own curfew.";
-				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "Curfew reads today's calendar events to show meetings on the lockout screen and warn you before a meeting collides with curfew. Curfew never edits your calendar.";
-				INFOPLIST_KEY_NSCalendarsUsageDescription = "Curfew reads today's calendar events to show meetings on the lockout screen and warn you before a meeting collides with curfew. Curfew never edits your calendar.";
-				INFOPLIST_KEY_NSCameraUsageDescription = "Curfew can check the camera for a person so it can tell whether you stepped away or are sitting there reading. It looks for a human shape only — it never identifies anyone, never saves an image, and never sends anything anywhere. Off unless you turn it on in Settings.";
-				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 Hypertext Studio. All rights reserved.";
-				INFOPLIST_KEY_SUFeedURL = "https://curfew.hypertext.studio/appcast.xml";
-				INFOPLIST_KEY_SUPublicEDKey = REPLACE_WITH_SPARKLE_PUBLIC_ED_KEY;
-				LD_RUNPATH_SEARCH_PATHS = (
+
+		9BD3FBA72F4D4587007B2E95 = {
+			"isa" = "XCBuildConfiguration";
+			"buildSettings" = {
+				"PRODUCT_BUNDLE_IDENTIFIER" = "studio.hypertext.curfew";
+				"CURFEW_DAEMON_PLIST_NAME" = "studio.hypertext.curfew.daemon.plist";
+				"INFOPLIST_KEY_SUPublicEDKey" = "/nTixzbNLaV9ZMpWlLHn6E03k4FDhWp+rolbmGAV8Is=";
+				"MARKETING_VERSION" = "0.0.1";
+				"SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY" = "YES";
+				"INFOPLIST_KEY_NSAppleEventsUsageDescription" = "Curfew uses System Events to shut down your Mac after lockout when you turn on auto shutdown.";
+				"INFOPLIST_KEY_LSUIElement" = "NO";
+				"REGISTER_APP_GROUPS" = "YES";
+				"ASSETCATALOG_COMPILER_APPICON_NAME" = "AppIcon";
+				"CODE_SIGN_STYLE" = "Automatic";
+				"ENABLE_USER_SELECTED_FILES" = "readonly";
+				"STRING_CATALOG_GENERATE_SYMBOLS" = "YES";
+				"PRODUCT_NAME" = "$(TARGET_NAME)";
+				"SWIFT_APPROACHABLE_CONCURRENCY" = "YES";
+				"SWIFT_DEFAULT_ACTOR_ISOLATION" = "MainActor";
+				"SWIFT_EMIT_LOC_STRINGS" = "YES";
+				"INFOPLIST_KEY_NSAccessibilityUsageDescription" = "Curfew uses Accessibility to intercept keyboard shortcuts during lockout so you can't bypass your own curfew.";
+				"CURFEW_BROWSER_EXTENSION_ID" = "";
+				"INFOPLIST_KEY_NSCameraUsageDescription" = "Curfew can check the camera for a person so it can tell whether you stepped away or are sitting there reading. It looks for a human shape only \u2014 it never identifies anyone, never saves an image, and never sends anything anywhere. Off unless you turn it on in Settings.";
+				"INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription" = "Curfew reads today's calendar events to show meetings on the lockout screen and warn you before a meeting collides with curfew. Curfew never edits your calendar.";
+				"INFOPLIST_KEY_SUFeedURL" = "https://storage.googleapis.com/hypertext-studio-releases/curfew/appcast.xml";
+				"ENABLE_PREVIEWS" = "YES";
+				"SWIFT_VERSION" = "5.0";
+				"CODE_SIGN_ENTITLEMENTS" = "Curfew/Curfew-Release.entitlements";
+				"LD_RUNPATH_SEARCH_PATHS" = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.0.1;
-				INFOPLIST_KEY_CFBundleDisplayName = "Curfew";
-				PRODUCT_BUNDLE_IDENTIFIER = studio.hypertext.curfew;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				REGISTER_APP_GROUPS = YES;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "RELEASE_FEATURES $(inherited)";
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
+				"INFOPLIST_FILE" = "Curfew/Info.plist";
+				"ENABLE_APP_SANDBOX" = "NO";
+				"CURRENT_PROJECT_VERSION" = "1";
+				"INFOPLIST_KEY_NSCalendarsUsageDescription" = "Curfew reads today's calendar events to show meetings on the lockout screen and warn you before a meeting collides with curfew. Curfew never edits your calendar.";
+				"INFOPLIST_KEY_CurfewBrowserExtensionID" = "$(CURFEW_BROWSER_EXTENSION_ID)";
+				"GENERATE_INFOPLIST_FILE" = "NO";
+				"ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME" = "AccentColor";
+				"COMBINE_HIDPI_IMAGES" = "YES";
+				"INFOPLIST_KEY_CFBundleDisplayName" = "Curfew";
+				"SWIFT_ACTIVE_COMPILATION_CONDITIONS" = "RELEASE_FEATURES $(inherited)";
+				"INFOPLIST_KEY_NSHumanReadableCopyright" = "\u00a9 2026 Hypertext Studio. All rights reserved.";
+				"ENABLE_HARDENED_RUNTIME" = "YES";
+				"DEVELOPMENT_TEAM" = "39AB9DY3K8";
+				"SWIFT_ACTIVE_COMPILATION_CONDITIONS[sdk=macosx*]" = "$(inherited) STUDIO_DIRECT_DISTRIBUTION";
 			};
-			name = Release;
+			"name" = "Release";
 		};
 		9BD3FBA92F4D4587007B2E95 /* Debug */ = {
 			isa = XCBuildConfiguration;
@@ -926,6 +940,34 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+		F6013302EA59B0016ED64D21 = {
+			"isa" = "XCRemoteSwiftPackageReference";
+			"repositoryURL" = "https://github.com/TheHypertextStudio/release-engineering.git";
+			"requirement" = {
+				"kind" = "revision";
+				"revision" = "8b43fa0cf0e5935774bf0a9dc0f68bf579ab789c";
+			};
+		};
+		4EC0587808FD802261CF6DF9 = {
+			"isa" = "XCSwiftPackageProductDependency";
+			"package" = "F6013302EA59B0016ED64D21";
+			"productName" = "DirectDistribution";
+		};
+		836128202EED8BF0A56941F9 = {
+			"isa" = "XCSwiftPackageProductDependency";
+			"package" = "F6013302EA59B0016ED64D21";
+			"productName" = "Distribution";
+		};
+		7B31074DF3535B06BD263C1A = {
+			"isa" = "PBXBuildFile";
+			"productRef" = "836128202EED8BF0A56941F9";
+		};
+		F176AB14334DC3A661248D75 = {
+			"isa" = "PBXBuildFile";
+			"productRef" = "4EC0587808FD802261CF6DF9";
+			"platformFilter" = "macos";
+		};
+
 	};
 	rootObject = 9BD3FB7A2F4D4584007B2E95 /* Project object */;
 }

@@ -1,53 +1,19 @@
 name: CI
-
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
-
+permissions:
+  contents: read
+  packages: read
 jobs:
   check:
+    if: github.event_name == 'pull_request'
     name: Format · Lint · Test · Build
-    # Curfew's deployment target is macOS 26, so validation must run on a
-    # runner that can actually build and execute its test host.
-    runs-on: macos-26
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Select Xcode
-        run: |
-          if [ -d /Applications/Xcode_26.app ]; then
-            sudo xcode-select -s /Applications/Xcode_26.app
-          else
-            sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)"
-          fi
-          xcodebuild -version
-
-      - name: Install tools
-        run: brew install swiftlint swiftformat just
-
-      - name: Cache derived data
-        uses: actions/cache@v4
-        with:
-          path: ~/Library/Developer/Xcode/DerivedData
-          key: ${{ runner.os }}-derived-${{ hashFiles('**/*.xcodeproj/project.pbxproj') }}
-          restore-keys: ${{ runner.os }}-derived-
-
-      - name: Check (format + lint + test + build)
-        env:
-          CURFEW_XCODEBUILD_SETTINGS: "CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO"
-        run: just check
-
-      - name: Upload unit-test diagnostics
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: curfew-unit-test-results
-          path: build/CurfewTests.xcresult
-          if-no-files-found: warn
-
+    uses: TheHypertextStudio/release-engineering/.github/workflows/validate.yml@8b43fa0cf0e5935774bf0a9dc0f68bf579ab789c
+    with:
+      tooling_revision: 8b43fa0cf0e5935774bf0a9dc0f68bf579ab789c
   screenshots:
     name: Capture screenshots
     # Screenshot capture launches the app and therefore needs the same macOS
@@ -59,12 +25,15 @@ jobs:
 
       - name: Select Xcode
         run: |
-          if [ -d /Applications/Xcode_26.app ]; then
-            sudo xcode-select -s /Applications/Xcode_26.app
-          else
-            sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)"
-          fi
-          xcodebuild -version
+          for candidate in /Applications/Xcode_26.6.app /Applications/Xcode.app; do
+            if [ -d "$candidate" ] && [ "$(DEVELOPER_DIR="$candidate/Contents/Developer" xcodebuild -version | head -n 1)" = "Xcode 26.6" ]; then
+              sudo xcode-select -s "$candidate/Contents/Developer"
+              xcodebuild -version
+              exit 0
+            fi
+          done
+          echo "Xcode 26.6 is required for screenshot capture" >&2
+          exit 1
 
       - name: Install tools
         run: brew install just
@@ -83,7 +52,7 @@ jobs:
       # permission) — see scripts/capture-marketing.sh / capture-video.sh.
       - name: Capture demo screenshots
         env:
-          CURFEW_XCODEBUILD_SETTINGS: "CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO"
+          CURFEW_XCODEBUILD_SETTINGS: "CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO -jobs 2 -parallel-testing-enabled NO"
         run: just capture
 
       - name: Upload screenshots

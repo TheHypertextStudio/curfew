@@ -93,7 +93,7 @@ enum CurfewLaunchBehavior {
 struct CurfewApp: App {
     /// The central app-state object; injected into every scene.
     @StateObject private var model: CurfewAppModel
-    /// Sparkle wrapper driving the Check-for-Updates menu item.
+    /// Keeps the shared updater alive for the application lifetime.
     @StateObject private var updater = CurfewUpdater()
     /// AppKit delegate seam. A no-op today; a later workflow hangs
     /// activation / wake re-assertion of the keyboard shield off it so a
@@ -165,13 +165,12 @@ struct CurfewApp: App {
             .defaultLaunchBehavior(.presented)
         #endif
             .commands {
-                if CurfewUpdater.isAvailable {
-                    CommandGroup(after: .appInfo) {
-                        Button("Check for Updates…") {
-                            updater.checkForUpdates()
-                        }
-                        .disabled(!updater.canCheckForUpdates)
+                CommandGroup(after: .appInfo) {
+                    Button("Check for Updates…") {
+                        updater.checkForUpdates()
                     }
+                    .disabled(!updater.canCheckForUpdates)
+                    .help(updater.initializationError ?? "Check for a newer version of Curfew")
                 }
             }
 

@@ -379,13 +379,6 @@ struct SettingsSectionTests {
     }
 }
 
-struct CurfewUpdaterTests {
-    @Test("Current build only shows update UI when Sparkle is linked")
-    func updateAvailabilityMatchesLinkedFramework() {
-        #expect(CurfewUpdater.isAvailable == false)
-    }
-}
-
 struct ShutdownSupportTests {
     @Test("Current build only shows auto-shutdown when Apple Events entitlement is present")
     func shutdownAvailabilityMatchesEntitlements() throws {

@@ -1,0 +1,17 @@
+name: Candidate
+on:
+  push:
+    branches: [main]
+  repository_dispatch:
+    types: [component-ready]
+permissions:
+  contents: write
+  actions: read
+  packages: read
+  id-token: write
+jobs:
+  candidate:
+    uses: TheHypertextStudio/release-engineering/.github/workflows/candidate.yml@8b43fa0cf0e5935774bf0a9dc0f68bf579ab789c
+    with:
+      tooling_revision: 8b43fa0cf0e5935774bf0a9dc0f68bf579ab789c
+    secrets: inherit

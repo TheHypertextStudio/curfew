@@ -1,8 +1,11 @@
 # Curfew Release Checklist
 
-Every external step required to cut a signed, notarized, purchasable release.
-One-time infrastructure setup plus the per-release sequence. Keep checkout
-disabled until every license-delivery prerequisite is verified.
+Curfew maintainers must use the current candidate and review flow in
+[Curfew distribution](../Documentation/distribution.md) for app delivery. The
+Apple/Sparkle and tag-release commands below describe the archived release
+mechanism. They do not replace the shared credential bindings or authorize a
+new updater identity. Keep checkout disabled until every license-delivery
+prerequisite is verified.
 
 ## One-time infrastructure
 

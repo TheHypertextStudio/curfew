@@ -262,7 +262,9 @@ mid-lockout, and every action the root daemon takes. Format specification:
 ## 17. Distribution and Operations
 
 - [x] `.github/workflows/ci.yml` — format + lint + test + build on push/PR.
-- [x] `.github/workflows/release.yml` — archive + sign + notarize + DMG on tag push.
+- [-] Shared direct candidate and manual promotion replace tag publication.
+      The original release workflow and packaging scripts remain frozen under
+      `Documentation/legacy-release/SHA256SUMS` until signed acceptance.
 - [x] `scripts/build-dmg.sh` — `create-dmg` wrapper.
 - [x] MIT `LICENSE` file.
 - [x] README rewrite: three-horizon pitch, MCP setup, CLI usage, Pro features, architecture.
@@ -285,8 +287,12 @@ mid-lockout, and every action the root daemon takes. Format specification:
       remains intentionally gated pending the separate production delivery
       proof.
 - [ ] Homebrew Cask. (v0.2)
-- [-] Sparkle autoupdate scaffolding present; framework wiring + signed appcast
-  flow still pending. v0.1 releases publish only the notarized DMG. (v0.2)
+- [-] The app now links the immutable shared DirectDistribution package and
+      forwards updater availability into Check for Updates. Missing development
+      keys disable the command and retain an error. The public key and Developer ID
+      identity are provisioned. The signed appcast and installed update proof
+      remain release gates. Existing release scripts remain until real acceptance.
+      See `Documentation/distribution.md`. (v0.2)
 - [x] Support an isolated `curfew-license-staging.hypertext.studio` license
       Worker configuration for Stripe test-mode staging, with a distinct KV
       namespace and secrets; alternate Worker hostnames fail closed.
@@ -560,3 +566,16 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
   certificate was revoked. Unsigned CI/demo builds remain explicitly supported;
   interactive builds now fail with the recovery action before producing a TCC-
   unstable app. Rollback is the single build-phase predicate change.
+
+## Shared direct release adoption
+
+- [-] Curfew alone adopts the shared release engine. The direct-only declaration
+  retains native licensing, policy, format, lint, unit tests and Debug-build
+  gates. PR validation and demo screenshots remain separate from shipping.
+- [x] Recover the existing Sparkle secret's public key through the pinned shared
+  diagnostic and preserve it in the app and declaration.
+- [x] Bind the launcher, workflows and SDK to the verified published v0.1.0
+  revision and checksum.
+- [ ] Verify a signed arm64 candidate, installed upgrade, enforcement/recovery
+  and production license delivery before manual promotion. No release acceptance
+  is implied by local tests. Worker and landing deployments remain independent.

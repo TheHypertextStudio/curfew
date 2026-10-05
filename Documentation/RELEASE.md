@@ -348,30 +348,22 @@ xcrun stapler validate "$APP"
 
 ## Shipping a release
 
-1. Update `MARKETING_VERSION` + `CURRENT_PROJECT_VERSION` in `Curfew.xcodeproj`.
-2. Push the final commit to `main`; `just check` should already be green.
-3. Tag the release: `git tag v0.0.1 && git push origin v0.0.1`
-4. `.github/workflows/release.yml` will resolve the public `curfew-protocols` SPM dependency without an additional repository secret, then:
-   - run `just check`
-   - archive with Developer ID signing
-   - notarize with `notarytool`
-   - staple/build the DMG
-   - upload the DMG as a GitHub Release asset
-   - skip Sparkle appcast generation and upload until Sparkle is explicitly
-     provisioned; the initial build has no updater UI
-5. Download the GitHub Release DMG and repeat the final smoke test above on the
-   actual shipped artifact before announcing the release.
+Maintainers now use the immutable direct candidate and manual review flow in
+[Curfew distribution](distribution.md). A default-branch push runs all declared
+checks and prepares version 0.0.2 without publishing it. Inspect that candidate's
+manifest, install its signed artifact, and execute the applicable checks above.
+Promotion requires the candidate ID, manifest SHA-256 and matching review JSON.
+A tag push no longer runs the archived release implementation.
 
-The pull-request CI workflow also runs on `macos-26` so its test host matches
-Curfew's macOS 26 deployment target; running it on an older macOS image cannot
-execute the app or its tests. Its Debug test/build artifacts deliberately pass
-unsigned build settings on the `xcodebuild` command line because fork-safe GitHub
-runners have no Apple account or provisioning profile. Signed release archives,
-notarization, and the distribution smoke test remain release-only steps with
-explicit Apple credentials.
+PR checks and screenshots run on `macos-26` with unsigned Debug builds. The
+shared candidate adapter owns the credentialed Release archive, nested-code
+signing, notarization, stapling and final signed appcast. Curfew keeps its real
+updater key identity and never skips missing updater credentials.
 
 ## Rollback
 
-- Yank the GitHub release asset and replace it with the previous DMG.
-- There is no active in-app updater in the default build today; rollback is a
-  manual re-download.
+Use the manual promotion caller's `withdraw` action to revoke the reviewed
+candidate. Keep immutable published artifacts available for audit and existing
+installations. Never replace their bytes or pretend that deleting an asset
+uninstalls the app. Use a previously accepted signed installer for manual
+recovery, and prepare a new reviewed candidate to repair a released build.
