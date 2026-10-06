@@ -18,8 +18,12 @@ recovered the public half of the existing repository secret on 2026-10-05. The
 app and declaration preserve that updater identity. Studio issued a Developer ID
 Application identity for team T95VDD3A4W on 2026-10-05. The certificate imports successfully into a temporary macOS keychain.
 A native Developer ID archive failed because the app and widget require App Groups
-provisioning profiles. Studio must register both explicit identifiers and their
-shared group before issuing those profiles. The declaration names `Curfew Developer ID`
+provisioning profiles. Apple rejected registration of `studio.hypertext.curfew` on 2026-10-05 because
+the identifier is unavailable. It is absent from the Studio team's identifier list.
+The current Studio account exposes only team T95VDD3A4W; the project's development
+configuration uses team 39AB9DY3K8. Ownership is unresolved. Engineers must preserve
+the existing identity or obtain approval for new identifiers and verify data
+migration before issuing the shipping profiles. The declaration names `Curfew Developer ID`
 and `Curfew Widget Developer ID`; candidate credentials carry their encoded profiles.
 The shared adapter preserves each target's entitlements and verifies profile identity
 before signing. Credentialed candidate preparation and signed acceptance remain
@@ -143,7 +147,10 @@ lockout surface. These images do not count as UI capture or installed acceptance
 
 Shared v0.1.2 hosted CI passed 89 runtime tests and four Swift SDK tests.
 Curfew PR validation has proven public bootstrap downloads and headless snapshot
-artifacts. Full validation remains pending after the obsolete assertion removal.
+artifacts. Hosted run [37389921895](https://github.com/TheHypertextStudio/curfew/actions/runs/37389921895)
+passed full product validation and headless snapshots for adoption commit
+`e6e85d6dd585029b3ff9c2b4d977c544eb810403`. The unsigned Release build also
+passed again with the v0.1.2 pin and profile declarations.
 Automatic default-branch candidate creation remains unverified. No shipping
 installation, installed upgrade, license-delivery acceptance or production
 promotion has occurred.
