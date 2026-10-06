@@ -945,7 +945,7 @@
 			"repositoryURL" = "https://github.com/TheHypertextStudio/release-engineering.git";
 			"requirement" = {
 				"kind" = "revision";
-				"revision" = "e57006fd9f3c0f4d499c7c295017769727c08f25";
+				"revision" = "23e6c0b0c82486b33ed54fc3b438b61bc8c3a66b";
 			};
 		};
 		4EC0587808FD802261CF6DF9 = {

@@ -574,7 +574,7 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
   gates. PR validation and demo screenshots remain separate from shipping.
 - [x] Recover the existing Sparkle secret's public key through the pinned shared
   diagnostic and preserve it in the app and declaration.
-- [x] Bind the launcher, workflows and SDK to the verified published v0.1.0
+- [x] Bind the launcher, workflows and SDK to the verified published v0.1.4
   revision and checksum.
 - [ ] Verify a signed arm64 candidate, installed upgrade, enforcement/recovery
   and production license delivery before manual promotion. No release acceptance

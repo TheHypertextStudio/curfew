@@ -8,7 +8,7 @@ permissions:
   id-token: write
 jobs:
   update:
-    uses: TheHypertextStudio/release-engineering/.github/workflows/update-pins.yml@e57006fd9f3c0f4d499c7c295017769727c08f25
+    uses: TheHypertextStudio/release-engineering/.github/workflows/update-pins.yml@23e6c0b0c82486b33ed54fc3b438b61bc8c3a66b
     with:
-      tooling_revision: e57006fd9f3c0f4d499c7c295017769727c08f25
+      tooling_revision: 23e6c0b0c82486b33ed54fc3b438b61bc8c3a66b
     secrets: inherit
