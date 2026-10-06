@@ -100,9 +100,9 @@ configuration and offers a dry run. This adoption does not redeploy the Worker,
 change its secret, open checkout, or change the landing site's production host.
 A reviewer must verify installed-app license delivery before promoting Curfew.
 
-The launcher pins shared release v0.1.2 at revision
-`83e35d9382bdfa6470fbdd84e033f8488e325e78`. Its published archive SHA-256 is
-`f7afda02e10eec9bd03c2359b8e5a27835155094f277d17c2f356c4e1387f426`.
+The launcher pins shared release v0.1.3 at revision
+`e57006fd9f3c0f4d499c7c295017769727c08f25`. Its published archive SHA-256 is
+`efc597c964e16d1fcfb028c88ba4ba704367d9ff0a8e8c0d02507f78eb3142a0`.
 The shared pin updater verified the downloaded bytes before updating the lock,
 launcher, workflows, native package requirement and resolved dependency revision.
 
@@ -145,12 +145,12 @@ release-engineering mirror. Its original four platform digests remain pinned. Th
 snapshot suite exported six headless images, including Today, Schedule and the
 lockout surface. These images do not count as UI capture or installed acceptance.
 
-Shared v0.1.2 hosted CI passed 89 runtime tests and four Swift SDK tests.
+Shared v0.1.3 hosted CI passed 89 runtime tests and four Swift SDK tests.
 Curfew PR validation has proven public bootstrap downloads and headless snapshot
 artifacts. Hosted run [37389921895](https://github.com/TheHypertextStudio/curfew/actions/runs/37389921895)
 passed full product validation and headless snapshots for adoption commit
 `e6e85d6dd585029b3ff9c2b4d977c544eb810403`. The unsigned Release build also
-passed again with the v0.1.2 pin and profile declarations.
+passed again with the v0.1.3 pin and profile declarations.
 Automatic default-branch candidate creation remains unverified. No shipping
 installation, installed upgrade, license-delivery acceptance or production
 promotion has occurred.
@@ -159,3 +159,22 @@ Setup now refreshes missing commits in the existing native Xcode cache while
 requiring the committed resolved versions. The previous `-skipPackageUpdates`
 flag prevented setup from fetching a newly pinned shared SDK revision. The
 standard setup command passed after removing that flag.
+
+## Company signing
+
+All project configurations declare Hypertext Studio, LLC (`T95VDD3A4W`).
+App, widget and test targets inherit that team. Shared lifecycle conformance
+rejects personal-team overrides before candidate preparation. Bundle IDs and
+entitlements stay unchanged.
+
+On 2026-10-06, Xcode resolved Curfew Debug and the Release widget to the company
+team. The company portal lists native LogDate and Docket, but rejects the
+existing Curfew shipping bundle ID as unavailable. The installed Curfew Dev
+profile uses personal team `39AB9DY3K8`. That profile establishes the Dev
+registration and App Group association, not ownership of the shipping ID.
+Company Developer ID provisioning remains blocked until Apple confirms and
+resolves the reservation. The signed installation and Sparkle upgrade gates
+remain required.
+
+The [company signing sequence diagram](apple-signing-teams.mmd) shows the
+configuration check and Apple registration gate before review.

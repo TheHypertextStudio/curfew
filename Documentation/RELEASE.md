@@ -14,6 +14,11 @@ cover the app logic; this file covers the release-only path for:
 Keep claims conservative: nothing below is considered complete until a
 maintainer executes it on a signed build with real Apple credentials.
 
+Company signing uses `T95VDD3A4W` in every configuration and archive export.
+Use the pinned lifecycle commands in [distribution.md](distribution.md) for
+candidate preparation and promotion. The manual archive instructions below
+describe the older acceptance procedure and do not authorize publication.
+
 ## One-time external setup
 
 Use `scripts/release-checklist.md` for the full business/infrastructure setup

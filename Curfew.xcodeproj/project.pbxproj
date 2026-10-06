@@ -543,6 +543,7 @@
 		9BD3FBA32F4D4587007B2E95 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				DEVELOPMENT_TEAM = T95VDD3A4W;
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_NONNULL = YES;
@@ -607,6 +608,7 @@
 		9BD3FBA42F4D4587007B2E95 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				DEVELOPMENT_TEAM = T95VDD3A4W;
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_NONNULL = YES;
@@ -701,7 +703,6 @@
 				"INFOPLIST_KEY_CFBundleDisplayName" = "Curfew (Dev)";
 				"INFOPLIST_KEY_NSHumanReadableCopyright" = "\u00a9 2026 Hypertext Studio. All rights reserved.";
 				"ENABLE_HARDENED_RUNTIME" = "YES";
-				"DEVELOPMENT_TEAM" = "39AB9DY3K8";
 				"SWIFT_ACTIVE_COMPILATION_CONDITIONS[sdk=macosx*]" = "$(inherited) STUDIO_DIRECT_DISTRIBUTION";
 			};
 			"name" = "Debug";
@@ -751,7 +752,6 @@
 				"SWIFT_ACTIVE_COMPILATION_CONDITIONS" = "RELEASE_FEATURES $(inherited)";
 				"INFOPLIST_KEY_NSHumanReadableCopyright" = "\u00a9 2026 Hypertext Studio. All rights reserved.";
 				"ENABLE_HARDENED_RUNTIME" = "YES";
-				"DEVELOPMENT_TEAM" = "39AB9DY3K8";
 				"SWIFT_ACTIVE_COMPILATION_CONDITIONS[sdk=macosx*]" = "$(inherited) STUDIO_DIRECT_DISTRIBUTION";
 			};
 			"name" = "Release";
@@ -838,7 +838,6 @@
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = CurfewWidget/CurfewWidget-Debug.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 39AB9DY3K8;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_APP_SANDBOX = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -869,7 +868,6 @@
 				CODE_SIGN_ENTITLEMENTS = CurfewWidget/CurfewWidget.entitlements;
 				PROVISIONING_PROFILE_SPECIFIER = "$(STUDIO_WIDGET_PROFILE)";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 39AB9DY3K8;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_APP_SANDBOX = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -947,7 +945,7 @@
 			"repositoryURL" = "https://github.com/TheHypertextStudio/release-engineering.git";
 			"requirement" = {
 				"kind" = "revision";
-				"revision" = "83e35d9382bdfa6470fbdd84e033f8488e325e78";
+				"revision" = "e57006fd9f3c0f4d499c7c295017769727c08f25";
 			};
 		};
 		4EC0587808FD802261CF6DF9 = {

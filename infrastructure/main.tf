@@ -7,14 +7,14 @@ terraform {
 }
 provider "google" { project = "hypertext-curfew-release" }
 module "hosting" {
-  source = "git::https://github.com/TheHypertextStudio/release-engineering.git//infra/modules/hosting?ref=83e35d9382bdfa6470fbdd84e033f8488e325e78"
+  source = "git::https://github.com/TheHypertextStudio/release-engineering.git//infra/modules/hosting?ref=e57006fd9f3c0f4d499c7c295017769727c08f25"
   project_id = "hypertext-studio-releases"
   bucket = "hypertext-studio-releases"
   region = "US"
 }
 module "curfew" {
   depends_on = [module.hosting]
-  source = "git::https://github.com/TheHypertextStudio/release-engineering.git//infra/modules/product?ref=83e35d9382bdfa6470fbdd84e033f8488e325e78"
+  source = "git::https://github.com/TheHypertextStudio/release-engineering.git//infra/modules/product?ref=e57006fd9f3c0f4d499c7c295017769727c08f25"
   project_id = "hypertext-curfew-release"
   product = "curfew"
   region = "us-central1"

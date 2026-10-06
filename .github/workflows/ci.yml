@@ -11,9 +11,9 @@ jobs:
   check:
     if: github.event_name == 'pull_request'
     name: Format · Lint · Test · Build
-    uses: TheHypertextStudio/release-engineering/.github/workflows/validate.yml@83e35d9382bdfa6470fbdd84e033f8488e325e78
+    uses: TheHypertextStudio/release-engineering/.github/workflows/validate.yml@e57006fd9f3c0f4d499c7c295017769727c08f25
     with:
-      tooling_revision: 83e35d9382bdfa6470fbdd84e033f8488e325e78
+      tooling_revision: e57006fd9f3c0f4d499c7c295017769727c08f25
   screenshots:
     name: Render snapshot fixtures
     # Native snapshot fixtures require the app's macOS deployment target.

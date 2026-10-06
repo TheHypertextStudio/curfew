@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "repository": "TheHypertextStudio/release-engineering",
-  "version": "v0.1.2",
-  "revision": "83e35d9382bdfa6470fbdd84e033f8488e325e78",
-  "sha256": "f7afda02e10eec9bd03c2359b8e5a27835155094f277d17c2f356c4e1387f426"
+  "version": "v0.1.3",
+  "revision": "e57006fd9f3c0f4d499c7c295017769727c08f25",
+  "sha256": "efc597c964e16d1fcfb028c88ba4ba704367d9ff0a8e8c0d02507f78eb3142a0"
 }

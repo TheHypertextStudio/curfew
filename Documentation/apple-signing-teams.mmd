@@ -1,0 +1,16 @@
+sequenceDiagram
+    participant Engineer as Studio engineer
+    participant Project as Product Xcode project
+    participant Lifecycle as Shared lifecycle
+    participant Company as Apple company team T95VDD3A4W
+    participant Review as Human release reviewer
+    Engineer->>Project: Build with company project defaults
+    Project->>Lifecycle: Check pinned product contract
+    Lifecycle->>Lifecycle: Reject personal-team overrides
+    Lifecycle->>Company: Request matching identifier and profile
+    Company-->>Lifecycle: Profile or registration failure
+    alt Company profile exists
+        Lifecycle-->>Review: Immutable signed candidate
+    else Identifier is unavailable
+        Lifecycle-->>Engineer: Block candidate and preserve identity
+    end
