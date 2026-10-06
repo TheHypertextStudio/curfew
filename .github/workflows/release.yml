@@ -10,8 +10,8 @@ permissions:
   contents: read
 jobs:
   diagnose:
-    uses: TheHypertextStudio/release-engineering/.github/workflows/diagnose.yml@23e6c0b0c82486b33ed54fc3b438b61bc8c3a66b
+    uses: TheHypertextStudio/release-engineering/.github/workflows/diagnose.yml@d2cc95ed85886e95e2e05cbae7c40285e6d8cc4f
     with:
       migration_public_key: ${{ inputs.migration_public_key }}
-      tooling_revision: 23e6c0b0c82486b33ed54fc3b438b61bc8c3a66b
+      tooling_revision: d2cc95ed85886e95e2e05cbae7c40285e6d8cc4f
     secrets: inherit

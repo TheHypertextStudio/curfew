@@ -843,7 +843,7 @@ only.
 | Development launch survives missing updater configuration. | `CurfewUpdaterTests/missingConfigurationDisablesUpdates`. | Signed app startup and transition from an installed prior build. |
 | The app retains conservative entitlements and the development signing boundary. | `scripts/release-entitlements.test.mjs` parses Xcode build objects and checks actual phase order. | Signed app, widget and helper verification. |
 | The shared pipeline retains native tests and reviewable screenshots. | Declared native checks and existing Debug demo capture. | Hosted workflow results bound to the candidate and UI screenshot evidence. Local headless snapshots render; local XCUITest startup remains blocked. |
-| A failed infrastructure plan cannot look successful. | Shared lifecycle regression test for nonzero Terraform init and a local CLI run against expired Google authentication. | Fresh hosted plan against production state with the product workload identity. |
+| A failed infrastructure plan cannot look successful. | Shared lifecycle regression test for nonzero Terraform init, plus a fresh production plan with three in-place identity updates and no additions or deletions. | Apply the reviewed identity update when Curfew's matching workflow revision reaches its default branch. |
 
 The original tag-release workflow remains archived unchanged. Its tests identify
 that historical policy explicitly. The shared adapter supplies the new release

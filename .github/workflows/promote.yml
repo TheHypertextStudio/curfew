@@ -27,9 +27,9 @@ permissions:
   id-token: write
 jobs:
   promote:
-    uses: TheHypertextStudio/release-engineering/.github/workflows/promote.yml@23e6c0b0c82486b33ed54fc3b438b61bc8c3a66b
+    uses: TheHypertextStudio/release-engineering/.github/workflows/promote.yml@d2cc95ed85886e95e2e05cbae7c40285e6d8cc4f
     with:
-      tooling_revision: 23e6c0b0c82486b33ed54fc3b438b61bc8c3a66b
+      tooling_revision: d2cc95ed85886e95e2e05cbae7c40285e6d8cc4f
       release_action: ${{ inputs.release_action }}
       candidate_id: ${{ inputs.candidate_id }}
       manifest_sha256: ${{ inputs.manifest_sha256 }}

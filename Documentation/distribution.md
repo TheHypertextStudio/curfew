@@ -103,14 +103,22 @@ configuration and offers a dry run. This adoption does not redeploy the Worker,
 change its secret, open checkout, or change the landing site's production host.
 A reviewer must verify installed-app license delivery before promoting Curfew.
 
-The launcher pins shared release v0.1.4 at revision
-`23e6c0b0c82486b33ed54fc3b438b61bc8c3a66b`. Its published archive SHA-256 is
-`c73f11a07c6e3d96d86403c339955640014bddda49af6885f130aaa7776d2f35`.
+The launcher pins shared release v0.1.6 at revision
+`d2cc95ed85886e95e2e05cbae7c40285e6d8cc4f`. Its published archive SHA-256 is
+`76fa3ee1284e461a772523858fce937faa26250aa5470255bcce4cbc845e2178`.
 The shared pin updater verified the downloaded bytes before updating the lock,
 launcher, workflows, native package requirement and resolved dependency revision.
-This release also returns a failure when Terraform init, plan or apply fails.
-The October 6 local production plan could not read GCS state because Google
-authentication returned `invalid_rapt`; it did not establish infrastructure drift.
+The shared runtime returns a failure when Terraform init, plan or apply fails.
+The v0.1.6 prerequisite workflow checks declared Secret Manager bindings through
+Curfew's staging workload identity. Its first run on the new pin still needs to
+confirm the live credential state.
+After Google authentication was refreshed on October 6, the production plan
+read remote state and proposed three in-place workflow identity updates. It
+proposed no additions or deletions. We did not apply the plan because Curfew's
+default branch still uses the older workflow revision. Direct Secret Manager
+checks found enabled versions for the certificate, Apple API fields and Sparkle
+key. The provisioning-profile secret has no enabled version pending Apple's
+identifier case.
 
 The first shared candidate explicitly selects version 0.0.2. Curfew's current
 native app and cask are 0.0.1, and this clone has no release tags. The override
@@ -151,14 +159,18 @@ release-engineering mirror. Its original four platform digests remain pinned. Th
 snapshot suite exported six headless images, including Today, Schedule and the
 lockout surface. These images do not count as UI capture or installed acceptance.
 
-Shared v0.1.4 hosted CI passed 92 runtime tests and four Swift SDK tests.
+Shared v0.1.6 hosted publishing passed 95 runtime tests and four Swift SDK tests.
 Curfew PR validation has proven public bootstrap downloads and headless snapshot
 artifacts. Hosted run [37389921895](https://github.com/TheHypertextStudio/curfew/actions/runs/37389921895)
 passed full product validation and headless snapshots for adoption commit
 `e6e85d6dd585029b3ff9c2b4d977c544eb810403`. The unsigned Release build also
 passed again with the v0.1.3 pin and profile declarations. On October 6,
 `./run setup`, `./run check` and the unsigned `./run build` passed with the
-v0.1.4 pin. The product PR still needs hosted validation of this revision.
+v0.1.4 pin. [Hosted run 37499126282](https://github.com/TheHypertextStudio/curfew/actions/runs/37499126282)
+passed product checks, the native build and headless snapshots on that pin.
+The v0.1.6 pin still needs hosted product validation. Local setup, checks and
+the unsigned Release build passed on this pin after the browser-link test
+fixture stopped relying on `Task.yield()` timing.
 Automatic default-branch candidate creation remains unverified. No shipping
 installation, installed upgrade, license-delivery acceptance or production
 promotion has occurred.
