@@ -20,10 +20,12 @@ Application identity for team T95VDD3A4W on 2026-10-05. The certificate imports 
 A native Developer ID archive failed because the app and widget require App Groups
 provisioning profiles. Apple rejected registration of `studio.hypertext.curfew` on 2026-10-05 because
 the identifier is unavailable. It is absent from the Studio team's identifier list.
-The current Studio account exposes only team T95VDD3A4W; the project's development
-configuration uses team 39AB9DY3K8. Ownership is unresolved. Engineers must preserve
-the existing identity or obtain approval for new identifiers and verify data
-migration before issuing the shipping profiles. The declaration names `Curfew Developer ID`
+The current Studio account exposes only team T95VDD3A4W. Both project build
+configurations now use that team. Apple-signed profiles on the Mac Studio show
+that Xcode provisioned the shipping app and widget under Personal Team
+39AB9DY3K8 in June 2026. Engineers must preserve the existing identity until
+Apple confirms how to release the personal-team registration safely. The
+declaration names `Curfew Developer ID`
 and `Curfew Widget Developer ID`; candidate credentials carry their encoded profiles.
 The shared adapter preserves each target's entitlements and verifies profile identity
 before signing. Credentialed candidate preparation and signed acceptance remain
@@ -170,11 +172,19 @@ entitlements stay unchanged.
 On 2026-10-06, Xcode resolved Curfew Debug and the Release widget to the company
 team. The company portal lists native LogDate and Docket, but rejects the
 existing Curfew shipping bundle ID as unavailable. The installed Curfew Dev
-profile uses personal team `39AB9DY3K8`. That profile establishes the Dev
-registration and App Group association, not ownership of the shipping ID.
-Company Developer ID provisioning remains blocked until Apple confirms and
-resolves the reservation. The signed installation and Sparkle upgrade gates
-remain required.
+profile uses personal team `39AB9DY3K8`. The Mac Studio also holds
+Xcode-managed profiles for `studio.hypertext.curfew` and
+`studio.hypertext.curfew.widget` under that team. Apple created them on
+June 15 and 16, 2026. Both authorize `group.studio.hypertext.curfew`.
+This establishes the original personal-team provisioning. The cached profiles
+alone do not confirm the current server-side reservation state.
+
+Apple's [Developer Technical Support answer](https://developer.apple.com/forums/thread/836097)
+says a free Personal Team cannot use the portal's identifier list to remove
+its App IDs. Deleting local profiles would only delete cached copies. The
+company registration attempt still fails, so Apple must confirm the current
+reservation and provide a safe way to release it. Company Developer ID
+provisioning, signed installation and Sparkle upgrade acceptance remain open.
 
 The [company signing sequence diagram](apple-signing-teams.mmd) shows the
 configuration check and Apple registration gate before review.
