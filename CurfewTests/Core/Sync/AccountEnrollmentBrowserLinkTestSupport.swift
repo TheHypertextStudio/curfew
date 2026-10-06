@@ -42,6 +42,9 @@ final class LinkedSuccessfulAccountOAuthEnrollment: AccountOAuthEnrolling {
     )!
     private var linkWaiters: [CheckedContinuation<Void, Never>] = []
     private var hasPublishedLink = false
+    private var finishContinuation: CheckedContinuation<Void, Never>?
+    /// The test can release OAuth before signIn stores its continuation.
+    private var mayFinish = false
 
     func signIn(
         presentationWindow _: NSWindow?,
@@ -53,7 +56,13 @@ final class LinkedSuccessfulAccountOAuthEnrollment: AccountOAuthEnrolling {
             waiter.resume()
         }
         linkWaiters.removeAll()
-        await Task.yield()
+        await withCheckedContinuation { continuation in
+            if mayFinish {
+                continuation.resume()
+            } else {
+                finishContinuation = continuation
+            }
+        }
         return AccountOAuthGrant(
             tokens: AccountOAuthTokens(accessToken: "access", refreshToken: "refresh"),
             state: "state",
@@ -66,6 +75,12 @@ final class LinkedSuccessfulAccountOAuthEnrollment: AccountOAuthEnrolling {
             return
         }
         await withCheckedContinuation { linkWaiters.append($0) }
+    }
+
+    func continueAfterLinkCopied() {
+        mayFinish = true
+        finishContinuation?.resume()
+        finishContinuation = nil
     }
 }
 

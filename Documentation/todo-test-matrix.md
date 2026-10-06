@@ -603,8 +603,12 @@ only.
   - `FeatureFlagTests/shippingEnablesOnlyValidatedLocalIntegration()`
 - `Conservative signed Release does not request CloudKit or APNs before those integrations are enabled.`
   - `scripts/release-entitlements.test.mjs`
-- `Only surface update UI when Sparkle is actually linked into the app target.`
-  - `CurfewUpdaterTests/updateAvailabilityMatchesLinkedFramework()`
+- `Keep development launch alive when update configuration is missing, disable
+  Check for Updates and record the initialization error.`
+  - `CurfewUpdaterTests/missingConfigurationDisablesUpdates()`
+  - Shared `DistributionTests` cover bundle and update configuration validation.
+  - Signed installation and installed update acceptance remain credentialed gates.
+    See `Documentation/distribution.md`.
 - `A conservative v0.1 tag release uploads only its notarized DMG; it cannot
   reference an appcast that Sparkle intentionally did not generate.`
   - `scripts/release-entitlements.test.mjs`
@@ -830,3 +834,18 @@ only.
   caller's current time.`
   - `BrowserWorkPolicyTests/snapshotSerializationOmitsDocketTaskContext()`
   - `BrowserWorkPolicyTests/cachedPolicyExpiresTemporaryAccess()`
+
+## Shared direct release adoption
+
+| Behavior | Automated evidence | Remaining acceptance |
+| --- | --- | --- |
+| The app embeds the provisioned license public key. | `LicenseEnvelopeContractTests/embedsProvisionedPublicKey` and the native release-policy script. | Installed-app license delivery against the unchanged production issuer. |
+| Development launch survives missing updater configuration. | `CurfewUpdaterTests/missingConfigurationDisablesUpdates`. | Signed app startup and transition from an installed prior build. |
+| The app retains conservative entitlements and the development signing boundary. | `scripts/release-entitlements.test.mjs` parses Xcode build objects and checks actual phase order. | Signed app, widget and helper verification. |
+| The shared pipeline retains native tests and reviewable screenshots. | Declared native checks and existing Debug demo capture. | Hosted workflow results bound to the candidate and UI screenshot evidence. Local headless snapshots render; local XCUITest startup remains blocked. |
+| A failed infrastructure plan cannot look successful. | Shared lifecycle regression test for nonzero Terraform init, plus a fresh production plan with three in-place identity updates and no additions or deletions. | Apply the reviewed identity update when Curfew's matching workflow revision reaches its default branch. |
+
+The original tag-release workflow remains archived unchanged. Its tests identify
+that historical policy explicitly. The shared adapter supplies the new release
+policy tests. Local source checks never replace notarization or installed update
+acceptance.

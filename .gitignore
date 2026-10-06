@@ -64,3 +64,14 @@ release/
 license_private.key
 license_public.key
 *.key
+
+# Shared lifecycle checkout-local candidate and tooling files
+.studio/
+.studio-engine/
+.studio-source/
+
+# Provisioning state stays in the protected GCS backend.
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan

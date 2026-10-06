@@ -1,0 +1,79 @@
+schema: 1
+product: curfew
+repository: TheHypertextStudio/curfew
+owner_repository: TheHypertextStudio/curfew
+toolchain:
+  python: '>=3.11'
+  xcode: '26.6'
+  node: '24.19.0'
+  pnpm: '11.9.0'
+  brew: [just, swiftformat, swiftlint]
+infrastructure:
+  path: infrastructure
+  variable_files:
+    production: production.tfvars
+components:
+  - id: app
+    kind: macos
+    path: .
+    project: Curfew.xcodeproj
+    scheme: Curfew
+    app_name: Curfew
+    bundle_id: studio.hypertext.curfew
+    min_system_version: '26.0'
+    architectures: [arm64]
+    entitlements:
+      direct: Curfew/Curfew-Release.entitlements
+    direct_provisioning_profiles:
+      studio.hypertext.curfew:
+        specifier: Curfew Developer ID
+        build_setting: STUDIO_APP_PROFILE
+      studio.hypertext.curfew.widget:
+        specifier: Curfew Widget Developer ID
+        build_setting: STUDIO_WIDGET_PROFILE
+    nested_binaries:
+      Contents/PlugIns/CurfewWidget.appex: CurfewWidget/CurfewWidget.entitlements
+    build:
+      configuration: Release
+    checks:
+      - name: release-policy
+        argv: [just, release-policy]
+      - name: format
+        argv: [just, format-check]
+      - name: lint
+        argv: [just, lint]
+      - name: license-public-key-acceptance
+        argv: [xcodebuild, test, -project, Curfew.xcodeproj, -scheme, Curfew, -destination, 'platform=macOS', -jobs, '2', -parallel-testing-enabled, 'NO', '-only-testing:CurfewTests/LicenseEnvelopeContractTests', CODE_SIGNING_ALLOWED=NO, CODE_SIGNING_REQUIRED=NO]
+      - name: native-unit-tests
+        argv: [xcodebuild, test, -project, Curfew.xcodeproj, -scheme, Curfew, -destination, 'platform=macOS', -jobs, '2', -parallel-testing-enabled, 'NO', '-only-testing:CurfewTests', CODE_SIGNING_ALLOWED=NO, CODE_SIGNING_REQUIRED=NO]
+      - name: native-debug-build
+        argv: [xcodebuild, build, -project, Curfew.xcodeproj, -scheme, Curfew, -configuration, Debug, -destination, 'platform=macOS', -jobs, '2', CODE_SIGNING_ALLOWED=NO, CODE_SIGNING_REQUIRED=NO]
+release:
+  next_version: '0.0.2'
+  channels: [direct]
+  required_checks: [release-policy, format, lint, license-public-key-acceptance, native-unit-tests, native-debug-build]
+  required_evidence: [signed-installation, installed-upgrade, enforcement-and-recovery, license-delivery, screenshots]
+  hosting:
+    bucket: hypertext-studio-releases
+  credential_bindings:
+    APPLE_CERTIFICATE_BASE64: projects/hypertext-curfew-release/secrets/curfew-apple-certificate-base64/versions/latest
+    APPLE_CERTIFICATE_PASSWORD: projects/hypertext-curfew-release/secrets/curfew-apple-certificate-password/versions/latest
+    APPLE_API_PRIVATE_KEY: projects/hypertext-curfew-release/secrets/curfew-apple-api-private-key/versions/latest
+    APPLE_API_KEY_ID: projects/hypertext-curfew-release/secrets/curfew-apple-api-key-id/versions/latest
+    APPLE_API_ISSUER: projects/hypertext-curfew-release/secrets/curfew-apple-api-issuer/versions/latest
+    APPLE_PROVISIONING_PROFILES_BASE64: projects/hypertext-curfew-release/secrets/curfew-apple-provisioning-profiles/versions/latest
+    SPARKLE_PRIVATE_KEY: projects/hypertext-curfew-release/secrets/curfew-sparkle-private-key/versions/latest
+  macos:
+    team_id: T95VDD3A4W
+    developer_id: 'Developer ID Application: Hypertext Studio, LLC (T95VDD3A4W)'
+    sparkle:
+      feed_url: https://storage.googleapis.com/hypertext-studio-releases/curfew/appcast.xml
+      download_url: https://storage.googleapis.com/hypertext-studio-releases/curfew/releases/{candidate_id}/
+      public_key: '/nTixzbNLaV9ZMpWlLHn6E03k4FDhWp+rolbmGAV8Is='
+      tools_path: .studio/sparkle/bin
+  legacy_files:
+    Documentation/legacy-release/release.yml.disabled: 3d37c204c402e9f942f4a83c1cc17682ca569e1b72f8c5f8c739b703923a8945
+    scripts/build-dmg.sh: 4b443b3247017d13f67981257fb8c66734a778126e352a6d503f8a8ca743cb5c
+    scripts/generate-appcast.sh: de54bb769a8bde03733253909c6501fa65e8106e5f0e7810cc4e85e41f011a36
+    scripts/gen-sparkle-keypair.sh: 6205b9128022e96f7f3e7feb68099aec6e4582a36218e5166a5fa2df6f8e47ab
+    scripts/appcast.xml.template: bd05e9865742d5419c6e33a46553fba6b78194f32927ae3f22084a486cc28b5d

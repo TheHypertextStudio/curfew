@@ -10,5 +10,4 @@ cd "$root"
 exec xcodebuild -resolvePackageDependencies \
   -project Curfew.xcodeproj -scheme Curfew \
   -clonedSourcePackagesDirPath "$root/.build/xcode-packages" \
-  -onlyUsePackageVersionsFromResolvedFile -disableAutomaticPackageResolution \
-  -skipPackageUpdates
+  -onlyUsePackageVersionsFromResolvedFile -disableAutomaticPackageResolution

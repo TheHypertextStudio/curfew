@@ -1,0 +1,37 @@
+name: Promote reviewed candidate
+on:
+  workflow_dispatch:
+    inputs:
+      release_action:
+        description: Action on the reviewed candidate
+        type: choice
+        options: [promote, reconcile-one, withdraw]
+        default: promote
+        required: true
+      candidate_id:
+        description: Immutable candidate run-id and attempt
+        type: string
+        required: true
+      manifest_sha256:
+        description: Reviewed candidate manifest SHA-256
+        type: string
+        required: true
+      evidence:
+        description: Candidate-bound release review JSON
+        type: string
+        required: true
+permissions:
+  contents: write
+  actions: read
+  packages: read
+  id-token: write
+jobs:
+  promote:
+    uses: TheHypertextStudio/release-engineering/.github/workflows/promote.yml@d2cc95ed85886e95e2e05cbae7c40285e6d8cc4f
+    with:
+      tooling_revision: d2cc95ed85886e95e2e05cbae7c40285e6d8cc4f
+      release_action: ${{ inputs.release_action }}
+      candidate_id: ${{ inputs.candidate_id }}
+      manifest_sha256: ${{ inputs.manifest_sha256 }}
+      evidence: ${{ inputs.evidence }}
+    secrets: inherit

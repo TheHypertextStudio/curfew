@@ -100,6 +100,7 @@ struct AccountEnrollmentRecoveryTests {
         let signIn = Task { await controller.signIn() }
         await oauth.waitUntilLinkPublished()
         #expect(controller.copyBrowserSignInLink())
+        oauth.continueAfterLinkCopied()
         await devices.waitUntilStarted()
 
         #expect(controller.state == .connectingDevice)
