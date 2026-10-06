@@ -24,9 +24,10 @@ The current Studio account exposes only team T95VDD3A4W. Both project build
 configurations now use that team. Apple-signed profiles on the Mac Studio show
 that Xcode provisioned the shipping app and widget under Personal Team
 39AB9DY3K8 in June 2026. Engineers must preserve the existing identity until
-Apple confirms how to release the personal-team registration safely. The
-declaration names `Curfew Developer ID`
-and `Curfew Widget Developer ID`; candidate credentials carry their encoded profiles.
+Apple confirms how to release the personal-team registration safely. Apple
+Developer Support accepted case 102987990794 on October 6, 2026 and has not
+yet given that guidance. The declaration names `Curfew Developer ID` and
+`Curfew Widget Developer ID`; candidate credentials carry their encoded profiles.
 The shared adapter preserves each target's entitlements and verifies profile identity
 before signing. Credentialed candidate preparation and signed acceptance remain
 separate gates.
