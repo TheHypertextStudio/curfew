@@ -71,11 +71,7 @@ enum AccountOAuthReauthorization {
             throw AccountOAuthEnrollmentError.accountMismatch
         }
         try Task.checkCancellation()
-        try secretStore.save(
-            Data(AccountOAuthOfficialClient.clientID.utf8),
-            for: "oauth-client-id"
-        )
-        try secretStore.save(Data(grant.tokens.refreshToken.utf8), for: "oauth-refresh-token")
-        try secretStore.save(Data(grant.tokens.accessToken.utf8), for: "oauth-access-token")
+        let savedCredentials = try OAuthCredentials(secretStore: secretStore)
+        try savedCredentials.replace(with: grant, in: secretStore)
     }
 }

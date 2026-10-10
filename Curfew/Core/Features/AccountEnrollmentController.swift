@@ -39,6 +39,14 @@ final class AccountEnrollmentController: ObservableObject {
     func reloadSavedEnrollment() {
         do {
             state = try pending.load() ?? .accountFree
+            switch state {
+            case .finishDeviceRegistration, .finishRecoverySetup, .enterRecoveryKey:
+                if try !OAuthCredentials(secretStore: secretStore).hasUsableTokenPair {
+                    requireSavedEnrollmentReauthorization()
+                }
+            default:
+                break
+            }
         } catch AccountOAuthTokenRefreshError.missingCredentials {
             requireReauthorization()
         } catch {
@@ -128,6 +136,11 @@ final class AccountEnrollmentController: ObservableObject {
 
     private func authenticate(expectedAccountUserID: String? = nil) async throws
         -> AccountOAuthGrant {
+        let savedCredentials: OAuthCredentials? = if expectedAccountUserID != nil {
+            try OAuthCredentials(secretStore: secretStore)
+        } else {
+            nil
+        }
         let authorizationURLHandler: @MainActor (URL) -> Void = { [weak self] authorizationURL in
             self?.browserSignInURL = authorizationURL
         }
@@ -153,22 +166,14 @@ final class AccountEnrollmentController: ObservableObject {
         }
         let grant = try await authentication.value
         if signInCancellationRequested {
-            if expectedAccountUserID == nil {
-                try discardCancelledGrant(grant)
+            if let savedCredentials {
+                try savedCredentials.restoreIfCurrentGrant(grant, to: secretStore)
+            } else {
+                try OAuthCredentials.discardIfCurrentGrant(grant, from: secretStore)
             }
             throw CancellationError()
         }
         return grant
-    }
-
-    private func discardCancelledGrant(_ grant: AccountOAuthGrant) throws {
-        guard try secretStore
-            .data(for: "oauth-access-token") == Data(grant.tokens.accessToken.utf8),
-            try secretStore.data(for: "oauth-refresh-token") == Data(grant.tokens.refreshToken.utf8)
-        else { return }
-        try secretStore.delete("oauth-access-token")
-        try secretStore.delete("oauth-refresh-token")
-        try secretStore.delete("oauth-client-id")
     }
 
     func cancelSignIn() {
@@ -259,6 +264,8 @@ extension AccountEnrollmentController {
         } catch AccountOAuthEnrollmentError.accountMismatch {
             state = savedState
             enrollmentRetryError = AccountEnrollmentFailureCopy.wrongAccount
+        } catch OAuthCredentialPersistenceError.storageUnavailable {
+            state = .storageUnavailable
         } catch {
             state = savedState
             enrollmentRetryError = AccountEnrollmentFailureCopy.reauthorization
@@ -366,12 +373,9 @@ private enum SavedEnrollmentReauthorizationStep {
 
     init?(state: AccountEnrollmentUIState) {
         switch state {
-        case .finishDeviceRegistration:
-            self = .deviceRegistration
-        case .finishRecoverySetup:
-            self = .recoverySetup
-        case .enterRecoveryKey:
-            self = .existingKeyRecovery
+        case .finishDeviceRegistration: self = .deviceRegistration
+        case .finishRecoverySetup: self = .recoverySetup
+        case .enterRecoveryKey: self = .existingKeyRecovery
         default:
             return nil
         }

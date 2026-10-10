@@ -571,6 +571,27 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
       pre-receipt checkpoint without an account identity fails closed and
       asks for support. This avoids registering an old device under a new
       account while still making recoverable sign-in failures actionable.
+      Cancellation after a same-account OAuth grant is written now restores
+      the checkpoint's prior client ID and token pair before another attempt.
+      This prevents the UI from requiring reauthorization while Keychain
+      silently holds the cancelled grant. No wire format or release identity
+      changes. A failed intermediate Keychain write restores the original token
+      pair; if rollback itself fails, the access token is cleared and Settings
+      reports storage unavailable instead of suggesting another sign-in.
+      On relaunch, an unfinished device registration with either OAuth token
+      missing explicitly requires same-account sign-in instead of presenting
+      a normal retry. The storage warning now avoids claiming the saved account
+      is unchanged when a Keychain rollback could have failed; local schedule
+      and enforcement remain independent of that account credential state.
+      An enrolled Mac now publishes signed device status from confirmed account
+      polls while the first local schedule is still unset. This keeps the
+      account's online indicator and remote-command eligibility aligned with
+      the running app without starting local enforcement early. Once setup is
+      complete, the existing 1 Hz enforcement tick owns status heartbeats.
+      Roll back this polling-triggered heartbeat if it causes unexpected status
+      traffic; the account page would again show an unscheduled Mac offline.
+      Rollback is the previous app build, but damaged Keychain state still needs
+      repair before retrying enrollment.
       New pre-receipt checkpoints with opaque access tokens now obtain the
       coordinator-verified UserInfo subject before saving the registration
       request, so a failed registration can still offer identity-bound

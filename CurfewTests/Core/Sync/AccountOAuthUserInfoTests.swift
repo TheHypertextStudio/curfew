@@ -104,6 +104,46 @@ final class AccountOAuthUserInfoTests: XCTestCase {
         }
     }
 
+    func testPartialCredentialWriteRestoresExistingAccountTokens() async throws {
+        let secrets = FailingAccessReauthorizationSecretStore()
+        let session = userInfoSession(subject: "original-account")
+        defer { AccountUserInfoURLProtocol.handler = nil }
+
+        do {
+            try await AccountOAuthReauthorization.commit(
+                grant: stagedGrant,
+                expectedAccountUserID: "original-account",
+                secretStore: secrets,
+                session: session,
+                endpoints: .staging
+            )
+            XCTFail("a partially written grant must not replace the saved token pair")
+        } catch FailingAccessReauthorizationSecretStore.WriteError.denied {
+            XCTAssertEqual(try secrets.data(for: "oauth-access-token"), Data("old-access".utf8))
+            XCTAssertEqual(try secrets.data(for: "oauth-refresh-token"), Data("old-refresh".utf8))
+            XCTAssertNil(try secrets.data(for: "oauth-client-id"))
+        }
+    }
+
+    func testFailedRollbackReportsUnavailableStorageAndClearsAccess() async throws {
+        let secrets = FailingAccessReauthorizationSecretStore(rejectRollback: true)
+        let session = userInfoSession(subject: "original-account")
+        defer { AccountUserInfoURLProtocol.handler = nil }
+
+        do {
+            try await AccountOAuthReauthorization.commit(
+                grant: stagedGrant,
+                expectedAccountUserID: "original-account",
+                secretStore: secrets,
+                session: session,
+                endpoints: .staging
+            )
+            XCTFail("a failed rollback must report unavailable storage")
+        } catch OAuthCredentialPersistenceError.storageUnavailable {
+            XCTAssertNil(try secrets.data(for: "oauth-access-token"))
+        }
+    }
+
     private var stagedGrant: AccountOAuthGrant {
         AccountOAuthGrant(
             tokens: AccountOAuthTokens(accessToken: "new-access", refreshToken: "new-refresh"),
@@ -141,6 +181,42 @@ private final class FailingReauthorizationSecretStore: AccountSecretStoring {
 
     func delete(_: String) throws {
         throw WriteError.denied
+    }
+}
+
+private final class FailingAccessReauthorizationSecretStore: AccountSecretStoring {
+    enum WriteError: Error { case denied }
+
+    private var values: [String: Data] = [
+        "oauth-access-token": Data("old-access".utf8),
+        "oauth-refresh-token": Data("old-refresh".utf8)
+    ]
+    private var rejectedNewAccess = false
+    private let rejectRollback: Bool
+
+    init(rejectRollback: Bool = false) {
+        self.rejectRollback = rejectRollback
+    }
+
+    func data(for account: String) throws -> Data? {
+        values[account]
+    }
+
+    func save(_ data: Data, for account: String) throws {
+        if rejectRollback, rejectedNewAccess,
+           account == "oauth-refresh-token", data == Data("old-refresh".utf8) {
+            throw WriteError.denied
+        }
+        if account == "oauth-access-token", data == Data("new-access".utf8),
+           !rejectedNewAccess {
+            rejectedNewAccess = true
+            throw WriteError.denied
+        }
+        values[account] = data
+    }
+
+    func delete(_ account: String) throws {
+        values.removeValue(forKey: account)
     }
 }
 

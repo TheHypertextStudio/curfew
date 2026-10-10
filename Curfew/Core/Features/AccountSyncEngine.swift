@@ -45,6 +45,7 @@ final class AccountSyncEngine: ObservableObject {
     private(set) var isActive = false
 
     var onWakeStatusReceived: ((AccountWakeStatusUpdate) -> Void)?
+    var onSynchronizedReceived: ((Date) -> Void)?
     var onRemoteOverrideReceived: ((AccountRemoteOverride?) -> Void)?
     var onRemoteCommandResultReceived: ((RemoteCommandResult) -> Void)?
 
@@ -114,6 +115,7 @@ final class AccountSyncEngine: ObservableObject {
     func markSynchronized(at date: Date) {
         guard isActive else { return }
         syncStatus = hasPendingEncryptedChanges ? .pendingEncryption : .synchronized(date)
+        onSynchronizedReceived?(date)
     }
 
     func markOffline() {
