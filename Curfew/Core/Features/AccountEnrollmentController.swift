@@ -5,32 +5,36 @@ import Foundation
 
 @MainActor
 final class AccountEnrollmentController: ObservableObject {
-    @Published private(set) var state: AccountEnrollmentUIState = .accountFree
+    @Published var state: AccountEnrollmentUIState = .accountFree
     @Published private(set) var isFinishingEnrollment = false
-    @Published private(set) var enrollmentRetryError: String?
+    @Published var enrollmentRetryError: String?
     @Published private(set) var requiresReauthorization = false
     @Published private(set) var canReauthorizeSavedEnrollment = true
-    @Published private(set) var browserSignInURL: URL?
+    @Published var browserSignInURL: URL?
 
-    private let secretStore: any AccountSecretStoring
+    let secretStore: any AccountSecretStoring
     private let oauth: any AccountOAuthEnrolling
     private let devices: any AccountDeviceEnrolling
     private let pending: AccountEnrollmentPendingStore
+    let remoteCommandEnrollmentStore: RemoteCommandEnrollmentStore
     private let authorizationLinkClipboard: any AccountAuthorizationLinkCopying
     private var activeSignInTask: Task<AccountOAuthGrant, any Error>?
-    private var signInCancellationRequested = false
+    var signInCancellationRequested = false
     weak var presentationWindow: NSWindow?
 
     init(
         secretStore: any AccountSecretStoring = KeychainAccountSecretStore(),
         oauth: (any AccountOAuthEnrolling)? = nil,
         devices: (any AccountDeviceEnrolling)? = nil,
+        remoteCommandEnrollmentStore: RemoteCommandEnrollmentStore? = nil,
         authorizationLinkClipboard: (any AccountAuthorizationLinkCopying)? = nil
     ) {
         self.secretStore = secretStore
         self.oauth = oauth ?? AccountOAuthEnrollmentService(secretStore: secretStore)
         self.devices = devices ?? NativeAccountDeviceEnrollmentService(secretStore: secretStore)
         self.pending = AccountEnrollmentPendingStore(secretStore: secretStore)
+        self.remoteCommandEnrollmentStore = remoteCommandEnrollmentStore
+            ?? RemoteCommandEnrollmentStore(recordURL: SharedPaths.remoteCommandEnrollment)
         self.authorizationLinkClipboard = authorizationLinkClipboard
             ?? SystemAccountAuthorizationLinkClipboard()
         reloadSavedEnrollment()
@@ -55,6 +59,10 @@ final class AccountEnrollmentController: ObservableObject {
     }
 
     func signIn() async {
+        if case .ready(let enrollment) = state {
+            await reconnectEnrolledMac(enrollment)
+            return
+        }
         if case .finishDeviceConnection = state {
             await resumeAuthorizedConnection()
             return
@@ -134,7 +142,7 @@ final class AccountEnrollmentController: ObservableObject {
         }
     }
 
-    private func authenticate(expectedAccountUserID: String? = nil) async throws
+    func authenticate(expectedAccountUserID: String? = nil) async throws
         -> AccountOAuthGrant {
         let savedCredentials: OAuthCredentials? = if expectedAccountUserID != nil {
             try OAuthCredentials(secretStore: secretStore)
@@ -363,22 +371,6 @@ extension AccountEnrollmentController {
             for: "account-device-id"
         )
         return identifier
-    }
-}
-
-private enum SavedEnrollmentReauthorizationStep {
-    case deviceRegistration
-    case recoverySetup
-    case existingKeyRecovery
-
-    init?(state: AccountEnrollmentUIState) {
-        switch state {
-        case .finishDeviceRegistration: self = .deviceRegistration
-        case .finishRecoverySetup: self = .recoverySetup
-        case .enterRecoveryKey: self = .existingKeyRecovery
-        default:
-            return nil
-        }
     }
 }
 

@@ -1,4 +1,5 @@
 import AppKit
+import ServiceManagement
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -37,7 +38,34 @@ extension SettingsView {
                     model.settings.accountSync.enrollment = enrollment
                 }
         } else if model.settings.accountSync.isEnrolled {
-            AccountConnectionStatusView(engine: model.accountSyncEngine)
+            AccountConnectionStatusView(
+                engine: model.accountSyncEngine,
+                remoteEnforcementReady: model.featureFlags.privilegedHelperEnabled
+                    && model.privilegedHelperManager.isRemoteLockEnforcementAvailable
+            )
+            if model.featureFlags.privilegedHelperEnabled,
+               model.privilegedHelperManager.daemonStatus != .enabled {
+                Button("Install Privileged Helper…") {
+                    model.privilegedHelperManager.installDaemon()
+                }
+                .buttonStyle(CurfewPrimaryButtonStyle())
+            }
+            if model.accountSyncEngine.syncStatus.requiresSameAccountSignIn {
+                if case .signingIn = accountEnrollment.state {
+                    accountSignInInProgress
+                } else {
+                    Button("Sign in again to reconnect this Mac") {
+                        if let enrollment = model.settings.accountSync.enrollment {
+                            Task { await accountEnrollment.reconnectEnrolledMac(enrollment) }
+                        }
+                    }
+                    .buttonStyle(CurfewPrimaryButtonStyle())
+                    if let message = accountEnrollment.enrollmentRetryError {
+                        Label(message, systemImage: "exclamationmark.triangle")
+                            .foregroundStyle(CurfewTheme.warning)
+                    }
+                }
+            }
             openAccountButton
         } else {
             switch accountEnrollment.state {
@@ -50,29 +78,7 @@ extension SettingsView {
             case .storageUnavailable:
                 storageUnavailableControls
             case .signingIn:
-                ProgressView("Waiting for secure sign-in and 2FA…")
-                Button("Cancel sign-in") {
-                    accountEnrollment.cancelSignIn()
-                }
-                .buttonStyle(CurfewSecondaryButtonStyle())
-                .accessibilityIdentifier("settings-cancel-account-sign-in")
-                if accountEnrollment.browserSignInURL != nil {
-                    Text(
-                        "Did Curfew open the wrong browser profile? Copy this temporary, private "
-                            + "sign-in link and paste it into the profile that stores your passkey."
-                    )
-                    .font(CurfewTypography.body(12))
-                    .foregroundStyle(CurfewTheme.mutedInk)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                    Button {
-                        accountEnrollment.copyBrowserSignInLink()
-                    } label: {
-                        Label("Copy sign-in link", systemImage: "doc.on.doc")
-                    }
-                    .buttonStyle(CurfewSecondaryButtonStyle())
-                    .accessibilityIdentifier("settings-copy-account-sign-in-link")
-                }
+                accountSignInInProgress
             case .connectingDevice:
                 ProgressView("Securely connecting this Mac…")
             case .finishDeviceConnection:
@@ -234,6 +240,33 @@ extension SettingsView {
         }
     }
 
+    @ViewBuilder
+    private var accountSignInInProgress: some View {
+        ProgressView("Waiting for secure sign-in and 2FA…")
+        Button("Cancel sign-in") {
+            accountEnrollment.cancelSignIn()
+        }
+        .buttonStyle(CurfewSecondaryButtonStyle())
+        .accessibilityIdentifier("settings-cancel-account-sign-in")
+        if accountEnrollment.browserSignInURL != nil {
+            Text(
+                "Did Curfew open the wrong browser profile? Copy this temporary, private "
+                    + "sign-in link and paste it into the profile that stores your passkey."
+            )
+            .font(CurfewTypography.body(12))
+            .foregroundStyle(CurfewTheme.mutedInk)
+            .fixedSize(horizontal: false, vertical: true)
+
+            Button {
+                accountEnrollment.copyBrowserSignInLink()
+            } label: {
+                Label("Copy sign-in link", systemImage: "doc.on.doc")
+            }
+            .buttonStyle(CurfewSecondaryButtonStyle())
+            .accessibilityIdentifier("settings-copy-account-sign-in-link")
+        }
+    }
+
     private var storageUnavailableControls: some View {
         VStack(alignment: .leading, spacing: CurfewSpacing.small) {
             Label(
@@ -304,84 +337,4 @@ extension SettingsView {
     encrypted-data recovery remain separate: 2FA backup codes restore access, while the Curfew \
     Recovery Key restores encrypted data.
     """
-}
-
-enum AccountConnectionTone: Equatable {
-    case neutral
-    case ready
-    case warning
-}
-
-struct AccountConnectionPresentation: Equatable {
-    let title: String
-    let detail: String
-    let systemImage: String
-    let tone: AccountConnectionTone
-    let lastConfirmedAt: Date?
-
-    init(
-        title: String,
-        detail: String,
-        systemImage: String,
-        tone: AccountConnectionTone,
-        lastConfirmedAt: Date? = nil
-    ) {
-        self.title = title
-        self.detail = detail
-        self.systemImage = systemImage
-        self.tone = tone
-        self.lastConfirmedAt = lastConfirmedAt
-    }
-
-    static func resolve(_ status: AccountSyncStatus) -> AccountConnectionPresentation {
-        switch status {
-        case .accountFree:
-            AccountConnectionPresentation(
-                title: "This Mac is not connected",
-                detail: "Connect a Curfew Account to use encrypted sync and remote control.",
-                systemImage: "circle",
-                tone: .neutral
-            )
-        case .connecting:
-            AccountConnectionPresentation(
-                title: "Connecting this Mac…",
-                detail: "Curfew is securely connecting to your account. "
-                    + "Your local schedule keeps working.",
-                systemImage: "arrow.triangle.2.circlepath",
-                tone: .neutral
-            )
-        case .synchronized(let date):
-            AccountConnectionPresentation(
-                title: "This Mac is connected",
-                detail: "Curfew is checking for remote commands. "
-                    + "Choose which assistants and devices have access in your account.",
-                systemImage: "checkmark.circle.fill",
-                tone: .ready,
-                lastConfirmedAt: date
-            )
-        case .pendingEncryption:
-            AccountConnectionPresentation(
-                title: "Encrypted changes are waiting to sync",
-                detail: "Remote commands keep using your last confirmed settings.",
-                systemImage: "lock.rotation",
-                tone: .neutral
-            )
-        case .offline:
-            AccountConnectionPresentation(
-                title: "Remote control is offline",
-                detail: "This Mac is still protected by its local schedule. "
-                    + "Curfew will reconnect automatically.",
-                systemImage: "wifi.slash",
-                tone: .warning
-            )
-        case .rejected:
-            AccountConnectionPresentation(
-                title: "Remote control is temporarily unavailable",
-                detail: "This Mac is still protected locally. "
-                    + "Open your account to check access, or try again shortly.",
-                systemImage: "exclamationmark.triangle.fill",
-                tone: .warning
-            )
-        }
-    }
 }

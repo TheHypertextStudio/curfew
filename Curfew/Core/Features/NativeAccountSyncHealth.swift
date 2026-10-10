@@ -23,14 +23,14 @@ extension NativeAccountSyncTransport {
 
     private func reportFailure(_ error: Error) {
         if case NativeAccountSyncError.missingCredentials = error {
-            onFailure?("Curfew needs you to sign in again.")
+            onFailure?(AccountSyncRejectionReason.signInRequired)
         } else if case AccountOAuthTokenRefreshError.missingCredentials = error {
-            onFailure?("Curfew needs you to sign in again.")
+            onFailure?(AccountSyncRejectionReason.signInRequired)
         } else if case AccountOAuthTokenRefreshError.rejected = error {
-            onFailure?("Curfew needs you to sign in again.")
+            onFailure?(AccountSyncRejectionReason.signInRequired)
         } else if case NativeAccountSyncError.rejected(let status) = error,
                   status == 401 || status == 403 {
-            onFailure?("Curfew Account access was rejected.")
+            onFailure?(AccountSyncRejectionReason.accessDenied)
         } else {
             onOffline?()
         }

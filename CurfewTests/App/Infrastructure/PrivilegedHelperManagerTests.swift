@@ -5,6 +5,71 @@ import Testing
 
 @MainActor
 struct PrivilegedHelperManagerTests {
+    @Test("An enabled helper is ready only while its daemon heartbeat is fresh")
+    func daemonReadinessRequiresFreshHeartbeat() throws {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("curfew-helper-heartbeat-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let heartbeat = root.appendingPathComponent(".daemon-alive")
+        let manager = PrivilegedHelperManager(
+            daemonService: StubAppService(status: .enabled),
+            loginItemService: StubAppService(status: .notRegistered),
+            daemonHeartbeatURL: heartbeat,
+            now: { now }
+        )
+        manager.refreshStatus()
+        #expect(!manager.isDaemonResponding)
+
+        try Data("alive".utf8).write(to: heartbeat)
+        try FileManager.default.setAttributes(
+            [.modificationDate: now.addingTimeInterval(-15)],
+            ofItemAtPath: heartbeat.path
+        )
+        #expect(manager.isDaemonResponding)
+
+        try FileManager.default.setAttributes(
+            [.modificationDate: now.addingTimeInterval(-90)],
+            ofItemAtPath: heartbeat.path
+        )
+        #expect(!manager.isDaemonResponding)
+    }
+
+    @Test("Studio Dev does not claim remote-lock readiness while personal Curfew owns enforcement")
+    func studioRemoteReadinessRespectsHigherPriorityOwner() throws {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("curfew-studio-owner-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let heartbeat = root.appendingPathComponent(".daemon-alive")
+        try Data("alive".utf8).write(to: heartbeat)
+        try FileManager.default.setAttributes(
+            [.modificationDate: now.addingTimeInterval(-15)],
+            ofItemAtPath: heartbeat.path
+        )
+        let personalOwner = EnforcementOwner(
+            flavor: CurfewFlavor.production.rawValue,
+            bundleIdentifier: SharedPaths.defaultsSuiteName(for: .production),
+            displayName: "Curfew",
+            processIdentifier: 42,
+            acquiredAt: now
+        )
+        let manager = PrivilegedHelperManager(
+            daemonService: StubAppService(status: .enabled),
+            loginItemService: StubAppService(status: .notRegistered),
+            daemonHeartbeatURL: heartbeat,
+            now: { now },
+            flavor: .studioDevelopment,
+            liveEnforcementOwner: { personalOwner }
+        )
+        manager.refreshStatus()
+
+        #expect(manager.isDaemonResponding)
+        #expect(!manager.isRemoteLockEnforcementAvailable)
+    }
+
     @Test("refreshStatus mirrors daemon and login item statuses")
     func refreshStatusMirrorsServices() {
         let daemon = StubAppService(status: .requiresApproval)

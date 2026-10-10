@@ -476,9 +476,12 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
       The release-contract test also checks that both Debug and StudioDev
       compile embedded tools for staging while Release does not.
       The Studio App ID and App Group are registered in Apple Developer;
-      widget registration, provisioned company signing, staging
-      native-client/AASA admission, installation, and visible phone lock/unlock
-      remain unverified; an unsigned build is not a
+      provisioned company signing and installation of the isolated Studio Dev
+      app have been observed. Its account enrollment reached the Recovery Key
+      acknowledgement and its device appeared online in staging, but the
+      installed helper is still not registered, the native account poll is
+      currently rejected, and Claude OAuth consent and visible phone lock/unlock
+      remain unverified. An unsigned build alone is not a
       release or runtime proof. Operationally, install only the correctly
       provisioned Studio app after comparing the built team, entitlements,
       destination, and personal install. Rollback removes only the Studio
@@ -588,6 +591,21 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
       account's online indicator and remote-command eligibility aligned with
       the running app without starting local enforcement early. Once setup is
       complete, the existing 1 Hz enforcement tick owns status heartbeats.
+      A Mac that has already completed enrollment can now renew rejected OAuth
+      credentials against its saved account identity without registering a new
+      device or rotating its Recovery Key. Settings offers this same-account
+      sign-in only when saved credentials need renewal, even if the old ready
+      marker disappeared; a revoked device instead directs the user to check
+      account access. Settings warns when the privileged helper is absent or
+      its root-owned heartbeat is stale, or Studio Dev must yield to a live
+      higher-priority Curfew app, so sign-in alone is not presented as remote
+      lock readiness. Reconnect is single-flight, leaving an in-progress
+      browser session cancellable after rapid taps. The signed Studio
+      Dev installation still needs a live reconnect, helper registration, and
+      a witnessed remote command;
+      unit tests and a new build cannot establish those outcomes. Rollback is
+      the previous app build while preserving the existing device enrollment;
+      do not delete its Recovery Key or device record to force another sign-in.
       Roll back this polling-triggered heartbeat if it causes unexpected status
       traffic; the account page would again show an unscheduled Mac offline.
       Rollback is the previous app build, but damaged Keychain state still needs

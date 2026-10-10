@@ -6,6 +6,39 @@ import Testing
 
 @MainActor
 struct AccountEnrollmentReauthorizationTests {
+    @Test("An enrolled Mac renews the same account without registering another device")
+    func readyMacRenewsSameAccount() async throws {
+        let fixture = try makeFixture(accountUserID: "original-account")
+        try fixture.pending.markReady(fixture.enrollment)
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("curfew-ready-reauth-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: root) }
+        let remoteEnrollment = RemoteCommandEnrollmentStore(
+            recordURL: root.appendingPathComponent("remote-command-enrollment.json")
+        )
+        try remoteEnrollment.save(RemoteCommandEnrollment(
+            userID: "original-account",
+            deviceID: fixture.enrollment.deviceID
+        ))
+        let oauth = ReauthorizationOAuthFixture(secretStore: fixture.secrets)
+        let devices = ReauthorizationDeviceFixture(enrollment: fixture.enrollment)
+        let controller = AccountEnrollmentController(
+            secretStore: fixture.secrets,
+            oauth: oauth,
+            devices: devices,
+            remoteCommandEnrollmentStore: remoteEnrollment
+        )
+
+        await controller.signIn()
+
+        #expect(controller.state == .ready(fixture.enrollment))
+        #expect(oauth.expectedAccountUserID == "original-account")
+        #expect(oauth.reauthorizeCount == 1)
+        #expect(devices.enrollCount == 0)
+        #expect(try fixture.secrets.data(for: "oauth-access-token") == Data("new-access".utf8))
+        #expect(try fixture.secrets.data(for: "oauth-refresh-token") == Data("new-refresh".utf8))
+    }
+
     @Test("A saved registration cannot be replaced by starting ordinary enrollment")
     func savedRegistrationRejectsFreshEnrollment() async throws {
         let fixture = try makeFixture(accountUserID: "original-account")
@@ -217,7 +250,7 @@ struct AccountEnrollmentReauthorizationTests {
         #expect(devices.restoreCount == 2)
     }
 
-    private func makeFixture(accountUserID: String?) throws -> ReauthorizationFixture {
+    func makeFixture(accountUserID: String?) throws -> ReauthorizationFixture {
         let secrets = EnrollmentRecoveryMemorySecretStore()
         try secrets.save(Data("old-access".utf8), for: "oauth-access-token")
         try secrets.save(Data("old-refresh".utf8), for: "oauth-refresh-token")
@@ -252,59 +285,14 @@ struct AccountEnrollmentReauthorizationTests {
     }
 }
 
-private struct ReauthorizationFixture {
+struct ReauthorizationFixture {
     let secrets: EnrollmentRecoveryMemorySecretStore
     let pending: AccountEnrollmentPendingStore
     let enrollment: Curfew.AccountDeviceEnrollment
 }
 
 @MainActor
-private final class ReauthorizationOAuthFixture: AccountOAuthEnrolling {
-    var rejectAsDifferentAccount = false
-    var afterPersist: (@MainActor () -> Void)?
-    private(set) var reauthorizeCount = 0
-    private(set) var expectedAccountUserID: String?
-    private let secretStore: any AccountSecretStoring
-
-    init(secretStore: any AccountSecretStoring) {
-        self.secretStore = secretStore
-    }
-
-    func signIn(
-        presentationWindow _: NSWindow?,
-        authorizationURLHandler _: @escaping @MainActor (URL) -> Void
-    ) async throws -> AccountOAuthGrant {
-        Issue.record("A saved Mac must not start a new device enrollment")
-        throw AccountOAuthEnrollmentError.invalidResponse
-    }
-
-    func reauthorize(
-        expectedAccountUserID: String,
-        presentationWindow _: NSWindow?,
-        authorizationURLHandler _: @escaping @MainActor (URL) -> Void
-    ) async throws -> AccountOAuthGrant {
-        reauthorizeCount += 1
-        self.expectedAccountUserID = expectedAccountUserID
-        if rejectAsDifferentAccount {
-            throw AccountOAuthEnrollmentError.accountMismatch
-        }
-        try secretStore.save(Data(AccountOAuthOfficialClient.clientID.utf8), for: "oauth-client-id")
-        try secretStore.save(Data("new-refresh".utf8), for: "oauth-refresh-token")
-        try secretStore.save(Data("new-access".utf8), for: "oauth-access-token")
-        afterPersist?()
-        return AccountOAuthGrant(
-            tokens: AccountOAuthTokens(accessToken: "new-access", refreshToken: "new-refresh"),
-            state: "new-state",
-            codeChallenge: "new-challenge",
-            subjectID: expectedAccountUserID
-        )
-    }
-
-    func cancelSignIn() {}
-}
-
-@MainActor
-private final class ReauthorizationDeviceFixture: AccountDeviceEnrolling {
+final class ReauthorizationDeviceFixture: AccountDeviceEnrolling {
     let enrollment: Curfew.AccountDeviceEnrollment
     let pending: AccountEnrollmentPendingStore?
     private(set) var resumeCount = 0
