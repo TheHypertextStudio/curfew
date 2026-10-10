@@ -559,6 +559,13 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
       pre-receipt checkpoint without an account identity fails closed and
       asks for support. This avoids registering an old device under a new
       account while still making recoverable sign-in failures actionable.
+      New pre-receipt checkpoints with opaque access tokens now obtain the
+      coordinator-verified UserInfo subject before saving the registration
+      request, so a failed registration can still offer identity-bound
+      reauthorization. If UserInfo is unavailable, the authorized-connection
+      marker remains retryable rather than saving an unanchored device
+      checkpoint. The extra request affects only tokens without a usable
+      subject hint; rollback must not discard an already saved checkpoint.
       When the coordinator already holds a different recovery envelope,
       Curfew retains the registered-device receipt and account identity in a
       separate existing-key checkpoint, without retaining the newly generated
@@ -591,6 +598,8 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
       leave registered Macs at a dead-end if their refresh credential expires;
       release verification must exercise an expired grant and a wrong-account
       attempt on a signed Studio build before claiming remote enrollment works.
+      It must also exercise an opaque-token registration failure and same-account
+      recovery, because local tests cannot prove coordinator availability.
       Coordinator acceptance is checkpointed as a durable completed-enrollment
       mirror before the recovery setup is removed. That marker remains until an
       explicit account reset, and a newer marker takes precedence over stale

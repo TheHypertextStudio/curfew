@@ -3,8 +3,60 @@ import CurfewProtocols
 import Foundation
 import XCTest
 
+// Keep the full failure and recovery sequence with its URLProtocol fixtures.
+// swiftlint:disable file_length
+
 @MainActor
 extension NativeAccountSyncTransportTests {
+    func testOpaqueAccessTokenKeepsFailedRegistrationReauthorizable() async throws {
+        let fixture = try makeRecoveryFixture()
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let service = makeEnrollmentService(
+            fixture: fixture,
+            enrollmentStore: RemoteCommandEnrollmentStore(
+                recordURL: root.appendingPathComponent("enrollment.json")
+            )
+        )
+        RecoverySetupURLProtocol.handler = { request in
+            let path = try XCTUnwrap(request.url?.path)
+            XCTAssertEqual(
+                request.value(forHTTPHeaderField: "Authorization"),
+                "Bearer resource-bound-access-token"
+            )
+            switch (request.httpMethod, path) {
+            case ("POST", "/sync/device-proof/challenge"):
+                return Self.recoveryChallengeResponse()
+            case ("GET", "/api/auth/oauth2/userinfo"):
+                return (200, Data(#"{"sub":"verified-account"}"#.utf8))
+            case ("POST", "/sync/devices/enroll"):
+                return (503, Data())
+            default:
+                XCTFail("unexpected request: \(request.httpMethod ?? "nil") \(path)")
+                return (500, Data())
+            }
+        }
+        defer { RecoverySetupURLProtocol.handler = nil }
+
+        let outcome = try await service.enroll(
+            grant: AccountOAuthGrant(
+                tokens: recoveryTestGrant.tokens,
+                state: "state",
+                codeChallenge: "challenge"
+            ),
+            deviceID: fixture.deviceID
+        )
+
+        guard case .finishDeviceRegistration = outcome else {
+            return XCTFail("expected registration to remain resumable")
+        }
+        let checkpoint = try XCTUnwrap(
+            AccountEnrollmentPendingStore(secretStore: fixture.secrets).loadRecoverySetup()
+        )
+        XCTAssertEqual(try checkpoint.expectedAccountUserID(), "verified-account")
+    }
+
     // Keep the refresh/challenge/registration sequence visible in one test.
     // swiftlint:disable:next function_body_length
     func testInitialDeviceConnectionRefreshesExpiredGrantBeforeRegistration() async throws {

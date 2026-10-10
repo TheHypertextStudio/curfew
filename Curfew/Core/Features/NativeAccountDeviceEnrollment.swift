@@ -24,6 +24,7 @@ final class NativeAccountDeviceEnrollmentService {
     private let remoteCommandFinalizer: RemoteCommandEnrollmentFinalizer
     private let pending: AccountEnrollmentPendingStore
     private let baseURL: URL
+    private let endpoints: CurfewServiceEndpoints
 
     init(
         secretStore: any AccountSecretStoring = KeychainAccountSecretStore(),
@@ -43,6 +44,7 @@ final class NativeAccountDeviceEnrollmentService {
         )
         self.proofFactory = proofFactory
         self.baseURL = endpoints.syncResource
+        self.endpoints = endpoints
         self.tokenRefresher = AccountOAuthTokenRefresher(
             secretStore: secretStore,
             session: self.session,
@@ -77,15 +79,14 @@ final class NativeAccountDeviceEnrollmentService {
                 accessToken
             )
         }
+        let accountUserID = try await accountUserID(for: accessToken, grant: grant)
         try pending.saveDeviceRegistration(
             enrollment: prepared.localEnrollment,
             recoveryKey: prepared.bootstrap.recoveryKey,
             recoveryEnvelope: prepared.recoveryEnvelope,
             oauthState: grant.state,
             pkceChallenge: grant.codeChallenge,
-            accountUserID: accessToken == grant.tokens.accessToken
-                ? grant.subjectID
-                : AccountOAuthTokenSubject.extract(from: accessToken)
+            accountUserID: accountUserID
         )
         let receiptData: Data
         do {
@@ -104,6 +105,21 @@ final class NativeAccountDeviceEnrollmentService {
             recoveryKey: prepared.bootstrap.recoveryKey,
             enrollment: prepared.localEnrollment
         ))
+    }
+
+    private func accountUserID(for accessToken: String, grant: AccountOAuthGrant) async throws
+        -> String {
+        let tokenSubject = accessToken == grant.tokens.accessToken
+            ? grant.subjectID
+            : AccountOAuthTokenSubject.extract(from: accessToken)
+        if let tokenSubject {
+            return tokenSubject
+        }
+        return try await AccountOAuthUserInfo.subject(
+            accessToken: accessToken,
+            session: session,
+            endpoints: endpoints
+        )
     }
 
     func resumeDeviceRegistration(
