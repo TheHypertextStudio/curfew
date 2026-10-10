@@ -478,6 +478,10 @@ only.
   - `AccountOAuthUserInfoTests/testSameAccountCanReplaceCredentialsAfterServerIdentityCheck()`
   - `AccountOAuthUserInfoTests/testFailedCredentialWriteDoesNotReplaceExistingAccountTokens()`
   - `AccountEnrollmentReauthorizationTests/sameAccountResumesSavedRegistration()`
+  - `AccountEnrollmentReauthorizationTests/readyMacRenewsSameAccount()`
+  - `AccountEnrollmentReauthorizationTests/readyMacWithoutMatchingOwnerFailsClosed()`
+  - `AccountEnrollmentReauthorizationTests/savedSettingsWithoutReadyMarkerRenewSafely()`
+  - `AccountEnrollmentReauthorizationTests/duplicateReadyReconnectIsSingleFlight()`
   - `AccountEnrollmentReauthorizationTests/differentAccountCannotTakeOverSavedRegistration()`
   - `AccountEnrollmentReauthorizationTests/legacyCheckpointFailsClosed()`
   - `AccountEnrollmentReauthorizationTests/registeredMacResumesRecoveryWithSameAccount()`
@@ -542,8 +546,13 @@ only.
   - `MCPGatingTests/standaloneServerUsesPersistedAccessSetting()`
   - `CurfewMCPAccessTests/disabledAccessClosesBothDispatcherPaths()`
 - `An enrolled Mac reports the live remote connection state without claiming
-  that enrollment alone means remote control is working or enabled.`
+  that enrollment alone means remote control is working or enabled. A rejected
+  account connection offers same-account sign-in without replacing the enrolled
+  device, and a missing privileged helper is shown as a remote-lock blocker.`
   - `AccountConnectionPresentationTests/statesStayPlainAndAccurate()`
+  - `AccountConnectionPresentationTests/rejectedAccountStatusOffersRepair()`
+  - `PrivilegedHelperManagerTests/daemonReadinessRequiresFreshHeartbeat()`
+  - `PrivilegedHelperManagerTests/studioRemoteReadinessRespectsHigherPriorityOwner()`
   - `AccountStatusSyncTests/testSuccessfulAuthenticatedPollMarksTheAccountConnectionSynchronized()`
   - `AccountStatusSyncTests/testReadOnlyPollDoesNotClaimPendingEncryptedChangesWereSaved()`
   - `AccountStatusSyncTests/testPendingEncryptedChangesSurviveOfflineRecovery()`

@@ -1,3 +1,4 @@
+import AppKit
 import Combine
 import Foundation
 import OSLog
@@ -61,6 +62,29 @@ final class PrivilegedHelperManager: ObservableObject {
     /// Most recent error from `install()` or `uninstall()`, shown in the UI.
     @Published private(set) var lastError: String?
 
+    /// Registration alone is not proof that the LaunchDaemon is still running.
+    var isDaemonResponding: Bool {
+        guard daemonStatus == .enabled,
+              let attributes = try? FileManager.default.attributesOfItem(
+                  atPath: daemonHeartbeatURL.path
+              ),
+              attributes[.type] as? FileAttributeType == .typeRegular,
+              let modifiedAt = attributes[.modificationDate] as? Date
+        else { return false }
+        let age = now().timeIntervalSince(modifiedAt)
+        return age >= 0 && age <= 45
+    }
+
+    var isRemoteLockEnforcementAvailable: Bool {
+        guard isDaemonResponding else { return false }
+        let owner = liveEnforcementOwnerOverride?() ?? currentLiveEnforcementOwner()
+        return !StudioDevDaemonSafety.shouldStandDown(
+            flavor: flavor,
+            owner: owner,
+            ownerIsLive: owner != nil
+        )
+    }
+
     // MARK: - SMAppService handles
 
     private nonisolated static var daemonPlistName: String {
@@ -69,6 +93,10 @@ final class PrivilegedHelperManager: ObservableObject {
 
     private let daemonService: any AppServiceControlling
     private let loginItemService: any AppServiceControlling
+    private let daemonHeartbeatURL: URL
+    private let now: () -> Date
+    private let flavor: CurfewFlavor
+    private let liveEnforcementOwnerOverride: (() -> EnforcementOwner?)?
 
     // MARK: - Lifecycle
 
@@ -77,7 +105,11 @@ final class PrivilegedHelperManager: ObservableObject {
     /// this as a non-optional default property.
     nonisolated init(
         daemonService: (any AppServiceControlling)? = nil,
-        loginItemService: (any AppServiceControlling)? = nil
+        loginItemService: (any AppServiceControlling)? = nil,
+        daemonHeartbeatURL: URL? = nil,
+        now: @escaping () -> Date = Date.init,
+        flavor: CurfewFlavor? = nil,
+        liveEnforcementOwner: (() -> EnforcementOwner?)? = nil
     ) {
         self.daemonService = daemonService ?? SystemAppServiceController(
             service: SMAppService.daemon(plistName: Self.daemonPlistName)
@@ -85,6 +117,20 @@ final class PrivilegedHelperManager: ObservableObject {
         self.loginItemService = loginItemService ?? SystemAppServiceController(
             service: SMAppService.mainApp
         )
+        self.daemonHeartbeatURL = daemonHeartbeatURL ?? SharedPaths.privilegedApplicationSupport
+            .appendingPathComponent(".daemon-alive")
+        self.now = now
+        self.flavor = flavor ?? .current
+        self.liveEnforcementOwnerOverride = liveEnforcementOwner
+    }
+
+    private func currentLiveEnforcementOwner() -> EnforcementOwner? {
+        guard let owner = EnforcementOwnerStore.load(from: SharedPaths.enforcementOwnerLock),
+              owner.hasRecognizedIdentity,
+              let app = NSRunningApplication(processIdentifier: owner.processIdentifier),
+              app.bundleIdentifier == owner.bundleIdentifier
+        else { return nil }
+        return owner
     }
 
     /// Refreshes `daemonStatus` and `loginItemStatus` from the system.

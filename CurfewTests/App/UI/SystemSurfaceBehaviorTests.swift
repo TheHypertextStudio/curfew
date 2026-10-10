@@ -196,6 +196,17 @@ struct AccountConnectionPresentationTests {
             tone: .ready,
             lastConfirmedAt: now
         ))
+        #expect(AccountConnectionPresentation.resolve(
+            .synchronized(now),
+            remoteEnforcementReady: false
+        ) == .init(
+            title: "Remote locks are not ready",
+            detail: "This Mac is signed in, but this Curfew build cannot enforce remote "
+                + "locks right now. Check its helper and any other running Curfew app.",
+            systemImage: "exclamationmark.triangle.fill",
+            tone: .warning,
+            lastConfirmedAt: now
+        ))
         #expect(AccountConnectionPresentation.resolve(.pendingEncryption) == .init(
             title: "Encrypted changes are waiting to sync",
             detail: "Remote commands keep using your last confirmed settings.",
@@ -211,13 +222,32 @@ struct AccountConnectionPresentationTests {
             tone: .warning,
             lastConfirmedAt: nil
         ))
-        #expect(AccountConnectionPresentation.resolve(.rejected("internal detail")) == .init(
-            title: "Remote control is temporarily unavailable",
-            detail: "This Mac is still protected locally. "
-                + "Open your account to check access, or try again shortly.",
-            systemImage: "exclamationmark.triangle.fill",
-            tone: .warning,
-            lastConfirmedAt: nil
-        ))
+    }
+
+    @Test("Rejected account status explains the same-account repair")
+    func rejectedAccountStatusOffersRepair() {
+        #expect(AccountSyncStatus.rejected("Curfew needs you to sign in again.")
+            .requiresSameAccountSignIn)
+        #expect(!AccountSyncStatus.rejected("Curfew Account access was rejected.")
+            .requiresSameAccountSignIn)
+        #expect(AccountConnectionPresentation
+            .resolve(.rejected("Curfew needs you to sign in again.")) == .init(
+                title: "Reconnect this Mac to Curfew",
+                detail: "Curfew cannot authenticate this Mac right now. "
+                    + "Sign in again with the same account to restore remote control. "
+                    + "Your local schedule stays unchanged.",
+                systemImage: "exclamationmark.triangle.fill",
+                tone: .warning,
+                lastConfirmedAt: nil
+            ))
+        #expect(AccountConnectionPresentation
+            .resolve(.rejected("Curfew Account access was rejected.")) == .init(
+                title: "Check this Mac’s account access",
+                detail: "Curfew Account denied this Mac’s request. Its device access may have "
+                    + "been removed. Check this Mac in your account. Local protection continues.",
+                systemImage: "exclamationmark.triangle.fill",
+                tone: .warning,
+                lastConfirmedAt: nil
+            ))
     }
 }

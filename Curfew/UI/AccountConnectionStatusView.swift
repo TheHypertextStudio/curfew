@@ -2,9 +2,13 @@ import SwiftUI
 
 struct AccountConnectionStatusView: View {
     @ObservedObject var engine: AccountSyncEngine
+    let remoteEnforcementReady: Bool
 
     private var presentation: AccountConnectionPresentation {
-        AccountConnectionPresentation.resolve(engine.syncStatus)
+        AccountConnectionPresentation.resolve(
+            engine.syncStatus,
+            remoteEnforcementReady: remoteEnforcementReady
+        )
     }
 
     var body: some View {
