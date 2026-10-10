@@ -517,6 +517,7 @@ only.
   - `NativeAccountSyncTransportTests/testDeviceRegistrationShowsRecoveryKeyBeforeRecoveryUpload()`
   - `NativeAccountSyncTransportTests/testAmbiguousRegistrationResponseResumesTheExactDeviceWithoutOAuth()`
   - `NativeAccountSyncTransportTests/testInitialDeviceConnectionRefreshesExpiredGrantBeforeRegistration()`
+  - `NativeAccountSyncTransportTests/testOpaqueAccessTokenKeepsFailedRegistrationReauthorizable()`
   - `AccountEncryptionTests/testPendingDeviceRegistrationSurvivesBeforeCoordinatorResponse()`
   - `AccountEncryptionTests/testCompletedEnrollmentSurvivesRelaunchUntilSettingsPersist()`
   - `UninstallCoordinatorTests/productionUninstallIncludesLegacyCoordinatorCredential()`
