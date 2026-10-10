@@ -297,6 +297,15 @@ extension CurfewAppModel {
         publishDeviceStatus(trigger: .heartbeat)
     }
 
+    /// Account polling continues before the first schedule is configured,
+    /// while the enforcement tick does not. Use a confirmed poll as the
+    /// heartbeat clock so an enrolled Mac is not falsely shown as offline.
+    func publishAccountStatusWhileAwaitingSetup() {
+        guard !isEnforcementRunning, settings.accountSync.isEnrolled else { return }
+        currentTime = Date()
+        publishDeviceStatusHeartbeatIfDue()
+    }
+
     /// When the current phase is next expected to change, as far as this tick
     /// can tell: the lock moment while the day is still open, the unlock moment
     /// while locked, and nothing at all on a day off.

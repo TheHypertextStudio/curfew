@@ -2,6 +2,8 @@
 import Foundation
 import Testing
 
+// Account lifecycle cases share the same isolated model and transport fixtures.
+// swiftlint:disable file_length
 @MainActor
 struct AccountLifecycleWiringTests {
     @Test("Curfew Account enrollment makes account sync canonical over CloudKit")
@@ -24,6 +26,23 @@ struct AccountLifecycleWiringTests {
 
         #expect(model.accountSyncEngine.isActive)
         #expect(!cloud.isActive)
+    }
+
+    @Test("An enrolled Mac reports online before its local schedule is set")
+    func accountConnectionReportsStatusBeforeInitialSetup() throws {
+        let transport = RemoteResultTransportSpy()
+        let model = try makeModel(
+            accountSync: configuration(),
+            accountSyncEngine: AccountSyncEngine(transport: transport),
+            hasCompletedInitialSetup: false
+        )
+
+        #expect(!model.isEnforcementRunning)
+        transport.synchronize()
+        #expect(transport.publishedReports.count == 1)
+        transport.synchronize()
+        #expect(transport.publishedReports.count == 1)
+        #expect(!model.isEnforcementRunning)
     }
 
     @Test("Authenticated daemon result immediately presents the enrolled device lockout")
@@ -319,13 +338,14 @@ extension AccountLifecycleWiringTests {
     private func makeModel(
         accountSync: AccountSyncConfiguration,
         accountSyncEngine: AccountSyncEngine? = nil,
-        cloudKitSyncEngine: CloudKitSyncEngine = CloudKitSyncEngine()
+        cloudKitSyncEngine: CloudKitSyncEngine = CloudKitSyncEngine(),
+        hasCompletedInitialSetup: Bool = true
     ) -> CurfewAppModel {
         let suite = "studio.hypertext.curfew.tests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite) ?? .standard
         defaults.removePersistentDomain(forName: suite)
         var settings = CurfewSettings.default
-        settings.hasCompletedInitialSetup = true
+        settings.hasCompletedInitialSetup = hasCompletedInitialSetup
         settings.accountSync = accountSync
         let store = CurfewSettingsStore(defaults: defaults)
         store.save(settings)
@@ -355,10 +375,12 @@ extension AccountLifecycleWiringTests {
 @MainActor
 private final class RemoteResultTransportSpy: AccountSyncTransporting {
     private var onRemoteCommandResult: ((RemoteCommandResult) -> Void)?
+    private var onSynchronized: ((Date) -> Void)?
     private(set) var publishedReports: [DeviceStatusReport] = []
 
     func connect(deviceID _: UUID, callbacks: AccountSyncTransportCallbacks) {
         onRemoteCommandResult = callbacks.onRemoteCommandResult
+        onSynchronized = callbacks.onSynchronized
     }
 
     func publishDeviceStatus(_ report: DeviceStatusReport, deviceID _: UUID) {
@@ -367,10 +389,15 @@ private final class RemoteResultTransportSpy: AccountSyncTransporting {
 
     func disconnect() {
         onRemoteCommandResult = nil
+        onSynchronized = nil
     }
 
     func receive(_ result: RemoteCommandResult) {
         onRemoteCommandResult?(result)
+    }
+
+    func synchronize() {
+        onSynchronized?(Date())
     }
 }
 

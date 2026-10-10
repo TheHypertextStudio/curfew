@@ -182,6 +182,8 @@ struct AccountEnrollmentRecoveryTests {
             enrollment: devices.enrollment,
             recoveryKey: nil
         )
+        try secretStore.save(Data("access-token".utf8), for: "oauth-access-token")
+        try secretStore.save(Data("refresh-token".utf8), for: "oauth-refresh-token")
         let oauth = CountingAccountOAuthEnrollment()
         let controller = AccountEnrollmentController(
             secretStore: secretStore,

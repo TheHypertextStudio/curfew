@@ -242,9 +242,9 @@ extension SettingsView {
             )
             .foregroundStyle(CurfewTheme.warning)
             Text(
-                "Your saved account and local protection have not been changed. "
-                    + "Try again. If this keeps happening, contact Curfew support before "
-                    + "starting a new sign-in."
+                "Your local schedule and protection still work, but Curfew may need "
+                    + "to repair this Mac’s account sign-in. Check the saved connection "
+                    + "again. If this keeps happening, contact Curfew support."
             )
             .font(CurfewTypography.body(12))
             .foregroundStyle(CurfewTheme.mutedInk)

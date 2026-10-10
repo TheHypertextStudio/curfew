@@ -71,6 +71,9 @@ extension CurfewAppModel {
     }
 
     private func configureAccountSyncCallbacks() {
+        accountSyncEngine.onSynchronizedReceived = { [weak self] _ in
+            self?.publishAccountStatusWhileAwaitingSetup()
+        }
         accountSyncEngine.onWakeStatusReceived = { [weak self] update in
             self?.acceptAccountWakeStatus(update)
         }

@@ -496,6 +496,11 @@ only.
   - `AccountEnrollmentCancellationTests/missedBrowserCallbackCanBeRetriedWithoutRelaunch()`
   - `AccountEnrollmentCancellationTests/stalledTokenExchangeCanBeCancelled()`
   - `AccountEnrollmentCancellationTests/cancelAfterOAuthCompletionPreventsDeviceEnrollment()`
+  - `AccountEnrollmentReauthorizationTests/cancelledReauthorizationRestoresSavedCredentials()`
+  - `AccountEnrollmentReauthorizationTests/missingSavedTokenRequiresReauthorization(account:)`
+  - `AccountLifecycleWiringTests/accountConnectionReportsStatusBeforeInitialSetup()`
+  - `AccountOAuthUserInfoTests/testPartialCredentialWriteRestoresExistingAccountTokens()`
+  - `AccountOAuthUserInfoTests/testFailedRollbackReportsUnavailableStorageAndClearsAccess()`
   - `AccountEnrollmentRecoveryTests/browserSignInLinkCleanupPreservesNewClipboardContents()`
   - `AccountEnrollmentRecoveryTests/browserSignInLinkClearsBeforeDeviceEnrollment()`
   - `AccountEnrollmentCopyTests/recoveryKeyCanBeCopied()`

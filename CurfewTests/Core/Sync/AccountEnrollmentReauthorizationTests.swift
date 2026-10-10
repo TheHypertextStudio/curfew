@@ -71,6 +71,50 @@ struct AccountEnrollmentReauthorizationTests {
         #expect(try fixture.pending.loadRecoverySetup()?.accountUserID == "original-account")
     }
 
+    @Test("Cancelling saved reauthorization restores the checkpoint's OAuth credentials")
+    func cancelledReauthorizationRestoresSavedCredentials() async throws {
+        let fixture = try makeFixture(accountUserID: "original-account")
+        let oauth = ReauthorizationOAuthFixture(secretStore: fixture.secrets)
+        let devices = ReauthorizationDeviceFixture(enrollment: fixture.enrollment)
+        let controller = AccountEnrollmentController(
+            secretStore: fixture.secrets,
+            oauth: oauth,
+            devices: devices
+        )
+
+        await controller.finishDeviceRegistration()
+        #expect(controller.requiresReauthorization)
+        oauth.afterPersist = { controller.cancelSignIn() }
+        await controller.reauthorizeSavedEnrollment()
+
+        #expect(controller.state == .finishDeviceRegistration("recovery-key", fixture.enrollment))
+        #expect(controller.requiresReauthorization)
+        #expect(devices.resumeCount == 1)
+        #expect(try fixture.secrets.data(for: "oauth-access-token") == Data("old-access".utf8))
+        #expect(try fixture.secrets.data(for: "oauth-refresh-token") == Data("old-refresh".utf8))
+        #expect(try fixture.secrets.data(for: "oauth-client-id") == nil)
+        #expect(try fixture.pending.loadRecoverySetup()?.accountUserID == "original-account")
+    }
+
+    @Test(
+        "An unfinished Mac with a missing OAuth token requires same-account sign-in",
+        arguments: ["oauth-access-token", "oauth-refresh-token"]
+    )
+    func missingSavedTokenRequiresReauthorization(account: String) throws {
+        let fixture = try makeFixture(accountUserID: "original-account")
+        try fixture.secrets.delete(account)
+
+        let controller = AccountEnrollmentController(
+            secretStore: fixture.secrets,
+            oauth: ReauthorizationOAuthFixture(secretStore: fixture.secrets),
+            devices: ReauthorizationDeviceFixture(enrollment: fixture.enrollment)
+        )
+
+        #expect(controller.state == .finishDeviceRegistration("recovery-key", fixture.enrollment))
+        #expect(controller.requiresReauthorization)
+        #expect(!AccountEnrollmentSignInPolicy.canStart(from: controller.state))
+    }
+
     @Test("An unanchored legacy checkpoint never authorizes another account")
     func legacyCheckpointFailsClosed() async throws {
         let fixture = try makeFixture(accountUserID: nil)
@@ -217,6 +261,7 @@ private struct ReauthorizationFixture {
 @MainActor
 private final class ReauthorizationOAuthFixture: AccountOAuthEnrolling {
     var rejectAsDifferentAccount = false
+    var afterPersist: (@MainActor () -> Void)?
     private(set) var reauthorizeCount = 0
     private(set) var expectedAccountUserID: String?
     private let secretStore: any AccountSecretStoring
@@ -243,8 +288,10 @@ private final class ReauthorizationOAuthFixture: AccountOAuthEnrolling {
         if rejectAsDifferentAccount {
             throw AccountOAuthEnrollmentError.accountMismatch
         }
+        try secretStore.save(Data(AccountOAuthOfficialClient.clientID.utf8), for: "oauth-client-id")
         try secretStore.save(Data("new-refresh".utf8), for: "oauth-refresh-token")
         try secretStore.save(Data("new-access".utf8), for: "oauth-access-token")
+        afterPersist?()
         return AccountOAuthGrant(
             tokens: AccountOAuthTokens(accessToken: "new-access", refreshToken: "new-refresh"),
             state: "new-state",

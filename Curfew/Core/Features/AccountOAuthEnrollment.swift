@@ -234,6 +234,8 @@ final class AccountOAuthEnrollmentService: NSObject {
             throw CancellationError()
         } catch AccountOAuthEnrollmentError.accountMismatch {
             throw AccountOAuthEnrollmentError.accountMismatch
+        } catch OAuthCredentialPersistenceError.storageUnavailable {
+            throw OAuthCredentialPersistenceError.storageUnavailable
         } catch {
             if cancellationRequested || Task.isCancelled {
                 throw CancellationError()
