@@ -10,6 +10,7 @@ enum AccountOAuthCallback {
               callback.scheme == "https",
               callback.scheme == expected.scheme,
               callback.host == expected.host,
+              (callback.port ?? 443) == (expected.port ?? 443),
               callback.path == expected.path,
               let components = URLComponents(url: callback, resolvingAgainstBaseURL: false),
               uniqueQueryValue(named: "state", in: components) == expectedState

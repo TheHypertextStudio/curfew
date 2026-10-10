@@ -158,6 +158,7 @@ struct CurfewApp: App {
             MainWindowView()
                 .environmentObject(model)
                 .frame(minWidth: 980, minHeight: 660)
+                .onOpenURL { _ = AccountOAuthCallbackRouter.shared.route($0) }
         }
         .defaultSize(width: 1080, height: 720)
         .windowStyle(.hiddenTitleBar)
@@ -178,6 +179,7 @@ struct CurfewApp: App {
         MenuBarExtra("Curfew", systemImage: model.menuBarSymbolName) {
             ContentView()
                 .environmentObject(model)
+                .onOpenURL { _ = AccountOAuthCallbackRouter.shared.route($0) }
         }
         .menuBarExtraStyle(.window)
 
@@ -185,6 +187,7 @@ struct CurfewApp: App {
             SettingsView()
                 .environmentObject(model)
                 .frame(minWidth: 760, minHeight: 520)
+                .onOpenURL { _ = AccountOAuthCallbackRouter.shared.route($0) }
         }
     }
 }
@@ -222,6 +225,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         for url in urls where callbackRouter.route(url) {
             break
         }
+    }
+
+    /// Claimed HTTPS links opened from another browser arrive as web-browsing
+    /// activities, not as document or custom-scheme URLs.
+    func application(
+        _: NSApplication,
+        continue userActivity: NSUserActivity,
+        restorationHandler _: @escaping ([any NSUserActivityRestoring]) -> Void
+    ) -> Bool {
+        guard userActivity.activityType == NSUserActivityTypeBrowsingWeb,
+              let callback = userActivity.webpageURL
+        else { return false }
+        return callbackRouter.route(callback)
     }
 
     /// AppKit calls this whenever Curfew becomes the active app — including the

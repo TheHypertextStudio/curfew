@@ -505,6 +505,8 @@ only.
   - `AccountOAuthExternalCallbackTests/externalBrowserCallbackRoutesByExactState()`
   - `AccountOAuthExternalCallbackTests/externalBrowserCallbackIsConsumedOnce()`
   - `AccountOAuthExternalCallbackTests/appDelegateForwardsExternalOAuthCallback()`
+  - `AccountOAuthUniversalLinkActivityTests/appDelegateRoutesUniversalLinkActivity()`
+  - `AccountOAuthUniversalLinkActivityTests/alternatePortIsNotTheClaimedOrigin()`
   - `AccountEnrollmentRecoveryTests/registeredMacResumesWithoutSigningInAgain()`
   - `AccountEnrollmentRecoveryTests/recoveryRetryFailureStaysAtTheRecoveryStep()`
   - `AccountEnrollmentRecoveryTests/recoveryRetryIsSingleFlight()`

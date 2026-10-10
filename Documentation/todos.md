@@ -528,7 +528,19 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
       unless the user has since copied something else. Claimed HTTPS callbacks
       from an ordinary browser tab are routed into only the active transaction
       after exact origin, callback-path, and one-time-state validation; the former
-      custom scheme is rejected. If the browser reaches the HTTPS callback
+      custom scheme is rejected. AppKit delivers a claimed HTTPS link from an
+      external browser as a web-browsing user activity, so the delegate now
+      forwards that activity's URL into the same one-time router. SwiftUI may
+      instead deliver the link to a scene's URL handler, so each app scene also
+      forwards URLs to that router. The older URL-open delegate remains for
+      URL-open delivery. The router checks the effective HTTPS port as well as
+      host, path, and state. This fixes a copied-link sign-in that could finish
+      in the browser while Settings waited forever. A signed Studio build passes
+      local build checks; the real browser callback and device enrollment still
+      need runtime verification.
+      If the activity path regresses, the copied-link option can be disabled
+      without weakening callback validation or the system sign-in session.
+      If the browser reaches the HTTPS callback
       instead of returning to Curfew, Settings offers Cancel sign-in so the
       user can start a fresh authorization without quitting the app. Cancelling
       stops the active browser session, rejects any in-flight token result,
