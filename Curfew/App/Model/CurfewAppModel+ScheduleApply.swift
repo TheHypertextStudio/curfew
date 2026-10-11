@@ -76,5 +76,6 @@ extension CurfewAppModel {
         settings.schedule = pending.proposedSchedule
         settings.pendingScheduleChange = nil
         persistSettings()
+        flagScheduleChangeApplied()
     }
 }

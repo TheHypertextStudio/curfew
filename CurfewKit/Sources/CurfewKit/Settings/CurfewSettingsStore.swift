@@ -166,6 +166,11 @@ public struct CurfewSettings: Codable, Equatable {
     /// value; they remain in Keychain. When enrolled, account sync is the
     /// canonical settings writer and CloudKit is disabled.
     public var accountSync: AccountSyncConfiguration
+    /// How the app responds to AI write requests, as the `rawValue` of the
+    /// app-layer `AIConsentPolicy` (`queue` / `autoApprove` / `deny`). Stored as
+    /// a string here so this CurfewKit-level settings struct doesn't depend on
+    /// the app target's enum; the model maps it back. Defaults to `queue`.
+    public var aiConsentPolicyRawValue: String
 
     private enum CodingKeys: String, CodingKey {
         case schedule
@@ -186,6 +191,7 @@ public struct CurfewSettings: Codable, Equatable {
         case presence
         case statusReporting
         case accountSync
+        case aiConsentPolicyRawValue
     }
 
     /// Memberwise initialiser. `warningIntervals` is normalised on
@@ -211,7 +217,8 @@ public struct CurfewSettings: Codable, Equatable {
         protectedWork: ProtectedWorkPolicy = .default,
         presence: PresenceDetectionPolicy = .default,
         statusReporting: DeviceStatusReportingPolicy = .default,
-        accountSync: AccountSyncConfiguration = .accountFree
+        accountSync: AccountSyncConfiguration = .accountFree,
+        aiConsentPolicyRawValue: String = "queue"
     ) {
         self.schedule = schedule
         self.pendingScheduleChange = pendingScheduleChange
@@ -231,6 +238,7 @@ public struct CurfewSettings: Codable, Equatable {
         self.presence = presence
         self.statusReporting = statusReporting
         self.accountSync = accountSync
+        self.aiConsentPolicyRawValue = aiConsentPolicyRawValue
     }
 
     /// Custom decoder so pre-existing persisted settings (v0.1 payloads
@@ -299,6 +307,10 @@ public struct CurfewSettings: Codable, Equatable {
             AccountSyncConfiguration.self,
             forKey: .accountSync
         ) ?? .accountFree
+        self.aiConsentPolicyRawValue = try container.decodeIfPresent(
+            String.self,
+            forKey: .aiConsentPolicyRawValue
+        ) ?? "queue"
     }
 
     /// Encodes to JSON. `warningIntervals` is normalised before encoding so
@@ -324,6 +336,7 @@ public struct CurfewSettings: Codable, Equatable {
         try container.encode(presence, forKey: .presence)
         try container.encode(statusReporting, forKey: .statusReporting)
         try container.encode(accountSync, forKey: .accountSync)
+        try container.encode(aiConsentPolicyRawValue, forKey: .aiConsentPolicyRawValue)
     }
 
     /// Factory defaults for a fresh install: 9-to-5 schedule, 3 × 15 min

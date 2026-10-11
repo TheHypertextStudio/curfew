@@ -18,12 +18,19 @@ struct TodaySundownView: View {
     var greeting = "Good afternoon"
     var timeRemaining = "3h 30m"
     var emptyNote = "No curfew scheduled today."
+    /// Whether the empty-state note doubles as a button to Schedule. False while
+    /// a curfew is active (the note states status, not an invitation to edit).
+    var emptyNoteActionable = true
     var lockTime = "6:00 PM"
     var unlockTime = "7:00 AM"
     var statusLine = "Curfew is off"
     var statusDetail = "Your Mac won't lock tonight until you turn it on."
     var isEnforcing = false
     var showAccessibilityWarning = false
+    /// True for the brief window after Accessibility trust is granted, to show a
+    /// success confirmation. Model-owned (see `CurfewAppModel.accessibilityJustGranted`)
+    /// so it survives navigation and self-dismisses from a single source.
+    var showAccessibilityGranted = false
     /// Trailing consecutive nights held. Shows a streak badge when ≥ 2.
     var streak: Int = 0
     var primaryActionLabel = "Turn On"
@@ -31,10 +38,6 @@ struct TodaySundownView: View {
     /// Tapping the empty-state note (no window scheduled) navigates to Schedule.
     var onEmptyNoteAction: () -> Void = {}
     var onResolveAccessibility: () -> Void = {}
-
-    /// Briefly true after `showAccessibilityWarning` flips false, to show a
-    /// success confirmation before clearing the banner entirely.
-    @State private var justGrantedAccess = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -47,14 +50,8 @@ struct TodaySundownView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(CurfewTheme.canvas)
-        .onChange(of: showAccessibilityWarning) { oldValue, newValue in
-            guard oldValue, !newValue else { return }
-            withAnimation { justGrantedAccess = true }
-            Task {
-                try? await Task.sleep(for: .seconds(2))
-                withAnimation(.easeOut(duration: 0.4)) { justGrantedAccess = false }
-            }
-        }
+        .animation(.easeOut(duration: 0.4), value: showAccessibilityGranted)
+        .animation(.easeOut(duration: 0.4), value: showAccessibilityWarning)
     }
 
     // MARK: - The window (full-bleed living sky, the protagonist)
@@ -81,6 +78,15 @@ struct TodaySundownView: View {
         .frame(minHeight: 380, maxHeight: 520)
     }
 
+    /// The large hero line used for the no-countdown states (empty / setup /
+    /// active-curfew). Shared by the tappable and informational variants.
+    private var emptyNoteText: some View {
+        Text(emptyNote)
+            .font(.system(size: 40, weight: .semibold))
+            .foregroundStyle(SundownPalette.warmWhite.opacity(0.92))
+            .frame(maxWidth: 460, alignment: .leading)
+    }
+
     private var skyContent: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text(greeting)
@@ -88,14 +94,17 @@ struct TodaySundownView: View {
                 .foregroundStyle(SundownPalette.warmWhite.opacity(0.95))
 
             if timeRemaining.isEmpty {
-                Button(action: onEmptyNoteAction) {
-                    Text(emptyNote)
-                        .font(.system(size: 40, weight: .semibold))
-                        .foregroundStyle(SundownPalette.warmWhite.opacity(0.92))
-                        .frame(maxWidth: 460, alignment: .leading)
+                if emptyNoteActionable {
+                    Button(action: onEmptyNoteAction) {
+                        emptyNoteText
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.top, 16)
+                } else {
+                    // Active-curfew status: informational, not a navigation button.
+                    emptyNoteText
+                        .padding(.top, 16)
                 }
-                .buttonStyle(.plain)
-                .padding(.top, 16)
                 Spacer(minLength: 0)
             } else {
                 Spacer(minLength: 0)
@@ -209,7 +218,7 @@ struct TodaySundownView: View {
 
     @ViewBuilder
     private var accessibilityWarning: some View {
-        if justGrantedAccess {
+        if showAccessibilityGranted {
             HStack(spacing: 11) {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.system(size: 14, weight: .semibold))
