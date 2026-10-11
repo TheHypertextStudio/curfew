@@ -3,8 +3,9 @@ import Foundation
 /// The complete, closed-world network boundary for one Curfew account environment.
 ///
 /// App, OAuth, sync, MCP, and privileged-daemon traffic must select the same
-/// value at compile time. This prevents a staging account token or command key
-/// from being mixed with production state.
+/// value. App and widget bundle identities select their isolated environment;
+/// packaged tools also receive the explicit staging flag. This prevents staging
+/// account tokens or command keys from being mixed with production state.
 public nonisolated struct CurfewServiceEndpoints: Equatable, Sendable {
     public let accountOrigin: URL
     public let accountPortal: URL
@@ -45,7 +46,10 @@ public nonisolated struct CurfewServiceEndpoints: Equatable, Sendable {
     #if CURFEW_STAGING
         public static let current = forFlavor(CurfewFlavor.current)
     #else
-        public static let current = production
+        public static let current = forFlavor(CurfewFlavor.resolve(
+            environment: [:], bundleIdentifier: Bundle.main.bundleIdentifier,
+            executableURL: Bundle.main.executableURL
+        ))
     #endif
 
     private static func make(

@@ -316,8 +316,8 @@ extension SettingsView {
     }
 
     static let accountExplanation = """
-    An optional account connects your devices. Remote control stays off until you enable it; \
-    local schedules and offline licenses work without an account.
+    An optional account lets your phone lock this Mac. Remote control stays off until \
+    you turn it on; local schedules and offline licenses work without an account.
     """
 
     static let accountSecurityNote = """

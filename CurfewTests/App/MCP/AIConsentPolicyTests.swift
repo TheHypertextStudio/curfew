@@ -24,13 +24,13 @@ struct AIConsentPolicyTests {
 
     @Test("Policy copy describes only the write tools Curfew actually exposes")
     func policyCopyMatchesLocalToolAuthority() {
-        #expect(AIConsentPolicy.queue.displayName == "Ask every time (recommended)")
-        #expect(AIConsentPolicy.autoApprove.displayName == "Apply requests automatically")
+        #expect(AIConsentPolicy.queue.displayName == "Ask before making changes")
+        #expect(AIConsentPolicy.autoApprove.displayName == "Allow changes automatically")
         #expect(
-            AIConsentPolicy.deny.displayName == "Reject extension and schedule requests"
+            AIConsentPolicy.deny.displayName == "Read only"
         )
-        #expect(AIConsentPolicy.deny.rationale.contains("extension and schedule requests"))
-        #expect(AIConsentPolicy.autoApprove.rationale.contains("extension or schedule"))
+        #expect(AIConsentPolicy.deny.rationale.contains("cannot make changes"))
+        #expect(AIConsentPolicy.autoApprove.rationale.contains("schedule and request extra time"))
         #expect(!AIConsentPolicy.autoApprove.rationale.contains("override"))
     }
 
