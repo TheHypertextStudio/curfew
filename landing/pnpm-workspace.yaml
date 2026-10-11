@@ -1,4 +1,9 @@
 packages: []
+# Reviewed immutable internal release only; retain pnpm's default age for every other version.
+minimumReleaseAgeExclude:
+  - '@thehypertextstudio/web-config@0.0.1'
+  - '@thehypertextstudio/web-docs@0.0.1'
+  - '@thehypertextstudio/web-tokens@0.0.1'
 allowBuilds:
   '@scarf/scarf': false
   esbuild: true

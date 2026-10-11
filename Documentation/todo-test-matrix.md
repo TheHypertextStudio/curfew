@@ -14,6 +14,7 @@ tests cannot read or mutate a user's App Group lockout record.
 - `Adopt the Studio website and Mintlify standard` (in progress).
   - `landing/tests/unit/site-worker.test.mjs` covers nonrecursive docs/asset/search delegation, path/query/forwarded origin, credential isolation, redirects/errors, retained HTML-guide mode, and complete release identity.
   - `landing/tests/unit/deployment-contract.test.mjs` checks the prebuilt adapter declaration, published v0.1.8 identity, intended 0.0.1 package pins, isolated Worker names, disabled routes, and retained HTML-guide mode.
+  - `.github/workflows/website.yml` proposes a real registry lock only through the exact trusted draft-PR/manual guard, script-disabled fresh/frozen installation and native peer validation. Actionlint and diff checks validate this source slice; the hosted artifact/receipt and canonical adoption remain pending. No new tests are added or run in this authorized registry phase.
   - `scripts/site-parity.py` compares all nine original page contracts and original CSS/image digests with Astro output.
   - `landing/tests/acceptance/site.spec.mjs` covers clean/HTML aliases, direct URL/reload, Back/Forward, keyboard/reduced motion, safe unconfigured license error, metadata, and 404 behavior in Chromium/Firefox/WebKit.
   - The packed shared CLI runs pinned `mint@4.2.854` build validation, broken links with anchors/redirects/snippets, and accessibility against the actual `docs/` content.
