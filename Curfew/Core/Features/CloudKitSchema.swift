@@ -16,7 +16,7 @@ import Foundation
 /// device-awareness records (`Device`, `DeviceActivity`) and a dedicated
 /// `LockoutState` record for warning handoff. The legacy `Settings` record
 /// remains the source of truth for `schedule`, `warningIntervals`, and
-/// the Pro gate flags — peeling them into their own records is a later
+/// the Plus gate flags — peeling them into their own records is a later
 /// migration that can land independently.
 public enum CloudKitSchema {
     // MARK: - Container

@@ -52,7 +52,7 @@ struct ThisWeekView: View {
                 deviceBreakdown(devices: devices)
             }
 
-            if model.featureFlags.calendarEnabled, model.licenseGate.isProUnlocked,
+            if model.featureFlags.calendarEnabled, model.licenseGate.isPlusUnlocked,
                !model.calendarMonitor.todayEvents.isEmpty {
                 Divider()
                 calendarSection

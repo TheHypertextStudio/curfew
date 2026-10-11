@@ -7,8 +7,8 @@ import Foundation
 /// can show contextual scheduling information. Read-only — Curfew never
 /// writes to the user's calendar.
 ///
-/// This is a Pro feature gated by `FeatureFlags.calendarEnabled` +
-/// `LicenseGate.isProUnlocked`. When either gate is closed the store is never
+/// This is a Plus feature gated by `FeatureFlags.calendarEnabled` +
+/// `LicenseGate.isPlusUnlocked`. When either gate is closed the store is never
 /// started and all published properties remain at their empty defaults.
 @MainActor
 final class CalendarMonitor: ObservableObject {
@@ -74,7 +74,7 @@ final class CalendarMonitor: ObservableObject {
         }
     }
 
-    /// Cancels the 5-minute refresh timer. Called when the Pro gate closes
+    /// Cancels the 5-minute refresh timer. Called when the Plus gate closes
     /// (license deactivated or flag turned off) so an unlicensed install
     /// stops polling EventKit entirely.
     func stop() {
