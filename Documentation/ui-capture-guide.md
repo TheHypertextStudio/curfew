@@ -138,3 +138,10 @@ Visual inspection found the isolated runner Dock overlapping Today’s primary a
 Full-resolution Today review found washed-out schedule labels over the bright sky/page fade. The hero now uses the shared atmospheric text scrim and supporting-text role, backed by the same contrast-tested surface as reflection/override inputs. `todayHeroPalette` was observed failing first; the existing white-backdrop checks establish at least 4.5:1 for both text roles. Recapture Today in both appearances and window sizes.
 
 The shared sky text scrim also protects lockout status and recovery controls. Faint per-view text-opacity variants were replaced with the shared supporting-text role, including shutdown failure, cooldown, validation, and exhausted-budget messages. `lockoutAtmosphericPalette` was observed failing before implementation. This changes presentation only, with no enforcement or exception-policy change.
+
+For state-consistency review, compare scheduled lock periods with protection off,
+unfinished setup with Accessibility already granted, completed setup after revoked
+permission, and pending assistant requests whose action is no longer available.
+Consent captures must show the concrete requested change and delay, not only its
+tool name. Browser connection diagnostics are now under Connection details; a
+checked Limit Chrome preference alone does not establish current enforcement.

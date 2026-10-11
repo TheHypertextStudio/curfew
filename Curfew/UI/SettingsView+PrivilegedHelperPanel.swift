@@ -53,8 +53,7 @@ extension SettingsView {
             if let error = helper.lastError {
                 DisclosureGroup("Troubleshooting") {
                     Text(error).textSelection(.enabled)
-                    Text("If the connection is interrupted, reopen Curfew. If this build is "
-                        + "rejected, reinstall a signed release.")
+                    Text(helper.connectionState.remediation)
                 }
             }
         } header: {
@@ -68,11 +67,23 @@ extension SettingsView {
 }
 
 private extension PrivilegedHelperManager.ConnectionState {
+    var remediation: String {
+        switch self {
+        case .ready: "Background protection is connected."
+        case .unavailable: "Install or approve background protection above."
+        case .unauthorized: EnforcementHealth.degradedHelperUnauthorized.bannerDetail ?? ""
+        case .stale: "Reopen Curfew to reconnect background protection."
+        case .registrationFailed:
+            "Try installing background protection again. "
+                + "Approve it in System Settings if asked."
+        }
+    }
+
     var statusText: String {
         switch self {
         case .ready: "Connected"
         case .unavailable: "Not connected"
-        case .unauthorized: "This build was rejected"
+        case .unauthorized: EnforcementHealth.degradedHelperUnauthorized.settingsStatusTitle
         case .stale: "Connection interrupted"
         case .registrationFailed: "Installation failed"
         }

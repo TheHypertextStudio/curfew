@@ -290,6 +290,13 @@ struct MainWindowView: View {
         )) { request in
             MCPConsentSheet(
                 request: request,
+                presentation: ConsentPresentation(
+                    request: request,
+                    schedule: model.settings.schedule,
+                    extensionMinutes: model.settings.extensionDurationMinutes,
+                    canRequestExtension: model.state.canRequestExtension,
+                    pendingScheduleChange: model.settings.pendingScheduleChange
+                ),
                 onApprove: { model.approveMCPRequest(request) },
                 onDeny: { model.denyMCPRequest(request) }
             )

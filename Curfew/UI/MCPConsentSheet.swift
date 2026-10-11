@@ -14,6 +14,7 @@ import SwiftUI
 struct MCPConsentSheet: View {
     /// The pending request waiting for a decision.
     let request: MCPPendingRequest
+    let presentation: ConsentPresentation
 
     /// Called when the user taps "Approve". The presenter is responsible for
     /// applying the action (granting an extension, override, etc.) and
@@ -34,7 +35,8 @@ struct MCPConsentSheet: View {
         else {
             return "No reason provided."
         }
-        return text
+        return text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            ? "No reason provided." : text
     }
 
     /// Approve/Deny sheet for one pending MCP write request. Shows the
@@ -42,45 +44,56 @@ struct MCPConsentSheet: View {
     /// has enough context to decide without opening the MCP transcript.
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Allow this change?")
-                    .font(CurfewTypography.bodyEmphasis(18))
-                    .foregroundStyle(CurfewTheme.ink)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(presentation.canApprove ? "Allow this change?" : "Request unavailable")
+                            .font(CurfewTypography.bodyEmphasis(18))
+                            .foregroundStyle(CurfewTheme.ink)
 
-                Text(
-                    "An assistant is asking to change Curfew."
-                )
-                .font(CurfewTypography.body(14))
-                .foregroundStyle(CurfewTheme.mutedInk)
-            }
+                        Text(
+                            "An assistant is asking to change Curfew."
+                        )
+                        .font(CurfewTypography.body(14))
+                        .foregroundStyle(CurfewTheme.mutedInk)
+                    }
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Request type")
-                    .font(CurfewTypography.label(12))
-                    .foregroundStyle(CurfewTheme.mutedInk)
-                Text(request.tool.displayName)
-                    .font(CurfewTypography.bodyEmphasis(14))
-                    .foregroundStyle(CurfewTheme.ink)
-            }
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Requested change")
+                            .font(CurfewTypography.label(12))
+                            .foregroundStyle(CurfewTheme.mutedInk)
+                        Text(presentation.summary)
+                            .font(CurfewTypography.bodyEmphasis(14))
+                            .foregroundStyle(CurfewTheme.ink)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Text(presentation.detail)
+                            .font(CurfewTypography.body(13))
+                            .foregroundStyle(CurfewTheme.mutedInk)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Reason")
-                    .font(CurfewTypography.label(12))
-                    .foregroundStyle(CurfewTheme.mutedInk)
-                Text(reason)
-                    .font(CurfewTypography.body(14))
-                    .foregroundStyle(CurfewTheme.ink)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Reason")
+                            .font(CurfewTypography.label(12))
+                            .foregroundStyle(CurfewTheme.mutedInk)
+                        Text(reason)
+                            .font(CurfewTypography.body(14))
+                            .foregroundStyle(CurfewTheme.ink)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Requested at")
-                    .font(CurfewTypography.label(12))
-                    .foregroundStyle(CurfewTheme.mutedInk)
-                Text(requestedAtText)
-                    .font(CurfewTypography.body(13))
-                    .foregroundStyle(CurfewTheme.mutedInk)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Requested at")
+                            .font(CurfewTypography.label(12))
+                            .foregroundStyle(CurfewTheme.mutedInk)
+                        Text(requestedAtText)
+                            .font(CurfewTypography.body(13))
+                            .foregroundStyle(CurfewTheme.mutedInk)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
+            .frame(maxHeight: 440)
 
             HStack(spacing: 12) {
                 Spacer()
@@ -93,6 +106,7 @@ struct MCPConsentSheet: View {
                     onApprove()
                 }
                 .buttonStyle(CurfewPrimaryButtonStyle())
+                .disabled(!presentation.canApprove)
             }
         }
         .padding(24)

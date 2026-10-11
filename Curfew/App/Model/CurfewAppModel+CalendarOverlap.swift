@@ -37,8 +37,11 @@ extension CurfewAppModel {
         let startText = event.startDate.map {
             $0.formatted(date: .omitted, time: .shortened)
         } ?? "soon"
-        content.body = "\(title) starts at \(startText). "
-            + "Request an extension before curfew fires."
+        let lockTime = state.lockDate?.formatted(date: .omitted, time: .shortened) ?? "curfew"
+        content.body = CalendarOverlapCopy.body(
+            eventTitle: title, startTime: startText, lockTime: lockTime,
+            canRequestExtension: state.canRequestExtension
+        )
         content.categoryIdentifier = "CALENDAR_OVERLAP"
         content.sound = .default
 

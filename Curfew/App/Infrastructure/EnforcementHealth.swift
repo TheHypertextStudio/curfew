@@ -79,7 +79,7 @@ enum EnforcementHealth: Equatable {
     }
 
     /// Short banner headline for a degraded state, or `nil` when ``active``.
-    /// Both degraded headlines lead with the fact that enforcement is not active.
+    /// Names the unavailable capability without confusing readiness with lockout.
     var bannerTitle: String? {
         switch self {
         case .active:
@@ -88,8 +88,9 @@ enum EnforcementHealth: Equatable {
             Self.noAccessibilityBannerTitle
         case .degradedTapDown:
             Self.tapDownBannerTitle
-        case .degradedHelperUnavailable, .degradedHelperUnauthorized,
-             .degradedHelperStale, .degradedHelperRegistration:
+        case .degradedHelperUnauthorized:
+            "Can't verify Curfew"
+        case .degradedHelperUnavailable, .degradedHelperStale, .degradedHelperRegistration:
             Self.helperBannerTitle
         }
     }
@@ -107,7 +108,8 @@ enum EnforcementHealth: Equatable {
         case .degradedHelperUnavailable:
             "Background protection isn't connected. Install or approve it in Settings → General."
         case .degradedHelperUnauthorized:
-            "Background protection rejected this build. Reinstall a signed release of Curfew."
+            "Background protection couldn't verify Curfew. "
+                + "Reinstall Curfew from the official website."
         case .degradedHelperStale:
             "Background protection lost its connection. Reopen Curfew before relying on lockout."
         case .degradedHelperRegistration:
@@ -137,18 +139,17 @@ enum EnforcementHealth: Equatable {
         case .active:
             nil
         case .degradedNoAccessibility:
-            "Enforcement is not active — Curfew can't block your keyboard "
-                + "without Accessibility access."
+            "Accessibility access needed to block shortcuts during lockout."
         case .degradedTapDown:
-            "Enforcement is not active — the keyboard shield was interrupted."
+            "Keyboard protection interrupted. Reopen Curfew to restore it."
         case .degradedHelperUnavailable:
-            "Enforcement is not active — background protection isn't connected."
+            "Background protection isn't connected. Review setup in Settings → General."
         case .degradedHelperUnauthorized:
-            "Enforcement is not active — the privileged helper rejected this build."
+            "Background protection can't verify Curfew. Reinstall Curfew from the official website."
         case .degradedHelperStale:
-            "Enforcement is not active — the privileged background protection lost its connection."
+            "Background protection lost its connection. Reopen Curfew."
         case .degradedHelperRegistration:
-            "Enforcement is not active — the privileged helper could not register."
+            "Background protection couldn't start. Try again in Settings → General."
         }
     }
 
@@ -163,8 +164,9 @@ enum EnforcementHealth: Equatable {
             Self.noAccessibilityBannerTitle
         case .degradedTapDown:
             Self.tapDownBannerTitle
-        case .degradedHelperUnavailable, .degradedHelperUnauthorized,
-             .degradedHelperStale, .degradedHelperRegistration:
+        case .degradedHelperUnauthorized:
+            "Can't verify Curfew"
+        case .degradedHelperUnavailable, .degradedHelperStale, .degradedHelperRegistration:
             Self.helperBannerTitle
         }
     }
@@ -175,16 +177,15 @@ enum EnforcementHealth: Equatable {
         "Curfew can block shortcuts during lockout."
 
     /// Whether this state should offer the "open Accessibility settings"
-    /// fix-it affordance. `true` for every degraded case — re-granting
-    /// Accessibility (or relaunching) is the remediation for both — and
-    /// `false` when ``active``.
+    /// fix-it affordance. An interrupted keyboard shield with permission already
+    /// granted needs reconnection, not another permission prompt.
     var offersAccessibilityRemediation: Bool {
-        self == .degradedNoAccessibility || self == .degradedTapDown
+        self == .degradedNoAccessibility
     }
 
     /// Headline shown when Accessibility trust is missing.
     static let noAccessibilityBannerTitle =
-        "Enforcement is not active"
+        "Accessibility access needed"
 
     /// Remediation body shown when Accessibility trust is missing.
     static let noAccessibilityBannerDetail =
@@ -194,15 +195,13 @@ enum EnforcementHealth: Equatable {
 
     /// Headline shown when the expected keyboard shield tap is down.
     static let tapDownBannerTitle =
-        "Enforcement is not active"
+        "Keyboard protection interrupted"
 
     /// Remediation body shown when the expected keyboard shield tap is down.
     static let tapDownBannerDetail =
-        "The keyboard shield was interrupted, so shortcuts are no longer "
-            + "blocked. Re-grant Accessibility to Curfew or relaunch the app to "
-            + "restore enforcement."
+        "Keyboard shortcuts are no longer blocked. Reopen Curfew to restore protection."
 
-    static let helperBannerTitle = "Enforcement is not active"
+    static let helperBannerTitle = "Background protection needs attention"
 
     /// SF Symbol used for every degraded menu-bar badge.
     static let degradedBadgeSymbol = "exclamationmark.triangle.fill"

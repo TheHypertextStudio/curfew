@@ -269,7 +269,7 @@ extension CurfewUITests {
             "Expanded destinations must expose their remove action.\n\(app.debugDescription)"
         )
 
-        XCTAssertTrue(app.staticTexts["Task Browser Enforcement"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Websites during work"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Complete LVBT social strategy"].exists)
         XCTAssertTrue(app.staticTexts["instagram.com"].exists)
 
