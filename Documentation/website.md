@@ -40,11 +40,17 @@ passed in run `38116980056`. Curfew's native run `38119577450` then resolved a
 fresh graph with its ephemeral job token, performed a script-disabled frozen
 install, and passed peer validation. `landing/pnpm-lock.yaml` adopts that reviewed
 artifact byte-for-byte; its three shared package integrities match published
-shipping bytes. Full website/docs CI and clean `./run setup` acceptance remain
-required before this source change can be merged or published. Do not commit
-file-based package overrides or represent earlier local validation as registry
-acceptance. All consumed private packages now grant this repository GitHub Actions Read
-access. CI uses only its ephemeral `github.token` with `packages: read`, through
+shipping bytes. Website/docs run
+[38161233241](https://github.com/TheHypertextStudio/curfew/actions/runs/38161233241)
+passed frozen installation, source/parity checks, native docs validation and the
+local Worker browser suite at `680f50c943be80ee1dec30376fb78008fc79f570`.
+Native CI run
+[38161233239](https://github.com/TheHypertextStudio/curfew/actions/runs/38161233239)
+also passed. Main `a5b5a699bcce3d136a0d312789384f8180cb08c0` integrates that
+reviewed tree through linear history. These checks do not establish provider
+publication or a fresh local `./run setup` result. Do not commit file-based package
+overrides or represent earlier local validation as registry acceptance. All consumed
+private packages now grant this repository GitHub Actions Read access. CI uses only its ephemeral `github.token` with `packages: read`, through
 trusted `actions/setup-node` user configuration; do not create classic personal
 access tokens or move browser/CLI credentials into npm. Provider authentication
 uses workload identity where supported. Do not add credential values to
@@ -121,9 +127,9 @@ its existing suites; no native code changes are part of this frontend migration.
 The `Website validation` and `Docs validation` checks are required before merge
 to the Mintlify publishing branch, along with existing native checks. The website
 workflow uses package-read permission and no production provider credentials.
-Registry installation must be accepted before enabling it as a required merge
-check. Review configuration with content; inspect keyboard use and narrow layouts
-in local previews. Keep native release ordering, sale gate, and distribution
+The reviewed registry lock and these checks passed in the source acceptance
+record above. Review configuration with content; inspect keyboard use and narrow
+layouts in local previews. Keep native release ordering, sale gate, and distribution
 checklists intact.
 
 ### Proposing the real registry lock
@@ -187,24 +193,30 @@ is needed only to consume that approved release during its first 24 hours.
 Authenticated inventory identified the existing project `curfew` in organization
 `hypertextstudio` and upstream `https://curfew.mintlify.site`. On October 10, 2026,
 it was **unconnected**, its initial update failed, and there was no successful
-source-bound deployment. The intended repository is this repo, source `web/docs/`,
-branch `main`. On October 11, Chrome confirmed the existing GitHub authorization
+source-bound deployment. The selected repository is `TheHypertextStudio/curfew`,
+source `web/docs/`, branch `main`. On October 11, Chrome confirmed the existing GitHub authorization
 and Studio installation already include Curfew; no new installation or consent
 was required. The unsaved project form selects organization `thehypertextstudio`,
 repository `Curfew`, branch `main`, source `web/docs` (UI renders `/web/docs`).
-Continue/final connection and publishing have not occurred. Integrate the reviewed
-config/source first: current main still has the old primary orange and omits the
-licensing navigation entry. Verify these exact Git settings at final connection. Preserve that project and its subscription. Contributor access, actual
-connected branch, project ID, and deployment ID/source SHA remain provider gates.
+The form was not saved; no connection or source-bound publication was accepted.
+Reviewed main `a5b5a699bcce3d136a0d312789384f8180cb08c0` now contains
+`web/docs/docs.json`, the approved accessible primary `#b25e30`, and licensing
+navigation. Confirm those exact Git settings when saving the existing connection;
+preserve project `hypertextstudio/curfew` and its subscription. Repository access
+discovery is complete. The saved integration and actual successful deployment
+identity/source SHA remain provider gates.
 The authenticated dashboard reports the Pro trial ended and hosted previews are
 unavailable; use the pinned local preview. No subscription change is required
 for local adoption.
 
 At 2026-10-11 08:33 UTC, production `/docs` returned a Mintlify 404 through
-the Pages middleware introduced by current main `2c56e068`. Both the previously
-verified `.site` upstream and the new `.dev` target return the same 404 body.
-This source reconciliation restores HTML-guide mode by default in the prepared
-Pages middleware and Worker; it is not a claim that the live route has recovered.
+the Pages middleware introduced by the then-current main `2c56e068`. Both the
+previously verified `.site` upstream and the new `.dev` target return the same 404 body.
+Integrated source restores HTML-guide mode by default in the Pages middleware
+and Worker. The accepted filtered Pages preview serves that guide, but the retained
+production deployment still uses the older source; its separately reviewed Pages
+repair awaits production approval. This is not a claim that the live route has
+recovered or that Mintlify has published the new source.
 Keep that guide until Mintlify publishes reviewed source and the complete proxy
 passes acceptance. Setting `DOCS_MODE=mintlify` activates delegation of `/docs`,
 `/docs/*`, `/_mintlify/*`, `/mintlify-assets/*`, and `/api/request` (mapped to the
@@ -237,9 +249,9 @@ records the exact future candidate/promote references at that same revision.
 
 The shared v0.1.8 reusable callers support `root: landing`; the default root
 selects Curfew's independent native declaration and must never be used for the
-marketing release. Caller activation remains gated on the actual registry lock,
-provider preview, and recovery evidence. The source declaration now selects the
-shared Workers adapter, exact Wrangler 4.148.0, `modules/worker.js`, and `assets/`
+marketing release. The actual registry lock is accepted; caller activation remains
+gated on an isolated Workers provider preview and recovery evidence. The source
+declaration now selects the shared Workers adapter, exact Wrangler 4.148.0, `modules/worker.js`, and `assets/`
 inside the retained archive. It does not introduce another deployment adapter.
 The immutable source configuration is retained separately by the shared candidate;
 promotion freezes its file paths to the extracted archive and injects release identity.
