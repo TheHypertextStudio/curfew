@@ -42,7 +42,7 @@ struct BrowserNativeLifecycleTests {
             }
             try await Task.sleep(for: .milliseconds(5))
         }
-        #require(try store.pending(at: Date()).count == 1)
+        try #require(store.pending(at: Date()).count == 1)
         let outcome = UninstallCoordinator.performUninstall(
             home: home,
             defaultsSuiteName: "studio.hypertext.curfew.tests.\(UUID().uuidString)",
