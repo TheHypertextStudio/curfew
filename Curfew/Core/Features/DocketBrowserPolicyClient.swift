@@ -252,7 +252,7 @@ final class DocketOAuthClient: NSObject, DocketOAuthAuthorizing,
         try await withCheckedThrowingContinuation { continuation in
             let browserSession = ASWebAuthenticationSession(
                 url: request.authorizationURL,
-                callbackURLScheme: DocketOAuthAuthorizationRequest.callbackScheme(for: flavor)
+                callback: .customScheme(DocketOAuthAuthorizationRequest.callbackScheme(for: flavor))
             ) { [weak self] callback, error in
                 self?.browserSession = nil
                 if let callback {
