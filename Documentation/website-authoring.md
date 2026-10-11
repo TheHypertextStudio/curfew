@@ -2,6 +2,10 @@
 
 Write for the person completing a task. Start with what they can do, state the prerequisites, give the steps in order, and show how to recognize success. Use the product's approved names for objects, actions, and settings.
 
+Mintlify authoring source follows the current repository layout in `web/docs/`.
+Product configuration is `web/docs/docs.site.json`; `web/docs/docs.json` is generated.
+The relocated licensing guide remains in the Use Curfew navigation group.
+
 ## Choose the page
 
 | Page | Include |

@@ -268,3 +268,62 @@ because the workflow invoked Playwright from the root facade, where it is not a
 dependency. The workflow now runs the same pinned CLI from its owning `landing/`
 workspace. No manifest, lock, browser cases or product behavior changed. Full
 three-browser acceptance remains pending a successful subsequent hosted run.
+
+
+## Current main source reconciliation — October 11
+
+The prior hosted checks are historical acceptance for their exact source, not
+acceptance for production main `2c56e068` or the current reconciliation. A clean
+backup ref preserves original migration `f6277a5`; production backup preserves
+`2c56e068`. Eight migration commits were replayed on all 55 new upstream commits.
+Rebase head is `ae0d07fb1e176dbb908d41e3414ac786df690f8c`. Native application,
+CurfewKit, backend/extension and native CI/release workflow trees are byte-identical
+to production main. No new follow-up source commit, push, hosted dispatch, main
+merge, provider publication or Mintlify connection occurred in this phase.
+
+Current local evidence under the exact declared Node 24.20.0/pnpm11.9.0:
+
+- `pnpm exec ./run doctor`: all tool and runtime checks true.
+- `pnpm exec ./run check`: shared frontend conformance; 18 existing unit/contract
+  cases including three upstream physical-root/publisher cases; Astro11 files
+  without diagnostics; shared lint and formatting; nine current raw HTML
+  contracts and 13 canonical asset digests; four native Mintlify MDX files,
+  config, links and accessibility all passed. Primary color remains approved
+  `#b25e30` (4.63:1, WCAG AA); native validator recommends AAA but reports no
+  image/video accessibility issues.
+- `pnpm exec ./run build`: current Astro outputs, parity, Wrangler4.148.0 local
+  dry-run and prebuilt modules/assets/config assembly passed with no deploy.
+- Pinned `wrangler pages functions build` successfully compiled the filtered
+  raw Pages middleware locally. The raw output manifest contains23 files,
+  including raw HTML, current public assets, metadata and functions; no frontend
+  source, toolchain metadata, locks, dependencies or prior builds are included.
+  No appcast exists in this source checkout; the allowlist includes one when
+  the unchanged native release copies its signed feed before deployment.
+
+The current homepage's intended missing screenshot was recovered from tracked
+history (`0efe52d`) and visually verified against its existing alt and declared
+3024×1964 dimensions. Restoring those exact bytes is the explicit main-tree fix;
+current marketing/legal copy and artwork were otherwise preserved. The existing
+parity comparison additionally retains external-script attributes, so sky/reveal
+paths cannot silently drift. Browser cases have been adapted to the current
+heading/navigation/scripts without dropping assertions; no new cases were added.
+They have not yet been rerun for this reconciliation.
+
+This reconciliation changes no dependency versions or lock bytes: root/frontend
+locks match the accepted migration, and the backend lock matches new production
+main, preserving its upstream graph changes. An initial
+ambient `pnpm node` invocation found Node26 and failed its command/runtime check;
+the commands above were rerun explicitly through the declared managed Node24.
+The ambient dependency verification completed against the existing canonical
+lock; this phase does not claim a new clean authenticated registry install.
+
+Current public `/docs` is404 due to the newly deployed Pages proxy; the prepared
+source returns to retained HTML-guide mode until Mintlify is accepted. Both known
+upstream variants returned the same404 in bounded reads. The actual Git-connected
+Pages build/output configuration remains a provider integration gate; do not merge
+source conversion while its recorded `landing` root/output`.` would ship tooling.
+Source review, current browser/full hosted checks, accepted Mintlify deployment,
+filtered Git publisher configuration, isolated Worker preview, recovery, cutover
+and observation remain separate gates. Ignored receipts: central acceptance
+`curfew-current-source-reconciliation/`, `curfew-raw-pages-output-manifest.json`,
+and `task1-curfew-current-production-reconciliation.json`.

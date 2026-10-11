@@ -1,8 +1,9 @@
 {
-  "source": "Pre-migration landing HTML; captured before Astro conversion",
+  "source": "Current deployed main raw landing HTML; source reconciliation after Astro migration acceptance",
+  "source_sha": "2c56e0680605533a953f90cc6f3268e3ecec6d43",
   "pages": {
     "docs.html": {
-      "text": "Curfew documentation Skip to content Curfew Documentation Back to Curfew Open Account Curfew documentation Overview Claude Desktop Permissions Command line Local HTTP Privacy MCP setup Connect Curfew to Claude Desktop. Curfew includes a local MCP server. Claude Desktop and other compatible apps can use it on your Mac. Claude Desktop Curfew\u2019s standard connection runs on your Mac using stdio. You usually only need to set it up once. 1 Turn on MCP in Curfew Open Settings \u2192 Integrations , then enable MCP. 2 Add it to Claude Desktop Choose Add to Claude Desktop . Curfew adds its connection to Claude Desktop\u2019s configuration for you. 3 Restart Claude Desktop Ask Claude for your Curfew status. If it can answer, you\u2019re connected. Add it manually instead Use Copy Claude Desktop Config in Curfew. If the config file is empty, replace it with this complete file. Otherwise, add the curfew entry inside its existing mcpServers object. The file is ~/Library/Application Support/Claude/claude_desktop_config.json . Restart Claude Desktop when you\u2019re done. { \"mcpServers\": { \"curfew\": { \"command\": \"/Applications/Curfew.app/Contents/Resources/curfew-mcp\", \"args\": [] } } } Permissions Curfew keeps the connection local. It can share only the information and actions its MCP server supports. It can read Curfew data Status, schedule, budget, activity, and your reflections. It can request Supported changes An extension or a schedule change. It cannot write reflections or request an override through MCP. Requests ask first by default. In Settings \u2192 Integrations , choose whether Curfew asks you, denies requests automatically, or approves supported changes automatically. Automatic approval means a connected assistant can make those changes without another prompt. Curfew\u2019s server runs locally and does not upload what it serves. Your MCP client may send information to its own service, so check that client\u2019s privacy policy before sharing reflections. Optional Use Curfew from the command line curfew-ctl comes with Curfew. Run it directly, or make your own alias if you use it often. /Applications/Curfew.app/Contents/Resources/curfew-ctl status More commands /Applications/Curfew.app/Contents/Resources/curfew-ctl schedule show /Applications/Curfew.app/Contents/Resources/curfew-ctl budget /Applications/Curfew.app/Contents/Resources/curfew-ctl reflections --days 7 Advanced Connect over local HTTP Only enable this if your client needs HTTP rather than the normal stdio connection. Loopback only Enable it in Settings \u2192 Advanced . Curfew listens at 127.0.0.1:9847 , so another machine cannot reach it. Want the details on how Curfew handles information? Read the privacy policy . Made by Hypertext Studio . Terms \u00b7 Refund \u00b7 Security \u00b7 Retention \u00b7 Privacy",
+      "text": "Curfew documentation Skip to content Curfew Documentation Back to Curfew Open Account Curfew documentation Overview Claude Desktop Permissions Command line Local HTTP Privacy MCP setup Connect Curfew to Claude Desktop. Curfew includes a local MCP server. Claude Desktop and other compatible apps can use it on your Mac. Claude Desktop Curfew’s standard connection runs on your Mac using stdio. You usually only need to set it up once. 1 Turn on MCP in Curfew Open Settings → Integrations , then enable MCP. 2 Add it to Claude Desktop Choose Add to Claude Desktop . Curfew adds its connection to Claude Desktop’s configuration for you. 3 Restart Claude Desktop Ask Claude for your Curfew status. If it can answer, you’re connected. Add it manually instead Use Copy Claude Desktop Config in Curfew. If the config file is empty, replace it with this complete file. Otherwise, add the curfew entry inside its existing mcpServers object. The file is ~/Library/Application Support/Claude/claude_desktop_config.json . Restart Claude Desktop when you’re done. { \"mcpServers\": { \"curfew\": { \"command\": \"/Applications/Curfew.app/Contents/Resources/curfew-mcp\", \"args\": [] } } } Permissions Curfew keeps the connection local. It can share only the information and actions its MCP server supports. It can read Curfew data Status, schedule, budget, activity, and your reflections. It can request Supported changes An extension or a schedule change. It cannot write reflections or request an override through MCP. Requests ask first by default. In Settings → Integrations , choose whether Curfew asks you, denies requests automatically, or approves supported changes automatically. Automatic approval means a connected assistant can make those changes without another prompt. Curfew’s server runs locally and does not upload what it serves. Your MCP client may send information to its own service, so check that client’s privacy policy before sharing reflections. Optional Use Curfew from the command line curfew-ctl comes with Curfew. Run it directly, or make your own alias if you use it often. /Applications/Curfew.app/Contents/Resources/curfew-ctl status More commands /Applications/Curfew.app/Contents/Resources/curfew-ctl schedule show /Applications/Curfew.app/Contents/Resources/curfew-ctl budget /Applications/Curfew.app/Contents/Resources/curfew-ctl reflections --days 7 Advanced Connect over local HTTP Only enable this if your client needs HTTP rather than the normal stdio connection. Loopback only Enable it in Settings → Advanced . Curfew listens at 127.0.0.1:9847 , so another machine cannot reach it. Want the details on how Curfew handles information? Read the privacy policy . Made by Hypertext Studio . Terms · Refund · Security · Retention · Privacy",
       "title": "Curfew documentation",
       "links": [
         "#main-content",
@@ -47,65 +48,143 @@
         }
       ],
       "canonical": [],
-      "scripts": []
+      "scripts": [],
+      "script_attributes": []
     },
     "index.html": {
-      "text": "Curfew \u2014 A workday with an ending Curfew Open Account End the workday. Set your work hours. Curfew counts down when the day is over, then shows a full-screen lockout. Automatic shutdown is optional. See how it works What it looks like Set a different end time for each day, then see the week as it went. Schedule Journal When work ends. 01 Set your hours Choose start and stop times for each day, days off, or an hours-based schedule. Last-minute schedule changes do not quietly move today's finish line. 02 Get a heads-up Curfew warns you at 30, 15, 5, 2, and 1 minutes. 03 Call it a night At curfew, a full-screen lockout appears. Automatic shutdown is optional. Need more time? Write a reason, wait five minutes, then confirm. Extension and override limits are shown in the menu bar. Curfew is not a security system. A terminal, another account, or a reboot can bypass it. It adds a pause before you decide to keep working. Check in before and after work. Choose the questions. Curfew asks them when you start work and when curfew begins. Answer or skip them. 01 Start with a question Use a short prompt, rating, or mood check when you begin. 02 Wrap up At curfew, note what happened today or what needs to wait until tomorrow. 03 Keep the record Your journal keeps entries and ratings together. Export Markdown or JSON whenever you want. Questions and answer types are editable in Settings. Your entries stay on your Mac. Connect Curfew to a local assistant. Curfew includes a local MCP server. A compatible assistant can read your Curfew status and reflections. Requests that change Curfew wait for approval in the app. Read MCP setup Curfew for macOS Requires macOS 26 or later. Android support is coming soon. Private by default. No telemetry. Local MCP access stays under your control. Made by Hypertext Studio . MCP setup \u00b7 Terms \u00b7 Refund \u00b7 Security \u00b7 Retention \u00b7 Privacy",
-      "title": "Curfew \u2014 A workday with an ending",
+      "text": "Curfew — a hard stop for your Mac Curfew Open Account GitHub A hard stop for your Mac. Pick when your day ends. Curfew warns you ahead of time, locks the screen when the time comes, and can power the Mac off. The schedule runs whether or not you want it to. Download free Curfew Plus How it works 01 Set a weekly schedule Per-day lock and unlock times, day-off support, a few presets to start. Loosening a rule waits out a cooldown, so a change you make at 1am can't quietly undo what you set that morning. 02 Warnings Notifications at 30, 15, 5, 2, and 1 minutes out. The early ones are dim overlays you can click through; the last five minutes get an always-on-top timer. 03 Curfew fires A full-screen overlay covers every display and every Space. ⌘⇥, ⌘Q, and ⌘⌥Esc stop working. If you want, it also closes your apps and shuts the machine down. Need back in? It takes a typed reason, a five-minute cooldown, and a hold-to-confirm, so getting an override costs something. Your weekly override and extension budgets sit in the menu bar, and the This Week view shows what actually happened. Curfew is a commitment device, not a kernel-level lock. A determined person with a terminal or a second account can get around it. It only needs to make stopping the easy default, and most nights that's enough to close the laptop. Two prompts a day, if you want them. Curfew can ask you a couple of questions: one when you start in the morning, one on the lockout screen at night. The idea is borrowed from Sunsama's daily planning and shutdown. 01 Morning Your first session of the day opens with a short, skippable prompt — free text, a 1–5 rating, a quick mood, whatever you set. It takes the screen but never traps you. 02 Night When curfew fires, the lockout screen offers a quick recap before you step away. Note what got done and what's carried over, rate the day. Skip it and the clock runs anyway. 03 Journal Entries land in a private journal that charts your ratings over the week. Export to Markdown or JSON, or let an assistant read it back. It stays on your Mac. The questions are yours — edit them, reorder them, or turn them off in Settings. Hook it up to Claude. curfew-mcp is a small MCP server bundled with the app. Add it to Claude Desktop and your assistant can see how much time is left, ask for an extension, or read back your reflections when you review the week. Anything that changes a setting needs your approval in the app; reflections are read-only and never leave your Mac. ~/.claude_desktop_config.json { \"mcpServers\": { \"curfew\": { \"command\": \"/Applications/Curfew.app/Contents/Resources/curfew-mcp\" } } } shell $ curfew-ctl status phase: warning remaining: 14 min locks at: 6:00 PM warning: T-15 There's a matching CLI, curfew-ctl , in the app bundle for shell scripts and dotfile hooks. It reads the same storage the app does, so it works whether or not the app is running. Curfew Plus is not on sale yet. iCloud sync, calendar-aware warnings, and other Plus capabilities remain disabled until their production Apple provisioning and signed-release validation are complete. We will not sell access to features that have not passed those checks. Purchase will open only after the production license service and checkout flow have been verified end to end. Download Requires macOS 26 or later. Free and open source (MIT). Android support is coming soon. Download latest DMG Signed and notarized Developer ID build · source on GitHub · private by default, with no telemetry or analytics. Local AI assistant access stays under your control. Or build it yourself: git clone github.com/TheHypertextStudio/curfew && open Curfew.xcodeproj Made by Hypertext Studio . Open source, MIT. GitHub · Docs · Terms · Refund · Privacy",
+      "title": "Curfew — a hard stop for your Mac",
       "links": [
         "/account",
-        "#how",
-        "docs.html",
+        "https://github.com/TheHypertextStudio/curfew",
+        "#download",
+        "#plus",
+        "https://github.com/TheHypertextStudio/curfew/releases/latest",
+        "https://github.com/TheHypertextStudio/curfew",
         "https://hypertext.studio",
-        "docs.html",
+        "https://github.com/TheHypertextStudio/curfew",
+        "/docs",
         "terms.html",
         "refund.html",
-        "security.html",
-        "retention.html",
         "privacy.html"
       ],
       "images": [
         {
-          "src": "images/curfew-lockout.png",
-          "alt": "The Curfew lockout overlay, showing the time, an unlock time, and a prompt for getting back in.",
-          "width": "1920",
-          "height": "1200"
-        },
-        {
-          "src": "images/curfew-schedule.png",
-          "alt": "Curfew's weekly schedule editor with per-day work end and resume times, day-off toggles, and schedule presets.",
-          "width": "1080",
-          "height": "720"
-        },
-        {
-          "src": "images/curfew-journal.png",
-          "alt": "Curfew's Journal view showing a week of kept days, overrides, and reflection history.",
-          "width": "1080",
-          "height": "720"
+          "src": "images/lockout-overlay.png",
+          "alt": "Curfew's lockout screen: a large 10:47 PM clock over a dusk sky, the line \"Great work today. Tomorrow is another day.\", an \"unlocks at 7:00 AM\" note, and a small \"Need to get back in?\" prompt.",
+          "width": "3024",
+          "height": "1964"
         }
       ],
       "ids": [
+        "sky",
         "how",
         "reflect",
         "mcp",
+        "plus",
         "download"
       ],
-      "body_class": null,
+      "body_class": "has-sky",
       "metas": [
         {
           "charset": "UTF-8"
         },
         {
           "name": "viewport",
-          "content": "width=device-width, initial-scale=1.0"
+          "content": "width=device-width, initial-scale=1.0, viewport-fit=cover"
         },
         {
           "name": "description",
-          "content": "Set your work hours. Curfew warns you when they end, then helps you step away from your Mac."
+          "content": "A macOS app that locks you out at a time you pick. Warnings, a full-screen lock, and an optional shutdown. Free and open source."
+        },
+        {
+          "name": "color-scheme",
+          "content": "light dark"
+        },
+        {
+          "name": "theme-color",
+          "content": "#f5f0e6",
+          "media": "(prefers-color-scheme: light)"
+        },
+        {
+          "name": "theme-color",
+          "content": "#16130f",
+          "media": "(prefers-color-scheme: dark)"
+        },
+        {
+          "property": "og:type",
+          "content": "website"
+        },
+        {
+          "property": "og:site_name",
+          "content": "Curfew"
+        },
+        {
+          "property": "og:locale",
+          "content": "en_US"
+        },
+        {
+          "property": "og:title",
+          "content": "Curfew — a hard stop for your Mac"
+        },
+        {
+          "property": "og:description",
+          "content": "Pick when your day ends. Curfew warns you, locks the screen, and can shut the Mac down. Free and open source."
+        },
+        {
+          "property": "og:url",
+          "content": "https://curfew.hypertext.studio/"
+        },
+        {
+          "property": "og:image",
+          "content": "https://curfew.hypertext.studio/images/og.png"
+        },
+        {
+          "property": "og:image:width",
+          "content": "1200"
+        },
+        {
+          "property": "og:image:height",
+          "content": "630"
+        },
+        {
+          "name": "twitter:card",
+          "content": "summary_large_image"
+        },
+        {
+          "name": "twitter:title",
+          "content": "Curfew — a hard stop for your Mac"
+        },
+        {
+          "name": "twitter:description",
+          "content": "Pick when your day ends. Curfew warns you, locks the screen, and can shut the Mac down."
+        },
+        {
+          "name": "twitter:image",
+          "content": "https://curfew.hypertext.studio/images/og.png"
         }
       ],
-      "canonical": [],
-      "scripts": []
+      "canonical": [
+        "https://curfew.hypertext.studio/"
+      ],
+      "scripts": [
+        "d2828c670dccf1b0a9eb9b06c13b6ffc38d9c480558bbebf17f042725d38c2fd",
+        "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      ],
+      "script_attributes": [
+        {
+          "type": "application/ld+json"
+        },
+        {
+          "src": "sky.js",
+          "defer": null
+        },
+        {
+          "src": "reveal.js",
+          "defer": null
+        }
+      ]
     },
     "mcp.html": {
       "text": "Curfew documentation Open Curfew documentation .",
@@ -128,11 +207,12 @@
       "canonical": [
         "https://curfew.hypertext.studio/docs"
       ],
-      "scripts": []
+      "scripts": [],
+      "script_attributes": []
     },
     "privacy.html": {
-      "text": "Privacy \u2014 Curfew Curfew Open Account Privacy Accounts are optional. Curfew works locally without Apple, Google, or a Hypertext Studio account, and requests only the permissions it uses. What Curfew stores Data Where Retention Schedule, budgets, preferences, license key ~/Library/Preferences/studio.hypertext.curfew.plist and ~/Library/Group Containers/group.studio.hypertext.curfew/Curfew/widget-settings.json Until you remove it or uninstall Curfew Activity log (lockouts, extensions, overrides) ~/Library/Group Containers/group.studio.hypertext.curfew/Curfew/activity.sqlite3 52 weeks rolling Reflections (your morning & evening journal answers) ~/Library/Application Support/Curfew/reflections.sqlite3 52 weeks rolling Pending MCP write requests ~/Library/Application Support/Curfew/mcp-requests.json Until resolved Browser decision audit metadata (hostname, decision, and scope type) ~/Library/Logs/Curfew Rotated segments for 90 days; the current segment until rotation What Curfew does not do No analytics, telemetry, or crash reporting. No advertising or sale of personal information. No access to your files or app content. No reading of page content, page subresources, or general browser history. Optional Curfew Account If you sign in, your schedules, wake settings, callback definitions, and other synchronized content are end-to-end encrypted. Hypertext Studio coordinates ciphertext but cannot read that content. A plain Android build works without Google Play Services; the GMS build uses them only to reduce notification and sync latency, never for correctness. The service still needs unavoidable metadata to operate: your Apple or Google sign-in identity, purchase entitlements, device public keys and revocation state, encrypted-record headers and timing, routing handles, OAuth and MCP grants, and remote unlock audit records. Card details go directly to Stripe and never reach Curfew servers. Recovery and deletion Two-factor backup codes restore account access; they do not decrypt synchronized content. That requires an enrolled device or your separate Curfew Recovery Key. You can export your account data and delete your Curfew account. See the retention policy for what is removed and what must be retained. Permissions Permission Why Calendars (Pro) Read today's events for display. Never written to. Notifications Warning countdowns and lockout alerts. Accessibility (optional) Keyboard shortcut interception during lockout. Chrome navigation (optional) Observe top-level HTTP and HTTPS navigation while task enforcement is active. Task-scoped browser enforcement When you enable task-scoped browser enforcement, the Chrome extension observes top-level HTTP and HTTPS navigation so Curfew can allow known destinations and block unknown ones before they load. Curfew does not inspect page content or subresources. Known destinations stay on your Mac. For an unknown destination only, Curfew sends the normalized origin and path to Docket and Athena with the current task and your answer for review. Curfew removes URL credentials, query strings, and fragments first. Curfew retains an initial justification only while one live challenge remains pending, so the challenge can survive a page reload. Curfew never persists a completed justification or a challenge answer. The local audit log records only the hostname, decision, and scope type. It never records a full path, query, fragment, credential, justification, challenge answer, reviewer reason, or reviewer question. iCloud sync (Pro) When enabled, your schedule is stored in your private iCloud database (CloudKit). Hypertext Studio has no access \u2014 it lives in your personal iCloud account, encrypted by Apple. MCP server When curfew-mcp is running, a connected assistant can read your enforcement state and reflections, and request an extension or schedule change. Reflections are read-only. Curfew asks before write requests by default; you can change that policy in Settings. Curfew does not upload this data, but the assistant you connect may send it to its own service. Check that service's privacy policy before sharing your reflections. Remote MCP clients receive only the scopes you approve. Remote unlock requests include a reason, are time-bounded, and are written to a remote unlock audit record. Direct unlock is off by default and can be authorized only for selected clients and devices. Questions: hello@hypertext.studio Made by Hypertext Studio . MCP setup \u00b7 Terms \u00b7 Refund \u00b7 Security \u00b7 Retention \u00b7 Privacy",
-      "title": "Privacy \u2014 Curfew",
+      "text": "Privacy — Curfew Curfew Open Account Privacy Accounts are optional. Curfew works locally without Apple, Google, or a Hypertext Studio account, and requests only the permissions it uses. What Curfew stores Data Where Retention Schedule, budgets, preferences, license key ~/Library/Preferences/studio.hypertext.curfew.plist and ~/Library/Group Containers/group.studio.hypertext.curfew/Curfew/widget-settings.json Until you remove it or uninstall Curfew Activity log (lockouts, extensions, overrides) ~/Library/Group Containers/group.studio.hypertext.curfew/Curfew/activity.sqlite3 52 weeks rolling Reflections (your morning & evening journal answers) ~/Library/Application Support/Curfew/reflections.sqlite3 52 weeks rolling Pending MCP write requests ~/Library/Application Support/Curfew/mcp-requests.json Until resolved Browser decision audit metadata (hostname, decision, and scope type) ~/Library/Logs/Curfew Rotated segments for 90 days; the current segment until rotation What Curfew does not do No analytics, telemetry, or crash reporting. No advertising or sale of personal information. No access to your files or app content. No reading of page content, page subresources, or general browser history. Optional Curfew Account If you sign in, your schedules, wake settings, callback definitions, and other synchronized content are end-to-end encrypted. Hypertext Studio coordinates ciphertext but cannot read that content. A plain Android build works without Google Play Services; the GMS build uses them only to reduce notification and sync latency, never for correctness. The service still needs unavoidable metadata to operate: your Apple or Google sign-in identity, purchase entitlements, device public keys and revocation state, encrypted-record headers and timing, routing handles, OAuth and MCP grants, and remote unlock audit records. Card details go directly to Stripe and never reach Curfew servers. Recovery and deletion Two-factor backup codes restore account access; they do not decrypt synchronized content. That requires an enrolled device or your separate Curfew Recovery Key. You can export your account data and delete your Curfew account. See the retention policy for what is removed and what must be retained. Permissions Permission Why Calendars (Plus) Read today's events for display. Never written to. Notifications Warning countdowns and lockout alerts. Accessibility (optional) Keyboard shortcut interception during lockout. Chrome navigation (optional) Observe top-level HTTP and HTTPS navigation while task enforcement is active. Task-scoped browser enforcement When you enable task-scoped browser enforcement, the Chrome extension observes top-level HTTP and HTTPS navigation so Curfew can allow known destinations and block unknown ones before they load. Curfew does not inspect page content or subresources. Known destinations stay on your Mac. For an unknown destination only, Curfew sends the normalized origin and path to Docket and Athena with the current task and your answer for review. Curfew removes URL credentials, query strings, and fragments first. Curfew retains an initial justification only while one live challenge remains pending, so the challenge can survive a page reload. Curfew never persists a completed justification or a challenge answer. The local audit log records only the hostname, decision, and scope type. It never records a full path, query, fragment, credential, justification, challenge answer, reviewer reason, or reviewer question. iCloud sync (Pro) When enabled, your schedule is stored in your private iCloud database (CloudKit). Hypertext Studio has no access — it lives in your personal iCloud account, encrypted by Apple. MCP server When curfew-mcp is running, a connected assistant can read your enforcement state and reflections, and request an extension or schedule change. Reflections are read-only. Curfew asks before write requests by default; you can change that policy in Settings. Curfew does not upload this data, but the assistant you connect may send it to its own service. Check that service's privacy policy before sharing your reflections. Remote MCP clients receive only the scopes you approve. Remote unlock requests include a reason, are time-bounded, and are written to a remote unlock audit record. Direct unlock is off by default and can be authorized only for selected clients and devices. Questions: hello@hypertext.studio Made by Hypertext Studio . MCP setup · Terms · Refund · Security · Retention · Privacy",
+      "title": "Privacy — Curfew",
       "links": [
         "/",
         "/account",
@@ -156,14 +236,25 @@
         {
           "name": "viewport",
           "content": "width=device-width, initial-scale=1.0"
+        },
+        {
+          "name": "theme-color",
+          "content": "#f5f0e6",
+          "media": "(prefers-color-scheme: light)"
+        },
+        {
+          "name": "theme-color",
+          "content": "#16130f",
+          "media": "(prefers-color-scheme: dark)"
         }
       ],
       "canonical": [],
-      "scripts": []
+      "scripts": [],
+      "script_attributes": []
     },
     "refund.html": {
-      "text": "Refund Policy \u2014 Curfew Curfew Open Account Refund Policy We want you to be happy with Curfew Pro. If it isn't the right fit, we offer a straightforward refund. 14-day refunds You can request a full refund within 14 days of your Curfew Pro purchase, for any reason. Just email hello@hypertext.studio from the address you used at checkout, or include your order number from the Stripe receipt. We'll process it promptly. How refunds are issued Curfew payments are processed by Stripe, so refunds are returned to your original payment method through Stripe. It can take a few business days for the funds to appear, depending on your bank or card issuer. About your license key Curfew Pro license keys are perpetual and verified offline. Because they are not remotely revocable, a refunded key may technically continue to unlock Pro on your machines. Requesting a refund is your agreement to stop using Curfew Pro and to delete your license key. We trust you to honor that. After 14 days Beyond the 14-day window we generally can't offer refunds, but if something has gone wrong, reach out anyway \u2014 hello@hypertext.studio \u2014 and we'll do our best to make it right. Made by Hypertext Studio . MCP setup \u00b7 Terms \u00b7 Refund \u00b7 Security \u00b7 Retention \u00b7 Privacy",
-      "title": "Refund Policy \u2014 Curfew",
+      "text": "Refund Policy — Curfew Curfew Open Account Refund Policy We want you to be happy with Curfew Plus. If it isn't the right fit, we offer a straightforward refund. 14-day refunds You can request a full refund within 14 days of your Curfew Plus purchase, for any reason. Just email hello@hypertext.studio from the address you used at checkout, or include your order number from the Stripe receipt. We'll process it promptly. How refunds are issued Curfew payments are processed by Stripe, so refunds are returned to your original payment method through Stripe. It can take a few business days for the funds to appear, depending on your bank or card issuer. Subscriptions A Curfew Plus subscription renews automatically. You can cancel anytime to stop future renewals; Plus stays active until the end of the period you have already paid for, then turns off on its own. The 14-day window above applies to your most recent charge. About your license key One-time Curfew Plus keys are perpetual and verified offline. Because they are not remotely revocable, a refunded one-time key may technically continue to unlock Plus on your machines; requesting a refund is your agreement to stop using Curfew Plus and delete the key, and we trust you to honor that. Subscription keys carry an expiry and are refreshed online while active, so they stop unlocking Plus on their own once a subscription ends. After 14 days Beyond the 14-day window we generally can't offer refunds, but if something has gone wrong, reach out anyway — hello@hypertext.studio — and we'll do our best to make it right. Made by Hypertext Studio . MCP setup · Terms · Refund · Security · Retention · Privacy",
+      "title": "Refund Policy — Curfew",
       "links": [
         "/",
         "/account",
@@ -187,14 +278,25 @@
         {
           "name": "viewport",
           "content": "width=device-width, initial-scale=1.0"
+        },
+        {
+          "name": "theme-color",
+          "content": "#f5f0e6",
+          "media": "(prefers-color-scheme: light)"
+        },
+        {
+          "name": "theme-color",
+          "content": "#16130f",
+          "media": "(prefers-color-scheme: dark)"
         }
       ],
       "canonical": [],
-      "scripts": []
+      "scripts": [],
+      "script_attributes": []
     },
     "retention.html": {
-      "text": "Data Retention \u2014 Curfew Curfew Open Account Data Retention Account-free Curfew data stays on your devices. Account data is kept only as long as needed to synchronize, secure, and support purchases. On your devices You control schedules, wake settings, callback secrets, and local history. Current macOS activity and reflection history roll off after 52 weeks. Removing the app does not always remove shared containers or operating-system backups; use Curfew's data controls before uninstalling. In a Curfew Account Encrypted sync records remain until you delete the record or account. Expired or revoked sessions, OAuth grants, and routing artifacts are removed within 30 days unless security investigation requires a temporary hold. Remote-unlock audit records are retained for 365 days. Entitlement, refund, and payment-reference records are retained as needed for licensing, fraud prevention, accounting, and legal obligations. IP addresses may be processed for transport security and rate limiting but are not stored in Curfew application records. Export and deletion You can export your purchases, devices, grants, audits, and encrypted records before deletion. When you delete your Curfew account, active sessions and grants are revoked and account-scoped sync data is queued for deletion. Required purchase records are disassociated where possible and retained only for the purposes above. Signed offline licenses remain subject to their purchase and refund state. Questions about retention or deletion: hello@hypertext.studio Made by Hypertext Studio . MCP setup \u00b7 Terms \u00b7 Refund \u00b7 Security \u00b7 Retention \u00b7 Privacy",
-      "title": "Data Retention \u2014 Curfew",
+      "text": "Data Retention — Curfew Curfew Open Account Data Retention Account-free Curfew data stays on your devices. Account data is kept only as long as needed to synchronize, secure, and support purchases. On your devices You control schedules, wake settings, callback secrets, and local history. Current macOS activity and reflection history roll off after 52 weeks. Removing the app does not always remove shared containers or operating-system backups; use Curfew's data controls before uninstalling. In a Curfew Account Encrypted sync records remain until you delete the record or account. Expired or revoked sessions, OAuth grants, and routing artifacts are removed within 30 days unless security investigation requires a temporary hold. Remote-unlock audit records are retained for 365 days. Entitlement, refund, and payment-reference records are retained as needed for licensing, fraud prevention, accounting, and legal obligations. IP addresses may be processed for transport security and rate limiting but are not stored in Curfew application records. Export and deletion You can export your purchases, devices, grants, audits, and encrypted records before deletion. When you delete your Curfew account, active sessions and grants are revoked and account-scoped sync data is queued for deletion. Required purchase records are disassociated where possible and retained only for the purposes above. Signed offline licenses remain subject to their purchase and refund state. Questions about retention or deletion: hello@hypertext.studio Made by Hypertext Studio . MCP setup · Terms · Refund · Security · Retention · Privacy",
+      "title": "Data Retention — Curfew",
       "links": [
         "/",
         "/account",
@@ -220,11 +322,12 @@
         }
       ],
       "canonical": [],
-      "scripts": []
+      "scripts": [],
+      "script_attributes": []
     },
     "security.html": {
-      "text": "Security \u2014 Curfew Curfew Open Account Security Curfew keeps its local-first design when you add an account. The coordinator routes encrypted state; enrolled devices hold the keys. Account protection Sign-in uses Apple or Google in your system browser. Every interactive sign-in must then complete fresh two-factor authentication with TOTP or a one-time backup code. A social sign-in alone cannot open account, purchase, device, synchronization, linking, or MCP consent settings. Curfew does not offer a trusted-device bypass. Encrypted synchronization Curfew creates a random 256-bit account root key. Devices derive separate namespace keys, encrypt records with AES-256-GCM, sign writes with device keys, and enroll new devices through public-key envelopes. The service stores ciphertext and the minimum routing metadata; it never receives the account root key in plaintext. Two different recovery tools Better Auth backup codes recover sign-in only. Recovering encrypted Curfew data requires both an AAL2 sign-in and the separate Curfew Recovery Key. If every enrolled device and that key are lost, Hypertext Studio cannot decrypt or restore the synchronized content. Remote unlock Web unlock requires fresh two-factor authentication. MCP clients ask for approval by default; direct authority must be explicitly limited to chosen clients and devices. Each unlock includes a reason, lasts 5\u201360 minutes, and is audited. Tokens are audience-bound, scoped, revocable, and issued through OAuth 2.1 with PKCE. Limits Curfew is a self-control tool, not malware or device management. Operating-system power controls, force stop, another macOS account, recovery tools, and uninstall remain possible. Report a security issue privately to hello@hypertext.studio . Made by Hypertext Studio . MCP setup \u00b7 Terms \u00b7 Refund \u00b7 Security \u00b7 Retention \u00b7 Privacy",
-      "title": "Security \u2014 Curfew",
+      "text": "Security — Curfew Curfew Open Account Security Curfew keeps its local-first design when you add an account. The coordinator routes encrypted state; enrolled devices hold the keys. Account protection Sign-in uses Apple or Google in your system browser. Every interactive sign-in must then complete fresh two-factor authentication with TOTP or a one-time backup code. A social sign-in alone cannot open account, purchase, device, synchronization, linking, or MCP consent settings. Curfew does not offer a trusted-device bypass. Encrypted synchronization Curfew creates a random 256-bit account root key. Devices derive separate namespace keys, encrypt records with AES-256-GCM, sign writes with device keys, and enroll new devices through public-key envelopes. The service stores ciphertext and the minimum routing metadata; it never receives the account root key in plaintext. Two different recovery tools Better Auth backup codes recover sign-in only. Recovering encrypted Curfew data requires both an AAL2 sign-in and the separate Curfew Recovery Key. If every enrolled device and that key are lost, Hypertext Studio cannot decrypt or restore the synchronized content. Remote unlock Web unlock requires fresh two-factor authentication. MCP clients ask for approval by default; direct authority must be explicitly limited to chosen clients and devices. Each unlock includes a reason, lasts 5–60 minutes, and is audited. Tokens are audience-bound, scoped, revocable, and issued through OAuth 2.1 with PKCE. Limits Curfew is a self-control tool, not malware or device management. Operating-system power controls, force stop, another macOS account, recovery tools, and uninstall remain possible. Report a security issue privately to hello@hypertext.studio . Made by Hypertext Studio . MCP setup · Terms · Refund · Security · Retention · Privacy",
+      "title": "Security — Curfew",
       "links": [
         "/",
         "/account",
@@ -250,11 +353,12 @@
         }
       ],
       "canonical": [],
-      "scripts": []
+      "scripts": [],
+      "script_attributes": []
     },
     "success.html": {
-      "text": "Your Curfew Pro license Curfew Open Account Thanks for buying Curfew Pro. Fetching your license key\u2026 This usually takes a second. Here is your license key. We have also emailed a copy to you. Copy Open Curfew and go to Settings \u2192 License . Paste the key above into the license field. Click Activate \u2014 Pro features unlock immediately. Keep this key somewhere safe. It is perpetual and works on every Mac you own. Lost it? It is in your purchase receipt email, or reach hello@hypertext.studio . We couldn't load your license key here. Don't worry \u2014 your license was also sent to your email in the purchase receipt. If it hasn't arrived in a few minutes, or you need a hand, email hello@hypertext.studio with your order details and we'll sort it out. Made by Hypertext Studio . MCP setup \u00b7 Terms \u00b7 Refund \u00b7 Security \u00b7 Retention \u00b7 Privacy",
-      "title": "Your Curfew Pro license",
+      "text": "Your Curfew Plus license Curfew Open Account Thanks for buying Curfew Plus. Fetching your license key… This usually takes a second. Here is your license key. Copy it now — this page is where it lives. Copy Open Curfew and go to Settings → License . Paste the key above into the license field. Click Activate — Plus unlocks immediately. Keep this key somewhere safe. A one-time purchase is perpetual and works on every Mac you own; a subscription renews itself and Curfew refreshes the key for you. Stripe emails your payment receipt, but the key only lives here — lost it? Reach hello@hypertext.studio with your order details. We couldn't load your license key here. Your payment went through — Stripe has emailed your receipt. The key is issued moments after checkout, so if this page loaded too early, reload it. If it still doesn't appear, email hello@hypertext.studio with your order details and we'll sort it out. Made by Hypertext Studio . MCP setup · Terms · Refund · Security · Retention · Privacy",
+      "title": "Your Curfew Plus license",
       "links": [
         "/",
         "/account",
@@ -288,21 +392,34 @@
         },
         {
           "name": "description",
-          "content": "Your Curfew Pro license key and activation instructions."
+          "content": "Your Curfew Plus license key and activation instructions."
         },
         {
           "name": "robots",
           "content": "noindex"
+        },
+        {
+          "name": "theme-color",
+          "content": "#f5f0e6",
+          "media": "(prefers-color-scheme: light)"
+        },
+        {
+          "name": "theme-color",
+          "content": "#16130f",
+          "media": "(prefers-color-scheme: dark)"
         }
       ],
       "canonical": [],
       "scripts": [
         "7bf14f79ff3aefbc1ea801d2194dacd2218c98ea0e3806491f184bc31eafe434"
+      ],
+      "script_attributes": [
+        {}
       ]
     },
     "terms.html": {
-      "text": "Terms \u2014 Curfew Curfew Open Account Terms of Service These terms cover Curfew and the Curfew Pro license. The free app is open source under the MIT license; the terms below add the purchase and licensing details for Pro. Who you're buying from Curfew is made and sold by Hypertext Studio. Stripe is our payment processor and handles checkout, payment credentials, and receipts. Your card details are handled by Stripe and never touch our servers. Your license Depending on the offer shown at checkout, you may buy a lifetime license or subscription. A valid purchase grants you a non-exclusive, non-transferable license to use the included Curfew features on the supported devices you own or control. A lifetime license does not expire; subscription features remain available while the subscription is active. Signed offline license keys keep working without an account. What you may not do Resell, sublicense, or redistribute your license key. Circumvent or tamper with license verification. Use the software in violation of applicable law. The free, open-source portions of Curfew remain governed by their MIT license; nothing here restricts the rights that license grants. Updates Your Pro license includes updates to the current major version of Curfew. Future major versions may be offered separately. We may change, add, or retire Pro features over time as the product evolves. Accounts, recovery, and remote control A Curfew Account is optional. If you enable encrypted synchronization, you are responsible for saving the Curfew Recovery Key: sign-in backup codes cannot decrypt your data. Authorized remote unlocks are limited in duration but still weaken an active Curfew; review connected apps and revoke access you no longer need. No warranty Curfew is provided \"as is\", without warranty of any kind. Curfew is a self-control aid, not a security product \u2014 it does not guarantee that you cannot bypass it. To the fullest extent permitted by law, Hypertext Studio is not liable for any indirect or consequential damages arising from use of the software, and total liability is limited to the amount you paid for your license. Refunds See our refund policy for how and when you can request a refund. Contact Questions about these terms: hello@hypertext.studio Made by Hypertext Studio . MCP setup \u00b7 Terms \u00b7 Refund \u00b7 Security \u00b7 Retention \u00b7 Privacy",
-      "title": "Terms \u2014 Curfew",
+      "text": "Terms — Curfew Curfew Open Account Terms of Service These terms cover Curfew and the Curfew Plus license. The free app is open source under the MIT license; the terms below add the purchase and licensing details for Plus. Who you're buying from Curfew is made and sold by Hypertext Studio. Stripe is our payment processor and handles checkout, payment credentials, and receipts. Your card details are handled by Stripe and never touch our servers. Your license Depending on the offer shown at checkout, you may buy a lifetime license or subscription. A valid purchase grants you a non-exclusive, non-transferable license to use the included Curfew features on the supported devices you own or control. A lifetime license does not expire; subscription features remain available while the subscription is active. Signed offline license keys keep working without an account. What you may not do Resell, sublicense, or redistribute your license key. Circumvent or tamper with license verification. Use the software in violation of applicable law. The free, open-source portions of Curfew remain governed by their MIT license; nothing here restricts the rights that license grants. Updates Your Plus license includes updates to the current major version of Curfew. Future major versions may be offered separately. We may change, add, or retire Plus features over time as the product evolves. Accounts, recovery, and remote control A Curfew Account is optional. If you enable encrypted synchronization, you are responsible for saving the Curfew Recovery Key: sign-in backup codes cannot decrypt your data. Authorized remote unlocks are limited in duration but still weaken an active Curfew; review connected apps and revoke access you no longer need. No warranty Curfew is provided \"as is\", without warranty of any kind. Curfew is a self-control aid, not a security product — it does not guarantee that you cannot bypass it. To the fullest extent permitted by law, Hypertext Studio is not liable for any indirect or consequential damages arising from use of the software, and total liability is limited to the amount you paid for your license. Refunds See our refund policy for how and when you can request a refund. Contact Questions about these terms: hello@hypertext.studio Made by Hypertext Studio . MCP setup · Terms · Refund · Security · Retention · Privacy",
+      "title": "Terms — Curfew",
       "links": [
         "/",
         "/account",
@@ -326,17 +443,42 @@
         {
           "name": "viewport",
           "content": "width=device-width, initial-scale=1.0"
+        },
+        {
+          "name": "theme-color",
+          "content": "#f5f0e6",
+          "media": "(prefers-color-scheme: light)"
+        },
+        {
+          "name": "theme-color",
+          "content": "#16130f",
+          "media": "(prefers-color-scheme: dark)"
         }
       ],
       "canonical": [],
-      "scripts": []
+      "scripts": [],
+      "script_attributes": []
     }
   },
   "public_assets": {
+    "_headers": "963309b0e6a116ff9cc81b6ff26da857dc17aa1eeac0a17e1b36bae91e1b0069",
+    "images/apple-touch-icon.png": "6bfa35c0793639825bde0b96308802f38451d4752f297d60217a04fdf98fbf6f",
     "images/curfew-journal.png": "2960d54cdcc5c39ee32360afee51b349cce449f119cd9fc93928d20846fc0323",
     "images/curfew-lockout.png": "634890418f182132395fba275156659a26820cbe8644485a73d8d28b945fc1de",
     "images/curfew-schedule.png": "92477367f66a29461a0de5bf00509e7bf727a8a3a709d4daf17d63b57115355d",
-    "style.css": "f86c9ce25f692c412a2d196bdf0fc240c4979ab11efa3f934a23a3f043dc46d6"
+    "images/favicon.png": "f7becba9b2023f707bf93980baca9508b842f12625ad62d8171376d3fd30a515",
+    "images/lockout-overlay.png": "80cbf81a47d601e802615dd5d8c6c188cf0df8aeae3f465d29d4f919bcd4b3be",
+    "images/og.png": "d3df60b197dc58f24602316e294fe12c265033301f328b8fee7a05945a4b7703",
+    "reveal.js": "b658fe9847af9a2b8e24dcbe13c023642bf1e2946c5fe194e9fdffbc9725be9e",
+    "robots.txt": "1e60dd3f66e795746283d0f8860c8f22342518f9dc8413e22c4ef7f4bb039d21",
+    "sitemap.xml": "a05cb923e82545a964b12a3b0d186042f10f4417d8cc48b7733911f75156edcf",
+    "sky.js": "96452523411fb906a6ef3ee73dcde759edd6fe6d6b1bac3073c4b35c4e015645",
+    "style.css": "81cea8b4c29fab2016d1b918d598010a5b1e8c48e1ca431fd4b786b4bf8bc6cf"
   },
-  "source_sha": "9e941cc59ffa88e3a8bc5279ca14fcb3fb9a9090"
+  "restored_asset": {
+    "path": "images/lockout-overlay.png",
+    "source_sha": "0efe52df944f0c5f9f6027995cfbe4eae1665d23",
+    "sha256": "80cbf81a47d601e802615dd5d8c6c188cf0df8aeae3f465d29d4f919bcd4b3be",
+    "reason": "Current deployed HTML references this exact historical screenshot; absent from current main tree. Restored matching3024x1964 capture, without changing markup or substituting other artwork."
+  }
 }

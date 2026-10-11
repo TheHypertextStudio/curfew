@@ -20,6 +20,7 @@ class Contract(HTMLParser):
         self.skip = 0
         self.in_title = False
         self.scripts = []
+        self.script_attributes = []
         self.script = None
         self.body_class = None
         self.metas = []
@@ -31,6 +32,8 @@ class Contract(HTMLParser):
             self.skip += 1
         if tag == 'script':
             self.script = []
+            self.script_attributes.append({key: value for key, value in attrs.items()
+                                           if key not in ('is:inline', 'is:raw')})
         if tag == 'title':
             self.in_title = True
         if tag == 'body':
@@ -67,7 +70,7 @@ class Contract(HTMLParser):
         return {'text': re.sub(r'\s+', ' ', ' '.join(self.text)).strip(), 'title': ''.join(self.title),
                 'links': self.links, 'images': self.images, 'ids': self.ids,
                 'body_class': self.body_class, 'metas': self.metas, 'canonical': self.canonical,
-                'scripts': self.scripts}
+                'scripts': self.scripts, 'script_attributes': self.script_attributes}
 
 def contract(path):
     parser = Contract()

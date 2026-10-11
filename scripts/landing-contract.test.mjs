@@ -92,9 +92,9 @@ test('web tooling uses the existing Pages asset root', async () => {
   const tools = path.join(root, 'web', 'landing');
   const manifest = JSON.parse(await readFile(path.join(tools, 'package.json'), 'utf8'));
   for (const script of Object.values(manifest.scripts)) {
-    const directory = script.match(/--cwd (\S+)/)?.[1];
+    const directory = script.match(/prepare-site-assets\.mjs --pages && wrangler --cwd (\S+)/)?.[1];
     assert.ok(directory);
-    assert.equal(path.resolve(tools, directory), landing);
+    assert.equal(path.resolve(tools, directory), path.join(landing, '.pages-output'));
   }
   assert.ok((await readFile(path.join(landing, 'functions', '_middleware.js'), 'utf8')).length);
 });

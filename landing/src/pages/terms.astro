@@ -1,7 +1,13 @@
 ---
 import Page from "../layouts/Page.astro";
 ---
-<Page title="Terms \u2014 Curfew" stylesheet="style.css">
+<Page title="Terms — Curfew" stylesheet="style.css">
+<Fragment slot="head">
+<meta name="theme-color" content="#f5f0e6" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#16130f" media="(prefers-color-scheme: dark)" />
+  <link rel="icon" type="image/png" href="images/favicon.png" />
+  <link rel="apple-touch-icon" href="images/apple-touch-icon.png" />
+</Fragment>
 <header class="site-header">
     <nav>
       <a href="/" class="wordmark">Curfew</a>
@@ -15,9 +21,9 @@ import Page from "../layouts/Page.astro";
         <h1 class="privacy-heading">Terms of Service</h1>
 
         <p class="privacy-lede">
-          These terms cover Curfew and the Curfew Pro license. The free app is
+          These terms cover Curfew and the Curfew Plus license. The free app is
           open source under the MIT license; the terms below add the purchase
-          and licensing details for Pro.
+          and licensing details for Plus.
         </p>
 
         <h2 class="privacy-section-title">Who you're buying from</h2>
@@ -28,6 +34,9 @@ import Page from "../layouts/Page.astro";
         </p>
 
         <h2 class="privacy-section-title">Your license</h2>
+        <!-- TODO(legal): subscription terms below are a factual placeholder and
+             should be reviewed/authored by the owner (renewal cadence,
+             cancellation, and how they interact with the Refund policy). -->
         <p class="privacy-prose">
           Depending on the offer shown at checkout, you may buy a lifetime
           license or subscription. A valid purchase grants you a non-exclusive,
@@ -50,9 +59,9 @@ import Page from "../layouts/Page.astro";
 
         <h2 class="privacy-section-title">Updates</h2>
         <p class="privacy-prose">
-          Your Pro license includes updates to the current major version of
+          Your Plus license includes updates to the current major version of
           Curfew. Future major versions may be offered separately. We may
-          change, add, or retire Pro features over time as the product evolves.
+          change, add, or retire Plus features over time as the product evolves.
         </p>
 
         <h2 class="privacy-section-title">Accounts, recovery, and remote control</h2>
