@@ -83,6 +83,7 @@ struct LockoutScreenView: View {
     var body: some View {
         ZStack {
             SundownSky(moment: model.skyMoment)
+                .overlay(SundownPalette.textScrim)
                 .ignoresSafeArea()
 
             VStack(spacing: 0) {
@@ -123,14 +124,14 @@ struct LockoutScreenView: View {
                         .frame(width: 64, height: 1)
                     Text(unlockLine)
                         .font(.system(size: 18, weight: .regular, design: .rounded))
-                        .foregroundStyle(SundownPalette.warmWhite.opacity(0.72))
+                        .foregroundStyle(SundownPalette.supportingText)
                 }
                 .padding(.top, 4)
 
                 if let shutdownStatusLine = model.shutdownStatusLine {
                     Text(shutdownStatusLine)
                         .font(.system(size: 13, weight: .regular, design: .rounded))
-                        .foregroundStyle(SundownPalette.warmWhite.opacity(0.5))
+                        .foregroundStyle(SundownPalette.supportingText)
                 }
             }
 
@@ -171,13 +172,13 @@ struct LockoutScreenView: View {
                     "Minimum \(OverrideRequestPolicy.minimumJustificationCharacters) characters"
                 )
                 .font(.caption)
-                .foregroundStyle(SundownPalette.warmWhite.opacity(0.6))
+                .foregroundStyle(SundownPalette.supportingText)
 
                 if model.overrideCooldownRemaining > 0 {
                     let remaining = Int(ceil(model.overrideCooldownRemaining))
                     Text(String(format: "Cooling off: %d:%02d", remaining / 60, remaining % 60))
                         .font(.caption.monospacedDigit())
-                        .foregroundStyle(SundownPalette.warmWhite.opacity(0.72))
+                        .foregroundStyle(SundownPalette.supportingText)
                         .accessibilityIdentifier("override-cooldown")
                 }
 
@@ -235,14 +236,14 @@ struct LockoutScreenView: View {
             } else if model.overridesRemaining == 0 {
                 Text("No overrides left this week")
                     .font(.callout)
-                    .foregroundStyle(SundownPalette.warmWhite.opacity(0.72))
+                    .foregroundStyle(SundownPalette.supportingText)
             } else {
                 Button(OverrideRequestPolicy.entryPrompt) {
                     model.beginOverrideRequest()
                 }
                 .accessibilityIdentifier("override-entry")
                 .buttonStyle(.plain)
-                .foregroundStyle(SundownPalette.warmWhite.opacity(0.4))
+                .foregroundStyle(SundownPalette.supportingText)
             }
         }
     }

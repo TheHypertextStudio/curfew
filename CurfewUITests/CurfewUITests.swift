@@ -261,29 +261,12 @@ extension CurfewUITests {
     func testTaskBrowserEnforcementPanelActions() {
         let app = launchFixture("settings")
         app.descendants(matching: .any)["settings-integrations-tab"].click()
-        let destinations = app.disclosureTriangles["Allowed destinations"]
-        let pane = app.scrollViews["settings-detail"]
+        let destinations = app.disclosureTriangles["task-browser-destinations-disclosure"]
         XCTAssertTrue(destinations.waitForExistence(timeout: 5))
-        for direction in [1.0, -1.0] {
-            for _ in 0 ..< 8 {
-                let arrowY = destinations.frame.midY
-                if arrowY > pane.frame.minY + 16, arrowY < pane.frame.maxY - 16 {
-                    break
-                }
-                pane.scroll(byDeltaX: 0, deltaY: direction * pane.frame.height / 3)
-            }
-            if destinations.frame.midY > pane.frame.minY + 16,
-               destinations.frame.midY < pane.frame.maxY - 16 {
-                break
-            }
-        }
-        XCTAssertTrue(destinations.isHittable)
-        destinations.coordinate(withNormalizedOffset: CGVector(dx: 0, dy: 0.5))
-            .withOffset(CGVector(dx: 26, dy: 0)).click()
-        XCTAssertEqual(
-            destinations.value as? String,
-            "1",
-            "Destinations must be expanded before editing."
+        destinations.click()
+        XCTAssertTrue(
+            app.buttons["Remove instagram.com"].waitForExistence(timeout: 3),
+            "Expanded destinations must expose their remove action.\n\(app.debugDescription)"
         )
 
         XCTAssertTrue(app.staticTexts["Task Browser Enforcement"].waitForExistence(timeout: 5))

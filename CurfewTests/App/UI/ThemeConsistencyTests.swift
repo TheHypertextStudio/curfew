@@ -258,6 +258,32 @@ struct ThemeConsistencyTests {
 }
 
 extension ThemeConsistencyTests {
+    @Test("Browser destination disclosure exposes a unique target and expansion state")
+    func browserDisclosureAccessibility() throws {
+        let root = URL(fileURLWithPath: #filePath).resolvingSymlinksInPath()
+            .deletingLastPathComponent().deletingLastPathComponent()
+            .deletingLastPathComponent().deletingLastPathComponent()
+        let source = try String(contentsOf: root.appendingPathComponent(
+            "Curfew/UI/SettingsView+TaskBrowserEnforcement.swift"
+        ), encoding: .utf8)
+        #expect(source.contains("isExpanded: $mappingsExpanded"))
+        #expect(source.contains("task-browser-destinations-disclosure"))
+    }
+
+    @Test("Lockout protects small status and recovery text with shared atmospheric roles")
+    func lockoutAtmosphericPalette() throws {
+        let root = URL(fileURLWithPath: #filePath).resolvingSymlinksInPath()
+            .deletingLastPathComponent().deletingLastPathComponent()
+            .deletingLastPathComponent().deletingLastPathComponent()
+        let source = try String(contentsOf: root.appendingPathComponent(
+            "Curfew/UI/LockoutScreenView.swift"
+        ), encoding: .utf8)
+        #expect(source.contains(".overlay(SundownPalette.textScrim)"))
+        for opacity in ["0.4", "0.5", "0.6", "0.72"] {
+            #expect(!source.contains("warmWhite.opacity(\(opacity))"))
+        }
+    }
+
     @Test("Today shields schedule text from the brightest sky with the shared scrim")
     func todayHeroPalette() throws {
         let root = URL(fileURLWithPath: #filePath).resolvingSymlinksInPath()
