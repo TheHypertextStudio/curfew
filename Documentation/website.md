@@ -20,7 +20,7 @@ website lifecycle from the repository root:
 ```
 
 Root `./run` delegates to the frontend-owned `landing/run`. That launcher
-downloads checksum-pinned release-engineering `v0.1.7`; it delegates
+downloads checksum-pinned release-engineering `v0.1.8`; it delegates
 to the existing bootstrap engine and native pnpm commands. Python 3.11+, Node
 24.20.0, and pnpm 11.9.0 are declared in `landing/studio.yaml`. Marketing/docs dependencies and their lockfile live in the independent `landing/`
 workspace. Root `package.json` provides thin `pnpm --dir landing` command facades;
@@ -35,7 +35,7 @@ continue to use `bootstrap` and `just check`; the website component does not
 replace native setup. `./run dev` starts Astro at `http://127.0.0.1:4321`.
 
 **Adoption status:** `@thehypertextstudio/web-config`, `web-docs`, and `web-tokens`
-are pinned to 0.1.0, but their initial registry publication is pending. Local
+are pinned to 0.0.1, but their initial registry publication is pending. Local
 acceptance uses exact packed tarballs in an ignored validation overlay. The final
 registry lockfile, fresh frozen install, and clean `./run setup` acceptance remain
 required before this source change can be merged or published. Do not commit
@@ -158,23 +158,30 @@ build. `GET /__studio/release` returns all three release fields with `no-store`;
 it returns 503 until the shared owner injects a complete identity.
 
 GitHub Actions is the release owner. The frontend launcher and lock now use published
-release-engineering `v0.1.7`, revision `0e6c0313904316e893a8e606a2557f016571412e`,
-archive SHA-256 `016e239daa6c30d48198648d97d36f52ad5d28fb3c04cc4cd67a1700d30fa6ad`.
+release-engineering `v0.1.8`, revision `878260def7229cd3df7f752b32e5581230c5db2d`,
+archive SHA-256 `61f746429fc0ffc7826df2bde61ee4d41323fb5fa0c9f8661255040e7838afd4`.
 The pin helper verified the release checksum and immutable tag. Native lifecycle pins
 and the root wrapper retain their existing owner/version. The root website workflow
 records the exact future candidate/promote references at that same revision.
 
-The shared reusable callers currently select repository-root declarations and do not
-expose a scoped root input. A Curfew frontend caller must select `landing/` explicitly
-before activation; using the current default would select the independent native
-declaration. Add the Workers deployment declaration and caller only after that shared
-interface, the actual preview hostname, the real registry lock, and provider gates
-are ready. Do not add a second product deployment adapter.
-`landing/studio.yaml` deliberately has no deploy operation yet.
-The checked-in Worker environments have no routes and workers.dev disabled; names
-are intended identities, not provisioned resources. Provision/capture the actual
-preview hostname and production route explicitly, preserving account
-`2500680a3b2b0fe6a011c1c25fed5008` and separate preview resources.
+The shared v0.1.8 reusable callers support `root: landing`; the default root
+selects Curfew's independent native declaration and must never be used for the
+marketing release. Caller activation remains gated on the actual registry lock,
+provider preview, and recovery evidence. The source declaration now selects the
+shared Workers adapter, exact Wrangler 4.148.0, `modules/worker.js`, and `assets/`
+inside the retained archive. It does not introduce another deployment adapter.
+The immutable source configuration is retained separately by the shared candidate;
+promotion freezes its file paths to the extracted archive and injects release identity.
+
+The intended marketing preview is `curfew-site-staging.hypertext.studio`, owned
+by Worker `curfew-site-staging`. The existing `curfew-staging.hypertext.studio`
+is the account backend preview and must not be reused. Production's intended
+Worker is `curfew-site-production` at `curfew.hypertext.studio`. These are source
+identities, not claims that the marketing resources exist. Both Worker environments
+still have empty routes, workers.dev disabled, and HTML-guide docs mode. Provision
+and capture the isolated marketing preview explicitly before any promotion,
+preserving account `2500680a3b2b0fe6a011c1c25fed5008`. Production routing and the
+existing Pages publisher remain unchanged until reviewed cutover.
 
 Before cutover, retain the current Pages deployment, complete route/DNS snapshot,
 and prior artifact/configuration. Anonymous production `/account` currently returns

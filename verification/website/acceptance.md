@@ -112,3 +112,64 @@ unchanged afterward. No workaround or dependency alteration was introduced.
 Browser/native product code is unchanged from the acceptance above, so their passing
 evidence is retained. Registry publication/frozen installation and provider/auth/cutover
 acceptance remain open; this pin update does not satisfy them.
+
+
+## v0.1.8 marketing declaration and retained archive
+
+The published pin updater verified v0.1.8 against the actual release assets and
+immutable tag: revision `878260def7229cd3df7f752b32e5581230c5db2d`, engine SHA-256
+`61f746429fc0ffc7826df2bde61ee4d41323fb5fa0c9f8661255040e7838afd4`.
+The landing declaration now selects the shared Workers adapter, exact Wrangler
+4.148.0, and archive-relative `modules/worker.js` and `assets/`. Shared callers
+support `root: landing`; activation remains pending.
+
+The intended marketing preview is `curfew-site-staging.hypertext.studio`, Worker
+`curfew-site-staging`. The existing `curfew-staging.hypertext.studio` belongs to the
+account backend and is excluded from marketing. Both marketing environments still
+have empty routes, workers.dev disabled, and `DOCS_MODE=html-guide`. No provider,
+Pages publisher, Mintlify Git project, native app, backend, or auth settings changed.
+
+Failing-first checks recorded the missing deployment declaration and old package
+pins before implementation. All 15 unit/contract tests now pass. Astro checks all
+11 source files without diagnostics, ESLint/Prettier pass, all nine original page
+contracts and four asset digests match, Mintlify checks pass, and all 18 existing
+Chromium/Firefox/WebKit acceptance scenarios pass against the prebuilt Worker.
+
+An ignored native acceptance harness verifies the cached engine checksum, packs
+then extracts the candidate ZIP outside the source checkout, and calls actual
+v0.1.8 `workers_site_inputs` for staging and production. Both native Wrangler
+no-bundle dry runs succeed and retain identical Worker bytes. workerd serves all
+17 page/HTML alias routes from that extracted archive, returns the injected
+synthetic local release identity with `no-store`, and returns 404 for an unknown
+route. The fixture has no source tree, credentials, or provider calls. Evidence:
+`.studio/acceptance/retained-site/{summary.json,marketing.zip,*-dry-run.log,workerd.log}`.
+These are local fixture bytes, not an immutable hosted candidate or provider release.
+
+The intended initial shared package pins are **0.0.1**, per the release decision.
+The installed validation graph still contains the previously accepted exact
+**0.1.0 local tarballs**. Results above validate Curfew source/artifact behavior
+with that graph; they do not establish 0.0.1 shipping or registry acceptance.
+After the actual 0.0.1 candidate is reviewed/published, repeat setup/check/build
+against its bytes, generate the real registry lock, and prove a fresh frozen
+install before activating the hosted candidate caller. No file overrides or fake
+registry entries are committed.
+
+Provider prerequisites remain: the isolated marketing Worker/hostname, scoped
+credentials, complete prior Pages and route/DNS recovery evidence, real staging
+metadata and runtime checks, public account-route disposition, successful Mintlify
+Git publishing before enabling delegation, explicit cutover, observation, and
+retention. The existing backend staging host cannot satisfy marketing acceptance.
+Context7 again reported monthly quota exhaustion; its login/API-key upgrade remains
+available. Installed exact contracts and official Workers references were inspected.
+
+
+The v0.1.8 `./run doctor`, `./run check`, and `./run build` pass on the retained
+local graph. Fresh setup remains blocked by the unpublished intended 0.0.1
+registry dependencies. Native checks also rerun successfully: SwiftFormat changed
+0/375 files (six skipped), lint found no formatting violations, SwiftLint found
+zero violations across 272 files, CurfewTests completed with `TEST SUCCEEDED`,
+and the Debug build completed with `BUILD SUCCEEDED` using the existing isolated
+`build/website-native-check` derived data and `CODE_SIGNING_ALLOWED=NO`. Native
+logs remain under `.studio/acceptance/`; these do not prove signed distribution.
+The marketing product release version remains 0.1.0; the 0.0.1 release decision
+applies to the three consumed shared packages.
