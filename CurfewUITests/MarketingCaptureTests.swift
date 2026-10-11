@@ -263,7 +263,7 @@ extension MarketingCaptureTests {
     }
 
     @MainActor
-    private func launch(
+    func launch(
         _ scenario: String,
         state: String = "default",
         appearance: String = "light",
@@ -328,7 +328,7 @@ extension MarketingCaptureTests {
     }
 
     @MainActor
-    private func attach(_ element: XCUIElement, name: String) {
+    func attach(_ element: XCUIElement, name: String) {
         XCTAssertTrue(element.exists)
         XCTAssertGreaterThan(element.frame.width, 300)
         XCTAssertGreaterThan(element.frame.height, 100)

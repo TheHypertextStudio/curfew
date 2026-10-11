@@ -47,8 +47,8 @@ enum ShutdownPanelState: Equatable {
             + "you turn on auto shutdown."
 
     static let unavailableMessage =
-        "Auto shutdown is unavailable in this build. "
-            + "Use a signed release of Curfew to enable it."
+        "Automatic shutdown isn't available in this version of Curfew. "
+            + "Install Curfew from the official website to use it."
 
     static func resolve(isAvailable: Bool) -> ShutdownPanelState {
         if isAvailable {

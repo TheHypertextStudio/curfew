@@ -1132,3 +1132,9 @@ The remote AX lookup demonstrated section-level identifier propagation overridin
   extension advice matches eligibility. Tests preceded the new injection/copy APIs.
 - Consent content scrolls independently of decision buttons so long assistant
   reasons cannot push Deny/Approve offscreen; unavailable requests say so directly.
+- `MarketingCaptureTests/testCaptureStateConsistency`: actual-window assertions for
+  off/locked Today, completed setup with and without Accessibility, and malformed
+  consent with disabled Approve. Runs only on the isolated runner, in light/dark
+  at both sizes. `PresentationStateTests/stateFixtures` failed before fixture wiring.
+- `PresentationStateTests/shutdownCopy` failed before removing shutdown build jargon;
+  `ShutdownPanelStateTests` retains availability and essential Automation consent checks.

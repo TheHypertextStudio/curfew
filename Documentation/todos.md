@@ -910,3 +910,7 @@ The remote AX lookup demonstrated section-level identifier propagation overridin
   calendar overlap advice only suggests an extension when eligible. Read-only
   authorization checks do not request permission. The injected test provider and
   lazy event store let revoked-access checks run without real calendar access.
+- [-] Remote captures now include off-during-scheduled-lock, completed setup review,
+  revoked permission in setup review, and malformed assistant requests, across both
+  appearances and sizes. Assertions must confirm each state before capture. Automatic
+  shutdown availability copy points to the supported app without build jargon.

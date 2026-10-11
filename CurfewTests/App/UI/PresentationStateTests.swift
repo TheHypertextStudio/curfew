@@ -10,6 +10,22 @@ struct PresentationStateTests {
         return try String(contentsOf: root.appendingPathComponent(path), encoding: .utf8)
     }
 
+    @Test("Contradictory states have isolated fixtures for remote review")
+    func stateFixtures() throws {
+        let fixtures = try source("Curfew/App/Model/CurfewAppModel+DemoReview.swift")
+        for state in ["todayOffLocked", "setupReview", "assistantMalformed"] {
+            #expect(fixtures.contains(state))
+        }
+    }
+
+    @Test("Unavailable shutdown explains the supported version without build jargon")
+    func shutdownCopy() throws {
+        let copy = try source("Curfew/UI/SystemSurfaceModels.swift")
+        #expect(copy.contains("Install Curfew from the official website"))
+        #expect(!copy.contains("unavailable in this build"))
+        #expect(!copy.contains("signed release"))
+    }
+
     @Test("Account sync enrollment hides the stopped legacy iCloud service")
     func canonicalSync() throws {
         let panel = try source("Curfew/UI/SettingsView+InfoPanels.swift")

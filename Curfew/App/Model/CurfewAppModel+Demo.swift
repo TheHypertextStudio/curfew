@@ -80,7 +80,9 @@ import CurfewKit
                 }
                 openSettings()
             case .gettingStarted:
-                settings.hasCompletedInitialSetup = false
+                if ![DemoReviewState.setupReview, .setupReviewDenied].contains(.current) {
+                    settings.hasCompletedInitialSetup = false
+                }
                 showGettingStarted()
             case .overview, .configuration, .thisWeek, .menuBar:
                 break

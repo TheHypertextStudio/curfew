@@ -70,7 +70,7 @@ struct DeferredIntegrationVisibilityTests {
 
 @MainActor
 struct ShutdownPanelStateTests {
-    @Test("Shutdown panel explains signed-build gating when automation entitlement is absent")
+    @Test("Shutdown panel explains availability without build jargon")
     func unavailableStateCarriesReleaseGuidance() {
         #expect(ShutdownPanelState.resolve(isAvailable: true) == .available)
 
@@ -80,7 +80,7 @@ struct ShutdownPanelStateTests {
             return
         }
 
-        #expect(message.contains("signed"))
+        #expect(message.contains("official website"))
         #expect(!message.contains("entitlement"))
     }
 
