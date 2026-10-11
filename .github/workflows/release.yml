@@ -18,7 +18,7 @@ jobs:
       contents: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Select Xcode
         # Prefer Xcode 26 (required for the macOS 26 / Tahoe deployment target);
@@ -155,7 +155,7 @@ jobs:
           bash scripts/generate-appcast.sh > "$RUNNER_TEMP/appcast.xml"
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
           # Sparkle is not provisioned for v0.1, so the sole generated and
           # published asset is the notarized DMG. Add a separately tested

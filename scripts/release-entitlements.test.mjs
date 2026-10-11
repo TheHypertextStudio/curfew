@@ -72,7 +72,7 @@ test("CI screenshot capture forwards its unsigned build settings to Xcode", () =
 test("CI preserves the unit-test result bundle when the check fails", () => {
   assert.match(
     ciWorkflow,
-    /- name: Upload unit-test diagnostics\n\s+if: failure\(\)\n\s+uses: actions\/upload-artifact@v4\n\s+with:\n\s+name: curfew-unit-test-results\n\s+path: build\/CurfewTests\.xcresult/,
+    /- name: Upload unit-test diagnostics\n\s+if: failure\(\)\n\s+uses: actions\/upload-artifact@v7\n\s+with:\n\s+name: curfew-unit-test-results\n\s+path: build\/CurfewTests\.xcresult/,
   );
 });
 

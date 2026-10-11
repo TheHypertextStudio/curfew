@@ -405,7 +405,8 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
 - [x] Register a public OAuth client with Docket on first use. Store the issued
       client identifier and rotating tokens in the separate
       `studio.hypertext.curfew.docket` Keychain service. Reject duplicate callback
-      security parameters and responses over 32 KiB.
+      security parameters and responses over 32 KiB. Match the flavor-specific
+      callback with AuthenticationServices' `Callback.customScheme` API.
 - [x] Cache Docket credentials once per process without making refresh recovery
       depend on a complete access-token record. A stored rotating refresh token
       remains usable when the access token or expiration is absent.
@@ -748,3 +749,10 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
   certificate was revoked. Unsigned CI/demo builds remain explicitly supported;
   interactive builds now fail with the recovery action before producing a TCC-
   unstable app. Rollback is the single build-phase predicate change.
+- [x] Retire Node 20 GitHub Actions runtimes from Curfew CI and release workflows.
+      Checkout, cache, artifact upload, and release actions now use their
+      current Node 24-compatible release generations. Hosted CI verifies the
+      workflows; no deprecation-only tests or scripts are maintained.
+      Recheck upstream runtime support when deliberately upgrading these
+      actions; reverting to the previous generations restores a runtime that
+      GitHub has removed.
