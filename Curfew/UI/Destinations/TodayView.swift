@@ -101,7 +101,7 @@ struct TodayView: View {
         }
         return Control(
             line: "Curfew is off",
-            detail: "Your Mac won't lock tonight until you turn it on.",
+            detail: "Turn Curfew on to follow your schedule.",
             action: "Turn on Curfew"
         )
     }

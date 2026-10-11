@@ -10,6 +10,20 @@ struct PresentationStateTests {
         return try String(contentsOf: root.appendingPathComponent(path), encoding: .utf8)
     }
 
+    @Test("Off describes the local schedule without promising the Mac cannot lock")
+    func offAndRecoveryCopy() throws {
+        let today = try source("Curfew/UI/Destinations/TodayView.swift")
+        #expect(!today.contains("Your Mac won't lock tonight"))
+        let removal = try source("Curfew/UI/SettingsView+UninstallPanel.swift")
+        #expect(!removal.contains("Curfew could not remove its privileged helper."))
+        let account = try source("Curfew/UI/SettingsView+SyncPanel.swift")
+        #expect(account.contains("\"Get Curfew\""))
+        #expect(account.replacingOccurrences(of: "\\s+", with: "", options: .regularExpression)
+            .contains(
+                "CurfewServiceEndpoints.production.accountPortal.deletingLastPathComponent()"
+            ))
+    }
+
     @Test("Remote readiness requires an authenticated helper, not only a heartbeat file")
     func remoteReadiness() throws {
         let helper = try source("Curfew/App/Infrastructure/PrivilegedHelperManager.swift")
