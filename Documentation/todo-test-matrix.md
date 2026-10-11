@@ -1071,3 +1071,5 @@ tests cannot read or mutate a user's App Group lockout record.
 Authenticated liveness integration: after authenticated arming or a matching heartbeat, legacy heartbeat files cannot keep that window alive. Unmigrated legacy windows retain file fallback. `AuthenticatedDaemonControlTests` covers persistence and binding to the current window; signed transport verification remains a remote/system acceptance gate.
 
 Remote CI follow-up: screenshot extraction preserves the original failed UI-test exit status before attempting export. Authenticated liveness accepts a still-active local source during delayed stronger remote-deadline delivery, without changing effective authority or accepting unknown IDs. Regression checks cover both cases.
+
+Landing integration: restored the account navigation and Android coming-soon notice after the directory migration; removed stale claims that Plus sync is currently available. All 30 script/landing/release-policy tests pass and run in CI.

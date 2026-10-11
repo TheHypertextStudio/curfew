@@ -36,7 +36,7 @@ jobs:
           restore-keys: ${{ runner.os }}-derived-
 
       - name: Verify integrated package layout
-        run: node --test scripts/xcode-package-layout.test.mjs
+        run: node --test scripts/*.test.mjs
 
       - name: Test shared package and executable contracts
         run: swift test --package-path CurfewKit
