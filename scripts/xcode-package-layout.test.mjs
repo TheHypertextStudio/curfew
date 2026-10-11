@@ -54,10 +54,10 @@ test('New state fixtures run before the full capture sweep', () => {
 });
 
 
-test('State preflight independently exercises all nine state families', () => {
+test('State preflight independently exercises all ten state families', () => {
   const workflow = readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8');
   const selected = workflow.match(/-only-testing:CurfewUITests\/MarketingCaptureTests\/testCaptureAStateConsistency\w+/g) || [];
-  assert.equal(selected.length, 9);
+  assert.equal(selected.length, 10);
   const tests = readFileSync(new URL('../CurfewUITests/StateConsistencyCaptureTests.swift', import.meta.url), 'utf8');
   for (const selection of selected) assert.ok(tests.includes('func ' + selection.split('/').at(-1) + '()'));
 });

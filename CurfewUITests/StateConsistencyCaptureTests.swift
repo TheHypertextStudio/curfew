@@ -17,6 +17,11 @@ extension MarketingCaptureTests {
     }
 
     @MainActor
+    func testCaptureAStateConsistencyExhaustedRequest() {
+        captureStateConsistency("settings", state: "assistant-exhausted")
+    }
+
+    @MainActor
     func testCaptureAStateConsistencyMalformedRequest() {
         captureStateConsistency("settings", state: "assistant-malformed")
     }
@@ -53,7 +58,7 @@ extension MarketingCaptureTests {
                 let app = launch(scenario, state: state, appearance: appearance, size: size)
                 if state.hasPrefix("account-") {
                     captureAccountState(app, state: state, appearance: appearance, size: size)
-                } else if state == "assistant-malformed" {
+                } else if state == "assistant-malformed" || state == "assistant-exhausted" {
                     let review = app.buttons["review-ai-request"]
                     XCTAssertTrue(review.waitForExistence(timeout: 5))
                     review.click()
@@ -61,6 +66,10 @@ extension MarketingCaptureTests {
                     XCTAssertTrue(approve.waitForExistence(timeout: 5))
                     XCTAssertFalse(approve.isEnabled)
                     assertText("Request unavailable", in: app)
+                    if state == "assistant-exhausted" {
+                        assertText("No extensions left this week.", in: app)
+                        XCTAssertTrue(app.buttons["Deny"].isEnabled)
+                    }
                     let sheet = app.sheets.firstMatch
                     XCTAssertTrue(sheet.waitForExistence(timeout: 3))
                     attach(sheet, name: "\(state)-\(appearance)-\(size)")

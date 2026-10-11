@@ -8,7 +8,8 @@ struct ConsentPresentationTests {
         -> ConsentPresentation {
         ConsentPresentation(
             request: MCPPendingRequest(tool: tool, argumentsJSON: json),
-            schedule: .standardNineToFive, extensionMinutes: 15, canRequestExtension: canExtend
+            schedule: .standardNineToFive, extensionMinutes: 15, canRequestExtension: canExtend,
+            extensionsRemaining: 2
         )
     }
 
@@ -20,6 +21,19 @@ struct ConsentPresentationTests {
         let unavailable = presentation(.requestExtension, "{}", canExtend: false)
         #expect(!unavailable.canApprove)
         #expect(unavailable.detail.contains("no longer available"))
+    }
+
+    @Test("Exhausted AI extensions explain the weekly limit and disable approval")
+    func exhaustedExtension() {
+        let preview = ConsentPresentation(
+            request: MCPPendingRequest(tool: .requestExtension, argumentsJSON: "{}"),
+            schedule: .standardNineToFive,
+            extensionMinutes: 15,
+            canRequestExtension: true,
+            extensionsRemaining: 0
+        )
+        #expect(!preview.canApprove)
+        #expect(preview.detail == "No extensions left this week.")
     }
 
     @Test("Schedule approval shows actual times, overnight behavior and cooldown")
@@ -54,6 +68,7 @@ struct ConsentPresentationTests {
                 schedule: .standardNineToFive,
                 extensionMinutes: 15,
                 canRequestExtension: true,
+                extensionsRemaining: 2,
                 pendingScheduleChange: pending
             )
             #expect(preview.detail.contains("Tue"))

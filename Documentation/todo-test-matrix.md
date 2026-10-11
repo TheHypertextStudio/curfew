@@ -1186,4 +1186,8 @@ asserts its own screen and state before attaching an image.
 
 AI weekly allowance: `AuditGrantWiringTests.exhaustedAIExtensionIsNotGranted`
 exercises actual manual and automatic model approval with an exhausted tracker.
-This regression is submitted first for remote red evidence; no local app launch.
+Both regression cases failed before implementation on remote run 38114876113.
+`availableAIExtensionConsumesAllowance` covers the successful path. The pure
+`ConsentPresentationTests.exhaustedExtension` and source binding/fixture check
+cover the disabled action and reason. Ten preflight families include an actual
+exhausted consent sheet in four appearance/size combinations. No local app launch.

@@ -15,6 +15,7 @@
         case setupReview = "setup-review"
         case setupReviewDenied = "setup-review-denied"
         case assistantMalformed = "assistant-malformed"
+        case assistantExhausted = "assistant-exhausted"
         case ready
         case accessibilityDenied = "accessibility-denied"
         case tapDown = "tap-down"
@@ -65,7 +66,7 @@
             case .accountOffline, .accountSignInRequired, .accountHelperUnavailable,
                  .accountUpdateFailed, .accountHelperHidden,
                  .assistantOn, .assistantReadOnly, .assistantAutomatic, .assistantPending,
-                 .assistantMalformed,
+                 .assistantMalformed, .assistantExhausted,
                  .claudeAbsent, .claudeConfigured, .cloudIdle, .cloudSyncing, .cloudSynced,
                  .cloudFailed, .cloudUnavailable, .calendarDenied, .calendarEmpty: .integrations
             case .licenseInvalid, .licenseLifetime, .licenseSubscription, .licenseExpired: .about
