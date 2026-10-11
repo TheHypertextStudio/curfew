@@ -1,3 +1,4 @@
+import CurfewKit
 import Foundation
 
 /// Audit-log emitters for presence detection.

@@ -1,4 +1,5 @@
 @testable import Curfew
+@testable import CurfewKit
 import Foundation
 
 /// A `CurfewAppModel` wired for status-reporting tests, alongside the fake
@@ -94,7 +95,6 @@ struct DeviceStatusWiringHarness {
         let model = CurfewAppModel(
             settingsStore: store,
             appRouter: AppRouterSpy(),
-            gettingStartedPresenter: GettingStartedPresenterSpy(),
             activityRecorder: NullActivityRecording(),
             idleWatcher: IdleWatcher(
                 source: MutableIdleSource(seconds: idleSeconds),

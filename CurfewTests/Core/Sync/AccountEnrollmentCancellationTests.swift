@@ -1,5 +1,6 @@
 import AppKit
 @testable import Curfew
+@testable import CurfewKit
 import Foundation
 import Testing
 
@@ -132,21 +133,21 @@ private final class CancelledEnrollmentRecorder: AccountDeviceEnrolling {
 
     func restore(
         recoveryKey _: String,
-        enrollment _: Curfew.AccountDeviceEnrollment
-    ) async throws -> Curfew.AccountDeviceEnrollment {
+        enrollment _: CurfewKit.AccountDeviceEnrollment
+    ) async throws -> CurfewKit.AccountDeviceEnrollment {
         throw Failure.unexpected
     }
 
     func resumeRecoverySetup(
         recoveryKey _: String,
-        enrollment _: Curfew.AccountDeviceEnrollment
+        enrollment _: CurfewKit.AccountDeviceEnrollment
     ) async throws -> NativeAccountEnrollmentState {
         throw Failure.unexpected
     }
 
     func resumeDeviceRegistration(
         recoveryKey _: String,
-        enrollment _: Curfew.AccountDeviceEnrollment
+        enrollment _: CurfewKit.AccountDeviceEnrollment
     ) async throws -> NativeAccountEnrollmentState {
         throw Failure.unexpected
     }

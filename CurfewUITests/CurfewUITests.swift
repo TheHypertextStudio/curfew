@@ -6,31 +6,6 @@ final class CurfewUITests: XCTestCase {
     }
 
     @MainActor
-    func testTaskBrowserEnforcementPanelActions() {
-        let app = XCUIApplication()
-        app.launchEnvironment["CURFEW_DEMO_FIXTURE"] = "1"
-        app.launchEnvironment["CURFEW_DEMO_SCENARIO"] = "settings"
-        app.launch()
-
-        XCTAssertTrue(app.staticTexts["Task Browser Enforcement"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Complete LVBT social strategy"].exists)
-        XCTAssertTrue(app.staticTexts["instagram.com"].exists)
-
-        let enforcementToggle = app.switches["task-browser-enforcement-toggle"]
-        XCTAssertTrue(enforcementToggle.isEnabled)
-
-        let breakButton = app.buttons["task-browser-break-button"]
-        XCTAssertTrue(breakButton.isEnabled)
-        breakButton.click()
-        XCTAssertTrue(app.staticTexts["Break ends"].waitForExistence(timeout: 2))
-
-        let removeButton = app.buttons["Remove instagram.com"]
-        XCTAssertTrue(removeButton.exists)
-        removeButton.click()
-        XCTAssertFalse(app.staticTexts["instagram.com"].exists)
-    }
-
-    @MainActor
     func testOnboardingStartsAtARealGate() {
         let app = launchFixture("getting-started")
 
@@ -282,6 +257,30 @@ final class CurfewUITests: XCTestCase {
 }
 
 extension CurfewUITests {
+    @MainActor
+    func testTaskBrowserEnforcementPanelActions() {
+        let app = launchFixture("settings")
+        app.descendants(matching: .any)["settings-integrations-tab"].click()
+        app.disclosureTriangles["Allowed destinations"].click()
+
+        XCTAssertTrue(app.staticTexts["Task Browser Enforcement"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Complete LVBT social strategy"].exists)
+        XCTAssertTrue(app.staticTexts["instagram.com"].exists)
+
+        let enforcementToggle = app.switches["task-browser-enforcement-toggle"]
+        XCTAssertTrue(enforcementToggle.isEnabled)
+
+        let breakButton = app.buttons["task-browser-break-button"]
+        XCTAssertTrue(breakButton.isEnabled)
+        breakButton.click()
+        XCTAssertTrue(app.staticTexts["Break ends"].waitForExistence(timeout: 2))
+
+        let removeButton = app.buttons["Remove instagram.com"]
+        XCTAssertTrue(removeButton.exists)
+        removeButton.click()
+        XCTAssertFalse(app.staticTexts["instagram.com"].exists)
+    }
+
     @MainActor
     func testAssistantReadAccessIsExplainedBeforeEnabling() {
         let app = launchFixture("settings", state: "ready")

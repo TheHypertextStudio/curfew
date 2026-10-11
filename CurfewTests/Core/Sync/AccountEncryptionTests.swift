@@ -1,4 +1,5 @@
 @testable import Curfew
+@testable import CurfewKit
 import CurfewProtocols
 import Foundation
 import XCTest
@@ -170,7 +171,7 @@ final class AccountEncryptionTests: XCTestCase {
     func testIncompleteRecoveryEnrollmentSurvivesRelaunchUntilAcknowledged() throws {
         let secrets = MemoryAccountSecretStore()
         let pending = AccountEnrollmentPendingStore(secretStore: secrets)
-        let enrollment = AccountDeviceEnrollment(
+        let enrollment = CurfewKit.AccountDeviceEnrollment(
             deviceID: deviceID,
             keyEpoch: 1,
             enrolledAt: createdAt
@@ -189,7 +190,7 @@ final class AccountEncryptionTests: XCTestCase {
     func testRegisteredDeviceRecoverySetupSurvivesRelaunchAsResumable() throws {
         let secrets = MemoryAccountSecretStore()
         let pending = AccountEnrollmentPendingStore(secretStore: secrets)
-        let enrollment = AccountDeviceEnrollment(
+        let enrollment = CurfewKit.AccountDeviceEnrollment(
             deviceID: deviceID,
             keyEpoch: 1,
             enrolledAt: createdAt
@@ -229,7 +230,7 @@ final class AccountEncryptionTests: XCTestCase {
     func testCompletedEnrollmentSurvivesRelaunchUntilSettingsPersist() throws {
         let secrets = MemoryAccountSecretStore()
         let pending = AccountEnrollmentPendingStore(secretStore: secrets)
-        let enrollment = AccountDeviceEnrollment(
+        let enrollment = CurfewKit.AccountDeviceEnrollment(
             deviceID: deviceID,
             keyEpoch: 1,
             enrolledAt: createdAt
@@ -241,7 +242,7 @@ final class AccountEncryptionTests: XCTestCase {
         XCTAssertEqual(try pending.load(), .ready(enrollment))
         XCTAssertNil(try secrets.data(for: "pending-recovery-key"))
 
-        let staleEnrollment = try AccountDeviceEnrollment(
+        let staleEnrollment = try CurfewKit.AccountDeviceEnrollment(
             deviceID: XCTUnwrap(UUID(uuidString: "10000000-0000-4000-8000-000000000099")),
             keyEpoch: 1,
             enrolledAt: createdAt.addingTimeInterval(-60)
@@ -256,7 +257,7 @@ final class AccountEncryptionTests: XCTestCase {
     func testPendingDeviceRegistrationSurvivesBeforeCoordinatorResponse() throws {
         let secrets = MemoryAccountSecretStore()
         let pending = AccountEnrollmentPendingStore(secretStore: secrets)
-        let enrollment = AccountDeviceEnrollment(
+        let enrollment = CurfewKit.AccountDeviceEnrollment(
             deviceID: deviceID,
             keyEpoch: 1,
             enrolledAt: createdAt

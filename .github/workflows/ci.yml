@@ -35,10 +35,21 @@ jobs:
           key: ${{ runner.os }}-derived-${{ hashFiles('**/*.xcodeproj/project.pbxproj') }}
           restore-keys: ${{ runner.os }}-derived-
 
+      - name: Verify integrated package layout
+        run: node --test scripts/xcode-package-layout.test.mjs
+
+      - name: Test shared package and executable contracts
+        run: swift test --package-path CurfewKit
+
       - name: Check (format + lint + test + build)
         env:
           CURFEW_XCODEBUILD_SETTINGS: "CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO"
         run: just check
+
+      - name: Compile Release
+        env:
+          CURFEW_XCODEBUILD_SETTINGS: "CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO"
+        run: just build-release
 
       - name: Upload unit-test diagnostics
         if: failure()
@@ -88,6 +99,14 @@ jobs:
         env:
           CURFEW_XCODEBUILD_SETTINGS: "CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO"
         run: just capture
+
+      - name: Verify UI interactions on the isolated runner
+        run: >-
+          xcodebuild test -project Curfew.xcodeproj -scheme Curfew
+          -destination 'platform=macOS'
+          -only-testing:CurfewUITests/CurfewUITests
+          -only-testing:CurfewUITests/CurfewUITestsLaunchTests
+          CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
 
       - name: Upload screenshots
         if: always()

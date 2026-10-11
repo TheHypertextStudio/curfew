@@ -6,7 +6,9 @@ extension SettingsView {
     var integrationsPanel: some View {
         Group {
             coordinatorSyncPanel
-            taskBrowserEnforcementPanel
+            if CurfewFlavor.current != .studioDevelopment {
+                taskBrowserEnforcementPanel
+            }
             if model.featureFlags.mcpServerEnabled {
                 mcpConfigPanel
             }
@@ -28,15 +30,6 @@ extension SettingsView {
             }
             if model.featureFlags.cloudSyncEnabled {
                 devicesPanel
-            }
-            if !model.featureFlags.mcpServerEnabled,
-               !model.featureFlags.widgetKitEnabled,
-               !model.featureFlags.calendarEnabled,
-               !model.featureFlags.cloudSyncEnabled {
-                ContentUnavailableView(
-                    "No connections available",
-                    systemImage: "puzzlepiece.extension"
-                )
             }
         }
     }

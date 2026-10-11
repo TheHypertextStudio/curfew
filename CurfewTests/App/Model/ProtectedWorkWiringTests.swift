@@ -1,4 +1,5 @@
 @testable import Curfew
+@testable import CurfewKit
 import Foundation
 import Testing
 
@@ -182,7 +183,6 @@ struct ProtectedWorkWiringTests {
             let model = CurfewAppModel(
                 settingsStore: CurfewSettingsStore(defaults: defaults),
                 appRouter: AppRouterSpy(),
-                gettingStartedPresenter: GettingStartedPresenterSpy(),
                 activityRecorder: NullActivityRecording(),
                 lockoutDeadlineStore: LockoutDeadlineStore(
                     recordURL: directory.appendingPathComponent("lockout-deadline.json")

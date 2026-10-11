@@ -1,5 +1,6 @@
 import AppKit
 import Combine
+import CurfewKit
 import CurfewProtocols
 import Foundation
 
@@ -334,7 +335,7 @@ extension AccountEnrollmentController {
         }
     }
 
-    func acknowledgeSavedRecoveryKey() async -> AccountDeviceEnrollment? {
+    func acknowledgeSavedRecoveryKey() async -> CurfewKit.AccountDeviceEnrollment? {
         guard !isFinishingEnrollment,
               case .saveRecoveryKey(let key, let enrollment) = state else { return nil }
         isFinishingEnrollment = true

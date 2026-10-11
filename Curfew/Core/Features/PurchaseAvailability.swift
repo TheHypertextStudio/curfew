@@ -1,3 +1,4 @@
+import CurfewKit
 import Foundation
 
 /// Centralizes whether the current build may direct a person to hosted checkout.

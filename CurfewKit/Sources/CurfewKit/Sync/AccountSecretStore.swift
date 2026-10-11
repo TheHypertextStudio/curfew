@@ -2,20 +2,20 @@ import Foundation
 import LocalAuthentication
 import Security
 
-protocol AccountSecretStoring: AnyObject {
+public protocol AccountSecretStoring: AnyObject {
     func data(for account: String) throws -> Data?
     func save(_ data: Data, for account: String) throws
     func delete(_ account: String) throws
 }
 
-enum AccountEncryptionError: Error, Equatable {
+public enum AccountEncryptionError: Error, Equatable {
     case invalidKeyMaterial
     case keychain(OSStatus)
     case authenticationFailed
 }
 
-nonisolated enum BackgroundKeychainQuery {
-    static func identity(service: String, account: String) -> [CFString: Any] {
+public nonisolated enum BackgroundKeychainQuery {
+    public static func identity(service: String, account: String) -> [CFString: Any] {
         let context = LAContext()
         context.interactionNotAllowed = true
         return [
@@ -27,7 +27,7 @@ nonisolated enum BackgroundKeychainQuery {
         ]
     }
 
-    static func read(service: String, account: String) -> [CFString: Any] {
+    public static func read(service: String, account: String) -> [CFString: Any] {
         var query = identity(service: service, account: account)
         query[kSecReturnData] = true
         query[kSecMatchLimit] = kSecMatchLimitOne
@@ -35,14 +35,14 @@ nonisolated enum BackgroundKeychainQuery {
     }
 }
 
-final nonisolated class KeychainAccountSecretStore: AccountSecretStoring {
+public final nonisolated class KeychainAccountSecretStore: AccountSecretStoring {
     private let service: String
 
-    init(service: String = CurfewServiceEndpoints.current.keychainService) {
+    public init(service: String = CurfewServiceEndpoints.current.keychainService) {
         self.service = service
     }
 
-    func data(for account: String) throws -> Data? {
+    public func data(for account: String) throws -> Data? {
         let query = Self.backgroundReadQuery(service: service, account: account)
         var result: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &result)
@@ -55,14 +55,15 @@ final nonisolated class KeychainAccountSecretStore: AccountSecretStoring {
         return data
     }
 
-    static func backgroundReadQuery(service: String, account: String) -> [CFString: Any] {
+    public static func backgroundReadQuery(service: String, account: String) -> [CFString: Any] {
         BackgroundKeychainQuery.read(service: service, account: account)
     }
 
     /// Removes every account-scoped Curfew credential for one app flavor.
     /// The service is flavor-specific, so uninstalling a development build
     /// cannot erase a production installation's enrollment.
-    static func deleteAll(service: String = CurfewServiceEndpoints.current.keychainService) throws {
+    public static func deleteAll(service: String = CurfewServiceEndpoints.current
+        .keychainService) throws {
         let query: [CFString: Any] = [
             kSecClass: kSecClassGenericPassword,
             kSecAttrService: service,
@@ -74,7 +75,7 @@ final nonisolated class KeychainAccountSecretStore: AccountSecretStoring {
         }
     }
 
-    func save(_ data: Data, for account: String) throws {
+    public func save(_ data: Data, for account: String) throws {
         let identity = BackgroundKeychainQuery.identity(service: service, account: account)
         let attributes: [CFString: Any] = [
             kSecValueData: data,
@@ -92,7 +93,7 @@ final nonisolated class KeychainAccountSecretStore: AccountSecretStoring {
         }
     }
 
-    func delete(_ account: String) throws {
+    public func delete(_ account: String) throws {
         let query = BackgroundKeychainQuery.identity(service: service, account: account)
         let status = SecItemDelete(query as CFDictionary)
         guard status == errSecSuccess || status == errSecItemNotFound else {

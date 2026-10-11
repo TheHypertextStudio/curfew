@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import CoreGraphics
 import CurfewKit
 import Foundation
@@ -169,9 +170,15 @@ final class CurfewAppModel: NSObject {
     /// records only; CloudKit is stopped before this engine starts.
     let accountSyncEngine: AccountSyncEngine
 
+    @ObservationIgnored var wakeReleaseInFlight = false
+    @ObservationIgnored var lastWakeReleaseAttemptAt: Date?
+
+    var presenceRevision: UInt = 0
+    var statusCredentialRevision: UInt = 0
+
     let accountWakeLedgerStore: AccountWakeLedgerStore
-    @Published internal(set) var accountWakeLedger: AccountWakeLedger
-    @Published internal(set) var accountRemoteOverride: AccountRemoteOverride?
+    internal(set) var accountWakeLedger: AccountWakeLedger
+    internal(set) var accountRemoteOverride: AccountRemoteOverride?
 
     /// Reads today's calendar events for contextual display on the lockout
     /// screen and This Week view. Requires `featureFlags.calendarEnabled`
@@ -212,6 +219,7 @@ final class CurfewAppModel: NSObject {
 
     /// The 1 Hz repeating tick/display timer; managed by `+DisplayClock`.
     @ObservationIgnored var timer: Timer?
+    @ObservationIgnored var cancellables: Set<AnyCancellable> = []
 
     /// `NSWorkspace` wake-observer tokens; registered in `+Reassertion`, removed in `deinit`.
     @ObservationIgnored var reassertionObservers: [NSObjectProtocol] = []
@@ -365,7 +373,9 @@ final class CurfewAppModel: NSObject {
         self.accountWakeLedgerStore = accountWakeLedgerStore
         self.accountWakeLedger = accountWakeLedgerStore.load() ?? AccountWakeLedger()
         self.accountRemoteOverride = nil
-        self.accessibilityAuthorization = accessibilityAuthorization ?? SystemAccessibilityAuthorization()
+        self
+            .accessibilityAuthorization = accessibilityAuthorization ??
+            SystemAccessibilityAuthorization()
 
         let loadedSettings = settingsStore.load()
         self.settings = loadedSettings

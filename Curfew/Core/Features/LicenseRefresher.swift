@@ -1,3 +1,4 @@
+import CurfewKit
 import Foundation
 
 /// Pulls a renewed subscription license from the license Worker.

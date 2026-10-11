@@ -1,4 +1,5 @@
 @testable import Curfew
+@testable import CurfewKit
 import Foundation
 import Testing
 
@@ -19,7 +20,6 @@ struct AuditGrantWiringTests {
         let model = CurfewAppModel(
             settingsStore: CurfewSettingsStore(defaults: defaults),
             appRouter: AppRouterSpy(),
-            gettingStartedPresenter: GettingStartedPresenterSpy(),
             activityRecorder: NullActivityRecording(),
             respawnGuard: respawnGuard,
             lockoutDeadlineStore: LockoutDeadlineStore(recordURL: deadlineURL),

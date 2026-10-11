@@ -1,13 +1,16 @@
 import Foundation
 
 public struct PrivilegedDaemonStateStore: Sendable {
-    public static let productionURL = URL(
-        fileURLWithPath: "/Library/Application Support/Curfew/lockout-state.json"
-    )
+    public static let productionURL = stateURL(for: .production)
+
+    public static func stateURL(for flavor: CurfewFlavor) -> URL {
+        SharedPaths.privilegedApplicationSupport(for: flavor)
+            .appendingPathComponent("lockout-state.json")
+    }
 
     public let stateURL: URL
 
-    public init(stateURL: URL = Self.productionURL) {
+    public init(stateURL: URL = Self.stateURL(for: .current)) {
         self.stateURL = stateURL
     }
 
@@ -15,11 +18,41 @@ public struct PrivilegedDaemonStateStore: Sendable {
         guard FileManager.default.fileExists(atPath: stateURL.path) else {
             return nil
         }
-        let data = try Data(contentsOf: stateURL)
+        guard let data = try BoundedRegularFileReader.read(stateURL, maximumBytes: 1024 * 1024)
+        else {
+            throw CocoaError(.fileReadCorruptFile)
+        }
+        if let control = try? Self.decoder.decode(AuthenticatedDaemonControl.self, from: data) {
+            return control.localStatus
+        }
         return try Self.decoder.decode(PrivilegedDaemonStatus.self, from: data)
     }
 
+    public func loadControl() throws -> AuthenticatedDaemonControl? {
+        guard FileManager.default.fileExists(atPath: stateURL.path) else { return nil }
+        guard let data = try BoundedRegularFileReader.read(stateURL, maximumBytes: 1024 * 1024)
+        else {
+            throw CocoaError(.fileReadCorruptFile)
+        }
+        if let control = try? Self.decoder
+            .decode(AuthenticatedDaemonControl.self, from: data) {
+            return control
+        }
+        return try AuthenticatedDaemonControl(persisted: Self.decoder.decode(
+            PrivilegedDaemonStatus.self,
+            from: data
+        ))
+    }
+
+    public func saveControl(_ control: AuthenticatedDaemonControl) throws {
+        try write(Self.encoder.encode(control))
+    }
+
     public func save(_ status: PrivilegedDaemonStatus) throws {
+        try write(Self.encoder.encode(status))
+    }
+
+    private func write(_ data: Data) throws {
         let directory = stateURL.deletingLastPathComponent()
         try FileManager.default.createDirectory(
             at: directory,
@@ -30,7 +63,6 @@ public struct PrivilegedDaemonStateStore: Sendable {
             [.posixPermissions: 0o755],
             ofItemAtPath: directory.path
         )
-        let data = try Self.encoder.encode(status)
         try data.write(to: stateURL, options: .atomic)
         try FileManager.default.setAttributes(
             [.posixPermissions: 0o600],

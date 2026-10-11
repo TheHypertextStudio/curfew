@@ -1,5 +1,5 @@
 @testable import Curfew
-import CurfewKit
+@testable import CurfewKit
 import Foundation
 import Testing
 
@@ -240,7 +240,8 @@ struct PrivilegedDaemonProtocolTests {
             + "certificate leaf[subject.OU] = \"39AB9DY3K8\" and "
             + "identifier \"studio.hypertext.curfew\""
 
-        #expect(PrivilegedDaemonConstants.clientSigningRequirement == expected)
+        #expect(DaemonSigningIdentity(flavor: .production, teamIdentifier: "39AB9DY3K8")?
+            .clientRequirement == expected)
     }
 
     private func makeRecord() -> LockoutDeadlineRecord {

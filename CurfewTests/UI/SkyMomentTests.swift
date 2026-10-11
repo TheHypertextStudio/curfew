@@ -6,7 +6,7 @@
 // the night arc that darkens at the midpoint and lifts toward dawn.
 
 @testable import Curfew
-import CurfewKit
+@testable import CurfewKit
 import Foundation
 import Testing
 

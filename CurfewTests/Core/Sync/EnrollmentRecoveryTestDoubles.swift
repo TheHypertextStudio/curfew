@@ -1,5 +1,6 @@
 import AppKit
 @testable import Curfew
+@testable import CurfewKit
 import Foundation
 
 @MainActor
@@ -59,21 +60,21 @@ struct FailingAccountDeviceEnrollment: AccountDeviceEnrolling {
 
     func restore(
         recoveryKey _: String,
-        enrollment _: Curfew.AccountDeviceEnrollment
-    ) async throws -> Curfew.AccountDeviceEnrollment {
+        enrollment _: CurfewKit.AccountDeviceEnrollment
+    ) async throws -> CurfewKit.AccountDeviceEnrollment {
         throw Failure.unavailable
     }
 
     func resumeRecoverySetup(
         recoveryKey _: String,
-        enrollment _: Curfew.AccountDeviceEnrollment
+        enrollment _: CurfewKit.AccountDeviceEnrollment
     ) async throws -> NativeAccountEnrollmentState {
         throw Failure.unavailable
     }
 
     func resumeDeviceRegistration(
         recoveryKey _: String,
-        enrollment _: Curfew.AccountDeviceEnrollment
+        enrollment _: CurfewKit.AccountDeviceEnrollment
     ) async throws -> NativeAccountEnrollmentState {
         throw Failure.unavailable
     }
@@ -107,7 +108,7 @@ final class CountingAccountOAuthEnrollment: AccountOAuthEnrolling {
 
 @MainActor
 final class ResumableAccountDeviceEnrollment: AccountDeviceEnrolling {
-    let enrollment = Curfew.AccountDeviceEnrollment(
+    let enrollment = CurfewKit.AccountDeviceEnrollment(
         deviceID: UUID(uuidString: "018f4f45-cafe-7f00-9a82-e47805fb4d35")!,
         keyEpoch: 1,
         enrolledAt: Date(timeIntervalSince1970: 1_800_000_000)
@@ -124,14 +125,14 @@ final class ResumableAccountDeviceEnrollment: AccountDeviceEnrolling {
 
     func restore(
         recoveryKey _: String,
-        enrollment _: Curfew.AccountDeviceEnrollment
-    ) async throws -> Curfew.AccountDeviceEnrollment {
+        enrollment _: CurfewKit.AccountDeviceEnrollment
+    ) async throws -> CurfewKit.AccountDeviceEnrollment {
         enrollment
     }
 
     func resumeRecoverySetup(
         recoveryKey _: String,
-        enrollment _: Curfew.AccountDeviceEnrollment
+        enrollment _: CurfewKit.AccountDeviceEnrollment
     ) async throws -> NativeAccountEnrollmentState {
         resumeCount += 1
         return .saveRecoveryKey("recovery-key", enrollment)
@@ -139,7 +140,7 @@ final class ResumableAccountDeviceEnrollment: AccountDeviceEnrolling {
 
     func resumeDeviceRegistration(
         recoveryKey _: String,
-        enrollment _: Curfew.AccountDeviceEnrollment
+        enrollment _: CurfewKit.AccountDeviceEnrollment
     ) async throws -> NativeAccountEnrollmentState {
         .finishRecoverySetup("recovery-key", enrollment)
     }
@@ -156,7 +157,7 @@ final class ResumableAccountDeviceEnrollment: AccountDeviceEnrolling {
 @MainActor
 final class FailingRecoveryAccountDeviceEnrollment: AccountDeviceEnrolling {
     private enum Failure: Error { case unavailable }
-    let enrollment = Curfew.AccountDeviceEnrollment(
+    let enrollment = CurfewKit.AccountDeviceEnrollment(
         deviceID: UUID(uuidString: "018f4f45-cafe-7f00-9a82-e47805fb4d35")!,
         keyEpoch: 1,
         enrolledAt: Date(timeIntervalSince1970: 1_800_000_000)
@@ -185,7 +186,7 @@ final class FailingRecoveryAccountDeviceEnrollment: AccountDeviceEnrolling {
 
 @MainActor
 final class SlowRecoveryAccountDeviceEnrollment: AccountDeviceEnrolling {
-    let enrollment = Curfew.AccountDeviceEnrollment(
+    let enrollment = CurfewKit.AccountDeviceEnrollment(
         deviceID: UUID(uuidString: "018f4f45-cafe-7f00-9a82-e47805fb4d35")!,
         keyEpoch: 1,
         enrolledAt: Date(timeIntervalSince1970: 1_800_000_000)
@@ -219,7 +220,7 @@ final class SlowRecoveryAccountDeviceEnrollment: AccountDeviceEnrolling {
 final class RecoveryKeyAttemptDeviceEnrollment: AccountDeviceEnrolling {
     private enum Failure: Error { case wrongKey }
 
-    let enrollment = Curfew.AccountDeviceEnrollment(
+    let enrollment = CurfewKit.AccountDeviceEnrollment(
         deviceID: UUID(uuidString: "018f4f45-cafe-7f00-9a82-e47805fb4d35")!,
         keyEpoch: 1,
         enrolledAt: Date(timeIntervalSince1970: 1_800_000_000)
@@ -253,7 +254,7 @@ final class RecoveryKeyAttemptDeviceEnrollment: AccountDeviceEnrolling {
 final class RetryableInitialAccountDeviceEnrollment: AccountDeviceEnrolling {
     private enum Failure: Error { case unavailable }
 
-    let enrollment = Curfew.AccountDeviceEnrollment(
+    let enrollment = CurfewKit.AccountDeviceEnrollment(
         deviceID: UUID(uuidString: "018f4f45-cafe-7f00-9a82-e47805fb4d35")!,
         keyEpoch: 1,
         enrolledAt: Date(timeIntervalSince1970: 1_800_000_000)
@@ -287,7 +288,7 @@ final class RetryableInitialAccountDeviceEnrollment: AccountDeviceEnrolling {
 final class RejectedInitialAccountDeviceEnrollment: AccountDeviceEnrolling {
     private enum Failure: Error { case unavailable }
 
-    let enrollment = Curfew.AccountDeviceEnrollment(
+    let enrollment = CurfewKit.AccountDeviceEnrollment(
         deviceID: UUID(uuidString: "018f4f45-cafe-7f00-9a82-e47805fb4d35")!,
         keyEpoch: 1,
         enrolledAt: Date(timeIntervalSince1970: 1_800_000_000)

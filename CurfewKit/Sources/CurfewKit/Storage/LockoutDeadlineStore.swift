@@ -85,11 +85,11 @@ public struct LockoutDeadlineRecord: Codable, Equatable, Sendable {
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        campaignID = try container.decodeIfPresent(UUID.self, forKey: .campaignID)
-        lockoutID = try container.decodeIfPresent(UUID.self, forKey: .lockoutID) ?? UUID()
-        lockoutStartedAt = try container.decode(Date.self, forKey: .lockoutStartedAt)
-        scheduledUnlockAt = try container.decode(Date.self, forKey: .scheduledUnlockAt)
-        kind = try container.decode(LockoutKind.self, forKey: .kind)
+        self.campaignID = try container.decodeIfPresent(UUID.self, forKey: .campaignID)
+        self.lockoutID = try container.decodeIfPresent(UUID.self, forKey: .lockoutID) ?? UUID()
+        self.lockoutStartedAt = try container.decode(Date.self, forKey: .lockoutStartedAt)
+        self.scheduledUnlockAt = try container.decode(Date.self, forKey: .scheduledUnlockAt)
+        self.kind = try container.decode(LockoutKind.self, forKey: .kind)
     }
 }
 

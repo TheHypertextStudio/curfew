@@ -258,19 +258,23 @@ final class PrivilegedHelperManager {
         await performRPC { try await daemonRPC.heartbeat(lockoutID: lockoutID) }
     }
 
-    func completeLockout(lockoutID: UUID, reason: PrivilegedCompletionReason) async {
+    @discardableResult
+    func completeLockout(lockoutID: UUID, reason: PrivilegedCompletionReason) async -> Bool {
         await performRPC {
             try await daemonRPC.completeLockout(lockoutID: lockoutID, reason: reason)
         }
     }
 
-    private func performRPC(_ operation: () async throws -> Void) async {
+    @discardableResult
+    private func performRPC(_ operation: () async throws -> Void) async -> Bool {
         do {
             try await operation()
             connectionState = .ready
             lastError = nil
+            return true
         } catch {
             recordRPCError(error)
+            return false
         }
     }
 

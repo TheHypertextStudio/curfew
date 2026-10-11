@@ -1,29 +1,20 @@
 import AppKit
 import ServiceManagement
+import CurfewKit
 import SwiftUI
 import UniformTypeIdentifiers
 
 extension SettingsView {
     var coordinatorSyncPanel: some View {
-        CurfewPanel {
-            CurfewSectionTitle(
-                title: "Curfew Account",
-                subtitle: "Connect this Mac for encrypted sync and remote control"
-            )
-
-            Text(Self.accountExplanation)
-                .font(CurfewTypography.body(13))
-                .foregroundStyle(CurfewTheme.mutedInk)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Divider()
+        Section {
             accountEnrollmentControls
-            Divider()
-
-            Text(Self.accountSecurityNote)
-                .font(CurfewTypography.body(12))
-                .foregroundStyle(CurfewTheme.mutedInk)
-                .fixedSize(horizontal: false, vertical: true)
+            DisclosureGroup("Privacy and recovery") {
+                Text(Self.accountSecurityNote).foregroundStyle(CurfewTheme.mutedInk)
+            }
+        } header: {
+            Text("Curfew Account")
+        } footer: {
+            Text(Self.accountExplanation)
         }
     }
 
@@ -325,16 +316,12 @@ extension SettingsView {
     }
 
     static let accountExplanation = """
-    A Curfew Account is optional. It lets you see your devices and securely lock this Mac \
-    from an AI assistant on your phone. Remote control is off until you turn it on for this \
-    device. Local schedules, alarms, callbacks, and signed offline licenses keep working \
-    without an account.
+    An optional account connects your devices. Remote control stays off until you enable it; \
+    local schedules and offline licenses work without an account.
     """
 
     static let accountSecurityNote = """
-    Curfew creates the account root key on an enrolled device. The service stores encrypted \
-    records and public device keys, but it cannot decrypt your settings. Sign-in recovery and \
-    encrypted-data recovery remain separate: 2FA backup codes restore access, while the Curfew \
-    Recovery Key restores encrypted data.
+    Your enrolled device creates the encryption key; the service cannot read your settings. \
+    2FA backup codes recover sign-in, while your Curfew Recovery Key recovers encrypted data.
     """
 }

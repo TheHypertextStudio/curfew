@@ -1,5 +1,5 @@
 @testable import Curfew
-import CurfewKit
+@testable import CurfewKit
 import Foundation
 import ServiceManagement
 import Testing
@@ -219,6 +219,29 @@ struct PrivilegedHelperManagerTests {
         #expect(manager.loginItemStatus == SMAppService.Status.notRegistered)
     }
 
+    @Test("A failed wake completion is not acknowledged")
+    func failedWakeCompletionRequiresRetry() async {
+        let rpc = StubDaemonRPC(
+            statusResult: .success(PrivilegedDaemonStatus(
+                activeRecord: nil,
+                lastHeartbeatAt: nil,
+                shutdownIssued: false
+            )),
+            completionResult: .failure(PrivilegedDaemonRPCError.stale)
+        )
+        let manager = PrivilegedHelperManager(
+            daemonService: StubAppService(status: .enabled),
+            loginItemService: StubAppService(status: .notRegistered),
+            daemonRPC: rpc
+        )
+        let acknowledged: Bool = await manager.completeLockout(
+            lockoutID: UUID(),
+            reason: .accountWakeRelease
+        )
+        #expect(!acknowledged)
+        #expect(manager.connectionState == .stale)
+    }
+
     @Test("Studio uninstall unregisters both services and reports any failure")
     func studioUninstallRegistrationCleanup() {
         let daemon = StubAppService(
@@ -242,18 +265,24 @@ struct PrivilegedHelperManagerTests {
 private final class StubDaemonRPC: PrivilegedDaemonRPCControlling, @unchecked Sendable {
     let statusResult: Result<PrivilegedDaemonStatus, Error>
     let prepareResult: Result<Void, Error>
+    let completionResult: Result<Void, Error>
 
     init(
         statusResult: Result<PrivilegedDaemonStatus, Error>,
-        prepareResult: Result<Void, Error> = .success(())
+        prepareResult: Result<Void, Error> = .success(()),
+        completionResult: Result<Void, Error> = .success(())
     ) {
         self.statusResult = statusResult
         self.prepareResult = prepareResult
+        self.completionResult = completionResult
     }
 
     func armLockout(_: LockoutDeadlineRecord) async throws {}
     func heartbeat(lockoutID _: UUID) async throws {}
-    func completeLockout(lockoutID _: UUID, reason _: PrivilegedCompletionReason) async throws {}
+    func completeLockout(lockoutID _: UUID, reason _: PrivilegedCompletionReason) async throws {
+        try completionResult.get()
+    }
+
     func status() async throws -> PrivilegedDaemonStatus {
         try statusResult.get()
     }

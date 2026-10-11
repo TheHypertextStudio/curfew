@@ -1,5 +1,5 @@
 @testable import Curfew
-import CurfewKit
+@testable import CurfewKit
 import Foundation
 import Testing
 
@@ -247,7 +247,7 @@ struct LifecycleWiringTests {
         setupComplete: Bool = false,
         accountSync: AccountSyncConfiguration = .accountFree,
         accountSyncEngine: AccountSyncEngine? = nil,
-        cloudKitSyncEngine: CloudKitSyncEngine = CloudKitSyncEngine()
+        cloudKitSyncEngine: CloudKitSyncEngine? = nil
     ) -> CurfewAppModel {
         let suite = "studio.hypertext.curfew.tests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite) ?? .standard

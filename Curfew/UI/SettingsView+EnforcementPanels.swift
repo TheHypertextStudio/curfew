@@ -161,79 +161,49 @@ extension SettingsView {
     /// already paste bundle identifiers in, and a table with add/remove
     /// buttons would be more chrome than a list edited twice a year deserves.
     var protectedWorkPanel: some View {
-        CurfewPanel {
-            CurfewSectionTitle(
-                title: "Protected Work",
-                subtitle: "What lockout must never kill"
-            )
-
-            Text("""
-            Shutting the Mac down closes terminals, and closing a terminal \
-            kills whatever was running inside it. Anything listed here is \
-            skipped, so background work survives the night.
-            """)
-            .font(CurfewTypography.body(13))
-            .foregroundStyle(CurfewTheme.mutedInk)
-            .fixedSize(horizontal: false, vertical: true)
-
-            Text("Bundle identifiers, one per line")
-                .font(CurfewTypography.bodyEmphasis(12))
-            TextEditor(text: protectedListBinding(\.protectedBundleIdentifiers))
-                .font(.system(.body, design: .monospaced))
-                .frame(minHeight: 88)
-
-            Text("Process names, one per line")
-                .font(CurfewTypography.bodyEmphasis(12))
-            TextEditor(text: protectedListBinding(\.protectedProcessNames))
-                .font(.system(.body, design: .monospaced))
-                .frame(minHeight: 88)
-
-            Divider()
-
-            Text("""
-            Shutdown also waits while one of these is actually running, with \
-            nothing to declare and nothing to remember. Keep the list to \
-            commands that exit when their job does — a terminal or a `tmux` \
-            server is alive all the time, so listing one here would spend the \
-            hold below every night.
-            """)
-            .font(CurfewTypography.body(13))
-            .foregroundStyle(CurfewTheme.mutedInk)
-            .fixedSize(horizontal: false, vertical: true)
-
-            Text("Commands that hold shutdown while running, one per line")
-                .font(CurfewTypography.bodyEmphasis(12))
-            TextEditor(text: protectedListBinding(\.deferringProcessNames))
-                .font(.system(.body, design: .monospaced))
-                .frame(minHeight: 88)
-
+        @Bindable var model = model
+        return Section("Work during lockout") {
             Toggle(
-                "Hold shutdown while someone is logged in over the network",
+                "Wait for remote sessions",
                 isOn: $model.settings.protectedWork.defersForRemoteSessions
             )
-
-            Divider()
-
             Toggle(
-                "Let AI assistants declare work in progress",
+                "Accept work declared by AI assistants",
                 isOn: $model.settings.protectedWork.acceptsAgentClaims
             )
-
             Stepper(
-                "Hold shutdown for at most: \(model.settings.protectedWork.maximumDeferralMinutes) min",
                 value: $model.settings.protectedWork.maximumDeferralMinutes,
                 in: 1 ... ProtectedWorkPolicy.deferralCeilingMinutes,
                 step: 5
-            )
-
-            Text("""
-            A declared task postpones shutdown, never the curfew itself — the \
-            screen stays locked either way. The hold expires after this many \
-            minutes even if the task never finishes.
-            """)
-            .font(CurfewTypography.body(13))
-            .foregroundStyle(CurfewTheme.mutedInk)
-            .fixedSize(horizontal: false, vertical: true)
+            ) {
+                LabeledContent(
+                    "Maximum wait",
+                    value: "\(model.settings.protectedWork.maximumDeferralMinutes) min"
+                )
+            }
+            Text("Work can delay shutdown until this limit. The screen stays locked.")
+                .foregroundStyle(CurfewTheme.mutedInk)
+            DisclosureGroup("Applications and commands") {
+                Text(
+                    "These apps are excluded from Curfew's quit requests. "
+                        + "A completed shutdown still stops all work."
+                )
+                .foregroundStyle(CurfewTheme.mutedInk)
+                Text("App bundle identifiers, one per line")
+                TextEditor(text: protectedListBinding(\.protectedBundleIdentifiers))
+                    .font(.system(.body, design: .monospaced)).frame(minHeight: 88)
+                Text("Process names excluded from quit requests, one per line")
+                TextEditor(text: protectedListBinding(\.protectedProcessNames))
+                    .font(.system(.body, design: .monospaced)).frame(minHeight: 88)
+                Text("Wait while these commands run, one per line")
+                TextEditor(text: protectedListBinding(\.deferringProcessNames))
+                    .font(.system(.body, design: .monospaced)).frame(minHeight: 88)
+                Text(
+                    "Use commands that finish on their own; "
+                        + "a terminal or tmux server may run all night."
+                )
+                .foregroundStyle(CurfewTheme.mutedInk)
+            }
         }
     }
 

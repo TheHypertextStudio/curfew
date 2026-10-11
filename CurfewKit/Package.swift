@@ -13,20 +13,20 @@ let curfewProtocolsDependency: Package.Dependency = if let localPath =
     )
 }
 
-// Shared library `CurfewKit` plus the CLI/MCP/daemon executables. This package
-// lives in `CurfewKit/` (its own subfolder, not the repo root) so opening the
-// repo folder in Xcode resolves to `Curfew.xcodeproj`, not a package-only
-// window. `Curfew.xcodeproj` references this package locally and links the
-// `CurfewKit` library product into the app, the widget, and the CLI tools —
-// every consumer `import CurfewKit`; there is a single compiled copy (no
-// dual-compilation).
-//
-// Folder contract: anything dropped in `Sources/CurfewKit/` is auto-discovered
-// by SPM and, because the app and widget link the product, is available to
-// every consumer once marked `public`. Files that must NOT ship to the
-// CLI/MCP/daemon (anything depending on AppKit, SwiftUI, UserNotifications,
-// EventKit, CloudKit, SMAppService, etc.) stay under `Curfew/` and remain
-// reachable only to the app/widget targets.
+/// Shared library `CurfewKit` plus the CLI/MCP/daemon executables. This package
+/// lives in `CurfewKit/` (its own subfolder, not the repo root) so opening the
+/// repo folder in Xcode resolves to `Curfew.xcodeproj`, not a package-only
+/// window. `Curfew.xcodeproj` references this package locally and links the
+/// `CurfewKit` library product into the app, the widget, and the CLI tools —
+/// every consumer `import CurfewKit`; there is a single compiled copy (no
+/// dual-compilation).
+///
+/// Folder contract: anything dropped in `Sources/CurfewKit/` is auto-discovered
+/// by SPM and, because the app and widget link the product, is available to
+/// every consumer once marked `public`. Files that must NOT ship to the
+/// CLI/MCP/daemon (anything depending on AppKit, SwiftUI, UserNotifications,
+/// EventKit, CloudKit, SMAppService, etc.) stay under `Curfew/` and remain
+/// reachable only to the app/widget targets.
 let package = Package(
     name: "CurfewTools",
     platforms: [.macOS(.v14)],

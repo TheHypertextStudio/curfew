@@ -1,4 +1,5 @@
 import Combine
+import CurfewKit
 import Foundation
 
 enum AccountSyncStatus: Equatable {

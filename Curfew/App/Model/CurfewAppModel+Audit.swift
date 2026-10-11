@@ -1,3 +1,4 @@
+import CurfewKit
 import Foundation
 
 /// Per-model audit-log override, keyed by model identity.

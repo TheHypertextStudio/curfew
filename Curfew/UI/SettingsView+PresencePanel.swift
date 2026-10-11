@@ -1,3 +1,4 @@
+import CurfewKit
 import SwiftUI
 
 /// Presence-detection panel for the Settings window.
@@ -11,36 +12,24 @@ extension SettingsView {
     /// The presence panel: live camera indicator, the consent switch, the
     /// nudge controls, and the plain-language data statement.
     var presencePanel: some View {
-        CurfewPanel {
-            CurfewSectionTitle(
-                title: "Presence",
-                subtitle: "Telling an empty chair from a quiet one"
-            )
-
-            Text(Self.presenceExplanation)
-                .font(CurfewTypography.body(13))
-                .foregroundStyle(CurfewTheme.mutedInk)
-                .fixedSize(horizontal: false, vertical: true)
-
-            // Above the switch, not below it: if the camera is live the user
-            // should see that before they see anything else in this panel.
-            CameraLiveIndicator(isLive: model.isPresenceCameraLive) {
-                model.disablePresenceDetection()
+        Group {
+            Section("Presence detection") {
+                Text("Uses this Mac's camera to tell when you're away.")
+                    .foregroundStyle(CurfewTheme.mutedInk)
+                CameraLiveIndicator(isLive: model.isPresenceCameraLive) {
+                    model.disablePresenceDetection()
+                }
+                presenceConsentControl
+                if model.settings.presence.cameraEnabled {
+                    presenceStatusLine
+                }
+                Text("Camera images stay on this Mac and are never saved.")
+                    .foregroundStyle(CurfewTheme.mutedInk)
+                DisclosureGroup("Privacy details") { presenceDataStatement }
             }
-
-            Divider()
-
-            presenceConsentControl
-
             if model.settings.presence.cameraEnabled {
-                presenceStatusLine
-                Divider()
-                presenceNudgeControls
+                Section("Idle reminders") { presenceNudgeControls }
             }
-
-            Divider()
-
-            presenceDataStatement
         }
     }
 
@@ -111,6 +100,7 @@ extension SettingsView {
     /// that does nothing is worse than no control.
     @ViewBuilder
     private var presenceNudgeControls: some View {
+        @Bindable var model = model
         Toggle(
             "Nudge me when I'm here but not working",
             isOn: $model.settings.presence.warnsWhenDistracted

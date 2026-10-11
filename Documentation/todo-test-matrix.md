@@ -1034,3 +1034,38 @@ tests cannot read or mutate a user's App Group lockout record.
   alpha before computing luminance; they do not ignore supporting-text opacity.
 - Architecture guards also reject generic secondary overrides and one-off
   white-opacity reflection text, so those screens consume the tested roles.
+
+## Current-main integration coverage
+
+- `ModuleBoundaryTests`: app-facing credential and browser interfaces remain
+  accessible across the shared-library boundary; background Keychain query
+  contexts forbid interaction. No real credentials are read or changed.
+- `DaemonIdentityIntegrationTests`: stable lockout/campaign identity through
+  resolution and coding; replayed remote result identity; flavor-specific signing
+  requirements and unsigned/invalid team rejection.
+- `AuthenticatedDaemonControlTests`: strengthening-only local arms, authenticated
+  heartbeat identity, override rejection, independent remote authority, bounded
+  local release tombstones, restart/replay safety, legacy-shadow wake completion,
+  idempotent acknowledgement retry, and uninstall refusal with remote authority.
+- `DaemonServiceIntegrationTests`: corrupt local archive retains independent remote
+  authority and reports degraded transport without overwriting evidence; failed
+  persistence never acknowledges or applies a new arm. Uses temporary files and
+  injected effects, never a daemon process or machine shutdown.
+- `PrivilegedHelperManagerTests/failedWakeCompletionRequiresRetry`: failed RPC
+  returns an explicit negative acknowledgement and preserves visible failure state.
+- `ThemeConsistencyTests/settingsSectionsDoNotNestDecorativeCards`: newer main
+  panels share native Settings forms. The existing literal-color guard now also
+  rejects view-level named hue overrides; numerical contrast checks cover their
+  shared roles in both appearances.
+- `scripts/xcode-package-layout.test.mjs`: single Xcode package graph, isolated
+  helper Mach services, existing format paths, and remote package/UI/Release gates.
+- `MarketingCaptureTests/testCaptureSettingsMatrix`: Connections capture also
+  asserts account panel presence. Interaction tests route to Connections and open
+  destination details before operating browser controls.
+- Existing enforcement, protected-work, emergency-release, remote-command,
+  account/recovery, schedule, budget and persistence suites remain required.
+  Local `build-for-testing` compiles their targets without executing the app host;
+  remote CI runs actual hosted suites and captures. Numerical/source checks and
+  successful compilation alone do not establish visual or system acceptance.
+
+Authenticated liveness integration: after authenticated arming or a matching heartbeat, legacy heartbeat files cannot keep that window alive. Unmigrated legacy windows retain file fallback. `AuthenticatedDaemonControlTests` covers persistence and binding to the current window; signed transport verification remains a remote/system acceptance gate.

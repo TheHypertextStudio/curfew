@@ -8,7 +8,7 @@
 
 import AppKit
 @testable import Curfew
-import CurfewKit
+@testable import CurfewKit
 import Foundation
 import Security
 import Testing
@@ -182,7 +182,7 @@ struct FeatureFlagTests {
                 releaseFeaturesEnabled: false,
                 stagingFeaturesEnabled: true,
                 environment: [:]
-            ) == .shipping
+            ) == .shippingV1
         )
     }
 
@@ -213,7 +213,7 @@ struct FeatureFlagTests {
     @Test("Resolved matches the build's acceptance surface")
     func resolvedMatchesBuild() {
         #if RELEASE_FEATURES || CURFEW_STAGING
-            #expect(FeatureFlags.resolved == .shipping)
+            #expect(FeatureFlags.resolved == .shippingV1)
         #else
             // The ordinary Debug test host defines neither RELEASE_FEATURES
             // nor CURFEW_STAGING, so deferred modules remain safely off.

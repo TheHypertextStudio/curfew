@@ -1,4 +1,5 @@
 import AppIntents
+import CurfewKit
 
 /// Exposes Curfew's intents as App Shortcuts so they appear in Spotlight, the
 /// Shortcuts app, and Siri with zero user setup. Each phrase must contain the

@@ -1,3 +1,4 @@
+import CurfewKit
 import CurfewProtocols
 import Foundation
 
@@ -6,11 +7,11 @@ import Foundation
 // swiftlint:disable file_length
 
 enum NativeAccountEnrollmentState: Equatable {
-    case finishDeviceRegistration(String, AccountDeviceEnrollment)
-    case finishRecoverySetup(String, AccountDeviceEnrollment)
-    case saveRecoveryKey(String, AccountDeviceEnrollment)
-    case enterRecoveryKey(AccountDeviceEnrollment)
-    case ready(AccountDeviceEnrollment)
+    case finishDeviceRegistration(String, CurfewKit.AccountDeviceEnrollment)
+    case finishRecoverySetup(String, CurfewKit.AccountDeviceEnrollment)
+    case saveRecoveryKey(String, CurfewKit.AccountDeviceEnrollment)
+    case enterRecoveryKey(CurfewKit.AccountDeviceEnrollment)
+    case ready(CurfewKit.AccountDeviceEnrollment)
 }
 
 @MainActor
@@ -124,7 +125,7 @@ final class NativeAccountDeviceEnrollmentService {
 
     func resumeDeviceRegistration(
         recoveryKey: String,
-        enrollment: AccountDeviceEnrollment
+        enrollment: CurfewKit.AccountDeviceEnrollment
     ) async throws -> NativeAccountEnrollmentState {
         let checkpoint = try recoverySetupCheckpoint(
             recoveryKey: recoveryKey,
@@ -173,7 +174,7 @@ final class NativeAccountDeviceEnrollmentService {
 
     func acknowledgeSavedRecoveryKey(
         recoveryKey: String,
-        enrollment: AccountDeviceEnrollment
+        enrollment: CurfewKit.AccountDeviceEnrollment
     ) async throws -> NativeAccountEnrollmentState {
         try pending.markRecoveryKeySaved()
         return try await completeRecoverySetup(
@@ -183,7 +184,7 @@ final class NativeAccountDeviceEnrollmentService {
 
     func resumeRecoverySetup(
         recoveryKey: String,
-        enrollment: AccountDeviceEnrollment
+        enrollment: CurfewKit.AccountDeviceEnrollment
     ) async throws -> NativeAccountEnrollmentState {
         try await completeRecoverySetup(
             recoverySetupCheckpoint(
@@ -236,7 +237,7 @@ final class NativeAccountDeviceEnrollmentService {
         ))
         return PreparedDeviceRegistration(
             request: request,
-            localEnrollment: AccountDeviceEnrollment(
+            localEnrollment: CurfewKit.AccountDeviceEnrollment(
                 deviceID: deviceID,
                 keyEpoch: challenge.keyEpoch,
                 enrolledAt: enrolledAt
@@ -250,8 +251,8 @@ final class NativeAccountDeviceEnrollmentService {
 
     func restore(
         recoveryKey: String,
-        enrollment: AccountDeviceEnrollment
-    ) async throws -> AccountDeviceEnrollment {
+        enrollment: CurfewKit.AccountDeviceEnrollment
+    ) async throws -> CurfewKit.AccountDeviceEnrollment {
         guard let keys = try keyStore.load(deviceID: enrollment.deviceID)
         else { throw AccountOAuthEnrollmentError.invalidResponse }
         let data = try await withRefreshingAccessToken { accessToken in
@@ -339,7 +340,7 @@ private extension NativeAccountDeviceEnrollmentService {
 
     func recoverySetupCheckpoint(
         recoveryKey: String,
-        enrollment: AccountDeviceEnrollment
+        enrollment: CurfewKit.AccountDeviceEnrollment
     ) throws -> AccountRecoverySetupCheckpoint {
         guard let checkpoint = try pending.loadRecoverySetup(),
               checkpoint.recoveryKey == recoveryKey,

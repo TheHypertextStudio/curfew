@@ -8,7 +8,7 @@
 
 import AppKit
 @testable import Curfew
-import CurfewKit
+@testable import CurfewKit
 import Foundation
 import Testing
 

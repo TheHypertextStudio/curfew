@@ -192,3 +192,20 @@ not be represented as screenshots of this final theme. Rollback is limited to
 presentation sources, the AccentColor asset, tests, and the generated test helper;
 there are no enforcement, persistence, permission, or wire-format changes in this
 color pass.
+
+## Integration follow-up
+
+The verification results above describe the pre-rebase color pass. The integrated
+branch also includes current main's account enrollment/recovery, presence,
+protected-work and task-browser states. These panels now use grouped Settings forms
+and the existing semantic palette. Camera images/privacy stay visible; destination
+mapping and protected application/process lists sit behind disclosures.
+
+New helper states distinguish registration, authenticated connection and storage
+failure. Damaged local transport persistence leaves signed remote and legacy
+policy evaluation running, but local RPCs report failure. A verified terminal wake
+state may unlock the UI while durable completion retries; the local deadline is
+removed only after root acknowledgement. Remote authority remains independent.
+These are substantive integration changes, so the color-only rollback note above
+must not be applied to daemon/account integration files. See the current integration
+sections in `todos.md` and `todo-test-matrix.md` for coverage and remaining acceptance.

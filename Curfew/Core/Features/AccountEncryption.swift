@@ -1,4 +1,5 @@
 import CryptoKit
+import CurfewKit
 import CurfewProtocols
 import Foundation
 import Security

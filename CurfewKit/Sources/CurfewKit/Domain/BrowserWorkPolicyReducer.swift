@@ -225,11 +225,11 @@ public nonisolated struct BrowserWorkSessionReducer: Sendable {
         return expiresAt <= date
     }
 
-    func currentTask() -> DocketActiveWorkTask? {
+    public func currentTask() -> DocketActiveWorkTask? {
         session?.task
     }
 
-    func currentSessionID() -> UUID? {
+    public func currentSessionID() -> UUID? {
         session?.id
     }
 

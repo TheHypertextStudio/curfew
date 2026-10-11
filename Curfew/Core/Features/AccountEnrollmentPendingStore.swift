@@ -1,3 +1,4 @@
+import CurfewKit
 import CurfewProtocols
 import Foundation
 
@@ -11,7 +12,7 @@ final class AccountEnrollmentPendingStore {
         self.secretStore = secretStore
     }
 
-    func save(enrollment: AccountDeviceEnrollment, recoveryKey: String?) throws {
+    func save(enrollment: CurfewKit.AccountDeviceEnrollment, recoveryKey: String?) throws {
         if let checkpoint = try loadRecoverySetup(), let recoveryKey {
             guard checkpoint.receiptData != nil,
                   checkpoint.recoveryKeySaved != true,
@@ -83,7 +84,7 @@ final class AccountEnrollmentPendingStore {
     }
 
     func saveRecoverySetup(
-        enrollment: AccountDeviceEnrollment,
+        enrollment: CurfewKit.AccountDeviceEnrollment,
         recoveryKey: String,
         recoveryEnvelope: RecoveryKeyEnvelope,
         receiptData: Data,
@@ -101,7 +102,7 @@ final class AccountEnrollmentPendingStore {
     }
 
     func saveDeviceRegistration(
-        enrollment: AccountDeviceEnrollment,
+        enrollment: CurfewKit.AccountDeviceEnrollment,
         recoveryKey: String,
         recoveryEnvelope: RecoveryKeyEnvelope,
         oauthState: String,
@@ -161,7 +162,7 @@ final class AccountEnrollmentPendingStore {
     /// Records the completed enrollment before removing any earlier checkpoint.
     /// Loading prioritizes this marker, so a crash during cleanup can never
     /// roll a server-complete enrollment back into recovery setup.
-    func markReady(_ enrollment: AccountDeviceEnrollment) throws {
+    func markReady(_ enrollment: CurfewKit.AccountDeviceEnrollment) throws {
         try secretStore.save(JSONEncoder().encode(enrollment), for: Self.readyKey)
         try secretStore.delete("pending-account-enrollment")
         try secretStore.delete("pending-recovery-key")
@@ -182,7 +183,10 @@ final class AccountEnrollmentPendingStore {
 
     func load() throws -> AccountEnrollmentUIState? {
         if let data = try secretStore.data(for: Self.readyKey) {
-            return try .ready(JSONDecoder().decode(AccountDeviceEnrollment.self, from: data))
+            return try .ready(JSONDecoder().decode(
+                CurfewKit.AccountDeviceEnrollment.self,
+                from: data
+            ))
         }
         if let checkpoint = try loadExistingKeyRecovery() {
             return .enterRecoveryKey(checkpoint.enrollment)
@@ -196,7 +200,10 @@ final class AccountEnrollmentPendingStore {
                 : .saveRecoveryKey(checkpoint.recoveryKey, checkpoint.enrollment)
         }
         if let data = try secretStore.data(for: "pending-account-enrollment") {
-            let enrollment = try JSONDecoder().decode(AccountDeviceEnrollment.self, from: data)
+            let enrollment = try JSONDecoder().decode(
+                CurfewKit.AccountDeviceEnrollment.self,
+                from: data
+            )
             if let keyData = try secretStore.data(for: "pending-recovery-key"),
                let key = String(data: keyData, encoding: .utf8),
                !key.isEmpty {
@@ -221,7 +228,7 @@ final class AccountEnrollmentPendingStore {
 }
 
 struct AccountExistingKeyRecoveryCheckpoint: Codable {
-    let enrollment: AccountDeviceEnrollment
+    let enrollment: CurfewKit.AccountDeviceEnrollment
     let receiptData: Data
 
     func expectedAccountUserID() throws -> String {
@@ -247,7 +254,7 @@ struct AccountAuthorizedConnection {
 }
 
 struct AccountRecoverySetupCheckpoint: Codable {
-    let enrollment: AccountDeviceEnrollment
+    let enrollment: CurfewKit.AccountDeviceEnrollment
     let recoveryKey: String
     let recoveryEnvelope: RecoveryKeyEnvelope
     let oauthState: String
@@ -257,7 +264,7 @@ struct AccountRecoverySetupCheckpoint: Codable {
     let recoveryKeySaved: Bool?
 
     init(
-        enrollment: AccountDeviceEnrollment,
+        enrollment: CurfewKit.AccountDeviceEnrollment,
         recoveryKey: String,
         recoveryEnvelope: RecoveryKeyEnvelope,
         oauthState: String,

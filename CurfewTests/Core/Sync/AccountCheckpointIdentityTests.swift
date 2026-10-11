@@ -1,4 +1,5 @@
 @testable import Curfew
+@testable import CurfewKit
 import CurfewProtocols
 import Foundation
 import XCTest
@@ -10,7 +11,7 @@ final class AccountCheckpointIdentityTests: XCTestCase {
 
     func testPendingRegistrationKeepsTheOriginalAccountForSafeReauthorization() throws {
         let checkpoint = AccountRecoverySetupCheckpoint(
-            enrollment: AccountDeviceEnrollment(
+            enrollment: CurfewKit.AccountDeviceEnrollment(
                 deviceID: deviceID,
                 keyEpoch: 1,
                 enrolledAt: createdAt
@@ -28,7 +29,7 @@ final class AccountCheckpointIdentityTests: XCTestCase {
 
     func testLegacyRegisteredCheckpointUsesTheCoordinatorReceiptForReauthorization() throws {
         let checkpoint = try AccountRecoverySetupCheckpoint(
-            enrollment: AccountDeviceEnrollment(
+            enrollment: CurfewKit.AccountDeviceEnrollment(
                 deviceID: deviceID,
                 keyEpoch: 1,
                 enrolledAt: createdAt
@@ -60,7 +61,7 @@ final class AccountCheckpointIdentityTests: XCTestCase {
     func testDisplayingRecoveryKeyKeepsTheRegisteredDeviceReceipt() throws {
         let secrets = EnrollmentRecoveryMemorySecretStore()
         let pending = AccountEnrollmentPendingStore(secretStore: secrets)
-        let enrollment = AccountDeviceEnrollment(
+        let enrollment = CurfewKit.AccountDeviceEnrollment(
             deviceID: deviceID,
             keyEpoch: 1,
             enrolledAt: createdAt
@@ -92,7 +93,7 @@ final class AccountCheckpointIdentityTests: XCTestCase {
     func testExistingKeyRecoveryKeepsAccountIdentityWithoutTheGeneratedKey() throws {
         let secrets = EnrollmentRecoveryMemorySecretStore()
         let pending = AccountEnrollmentPendingStore(secretStore: secrets)
-        let enrollment = AccountDeviceEnrollment(
+        let enrollment = CurfewKit.AccountDeviceEnrollment(
             deviceID: deviceID,
             keyEpoch: 1,
             enrolledAt: createdAt

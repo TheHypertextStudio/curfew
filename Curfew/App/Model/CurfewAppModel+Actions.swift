@@ -194,15 +194,6 @@ extension CurfewAppModel {
     }
 
     private func grantOverride(reason: String) {
-        if featureFlags.privilegedHelperEnabled,
-           let record = lockoutDeadlineStore.load() {
-            Task {
-                await privilegedHelperManager.completeLockout(
-                    lockoutID: record.lockoutID,
-                    reason: .approvedOverride
-                )
-            }
-        }
         overrideUntil = currentTime
             .addingTimeInterval(TimeInterval(settings.overrideDurationMinutes * 60))
         overridesRemaining = overrideTracker.remaining

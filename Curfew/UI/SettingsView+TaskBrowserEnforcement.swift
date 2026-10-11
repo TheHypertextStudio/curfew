@@ -1,3 +1,4 @@
+import CurfewKit
 import SwiftUI
 
 nonisolated enum TaskBrowserPanelCopy {
@@ -29,21 +30,16 @@ private struct TaskBrowserEnforcementPanel: View {
     @State private var scopeKind = BrowserDestinationScope.Kind.origin
 
     var body: some View {
-        CurfewPanel {
+        Section(TaskBrowserPanelCopy.title) {
             if let unavailable = TaskBrowserPanelCopy.availabilityMessage(for: .current) {
-                CurfewSectionTitle(title: TaskBrowserPanelCopy.title, subtitle: unavailable)
+                Text(unavailable).foregroundStyle(CurfewTheme.mutedInk)
             } else {
-                CurfewSectionTitle(
-                    title: TaskBrowserPanelCopy.title,
-                    subtitle: "Limit Chrome to destinations that match the work active in Docket."
-                )
-
+                Text("Limit Chrome to websites for your active Docket task.")
+                    .foregroundStyle(CurfewTheme.mutedInk)
                 connectionControls
                 statusRows
-                Divider()
                 enforcementControls
-                Divider()
-                mappingControls
+                DisclosureGroup("Allowed destinations") { mappingControls }
             }
         }
         .accessibilityIdentifier("task-browser-enforcement-panel")
@@ -71,7 +67,7 @@ private struct TaskBrowserEnforcementPanel: View {
             if let errorMessage = controller.errorMessage {
                 Text(errorMessage)
                     .font(CurfewTypography.body(13))
-                    .foregroundStyle(Color.red.opacity(0.8))
+                    .foregroundStyle(CurfewTheme.warning)
             }
         }
     }
@@ -181,7 +177,7 @@ private struct TaskBrowserEnforcementPanel: View {
     ) -> some View {
         HStack(spacing: CurfewSpacing.small) {
             Image(systemName: status.isHealthy ? "checkmark.circle.fill" : "exclamationmark.circle")
-                .foregroundStyle(status.isHealthy ? Color.green : CurfewTheme.warning)
+                .foregroundStyle(status.isHealthy ? CurfewTheme.accent : CurfewTheme.warning)
                 .accessibilityHidden(true)
             Text(title)
                 .font(CurfewTypography.body(13))
