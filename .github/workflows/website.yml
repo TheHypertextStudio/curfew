@@ -5,6 +5,13 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+    types: [opened, reopened, synchronize, ready_for_review]
+  workflow_dispatch:
+    inputs:
+      refresh_dependency_lock:
+        description: Resolve an artifact-only frontend registry lock for review
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -20,8 +27,135 @@ permissions:
 # This validation workflow performs no provider deployment.
 
 jobs:
+  dependency_lock:
+    name: Proposed frontend registry lock
+    if: >-
+      github.repository == 'TheHypertextStudio/curfew' &&
+      ((github.event_name == 'workflow_dispatch' && inputs.refresh_dependency_lock == true) ||
+       (github.event_name == 'pull_request' && github.event.pull_request.draft == true &&
+        github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name &&
+        github.event.pull_request.head.ref == 'codex/company-website-standardization'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Check out the exact reviewed head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Set up declared Node and trusted registry user config
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: '24.20.0'
+          package-manager-cache: false
+          registry-url: https://npm.pkg.github.com
+          scope: '@thehypertextstudio'
+      - name: Enable and verify the exact frontend package manager
+        shell: bash
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.9.0 --activate
+          test "$(node --version)" = v24.20.0
+          test "$(pnpm --version)" = 11.9.0
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const manifest = JSON.parse(fs.readFileSync('landing/package.json', 'utf8'));
+          if (manifest.packageManager !== 'pnpm@11.9.0' || manifest.devEngines.runtime.version !== '24.20.0') {
+            throw new Error('Workflow toolchain differs from the declared frontend toolchain');
+          }
+          for (const group of ['dependencies', 'devDependencies', 'optionalDependencies']) {
+            for (const [name, version] of Object.entries(manifest[group] ?? {})) {
+              if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(version)) {
+                throw new Error(`Exact registry dependency required: ${name}`);
+              }
+            }
+          }
+          NODE
+      - name: Resolve and verify a disposable registry graph without scripts
+        id: resolve
+        shell: bash
+        env:
+          NODE_AUTH_TOKEN: ${{ github.token }}
+          SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          fresh=$(mktemp -d "$RUNNER_TEMP/curfew-registry-consumer.XXXXXX")
+          evidence="$RUNNER_TEMP/curfew-registry-lock"
+          mkdir -p "$evidence"
+          case "$NPM_CONFIG_USERCONFIG" in
+            "$RUNNER_TEMP"/*) ;;
+            *) echo 'Registry user config must be owned by setup-node in RUNNER_TEMP' >&2; exit 1 ;;
+          esac
+          trap 'rm -rf "$fresh"; rm -f "$NPM_CONFIG_USERCONFIG"' EXIT
+          chmod 600 "$NPM_CONFIG_USERCONFIG"
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const config = fs.readFileSync(process.env.NPM_CONFIG_USERCONFIG, 'utf8');
+          if (!config.includes('//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}')) {
+            throw new Error('Expected the trusted setup-node token placeholder');
+          }
+          NODE
+          # Only reviewed frontend metadata enters this isolated graph. No lock, hooks,
+          # local overrides, backend workspace, .env, or node_modules are copied.
+          cp landing/package.json landing/pnpm-workspace.yaml "$fresh/"
+          cp landing/package.json landing/pnpm-workspace.yaml "$evidence/"
+          cd "$fresh"
+          pnpm install --lockfile-only --ignore-scripts --no-frozen-lockfile
+          cp pnpm-lock.yaml "$evidence/"
+          pnpm install --frozen-lockfile --ignore-scripts
+          pnpm peers check > "$evidence/peer-check.txt" 2>&1
+          pnpm list --depth 0 --json > "$evidence/direct-dependencies.json"
+          cmp pnpm-lock.yaml "$evidence/pnpm-lock.yaml"
+          EVIDENCE_DIRECTORY="$evidence" node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import path from 'node:path';
+          import { createHash } from 'node:crypto';
+          const directory = process.env.EVIDENCE_DIRECTORY;
+          const digest = (name) => createHash('sha256').update(fs.readFileSync(name)).digest('hex');
+          const manifest = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          const packages = ['web-config', 'web-docs', 'web-tokens'].map((name) => {
+            const packageName = `@thehypertextstudio/${name}`;
+            const installed = JSON.parse(fs.readFileSync(path.join('node_modules', packageName, 'package.json'), 'utf8'));
+            if (manifest.devDependencies[packageName] !== '0.0.1' || installed.name !== packageName || installed.version !== '0.0.1') {
+              throw new Error(`Unexpected company package version: ${packageName}`);
+            }
+            return `${packageName}@${installed.version}`;
+          });
+          fs.writeFileSync(path.join(directory, 'acceptance.json'), JSON.stringify({
+            sourceSha: process.env.SOURCE_SHA,
+            workflowRunId: process.env.GITHUB_RUN_ID,
+            workflowRunAttempt: process.env.GITHUB_RUN_ATTEMPT,
+            node: process.version,
+            packageManager: manifest.packageManager,
+            authentication: 'ephemeral github.token with packages:read',
+            dependencyScripts: false,
+            freshResolution: 'passed',
+            frozenInstall: 'passed',
+            peers: 'passed',
+            packages,
+            manifestSha256: digest('package.json'),
+            workspaceSha256: digest('pnpm-workspace.yaml'),
+            lockSha256: digest('pnpm-lock.yaml'),
+            providerAcceptance: false,
+            canonicalLockAdopted: false,
+          }, null, 2) + '\n');
+          NODE
+      - name: Retain proposed lock and native evidence for review
+        if: always() && steps.resolve.outcome != 'skipped'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: curfew-registry-lock-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/curfew-registry-lock/
+          if-no-files-found: error
+          retention-days: 7
+
   website:
     name: Website validation
+    needs: dependency_lock
+    if: always() && needs.dependency_lock.result == 'skipped'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -58,6 +192,8 @@ jobs:
 
   docs:
     name: Docs validation
+    needs: dependency_lock
+    if: always() && needs.dependency_lock.result == 'skipped'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

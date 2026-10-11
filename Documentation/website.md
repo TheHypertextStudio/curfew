@@ -41,9 +41,12 @@ tarballs in an ignored validation overlay. The final
 registry lockfile, fresh frozen install, and clean `./run setup` acceptance remain
 required before this source change can be merged or published. Do not commit
 file-based package overrides or represent the local validation lock as a registry
-lock. Access to GitHub Packages requires an existing read-only package credential;
-keep it in the user's credential configuration or CI secret provider. Do not add
-credential values to `landing/.npmrc`.
+lock. All consumed private packages now grant this repository GitHub Actions Read
+access. CI uses only its ephemeral `github.token` with `packages: read`, through
+trusted `actions/setup-node` user configuration; do not create classic personal
+access tokens or move browser/CLI credentials into npm. Provider authentication
+uses workload identity where supported. Do not add credential values to
+`landing/.npmrc`.
 
 `doctor` checks command availability and declared runtime versions. A Node
 version failure means the shell is using another Node: run the lifecycle through
@@ -120,6 +123,50 @@ Registry installation must be accepted before enabling it as a required merge
 check. Review configuration with content; inspect keyboard use and narrow layouts
 in local previews. Keep native release ordering, sale gate, and distribution
 checklists intact.
+
+### Proposing the real registry lock
+
+`website.yml` has an artifact-only `Proposed frontend registry lock` job. Once the
+workflow is registered on the default branch, run its manual dispatch with
+`refresh_dependency_lock=true`. Before registration, the explicitly authorized
+fallback runs only for a **draft** pull request whose head and base repositories
+match and whose head is exactly `codex/company-website-standardization` in this
+repository. Forks, other branches and ready pull requests cannot enter that
+fallback. It checks out the exact head SHA with credential persistence disabled.
+
+The job uses declared Node 24.20.0/pnpm 11.9.0 and a temporary consumer containing
+only `landing/package.json` and `landing/pnpm-workspace.yaml`. It copies no prior
+lock, backend workspace, dependency directory, environment file or pnpm hook.
+It generates a new registry lock, performs an independent script-disabled frozen
+install, then runs native `pnpm peers check`. The job token exists only in that
+resolution step; setup-node's user config contains a literal environment
+placeholder and is removed at step exit. No provider token, Actions write
+permission, source commit or deployment is involved.
+
+The artifact contains the proposed lock, exact manifest/policy inputs, installed
+direct-dependency report, peer report and successful acceptance receipt with the
+source SHA, workflow run/attempt and SHA256 input/lock digests. A failed job may
+retain a partial lock and diagnostic report; absence of a successful receipt is
+not acceptance. Download and review that artifact before any canonical lock
+adoption. The current source phase has not produced its Curfew hosted receipt.
+
+Normal website/docs jobs are skipped while this draft-only proposal job runs.
+After the lock is reviewed and adopted, a ready-for-review event invokes the normal
+website/docs checks; the manual refresh mode also remains available once registered.
+Main integration stays a separate decision because the existing Pages publisher
+may react to it. No main merge, production cutover or provider write is authorized
+by this workflow.
+
+pnpm 11 retains its default 1440-minute release-age protection. The workspace
+exempts only the exact approved immutable internal releases
+`@thehypertextstudio/web-config@0.0.1`, `web-docs@0.0.1` and `web-tokens@0.0.1`;
+there is no scope wildcard, third-party exception or lockfile trust bypass.
+Candidate `38116243716-1`, promotion `38116605945` and fresh registry verification
+`38116980056` established that these published 0.0.1 packages match the reviewed
+shipping bytes. Manifest SHA256 is
+`097bb8cd7f4bb7341bb9bfdc48c79cc0c855a95c3b25a225374c1f9da3f58fa4`.
+The [version-specific exclusion policy](https://pnpm.io/settings/dependency-resolution#minimumreleaseageexclude)
+is needed only to consume that approved release during its first 24 hours.
 
 ## Mintlify publishing and routing
 
