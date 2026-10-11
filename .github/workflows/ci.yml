@@ -110,6 +110,7 @@ jobs:
         run: >-
           xcodebuild test -project Curfew.xcodeproj -scheme Curfew
           -destination 'platform=macOS'
+          -resultBundlePath build/interactions.xcresult
           -only-testing:CurfewUITests/CurfewUITests
           -only-testing:CurfewUITests/CurfewUITestsLaunchTests
           CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
@@ -127,5 +128,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: curfew-screenshot-test-results
-          path: build/screenshots.xcresult
+          path: |
+            build/screenshots.xcresult
+            build/interactions.xcresult
           if-no-files-found: warn

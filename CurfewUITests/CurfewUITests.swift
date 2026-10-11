@@ -261,7 +261,17 @@ extension CurfewUITests {
     func testTaskBrowserEnforcementPanelActions() {
         let app = launchFixture("settings")
         app.descendants(matching: .any)["settings-integrations-tab"].click()
-        app.disclosureTriangles["Allowed destinations"].click()
+        let destinations = app.disclosureTriangles["Allowed destinations"]
+        let pane = app.scrollViews["settings-detail"]
+        XCTAssertTrue(destinations.waitForExistence(timeout: 5))
+        pane.scroll(byDeltaX: 0, deltaY: -600)
+        XCTAssertTrue(destinations.isHittable)
+        destinations.click()
+        XCTAssertEqual(
+            destinations.value as? String,
+            "1",
+            "Destinations must be expanded before editing."
+        )
 
         XCTAssertTrue(app.staticTexts["Task Browser Enforcement"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Complete LVBT social strategy"].exists)
@@ -286,7 +296,7 @@ extension CurfewUITests {
         let app = launchFixture("settings", state: "ready")
         app.descendants(matching: .any)["settings-integrations-tab"].click()
         XCTAssertTrue(app.staticTexts[
-            "Connected assistants can read your status, schedule, and reflections."
+            "Connected assistants can read your status, schedule, activity, and reflections."
         ].waitForExistence(timeout: 3))
         XCTAssertFalse(app.popUpButtons["assistant-policy"].exists)
     }

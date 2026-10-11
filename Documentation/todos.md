@@ -862,3 +862,5 @@ Remote capture correction: fully fitting native forms may expose a scrollbar wit
 Pages verification rejected assets linked outside its configured root, so the compatibility symlink was replaced by the physical `landing/` asset directory. `web/landing/package.json` retains workspace commands and points Wrangler at that root, including its Functions. Deployment settings stay unchanged; script checks verify physical assets and the command target.
 
 Visual inspection found the isolated runner Dock overlapping Today’s primary action. Screenshot CI now hides and delays only its own Dock before capture; no local desktop preferences change. A workflow regression check protects this capture setup, and unobstructed recaptures are required.
+
+Remote interaction follow-up: assistant-access checks include the disclosed activity scope. Browser mapping checks scroll the disclosure into view and assert its expanded state before editing. CI preserves interaction result bundles separately from capture results, so failed control queries include their accessibility tree and screenshots. No local UI execution is required.
