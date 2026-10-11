@@ -32,8 +32,8 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-const WORKER_DIR = join(ROOT, "worker");
-const LANDING_DIR = join(ROOT, "landing");
+const WORKER_DIR = join(ROOT, "web", "worker");
+const LANDING_DIR = join(ROOT, "web", "landing");
 
 const WORKER_DOMAIN = "curfew-license.hypertext.studio";
 const LANDING_DOMAIN = "curfew.hypertext.studio";
@@ -151,7 +151,7 @@ function phaseKeypair() {
   const { privateKey, publicKey } = generateKeyPairSync("ed25519");
   const seed = privateKey.export({ type: "pkcs8", format: "der" }).subarray(-32);
   const rawPub = publicKey.export({ type: "spki", format: "der" }).subarray(-32);
-  const privB64url = seed.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  const privB64url = seed.toString("base64url");
   const pubB64std = rawPub.toString("base64");
 
   wrangler(["secret", "put", "LICENSE_PRIVATE_KEY"], { input: privB64url });
@@ -177,8 +177,14 @@ async function phaseStripe() {
     log(`Created product ${product.id}`);
   } else log(`Reusing product ${product.id}`);
 
-  const prices = (await stripe("GET", `/prices?product=${product.id}&limit=100`)).data;
-  const links = (await stripe("GET", "/payment_links?limit=100")).data;
+  // These three lookups are independent — fetch them together.
+  const [pricesRes, linksRes, hooksRes] = await Promise.all([
+    stripe("GET", `/prices?product=${product.id}&limit=100`),
+    stripe("GET", "/payment_links?limit=100"),
+    stripe("GET", "/webhook_endpoints?limit=100"),
+  ]);
+  const prices = pricesRes.data;
+  const links = linksRes.data;
 
   async function ensurePrice(match, build) {
     let price = prices.find(match);
@@ -216,20 +222,26 @@ async function phaseStripe() {
     subLink = await ensureLink("subscription", subPrice.id);
   } else warn("STRIPE_SUB_AMOUNT unset — skipping subscription price/link.");
 
-  // Inject the payment links into the landing page.
+  // Fill the landing page by replacing stable placeholder tokens (not copy
+  // strings, which drift when the marketing copy is reworded). Each replacement
+  // must hit — otherwise we throw rather than silently shipping a placeholder.
   const indexPath = join(LANDING_DIR, "index.html");
   let html = readFileSync(indexPath, "utf8");
-  html = html.replace("https://buy.stripe.com/REPLACE_WITH_CURFEW_PLUS_LIFETIME_LINK", lifetimeLink.url);
+  const inject = (token, value) => {
+    if (!html.includes(token)) throw new Error(`Placeholder "${token}" not found in index.html — was it renamed?`);
+    html = html.split(token).join(value);
+  };
+  inject("https://buy.stripe.com/REPLACE_WITH_CURFEW_PLUS_LIFETIME_LINK", lifetimeLink.url);
   if (subLink) {
-    html = html.replace("https://buy.stripe.com/REPLACE_WITH_CURFEW_PLUS_SUBSCRIPTION_LINK", subLink.url);
     const each = SUB_INTERVAL === "year" ? "year" : "mo";
-    html = html.replace("Subscribe — $TODO / year", `Subscribe — $${(SUB_AMOUNT / 100).toFixed(0)} / ${each}`);
+    inject("https://buy.stripe.com/REPLACE_WITH_CURFEW_PLUS_SUBSCRIPTION_LINK", subLink.url);
+    inject("REPLACE_WITH_CURFEW_PLUS_SUB_PRICE", `$${(SUB_AMOUNT / 100).toFixed(0)} / ${each}`);
   }
   writeFileSync(indexPath, html);
-  log("Injected payment links into landing/index.html");
+  log("Injected payment links into web/web/landing/index.html");
 
   // Webhook endpoint (its signing secret is only returned on creation).
-  const hooks = (await stripe("GET", "/webhook_endpoints?limit=100")).data;
+  const hooks = hooksRes.data;
   let hook = hooks.find((h) => h.url === WEBHOOK_URL);
   if (hook && env.RECREATE_WEBHOOK) { await stripe("DELETE", `/webhook_endpoints/${hook.id}`); hook = null; log("Deleted existing webhook to recreate."); }
   if (!hook) {
@@ -273,5 +285,5 @@ async function phasePages() {
   log("Remaining manual steps (no API):");
   log("  • Mintlify dashboard → connect the GitHub repo and set the /docs subpath on " + LANDING_DOMAIN);
   log("  • Stripe → enable Managed Payments (account-level eligibility)");
-  log("  • Commit the injected changes (LicenseGate.swift public key, landing/index.html links)");
+  log("  • Commit the injected changes (LicenseGate.swift public key, web/web/landing/index.html links)");
 })();

@@ -268,13 +268,13 @@ mid-lockout, and every action the root daemon takes. Format specification:
 - [x] README rewrite: three-horizon pitch, MCP setup, CLI usage, Pro features, architecture.
 - [x] `CONTRIBUTING.md`, `PRIVACY.md`, `Documentation/ARCHITECTURE.md`, `Documentation/RELEASE.md`.
 - [x] Signed-build validation runbook for shutdown, widget, privileged helper, and CloudKit lives in `Documentation/RELEASE.md`. (Actual Apple-credential execution is still tracked by the remaining unchecked release/provisioning items.)
-- [x] Landing page (`landing/`) — Cloudflare Pages deploy target.
+- [x] Landing page (`web/landing/`) — Cloudflare Pages deploy target.
 - [x] Account-era landing contract — every public header links to the optional
       same-origin account portal, Android is labeled as coming soon, and the
       privacy, security, retention, purchase, recovery, and remote-unlock
       boundaries are published without implying that Google Play Services are
       required. Approved Curfew service hostnames are enforced in CI.
-- [x] Mintlify documentation source lives in `docs/`.
+- [x] Mintlify documentation source lives in `web/docs/`.
 - [ ] Connect and publish the Mintlify source, then configure the Pages
       `/docs` reverse proxy and complete the required custom-domain TXT
       verification. Keep the current hosted content intact until its
