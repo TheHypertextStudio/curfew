@@ -14,6 +14,19 @@
             settingsDestination = review.settingsSection
             switch review {
             case .normal: break
+            case .accountOffline, .accountSignInRequired, .accountHelperUnavailable:
+                let enrollment = AccountDeviceEnrollment(
+                    deviceID: UUID(), keyEpoch: 1, enrolledAt: currentTime
+                )
+                settings.accountSync.enrollment = enrollment
+                accountSyncEngine.start(enrollment: enrollment)
+                privilegedHelperManager.seedDemoStatus(daemon: .enabled, connection: .unauthorized)
+                switch review {
+                case .accountOffline: accountSyncEngine.markOffline()
+                case .accountSignInRequired:
+                    accountSyncEngine.reject(AccountSyncRejectionReason.signInRequired)
+                default: accountSyncEngine.markSynchronized(at: currentTime)
+                }
             case .todayOffLocked:
                 state = DemoFixture.evaluation(for: .lockout, now: currentTime)
             case .setupReview, .setupReviewDenied:

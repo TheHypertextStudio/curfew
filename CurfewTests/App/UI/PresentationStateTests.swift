@@ -10,6 +10,26 @@ struct PresentationStateTests {
         return try String(contentsOf: root.appendingPathComponent(path), encoding: .utf8)
     }
 
+    @Test("Remote readiness requires an authenticated helper, not only a heartbeat file")
+    func remoteReadiness() throws {
+        let helper = try source("Curfew/App/Infrastructure/PrivilegedHelperManager.swift")
+        #expect(helper.contains("guard isDaemonResponding, connectionState == .ready"))
+        let panel = try source("Curfew/UI/SettingsView+SyncPanel.swift")
+        let settings = try source("Curfew/UI/SettingsView.swift")
+        #expect(settings.contains("await model.privilegedHelperManager.reconcileDaemonStatus()"))
+        #expect(!panel.contains("Install Privileged Helper"))
+        #expect(panel.contains("SMAppService.openSystemSettingsLoginItems()"))
+    }
+
+    @Test("Account errors never claim local protection is active without its state")
+    func accountStatusCopy() throws {
+        let copy = try source("Curfew/UI/AccountConnectionPresentation.swift")
+        #expect(!copy.contains("still protected"))
+        #expect(!copy.contains("Local protection continues"))
+        #expect(!copy.contains("this Curfew build"))
+        #expect(!copy.contains("Check its helper"))
+    }
+
     @Test("Capture validation rejects cropped window images")
     func uncroppedCapture() throws {
         let capture = try source("CurfewUITests/MarketingCaptureTests.swift")
@@ -21,7 +41,14 @@ struct PresentationStateTests {
     @Test("Contradictory states have isolated fixtures for remote review")
     func stateFixtures() throws {
         let fixtures = try source("Curfew/App/Model/CurfewAppModel+DemoReview.swift")
-        for state in ["todayOffLocked", "setupReview", "assistantMalformed"] {
+        for state in [
+            "todayOffLocked",
+            "setupReview",
+            "assistantMalformed",
+            "accountOffline",
+            "accountSignInRequired",
+            "accountHelperUnavailable"
+        ] {
             #expect(fixtures.contains(state))
         }
     }

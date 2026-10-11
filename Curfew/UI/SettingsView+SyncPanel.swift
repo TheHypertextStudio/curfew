@@ -1,6 +1,6 @@
 import AppKit
-import ServiceManagement
 import CurfewKit
+import ServiceManagement
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -35,11 +35,23 @@ extension SettingsView {
                     && model.privilegedHelperManager.isRemoteLockEnforcementAvailable
             )
             if model.featureFlags.privilegedHelperEnabled,
-               model.privilegedHelperManager.daemonStatus != .enabled {
-                Button("Install Privileged Helper…") {
-                    model.privilegedHelperManager.installDaemon()
+               !model.privilegedHelperManager.isRemoteLockEnforcementAvailable {
+                if model.privilegedHelperManager.daemonStatus == .requiresApproval {
+                    Button("Approve Background Protection…") {
+                        if !model.isDemoSession {
+                            SMAppService.openSystemSettingsLoginItems()
+                        }
+                    }
+                    .buttonStyle(CurfewPrimaryButtonStyle())
+                } else if model.privilegedHelperManager.daemonStatus == .enabled {
+                    Button("Review Background Protection") { selection = .general }
+                        .buttonStyle(CurfewPrimaryButtonStyle())
+                } else {
+                    Button("Install Background Protection…") {
+                        model.privilegedHelperManager.installDaemon()
+                    }
+                    .buttonStyle(CurfewPrimaryButtonStyle())
                 }
-                .buttonStyle(CurfewPrimaryButtonStyle())
             }
             if model.accountSyncEngine.syncStatus.requiresSameAccountSignIn {
                 if case .signingIn = accountEnrollment.state {

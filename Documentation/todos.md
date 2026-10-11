@@ -919,3 +919,9 @@ The remote AX lookup demonstrated section-level identifier propagation overridin
   large enough for default windows. Captures now compare image and window dimensions
   and fail on clipping. This script refuses to run outside GitHub Actions; it must
   never change the user's display. Recapture the final matrix before acceptance.
+
+### Account readiness consistency after main integration
+
+- [-] Review contradictory account and protection states. Remote locks require both a fresh daemon heartbeat and an authenticated ready connection, while Studio Dev still yields to a live higher-priority Curfew owner. Settings refreshes signed status on opening, activation, and the existing heartbeat interval. Pending approval opens the macOS approval pane; installed connection failures route to General; installation is offered only when needed. Account messages describe an unchanged schedule instead of claiming protection is active.
+
+Hostless coverage: `PrivilegedHelperManagerTests.remoteReadinessRequiresAuthenticatedConnection` rejects unavailable, unauthorized, stale, and failed registration despite a fresh heartbeat file. `PresentationStateTests` checks recovery routing and copy. The new assertions failed before the fix; CI retains full app behavior and screenshot checks. No local UI execution or app launch. This changes readiness presentation and recovery routing, not enforcement rules, persisted identifiers, or the wire format. Rollback is the readiness/copy change; signed helper and real macOS approval verification remain separate.

@@ -43,7 +43,7 @@ struct AccountConnectionPresentation: Equatable {
             AccountConnectionPresentation(
                 title: "Connecting this Mac…",
                 detail: "Curfew is securely connecting to your account. "
-                    + "Your local schedule keeps working.",
+                    + "Your schedule is unchanged.",
                 systemImage: "arrow.triangle.2.circlepath",
                 tone: .neutral
             )
@@ -52,14 +52,14 @@ struct AccountConnectionPresentation: Equatable {
         case .pendingEncryption:
             AccountConnectionPresentation(
                 title: "Encrypted changes are waiting to sync",
-                detail: "Remote commands keep using your last confirmed settings.",
+                detail: "Your encrypted changes haven’t synced yet.",
                 systemImage: "lock.rotation",
                 tone: .neutral
             )
         case .offline:
             AccountConnectionPresentation(
                 title: "Remote control is offline",
-                detail: "This Mac is still protected by its local schedule. "
+                detail: "Your schedule is unchanged. "
                     + "Curfew will reconnect automatically.",
                 systemImage: "wifi.slash",
                 tone: .warning
@@ -83,7 +83,7 @@ struct AccountConnectionPresentation: Equatable {
         return AccountConnectionPresentation(
             title: "Check this Mac’s account access",
             detail: "Curfew Account denied this Mac’s request. Its device access may have "
-                + "been removed. Check this Mac in your account. Local protection continues.",
+                + "been removed. Check this Mac in your account. Your schedule is unchanged.",
             systemImage: "exclamationmark.triangle.fill",
             tone: .warning
         )
@@ -96,8 +96,8 @@ struct AccountConnectionPresentation: Equatable {
         if !remoteEnforcementReady {
             return AccountConnectionPresentation(
                 title: "Remote locks are not ready",
-                detail: "This Mac is signed in, but this Curfew build cannot enforce remote "
-                    + "locks right now. Check its helper and any other running Curfew app.",
+                detail: "This Mac is signed in, but background protection cannot enforce remote "
+                    + "locks right now. Review Background Protection in General.",
                 systemImage: "exclamationmark.triangle.fill",
                 tone: .warning,
                 lastConfirmedAt: date
