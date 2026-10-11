@@ -40,10 +40,23 @@ private struct TaskBrowserEnforcementPanel: View {
                 connectionControls
                 statusRows
                 enforcementControls
-                DisclosureGroup("Allowed destinations", isExpanded: $mappingsExpanded) {
+                Button {
+                    mappingsExpanded.toggle()
+                } label: {
+                    Label(
+                        "Allowed destinations",
+                        systemImage:
+                        mappingsExpanded ? "chevron.down" : "chevron.right"
+                    )
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("task-browser-destinations-disclosure")
+                .accessibilityValue(mappingsExpanded ? "Expanded" : "Collapsed")
+                if mappingsExpanded {
                     mappingControls
                 }
-                .accessibilityIdentifier("task-browser-destinations-disclosure")
             }
         }
         .accessibilityIdentifier("task-browser-enforcement-panel")

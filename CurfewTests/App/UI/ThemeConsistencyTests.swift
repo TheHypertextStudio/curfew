@@ -266,7 +266,9 @@ extension ThemeConsistencyTests {
         let source = try String(contentsOf: root.appendingPathComponent(
             "Curfew/UI/SettingsView+TaskBrowserEnforcement.swift"
         ), encoding: .utf8)
-        #expect(source.contains("isExpanded: $mappingsExpanded"))
+        #expect(source.contains("mappingsExpanded.toggle()"))
+        #expect(source
+            .contains(".accessibilityValue(mappingsExpanded ? \"Expanded\" : \"Collapsed\")"))
         #expect(source.contains("task-browser-destinations-disclosure"))
     }
 
