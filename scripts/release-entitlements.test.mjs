@@ -9,7 +9,7 @@ const releaseChecklist = await readFile("scripts/release-checklist.md", "utf8");
 const productPlan = await readFile("Documentation/plan.md", "utf8");
 const screenshotExtractor = await readFile("scripts/extract-screenshots.sh", "utf8");
 const projectFile = await readFile("Curfew.xcodeproj/project.pbxproj", "utf8");
-const packageManifest = await readFile("Package.swift", "utf8");
+const packageManifest = await readFile("CurfewKit/Package.swift", "utf8");
 const homebrewCask = await readFile("Casks/curfew.rb", "utf8");
 
 function buildConfigurationBlock(id, name) {
@@ -122,7 +122,7 @@ test("a staging build compiles the app and every embedded tool for the same serv
   assert.doesNotMatch(projectRelease, /CURFEW_SERVICE_SWIFT_FLAG/);
   assert.doesNotMatch(appRelease, /CURFEW_SERVICE_SWIFT_FLAG/);
   assert.match(projectFile, /SWIFT_SERVICE_FLAGS=.*-Xswiftc -DCURFEW_STAGING/);
-  assert.match(projectFile, /swift build -c release --jobs 2 --product curfew-daemon \$SWIFT_SERVICE_FLAGS/);
+  assert.match(projectFile, /swift build --package-path CurfewKit -c release --jobs 2 --product curfew-daemon \$SWIFT_SERVICE_FLAGS/);
   assert.match(projectFile, /if \[ \\"\$CONFIGURATION\\" != \\"Debug\\" \]/);
   assert.match(projectFile, /CURFEW_STAGING requires an isolated Debug or StudioDev app and helper identity/);
   assert.match(projectFile, /CURFEW_DAEMON_PLIST_NAME/);

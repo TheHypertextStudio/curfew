@@ -66,7 +66,10 @@ public struct AuthenticatedDaemonControl: Codable, Sendable {
         guard let effective = status(external: external, shutdownIssued: false, now: now)
             .activeRecord
         else { throw PrivilegedEnforcementError.noActiveLockout }
-        guard effective.lockoutID == lockoutID
+        let ownedLocal = localStatus.activeRecord.map {
+            $0.lockoutID == lockoutID && $0.scheduledUnlockAt > now
+        } ?? false
+        guard effective.lockoutID == lockoutID || ownedLocal
         else { throw PrivilegedEnforcementError.lockoutMismatch }
         authenticatedHeartbeatLockoutID = lockoutID
         localStatus.lastHeartbeatAt = now
