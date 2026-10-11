@@ -163,6 +163,11 @@ final class MarketingCaptureTests: XCTestCase {
             XCTAssertTrue(window.waitForExistence(timeout: 8))
             assertSettingsState(state, in: app)
             attach(window, name: "state-\(state)")
+            if state.hasPrefix("assistant-") || state.hasPrefix("claude-")
+                || state.hasPrefix("cloud-") || state.hasPrefix("calendar-") {
+                scrollToBottom(window)
+                attach(window, name: "state-\(state)-details")
+            }
             if state == "assistant-pending" {
                 app.buttons["review-ai-request"].click()
                 XCTAssertTrue(app.buttons["Approve"].waitForExistence(timeout: 5))

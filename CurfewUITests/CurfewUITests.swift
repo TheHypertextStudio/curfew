@@ -266,7 +266,8 @@ extension CurfewUITests {
         XCTAssertTrue(destinations.waitForExistence(timeout: 5))
         pane.scroll(byDeltaX: 0, deltaY: -600)
         XCTAssertTrue(destinations.isHittable)
-        destinations.click()
+        destinations.coordinate(withNormalizedOffset: CGVector(dx: 0, dy: 0.5))
+            .withOffset(CGVector(dx: 26, dy: 0)).click()
         XCTAssertEqual(
             destinations.value as? String,
             "1",
