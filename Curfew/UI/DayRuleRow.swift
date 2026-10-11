@@ -138,61 +138,66 @@ struct DayRuleRow: View {
                 }
             }
 
-            HStack(spacing: 10) {
-                Text(ScheduleSurfaceCopy.workEndsLabel)
-                    .font(CurfewTypography.label(12))
-                    .foregroundStyle(CurfewTheme.mutedInk)
-                    .frame(width: 84, alignment: .leading)
-
-                DatePicker(
-                    ScheduleSurfaceCopy.workEndsLabel,
-                    selection: lockBinding(),
-                    displayedComponents: .hourAndMinute
-                )
-                .labelsHidden()
-                .disabled(dayRule.isDayOff)
-
-                Text("→")
-                    .font(CurfewTypography.body(16))
-                    .foregroundStyle(CurfewTheme.mutedInk)
-
-                Text(ScheduleSurfaceCopy.workResumesLabel)
-                    .font(CurfewTypography.label(12))
-                    .foregroundStyle(CurfewTheme.mutedInk)
-
-                DatePicker(
-                    ScheduleSurfaceCopy.workResumesLabel,
-                    selection: unlockBinding(),
-                    displayedComponents: .hourAndMinute
-                )
-                .labelsHidden()
-                .disabled(dayRule.isDayOff)
-            }
-
             if !dayRule.isDayOff {
                 HStack(spacing: 10) {
-                    Text("Trigger")
+                    Text(ScheduleSurfaceCopy.workEndsLabel)
                         .font(CurfewTypography.label(12))
                         .foregroundStyle(CurfewTheme.mutedInk)
-                        .frame(width: 48, alignment: .leading)
+                        .frame(width: 84, alignment: .leading)
 
-                    Picker("Mode", selection: modeBinding()) {
-                        ForEach(CurfewMode.allCases, id: \.self) { mode in
-                            Text(mode.shortName).tag(mode)
-                        }
-                    }
-                    .pickerStyle(.segmented)
+                    DatePicker(
+                        ScheduleSurfaceCopy.workEndsLabel,
+                        selection: lockBinding(),
+                        displayedComponents: .hourAndMinute
+                    )
                     .labelsHidden()
-                    .frame(maxWidth: 220)
+                    .disabled(dayRule.isDayOff)
 
-                    if dayRule.mode != .time {
-                        Stepper(
-                            value: hoursLimitBinding(),
-                            in: 1.0 ... 16.0,
-                            step: 0.5
-                        ) {
-                            Text("\(String(format: "%.1f", hoursLimitBinding().wrappedValue)) h")
+                    Text("→")
+                        .font(CurfewTypography.body(16))
+                        .foregroundStyle(CurfewTheme.mutedInk)
+
+                    Text(ScheduleSurfaceCopy.workResumesLabel)
+                        .font(CurfewTypography.label(12))
+                        .foregroundStyle(CurfewTheme.mutedInk)
+
+                    DatePicker(
+                        ScheduleSurfaceCopy.workResumesLabel,
+                        selection: unlockBinding(),
+                        displayedComponents: .hourAndMinute
+                    )
+                    .labelsHidden()
+                    .disabled(dayRule.isDayOff)
+                }
+            }
+            if !dayRule.isDayOff {
+                DisclosureGroup("Lockout rule") {
+                    HStack(spacing: 10) {
+                        Text("Trigger")
+                            .font(CurfewTypography.label(12))
+                            .foregroundStyle(CurfewTheme.mutedInk)
+                            .frame(width: 48, alignment: .leading)
+
+                        Picker("Mode", selection: modeBinding()) {
+                            ForEach(CurfewMode.allCases, id: \.self) { mode in
+                                Text(mode.shortName).tag(mode)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                        .labelsHidden()
+                        .frame(maxWidth: 220)
+
+                        if dayRule.mode != .time {
+                            Stepper(
+                                value: hoursLimitBinding(),
+                                in: 1.0 ... 16.0,
+                                step: 0.5
+                            ) {
+                                Text(
+                                    "\(String(format: "%.1f", hoursLimitBinding().wrappedValue)) h"
+                                )
                                 .font(CurfewTypography.body(13))
+                            }
                         }
                     }
                 }

@@ -16,15 +16,14 @@ extension SettingsView {
     /// itself is in `ClaudeDesktopRegistration.swift`.
     @ViewBuilder
     var claudeDesktopRegisterButton: some View {
-        let status = ClaudeDesktopRegistration.currentStatus()
-        switch status {
+        switch registrationStatus {
         case .claudeNotInstalled:
             EmptyView()
         case .alreadyRegistered:
             HStack(spacing: 4) {
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundStyle(CurfewTheme.accent)
-                Text("Registered in Claude Desktop")
+                Text("Added to Claude Desktop")
                     .font(CurfewTypography.label(12))
                     .foregroundStyle(CurfewTheme.mutedInk)
             }
@@ -40,10 +39,15 @@ extension SettingsView {
     /// Broken out of the button closure because `NSAlert` chaining reads
     /// better at statement level than inside a trailing closure.
     private func runClaudeDesktopRegister() {
+        guard !model.isDemoSession else {
+            registrationStatus = .alreadyRegistered
+            return
+        }
         do {
             let result = try ClaudeDesktopRegistration.register()
             switch result {
             case .registered, .alreadyRegistered:
+                registrationStatus = .alreadyRegistered
                 // Claude only reads MCP servers at launch, so a config change
                 // does nothing until a full quit + relaunch — the #1 reason a
                 // freshly-added server "doesn't show up". Make that explicit and
@@ -77,11 +81,9 @@ extension SettingsView {
             ? "Curfew is already in Claude's config."
             : "Curfew added to Claude Desktop."
         alert.informativeText =
-            "Claude only loads MCP servers when it launches. Fully quit Claude "
-                + "(⌘Q — closing the window isn't enough) and reopen it, then look "
-                + "for the Curfew tools. You can let Curfew do that now."
-        alert.addButton(withTitle: "Quit & Reopen Claude")
-        alert.addButton(withTitle: "I'll Do It Myself")
+            "Restart Claude to use Curfew. Any open conversations will remain in Claude."
+        alert.addButton(withTitle: "Restart Claude")
+        alert.addButton(withTitle: "Later")
         if alert.runModal() == .alertFirstButtonReturn {
             relaunchClaudeDesktop()
         }

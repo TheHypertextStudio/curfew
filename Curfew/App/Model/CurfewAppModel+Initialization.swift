@@ -14,6 +14,7 @@ extension CurfewAppModel {
     /// - Parameter loadedSettings: The settings loaded during init, forwarded
     ///   to the first widget shared-state sync.
     func completeInitialization(with loadedSettings: CurfewSettings) {
+        guard !isDemoSession else { return }
         // No-op unless the widget is enabled (`syncWidgetSharedState` guards
         // `widgetKitEnabled` internally), so a default install — and every
         // demo / capture launch — never touches the App Group container here.

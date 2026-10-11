@@ -17,7 +17,7 @@ enum GettingStartedCopy {
     /// made this decision when clear-headed" argument rather than pitching
     /// productivity benefits.
     static let commitmentMessage =
-        "Set your schedule while you're thinking clearly, then let Curfew enforce it later."
+        "Choose a time to stop. Curfew helps you stick to it."
 
     /// Secondary heading introducing the numbered configuration steps.
     static let setupFocusTitle = "What to Configure First"
@@ -58,11 +58,11 @@ enum FirstRunStep: Int, CaseIterable, Identifiable {
         case .schedule:
             "Schedule"
         case .extensionBudget:
-            "Extension Budget"
+            "Extra time"
         case .permissions:
             "Permissions"
         case .confirmation:
-            "Confirmation"
+            "Ready to begin"
         }
     }
 
@@ -70,14 +70,13 @@ enum FirstRunStep: Int, CaseIterable, Identifiable {
     var message: String {
         switch self {
         case .welcome:
-            "Curfew helps you keep commitments you made while you had clear focus."
+            "Set a schedule, choose your limits, and allow lockout access."
         case .schedule:
             ScheduleSurfaceCopy.onboardingMessage
         case .extensionBudget:
             "Set weekly extension and override limits to keep exceptions deliberate."
         case .permissions:
-            "Curfew uses notifications and accessibility APIs so warnings "
-                + "and lockout behavior work reliably."
+            "Allow Accessibility access so Curfew can block shortcuts during lockout."
         case .confirmation:
             "Review your setup, then enable Curfew when you are ready."
         }

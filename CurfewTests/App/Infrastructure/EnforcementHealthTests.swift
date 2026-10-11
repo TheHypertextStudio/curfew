@@ -86,7 +86,7 @@ struct EnforcementHealthTests {
 
             #expect(health == expectedHealth)
             #expect(health.isFullyActive == false)
-            #expect(health.bannerDetail?.contains("helper") == true)
+            #expect(health.bannerDetail?.contains("Background protection") == true)
             #expect(health.offersAccessibilityRemediation == false)
         }
     }
@@ -139,7 +139,7 @@ struct EnforcementHealthTests {
 
     @Test("Settings status title is defined for every case and reads plainly")
     func settingsStatusTitleDefinedForEveryCase() {
-        #expect(EnforcementHealth.active.settingsStatusTitle == "Enforcement is active")
+        #expect(EnforcementHealth.active.settingsStatusTitle == "Ready to enforce")
         #expect(
             EnforcementHealth.degradedNoAccessibility.settingsStatusTitle
                 .contains("not active")

@@ -943,3 +943,94 @@ tests cannot read or mutate a user's App Group lockout record.
   caller's current time.`
   - `BrowserWorkPolicyTests/snapshotSerializationOmitsDocketTaskContext()`
   - `BrowserWorkPolicyTests/cachedPolicyExpiresTemporaryAccess()`
+## 19. UI simplification and visual acceptance
+
+- Task-based Settings and compatible identifiers:
+  - `SettingsSectionTests/sectionSet()`
+  - `CurfewUITests/testSettingsUsesSidebarAndShowsOnlyRelevantControls`
+  - `CurfewUITests/testMinimumSettingsWindowRetainsAllConsentChoices`
+- Plain-language consent, readiness, and shutdown:
+  - `AIConsentPolicyTests/consentLabelsArePlainLanguage()`
+  - `EnforcementHealthTests` and `SystemSurfaceBehaviorTests`
+  - `AutoShutdownConfigurationTests/shutdownCountdownStatusLine()`
+  - `CurfewUITests/testOffStateDoesNotPromiseAnActiveLock`
+  - `CurfewUITests/testReadyFixtureDoesNotImplyCurfewIsOn`
+- Setup gating, conditional schedule controls, assistant feedback:
+  - `CurfewUITests/testSetupUsesOneInstructionAndPreservesScheduleGate`
+  - `CurfewUITests/testScheduleHidesTimeControlsForDaysOff`
+  - `CurfewUITests/testAssistantSetupShowsCopyFeedback`
+  - `CurfewUITests/testPromptEditorDoesNotAdvertiseFutureFeatures`
+- Capture safety and visual evidence:
+  - `DemoFixtureTests/demoModelCannotArmEnforcement()`
+  - `DemoFixtureTests/demoScheduleEditsCannotEnterEnforcementCycle()`
+  - `DemoFixtureTests/menuBarOffCopyIsHonest()`
+  - `CurfewUITests/testReviewOpensPendingRequestAndDenyDismissesIt`
+  - `CurfewUITests/testExhaustedOverridesExplainWhyEntryIsUnavailable`
+  - `MarketingCaptureTests` asserts fixture window/overlay identity before capture.
+  - Existing policy, MCP signing/consent, schedule, budget, override, and license
+    tests remain the behavior regression gate; screenshots do not replace them.
+
+- Settings polish and sentence-case labels:
+  - `SettingsTypographyTests/noAllCapsOverlines()` protects the presentation sources
+    from forced casing and letterspaced overlines.
+  - `CurfewUITests/testGeneralKeepsNavigationAndSetupInView`
+  - `CurfewUITests/testGeneralPermissionFailureFitsMinimumWindow`
+
+- Shared disabled and Reduce Motion button feedback:
+  - `ButtonFeedbackTests/disabledFeedback()`
+  - `ButtonFeedbackTests/reducedMotionFeedback()`
+  - `ButtonFeedbackTests/enabledFeedback()`
+
+- Native Settings navigation and reliable lower-position captures:
+  - `CurfewUITests/testSettingsSidebarSupportsArrowKeys`
+  - `CurfewUITests/testManageAIAccessAlwaysOpensConnections`
+  - `MarketingCaptureTests/scrollToBottom` targets the detail pane, asserts its
+    vertical position is at the bottom, or proves lower content fits without a bar.
+
+- Keep degraded General controls visible without repeating the helper error:
+  - `CurfewUITests/testGeneralHelperFailureFitsMinimumWindow`
+- Explain assistant read access before its toggle is enabled:
+  - `CurfewUITests/testAssistantReadAccessIsExplainedBeforeEnabling`
+
+- Capture the actual warning timer instead of the desktop:
+  - `MarketingCaptureTests/testCaptureOverlays` asserts `warning-timer` and
+    `warning-countdown` before capturing the borderless container.
+  - `CurfewUITests/testWarningAndLockoutPresentation` retains countdown semantics.
+
+- Capture state assertions use a frozen accessibility tree; native disclosure
+  expansion and destructive-dialog cancellation are asserted before capture.
+  Final critical-state and overlay suites pass in
+  `build/ui-capture-snapshot-final.xcresult`; the gallery retains 160 current images.
+  Outstanding state and assistive-technology coverage is listed in
+  `Documentation/ui-state-review.md`.
+
+- Unified app theme:
+  - `ThemeConsistencyTests/textContrast`: body, secondary, and link text meet
+    4.5:1 on shared canvas/card/muted surfaces in Aqua and Dark Aqua.
+  - `ThemeConsistencyTests/sharedPalette`: Settings and sky controls consume
+    shared palette roles; no separate gray sidebar tint.
+  - All capture suites are rerun for global palette changes; visual acceptance
+    remains separate from numerical contrast checks.
+
+- Background-only theme verification (`scripts/test-theme-background.sh`):
+  - `ThemeConsistencyTests/filledActionContrast`: white labels meet 4.5:1 in
+    both appearances.
+  - `ThemeConsistencyTests/atmosphericContrast`: night gradient stops preserve
+    4.5:1 text and 3:1 icon contrast.
+  - `ThemeConsistencyTests/nativeAccentConsistency`: asset RGB values remain
+    aligned with resolved filled-control tokens in Aqua and Dark Aqua.
+  - `ThemeConsistencyTests/noViewColorLiterals`: flags view-level RGB constructors
+    outside the two palette definitions; failing-first proof catches the warning
+    and static lockout's former independent colors.
+  - Existing contrast coverage now includes sidebar canvas and warning text.
+  - The generated package compiles actual symlinked source files; it excludes
+    the app entry point, UI test bundle, and permission/enforcement model startup.
+    It is targeted verification, not the full application unit suite.
+
+- `ThemeConsistencyTests/reflectionInputContrast`: normal/reduced-transparency
+  input backings keep primary and supporting text above 4.5:1 even over white.
+- `ThemeConsistencyTests/progressContrast`: the hold progress wash retains
+  filled-control label contrast in both appearances. These checks composite
+  alpha before computing luminance; they do not ignore supporting-text opacity.
+- Architecture guards also reject generic secondary overrides and one-off
+  white-opacity reflection text, so those screens consume the tested roles.

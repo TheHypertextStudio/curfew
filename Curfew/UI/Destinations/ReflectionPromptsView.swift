@@ -56,15 +56,16 @@ struct ReflectionPromptsView: View {
                 subtitle: "Prompt yourself at the start and end of each day."
             )
 
-            Text("The morning reflection greets you at the day's first session; "
-                + "the evening one appears on the lockout screen. Both are always "
-                + "skippable.")
-                .font(CurfewTypography.body(13))
-                .foregroundStyle(CurfewTheme.mutedInk)
-                .fixedSize(horizontal: false, vertical: true)
+            Text(
+                "Morning prompts appear when you start. Evening prompts appear at lockout. "
+                    + "You can skip either."
+            )
+            .font(CurfewTypography.body(13))
+            .foregroundStyle(CurfewTheme.mutedInk)
+            .fixedSize(horizontal: false, vertical: true)
 
-            Toggle("Morning intent (sunrise)", isOn: gateEnabledBinding(for: .morning))
-            Toggle("Evening reflection (sundown)", isOn: gateEnabledBinding(for: .evening))
+            Toggle("Morning prompts", isOn: gateEnabledBinding(for: .morning))
+            Toggle("Evening prompts", isOn: gateEnabledBinding(for: .evening))
         }
     }
 
@@ -242,11 +243,12 @@ struct ReflectionPromptsView: View {
         if model.featureFlags.mcpServerEnabled {
             CurfewPanel {
                 CurfewSectionTitle(
-                    title: "Read your reflections in Claude",
-                    subtitle: "Connect an AI assistant to read your morning and evening "
-                        + "reflections — read-only, and they never leave this Mac."
+                    title: "Your reflections and AI",
+                    subtitle: "Connected assistants can read your reflections. "
+                        + "Only connect assistants you trust."
                 )
-                Button("Open Integrations Settings") {
+                Button("Manage AI Access…") {
+                    model.settingsDestination = .integrations
                     model.openSettings()
                 }
                 .buttonStyle(CurfewSecondaryButtonStyle())
@@ -257,14 +259,6 @@ struct ReflectionPromptsView: View {
     private var defaultsPanel: some View {
         CurfewPanel {
             CurfewSectionTitle(title: "Defaults")
-
-            Label(
-                "AI-suggested prompts are coming — generated on-device from your "
-                    + "day's context.",
-                systemImage: "sparkles"
-            )
-            .font(CurfewTypography.body(13))
-            .foregroundStyle(CurfewTheme.mutedInk)
 
             Button("Restore default prompts") {
                 model.updateReflectionConfiguration(.default)

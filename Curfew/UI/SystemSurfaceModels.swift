@@ -48,8 +48,7 @@ enum ShutdownPanelState: Equatable {
 
     static let unavailableMessage =
         "Auto shutdown is unavailable in this build. "
-            + "It is only enabled when the app is signed with Apple Events "
-            + "automation entitlement."
+            + "Use a signed release of Curfew to enable it."
 
     static func resolve(isAvailable: Bool) -> ShutdownPanelState {
         if isAvailable {
@@ -63,8 +62,8 @@ enum ShutdownPanelState: Equatable {
 enum PrivilegedHelperStatusCopy {
     static func daemonDescription(for status: SMAppService.Status) -> String {
         switch status {
-        case .enabled: "Running — root-owned lockout enforcement active."
-        case .requiresApproval: "Needs approval — open System Settings → Login Items."
+        case .enabled: "Installed."
+        case .requiresApproval: "Approval needed in System Settings."
         case .notRegistered, .notFound: "Not installed."
         @unknown default: "Unknown status."
         }
@@ -73,7 +72,7 @@ enum PrivilegedHelperStatusCopy {
     static func loginItemDescription(for status: SMAppService.Status) -> String {
         switch status {
         case .enabled: "Curfew opens automatically at login."
-        case .requiresApproval: "Needs approval — open System Settings → Login Items."
+        case .requiresApproval: "Approval needed in System Settings."
         case .notRegistered, .notFound: "Not registered."
         @unknown default: "Unknown status."
         }

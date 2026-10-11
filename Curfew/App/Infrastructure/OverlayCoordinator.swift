@@ -378,20 +378,22 @@ private struct FloatingCountdownTimerView: View {
         HStack(spacing: 7) {
             Image(systemName: "clock.fill")
                 .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(Color(red: 0.95, green: 0.6, blue: 0.35))
+                .foregroundStyle(SundownPalette.glow)
             Text("\(max(0, minutesRemaining)) min")
                 .accessibilityIdentifier("warning-countdown")
                 .accessibilityLabel("\(max(0, minutesRemaining)) min")
                 .font(.system(size: 15, weight: .semibold, design: .rounded))
                 .monospacedDigit()
-                .foregroundStyle(.white)
+                .foregroundStyle(SundownPalette.warmWhite)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
-        .background(.black.opacity(0.6), in: Capsule())
+        .background(SundownPalette.nightSky, in: Capsule())
         .overlay(
             Capsule()
                 .stroke(.white.opacity(0.12), lineWidth: 1)
         )
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("warning-timer")
     }
 }

@@ -53,6 +53,7 @@ extension CurfewAppModel {
     /// 7. Propagate derived effects: rotate lockout copy, toggle override
     ///    composer, fire warnings, toggle key tap, shutdown, overlays.
     func tick() {
+        guard !isDemoSession else { return }
         // Captured from `lastEnforcedPhase` — the phase this (armed) tick last
         // acted on — not from `state.phase` directly. `state.phase` can have
         // been silently re-derived any number of times by the disarmed
@@ -256,6 +257,7 @@ extension CurfewAppModel {
         }
 
         persistSettings()
+        guard !isDemoSession else { return }
         if SyncAuthorityResolver.allowsCloudKit(account: settings.accountSync) {
             cloudKitSyncEngine.push(settings)
         } else {

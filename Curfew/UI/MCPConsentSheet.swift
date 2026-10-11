@@ -32,7 +32,7 @@ struct MCPConsentSheet: View {
             let args = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
             let text = args["reason"] as? String
         else {
-            return "(no reason provided)"
+            return "No reason provided."
         }
         return text
     }
@@ -43,12 +43,12 @@ struct MCPConsentSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             VStack(alignment: .leading, spacing: 6) {
-                Text("AI Request")
+                Text("Allow this change?")
                     .font(CurfewTypography.bodyEmphasis(18))
                     .foregroundStyle(CurfewTheme.ink)
 
                 Text(
-                    "An AI assistant (via \(request.tool.displayName)) is asking to change your Curfew enforcement."
+                    "An assistant is asking to change Curfew."
                 )
                 .font(CurfewTypography.body(14))
                 .foregroundStyle(CurfewTheme.mutedInk)
@@ -64,7 +64,7 @@ struct MCPConsentSheet: View {
             }
 
             VStack(alignment: .leading, spacing: 4) {
-                Text("Reason provided")
+                Text("Reason")
                     .font(CurfewTypography.label(12))
                     .foregroundStyle(CurfewTheme.mutedInk)
                 Text(reason)
@@ -83,6 +83,7 @@ struct MCPConsentSheet: View {
             }
 
             HStack(spacing: 12) {
+                Spacer()
                 Button("Deny") {
                     onDeny()
                 }

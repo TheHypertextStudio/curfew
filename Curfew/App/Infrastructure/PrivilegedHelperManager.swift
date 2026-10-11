@@ -289,6 +289,17 @@ final class PrivilegedHelperManager {
     }
 
     #if DEBUG
+        func seedDemoStatus(
+            daemon: SMAppService.Status = .notRegistered,
+            login: SMAppService.Status = .notRegistered,
+            connection: ConnectionState = .unavailable
+        ) {
+            daemonStatus = daemon
+            loginItemStatus = login
+            connectionState = connection
+            lastError = connection == .ready ? nil : "Background protection is not connected."
+        }
+
         func seedDemoUnavailableError() {
             daemonStatus = .notRegistered
             connectionState = .unavailable

@@ -10,32 +10,45 @@ enum CurfewTheme {
     // MARK: - Backgrounds
 
     /// Default window background.
-    static let canvas = adaptive(light: RGB(0.95, 0.93, 0.90), dark: RGB(0.11, 0.12, 0.13))
+    static let canvas = adaptive(light: RGB(0.961, 0.953, 0.941), dark: RGB(0.125, 0.118, 0.114))
     /// Slightly stronger canvas used for sidebars and section headers.
-    static let canvasStrong = adaptive(light: RGB(0.89, 0.87, 0.83), dark: RGB(0.16, 0.17, 0.19))
+    static let canvasStrong = adaptive(
+        light: RGB(0.914, 0.898, 0.875),
+        dark: RGB(0.153, 0.141, 0.133)
+    )
     /// Raised panel fill — used by `CurfewPanel`.
-    static let surface = adaptive(light: RGB(0.99, 0.98, 0.96), dark: RGB(0.15, 0.16, 0.18))
+    static let surface = adaptive(light: RGB(0.988, 0.980, 0.969), dark: RGB(0.169, 0.157, 0.149))
     /// Low-emphasis surface for secondary buttons and inputs.
-    static let surfaceMuted = adaptive(light: RGB(0.96, 0.95, 0.92), dark: RGB(0.19, 0.20, 0.22))
+    static let surfaceMuted = adaptive(
+        light: RGB(0.933, 0.918, 0.894),
+        dark: RGB(0.204, 0.188, 0.176)
+    )
 
     // MARK: - Text
 
     /// Primary text colour — warm near-black.
-    static let ink = adaptive(light: RGB(0.19, 0.16, 0.14), dark: RGB(0.94, 0.92, 0.88))
+    static let ink = adaptive(light: RGB(0.188, 0.165, 0.149), dark: RGB(0.957, 0.933, 0.914))
     /// Secondary / caption text colour.
-    static let mutedInk = adaptive(light: RGB(0.52, 0.46, 0.41), dark: RGB(0.64, 0.60, 0.55))
+    static let mutedInk = adaptive(light: RGB(0.412, 0.369, 0.337), dark: RGB(0.718, 0.671, 0.631))
 
     // MARK: - Accent / semantic
 
-    /// Primary brand accent — warm ember (the colour of the setting sun),
-    /// used for tint and primary buttons.
-    static let accent = adaptive(light: RGB(0.85, 0.45, 0.23), dark: RGB(0.92, 0.56, 0.33))
-    /// Lower-emphasis variant of the accent, used for inactive states
-    /// where the full-saturation accent would pull too much focus.
-    static let accentMuted = adaptive(light: RGB(0.80, 0.52, 0.36), dark: RGB(0.85, 0.60, 0.44))
+    /// Clay accent for readable links and native control tint.
+    static let accent = adaptive(light: RGB(0.608, 0.310, 0.188), dark: RGB(0.800, 0.545, 0.408))
+    /// Filled controls keep white labels readable in both appearances.
+    static let accentFill = adaptive(
+        light: RGB(0.608, 0.310, 0.188),
+        dark: RGB(0.702, 0.365, 0.224)
+    )
+    /// Foreground and progress overlay for filled controls. A dark progress wash
+    /// preserves label contrast throughout a hold instead of whitening the fill.
+    static let onAccent = Color.white
+    static let filledProgressOverlay = Color.black.opacity(0.18)
+    /// Compatibility alias; inactive controls use opacity rather than a separate hue.
+    static let accentMuted = accent
     /// Amber warning tint used by the warning-phase overlay and the
     /// pending-schedule-change callout.
-    static let warning = adaptive(light: RGB(0.72, 0.45, 0.19), dark: RGB(0.90, 0.58, 0.25))
+    static let warning = adaptive(light: RGB(0.518, 0.337, 0.145), dark: RGB(0.878, 0.663, 0.365))
 
     /// Hairline panel border. Adapts to appearance by selecting an alpha
     /// that reads correctly against both light and dark backgrounds.
@@ -145,14 +158,11 @@ struct CurfewPanel<Content: View>: View {
         }
         .padding(padding)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(CurfewTheme.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .background(CurfewTheme.surface, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
                 .stroke(CurfewTheme.border, lineWidth: 1)
         )
-        // A whisper of elevation lifts each card off the warm page so the
-        // workspace reads as a calm, layered sanctuary rather than flat boxes.
-        .shadow(color: .black.opacity(0.05), radius: 10, y: 3)
     }
 }
 
@@ -179,23 +189,47 @@ struct CurfewSectionTitle: View {
     }
 }
 
+/// Shared press feedback, including disabled and accessibility presentation.
+struct CurfewButtonFeedback: Equatable {
+    let opacity: Double
+    let scale: CGFloat
+    let animates: Bool
+
+    static func resolve(isEnabled: Bool, isPressed: Bool, reduceMotion: Bool) -> Self {
+        Self(
+            opacity: isEnabled ? (isPressed ? 0.9 : 1) : 0.45,
+            scale: isEnabled && isPressed && !reduceMotion ? 0.97 : 1,
+            animates: isEnabled && !reduceMotion
+        )
+    }
+}
+
 /// Solid accent-filled button style. The app's primary call-to-action
 /// treatment — one per panel at most.
 struct CurfewPrimaryButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     /// Pressed state dims opacity and scales slightly for tactile feel.
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label
+        let feedback = CurfewButtonFeedback.resolve(
+            isEnabled: isEnabled, isPressed: configuration.isPressed, reduceMotion: reduceMotion
+        )
+        return configuration.label
             .font(CurfewTypography.bodyEmphasis(14))
             .padding(.horizontal, 14)
             .padding(.vertical, 9)
             .background(
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(CurfewTheme.accent)
+                    .fill(CurfewTheme.accentFill)
             )
-            .foregroundStyle(Color.white)
-            .opacity(configuration.isPressed ? 0.9 : 1.0)
-            .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
-            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+            .foregroundStyle(CurfewTheme.onAccent)
+            .opacity(feedback.opacity)
+            .scaleEffect(feedback.scale)
+            .animation(
+                feedback.animates ? .easeOut(duration: 0.12) : nil,
+                value: configuration.isPressed
+            )
     }
 }
 
@@ -203,9 +237,15 @@ struct CurfewPrimaryButtonStyle: ButtonStyle {
 /// surface with a hairline border so it recedes from the primary
 /// button.
 struct CurfewSecondaryButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     /// Same press-state treatment as the primary button for consistency.
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label
+        let feedback = CurfewButtonFeedback.resolve(
+            isEnabled: isEnabled, isPressed: configuration.isPressed, reduceMotion: reduceMotion
+        )
+        return configuration.label
             .font(CurfewTypography.bodyEmphasis(14))
             .padding(.horizontal, 14)
             .padding(.vertical, 9)
@@ -218,9 +258,12 @@ struct CurfewSecondaryButtonStyle: ButtonStyle {
                     .stroke(CurfewTheme.border, lineWidth: 1)
             )
             .foregroundStyle(CurfewTheme.ink)
-            .opacity(configuration.isPressed ? 0.9 : 1.0)
-            .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
-            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+            .opacity(feedback.opacity)
+            .scaleEffect(feedback.scale)
+            .animation(
+                feedback.animates ? .easeOut(duration: 0.12) : nil,
+                value: configuration.isPressed
+            )
     }
 }
 
@@ -229,13 +272,22 @@ struct CurfewSecondaryButtonStyle: ButtonStyle {
 /// secondary style. Standardises the scattered `.borderless` / `.plain`
 /// buttons so the app speaks one button language.
 struct CurfewLinkButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     /// Tints the label with the accent and dims slightly while pressed.
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label
+        let feedback = CurfewButtonFeedback.resolve(
+            isEnabled: isEnabled, isPressed: configuration.isPressed, reduceMotion: reduceMotion
+        )
+        return configuration.label
             .font(CurfewTypography.bodyEmphasis(14))
             .foregroundStyle(CurfewTheme.accent)
-            .opacity(configuration.isPressed ? 0.7 : 1.0)
-            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+            .opacity(feedback.opacity)
+            .animation(
+                feedback.animates ? .easeOut(duration: 0.12) : nil,
+                value: configuration.isPressed
+            )
             .contentShape(Rectangle())
     }
 }

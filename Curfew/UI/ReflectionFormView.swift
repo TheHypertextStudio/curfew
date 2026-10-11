@@ -72,7 +72,7 @@ struct ReflectionFormView: View {
 
                     Button("Skip", action: onSkip)
                         .buttonStyle(.plain)
-                        .foregroundStyle(.white.opacity(0.45))
+                        .foregroundStyle(SundownPalette.supportingText)
                 }
                 .padding(.top, 4)
             }
@@ -90,7 +90,7 @@ struct ReflectionFormView: View {
             titleText("No prompts configured for this reflection yet.")
             Text("Add prompts in Journal → Prompts to start recording reflections here.")
                 .font(.system(size: editorFontSize, weight: .regular, design: .rounded))
-                .foregroundStyle(.white.opacity(0.6))
+                .foregroundStyle(SundownPalette.supportingText)
             Button("Continue", action: onSkip)
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
@@ -103,7 +103,7 @@ struct ReflectionFormView: View {
     private func titleText(_ text: String) -> some View {
         Text(text)
             .font(.system(size: promptFontSize, weight: .medium, design: .rounded))
-            .foregroundStyle(.white.opacity(0.9))
+            .foregroundStyle(SundownPalette.warmWhite)
     }
 
     /// Builds answers for every prompt the user meaningfully answered:
@@ -136,6 +136,7 @@ struct ReflectionFormView: View {
         switch prompt.kind {
         case .text:
             TextEditor(text: textBinding(for: prompt.id))
+                .foregroundStyle(SundownPalette.warmWhite)
                 .font(.system(size: editorFontSize, weight: .regular, design: .rounded))
                 .scrollContentBackground(.hidden)
                 .frame(height: 96)
@@ -151,7 +152,7 @@ struct ReflectionFormView: View {
     }
 
     private var panelFill: Color {
-        usesSolidPanels ? Color.black.opacity(0.72) : Color.white.opacity(0.12)
+        SundownPalette.inputSurface(usesSolidPanels: usesSolidPanels)
     }
 
     // MARK: - Rating
@@ -166,8 +167,9 @@ struct ReflectionFormView: View {
                     Text("\(value)")
                         .font(.system(size: ratingFontSize, weight: .semibold, design: .rounded))
                         .frame(width: ratingButtonSize, height: ratingButtonSize)
-                        .background(value == current ? Color.white.opacity(0.28) : panelFill)
-                        .foregroundStyle(.white.opacity(value == current ? 1 : 0.7))
+                        .background(value == current ? CurfewTheme.accentFill : panelFill)
+                        .foregroundStyle(value == current ? CurfewTheme.onAccent : SundownPalette
+                            .supportingText)
                         .clipShape(Circle())
                 }
                 .buttonStyle(.plain)
@@ -200,8 +202,9 @@ struct ReflectionFormView: View {
                             .font(.system(size: moodLabelSize, weight: .medium, design: .rounded))
                     }
                     .frame(width: moodButtonWidth, height: moodButtonHeight)
-                    .background(mood == current ? Color.white.opacity(0.28) : panelFill)
-                    .foregroundStyle(.white.opacity(mood == current ? 1 : 0.7))
+                    .background(mood == current ? CurfewTheme.accentFill : panelFill)
+                    .foregroundStyle(mood == current ? CurfewTheme.onAccent : SundownPalette
+                        .supportingText)
                     .cornerRadius(12)
                 }
                 .buttonStyle(.plain)

@@ -68,18 +68,8 @@ struct LockoutSundownView: View {
     }
 
     private enum Palette {
-        static let warmWhite = Color(red: 0.99, green: 0.97, blue: 0.94)
-        static let ember = Color(red: 0.92, green: 0.52, blue: 0.30)
-
-        static let nightSky = LinearGradient(
-            stops: [
-                .init(color: Color(red: 0.07, green: 0.08, blue: 0.16), location: 0.0),
-                .init(color: Color(red: 0.14, green: 0.13, blue: 0.24), location: 0.45),
-                .init(color: Color(red: 0.28, green: 0.18, blue: 0.28), location: 0.78),
-                .init(color: Color(red: 0.44, green: 0.24, blue: 0.22), location: 1.0)
-            ],
-            startPoint: .top,
-            endPoint: .bottom
-        )
+        static let warmWhite = SundownPalette.warmWhite
+        static let ember = SundownPalette.emberBright
+        static let nightSky = SundownPalette.nightSky
     }
 }

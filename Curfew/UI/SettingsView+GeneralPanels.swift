@@ -1,76 +1,39 @@
 import CurfewKit
 import SwiftUI
 
-/// Advanced diagnostics and the Getting Started re-entry, as panel extensions
-/// on `SettingsView`.
 extension SettingsView {
-    /// Advanced/diagnostic panel — the Streamable HTTP MCP transport toggle.
-    /// The explanatory caveat sits above the control so the panel reads
-    /// top-down rather than burying the "why" beneath the switch.
     var advancedPanel: some View {
         @Bindable var model = model
-        return CurfewPanel {
-            CurfewSectionTitle(
-                title: "MCP Transport",
-                subtitle: "A diagnostic for advanced MCP client setups."
-            )
-
-            Text(
-                "Binds to 127.0.0.1 only — never exposed on the network. " +
-                    "Enable only if you're using a remote MCP client that " +
-                    "can't spawn curfew-mcp over stdio. Restart Curfew to " +
-                    "apply."
-            )
-            .font(CurfewTypography.body(13))
-            .foregroundStyle(CurfewTheme.mutedInk)
-            .fixedSize(horizontal: false, vertical: true)
-
-            Toggle(
-                "Expose MCP over localhost HTTP",
-                isOn: $model.settings.mcpHTTPEnabled
-            )
-
+        return Section {
+            Toggle("Local HTTP server", isOn: $model.settings.mcpHTTPEnabled)
             if model.settings.mcpHTTPEnabled {
-                HStack {
-                    Text("Port")
-                        .font(CurfewTypography.body(13))
-                    TextField(
-                        "9847",
-                        value: $model.settings.mcpHTTPPort,
-                        format: .number
-                    )
-                    .textFieldStyle(.roundedBorder)
-                    .frame(width: 80)
+                LabeledContent("Port") {
+                    TextField("9847", value: $model.settings.mcpHTTPPort, format: .number)
+                        .frame(width: 80)
                 }
+                Text("Restart Curfew to apply changes.").foregroundStyle(CurfewTheme.mutedInk)
             }
+            DisclosureGroup("Technical details") {
+                Text("For MCP clients that cannot launch the bundled stdio server. "
+                    + "Listens on 127.0.0.1 only; other devices cannot connect.")
+                    .foregroundStyle(CurfewTheme.mutedInk)
+            }
+        } header: {
+            Text("Assistant diagnostics")
+        } footer: {
+            Text("Most assistants do not need this.")
         }
     }
 
-    /// Re-entry point to the first-run onboarding flow. Shows a "Complete
-    /// Setup" button when onboarding was not finished — enforcement is
-    /// disarmed until `hasCompletedInitialSetup` is true.
     var setupPanel: some View {
-        CurfewPanel {
-            CurfewSectionTitle(
-                title: "Getting Started",
-                subtitle: "Curfew is a full app with menu bar quick access."
-            )
-
+        Section("Setup") {
             if model.settings.hasCompletedInitialSetup {
-                Text("Initial setup is complete.")
-                    .font(CurfewTypography.body(14))
-                    .foregroundStyle(CurfewTheme.mutedInk)
+                Button("Review Setup…") { model.showGettingStarted() }
             } else {
-                Button("Complete Setup and Enable Curfew") {
-                    model.completeInitialSetup()
-                }
-                .buttonStyle(CurfewPrimaryButtonStyle())
+                Text("Finish setup before Curfew can enforce your schedule.")
+                    .foregroundStyle(CurfewTheme.mutedInk)
+                Button("Continue Setup…") { model.showGettingStarted() }
             }
-
-            Button("Show Getting Started") {
-                model.showGettingStarted()
-            }
-            .buttonStyle(CurfewSecondaryButtonStyle())
         }
     }
 }

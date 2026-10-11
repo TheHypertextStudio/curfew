@@ -126,6 +126,14 @@ struct AIConsentPolicyTests {
         #expect(!model.pendingMCPRequests.contains { $0.id == request.id })
     }
 
+    @Test("Consent choices describe the user's decision without write-request jargon")
+    func consentLabelsArePlainLanguage() {
+        #expect(AIConsentPolicy.queue.displayName == "Ask before making changes")
+        #expect(AIConsentPolicy.autoApprove.displayName == "Allow changes automatically")
+        #expect(AIConsentPolicy.deny.displayName == "Read only")
+        #expect(!AIConsentPolicy.autoApprove.rationale.contains("override"))
+    }
+
     // MARK: - Helpers
 
     /// An isolated `UserDefaults` suite per call, so mutating `aiConsentPolicy`

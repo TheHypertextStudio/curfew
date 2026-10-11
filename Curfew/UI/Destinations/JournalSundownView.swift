@@ -40,9 +40,8 @@ struct JournalSundownView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(dateRange.uppercased())
+            Text(dateRange)
                 .font(SundownType.label(12))
-                .tracking(1.4)
                 .foregroundStyle(Palette.inkSoft)
             Text("This Week")
                 .font(SundownType.headline(34))

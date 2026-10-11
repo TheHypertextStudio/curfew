@@ -364,16 +364,13 @@ struct MainWorkspaceSectionTests {
 }
 
 struct SettingsSectionTests {
-    @Test("Settings sections are enforcement, integrations, advanced, and about")
+    @Test("Settings uses task-based navigation while retaining stored identifiers")
     func sectionSet() {
-        #expect(
-            SettingsSection.allCases == [
-                .enforcement,
-                .integrations,
-                .advanced,
-                .about
-            ]
-        )
+        #expect(SettingsSection.allCases.map(\.title) == [
+            "General", "Limits", "Warnings", "Connections", "Advanced", "About"
+        ])
+        #expect(SettingsSection.enforcement.rawValue == "enforcement")
+        #expect(SettingsSection.integrations.rawValue == "integrations")
     }
 }
 

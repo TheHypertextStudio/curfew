@@ -2,180 +2,102 @@ import CurfewKit
 import EventKit
 import SwiftUI
 
-/// Informational / configuration panels for Settings tabs that don't drive
-/// enforcement directly: Integrations, Devices, Advanced, and the setup
-/// re-entry panel.
 extension SettingsView {
-    /// Account, local AI, helper, and device integrations.
     var integrationsPanel: some View {
-        VStack(spacing: CurfewSpacing.section) {
-            ForEach(Self.integrationSectionOrder, id: \.self) { section in
-                integrationSection(section)
+        Group {
+            coordinatorSyncPanel
+            taskBrowserEnforcementPanel
+            if model.featureFlags.mcpServerEnabled {
+                mcpConfigPanel
             }
-        }
-    }
-
-    @ViewBuilder
-    private func integrationSection(_ section: IntegrationSection) -> some View {
-        switch section {
-        case .account: coordinatorSyncPanel
-        case .localAI: mcpConfigPanel
-        case .requestHandling: aiConsentPanel
-        case .taskBrowser: taskBrowserEnforcementPanel
-        case .helper: otherIntegrationsPanel
-        case .devices: devicesPanel
-        }
-    }
-
-    /// MCP server setup + Claude Desktop config. Gated on
-    /// `featureFlags.mcpServerEnabled` so a build that doesn't ship the MCP
-    /// control plane hides the toggle and the "Configure Claude Desktop"
-    /// button entirely — they can't surface a runtime the app never starts.
-    /// `settings.mcpEnabled` only gates the runtime when the flag is on too.
-    @ViewBuilder
-    private var mcpConfigPanel: some View {
-        if model.featureFlags.mcpServerEnabled {
-            enabledMCPConfigPanel
-        }
-    }
-
-    private var enabledMCPConfigPanel: some View {
-        @Bindable var model = model
-        return CurfewPanel {
-            CurfewSectionTitle(
-                title: Self.localAISectionTitle,
-                subtitle: "Connect Claude Desktop or another compatible app running here."
-            )
-
-            Toggle("Allow local AI assistants", isOn: $model.settings.mcpEnabled)
-
-            Text(Self.localAIExplanation)
-                .font(CurfewTypography.body(13))
-                .foregroundStyle(CurfewTheme.mutedInk)
-                .fixedSize(horizontal: false, vertical: true)
-
-            if model.settings.mcpEnabled {
-                Text(Self.localAISetupExplanation)
-                    .font(CurfewTypography.body(13))
-                    .foregroundStyle(CurfewTheme.mutedInk)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                HStack(spacing: 8) {
-                    Button("Copy Configuration") {
-                        copyClaudeDesktopConfig()
-                    }
-                    .buttonStyle(CurfewSecondaryButtonStyle())
-
-                    claudeDesktopRegisterButton
-                }
-
-                if !model.pendingMCPRequests.isEmpty {
-                    HStack(spacing: 8) {
-                        Text("\(model.pendingMCPRequests.count) pending AI request(s)")
-                            .font(CurfewTypography.bodyEmphasis(13))
-                            .foregroundStyle(CurfewTheme.accent)
-                        Button("Review") {
-                            model.openSettings()
-                        }
-                        .buttonStyle(CurfewSecondaryButtonStyle())
-                    }
-                }
-            }
-        }
-    }
-
-    /// Controls whether local extension and schedule requests need approval.
-    private var aiConsentPanel: some View {
-        @Bindable var model = model
-        return CurfewPanel {
-            CurfewSectionTitle(
-                title: "Requests from local AI assistants",
-                subtitle: "Choose whether Curfew asks before applying a requested change."
-            )
-
-            Picker("When an assistant asks", selection: $model.aiConsentPolicy) {
-                ForEach(AIConsentPolicy.allCases, id: \.self) { policy in
-                    Text(policy.displayName).tag(policy)
-                }
-            }
-            .pickerStyle(.radioGroup)
-
-            Text(model.aiConsentPolicy.rationale)
-                .font(CurfewTypography.body(13))
-                .foregroundStyle(CurfewTheme.mutedInk)
-        }
-    }
-
-    /// Read-only status panel for deferred non-MCP modules.
-    private var otherIntegrationsPanel: some View {
-        VStack(spacing: CurfewSpacing.section) {
-            if DeferredFeaturePanel.visible(for: model.featureFlags).isEmpty {
-                CurfewPanel {
-                    CurfewSectionTitle(
-                        title: "Additional Integrations",
-                        subtitle: "This build only ships MCP-driven integrations."
-                    )
-                    Text(
-                        "WidgetKit, Calendar, Cloud Sync, and the privileged helper "
-                            + "are hidden until they are enabled for the current build."
-                    )
-                    .font(CurfewTypography.body(13))
-                    .foregroundStyle(CurfewTheme.mutedInk)
-                    .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-
             if model.featureFlags.widgetKitEnabled {
-                PlusGate(
-                    feature: "WidgetKit",
-                    description: "See your enforcement phase and time remaining at a glance."
-                ) {
-                    CurfewPanel {
-                        CurfewSectionTitle(
-                            title: "WidgetKit",
-                            subtitle: "Small, medium, and large widgets."
-                        )
-                        integrationStatusRow(
-                            title: "WidgetKit",
-                            isEnabled: true
-                        )
+                PlusGate(feature: "Widgets", description: "See your curfew at a glance.") {
+                    Section("Widgets") {
+                        Text("Add a Curfew widget from your Mac's widget gallery.")
+                            .foregroundStyle(CurfewTheme.mutedInk)
                     }
                 }
-                .environment(model)
             }
             if model.featureFlags.calendarEnabled {
                 PlusGate(
                     feature: "Calendar",
-                    description: "See today's scheduled events on the lockout screen and in This"
-                        + " Week."
+                    description: "See today's events alongside your curfew."
                 ) {
-                    CurfewPanel {
-                        CurfewSectionTitle(
-                            title: "Calendar",
-                            subtitle: "Today's events shown alongside enforcement status."
-                        )
-                        integrationStatusRow(
-                            title: "Calendar",
-                            isEnabled: true
-                        )
-                        calendarAuthRow
+                    Section("Calendar") { calendarAuthRow }
+                }
+            }
+            if model.featureFlags.cloudSyncEnabled {
+                devicesPanel
+            }
+            if !model.featureFlags.mcpServerEnabled,
+               !model.featureFlags.widgetKitEnabled,
+               !model.featureFlags.calendarEnabled,
+               !model.featureFlags.cloudSyncEnabled {
+                ContentUnavailableView(
+                    "No connections available",
+                    systemImage: "puzzlepiece.extension"
+                )
+            }
+        }
+    }
+
+    private var mcpConfigPanel: some View {
+        @Bindable var model = model
+        return Section {
+            Toggle("Allow assistants on this Mac", isOn: $model.settings.mcpEnabled)
+                .accessibilityIdentifier("assistant-enabled")
+            Text("Connected assistants can read your status, schedule, and reflections.")
+                .foregroundStyle(CurfewTheme.mutedInk)
+            if model.settings.mcpEnabled {
+                Picker("Changes", selection: $model.aiConsentPolicy) {
+                    ForEach(AIConsentPolicy.allCases, id: \.self) { policy in
+                        Text(policy.displayName).tag(policy)
                     }
                 }
-                .environment(model)
-            }
-
-            if model.featureFlags.privilegedHelperEnabled {
-                CurfewPanel {
-                    CurfewSectionTitle(
-                        title: "Privileged Helper",
-                        subtitle: "Root-owned daemon for stronger bypass prevention."
-                    )
-                    integrationStatusRow(
-                        title: "Privileged Helper",
-                        isEnabled: true
-                    )
-                    privilegedHelperPanel
+                .pickerStyle(.menu)
+                .accessibilityIdentifier("assistant-policy")
+                Text(model.aiConsentPolicy.rationale).foregroundStyle(CurfewTheme.mutedInk)
+                claudeDesktopRegisterButton
+                VStack(alignment: .leading, spacing: 10) {
+                    Button {
+                        manualSetupExpanded.toggle()
+                    } label: {
+                        Label(
+                            "Manual setup",
+                            systemImage: manualSetupExpanded ? "chevron.down" : "chevron.right"
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("manual-assistant-setup")
+                    .accessibilityValue(manualSetupExpanded ? "Expanded" : "Collapsed")
+                    if manualSetupExpanded {
+                        Text(
+                            "Add the bundled curfew-mcp server "
+                                + "to your assistant's MCP configuration."
+                        )
+                        .foregroundStyle(CurfewTheme.mutedInk)
+                        Button(didCopyConfig ? "Copied" : "Copy Configuration") {
+                            copyClaudeDesktopConfig()
+                            didCopyConfig = true
+                        }
+                        .accessibilityIdentifier("copy-assistant-config")
+                    }
                 }
+            }
+            if !model.pendingMCPRequests.isEmpty {
+                LabeledContent("Awaiting approval", value: "\(model.pendingMCPRequests.count)")
+                Button("Review Request…") {
+                    openWindow(id: MainWorkspaceSection.windowID)
+                    model.requestWorkspaceNavigation(to: .today)
+                }
+                .accessibilityIdentifier("review-ai-request")
+            }
+        } header: {
+            Text("AI assistants")
+        } footer: {
+            if model.settings.mcpEnabled {
+                Text("Your journal is stored on this Mac. An assistant you connect can receive "
+                    + "its contents, so only connect assistants you trust.")
             }
         }
     }
@@ -185,153 +107,70 @@ extension SettingsView {
         switch model.calendarMonitor.authorizationStatus {
         case .fullAccess:
             let count = model.calendarMonitor.todayEvents.count
-            Text("Calendar access granted. \(count) event(s) today.")
-                .font(CurfewTypography.body(13))
-                .foregroundStyle(CurfewTheme.mutedInk)
+            LabeledContent("Today's events", value: count == 1 ? "1 event" : "\(count) events")
         case .notDetermined:
-            Button("Grant Calendar Access") {
-                model.calendarMonitor.requestAccessAndSync()
+            Button("Allow Calendar Access…") {
+                if !model.isDemoSession {
+                    model.calendarMonitor.requestAccessAndSync()
+                }
             }
-            .buttonStyle(CurfewSecondaryButtonStyle())
         default:
-            Text(
-                "Calendar access denied. Open System Settings → Privacy → Calendars to enable."
-            )
-            .font(CurfewTypography.body(13))
-            .foregroundStyle(CurfewTheme.mutedInk)
-            .fixedSize(horizontal: false, vertical: true)
+            Text("Calendar access is off.").foregroundStyle(CurfewTheme.mutedInk)
+            Button("Open Calendar Settings") {
+                if !model.isDemoSession,
+                   let url =
+                   URL(
+                       string: "x-apple.systempreferences:com.apple.preference.security"
+                           + "?Privacy_Calendars"
+                   ) {
+                    NSWorkspace.shared.open(url)
+                }
+            }
         }
     }
 
-    /// Copies a ready-to-paste Claude Desktop MCP config JSON snippet for
-    /// `curfew-mcp` to the clipboard.
     private func copyClaudeDesktopConfig() {
-        let executablePath = Bundle.main.bundlePath +
-            "/Contents/Resources/curfew-mcp"
-        let config = """
-        {
-          "mcpServers": {
-            "curfew": {
-              "command": "\(executablePath)",
-              "args": []
-            }
-          }
-        }
-        """
+        let path = Bundle.main.bundlePath + "/Contents/Resources/curfew-mcp"
+        let object: [String: Any] = ["mcpServers": [ClaudeDesktopRegistration.serverKey: [
+            "command": path, "args": [String]()
+        ]]]
+        guard let data = try? JSONSerialization.data(
+            withJSONObject: object,
+            options: .prettyPrinted
+        ),
+            let config = String(data: data, encoding: .utf8) else { return }
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(config, forType: .string)
     }
 
-    /// Cross-device overview. Pairs the live `DeviceRegistry` list with
-    /// the Pro cloud-sync panel so users can see sync health in one
-    /// place. Before Pro is unlocked the list is just the local Mac.
     var devicesPanel: some View {
-        VStack(spacing: CurfewSpacing.section) {
+        Group {
             devicesListPanel
-
-            CurfewPanel {
-                CurfewSectionTitle(
-                    title: "This Device",
-                    subtitle: "Local overrides and activity."
-                )
-                Text("Override events logged locally: \(model.overrideEvents.count)")
-                    .font(CurfewTypography.body(14))
-                    .foregroundStyle(CurfewTheme.mutedInk)
-            }
-
-            if model.featureFlags.cloudSyncEnabled {
-                PlusGate(
-                    feature: "Cloud Sync",
-                    description: "Keep your schedule in sync across all your Macs via iCloud."
-                ) {
-                    cloudSyncPanel
-                }
-                .environment(model)
+            PlusGate(feature: "iCloud sync", description: "Sync your schedule across your Macs.") {
+                Section("iCloud sync") { syncStatusRow }
             }
         }
     }
 
-    private var cloudSyncPanel: some View {
-        CurfewPanel {
-            CurfewSectionTitle(
-                title: "iCloud Sync",
-                subtitle: "Your schedule syncs automatically across all your Macs."
-            )
-
-            integrationStatusRow(
-                title: "iCloud Sync",
-                isEnabled: model.featureFlags.cloudSyncEnabled
-            )
-
-            if model.featureFlags.cloudSyncEnabled {
-                syncStatusRow
-            } else {
-                Text("Cloud sync is available but not yet provisioned. "
-                    + "Provision the CloudKit container in App Store Connect "
-                    + "and set cloudSyncEnabled in FeatureFlags.")
-                    .font(CurfewTypography.body(13))
-                    .foregroundStyle(CurfewTheme.mutedInk)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-    }
-
-    /// Displays the current CloudKit sync status inline in the Devices panel.
     @ViewBuilder
     private var syncStatusRow: some View {
         switch model.cloudKitSyncEngine.syncStatus {
         case .idle:
-            EmptyView()
+            Text("Ready to sync").foregroundStyle(CurfewTheme.mutedInk)
         case .syncing:
-            HStack(spacing: 6) {
-                ProgressView().controlSize(.small)
-                Text("Syncing…")
-                    .font(CurfewTypography.body(13))
-                    .foregroundStyle(CurfewTheme.mutedInk)
-            }
-        case .synced(let syncDate):
-            HStack {
-                Text("Last synced")
-                    .font(CurfewTypography.body(13))
-                    .foregroundStyle(CurfewTheme.mutedInk)
-                Spacer()
-                Text(syncDate, style: .relative)
-                    .font(CurfewTypography.label(12))
-                    .foregroundStyle(CurfewTheme.mutedInk)
-            }
+            HStack { ProgressView().controlSize(.small); Text("Syncing…") }
+        case .synced(let date):
+            LabeledContent("Last synced") { Text(date, style: .relative) }
         case .failed(let message):
-            Text("Sync failed: \(message)")
-                .font(CurfewTypography.body(13))
-                .foregroundStyle(Color.red.opacity(0.8))
-                .fixedSize(horizontal: false, vertical: true)
+            Text("Couldn't sync your schedule.").foregroundStyle(CurfewTheme.warning)
+            DisclosureGroup("Details") { Text(message).textSelection(.enabled) }
         case .unavailable:
-            Text("iCloud unavailable. Sign in to iCloud in System Settings to enable sync.")
-                .font(CurfewTypography.body(13))
+            Text("Sign in to iCloud in System Settings to sync your schedule.")
                 .foregroundStyle(CurfewTheme.mutedInk)
-                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
-    /// License key entry and Pro status panel.
     var licensePanel: some View {
-        LicenseView()
-            .environment(model)
-    }
-
-    /// Shared row layout for the Integrations panel.
-    ///
-    /// - Parameters:
-    ///   - title: integration display name.
-    ///   - isEnabled: whether the corresponding feature flag is currently
-    ///     on; drives both the trailing label and its colour.
-    func integrationStatusRow(title: String, isEnabled: Bool) -> some View {
-        HStack {
-            Text(title)
-                .font(CurfewTypography.bodyEmphasis(14))
-            Spacer()
-            Text(isEnabled ? "Enabled" : "Disabled")
-                .font(CurfewTypography.label(12))
-                .foregroundStyle(isEnabled ? CurfewTheme.accent : CurfewTheme.mutedInk)
-        }
+        LicenseView().environment(model)
     }
 }
