@@ -36,3 +36,9 @@ test('Remote CI covers the shared package and interactive UI separately from cap
   assert.ok(workflow.includes('-only-testing:CurfewUITests/CurfewUITests'));
   assert.ok(workflow.includes('just build-release'));
 });
+
+test('Remote captures hide the runner Dock so app controls remain unobstructed', () => {
+  const workflow = readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8');
+  assert.ok(workflow.includes('defaults write com.apple.dock autohide -bool true'));
+  assert.ok(workflow.includes('defaults write com.apple.dock autohide-delay -float 1000'));
+});
