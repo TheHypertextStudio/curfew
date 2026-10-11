@@ -38,34 +38,25 @@ struct ScheduleContent: View {
     /// anti-bypass policy engine stays the single mutation entry point.
     @Environment(CurfewAppModel.self) private var model
 
-    /// Briefly true when a pending schedule change transitions to applied so
-    /// the user gets confirmation that their queued edit took effect.
-    @State private var justApplied = false
-
     /// Padded column of schedule panels.
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             presetsPanel
             // A queued schedule change (anti-bypass cooldown) is high-priority —
             // surface it directly under the presets, not buried beneath the
-            // seven-day editor where the user has to scroll to find it.
+            // seven-day editor where the user has to scroll to find it. The
+            // applied-confirmation is a model-owned transient (survives
+            // navigation, single auto-dismiss), not local view state.
             if let pending = model.pendingScheduleDescription {
                 pendingChangePanel(message: pending)
-            } else if justApplied {
+            } else if model.scheduleChangeJustApplied {
                 appliedConfirmationPanel
             }
             weeklySchedulePanel
         }
         .padding(24)
         .frame(maxWidth: 900, alignment: .leading)
-        .onChange(of: model.pendingScheduleDescription) { oldValue, newValue in
-            guard oldValue != nil, newValue == nil else { return }
-            withAnimation { justApplied = true }
-            Task {
-                try? await Task.sleep(for: .seconds(3))
-                withAnimation { justApplied = false }
-            }
-        }
+        .animation(.easeInOut, value: model.scheduleChangeJustApplied)
     }
 
     /// One-click preset selector (9-to-5 / Startup Hours / Half Day). Acts

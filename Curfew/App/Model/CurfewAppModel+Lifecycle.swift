@@ -21,6 +21,20 @@ extension CurfewAppModel {
     // The sequence is the enforcement invariant. Splitting it would hide the
     // order in which state, durable lockout, effects, and status settle.
     // swiftlint:disable function_body_length
+    /// Overwrites `state` (and keeps `lastEnforcedPhase` in lockstep) to
+    /// establish a deterministic starting scenario — e.g. a test seeding
+    /// ".dayOff" before calling `start()` to observe the transition it
+    /// produces. Setting `state` directly without this would leave
+    /// `lastEnforcedPhase` pointing at whatever phase existed before the
+    /// override, so the next `tick()` could see a stale (or missing)
+    /// transition. Not used by `tick()`/`displayTick()` themselves — those
+    /// intentionally leave `lastEnforcedPhase` untouched until the armed
+    /// tick's enforcement tail finishes.
+    func seedState(_ newState: CurfewEvaluation) {
+        state = newState
+        lastEnforcedPhase = newState.phase
+    }
+
     /// One enforcement cycle. Invoked by the 1 Hz timer and opportunistically
     /// after user actions that should take effect immediately (extension
     /// grant, override confirm, schedule swap).
@@ -39,65 +53,28 @@ extension CurfewAppModel {
     /// 7. Propagate derived effects: rotate lockout copy, toggle override
     ///    composer, fire warnings, toggle key tap, shutdown, overlays.
     func tick() {
-        let previousPhase = state.phase
-        currentTime = Date()
+        // Captured from `lastEnforcedPhase` — the phase this (armed) tick last
+        // acted on — not from `state.phase` directly. `state.phase` can have
+        // been silently re-derived any number of times by the disarmed
+        // ``displayTick()`` since the last armed tick (e.g. between app launch
+        // and `start()` arming), so reading it here would risk this tick
+        // missing a transition that happened while disarmed. Diffing against
+        // `lastEnforcedPhase` instead makes the detection immune to that.
+        let previousPhase = lastEnforcedPhase
 
-        // Idle sampling lives at the top of the tick so downstream surfaces
-        // (and any consumers observing `isUserIdle`) see today's true state
-        // before the engine runs. `sample()` fires `onIdleStateChanged`
-        // only on transitions, so 1 Hz polling costs one CGEventSource read.
-        idleWatcher.sample()
-        // Fuse that verdict with the camera, immediately after, so both halves
-        // describe the same instant. Also the camera's consent gate — see
-        // `CurfewAppModel+Presence.swift`.
+        // Advance the clock and re-derive the observed display state. This half
+        // is side-effect-free and also runs on its own (``displayTick()``) when
+        // enforcement is disarmed, so the UI stays live without locking.
+        refreshDisplayState()
         samplePresence()
 
-        // Touch the heartbeat file so the privileged daemon can tell
-        // whether the app is still running. Stale heartbeat plus an
-        // active durable deadline drives the daemon's shutdown path.
+        // Touch the heartbeat file so the privileged daemon can tell whether
+        // the app is still running. Armed-only: the daemon's shutdown path
+        // only matters once a durable deadline can exist, so a disarmed app
+        // (dev builds, pre-onboarding, Curfew off) shouldn't write it every
+        // second for nothing.
         touchAppHeartbeat()
 
-        if Self.dayToken(for: currentTime) != currentDayToken {
-            handleDayRollover(to: Self.dayToken(for: currentTime))
-        }
-
-        applyPendingScheduleIfNeeded(now: currentTime)
-
-        extensionTracker.resetIfNeeded(at: currentTime)
-        overrideTracker.resetIfNeeded(at: currentTime)
-        // Guard `@Published` writes behind equality checks so an unchanged
-        // tick does not fire `objectWillChange` — otherwise every SwiftUI
-        // surface bound to the model redraws once per second regardless of
-        // whether anything it displays actually moved.
-        if extensionsRemaining != extensionTracker.remaining {
-            extensionsRemaining = extensionTracker.remaining
-        }
-        if overridesRemaining != overrideTracker.remaining {
-            overridesRemaining = overrideTracker.remaining
-        }
-
-        var newState = enforcementEngine.evaluate(
-            at: currentTime,
-            schedule: settings.schedule,
-            extensionMinutesGrantedToday: extensionMinutesGrantedToday + snoozeMinutesGrantedToday,
-            overrideUntil: overrideUntil,
-            warningIntervals: settings.warningIntervals,
-            workedMinutesToday: workedMinutesToday(at: currentTime)
-        )
-        if let accountOverride = accountReleaseOverrideUntil() {
-            newState = enforcementEngine.evaluate(
-                at: currentTime,
-                schedule: settings.schedule,
-                extensionMinutesGrantedToday:
-                extensionMinutesGrantedToday + snoozeMinutesGrantedToday,
-                overrideUntil: accountOverride,
-                warningIntervals: settings.warningIntervals,
-                workedMinutesToday: workedMinutesToday(at: currentTime)
-            )
-        }
-        if state != newState {
-            state = newState
-        }
         // Durable-deadline enforcement may swap `state` back to `.locked`
         // if the engine dropped lockout early (clock skew, schedule
         // weakening past the cooldown, or a manual record left from a
@@ -157,6 +134,10 @@ extension CurfewAppModel {
         updateLockoutInterception(for: state.phase)
         updateShutdownWorkflow()
         overlayCoordinator.updateOverlays(for: state, model: self, lockoutMessage: lockoutMessage)
+
+        // Advance last so every use of `previousPhase` above (and any nested
+        // call it makes) still sees the phase this tick transitioned *from*.
+        lastEnforcedPhase = state.phase
     }
 
     private func propagatePhaseTransition(from previousPhase: EnforcementPhase) {
@@ -184,9 +165,15 @@ extension CurfewAppModel {
         // widget viewed during warning escalation stayed on stale copy
         // until the lockout moment. Per-stage reloads keep the ring and
         // the label in sync with what the app thinks is happening.
-        if featureFlags.widgetKitEnabled,
-           previousPhase != state.phase || previousWarningStage != state.warningStage {
-            WidgetCenter.shared.reloadTimelines(ofKind: CurfewWidgetIdentity.kind)
+        if previousPhase != state.phase || previousWarningStage != state.warningStage {
+            if featureFlags.widgetKitEnabled {
+                WidgetCenter.shared.reloadTimelines(ofKind: CurfewWidgetIdentity.kind)
+            }
+            // Refresh the live snapshot on the same events that reload the
+            // widget — phase *and* warning-stage transitions — so the widget's
+            // authoritative deadline/phase never lags the app by a stage.
+            // (Extension/override grants sync it directly from their actions.)
+            syncWidgetEnforcementSnapshot()
         }
         previousWarningStage = state.warningStage
         if previousPhase != state.phase, featureFlags.privilegedHelperEnabled {
@@ -197,9 +184,6 @@ extension CurfewAppModel {
             }
         }
         toggleRespawnGuardIfPhaseChanged(previousPhase: previousPhase)
-        if previousPhase != state.phase {
-            syncWidgetEnforcementSnapshot()
-        }
     }
 
     // `checkCalendarCurfewOverlap()` — the "a meeting is about to collide with
