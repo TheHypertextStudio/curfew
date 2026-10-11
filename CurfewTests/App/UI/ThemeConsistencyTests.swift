@@ -257,6 +257,23 @@ struct ThemeConsistencyTests {
     }
 }
 
+extension ThemeConsistencyTests {
+    @Test("Override input binds readable atmospheric text and surface roles")
+    func overrideInputPalette() throws {
+        let root = URL(fileURLWithPath: #filePath).resolvingSymlinksInPath()
+            .deletingLastPathComponent().deletingLastPathComponent()
+            .deletingLastPathComponent().deletingLastPathComponent()
+        let source = try String(contentsOf: root.appendingPathComponent(
+            "Curfew/UI/LockoutScreenView.swift"
+        ), encoding: .utf8)
+        let editor = try #require(source.components(separatedBy:
+            "TextEditor(text: $model.overrideReasonDraft)").last)
+            .components(separatedBy: "Text(").first ?? ""
+        #expect(editor.contains(".foregroundStyle(SundownPalette.warmWhite)"))
+        #expect(editor.contains("SundownPalette.inputSurface("))
+    }
+}
+
 private struct AccentAsset: Decodable {
     let colors: [AccentEntry]
 }

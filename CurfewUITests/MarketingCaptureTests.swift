@@ -249,6 +249,20 @@ final class MarketingCaptureTests: XCTestCase {
 
 extension MarketingCaptureTests {
     @MainActor
+    func testCaptureOverrideContrast() {
+        for appearance in ["light", "dark"] {
+            for state in ["override-invalid", "override-ready"] {
+                let app = launch("lockout", state: state, appearance: appearance)
+                let overlay = app.descendants(matching: .any)["lockout-screen"]
+                XCTAssertTrue(overlay.waitForExistence(timeout: 8))
+                assertWorkspaceState(state, in: app)
+                attach(overlay, name: "override-\(state)-\(appearance)")
+                app.terminate()
+            }
+        }
+    }
+
+    @MainActor
     private func launch(
         _ scenario: String,
         state: String = "default",
