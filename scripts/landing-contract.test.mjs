@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const landing = path.join(root, 'landing');
+const landing = path.join(root, 'web', 'landing');
 const execute = promisify(execFile);
 
 async function html(name) {
@@ -33,7 +33,7 @@ test('every public page header offers the same account entry point', async () =>
 
 test('the download surface announces Android without claiming it is available', async () => {
   const source = await html('index.html');
-  const download = source.match(/<section class="download"[\s\S]*?<\/section>/)?.[0] ?? '';
+  const download = source.match(/<section class="download(?: [^"\n]*)?"[^>]*>[\s\S]*?<\/section>/)?.[0] ?? '';
   assert.match(download, /Android support is coming soon\./);
   assert.doesNotMatch(download, /download[^<]*Android/i);
 });
