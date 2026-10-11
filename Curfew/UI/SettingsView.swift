@@ -11,7 +11,7 @@ struct SettingsView: View {
     @State var manualSetupExpanded = false
     @State var registrationStatus = ClaudeDesktopRegistration.currentStatus()
 
-    @StateObject var accountEnrollment = AccountEnrollmentController()
+    @StateObject var accountEnrollment = AccountEnrollmentController.settingsController()
     @State var accountRecoveryKey = ""
     @State var recoveryKeyExportMessage = ""
 

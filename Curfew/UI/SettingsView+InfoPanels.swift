@@ -39,7 +39,7 @@ extension SettingsView {
         return Section {
             Toggle("Allow assistants on this Mac", isOn: $model.settings.mcpEnabled)
                 .accessibilityIdentifier("assistant-enabled")
-            Text("Connected assistants can read your status, schedule, and reflections.")
+            Text("Connected assistants can read your status, schedule, activity, and reflections.")
                 .foregroundStyle(CurfewTheme.mutedInk)
             if model.settings.mcpEnabled {
                 Picker("Changes", selection: $model.aiConsentPolicy) {

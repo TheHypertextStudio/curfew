@@ -89,9 +89,13 @@ extension CurfewAppModel {
         }
         let identity = ObjectIdentifier(self)
         let override = presenceSensorOverrides[identity]
-        let sensor = override?.owner === self
-            ? override?.sensor ?? VisionCameraPresenceSensor()
-            : VisionCameraPresenceSensor()
+        let fallback: any PersonPresenceSensing
+        #if DEBUG
+            fallback = isDemoSession ? DemoPresenceSensor() : VisionCameraPresenceSensor()
+        #else
+            fallback = VisionCameraPresenceSensor()
+        #endif
+        let sensor = override?.owner === self ? override?.sensor ?? fallback : fallback
         let monitor = PresenceMonitor(
             idleWatcher: idleWatcher,
             sensor: sensor,
@@ -168,7 +172,7 @@ extension CurfewAppModel {
     var presenceCameraAuthorization: CameraAuthorization {
         _ = presenceRevision
         guard let monitor = liveRuntime(for: self)?.monitor else {
-            return VisionCameraPresenceSensor.currentAuthorization
+            return isDemoSession ? .notDetermined : VisionCameraPresenceSensor.currentAuthorization
         }
         return monitor.authorization
     }
@@ -248,7 +252,7 @@ extension CurfewAppModel {
     /// ask again. Guarded against the unit-test host so a suite never opens
     /// System Settings on the developer's desktop.
     func openCameraPrivacySettings() {
-        guard !RuntimeEnvironment.isUnitTestHost else { return }
+        guard !isDemoSession, !RuntimeEnvironment.isUnitTestHost else { return }
         guard let url = URL(
             string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Camera"
         ) else { return }
