@@ -204,3 +204,14 @@ registry integrity was committed. Detailed evidence is retained under
 This establishes local consumption of the actual intended shipping bytes. Package
 publication, a registry-backed lock and fresh frozen setup, hosted caller checks,
 provider preview/recovery, Mintlify publishing, and cutover remain separate gates.
+
+
+## Published initial shared release
+
+The user approved the exact 0.0.1 manifest above. Promotion `38116605945`
+published all four shared packages without rebuilding. Fresh read-only registry
+consumer run `38116980056` passed all four package installs, frozen replay, peers,
+and clean Astro/Next builds; registry integrity matches every reviewed tarball.
+This supersedes earlier publication-pending notes. Curfew package-read access,
+its actual canonical registry lock and fresh hosted setup/CI remain unverified.
+No Curfew source behavior, package pins, provider routing or credentials changed.
