@@ -5,6 +5,10 @@
     /// Deterministic visual states; none start real services or enforcement.
     enum DemoReviewState: String, CaseIterable {
         case normal = "default"
+        case todayOffLocked = "today-off-locked"
+        case setupReview = "setup-review"
+        case setupReviewDenied = "setup-review-denied"
+        case assistantMalformed = "assistant-malformed"
         case ready
         case accessibilityDenied = "accessibility-denied"
         case tapDown = "tap-down"
@@ -53,6 +57,7 @@
             switch self {
             case .limitsNone: .enforcement
             case .assistantOn, .assistantReadOnly, .assistantAutomatic, .assistantPending,
+                 .assistantMalformed,
                  .claudeAbsent, .claudeConfigured, .cloudIdle, .cloudSyncing, .cloudSynced,
                  .cloudFailed, .cloudUnavailable, .calendarDenied, .calendarEmpty: .integrations
             case .licenseInvalid, .licenseLifetime, .licenseSubscription, .licenseExpired: .about

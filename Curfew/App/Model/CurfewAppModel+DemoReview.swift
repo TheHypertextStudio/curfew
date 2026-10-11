@@ -14,6 +14,19 @@
             settingsDestination = review.settingsSection
             switch review {
             case .normal: break
+            case .todayOffLocked:
+                state = DemoFixture.evaluation(for: .lockout, now: currentTime)
+            case .setupReview, .setupReviewDenied:
+                settings.hasCompletedInitialSetup = true
+                if review == .setupReviewDenied {
+                    isAccessibilityTrusted = false
+                    enforcementHealth = .degradedNoAccessibility
+                }
+            case .assistantMalformed:
+                settings.mcpEnabled = true
+                pendingMCPRequests = [MCPPendingRequest(
+                    tool: .setSchedule, argumentsJSON: #"{"weekday":"monday","lock_time":"25:00"}"#
+                )]
             case .ready:
                 enforcementHealth = .active
                 privilegedHelperManager.seedDemoStatus(daemon: .enabled, connection: .ready)
