@@ -6,15 +6,23 @@ interface Props {
   bodyClass?: string;
   stylesheet?: string;
   viewport?: boolean;
+  viewportContent?: string;
 }
-const { title, description, bodyClass, stylesheet = '/style.css', viewport = true } = Astro.props;
+const {
+  title,
+  description,
+  bodyClass,
+  stylesheet = '/style.css',
+  viewport = true,
+  viewportContent = 'width=device-width, initial-scale=1.0',
+} = Astro.props;
 ---
 
 <!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    {viewport && <meta name="viewport" content="width=device-width, initial-scale=1.0" />}
+    {viewport && <meta name="viewport" content={viewportContent} />}
     <title>{title}</title>
     {description && <meta name="description" content={description} />}
     {stylesheet && <link rel="stylesheet" href={stylesheet} />}

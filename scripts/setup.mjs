@@ -257,7 +257,8 @@ async function phaseStripe() {
 async function phasePages() {
   if (env.SKIP_PAGES) return warn("Skipping landing deploy (SKIP_PAGES).");
   step("Deploy landing + /docs proxy");
-  wrangler(["pages", "deploy", LANDING_DIR, "--project-name", PAGES_PROJECT]);
+  execFileSync(process.execPath, [join(LANDING_DIR, "scripts", "prepare-site-assets.mjs"), "--pages"], { stdio: "inherit" });
+  wrangler(["--cwd", join(LANDING_DIR, ".pages-output"), "pages", "deploy", ".", "--project-name", PAGES_PROJECT]);
 
   const res = await cloudflare("POST", `/pages/projects/${PAGES_PROJECT}/domains`, { name: LANDING_DOMAIN });
   if (res.skipped) {

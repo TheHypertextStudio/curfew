@@ -6,8 +6,13 @@ so it can be extracted into a standalone repository.
 - `worker/` — the license API (Hono + `@hono/zod-openapi` on Cloudflare Workers);
   serves the generated OpenAPI spec at `/openapi.json` and a Scalar reference at
   `/reference`.
-- `landing/` — the marketing site (Cloudflare Pages). Its `functions/` Pages
-  Function reverse-proxies `/docs` to the Mintlify-hosted guides.
+- `landing/` — compatibility tooling for the physical `../landing/` Pages source.
+  Dev/deploy first stage an allowlisted `.pages-output` directory, including the
+  current appcast when present. Source, package metadata, locks, dependencies and
+  prior builds never enter that output. The Pages docs proxy stays inactive until
+  the existing Mintlify project and delivery have passed acceptance.
+- `../landing/` — independent pinned Astro/shared website lifecycle and current
+  raw Pages files. The canonical assets feed both outputs deterministically.
 - `docs/` — Mintlify developer guides.
 
 ## Commands (run from this directory)

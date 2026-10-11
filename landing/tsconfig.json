@@ -1,5 +1,5 @@
 {
   "extends": "@thehypertextstudio/web-config/tsconfig/base.json",
   "include": [".astro/types.d.ts", "**/*"],
-  "exclude": ["dist", "build", "node_modules"]
+  "exclude": ["dist", "build", "node_modules", ".site-assets", "functions"]
 }

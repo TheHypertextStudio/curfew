@@ -1,7 +1,13 @@
 ---
 import Page from "../layouts/Page.astro";
 ---
-<Page title="Privacy \u2014 Curfew" stylesheet="style.css">
+<Page title="Privacy — Curfew" stylesheet="style.css">
+<Fragment slot="head">
+<meta name="theme-color" content="#f5f0e6" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#16130f" media="(prefers-color-scheme: dark)" />
+  <link rel="icon" type="image/png" href="images/favicon.png" />
+  <link rel="apple-touch-icon" href="images/apple-touch-icon.png" />
+</Fragment>
 <header class="site-header">
     <nav>
       <a href="/" class="wordmark">Curfew</a>
@@ -89,7 +95,7 @@ import Page from "../layouts/Page.astro";
           <thead><tr><th>Permission</th><th>Why</th></tr></thead>
           <tbody>
             <tr>
-              <td>Calendars (Pro)</td>
+              <td>Calendars (Plus)</td>
               <td>Read today's events for display. Never written to.</td>
             </tr>
             <tr>

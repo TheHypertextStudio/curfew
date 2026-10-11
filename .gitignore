@@ -79,3 +79,7 @@ landing/.astro/
 test-results/
 playwright-report/
 __pycache__/
+
+# Deterministic Astro inputs copied from the canonical current Pages assets.
+landing/.site-assets/
+landing/.pages-output/

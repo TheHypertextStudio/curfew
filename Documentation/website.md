@@ -2,7 +2,7 @@
 
 Curfew's marketing frontend lives in `landing/` and uses Astro's static profile.
 The canonical origin remains `https://curfew.hypertext.studio`. Product docs live
-in `docs/` and remain a Mintlify project. The native app, Curfew Sync, license
+in `web/docs/` and remain a Mintlify project. The native app, Curfew Sync, license
 issuer, Stripe webhook, signed downloads, and Homebrew cask retain their existing
 release owners. Website checks never issue licenses or mutate customer data.
 
@@ -63,10 +63,10 @@ Setup does not provision Workers, connect Mintlify, or change DNS/routes.
 | `landing/package.json`, `landing/pnpm-workspace.yaml` | Exact site/docs toolchain pins and reviewed build-script allowlist |
 | `landing/astro.config.mjs` | Static output, existing HTML aliases and canonical site origin |
 | `landing/src/layouts/Page.astro` | Shared page metadata and shared token import |
-| `landing/public/style.css`, `landing/public/images/` | Existing product appearance and original asset bytes |
+| `landing/style.css`, `landing/images/` | Existing product appearance and original asset bytes |
 | `landing/wrangler.site.json` | Independent site Worker, asset routing, separate staging/production identities |
-| `docs/docs.site.json` | Product-owned Mintlify branding/navigation/overrides |
-| `docs/docs.json` | Generated committed Mintlify configuration |
+| `web/docs/docs.site.json` | Product-owned Mintlify branding/navigation/overrides |
+| `web/docs/docs.json` | Generated committed Mintlify configuration |
 
 The shared foundations supply configuration and opt-in tokens. Curfew keeps its
 system typography, marketing palette, layout, and content. Docs primary orange is
@@ -187,16 +187,25 @@ is needed only to consume that approved release during its first 24 hours.
 Authenticated inventory identified the existing project `curfew` in organization
 `hypertextstudio` and upstream `https://curfew.mintlify.site`. On October 10, 2026,
 it was **unconnected**, its initial update failed, and there was no successful
-source-bound deployment. The intended repository is this repo, source `docs/`,
-branch `main`; those Git settings must be verified when connecting the existing
-project. Preserve that project and its subscription. Contributor access, actual
+source-bound deployment. The intended repository is this repo, source `web/docs/`,
+branch `main`. On October 11, Chrome confirmed the existing GitHub authorization
+and Studio installation already include Curfew; no new installation or consent
+was required. The unsaved project form selects organization `thehypertextstudio`,
+repository `Curfew`, branch `main`, source `web/docs` (UI renders `/web/docs`).
+Continue/final connection and publishing have not occurred. Integrate the reviewed
+config/source first: current main still has the old primary orange and omits the
+licensing navigation entry. Verify these exact Git settings at final connection. Preserve that project and its subscription. Contributor access, actual
 connected branch, project ID, and deployment ID/source SHA remain provider gates.
 The authenticated dashboard reports the Pro trial ended and hosted previews are
 unavailable; use the pinned local preview. No subscription change is required
 for local adoption.
 
-Public `/docs` currently serves the HTML MCP guide. The Worker deliberately keeps
-that guide until Mintlify publishes the reviewed source and the complete proxy
+At 2026-10-11 08:33 UTC, production `/docs` returned a Mintlify 404 through
+the Pages middleware introduced by current main `2c56e068`. Both the previously
+verified `.site` upstream and the new `.dev` target return the same 404 body.
+This source reconciliation restores HTML-guide mode by default in the prepared
+Pages middleware and Worker; it is not a claim that the live route has recovered.
+Keep that guide until Mintlify publishes reviewed source and the complete proxy
 passes acceptance. Setting `DOCS_MODE=mintlify` activates delegation of `/docs`,
 `/docs/*`, `/_mintlify/*`, `/mintlify-assets/*`, and `/api/request` (mapped to the
 Mintlify search endpoint). It always fetches the explicit Mintlify origin,
@@ -246,14 +255,14 @@ preserving account `2500680a3b2b0fe6a011c1c25fed5008`. Production routing and th
 existing Pages publisher remain unchanged until reviewed cutover.
 
 Before cutover, retain the current Pages deployment, complete route/DNS snapshot,
-and prior artifact/configuration. Anonymous production `/account` currently returns
+and prior artifact/configuration. The earlier anonymous production baseline observed `/account` returning
 the same homepage bytes as `/` and an arbitrary unknown URL: the existing Pages
 SPA fallback reports a false 200. Read-only provider inventory found no production
 account Worker. The frontend keeps the `/account` link destination; it does not
 implement a nonexistent account backend or reproduce the generic SPA fallback.
 Account availability and the current source/production mismatch need an explicit
 product disposition before cutover acceptance; unknown site URLs must return 404. Current observed Pages recovery deployment is
-`f902590f-fd0c-4bee-9bfc-19f7522c825b`; revalidate the live prior deployment at
+`a4d2490c-3620-491f-b868-e44131a36597` (main `2c56e068`, observed October 11); revalidate the live prior deployment at
 cutover. Promote only the reviewed immutable candidate after source/config/digest,
 workerd, provider preview, download/link, error, and routing acceptance. Switch
 hosting through the shared guarded cutover process. Verify public metadata and
@@ -285,3 +294,53 @@ to use `Documentation/RELEASE.md` and `scripts/release-checklist.md`.
 | Docs upstream 404 or recursive configuration | Keep `html-guide`; fix the existing project/subpath, never fetch the public frontend recursively |
 | Missing release metadata | Use the shared candidate owner injection; do not hardcode a digest into the artifact |
 | Product parity mismatch | Restore missing content/links/assets/script behavior and rerun the baseline gate |
+
+## Current production source reconciliation — October 11
+
+The earlier hosted website/docs run `38120078658` passed against migration head
+`f6277a5` and the earlier main `3efbd4f`. Production subsequently deployed main
+`2c56e0680605533a953f90cc6f3268e3ecec6d43` at 07:25 UTC. All 55 intervening
+upstream commits, including native application, CurfewKit relocation, backend,
+UI capture and release/appcast work, are preserved beneath the eight rebased
+migration commits. Earlier acceptance receipts are historical; current source
+and provider acceptance must be recorded independently.
+
+The five changed current HTML contracts (index, privacy, refund, success, terms)
+are ported to Astro. Four guide/redirect/security/retention pages are unchanged.
+The latest sky/reveal scripts, styles, metadata, JSON-LD, canonical origin,
+legal/licensing copy, Plus sale boundary and account/download URLs are retained.
+The current HTML references `images/lockout-overlay.png`, which was absent from
+main. The intended 3024×1964, 798,009-byte screenshot was recovered from tracked
+commit `0efe52d`; SHA256 is
+`80cbf81a47d601e802615dd5d8c6c188cf0df8aeae3f465d29d4f919bcd4b3be`.
+Its visible content matches the retained alt; no replacement artwork or copy
+change was introduced. This restored asset is the explicit source-tree correction.
+
+The physical raw Pages files remain in `landing/` for the current publisher and
+native appcast owner. `prepare-site-assets.mjs` copies a fixed public allowlist to
+ignored `landing/.site-assets` for Astro. With `--pages`, it stages raw HTML,
+functions, headers/redirects/routes and the current appcast to ignored
+`landing/.pages-output`. It rejects symlink/nonregular inputs and never copies
+toolchain files, package metadata, locks, source modules or prior build outputs.
+The existing `web/landing` dev/deploy wrappers and setup publisher use this
+filtered directory. Native release still copies the signed appcast into the
+physical raw root before publishing and verifies live bytes afterward; its
+ordering, workflow and backend dependency graph are unchanged.
+
+The Git-connected Pages publisher must also be reconciled before main integration:
+the recorded provider configuration has root `landing`, output `.`. In that
+root, its build command must be `node scripts/prepare-site-assets.mjs --pages`
+and output must select `.pages-output`, or competing publication must be disabled
+at explicit cutover. Reconfirm current provider configuration before changing it. These provider settings have not been changed.
+Neither a successful local build nor safe native wrapper proves Git publisher
+configuration or hosted delivery. `just landing` retains the Pages preview;
+`just landing-static` retains the physical dependency-free preview.
+`just landing-astro` and `just landing-worker` provide the standardized source
+and local candidate previews.
+
+Frontend/root lock bytes retain the accepted migration graph; the backend lock
+retains current main, including upstream changes. This reconciliation changes no
+dependency versions or lock bytes. Mintlify source/config now live together in `web/docs`, preserving
+the upstream relocation and licensing guide. Common root docs commands delegate
+there through the unchanged independent frontend toolchain. No native/backend
+workspace absorption, production publication or Mintlify project change occurred.

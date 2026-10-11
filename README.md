@@ -249,7 +249,7 @@ existing build and test commands.
 
 ## Website and product documentation
 
-The marketing frontend is Astro in `landing/`; Mintlify source remains `docs/`.
+The marketing frontend is Astro in `landing/`; Mintlify source remains `web/docs/`.
 The independent `landing/` workspace owns the common Node 24.20.0 / pnpm 11.9.0
 website/docs toolchain; root commands delegate there, including the checksum-pinned lifecycle in
 `landing/run`/`landing/studio.yaml`. The existing `web/` backend
@@ -271,9 +271,14 @@ pnpm docs:check
 Shared packages 0.0.1 are published and this repository has package-read grants.
 Native GitHub run `38119577450` resolved and replayed the adopted registry lock
 with its temporary job token, dependency scripts disabled, and no peer issues.
-Full website/docs CI and clean lifecycle setup remain pending. See the [website operating
+The earlier website/docs CI passed in run `38120078658`; current production source
+reconciliation has changed the inputs, so its new acceptance remains pending. See the [website operating
 reference](Documentation/website.md) for exact configuration, current setup gates,
 site/docs previews, validation, Mintlify integration, candidate deployment, and
 recovery. Follow the [product authoring guide](Documentation/website-authoring.md)
-for MDX and generated configuration edits. The existing public `/docs` HTML guide
-is retained until the current Mintlify project is connected and verified.
+for MDX and generated configuration edits. The source defaults to the retained `/docs` HTML guide until the Mintlify project
+is connected and verified. Current production returns an upstream 404; the
+source reconciliation has not yet been published. Existing native/Pages wrappers
+stage a filtered raw output, preserving current appcast delivery without shipping
+frontend source or tooling. The Git-connected Pages output setting remains a
+separate integration gate.

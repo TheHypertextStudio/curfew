@@ -2,8 +2,8 @@
   "name": "@curfew/landing",
   "private": true,
   "scripts": {
-    "dev": "wrangler --cwd ../../landing pages dev . --port 8765",
-    "deploy": "wrangler --cwd ../../landing pages deploy . --project-name curfew-landing"
+    "dev": "node ../../landing/scripts/prepare-site-assets.mjs --pages && wrangler --cwd ../../landing/.pages-output pages dev . --port 8765",
+    "deploy": "node ../../landing/scripts/prepare-site-assets.mjs --pages && wrangler --cwd ../../landing/.pages-output pages deploy . --project-name curfew-landing"
   },
   "devDependencies": {
     "wrangler": "^4.105.0"
