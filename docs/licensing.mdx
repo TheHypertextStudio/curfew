@@ -1,0 +1,53 @@
+---
+title: Licensing & activation
+description: How Curfew Plus is sold, delivered, activated, and (for subscriptions) refreshed.
+---
+
+Curfew Plus is **one entitlement** — the same features either way — sold two ways.
+
+| SKU | Stripe `mode` | Enforcement |
+| --- | --- | --- |
+| **Lifetime** | `payment` (one-time) | Perpetual key, verified **fully offline**. Never expires, never phones home. |
+| **Subscription** | `subscription` (recurring) | Key carries `expires_at` + a `refresh_token`; the app re-fetches it while the subscription is active and locks Plus after a grace period when it lapses. |
+
+## The license token
+
+A license key is `base64url(payloadJSON).base64url(ed25519Signature)`. The payload:
+
+```json
+{
+  "email": "buyer@example.com",
+  "product": "curfew-plus",
+  "plan": "subscription",
+  "order_id": "sub_ABC123",
+  "issued_at": "2026-06-25T00:00:00Z",
+  "expires_at": "2026-07-28T00:00:00Z",
+  "refresh_token": "7b3f0c2e-…"
+}
+```
+
+`expires_at` and `refresh_token` are present only for subscriptions. The app
+verifies the Ed25519 signature with an embedded public key — there is no online
+"validate" call.
+
+## Delivery & activation
+
+1. The buyer completes Stripe Checkout and lands on the success page with their
+   `session_id`.
+2. The page calls [`GET /license?session_id=…`](https://curfew-license.hypertext.studio/reference) and shows the key.
+3. The user pastes it into **Settings → License → Activate**.
+
+<Warning>
+The key is **not** emailed. Stripe sends the payment receipt; the custom license
+key lives only on the success page (and, for subscriptions, refreshes in-app).
+</Warning>
+
+## Subscription refresh
+
+While a subscription is active, the app calls
+[`GET /license/refresh?token=…`](https://curfew-license.hypertext.studio/reference) on launch and once a day. The Worker
+re-mints the key with an extended `expires_at` on each `invoice.paid`. On
+`customer.subscription.deleted` it drops the token, the refresh route 404s, and
+the stored key lapses at its deadline — locking Plus automatically.
+
+See the full request/response shapes in the [API reference](https://curfew-license.hypertext.studio/reference).
