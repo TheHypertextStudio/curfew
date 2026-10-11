@@ -215,3 +215,44 @@ and clean Astro/Next builds; registry integrity matches every reviewed tarball.
 This supersedes earlier publication-pending notes. Curfew package-read access,
 its actual canonical registry lock and fresh hosted setup/CI remain unverified.
 No Curfew source behavior, package pins, provider routing or credentials changed.
+
+
+## Native Curfew registry lock adoption
+
+Run [38119577450](https://github.com/TheHypertextStudio/curfew/actions/runs/38119577450)
+succeeded on the exact trusted draft PR head
+`1cc3b241d5fb894cb75eac6371b9761f127ce57b`, with Node 24.20.0/pnpm 11.9.0,
+ephemeral `github.token` and `packages: read`. Its disposable consumer copied
+only the reviewed frontend manifest and workspace policy, generated a fresh lock,
+performed a separate frozen install with dependency scripts disabled, and reported
+`No peer dependency issues found`. No credential was transferred to local npm.
+
+The adopted `landing/pnpm-lock.yaml` is the actual artifact's unmodified 429,963
+bytes (13,197 lines; 1,372 package entries and 1,374 snapshots). SHA256 is
+`56a7f31e90f34abb7e66a910e870d3699d2a8f81d9d5dc071b413a535b0ee122`.
+Artifact `11694795906` ZIP SHA256 is
+`abe132c5429dd1852836163d00a71d9520afa28a22ce512d9ed0684a26d62f67`.
+All three company 0.0.1 package SHA512 integrities match the published shipping
+manifest; there are no local/file/git resolutions or trust bypasses. The declared
+Node 24.20.0 binary variants retain their upstream SHA256 integrity values.
+Existing Mintlify transitive deprecations remain for glob, inflight,
+prebuild-install and puppeteer; the native peer check has no issues.
+
+The six migration commits were rebased onto actual production/main
+`3efbd4fd3b4a9786e7eabd90904259fdb0990448`, preserving all three newer native
+commits, native CI modernization and both documentation additions. Every own
+commit is unchanged in range-diff. The rebased manifest SHA256 remains
+`2c3f688e980354dc984a059b8aa94efd1374116b88c1c3ed4161df7d9300d1a0` and workspace
+policy SHA256 remains
+`65f5bb893ffb54dc7c60114b031743ab8ff145bb1bee4631422df32acd493390`, so the native
+receipt still applies to those exact dependency inputs. Detailed source, native
+receipt, full proposed-lock diff and independent review are retained in the
+standardization workspace's `acceptance/task5-curfew-registry/`.
+
+This supersedes the earlier Curfew package-read/registry-lock pending notes.
+Full website/docs CI, fresh lifecycle setup, hosted candidate acceptance, isolated
+provider preview/recovery, Mintlify publishing and cutover remain open. This phase
+adds no tests and runs no local product suite; actionlint and diff checks cover
+the workflow source, and the hosted registry checks above cover its actual token
+and dependency graph. Revert the lock and this CI selection change to return to
+artifact-only proposal mode. No main merge or provider write is included.

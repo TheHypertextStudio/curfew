@@ -269,8 +269,9 @@ pnpm docs:check
 ```
 
 Shared packages 0.0.1 are published and this repository has package-read grants.
-The artifact-only GitHub job proposes the genuine registry lock using its temporary
-job token; canonical lock adoption and fresh-checkout setup are not accepted yet. See the [website operating
+Native GitHub run `38119577450` resolved and replayed the adopted registry lock
+with its temporary job token, dependency scripts disabled, and no peer issues.
+Full website/docs CI and clean lifecycle setup remain pending. See the [website operating
 reference](Documentation/website.md) for exact configuration, current setup gates,
 site/docs previews, validation, Mintlify integration, candidate deployment, and
 recovery. Follow the [product authoring guide](Documentation/website-authoring.md)
