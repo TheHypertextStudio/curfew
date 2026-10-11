@@ -58,6 +58,8 @@ extension MarketingCaptureTests {
             XCTAssertFalse(app.staticTexts["Check this Mac’s account access"].exists)
         case "account-helper-hidden":
             assertText("Remote locks are unavailable", in: app)
+            XCTAssertTrue(app.descendants(matching: .any)
+                .matching(identifier: "settings-get-curfew").firstMatch.exists)
         default: assertText("Remote locks are not ready", in: app)
         }
         if state == "account-helper-hidden" {

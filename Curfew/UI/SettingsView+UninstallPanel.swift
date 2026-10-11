@@ -64,9 +64,9 @@ extension SettingsView {
     private func presentDaemonUninstallFailure() {
         let alert = NSAlert()
         alert.alertStyle = .warning
-        alert.messageText = "Curfew could not remove its privileged helper."
+        alert.messageText = "Curfew couldn’t be uninstalled."
         alert.informativeText = model.privilegedHelperManager.lastError
-            ?? "The helper must be removed before Curfew deletes local state."
+            ?? "Background protection must be removed before Curfew can delete its saved data."
         alert.addButton(withTitle: "OK")
         alert.runModal()
     }

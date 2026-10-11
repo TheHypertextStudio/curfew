@@ -35,6 +35,15 @@ extension SettingsView {
                     && model.privilegedHelperManager.isRemoteLockEnforcementAvailable,
                 remoteEnforcementSupported: model.featureFlags.privilegedHelperEnabled
             )
+            if !model.featureFlags.privilegedHelperEnabled {
+                Link(
+                    "Get Curfew",
+                    destination: CurfewServiceEndpoints.production.accountPortal
+                        .deletingLastPathComponent()
+                )
+                .buttonStyle(CurfewSecondaryButtonStyle())
+                .accessibilityIdentifier("settings-get-curfew")
+            }
             if model.featureFlags.privilegedHelperEnabled,
                !model.privilegedHelperManager.isRemoteLockEnforcementAvailable {
                 if model.privilegedHelperManager.daemonStatus == .requiresApproval {
