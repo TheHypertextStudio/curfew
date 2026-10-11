@@ -17,12 +17,12 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 > release. Items below marked `[ ]` are external release gates or v0.2+ targets
 > unless noted otherwise.
 
-> **Public MCP guide:** `landing/src/pages/docs.astro` is the current public setup guide. It
-> uses a documentation shell (section navigation plus an article column), not
-> the marketing-page layout.
-> The repository-owned Mintlify source under `docs/` remains unpublished until
-> a deliberate deployment source is configured; it must stay aligned with the
-> public guide in the meantime.
+> **Public docs status (2026-10-11):** The existing Mintlify project is now Git-connected
+> to `main/web/docs` and its first four-page update succeeded. Three HTML guides
+> deliver correctly, but `/docs/mcp` collides with Mintlify's reserved search
+> endpoint and returns 405. The prepared `mcp-guide` source and exact proxy alias
+> retain the public URL; source-bound publishing and complete proxy acceptance
+> remain open. The physical HTML guide remains the unactivated source fallback.
 
 > **Marketing capture safety:** `scripts/capture-marketing.sh` launches and
 > captures only its own fixture process. It never kills an existing Curfew
@@ -33,7 +33,7 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 
 ## 0. Foundation and Project Structure
 
-- [-] Adopt the Studio Mintlify configuration, setup, and authoring standard while retaining Mintlify and product branding. Native Mintlify validation found the overview's `/docs/mcp` and `/docs/cli` links incorrectly included the hosted prefix; use the docs-relative `/mcp` and `/cli` paths. Willie approved docs primary orange `#b25e30` on October 10 for 4.63:1 contrast on white; retain the existing light/dark colors and marketing branding. Root website/docs commands and the pinned shared lifecycle are now declared. Astro source migration and disabled-until-accepted Mintlify delegation preserve the current HTML guide. The v0.1.8 scoped lifecycle and shared Workers archive declaration now select the distinct marketing preview `curfew-site-staging.hypertext.studio`; both environments retain empty routes. Shared package pins are the published 0.0.1 release and all consumed packages grant this repository Actions Read. The guarded native registry job `38119577450` passed fresh resolution, script-disabled frozen installation and peer validation using only its temporary GitHub job token. Its reviewed lock is adopted byte-for-byte, with all three shared package integrities matching shipping bytes. A tracked canonical lock selects normal website/docs CI while the PR remains in draft; the first full native run passed docs/source/parity/build but stopped before browser tests because Playwright was invoked from the root facade. The workflow now selects its owning landing workspace; full browser CI and clean lifecycle setup remain pending. Exact-version release-age exceptions cover only the three reviewed internal 0.0.1 packages; all other protection remains intact. Fresh checkout/lifecycle acceptance, Git integration verification, provider preview/cutover, and public prefix acceptance remain open. See `Documentation/website.md`. No provider settings changed.
+- [-] Adopt the Studio Mintlify configuration, setup, and authoring standard while retaining Mintlify and product branding. Native Mintlify validation found the overview's `/docs/mcp` and `/docs/cli` links incorrectly included the hosted prefix; the initial correction used docs-relative `/mcp` and `/cli` paths. Hosted acceptance now requires the nonreserved `/mcp-guide` source and an exact proxy alias preserving public `/docs/mcp`. Willie approved docs primary orange `#b25e30` on October 10 for 4.63:1 contrast on white; retain the existing light/dark colors and marketing branding. Root website/docs commands and the pinned shared lifecycle are now declared. Astro source migration and disabled-until-accepted Mintlify delegation preserve the current HTML guide. The v0.1.8 scoped lifecycle and shared Workers archive declaration now select the distinct marketing preview `curfew-site-staging.hypertext.studio`; both environments retain empty routes. Shared package pins are the published 0.0.1 release and all consumed packages grant this repository Actions Read. The guarded native registry job `38119577450` passed fresh resolution, script-disabled frozen installation and peer validation using only its temporary GitHub job token. Its reviewed lock is adopted byte-for-byte, with all three shared package integrities matching shipping bytes. A tracked canonical lock selects normal website/docs CI while the PR remains in draft; the first full native run passed docs/source/parity/build but stopped before browser tests because Playwright was invoked from the root facade. The workflow now selects its owning landing workspace; full browser CI and clean lifecycle setup remain pending. Exact-version release-age exceptions cover only the three reviewed internal 0.0.1 packages; all other protection remains intact. The later Git connection and first manual update are accepted as operations, but no provider source SHA/deployment ID or complete public proxy acceptance is recorded. The reserved MCP route correction is prepared; provider preview/cutover remain open. See `Documentation/website.md`. This source correction changes no provider settings.
 
 - [x] Bundle the pinned Chrome native messaging host with signed browser queues, atomic policy snapshots, stale-review rejection, heartbeat health, and uninstall cleanup. See [browser native host](browser-native-host.md). The keyless first-upload artifact is reproducible; creating the Web Store item and pinning its assigned `CURFEW_BROWSER_EXTENSION_ID` remain release work.
 - [x] Isolate development and production Chrome host names, reject unsafe helper executables, bound complete signed queue records, and revoke active hosts before uninstall deletes their state.
@@ -281,10 +281,11 @@ mid-lockout, and every action the root daemon takes. Format specification:
       boundaries are published without implying that Google Play Services are
       required. Approved Curfew service hostnames are enforced in CI.
 - [x] Mintlify documentation source lives in `web/docs/`.
-- [ ] Connect and publish the Mintlify source, then configure the Pages
-      `/docs` reverse proxy and complete the required custom-domain TXT
-      verification. Keep the current hosted content intact until its
-      replacement is explicitly authorized. (external launch gate)
+- [-] The authorized existing Mintlify Git connection and first four-page manual
+  update are complete. Fix the reserved MCP page route, then record exact
+  published source/deployment identity and complete public proxy acceptance.
+  Preserve the now-working docs during the separately reviewed Pages repair.
+  No DNS/TXT or proxy acceptance is inferred from a successful build alone.
 - [ ] Apple Developer credentials in GitHub secrets. (external launch gate)
 - [x] Cloudflare Pages production deployment and `curfew.hypertext.studio`
       DNS/TLS. The public site returned HTTPS 200 on 2026-08-01; checkout

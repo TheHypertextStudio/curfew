@@ -17,7 +17,7 @@
       {
         "group": "Use Curfew",
         "pages": [
-          "mcp",
+          "mcp-guide",
           "cli",
           "licensing"
         ]

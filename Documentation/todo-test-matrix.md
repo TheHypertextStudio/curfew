@@ -17,8 +17,8 @@ tests cannot read or mutate a user's App Group lockout record.
   - `.github/workflows/website.yml` proposes a real registry lock only through the exact trusted draft-PR/manual guard, script-disabled fresh/frozen installation and native peer validation. Actionlint and diff checks validate this source slice. Hosted run `38119577450` passed fresh resolution, script-disabled frozen installation and peers; its exact registry lock is adopted, while run `38119975204` passed docs/source/parity/build and exposed the root-facade Playwright lookup failure before browser tests. The workflow now selects the landing workspace; full browser CI and lifecycle setup remain pending. No new tests are added or run in this authorized registry phase.
   - `scripts/site-parity.py` compares all nine original page contracts and original CSS/image digests with Astro output.
   - `landing/tests/acceptance/site.spec.mjs` covers clean/HTML aliases, direct URL/reload, Back/Forward, keyboard/reduced motion, safe unconfigured license error, metadata, and 404 behavior in Chromium/Firefox/WebKit.
-  - The packed shared CLI runs pinned `mint@4.2.854` build validation, broken links with anchors/redirects/snippets, and accessibility against the actual `docs/` content.
-  - The initial broken-link check fails for `/docs/mcp` and `/docs/cli`; the correction uses docs-relative routes without renaming either page.
+  - The packed shared CLI runs pinned `mint@4.2.854` build validation, broken links with anchors/redirects/snippets, and accessibility against the actual `web/docs/` content.
+  - The initial broken-link correction used docs-relative paths. Hosted GET acceptance on October 11 exposed Mintlify's reserved `/mcp` route (405), while the same guide's markdown served correctly. The prepared source uses `mcp-guide`, a per-page public canonical and paired exact Pages/Worker aliases. Only the existing Worker fixture's expected upstream MCP URL is migrated; no test cases are added, deleted or run for this authorized source slice. Native config generation, docs build and static checks are reported separately from provider acceptance.
   - Shared configuration fixtures preserve all Curfew navigation and brand fields. Provider publishing and public-prefix acceptance remain separate gates.
 
 - `Bundle the pinned Chrome native messaging host.`
@@ -702,7 +702,7 @@ tests cannot read or mutate a user's App Group lockout record.
 - `The public static MCP guide and the repository-owned Mintlify source give
   the same correct Claude Desktop configuration and permissions boundary until
   Mintlify is intentionally published.`
-  - Manual review of `landing/src/pages/docs.astro` and `docs/mcp.mdx`
+  - Manual review of `landing/src/pages/docs.astro` and `web/docs/mcp-guide.mdx`
   - Browser review of the deployed static MCP guide (external launch proof)
   - Verify the static guide retains its documentation navigation and readable
     article layout at desktop and mobile widths
