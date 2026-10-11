@@ -121,7 +121,7 @@ struct GettingStartedView: View {
     /// summary, permissions hint).
     @ViewBuilder
     private var stepExtras: some View {
-        if flow.currentStep == .schedule {
+        if !model.settings.hasCompletedInitialSetup, flow.currentStep == .schedule {
             Button("Open Schedule") {
                 flow.markScheduleReviewed()
                 model.requestWorkspaceNavigation(to: .schedule)
@@ -139,16 +139,16 @@ struct GettingStartedView: View {
             }
         }
 
-        if flow.currentStep == .extensionBudget {
+        if !model.settings.hasCompletedInitialSetup, flow.currentStep == .extensionBudget {
             extensionBudgetExtras
         }
 
-        if flow.currentStep == .permissions {
+        if !model.settings.hasCompletedInitialSetup, flow.currentStep == .permissions {
             permissionsExtras
         }
 
-        if flow.currentStep == .confirmation {
-            if model.settings.hasCompletedInitialSetup {
+        if model.settings.hasCompletedInitialSetup || flow.currentStep == .confirmation {
+            if model.settings.hasCompletedInitialSetup, model.isAccessibilityTrusted {
                 Label("Setup complete", systemImage: "checkmark.seal.fill")
                     .font(CurfewTypography.bodyEmphasis(14))
                     .foregroundStyle(CurfewTheme.accent)
@@ -158,15 +158,17 @@ struct GettingStartedView: View {
                 permissionsExtras
             }
 
-            ForEach(flow.confirmationRequirements) { requirement in
-                Label(
-                    requirement.title,
-                    systemImage: requirement.isSatisfied ? "checkmark.circle.fill" : "circle"
-                )
-                .font(CurfewTypography.body(13))
-                .foregroundStyle(
-                    requirement.isSatisfied ? CurfewTheme.accent : CurfewTheme.mutedInk
-                )
+            if !model.settings.hasCompletedInitialSetup {
+                ForEach(flow.confirmationRequirements) { requirement in
+                    Label(
+                        requirement.title,
+                        systemImage: requirement.isSatisfied ? "checkmark.circle.fill" : "circle"
+                    )
+                    .font(CurfewTypography.body(13))
+                    .foregroundStyle(
+                        requirement.isSatisfied ? CurfewTheme.accent : CurfewTheme.mutedInk
+                    )
+                }
             }
 
             Text(model.scheduleSummarySentence)
@@ -200,7 +202,7 @@ struct GettingStartedView: View {
     /// denial there is non-fatal and never blocks progress.
     @ViewBuilder
     private var permissionsExtras: some View {
-        if flow.isAccessibilityGranted {
+        if model.isAccessibilityTrusted {
             Label("Accessibility access granted", systemImage: "checkmark.circle.fill")
                 .font(CurfewTypography.bodyEmphasis(14))
                 .foregroundStyle(CurfewTheme.accent)

@@ -113,6 +113,23 @@ jobs:
           -only-testing:CurfewUITests/CurfewUITestsLaunchTests
           CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
 
+      - name: Verify state fixtures before the full capture sweep
+        run: >-
+          xcodebuild test -project Curfew.xcodeproj -scheme Curfew
+          -destination 'platform=macOS' -derivedDataPath build
+          -resultBundlePath build/state-consistency.xcresult
+          -only-testing:CurfewUITests/MarketingCaptureTests/testCaptureAStateConsistencyOffLocked
+          -only-testing:CurfewUITests/MarketingCaptureTests/testCaptureAStateConsistencySetupReview
+          -only-testing:CurfewUITests/MarketingCaptureTests/testCaptureAStateConsistencySetupPermission
+          -only-testing:CurfewUITests/MarketingCaptureTests/testCaptureAStateConsistencyMalformedRequest
+          -only-testing:CurfewUITests/MarketingCaptureTests/testCaptureAStateConsistencyAccountOffline
+          -only-testing:CurfewUITests/MarketingCaptureTests/testCaptureAStateConsistencyAccountSignIn
+          -only-testing:CurfewUITests/MarketingCaptureTests/testCaptureAStateConsistencyAccountHelper
+          -only-testing:CurfewUITests/MarketingCaptureTests/testCaptureAStateConsistencyAccountUpdate
+          -only-testing:CurfewUITests/MarketingCaptureTests/testCaptureAStateConsistencyAccountUnavailable
+          -parallel-testing-enabled NO
+          CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
+
       - name: Capture demo screenshots
         env:
           CURFEW_XCODEBUILD_SETTINGS: "CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO"
@@ -134,4 +151,5 @@ jobs:
           path: |
             build/screenshots.xcresult
             build/interactions.xcresult
+            build/state-consistency.xcresult
           if-no-files-found: warn
