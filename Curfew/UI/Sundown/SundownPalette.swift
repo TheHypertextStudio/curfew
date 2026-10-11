@@ -81,12 +81,12 @@ enum SundownPalette {
         let lower = frame[2]
         let horizon = frame[3]
 
-        // Lateral colour-temperature axis: warmer toward the sun (right column,
-        // pulled toward the ember `glow`), cooler toward the anti-sun side (left
-        // column, pulled gently toward the cool `crown` hue). The spread widens
-        // row by row toward the horizon where the sun actually sits — the warm/
-        // cool variation a flat vertical gradient can't render.
         func cool(_ base: SkyRGB, _ amount: Double) -> SkyRGB {
+            // Lateral colour-temperature axis: warmer toward the sun (right column,
+            // pulled toward the ember `glow`), cooler toward the anti-sun side (left
+            // column, pulled gently toward the cool `crown` hue). The spread widens
+            // row by row toward the horizon where the sun actually sits — the warm/
+            // cool variation a flat vertical gradient can't render.
             base.lerp(to: crown, amount)
         }
         func warm(_ base: SkyRGB, _ amount: Double) -> SkyRGB {
