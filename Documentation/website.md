@@ -35,8 +35,9 @@ continue to use `bootstrap` and `just check`; the website component does not
 replace native setup. `./run dev` starts Astro at `http://127.0.0.1:4321`.
 
 **Adoption status:** `@thehypertextstudio/web-config`, `web-docs`, and `web-tokens`
-are pinned to 0.0.1, but their initial registry publication is pending. Local
-acceptance uses exact packed tarballs in an ignored validation overlay. The final
+are pinned to the published 0.0.1 release. Shared read-only registry acceptance
+passed in run `38116980056`; local Curfew acceptance uses those exact shipping
+tarballs in an ignored validation overlay. The final
 registry lockfile, fresh frozen install, and clean `./run setup` acceptance remain
 required before this source change can be merged or published. Do not commit
 file-based package overrides or represent the local validation lock as a registry
@@ -217,7 +218,7 @@ to use `Documentation/RELEASE.md` and `scripts/release-checklist.md`.
 | Failure | Action |
 | --- | --- |
 | Registry 404/permission error | Confirm initial package publication and existing package-read access; do not substitute a floating source URL |
-| Frozen lockfile unavailable | Complete registry publication and commit the actual registry-resolved lockfile |
+| Frozen lockfile unavailable | Verify package-read access and commit the actual registry-resolved lockfile |
 | Generated config drift | Run `pnpm docs:config`, review both JSON files, rerun checks |
 | Mintlify framework extraction error | Preserve failure evidence; retry serially after download/cache is healthy |
 | Docs upstream 404 or recursive configuration | Keep `html-guide`; fix the existing project/subpath, never fetch the public frontend recursively |
