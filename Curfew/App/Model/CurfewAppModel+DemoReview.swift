@@ -45,6 +45,18 @@
                     isAccessibilityTrusted = false
                     enforcementHealth = .degradedNoAccessibility
                 }
+            case .assistantExhausted:
+                settings.mcpEnabled = true
+                extensionsRemaining = 0
+                state = CurfewEvaluation(
+                    phase: .warning, warningStage: .thirtyMinutes,
+                    minutesRemaining: 30, canRequestExtension: true,
+                    lockDate: currentTime.addingTimeInterval(1800),
+                    unlockDate: currentTime.addingTimeInterval(8 * 3600)
+                )
+                pendingMCPRequests = [MCPPendingRequest(
+                    tool: .requestExtension, argumentsJSON: #"{"reason":"Save my work."}"#
+                )]
             case .assistantMalformed:
                 settings.mcpEnabled = true
                 pendingMCPRequests = [MCPPendingRequest(

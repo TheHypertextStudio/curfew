@@ -187,6 +187,14 @@ preflight before the full capture sweep, preserving failure diagnostics early.
 No permission, persistence, enforcement, or onboarding completion rules changed.
 Rollback is limited to presentation and CI ordering.
 
-The preflight uses nine independent XCTest methods, one per state family. A failure
+The preflight uses ten independent XCTest methods, one per state family. A failure
 in one state does not prevent the other families from being exercised; each still
 asserts its own screen and state before attaching an image.
+
+The state preflight includes `testCaptureAStateConsistencyExhaustedRequest`:
+`assistant-exhausted` must show the actual pending consent sheet, an exhausted
+weekly allowance, disabled Approve, and enabled Deny. Run it only on the isolated
+runner under the current no-local-UI restriction. The four captures use both
+appearances and both supported window sizes; screenshots alone do not prove the
+core grant guard. `AuditGrantWiringTests.exhaustedAIExtensionIsNotGranted` covers
+manual and automatic approval through the actual app model on the remote runner.

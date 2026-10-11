@@ -69,6 +69,17 @@ struct PresentationStateTests {
         }
     }
 
+    @Test("AI consent reads the live allowance and captures exhaustion separately")
+    func aiExtensionAllowance() throws {
+        let content = try source("Curfew/ContentView.swift")
+        #expect(content.contains("extensionsRemaining: model.extensionsRemaining"))
+        let fixture = try source("Curfew/App/Model/CurfewAppModel+DemoReview.swift")
+        #expect(fixture.contains("case .assistantExhausted:"))
+        let capture = try source("CurfewUITests/StateConsistencyCaptureTests.swift")
+        #expect(capture.contains("No extensions left this week."))
+        #expect(capture.contains("testCaptureAStateConsistencyExhaustedRequest"))
+    }
+
     @Test("Unavailable shutdown explains the supported version without build jargon")
     func shutdownCopy() throws {
         let copy = try source("Curfew/UI/SystemSurfaceModels.swift")

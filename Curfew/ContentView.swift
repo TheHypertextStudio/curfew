@@ -301,6 +301,7 @@ struct MainWindowView: View {
                     schedule: model.settings.schedule,
                     extensionMinutes: model.settings.extensionDurationMinutes,
                     canRequestExtension: model.state.canRequestExtension,
+                    extensionsRemaining: model.extensionsRemaining,
                     pendingScheduleChange: model.settings.pendingScheduleChange
                 ),
                 onApprove: { model.approveMCPRequest(request) },

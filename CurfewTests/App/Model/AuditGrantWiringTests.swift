@@ -300,6 +300,28 @@ struct AuditGrantWiringTests {
 }
 
 extension AuditGrantWiringTests {
+    @Test("An eligible AI extension consumes exactly one slot")
+    func availableAIExtensionConsumesAllowance() {
+        let (model, writer) = makeModel()
+        model.state = CurfewEvaluation(
+            phase: .warning, warningStage: .thirtyMinutes,
+            minutesRemaining: 30, canRequestExtension: true,
+            lockDate: model.currentTime.addingTimeInterval(1800),
+            unlockDate: model.currentTime.addingTimeInterval(50000)
+        )
+        let remainingBefore = model.extensionTracker.remaining
+        let minutesBefore = model.extensionMinutesGrantedToday
+        #expect(remainingBefore > 0)
+        #expect(model.applyMCPAction(MCPPendingRequest(
+            tool: .requestExtension,
+            argumentsJSON: "{}"
+        )))
+        #expect(model.extensionTracker.remaining == remainingBefore - 1)
+        #expect(model.extensionMinutesGrantedToday == minutesBefore + model.settings
+            .extensionDurationMinutes)
+        #expect(writer.records(ofType: .extensionGranted).count == 1)
+    }
+
     @Test(
         "AI extension approval cannot bypass an exhausted weekly budget",
         arguments: [false, true]

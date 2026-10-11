@@ -955,9 +955,13 @@ preflight before the full capture sweep, preserving failure diagnostics early.
 No permission, persistence, enforcement, or onboarding completion rules changed.
 Rollback is limited to presentation and CI ordering.
 
-The preflight uses nine independent XCTest methods, one per state family. A failure
+The preflight uses ten independent XCTest methods, one per state family. A failure
 in one state does not prevent the other families from being exercised; each still
 asserts its own screen and state before attaching an image.
 
-- [-] Reject exhausted AI extension grants in both manual and automatic approval.
-  Regression added before implementation; observe failure on the isolated runner.
+- [x] Reject exhausted AI extension grants in both manual and automatic approval.
+  Both actual-model regression cases failed on remote run 38114876113 before
+  implementation. Granting minutes now requires successful tracker consumption;
+  rejection refreshes the displayed allowance and records a denied extension.
+  Consent explains the weekly limit and disables approval; remote verification
+  of the final guard and its four visual captures remains required before merge.

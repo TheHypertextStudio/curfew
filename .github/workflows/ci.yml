@@ -121,6 +121,7 @@ jobs:
           -only-testing:CurfewUITests/MarketingCaptureTests/testCaptureAStateConsistencyOffLocked
           -only-testing:CurfewUITests/MarketingCaptureTests/testCaptureAStateConsistencySetupReview
           -only-testing:CurfewUITests/MarketingCaptureTests/testCaptureAStateConsistencySetupPermission
+          -only-testing:CurfewUITests/MarketingCaptureTests/testCaptureAStateConsistencyExhaustedRequest
           -only-testing:CurfewUITests/MarketingCaptureTests/testCaptureAStateConsistencyMalformedRequest
           -only-testing:CurfewUITests/MarketingCaptureTests/testCaptureAStateConsistencyAccountOffline
           -only-testing:CurfewUITests/MarketingCaptureTests/testCaptureAStateConsistencyAccountSignIn

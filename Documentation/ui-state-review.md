@@ -283,6 +283,22 @@ preflight before the full capture sweep, preserving failure diagnostics early.
 No permission, persistence, enforcement, or onboarding completion rules changed.
 Rollback is limited to presentation and CI ordering.
 
-The preflight uses nine independent XCTest methods, one per state family. A failure
+The preflight uses ten independent XCTest methods, one per state family. A failure
 in one state does not prevent the other families from being exercised; each still
 asserts its own screen and state before attaching an image.
+
+AI extension exhaustion is distinct from a warning stage that offers no extension.
+The consent preview reads the live weekly allowance and says “No extensions left
+this week.” Approval is disabled while Deny remains available. The isolated
+`assistant-exhausted` fixture reproduces a warning with zero allowance in light
+and dark appearance at default and minimum sizes. Core grant application must
+also consume the tracker successfully, including automatic approval and a budget
+that becomes exhausted after the sheet opens. No wire or persistence shape changes.
+
+The previous MCP grant path discarded the tracker's rejection. It now returns
+without adding minutes or recording a grant when consumption fails, refreshes
+the allowance, and records the denial. Manual and automatic actual-model tests
+failed first remotely; a positive grant case retains normal slot consumption.
+Risk is limited to refusing an invalid grant that should already have been refused.
+Rollback must retain the budget guard; UI copy and fixture changes are separable.
+No schedule, cooldown, licensing, or protocol rules are changed.

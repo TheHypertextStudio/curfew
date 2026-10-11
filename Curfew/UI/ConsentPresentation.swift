@@ -13,6 +13,7 @@ struct ConsentPresentation {
         schedule: WeeklySchedule,
         extensionMinutes: Int,
         canRequestExtension: Bool,
+        extensionsRemaining: Int,
         pendingScheduleChange: PendingScheduleChange? = nil
     ) {
         guard request.status == .pending,
@@ -25,10 +26,14 @@ struct ConsentPresentation {
         switch request.tool {
         case .requestExtension:
             self.summary = "Extend this session by \(extensionMinutes) minutes."
-            self.detail = canRequestExtension
-                ? "Uses one of your remaining weekly extensions."
-                : "An extension is no longer available for this session."
-            self.canApprove = canRequestExtension
+            if extensionsRemaining <= 0 {
+                self.detail = "No extensions left this week."
+            } else {
+                self.detail = canRequestExtension
+                    ? "Uses one of your remaining weekly extensions."
+                    : "An extension is no longer available for this session."
+            }
+            self.canApprove = canRequestExtension && extensionsRemaining > 0
         case .requestOverride:
             self.summary = "Overrides need your confirmation in Curfew."
             self.detail = "Open the lockout screen to request an override."
