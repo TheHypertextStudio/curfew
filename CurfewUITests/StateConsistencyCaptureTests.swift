@@ -2,7 +2,7 @@ import XCTest
 
 extension MarketingCaptureTests {
     @MainActor
-    func testCaptureStateConsistency() {
+    func testCaptureAStateConsistency() {
         for appearance in ["light", "dark"] {
             for size in ["default", "minimum"] {
                 for (scenario, state) in [

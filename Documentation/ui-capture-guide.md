@@ -168,3 +168,10 @@ An explicit off-plus-warning fixture keeps the scheduled extension flag true whi
 Curfew remains disarmed. Both remote interaction and capture assertions require
 the menu to say “Curfew is off” and offer no extension action, preventing an
 inapplicable menu action from consuming the weekly budget.
+
+Remote capture regression: locked evaluations retain a zero-minute display value.
+Today now checks the phase explicitly before showing a countdown, so an off Mac
+with a past scheduled lock shows “Curfew is off. Review your schedule.” instead
+of “0:00.” The state-consistency capture runs first to expose fixture failures
+early. `PresentationStateTests.lockedCountdown` and the remote capture both cover
+this presentation-only correction; enforcement and stored schedules are unchanged.

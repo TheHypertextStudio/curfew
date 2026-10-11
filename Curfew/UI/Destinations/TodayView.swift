@@ -19,9 +19,10 @@ struct TodayView: View {
         let needsSetup = !model.settings.hasCompletedInitialSetup
         let isLocked = model.state.phase == .locked
         let control = Self.control(needsSetup: needsSetup, enforcing: model.isEnforcementRunning)
-        // A countdown exists only when the engine is counting down to a lock —
-        // `.locked` and `.dayOff` both report "—", so gate on a real window.
-        let hasWindow = model.state.lockDate != nil && snapshot.timeRemainingText != "—"
+        // A scheduled lock may retain a zero-minute value after locking.
+        // Only a future boundary has a countdown.
+        let hasWindow = !isLocked && model.state.phase != .dayOff
+            && model.state.lockDate != nil && snapshot.timeRemainingText != "—"
 
         TodaySundownView(
             moment: model.skyMoment,

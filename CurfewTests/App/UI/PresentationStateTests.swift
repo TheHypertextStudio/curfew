@@ -117,6 +117,12 @@ struct PresentationStateTests {
         #expect(content.contains("if model.isEnforcementRunning, snapshot.canRequestExtension"))
     }
 
+    @Test("Today does not render a lock countdown after the scheduled lock")
+    func lockedCountdown() throws {
+        let today = try source("Curfew/UI/Destinations/TodayView.swift")
+        #expect(today.contains("let hasWindow = !isLocked"))
+    }
+
     @Test("Finish Setup opens the walkthrough instead of arming defaults")
     func setupAction() throws {
         let today = try source("Curfew/UI/Destinations/TodayView.swift")

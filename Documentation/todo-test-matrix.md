@@ -1132,7 +1132,7 @@ The remote AX lookup demonstrated section-level identifier propagation overridin
   extension advice matches eligibility. Tests preceded the new injection/copy APIs.
 - Consent content scrolls independently of decision buttons so long assistant
   reasons cannot push Deny/Approve offscreen; unavailable requests say so directly.
-- `MarketingCaptureTests/testCaptureStateConsistency`: actual-window assertions for
+- `MarketingCaptureTests/testCaptureAStateConsistency`: actual-window assertions for
   off/locked Today, completed setup with and without Accessibility, and malformed
   consent with disabled Approve. Runs only on the isolated runner, in light/dark
   at both sizes. `PresentationStateTests/stateFixtures` failed before fixture wiring.
@@ -1161,3 +1161,10 @@ Final recovery-copy review: Today’s off state describes following the local sc
 | Menu-bar visual state coverage | `MarketingCaptureTests.testCaptureMenuBar` | Ready, permission missing, keyboard interrupted, verification failure; both appearances; fixed-width popover and complete screenshot geometry asserted. |
 
 | Off plus scheduled warning | `PresentationStateTests.menuOffExtension`, `CurfewUITests.testOffMenuDoesNotOfferAnExtensionDuringScheduledWarning`, `MarketingCaptureTests.testCaptureMenuBar` | Menu hides the grant action while disarmed, even when the schedule offers it; both appearances captured remotely. |
+
+Remote capture regression: locked evaluations retain a zero-minute display value.
+Today now checks the phase explicitly before showing a countdown, so an off Mac
+with a past scheduled lock shows “Curfew is off. Review your schedule.” instead
+of “0:00.” The state-consistency capture runs first to expose fixture failures
+early. `PresentationStateTests.lockedCountdown` and the remote capture both cover
+this presentation-only correction; enforcement and stored schedules are unchanged.
