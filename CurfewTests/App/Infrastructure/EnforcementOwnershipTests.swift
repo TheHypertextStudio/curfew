@@ -109,6 +109,23 @@ struct EnforcementOwnershipTests {
         #expect(EnforcementOwnership.currentOwner(lockURL: url, isAlive: alive) == nil)
     }
 
+    @Test("Release requires both the owning process and bundle identifier")
+    func releaseRejectsWrongBundleIdentifier() {
+        let url = tempLock()
+        seed(.production, pid: 100, at: url, isAlive: alive)
+
+        EnforcementOwnership.release(
+            pid: 100,
+            bundleIdentifier: "studio.hypertext.curfew.dev",
+            lockURL: url
+        )
+
+        #expect(
+            EnforcementOwnership.currentOwner(lockURL: url, isAlive: alive)?
+                .processIdentifier == 100
+        )
+    }
+
     @Test("currentOwner reports nil when the recorded owner is gone")
     func currentOwnerNilWhenDead() {
         let url = tempLock()

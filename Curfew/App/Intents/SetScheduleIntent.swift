@@ -56,6 +56,7 @@ struct SetScheduleIntent: AppIntent {
         }
     }
 
+    @MainActor
     func perform() async throws -> some IntentResult & ProvidesDialog {
         guard let lockHHMM = Self.hhmm(from: lockTime) else {
             throw CurfewIntentError.invalidLockTime

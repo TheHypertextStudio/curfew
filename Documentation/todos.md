@@ -40,10 +40,11 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 - [x] Convert app shell to a standard macOS app window (`LSUIElement = false`) with menu bar quick access.
 - [x] Default debug/Xcode launch starts with enforcement disarmed unless explicitly enabled.
 - [x] Add a dedicated app launch coordinator so app startup orchestration is isolated from scene composition.
-- [x] Add targets for `curfew-mcp`, `curfew-ctl`, and WidgetKit extension. (`curfew-mcp`, `curfew-ctl`, and `CurfewWidget` are wired in Xcode. Privileged helper → v0.2)
-- [-] Configure entitlements: App Group, CloudKit, notifications, accessibility-related requirements. (The conservative v0.1 Release carries only App Group and Apple Events for the shipped core. CloudKit and APS stay out until their feature flags are enabled after external provisioning + manual signed-build validation in `Documentation/RELEASE.md`.)
+- [x] Add targets for `curfew-mcp`, `curfew-ctl`, `curfew-daemon`, and the WidgetKit extension.
+- [x] Keep synchronized app/Widget groups normalized, exclude target-owned `Info.plist` files from resources, and verify the package-backed Widget through its generated scheme.
+- [x] Define the v0.1 Release entitlements: Apple Events and App Group present; iCloud, APS, and user-selected-file access intentionally absent. Exact signed-artifact validation remains a release gate, not an implementation TODO.
 - [x] Define centralized app constants (`AppGroup`, bundle IDs, CloudKit record names via SharedPaths.swift).
-- [x] Add feature flags for deferred modules (widget/cloud/MCP/calendar/privileged helper) with safe defaults off.
+- [x] Add feature flags with safe defaults off and an explicit `shippingV1` preset: WidgetKit/MCP/helper on, CloudKit/Calendar off.
 
 ## 1. Schedule + Enforcement Core
 
@@ -71,7 +72,7 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 - [x] Add keyboard shortcut interception during lockout (⌘⇥, ⌘Q, ⌘⌥Esc, …).
 - [x] Implement rotating encouragement messages.
 - [x] Implement lockout visual design (time, unlock time, optional stats card).
-- [x] Respect accessibility settings: VoiceOver, reduce motion, reduce transparency.
+- [x] Respect accessibility settings: VoiceOver, reduce motion, reduce transparency; warning countdowns, lockout controls, and Settings tabs expose stable semantic accessibility values/identifiers for UI automation and assistive technology.
 
 ## 4. Shutdown Manager
 
@@ -84,8 +85,8 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 
 ## 5. Bypass Protection + Privileged Layer
 
-> v0.1: `PersistentLockdown` ships a user-space respawning LaunchAgent using
-> `KeepAlive.PathState`. Not automatically installed; v0.2 hardens with SMAppService.
+> v0.1 ships an authenticated `SMAppService` LaunchDaemon. The legacy
+> user-space respawn guard remains defense in depth, not the state bridge.
 
 - [-] Package a real `curfew-daemon` helper for `SMAppService` install/status validation; jailbreak detection + shutdown enforcement remain deferred. The Xcode bundle phase now signs every embedded CLI/helper executable with the app's expanded signing identity, while explicitly unsigned CI builds skip that signing loop; an artifact-level test requires the daemon's non-empty TeamIdentifier to match Curfew's in signed builds. Signed-build install/reboot/uninstall validation remains an external release step. See `Documentation/RELEASE.md`. (v0.2)
 - [-] Persist lockout state through the LaunchDaemon sentinel path; root-owned write semantics still need signed-build/manual validation. (`Documentation/RELEASE.md` now captures the exact manual checks; the actual proof still requires a signed build.) (v0.2)
@@ -224,7 +225,7 @@ mid-lockout, and every action the root daemon takes. Format specification:
       template-only Worker path with caller-owned rendered config and no
       committed identifiers or secrets.
 - [x] `Casks/curfew.rb` — Homebrew Cask formula with signed release URL and zap paths.
-- [x] `scripts/gen-sparkle-keypair.sh` — local Ed25519 keygen with paste-into-Info.plist instructions.
+- [x] `scripts/gen-sparkle-keypair.sh` — uploads the private Ed25519 seed directly to the GitHub secret and prints only the public key.
 - [x] `scripts/generate-appcast.sh` — CI-invoked Sparkle appcast builder.
 - [x] `scripts/release-checklist.md` — exhaustive external-setup sequence.
 - [x] `scripts/uninstall.sh` — standalone uninstaller mirroring the in-app flow.
@@ -249,6 +250,9 @@ mid-lockout, and every action the root daemon takes. Format specification:
 - [ ] Production Curfew Plus Stripe products, Worker secrets, webhook, and
       purchase-to-license delivery verified. Keep the landing sale gate closed
       until this external launch gate is complete.
+- [x] `scripts/gen-license-keypair.sh` — Ed25519 keypair generation.
+- [x] `web/worker/src/` — Cloudflare Worker: Stripe webhook → signed key.
+- [x] Placeholder public key replaced with the embedded release public key; release CI rejects the all-zero sentinel if it returns. Matching private-key availability remains part of Worker deployment evidence.
 
 ## 16. Onboarding
 
@@ -267,7 +271,7 @@ mid-lockout, and every action the root daemon takes. Format specification:
 - [x] MIT `LICENSE` file.
 - [x] README rewrite: three-horizon pitch, MCP setup, CLI usage, Pro features, architecture.
 - [x] `CONTRIBUTING.md`, `PRIVACY.md`, `Documentation/ARCHITECTURE.md`, `Documentation/RELEASE.md`.
-- [x] Signed-build validation runbook for shutdown, widget, privileged helper, and CloudKit lives in `Documentation/RELEASE.md`. (Actual Apple-credential execution is still tracked by the remaining unchecked release/provisioning items.)
+- [x] Signed-build validation runbook for shutdown, Widget, helper, Sparkle, notarization, and DMG installation lives in `Documentation/RELEASE.md`.
 - [x] Landing page (`web/landing/`) — Cloudflare Pages deploy target.
 - [x] Account-era landing contract — every public header links to the optional
       same-origin account portal, Android is labeled as coming soon, and the
@@ -331,7 +335,7 @@ as an opt-in feature per the user's product direction and is not blocking.
 - [x] **m4** — `Weekday(from:)` logs a warning before its Monday fallback so unexpected calendars produce telemetry.
 - [x] **m5** — Widget shared state carries a live `WidgetEnforcementSnapshot` written on every phase transition.
 - [x] **m6** — License re-verifies on day rollover so a tampered UserDefaults can't keep Pro alive indefinitely.
-- [x] **A1** — `LockoutDeadlineRecord` is now the single source of truth for "am I locked"; overlay/sentinel/daemon all derive from it.
+- [x] **A1** — `LockoutDeadlineRecord` carries a backward-compatible UUID; the daemon's active deadline is authoritative over missing or weaker user-side state.
 
 ## 17.6 On-device presence detection (2026-08-08)
 

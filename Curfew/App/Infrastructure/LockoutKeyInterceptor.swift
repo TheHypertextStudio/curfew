@@ -14,8 +14,8 @@ import Foundation
 /// The blocklist is deliberately small — enough to deter the obvious bypass
 /// attempts (⌘⇥ to switch apps, ⌘Q to quit, ⌘Space to spotlight, ⌘⌥Esc for
 /// force quit, Ctrl+arrows for Mission Control spaces) without reinventing a
-/// kiosk-mode keyboard driver. A hardened v0.2 will move this behind the
-/// privileged helper and intercept at a lower layer.
+/// kiosk-mode keyboard driver. The privileged helper preserves deadline and
+/// shutdown enforcement but intentionally does not inject system-wide input.
 enum LockoutShortcutPolicy {
     /// Returns `true` iff the given key + modifier combination should be
     /// swallowed while lockout is active.
@@ -85,9 +85,9 @@ private final class TapPortBox {
 /// (``TapWatchdogDecision``) re-enables a disabled tap or recreates a vanished
 /// one so a silently downed shield self-heals.
 ///
-/// This is a best-effort deterrent — a determined user with root access can
-/// still bypass via the command line. v0.2's privileged helper will add a
-/// second layer at a higher privilege level.
+/// This is a best-effort input deterrent — a determined user with root access
+/// can still bypass it. The privileged helper adds a separate higher-privilege
+/// deadline and shutdown layer rather than pretending to be a keyboard driver.
 final class LockoutKeyInterceptor {
     /// Remediation the watchdog should take for a tap given its observable
     /// state. Pure and `Equatable` so the decision is unit-testable without a

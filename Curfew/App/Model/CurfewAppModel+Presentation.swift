@@ -105,7 +105,16 @@ extension CurfewAppModel {
     var canConfirmOverride: Bool {
         OverrideRequestPolicy.canConfirm(
             reason: overrideReasonDraft,
-            overridesRemaining: overridesRemaining
+            overridesRemaining: overridesRemaining,
+            requestedAt: overrideRequestedAt,
+            now: currentTime
+        )
+    }
+
+    var overrideCooldownRemaining: TimeInterval {
+        OverrideRequestPolicy.cooldownRemaining(
+            requestedAt: overrideRequestedAt,
+            now: currentTime
         )
     }
 

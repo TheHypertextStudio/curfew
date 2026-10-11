@@ -196,13 +196,11 @@ struct CurfewApp: App {
             .defaultLaunchBehavior(.presented)
         #endif
             .commands {
-                if CurfewUpdater.isAvailable {
-                    CommandGroup(after: .appInfo) {
-                        Button("Check for Updates…") {
-                            updater.checkForUpdates()
-                        }
-                        .disabled(!updater.canCheckForUpdates)
+                CommandGroup(after: .appInfo) {
+                    Button("Check for Updates…") {
+                        updater.checkForUpdates()
                     }
+                    .disabled(!updater.canCheckForUpdates)
                 }
             }
 

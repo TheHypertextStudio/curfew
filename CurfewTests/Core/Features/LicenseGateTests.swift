@@ -73,11 +73,13 @@ struct LicenseGateTests {
     func decodesSubscriptionPayload() throws {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        let json = """
-        {"email":"a@b.c","product":"curfew-plus","plan":"subscription",\
-        "order_id":"s","issued_at":"2026-06-25T00:00:00Z",\
-        "expires_at":"2026-07-25T00:00:00Z","refresh_token":"tok"}
-        """.data(using: .utf8)!
+        let json = Data(
+            """
+            {"email":"a@b.c","product":"curfew-plus","plan":"subscription",\
+            "order_id":"s","issued_at":"2026-06-25T00:00:00Z",\
+            "expires_at":"2026-07-25T00:00:00Z","refresh_token":"tok"}
+            """.utf8
+        )
 
         let key = try decoder.decode(LicenseKey.self, from: json)
         #expect(key.plan == .subscription)
@@ -89,10 +91,12 @@ struct LicenseGateTests {
     func decodesLegacyPayloadAsLifetime() throws {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        let json = """
-        {"email":"a@b.c","product":"curfew-pro","order_id":"o",\
-        "issued_at":"2026-06-25T00:00:00Z"}
-        """.data(using: .utf8)!
+        let json = Data(
+            """
+            {"email":"a@b.c","product":"curfew-pro","order_id":"o",\
+            "issued_at":"2026-06-25T00:00:00Z"}
+            """.utf8
+        )
 
         let key = try decoder.decode(LicenseKey.self, from: json)
         #expect(key.plan == .lifetime)

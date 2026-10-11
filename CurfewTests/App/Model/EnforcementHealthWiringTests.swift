@@ -205,7 +205,7 @@ struct EnforcementHealthWiringTests {
             settingsStore: CurfewSettingsStore(defaults: defaults),
             appRouter: AppRouterSpy(),
             activityRecorder: NullActivityRecording(),
-            lockoutDeadlineStore: ModelTestSupport.lockoutDeadlineStore(),
+            lockoutDeadlineStore: .ephemeralForTesting(),
             accessibilityAuthorization: authorization
         )
     }

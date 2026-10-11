@@ -12,9 +12,9 @@ private let monitorLogger = Logger(
 ///
 /// Uses a `DispatchSourceFileSystemObject` to watch the queue file's parent
 /// directory for write events — more efficient than polling, and avoids the
-/// latency of a timer-based approach. Falls back to a 5-second poll timer
-/// when the directory doesn't exist yet (app just launched, no MCP client
-/// has connected).
+/// latency of a timer-based approach. The monitor creates the app-support
+/// directory before opening the file descriptor so first launch follows the
+/// same event-driven path as subsequent launches.
 ///
 /// The monitor must be started by calling ``start()`` and torn down by
 /// calling ``stop()`` or letting it deinit. Only one monitor instance should
@@ -33,7 +33,6 @@ final class MCPRequestMonitor {
     private(set) var isStarted = false
 
     private var dispatchSource: DispatchSourceFileSystemObject?
-    private var pollTimer: Timer?
 
     /// The last set of request IDs we notified about. Used to avoid
     /// re-surfacing the same consent sheet if nothing changed between reads.
@@ -46,7 +45,6 @@ final class MCPRequestMonitor {
 
     deinit {
         dispatchSource?.cancel()
-        pollTimer?.invalidate()
     }
 
     /// Starts monitoring. Idempotent — safe to call more than once.
@@ -70,8 +68,6 @@ final class MCPRequestMonitor {
         isStarted = false
         dispatchSource?.cancel()
         dispatchSource = nil
-        pollTimer?.invalidate()
-        pollTimer = nil
     }
 
     // MARK: - Private
@@ -80,22 +76,14 @@ final class MCPRequestMonitor {
         let directoryURL = SharedPaths.applicationSupport
         let fileManager = FileManager.default
 
-        guard fileManager.fileExists(atPath: directoryURL.path) else {
-            // Directory doesn't exist yet — poll every 5 s until it appears.
-            pollTimer = Timer.scheduledTimer(
-                withTimeInterval: 5,
-                repeats: true
-            ) { [weak self] _ in
-                Task { @MainActor in
-                    self?.check()
-                    // Once the directory exists, switch to DispatchSource.
-                    if fileManager.fileExists(atPath: directoryURL.path) {
-                        self?.pollTimer?.invalidate()
-                        self?.pollTimer = nil
-                        self?.setupWatch()
-                    }
-                }
-            }
+        do {
+            try fileManager.createDirectory(
+                at: directoryURL,
+                withIntermediateDirectories: true
+            )
+        } catch {
+            monitorLogger
+                .error("Could not create mcp queue directory: \(error.localizedDescription)")
             return
         }
 
