@@ -34,7 +34,7 @@ struct BrowserNativeLifecycleTests {
         "destination":{"origin":"https://example.com","path":"/"},"justification":"I need this reference for work."}
         """.utf8))
         let host = BrowserNativeHost(store: store, callerOrigin: "test", reviewTimeout: 55)
-        let waiting = Task { await host.handle(request) }
+        let waiting = Task.detached { await host.handle(request) }
         let enqueueDeadline = ContinuousClock.now.advanced(by: .seconds(10))
         while ContinuousClock.now < enqueueDeadline {
             if try !store.pending(at: Date()).isEmpty {

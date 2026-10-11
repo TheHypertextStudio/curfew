@@ -1,13 +1,13 @@
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
-import { readdir, readFile } from 'node:fs/promises';
+import { readdir, readFile, lstat } from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const landing = path.join(root, 'web', 'landing');
+const landing = path.join(root, 'landing');
 const execute = promisify(execFile);
 
 async function html(name) {
@@ -88,7 +88,28 @@ test('source and documentation use only approved Curfew service hostnames', asyn
   assert.deepEqual(rejected, []);
 });
 
-test('existing Pages root remains available after the web relocation', async () => {
-  const legacy = await readFile(path.join(root, 'landing', 'index.html'), 'utf8');
-  assert.equal(legacy, await html('index.html'));
+test('web tooling uses the existing Pages asset root', async () => {
+  const tools = path.join(root, 'web', 'landing');
+  const manifest = JSON.parse(await readFile(path.join(tools, 'package.json'), 'utf8'));
+  for (const script of Object.values(manifest.scripts)) {
+    const directory = script.match(/--cwd (\S+)/)?.[1];
+    assert.ok(directory);
+    assert.equal(path.resolve(tools, directory), landing);
+  }
+  assert.ok((await readFile(path.join(landing, 'functions', '_middleware.js'), 'utf8')).length);
+});
+
+test('Pages assets have a physical root rather than an external symlink', async () => {
+  const entry = await lstat(path.join(root, 'landing'));
+  assert.ok(entry.isDirectory());
+  assert.ok(!entry.isSymbolicLink());
+});
+
+test('static preview and release assets target the physical Pages root', async () => {
+  const recipe = await readFile(path.join(root, 'justfile'), 'utf8');
+  assert.match(recipe, /--directory landing --bind/);
+  const setup = await readFile(path.join(root, 'scripts', 'setup.mjs'), 'utf8');
+  assert.match(setup, /const LANDING_DIR = join\(ROOT, "landing"\)/);
+  const release = await readFile(path.join(root, '.github', 'workflows', 'release.yml'), 'utf8');
+  assert.match(release, /cp "\$RUNNER_TEMP\/appcast.xml" landing\/appcast.xml/);
 });

@@ -43,12 +43,12 @@ Manual steps that remain **after** the script (no API for these):
 
 - [ ] **Mintlify** dashboard → connect this GitHub repo and set the project to
       serve from the **`/docs` subpath** of `curfew.hypertext.studio`. The Pages
-      Function in `web/landing/functions/_middleware.js` reverse-proxies
+      Function in `landing/functions/_middleware.js` reverse-proxies
       `/docs` → `curfew.mintlify.dev` without rewriting the path, so Mintlify
       must be told it lives under `/docs`.
 - [ ] Commit the values the script injected: the Ed25519 public key in
       `LicenseGate.swift` and the payment-link URLs/price in
-      `web/landing/index.html`.
+      `landing/index.html`.
 
 Steps 4–8 below are the manual fallback / reference for what the script does.
 
@@ -99,7 +99,7 @@ fraud — no separate tax-filing service is needed.
       **Managed Payments** (public preview — confirm eligibility).
 - [ ] Create the Curfew Plus lifetime and subscription products and their
       hosted Payment Links only after the production issuer is ready.
-- [ ] Keep `web/landing/index.html`'s sale gate in place until the production
+- [ ] Keep `landing/index.html`'s sale gate in place until the production
       purchase-to-license delivery path is proven end to end. Do not commit a
       hosted payment-link URL before that proof.
 - [ ] Developers → Webhooks → add an endpoint subscribed to
@@ -166,7 +166,7 @@ key as fatal before publishing.
 
 ### 8. Landing page hosting
 
-- [x] Cloudflare Pages project serves this repo's `web/landing/` directory.
+- [x] Cloudflare Pages project serves this repo's `landing/` directory.
 - [x] Custom domain: `curfew.hypertext.studio` (HTTPS 200 verified 2026-08-01).
 - [x] Cloudflare Pages preview deployment runs for repository changes.
 
@@ -174,7 +174,7 @@ The completed hosting setup does **not** authorize a sale: keep the root
 landing sale gate closed until the production Stripe webhook and signed-app
 license delivery are independently verified.
 - [ ] **Docs proxy:** the landing project ships a Pages Function
-      (`web/landing/functions/_middleware.js`) that reverse-proxies `/docs` and
+      (`landing/functions/_middleware.js`) that reverse-proxies `/docs` and
       `/docs/*` to `curfew.mintlify.dev`. In the Mintlify dashboard, connect this
       repo (docs source in `web/docs/`) and set the project to serve from the
       `/docs` subpath of `curfew.hypertext.studio`. The proxy does not rewrite
@@ -234,7 +234,7 @@ Once the infrastructure above is in place, every release is:
 5. Bump the `Casks/curfew.rb` version + sha256 and push to homebrew-cask
    (only required after the first release is out).
 6. Post the release to the landing page's release notes page at
-   `web/landing/releases/<version>.html`.
+   `landing/releases/<version>.html`.
 
 ## Smoke tests after tagging
 
