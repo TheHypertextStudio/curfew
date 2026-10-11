@@ -1085,3 +1085,5 @@ Pages verification rejected assets linked outside its configured root, so the co
 Visual inspection found the isolated runner Dock overlapping Today’s primary action. Screenshot CI now hides and delays only its own Dock before capture; no local desktop preferences change. A workflow regression check protects this capture setup, and unobstructed recaptures are required.
 
 Remote interaction follow-up: assistant-access checks include the disclosed activity scope. Browser mapping checks scroll the disclosure into view and assert its expanded state before editing. CI preserves interaction result bundles separately from capture results, so failed control queries include their accessibility tree and screenshots. No local UI execution is required.
+
+Capture review also found that Connections state screenshots showed only the top account/browser sections while their asserted AI/calendar/sync content was below the viewport. Each affected state now includes a second bottom capture; top captures remain for context. Native disclosure interaction targets the leading arrow, consistent with the existing helper-details capture.
