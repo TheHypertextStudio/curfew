@@ -36,6 +36,19 @@ struct AuthenticatedDaemonControlTests {
         #expect(!control.usesAuthenticatedHeartbeat(for: record(), now: now))
     }
 
+    @Test func aStrongerRemoteDeadlineStillAcceptsTheOwnedLocalHeartbeat() throws {
+        var control = AuthenticatedDaemonControl()
+        let local = record()
+        let remote = record(kind: .remoteCommand, duration: 1200)
+        try control.arm(local, now: now)
+        try control.heartbeat(lockoutID: local.lockoutID, external: remote, now: now)
+        #expect(control.status(external: remote, shutdownIssued: false, now: now)
+            .activeRecord?.lockoutID == remote.lockoutID)
+        #expect(throws: PrivilegedEnforcementError.lockoutMismatch) {
+            try control.heartbeat(lockoutID: UUID(), external: remote, now: now)
+        }
+    }
+
     @Test func aReleasedWakeCannotReturnThroughTheFileBackend() throws {
         var control = AuthenticatedDaemonControl()
         let wake = record(kind: .accountWakeCampaign)

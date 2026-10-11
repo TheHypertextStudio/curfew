@@ -39,6 +39,9 @@ if [[ -n "${CURFEW_XCODEBUILD_SETTINGS:-}" ]]; then
     xcodebuild_arguments+=("${ci_xcodebuild_settings[@]}")
 fi
 xcodebuild "${xcodebuild_arguments[@]}" || status=$?
+if (( status != 0 )); then
+    exit "$status"
+fi
 
 echo "==> Exporting attachments from result bundle"
 xcrun xcresulttool export attachments \
