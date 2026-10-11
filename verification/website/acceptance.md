@@ -63,9 +63,9 @@ installation.
 
 - Publish shared packages, generate/commit the actual frontend registry lock,
   verify read-only clean frozen setup and hosted required checks.
-- Publish the shared release-engineering version containing the Workers adapter;
-  pin actual bytes and configure the shared candidate/promotion caller. Keep
-  `v0.1.6`'s existing checksum truthful.
+- The shared Workers adapter and scoped caller are published and pinned at v0.1.8.
+  Configure the marketing candidate/promotion caller after registry, isolated
+  preview, and recovery acceptance.
 - Connect and reconcile the existing Mintlify `curfew` project and Git integration;
   obtain a successful reviewed source-bound deployment. Keep `DOCS_MODE=html-guide`
   until `/docs` HTML, assets, search, redirects, canonical URLs and anchors pass
@@ -146,13 +146,12 @@ route. The fixture has no source tree, credentials, or provider calls. Evidence:
 These are local fixture bytes, not an immutable hosted candidate or provider release.
 
 The intended initial shared package pins are **0.0.1**, per the release decision.
-The installed validation graph still contains the previously accepted exact
-**0.1.0 local tarballs**. Results above validate Curfew source/artifact behavior
-with that graph; they do not establish 0.0.1 shipping or registry acceptance.
-After the actual 0.0.1 candidate is reviewed/published, repeat setup/check/build
-against its bytes, generate the real registry lock, and prove a fresh frozen
-install before activating the hosted candidate caller. No file overrides or fake
-registry entries are committed.
+The first v0.1.8 checkpoint used the previously accepted exact **0.1.0 local
+tarballs**. Its results establish Curfew source/artifact behavior with that graph.
+The subsequent 0.0.1 shipping acceptance below supersedes that package limitation;
+registry acceptance still requires actual publication, the real registry lock,
+and a fresh frozen install before activating the hosted candidate caller. No file
+overrides or fake registry entries are committed.
 
 Provider prerequisites remain: the isolated marketing Worker/hostname, scoped
 credentials, complete prior Pages and route/DNS recovery evidence, real staging
@@ -164,8 +163,8 @@ available. Installed exact contracts and official Workers references were inspec
 
 
 The v0.1.8 `./run doctor`, `./run check`, and `./run build` pass on the retained
-local graph. Fresh setup remains blocked by the unpublished intended 0.0.1
-registry dependencies. Native checks also rerun successfully: SwiftFormat changed
+local graph. Canonical fresh registry setup remains blocked by the unpublished
+intended 0.0.1 registry dependencies. Native checks also rerun successfully: SwiftFormat changed
 0/375 files (six skipped), lint found no formatting violations, SwiftLint found
 zero violations across 272 files, CurfewTests completed with `TEST SUCCEEDED`,
 and the Debug build completed with `BUILD SUCCEEDED` using the existing isolated
@@ -173,3 +172,35 @@ and the Debug build completed with `BUILD SUCCEEDED` using the existing isolated
 logs remain under `.studio/acceptance/`; these do not prove signed distribution.
 The marketing product release version remains 0.1.0; the 0.0.1 release decision
 applies to the three consumed shared packages.
+
+
+## Actual 0.0.1 shipping-package acceptance
+
+Curfew consumed the actual package tarballs from shared candidate
+`38116243716-1`, source `a108b4fec7d1fca02fb59afb09237cf9b52a1ca6`, manifest
+SHA-256 `097bb8cd7f4bb7341bb9bfdc48c79cc0c855a95c3b25a225374c1f9da3f58fa4`.
+Each of the three consumed tarball digests was verified against the candidate
+record before installation. Installed package versions are all 0.0.1, resolved
+inside this checkout's native pnpm store rather than workspace links.
+
+The ignored file-tarball overlay passed native install, peers, shared `setup`
+(including frozen replay), `doctor`, `check`, `build`, all 18 browser scenarios,
+and repeated native archive acceptance. This includes all 15 source/unit checks,
+nine-page/four-asset parity, and actual Mintlify validation. Both shared-adapter
+Wrangler dry runs and all 17 extracted-archive page/alias routes pass again,
+alongside synthetic release identity and unknown-route 404 checks. The local
+archive SHA-256 is
+`6288f589ff953bad2f4f04009124c6ba27ffdf9bcfc0132d59f9470b54850a69`, assembled
+from Curfew source checkpoint `da3e9e022f81a09f67ecc2caa6389ba9b4a1ced0`.
+
+The first setup attempt found the global pnpm 10.33.0 during bootstrap's probe
+outside the repository cwd. Selecting the already installed pnpm 11.9.0 binary
+in PATH corrected the environment; no bootstrap/native source changed. The
+failure log is retained. The overlay restored the canonical workspace and all
+frontend/root/backend lockfile bytes in `finally`; no local file resolution or
+registry integrity was committed. Detailed evidence is retained under
+`.studio/acceptance/shipping-001/` and `.studio/acceptance/retained-site/`.
+
+This establishes local consumption of the actual intended shipping bytes. Package
+publication, a registry-backed lock and fresh frozen setup, hosted caller checks,
+provider preview/recovery, Mintlify publishing, and cutover remain separate gates.
