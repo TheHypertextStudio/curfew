@@ -32,7 +32,8 @@ extension SettingsView {
             AccountConnectionStatusView(
                 engine: model.accountSyncEngine,
                 remoteEnforcementReady: model.featureFlags.privilegedHelperEnabled
-                    && model.privilegedHelperManager.isRemoteLockEnforcementAvailable
+                    && model.privilegedHelperManager.isRemoteLockEnforcementAvailable,
+                remoteEnforcementSupported: model.featureFlags.privilegedHelperEnabled
             )
             if model.featureFlags.privilegedHelperEnabled,
                !model.privilegedHelperManager.isRemoteLockEnforcementAvailable {

@@ -2,27 +2,6 @@ import Combine
 import CurfewKit
 import Foundation
 
-enum AccountSyncStatus: Equatable {
-    case accountFree
-    case connecting
-    case synchronized(Date)
-    case pendingEncryption
-    case offline
-    case rejected(String)
-
-    var requiresSameAccountSignIn: Bool {
-        if case .rejected(AccountSyncRejectionReason.signInRequired) = self {
-            return true
-        }
-        return false
-    }
-}
-
-enum AccountSyncRejectionReason {
-    static let signInRequired = "Curfew needs you to sign in again."
-    static let accessDenied = "Curfew Account access was rejected."
-}
-
 /// Transport boundary for the account coordinator. The production WebSocket
 /// adapter can be attached without teaching the app model about routing or
 /// sending decrypted settings across a process boundary.

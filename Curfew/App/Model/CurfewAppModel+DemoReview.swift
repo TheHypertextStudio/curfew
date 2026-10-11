@@ -14,7 +14,8 @@
             settingsDestination = review.settingsSection
             switch review {
             case .normal: break
-            case .accountOffline, .accountSignInRequired, .accountHelperUnavailable:
+            case .accountOffline, .accountSignInRequired, .accountHelperUnavailable,
+                 .accountUpdateFailed, .accountHelperHidden:
                 let enrollment = AccountDeviceEnrollment(
                     deviceID: UUID(), keyEpoch: 1, enrolledAt: currentTime
                 )
@@ -25,6 +26,8 @@
                 case .accountOffline: accountSyncEngine.markOffline()
                 case .accountSignInRequired:
                     accountSyncEngine.reject(AccountSyncRejectionReason.signInRequired)
+                case .accountUpdateFailed:
+                    accountSyncEngine.reject("Rejected stale or invalid wake state.")
                 default: accountSyncEngine.markSynchronized(at: currentTime)
                 }
             case .todayOffLocked:

@@ -5,6 +5,8 @@
     /// Deterministic visual states; none start real services or enforcement.
     enum DemoReviewState: String, CaseIterable {
         case normal = "default"
+        case accountUpdateFailed = "account-update-failed"
+        case accountHelperHidden = "account-helper-hidden"
         case accountOffline = "account-offline"
         case accountSignInRequired = "account-sign-in-required"
         case accountHelperUnavailable = "account-helper-unavailable"
@@ -60,6 +62,7 @@
             switch self {
             case .limitsNone: .enforcement
             case .accountOffline, .accountSignInRequired, .accountHelperUnavailable,
+                 .accountUpdateFailed, .accountHelperHidden,
                  .assistantOn, .assistantReadOnly, .assistantAutomatic, .assistantPending,
                  .assistantMalformed,
                  .claudeAbsent, .claudeConfigured, .cloudIdle, .cloudSyncing, .cloudSynced,

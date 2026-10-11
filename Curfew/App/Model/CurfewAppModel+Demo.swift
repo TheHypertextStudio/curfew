@@ -30,7 +30,8 @@ import CurfewKit
                 settingsStore: settingsStore,
                 appRouter: SystemAppRouter(),
                 isDemoSession: true,
-                featureFlags: DemoReviewState.current.enablesPreviewConnections
+                featureFlags: DemoReviewState.current == .accountHelperHidden ? .default
+                    : DemoReviewState.current.enablesPreviewConnections
                     ? FeatureFlags(
                         widgetKitEnabled: true,
                         cloudSyncEnabled: true,

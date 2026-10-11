@@ -154,3 +154,5 @@ a clipped right/bottom edge is a failure. Prior 1024px default workspace images
 remain historical evidence only and cannot establish complete layout acceptance.
 
 Account consistency captures add `account-offline`, `account-sign-in-required`, and `account-helper-unavailable` in both appearances and sizes. They use an explicitly injected no-op account transport; the helper rejection is synthetic. Assertions require the matching status and repair action before window capture. No account sign-in, Keychain, network enrollment, or helper registration occurs.
+
+Additional account cases `account-update-failed` and `account-helper-hidden` verify that local failures do not claim removed access, and unavailable features do not direct users to hidden controls. Both appearances and window sizes are captured remotely.
