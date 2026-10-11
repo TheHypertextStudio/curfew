@@ -10,13 +10,13 @@ permissions:
   contents: read
   packages: read
 
-# Frontend release pin: release-engineering v0.1.7, immutable revision 0e6c0313904316e893a8e606a2557f016571412e.
+# Frontend release pin: release-engineering v0.1.8, immutable revision 878260def7229cd3df7f752b32e5581230c5db2d.
 # Future callers must pin candidate.yml and promote.yml at this same revision:
-# TheHypertextStudio/release-engineering/.github/workflows/candidate.yml@0e6c0313904316e893a8e606a2557f016571412e
-# TheHypertextStudio/release-engineering/.github/workflows/promote.yml@0e6c0313904316e893a8e606a2557f016571412e
-# tooling_revision: 0e6c0313904316e893a8e606a2557f016571412e
-# Enable only after the shared caller selects --root landing and a reviewed Workers
-# declaration, preview hostname, registry lock, and provider acceptance are available.
+# TheHypertextStudio/release-engineering/.github/workflows/candidate.yml@878260def7229cd3df7f752b32e5581230c5db2d
+# TheHypertextStudio/release-engineering/.github/workflows/promote.yml@878260def7229cd3df7f752b32e5581230c5db2d
+# tooling_revision: 878260def7229cd3df7f752b32e5581230c5db2d
+# Enable only after the shared caller selects root: landing and the actual marketing
+# preview, registry lock, and provider acceptance are available.
 # This validation workflow performs no provider deployment.
 
 jobs:

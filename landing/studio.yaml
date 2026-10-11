@@ -6,6 +6,7 @@ toolchain:
   python: '>=3.11'
   node: '24.20.0'
   pnpm: '11.9.0'
+  wrangler: '4.148.0'
 components:
   - id: marketing
     kind: static-site
@@ -19,8 +20,20 @@ components:
     build:
       script: build
       output: build/site-candidate
-# The published v0.1.7 engine includes Workers support. Enable deployment only after
-# a shared caller selects this landing/ root and the actual preview is captured.
+    deploy:
+      provider: workers
+      config: wrangler.site.json
+      entrypoint: modules/worker.js
+      assets: assets
+      account_id: 2500680a3b2b0fe6a011c1c25fed5008
+      environments:
+        staging: staging
+        production: production
+      health_urls:
+        staging: https://curfew-site-staging.hypertext.studio/__studio/release
+        production: https://curfew.hypertext.studio/__studio/release
+# Routes stay disabled; no provider operation is enabled by this declaration.
+# A caller must select landing and pass registry, preview, and recovery gates.
 release:
   channels: []
   next_version: 0.1.0
