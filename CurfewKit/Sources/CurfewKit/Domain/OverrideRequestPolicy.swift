@@ -4,9 +4,8 @@ import Foundation
 /// override flow.
 ///
 /// The override flow is the friction mechanism: the user must write at least 50
-/// characters of justification, then hold a button for 3 seconds before the
-/// device unlocks. The written reason *is* the gate — there is no dead-time
-/// cooldown, which only ever read as a punitive timer.
+/// characters of justification, wait through a five-minute cooling-off period,
+/// then hold a button for 3 seconds before the device unlocks.
 ///
 /// `CurfewAppModel` calls ``canConfirm(reason:overridesRemaining:)`` to gate the
 /// confirm action.
@@ -23,6 +22,9 @@ public enum OverrideRequestPolicy {
     /// of the justification field.
     public static let confirmationHoldSeconds: Double = 3
 
+    /// Cooling-off period between requesting and confirming an override.
+    public static let cooldownSeconds: TimeInterval = 5 * 60
+
     /// Minutes the device stays unlocked after an override is confirmed.
     /// Used as the default when no value has been persisted in `CurfewSettings`.
     public static let defaultOverrideDurationMinutes = 30
@@ -31,12 +33,20 @@ public enum OverrideRequestPolicy {
     /// weekly override budget is non-zero.
     public static func canConfirm(
         reason: String,
-        overridesRemaining: Int
+        overridesRemaining: Int,
+        requestedAt: Date?,
+        now: Date
     ) -> Bool {
         let trimmed = reason.trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed.count >= minimumJustificationCharacters else {
             return false
         }
-        return overridesRemaining > 0
+        guard overridesRemaining > 0, let requestedAt else { return false }
+        return now.timeIntervalSince(requestedAt) >= cooldownSeconds
+    }
+
+    public static func cooldownRemaining(requestedAt: Date?, now: Date) -> TimeInterval {
+        guard let requestedAt else { return cooldownSeconds }
+        return max(0, cooldownSeconds - now.timeIntervalSince(requestedAt))
     }
 }

@@ -1,6 +1,5 @@
 import CurfewKit
 import EventKit
-import ServiceManagement
 import SwiftUI
 
 /// Informational / configuration panels for Settings tabs that don't drive
@@ -333,68 +332,6 @@ extension SettingsView {
             Text(isEnabled ? "Enabled" : "Disabled")
                 .font(CurfewTypography.label(12))
                 .foregroundStyle(isEnabled ? CurfewTheme.accent : CurfewTheme.mutedInk)
-        }
-    }
-
-    /// Install / uninstall controls for the SMAppService privileged daemon and
-    /// the main-app login item. Only shown when `privilegedHelperEnabled`.
-    @ViewBuilder
-    private var privilegedHelperPanel: some View {
-        let helper = model.privilegedHelperManager
-        VStack(alignment: .leading, spacing: 10) {
-            // Daemon row
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("LaunchDaemon")
-                        .font(CurfewTypography.bodyEmphasis(13))
-                    Text(PrivilegedHelperStatusCopy.daemonDescription(for: helper.daemonStatus))
-                        .font(CurfewTypography.label(12))
-                        .foregroundStyle(CurfewTheme.mutedInk)
-                }
-                Spacer()
-                if helper.daemonStatus == .enabled {
-                    Button("Uninstall") {
-                        helper.uninstallDaemon()
-                    }
-                    .buttonStyle(CurfewSecondaryButtonStyle())
-                } else {
-                    Button("Install…") {
-                        helper.installDaemon()
-                    }
-                    .buttonStyle(CurfewSecondaryButtonStyle())
-                }
-            }
-
-            // Login item row
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Open at Login")
-                        .font(CurfewTypography.bodyEmphasis(13))
-                    Text(PrivilegedHelperStatusCopy
-                        .loginItemDescription(for: helper.loginItemStatus))
-                        .font(CurfewTypography.label(12))
-                        .foregroundStyle(CurfewTheme.mutedInk)
-                }
-                Spacer()
-                if helper.loginItemStatus == .enabled {
-                    Button("Disable") {
-                        helper.unregisterLoginItem()
-                    }
-                    .buttonStyle(CurfewSecondaryButtonStyle())
-                } else {
-                    Button("Enable") {
-                        helper.registerLoginItem()
-                    }
-                    .buttonStyle(CurfewSecondaryButtonStyle())
-                }
-            }
-
-            if let err = helper.lastError {
-                Text(err)
-                    .font(CurfewTypography.body(12))
-                    .foregroundStyle(Color.red.opacity(0.8))
-                    .fixedSize(horizontal: false, vertical: true)
-            }
         }
     }
 }

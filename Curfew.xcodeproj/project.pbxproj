@@ -8,15 +8,11 @@
 
 /* Begin PBXBuildFile section */
 		C0FE00000000000000000001 /* CurfewWidget.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = C0FE00000000000000000004 /* CurfewWidget.appex */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		C0FE00000000000000000002 /* WidgetSharedStateStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FE0000000000000000000A /* WidgetSharedStateStore.swift */; };
-		C0FE00000000000000000040 /* CurfewWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FE00000000000000000014 /* CurfewWidget.swift */; };
-		C0FE00000000000000000041 /* CurfewWidgetEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FE00000000000000000015 /* CurfewWidgetEntry.swift */; };
-		C0FE00000000000000000042 /* CurfewWidgetProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FE00000000000000000016 /* CurfewWidgetProvider.swift */; };
-		C0FE00000000000000000043 /* CurfewWidgetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FE00000000000000000017 /* CurfewWidgetView.swift */; };
-		C0FE00000000000000000070 /* CurfewProtocols in Frameworks */ = {isa = PBXBuildFile; productRef = C0FE00000000000000000072 /* CurfewProtocols */; };
+		C0FE00000000000000000002 /* Curfew/App/Infrastructure/WidgetSharedStateStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FE0000000000000000000A /* Curfew/App/Infrastructure/WidgetSharedStateStore.swift */; };
 		C0FE00000000000000000111 /* CurfewKit in Frameworks */ = {isa = PBXBuildFile; productRef = C0FE00000000000000000101 /* CurfewKit */; };
 		C0FE00000000000000000112 /* CurfewKit in Frameworks */ = {isa = PBXBuildFile; productRef = C0FE00000000000000000102 /* CurfewKit */; };
 		C0FE00000000000000000113 /* CurfewKit in Frameworks */ = {isa = PBXBuildFile; productRef = C0FE00000000000000000103 /* CurfewKit */; };
+		C0FE00000000000000000114 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = C0FE00000000000000000105 /* Sparkle */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -62,14 +58,14 @@
 		9BD3FB912F4D4587007B2E95 /* CurfewTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CurfewTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		9BD3FB9B2F4D4587007B2E95 /* CurfewUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CurfewUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		C0FE00000000000000000004 /* CurfewWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = CurfewWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
-		C0FE0000000000000000000A /* WidgetSharedStateStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Curfew/App/Infrastructure/WidgetSharedStateStore.swift; sourceTree = "<group>"; };
+		C0FE0000000000000000000A /* Curfew/App/Infrastructure/WidgetSharedStateStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Curfew/App/Infrastructure/WidgetSharedStateStore.swift; sourceTree = "<group>"; };
 		C0FE00000000000000000014 /* CurfewWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurfewWidget.swift; sourceTree = "<group>"; };
 		C0FE00000000000000000015 /* CurfewWidgetEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurfewWidgetEntry.swift; sourceTree = "<group>"; };
 		C0FE00000000000000000016 /* CurfewWidgetProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurfewWidgetProvider.swift; sourceTree = "<group>"; };
 		C0FE00000000000000000017 /* CurfewWidgetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurfewWidgetView.swift; sourceTree = "<group>"; };
 		C0FE00000000000000000018 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		C0FE00000000000000000019 /* CurfewWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CurfewWidget.entitlements; sourceTree = "<group>"; };
-		C0FE0000000000000000001E /* CurfewWidget-Debug.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CurfewWidget-Debug.entitlements; sourceTree = "<group>"; };
+		C0FE0000000000000000001E /* CurfewWidget-Debug.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "CurfewWidget-Debug.entitlements"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -79,6 +75,13 @@
 				Info.plist,
 			);
 			target = 9BD3FB812F4D4584007B2E95 /* Curfew */;
+		};
+		C0FE00000000000000000200 /* Exceptions for "CurfewWidget" folder in "CurfewWidget" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = C0FE0000000000000000000C /* CurfewWidget */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -91,6 +94,7 @@
 		1F56E9B021971B57F3DE957D /* CurfewWidget */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
+				C0FE00000000000000000200 /* Exceptions for "CurfewWidget" folder in "CurfewWidget" target */,
 			);
 			path = CurfewWidget;
 			sourceTree = "<group>";
@@ -105,15 +109,11 @@
 		};
 		9BD3FB942F4D4587007B2E95 /* CurfewTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = CurfewTests;
 			sourceTree = "<group>";
 		};
 		9BD3FB9E2F4D4587007B2E95 /* CurfewUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = CurfewUITests;
 			sourceTree = "<group>";
 		};
@@ -126,6 +126,7 @@
 			files = (
 				C0FE00000000000000000070 /* CurfewProtocols in Frameworks */,
 				C0FE00000000000000000111 /* CurfewKit in Frameworks */,
+				C0FE00000000000000000114 /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -196,7 +197,7 @@
 		C0FE00000000000000000006 /* CurfewWidgetSupport */ = {
 			isa = PBXGroup;
 			children = (
-				C0FE0000000000000000000A /* WidgetSharedStateStore.swift */,
+				C0FE0000000000000000000A /* Curfew/App/Infrastructure/WidgetSharedStateStore.swift */,
 			);
 			name = CurfewWidgetSupport;
 			sourceTree = "<group>";
@@ -227,6 +228,7 @@
 			packageProductDependencies = (
 				C0FE00000000000000000072 /* CurfewProtocols */,
 				C0FE00000000000000000101 /* CurfewKit */,
+				C0FE00000000000000000105 /* Sparkle */,
 			);
 			productName = Curfew;
 			productReference = 9BD3FB822F4D4584007B2E95 /* Curfew.app */;
@@ -337,6 +339,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				C0FE00000000000000000100 /* XCLocalSwiftPackageReference "CurfewKit" */,
+				C0FE00000000000000000104 /* XCRemoteSwiftPackageReference "Sparkle" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 9BD3FB832F4D4584007B2E95 /* Products */;
@@ -430,6 +433,7 @@
 		};
 		C0FE0000000000000000ABCD /* Require Signed Build */ = {
 			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
 			files = (
 			);
@@ -474,7 +478,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C0FE00000000000000000002 /* WidgetSharedStateStore.swift in Sources */,
+				C0FE00000000000000000002 /* Curfew/App/Infrastructure/WidgetSharedStateStore.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -708,7 +712,7 @@
 				INFOPLIST_KEY_NSCameraUsageDescription = "Curfew can check the camera for a person so it can tell whether you stepped away or are sitting there reading. It looks for a human shape only — it never identifies anyone, never saves an image, and never sends anything anywhere. Off unless you turn it on in Settings.";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 Hypertext Studio. MIT licensed.";
 				INFOPLIST_KEY_SUFeedURL = "https://curfew.hypertext.studio/appcast.xml";
-				INFOPLIST_KEY_SUPublicEDKey = REPLACE_WITH_SPARKLE_PUBLIC_ED_KEY;
+				INFOPLIST_KEY_SUPublicEDKey = "/nTixzbNLaV9ZMpWlLHn6E03k4FDhWp+rolbmGAV8Is=";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -755,7 +759,7 @@
 				INFOPLIST_KEY_NSCameraUsageDescription = "Curfew can check the camera for a person so it can tell whether you stepped away or are sitting there reading. It looks for a human shape only — it never identifies anyone, never saves an image, and never sends anything anywhere. Off unless you turn it on in Settings.";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 Hypertext Studio. MIT licensed.";
 				INFOPLIST_KEY_SUFeedURL = "https://curfew.hypertext.studio/appcast.xml";
-				INFOPLIST_KEY_SUPublicEDKey = REPLACE_WITH_SPARKLE_PUBLIC_ED_KEY;
+				INFOPLIST_KEY_SUPublicEDKey = "/nTixzbNLaV9ZMpWlLHn6E03k4FDhWp+rolbmGAV8Is=";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -1090,6 +1094,17 @@
 		};
 /* End XCLocalSwiftPackageReference section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+		C0FE00000000000000000104 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = exactVersion;
+				version = 2.9.4;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
 		C0FE00000000000000000101 /* CurfewKit */ = {
 			isa = XCSwiftPackageProductDependency;
@@ -1102,6 +1117,11 @@
 		C0FE00000000000000000103 /* CurfewKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = CurfewKit;
+		};
+		C0FE00000000000000000105 /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C0FE00000000000000000104 /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

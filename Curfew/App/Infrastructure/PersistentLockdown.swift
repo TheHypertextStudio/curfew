@@ -89,15 +89,11 @@ final class NoOpRespawnGuard: RespawnGuardControlling {
 /// the file is absent (normal operation) launchd leaves Curfew alone,
 /// so quitting from the menu works as expected.
 ///
-/// This is the v0.1 shim. A hardened v0.2 will move enforcement into a
-/// root-owned privileged helper via `SMAppService`, but the mental model
-/// (a trigger file gates a respawn policy) carries over — the v0.2
-/// helper will watch the same path with a tighter TOCTOU guarantee.
-///
-/// **Not enabled by default**: v0.1 ships the class and its tests but
-/// does not automatically install the agent. Users who want respawn-on-
-/// kill must explicitly opt in. Debug builds should never install —
-/// launchd respawning a debugger-attached process is painful.
+/// This remains defense in depth beside v0.1's authenticated, root-owned
+/// `SMAppService` daemon. The LaunchAgent only respawns the app; it is not a
+/// state bridge and the daemon never trusts its user-writable trigger file.
+/// Release builds install it automatically. Debug builds never install it,
+/// because launchd respawning a debugger-attached process is unsafe.
 @MainActor
 final class PersistentLockdown: RespawnGuardControlling {
     /// `Label` used in the generated plist and as the plist filename.
@@ -129,13 +125,13 @@ final class PersistentLockdown: RespawnGuardControlling {
 
     /// Creates a lockdown controller. All URL parameters are explicit so
     /// tests can point at a temp directory; `launchctl` defaults to the
-    /// production `SystemLaunchctl` and is overridden in tests to assert
-    /// the emitted argument list without mutating real `launchd` state.
+    /// production `SystemLaunchctl` and is injected in tests to assert the
+    /// emitted argument list without mutating real `launchd` state.
     init(
         launchAgentsDirectory: URL,
         triggerPath: URL,
         curfewExecutableURL: URL,
-        launchctl: LaunchctlRunning = SystemLaunchctl()
+        launchctl: LaunchctlRunning
     ) {
         self.launchAgentsDirectory = launchAgentsDirectory
         self.triggerPath = triggerPath
@@ -167,7 +163,8 @@ final class PersistentLockdown: RespawnGuardControlling {
         return PersistentLockdown(
             launchAgentsDirectory: launchAgents,
             triggerPath: trigger,
-            curfewExecutableURL: executable
+            curfewExecutableURL: executable,
+            launchctl: SystemLaunchctl()
         )
     }
 

@@ -93,7 +93,8 @@ struct MCPGatingTests {
             settingsStore: store,
             appRouter: AppRouterSpy(),
             featureFlags: featureFlags,
-            activityRecorder: NullActivityRecording()
+            activityRecorder: NullActivityRecording(),
+            lockoutDeadlineStore: .ephemeralForTesting()
         )
     }
 }

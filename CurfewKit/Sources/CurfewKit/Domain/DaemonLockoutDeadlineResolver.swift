@@ -16,6 +16,7 @@ public enum DaemonLockoutDeadlineResolver {
         }) else { return nil }
 
         return LockoutDeadlineRecord(
+            lockoutID: strongest.lockoutID,
             lockoutStartedAt: active.map(\.lockoutStartedAt).min() ?? strongest.lockoutStartedAt,
             scheduledUnlockAt: strongest.scheduledUnlockAt,
             kind: strongest.kind,

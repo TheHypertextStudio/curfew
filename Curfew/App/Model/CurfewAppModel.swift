@@ -70,6 +70,9 @@ final class CurfewAppModel: NSObject {
     /// lockout screen.
     var isOverrideComposerVisible = false
 
+    /// Time the current override request entered its cooling-off period.
+    var overrideRequestedAt: Date?
+
     /// One-line status describing the auto-shutdown workflow (e.g. a
     /// countdown), or `nil` when no shutdown is pending.
     var shutdownStatusLine: String?
@@ -287,6 +290,8 @@ final class CurfewAppModel: NSObject {
     /// `nil` on day rollover so the next day's events get their own prompt.
     @ObservationIgnored var curfewOverlapPromptFiredForEventID: String?
 
+    /// Last local send/arm time, used to avoid one XPC connection per tick.
+    @ObservationIgnored var lastPrivilegedHeartbeatAt: Date?
     /// Whether enforcement is armed (the full `tick()` runs); guards `start()`
     /// idempotency. **Observed** so Today's on/off control reacts directly.
     private(set) var started = false
@@ -301,21 +306,21 @@ final class CurfewAppModel: NSObject {
     init(
         settingsStore: CurfewSettingsStore,
         appRouter: AppRouting,
-        featureFlags: FeatureFlags = .default,
+        featureFlags: FeatureFlags? = nil,
         activityRecorder: any ActivityRecording,
-        reflectionState: ReflectionRuntimeState = ReflectionRuntimeState(),
+        reflectionState: ReflectionRuntimeState? = nil,
         notificationManager: (any WarningNotificationManaging)? = nil,
-        mcpRequestMonitor: MCPRequestMonitor = MCPRequestMonitor(),
-        licenseGate: LicenseGate = LicenseGate(),
-        cloudKitSyncEngine: CloudKitSyncEngine = CloudKitSyncEngine(),
+        mcpRequestMonitor: MCPRequestMonitor? = nil,
+        licenseGate: LicenseGate? = nil,
+        cloudKitSyncEngine: CloudKitSyncEngine? = nil,
         accountSyncEngine: AccountSyncEngine? = nil,
-        calendarMonitor: CalendarMonitor = CalendarMonitor(),
-        privilegedHelperManager: PrivilegedHelperManager = PrivilegedHelperManager(),
-        idleWatcher: IdleWatcher = IdleWatcher(source: CGEventSourceIdleSource()),
-        respawnGuard: any RespawnGuardControlling = NoOpRespawnGuard(),
-        lockoutDeadlineStore: LockoutDeadlineStore = LockoutDeadlineStore(),
+        calendarMonitor: CalendarMonitor? = nil,
+        privilegedHelperManager: PrivilegedHelperManager? = nil,
+        idleWatcher: IdleWatcher? = nil,
+        respawnGuard: (any RespawnGuardControlling)? = nil,
+        lockoutDeadlineStore: LockoutDeadlineStore? = nil,
         accountWakeLedgerStore: AccountWakeLedgerStore = AccountWakeLedgerStore(),
-        accessibilityAuthorization: AccessibilityAuthorizing = SystemAccessibilityAuthorization(),
+        accessibilityAuthorization: AccessibilityAuthorizing? = nil,
         browserNativeRuntime: BrowserNativeRuntime? = nil
     ) {
         self.settingsStore = settingsStore
@@ -333,10 +338,10 @@ final class CurfewAppModel: NSObject {
         self.lockoutKeyInterceptor = LockoutKeyInterceptor()
         self.shutdownController = SystemShutdownController()
         self.appRouter = appRouter
-        self.featureFlags = featureFlags
+        self.featureFlags = featureFlags ?? .default
         self.activityRecorder = activityRecorder
-        self.reflectionState = reflectionState
-        self.mcpRequestMonitor = mcpRequestMonitor
+        self.reflectionState = reflectionState ?? ReflectionRuntimeState()
+        self.mcpRequestMonitor = mcpRequestMonitor ?? MCPRequestMonitor()
         let browserRuntime = browserNativeRuntime ?? BrowserNativeRuntime()
         self.browserNativeRuntime = browserRuntime
         self.taskBrowserEnforcement = TaskBrowserEnforcementController(
@@ -344,18 +349,18 @@ final class CurfewAppModel: NSObject {
             settingsStore: BrowserIntegrationSettingsStore(defaults: settingsStore.storageDefaults)
         )
         self.mcpSocketServer = MCPSocketServer()
-        self.licenseGate = licenseGate
-        self.cloudKitSyncEngine = cloudKitSyncEngine
+        self.licenseGate = licenseGate ?? LicenseGate()
+        self.cloudKitSyncEngine = cloudKitSyncEngine ?? CloudKitSyncEngine()
         self.accountSyncEngine = accountSyncEngine ?? AccountSyncEngine()
-        self.calendarMonitor = calendarMonitor
-        self.privilegedHelperManager = privilegedHelperManager
-        self.idleWatcher = idleWatcher
-        self.respawnGuard = respawnGuard
-        self.lockoutDeadlineStore = lockoutDeadlineStore
+        self.calendarMonitor = calendarMonitor ?? CalendarMonitor()
+        self.privilegedHelperManager = privilegedHelperManager ?? PrivilegedHelperManager()
+        self.idleWatcher = idleWatcher ?? IdleWatcher(source: CGEventSourceIdleSource())
+        self.respawnGuard = respawnGuard ?? NoOpRespawnGuard()
+        self.lockoutDeadlineStore = lockoutDeadlineStore ?? LockoutDeadlineStore()
         self.accountWakeLedgerStore = accountWakeLedgerStore
         self.accountWakeLedger = accountWakeLedgerStore.load() ?? AccountWakeLedger()
         self.accountRemoteOverride = nil
-        self.accessibilityAuthorization = accessibilityAuthorization
+        self.accessibilityAuthorization = accessibilityAuthorization ?? SystemAccessibilityAuthorization()
 
         let loadedSettings = settingsStore.load()
         self.settings = loadedSettings
@@ -368,21 +373,19 @@ final class CurfewAppModel: NSObject {
 
         let now = Date()
         self.state = Self.initialEvaluation(
-            settings: loadedSettings,
-            now: now,
-            enforcementEngine: enforcementEngine
+            settings: loadedSettings, now: now, enforcementEngine: enforcementEngine
         )
         self.extensionsRemaining = extensionTracker.remaining
         self.overridesRemaining = overrideTracker.remaining
         self.lockoutMessage = EncouragementMessageCatalog.next(after: nil)
         self.shutdownStatusLine = nil
         self.currentDayToken = Self.dayToken(for: now)
-        self.isUserIdle = idleWatcher.isIdle
-        let seededTrust = accessibilityAuthorization.isTrusted()
+        self.isUserIdle = self.idleWatcher.isIdle
+        let seededTrust = self.accessibilityAuthorization.isTrusted()
         self.isAccessibilityTrusted = seededTrust
-        self.enforcementHealth = Self.seededEnforcementHealth(
-            isAccessibilityTrusted: seededTrust,
-            tapIsEnabled: lockoutKeyInterceptor.isEnabled
+        self.enforcementHealth = Self.resolvedSeededHealth(
+            trusted: seededTrust, tapEnabled: lockoutKeyInterceptor.isEnabled,
+            flags: self.featureFlags, helper: self.privilegedHelperManager
         )
         super.init()
         self.lastEnforcedPhase = state.phase
@@ -418,6 +421,9 @@ final class CurfewAppModel: NSObject {
         notificationManager.requestPermissionIfNeeded()
         installRespawnGuardIfNeeded()
         startEnforcementReassertionObservers()
+        if featureFlags.privilegedHelperEnabled {
+            Task { await reconcilePrivilegedDaemonState() }
+        }
         tick()
         beginDisplayClock()
     }

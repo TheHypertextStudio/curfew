@@ -99,12 +99,13 @@ final class LicenseGate {
     /// need a migration to avoid dropping already-activated keys for no gain.
     private static let storageKey = "pro.licenseKey"
 
-    /// Creates a gate backed by `defaults`. `nonisolated` so it can be
-    /// evaluated as a default-parameter value in MainActor initializers.
-    nonisolated init(
-        defaults: UserDefaults = UserDefaults(suiteName: SharedPaths.defaultsSuiteName) ?? .standard
+    /// Creates a gate backed by `defaults` on the main actor.
+    init(
+        defaults: UserDefaults? = nil
     ) {
         self.defaults = defaults
+            ?? UserDefaults(suiteName: SharedPaths.defaultsSuiteName)
+            ?? .standard
     }
 
     /// Re-verifies any persisted licence string on app launch. Failures

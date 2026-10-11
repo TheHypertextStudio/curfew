@@ -34,11 +34,20 @@ SHARED_SUPPORT="$HOME/Library/Group Containers/group.studio.hypertext.curfew/Cur
 CACHES="$HOME/Library/Caches/studio.hypertext.curfew"
 PREFS="$HOME/Library/Preferences/studio.hypertext.curfew.plist"
 APP_BUNDLE="/Applications/Curfew.app"
+DAEMON_LABEL="studio.hypertext.curfew.daemon"
+ROOT_SUPPORT="/Library/Application Support/Curfew"
 
 say "→ Curfew uninstall"
 say ""
 
-# 1. LaunchAgent — unload first so launchd doesn't respawn the app
+# 1. Privileged daemon — boot out before removing its root-owned state.
+if confirm "Remove the privileged Curfew helper and root-owned state?"; then
+  sudo /bin/launchctl bootout "system/$DAEMON_LABEL" 2>/dev/null || true
+  sudo rm -rf "$ROOT_SUPPORT"
+  say "  removed: system/$DAEMON_LABEL and $ROOT_SUPPORT"
+fi
+
+# 2. LaunchAgent — unload first so launchd doesn't respawn the app
 #    between the unload and the plist removal.
 if [[ -f "$AGENT_PLIST" ]]; then
   if confirm "Unload and remove LaunchAgent at $AGENT_PLIST?"; then
@@ -50,7 +59,7 @@ else
   say "  (no LaunchAgent to remove)"
 fi
 
-# 2. Application Support — MCP request queue, Unix socket, legacy local files.
+# 3. Application Support — MCP request queue, Unix socket, legacy local files.
 if [[ -d "$APP_SUPPORT" ]]; then
   if confirm "Remove application support directory $APP_SUPPORT?"; then
     rm -rf "$APP_SUPPORT"
@@ -60,7 +69,7 @@ else
   say "  (no application support directory)"
 fi
 
-# 3. Shared group-container storage — activity SQLite + widget settings snapshot.
+# 4. Shared group-container storage — activity SQLite + widget settings snapshot.
 if [[ -d "$SHARED_SUPPORT" ]]; then
   if confirm "Remove shared storage directory $SHARED_SUPPORT?"; then
     rm -rf "$SHARED_SUPPORT"
@@ -70,7 +79,7 @@ else
   say "  (no shared storage directory)"
 fi
 
-# 4. Caches — bundle-ID keyed, OS-created.
+# 5. Caches — bundle-ID keyed, OS-created.
 if [[ -d "$CACHES" ]]; then
   if confirm "Remove caches directory $CACHES?"; then
     rm -rf "$CACHES"
@@ -80,7 +89,7 @@ else
   say "  (no caches directory)"
 fi
 
-# 5. UserDefaults — schedule, budgets, license key, settings.
+# 6. UserDefaults — schedule, budgets, license key, settings.
 if [[ -f "$PREFS" ]]; then
   if confirm "Clear preferences at $PREFS?"; then
     /usr/bin/defaults delete studio.hypertext.curfew 2>/dev/null || true

@@ -18,20 +18,21 @@ extension CurfewAppModel {
     convenience init(
         settingsStore: CurfewSettingsStore,
         appRouter: AppRouting,
-        featureFlags: FeatureFlags = .default,
-        respawnGuard: any RespawnGuardControlling = NoOpRespawnGuard(),
-        accessibilityAuthorization: AccessibilityAuthorizing = SystemAccessibilityAuthorization()
+        featureFlags: FeatureFlags? = nil,
+        respawnGuard: (any RespawnGuardControlling)? = nil,
+        accessibilityAuthorization: AccessibilityAuthorizing? = nil
     ) {
         self.init(
             settingsStore: settingsStore,
             appRouter: appRouter,
-            featureFlags: featureFlags,
+            featureFlags: featureFlags ?? .default,
             activityRecorder: Self.defaultActivityRecording(),
             reflectionState: ReflectionRuntimeState(
                 recorder: Self.defaultReflectionRecording()
             ),
-            respawnGuard: respawnGuard,
+            respawnGuard: respawnGuard ?? NoOpRespawnGuard(),
             accessibilityAuthorization: accessibilityAuthorization
+                ?? SystemAccessibilityAuthorization()
         )
     }
 

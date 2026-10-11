@@ -44,11 +44,14 @@ struct CurfewTests {
         }
 
         let store = CurfewSettingsStore(defaults: defaults)
+        let deadlineURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("curfew-setup-deadline-\(UUID().uuidString).json")
+        defer { try? FileManager.default.removeItem(at: deadlineURL) }
         let model = CurfewAppModel(
             settingsStore: store,
             appRouter: AppRouterSpy(),
             activityRecorder: NullActivityRecording(),
-            lockoutDeadlineStore: ModelTestSupport.lockoutDeadlineStore()
+            lockoutDeadlineStore: LockoutDeadlineStore(recordURL: deadlineURL)
         )
 
         model.start()

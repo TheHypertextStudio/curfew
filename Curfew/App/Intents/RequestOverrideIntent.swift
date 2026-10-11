@@ -36,6 +36,7 @@ struct RequestOverrideIntent: AppIntent {
     )
     var reason: String
 
+    @MainActor
     func perform() async throws -> some IntentResult & ProvidesDialog {
         try CurfewIntentSupport.enqueueWriteRequest(
             tool: .requestOverride,

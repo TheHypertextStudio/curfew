@@ -1,8 +1,8 @@
-# Release runbook
+# Curfew v0.1 release runbook
 
-Maintainer-run steps for producing a signed Curfew build and validating the
-surfaces that **cannot** be proven in ad-hoc local builds. Repo-local tests
-cover the app logic; this file covers the release-only path for:
+v0.1 is blocked until automated checks pass and signed-device evidence is
+recorded in `Documentation/release-evidence/v0.1.0.md`. A local build is not
+distribution proof.
 
 - Apple Events-backed shutdown
 - WidgetKit signing + App Group reads
@@ -11,10 +11,17 @@ cover the app logic; this file covers the release-only path for:
 - CloudKit / push entitlements and real container access
 - notarization / Gatekeeper / DMG smoke testing
 
-Keep claims conservative: nothing below is considered complete until a
-maintainer executes it on a signed build with real Apple credentials.
+- Deployment floor: macOS 26.
+- Enabled: WidgetKit, local MCP, authenticated privileged helper, Apple
+  Events shutdown, App Group sharing, and Sparkle updates.
+- Compiled but hidden and dormant: CloudKit and Calendar.
+- Release app entitlements: Apple Events, App Group, non-sandboxed app, and
+  disabled library validation for bundled Sparkle XPC services.
+- Intentionally absent: iCloud container and APS entitlements.
+- App identity: Team ID `39AB9DY3K8`, bundle ID
+  `studio.hypertext.curfew`.
 
-## One-time external setup
+## Required credentials
 
 Use `scripts/release-checklist.md` for the full business/infrastructure setup
 (Stripe, Cloudflare Worker, Sparkle, landing page, Homebrew), and
@@ -25,11 +32,7 @@ path: `scripts/license-worker.mjs` renders a caller-owned config from
 configuring the production KV binding, secrets, or checkout. The Apple release
 identifiers that must stay aligned are:
 
-- App bundle ID: `studio.hypertext.curfew`
-- Widget bundle ID: `studio.hypertext.curfew.widget`
-- App Group: `group.studio.hypertext.curfew`
-- CloudKit container: `iCloud.studio.hypertext.curfew`
-- Privileged LaunchDaemon label: `studio.hypertext.curfew.daemon`
+## Automated gate
 
 Before running the signed-build checks below, make sure these external
 prerequisites exist:
@@ -106,58 +109,56 @@ locally is the fastest way to validate shutdown/widget/helper/CloudKit behavior
 before pushing a tag.
 
 ```bash
-TEAM_ID="<your 10-character Apple team id>"
-ARCHIVE_PATH="$PWD/build/Curfew-Release.xcarchive"
-EXPORT_PATH="$PWD/build/release-export"
-EXPORT_PLIST="$PWD/build/ExportOptions.plist"
+swiftformat Curfew CurfewTests CurfewUITests
+swiftformat Curfew CurfewTests CurfewUITests --lint
+swiftlint lint --strict
+just check
+just test-ui
+```
 
-rm -rf "$ARCHIVE_PATH" "$EXPORT_PATH" "$EXPORT_PLIST"
+Run the full unit suite three consecutive times and the ownership suite
+repeatedly. A UI test host that cannot enable automation is a release blocker,
+not a pass.
 
+Create the signed Release archive with the same Developer ID identity used by
+CI, export it, then validate the exported app:
+
+```bash
 xcodebuild archive \
   -project Curfew.xcodeproj \
   -scheme Curfew \
   -configuration Release \
   -destination 'platform=macOS' \
-  -archivePath "$ARCHIVE_PATH" \
+  -archivePath build/Curfew-Release.xcarchive \
   CODE_SIGN_STYLE=Manual \
-  CODE_SIGN_IDENTITY="Developer ID Application" \
-  DEVELOPMENT_TEAM="$TEAM_ID"
+  CODE_SIGN_IDENTITY='Developer ID Application' \
+  DEVELOPMENT_TEAM=39AB9DY3K8
 
-cat > "$EXPORT_PLIST" <<EOF
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>method</key><string>developer-id</string>
-  <key>teamID</key><string>$TEAM_ID</string>
-  <key>signingStyle</key><string>manual</string>
-</dict>
-</plist>
-EOF
+bash scripts/verify-release-artifact.sh build/release-export/Curfew.app
 ```
 
-Then export:
+The verifier checks the embedded Sparkle framework, live feed URL, non-placeholder
+public key, Widget extension, all three helper binaries, nested signatures,
+Gatekeeper assessment, and exact app entitlements.
 
-```bash
-xcodebuild -exportArchive \
-  -archivePath "$ARCHIVE_PATH" \
-  -exportPath "$EXPORT_PATH" \
-  -exportOptionsPlist "$EXPORT_PLIST"
-```
+## Release automation
 
-At that point the signed app should live at:
+For a `v0.1.0` tag, `.github/workflows/release.yml`:
 
-```bash
-APP="$EXPORT_PATH/Curfew.app"
-WIDGET="$APP/Contents/PlugIns/CurfewWidget.appex"
-HELPER="$APP/Contents/Resources/curfew-daemon"
-HELPER_PLIST="$APP/Contents/Library/LaunchDaemons/studio.hypertext.curfew.daemon.plist"
-```
+1. Runs the quality gate and rejects placeholder or missing keys.
+2. Archives and exports the Developer ID app.
+3. Notarizes and staples the app.
+4. Verifies the app artifact.
+5. Builds, signs, notarizes, and staples the DMG.
+6. Publishes the signed DMG to the GitHub release.
+7. Signs an appcast whose enclosure points at that exact asset.
+8. Attaches the appcast, deploys it to
+   `https://curfew.hypertext.studio/appcast.xml`, and compares the live bytes.
 
-## Inspect the signed artifact before UI testing
+Any failure stops the release. Do not announce or update the Homebrew cask
+until the downloaded GitHub artifact passes the signed-device gate.
 
-Run these checks first so entitlement or packaging regressions are caught before
-you start clicking through the app:
+## Signed-device gate
 
 ```bash
 codesign --verify --deep --strict --verbose=2 "$APP"
@@ -171,74 +172,67 @@ plutil -p "$HELPER_PLIST"
 ls "$WIDGET" "$HELPER" "$HELPER_PLIST"
 ```
 
-From the entitlement dumps, confirm:
+### Distribution
 
-- **App (v0.1)**: Apple Events automation and the App Group are present; iCloud
-  and `aps-environment` are absent while CloudKit sync is disabled.
-- **Widget**: sandbox + the same App Group are present.
-- **Helper plist**: `Label = studio.hypertext.curfew.daemon` and
-  `BundleProgram = Contents/Resources/curfew-daemon`.
+1. Download the GitHub Release DMG, not a local replacement.
+2. Run `spctl --assess --type open --context context:primary-signature` on the
+   DMG and `spctl --assess --type execute` on the installed app.
+3. Run `xcrun stapler validate` on both artifacts.
+4. Install by dragging from the DMG and launch from `/Applications`.
+5. Confirm the artifact hash matches the release evidence.
 
-If any of those are missing, stop there and fix signing/project settings before
-trusting any manual smoke test result.
+### Widget and App Group
 
-## Signed-build validation checklist
+1. Confirm `studio.hypertext.curfew.widget` appears in `pluginkit -m -A -D`.
+2. Add each supported Curfew widget from the gallery.
+3. Change the schedule and verify the widget refreshes from the App Group.
+4. Verify the signed app and Widget entitlements contain the same App Group.
 
-### 1. Shutdown (Apple Events)
+### Authenticated helper
 
-Only the signed Release build carries the Apple Events entitlement, so this
-check must be run from the exported app or notarized DMG install.
+1. Install and approve the helper in Settings; verify the UI reports a ready
+   authenticated channel and `launchctl print
+   system/studio.hypertext.curfew.daemon` succeeds.
+2. Arm a short lockout and confirm the daemon-owned state file exists at
+   `/Library/Application Support/Curfew/lockout-state.json`, with a root-owned
+   `0755` parent directory and `0600` file.
+3. Reboot during an active deadline and verify the app recovers the daemon's
+   deadline.
+4. Force-quit the app during a disposable lockout and verify the daemon invokes
+   the one-shot `shutdown -h +1` path only after heartbeat age exceeds 90
+   seconds. This intentionally powers off the sacrificial Mac.
+5. Verify natural expiry and an approved override both clear daemon state.
+6. Verify in-app uninstall is rejected while locked, then succeeds after
+   completion and removes daemon registration before user state.
+7. Reinstall, then run `scripts/uninstall.sh`; verify launchd registration and
+   root-owned state are removed through `sudo`.
 
-1. Install or copy the signed app to `/Applications/Curfew.app`.
-2. Launch Curfew and open **Settings → Enforcement**.
-3. Confirm the auto-shutdown controls are visible. (Debug/ad-hoc builds should
-   keep them hidden.)
-4. Set a short shutdown delay and move curfew a few minutes into the future.
-5. Wait for lockout:
-   - the lockout screen should show the shutdown countdown first
-   - then Curfew should request a shutdown through `System Events`
-6. If macOS prompts for Automation approval, grant Curfew permission to control
-   **System Events**. If you deny/dismiss it, confirm Curfew stays locked,
-   does **not** keep retrying the denied shutdown path, and shows recovery
-   guidance that points to **Privacy & Security → Automation → Curfew → System Events**.
-7. After the run, inspect **System Settings → Privacy & Security → Automation**
-   and record whether Curfew is allowed to control System Events.
+### Shutdown permission
 
-Treat this as **not release-ready** if the signed build still hides shutdown,
-never prompts for Automation, or fails both attempts without an explainable OS
-prompt state.
+Run one short lockout with Automation permission granted and one with it denied.
+Granted permission must permit `System Events` shutdown. Denied permission must
+leave lockout active, avoid retry churn, and point the user to System Settings.
 
-### 2. WidgetKit extension + App Group storage
+### Product flow
 
-The widget target is wired, but its real entitlement path only exists on the
-signed Release build.
+1. Activate and remove a known-good Pro license.
+2. Call `curfew.status` through the bundled MCP server and compare it with UI.
+3. Exercise the five-minute warning through lockout.
+4. Confirm override cooldown, reason length, and hold-to-confirm behavior.
+5. Confirm CloudKit and Calendar UI never appears and neither engine emits
+   activity in the shipping build.
 
-1. Confirm the extension is registered:
-   ```bash
-   pluginkit -m -A -D | grep -F studio.hypertext.curfew.widget
-   ```
-2. Add the Curfew widget from the macOS widget gallery. If it never appears,
-   treat that as a signing/packaging failure.
-3. Use a build where Pro/widget gating is intentionally enabled, then confirm:
-   - the widget renders current phase / schedule data
-   - changes in the app update the widget on the next timeline refresh
-4. Confirm the shared App Group container contains the mirrored files:
-   ```bash
-   ls ~/Library/Group\ Containers/group.studio.hypertext.curfew/Curfew
-   ```
-   Expected artifacts include:
-   - `widget-settings.json`
-   - `activity.sqlite3`
-5. While changing schedule/settings in the app, you can watch the mirroring path:
-   ```bash
-   log stream --predicate 'subsystem == "studio.hypertext.curfew" AND category == "widget-shared-state"' --info
-   ```
+### Sparkle staging upgrade
 
-Treat WidgetKit as **not release-ready** if the widget is missing from the
-gallery, lacks the App Group entitlement, or never reflects shared-container
-state from the signed app.
+1. Produce a signed `0.0.99` staging build with `SUFeedURL` set to
+   `https://curfew.hypertext.studio/appcast-staging.xml`.
+2. Publish a staging appcast for the signed `0.1.0` candidate using the same
+   EdDSA key and candidate DMG.
+3. Install `0.0.99`, choose **Check for Updates…**, and complete the upgrade.
+4. Verify the relaunched app is the signed `0.1.0` candidate and Gatekeeper
+   accepts it.
 
-### 3. Privileged helper + login item
+## CI boundary
 
 `SMAppService` install/status behavior only becomes trustworthy on a signed app
 running on a real machine.
@@ -372,6 +366,7 @@ explicit Apple credentials.
 
 ## Rollback
 
-- Yank the GitHub release asset and replace it with the previous DMG.
-- There is no active in-app updater in the default build today; rollback is a
-  manual re-download.
+Remove the release and live appcast immediately. Restore the last known-good
+appcast and DMG together so the feed never points to a missing or mismatched
+asset. A helper protocol regression requires shipping a newer signed app; do
+not weaken client authentication or delete active root state to roll back.

@@ -67,14 +67,27 @@ extension SettingsView {
         guard alert.runModal() == .alertFirstButtonReturn else { return }
 
         model.browserNativeRuntime.stop()
-        let outcome = UninstallCoordinator.performUninstall(
-            unregisterServices: { model.privilegedHelperManager.unregisterForUninstall() }
-        )
-        UninstallLifecycle.finish(
-            outcome: outcome,
-            present: presentUninstallResult,
-            terminate: { NSApp.terminate(nil) }
-        )
+        Task {
+            guard await model.privilegedHelperManager.prepareForFullUninstall() else {
+                presentDaemonUninstallFailure()
+                return
+            }
+            let outcome = UninstallCoordinator.performUninstall()
+            UninstallLifecycle.finish(
+                outcome: outcome, present: presentUninstallResult,
+                terminate: { NSApp.terminate(nil) }
+            )
+        }
+    }
+
+    private func presentDaemonUninstallFailure() {
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = "Curfew could not remove its privileged helper."
+        alert.informativeText = model.privilegedHelperManager.lastError
+            ?? "The helper must be removed before Curfew deletes local state."
+        alert.addButton(withTitle: "OK")
+        alert.runModal()
     }
 
     private func presentUninstallResult(_ outcome: UninstallCoordinator.Outcome) {

@@ -70,6 +70,7 @@ test-one target:
         -scheme {{ scheme }} \
         -allowProvisioningUpdates \
         -destination '{{ destination }}' \
+        -skip-testing:CurfewUITests \
         -only-testing:CurfewTests/{{ target }}
 
 # Run the full unit suite with code coverage enabled. Writes the
@@ -86,6 +87,7 @@ test-coverage:
         -allowProvisioningUpdates \
         -destination '{{ destination }}' \
         -only-testing:CurfewTests \
+        -skip-testing:CurfewUITests \
         -enableCodeCoverage YES \
         -resultBundlePath build/Coverage.xcresult
     xcrun xccov view --report build/Coverage.xcresult
@@ -205,6 +207,7 @@ snapshot:
         -configuration Debug \
         -destination '{{ destination }}' \
         -derivedDataPath build \
+        -skip-testing:CurfewUITests \
         -only-testing:CurfewTests/DestinationSnapshotTests
 
 # The web monorepo lives in `web/` (pnpm + Turborepo), kept separate so it can be
