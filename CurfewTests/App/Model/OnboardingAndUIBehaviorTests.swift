@@ -199,13 +199,42 @@ struct SetupUXTests {
             settingsStore: CurfewSettingsStore(defaults: defaults),
             appRouter: AppRouterSpy(),
             activityRecorder: NullActivityRecording(),
-            lockoutDeadlineStore: ModelTestSupport.lockoutDeadlineStore()
+            lockoutDeadlineStore: ModelTestSupport.lockoutDeadlineStore(),
+            accessibilityAuthorization: FakeAccessibilityAuthorization(trusted: true)
         )
 
         #expect(!model.settings.hasCompletedInitialSetup)
         model.completeOnboardingFlow()
         #expect(model.settings.hasCompletedInitialSetup)
         #expect(model.gettingStartedDismissID == 1)
+    }
+
+    @Test("Completing setup without Accessibility trust does not arm enforcement")
+    func completeInitialSetupRequiresAccessibilityTrust() {
+        let suiteName = "CurfewSettingsStoreTests.OnboardingBypass.\(UUID().uuidString)"
+        guard let defaults = UserDefaults(suiteName: suiteName) else {
+            Issue.record("Unable to create isolated UserDefaults suite.")
+            return
+        }
+        defer {
+            defaults.removePersistentDomain(forName: suiteName)
+        }
+
+        // Every UI surface that can call `completeInitialSetup()` — Today's
+        // "Finish Setup" CTA and Settings' "Complete Setup" button — must be
+        // unable to arm enforcement without a real Accessibility grant, or
+        // the keyboard shield silently does nothing while the app believes
+        // setup is done.
+        let model = CurfewAppModel(
+            settingsStore: CurfewSettingsStore(defaults: defaults),
+            appRouter: AppRouterSpy(),
+            accessibilityAuthorization: FakeAccessibilityAuthorization(trusted: false)
+        )
+
+        model.completeInitialSetup()
+
+        #expect(!model.settings.hasCompletedInitialSetup)
+        #expect(!model.isEnforcementRunning)
     }
 }
 

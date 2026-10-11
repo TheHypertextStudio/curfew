@@ -87,6 +87,26 @@ struct ReflectionGatingTests {
         #expect(model.reflectionState.isDaybreakPresented == false)
     }
 
+    @Test("An auto-dismissed daybreak overlay cannot resurrect later the same day")
+    func daybreakDismissMarksResolvedToPreventResurrection() {
+        let model = makeModel()
+        // Simulate the overlay lingering unanswered into the lockout window —
+        // the same sequence `daybreakDismissedOffWorking` exercises.
+        model.reflectionState.isDaybreakPresented = true
+        model.state = evaluation(phase: .locked)
+        model.evaluateReflectionGates(previousPhase: .working)
+        #expect(model.reflectionState.isDaybreakPresented == false)
+
+        // An override grant (or any path) flips the phase back to `.working`
+        // mid-lockout. Without marking `.morning` resolved on the earlier
+        // auto-dismiss, this would be read as a fresh `→ working` transition
+        // and re-raise the full-screen overlay hours after it was dismissed.
+        model.state = evaluation(phase: .working)
+        model.evaluateReflectionGates(previousPhase: .locked)
+
+        #expect(model.reflectionState.isDaybreakPresented == false)
+    }
+
     @Test("Saving a reflection resolves the gate and clears its surface")
     func saveResolvesGate() {
         let model = makeModel()

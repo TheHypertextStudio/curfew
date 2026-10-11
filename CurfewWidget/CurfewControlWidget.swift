@@ -49,28 +49,59 @@ struct CurfewControlValueProvider: ControlValueProvider {
     }
 
     /// Live value pulled from the shared snapshot at refresh time.
+    ///
+    /// Prefers the live ``WidgetEnforcementSnapshot`` the app writes on every
+    /// phase/warning-stage transition — it reflects active extensions and
+    /// overrides, which the settings-only estimate below cannot. Without
+    /// this, the doc comment's promise that "the control, the timeline
+    /// widget, and the app never disagree" didn't hold: this control
+    /// recomputed independently with `extensionMinutesGrantedToday: 0,
+    /// overrideUntil: nil`, so it could show "Locked" while an active
+    /// extension had the rest of the app at "Working".
     func currentValue() async throws -> Value {
+        let now = Date()
+        if let live = WidgetSharedStateStore().loadEnforcement(),
+           now.timeIntervalSince(live.updatedAt) < 90 * 60,
+           let phase = EnforcementPhase(widgetToken: live.phase) {
+            return value(for: phase, minutesRemaining: live.minutesRemaining)
+        }
+
         let settings = WidgetSharedStateStore().loadSettings()
         let eval = CurfewEnforcementEngine().evaluate(
-            at: Date(),
+            at: now,
             schedule: settings.schedule,
             extensionMinutesGrantedToday: 0,
             overrideUntil: nil,
             warningIntervals: settings.warningIntervals
         )
+        return value(for: eval.phase, minutesRemaining: eval.minutesRemaining)
+    }
 
-        switch eval.phase {
+    private func value(for phase: EnforcementPhase, minutesRemaining: Int) -> Value {
+        switch phase {
         case .locked:
-            return Value(label: "Locked", symbolName: "lock.fill")
+            Value(label: "Locked", symbolName: "lock.fill")
         case .dayOff:
-            return Value(label: "Day off", symbolName: "sun.max")
+            Value(label: "Day off", symbolName: "sun.max")
         case .working:
-            return Value(label: "\(eval.minutesRemaining) min", symbolName: "moon.stars")
+            Value(label: "\(minutesRemaining) min", symbolName: "moon.stars")
         case .warning:
-            return Value(
-                label: "\(eval.minutesRemaining) min",
-                symbolName: "exclamationmark.triangle"
-            )
+            Value(label: "\(minutesRemaining) min", symbolName: "exclamationmark.triangle")
+        }
+    }
+}
+
+private extension EnforcementPhase {
+    /// Maps the lowercase string token `WidgetEnforcementSnapshot`/
+    /// `CurfewWidgetEntry` carry back to the real enum, mirroring
+    /// `CurfewWidgetProvider.phaseToken(_:)` in reverse.
+    init?(widgetToken: String) {
+        switch widgetToken {
+        case "working": self = .working
+        case "warning": self = .warning
+        case "locked": self = .locked
+        case "day_off": self = .dayOff
+        default: return nil
         }
     }
 }

@@ -191,4 +191,20 @@ struct FirstRunFlow {
         }
         currentStep = previousStep
     }
+
+    /// A flow pre-seeded for someone re-opening Getting Started *after*
+    /// finishing it once (from the Settings/menu re-entry points, which don't
+    /// gate on `hasCompletedInitialSetup`). Jumps straight to Confirmation
+    /// with the schedule gate already satisfied — walking an already-onboarded
+    /// user through Schedule/Extension-Budget/Permissions again is pure
+    /// friction, since those already govern a live, working setup.
+    /// Accessibility is intentionally left `false` here: the view's own
+    /// on-appear sync immediately re-polls the *real* current grant, so a
+    /// permission revoked since setup still shows as required.
+    static func returningUser() -> FirstRunFlow {
+        var flow = FirstRunFlow()
+        flow.currentStep = .confirmation
+        flow.hasReviewedScheduleSettings = true
+        return flow
+    }
 }
