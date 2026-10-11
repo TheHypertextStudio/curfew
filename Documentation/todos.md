@@ -274,7 +274,7 @@ mid-lockout, and every action the root daemon takes. Format specification:
 - [x] README rewrite: three-horizon pitch, MCP setup, CLI usage, Pro features, architecture.
 - [x] `CONTRIBUTING.md`, `PRIVACY.md`, `Documentation/ARCHITECTURE.md`, `Documentation/RELEASE.md`.
 - [x] Signed-build validation runbook for shutdown, Widget, helper, Sparkle, notarization, and DMG installation lives in `Documentation/RELEASE.md`.
-- [-] Landing frontend (`landing/`) — native Astro public/dist build and Wrangler preview/deploy replace custom parity/copier/assembler and website lifecycle glue. Existing signed appcast publication builds the frontend; provider settings and runtime acceptance remain separate.
+- [-] Landing frontend (`landing/`) — native Astro public/dist build and Wrangler preview/deploy replace custom parity/copier/assembler and website lifecycle glue. A manual staging job now selects exact successful main Website and docs output without rebuilding and requires a distinct staging credential plus a live main check. Provider resource/routing/token readiness and full Mintlify proxy acceptance remain open. The native appcast publisher is unchanged; production cutover requires coordinating its destination with the owner, while preserving the current no-release state. A first signed release is not required for frontend migration. No manual tests or provider operations were performed for this workflow source slice.
 - [x] Account-era landing contract — every public header links to the optional
       same-origin account portal, Android is labeled as coming soon, and the
       privacy, security, retention, purchase, recovery, and remote-unlock

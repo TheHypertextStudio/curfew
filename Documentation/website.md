@@ -37,7 +37,10 @@ pushes and pull requests. It installs the canonical registry lock with the
 native ephemeral GitHub job token and `packages: read`. The temporary lock
 proposal job, branch-specific draft condition and manual lock-refresh input
 are removed. Website checks use native Astro build and Wrangler local preview;
-there is no automatic frontend deployment workflow.
+there is no automatic frontend deployment workflow. Successful main runs retain
+`curfew-website-dist`, including public dotfiles, after the existing three-browser
+acceptance step. A failed docs job still prevents deployment because the entire
+Website and docs run must succeed.
 
 The cleanup removes only obsolete release-identity and literal implementation
 checks. Existing page, legal/account/download, route, keyboard, 404 and proxy
@@ -65,8 +68,10 @@ working overview/CLI/licensing content, but Mintlify reserves `/mcp` and returne
 405 for the former guide path. This branch keeps the source page `mcp-guide`,
 its canonical `https://curfew.hypertext.studio/docs/mcp`, and the exact Pages and
 Worker alias `/docs/mcp` -> `/docs/mcp-guide`, preserving query strings. This
-source is not yet integrated or published. No source SHA or vendor deployment
-ID is inferred from content alone.
+source was integrated in main `2058af92`. Mintlify activity identifies docs
+commit `04a86a3b`, whose docs tree matches that main revision; the renamed guide
+was delivered with the old public canonical. The unchanged public Pages proxy
+still returned 405 for `/docs/mcp`. No vendor deployment ID was exposed.
 
 Both source proxies retain explicit `DOCS_MODE=mintlify` opt-in; HTML-guide mode
 remains the source default until proxy acceptance. Pages proxies `/docs` and
@@ -99,6 +104,40 @@ engine, custom immutable artifact tree, release-identity endpoint or activation
 variable is used. Manual deployment requires explicit staging/production approval;
 these commands have not been executed by the cleanup. Retain prior deployment
 and route/domain configuration for recovery before any host cutover.
+
+## Manual staging workflow
+
+`Deploy website staging` (`.github/workflows/deploy-staging.yml`) is manual-only
+and restricted to this repository's main branch and the `staging` environment.
+It selects a successful push/main Website and docs run for the exact dispatch
+commit using native `gh`, downloads its `curfew-website-dist` artifact, and
+installs the pinned frozen tooling. Immediately before native Wrangler deploy,
+it verifies main still matches that commit. It does not rebuild the website.
+Concurrent staging deployments are serialized. Each manual run uses one Ubuntu
+runner with a 15-minute limit. Ordinary PR checks cannot deploy. Wrangler receives
+`--env-file /dev/null` so local dotenv files cannot supply deployment inputs.
+
+Before dispatch, configure the distinct `CLOUDFLARE_STAGING_API_TOKEN` in the
+main-only protected staging environment and verify the isolated frontend Worker,
+its intended host/routing, and the token's exact deployment permissions. The
+job maps that secret to Wrangler only in the final step, fixes the Studio account
+ID, and fails when the secret is absent. It never falls back to the existing
+repository `CLOUDFLARE_API_TOKEN` used by native releases. No staging token is
+currently saved, and frontend resource/domain readiness remains unverified.
+Current empty `routes` configuration and any bootstrap-owned domain must be
+reconciled with the scoped token before dispatch; do not guess a frontend host.
+
+Keep source `DOCS_MODE=html-guide` until the full staged Mintlify proxy is
+accepted. An old successful run without the dist artifact is insufficient;
+the artifact-producing workflow must first pass normally on main. A staging
+publication can validate the existing empty/no-release state. No GitHub release
+or signed feed baseline currently exists; a first native release is not required
+for frontend migration. Before frontend production cutover, coordinate the native
+release owner's existing Pages publication destination. Accept actual signed-feed
+delivery only when that owner publishes a genuine release.
+This workflow neither changes that publisher nor deploys production. Retain
+prior versions and routing for recovery; failures stop the job without a
+fallback deployment. No workflow dispatch or provider change occurred here.
 
 ## Existing Pages/appcast publisher
 

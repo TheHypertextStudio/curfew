@@ -16,6 +16,7 @@ tests cannot read or mutate a user's App Group lockout record.
   - `landing/tests/acceptance/site.spec.mjs` retains clean/HTML aliases, direct URL/reload, Back/Forward, keyboard/reduced motion, safe unconfigured license error and 404 behavior.
   - `scripts/landing-contract.test.mjs` retains public account, download and legal-content behavior. Obsolete command-string/source-policy checks, lifecycle declaration tests and release-identity assertions are removed with their implementation.
   - Website CI uses the adopted frozen registry lock, normal Astro build and native Wrangler preview. The temporary registry proposal job and bespoke parity/copier/assembler/lifecycle are removed.
+  - Successful main Website and docs runs retain native Astro dist after the existing three-browser checks. Manual staging uses only an exact successful push/main run, verifies main immediately before Wrangler, and requires its distinct staging credential. Static workflow validation is separate from deployment acceptance; no new/manual tests or provider operations are performed for this slice.
   - Shared docs generation and pinned native Mintlify validation remain. The prepared `mcp-guide` source, old public canonical and exact Pages/Worker alias remain; public proxy/source identity acceptance is separate.
   - This source cleanup adds/runs no manual tests. Static lint/type/build and workflow checks are recorded separately; existing hosted behavior suites remain configured.
 
