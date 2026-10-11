@@ -89,3 +89,26 @@ as a tooling limitation. Implementation used inspected pinned shared templates,
 Wrangler's installed schema/source and observed native runtime behavior. Raising
 the Context7 limit requires `npx ctx7@latest login` or `CONTEXT7_API_KEY`; no key or
 subscription change was made.
+
+## Published lifecycle pin follow-up
+
+The frontend launcher/lock now use published release-engineering `v0.1.7`, immutable
+revision `0e6c0313904316e893a8e606a2557f016571412e`, archive SHA-256
+`016e239daa6c30d48198648d97d36f52ad5d28fb3c04cc4cd67a1700d30fa6ad`. The shared
+pin updater verified the hosted archive checksum and tag identity. Root/native pins
+and the root facade remain unchanged. The website workflow records exact future
+candidate/promote references; callers remain inactive pending scoped-root support
+and the existing registry/provider gates.
+
+`pnpm exec ./run setup`, `doctor`, `check`, and `build` pass against the same ignored
+exact-tarball overlay under managed Node 24.20.0/pnpm 11.9.0. Doctor reports every
+tool/runtime check true; check includes 12 unit/contract cases, Astro type/lint/format,
+nine-page/four-asset parity, and native Mintlify build/link/a11y; build assembles the
+prebuilt modules/assets/config without provider deployment. The first check build
+encountered a transient enclosing-checkout tsconfig resolver failure during that
+checkout's dependency install; direct build and the strict lifecycle rerun pass
+unchanged afterward. No workaround or dependency alteration was introduced.
+
+Browser/native product code is unchanged from the acceptance above, so their passing
+evidence is retained. Registry publication/frozen installation and provider/auth/cutover
+acceptance remain open; this pin update does not satisfy them.

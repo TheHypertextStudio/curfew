@@ -20,7 +20,7 @@ website lifecycle from the repository root:
 ```
 
 Root `./run` delegates to the frontend-owned `landing/run`. That launcher
-downloads checksum-pinned release-engineering `v0.1.6`; it delegates
+downloads checksum-pinned release-engineering `v0.1.7`; it delegates
 to the existing bootstrap engine and native pnpm commands. Python 3.11+, Node
 24.20.0, and pnpm 11.9.0 are declared in `landing/studio.yaml`. Marketing/docs dependencies and their lockfile live in the independent `landing/`
 workspace. Root `package.json` provides thin `pnpm --dir landing` command facades;
@@ -157,11 +157,20 @@ candidate construction; promotion must use the same archive bytes without anothe
 build. `GET /__studio/release` returns all three release fields with `no-store`;
 it returns 503 until the shared owner injects a complete identity.
 
-GitHub Actions is the release owner. Add its Workers deployment declaration and
-pinned reusable candidate/promotion workflows after a published release-engineering
-version contains the verified Workers contract. `v0.1.6` does not contain that
-contract: do not treat its checksum as a pin for unpublished bytes or add a local
-deployment adapter. `landing/studio.yaml` deliberately has no deploy operation yet.
+GitHub Actions is the release owner. The frontend launcher and lock now use published
+release-engineering `v0.1.7`, revision `0e6c0313904316e893a8e606a2557f016571412e`,
+archive SHA-256 `016e239daa6c30d48198648d97d36f52ad5d28fb3c04cc4cd67a1700d30fa6ad`.
+The pin helper verified the release checksum and immutable tag. Native lifecycle pins
+and the root wrapper retain their existing owner/version. The root website workflow
+records the exact future candidate/promote references at that same revision.
+
+The shared reusable callers currently select repository-root declarations and do not
+expose a scoped root input. A Curfew frontend caller must select `landing/` explicitly
+before activation; using the current default would select the independent native
+declaration. Add the Workers deployment declaration and caller only after that shared
+interface, the actual preview hostname, the real registry lock, and provider gates
+are ready. Do not add a second product deployment adapter.
+`landing/studio.yaml` deliberately has no deploy operation yet.
 The checked-in Worker environments have no routes and workers.dev disabled; names
 are intended identities, not provisioned resources. Provision/capture the actual
 preview hostname and production route explicitly, preserving account
