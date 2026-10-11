@@ -19,6 +19,8 @@ export function docsTarget(url, env) {
     throw new Error('Curfew docs require the verified explicit Mintlify origin');
   }
   upstream.pathname = isSearch ? '/_mintlify/api/request' : url.pathname;
+  // Mintlify reserves /mcp; retain the existing public guide URL with an exact alias.
+  if (upstream.pathname === '/docs/mcp') upstream.pathname = '/docs/mcp-guide';
   upstream.search = url.search;
   return upstream;
 }

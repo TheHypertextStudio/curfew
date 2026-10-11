@@ -31,7 +31,7 @@ test('docs targets preserve path/query and only delegate the documented asset an
       target.pathname + target.search,
       path.startsWith('/api/request')
         ? path.replace('/api/request', '/_mintlify/api/request')
-        : path,
+        : path.replace(/^\/docs\/mcp(?=\?)/, '/docs/mcp-guide'),
     );
   }
   for (const path of ['/docs-other', '/account', '/license', '/api/checkout', '/download']) {

@@ -1,7 +1,8 @@
 // Cloudflare Pages Function — reverse-proxy /docs to Mintlify.
 //
 // The existing project dashboard identified `curfew.mintlify.site`. It has
-// not yet published accepted docs, so the physical HTML guide remains the default.
+// published its first connected update, but complete proxy acceptance remains open.
+// The physical HTML guide remains the default until explicit opt-in.
 // Only explicit DOCS_MODE=mintlify activates this existing proxy.
 //
 // This runs as Pages middleware on EVERY request to the landing project: it
@@ -12,8 +13,8 @@
 //
 // Mintlify side: in the Mintlify dashboard, configure the project to be served
 // from the `/docs` subpath of `curfew.hypertext.studio` (Settings → Custom
-// domain / subpath). The proxy below does NOT rewrite the path, so Mintlify must
-// know it lives under `/docs`.
+// domain / subpath). Mintlify must know it lives under `/docs`. Only the exact
+// public `/docs/mcp` alias maps to the nonreserved upstream `/docs/mcp-guide`.
 
 const DOCS_HOST = "curfew.mintlify.site";
 const CUSTOM_HOST = "curfew.hypertext.studio";
@@ -32,6 +33,8 @@ export async function onRequest(context) {
   url.hostname = DOCS_HOST;
   url.protocol = "https:";
   url.port = "";
+  // Mintlify owns /mcp for its search server, not product documentation.
+  if (url.pathname === "/docs/mcp") url.pathname = "/docs/mcp-guide";
 
   const proxied = new Request(url, request);
   proxied.headers.set("Host", DOCS_HOST);

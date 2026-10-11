@@ -190,41 +190,61 @@ is needed only to consume that approved release during its first 24 hours.
 
 ## Mintlify publishing and routing
 
-Authenticated inventory identified the existing project `curfew` in organization
+Authenticated inventory identifies the existing project `curfew` in organization
 `hypertextstudio` and upstream `https://curfew.mintlify.site`. On October 10, 2026,
-it was **unconnected**, its initial update failed, and there was no successful
-source-bound deployment. The selected repository is `TheHypertextStudio/curfew`,
-source `web/docs/`, branch `main`. On October 11, Chrome confirmed the existing GitHub authorization
-and Studio installation already include Curfew; no new installation or consent
-was required. The unsaved project form selects organization `thehypertextstudio`,
-repository `Curfew`, branch `main`, source `web/docs` (UI renders `/web/docs`).
-The form was not saved; no connection or source-bound publication was accepted.
-Reviewed main `a5b5a699bcce3d136a0d312789384f8180cb08c0` now contains
-`web/docs/docs.json`, the approved accessible primary `#b25e30`, and licensing
-navigation. Confirm those exact Git settings when saving the existing connection;
-preserve project `hypertextstudio/curfew` and its subscription. Repository access
-discovery is complete. The saved integration and actual successful deployment
-identity/source SHA remain provider gates.
-The authenticated dashboard reports the Pro trial ended and hosted previews are
-unavailable; use the pinned local preview. No subscription change is required
-for local adoption.
+it was unconnected and its initial update failed. On October 11, Willie explicitly
+authorized replacement of the existing hosted content. The existing GitHub
+integration was connected to `TheHypertextStudio/curfew`, branch `main`, directory
+`web/docs`, and its first manual update succeeded with four pages in the build log.
+The provider update did not record a source SHA or deployment ID. No Pages
+production replacement or subscription change accompanied that update.
 
-At 2026-10-11 08:33 UTC, production `/docs` returned a Mintlify 404 through
-the Pages middleware introduced by the then-current main `2c56e068`. Both the
-previously verified `.site` upstream and the new `.dev` target return the same 404 body.
-Integrated source restores HTML-guide mode by default in the Pages middleware
-and Worker. The accepted filtered Pages preview serves that guide, but the retained
-production deployment still uses the older source; its separately reviewed Pages
-repair awaits production approval. This is not a claim that the live route has
-recovered or that Mintlify has published the new source.
-Keep that guide until Mintlify publishes reviewed source and the complete proxy
-passes acceptance. Setting `DOCS_MODE=mintlify` activates delegation of `/docs`,
-`/docs/*`, `/_mintlify/*`, `/mintlify-assets/*`, and `/api/request` (mapped to the
-Mintlify search endpoint). It always fetches the explicit Mintlify origin,
-preserves path/query, forwards the actual public host/protocol, removes frontend
-cookies/authorization, preserves upstream errors, and rewrites redirects that
-name the upstream to the requesting frontend origin. External redirects remain
-external. No generic fallback converts unknown routes to a successful page.
+Bounded public/upstream GET observations now accept `/docs`, `/docs/cli`, and
+`/docs/licensing` with the approved `#b25e30`, public canonicals and source heading
+anchors. Sample emitted JavaScript/CSS and `/docs/llms.txt` match upstream bytes;
+`/docs/mcp.md` also serves the assistant guide. However, `/docs/mcp` returns 405 on
+both hosts: [Mintlify reserves `/mcp` and `/authed/mcp`](https://www.mintlify.com/docs/ai/model-context-protocol)
+for its own search MCP server, so neither can be a navigation page. Search POST,
+complete proxy behavior, browser interaction and source-bound publication remain
+unaccepted. Root `/llms.txt` is not the docs index; use `/docs/llms.txt`.
+
+The source page is now `mcp-guide.mdx`; both native configs and the overview use
+`/mcp-guide`. Its [supported per-page canonical](https://www.mintlify.com/docs/optimize/seo)
+remains `https://curfew.hypertext.studio/docs/mcp`. Both the Pages Function and
+Worker map only exact public `/docs/mcp` to upstream `/docs/mcp-guide`, preserving
+the query and public URL. Other paths, methods, bodies, forwarding and redirect
+behavior remain unchanged. An upstream redirect cannot override Mintlify's
+reserved route. Public guide URLs and heading anchors remain available through
+this alias after the changed source and proxy are actually published and verified.
+
+The retained Pages production still uses older source and now proxies the
+published Mintlify docs. The previously accepted filtered Pages preview used an
+HTML fallback. Its old production-repair review is superseded for docs behavior:
+do not replace working Mintlify with that fallback accidentally. Review the exact
+current source, an explicit Pages-only `DOCS_MODE=mintlify` opt-in and this alias,
+then verify a fresh filtered preview before production replacement. Raw source
+exposure, old previews, signed appcast ownership and retained production recovery
+remain separate repair work.
+
+Default HTML-guide mode stays unchanged in the Pages Function and both Worker
+environments until complete proxy acceptance. Explicit Worker
+`DOCS_MODE=mintlify` delegates `/docs`, `/docs/*`, `/_mintlify/*`,
+`/mintlify-assets/*` and `/api/request` (mapped to Mintlify search). It fetches only
+the verified upstream, preserves query and ordinary paths, forwards the public
+origin, strips frontend cookies/authorization, preserves errors and rewrites only
+upstream redirects to the frontend origin. The interim Pages Function retains its
+existing forwarding behavior; this source slice does not claim full parity or
+activate either renderer.
+
+The legacy public `/docs/mcp` belongs to Curfew's local-MCP setup guide, not
+Mintlify's hosted search MCP service. No contextual MCP/install option is
+explicitly configured in the product or generated config, and none is enabled or
+disabled by this correction. Upstream discovery currently advertises a Mintlify
+subdirectory service URL; it is not proof of a working public search-server
+endpoint. Any generated contextual install links and discovery through the public
+proxy still need acceptance without reusing the preserved guide URL as a server.
+Do not invent a replacement server endpoint or change internal `/_mintlify`
+forwarding to conceal that limitation.
 
 Before activation, verify Mintlify's subpath setup/canonical origin, HTML, static
 assets, search GET/POST, redirects, anchor links, and mobile/keyboard behavior
@@ -362,5 +382,6 @@ Frontend/root lock bytes retain the accepted migration graph; the backend lock
 retains current main, including upstream changes. This reconciliation changes no
 dependency versions or lock bytes. Mintlify source/config now live together in `web/docs`, preserving
 the upstream relocation and licensing guide. Common root docs commands delegate
-there through the unchanged independent frontend toolchain. No native/backend
-workspace absorption, production publication or Mintlify project change occurred.
+there through the unchanged independent frontend toolchain. That source reconciliation did not absorb native/backend workspaces or publish
+production. The later authorized Mintlify connection and its incomplete public
+acceptance are recorded above.
