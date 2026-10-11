@@ -91,6 +91,8 @@ struct ContentView: View {
         .frame(width: 320)
         .background(CurfewTheme.canvas)
         .foregroundStyle(CurfewTheme.ink)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("curfew-menu-popover")
     }
 
     /// Compact sundown header — the countdown over the live sky, which melts
@@ -106,6 +108,7 @@ struct ContentView: View {
                     )
                     .frame(height: 48)
                 }
+                .overlay(SundownPalette.textScrim)
             VStack(alignment: .leading, spacing: 4) {
                 Text(snapshot.timeRemainingText)
                     .font(.system(size: 40, weight: .semibold, design: .rounded))
@@ -115,7 +118,7 @@ struct ContentView: View {
                     .shadow(color: .black.opacity(0.18), radius: 10, y: 3)
                 Text(headerLine(snapshot))
                     .font(CurfewTypography.body(13))
-                    .foregroundStyle(SundownPalette.warmWhite.opacity(0.9))
+                    .foregroundStyle(SundownPalette.supportingText)
                     .shadow(color: .black.opacity(0.3), radius: 6, y: 1)
             }
             .padding(.horizontal, 18)
@@ -135,7 +138,7 @@ struct ContentView: View {
             menuRow("Open Curfew", icon: "sun.horizon", prominent: true) {
                 openMainWorkspace()
             }
-            if snapshot.canRequestExtension {
+            if model.isEnforcementRunning, snapshot.canRequestExtension {
                 if snapshot.extensionsRemaining == 0 {
                     // Budget exhausted — say so plainly instead of a greyed,
                     // unexplained control the user can't tell why they can't tap.
@@ -153,7 +156,10 @@ struct ContentView: View {
                 }
             }
             menuRow("Settings", icon: "gearshape") { model.openSettings() }
-            menuRow("Getting Started", icon: "sparkles") { model.showGettingStarted() }
+            menuRow(
+                model.settings.hasCompletedInitialSetup ? "Review Setup" : "Finish Setup",
+                icon: "sparkles"
+            ) { model.showGettingStarted() }
             Divider().padding(.vertical, 4)
             menuRow("Quit Curfew", icon: "power") { NSApp.terminate(nil) }
         }

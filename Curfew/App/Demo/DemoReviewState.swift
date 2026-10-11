@@ -10,6 +10,7 @@
         case accountOffline = "account-offline"
         case accountSignInRequired = "account-sign-in-required"
         case accountHelperUnavailable = "account-helper-unavailable"
+        case menuOffWarning = "menu-off-warning"
         case todayOffLocked = "today-off-locked"
         case setupReview = "setup-review"
         case setupReviewDenied = "setup-review-denied"
