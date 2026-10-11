@@ -1,3 +1,4 @@
+import CurfewKit
 import SwiftUI
 
 /// Inline upsell shown in place of a Pro-gated feature.

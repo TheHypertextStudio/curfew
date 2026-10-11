@@ -1,3 +1,4 @@
+import CurfewKit
 import Foundation
 
 /// Decoded payload from a verified Curfew Pro license key.

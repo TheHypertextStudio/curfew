@@ -1,3 +1,4 @@
+import CurfewKit
 import SwiftUI
 
 /// Enforcement-related panels for the Settings window: live enforcement

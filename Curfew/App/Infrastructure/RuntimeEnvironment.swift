@@ -1,3 +1,4 @@
+import CurfewKit
 import Foundation
 
 /// Detects whether the production app is running purely as a unit-test host.

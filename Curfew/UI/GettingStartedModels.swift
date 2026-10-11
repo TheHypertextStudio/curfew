@@ -1,3 +1,4 @@
+import CurfewKit
 import Foundation
 
 /// Static copy used by the first-launch onboarding ("Getting Started")

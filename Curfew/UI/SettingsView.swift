@@ -1,3 +1,4 @@
+import CurfewKit
 import SwiftUI
 
 /// Root of the Settings window — the home for system and enforcement

@@ -1,3 +1,4 @@
+import CurfewKit
 import Foundation
 
 /// Post-`super.init()` wiring for `CurfewAppModel` plus the `static` seed

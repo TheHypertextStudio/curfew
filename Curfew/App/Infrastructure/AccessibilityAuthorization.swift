@@ -1,5 +1,6 @@
 import AppKit
 import ApplicationServices
+import CurfewKit
 
 /// Injectable seam over the macOS Accessibility-trust check.
 ///

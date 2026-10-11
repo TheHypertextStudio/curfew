@@ -1,4 +1,5 @@
 import AppKit
+import CurfewKit
 import SwiftUI
 
 /// Claude Desktop integration panel extensions on `SettingsView`.

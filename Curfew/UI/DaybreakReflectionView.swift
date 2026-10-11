@@ -1,3 +1,4 @@
+import CurfewKit
 import SwiftUI
 
 /// Full-screen morning (sunrise) reflection overlay — the start-of-day

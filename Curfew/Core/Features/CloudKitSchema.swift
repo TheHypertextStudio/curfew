@@ -1,4 +1,5 @@
 import CloudKit
+import CurfewKit
 import Foundation
 
 /// Canonical CloudKit schema descriptors for Curfew's private database.

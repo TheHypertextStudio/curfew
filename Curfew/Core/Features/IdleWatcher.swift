@@ -1,4 +1,5 @@
 import CoreGraphics
+import CurfewKit
 import Foundation
 
 /// Source of "how long since the user last touched the machine" — wrapped

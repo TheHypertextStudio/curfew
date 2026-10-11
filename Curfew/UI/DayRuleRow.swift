@@ -1,3 +1,4 @@
+import CurfewKit
 import SwiftUI
 
 /// One row of the weekly schedule editor — rendered for each `Weekday` by

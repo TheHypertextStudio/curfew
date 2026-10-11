@@ -1,6 +1,7 @@
 import AppKit
 @testable import Curfew
 import Foundation
+import CurfewKit
 import ServiceManagement
 import Testing
 

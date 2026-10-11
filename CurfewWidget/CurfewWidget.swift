@@ -1,4 +1,5 @@
 import SwiftUI
+import CurfewKit
 import WidgetKit
 
 /// WidgetKit bundle entry point. The target also compiles Curfew's shared

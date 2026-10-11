@@ -1,3 +1,4 @@
+import CurfewKit
 import Foundation
 
 /// Runtime on/off flags for Curfew modules that ship in-binary but are not yet

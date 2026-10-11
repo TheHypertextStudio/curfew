@@ -156,3 +156,5 @@ enum EnforcementHealth: Equatable {
     /// SF Symbol used for every degraded menu-bar badge.
     static let degradedBadgeSymbol = "exclamationmark.triangle.fill"
 }
+
+import CurfewKit

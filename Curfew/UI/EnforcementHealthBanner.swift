@@ -1,3 +1,4 @@
+import CurfewKit
 import SwiftUI
 
 /// Shared degraded-enforcement banner driven by ``EnforcementHealth``.

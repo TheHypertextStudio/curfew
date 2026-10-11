@@ -1,3 +1,4 @@
+import CurfewKit
 import SwiftUI
 
 /// The single source of truth for Curfew's warm "paper + ember" identity and

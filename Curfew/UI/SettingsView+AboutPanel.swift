@@ -1,4 +1,5 @@
 import AppKit
+import CurfewKit
 import SwiftUI
 
 /// The About tab — app identity, Curfew Pro licensing, and the Getting Started

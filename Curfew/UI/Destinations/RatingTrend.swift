@@ -1,3 +1,4 @@
+import CurfewKit
 import Foundation
 
 /// One rating question's week, for the Journal's neutral "Ratings this week"

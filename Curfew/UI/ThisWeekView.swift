@@ -1,4 +1,5 @@
 import AppKit
+import CurfewKit
 import EventKit
 import SwiftUI
 import UniformTypeIdentifiers

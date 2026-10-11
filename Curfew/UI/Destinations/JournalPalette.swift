@@ -1,3 +1,4 @@
+import CurfewKit
 import SwiftUI
 
 /// The Journal's light "sundown" palette, shared by ``JournalSundownView`` and

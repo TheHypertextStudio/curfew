@@ -1,5 +1,6 @@
 import CloudKit
 import Combine
+import CurfewKit
 import Foundation
 
 /// License- / flag-reactive glue for `CurfewAppModel`. Lives in its own
