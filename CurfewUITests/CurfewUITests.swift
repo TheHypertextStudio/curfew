@@ -261,7 +261,7 @@ extension CurfewUITests {
     func testTaskBrowserEnforcementPanelActions() {
         let app = launchFixture("settings")
         app.descendants(matching: .any)["settings-integrations-tab"].click()
-        let destinations = app.disclosureTriangles["task-browser-destinations-disclosure"]
+        let destinations = app.buttons["task-browser-destinations-disclosure"]
         XCTAssertTrue(destinations.waitForExistence(timeout: 5))
         destinations.click()
         XCTAssertTrue(
