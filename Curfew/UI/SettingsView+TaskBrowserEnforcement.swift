@@ -26,6 +26,7 @@ private struct TaskBrowserEnforcementPanel: View {
     @ObservedObject var controller: TaskBrowserEnforcementController
     @State private var selectorKind = SelectorKind.task
     @State private var selectorID = ""
+    @State private var mappingsExpanded = false
     @State private var destination = ""
     @State private var scopeKind = BrowserDestinationScope.Kind.origin
 
@@ -39,7 +40,10 @@ private struct TaskBrowserEnforcementPanel: View {
                 connectionControls
                 statusRows
                 enforcementControls
-                DisclosureGroup("Allowed destinations") { mappingControls }
+                DisclosureGroup("Allowed destinations", isExpanded: $mappingsExpanded) {
+                    mappingControls
+                }
+                .accessibilityIdentifier("task-browser-destinations-disclosure")
             }
         }
         .accessibilityIdentifier("task-browser-enforcement-panel")
