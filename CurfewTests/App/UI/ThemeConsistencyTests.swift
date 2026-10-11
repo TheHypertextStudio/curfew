@@ -258,6 +258,19 @@ struct ThemeConsistencyTests {
 }
 
 extension ThemeConsistencyTests {
+    @Test("Today shields schedule text from the brightest sky with the shared scrim")
+    func todayHeroPalette() throws {
+        let root = URL(fileURLWithPath: #filePath).resolvingSymlinksInPath()
+            .deletingLastPathComponent().deletingLastPathComponent()
+            .deletingLastPathComponent().deletingLastPathComponent()
+        let source = try String(contentsOf: root.appendingPathComponent(
+            "Curfew/UI/Destinations/TodaySundownView.swift"
+        ), encoding: .utf8)
+        #expect(source.contains("SundownPalette.textScrim"))
+        #expect(!source.contains(".black.opacity(0.32)"))
+        #expect(!source.contains("warmWhite.opacity(0.78)"))
+    }
+
     @Test("Override input binds readable atmospheric text and surface roles")
     func overrideInputPalette() throws {
         let root = URL(fileURLWithPath: #filePath).resolvingSymlinksInPath()

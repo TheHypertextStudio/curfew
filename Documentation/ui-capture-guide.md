@@ -134,3 +134,5 @@ Remote capture correction: fully fitting native forms may expose a scrollbar wit
 Pages verification rejected assets linked outside its configured root, so the compatibility symlink was replaced by the physical `landing/` asset directory. `web/landing/package.json` retains workspace commands and points Wrangler at that root, including its Functions. Deployment settings stay unchanged; script checks verify physical assets and the command target.
 
 Visual inspection found the isolated runner Dock overlapping Today’s primary action. Screenshot CI now hides and delays only its own Dock before capture; no local desktop preferences change. A workflow regression check protects this capture setup, and unobstructed recaptures are required.
+
+Full-resolution Today review found washed-out schedule labels over the bright sky/page fade. The hero now uses the shared atmospheric text scrim and supporting-text role, backed by the same contrast-tested surface as reflection/override inputs. `todayHeroPalette` was observed failing first; the existing white-backdrop checks establish at least 4.5:1 for both text roles. Recapture Today in both appearances and window sizes.

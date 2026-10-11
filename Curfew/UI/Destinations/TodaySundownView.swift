@@ -129,7 +129,7 @@ struct TodaySundownView: View {
 
                 Text(isEnforcing ? "Unlocks \(unlockTime)" : "Scheduled unlock \(unlockTime)")
                     .font(SundownType.body(14))
-                    .foregroundStyle(SundownPalette.warmWhite.opacity(0.78))
+                    .foregroundStyle(SundownPalette.supportingText)
                     .shadow(color: .black.opacity(0.3), radius: 6, y: 1)
                     .padding(.top, 5)
             }
@@ -142,19 +142,11 @@ struct TodaySundownView: View {
         .padding(.bottom, 30)
     }
 
-    /// A legibility scrim under the hero text. The mesh brightens toward the
-    /// horizon, where the countdown sits, so light warmWhite text would wash out
-    /// against the bright band without this. A soft top-to-bottom dark gradient
-    /// darkens only the lower hero — strongest under the countdown — so the text
-    /// always clears the sky at any time of day, while the bright crown above
-    /// stays untouched.
+    /// The sky and page fade can both become bright. The shared backing keeps
+    /// small schedule text readable throughout the hero, including daytime.
     private var skyTextScrim: some View {
-        LinearGradient(
-            colors: [.clear, .black.opacity(0.08), .black.opacity(0.32)],
-            startPoint: .top,
-            endPoint: .bottom
-        )
-        .allowsHitTesting(false)
+        SundownPalette.textScrim
+            .allowsHitTesting(false)
     }
 
     /// Softens the sky's bottom edge into the page so there's no hard seam where
