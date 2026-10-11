@@ -1,0 +1,153 @@
+---
+import Page from "../layouts/Page.astro";
+---
+<Page title="Curfew \u2014 A workday with an ending" description="Set your work hours. Curfew warns you when they end, then helps you step away from your Mac." stylesheet="style.css">
+<header class="site-header">
+    <nav>
+      <span class="wordmark">Curfew</span>
+      <a class="nav-account" href="/account">Open Account</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <h1>End the workday.</h1>
+      <p class="hero-sub">
+        Set your work hours. Curfew counts down when the day is over, then
+        shows a full-screen lockout. Automatic shutdown is optional.
+      </p>
+      <div class="hero-actions">
+        <a href="#how" class="btn-primary">See how it works</a>
+      </div>
+
+      <img
+        class="lockout-shot"
+        src="images/curfew-lockout.png"
+        width="1920" height="1200"
+        alt="The Curfew lockout overlay, showing the time, an unlock time, and a prompt for getting back in."
+      >
+    </section>
+
+    <section class="screens">
+      <div class="section-inner">
+        <h2>What it looks like</h2>
+        <p>Set a different end time for each day, then see the week as it went.</p>
+        <div class="screen-grid">
+          <figure>
+            <img src="images/curfew-schedule.png" width="1080" height="720" alt="Curfew's weekly schedule editor with per-day work end and resume times, day-off toggles, and schedule presets." />
+            <figcaption>Schedule</figcaption>
+          </figure>
+          <figure>
+            <img src="images/curfew-journal.png" width="1080" height="720" alt="Curfew's Journal view showing a week of kept days, overrides, and reflection history." />
+            <figcaption>Journal</figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <section class="how" id="how">
+      <div class="section-inner">
+        <h2>When work ends.</h2>
+        <div class="how-steps">
+          <div class="how-step">
+            <span class="step-num">01</span>
+            <h3>Set your hours</h3>
+            <p>Choose start and stop times for each day, days off, or an
+              hours-based schedule. Last-minute schedule changes do not
+              quietly move today's finish line.</p>
+          </div>
+          <div class="how-step">
+            <span class="step-num">02</span>
+            <h3>Get a heads-up</h3>
+            <p>Curfew warns you at 30, 15, 5, 2, and 1 minutes.</p>
+          </div>
+          <div class="how-step">
+            <span class="step-num">03</span>
+            <h3>Call it a night</h3>
+            <p>At curfew, a full-screen lockout appears. Automatic shutdown
+              is optional.</p>
+          </div>
+        </div>
+        <p class="how-note">
+          Need more time? Write a reason, wait five minutes, then confirm.
+          Extension and override limits are shown in the menu bar.
+        </p>
+        <p class="how-note">
+          Curfew is not a security system. A terminal, another account, or a
+          reboot can bypass it. It adds a pause before you decide to keep working.
+        </p>
+      </div>
+    </section>
+
+    <section class="reflect" id="reflect">
+      <div class="section-inner">
+        <h2>Check in before and after work.</h2>
+        <p class="reflect-lede">
+          Choose the questions. Curfew asks them when you start work and when
+          curfew begins. Answer or skip them.
+        </p>
+        <div class="how-steps">
+          <div class="how-step">
+            <span class="step-num">01</span>
+            <h3>Start with a question</h3>
+            <p>Use a short prompt, rating, or mood check when you begin.</p>
+          </div>
+          <div class="how-step">
+            <span class="step-num">02</span>
+            <h3>Wrap up</h3>
+            <p>At curfew, note what happened today or what needs to wait until
+              tomorrow.</p>
+          </div>
+          <div class="how-step">
+            <span class="step-num">03</span>
+            <h3>Keep the record</h3>
+            <p>Your journal keeps entries and ratings together. Export Markdown
+              or JSON whenever you want.</p>
+          </div>
+        </div>
+        <p class="how-note">
+          Questions and answer types are editable in Settings. Your entries
+          stay on your Mac.
+        </p>
+      </div>
+    </section>
+
+    <section class="mcp" id="mcp">
+      <div class="section-inner">
+        <h2>Connect Curfew to a local assistant.</h2>
+        <p>
+          Curfew includes a local MCP server. A compatible assistant can read
+          your Curfew status and reflections. Requests that change Curfew wait
+          for approval in the app.
+        </p>
+        <a href="docs.html" class="btn-secondary">Read MCP setup</a>
+      </div>
+    </section>
+
+    <section class="download" id="download">
+      <div class="section-inner">
+        <h2>Curfew for macOS</h2>
+        <p>Requires macOS 26 or later.</p>
+        <p>Android support is coming soon.</p>
+        <p class="download-trust">
+          Private by default. No telemetry. Local MCP access stays under your
+          control.
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>
+      Made by <a href="https://hypertext.studio">Hypertext Studio</a>.
+    </p>
+    <p>
+      <a href="docs.html">MCP setup</a> ·
+      <a href="terms.html">Terms</a> ·
+      <a href="refund.html">Refund</a> ·
+      <a href="security.html">Security</a> ·
+      <a href="retention.html">Retention</a> ·
+      <a href="privacy.html">Privacy</a>
+    </p>
+  </footer>
+</Page>

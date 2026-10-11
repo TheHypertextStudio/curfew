@@ -1,0 +1,12 @@
+packages: []
+allowBuilds:
+  '@scarf/scarf': false
+  esbuild: true
+  keytar: true
+  puppeteer: false
+  sharp: true
+  workerd: true
+packageExtensions:
+  '@mintlify/cli@4.0.1457':
+    dependencies:
+      react-dom: 19.2.3

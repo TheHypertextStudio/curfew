@@ -1,0 +1,91 @@
+{
+  "baseline": "Original landing HTML from source_sha in content-baseline.json; local anonymous static server",
+  "candidate": "Prebuilt Astro assets served by local workerd with no-bundle",
+  "browser": "Chromium (Playwright 1.62.1)",
+  "comparisons": [
+    {
+      "profile": "desktop-dark",
+      "route": "index",
+      "identical": true,
+      "original": "1f914e582cfdc7589a65fbd64053e2302589501ca352c61c60c20a77209f82a1",
+      "astro": "1f914e582cfdc7589a65fbd64053e2302589501ca352c61c60c20a77209f82a1"
+    },
+    {
+      "profile": "desktop-dark",
+      "route": "docs",
+      "identical": true,
+      "original": "39756e849fbcbb153bdfbb39a1c4dde29715a76607d45540f1a53010601915bd",
+      "astro": "39756e849fbcbb153bdfbb39a1c4dde29715a76607d45540f1a53010601915bd"
+    },
+    {
+      "profile": "desktop-dark",
+      "route": "privacy",
+      "identical": true,
+      "original": "bab30f6b8ead5d386aabc19d232b042d7bc2cd3e81e04beeefffb8bbb9fd3385",
+      "astro": "bab30f6b8ead5d386aabc19d232b042d7bc2cd3e81e04beeefffb8bbb9fd3385"
+    },
+    {
+      "profile": "desktop-dark",
+      "route": "success",
+      "identical": true,
+      "original": "4ede73533ebcca71c91035403b6be3d37ba77085907bd8e0763df93558856436",
+      "astro": "4ede73533ebcca71c91035403b6be3d37ba77085907bd8e0763df93558856436"
+    },
+    {
+      "profile": "desktop-light",
+      "route": "index",
+      "identical": true,
+      "original": "0114073bdf08f14b4af4d5ddaf7da9106884cc206ac4d1a99241ad759d0f8927",
+      "astro": "0114073bdf08f14b4af4d5ddaf7da9106884cc206ac4d1a99241ad759d0f8927"
+    },
+    {
+      "profile": "desktop-light",
+      "route": "docs",
+      "identical": true,
+      "original": "3369e5842ada0aa116388fa90f1b8d20b50c59a0d7850d450e27d03ece357cd8",
+      "astro": "3369e5842ada0aa116388fa90f1b8d20b50c59a0d7850d450e27d03ece357cd8"
+    },
+    {
+      "profile": "desktop-light",
+      "route": "privacy",
+      "identical": true,
+      "original": "44cc855f09c424c114832b4bf1c3206ec1f2c02a27df0f229c2ae974b7205d1e",
+      "astro": "44cc855f09c424c114832b4bf1c3206ec1f2c02a27df0f229c2ae974b7205d1e"
+    },
+    {
+      "profile": "desktop-light",
+      "route": "success",
+      "identical": true,
+      "original": "579569ca02382dacdfa50509c25644e49e719209be1f5c5f890a1208e9e73984",
+      "astro": "579569ca02382dacdfa50509c25644e49e719209be1f5c5f890a1208e9e73984"
+    },
+    {
+      "profile": "mobile-dark",
+      "route": "index",
+      "identical": true,
+      "original": "fccbe4a4d3105585b9899f2253feb477e94b09623d07cfcf1fabe0bd557c6bda",
+      "astro": "fccbe4a4d3105585b9899f2253feb477e94b09623d07cfcf1fabe0bd557c6bda"
+    },
+    {
+      "profile": "mobile-dark",
+      "route": "docs",
+      "identical": true,
+      "original": "1380742e349fe92597af2fe2c68523a681e099c0ca1a703f1e5997ee57459e67",
+      "astro": "1380742e349fe92597af2fe2c68523a681e099c0ca1a703f1e5997ee57459e67"
+    },
+    {
+      "profile": "mobile-dark",
+      "route": "privacy",
+      "identical": true,
+      "original": "eac93438af0cbd649bc61b63255a3a9067a3a0b2eb3917eac2c3a7457e33421a",
+      "astro": "eac93438af0cbd649bc61b63255a3a9067a3a0b2eb3917eac2c3a7457e33421a"
+    },
+    {
+      "profile": "mobile-dark",
+      "route": "success",
+      "identical": true,
+      "original": "dd4b1869fd6c5d96d0a2cb56cdb0c2cffdba681db63af1a788f5949975a401ff",
+      "astro": "dd4b1869fd6c5d96d0a2cb56cdb0c2cffdba681db63af1a788f5949975a401ff"
+    }
+  ]
+}

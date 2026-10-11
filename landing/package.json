@@ -1,0 +1,46 @@
+{
+  "name": "@thehypertextstudio/curfew-marketing",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.9.0",
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": "24.20.0",
+      "onFail": "download"
+    }
+  },
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "scripts": {
+    "dev": "astro dev --host 127.0.0.1",
+    "site:build": "astro build",
+    "build": "node scripts/build-site-candidate.mjs",
+    "site:preview": "wrangler dev --config wrangler.site.json --env staging --port 4325 --ip 127.0.0.1 --local",
+    "check": "pnpm site:check && pnpm docs:check",
+    "site:check": "node --test tests/unit/site-worker.test.mjs ../scripts/landing-contract.test.mjs && pnpm site:typecheck && pnpm site:lint && pnpm site:format:check && pnpm site:build && python3 ../scripts/site-parity.py",
+    "site:typecheck": "astro sync && astro check",
+    "site:lint": "eslint worker.mjs astro.config.mjs scripts/build-site-candidate.mjs tests/unit/site-worker.test.mjs --max-warnings=0",
+    "site:test:acceptance": "playwright test --config playwright.config.mjs --workers=2",
+    "docs:config": "studio-docs config --directory ../docs",
+    "docs:config:check": "studio-docs config --directory ../docs --check",
+    "docs:dev": "studio-docs dev --directory ../docs",
+    "docs:check": "studio-docs check --directory ../docs",
+    "site:preview:candidate": "wrangler dev --config build/site-candidate/wrangler.site.json --env staging --no-bundle --port 4325 --ip 127.0.0.1 --local",
+    "site:format:check": "prettier --check astro.config.mjs eslint.config.mjs package.json playwright.config.mjs prettier.config.mjs tsconfig.json worker.mjs wrangler.site.json scripts/build-site-candidate.mjs tests/unit/site-worker.test.mjs tests/acceptance/site.spec.mjs src/layouts/Page.astro"
+  },
+  "devDependencies": {
+    "@astrojs/check": "0.9.10",
+    "@playwright/test": "1.62.1",
+    "@thehypertextstudio/web-config": "0.1.0",
+    "@thehypertextstudio/web-docs": "0.1.0",
+    "@thehypertextstudio/web-tokens": "0.1.0",
+    "astro": "7.2.9",
+    "eslint": "10.9.1",
+    "mint": "4.2.854",
+    "prettier": "3.9.6",
+    "typescript": "6.0.3",
+    "wrangler": "4.148.0"
+  }
+}

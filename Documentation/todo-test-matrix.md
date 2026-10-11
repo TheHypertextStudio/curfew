@@ -11,6 +11,14 @@ tests cannot read or mutate a user's App Group lockout record.
 
 ## 0. Foundation and Project Structure
 
+- `Adopt the Studio website and Mintlify standard` (in progress).
+  - `landing/tests/unit/site-worker.test.mjs` covers nonrecursive docs/asset/search delegation, path/query/forwarded origin, credential isolation, redirects/errors, retained HTML-guide mode, and complete release identity.
+  - `scripts/site-parity.py` compares all nine original page contracts and original CSS/image digests with Astro output.
+  - `landing/tests/acceptance/site.spec.mjs` covers clean/HTML aliases, direct URL/reload, Back/Forward, keyboard/reduced motion, safe unconfigured license error, metadata, and 404 behavior in Chromium/Firefox/WebKit.
+  - The packed shared CLI runs pinned `mint@4.2.854` build validation, broken links with anchors/redirects/snippets, and accessibility against the actual `docs/` content.
+  - The initial broken-link check fails for `/docs/mcp` and `/docs/cli`; the correction uses docs-relative routes without renaming either page.
+  - Shared configuration fixtures preserve all Curfew navigation and brand fields. Provider publishing and public-prefix acceptance remain separate gates.
+
 - `Bundle the pinned Chrome native messaging host.`
   - `BrowserNativeProtocolTests` checks versioning, strict fields, correlation, and framing limits.
   - `BrowserNativeStoreTests` checks signed state, tampering, expiry, permissions, scrubbing, and pruning.
@@ -692,7 +700,7 @@ tests cannot read or mutate a user's App Group lockout record.
 - `The public static MCP guide and the repository-owned Mintlify source give
   the same correct Claude Desktop configuration and permissions boundary until
   Mintlify is intentionally published.`
-  - Manual review of `landing/docs.html` and `docs/mcp.mdx`
+  - Manual review of `landing/src/pages/docs.astro` and `docs/mcp.mdx`
   - Browser review of the deployed static MCP guide (external launch proof)
   - Verify the static guide retains its documentation navigation and readable
     article layout at desktop and mobile widths

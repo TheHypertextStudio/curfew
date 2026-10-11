@@ -246,3 +246,32 @@ cache reuse without resolving dependencies. Use `--offline` only when the engine
 and dependency artifacts already exist locally; missing artifacts are reported.
 Preserve shared caches when cleaning a checkout. Continue using the repository's
 existing build and test commands.
+
+## Website and product documentation
+
+The marketing frontend is Astro in `landing/`; Mintlify source remains `docs/`.
+The independent `landing/` workspace owns the common Node 24.20.0 / pnpm 11.9.0
+website/docs toolchain; root commands delegate there, including the checksum-pinned lifecycle in
+`landing/run`/`landing/studio.yaml`. The existing `web/` backend
+workspace retains its own lockfile. Native application
+and backend commands above retain their existing release boundaries.
+
+```sh
+./run setup
+./run doctor
+./run dev
+./run check
+./run build
+pnpm docs:config
+pnpm docs:config:check
+pnpm docs:dev
+pnpm docs:check
+```
+
+Initial shared package publication and the registry-resolved lockfile are pending,
+so fresh-checkout website setup is not accepted yet. See the [website operating
+reference](Documentation/website.md) for exact configuration, current setup gates,
+site/docs previews, validation, Mintlify integration, candidate deployment, and
+recovery. Follow the [product authoring guide](Documentation/website-authoring.md)
+for MDX and generated configuration edits. The existing public `/docs` HTML guide
+is retained until the current Mintlify project is connected and verified.
