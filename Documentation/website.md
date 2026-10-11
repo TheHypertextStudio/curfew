@@ -36,12 +36,14 @@ replace native setup. `./run dev` starts Astro at `http://127.0.0.1:4321`.
 
 **Adoption status:** `@thehypertextstudio/web-config`, `web-docs`, and `web-tokens`
 are pinned to the published 0.0.1 release. Shared read-only registry acceptance
-passed in run `38116980056`; local Curfew acceptance uses those exact shipping
-tarballs in an ignored validation overlay. The final
-registry lockfile, fresh frozen install, and clean `./run setup` acceptance remain
+passed in run `38116980056`. Curfew's native run `38119577450` then resolved a
+fresh graph with its ephemeral job token, performed a script-disabled frozen
+install, and passed peer validation. `landing/pnpm-lock.yaml` adopts that reviewed
+artifact byte-for-byte; its three shared package integrities match published
+shipping bytes. Full website/docs CI and clean `./run setup` acceptance remain
 required before this source change can be merged or published. Do not commit
-file-based package overrides or represent the local validation lock as a registry
-lock. All consumed private packages now grant this repository GitHub Actions Read
+file-based package overrides or represent earlier local validation as registry
+acceptance. All consumed private packages now grant this repository GitHub Actions Read
 access. CI uses only its ephemeral `github.token` with `packages: read`, through
 trusted `actions/setup-node` user configuration; do not create classic personal
 access tokens or move browser/CLI credentials into npm. Provider authentication
@@ -148,11 +150,23 @@ direct-dependency report, peer report and successful acceptance receipt with the
 source SHA, workflow run/attempt and SHA256 input/lock digests. A failed job may
 retain a partial lock and diagnostic report; absence of a successful receipt is
 not acceptance. Download and review that artifact before any canonical lock
-adoption. The current source phase has not produced its Curfew hosted receipt.
+adoption. Run `38119577450` produced the successful reviewed receipt; its exact
+lock is now adopted. Lock SHA256 is
+`56a7f31e90f34abb7e66a910e870d3699d2a8f81d9d5dc071b413a535b0ee122`.
+The original receipt source is `1cc3b241d5fb894cb75eac6371b9761f127ce57b`;
+rebasing the six migration commits onto current production/main
+`3efbd4fd3b4a9786e7eabd90904259fdb0990448` preserved the exact manifest and
+workspace policy hashes, all three upstream native commits, and both docs sides.
+The native receipt establishes registry resolution/frozen replay/peers with scripts
+disabled; it does not establish frontend lifecycle, browser or provider acceptance.
 
-Normal website/docs jobs are skipped while this draft-only proposal job runs.
-After the lock is reviewed and adopted, a ready-for-review event invokes the normal
-website/docs checks; the manual refresh mode also remains available once registered.
+After the exact trusted checkout, the proposal job checks whether the canonical
+frontend lock is tracked. If present, the resolver/toolchain/upload steps skip and
+normal website/docs checks run against the frozen lock while the PR stays in draft.
+A missing lock retains artifact-only proposal mode. Explicit manual refresh still
+resolves a fresh proposal once the workflow is registered. Frozen installation
+checks dependency and policy consistency; no fixed input-hash gate blocks future
+reviewed dependency updates.
 Main integration stays a separate decision because the existing Pages publisher
 may react to it. No main merge, production cutover or provider write is authorized
 by this workflow.
