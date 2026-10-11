@@ -10,7 +10,7 @@ import SwiftUI
 /// }
 /// ```
 struct PlusGate<Content: View>: View {
-    @EnvironmentObject private var model: CurfewAppModel
+    @Environment(CurfewAppModel.self) private var model
     /// Feature name shown in the upsell header. Keep short.
     let feature: String
     /// One-sentence explainer for the upsell copy.

@@ -22,7 +22,7 @@ struct ThisWeekView: View {
     /// Shared app model. The view reads `thisWeekRollup()` on every body
     /// evaluation rather than caching, because the rollup depends on
     /// `currentTime` (which advances every tick).
-    @EnvironmentObject private var model: CurfewAppModel
+    @Environment(CurfewAppModel.self) private var model
 
     /// Weekly rollup panel — lockout count, extensions/overrides used,
     /// per-day bar chart, and streak pill.

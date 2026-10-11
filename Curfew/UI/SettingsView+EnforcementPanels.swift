@@ -43,7 +43,8 @@ extension SettingsView {
     /// invariants (e.g. overrides have a 15-minute floor so the "convince
     /// me" grant is meaningful).
     var extensionsPanel: some View {
-        CurfewPanel {
+        @Bindable var model = model
+        return CurfewPanel {
             CurfewSectionTitle(title: "Extensions and Overrides")
 
             Stepper(
@@ -152,7 +153,8 @@ extension SettingsView {
     /// Toggle + delay stepper controlling whether Curfew tries to shut the
     /// Mac down after lockout begins.
     var shutdownPanel: some View {
-        CurfewPanel {
+        @Bindable var model = model
+        return CurfewPanel {
             CurfewSectionTitle(title: "Shutdown")
             switch ShutdownPanelState.resolve(isAvailable: SystemShutdownController.isAvailable) {
             case .available:

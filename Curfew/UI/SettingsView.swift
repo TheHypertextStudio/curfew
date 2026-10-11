@@ -11,7 +11,7 @@ import SwiftUI
 /// destination, see ``ReflectionPromptsView``).
 struct SettingsView: View {
     /// Live app state shared across panels.
-    @EnvironmentObject var model: CurfewAppModel
+    @Environment(CurfewAppModel.self) var model
 
     /// The selected tab. Held as state so the window restores the last tab and
     /// callouts can navigate between tabs if needed.

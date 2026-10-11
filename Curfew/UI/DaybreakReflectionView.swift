@@ -11,7 +11,7 @@ import SwiftUI
 /// saves the answers, "Skip" walks away clean — neither carries a penalty and
 /// the gate will not re-prompt again today.
 struct DaybreakReflectionView: View {
-    @EnvironmentObject private var model: CurfewAppModel
+    @Environment(CurfewAppModel.self) private var model
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 

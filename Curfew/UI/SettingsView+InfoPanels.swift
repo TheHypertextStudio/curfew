@@ -41,7 +41,8 @@ extension SettingsView {
     }
 
     private var enabledMCPConfigPanel: some View {
-        CurfewPanel {
+        @Bindable var model = model
+        return CurfewPanel {
             CurfewSectionTitle(
                 title: Self.localAISectionTitle,
                 subtitle: "Connect Claude Desktop or another compatible app running here."
@@ -86,7 +87,8 @@ extension SettingsView {
 
     /// Controls whether local extension and schedule requests need approval.
     private var aiConsentPanel: some View {
-        CurfewPanel {
+        @Bindable var model = model
+        return CurfewPanel {
             CurfewSectionTitle(
                 title: "Requests from local AI assistants",
                 subtitle: "Choose whether Curfew asks before applying a requested change."
@@ -140,7 +142,7 @@ extension SettingsView {
                         )
                     }
                 }
-                .environmentObject(model)
+                .environment(model)
             }
             if model.featureFlags.calendarEnabled {
                 PlusGate(
@@ -160,7 +162,7 @@ extension SettingsView {
                         calendarAuthRow
                     }
                 }
-                .environmentObject(model)
+                .environment(model)
             }
 
             if model.featureFlags.privilegedHelperEnabled {
@@ -245,7 +247,7 @@ extension SettingsView {
                 ) {
                     cloudSyncPanel
                 }
-                .environmentObject(model)
+                .environment(model)
             }
         }
     }
@@ -314,7 +316,7 @@ extension SettingsView {
     /// License key entry and Pro status panel.
     var licensePanel: some View {
         LicenseView()
-            .environmentObject(model)
+            .environment(model)
     }
 
     /// Shared row layout for the Integrations panel.

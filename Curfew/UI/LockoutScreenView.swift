@@ -44,7 +44,7 @@ struct LockoutVisualConfiguration: Equatable {
 /// phase. Shows the current time, the lockout message, the unlock time,
 /// optional calendar context (Pro), and the Convince Me override flow.
 struct LockoutScreenView: View {
-    @EnvironmentObject private var model: CurfewAppModel
+    @Environment(CurfewAppModel.self) private var model
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
@@ -138,7 +138,7 @@ struct LockoutScreenView: View {
 
             if model.reflectionState.isEveningReflectionPending {
                 EveningReflectionCard(usesSolidPanels: visualConfiguration.usesSolidPanels)
-                    .environmentObject(model)
+                    .environment(model)
                     .padding(.top, 4)
             }
         }
@@ -147,7 +147,8 @@ struct LockoutScreenView: View {
     /// The "Convince Me" override flow, anchored at the bottom and held at low
     /// emphasis until invoked, so it never competes with the central beat.
     private var overrideSection: some View {
-        VStack(spacing: 10) {
+        @Bindable var model = model
+        return VStack(spacing: 10) {
             if model.isOverrideComposerVisible {
                 TextEditor(text: $model.overrideReasonDraft)
                     .font(.system(size: 14, weight: .regular, design: .rounded))
@@ -266,7 +267,7 @@ struct LockoutScreenView: View {
 /// way the reflection never delays or weakens enforcement — the clock and
 /// Convince Me flow remain below it.
 struct EveningReflectionCard: View {
-    @EnvironmentObject private var model: CurfewAppModel
+    @Environment(CurfewAppModel.self) private var model
 
     /// Forwarded from the lockout screen's accessibility configuration so the
     /// card's panels stay legible under Reduce Transparency.

@@ -12,8 +12,7 @@ struct AIConsentPolicyTests {
         // model directly so we can verify the default without launching the UI.
         let model = CurfewAppModel(
             settingsStore: CurfewSettingsStore(),
-            appRouter: AppRouterSpy(),
-            gettingStartedPresenter: GettingStartedPresenterSpy()
+            appRouter: AppRouterSpy()
         )
         #expect(model.aiConsentPolicy == .queue)
     }
@@ -51,8 +50,7 @@ struct AIConsentPolicyTests {
     func queuePolicyQueuesRequests() {
         let model = CurfewAppModel(
             settingsStore: CurfewSettingsStore(),
-            appRouter: AppRouterSpy(),
-            gettingStartedPresenter: GettingStartedPresenterSpy()
+            appRouter: AppRouterSpy()
         )
         model.aiConsentPolicy = .queue
         let request = MCPPendingRequest(
@@ -71,8 +69,7 @@ struct AIConsentPolicyTests {
     func noDuplicateRequests() {
         let model = CurfewAppModel(
             settingsStore: CurfewSettingsStore(),
-            appRouter: AppRouterSpy(),
-            gettingStartedPresenter: GettingStartedPresenterSpy()
+            appRouter: AppRouterSpy()
         )
         model.aiConsentPolicy = .queue
         let request = MCPPendingRequest(
@@ -95,8 +92,7 @@ struct AIConsentPolicyTests {
     func denyRemovesFromPending() {
         let model = CurfewAppModel(
             settingsStore: CurfewSettingsStore(),
-            appRouter: AppRouterSpy(),
-            gettingStartedPresenter: GettingStartedPresenterSpy()
+            appRouter: AppRouterSpy()
         )
         model.aiConsentPolicy = .queue
         let request = MCPPendingRequest(
@@ -115,8 +111,7 @@ struct AIConsentPolicyTests {
     func denyPolicyDiscards() {
         let model = CurfewAppModel(
             settingsStore: CurfewSettingsStore(),
-            appRouter: AppRouterSpy(),
-            gettingStartedPresenter: GettingStartedPresenterSpy()
+            appRouter: AppRouterSpy()
         )
         model.aiConsentPolicy = .deny
         let request = MCPPendingRequest(

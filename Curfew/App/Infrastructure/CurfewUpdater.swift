@@ -1,6 +1,6 @@
-import Combine
 import CurfewKit
 import Foundation
+import Observation
 import SwiftUI
 
 // Sparkle autoupdate integration.
@@ -28,14 +28,15 @@ import SwiftUI
 
     /// Live updater backed by Sparkle.
     @MainActor
-    final class CurfewUpdater: ObservableObject {
+    @Observable
+    final class CurfewUpdater {
         static let isAvailable = true
 
-        private let controller: SPUStandardUpdaterController
+        @ObservationIgnored private let controller: SPUStandardUpdaterController
 
         /// Whether the Sparkle updater is currently in a state where it
         /// can start an update check. Drives the menu-item enabled state.
-        @Published private(set) var canCheckForUpdates = false
+        private(set) var canCheckForUpdates = false
 
         /// Boots Sparkle's standard controller on the main actor. Sparkle
         /// begins polling the appcast as soon as it is created.
@@ -62,11 +63,12 @@ import SwiftUI
     /// project. With `isAvailable == false`, `CurfewApp` omits the Check for
     /// Updates… menu item entirely, so this stub is never invoked.
     @MainActor
-    final class CurfewUpdater: ObservableObject {
+    @Observable
+    final class CurfewUpdater {
         static let isAvailable = false
 
         /// Always `false` in the stub; the menu item is hidden, so it is unused.
-        @Published private(set) var canCheckForUpdates = false
+        private(set) var canCheckForUpdates = false
         /// No-op init.
         nonisolated init() {}
         /// No-op; the menu item is hidden when Sparkle is unlinked, so this

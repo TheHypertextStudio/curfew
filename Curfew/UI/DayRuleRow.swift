@@ -19,7 +19,7 @@ import SwiftUI
 struct DayRuleRow: View {
     /// Shared app model — used for both reads (`editableSchedule.rule(for:)`)
     /// and writes (`updateRule(for:update:)`).
-    @EnvironmentObject private var model: CurfewAppModel
+    @Environment(CurfewAppModel.self) private var model
 
     /// Which weekday this row represents. Injected by the parent `ForEach`.
     let weekday: Weekday
