@@ -7,15 +7,17 @@
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: geolocation=(), microphone=(), camera=()
 
-# HTML stays fresh; the static assets are content-stable and cache hard.
+# HTML / CSS / JS revalidate on every load (the files aren't content-hashed, so
+# caching them hard would serve a stale stylesheet after an edit). Images are
+# content-stable and cached hard.
 /*.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+/*.css
+  Cache-Control: public, max-age=0, must-revalidate
+
+/*.js
   Cache-Control: public, max-age=0, must-revalidate
 
 /images/*
   Cache-Control: public, max-age=31536000, immutable
-
-/*.css
-  Cache-Control: public, max-age=86400
-
-/*.js
-  Cache-Control: public, max-age=86400
