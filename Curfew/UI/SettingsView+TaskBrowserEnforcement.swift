@@ -31,7 +31,7 @@ private struct TaskBrowserEnforcementPanel: View {
     @State private var scopeKind = BrowserDestinationScope.Kind.origin
 
     var body: some View {
-        Section(TaskBrowserPanelCopy.title) {
+        Section {
             if let unavailable = TaskBrowserPanelCopy.availabilityMessage(for: .current) {
                 Text(unavailable).foregroundStyle(CurfewTheme.mutedInk)
             } else {
@@ -58,8 +58,10 @@ private struct TaskBrowserEnforcementPanel: View {
                     mappingControls
                 }
             }
+        } header: {
+            Text(TaskBrowserPanelCopy.title)
+                .accessibilityIdentifier("task-browser-enforcement-panel")
         }
-        .accessibilityIdentifier("task-browser-enforcement-panel")
         .task {
             if CurfewFlavor.current != .studioDevelopment {
                 controller.refresh()

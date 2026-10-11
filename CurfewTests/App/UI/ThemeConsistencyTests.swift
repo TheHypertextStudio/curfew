@@ -270,6 +270,8 @@ extension ThemeConsistencyTests {
         #expect(source
             .contains(".accessibilityValue(mappingsExpanded ? \"Expanded\" : \"Collapsed\")"))
         #expect(source.contains("task-browser-destinations-disclosure"))
+        #expect(source.contains("Text(TaskBrowserPanelCopy.title)"))
+        #expect(!source.contains("Section(TaskBrowserPanelCopy.title)"))
     }
 
     @Test("Lockout protects small status and recovery text with shared atmospheric roles")

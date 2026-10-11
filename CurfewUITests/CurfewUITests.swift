@@ -262,7 +262,7 @@ extension CurfewUITests {
         let app = launchFixture("settings")
         app.descendants(matching: .any)["settings-integrations-tab"].click()
         let destinations = app.buttons["task-browser-destinations-disclosure"]
-        XCTAssertTrue(destinations.waitForExistence(timeout: 5))
+        XCTAssertTrue(destinations.waitForExistence(timeout: 5), app.debugDescription)
         destinations.click()
         XCTAssertTrue(
             app.buttons["Remove instagram.com"].waitForExistence(timeout: 3),
