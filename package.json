@@ -1,0 +1,33 @@
+{
+  "name": "@thehypertextstudio/curfew-website",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.9.0",
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": "24.20.0",
+      "onFail": "download"
+    }
+  },
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "scripts": {
+    "dev": "pnpm --dir landing dev",
+    "site:build": "pnpm --dir landing site:build",
+    "build": "pnpm --dir landing build",
+    "site:preview": "pnpm --dir landing site:preview",
+    "check": "pnpm --dir landing check",
+    "site:check": "pnpm --dir landing site:check",
+    "site:typecheck": "pnpm --dir landing site:typecheck",
+    "site:lint": "pnpm --dir landing site:lint",
+    "site:test:acceptance": "pnpm --dir landing site:test:acceptance",
+    "docs:config": "pnpm --dir landing docs:config",
+    "docs:config:check": "pnpm --dir landing docs:config:check",
+    "docs:dev": "pnpm --dir landing docs:dev",
+    "docs:check": "pnpm --dir landing docs:check",
+    "site:preview:candidate": "pnpm --dir landing site:preview:candidate",
+    "site:format:check": "pnpm --dir landing site:format:check"
+  }
+}

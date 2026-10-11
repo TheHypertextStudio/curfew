@@ -11,7 +11,7 @@ const landing = path.join(root, 'landing');
 const execute = promisify(execFile);
 
 async function html(name) {
-  return readFile(path.join(landing, name), 'utf8');
+  return readFile(path.join(landing, 'src/pages', name.replace(/\.html$/, '.astro')), 'utf8');
 }
 
 function compact(source) {
@@ -19,7 +19,7 @@ function compact(source) {
 }
 
 test('every public page header offers the same account entry point', async () => {
-  const names = (await readdir(landing)).filter((name) => name.endsWith('.html'));
+  const names = (await readdir(path.join(landing, 'src/pages'))).filter((name) => name.endsWith('.astro')).map((name) => name.replace(/\.astro$/, '.html'));
   for (const name of names) {
     const source = await html(name);
     if (!source.includes('<header class="site-header">')) continue;
@@ -61,7 +61,7 @@ test('account-era legal pages state the privacy, security, recovery, and purchas
 
 test('source and documentation use only approved Curfew service hostnames', async () => {
   const rejected = [];
-  const approved = /^curfew(?:-[a-z0-9-]+)?\.hypertext\.studio$/;
+  const approved = /^(?:curfew(?:-[a-z0-9-]+)?\.hypertext\.studio|curfew\.mintlify\.site)$/;
 
   const { stdout } = await execute(
     'git',

@@ -1,0 +1,26 @@
+{
+  "theme": "mint",
+  "name": "Curfew",
+  "colors": {
+    "primary": "#b25e30",
+    "light": "#f58f4f",
+    "dark": "#d9733b"
+  },
+  "navigation": {
+    "groups": [
+      {
+        "group": "Get started",
+        "pages": [
+          "index"
+        ]
+      },
+      {
+        "group": "Use Curfew",
+        "pages": [
+          "mcp",
+          "cli"
+        ]
+      }
+    ]
+  }
+}

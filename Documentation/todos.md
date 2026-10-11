@@ -17,7 +17,7 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 > release. Items below marked `[ ]` are external release gates or v0.2+ targets
 > unless noted otherwise.
 
-> **Public MCP guide:** `landing/docs.html` is the current public setup guide. It
+> **Public MCP guide:** `landing/src/pages/docs.astro` is the current public setup guide. It
 > uses a documentation shell (section navigation plus an article column), not
 > the marketing-page layout.
 > The repository-owned Mintlify source under `docs/` remains unpublished until
@@ -32,6 +32,8 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 ---
 
 ## 0. Foundation and Project Structure
+
+- [-] Adopt the Studio Mintlify configuration, setup, and authoring standard while retaining Mintlify and product branding. Native Mintlify validation found the overview's `/docs/mcp` and `/docs/cli` links incorrectly included the hosted prefix; use the docs-relative `/mcp` and `/cli` paths. Willie approved docs primary orange `#b25e30` on October 10 for 4.63:1 contrast on white; retain the existing light/dark colors and marketing branding. Root website/docs commands and the pinned shared lifecycle are now declared. Astro source migration and disabled-until-accepted Mintlify delegation preserve the current HTML guide. Shared package publication, a registry lockfile/fresh checkout, Git integration verification, provider preview/cutover, and public prefix acceptance remain open. See `Documentation/website.md`. No provider settings changed.
 
 - [x] Bundle the pinned Chrome native messaging host with signed browser queues, atomic policy snapshots, stale-review rejection, heartbeat health, and uninstall cleanup. See [browser native host](browser-native-host.md). The keyless first-upload artifact is reproducible; creating the Web Store item and pinning its assigned `CURFEW_BROWSER_EXTENSION_ID` remain release work.
 - [x] Isolate development and production Chrome host names, reject unsafe helper executables, bound complete signed queue records, and revoke active hosts before uninstall deletes their state.
@@ -272,7 +274,7 @@ mid-lockout, and every action the root daemon takes. Format specification:
 - [x] README rewrite: three-horizon pitch, MCP setup, CLI usage, Pro features, architecture.
 - [x] `CONTRIBUTING.md`, `PRIVACY.md`, `Documentation/ARCHITECTURE.md`, `Documentation/RELEASE.md`.
 - [x] Signed-build validation runbook for shutdown, Widget, helper, Sparkle, notarization, and DMG installation lives in `Documentation/RELEASE.md`.
-- [x] Landing page (`landing/`; tooling in `web/landing/`) — Cloudflare Pages deploy target.
+- [-] Landing frontend (`landing/`) — Astro source and shared setup prepared; current raw Pages site and native publisher remain until Workers acceptance, explicit cutover, observation, and recovery retention finish.
 - [x] Account-era landing contract — every public header links to the optional
       same-origin account portal, Android is labeled as coming soon, and the
       privacy, security, retention, purchase, recovery, and remote-unlock

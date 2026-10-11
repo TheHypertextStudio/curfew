@@ -68,3 +68,14 @@ license_public.key
 # Node / Turborepo (monorepo)
 node_modules/
 .turbo/
+
+# Website and docs local outputs
+node_modules/
+landing/dist/
+landing/build/
+landing/.astro/
+.wrangler/
+.studio/
+test-results/
+playwright-report/
+__pycache__/

@@ -1,0 +1,28 @@
+schema: 1
+product: curfew-website
+repository: TheHypertextStudio/curfew
+owner_repository: TheHypertextStudio/curfew
+toolchain:
+  python: '>=3.11'
+  node: '24.20.0'
+  pnpm: '11.9.0'
+components:
+  - id: marketing
+    kind: static-site
+    path: .
+    checks:
+      - name: Website validation
+        argv: [pnpm, site:check]
+      - name: Docs validation
+        argv: [pnpm, docs:check]
+    dev: [pnpm, dev]
+    build:
+      script: build
+      output: build/site-candidate
+# Workers deployment is added only after the shared release containing the Workers
+# adapter is published and the actual preview hostname is provisioned/captured.
+release:
+  channels: []
+  next_version: 0.1.0
+  required_checks: [Website validation, Docs validation]
+  required_evidence: []

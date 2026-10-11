@@ -103,7 +103,7 @@ node scripts/license-worker.mjs verify-endpoint --base-url https://license.examp
 
 Before opening checkout, separately verify a Stripe test event, successful
 key delivery, subscription renewal, cancellation, and that the root
-`landing/index.html` sale gate remains closed until this path is proven.
+`landing/src/pages/index.astro` sale gate remains closed until this path is proven.
 
 ## Recorded staging proof
 

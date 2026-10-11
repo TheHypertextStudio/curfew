@@ -1,0 +1,68 @@
+name: Website and docs
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  website:
+    name: Website validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.9.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.20.0
+          registry-url: https://npm.pkg.github.com
+          scope: '@thehypertextstudio'
+      - name: Install reviewed registry lock
+        run: pnpm --dir landing install --frozen-lockfile
+        env:
+          NODE_AUTH_TOKEN: ${{ github.token }}
+      - name: Validate source and original-page parity
+        run: pnpm site:check
+      - name: Build immutable input modules and assets
+        run: pnpm build
+        env:
+          WRANGLER_SEND_METRICS: 'false'
+          CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV: 'false'
+      - name: Install browser runtimes
+        run: pnpm exec playwright install --with-deps chromium firefox webkit
+      - name: Accept local Worker runtime in three browsers
+        run: pnpm site:test:acceptance
+      - name: Retain browser diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: curfew-website-browser-results
+          path: test-results/
+          if-no-files-found: ignore
+
+  docs:
+    name: Docs validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.9.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.20.0
+          registry-url: https://npm.pkg.github.com
+          scope: '@thehypertextstudio'
+      - name: Install pinned docs tooling
+        run: pnpm --dir landing install --frozen-lockfile
+        env:
+          NODE_AUTH_TOKEN: ${{ github.token }}
+      - name: Validate generated config, MDX, links and accessibility
+        run: pnpm docs:check

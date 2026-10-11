@@ -311,3 +311,12 @@ clean:
         -allowProvisioningUpdates \
         -configuration Debug \
         -destination '{{ destination }}'
+
+# Standardized Astro source preview; Pages/native publisher recipes above remain current.
+landing-astro port="8765":
+    pnpm dev --port={{ port }}
+
+# Local future Worker candidate; no provider publication.
+landing-worker port="8765":
+    pnpm site:build
+    pnpm --dir landing exec wrangler dev --config wrangler.site.json --env staging --port={{ port }} --ip 127.0.0.1 --local
