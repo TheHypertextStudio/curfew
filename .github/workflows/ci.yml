@@ -78,7 +78,7 @@ jobs:
           xcodebuild -version
 
       - name: Install tools
-        run: brew install just
+        run: brew install just displayplacer
 
       - name: Cache derived data
         uses: actions/cache@v6
@@ -92,6 +92,9 @@ jobs:
       # permission is needed on the runner. The walkthrough video and the
       # shadowed per-window hero stills are local-only (they need that
       # permission) — see scripts/capture-marketing.sh / capture-video.sh.
+      - name: Configure isolated capture display
+        run: node scripts/configure-ci-display.mjs
+
       - name: Keep app captures unobstructed
         run: |
           defaults write com.apple.dock autohide -bool true
@@ -99,7 +102,7 @@ jobs:
           killall Dock || true
 
       - name: Verify screenshot capture failure handling
-        run: node --test scripts/extract-screenshots.test.mjs
+        run: node --test scripts/extract-screenshots.test.mjs scripts/configure-ci-display.test.mjs
 
       - name: Verify UI interactions on the isolated runner
         run: >-

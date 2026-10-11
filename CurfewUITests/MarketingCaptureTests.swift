@@ -332,7 +332,20 @@ extension MarketingCaptureTests {
         XCTAssertTrue(element.exists)
         XCTAssertGreaterThan(element.frame.width, 300)
         XCTAssertGreaterThan(element.frame.height, 100)
-        attach(element.screenshot(), name: name)
+        let screenshot = element.screenshot()
+        XCTAssertEqual(
+            screenshot.image.size.width,
+            element.frame.width,
+            accuracy: 2,
+            "Window capture must not crop the right edge"
+        )
+        XCTAssertEqual(
+            screenshot.image.size.height,
+            element.frame.height,
+            accuracy: 2,
+            "Window capture must not crop the bottom edge"
+        )
+        attach(screenshot, name: name)
     }
 
     private func attach(_ screenshot: XCUIScreenshot, name: String) {

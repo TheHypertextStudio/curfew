@@ -145,3 +145,10 @@ permission, and pending assistant requests whose action is no longer available.
 Consent captures must show the concrete requested change and delay, not only its
 tool name. Browser connection diagnostics are now under Connection details; a
 checked Limit Chrome preference alone does not establish current enforcement.
+
+The isolated runner must have a display large enough for the default workspace.
+CI selects an advertised non-scaled mode of at least 1280×900 and verifies it applied.
+`configure-ci-display.mjs` refuses to execute outside GitHub Actions. Do not run
+it on the user's Mac. Each window capture compares screenshot and AX window sizes;
+a clipped right/bottom edge is a failure. Prior 1024px default workspace images
+remain historical evidence only and cannot establish complete layout acceptance.
