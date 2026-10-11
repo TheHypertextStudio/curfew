@@ -327,6 +327,14 @@ filtered directory. Native release still copies the signed appcast into the
 physical raw root before publishing and verifies live bytes afterward; its
 ordering, workflow and backend dependency graph are unchanged.
 
+The canonical `landing/404.html` uses existing 404 wording and Curfew's shared
+legal-page styles. Both filtered outputs include it, preventing Pages' implicit
+SPA fallback from reporting a missing appcast or source path as homepage success.
+The current feed baseline is missing/invalid; a native release is not required
+by this migration. A native-staged `appcast.xml` remains a regular public file.
+Preserve its generation/signing owner and reconcile its eventual Worker upload
+before cutover; the current native release publisher targets Pages.
+
 The Git-connected Pages publisher must also be reconciled before main integration:
 the recorded provider configuration has root `landing`, output `.`. In that
 root, its build command must be `node scripts/prepare-site-assets.mjs --pages`
