@@ -154,15 +154,16 @@ struct LockoutScreenView: View {
         return VStack(spacing: 10) {
             if model.isOverrideComposerVisible {
                 TextEditor(text: $model.overrideReasonDraft)
+                    .foregroundStyle(SundownPalette.warmWhite)
                     .accessibilityIdentifier("override-reason")
                     .font(.system(size: 14, weight: .regular, design: .rounded))
                     .scrollContentBackground(.hidden)
                     .frame(width: 420, height: 120)
                     .padding(8)
                     .background(
-                        visualConfiguration.usesSolidPanels
-                            ? Color.black.opacity(0.72)
-                            : Color.black.opacity(0.25),
+                        SundownPalette.inputSurface(
+                            usesSolidPanels: visualConfiguration.usesSolidPanels
+                        ),
                         in: RoundedRectangle(cornerRadius: 12, style: .continuous)
                     )
 
