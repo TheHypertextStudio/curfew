@@ -7,7 +7,7 @@ export default acceptanceConfig({
   outputDir: '../test-results/website',
   webServer: {
     cwd: path.dirname(fileURLToPath(import.meta.url)),
-    command: 'pnpm site:preview:candidate',
+    command: 'pnpm preview:worker',
     url: 'http://127.0.0.1:4325',
     reuseExistingServer: false,
     timeout: 60000,

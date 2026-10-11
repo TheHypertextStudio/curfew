@@ -1,3 +1,5 @@
+> Historical migration evidence: the custom parity/copier/candidate/lifecycle described below has been removed in the current cleanup. These dated results do not validate the replacement native build or current provider state. See `Documentation/website.md`.
+
 # Curfew frontend source acceptance — October 10, 2026
 
 This record covers source preparation and local runtime acceptance. It does not

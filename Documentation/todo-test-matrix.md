@@ -12,14 +12,12 @@ tests cannot read or mutate a user's App Group lockout record.
 ## 0. Foundation and Project Structure
 
 - `Adopt the Studio website and Mintlify standard` (in progress).
-  - `landing/tests/unit/site-worker.test.mjs` covers nonrecursive docs/asset/search delegation, path/query/forwarded origin, credential isolation, redirects/errors, retained HTML-guide mode, and complete release identity.
-  - `landing/tests/unit/deployment-contract.test.mjs` checks the prebuilt adapter declaration, published v0.1.8 identity, intended 0.0.1 package pins, isolated Worker names, disabled routes, and retained HTML-guide mode.
-  - `.github/workflows/website.yml` proposes a real registry lock only through the exact trusted draft-PR/manual guard, script-disabled fresh/frozen installation and native peer validation. Actionlint and diff checks validate this source slice. Hosted run `38119577450` passed fresh resolution, script-disabled frozen installation and peers; its exact registry lock is adopted, while run `38119975204` passed docs/source/parity/build and exposed the root-facade Playwright lookup failure before browser tests. The workflow now selects the landing workspace; full browser CI and lifecycle setup remain pending. No new tests are added or run in this authorized registry phase.
-  - `scripts/site-parity.py` compares all nine original page contracts and original CSS/image digests with Astro output.
-  - `landing/tests/acceptance/site.spec.mjs` covers clean/HTML aliases, direct URL/reload, Back/Forward, keyboard/reduced motion, safe unconfigured license error, metadata, and 404 behavior in Chromium/Firefox/WebKit.
-  - The packed shared CLI runs pinned `mint@4.2.854` build validation, broken links with anchors/redirects/snippets, and accessibility against the actual `web/docs/` content.
-  - The initial broken-link correction used docs-relative paths. Hosted GET acceptance on October 11 exposed Mintlify's reserved `/mcp` route (405), while the same guide's markdown served correctly. The prepared source uses `mcp-guide`, a per-page public canonical and paired exact Pages/Worker aliases. Only the existing Worker fixture's expected upstream MCP URL is migrated; no test cases are added, deleted or run for this authorized source slice. Native config generation, docs build and static checks are reported separately from provider acceptance.
-  - Shared configuration fixtures preserve all Curfew navigation and brand fields. Provider publishing and public-prefix acceptance remain separate gates.
+  - `landing/tests/unit/site-worker.test.mjs` retains docs/asset/search delegation, path/query/forwarded origin, credential isolation, redirects/errors and HTML-guide mode behavior.
+  - `landing/tests/acceptance/site.spec.mjs` retains clean/HTML aliases, direct URL/reload, Back/Forward, keyboard/reduced motion, safe unconfigured license error and 404 behavior.
+  - `scripts/landing-contract.test.mjs` retains public account, download and legal-content behavior. Obsolete command-string/source-policy checks, lifecycle declaration tests and release-identity assertions are removed with their implementation.
+  - Website CI uses the adopted frozen registry lock, normal Astro build and native Wrangler preview. The temporary registry proposal job and bespoke parity/copier/assembler/lifecycle are removed.
+  - Shared docs generation and pinned native Mintlify validation remain. The prepared `mcp-guide` source, old public canonical and exact Pages/Worker alias remain; public proxy/source identity acceptance is separate.
+  - This source cleanup adds/runs no manual tests. Static lint/type/build and workflow checks are recorded separately; existing hosted behavior suites remain configured.
 
 - `Bundle the pinned Chrome native messaging host.`
   - `BrowserNativeProtocolTests` checks versioning, strict fields, correlation, and framing limits.

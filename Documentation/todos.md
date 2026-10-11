@@ -274,12 +274,12 @@ mid-lockout, and every action the root daemon takes. Format specification:
 - [x] README rewrite: three-horizon pitch, MCP setup, CLI usage, Pro features, architecture.
 - [x] `CONTRIBUTING.md`, `PRIVACY.md`, `Documentation/ARCHITECTURE.md`, `Documentation/RELEASE.md`.
 - [x] Signed-build validation runbook for shutdown, Widget, helper, Sparkle, notarization, and DMG installation lives in `Documentation/RELEASE.md`.
-- [-] Landing frontend (`landing/`) — Astro source and shared setup prepared; current raw Pages site and native publisher remain until Workers acceptance, explicit cutover, observation, and recovery retention finish.
+- [-] Landing frontend (`landing/`) — native Astro public/dist build and Wrangler preview/deploy replace custom parity/copier/assembler and website lifecycle glue. Existing signed appcast publication builds the frontend; provider settings and runtime acceptance remain separate.
 - [x] Account-era landing contract — every public header links to the optional
       same-origin account portal, Android is labeled as coming soon, and the
       privacy, security, retention, purchase, recovery, and remote-unlock
       boundaries are published without implying that Google Play Services are
-      required. Approved Curfew service hostnames are enforced in CI.
+      required. Product behavior checks remain in CI.
 - [x] Mintlify documentation source lives in `web/docs/`.
 - [-] The authorized existing Mintlify Git connection and first four-page manual
   update are complete. Fix the reserved MCP page route, then record exact

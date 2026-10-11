@@ -72,7 +72,6 @@ node_modules/
 # Website and docs local outputs
 node_modules/
 landing/dist/
-landing/build/
 landing/.astro/
 .wrangler/
 .studio/
@@ -80,6 +79,7 @@ test-results/
 playwright-report/
 __pycache__/
 
-# Deterministic Astro inputs copied from the canonical current Pages assets.
+# Retained historical migration outputs (not current build inputs).
+landing/build/
 landing/.site-assets/
 landing/.pages-output/

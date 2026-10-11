@@ -225,10 +225,10 @@ async function phaseStripe() {
   // Fill the landing page by replacing stable placeholder tokens (not copy
   // strings, which drift when the marketing copy is reworded). Each replacement
   // must hit — otherwise we throw rather than silently shipping a placeholder.
-  const indexPath = join(LANDING_DIR, "index.html");
+  const indexPath = join(LANDING_DIR, "src", "pages", "index.astro");
   let html = readFileSync(indexPath, "utf8");
   const inject = (token, value) => {
-    if (!html.includes(token)) throw new Error(`Placeholder "${token}" not found in index.html — was it renamed?`);
+    if (!html.includes(token)) throw new Error(`Placeholder "${token}" not found in index.astro — was it renamed?`);
     html = html.split(token).join(value);
   };
   inject("https://buy.stripe.com/REPLACE_WITH_CURFEW_PLUS_LIFETIME_LINK", lifetimeLink.url);
@@ -238,7 +238,7 @@ async function phaseStripe() {
     inject("REPLACE_WITH_CURFEW_PLUS_SUB_PRICE", `$${(SUB_AMOUNT / 100).toFixed(0)} / ${each}`);
   }
   writeFileSync(indexPath, html);
-  log("Injected payment links into landing/index.html");
+  log("Injected payment links into landing/src/pages/index.astro");
 
   // Webhook endpoint (its signing secret is only returned on creation).
   const hooks = hooksRes.data;
@@ -257,8 +257,8 @@ async function phaseStripe() {
 async function phasePages() {
   if (env.SKIP_PAGES) return warn("Skipping landing deploy (SKIP_PAGES).");
   step("Deploy landing + /docs proxy");
-  execFileSync(process.execPath, [join(LANDING_DIR, "scripts", "prepare-site-assets.mjs"), "--pages"], { stdio: "inherit" });
-  wrangler(["--cwd", join(LANDING_DIR, ".pages-output"), "pages", "deploy", ".", "--project-name", PAGES_PROJECT]);
+  execFileSync("pnpm", ["build"], { cwd: LANDING_DIR, stdio: "inherit" });
+  execFileSync("pnpm", ["exec", "wrangler", "pages", "deploy", "dist", "--project-name", PAGES_PROJECT], { cwd: LANDING_DIR, stdio: "inherit" });
 
   const res = await cloudflare("POST", `/pages/projects/${PAGES_PROJECT}/domains`, { name: LANDING_DOMAIN });
   if (res.skipped) {
@@ -286,5 +286,5 @@ async function phasePages() {
   log("Remaining manual steps (no API):");
   log("  • Mintlify dashboard → connect the GitHub repo and set the /docs subpath on " + LANDING_DOMAIN);
   log("  • Stripe → enable Managed Payments (account-level eligibility)");
-  log("  • Commit the injected changes (LicenseGate.swift public key, landing/index.html links)");
+  log("  • Commit the injected changes (LicenseGate.swift public key, landing/src/pages/index.astro links)");
 })();

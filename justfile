@@ -229,15 +229,16 @@ web-typecheck:
 landing:
     cd web && pnpm --filter @curfew/landing dev
 
-# Dependency-free alternative that serves without functions or live reload —
-# plain static files via Python. Useful on a machine without the workspace deps.
+# Serve the native Astro output without Pages Functions or live reload.
+# The frontend dependencies must already be installed to build it.
 landing-static port="8765":
     @echo "→ http://localhost:{{ port }}"
     @open "http://localhost:{{ port }}" >/dev/null 2>&1 || true
-    python3 -m http.server {{ port }} --directory landing --bind 127.0.0.1
+    pnpm --dir landing build
+    python3 -m http.server {{ port }} --directory landing/dist --bind 127.0.0.1
 
 # Deploy the landing page to Cloudflare Pages (Wrangler, via the workspace).
-# Uploads `landing/` as-is plus its Pages Function. First deploy creates the
+# Builds Astro and uploads `landing/dist/` plus its Pages Function. First deploy creates the
 # project; the custom domain `curfew.hypertext.studio` is attached by `just setup`.
 deploy-landing:
     cd web && pnpm --filter @curfew/landing deploy
@@ -311,12 +312,3 @@ clean:
         -allowProvisioningUpdates \
         -configuration Debug \
         -destination '{{ destination }}'
-
-# Standardized Astro source preview; Pages/native publisher recipes above remain current.
-landing-astro port="8765":
-    pnpm dev --port={{ port }}
-
-# Local future Worker candidate; no provider publication.
-landing-worker port="8765":
-    pnpm site:build
-    pnpm --dir landing exec wrangler dev --config wrangler.site.json --env staging --port={{ port }} --ip 127.0.0.1 --local
