@@ -28,7 +28,7 @@ extension SettingsView {
                     Section("Calendar") { calendarAuthRow }
                 }
             }
-            if model.featureFlags.cloudSyncEnabled {
+            if model.featureFlags.cloudSyncEnabled, !model.settings.accountSync.isEnrolled {
                 devicesPanel
             }
         }

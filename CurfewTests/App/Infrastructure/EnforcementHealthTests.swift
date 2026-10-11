@@ -103,14 +103,14 @@ struct EnforcementHealthTests {
         #expect(health == .active)
     }
 
-    @Test("Degraded banner copy states enforcement is not active and how to fix it")
+    @Test("Degraded banner copy names the missing capability and how to fix it")
     func degradedCopyExplainsRemediation() {
         let noAccessibility = EnforcementHealth.degradedNoAccessibility
-        #expect(noAccessibility.bannerTitle?.contains("not active") == true)
+        #expect(noAccessibility.bannerTitle == "Accessibility access needed")
         #expect(noAccessibility.bannerDetail?.contains("Accessibility") == true)
 
         let tapDown = EnforcementHealth.degradedTapDown
-        #expect(tapDown.bannerTitle?.contains("not active") == true)
+        #expect(tapDown.bannerTitle == "Keyboard protection interrupted")
         #expect(tapDown.bannerDetail?.isEmpty == false)
     }
 
@@ -131,7 +131,7 @@ struct EnforcementHealthTests {
         #expect(EnforcementHealth.active.compactPopoverMessage == nil)
 
         let noAccessibility = EnforcementHealth.degradedNoAccessibility.compactPopoverMessage
-        #expect(noAccessibility?.contains("not active") == true)
+        #expect(noAccessibility?.contains("Accessibility access needed") == true)
 
         let tapDown = EnforcementHealth.degradedTapDown.compactPopoverMessage
         #expect(tapDown?.isEmpty == false)
@@ -142,15 +142,16 @@ struct EnforcementHealthTests {
         #expect(EnforcementHealth.active.settingsStatusTitle == "Ready to enforce")
         #expect(
             EnforcementHealth.degradedNoAccessibility.settingsStatusTitle
-                .contains("not active")
+                .contains("Accessibility access needed")
         )
-        #expect(EnforcementHealth.degradedTapDown.settingsStatusTitle.contains("not active"))
+        #expect(EnforcementHealth.degradedTapDown
+            .settingsStatusTitle == "Keyboard protection interrupted")
     }
 
     @Test("Only degraded states offer the fix-it affordance")
     func fixItAffordanceOnlyWhenDegraded() {
         #expect(EnforcementHealth.active.offersAccessibilityRemediation == false)
         #expect(EnforcementHealth.degradedNoAccessibility.offersAccessibilityRemediation)
-        #expect(EnforcementHealth.degradedTapDown.offersAccessibilityRemediation)
+        #expect(!EnforcementHealth.degradedTapDown.offersAccessibilityRemediation)
     }
 }

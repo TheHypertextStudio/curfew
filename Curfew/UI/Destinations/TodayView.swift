@@ -29,12 +29,13 @@ struct TodayView: View {
             timeRemaining: hasWindow ? snapshot.timeRemainingText : "",
             emptyNote: Self.emptyNote(
                 needsSetup: needsSetup,
-                isLocked: isLocked,
+                isLocked: isLocked && model.isEnforcementRunning,
+                enforcing: model.isEnforcementRunning,
                 unlockTime: Self.timeString(model.state.unlockDate)
             ),
             // During an active curfew window the note states status, so it must
             // not double as a "go edit your schedule" button.
-            emptyNoteActionable: !isLocked,
+            emptyNoteActionable: !(isLocked && model.isEnforcementRunning),
             lockTime: Self.timeString(model.state.lockDate),
             unlockTime: Self.timeString(model.state.unlockDate),
             statusLine: control.line,
@@ -46,7 +47,7 @@ struct TodayView: View {
             primaryActionLabel: control.action,
             onPrimaryAction: {
                 if needsSetup {
-                    model.completeInitialSetup()
+                    model.showGettingStarted()
                 } else {
                     model.start()
                 }
@@ -59,9 +60,14 @@ struct TodayView: View {
     /// Hero copy for the no-countdown states. Distinguishes an active curfew
     /// (`.locked` → state the window, not "nothing scheduled") from a genuine
     /// day off and from first-run setup.
-    private static func emptyNote(needsSetup: Bool, isLocked: Bool, unlockTime: String) -> String {
+    private static func emptyNote(
+        needsSetup: Bool, isLocked: Bool, enforcing: Bool, unlockTime: String
+    ) -> String {
         if needsSetup {
             return "Set your schedule to begin."
+        }
+        if !enforcing, unlockTime != "—" {
+            return "Curfew is off. Review your schedule."
         }
         if isLocked {
             return unlockTime == "—"

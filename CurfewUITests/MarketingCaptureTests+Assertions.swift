@@ -68,8 +68,8 @@ extension MarketingCaptureTests {
         }
         let text = [
             "ready": "Ready to enforce", "accessibility-denied": "without Accessibility",
-            "tap-down": "keyboard shield was interrupted", "helper-approval": "Approval needed",
-            "helper-unauthorized": "This build was rejected",
+            "tap-down": "Keyboard protection interrupted", "helper-approval": "Approval needed",
+            "helper-unauthorized": "Can't verify Curfew",
             "helper-stale": "Connection interrupted",
             "helper-registration": "Installation failed",
             "login-approval": "Approve in System Settings",

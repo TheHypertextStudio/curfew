@@ -1101,3 +1101,34 @@ Remote browser interaction recording showed the destination disclosure inheritin
 The browser disclosure uses the same labeled button pattern as Manual setup: the entire row opens it, it participates in keyboard navigation, and VoiceOver receives Expanded/Collapsed. This avoids native Form chevron-only hit areas. The source regression was observed failing for the button action and accessibility value before implementation.
 
 The remote AX lookup demonstrated section-level identifier propagation overriding browser child identifiers. The retained panel identifier now belongs to its heading, leaving the disclosure, enforcement switch, and break action individually addressable. The regression checks require this header scope; remote interaction remains the acceptance gate.
+
+### Contradictory UI state review
+
+- `PresentationStateTests`: Today off/locked wiring, setup action routing,
+  completed-setup dismissal, shared helper failure copy. Four source-wiring
+  regressions were observed failing before implementation.
+- `ConsentPresentationTests`: configured extension duration, unavailable extension,
+  schedule times and overnight unlock, weakening delay, day off, malformed JSON
+  and times, and unavailable legacy override. Tests preceded the new pure preview
+  type; the first run failed because that type did not yet exist.
+- `EnforcementHealthTests`: health resolution remains covered; updated copy and
+  remediation expectations were observed failing before the changes. Warnings
+  describe readiness failures without implying Curfew is currently locking.
+- `scripts/test-theme-background.sh` includes these pure checks without an app
+  host, windows, permission requests, or enforcement effects.
+- Remote capture assertions use the revised helper and keyboard failure copy.
+  Visual acceptance and real signed-helper verification remain separate gates.
+- `TaskBrowserEnforcementViewModelTests`: existing freshness/setup regressions now
+  run hostlessly; added stale-extension repair and off-preference summary checks.
+  `PresentationStateTests/browserCopy` failed before the panel changes. A missing
+  summary API failed before its implementation. The view model moved intact to a
+  separate pure file so background tests do not instantiate browser services.
+- `ConsentPresentationTests/pendingReplacement`: same-schedule cancellation and
+  changed-schedule replacement disclose pending edits lost on another weekday.
+- `PresentationStateTests/canonicalSync`: enrolled account hides inactive legacy
+  service rows; observed failing before the visibility correction.
+- `CalendarPresentationTests`: injected denied/restricted/not-determined/write-only
+  access replaces stale full-access status without constructing an event store;
+  extension advice matches eligibility. Tests preceded the new injection/copy APIs.
+- Consent content scrolls independently of decision buttons so long assistant
+  reasons cannot push Deny/Approve offscreen; unavailable requests say so directly.

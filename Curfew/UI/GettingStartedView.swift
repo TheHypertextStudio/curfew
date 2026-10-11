@@ -89,20 +89,29 @@ struct GettingStartedView: View {
     /// Static title + commitment sentence at the top of the window.
     private var header: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text(flow.currentStep == .welcome ? GettingStartedCopy.title : flow.currentStep.title)
-                .font(CurfewTypography.display(30))
-
-            Text("Step \(flow.currentStep.rawValue + 1) of \(FirstRunStep.allCases.count)")
-                .foregroundStyle(CurfewTheme.mutedInk)
+            if model.settings.hasCompletedInitialSetup {
+                Text("Review setup")
+                    .font(CurfewTypography.display(30))
+                Text(model.isEnforcementRunning ? "Curfew is on." : "Curfew is off.")
+                    .foregroundStyle(CurfewTheme.mutedInk)
+            } else {
+                Text(flow.currentStep == .welcome ? GettingStartedCopy.title : flow.currentStep
+                    .title)
+                    .font(CurfewTypography.display(30))
+                Text("Step \(flow.currentStep.rawValue + 1) of \(FirstRunStep.allCases.count)")
+                    .foregroundStyle(CurfewTheme.mutedInk)
+            }
         }
     }
 
     /// Content panel that switches on the active `FirstRunStep`.
     private var stepPanel: some View {
         CurfewPanel {
-            Text(flow.currentStep.message)
-                .font(CurfewTypography.body(14))
-                .foregroundStyle(CurfewTheme.mutedInk)
+            if !model.settings.hasCompletedInitialSetup {
+                Text(flow.currentStep.message)
+                    .font(CurfewTypography.body(14))
+                    .foregroundStyle(CurfewTheme.mutedInk)
+            }
 
             stepExtras
         }
@@ -143,6 +152,10 @@ struct GettingStartedView: View {
                 Label("Setup complete", systemImage: "checkmark.seal.fill")
                     .font(CurfewTypography.bodyEmphasis(14))
                     .foregroundStyle(CurfewTheme.accent)
+            }
+
+            if model.settings.hasCompletedInitialSetup, !model.isAccessibilityTrusted {
+                permissionsExtras
             }
 
             ForEach(flow.confirmationRequirements) { requirement in
@@ -219,34 +232,41 @@ struct GettingStartedView: View {
     /// Back / Not now / Next | Finish action row.
     private var actionRow: some View {
         HStack(spacing: 10) {
-            Button("Back") {
-                flow.retreat()
-            }
-            .buttonStyle(CurfewSecondaryButtonStyle())
-            .disabled(flow.isFirstStep)
-
-            Button("Not now") {
-                model.dismissGettingStarted()
-            }
-            .buttonStyle(CurfewSecondaryButtonStyle())
-            .keyboardShortcut(.cancelAction)
-
-            Spacer()
-
-            if flow.isLastStep {
-                Button("Finish Setup") {
-                    model.completeOnboardingFlow()
-                }
-                .buttonStyle(CurfewPrimaryButtonStyle())
-                .keyboardShortcut(.defaultAction)
-                .disabled(!flow.canFinish)
+            if model.settings.hasCompletedInitialSetup {
+                Spacer()
+                Button("Done") { model.dismissGettingStarted() }
+                    .buttonStyle(CurfewPrimaryButtonStyle())
+                    .keyboardShortcut(.defaultAction)
             } else {
-                Button("Next") {
-                    flow.advance()
+                Button("Back") {
+                    flow.retreat()
                 }
-                .buttonStyle(CurfewPrimaryButtonStyle())
-                .keyboardShortcut(.defaultAction)
-                .disabled(!flow.canAdvance)
+                .buttonStyle(CurfewSecondaryButtonStyle())
+                .disabled(flow.isFirstStep)
+
+                Button("Not now") {
+                    model.dismissGettingStarted()
+                }
+                .buttonStyle(CurfewSecondaryButtonStyle())
+                .keyboardShortcut(.cancelAction)
+
+                Spacer()
+
+                if flow.isLastStep {
+                    Button("Finish Setup") {
+                        model.completeOnboardingFlow()
+                    }
+                    .buttonStyle(CurfewPrimaryButtonStyle())
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(!flow.canFinish)
+                } else {
+                    Button("Next") {
+                        flow.advance()
+                    }
+                    .buttonStyle(CurfewPrimaryButtonStyle())
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(!flow.canAdvance)
+                }
             }
         }
     }

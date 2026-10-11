@@ -209,3 +209,30 @@ removed only after root acknowledgement. Remote authority remains independent.
 These are substantive integration changes, so the color-only rollback note above
 must not be applied to daemon/account integration files. See the current integration
 sections in `todos.md` and `todo-test-matrix.md` for coverage and remaining acceptance.
+
+## Contradictory combinations reviewed
+
+Today can retain a scheduled locked phase while protection is off. Its hero must
+not say Curfew is active in that combination; its action remains Turn on Curfew.
+A day off still says no curfew is scheduled. Finish Setup routes to the walkthrough
+so a pre-existing Accessibility grant cannot skip schedule review.
+
+Reopening completed setup is a review, with actual on/off status and Done. Revoked
+Accessibility access shows the repair control; Done only dismisses. The first-run
+completion gate remains schedule review plus the live permission grant.
+
+Assistant consent shows the action derived from current settings and queued
+arguments, including overnight unlock and policy delay. Unreviewable requests and
+unavailable extensions disable Approve; Deny remains available. Legacy overrides
+must use the in-app cooldown, reason, and hold flow. A verification failure names
+the failed background connection and recommends an official reinstall, without
+calling the user's app a rejected build. A keyboard interruption with permission
+present no longer sends the user to grant the same permission again.
+
+Pending schedule previews also disclose cancellation or replacement of the queued
+weekly change and list discarded pending weekdays. The 24-hour delay is a minimum;
+a weaker change cannot apply during active lockout. Account enrollment hides the
+stopped legacy iCloud service and device registry rather than presenting stale
+healthy rows. Calendar refresh reads current authorization before reading events;
+revocation clears cached event content and restores the permission repair row.
+Calendar advice does not suggest an extension with no eligible extension action.

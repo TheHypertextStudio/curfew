@@ -33,14 +33,21 @@ final class CalendarMonitor {
 
     // MARK: - Private
 
-    private let store = EKEventStore()
+    @ObservationIgnored private lazy var store = EKEventStore()
+    private let authorization: @Sendable () -> EKAuthorizationStatus
     private var refreshTimer: Timer?
 
     /// `nonisolated` so `CurfewAppModel` can store the monitor as a
     /// non-optional default without round-tripping to `MainActor` during
     /// its own synchronous init. All mutation of published state happens
     /// on the main actor via the instance methods.
-    nonisolated init() {}
+    nonisolated init(
+        authorization: @escaping @Sendable () -> EKAuthorizationStatus = {
+            EKEventStore.authorizationStatus(for: .event)
+        }
+    ) {
+        self.authorization = authorization
+    }
 
     // MARK: - Lifecycle
 
@@ -48,11 +55,11 @@ final class CalendarMonitor {
     /// initial sync. Safe to call more than once — subsequent calls only
     /// re-sync if access is already granted.
     func requestAccessAndSync() {
-        let current = EKEventStore.authorizationStatus(for: .event)
+        let current = authorization()
         authorizationStatus = current
 
         switch current {
-        case .fullAccess, .writeOnly:
+        case .fullAccess:
             sync()
             scheduleRefresh()
         case .notDetermined:
@@ -64,17 +71,17 @@ final class CalendarMonitor {
                         try await store.requestAccess(to: .event)
                     }
                     await MainActor.run {
-                        authorizationStatus = EKEventStore.authorizationStatus(for: .event)
+                        authorizationStatus = authorization()
                         sync()
                         scheduleRefresh()
                     }
                 } catch {
                     await MainActor.run {
-                        authorizationStatus = EKEventStore.authorizationStatus(for: .event)
+                        authorizationStatus = authorization()
                     }
                 }
             }
-        case .denied, .restricted:
+        case .denied, .restricted, .writeOnly:
             break
         @unknown default:
             break
@@ -97,6 +104,13 @@ final class CalendarMonitor {
     /// events are filtered out because they don't carry scheduling intent
     /// relevant to curfew.
     func sync() {
+        authorizationStatus = authorization()
+        guard authorizationStatus == .fullAccess else {
+            todayEvents = []
+            hasCurrentEvent = false
+            nextEvent = nil
+            return
+        }
         let cal = Calendar.current
         let now = Date()
         let startOfDay = cal.startOfDay(for: now)

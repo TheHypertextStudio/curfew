@@ -2,7 +2,7 @@ import CurfewKit
 import SwiftUI
 
 nonisolated enum TaskBrowserPanelCopy {
-    static let title = "Task Browser Enforcement"
+    static let title = "Websites during work"
     static let connectAction = "Connect Docket"
     static let breakAction = "Take 15-minute break"
     static let mappingAction = "Add destination"
@@ -38,7 +38,12 @@ private struct TaskBrowserEnforcementPanel: View {
                 Text("Limit Chrome to websites for your active Docket task.")
                     .foregroundStyle(CurfewTheme.mutedInk)
                 connectionControls
-                statusRows
+                Text(controller.viewModel.statusSummary)
+                    .foregroundStyle(CurfewTheme.mutedInk)
+                    .fixedSize(horizontal: false, vertical: true)
+                DisclosureGroup("Connection details") {
+                    statusRows
+                }
                 enforcementControls
                 Button {
                     mappingsExpanded.toggle()
@@ -104,7 +109,7 @@ private struct TaskBrowserEnforcementPanel: View {
     @ViewBuilder
     private var enforcementControls: some View {
         Toggle(
-            "Enforce Chrome for active Docket work",
+            "Limit Chrome during work",
             isOn: Binding(
                 get: { controller.viewModel.enforcementEnabled },
                 set: { _ = controller.setEnforcementEnabled($0) }
@@ -119,7 +124,7 @@ private struct TaskBrowserEnforcementPanel: View {
                     .font(CurfewTypography.bodyEmphasis(13))
             }
         } else {
-            Text("Docket has no retained active work session.")
+            Text("No active Docket task.")
                 .font(CurfewTypography.body(13))
                 .foregroundStyle(CurfewTheme.mutedInk)
         }
@@ -143,7 +148,7 @@ private struct TaskBrowserEnforcementPanel: View {
         VStack(alignment: .leading, spacing: CurfewSpacing.medium) {
             CurfewSectionTitle(
                 title: "Allowed destinations",
-                subtitle: "Map one Docket task, project, or label to an exact web scope."
+                subtitle: "Choose which websites a task, project, or label allows."
             )
 
             ForEach(controller.settings.mappings) { mapping in

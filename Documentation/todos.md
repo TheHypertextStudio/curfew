@@ -878,3 +878,35 @@ Remote browser interaction recording showed the destination disclosure inheritin
 The browser disclosure uses the same labeled button pattern as Manual setup: the entire row opens it, it participates in keyboard navigation, and VoiceOver receives Expanded/Collapsed. This avoids native Form chevron-only hit areas. The source regression was observed failing for the button action and accessibility value before implementation.
 
 The remote AX lookup demonstrated section-level identifier propagation overriding browser child identifiers. The retained panel identifier now belongs to its heading, leaving the disclosure, enforcement switch, and break action individually addressable. The regression checks require this header scope; remote interaction remains the acceptance gate.
+
+### UI state consistency and meaningful consent
+
+- [x] Today distinguishes a scheduled lock period from running protection. The
+  first-run action opens setup instead of enabling an unreviewed schedule.
+- [x] Completed setup opens a review with live on/off status and Done; missing
+  Accessibility access has its actual repair action. Closing review never arms
+  enforcement or resets settings.
+- [x] Assistant consent previews configured extension duration or the requested
+  weekday, lock/unlock times, day off, and existing schedule delay. Unavailable
+  extensions, malformed proposals, resolved requests, and legacy overrides cannot
+  be approved from the sheet. Existing application and approval rules remain.
+- [x] Replace build-rejection jargon with an explanation of the failed verified
+  connection. Protection warnings name the missing capability instead of claiming
+  a scheduled lockout is currently running. An interrupted keyboard connection
+  no longer offers an unrelated permission action when permission is present.
+- [-] Recapture these revised states on the isolated runner and inspect them.
+  Local UI tests and launches remain prohibited by the user. No new permissions,
+  stored identifiers, wire formats, licensing, or enforcement deadlines change.
+  Rollback is presentation-only; retain the existing state/application policies.
+- [x] Browser settings separate the enabled preference from connection readiness,
+  breaks, and active work. Default copy is plain language; diagnostic timestamps
+  and component health move under Connection details. Existing setup, policy,
+  break budgets, and browser controls remain unchanged.
+- [x] Consent discloses pending schedule edits that approval cancels or replaces,
+  including discarded weekdays and the restarted waiting period. A weaker change
+  can wait beyond 24 hours while a lockout is active.
+- [x] Hide stopped legacy iCloud/device status when account sync is enrolled.
+- [x] Calendar refresh rechecks read access and clears inaccessible events;
+  calendar overlap advice only suggests an extension when eligible. Read-only
+  authorization checks do not request permission. The injected test provider and
+  lazy event store let revoked-access checks run without real calendar access.
