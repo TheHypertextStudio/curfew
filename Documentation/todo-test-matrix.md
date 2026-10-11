@@ -1168,3 +1168,18 @@ with a past scheduled lock shows “Curfew is off. Review your schedule.” inst
 of “0:00.” The state-consistency capture runs first to expose fixture failures
 early. `PresentationStateTests.lockedCountdown` and the remote capture both cover
 this presentation-only correction; enforcement and stored schedules are unchanged.
+
+
+Returning setup review now derives its content from the saved setup state instead
+of the walkthrough cursor. A revoked Accessibility grant immediately shows its
+repair action; completed review hides the first-run checklist and never arms
+protection. The remote missing-permission capture exposed a real blank-panel
+regression. `PresentationStateTests.setupReviewContent` and the setup-review
+capture states cover the correction. CI runs the new state matrix in a separate
+preflight before the full capture sweep, preserving failure diagnostics early.
+No permission, persistence, enforcement, or onboarding completion rules changed.
+Rollback is limited to presentation and CI ordering.
+
+The preflight uses nine independent XCTest methods, one per state family. A failure
+in one state does not prevent the other families from being exercised; each still
+asserts its own screen and state before attaching an image.

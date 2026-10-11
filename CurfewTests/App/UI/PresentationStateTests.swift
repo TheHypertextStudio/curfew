@@ -123,6 +123,15 @@ struct PresentationStateTests {
         #expect(today.contains("let hasWindow = !isLocked"))
     }
 
+    @Test("Completed setup review does not depend on a stale walkthrough cursor")
+    func setupReviewContent() throws {
+        let setup = try source("Curfew/UI/GettingStartedView.swift")
+        #expect(setup
+            .contains(
+                "if model.settings.hasCompletedInitialSetup || flow.currentStep == .confirmation"
+            ))
+    }
+
     @Test("Finish Setup opens the walkthrough instead of arming defaults")
     func setupAction() throws {
         let today = try source("Curfew/UI/Destinations/TodayView.swift")
