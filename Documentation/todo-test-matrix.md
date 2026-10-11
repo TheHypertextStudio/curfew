@@ -1138,3 +1138,9 @@ The remote AX lookup demonstrated section-level identifier propagation overridin
   at both sizes. `PresentationStateTests/stateFixtures` failed before fixture wiring.
 - `PresentationStateTests/shutdownCopy` failed before removing shutdown build jargon;
   `ShutdownPanelStateTests` retains availability and essential Automation consent checks.
+- `configure-ci-display.test.mjs`: select an advertised mode fitting default windows,
+  reject insufficient display modes, and refuse execution outside isolated CI.
+  The first run failed before the script existed. No local display changes occur.
+- `PresentationStateTests/uncroppedCapture`: observed failing before comparing actual
+  screenshot dimensions to the asserted window frame. Previously clipped default
+  images do not prove layout acceptance, even if their screenshot suite passed.

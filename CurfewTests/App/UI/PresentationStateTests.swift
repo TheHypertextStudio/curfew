@@ -10,6 +10,14 @@ struct PresentationStateTests {
         return try String(contentsOf: root.appendingPathComponent(path), encoding: .utf8)
     }
 
+    @Test("Capture validation rejects cropped window images")
+    func uncroppedCapture() throws {
+        let capture = try source("CurfewUITests/MarketingCaptureTests.swift")
+            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+        #expect(capture.contains("screenshot.image.size.width, element.frame.width"))
+        #expect(capture.contains("screenshot.image.size.height, element.frame.height"))
+    }
+
     @Test("Contradictory states have isolated fixtures for remote review")
     func stateFixtures() throws {
         let fixtures = try source("Curfew/App/Model/CurfewAppModel+DemoReview.swift")

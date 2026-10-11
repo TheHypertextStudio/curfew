@@ -914,3 +914,8 @@ The remote AX lookup demonstrated section-level identifier propagation overridin
   revoked permission in setup review, and malformed assistant requests, across both
   appearances and sizes. Assertions must confirm each state before capture. Automatic
   shutdown availability copy points to the supported app without build jargon.
+- [-] Remote image review found default workspace captures clipped by the runner's
+  1024px display. Configure only the isolated runner from advertised display modes
+  large enough for default windows. Captures now compare image and window dimensions
+  and fail on clipping. This script refuses to run outside GitHub Actions; it must
+  never change the user's display. Recapture the final matrix before acceptance.
