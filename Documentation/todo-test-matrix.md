@@ -1073,3 +1073,5 @@ Authenticated liveness integration: after authenticated arming or a matching hea
 Remote CI follow-up: screenshot extraction preserves the original failed UI-test exit status before attempting export. Authenticated liveness accepts a still-active local source during delayed stronger remote-deadline delivery, without changing effective authority or accepting unknown IDs. Regression checks cover both cases.
 
 Landing integration: restored the account navigation and Android coming-soon notice after the directory migration; removed stale claims that Plus sync is currently available. All 30 script/landing/release-policy tests pass and run in CI.
+
+Fixture safety review: demo Settings uses an ephemeral account secret store and inert enrollment services; synthetic camera authorization cannot prompt TCC or open Camera Settings. Real account checkpoints, recovery keys, network enrollment, and camera access stay outside captures. ThemeConsistencyTests includes a fixture-wiring regression (14 theme/UI-source tests total). Assistant disclosure includes activity access.

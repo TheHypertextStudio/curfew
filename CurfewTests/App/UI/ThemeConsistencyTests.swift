@@ -6,6 +6,22 @@ import Testing
 
 @MainActor
 struct ThemeConsistencyTests {
+    @Test("Capture settings never construct real account or camera services")
+    func settingsFixtureIsolation() throws {
+        let root = URL(fileURLWithPath: #filePath).resolvingSymlinksInPath()
+            .deletingLastPathComponent().deletingLastPathComponent()
+            .deletingLastPathComponent().deletingLastPathComponent()
+        let settings = try String(contentsOf: root.appendingPathComponent(
+            "Curfew/UI/SettingsView.swift"
+        ), encoding: .utf8)
+        #expect(settings.contains("AccountEnrollmentController.settingsController()"))
+        let presence = try String(contentsOf: root.appendingPathComponent(
+            "Curfew/App/Model/CurfewAppModel+Presence.swift"
+        ), encoding: .utf8)
+        #expect(presence.contains("isDemoSession ? DemoPresenceSensor()"))
+        #expect(presence.contains("guard !isDemoSession, !RuntimeEnvironment.isUnitTestHost"))
+    }
+
     @Test("Body, supporting text, and links remain readable on shared surfaces")
     func textContrast() throws {
         for name in [NSAppearance.Name.aqua, .darkAqua] {
