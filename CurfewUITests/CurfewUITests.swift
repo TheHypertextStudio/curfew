@@ -264,7 +264,19 @@ extension CurfewUITests {
         let destinations = app.disclosureTriangles["Allowed destinations"]
         let pane = app.scrollViews["settings-detail"]
         XCTAssertTrue(destinations.waitForExistence(timeout: 5))
-        pane.scroll(byDeltaX: 0, deltaY: -600)
+        for direction in [1.0, -1.0] {
+            for _ in 0 ..< 8 {
+                let arrowY = destinations.frame.midY
+                if arrowY > pane.frame.minY + 16, arrowY < pane.frame.maxY - 16 {
+                    break
+                }
+                pane.scroll(byDeltaX: 0, deltaY: direction * pane.frame.height / 3)
+            }
+            if destinations.frame.midY > pane.frame.minY + 16,
+               destinations.frame.midY < pane.frame.maxY - 16 {
+                break
+            }
+        }
         XCTAssertTrue(destinations.isHittable)
         destinations.coordinate(withNormalizedOffset: CGVector(dx: 0, dy: 0.5))
             .withOffset(CGVector(dx: 26, dy: 0)).click()

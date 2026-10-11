@@ -101,11 +101,6 @@ jobs:
       - name: Verify screenshot capture failure handling
         run: node --test scripts/extract-screenshots.test.mjs
 
-      - name: Capture demo screenshots
-        env:
-          CURFEW_XCODEBUILD_SETTINGS: "CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO"
-        run: just capture
-
       - name: Verify UI interactions on the isolated runner
         run: >-
           xcodebuild test -project Curfew.xcodeproj -scheme Curfew
@@ -114,6 +109,11 @@ jobs:
           -only-testing:CurfewUITests/CurfewUITests
           -only-testing:CurfewUITests/CurfewUITestsLaunchTests
           CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
+
+      - name: Capture demo screenshots
+        env:
+          CURFEW_XCODEBUILD_SETTINGS: "CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO"
+        run: just capture
 
       - name: Upload screenshots
         if: always()
