@@ -280,22 +280,31 @@ extension MarketingCaptureTests {
         }
         XCTAssertTrue(pane.exists, "A bottom capture requires a scrollable content pane")
         pane.scroll(byDeltaX: 0, deltaY: 10000)
+        func bottomOfContent() -> CGFloat {
+            let content = pane.staticTexts.allElementsBoundByIndex
+                + pane.buttons.allElementsBoundByIndex
+                + pane.textFields.allElementsBoundByIndex
+                + pane.popUpButtons.allElementsBoundByIndex
+            return content.map(\.frame.maxY).max() ?? pane.frame.maxY
+        }
+        if bottomOfContent() > pane.frame.maxY + 2 {
+            // Wheel direction differs between native panes. Verify the result
+            // rather than assuming the first scroll reached the lower controls.
+            pane.scroll(byDeltaX: 0, deltaY: -10000)
+        }
+        let contentFits = bottomOfContent() <= pane.frame.maxY + 2
         let bars = pane.scrollBars.allElementsBoundByIndex.filter {
             $0.frame.height > $0.frame.width
         }
         if let bar = bars.first {
             let value = Double(String(describing: bar.value ?? ""))
             XCTAssertNotNil(value, "The vertical scroll position must be readable")
-            XCTAssertGreaterThanOrEqual(value ?? 0, 0.99, "Capture must reach the bottom")
-        } else {
-            let content = pane.staticTexts.allElementsBoundByIndex
-                + pane.buttons.allElementsBoundByIndex
-            let bottom = content.map(\.frame.maxY).max() ?? pane.frame.maxY
-            XCTAssertLessThanOrEqual(
-                bottom,
-                pane.frame.maxY + 2,
-                "Without a scroll bar, all lower content must fit"
+            XCTAssertTrue(
+                (value ?? 0) >= 0.99 || contentFits,
+                "Capture must reach the bottom or show all lower content"
             )
+        } else {
+            XCTAssertTrue(contentFits, "Without a scroll bar, all lower content must fit")
         }
     }
 
