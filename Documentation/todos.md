@@ -936,3 +936,10 @@ Final recovery-copy review: Today’s off state describes following the local sc
 
 - [x] Hide the menu extension action when Curfew is off, including scheduled
   warning states; regression observed failing first and isolated UI fixture added.
+
+Remote capture regression: locked evaluations retain a zero-minute display value.
+Today now checks the phase explicitly before showing a countdown, so an off Mac
+with a past scheduled lock shows “Curfew is off. Review your schedule.” instead
+of “0:00.” The state-consistency capture runs first to expose fixture failures
+early. `PresentationStateTests.lockedCountdown` and the remote capture both cover
+this presentation-only correction; enforcement and stored schedules are unchanged.
