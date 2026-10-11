@@ -343,3 +343,40 @@ private enum StubServiceError: LocalizedError {
         }
     }
 }
+
+extension PrivilegedHelperManagerTests {
+    @Test("A fresh daemon file cannot make a rejected authenticated connection ready")
+    func remoteReadinessRequiresAuthenticatedConnection() throws {
+        let now = Date()
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("curfew-helper-auth-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let heartbeat = root.appendingPathComponent(".daemon-alive")
+        try Data("alive".utf8).write(to: heartbeat)
+        try FileManager.default.setAttributes(
+            [.modificationDate: now],
+            ofItemAtPath: heartbeat.path
+        )
+        let manager = PrivilegedHelperManager(
+            daemonService: StubAppService(status: .enabled),
+            loginItemService: StubAppService(status: .notRegistered),
+            daemonHeartbeatURL: heartbeat,
+            now: { now },
+            flavor: .production,
+            liveEnforcementOwner: { nil }
+        )
+        manager.refreshStatus()
+        for state in [
+            PrivilegedHelperManager.ConnectionState.unavailable,
+            .unauthorized,
+            .stale,
+            .registrationFailed
+        ] {
+            manager.seedConnectionStateForTesting(state)
+            #expect(!manager.isRemoteLockEnforcementAvailable)
+        }
+        manager.seedConnectionStateForTesting(.ready)
+        #expect(manager.isRemoteLockEnforcementAvailable)
+    }
+}

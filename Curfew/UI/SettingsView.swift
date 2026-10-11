@@ -73,6 +73,7 @@ struct SettingsView: View {
             }
         }
         .onAppear {
+            refreshSystemState()
             selection = model.settingsDestination
             #if DEBUG
                 if model.isDemoSession {
@@ -92,6 +93,11 @@ struct SettingsView: View {
             }
         }
         .onChange(of: model.settingsDestination) { _, destination in selection = destination }
+        .onReceive(Timer.publish(
+            every: CurfewAppModel.privilegedHeartbeatInterval, on: .main, in: .common
+        ).autoconnect()) { _ in
+            refreshSystemState()
+        }
         .onReceive(NotificationCenter.default
             .publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
                 refreshSystemState()
@@ -107,6 +113,9 @@ struct SettingsView: View {
         #endif
         model.refreshAccessibilityTrust()
         model.privilegedHelperManager.refreshStatus()
+        if model.featureFlags.privilegedHelperEnabled {
+            Task { await model.privilegedHelperManager.reconcileDaemonStatus() }
+        }
         registrationStatus = ClaudeDesktopRegistration.currentStatus()
     }
 }

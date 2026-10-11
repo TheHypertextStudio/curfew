@@ -1144,3 +1144,11 @@ The remote AX lookup demonstrated section-level identifier propagation overridin
 - `PresentationStateTests/uncroppedCapture`: observed failing before comparing actual
   screenshot dimensions to the asserted window frame. Previously clipped default
   images do not prove layout acceptance, even if their screenshot suite passed.
+
+### Account readiness consistency after main integration
+
+Remote locks require both a fresh daemon heartbeat and an authenticated ready connection, while Studio Dev still yields to a live higher-priority Curfew owner. Settings refreshes signed status on opening, activation, and the existing heartbeat interval. Pending approval opens the macOS approval pane; installed connection failures route to General; installation is offered only when needed. Account messages describe an unchanged schedule instead of claiming protection is active.
+
+Hostless coverage: `PrivilegedHelperManagerTests.remoteReadinessRequiresAuthenticatedConnection` rejects unavailable, unauthorized, stale, and failed registration despite a fresh heartbeat file. `PresentationStateTests` checks recovery routing and copy. The new assertions failed before the fix; CI retains full app behavior and screenshot checks. No local UI execution or app launch. This changes readiness presentation and recovery routing, not enforcement rules, persisted identifiers, or the wire format. Rollback is the readiness/copy change; signed helper and real macOS approval verification remain separate.
+
+Account consistency captures add `account-offline`, `account-sign-in-required`, and `account-helper-unavailable` in both appearances and sizes. They use an explicitly injected no-op account transport; the helper rejection is synthetic. Assertions require the matching status and repair action before window capture. No account sign-in, Keychain, network enrollment, or helper registration occurs.

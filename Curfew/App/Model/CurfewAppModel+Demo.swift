@@ -41,6 +41,7 @@ import CurfewKit
                     : .shippingV1,
                 activityRecorder: makeDemoActivityRecorder(now: Date()),
                 licenseGate: LicenseGate(defaults: UserDefaults(suiteName: "CurfewDemoLicense")),
+                accountSyncEngine: AccountSyncEngine(transport: NoOpAccountSyncTransport()),
                 privilegedHelperManager: PrivilegedHelperManager(
                     daemonService: DemoAppService(), loginItemService: DemoAppService(),
                     daemonRPC: DemoDaemonRPC()

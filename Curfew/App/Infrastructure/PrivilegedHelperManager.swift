@@ -86,7 +86,7 @@ final class PrivilegedHelperManager {
     }
 
     var isRemoteLockEnforcementAvailable: Bool {
-        guard isDaemonResponding else { return false }
+        guard isDaemonResponding, connectionState == .ready else { return false }
         let owner = liveEnforcementOwnerOverride?() ?? currentLiveEnforcementOwner()
         return !StudioDevDaemonSafety.shouldStandDown(
             flavor: flavor,
@@ -292,29 +292,6 @@ final class PrivilegedHelperManager {
         helperLogger.error("daemon RPC failed: \(rpcError.localizedDescription, privacy: .public)")
     }
 
-    #if DEBUG
-        func seedDemoStatus(
-            daemon: SMAppService.Status = .notRegistered,
-            login: SMAppService.Status = .notRegistered,
-            connection: ConnectionState = .unavailable
-        ) {
-            daemonStatus = daemon
-            loginItemStatus = login
-            connectionState = connection
-            lastError = connection == .ready ? nil : "Background protection is not connected."
-        }
-
-        func seedDemoUnavailableError() {
-            daemonStatus = .notRegistered
-            connectionState = .unavailable
-            lastError = PrivilegedDaemonRPCError.unavailable.localizedDescription
-        }
-
-        func seedConnectionStateForTesting(_ state: ConnectionState) {
-            connectionState = state
-        }
-    #endif
-
     // MARK: - Login item
 
     /// Registers the main app as a login item via SMAppService. Replaces the
@@ -385,4 +362,29 @@ private extension SMAppService.Status {
         @unknown default: "unknown(\(rawValue))"
         }
     }
+}
+
+extension PrivilegedHelperManager {
+    #if DEBUG
+        func seedDemoStatus(
+            daemon: SMAppService.Status = .notRegistered,
+            login: SMAppService.Status = .notRegistered,
+            connection: ConnectionState = .unavailable
+        ) {
+            daemonStatus = daemon
+            loginItemStatus = login
+            connectionState = connection
+            lastError = connection == .ready ? nil : "Background protection is not connected."
+        }
+
+        func seedDemoUnavailableError() {
+            daemonStatus = .notRegistered
+            connectionState = .unavailable
+            lastError = PrivilegedDaemonRPCError.unavailable.localizedDescription
+        }
+
+        func seedConnectionStateForTesting(_ state: ConnectionState) {
+            connectionState = state
+        }
+    #endif
 }
