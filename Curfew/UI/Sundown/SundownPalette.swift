@@ -20,6 +20,10 @@ enum SundownPalette {
         usesSolidPanels ? .black : .black.opacity(0.72)
     }
 
+    /// Shields small atmospheric text even when the sky or page fade is white.
+    /// Shares the same contrast-tested backing as reflection and override inputs.
+    static let textScrim = inputSurface(usesSolidPanels: false)
+
     /// Primary warm near-black ink.
     static let ink = CurfewTheme.ink
     /// Secondary ink.
