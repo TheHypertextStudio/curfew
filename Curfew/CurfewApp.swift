@@ -112,6 +112,24 @@ struct CurfewApp: App {
         #endif
     }
 
+    /// Forced colour scheme for demo/capture launches, or `nil` to follow the
+    /// system. `CURFEW_DEMO_APPEARANCE=dark` pins dark so headless captures can
+    /// grab dark-mode stills of a backgrounded window (where an
+    /// `NSApplication.appearance` assignment doesn't reliably re-render). Only
+    /// active in Debug demo launches; the shipping app always returns `nil` and
+    /// follows Light/Dark Mode.
+    private static var demoColorScheme: ColorScheme? {
+        #if DEBUG
+            let env = ProcessInfo.processInfo.environment
+            guard CurfewLaunchBehavior.demoScenario(environment: env) != nil else {
+                return nil
+            }
+            return env["CURFEW_DEMO_APPEARANCE"] == "dark" ? .dark : .light
+        #else
+            nil
+        #endif
+    }
+
     /// Constructs the app model, wires the `@State`-owned model, and defers
     /// the launch coordinator to the next run-loop spin so SwiftUI's
     /// first body evaluation completes before enforcement arms.
@@ -163,6 +181,7 @@ struct CurfewApp: App {
                 .environment(model)
                 .frame(minWidth: 980, minHeight: 660)
                 .onOpenURL { _ = AccountOAuthCallbackRouter.shared.route($0) }
+                .preferredColorScheme(Self.demoColorScheme)
         }
         .defaultSize(width: 1080, height: 720)
         .windowStyle(.hiddenTitleBar)
@@ -210,6 +229,7 @@ struct CurfewApp: App {
         WindowGroup(id: CurfewAppModel.gettingStartedWindowID) {
             GettingStartedView()
                 .environment(model)
+                .preferredColorScheme(Self.demoColorScheme)
         }
         .defaultSize(width: 620, height: 430)
         .windowResizability(.contentSize)
