@@ -205,7 +205,7 @@ jobs:
         run: |
           : "${CLOUDFLARE_API_TOKEN:?CLOUDFLARE_API_TOKEN is required}"
           : "${CLOUDFLARE_ACCOUNT_ID:?CLOUDFLARE_ACCOUNT_ID is required}"
-          cp "$RUNNER_TEMP/appcast.xml" web/landing/appcast.xml
+          cp "$RUNNER_TEMP/appcast.xml" landing/appcast.xml
           corepack enable
           cd web
           pnpm install --frozen-lockfile

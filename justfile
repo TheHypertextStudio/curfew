@@ -224,7 +224,7 @@ web-typecheck:
     cd web && pnpm typecheck
 
 # Serve the landing page locally (Wrangler Pages dev): runs the
-# `web/landing/functions` Pages Function (the /docs → Mintlify proxy), serves
+# `landing/functions` Pages Function (the /docs → Mintlify proxy), serves
 # `_headers`, and live-reloads. Ctrl+C stops it. (Static fallback: `landing-static`.)
 landing:
     cd web && pnpm --filter @curfew/landing dev
@@ -234,10 +234,10 @@ landing:
 landing-static port="8765":
     @echo "→ http://localhost:{{ port }}"
     @open "http://localhost:{{ port }}" >/dev/null 2>&1 || true
-    python3 -m http.server {{ port }} --directory web/landing --bind 127.0.0.1
+    python3 -m http.server {{ port }} --directory landing --bind 127.0.0.1
 
 # Deploy the landing page to Cloudflare Pages (Wrangler, via the workspace).
-# Uploads `web/landing/` as-is plus its Pages Function. First deploy creates the
+# Uploads `landing/` as-is plus its Pages Function. First deploy creates the
 # project; the custom domain `curfew.hypertext.studio` is attached by `just setup`.
 deploy-landing:
     cd web && pnpm --filter @curfew/landing deploy

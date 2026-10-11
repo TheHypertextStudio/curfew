@@ -272,7 +272,7 @@ mid-lockout, and every action the root daemon takes. Format specification:
 - [x] README rewrite: three-horizon pitch, MCP setup, CLI usage, Pro features, architecture.
 - [x] `CONTRIBUTING.md`, `PRIVACY.md`, `Documentation/ARCHITECTURE.md`, `Documentation/RELEASE.md`.
 - [x] Signed-build validation runbook for shutdown, Widget, helper, Sparkle, notarization, and DMG installation lives in `Documentation/RELEASE.md`.
-- [x] Landing page (`web/landing/`) — Cloudflare Pages deploy target.
+- [x] Landing page (`landing/`; tooling in `web/landing/`) — Cloudflare Pages deploy target.
 - [x] Account-era landing contract — every public header links to the optional
       same-origin account portal, Android is labeled as coming soon, and the
       privacy, security, retention, purchase, recovery, and remote-unlock
@@ -858,3 +858,5 @@ Fixture safety review: demo Settings uses an ephemeral account secret store and 
 Remote full-suite follow-up: package endpoints now derive app/widget service isolation from their bundle identity when app-only compilation flags cannot propagate into SwiftPM; standalone tools retain their explicit service flag. Setup tests inject Accessibility trust, consent-copy expectations use the approved shorter labels, and the browser uninstall test waits for actual enqueue under loaded CI. A compatibility `landing` symlink preserves the existing Pages root without deployment configuration changes.
 
 Remote capture correction: fully fitting native forms may expose a scrollbar with zero range. Bottom captures now verify the lowest text/control bounds as well as scrollbar position, and accommodate native wheel direction; long clipped panes still fail. The initial remote General capture was visually inspected and shared inline; it is interim evidence until final-head recapture.
+
+Pages verification rejected assets linked outside its configured root, so the compatibility symlink was replaced by the physical `landing/` asset directory. `web/landing/package.json` retains workspace commands and points Wrangler at that root, including its Functions. Deployment settings stay unchanged; script checks verify physical assets and the command target.

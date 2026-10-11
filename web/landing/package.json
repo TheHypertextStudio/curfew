@@ -2,8 +2,8 @@
   "name": "@curfew/landing",
   "private": true,
   "scripts": {
-    "dev": "wrangler pages dev . --port 8765",
-    "deploy": "wrangler pages deploy . --project-name curfew-landing"
+    "dev": "wrangler --cwd ../../landing pages dev . --port 8765",
+    "deploy": "wrangler --cwd ../../landing pages deploy . --project-name curfew-landing"
   },
   "devDependencies": {
     "wrangler": "^4.105.0"
