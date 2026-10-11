@@ -198,7 +198,7 @@ jobs:
           WRANGLER_SEND_METRICS: 'false'
           CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV: 'false'
       - name: Install browser runtimes
-        run: pnpm exec playwright install --with-deps chromium firefox webkit
+        run: pnpm --dir landing exec playwright install --with-deps chromium firefox webkit
       - name: Accept local Worker runtime in three browsers
         run: pnpm site:test:acceptance
       - name: Retain browser diagnostics

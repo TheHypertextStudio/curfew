@@ -256,3 +256,15 @@ adds no tests and runs no local product suite; actionlint and diff checks cover
 the workflow source, and the hosted registry checks above cover its actual token
 and dependency graph. Revert the lock and this CI selection change to return to
 artifact-only proposal mode. No main merge or provider write is included.
+
+
+## First full native CI after registry adoption
+
+Run `38119975204` correctly selected the tracked canonical lock and skipped fresh
+proposal resolution/upload. Docs validation passed against the actual registry;
+website frozen installation, source/type/lint/format checks, original-page parity
+and immutable artifact build also passed. Browser setup failed before tests began
+because the workflow invoked Playwright from the root facade, where it is not a
+dependency. The workflow now runs the same pinned CLI from its owning `landing/`
+workspace. No manifest, lock, browser cases or product behavior changed. Full
+three-browser acceptance remains pending a successful subsequent hosted run.
