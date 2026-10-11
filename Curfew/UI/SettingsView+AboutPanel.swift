@@ -2,11 +2,11 @@ import AppKit
 import CurfewKit
 import SwiftUI
 
-/// The About tab — app identity, Curfew Pro licensing, and the Getting Started
+/// The About tab — app identity, Curfew Plus licensing, and the Getting Started
 /// re-entry. Pulls Pro out of the old "Advanced" catch-all and gives licensing
 /// the conventional macOS home (About) rather than burying it.
 extension SettingsView {
-    /// Composed About tab: who the app is, the Pro license, and a way back into
+    /// Composed About tab: who the app is, the Plus license, and a way back into
     /// onboarding.
     var aboutPanel: some View {
         VStack(spacing: CurfewSpacing.section) {

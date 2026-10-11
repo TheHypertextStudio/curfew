@@ -1,7 +1,7 @@
 import CurfewKit
 import Foundation
 
-/// Decoded payload from a verified Curfew Pro license key.
+/// Decoded payload from a verified Curfew Plus license key.
 struct LicenseKey: Codable, Equatable {
     enum Plan: String, Codable {
         case lifetime
@@ -10,9 +10,10 @@ struct LicenseKey: Codable, Equatable {
 
     /// Email address the key was issued to. Shown in Settings → License.
     let email: String
-    /// Product SKU. Must equal `"curfew-pro"` for this build to accept
-    /// the key; other values (future SKUs, team licences) are rejected
-    /// via `LicenseActivationError.wrongProduct`.
+    /// Product SKU. Must equal `"curfew-plus"` for this build to accept the
+    /// key (legacy `"curfew-pro"` is also accepted as a lifetime key for
+    /// pre-release continuity); other values are rejected via
+    /// `LicenseActivationError.wrongProduct`.
     let product: String
     let plan: Plan
     /// Stripe Checkout Session id (kept as the `order_id` wire field).
@@ -39,7 +40,6 @@ struct LicenseKey: Codable, Equatable {
         case expiresAt = "expires_at"
         case refreshToken = "refresh_token"
     }
-
     init(
         email: String,
         product: String,

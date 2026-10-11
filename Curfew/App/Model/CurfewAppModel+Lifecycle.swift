@@ -411,6 +411,12 @@ extension CurfewAppModel {
         )
         resetReflectionGatesForNewDay()
         licenseGate.reverifyStoredKey()
+        // A subscription key can lapse without the stored string changing (its
+        // `expiresAt` simply passes), so `$activatedKey` never fires and the
+        // Combine-driven reconcile won't run. Reconcile explicitly here — it is
+        // idempotent — so the Plus-gated engines stop when a subscription
+        // expires, even with no network. Then try to pull a renewed key.
+        reconcilePlusGatedModules()
         refreshSubscriptionLicenseIfNeeded()
     }
 

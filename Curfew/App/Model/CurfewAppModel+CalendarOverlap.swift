@@ -15,7 +15,7 @@ extension CurfewAppModel {
     /// No-ops when calendar is off, Pro isn't unlocked, no event is
     /// in the window, or we've already prompted for this event today.
     func checkCalendarCurfewOverlap() {
-        guard featureFlags.calendarEnabled, licenseGate.isProUnlocked else { return }
+        guard featureFlags.calendarEnabled, licenseGate.isPlusUnlocked else { return }
         guard state.phase == .working || state.phase == .warning else { return }
 
         let todayRule = settings.schedule.rule(for: Weekday(from: currentTime))

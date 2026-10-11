@@ -26,7 +26,7 @@ enum CloudKitSyncStatus: Equatable {
 /// Syncs `CurfewSettings` across the user's devices via CloudKit private database.
 ///
 /// Lifecycle: call `start()` once after the app model is ready and both
-/// `featureFlags.cloudSyncEnabled` and `licenseGate.isProUnlocked` are true.
+/// `featureFlags.cloudSyncEnabled` and `licenseGate.isPlusUnlocked` are true.
 /// Call `stop()` when either condition becomes false.
 ///
 /// Conflict resolution: last-write-wins based on `modifiedAt`. This is

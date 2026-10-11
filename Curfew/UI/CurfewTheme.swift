@@ -223,7 +223,7 @@ struct CurfewSecondaryButtonStyle: ButtonStyle {
 }
 
 /// Chromeless accent text button — an inline affordance ("Add prompt",
-/// "Buy Curfew Pro") that reads as a link without the surface/border of the
+/// "Buy Curfew Plus") that reads as a link without the surface/border of the
 /// secondary style. Standardises the scattered `.borderless` / `.plain`
 /// buttons so the app speaks one button language.
 struct CurfewLinkButtonStyle: ButtonStyle {

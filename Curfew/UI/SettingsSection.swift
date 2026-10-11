@@ -22,7 +22,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
     /// uninstall action.
     case advanced
 
-    /// App identity and licensing — version, Curfew Pro activation, and the
+    /// App identity and licensing — version, Curfew Plus activation, and the
     /// Getting Started re-entry.
     case about
 

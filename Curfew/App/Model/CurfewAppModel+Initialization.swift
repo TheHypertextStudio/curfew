@@ -67,7 +67,7 @@ extension CurfewAppModel {
         }
         configureAccountSyncCallbacks()
         subscribeToLicenseChanges()
-        reconcileProGatedModules()
+        reconcilePlusGatedModules()
         refreshSubscriptionLicenseIfNeeded()
     }
 

@@ -125,7 +125,7 @@ extension SettingsView {
             }
 
             if model.featureFlags.widgetKitEnabled {
-                ProGate(
+                PlusGate(
                     feature: "WidgetKit",
                     description: "See your enforcement phase and time remaining at a glance."
                 ) {
@@ -143,7 +143,7 @@ extension SettingsView {
                 .environmentObject(model)
             }
             if model.featureFlags.calendarEnabled {
-                ProGate(
+                PlusGate(
                     feature: "Calendar",
                     description: "See today's scheduled events on the lockout screen and in This"
                         + " Week."
@@ -239,7 +239,7 @@ extension SettingsView {
             }
 
             if model.featureFlags.cloudSyncEnabled {
-                ProGate(
+                PlusGate(
                     feature: "Cloud Sync",
                     description: "Keep your schedule in sync across all your Macs via iCloud."
                 ) {
