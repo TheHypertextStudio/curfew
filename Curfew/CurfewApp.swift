@@ -207,6 +207,7 @@ struct CurfewApp: App {
 
         MenuBarExtra {
             ContentView()
+                .preferredColorScheme(Self.demoColorScheme)
                 .environment(model)
                 .onOpenURL { _ = AccountOAuthCallbackRouter.shared.route($0) }
         } label: {
@@ -217,6 +218,9 @@ struct CurfewApp: App {
             Image(systemName: model.menuBarSymbolName)
                 .contentTransition(.symbolEffect(.replace))
                 .symbolEffect(.pulse, isActive: model.enforcementHealth != .active)
+                .accessibilityLabel("Curfew\(CurfewFlavor.current.displaySuffix) status")
+                .accessibilityIdentifier("curfew-status-item")
+                .accessibilityValue(model.menuBarHeaderLine)
         }
         .menuBarExtraStyle(.window)
 

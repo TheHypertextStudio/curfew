@@ -339,3 +339,27 @@ private struct AccentComponents: Decodable {
     let green: String
     let blue: String
 }
+
+extension ThemeConsistencyTests {
+    @Test("The menu-bar header shields text and exposes an accessible popover target")
+    func menuBarContrastAndAccess() throws {
+        let root = URL(fileURLWithPath: #filePath).resolvingSymlinksInPath()
+            .deletingLastPathComponent().deletingLastPathComponent()
+            .deletingLastPathComponent().deletingLastPathComponent()
+        let content = try String(contentsOf: root.appendingPathComponent(
+            "Curfew/ContentView.swift"
+        ), encoding: .utf8)
+        #expect(content.contains(".overlay(SundownPalette.textScrim)"))
+        #expect(content.contains(".foregroundStyle(SundownPalette.supportingText)"))
+        #expect(content.contains("curfew-menu-popover"))
+        #expect(content.contains("model.settings.hasCompletedInitialSetup"))
+        #expect(content.contains("\"Review Setup\""))
+        #expect(content.contains("\"Finish Setup\""))
+
+        let app = try String(contentsOf: root.appendingPathComponent(
+            "Curfew/CurfewApp.swift"
+        ), encoding: .utf8)
+        #expect(app.contains("curfew-status-item"))
+        #expect(app.contains(".accessibilityValue(model.menuBarHeaderLine)"))
+    }
+}

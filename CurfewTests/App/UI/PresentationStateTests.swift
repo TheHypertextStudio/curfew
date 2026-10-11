@@ -111,6 +111,12 @@ struct PresentationStateTests {
         #expect(today.contains("Curfew is off. Review your schedule."))
     }
 
+    @Test("The menu hides extension grants while Curfew is off")
+    func menuOffExtension() throws {
+        let content = try source("Curfew/ContentView.swift")
+        #expect(content.contains("if model.isEnforcementRunning, snapshot.canRequestExtension"))
+    }
+
     @Test("Finish Setup opens the walkthrough instead of arming defaults")
     func setupAction() throws {
         let today = try source("Curfew/UI/Destinations/TodayView.swift")

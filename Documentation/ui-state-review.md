@@ -246,3 +246,21 @@ Hostless coverage: `PrivilegedHelperManagerTests.remoteReadinessRequiresAuthenti
 Account rejection copy now distinguishes expired sign-in, explicit server access denial, and local remote-update failures. A version without background protection explains availability without directing to a hidden General section. `AccountStatusPresentationTests` exercises actual status-to-copy resolution in the hostless suite; both regressions failed before correction. The existing sync status enum is extracted unchanged for hostless coverage, with no identifier or wire changes.
 
 Final recovery-copy review: Today’s off state describes following the local schedule without promising that independent remote controls cannot lock the Mac. Uninstall failure uses the product action as its heading, with specific diagnostics retained. Unavailable remote locks offer Get Curfew using the shared production website origin rather than a duplicated URL. `PresentationStateTests.offAndRecoveryCopy` failed first; the unavailable-feature screenshot asserts its website action. Enforcement, uninstall order, and account behavior are unchanged.
+
+### Menu-bar contrast and actual popover coverage
+
+The menu-bar countdown now uses the same tested text scrim and supporting-text
+role as Today. Completed setup offers “Review Setup”; unfinished setup offers
+“Finish Setup.” The status item exposes its current status to accessibility.
+These changes do not alter enforcement or extension behavior.
+
+Remote UI checks open the actual status item and assert its identified 320-point
+popover before capture. Light/dark captures cover ready, missing permission,
+interrupted keyboard protection, and helper verification failure. The popover has
+one fixed width, so workspace minimum/default resizing does not apply. No desktop
+or replacement view is accepted. Local app launches and UI checks remain disabled.
+
+An explicit off-plus-warning fixture keeps the scheduled extension flag true while
+Curfew remains disarmed. Both remote interaction and capture assertions require
+the menu to say “Curfew is off” and offer no extension action, preventing an
+inapplicable menu action from consuming the weekly budget.

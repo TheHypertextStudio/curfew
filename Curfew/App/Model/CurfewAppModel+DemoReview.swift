@@ -30,6 +30,13 @@
                     accountSyncEngine.reject("Rejected stale or invalid wake state.")
                 default: accountSyncEngine.markSynchronized(at: currentTime)
                 }
+            case .menuOffWarning:
+                state = CurfewEvaluation(
+                    phase: .warning, warningStage: .fifteenMinutes,
+                    minutesRemaining: 15, canRequestExtension: true,
+                    lockDate: currentTime.addingTimeInterval(900),
+                    unlockDate: currentTime.addingTimeInterval(8 * 3600)
+                )
             case .todayOffLocked:
                 state = DemoFixture.evaluation(for: .lockout, now: currentTime)
             case .setupReview, .setupReviewDenied:

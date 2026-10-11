@@ -238,7 +238,7 @@ final class CurfewUITests: XCTestCase {
     }
 
     @MainActor
-    private func launchFixture(_ scenario: String, state: String = "default") -> XCUIApplication {
+    func launchFixture(_ scenario: String, state: String = "default") -> XCUIApplication {
         let app = XCUIApplication()
         app.launchEnvironment["CURFEW_DEMO_FIXTURE"] = "1"
         app.launchEnvironment["CURFEW_DEMO_SCENARIO"] = scenario

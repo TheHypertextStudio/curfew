@@ -929,3 +929,10 @@ Hostless coverage: `PrivilegedHelperManagerTests.remoteReadinessRequiresAuthenti
 Account rejection copy now distinguishes expired sign-in, explicit server access denial, and local remote-update failures. A version without background protection explains availability without directing to a hidden General section. `AccountStatusPresentationTests` exercises actual status-to-copy resolution in the hostless suite; both regressions failed before correction. The existing sync status enum is extracted unchanged for hostless coverage, with no identifier or wire changes.
 
 Final recovery-copy review: Today’s off state describes following the local schedule without promising that independent remote controls cannot lock the Mac. Uninstall failure uses the product action as its heading, with specific diagnostics retained. Unavailable remote locks offer Get Curfew using the shared production website origin rather than a duplicated URL. `PresentationStateTests.offAndRecoveryCopy` failed first; the unavailable-feature screenshot asserts its website action. Enforcement, uninstall order, and account behavior are unchanged.
+
+- [-] Verify the native menu-bar popover on the isolated runner: shared atmospheric
+  contrast tokens, state-specific setup action, accessible live status, and actual
+  popover captures in both appearances. Visual feedback remains pending.
+
+- [x] Hide the menu extension action when Curfew is off, including scheduled
+  warning states; regression observed failing first and isolated UI fixture added.
