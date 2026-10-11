@@ -182,36 +182,6 @@ struct AuditGrantWiringTests {
         #expect(approved.actor.token == "user")
     }
 
-    @Test(
-        "AI extension approval cannot bypass an exhausted weekly budget",
-        arguments: [false, true]
-    )
-    func exhaustedAIExtensionIsNotGranted(automatic: Bool) {
-        let (model, writer) = makeModel()
-        for _ in 0 ..< model.settings.extensionWeeklyLimit {
-            #expect(model.extensionTracker.requestExtension(at: model.currentTime))
-        }
-        #expect(model.extensionTracker.remaining == 0)
-        model.state = CurfewEvaluation(
-            phase: .warning,
-            warningStage: .thirtyMinutes,
-            minutesRemaining: 30,
-            canRequestExtension: true,
-            lockDate: model.currentTime.addingTimeInterval(1800),
-            unlockDate: model.currentTime.addingTimeInterval(50000)
-        )
-        let minutesBefore = model.extensionMinutesGrantedToday
-        let request = MCPPendingRequest(tool: .requestExtension, argumentsJSON: "{}")
-        if automatic {
-            model.autoApproveMCPRequest(request)
-        } else {
-            model.approveMCPRequest(request)
-        }
-        #expect(model.extensionMinutesGrantedToday == minutesBefore)
-        #expect(model.extensionsRemaining == 0)
-        #expect(writer.records(ofType: .extensionGranted).isEmpty)
-    }
-
     @Test("A queued MCP request records the consent policy that parked it")
     func mcpQueuedIsRecorded() throws {
         let (model, writer) = makeModel()
@@ -326,5 +296,37 @@ struct AuditGrantWiringTests {
         // bootstrapped must be a no-op, never a crash and never a write into
         // the user's real ~/Library/Logs/Curfew.
         log.emit(.appLaunched, actor: .app)
+    }
+}
+
+extension AuditGrantWiringTests {
+    @Test(
+        "AI extension approval cannot bypass an exhausted weekly budget",
+        arguments: [false, true]
+    )
+    func exhaustedAIExtensionIsNotGranted(automatic: Bool) {
+        let (model, writer) = makeModel()
+        for _ in 0 ..< model.settings.extensionWeeklyLimit {
+            #expect(model.extensionTracker.requestExtension(at: model.currentTime))
+        }
+        #expect(model.extensionTracker.remaining == 0)
+        model.state = CurfewEvaluation(
+            phase: .warning,
+            warningStage: .thirtyMinutes,
+            minutesRemaining: 30,
+            canRequestExtension: true,
+            lockDate: model.currentTime.addingTimeInterval(1800),
+            unlockDate: model.currentTime.addingTimeInterval(50000)
+        )
+        let minutesBefore = model.extensionMinutesGrantedToday
+        let request = MCPPendingRequest(tool: .requestExtension, argumentsJSON: "{}")
+        if automatic {
+            model.autoApproveMCPRequest(request)
+        } else {
+            model.approveMCPRequest(request)
+        }
+        #expect(model.extensionMinutesGrantedToday == minutesBefore)
+        #expect(model.extensionsRemaining == 0)
+        #expect(writer.records(ofType: .extensionGranted).isEmpty)
     }
 }
