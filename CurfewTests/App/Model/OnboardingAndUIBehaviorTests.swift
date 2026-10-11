@@ -126,15 +126,15 @@ struct GettingStartedCopyTests {
     @Test("Getting started copy reinforces commitment and enforcement model")
     func warmCommitmentCopy() {
         let message = GettingStartedCopy.commitmentMessage.lowercased()
-        #expect(message.contains("thinking clearly"))
-        #expect(message.contains("enforce"))
+        #expect(message.contains("stop"))
+        #expect(message.contains("stick"))
     }
 
     @Test("Schedule step copy explains when work ends and resumes")
     func scheduleCopyUsesWorkWindowLanguage() {
         let message = FirstRunStep.schedule.message.lowercased()
-        #expect(message.contains("work ends"))
-        #expect(message.contains("work resumes"))
+        #expect(message.contains("locks"))
+        #expect(message.contains("unlocks"))
     }
 
     @Test("Local AI setup describes its real authority without implying remote unlock")

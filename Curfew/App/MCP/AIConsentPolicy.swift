@@ -31,9 +31,9 @@ enum AIConsentPolicy: String, Codable, CaseIterable {
     /// Human-readable label for display in Settings.
     var displayName: String {
         switch self {
-        case .queue: "Ask every time (recommended)"
-        case .autoApprove: "Apply requests automatically"
-        case .deny: "Reject extension and schedule requests"
+        case .queue: "Ask before making changes"
+        case .autoApprove: "Allow changes automatically"
+        case .deny: "Read only"
         }
     }
 
@@ -41,11 +41,11 @@ enum AIConsentPolicy: String, Codable, CaseIterable {
     var rationale: String {
         switch self {
         case .queue:
-            "You'll see a prompt in Curfew before any AI-requested change takes effect."
+            "You approve each change in Curfew."
         case .autoApprove:
-            "AI assistants can apply extension or schedule requests without asking first."
+            "Trusted assistants can change your schedule and request extra time without asking."
         case .deny:
-            "Curfew rejects extension and schedule requests from AI assistants."
+            "Assistants can read your status, schedule, and reflections, but cannot make changes."
         }
     }
 }

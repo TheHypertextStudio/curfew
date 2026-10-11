@@ -48,6 +48,12 @@ final class CloudKitSyncEngine {
     /// Settings → Devices can show last-synced time and failure details.
     private(set) var syncStatus: CloudKitSyncStatus = .idle
 
+    #if DEBUG
+        func seedDemoStatus(_ status: CloudKitSyncStatus) {
+            syncStatus = status
+        }
+    #endif
+
     // CKContainer is created lazily in start() to avoid calling it off the
     // main thread — nonisolated init runs as a default argument before
     // @MainActor isolation is established, which trips libMainThreadChecker.

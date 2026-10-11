@@ -81,7 +81,7 @@ struct ShutdownPanelStateTests {
         }
 
         #expect(message.contains("signed"))
-        #expect(message.contains("Apple Events"))
+        #expect(!message.contains("entitlement"))
     }
 
     @Test("Shutdown panel warns about the System Events consent prompt when available")
@@ -98,11 +98,11 @@ struct PrivilegedHelperStatusCopyTests {
     func helperStatusDescriptions() {
         #expect(
             PrivilegedHelperStatusCopy.daemonDescription(for: .enabled)
-                == "Running — root-owned lockout enforcement active."
+                == "Installed."
         )
         #expect(
             PrivilegedHelperStatusCopy.daemonDescription(for: .requiresApproval)
-                == "Needs approval — open System Settings → Login Items."
+                == "Approval needed in System Settings."
         )
         #expect(
             PrivilegedHelperStatusCopy.loginItemDescription(for: .enabled)

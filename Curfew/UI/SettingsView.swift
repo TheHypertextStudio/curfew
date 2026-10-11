@@ -1,78 +1,70 @@
+import Combine
 import CurfewKit
 import SwiftUI
 
-/// Root of the Settings window — the home for system and enforcement
-/// configuration (⌘,).
-///
-/// Renders a native macOS icon-toolbar tab picker. Two things are deliberately
-/// *not* here, because they're core acts rather than buried settings: the
-/// schedule editor (promoted to the `Schedule` workspace destination, see
-/// ``ScheduleView``) and the reflection prompt editor (promoted to the Reflect
-/// destination, see ``ReflectionPromptsView``).
+/// Native sidebar settings. Schedule and Journal remain workspace destinations.
 struct SettingsView: View {
-    /// Live app state shared across panels.
     @Environment(CurfewAppModel.self) var model
+    @Environment(\.openWindow) var openWindow
+    @State var selection: SettingsSection? = .general
+    @State var didCopyConfig = false
+    @State var manualSetupExpanded = false
+    @State var registrationStatus = ClaudeDesktopRegistration.currentStatus()
 
-    /// The selected tab. Held as state so the window restores the last tab and
-    /// callouts can navigate between tabs if needed.
-    @State var selection: SettingsSection = .enforcement
     @StateObject var accountEnrollment = AccountEnrollmentController()
     @State var accountRecoveryKey = ""
     @State var recoveryKeyExportMessage = ""
 
-    init() {
-        #if DEBUG
-            let environment = ProcessInfo.processInfo.environment
-            let showsBrowserFixture = environment["CURFEW_DEMO_FIXTURE"] == "1" &&
-                environment["CURFEW_DEMO_SCENARIO"] == DemoScenario.settings.rawValue
-            _selection = State(initialValue: showsBrowserFixture ? .integrations : .enforcement)
-        #else
-            _selection = State(initialValue: .enforcement)
-        #endif
-    }
-
-    /// Tabbed settings layout.
     var body: some View {
-        TabView(selection: $selection) {
-            tab {
-                enforcementHealthPanel
-                extensionsPanel
-                warningPanel
-                presencePanel
-                shutdownPanel
-                protectedWorkPanel
+        HStack(spacing: 0) {
+            List(SettingsSection.allCases, selection: $selection) { section in
+                Label(section.title, systemImage: section.icon)
+                    .font(.system(size: 13))
+                    .tag(section)
+                    .accessibilityIdentifier("settings-\(section.rawValue)-tab")
             }
-            .tabItem { Label(
-                SettingsSection.enforcement.title,
-                systemImage: SettingsSection.enforcement.icon
-            ) }
-            .tag(SettingsSection.enforcement)
-
-            tab { integrationsPanel }
-                .tabItem { Label(
-                    SettingsSection.integrations.title,
-                    systemImage: SettingsSection.integrations.icon
-                )
-                .accessibilityIdentifier("settings-integrations-tab")
+            .listStyle(.sidebar)
+            .scrollContentBackground(.hidden)
+            .padding(.top, 12)
+            .frame(width: 180)
+            .background(CurfewTheme.canvasStrong)
+            Divider()
+            VStack(alignment: .leading, spacing: 0) {
+                Text((selection ?? .general).title)
+                    .font(.system(size: 22, weight: .semibold))
+                    .padding(.horizontal, 24)
+                    .padding(.top, 22)
+                    .padding(.bottom, 4)
+                Form {
+                    switch selection ?? .general {
+                    case .general:
+                        enforcementHealthPanel
+                        if model.featureFlags.privilegedHelperEnabled {
+                            privilegedHelperPanel
+                        }
+                        setupPanel
+                    case .enforcement:
+                        extensionsPanel
+                        presencePanel
+                    case .warnings:
+                        warningPanel
+                        shutdownPanel
+                        protectedWorkPanel
+                    case .integrations:
+                        integrationsPanel
+                    case .advanced:
+                        advancedPanel
+                        uninstallPanel
+                    case .about:
+                        aboutPanel
+                    }
                 }
-                .tag(SettingsSection.integrations)
-
-            tab {
-                advancedPanel
-                uninstallPanel
+                .formStyle(.grouped)
+                .scrollContentBackground(.hidden)
+                .accessibilityIdentifier("settings-detail")
             }
-            .tabItem { Label(
-                SettingsSection.advanced.title,
-                systemImage: SettingsSection.advanced.icon
-            ) }
-            .tag(SettingsSection.advanced)
-
-            tab { aboutPanel }
-                .tabItem { Label(
-                    SettingsSection.about.title,
-                    systemImage: SettingsSection.about.icon
-                ) }
-                .tag(SettingsSection.about)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(CurfewTheme.canvas)
         }
         .tint(CurfewTheme.accent)
         .background {
@@ -80,24 +72,42 @@ struct SettingsView: View {
                 accountEnrollment.presentationWindow = window
             }
         }
+        .onAppear {
+            selection = model.settingsDestination
+            #if DEBUG
+                if model.isDemoSession {
+                    registrationStatus = DemoReviewState
+                        .current == .claudeConfigured ? .alreadyRegistered : .claudeNotInstalled
+                }
+                if model.isDemoSession,
+                   let raw = ProcessInfo.processInfo.environment["CURFEW_DEMO_SETTINGS_SECTION"],
+                   let section = SettingsSection(rawValue: raw) {
+                    selection = section
+                }
+            #endif
+        }
+        .onChange(of: selection) { _, section in
+            if let section {
+                model.settingsDestination = section
+            }
+        }
+        .onChange(of: model.settingsDestination) { _, destination in selection = destination }
+        .onReceive(NotificationCenter.default
+            .publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+                refreshSystemState()
+        }
     }
 
-    /// Wraps a panel's content in the shared scroll + padding treatment used
-    /// by every Settings tab. Centralising it keeps the individual tab bodies
-    /// terse and visually consistent. Panels are separated by
-    /// `CurfewSpacing.section` — wider than the intra-panel `md` gap — so each
-    /// card reads as a distinct group.
-    func tab(@ViewBuilder content: () -> some View) -> some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: CurfewSpacing.section) {
-                content()
+    /// Refresh out-of-process changes on return, without overwriting demo state.
+    private func refreshSystemState() {
+        #if DEBUG
+            if ProcessInfo.processInfo.environment["CURFEW_DEMO_FIXTURE"] == "1" {
+                return
             }
-            .padding(CurfewSpacing.xLarge)
-            .frame(maxWidth: 900, alignment: .leading)
-        }
-        .scrollIndicators(.hidden)
-        .background(CurfewTheme.canvas)
-        .foregroundStyle(CurfewTheme.ink)
+        #endif
+        model.refreshAccessibilityTrust()
+        model.privilegedHelperManager.refreshStatus()
+        registrationStatus = ClaudeDesktopRegistration.currentStatus()
     }
 }
 

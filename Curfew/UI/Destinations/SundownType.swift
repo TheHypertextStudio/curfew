@@ -43,7 +43,7 @@ enum SundownType {
         .system(size: size, weight: .medium)
     }
 
-    /// Small uppercase eyebrows / captions. Used sparingly.
+    /// Small sentence-case captions.
     static func label(_ size: CGFloat = 12) -> Font {
         .system(size: size, weight: .medium)
     }

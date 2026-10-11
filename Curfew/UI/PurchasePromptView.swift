@@ -41,14 +41,14 @@ struct PurchasePromptView: View {
 
     /// Lock icon + copy + upgrade link in a compact horizontal panel.
     var body: some View {
-        CurfewPanel {
+        Section {
             HStack(spacing: 12) {
                 Image(systemName: "lock.fill")
                     .font(.system(size: 20))
                     .foregroundStyle(CurfewTheme.mutedInk)
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("\(feature) — Curfew Plus")
+                    Text("\(feature)")
                         .font(CurfewTypography.bodyEmphasis(14))
                         .foregroundStyle(CurfewTheme.ink)
 
@@ -59,7 +59,7 @@ struct PurchasePromptView: View {
 
                 Spacer()
 
-                Link("Get Plus", destination: LicensePurchase.pricingURL)
+                Link("Get Curfew Plus", destination: LicensePurchase.pricingURL)
                     .font(CurfewTypography.bodyEmphasis(13))
                     .foregroundStyle(CurfewTheme.accent)
             }

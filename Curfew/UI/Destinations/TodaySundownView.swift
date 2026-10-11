@@ -117,7 +117,7 @@ struct TodaySundownView: View {
                     .shadow(color: .black.opacity(0.18), radius: 22, y: 8)
 
                 HStack(spacing: 5) {
-                    Text("until your Mac locks at")
+                    Text(isEnforcing ? "Locks at" : "Scheduled lock")
                         .foregroundStyle(SundownPalette.warmWhite.opacity(0.9))
                     Text(lockTime)
                         .font(SundownType.strong(16))
@@ -127,7 +127,7 @@ struct TodaySundownView: View {
                 .shadow(color: .black.opacity(0.35), radius: 8, y: 1)
                 .padding(.top, 10)
 
-                Text("Unlocks \(unlockTime)")
+                Text(isEnforcing ? "Unlocks \(unlockTime)" : "Scheduled unlock \(unlockTime)")
                     .font(SundownType.body(14))
                     .foregroundStyle(SundownPalette.warmWhite.opacity(0.78))
                     .shadow(color: .black.opacity(0.3), radius: 6, y: 1)
@@ -265,10 +265,10 @@ private struct SundownCapsuleButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(SundownType.title(15))
-            .foregroundStyle(SundownPalette.warmWhite)
+            .foregroundStyle(CurfewTheme.onAccent)
             .padding(.horizontal, 22)
             .padding(.vertical, 12)
-            .background(CurfewTheme.accent, in: .capsule)
+            .background(CurfewTheme.accentFill, in: .capsule)
             .shadow(
                 color: CurfewTheme.accent.opacity(configuration.isPressed ? 0.18 : 0.3),
                 radius: 10,

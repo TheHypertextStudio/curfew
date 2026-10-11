@@ -25,6 +25,12 @@ final class CalendarMonitor {
     /// The next upcoming (future) event today, if any.
     private(set) var nextEvent: EKEvent?
 
+    #if DEBUG
+        func seedDemoAuthorization(_ status: EKAuthorizationStatus) {
+            authorizationStatus = status
+        }
+    #endif
+
     // MARK: - Private
 
     private let store = EKEventStore()

@@ -64,7 +64,7 @@ struct ScheduleContent: View {
     /// build a seven-day schedule from scratch.
     private var presetsPanel: some View {
         CurfewPanel {
-            Text("Start from a preset")
+            Text("Presets")
                 .font(CurfewTypography.title(16))
                 .foregroundStyle(CurfewTheme.ink)
 
@@ -86,14 +86,9 @@ struct ScheduleContent: View {
     private var weeklySchedulePanel: some View {
         CurfewPanel {
             CurfewSectionTitle(
-                title: "Weekly Schedule",
+                title: "Weekly schedule",
                 subtitle: ScheduleSurfaceCopy.weeklyScheduleSubtitle
             )
-
-            Text(ScheduleSurfaceCopy.weeklyScheduleExplanation)
-                .font(CurfewTypography.body(13))
-                .foregroundStyle(CurfewTheme.mutedInk)
-                .fixedSize(horizontal: false, vertical: true)
 
             VStack(alignment: .leading, spacing: 10) {
                 ForEach(Weekday.allCases) { weekday in
@@ -115,7 +110,7 @@ struct ScheduleContent: View {
     /// impulsive bypass; stricter edits may take effect next day).
     private func pendingChangePanel(message: String) -> some View {
         CurfewPanel {
-            CurfewSectionTitle(title: "Pending Change")
+            CurfewSectionTitle(title: "Scheduled change")
             Text(message)
                 .font(CurfewTypography.body(14))
                 .foregroundStyle(CurfewTheme.warning)

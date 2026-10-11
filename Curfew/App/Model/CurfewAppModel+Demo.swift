@@ -29,8 +29,26 @@ import CurfewKit
             return CurfewAppModel(
                 settingsStore: settingsStore,
                 appRouter: SystemAppRouter(),
-                featureFlags: .shippingV1,
-                activityRecorder: makeDemoActivityRecorder(now: now),
+                isDemoSession: true,
+                featureFlags: DemoReviewState.current.enablesPreviewConnections
+                    ? FeatureFlags(
+                        widgetKitEnabled: true,
+                        cloudSyncEnabled: true,
+                        mcpServerEnabled: true,
+                        privilegedHelperEnabled: true,
+                        calendarEnabled: true
+                    )
+                    : .shippingV1,
+                activityRecorder: makeDemoActivityRecorder(now: Date()),
+                licenseGate: LicenseGate(defaults: UserDefaults(suiteName: "CurfewDemoLicense")),
+                privilegedHelperManager: PrivilegedHelperManager(
+                    daemonService: DemoAppService(), loginItemService: DemoAppService(),
+                    daemonRPC: DemoDaemonRPC()
+                ),
+                lockoutDeadlineStore: LockoutDeadlineStore(recordURL: FileManager.default
+                    .temporaryDirectory
+                    .appendingPathComponent("CurfewDemo-\(UUID().uuidString).json")),
+                accessibilityAuthorization: DemoAccessibilityAuthorization(),
                 browserNativeRuntime: makeDemoBrowserRuntime(
                     defaults: settingsStore.storageDefaults,
                     now: now
@@ -52,10 +70,14 @@ import CurfewKit
             currentTime = DemoFixture.referenceTime(for: scenario, now: Date())
             state = DemoFixture.evaluation(for: scenario, now: currentTime)
             lockoutMessage = DemoFixture.lockoutMessage
+            applyDemoReviewState(DemoReviewState.current)
 
             switch scenario {
             case .settings:
-                privilegedHelperManager.seedDemoUnavailableError()
+                if DemoReviewState
+                    .current == .normal {
+                    privilegedHelperManager.seedDemoUnavailableError()
+                }
                 openSettings()
             case .gettingStarted:
                 settings.hasCompletedInitialSetup = false
@@ -85,7 +107,11 @@ import CurfewKit
             UserDefaults().removePersistentDomain(forName: suiteName)
             let defaults = UserDefaults(suiteName: suiteName) ?? .standard
             let store = CurfewSettingsStore(defaults: defaults)
-            store.save(DemoFixture.demoSettings())
+            var settings = DemoFixture.demoSettings()
+            if ProcessInfo.processInfo.environment["CURFEW_DEMO_SCENARIO"] == "getting-started" {
+                settings.hasCompletedInitialSetup = false
+            }
+            store.save(settings)
             // Consume the first-run flag so onboarding doesn't auto-open; the
             // `gettingStarted` scenario opens it explicitly instead.
             _ = store.consumeShouldShowInitialSetup()

@@ -22,6 +22,7 @@ mkdir -p "$OUT"
 rm -f "$OUT"/curfew-*.png
 
 echo "==> Running MarketingCaptureTests"
+status=0
 xcodebuild_arguments=(
     test
     -project Curfew.xcodeproj
@@ -30,13 +31,14 @@ xcodebuild_arguments=(
     -destination 'platform=macOS'
     -derivedDataPath build
     -only-testing:CurfewUITests/MarketingCaptureTests
+    -parallel-testing-enabled NO
     -resultBundlePath "$BUNDLE"
 )
 if [[ -n "${CURFEW_XCODEBUILD_SETTINGS:-}" ]]; then
     read -r -a ci_xcodebuild_settings <<< "$CURFEW_XCODEBUILD_SETTINGS"
     xcodebuild_arguments+=("${ci_xcodebuild_settings[@]}")
 fi
-xcodebuild "${xcodebuild_arguments[@]}"
+xcodebuild "${xcodebuild_arguments[@]}" || status=$?
 
 echo "==> Exporting attachments from result bundle"
 xcrun xcresulttool export attachments \
@@ -53,7 +55,7 @@ raw, out = sys.argv[1], sys.argv[2]
 manifest_path = os.path.join(raw, "manifest.json")
 if not os.path.exists(manifest_path):
     print("    !! no manifest.json found; leaving raw exports in place")
-    sys.exit(0)
+    sys.exit(1)
 with open(manifest_path) as f:
     manifest = json.load(f)
 # XCUITest appends "_<index>_<uuid>.png" to our attachment name — strip it
@@ -76,7 +78,11 @@ for entry in manifest:
         shutil.copyfile(src, os.path.join(out, clean))
         count += 1
 print(f"    exported {count} screenshot(s) to {out}")
+if count == 0:
+    sys.exit("No verified screenshots were exported")
 PY
 
 echo "==> Done. Screenshots in $OUT"
 ls -1 "$OUT"/*.png 2>/dev/null || echo "(no PNGs produced)"
+
+exit "$status"

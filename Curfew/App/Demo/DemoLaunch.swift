@@ -19,3 +19,14 @@ extension MainWorkspaceSection {
         return .today
     }
 }
+
+@MainActor
+extension CurfewAppModel {
+    static func permitsDemoIsolation(_ requested: Bool) -> Bool {
+        #if DEBUG
+            requested
+        #else
+            false
+        #endif
+    }
+}

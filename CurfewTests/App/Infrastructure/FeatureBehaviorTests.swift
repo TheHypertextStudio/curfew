@@ -136,6 +136,8 @@ struct AutoShutdownConfigurationTests {
 
         let status = workflow.statusLine(now: now)
         #expect(status?.contains("10:00") == true)
+        #expect(status?.contains("shut down") == true)
+        #expect(status?.contains("sleep") == false)
     }
 
     @Test("Shutdown delay clamps to one minute minimum")

@@ -110,6 +110,34 @@ struct DemoFixtureTests {
         #expect(work.task?.title == "Complete LVBT social strategy")
     }
 
+    @Test("Demo model cannot arm enforcement even through a visible start action")
+    func demoModelCannotArmEnforcement() {
+        let model = CurfewAppModel.demoModel()
+        model.start()
+        #expect(!model.isEnforcementRunning)
+    }
+
+    @Test("Schedule edits in demo mode cannot run enforcement even with shutdown enabled")
+    func demoScheduleEditsCannotEnterEnforcementCycle() {
+        let model = CurfewAppModel.demoModel()
+        model.applyDemoScenario(.overview)
+        let pinnedTime = model.currentTime
+        let pinnedState = model.state
+        model.settings.autoShutdownEnabled = true
+        model.queueScheduleUpdate(model.settings.schedule)
+        #expect(model.currentTime == pinnedTime)
+        #expect(model.state == pinnedState)
+        #expect(!model.isEnforcementRunning)
+    }
+
+    @Test("The menu bar never promises a lock while Curfew is off")
+    func menuBarOffCopyIsHonest() {
+        let model = CurfewAppModel.demoModel()
+        model.applyDemoScenario(.overview)
+        #expect(model.menuBarHeaderLine.contains("Curfew is off"))
+        #expect(!model.menuBarHeaderLine.contains("until your Mac locks"))
+    }
+
     // MARK: - Helpers
 
     private func fixedCalendar() -> Calendar {

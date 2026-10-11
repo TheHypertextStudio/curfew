@@ -271,13 +271,13 @@ struct ShutdownWorkflow: Equatable {
     /// there is nothing to tell the user (idle / completed cleanly).
     ///
     /// The model publishes this text so the lockout screen can render a
-    /// countdown ("Your Mac is going to sleep in 9:45.") without having to
+    /// countdown ("Your Mac will shut down in 9:45.") without having to
     /// know about workflow internals.
     func statusLine(now: Date) -> String? {
         switch phase {
         case .scheduled(let date):
             let remaining = max(0, Int(date.timeIntervalSince(now)))
-            return "Your Mac is going to sleep in \(ShutdownWorkflow.format(seconds: remaining))."
+            return "Your Mac will shut down in \(ShutdownWorkflow.format(seconds: remaining))."
         case .retryScheduled(let date):
             let remaining = max(0, Int(date.timeIntervalSince(now)))
             return "Retrying shutdown in \(ShutdownWorkflow.format(seconds: remaining))."

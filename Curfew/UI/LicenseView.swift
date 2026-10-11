@@ -13,14 +13,7 @@ struct LicenseView: View {
     /// Panel that swaps between an activation form and the activated
     /// licence summary depending on `LicenseGate.isPlusUnlocked`.
     var body: some View {
-        CurfewPanel {
-            CurfewSectionTitle(
-                title: "Curfew Plus",
-                subtitle: gate.isPlusUnlocked
-                    ? "Your license is active."
-                    : "Unlock cloud sync, widgets, and calendar awareness."
-            )
-
+        Section("Curfew Plus") {
             if gate.isPlusUnlocked {
                 unlockedBody
             } else {
@@ -78,19 +71,19 @@ struct LicenseView: View {
         VStack(alignment: .leading, spacing: 12) {
             // A stored-but-expired subscription lands here; nudge toward renewal.
             if gate.activatedKey != nil {
-                Text("Your Plus subscription has lapsed. Renew to restore access.")
+                Text("Your subscription has expired. Renew to restore Plus.")
                     .font(CurfewTypography.label(12))
                     .foregroundStyle(CurfewTheme.mutedInk)
             }
 
             plusFeatureList
 
-            TextField("Paste license key…", text: $keyDraft)
+            TextField("License key", text: $keyDraft)
                 .font(CurfewTypography.body(13))
                 .textFieldStyle(.roundedBorder)
                 .disableAutocorrection(true)
 
-            Text("Paste the key from your purchase confirmation page or email.")
+            Text("Use the key from your purchase email.")
                 .font(CurfewTypography.label(12))
                 .foregroundStyle(CurfewTheme.mutedInk)
 
@@ -115,9 +108,15 @@ struct LicenseView: View {
 
     private var plusFeatureList: some View {
         VStack(alignment: .leading, spacing: 4) {
-            plusFeatureRow("iCloud sync across all your Macs", icon: "icloud")
-            plusFeatureRow("WidgetKit status widget", icon: "rectangle.3.group")
-            plusFeatureRow("Calendar-aware schedule exceptions", icon: "calendar.badge.clock")
+            if model.featureFlags.widgetKitEnabled {
+                plusFeatureRow("Widgets", icon: "rectangle.3.group")
+            }
+            if model.featureFlags.cloudSyncEnabled {
+                plusFeatureRow("Schedule sync across your Macs", icon: "icloud")
+            }
+            if model.featureFlags.calendarEnabled {
+                plusFeatureRow("Today's calendar events", icon: "calendar.badge.clock")
+            }
         }
     }
 

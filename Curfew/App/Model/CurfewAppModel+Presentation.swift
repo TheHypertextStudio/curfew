@@ -11,6 +11,15 @@ import Foundation
 /// lockout overlay, and widgets.
 @MainActor
 extension CurfewAppModel {
+    /// Menu-bar status distinguishes a scheduled boundary from armed enforcement.
+    var menuBarHeaderLine: String {
+        guard isEnforcementRunning else { return "Curfew is off" }
+        if let lock = state.lockDate, state.phase == .working {
+            return "Locks at \(lock.formatted(date: .omitted, time: .shortened))"
+        }
+        return snapshot.statusLine
+    }
+
     /// SF Symbol name representing the current phase. Surfaces in the menu
     /// bar.
     ///

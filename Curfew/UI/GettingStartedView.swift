@@ -41,9 +41,13 @@ struct GettingStartedView: View {
     /// Header + current step panel + navigation action row.
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            header
-            stepPanel
-            Spacer(minLength: 0)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    header
+                    stepPanel
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
             actionRow
         }
         .padding(28)
@@ -76,18 +80,19 @@ struct GettingStartedView: View {
     /// timer; `updateAccessibilityGranted` then opens or re-closes the gate to
     /// match, so a revoked permission cannot leave a stale "granted" reading.
     private func syncAccessibilityGrant() {
-        model.refreshAccessibilityTrust()
+        if !model.isDemoSession {
+            model.refreshAccessibilityTrust()
+        }
         flow.updateAccessibilityGranted(model.isAccessibilityTrusted)
     }
 
     /// Static title + commitment sentence at the top of the window.
     private var header: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text(GettingStartedCopy.title)
+            Text(flow.currentStep == .welcome ? GettingStartedCopy.title : flow.currentStep.title)
                 .font(CurfewTypography.display(30))
 
-            Text(GettingStartedCopy.commitmentMessage)
-                .font(CurfewTypography.body(18))
+            Text("Step \(flow.currentStep.rawValue + 1) of \(FirstRunStep.allCases.count)")
                 .foregroundStyle(CurfewTheme.mutedInk)
         }
     }
@@ -95,23 +100,9 @@ struct GettingStartedView: View {
     /// Content panel that switches on the active `FirstRunStep`.
     private var stepPanel: some View {
         CurfewPanel {
-            CurfewSectionTitle(
-                title: flow.currentStep.title,
-                subtitle: "Step \(flow.currentStep.rawValue + 1) "
-                    + "of \(FirstRunStep.allCases.count)"
-            )
-
             Text(flow.currentStep.message)
                 .font(CurfewTypography.body(14))
                 .foregroundStyle(CurfewTheme.mutedInk)
-
-            VStack(alignment: .leading, spacing: 8) {
-                ForEach(flow.currentStep.checklist, id: \.self) { line in
-                    Label(line, systemImage: "checkmark.circle")
-                }
-            }
-            .font(CurfewTypography.bodyEmphasis(14))
-            .foregroundStyle(CurfewTheme.ink)
 
             stepExtras
         }
@@ -133,7 +124,7 @@ struct GettingStartedView: View {
                     .font(CurfewTypography.body(13))
                     .foregroundStyle(CurfewTheme.accent)
             } else {
-                Text("Open the schedule editor once here before continuing.")
+                Text("Review your schedule to continue.")
                     .font(CurfewTypography.body(13))
                     .foregroundStyle(CurfewTheme.mutedInk)
             }
@@ -149,7 +140,7 @@ struct GettingStartedView: View {
 
         if flow.currentStep == .confirmation {
             if model.settings.hasCompletedInitialSetup {
-                Label("Curfew is already active", systemImage: "checkmark.seal.fill")
+                Label("Setup complete", systemImage: "checkmark.seal.fill")
                     .font(CurfewTypography.bodyEmphasis(14))
                     .foregroundStyle(CurfewTheme.accent)
             }
@@ -206,9 +197,7 @@ struct GettingStartedView: View {
                 .foregroundStyle(CurfewTheme.warning)
 
             Text(
-                "Curfew needs Accessibility access to block bypass shortcuts "
-                    + "(⌘⇥, ⌘Q, …) during lockout. Grant it in System Settings, "
-                    + "then return here — this updates on its own."
+                "Enable Curfew in System Settings, then return here to continue."
             )
             .font(CurfewTypography.body(13))
             .foregroundStyle(CurfewTheme.mutedInk)
@@ -221,8 +210,7 @@ struct GettingStartedView: View {
         }
 
         Text(
-            "Notifications are optional — they deliver the wrap-up warnings. "
-                + "You can allow or change them in System Settings anytime."
+            "Notifications are optional. Manage them in System Settings."
         )
         .font(CurfewTypography.body(13))
         .foregroundStyle(CurfewTheme.mutedInk)

@@ -183,11 +183,12 @@ struct CurfewApp: App {
 
     /// Scene composition: main window + menu bar + Settings pane.
     var body: some Scene {
-        WindowGroup(id: MainWorkspaceSection.windowID) {
+        Window("Curfew", id: MainWorkspaceSection.windowID) {
             MainWindowView()
                 .environment(model)
                 .frame(minWidth: 980, minHeight: 660)
                 .onOpenURL { _ = AccountOAuthCallbackRouter.shared.route($0) }
+                .demoWindowSize(width: 1080, height: 720, minimumWidth: 980, minimumHeight: 660)
                 .preferredColorScheme(Self.demoColorScheme)
         }
         .defaultSize(width: 1080, height: 720)
@@ -221,9 +222,11 @@ struct CurfewApp: App {
 
         Settings {
             SettingsView()
+                .preferredColorScheme(Self.demoColorScheme)
                 .environment(model)
                 .frame(minWidth: 760, minHeight: 520)
                 .onOpenURL { _ = AccountOAuthCallbackRouter.shared.route($0) }
+                .demoWindowSize(width: 860, height: 620, minimumWidth: 760, minimumHeight: 520)
         }
 
         // First-launch onboarding window. Replaces the hand-rolled
@@ -231,7 +234,7 @@ struct CurfewApp: App {
         // `gettingStartedRequestID` / `gettingStartedDismissID` triggers and
         // drives `openWindow` / `dismissWindow` for this group. Suppressed at
         // launch so it only appears when the model requests it.
-        WindowGroup(id: CurfewAppModel.gettingStartedWindowID) {
+        Window("Set Up Curfew", id: CurfewAppModel.gettingStartedWindowID) {
             GettingStartedView()
                 .environment(model)
                 .preferredColorScheme(Self.demoColorScheme)

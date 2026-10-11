@@ -14,16 +14,10 @@ extension SettingsView {
     /// re-launching Mac can re-register cleanly without a create/delete
     /// race.
     var devicesListPanel: some View {
-        CurfewPanel {
-            CurfewSectionTitle(
-                title: "Devices",
-                subtitle: "Macs syncing this schedule via iCloud."
-            )
-
+        Section("Devices") {
             if model.deviceRegistry.activeDevices.isEmpty {
                 Text(
-                    "No devices registered yet. Enable iCloud sync " +
-                        "in Settings → Integrations → iCloud Sync."
+                    "No Macs are syncing yet."
                 )
                 .font(CurfewTypography.body(13))
                 .foregroundStyle(CurfewTheme.mutedInk)

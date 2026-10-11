@@ -15,24 +15,10 @@ extension SettingsView {
     /// user via a drag-to-Trash prompt, which matches Finder conventions
     /// and avoids having to re-obtain elevated permissions.
     var uninstallPanel: some View {
-        CurfewPanel {
-            HStack(spacing: CurfewSpacing.small) {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .foregroundStyle(CurfewTheme.warning)
-                Text("Uninstall")
-                    .font(CurfewTypography.title(16))
-                    .foregroundStyle(CurfewTheme.ink)
-            }
-
-            Text(
-                "Removes all local state written by Curfew on this Mac: the " +
-                    "activity log, MCP request queue, the bypass-deterrent " +
-                    "LaunchAgent, and your settings. Your iCloud-synced schedule " +
-                    "(Pro) is not affected. This cannot be undone."
-            )
-            .font(CurfewTypography.body(13))
-            .foregroundStyle(CurfewTheme.mutedInk)
-            .fixedSize(horizontal: false, vertical: true)
+        Section("Remove Curfew") {
+            Text("Permanently delete settings, history, and the license key from this Mac. "
+                + "Your synced schedule is kept. This cannot be undone.")
+                .foregroundStyle(CurfewTheme.mutedInk)
 
             Button("Uninstall Curfew…") {
                 confirmUninstall()
@@ -40,12 +26,6 @@ extension SettingsView {
             .buttonStyle(CurfewSecondaryButtonStyle())
             .accessibilityHint("Opens a confirmation dialog before clearing local state.")
         }
-        // A warning-tinted border marks this as the destructive seam, set apart
-        // from the everyday diagnostics above it in the Advanced tab.
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .stroke(CurfewTheme.warning.opacity(0.45), lineWidth: 1)
-        )
     }
 
     /// Presents the confirmation dialog, runs the coordinator, then surfaces
@@ -57,14 +37,15 @@ extension SettingsView {
         let alert = NSAlert()
         alert.messageText = "Uninstall Curfew on this Mac?"
         alert.informativeText =
-            "Curfew will remove its local state (activity log, settings, " +
-            "license key, LaunchAgent). You'll then be prompted to drag " +
-            "\(appName) to the Trash. This cannot be undone."
+            "Your settings, history, and license key will be deleted from this Mac. " +
+            "Your synced schedule is kept. You will then move Curfew to the Trash. " +
+            "This cannot be undone."
         alert.alertStyle = .warning
         alert.addButton(withTitle: "Uninstall")
         alert.addButton(withTitle: "Cancel")
 
         guard alert.runModal() == .alertFirstButtonReturn else { return }
+        guard !model.isDemoSession else { return }
 
         model.browserNativeRuntime.stop()
         Task {

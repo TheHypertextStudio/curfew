@@ -105,17 +105,13 @@ enum EnforcementHealth: Equatable {
         case .degradedTapDown:
             Self.tapDownBannerDetail
         case .degradedHelperUnavailable:
-            "The privileged helper is unavailable. Install or approve it in "
-                + "Settings → Integrations."
+            "Background protection isn't connected. Install or approve it in Settings → General."
         case .degradedHelperUnauthorized:
-            "The privileged helper rejected Curfew's signature. Reinstall a "
-                + "signed release build."
+            "Background protection rejected this build. Reinstall a signed release of Curfew."
         case .degradedHelperStale:
-            "The privileged helper heartbeat is stale. Relaunch Curfew before "
-                + "relying on enforcement."
+            "Background protection lost its connection. Reopen Curfew before relying on lockout."
         case .degradedHelperRegistration:
-            "The privileged helper could not register. Review Settings → "
-                + "Integrations and try again."
+            "Background protection couldn't start. Open Settings → General to try again."
         }
     }
 
@@ -146,11 +142,11 @@ enum EnforcementHealth: Equatable {
         case .degradedTapDown:
             "Enforcement is not active — the keyboard shield was interrupted."
         case .degradedHelperUnavailable:
-            "Enforcement is not active — the privileged helper is unavailable."
+            "Enforcement is not active — background protection isn't connected."
         case .degradedHelperUnauthorized:
             "Enforcement is not active — the privileged helper rejected this build."
         case .degradedHelperStale:
-            "Enforcement is not active — the privileged helper heartbeat is stale."
+            "Enforcement is not active — the privileged background protection lost its connection."
         case .degradedHelperRegistration:
             "Enforcement is not active — the privileged helper could not register."
         }
@@ -162,7 +158,7 @@ enum EnforcementHealth: Equatable {
     var settingsStatusTitle: String {
         switch self {
         case .active:
-            "Enforcement is active"
+            "Ready to enforce"
         case .degradedNoAccessibility:
             Self.noAccessibilityBannerTitle
         case .degradedTapDown:
@@ -176,8 +172,7 @@ enum EnforcementHealth: Equatable {
     /// Reassurance body shown in the Settings panel when enforcement is
     /// ``active``; the degraded cases use ``bannerDetail`` instead.
     static let activeSettingsDetail =
-        "Accessibility is trusted and the keyboard shield runs whenever a "
-            + "lockout is active. Nothing to do here."
+        "Curfew can block shortcuts during lockout."
 
     /// Whether this state should offer the "open Accessibility settings"
     /// fix-it affordance. `true` for every degraded case — re-granting

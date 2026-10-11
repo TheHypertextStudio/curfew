@@ -109,6 +109,13 @@ final class LicenseGate {
             ?? .standard
     }
 
+    #if DEBUG
+        func seedDemoLicense(_ key: LicenseKey?, error: String? = nil) {
+            activatedKey = key
+            activationError = error
+        }
+    #endif
+
     /// Re-verifies any persisted licence string on app launch. Failures
     /// are silent — a malformed stored key simply leaves `activatedKey`
     /// nil so the user re-enters when visiting Settings → License.

@@ -15,8 +15,8 @@ import SwiftUI
 @Observable
 @MainActor
 final class CurfewAppModel: NSObject {
-    /// Extension-button hold duration before a request is consumed; also drives
-    /// `EnforcementSnapshot.extensionRequestTitle` copy.
+    // Extension-button hold duration before a request is consumed; also drives
+
     static let extensionConfirmationHoldSeconds: Double = 2
 
     /// Whether the first-launch Settings window should open automatically
@@ -24,8 +24,7 @@ final class CurfewAppModel: NSObject {
     /// again — re-invoking onboarding from Settings uses a different path.
     let shouldOpenSettingsOnLaunch: Bool
 
-    /// Runtime module flags (widgets, cloud sync, MCP, privileged helper).
-    /// See ``FeatureFlags``.
+    /// Runtime module flags. See ``FeatureFlags``.
     let featureFlags: FeatureFlags
 
     /// Plus license gate. Verifies the stored license key on startup and
@@ -87,6 +86,10 @@ final class CurfewAppModel: NSObject {
     /// ``MCPConsentSheet`` on the front window. Entries are removed once the
     /// user approves or denies.
     var pendingMCPRequests: [MCPPendingRequest] = []
+
+    /// Isolated Debug capture sessions never start system services or enforcement.
+    let isDemoSession: Bool
+    var settingsDestination: SettingsSection = .general
 
     /// Briefly true after a queued schedule change takes effect, so Schedule can
     /// confirm it (survives sidebar navigation; set via `flagScheduleChangeApplied()`).
@@ -292,8 +295,8 @@ final class CurfewAppModel: NSObject {
 
     /// Last local send/arm time, used to avoid one XPC connection per tick.
     @ObservationIgnored var lastPrivilegedHeartbeatAt: Date?
-    /// Whether enforcement is armed (the full `tick()` runs); guards `start()`
-    /// idempotency. **Observed** so Today's on/off control reacts directly.
+    // Whether enforcement is armed (the full `tick()` runs); guards `start()`
+
     private(set) var started = false
 
     // The initializer assigns the complete injected runtime graph before
@@ -306,6 +309,7 @@ final class CurfewAppModel: NSObject {
     init(
         settingsStore: CurfewSettingsStore,
         appRouter: AppRouting,
+        isDemoSession: Bool = false,
         featureFlags: FeatureFlags? = nil,
         activityRecorder: any ActivityRecording,
         reflectionState: ReflectionRuntimeState? = nil,
@@ -323,6 +327,7 @@ final class CurfewAppModel: NSObject {
         accessibilityAuthorization: AccessibilityAuthorizing? = nil,
         browserNativeRuntime: BrowserNativeRuntime? = nil
     ) {
+        self.isDemoSession = Self.permitsDemoIsolation(isDemoSession)
         self.settingsStore = settingsStore
         self.policyEngine = SchedulePolicyEngine()
         let enforcementEngine = CurfewEnforcementEngine()
@@ -378,7 +383,6 @@ final class CurfewAppModel: NSObject {
         self.extensionsRemaining = extensionTracker.remaining
         self.overridesRemaining = overrideTracker.remaining
         self.lockoutMessage = EncouragementMessageCatalog.next(after: nil)
-        self.shutdownStatusLine = nil
         self.currentDayToken = Self.dayToken(for: now)
         self.isUserIdle = self.idleWatcher.isIdle
         let seededTrust = self.accessibilityAuthorization.isTrusted()
@@ -411,12 +415,9 @@ final class CurfewAppModel: NSObject {
         )
     }
 
-    /// Arms enforcement: from now on the 1 Hz clock runs the full ``tick()``,
-    /// so lockout side-effects fire. Safe to call repeatedly; no-ops when
-    /// onboarding is incomplete or already armed. Call order relative to
-    /// ``beginDisplayClock()`` doesn't matter — see `lastEnforcedPhase`.
+    /// Arms enforcement once setup is complete; isolated demos remain disarmed.
     func start() {
-        guard settings.hasCompletedInitialSetup, !started else { return }
+        guard !isDemoSession, settings.hasCompletedInitialSetup, !started else { return }
         started = true
         notificationManager.requestPermissionIfNeeded()
         installRespawnGuardIfNeeded()

@@ -3,7 +3,7 @@ import Foundation
 
 enum ScheduleSurfaceCopy {
     static let weeklyScheduleSubtitle =
-        "Set when work ends and when blocked time lifts each day."
+        "Choose work hours. Your Mac is blocked outside them."
 
     static let weeklyScheduleExplanation =
         "Curfew blocks work after Work ends and keeps it blocked until Work resumes."
@@ -12,7 +12,7 @@ enum ScheduleSurfaceCopy {
     static let workResumesLabel = "Work resumes"
 
     static let onboardingMessage =
-        "Choose realistic times for when work ends each day and when work resumes the next morning."
+        "Choose when your Mac locks and unlocks."
 
     static let onboardingChecklist = [
         "Set when work ends and resumes",

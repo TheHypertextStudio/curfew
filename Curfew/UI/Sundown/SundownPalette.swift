@@ -9,19 +9,32 @@ enum SundownPalette {
     // MARK: - Brand constants
 
     /// The warm page the workspace sanctuary sits on.
-    static let paper = Color(red: 0.96, green: 0.94, blue: 0.90)
+    static let paper = CurfewTheme.canvas
     /// Near-white with a warm cast — text over the dark sky.
     static let warmWhite = Color(red: 0.99, green: 0.97, blue: 0.94)
+    /// Supporting text on opaque night panels and dark reflection inputs.
+    static let supportingText = warmWhite.opacity(0.82)
+
+    /// Dark reflection inputs preserve text contrast even over the brightest sky.
+    static func inputSurface(usesSolidPanels: Bool) -> Color {
+        usesSolidPanels ? .black : .black.opacity(0.72)
+    }
+
     /// Primary warm near-black ink.
-    static let ink = Color(red: 0.19, green: 0.16, blue: 0.14)
+    static let ink = CurfewTheme.ink
     /// Secondary ink.
-    static let inkSoft = Color(red: 0.52, green: 0.46, blue: 0.41)
+    static let inkSoft = CurfewTheme.mutedInk
     /// The setting sun — the one brand accent.
-    static let ember = Color(red: 0.85, green: 0.45, blue: 0.23)
+    static let ember = CurfewTheme.accentFill
     /// A brighter ember for kindled / pressed states.
-    static let emberBright = Color(red: 0.96, green: 0.56, blue: 0.31)
+    static let emberBright = CurfewTheme.accent
     /// Warm bloom used for the sun's glow.
     static let glow = Color(red: 1.0, green: 0.85, blue: 0.62)
+
+    /// Shared opaque night surface for warning capsules and static lockout views.
+    static var nightSky: LinearGradient {
+        LinearGradient(stops: skyStops(for: 0), startPoint: .top, endPoint: .bottom)
+    }
 
     // MARK: - Sky keyframes
 
@@ -68,11 +81,11 @@ enum SundownPalette {
         let lower = frame[2]
         let horizon = frame[3]
 
-        /// Lateral colour-temperature axis: warmer toward the sun (right column,
-        /// pulled toward the ember `glow`), cooler toward the anti-sun side (left
-        /// column, pulled gently toward the cool `crown` hue). The spread widens
-        /// row by row toward the horizon where the sun actually sits — the warm/
-        /// cool variation a flat vertical gradient can't render.
+        // Lateral colour-temperature axis: warmer toward the sun (right column,
+        // pulled toward the ember `glow`), cooler toward the anti-sun side (left
+        // column, pulled gently toward the cool `crown` hue). The spread widens
+        // row by row toward the horizon where the sun actually sits — the warm/
+        // cool variation a flat vertical gradient can't render.
         func cool(_ base: SkyRGB, _ amount: Double) -> SkyRGB {
             base.lerp(to: crown, amount)
         }

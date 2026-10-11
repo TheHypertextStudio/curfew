@@ -186,7 +186,7 @@ struct LockoutScreenView: View {
                         Capsule()
                             .fill(SundownPalette.ember.opacity(model.canConfirmOverride ? 1 : 0.4))
                         // Progress fill sweeps left-to-right during the hold gesture.
-                        Color.white.opacity(0.22)
+                        CurfewTheme.filledProgressOverlay
                             .clipShape(Capsule())
                             .scaleEffect(x: holdProgress, y: 1, anchor: .leading)
                             .animation(
@@ -198,7 +198,7 @@ struct LockoutScreenView: View {
                                 + "\(model.settings.overrideDurationMinutes) min"
                         )
                         .font(.system(size: 14, weight: .semibold, design: .rounded))
-                        .foregroundStyle(SundownPalette.warmWhite)
+                        .foregroundStyle(CurfewTheme.onAccent)
                     }
                     .frame(width: 340, height: 44)
                 })
@@ -231,6 +231,10 @@ struct LockoutScreenView: View {
                         }
                     }
                 }
+            } else if model.overridesRemaining == 0 {
+                Text("No overrides left this week")
+                    .font(.callout)
+                    .foregroundStyle(SundownPalette.warmWhite.opacity(0.72))
             } else {
                 Button(OverrideRequestPolicy.entryPrompt) {
                     model.beginOverrideRequest()
@@ -277,9 +281,8 @@ struct LockoutScreenView: View {
         HStack(spacing: 8) {
             Image(systemName: "calendar")
                 .font(.system(size: 12, weight: .medium))
-            Text(label.uppercased())
+            Text(label)
                 .font(.system(size: 11, weight: .semibold, design: .rounded))
-                .tracking(0.5)
             Text(title)
                 .font(.system(size: 13, weight: .regular, design: .rounded))
                 .lineLimit(1)
@@ -289,7 +292,7 @@ struct LockoutScreenView: View {
                     .opacity(0.8)
             }
         }
-        .foregroundStyle(.white.opacity(0.7))
+        .foregroundStyle(SundownPalette.supportingText)
         .padding(.horizontal, 14)
         .padding(.vertical, 7)
         .background(.white.opacity(0.08))
@@ -314,10 +317,10 @@ struct EveningReflectionCard: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Close out the day")
                     .font(.system(size: 22, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(SundownPalette.warmWhite)
                 Text("A moment to reflect before you step away.")
                     .font(.system(size: 14, weight: .regular, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.7))
+                    .foregroundStyle(SundownPalette.supportingText)
             }
 
             ReflectionFormView(
@@ -334,11 +337,7 @@ struct EveningReflectionCard: View {
         }
         .padding(24)
         .frame(maxWidth: 600, alignment: .leading)
-        .background(
-            usesSolidPanels
-                ? Color.black.opacity(0.6)
-                : Color.white.opacity(0.08)
-        )
+        .background(SundownPalette.nightSky)
         .cornerRadius(18)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Evening reflection")

@@ -3,67 +3,66 @@ import ServiceManagement
 import SwiftUI
 
 extension SettingsView {
-    /// Install and removal controls for the authenticated LaunchDaemon and
-    /// main-app login item. Only shown when `privilegedHelperEnabled`.
-    @ViewBuilder
     var privilegedHelperPanel: some View {
         let helper = model.privilegedHelperManager
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("LaunchDaemon")
-                        .font(CurfewTypography.bodyEmphasis(13))
-                    Text(PrivilegedHelperStatusCopy.daemonDescription(for: helper.daemonStatus))
-                        .font(CurfewTypography.label(12))
-                        .foregroundStyle(CurfewTheme.mutedInk)
-                }
-                Spacer()
-                if helper.daemonStatus == .enabled {
-                    Button("Uninstall") {
-                        Task { await helper.uninstallDaemon() }
-                    }
-                    .buttonStyle(CurfewSecondaryButtonStyle())
-                } else {
-                    Button("Install…") {
-                        helper.installDaemon()
-                    }
-                    .buttonStyle(CurfewSecondaryButtonStyle())
-                }
-            }
-
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Open at Login")
-                        .font(CurfewTypography.bodyEmphasis(13))
-                    Text(PrivilegedHelperStatusCopy
-                        .loginItemDescription(for: helper.loginItemStatus))
-                        .font(CurfewTypography.label(12))
-                        .foregroundStyle(CurfewTheme.mutedInk)
-                }
-                Spacer()
-                if helper.loginItemStatus == .enabled {
-                    Button("Disable") {
+        return Section {
+            Toggle("Open at login", isOn: Binding(
+                get: { helper.loginItemStatus == .enabled },
+                set: { enabled in
+                    if enabled {
+                        helper.registerLoginItem()
+                    } else {
                         helper.unregisterLoginItem()
                     }
-                    .buttonStyle(CurfewSecondaryButtonStyle())
-                } else {
-                    Button("Enable") {
-                        helper.registerLoginItem()
+                }
+            ))
+            if helper.loginItemStatus == .requiresApproval {
+                Button("Approve in System Settings…") {
+                    if !model.isDemoSession {
+                        SMAppService.openSystemSettingsLoginItems()
                     }
-                    .buttonStyle(CurfewSecondaryButtonStyle())
                 }
             }
-
-            if let err = helper.lastError {
-                Text(err)
-                    .font(CurfewTypography.body(12))
-                    .foregroundStyle(Color.red.opacity(0.8))
-                    .fixedSize(horizontal: false, vertical: true)
+            LabeledContent("Background protection") {
+                if helper.daemonStatus == .requiresApproval {
+                    Button("Approve…") {
+                        if !model.isDemoSession {
+                            SMAppService.openSystemSettingsLoginItems()
+                        }
+                    }
+                } else if helper.daemonStatus == .enabled {
+                    Text(helper.connectionState.statusText).foregroundStyle(CurfewTheme.mutedInk)
+                } else {
+                    Button("Install…") { helper.installDaemon() }
+                }
             }
-
-            Text("Authenticated channel: \(helper.connectionState.statusText)")
-                .font(CurfewTypography.label(12))
-                .foregroundStyle(CurfewTheme.mutedInk)
+            DisclosureGroup("Details") {
+                LabeledContent(
+                    "Installation",
+                    value: PrivilegedHelperStatusCopy.daemonDescription(
+                        for: helper.daemonStatus
+                    )
+                )
+                LabeledContent("Connection", value: helper.connectionState.statusText)
+                if helper.daemonStatus == .enabled {
+                    Button("Remove Background Protection…") {
+                        Task { await helper.uninstallDaemon() }
+                    }
+                }
+            }
+            if let error = helper.lastError {
+                DisclosureGroup("Troubleshooting") {
+                    Text(error).textSelection(.enabled)
+                    Text("If the connection is interrupted, reopen Curfew. If this build is "
+                        + "rejected, reinstall a signed release.")
+                }
+            }
+        } header: {
+            Text("Options")
+        } footer: {
+            Text(
+                "Install with macOS approval to keep your curfew in place if the app stops."
+            )
         }
     }
 }
@@ -71,11 +70,11 @@ extension SettingsView {
 private extension PrivilegedHelperManager.ConnectionState {
     var statusText: String {
         switch self {
-        case .ready: "Ready"
-        case .unavailable: "Unavailable"
-        case .unauthorized: "Rejected this app signature"
-        case .stale: "Heartbeat stale"
-        case .registrationFailed: "Registration failed"
+        case .ready: "Connected"
+        case .unavailable: "Not connected"
+        case .unauthorized: "This build was rejected"
+        case .stale: "Connection interrupted"
+        case .registrationFailed: "Installation failed"
         }
     }
 }

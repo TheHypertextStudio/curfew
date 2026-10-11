@@ -70,6 +70,7 @@ extension CurfewAppModel {
     /// stale `.pending` entry until its own timeout — worse than a stuck
     /// sheet, but not silently invisible the way a bare `try?` was.
     func writeMCPQueueUpdate(_ request: MCPPendingRequest) {
+        guard !isDemoSession else { return }
         do {
             try MCPRequestQueue.update(request)
         } catch {

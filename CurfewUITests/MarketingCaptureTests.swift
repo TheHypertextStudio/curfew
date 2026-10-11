@@ -1,129 +1,312 @@
 import XCTest
 
-/// Drives the app through each demo-fixture scenario and saves a screenshot
-/// as a `.keepAlways` attachment. This is the CI / debug capture tier: the
-/// XCUITest screenshot API needs no Screen Recording permission, so it works
-/// on headless GitHub runners where `screencapture` cannot. Windowed scenarios
-/// grab the app window element (z-order-independent); overlay scenarios grab
-/// the full screen.
-///
-/// `scripts/extract-screenshots.sh` pulls the attachments out of the result
-/// bundle into `build/screenshots/`. The higher-fidelity, shadowed per-window
-/// stills and the walkthrough video are produced locally by
-/// `scripts/capture-marketing.sh` / `scripts/capture-video.sh` instead.
-///
-/// Each scenario token here must match a `DemoScenario` raw value in the app
-/// (`Curfew/App/Demo/DemoFixture.swift`).
+/// Captures only an asserted fixture window or an asserted full-screen overlay.
+/// No missing-window fallback: a desktop capture is never a passing result.
 final class MarketingCaptureTests: XCTestCase {
-    // One throwaway launch to absorb the macOS XCUITest "first launch settles
-    // in the background" penalty, so the very first real scenario already
-    // foregrounds and registers its window. Without this the alphabetically
-    // first scenario tends to capture the operator's desktop instead.
-    // (XCTest's setUp override must be `class func`, not `static`.)
-    // swiftlint:disable:next static_over_final_class
-    override class func setUp() {
-        let app = XCUIApplication()
-        app.launchEnvironment["CURFEW_DEMO_FIXTURE"] = "1"
-        app.launchEnvironment["CURFEW_DEMO_SCENARIO"] = "overview"
-        app.launch()
-        _ = app.wait(for: .runningForeground, timeout: 10)
-        app.terminate()
-    }
-
     override func setUpWithError() throws {
-        // Keep going if an activation hiccup logs a failure mid-test so we
-        // still capture (and attempt the remaining scenarios).
-        continueAfterFailure = true
+        continueAfterFailure = false
     }
 
-    @MainActor func testCaptureOverview() {
-        capture(named: "overview", scenario: "overview")
-    }
-
-    @MainActor func testCaptureConfiguration() {
-        capture(named: "configuration", scenario: "configuration")
-    }
-
-    @MainActor func testCaptureSettings() {
-        capture(named: "settings", scenario: "settings")
-    }
-
-    @MainActor func testCaptureGettingStarted() {
-        capture(named: "getting-started", scenario: "getting-started")
-    }
-
-    @MainActor func testCaptureThisWeek() {
-        capture(named: "this-week", scenario: "this-week")
-    }
-
-    /// Overlay scenarios render a full-screen NSWindow that isn't part of the
-    /// app's accessibility window tree, so they must be grabbed off the screen.
-    @MainActor func testCaptureWarning() {
-        capture(named: "warning", scenario: "warning", fullScreen: true)
-    }
-
-    @MainActor func testCaptureLockout() {
-        capture(named: "lockout", scenario: "lockout", fullScreen: true)
-    }
-
-    /// Launches the app in `scenario`, waits for it to settle, and attaches a
-    /// screenshot under a stable `curfew-<named>` name.
-    ///
-    /// Windowed scenarios screenshot the app **window element**, which XCUITest
-    /// captures regardless of z-order — so a launch that lands in the
-    /// background (a known first-launch XCUITest quirk on macOS) yields the
-    /// Curfew window rather than whatever happens to be frontmost on the
-    /// operator's desktop. Overlay scenarios fall back to the full screen.
     @MainActor
-    private func capture(named: String, scenario: String, fullScreen: Bool = false) {
-        let app = XCUIApplication()
-        app.launchEnvironment["CURFEW_DEMO_FIXTURE"] = "1"
-        app.launchEnvironment["CURFEW_DEMO_SCENARIO"] = scenario
-        app.launch()
-
-        // Demo mode self-activates, but nudge it if the launch settled in the
-        // background and wait softly — never hard-assert, so a hiccup can't
-        // block the capture.
-        if app.state != .runningForeground {
-            app.activate()
-        }
-        _ = app.wait(for: .runningForeground, timeout: 10)
-
-        // For windowed scenarios, wait for the window element to register and
-        // re-activate if it hasn't — then we screenshot the window itself,
-        // which is captured regardless of z-order.
-        let window = scenario == "settings"
-            ? app.windows.containing(.staticText, identifier: "Curfew Account").firstMatch
-            : app.windows.firstMatch
-        if !fullScreen, !window.waitForExistence(timeout: 6) {
-            app.activate()
-            _ = window.waitForExistence(timeout: 6)
-        }
-        if scenario == "settings" {
-            if !window.exists {
-                // The hosted runner cannot be inspected interactively. Emit
-                // the demo app's accessibility tree so a missing Settings
-                // scene can be distinguished from a wrong selected panel.
-                print("Settings capture accessibility tree:\n\(app.debugDescription)")
+    func testCaptureSettingsMatrix() {
+        for appearance in ["light", "dark"] {
+            for size in ["default", "minimum"] {
+                let app = launch("settings", appearance: appearance, size: size)
+                let window = app.windows["com_apple_SwiftUI_Settings_window"]
+                XCTAssertTrue(window.waitForExistence(timeout: 8))
+                for section in [
+                    "general",
+                    "enforcement",
+                    "warnings",
+                    "integrations",
+                    "advanced",
+                    "about"
+                ] {
+                    app.descendants(matching: .any)["settings-\(section)-tab"].click()
+                    XCTAssertTrue(app.scrollViews["settings-detail"].waitForExistence(timeout: 3))
+                    let titles = [
+                        "general": "Protection",
+                        "enforcement": "Weekly allowance",
+                        "warnings": "Before lockout",
+                        "integrations": "AI assistants",
+                        "advanced": "Remove Curfew",
+                        "about": "Curfew Plus"
+                    ]
+                    assertText(titles[section] ?? section, in: app)
+                    attach(window, name: "settings-\(section)-\(appearance)-\(size)")
+                    scrollToBottom(window)
+                    attach(window, name: "settings-\(section)-bottom-\(appearance)-\(size)")
+                }
+                app.terminate()
             }
-            XCTAssertTrue(
-                window.staticTexts["Curfew Account"].exists,
-                "The Settings capture must show the account panel"
+        }
+    }
+
+    @MainActor
+    func testCaptureCriticalStateMatrix() {
+        for appearance in ["light", "dark"] {
+            for size in ["default", "minimum"] {
+                for state in [
+                    "accessibility-denied",
+                    "helper-unauthorized",
+                    "assistant-on",
+                    "license-invalid"
+                ] {
+                    let app = launch("settings", state: state, appearance: appearance, size: size)
+                    let window = app.windows["com_apple_SwiftUI_Settings_window"]
+                    XCTAssertTrue(window.waitForExistence(timeout: 8))
+                    assertSettingsState(state, in: app)
+                    if state == "assistant-on" {
+                        app.buttons["manual-assistant-setup"].click()
+                        XCTAssertTrue(app.buttons["copy-assistant-config"]
+                            .waitForExistence(timeout: 3))
+                    }
+                    attach(window, name: "critical-\(state)-\(appearance)-\(size)")
+                    app.terminate()
+                }
+                let app = launch("settings", appearance: appearance, size: size)
+                app.descendants(matching: .any)["settings-advanced-tab"].click()
+                app.buttons["Uninstall Curfew…"].click()
+                let alert = app.dialogs.firstMatch
+                XCTAssertTrue(alert.waitForExistence(timeout: 5))
+                assertText("This cannot be undone.", in: app)
+                XCTAssertTrue(alert.buttons["Uninstall"].exists)
+                XCTAssertTrue(alert.buttons["Cancel"].exists)
+                XCTAssertGreaterThan(alert.frame.width, 220)
+                attach(alert.screenshot(), name: "uninstall-confirm-\(appearance)-\(size)")
+                alert.buttons["Cancel"].click()
+                app.terminate()
+            }
+        }
+    }
+
+    @MainActor
+    func testCaptureWorkspaceMatrix() {
+        for appearance in ["light", "dark"] {
+            for size in ["default", "minimum"] {
+                for scenario in ["overview", "configuration", "this-week", "getting-started"] {
+                    let app = launch(scenario, appearance: appearance, size: size)
+                    let prefix = scenario == "getting-started"
+                        ? "getting-started" : "main-workspace"
+                    let window = app.windows.matching(NSPredicate(
+                        format: "identifier BEGINSWITH %@",
+                        prefix
+                    )).firstMatch
+                    XCTAssertTrue(window.waitForExistence(timeout: 8))
+                    attach(window, name: "\(scenario)-\(appearance)-\(size)")
+                    if ["configuration", "this-week"].contains(scenario) {
+                        scrollToBottom(window)
+                        attach(window, name: "\(scenario)-bottom-\(appearance)-\(size)")
+                    }
+                    if scenario == "getting-started" {
+                        for step in 1 ... 4 {
+                            if step == 2 {
+                                app.buttons["Open Schedule"].click()
+                                app.typeKey("w", modifierFlags: .command)
+                            }
+                            app.buttons["Next"].click()
+                            assertText("Step \(step + 1) of 5", in: app)
+                            attach(window, name: "setup-step-\(step + 1)-\(appearance)-\(size)")
+                        }
+                    }
+                    if scenario == "this-week" {
+                        app.radioButtons["Prompts"].click()
+                        XCTAssertTrue(app.staticTexts["Your reflections and AI"]
+                            .waitForExistence(timeout: 3))
+                        attach(window, name: "prompts-\(appearance)-\(size)")
+                        scrollToBottom(window)
+                        attach(window, name: "prompts-bottom-\(appearance)-\(size)")
+                    }
+                    app.terminate()
+                }
+            }
+        }
+    }
+
+    @MainActor
+    func testCaptureDistinctSettingsStates() {
+        let states = [
+            "ready",
+            "accessibility-denied",
+            "tap-down",
+            "helper-approval",
+            "helper-unauthorized",
+            "helper-stale",
+            "helper-registration",
+            "login-approval",
+            "limits-none",
+            "assistant-on",
+            "assistant-read-only",
+            "assistant-automatic",
+            "assistant-pending",
+            "claude-absent",
+            "claude-configured",
+            "license-invalid",
+            "license-lifetime",
+            "license-subscription",
+            "license-expired",
+            "cloud-idle",
+            "cloud-syncing",
+            "cloud-synced",
+            "cloud-failed",
+            "cloud-unavailable",
+            "calendar-denied",
+            "calendar-empty"
+        ]
+        for state in states {
+            let app = launch("settings", state: state)
+            let window = app.windows["com_apple_SwiftUI_Settings_window"]
+            XCTAssertTrue(window.waitForExistence(timeout: 8))
+            assertSettingsState(state, in: app)
+            attach(window, name: "state-\(state)")
+            if state == "assistant-pending" {
+                app.buttons["review-ai-request"].click()
+                XCTAssertTrue(app.buttons["Approve"].waitForExistence(timeout: 5))
+                XCTAssertTrue(app.buttons["Deny"].exists)
+                let sheet = app.sheets.firstMatch
+                XCTAssertTrue(sheet.waitForExistence(timeout: 3))
+                attach(sheet, name: "pending-ai-request")
+            }
+            app.terminate()
+        }
+    }
+
+    @MainActor
+    func testCaptureDistinctWorkspaceStates() {
+        for (scenario, states) in [
+            ("configuration", ["schedule-pending", "schedule-applied", "schedule-overnight"]),
+            ("overview", ["day-off", "accessibility-denied"]),
+            ("this-week", ["journal-populated", "prompts-empty"]),
+            (
+                "lockout",
+                [
+                    "override-cooldown",
+                    "override-invalid",
+                    "override-ready",
+                    "overrides-exhausted",
+                    "shutdown-denied",
+                    "shutdown-failed"
+                ]
+            )
+        ] {
+            for state in states {
+                let app = launch(scenario, state: state)
+                if scenario == "lockout" {
+                    let overlay = app.descendants(matching: .any)["lockout-screen"]
+                    XCTAssertTrue(overlay.waitForExistence(timeout: 8))
+                    assertWorkspaceState(state, in: app)
+                    attach(overlay, name: "state-\(state)")
+                } else {
+                    let window = app.windows.matching(NSPredicate(
+                        format: "identifier BEGINSWITH %@",
+                        "main-workspace"
+                    )).firstMatch
+                    XCTAssertTrue(window.waitForExistence(timeout: 8))
+                    if state == "prompts-empty" {
+                        app.radioButtons["Prompts"].click()
+                    }
+                    assertWorkspaceState(state, in: app)
+                    attach(window, name: "state-\(state)")
+                    if state == "journal-populated" {
+                        scrollToBottom(window)
+                        attach(window, name: "state-journal-populated-bottom")
+                    }
+                }
+                app.terminate()
+            }
+        }
+    }
+
+    @MainActor
+    func testCaptureOverlays() {
+        for appearance in ["light", "dark"] {
+            var app = launch("warning", appearance: appearance)
+            XCTAssertTrue(app.staticTexts["warning-countdown"].waitForExistence(timeout: 8))
+            XCTAssertEqual(app.staticTexts["warning-countdown"].value as? String, "2 min")
+            let warning = app.descendants(matching: .any)["warning-timer"]
+            XCTAssertTrue(warning.waitForExistence(timeout: 3))
+            XCTAssertGreaterThan(warning.frame.width, 80)
+            XCTAssertLessThan(warning.frame.height, 80)
+            attach(warning.screenshot(), name: "warning-\(appearance)")
+            app.terminate()
+            app = launch("lockout", appearance: appearance)
+            let overlay = app.descendants(matching: .any)["lockout-screen"]
+            XCTAssertTrue(overlay.waitForExistence(timeout: 8))
+            attach(overlay, name: "lockout-\(appearance)")
+            app.terminate()
+        }
+    }
+}
+
+extension MarketingCaptureTests {
+    @MainActor
+    private func launch(
+        _ scenario: String,
+        state: String = "default",
+        appearance: String = "light",
+        size: String = "default"
+    ) -> XCUIApplication {
+        let app = XCUIApplication()
+        app.launchEnvironment = [
+            "CURFEW_DEMO_FIXTURE": "1",
+            "CURFEW_DEMO_SCENARIO": scenario,
+            "CURFEW_DEMO_STATE": state,
+            "CURFEW_DEMO_APPEARANCE": appearance,
+            "CURFEW_DEMO_SIZE": size
+        ]
+        app.launchArguments = ["-SUEnableAutomaticChecks", "NO", "-SUHasLaunchedBefore", "YES"]
+        app.launch()
+        app.activate()
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 8))
+        if scenario == "settings" {
+            app.typeKey(",", modifierFlags: .command)
+        }
+        return app
+    }
+
+    @MainActor
+    private func scrollToBottom(_ window: XCUIElement) {
+        let detail = window.scrollViews["settings-detail"]
+        guard let pane = detail.exists ? detail : window.scrollViews.allElementsBoundByIndex
+            .max(by: {
+                $0.frame.width < $1.frame.width
+            }) else {
+            XCTFail("A bottom capture requires a content pane")
+            return
+        }
+        XCTAssertTrue(pane.exists, "A bottom capture requires a scrollable content pane")
+        pane.scroll(byDeltaX: 0, deltaY: 10000)
+        let bars = pane.scrollBars.allElementsBoundByIndex.filter {
+            $0.frame.height > $0.frame.width
+        }
+        if let bar = bars.first {
+            let value = Double(String(describing: bar.value ?? ""))
+            XCTAssertNotNil(value, "The vertical scroll position must be readable")
+            XCTAssertGreaterThanOrEqual(value ?? 0, 0.99, "Capture must reach the bottom")
+        } else {
+            let content = pane.staticTexts.allElementsBoundByIndex
+                + pane.buttons.allElementsBoundByIndex
+            let bottom = content.map(\.frame.maxY).max() ?? pane.frame.maxY
+            XCTAssertLessThanOrEqual(
+                bottom,
+                pane.frame.maxY + 2,
+                "Without a scroll bar, all lower content must fit"
             )
         }
+    }
 
-        // Let the first frame, window placement, and any overlay settle before
-        // the shot. Demo mode pins state, so there is nothing animating to race.
-        Thread.sleep(forTimeInterval: 2.0)
+    @MainActor
+    private func attach(_ element: XCUIElement, name: String) {
+        XCTAssertTrue(element.exists)
+        XCTAssertGreaterThan(element.frame.width, 300)
+        XCTAssertGreaterThan(element.frame.height, 100)
+        attach(element.screenshot(), name: name)
+    }
 
-        let screenshot = (fullScreen || !window.exists)
-            ? XCUIScreen.main.screenshot()
-            : window.screenshot()
+    private func attach(_ screenshot: XCUIScreenshot, name: String) {
         let attachment = XCTAttachment(screenshot: screenshot)
-        attachment.name = "curfew-\(named)"
+        attachment.name = "curfew-\(name)"
         attachment.lifetime = .keepAlways
         add(attachment)
-
-        app.terminate()
     }
 }

@@ -126,10 +126,7 @@ struct ContentView: View {
     }
 
     private func headerLine(_ snapshot: EnforcementSnapshot) -> String {
-        if let lock = model.state.lockDate, snapshot.phase == .working {
-            return "until your Mac locks at \(lock.formatted(date: .omitted, time: .shortened))"
-        }
-        return snapshot.statusLine
+        model.menuBarHeaderLine
     }
 
     /// Menu-style action rows.
@@ -261,6 +258,21 @@ struct MainWindowView: View {
         }
         .navigationSplitViewStyle(.prominentDetail)
         .tint(CurfewTheme.accent)
+        .task {
+            #if DEBUG
+                if model.isDemoSession,
+                   let scenario = CurfewLaunchBehavior
+                   .demoScenario(environment: ProcessInfo.processInfo.environment) {
+                    if scenario == .settings {
+                        openSettings()
+                    }
+                    if scenario ==
+                        .gettingStarted {
+                        openWindow(id: CurfewAppModel.gettingStartedWindowID)
+                    }
+                }
+            #endif
+        }
         .sheet(item: Binding(
             get: { model.pendingMCPRequests.first },
             set: { newValue in

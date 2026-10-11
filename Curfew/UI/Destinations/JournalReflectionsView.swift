@@ -140,9 +140,8 @@ struct JournalReflectionsView: View {
 
     private func dayBlock(_ group: DayGroup) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(Self.dayFormatter.string(from: group.day).uppercased())
+            Text(Self.dayFormatter.string(from: group.day))
                 .font(SundownType.label(12))
-                .tracking(1.2)
                 .foregroundStyle(Palette.inkSoft)
 
             ForEach(group.reflections) { reflection in

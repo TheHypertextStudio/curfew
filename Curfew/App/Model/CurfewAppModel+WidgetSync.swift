@@ -15,7 +15,8 @@ extension CurfewAppModel {
         // macOS "access data from other apps" prompt, so a default install
         // (widget off) must never write here. Guard before constructing the
         // store so the shared-container URL isn't even resolved.
-        guard featureFlags.widgetKitEnabled, !RuntimeEnvironment.isUnitTestHost else { return }
+        guard !isDemoSession, featureFlags.widgetKitEnabled,
+              !RuntimeEnvironment.isUnitTestHost else { return }
         do {
             try WidgetSharedStateStore().sync(settings: settings ?? self.settings)
         } catch {
@@ -30,7 +31,8 @@ extension CurfewAppModel {
     /// timeline reflects the same state the menu-bar icon does, not a
     /// stale settings-derived estimate.
     func syncWidgetEnforcementSnapshot() {
-        guard featureFlags.widgetKitEnabled, !RuntimeEnvironment.isUnitTestHost else { return }
+        guard !isDemoSession, featureFlags.widgetKitEnabled,
+              !RuntimeEnvironment.isUnitTestHost else { return }
         let snapshot = WidgetEnforcementSnapshot(
             phase: snapshotPhaseToken(state.phase),
             minutesRemaining: state.minutesRemaining,

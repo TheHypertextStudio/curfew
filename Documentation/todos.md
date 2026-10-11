@@ -760,3 +760,56 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
       Recheck upstream runtime support when deliberately upgrading these
       actions; reverting to the previous generations restores a runtime that
       GitHub has removed.
+- [x] Updated the forward-looking PRD and release checklist to distinguish the
+  shipping v0.1 WidgetKit, MCP, helper, and Sparkle scope from deferred CloudKit
+  and Calendar work; regression coverage lives in `scripts/release-entitlements.test.mjs`.
+- [ ] Complete every pending row in `Documentation/release-evidence/v0.1.0.md` against the published DMG.
+
+## 19. UI simplification and visual acceptance
+
+- [x] Replace Settings toolbar tabs with General, Limits, Warnings, Connections,
+  Advanced, and About; retain legacy section raw identifiers.
+- [x] Use native grouped forms, conditional durations, and disclosed technical
+  setup. Show only build-enabled Plus benefits and connections.
+- [x] Clarify readiness versus active enforcement; simplify setup, schedule,
+  assistant consent, purchase, and shutdown copy.
+- [x] Make assistant configuration copy feedback visible and registration status
+  refresh immediately; route pending-request review to the main consent sheet.
+- [x] Isolate Debug review models from enforcement, shared queues, widgets,
+  helper services, assistant configuration, and real settings/history.
+- [x] Make disabled shared buttons visibly subdued and suppress press animation
+  and scaling under Reduce Motion; preserve existing enabled/disabled rules.
+- [x] Remove forced uppercase and letterspaced overlines from Settings, Journal,
+  weekly activity, and calendar labels. Use ordinary case throughout.
+- [x] Refine Settings with neutral surfaces, a compact aligned sidebar, and
+  collapsed connection details; keep General actions visible at minimum size.
+- [x] Remove duplicate helper attention copy so Setup remains visible in a
+  minimum-size degraded General window; retain diagnostics behind disclosure.
+- [x] Show assistant read access before enabling its connection.
+- [x] Preserve native arrow-key Settings navigation and synchronize sidebar
+  selection so repeated Manage AI Access actions return to Connections.
+- [x] Replace the exhausted override entry button with an explicit allowance message.
+- [x] Expose the warning timer container for direct, asserted captures without
+  including unrelated desktop content. Preserve its countdown and behavior.
+- [-] Verify the complete state inventory and capture actual windows in both
+  appearances and sizes. See `ui-state-review.md`; user visual acceptance and
+  signed-build/system checks remain independent gates.
+
+- [x] Unify Settings and workspace color roles: warm gray surfaces, readable clay
+  links, and coordinated filled controls. Keep sky controls on the shared palette.
+  Appearance-resolved contrast and palette integration tests fail first and pass.
+
+- [x] Correct selected-row contrast by preserving native selection foregrounds;
+  use shared supporting-text colors in Settings. Consolidate remaining warning
+  and static lockout palettes; prevent desktop bleed through the warning timer.
+- [x] Add hostless background theme verification; twelve tests pass without an app
+  host, window manipulation, or UI automation. Keep native accent assets aligned
+  with filled-control tokens through a numerical integration check.
+- [-] Visually accept the final unified palette and accessibility behavior.
+  UI tests/captures and the full app-hosted suite remain deferred at the user's
+  request to keep the desktop untouched; background Debug, lint, format and
+  targeted tests pass. Release remains blocked by signing configuration.
+
+- [x] Use shared contrast roles in setup and reflection forms; keep selected
+  rating/mood labels and hold-progress text readable. Check input contrast over
+  a worst-case white backdrop and preserve opaque fills under Reduce Transparency.
