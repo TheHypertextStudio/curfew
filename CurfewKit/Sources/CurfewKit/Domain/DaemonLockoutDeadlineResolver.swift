@@ -12,7 +12,10 @@ public enum DaemonLockoutDeadlineResolver {
             .compactMap(\.self)
             .filter { $0.scheduledUnlockAt > now }
         guard let strongest = active.max(by: {
-            $0.scheduledUnlockAt < $1.scheduledUnlockAt
+            if $0.scheduledUnlockAt != $1.scheduledUnlockAt {
+                return $0.scheduledUnlockAt < $1.scheduledUnlockAt
+            }
+            return authorityRank($0.kind) < authorityRank($1.kind)
         }) else { return nil }
 
         return LockoutDeadlineRecord(
@@ -22,6 +25,14 @@ public enum DaemonLockoutDeadlineResolver {
             kind: strongest.kind,
             campaignID: strongest.campaignID
         )
+    }
+
+    private static func authorityRank(_ kind: LockoutKind) -> Int {
+        switch kind {
+        case .remoteCommand: 2
+        case .accountWakeCampaign: 1
+        case .scheduledTime, .scheduledHours: 0
+        }
     }
 }
 
@@ -43,6 +54,7 @@ public enum RemoteCommandLockoutProjection {
               result.resolvedAt <= now.addingTimeInterval(60)
         else { return current }
         let remote = LockoutDeadlineRecord(
+            lockoutID: result.commandID,
             lockoutStartedAt: min(result.resolvedAt, now),
             scheduledUnlockAt: deadline,
             kind: .remoteCommand

@@ -1,3 +1,4 @@
+import CurfewKit
 import Foundation
 
 final nonisolated class RejectingRedirectSessionDelegate: NSObject, URLSessionTaskDelegate,

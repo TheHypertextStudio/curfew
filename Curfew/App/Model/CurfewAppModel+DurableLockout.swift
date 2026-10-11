@@ -40,6 +40,7 @@ extension CurfewAppModel {
 
     /// Sends the active lockout identifier over the authenticated XPC channel.
     func touchAppHeartbeat() {
+        touchLegacyAppHeartbeat()
         guard featureFlags.privilegedHelperEnabled else {
             lastPrivilegedHeartbeatAt = nil
             return
@@ -57,6 +58,29 @@ extension CurfewAppModel {
         }
         lastPrivilegedHeartbeatAt = currentTime
         Task { await privilegedHelperManager.heartbeat(lockoutID: record.lockoutID) }
+    }
+
+    /// Keeps compatibility with an already-installed helper during upgrade.
+    private func touchLegacyAppHeartbeat() {
+        guard !RuntimeEnvironment.isUnitTestHost, !isDemoSession,
+              featureFlags.privilegedHelperEnabled else { return }
+        let url = SharedPaths.appHeartbeat
+        do {
+            try FileManager.default.createDirectory(
+                at: url.deletingLastPathComponent(),
+                withIntermediateDirectories: true
+            )
+            try Data().write(to: url, options: .atomic)
+            try FileManager.default.setAttributes(
+                [.modificationDate: currentTime],
+                ofItemAtPath: url.path
+            )
+        } catch {
+            durableLockoutLogger
+                .error(
+                    "app heartbeat write failed: \(error.localizedDescription, privacy: .public)"
+                )
+        }
     }
 
     /// Stamps the durable deadline record at the moment lockout begins so
@@ -211,6 +235,34 @@ extension CurfewAppModel {
             warningIntervals: settings.warningIntervals,
             workedMinutesToday: workedMinutesToday(at: currentTime)
         )
+        guard featureFlags.privilegedHelperEnabled else {
+            clearAcknowledgedWakeDeadline(record)
+            return
+        }
+        // Keep the durable identity across RPC failure and relaunch. Terminal
+        // wake state permits the UI to unlock while this acknowledgement retries.
+        guard !wakeReleaseInFlight else { return }
+        if let lastWakeReleaseAttemptAt,
+           (0 ..< Self.privilegedHeartbeatInterval)
+           .contains(currentTime.timeIntervalSince(lastWakeReleaseAttemptAt)) {
+            return
+        }
+        wakeReleaseInFlight = true
+        lastWakeReleaseAttemptAt = currentTime
+        Task { [weak self] in
+            guard let self else { return }
+            let acknowledged = await privilegedHelperManager.completeLockout(
+                lockoutID: record.lockoutID, reason: .accountWakeRelease
+            )
+            wakeReleaseInFlight = false
+            if acknowledged {
+                clearAcknowledgedWakeDeadline(record)
+            }
+        }
+    }
+
+    private func clearAcknowledgedWakeDeadline(_ record: LockoutDeadlineRecord) {
+        guard lockoutDeadlineStore.load()?.lockoutID == record.lockoutID else { return }
         lockoutDeadlineStore.clear()
         protectedWork.breakGlass.clear()
         try? protectedWork.claims.clear()
@@ -274,8 +326,10 @@ extension CurfewAppModel {
         if let authoritative = daemonStatus.activeRecord,
            currentTime < authoritative.scheduledUnlockAt {
             let local = lockoutDeadlineStore.load()
-            if local == nil || local!.scheduledUnlockAt < authoritative.scheduledUnlockAt {
-                lockoutDeadlineStore.save(authoritative)
+            if let effective = DaemonLockoutDeadlineResolver.resolve(
+                now: currentTime, user: local, shadow: nil, remote: authoritative
+            ) {
+                lockoutDeadlineStore.save(effective)
             }
             enforceDurableDeadlineIfActive()
             await privilegedHelperManager.heartbeat(lockoutID: authoritative.lockoutID)

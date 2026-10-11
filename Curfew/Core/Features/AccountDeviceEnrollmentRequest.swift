@@ -1,3 +1,4 @@
+import CurfewKit
 import CurfewProtocols
 import Foundation
 
@@ -90,7 +91,7 @@ struct RemoteCommandEnrollmentFinalizer {
 
 struct PreparedDeviceRegistration {
     let request: DeviceEnrollmentRequest
-    let localEnrollment: AccountDeviceEnrollment
+    let localEnrollment: CurfewKit.AccountDeviceEnrollment
     let bootstrap: AccountEnrollmentBootstrap
     let recoveryEnvelope: RecoveryKeyEnvelope
 }

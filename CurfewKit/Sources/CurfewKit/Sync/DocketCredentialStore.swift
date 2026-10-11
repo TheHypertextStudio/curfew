@@ -1,17 +1,22 @@
 import Foundation
 
-nonisolated struct DocketOAuthTokens: Codable, Equatable, Sendable {
-    let accessToken: String
-    let refreshToken: String
-    let expiresAt: Date
+public nonisolated struct DocketOAuthTokens: Codable, Equatable, Sendable {
+    public let accessToken: String
+    public let refreshToken: String
+    public let expiresAt: Date
+    public init(accessToken: String, refreshToken: String, expiresAt: Date) {
+        self.accessToken = accessToken
+        self.refreshToken = refreshToken
+        self.expiresAt = expiresAt
+    }
 }
 
 @MainActor
-final class DocketCredentialStore {
-    static let clientIDAccount = "oauth-client-id"
-    static let accessTokenAccount = "oauth-access-token"
-    static let refreshTokenAccount = "oauth-refresh-token"
-    static let expirationAccount = "oauth-expiration"
+public final class DocketCredentialStore {
+    public static let clientIDAccount = "oauth-client-id"
+    public static let accessTokenAccount = "oauth-access-token"
+    public static let refreshTokenAccount = "oauth-refresh-token"
+    public static let expirationAccount = "oauth-expiration"
 
     private let secretStore: any AccountSecretStoring
     private var cachedTokens: DocketOAuthTokens?
@@ -21,7 +26,7 @@ final class DocketCredentialStore {
     private var cachedClientID: String?
     private var hasLoadedClientID = false
 
-    init(
+    public init(
         secretStore: (any AccountSecretStoring)? = nil,
         endpoints: DocketServiceEndpoints = .current
     ) {
@@ -30,7 +35,7 @@ final class DocketCredentialStore {
         )
     }
 
-    func load() throws -> DocketOAuthTokens? {
+    public func load() throws -> DocketOAuthTokens? {
         if hasLoadedTokens {
             return cachedTokens
         }
@@ -55,7 +60,7 @@ final class DocketCredentialStore {
         return tokens
     }
 
-    func loadClientID() throws -> String? {
+    public func loadClientID() throws -> String? {
         if hasLoadedClientID {
             return cachedClientID
         }
@@ -66,13 +71,13 @@ final class DocketCredentialStore {
         return clientID
     }
 
-    func saveClientID(_ clientID: String) throws {
+    public func saveClientID(_ clientID: String) throws {
         try secretStore.save(Data(clientID.utf8), for: Self.clientIDAccount)
         cachedClientID = clientID
         hasLoadedClientID = true
     }
 
-    func loadRefreshToken() throws -> String? {
+    public func loadRefreshToken() throws -> String? {
         if hasLoadedRefreshToken {
             return cachedRefreshToken
         }
@@ -83,7 +88,7 @@ final class DocketCredentialStore {
         return refreshToken
     }
 
-    func save(_ tokens: DocketOAuthTokens) throws {
+    public func save(_ tokens: DocketOAuthTokens) throws {
         // Save the rotating credential first. A crash cannot leave a spent
         // refresh token paired with a newer access token.
         try secretStore.save(Data(tokens.refreshToken.utf8), for: Self.refreshTokenAccount)
@@ -98,7 +103,7 @@ final class DocketCredentialStore {
         hasLoadedTokens = true
     }
 
-    func clear() throws {
+    public func clear() throws {
         cachedClientID = nil
         hasLoadedClientID = true
         cachedRefreshToken = nil

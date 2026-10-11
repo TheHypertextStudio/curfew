@@ -1,3 +1,4 @@
+import CurfewKit
 import Foundation
 
 /// Cross-window navigation into the main workspace (`MainWindowView`),

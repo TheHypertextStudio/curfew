@@ -1,5 +1,6 @@
 import AppKit
 @testable import Curfew
+@testable import CurfewKit
 import SwiftUI
 import Testing
 
@@ -61,6 +62,23 @@ struct ThemeConsistencyTests {
             "Curfew/UI/CurfewTheme.swift"
         ), encoding: .utf8)
         #expect(theme.contains(".fill(CurfewTheme.accentFill)"))
+    }
+
+    @Test("Every Settings section participates in the native grouped form")
+    func settingsSectionsDoNotNestDecorativeCards() throws {
+        let root = URL(fileURLWithPath: #filePath).resolvingSymlinksInPath()
+            .deletingLastPathComponent().deletingLastPathComponent()
+            .deletingLastPathComponent().deletingLastPathComponent()
+        for name in ["EnforcementPanels", "PresencePanel", "SyncPanel", "TaskBrowserEnforcement"] {
+            let source = try String(
+                contentsOf: root.appendingPathComponent("Curfew/UI/SettingsView+\(name).swift"),
+                encoding: .utf8
+            )
+            #expect(
+                !source.contains("CurfewPanel {"),
+                "\(name) must share the Settings form hierarchy"
+            )
+        }
     }
 
     @Test("Filled actions preserve white-label contrast in both appearances")
@@ -150,6 +168,7 @@ struct ThemeConsistencyTests {
         let files = try #require(FileManager.default.enumerator(
             at: root, includingPropertiesForKeys: nil
         ))
+        let explicitHue = #"(Color\.|foregroundStyle\(\.)(green|red|orange|blue|purple|yellow)\b"#
         let palettes = ["CurfewTheme.swift", "SundownPalette.swift"]
         for case let file as URL in files where file.pathExtension == "swift" {
             guard !palettes.contains(file.lastPathComponent) else { continue }
@@ -157,6 +176,14 @@ struct ThemeConsistencyTests {
             #expect(
                 !source.contains(".foregroundStyle(.secondary)"),
                 "Use the contrast-checked supporting-text role"
+            )
+            #expect(
+                source
+                    .range(
+                        of: explicitHue,
+                        options: .regularExpression
+                    ) == nil,
+                "Use shared semantic roles in \(file.lastPathComponent)"
             )
             if file.lastPathComponent == "ReflectionFormView.swift" {
                 #expect(

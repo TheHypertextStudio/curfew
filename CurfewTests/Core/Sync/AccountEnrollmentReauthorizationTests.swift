@@ -1,5 +1,6 @@
 import AppKit
 @testable import Curfew
+@testable import CurfewKit
 import CurfewProtocols
 import Foundation
 import Testing
@@ -255,7 +256,7 @@ struct AccountEnrollmentReauthorizationTests {
         try secrets.save(Data("old-access".utf8), for: "oauth-access-token")
         try secrets.save(Data("old-refresh".utf8), for: "oauth-refresh-token")
         let pending = AccountEnrollmentPendingStore(secretStore: secrets)
-        let enrollment = Curfew.AccountDeviceEnrollment(
+        let enrollment = CurfewKit.AccountDeviceEnrollment(
             deviceID: UUID(uuidString: "018f4f45-cafe-7f00-9a82-e47805fb4d35")!,
             keyEpoch: 1,
             enrolledAt: Date(timeIntervalSince1970: 1_800_000_000)
@@ -288,12 +289,54 @@ struct AccountEnrollmentReauthorizationTests {
 struct ReauthorizationFixture {
     let secrets: EnrollmentRecoveryMemorySecretStore
     let pending: AccountEnrollmentPendingStore
-    let enrollment: Curfew.AccountDeviceEnrollment
+    let enrollment: CurfewKit.AccountDeviceEnrollment
+}
+
+@MainActor
+private final class ReauthorizationOAuthFixture: AccountOAuthEnrolling {
+    var rejectAsDifferentAccount = false
+    private(set) var reauthorizeCount = 0
+    private(set) var expectedAccountUserID: String?
+    private let secretStore: any AccountSecretStoring
+
+    init(secretStore: any AccountSecretStoring) {
+        self.secretStore = secretStore
+    }
+
+    func signIn(
+        presentationWindow _: NSWindow?,
+        authorizationURLHandler _: @escaping @MainActor (URL) -> Void
+    ) async throws -> AccountOAuthGrant {
+        Issue.record("A saved Mac must not start a new device enrollment")
+        throw AccountOAuthEnrollmentError.invalidResponse
+    }
+
+    func reauthorize(
+        expectedAccountUserID: String,
+        presentationWindow _: NSWindow?,
+        authorizationURLHandler _: @escaping @MainActor (URL) -> Void
+    ) async throws -> AccountOAuthGrant {
+        reauthorizeCount += 1
+        self.expectedAccountUserID = expectedAccountUserID
+        if rejectAsDifferentAccount {
+            throw AccountOAuthEnrollmentError.accountMismatch
+        }
+        try secretStore.save(Data("new-refresh".utf8), for: "oauth-refresh-token")
+        try secretStore.save(Data("new-access".utf8), for: "oauth-access-token")
+        return AccountOAuthGrant(
+            tokens: AccountOAuthTokens(accessToken: "new-access", refreshToken: "new-refresh"),
+            state: "new-state",
+            codeChallenge: "new-challenge",
+            subjectID: expectedAccountUserID
+        )
+    }
+
+    func cancelSignIn() {}
 }
 
 @MainActor
 final class ReauthorizationDeviceFixture: AccountDeviceEnrolling {
-    let enrollment: Curfew.AccountDeviceEnrollment
+    let enrollment: CurfewKit.AccountDeviceEnrollment
     let pending: AccountEnrollmentPendingStore?
     private(set) var resumeCount = 0
     private(set) var recoveryResumeCount = 0
@@ -301,7 +344,7 @@ final class ReauthorizationDeviceFixture: AccountDeviceEnrolling {
     private(set) var enrollCount = 0
 
     init(
-        enrollment: Curfew.AccountDeviceEnrollment,
+        enrollment: CurfewKit.AccountDeviceEnrollment,
         pending: AccountEnrollmentPendingStore? = nil
     ) {
         self.enrollment = enrollment
@@ -314,7 +357,10 @@ final class ReauthorizationDeviceFixture: AccountDeviceEnrolling {
         throw AccountOAuthEnrollmentError.invalidResponse
     }
 
-    func resumeDeviceRegistration(recoveryKey: String, enrollment: Curfew.AccountDeviceEnrollment)
+    func resumeDeviceRegistration(
+        recoveryKey: String,
+        enrollment: CurfewKit.AccountDeviceEnrollment
+    )
         async throws -> NativeAccountEnrollmentState {
         resumeCount += 1
         guard recoveryKey == "recovery-key", enrollment == self.enrollment else {
@@ -332,7 +378,7 @@ final class ReauthorizationDeviceFixture: AccountDeviceEnrolling {
         return .saveRecoveryKey(recoveryKey, enrollment)
     }
 
-    func resumeRecoverySetup(recoveryKey _: String, enrollment: Curfew.AccountDeviceEnrollment)
+    func resumeRecoverySetup(recoveryKey _: String, enrollment: CurfewKit.AccountDeviceEnrollment)
         async throws -> NativeAccountEnrollmentState {
         recoveryResumeCount += 1
         if recoveryResumeCount == 1 {
@@ -341,8 +387,11 @@ final class ReauthorizationDeviceFixture: AccountDeviceEnrolling {
         return .ready(enrollment)
     }
 
-    func restore(recoveryKey _: String, enrollment _: Curfew.AccountDeviceEnrollment) async throws
-        -> Curfew.AccountDeviceEnrollment {
+    func restore(
+        recoveryKey _: String,
+        enrollment _: CurfewKit.AccountDeviceEnrollment
+    ) async throws
+        -> CurfewKit.AccountDeviceEnrollment {
         restoreCount += 1
         if restoreCount == 1 {
             throw AccountOAuthTokenRefreshError.rejected(400)

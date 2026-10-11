@@ -340,12 +340,10 @@
 			packageReferences = (
 				C0FE00000000000000000100 /* XCLocalSwiftPackageReference "CurfewKit" */,
 				C0FE00000000000000000104 /* XCRemoteSwiftPackageReference "Sparkle" */,
+				C0FE00000000000000000071 /* XCRemoteSwiftPackageReference "curfew-protocols" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 9BD3FB832F4D4584007B2E95 /* Products */;
-			packageReferences = (
-				C0FE00000000000000000071 /* XCRemoteSwiftPackageReference "curfew-protocols" */,
-			);
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (

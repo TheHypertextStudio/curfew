@@ -1,4 +1,5 @@
 import AuthenticationServices
+import CurfewKit
 import Foundation
 
 enum AccountOAuthBrowserPolicy {

@@ -1,4 +1,5 @@
 @testable import Curfew
+@testable import CurfewKit
 import CurfewProtocols
 import Foundation
 import XCTest
@@ -202,8 +203,8 @@ extension NativeAccountSyncTransportTests {
     static let syntheticReceiptJWS =
         "eyJhbGciOiJFUzI1NiJ9.e30." + String(repeating: "A", count: 86)
 
-    func daemonResult(deviceID: UUID) throws -> Curfew.RemoteCommandResult {
-        try Curfew.RemoteCommandResult(
+    func daemonResult(deviceID: UUID) throws -> CurfewKit.RemoteCommandResult {
+        try CurfewKit.RemoteCommandResult(
             commandID: XCTUnwrap(
                 UUID(uuidString: "018f4f45-cafe-7f00-9a82-e47805fb4d34")
             ),

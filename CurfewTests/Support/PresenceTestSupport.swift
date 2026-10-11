@@ -1,4 +1,5 @@
 @testable import Curfew
+@testable import CurfewKit
 import Foundation
 
 /// An `IdleTimeSource` whose reported idle duration the test sets directly.

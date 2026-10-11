@@ -1,6 +1,7 @@
 import AppKit
 import AuthenticationServices
 import CryptoKit
+import CurfewKit
 import Foundation
 
 // swiftlint:disable file_length

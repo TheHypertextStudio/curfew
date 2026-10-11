@@ -1,4 +1,5 @@
 @testable import Curfew
+@testable import CurfewKit
 import Foundation
 import Testing
 
@@ -22,7 +23,7 @@ struct AccountLifecycleWiringTests {
             issuedAt: Date()
         ))
 
-        model.reconcileProGatedModules()
+        model.reconcilePlusGatedModules()
 
         #expect(model.accountSyncEngine.isActive)
         #expect(!cloud.isActive)
@@ -75,7 +76,7 @@ struct AccountLifecycleWiringTests {
             orderID: "remote-result-lockout",
             issuedAt: now
         ))
-        model.reconcileProGatedModules()
+        model.reconcilePlusGatedModules()
 
         transport.receive(RemoteCommandResult(
             commandID: UUID(),
@@ -309,7 +310,7 @@ extension AccountLifecycleWiringTests {
             orderID: "schedule-eligibility",
             issuedAt: model.currentTime
         ))
-        model.reconcileProGatedModules()
+        model.reconcilePlusGatedModules()
         let publicationCountBeforeEdit = transport.publishedReports.count
         model.settings.schedule.rules[.monday] = .weekendDefault
 
@@ -338,7 +339,7 @@ extension AccountLifecycleWiringTests {
     private func makeModel(
         accountSync: AccountSyncConfiguration,
         accountSyncEngine: AccountSyncEngine? = nil,
-        cloudKitSyncEngine: CloudKitSyncEngine = CloudKitSyncEngine(),
+        cloudKitSyncEngine: CloudKitSyncEngine? = nil,
         hasCompletedInitialSetup: Bool = true
     ) -> CurfewAppModel {
         let suite = "studio.hypertext.curfew.tests.\(UUID().uuidString)"
@@ -354,7 +355,6 @@ extension AccountLifecycleWiringTests {
         return CurfewAppModel(
             settingsStore: store,
             appRouter: AppRouterSpy(),
-            gettingStartedPresenter: GettingStartedPresenterSpy(),
             featureFlags: FeatureFlags(
                 widgetKitEnabled: false,
                 cloudSyncEnabled: true,

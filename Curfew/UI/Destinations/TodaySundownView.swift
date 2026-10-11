@@ -222,14 +222,14 @@ struct TodaySundownView: View {
             HStack(spacing: 11) {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(.green)
+                    .foregroundStyle(CurfewTheme.accent)
                 Text("Accessibility access granted.")
                     .font(SundownType.body(14))
                     .foregroundStyle(CurfewTheme.ink)
             }
             .padding(.horizontal, 18)
             .padding(.vertical, 14)
-            .background(Color.green.opacity(0.12), in: .rect(cornerRadius: 12))
+            .background(CurfewTheme.surfaceMuted, in: .rect(cornerRadius: 12))
             .padding(.horizontal, 40)
             .padding(.top, 22)
             .transition(.opacity)

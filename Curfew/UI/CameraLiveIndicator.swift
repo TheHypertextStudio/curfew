@@ -1,3 +1,4 @@
+import CurfewKit
 import SwiftUI
 
 /// In-app "the camera is on right now" indicator.

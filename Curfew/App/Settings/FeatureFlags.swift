@@ -76,7 +76,7 @@ struct FeatureFlags: Equatable {
     /// The flag set the running app should use, chosen from the build
     /// configuration with a developer escape hatch.
     ///
-    /// Returns ``shipping`` when the binary is built with either the
+    /// Returns ``shippingV1`` when the binary is built with either the
     /// `RELEASE_FEATURES` condition or the closed-world `CURFEW_STAGING`
     /// service environment, otherwise ``default``. Staging must expose the
     /// helper installation and MCP controls or it cannot exercise the remote

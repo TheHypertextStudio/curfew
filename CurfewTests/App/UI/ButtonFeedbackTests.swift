@@ -1,5 +1,6 @@
 import CoreFoundation
 @testable import Curfew
+@testable import CurfewKit
 import Testing
 
 struct ButtonFeedbackTests {

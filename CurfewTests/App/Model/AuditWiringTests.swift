@@ -1,4 +1,5 @@
 @testable import Curfew
+@testable import CurfewKit
 import Foundation
 import Testing
 
@@ -31,7 +32,6 @@ struct AuditWiringTests {
         let model = CurfewAppModel(
             settingsStore: store,
             appRouter: AppRouterSpy(),
-            gettingStartedPresenter: GettingStartedPresenterSpy(),
             activityRecorder: NullActivityRecording(),
             lockoutDeadlineStore: LockoutDeadlineStore(recordURL: deadlineURL),
             accessibilityAuthorization: FakeAccessibilityAuthorization(trusted: true)

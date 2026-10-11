@@ -1,3 +1,4 @@
+@testable import CurfewKit
 import Foundation
 import Testing
 

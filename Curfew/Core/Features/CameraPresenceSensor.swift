@@ -1,5 +1,6 @@
 import AVFoundation
 import CoreVideo
+import CurfewKit
 import Foundation
 import OSLog
 import Vision

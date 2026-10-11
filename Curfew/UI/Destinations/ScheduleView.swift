@@ -123,7 +123,7 @@ struct ScheduleContent: View {
         CurfewPanel {
             HStack(spacing: 10) {
                 Image(systemName: "checkmark.circle.fill")
-                    .foregroundStyle(.green)
+                    .foregroundStyle(CurfewTheme.accent)
                 Text("Schedule change applied.")
                     .font(CurfewTypography.body(14))
                     .foregroundStyle(CurfewTheme.ink)

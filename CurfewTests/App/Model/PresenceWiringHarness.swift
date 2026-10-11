@@ -1,4 +1,5 @@
 @testable import Curfew
+@testable import CurfewKit
 import Foundation
 
 /// A `CurfewAppModel` wired for presence tests, alongside the audit writer and
@@ -68,7 +69,6 @@ struct PresenceWiringHarness {
         let model = CurfewAppModel(
             settingsStore: store,
             appRouter: AppRouterSpy(),
-            gettingStartedPresenter: GettingStartedPresenterSpy(),
             activityRecorder: NullActivityRecording(),
             idleWatcher: IdleWatcher(
                 source: MutableIdleSource(seconds: idleSeconds),

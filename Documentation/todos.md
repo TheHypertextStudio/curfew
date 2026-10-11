@@ -813,3 +813,38 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
 - [x] Use shared contrast roles in setup and reflection forms; keep selected
   rating/mood labels and hold-progress text readable. Check input contrast over
   a worst-case white backdrop and preserve opaque fills under Reduce Transparency.
+
+## Integration with current main (2026-10-10)
+
+- [x] Include the 25 earlier commits as requested, preserving main's account,
+  recovery, browser, protected-work, remote-command, and Studio Dev features.
+  Shared source and package tests now live under `CurfewKit/`; protocol remains
+  pinned to main's 0.0.11 contract. No cross-repository wire changes.
+- [x] Bring account, presence, protected-work and browser Settings into the same
+  grouped-form hierarchy. Keep camera privacy visible and technical controls in
+  disclosures. Healthy and failure indicators consume shared semantic colors.
+- [x] Connect authenticated daemon transport to the existing single policy/effects
+  pipeline. Preserve protected-work holds, cancellation, independent signed remote
+  authority, and Studio Dev shutdown suppression. Keep network discovery off the
+  serial local-control queue. Derive peer identity from signed team and exact role;
+  isolate Mach services and root persistence by build flavor.
+- [x] Persist local wake-release tombstones; make completion retries idempotent.
+  Retain the app's durable wake identity until acknowledgement, allowing terminal
+  wake state to unlock presentation while failed completion retries. Keep the
+  compatibility file heartbeat during helper upgrades. Local overrides retain
+  durable authority. Corrupt local transport storage degrades that transport while
+  independent enforcement continues and the damaged file remains intact.
+- [-] Complete integrated background build, format and lint checks; run hosted
+  unit/interaction/capture suites only on remote CI. Local launches and UI tests
+  remain prohibited by the user's request. Remote CI UI checks are authorized.
+- [-] Inspect and share remote screenshots of the integrated branch; obtain final
+  visual feedback. Existing local captures predate this integration. Signed helper
+  registration/authentication and real-system permission/enforcement acceptance
+  still require a dedicated signed-build session, never this background session.
+
+Operational impact: this merge includes package and authenticated-helper work,
+not only color changes. No release, helper registration or system permission
+mutation is part of verification. Roll back through reviewed commits; preserve
+root release tombstones and existing account data when diagnosing an installation.
+
+Authenticated liveness integration: after authenticated arming or a matching heartbeat, legacy heartbeat files cannot keep that window alive. Unmigrated legacy windows retain file fallback. `AuthenticatedDaemonControlTests` covers persistence and binding to the current window; signed transport verification remains a remote/system acceptance gate.

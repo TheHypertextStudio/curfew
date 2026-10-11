@@ -1,3 +1,4 @@
+import CurfewKit
 import Foundation
 
 /// Why a camera session ended. Recorded on `presence.camera_stopped` so the

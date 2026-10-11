@@ -1,4 +1,5 @@
 import Combine
+import CurfewKit
 import Foundation
 import OSLog
 
@@ -176,10 +177,13 @@ extension CurfewAppModel {
     /// keychain rather than in `settings`, so nothing else would tell the
     /// Settings panel that ``isDeviceStatusReportingLive`` has just changed.
     var deviceAssertionSecret: String {
-        get { deviceAssertionSecretStore.secret }
+        get {
+            _ = statusCredentialRevision
+            return deviceAssertionSecretStore.secret
+        }
         set {
-            objectWillChange.send()
             deviceAssertionSecretStore.store(newValue)
+            statusCredentialRevision &+= 1
         }
     }
 
@@ -359,6 +363,7 @@ extension CurfewAppModel {
     /// report with no address goes nowhere, and a report with no assertion is
     /// answered 401.
     var isDeviceStatusReportingLive: Bool {
+        _ = statusCredentialRevision
         if settings.accountSync.isEnrolled {
             return accountSyncEngine.isActive
         }

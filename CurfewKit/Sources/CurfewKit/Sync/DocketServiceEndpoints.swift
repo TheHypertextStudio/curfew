@@ -1,32 +1,32 @@
 import Foundation
 
-nonisolated struct DocketServiceEndpoints: Equatable, Sendable {
-    let webOrigin: URL
-    let mcpResource: URL
-    let authorizationEndpoint: URL
-    let registrationEndpoint: URL
-    let tokenEndpoint: URL
-    let keychainService: String
+public nonisolated struct DocketServiceEndpoints: Equatable, Sendable {
+    public let webOrigin: URL
+    public let mcpResource: URL
+    public let authorizationEndpoint: URL
+    public let registrationEndpoint: URL
+    public let tokenEndpoint: URL
+    public let keychainService: String
 
-    static let production = make(
+    public static let production = make(
         webOrigin: "https://clearthedocket.com",
         apiOrigin: "https://api.clearthedocket.com",
         keychainService: "studio.hypertext.curfew.docket"
     )
 
-    static let staging = make(
+    public static let staging = make(
         webOrigin: "https://docket-staging.hypertext.studio",
         apiOrigin: "https://docket-api-staging.hypertext.studio",
         keychainService: "studio.hypertext.curfew.docket.staging"
     )
 
-    static let studioDevelopment = make(
+    public static let studioDevelopment = make(
         webOrigin: "https://docket-staging.hypertext.studio",
         apiOrigin: "https://docket-api-staging.hypertext.studio",
         keychainService: "studio.hypertext.curfew.docket.studio.dev"
     )
 
-    static func forFlavor(_ flavor: CurfewFlavor) -> DocketServiceEndpoints {
+    public static func forFlavor(_ flavor: CurfewFlavor) -> DocketServiceEndpoints {
         switch flavor {
         case .production: production
         case .development: staging
@@ -35,9 +35,9 @@ nonisolated struct DocketServiceEndpoints: Equatable, Sendable {
     }
 
     #if CURFEW_STAGING
-        static let current = forFlavor(CurfewFlavor.current)
+        public static let current = forFlavor(CurfewFlavor.current)
     #else
-        static let current = production
+        public static let current = production
     #endif
 
     private static func make(

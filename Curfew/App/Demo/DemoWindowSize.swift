@@ -1,3 +1,4 @@
+import CurfewKit
 import SwiftUI
 
 extension View {

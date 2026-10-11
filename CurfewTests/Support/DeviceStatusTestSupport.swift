@@ -1,4 +1,5 @@
 @testable import Curfew
+@testable import CurfewKit
 import Foundation
 
 /// A transport that answers from a script and remembers everything it was

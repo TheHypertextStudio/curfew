@@ -1,5 +1,6 @@
 import AuthenticationServices
 @testable import Curfew
+@testable import CurfewKit
 import CurfewProtocols
 import Foundation
 import Testing

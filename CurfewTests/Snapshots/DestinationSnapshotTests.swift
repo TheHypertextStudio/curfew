@@ -186,4 +186,4 @@
         }
     }
 #endif
-import CurfewKit
+@testable import CurfewKit

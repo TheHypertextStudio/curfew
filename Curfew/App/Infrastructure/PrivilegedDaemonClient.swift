@@ -102,11 +102,15 @@ final class XPCPrivilegedDaemonClient: PrivilegedDaemonRPCControlling, @unchecke
             @escaping (Data?, NSError?) -> Void
         ) -> Void
     ) async throws -> Data {
+        guard let identity = DaemonSigningIdentity.current else {
+            throw PrivilegedDaemonRPCError.unauthorized
+        }
         let connection = NSXPCConnection(
-            machServiceName: PrivilegedDaemonConstants.machServiceName,
+            machServiceName: identity.machServiceName,
             options: .privileged
         )
         defer { connection.invalidate() }
+        connection.setCodeSigningRequirement(identity.serverRequirement)
         connection.remoteObjectInterface = NSXPCInterface(with: CurfewDaemonXPCProtocol.self)
 
         return try await DaemonRPCDeadline.run { completion in

@@ -28,7 +28,12 @@
         </dict>
     </dict>
 
-    <key>Sockets</key>
-    <dict/>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>MachServices</key>
+    <dict>
+        <key>studio.hypertext.curfew.dev.daemon</key>
+        <true/>
+    </dict>
 </dict>
 </plist>

@@ -22,7 +22,12 @@
             <true/>
         </dict>
     </dict>
-    <key>Sockets</key>
-    <dict/>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>MachServices</key>
+    <dict>
+        <key>studio.hypertext.curfew.studio.dev.daemon</key>
+        <true/>
+    </dict>
 </dict>
 </plist>

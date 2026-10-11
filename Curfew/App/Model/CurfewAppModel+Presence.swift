@@ -1,5 +1,6 @@
 import AppKit
 import Combine
+import CurfewKit
 import Foundation
 
 /// Per-model presence runtime, keyed by model identity.
@@ -131,26 +132,30 @@ extension CurfewAppModel {
     /// The fused presence verdict. ``PresenceState/unknown`` before the first
     /// sample, which is also the steady state on a default install.
     var presenceState: PresenceState {
-        liveRuntime(for: self)?.monitor.state ?? .unknown
+        _ = presenceRevision
+        return liveRuntime(for: self)?.monitor.state ?? .unknown
     }
 
     /// The camera's contribution to the current verdict, after the staleness
     /// check. ``PersonSignal/unavailable`` whenever the camera is off — which
     /// is what a default install reports forever.
     var presenceSignal: PersonSignal {
-        liveRuntime(for: self)?.monitor.personSignal ?? .unavailable
+        _ = presenceRevision
+        return liveRuntime(for: self)?.monitor.personSignal ?? .unavailable
     }
 
     /// Whether the camera is on right now. Drives the in-app indicator, which
     /// must never claim the camera is off while a session is live.
     var isPresenceCameraLive: Bool {
-        liveRuntime(for: self)?.monitor.isCameraLive ?? false
+        _ = presenceRevision
+        return liveRuntime(for: self)?.monitor.isCameraLive ?? false
     }
 
     /// Whether Curfew wants the camera on but does not have it — access
     /// granted and the setting on, yet no session. Surfaced in Settings so a
     /// broken camera does not look like working presence detection.
     var isPresenceCameraStalled: Bool {
+        _ = presenceRevision
         guard let monitor = liveRuntime(for: self)?.monitor else {
             return false
         }
@@ -161,6 +166,7 @@ extension CurfewAppModel {
     /// made in System Settings shows without a relaunch. Falls back to the
     /// process-wide status when no monitor exists yet.
     var presenceCameraAuthorization: CameraAuthorization {
+        _ = presenceRevision
         guard let monitor = liveRuntime(for: self)?.monitor else {
             return VisionCameraPresenceSensor.currentAuthorization
         }
@@ -229,7 +235,7 @@ extension CurfewAppModel {
     func enablePresenceDetection() {
         presenceMonitor.requestCameraAuthorization { [weak self] status in
             guard let self else { return }
-            objectWillChange.send()
+            invalidatePresence()
             guard status.permitsCapture else { return }
             settings.presence.cameraEnabled = true
         }
@@ -260,11 +266,14 @@ extension CurfewAppModel {
 
     // MARK: - Wiring
 
+    private func invalidatePresence() {
+        presenceRevision &+= 1
+    }
+
     private func wirePresenceCallbacks(_ monitor: PresenceMonitor) {
         monitor.onStateChanged = { [weak self] _, _ in
-            // The presence reads above are computed, not `@Published`, so the
-            // change has to be announced by hand for SwiftUI to see it.
-            self?.objectWillChange.send()
+            // Computed reads track the revision without constructing a sensor.
+            self?.invalidatePresence()
             // Tell the coordinator this Mac is live as of a moment that just
             // mattered. The verdict itself does not travel —
             // `DeviceStatusPublication`
@@ -273,15 +282,15 @@ extension CurfewAppModel {
             self?.publishDeviceStatus(trigger: .presence)
         }
         monitor.onCameraStarted = { [weak self] in
-            self?.objectWillChange.send()
+            self?.invalidatePresence()
             self?.recordAuditCameraStarted()
         }
         monitor.onCameraStopped = { [weak self] reason in
-            self?.objectWillChange.send()
+            self?.invalidatePresence()
             self?.recordAuditCameraStopped(reason)
         }
         monitor.onAuthorizationChanged = { [weak self] previous, current in
-            self?.objectWillChange.send()
+            self?.invalidatePresence()
             self?.recordAuditCameraAuthorization(from: previous, to: current)
         }
     }

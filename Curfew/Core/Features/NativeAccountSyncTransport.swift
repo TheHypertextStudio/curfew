@@ -1,3 +1,4 @@
+import CurfewKit
 import CurfewProtocols
 import Foundation
 
@@ -36,7 +37,7 @@ final class NativeAccountSyncTransport: AccountSyncTransporting {
     var onOffline: (() -> Void)?
     private var onWakeStatus: ((AccountWakeStatusUpdate) -> Void)?
     private var onRemoteOverride: ((AccountRemoteOverride?) -> Void)?
-    private var onRemoteCommandResult: ((RemoteCommandResult) -> Void)?
+    private var onRemoteCommandResult: ((CurfewKit.RemoteCommandResult) -> Void)?
     var onFailure: ((String) -> Void)?
     var healthyChannels: Set<AccountHealthChannel> = []
     var requiredChannels: Set<AccountHealthChannel> = [.accountState, .remoteOverride]

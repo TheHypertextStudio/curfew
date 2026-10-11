@@ -1,5 +1,5 @@
 @testable import Curfew
-import CurfewKit
+@testable import CurfewKit
 import Testing
 
 struct AccessibilityAuthorizationTests {

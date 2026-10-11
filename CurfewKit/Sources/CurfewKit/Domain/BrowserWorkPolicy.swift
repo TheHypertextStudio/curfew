@@ -370,7 +370,7 @@ public nonisolated struct DocketActiveWorkTask: Codable, Equatable, Sendable {
         Self.isTerminal(stateType)
     }
 
-    static func isTerminal(_ stateType: String) -> Bool {
+    public static func isTerminal(_ stateType: String) -> Bool {
         let normalized = stateType.lowercased().replacingOccurrences(of: "_", with: "-")
         return ["complete", "completed", "canceled", "cancelled", "archived"].contains(normalized)
     }

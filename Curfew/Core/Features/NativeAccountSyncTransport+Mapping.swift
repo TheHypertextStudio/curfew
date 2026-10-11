@@ -1,9 +1,10 @@
+import CurfewKit
 import CurfewProtocols
 import Foundation
 
 extension NativeAccountSyncTransport {
     static func remoteCommandResult(
-        _ result: RemoteCommandResult
+        _ result: CurfewKit.RemoteCommandResult
     ) throws -> CurfewProtocols.RemoteCommandResult {
         guard result.sequence > 0, result.sequence <= Int64(Int.max) else {
             throw NativeAccountSyncError.invalidResponse
@@ -110,7 +111,7 @@ extension NativeAccountSyncTransport {
     }
 
     private static func remoteResultDisposition(
-        _ result: RemoteCommandResult
+        _ result: CurfewKit.RemoteCommandResult
     ) throws -> (
         CurfewProtocols.RemoteCommandResultStage,
         CurfewProtocols.RejectionCode?
@@ -126,7 +127,7 @@ extension NativeAccountSyncTransport {
     }
 
     private static func appliedDisposition(
-        _ result: RemoteCommandResult
+        _ result: CurfewKit.RemoteCommandResult
     ) throws -> (CurfewProtocols.RemoteCommandResultStage, CurfewProtocols.RejectionCode?) {
         guard result.appliedDeadline != nil, result.rejectionCode == nil else {
             throw NativeAccountSyncError.invalidResponse
@@ -135,7 +136,7 @@ extension NativeAccountSyncTransport {
     }
 
     private static func expiredDisposition(
-        _ result: RemoteCommandResult
+        _ result: CurfewKit.RemoteCommandResult
     ) throws -> (CurfewProtocols.RemoteCommandResultStage, CurfewProtocols.RejectionCode?) {
         guard result.appliedDeadline == nil, result.rejectionCode == nil else {
             throw NativeAccountSyncError.invalidResponse
@@ -144,7 +145,7 @@ extension NativeAccountSyncTransport {
     }
 
     private static func rejectedDisposition(
-        _ result: RemoteCommandResult
+        _ result: CurfewKit.RemoteCommandResult
     ) throws -> (CurfewProtocols.RemoteCommandResultStage, CurfewProtocols.RejectionCode?) {
         guard result.appliedDeadline == nil, let code = result.rejectionCode else {
             throw NativeAccountSyncError.invalidResponse

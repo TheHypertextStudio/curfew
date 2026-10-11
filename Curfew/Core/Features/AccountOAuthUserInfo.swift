@@ -1,3 +1,4 @@
+import CurfewKit
 import Foundation
 
 /// This is an unverified hint until the coordinator accepts the access token.

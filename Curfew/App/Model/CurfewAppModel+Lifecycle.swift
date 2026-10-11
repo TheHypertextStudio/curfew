@@ -18,9 +18,8 @@ extension CurfewAppModel {
     /// retention promise in PRIVACY.md.
     static let activityRetentionSeconds: TimeInterval = 52 * 7 * 24 * 60 * 60
 
-    // The sequence is the enforcement invariant. Splitting it would hide the
-    // order in which state, durable lockout, effects, and status settle.
-    // swiftlint:disable function_body_length
+    /// The sequence is the enforcement invariant. Splitting it would hide the
+    /// order in which state, durable lockout, effects, and status settle.
     /// Overwrites `state` (and keeps `lastEnforcedPhase` in lockstep) to
     /// establish a deterministic starting scenario — e.g. a test seeding
     /// ".dayOff" before calling `start()` to observe the transition it
@@ -112,8 +111,6 @@ extension CurfewAppModel {
         // stopped running at lunchtime.
         publishDeviceStatusHeartbeatIfDue()
     }
-
-    // swiftlint:enable function_body_length
 
     /// Settle who owns enforcement this tick, then apply every effect that
     /// depends on that answer: the health verdict, the keyboard shield, the
@@ -266,11 +263,15 @@ extension CurfewAppModel {
         if remoteEligibilityChanged, settings.accountSync.isEnrolled {
             publishDeviceStatus(trigger: .configuration)
         }
-        if settings.accountSync != oldValue.accountSync {
-            reconcileProGatedModules()
-        }
+        reconcileAccountEnrollmentChange(from: oldValue)
 
         reconcileMCPRuntime(from: oldValue)
+    }
+
+    private func reconcileAccountEnrollmentChange(from oldValue: CurfewSettings) {
+        if settings.accountSync != oldValue.accountSync {
+            reconcilePlusGatedModules()
+        }
     }
 
     private func reconcileMCPRuntime(from oldValue: CurfewSettings) {

@@ -1,4 +1,5 @@
 @testable import Curfew
+@testable import CurfewKit
 import Foundation
 import Testing
 
@@ -20,7 +21,6 @@ struct AuditRespawnGuardTests {
         let model = CurfewAppModel(
             settingsStore: CurfewSettingsStore(defaults: defaults),
             appRouter: AppRouterSpy(),
-            gettingStartedPresenter: GettingStartedPresenterSpy(),
             activityRecorder: NullActivityRecording(),
             respawnGuard: respawnGuard,
             accessibilityAuthorization: FakeAccessibilityAuthorization(trusted: true)
@@ -114,7 +114,6 @@ struct AuditOverrideRedactionTests {
         let model = CurfewAppModel(
             settingsStore: CurfewSettingsStore(defaults: defaults),
             appRouter: AppRouterSpy(),
-            gettingStartedPresenter: GettingStartedPresenterSpy(),
             activityRecorder: NullActivityRecording(),
             accessibilityAuthorization: FakeAccessibilityAuthorization(trusted: true)
         )

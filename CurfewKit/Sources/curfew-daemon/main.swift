@@ -58,11 +58,11 @@ private func studioDevMayApplyCommand() -> Bool {
 /// Daemon composition root. Local MCP and remote MCP supply the same narrow
 /// dependency, so enforcement policy does not know which transport produced a
 /// deadline and a failure in either backend cannot suppress the other.
+private let localBackend = DaemonLocalCommandBackend(
+    userStore: LockoutDeadlineStore(recordURL: SharedPaths.lockoutDeadline),
+    shadowStore: LockoutDeadlineStore(recordURL: SharedPaths.lockoutDeadlineShadow)
+)
 private let commandBackends = DaemonCommandBackendSet(backends: [
-    DaemonLocalCommandBackend(
-        userStore: LockoutDeadlineStore(recordURL: SharedPaths.lockoutDeadline),
-        shadowStore: LockoutDeadlineStore(recordURL: SharedPaths.lockoutDeadlineShadow)
-    ),
     DaemonRemoteMCPBackend(
         commandProcessor: DaemonRemoteCommandBackend(
             enrollmentStore: RemoteCommandEnrollmentStore(
@@ -260,17 +260,8 @@ private let effects: any DaemonEnforcementEffects = CurfewFlavor.current == .stu
 private let observer = DaemonAuditObserver(auditLog: .shared)
 var runtime = DaemonEnforcementRuntime(auditLog: .shared)
 
-// Read the world, ask, apply, log, sleep. Nothing in this loop decides
-// anything and nothing in it touches the machine directly — every judgement
-// is `DaemonEnforcementDecision` and every side effect is
-// `DaemonEnforcementRuntime` plus `effects`. Three review rounds found three
-// bugs on this branch and all three were in loop code shaped like this one
-// used to be, so keep it boring.
-while true {
-    let now = Date()
-    touchDaemonHeartbeat(now: now)
-
-    let backendSnapshot = commandBackends.synchronize(at: now)
+private func discoverRemoteCommands() {
+    let backendSnapshot = commandBackends.synchronize(at: Date())
     for receipt in backendSnapshot.receipts {
         daemonLogger.notice(
             "remote command \(receipt.result.commandID, privacy: .public) resolved as \(receipt.result.stage.rawValue, privacy: .public)"
@@ -281,13 +272,29 @@ while true {
             "\(failure.backend, privacy: .public) backend failed: \(failure.message, privacy: .public)"
         )
     }
+}
 
-    let record = backendSnapshot.deadline
+private func externalDeadline(
+    control: AuthenticatedDaemonControl,
+    now: Date
+) -> LockoutDeadlineRecord? {
+    _ = try? localBackend.synchronize(at: now)
+    let local = control.activeLocalCandidate(try? localBackend.activeDeadline(at: now), now: now)
+    let remote = try? remoteCommandStateStore.load().activeLockout
+    return DaemonLockoutDeadlineResolver.resolve(now: now, user: local, shadow: nil, remote: remote)
+}
+
+private func evaluatePolicy(
+    status: PrivilegedDaemonStatus, now: Date, requiresAuthenticatedHeartbeat: Bool
+) -> Bool {
+    touchDaemonHeartbeat(now: now)
+    let record = status.activeRecord
     let breakGlass = record.flatMap { deadline in
         breakGlassStore.activeRelease(now: now, issuedAfter: deadline.lockoutStartedAt)
             ?? remoteOverrideReleaseStore.activeCoordinatorRelease(now: now)
     }
-    let heartbeatAge = appHeartbeatAge(now: now)
+    let authenticatedAge = status.lastHeartbeatAt.map { now.timeIntervalSince($0) } ?? .infinity
+    let heartbeatAge = requiresAuthenticatedHeartbeat ? authenticatedAge : appHeartbeatAge(now: now)
     // Read the mirror once: the same policy has to decide both which processes
     // count as live work and how long the resulting hold may last.
     let protectedWorkPolicy = ProtectedWorkPolicy.loadMirror()
@@ -353,18 +360,21 @@ while true {
         break
     }
 
+    // The authenticated listener stays alive for subsequent windows. All
+    // cancellation and shadow cleanup has already passed through the policy.
     if runtime.shouldExit {
-        break
+        runtime = DaemonEnforcementRuntime(auditLog: .shared)
     }
-    // Keep looping on stand-down rather than exiting: `KeepAlive.PathState`
-    // would respawn us the moment we quit, and a process that dies and returns
-    // every ten seconds is worse company than one that sits quietly.
-    Thread.sleep(forTimeInterval: loopInterval)
+    return runtime.shutdownIssued
 }
 
-daemonLogger.info("curfew-daemon exiting")
-AuditLog.shared.emit(
-    .daemonStopped,
-    actor: .daemon,
-    detail: ["shutdownIssued": .bool(runtime.shutdownIssued)]
+let service = AuthenticatedDaemonService(
+    readExternal: externalDeadline,
+    evaluate: evaluatePolicy,
+    discover: discoverRemoteCommands
 )
+let listener = NSXPCListener(machServiceName: CurfewFlavor.current.daemonLabel)
+listener.delegate = service
+listener.resume()
+service.start()
+RunLoop.current.run()

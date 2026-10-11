@@ -1,5 +1,6 @@
 import CryptoKit
 @testable import Curfew
+@testable import CurfewKit
 import CurfewProtocols
 import Foundation
 import XCTest
@@ -76,7 +77,7 @@ final class NativeAccountSyncMappingTests: XCTestCase {
         )
         let resolvedAt = Date(timeIntervalSince1970: 1_800_000_000)
         let deadline = resolvedAt.addingTimeInterval(900)
-        let local = Curfew.RemoteCommandResult(
+        let local = CurfewKit.RemoteCommandResult(
             commandID: commandID,
             deviceID: deviceID,
             sequence: 7,

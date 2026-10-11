@@ -1,3 +1,4 @@
+import CurfewKit
 import Foundation
 
 /// Audit-log emitters for process-level facts: the respawn deterrent, app
@@ -172,6 +173,10 @@ extension CurfewAppModel {
         case .active: "active"
         case .degradedNoAccessibility: "degraded_no_accessibility"
         case .degradedTapDown: "degraded_tap_down"
+        case .degradedHelperUnavailable: "degraded_helper_unavailable"
+        case .degradedHelperUnauthorized: "degraded_helper_unauthorized"
+        case .degradedHelperStale: "degraded_helper_stale"
+        case .degradedHelperRegistration: "degraded_helper_registration"
         }
     }
 }

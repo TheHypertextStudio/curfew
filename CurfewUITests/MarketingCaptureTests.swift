@@ -33,6 +33,10 @@ final class MarketingCaptureTests: XCTestCase {
                         "about": "Curfew Plus"
                     ]
                     assertText(titles[section] ?? section, in: app)
+                    if section == "integrations" {
+                        assertText("Curfew Account", in: app)
+                        XCTAssertTrue(window.staticTexts["Curfew Account"].exists)
+                    }
                     attach(window, name: "settings-\(section)-\(appearance)-\(size)")
                     scrollToBottom(window)
                     attach(window, name: "settings-\(section)-bottom-\(appearance)-\(size)")

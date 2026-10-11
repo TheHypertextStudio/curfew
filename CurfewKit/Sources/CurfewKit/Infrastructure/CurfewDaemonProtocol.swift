@@ -1,12 +1,10 @@
 import Foundation
 
 public enum PrivilegedDaemonConstants {
-    public static let machServiceName = "studio.hypertext.curfew.daemon"
-    public static let expectedTeamIdentifier = "39AB9DY3K8"
-    public static let expectedBundleIdentifier = "studio.hypertext.curfew"
-    public static let clientSigningRequirement = "anchor apple generic and "
-        + "certificate leaf[subject.OU] = \"\(expectedTeamIdentifier)\" and "
-        + "identifier \"\(expectedBundleIdentifier)\""
+    public static var machServiceName: String {
+        CurfewFlavor.current.daemonLabel
+    }
+
     public static let heartbeatTimeout: TimeInterval = 90
 }
 
@@ -15,7 +13,11 @@ public enum PrivilegedDaemonConstants {
 @objc public protocol CurfewDaemonXPCProtocol {
     func armLockout(_ request: Data, reply: @escaping (Data?, NSError?) -> Void)
     func heartbeat(_ request: Data, reply: @escaping (Data?, NSError?) -> Void)
-    func completeLockout(_ request: Data, reason: String, reply: @escaping (Data?, NSError?) -> Void)
+    func completeLockout(
+        _ request: Data,
+        reason: String,
+        reply: @escaping (Data?, NSError?) -> Void
+    )
     func status(reply: @escaping (Data?, NSError?) -> Void)
     func prepareForUninstall(reply: @escaping (Data?, NSError?) -> Void)
 }
@@ -23,6 +25,7 @@ public enum PrivilegedDaemonConstants {
 public enum PrivilegedCompletionReason: String, Codable, Equatable, Sendable {
     case naturalExpiry = "natural_expiry"
     case approvedOverride = "approved_override"
+    case accountWakeRelease = "account_wake_release"
 }
 
 public struct PrivilegedHeartbeatRequest: Codable, Equatable, Sendable {
@@ -67,7 +70,7 @@ public struct PrivilegedEnforcementStateMachine: Sendable {
 
     public init(startedAt: Date) {
         self.startedAt = startedAt
-        status = PrivilegedDaemonStatus(
+        self.status = PrivilegedDaemonStatus(
             activeRecord: nil,
             lastHeartbeatAt: nil,
             shutdownIssued: false
@@ -76,7 +79,7 @@ public struct PrivilegedEnforcementStateMachine: Sendable {
 
     public init(record: LockoutDeadlineRecord, startedAt: Date) {
         self.startedAt = startedAt
-        status = PrivilegedDaemonStatus(
+        self.status = PrivilegedDaemonStatus(
             activeRecord: record,
             lastHeartbeatAt: nil,
             shutdownIssued: false

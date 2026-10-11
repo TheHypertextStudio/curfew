@@ -1,4 +1,5 @@
 import AppKit
+import CurfewKit
 import Darwin
 import Foundation
 

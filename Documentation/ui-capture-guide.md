@@ -105,3 +105,20 @@ local CurfewKit sources and does not fetch external packages or write user data.
 Record that this is a targeted subset and defer the full hosted suite. Do not
 mix earlier screenshots into final-theme acceptance; recapture only when the
 user authorizes foreground verification again.
+
+## Background-only integration review
+
+The user has stopped local screen-affecting verification. Do not run `just capture`,
+UI tests, app-hosted unit tests, fixture app launches, hero capture, or video capture
+on this Mac. Background format/lint, hostless packages, and `xcodebuild build` /
+`build-for-testing` are permitted. Do not change permissions or register helpers.
+
+Remote GitHub macOS runners are authorized for full hosted unit tests, interactive
+UI checks and the screenshot matrix. Review the artifacts from the exact PR head,
+assert account/Connections as well as the intended fixture state, and share labeled
+images inline. Preserve the complete capture set outside this disposable worktree
+before cleanup. Earlier captures are historical baseline evidence, not proof of
+this integrated build. Keyboard/VoiceOver/Reduce Motion/Reduce Transparency and
+signed helper flows need explicit evidence; list remaining gaps honestly.
+
+Authenticated liveness integration: after authenticated arming or a matching heartbeat, legacy heartbeat files cannot keep that window alive. Unmigrated legacy windows retain file fallback. `AuthenticatedDaemonControlTests` covers persistence and binding to the current window; signed transport verification remains a remote/system acceptance gate.

@@ -1,5 +1,6 @@
 import AppKit
 @testable import Curfew
+@testable import CurfewKit
 import CurfewProtocols
 import Foundation
 import XCTest

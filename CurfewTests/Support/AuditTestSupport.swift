@@ -1,4 +1,5 @@
 @testable import Curfew
+@testable import CurfewKit
 import Foundation
 
 /// Test-only helpers for exercising the audit log without touching
@@ -81,7 +82,6 @@ enum ModelTestSupport {
         return CurfewAppModel(
             settingsStore: CurfewSettingsStore(defaults: defaults),
             appRouter: AppRouterSpy(),
-            gettingStartedPresenter: GettingStartedPresenterSpy(),
             activityRecorder: NullActivityRecording(),
             lockoutDeadlineStore: lockoutDeadlineStore(),
             accessibilityAuthorization: FakeAccessibilityAuthorization(trusted: true)

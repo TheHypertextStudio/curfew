@@ -10,7 +10,7 @@
 project := "Curfew.xcodeproj"
 scheme := "Curfew"
 destination := "platform=macOS"
-source_dirs := "Curfew CurfewTests CurfewUITests Sources Tests"
+source_dirs := "Curfew CurfewTests CurfewUITests CurfewKit/Sources CurfewKit/Tests"
 # Optional command-line Xcode build settings for CI-only validation (for
 # example, unsigned fork-safe builds). Local developer commands remain signed.
 xcodebuild_settings := env_var_or_default("CURFEW_XCODEBUILD_SETTINGS", "")
@@ -59,7 +59,7 @@ test-ui:
         -scheme {{ scheme }} \
         -allowProvisioningUpdates \
         -destination '{{ destination }}' \
-        -only-testing:CurfewUITests
+        -only-testing:CurfewUITests {{ xcodebuild_settings }}
 
 # Run one test case or method (e.g. `just test-one ActivityStoreTests` or
 
@@ -118,7 +118,7 @@ build-release:
         -scheme {{ scheme }} \
         -allowProvisioningUpdates \
         -configuration Release \
-        -destination '{{ destination }}'
+        -destination '{{ destination }}' {{ xcodebuild_settings }}
 
 # Archive the Release configuration for packaging. Output goes to
 # `release/Curfew.xcarchive`. Signing + notarisation happen downstream.
