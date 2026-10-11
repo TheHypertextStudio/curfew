@@ -66,7 +66,9 @@ final class LicenseGate {
     /// `removeDuplicates()` chain.
     private(set) var activatedKey: LicenseKey? {
         didSet {
-            if activatedKey != oldValue { onActivationChange?() }
+            if activatedKey != oldValue {
+                onActivationChange?()
+            }
         }
     }
     /// Localized error string from the most recent failed `activate(_:)`
@@ -135,6 +137,9 @@ final class LicenseGate {
 
     /// Verifies and (on success) persists the given licence string.
     /// Failure surfaces via `activationError` for the UI to display.
+    ///
+    /// User-facing entry point — called from the Activate button, where a
+    /// failure is something the user just did and should see explained.
     func activate(_ keyString: String) {
         activationError = nil
         let trimmed = keyString.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -144,6 +149,23 @@ final class LicenseGate {
         } catch {
             activationError = error.localizedDescription
         }
+    }
+
+    /// Same verify-and-persist as ``activate(_:)``, without touching
+    /// `activationError` either way.
+    ///
+    /// For unattended background refresh (subscription key renewal on launch
+    /// / day rollover — see `CurfewAppModel.refreshSubscriptionLicenseIfNeeded`),
+    /// which the user never triggered: a failure here shouldn't populate the
+    /// Activate screen's error field with a confusing, unexplained message
+    /// the next time they happen to open it, and a success shouldn't be able
+    /// to silently wipe an error the user is actively looking at from
+    /// something they *did* just type into that field.
+    func activateSilently(_ keyString: String) {
+        let trimmed = keyString.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let verifiedKey = try? verified(trimmed) else { return }
+        activatedKey = verifiedKey
+        defaults.set(trimmed, forKey: Self.storageKey)
     }
 
     /// Clears the in-memory licence and removes the persisted string.

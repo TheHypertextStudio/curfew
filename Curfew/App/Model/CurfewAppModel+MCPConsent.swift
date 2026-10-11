@@ -94,15 +94,15 @@ extension CurfewAppModel {
             denialReason: approved ? nil : reason
         )
 
-        if approved {
-            applyMCPAction(request)
-        }
+        let applied = approved && applyMCPAction(request)
+        let outcomeReason = approved && !applied
+            ? "Approved, but no longer eligible when applied." : reason
 
         var updated = request
-        updated.status = approved ? .approved : .denied
+        updated.status = applied ? .approved : .denied
         updated.resolvedAt = Date()
-        updated.denialReason = approved || reason.isEmpty ? nil : reason
-        try? MCPRequestQueue.update(updated)
+        updated.denialReason = applied || outcomeReason.isEmpty ? nil : outcomeReason
+        writeMCPQueueUpdate(updated)
         pendingMCPRequests.removeAll { $0.id == request.id }
     }
 }

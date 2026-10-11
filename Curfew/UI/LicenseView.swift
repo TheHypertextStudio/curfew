@@ -49,15 +49,22 @@ struct LicenseView: View {
         }
     }
 
-    /// "Lifetime — email" or "Subscription · renews <date> — email", drawn from
-    /// the activated key's `plan` and `expiresAt`.
+    /// "Lifetime — email" or "Subscription · active until <date> — email",
+    /// drawn from the activated key's `plan` and `expiresAt`.
+    ///
+    /// Deliberately says "active until", not "renews": `expiresAt` is the
+    /// current period end (plus a grace window) regardless of whether the
+    /// subscription is actively renewing or already cancelled and coasting
+    /// to that same deadline — nothing here can tell the two apart, so
+    /// "renews" would promise automatic continuation to someone who just
+    /// cancelled.
     private var activeSummary: String {
         let email = gate.activatedKey?.email ?? ""
         switch gate.activatedKey?.plan {
         case .subscription:
             if let expiresAt = gate.activatedKey?.expiresAt {
                 let date = expiresAt.formatted(date: .abbreviated, time: .omitted)
-                return "Subscription · renews \(date) — \(email)"
+                return "Subscription · active until \(date) — \(email)"
             }
             return "Subscription — \(email)"
         case .lifetime, .none:

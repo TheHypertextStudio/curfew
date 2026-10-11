@@ -42,37 +42,70 @@ struct ReflectionFormView: View {
     @ScaledMetric(relativeTo: .body) private var moodButtonWidth: CGFloat = 64
     @ScaledMetric(relativeTo: .body) private var moodButtonHeight: CGFloat = 60
 
+    /// Prompts with real question text. A blank prompt — added in the editor
+    /// via "Add prompt" and then abandoned before typing a question, or left
+    /// blank after editing — has nothing for the user to answer, so it's
+    /// filtered here rather than rendered as an unlabeled, unanswerable
+    /// control at the live gate. The editor itself still shows every prompt,
+    /// blank or not, so the user can find and fill in (or delete) it.
+    private var visiblePrompts: [ReflectionPrompt] {
+        prompts.filter { !$0.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 22) {
-            ForEach(prompts) { prompt in
-                VStack(alignment: .leading, spacing: 10) {
-                    Text(prompt.text)
-                        .font(.system(size: promptFontSize, weight: .medium, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.9))
-                    control(for: prompt)
+            if visiblePrompts.isEmpty {
+                emptyPromptsNotice
+            } else {
+                ForEach(visiblePrompts) { prompt in
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text(prompt.text)
+                            .font(.system(size: promptFontSize, weight: .medium, design: .rounded))
+                            .foregroundStyle(.white.opacity(0.9))
+                        control(for: prompt)
+                    }
                 }
-            }
 
-            HStack(spacing: 16) {
-                Button(submitLabel) { onSubmit(builtAnswers()) }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
-                    .disabled(builtAnswers().isEmpty)
+                HStack(spacing: 16) {
+                    Button(submitLabel) { onSubmit(builtAnswers()) }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.large)
+                        .disabled(builtAnswers().isEmpty)
 
-                Button("Skip", action: onSkip)
-                    .buttonStyle(.plain)
-                    .foregroundStyle(.white.opacity(0.45))
+                    Button("Skip", action: onSkip)
+                        .buttonStyle(.plain)
+                        .foregroundStyle(.white.opacity(0.45))
+                }
+                .padding(.top, 4)
             }
-            .padding(.top, 4)
         }
         .frame(maxWidth: 560, alignment: .leading)
+    }
+
+    /// Shown instead of a dead form when every prompt for this gate has been
+    /// removed (in Reflection settings) — otherwise the user sees a
+    /// permanently-disabled submit button with no explanation for why. A real
+    /// "Continue" (not a de-emphasized "Skip") since there is genuinely
+    /// nothing to answer, not something they're opting out of.
+    private var emptyPromptsNotice: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("No prompts configured for this reflection yet.")
+                .font(.system(size: promptFontSize, weight: .medium, design: .rounded))
+                .foregroundStyle(.white.opacity(0.9))
+            Text("Add prompts in Journal → Prompts to start recording reflections here.")
+                .font(.system(size: editorFontSize, weight: .regular, design: .rounded))
+                .foregroundStyle(.white.opacity(0.6))
+            Button("Continue", action: onSkip)
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+        }
     }
 
     /// Builds answers for every prompt the user meaningfully answered:
     /// non-empty text, a rating ≥ 1, or a selected mood. Untouched prompts are
     /// omitted so the stored reflection never carries empty rows.
     private func builtAnswers() -> [ReflectionAnswer] {
-        prompts.compactMap { prompt -> ReflectionAnswer? in
+        visiblePrompts.compactMap { prompt -> ReflectionAnswer? in
             guard let value = values[prompt.id], isMeaningful(value) else { return nil }
             return ReflectionAnswer(
                 promptID: prompt.id,
