@@ -29,7 +29,8 @@ struct AccountConnectionPresentation: Equatable {
 
     static func resolve(
         _ status: AccountSyncStatus,
-        remoteEnforcementReady: Bool = true
+        remoteEnforcementReady: Bool = true,
+        remoteEnforcementSupported: Bool = true
     ) -> AccountConnectionPresentation {
         switch status {
         case .accountFree:
@@ -48,7 +49,10 @@ struct AccountConnectionPresentation: Equatable {
                 tone: .neutral
             )
         case .synchronized(let date):
-            synchronized(at: date, remoteEnforcementReady: remoteEnforcementReady)
+            synchronized(
+                at: date, remoteEnforcementReady: remoteEnforcementReady,
+                remoteEnforcementSupported: remoteEnforcementSupported
+            )
         case .pendingEncryption:
             AccountConnectionPresentation(
                 title: "Encrypted changes are waiting to sync",
@@ -64,18 +68,30 @@ struct AccountConnectionPresentation: Equatable {
                 systemImage: "wifi.slash",
                 tone: .warning
             )
-        case .rejected:
-            rejected(requiresSameAccountSignIn: status.requiresSameAccountSignIn)
+        case .rejected(let reason):
+            rejected(reason: reason, requiresSameAccountSignIn: status.requiresSameAccountSignIn)
         }
     }
 
-    private static func rejected(requiresSameAccountSignIn: Bool) -> AccountConnectionPresentation {
+    private static func rejected(
+        reason: String,
+        requiresSameAccountSignIn: Bool
+    ) -> AccountConnectionPresentation {
         if requiresSameAccountSignIn {
             return AccountConnectionPresentation(
                 title: "Reconnect this Mac to Curfew",
                 detail: "Curfew cannot authenticate this Mac right now. "
                     + "Sign in again with the same account to restore remote control. "
                     + "Your local schedule stays unchanged.",
+                systemImage: "exclamationmark.triangle.fill",
+                tone: .warning
+            )
+        }
+        guard reason == AccountSyncRejectionReason.accessDenied else {
+            return AccountConnectionPresentation(
+                title: "Remote update couldn’t be applied",
+                detail: "Curfew couldn’t apply a remote update on this Mac. "
+                    + "Your schedule is unchanged. Reopen Curfew and try again.",
                 systemImage: "exclamationmark.triangle.fill",
                 tone: .warning
             )
@@ -91,8 +107,17 @@ struct AccountConnectionPresentation: Equatable {
 
     private static func synchronized(
         at date: Date,
-        remoteEnforcementReady: Bool
+        remoteEnforcementReady: Bool,
+        remoteEnforcementSupported: Bool
     ) -> AccountConnectionPresentation {
+        if !remoteEnforcementSupported {
+            return AccountConnectionPresentation(
+                title: "Remote locks are unavailable",
+                detail: "Install Curfew from the official website to use remote locks on this Mac.",
+                systemImage: "exclamationmark.triangle.fill",
+                tone: .warning, lastConfirmedAt: date
+            )
+        }
         if !remoteEnforcementReady {
             return AccountConnectionPresentation(
                 title: "Remote locks are not ready",

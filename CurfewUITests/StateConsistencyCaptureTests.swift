@@ -12,7 +12,9 @@ extension MarketingCaptureTests {
                     ("settings", "assistant-malformed"),
                     ("settings", "account-offline"),
                     ("settings", "account-sign-in-required"),
-                    ("settings", "account-helper-unavailable")
+                    ("settings", "account-helper-unavailable"),
+                    ("settings", "account-update-failed"),
+                    ("settings", "account-helper-hidden")
                 ] {
                     let app = launch(scenario, state: state, appearance: appearance, size: size)
                     if state.hasPrefix("account-") {
@@ -51,9 +53,18 @@ extension MarketingCaptureTests {
         case "account-sign-in-required":
             assertText("Reconnect this Mac to Curfew", in: app)
             XCTAssertTrue(app.buttons["Sign in again to reconnect this Mac"].exists)
+        case "account-update-failed":
+            assertText("Remote update couldn’t be applied", in: app)
+            XCTAssertFalse(app.staticTexts["Check this Mac’s account access"].exists)
+        case "account-helper-hidden":
+            assertText("Remote locks are unavailable", in: app)
         default: assertText("Remote locks are not ready", in: app)
         }
-        XCTAssertTrue(app.buttons["Review Background Protection"].exists)
+        if state == "account-helper-hidden" {
+            XCTAssertFalse(app.buttons["Review Background Protection"].exists)
+        } else {
+            XCTAssertTrue(app.buttons["Review Background Protection"].exists)
+        }
         XCTAssertFalse(app.buttons["Install Background Protection…"].exists)
         attach(window, name: "\(state)-\(appearance)-\(size)")
     }

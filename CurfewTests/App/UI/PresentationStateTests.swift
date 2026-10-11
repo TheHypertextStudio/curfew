@@ -47,7 +47,9 @@ struct PresentationStateTests {
             "assistantMalformed",
             "accountOffline",
             "accountSignInRequired",
-            "accountHelperUnavailable"
+            "accountHelperUnavailable",
+            "accountUpdateFailed",
+            "accountHelperHidden"
         ] {
             #expect(fixtures.contains(state))
         }
