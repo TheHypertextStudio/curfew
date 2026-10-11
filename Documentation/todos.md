@@ -958,3 +958,6 @@ Rollback is limited to presentation and CI ordering.
 The preflight uses nine independent XCTest methods, one per state family. A failure
 in one state does not prevent the other families from being exercised; each still
 asserts its own screen and state before attaching an image.
+
+- [-] Reject exhausted AI extension grants in both manual and automatic approval.
+  Regression added before implementation; observe failure on the isolated runner.
