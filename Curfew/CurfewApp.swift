@@ -93,9 +93,9 @@ enum CurfewLaunchBehavior {
 @main
 struct CurfewApp: App {
     /// The central app-state object; injected into every scene.
-    @StateObject private var model: CurfewAppModel
+    @State private var model: CurfewAppModel
     /// Sparkle wrapper driving the Check-for-Updates menu item.
-    @StateObject private var updater = CurfewUpdater()
+    @State private var updater = CurfewUpdater()
     /// AppKit delegate seam. A no-op today; a later workflow hangs
     /// activation / wake re-assertion of the keyboard shield off it so a
     /// degraded lockout can recover when the user returns to the Mac.
@@ -114,7 +114,7 @@ struct CurfewApp: App {
         #endif
     }
 
-    /// Constructs the app model, wires the `@StateObject`, and defers
+    /// Constructs the app model, wires the `@State`-owned model, and defers
     /// the launch coordinator to the next run-loop spin so SwiftUI's
     /// first body evaluation completes before enforcement arms.
     init() {
@@ -123,7 +123,7 @@ struct CurfewApp: App {
                 environment: ProcessInfo.processInfo.environment
             ) {
                 let model = CurfewAppModel.demoModel()
-                _model = StateObject(wrappedValue: model)
+                _model = State(wrappedValue: model)
                 DispatchQueue.main.async {
                     // The demo branch returns before `AppCoordinator` runs, so
                     // pin the light appearance here too — otherwise demo/capture
@@ -137,7 +137,7 @@ struct CurfewApp: App {
         #endif
 
         let model = CurfewAppModel()
-        _model = StateObject(wrappedValue: model)
+        _model = State(wrappedValue: model)
 
         // Hand the shared model to the AppKit delegate so it can re-assert
         // enforcement on app activation. Captured here and assigned on the next
@@ -157,7 +157,7 @@ struct CurfewApp: App {
     var body: some Scene {
         WindowGroup(id: MainWorkspaceSection.windowID) {
             MainWindowView()
-                .environmentObject(model)
+                .environment(model)
                 .frame(minWidth: 980, minHeight: 660)
                 .onOpenURL { _ = AccountOAuthCallbackRouter.shared.route($0) }
         }
@@ -179,7 +179,7 @@ struct CurfewApp: App {
 
         MenuBarExtra {
             ContentView()
-                .environmentObject(model)
+                .environment(model)
                 .onOpenURL { _ = AccountOAuthCallbackRouter.shared.route($0) }
         } label: {
             // Morph between phase glyphs on change, and pulse when enforcement
@@ -194,10 +194,23 @@ struct CurfewApp: App {
 
         Settings {
             SettingsView()
-                .environmentObject(model)
+                .environment(model)
                 .frame(minWidth: 760, minHeight: 520)
                 .onOpenURL { _ = AccountOAuthCallbackRouter.shared.route($0) }
         }
+
+        // First-launch onboarding window. Replaces the hand-rolled
+        // `NSWindowController` presenter: `MainWindowView` observes the model's
+        // `gettingStartedRequestID` / `gettingStartedDismissID` triggers and
+        // drives `openWindow` / `dismissWindow` for this group. Suppressed at
+        // launch so it only appears when the model requests it.
+        WindowGroup(id: CurfewAppModel.gettingStartedWindowID) {
+            GettingStartedView()
+                .environment(model)
+        }
+        .defaultSize(width: 620, height: 430)
+        .windowResizability(.contentSize)
+        .defaultLaunchBehavior(.suppressed)
     }
 }
 

@@ -254,11 +254,9 @@ struct AppCoordinatorTests {
         settings.hasCompletedInitialSetup = true
         store.save(settings)
 
-        let presenter = GettingStartedPresenterSpy()
         let model = CurfewAppModel(
             settingsStore: store,
             appRouter: AppRouterSpy(),
-            gettingStartedPresenter: presenter,
             activityRecorder: NullActivityRecording(),
             lockoutDeadlineStore: ModelTestSupport.lockoutDeadlineStore()
         )
@@ -270,7 +268,7 @@ struct AppCoordinatorTests {
         )
 
         #expect(model.isEnforcementRunning)
-        #expect(presenter.presentCallCount == 1)
+        #expect(model.gettingStartedRequestID == 1)
     }
 
     @Test("Coordinator keeps enforcement disarmed when launch policy disables start")
@@ -292,7 +290,6 @@ struct AppCoordinatorTests {
         let model = CurfewAppModel(
             settingsStore: store,
             appRouter: AppRouterSpy(),
-            gettingStartedPresenter: GettingStartedPresenterSpy(),
             activityRecorder: NullActivityRecording(),
             lockoutDeadlineStore: ModelTestSupport.lockoutDeadlineStore()
         )

@@ -8,7 +8,7 @@ import UniformTypeIdentifiers
 /// reflections (``JournalReflectionsView``), and an export menu (Markdown /
 /// JSON / Share) for getting a week's journal out of the app.
 struct JournalView: View {
-    @EnvironmentObject private var model: CurfewAppModel
+    @Environment(CurfewAppModel.self) private var model
 
     /// Which face of Reflect is showing: the read-only archive, or the prompt
     /// editor that shapes it.
@@ -45,7 +45,7 @@ struct JournalView: View {
                     entriesContent
                 case .prompts:
                     ReflectionPromptsView()
-                        .environmentObject(model)
+                        .environment(model)
                 }
             }
         }

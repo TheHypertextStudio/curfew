@@ -13,7 +13,7 @@ import SwiftUI
 /// `ScrollView` content).
 struct ScheduleView: View {
     /// Shared app model, forwarded to the content via the environment.
-    @EnvironmentObject private var model: CurfewAppModel
+    @Environment(CurfewAppModel.self) private var model
 
     /// Scrolling wrapper around ``ScheduleContent``.
     var body: some View {
@@ -23,7 +23,7 @@ struct ScheduleView: View {
                 .ignoresSafeArea(.container, edges: .top)
             ScrollView {
                 ScheduleContent()
-                    .environmentObject(model)
+                    .environment(model)
             }
             .scrollIndicators(.hidden)
         }
@@ -36,7 +36,7 @@ struct ScheduleView: View {
 struct ScheduleContent: View {
     /// Shared app model — schedule reads/writes round-trip through it so the
     /// anti-bypass policy engine stays the single mutation entry point.
-    @EnvironmentObject private var model: CurfewAppModel
+    @Environment(CurfewAppModel.self) private var model
 
     /// Briefly true when a pending schedule change transitions to applied so
     /// the user gets confirmation that their queued edit took effect.

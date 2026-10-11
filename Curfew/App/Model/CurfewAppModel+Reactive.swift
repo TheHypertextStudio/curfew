@@ -1,5 +1,4 @@
 import CloudKit
-import Combine
 import CurfewKit
 import Foundation
 
@@ -11,15 +10,20 @@ import Foundation
 extension CurfewAppModel {
     /// Subscribes to license activation/deactivation so Pro engines start
     /// or stop without requiring an app relaunch. Debounces via the main
-    /// run loop so the didSet cascade settles before engines bounce.
+    /// run loop so the `didSet` cascade settles before engines bounce.
+    ///
+    /// `@Observable` provides no `$publisher`, so this wires
+    /// ``LicenseGate/onActivationChange`` instead. The callback fires
+    /// synchronously inside the `activatedKey` `didSet`; deferring the
+    /// reconcile onto the main run loop preserves the prior
+    /// `receive(on: RunLoop.main)` behaviour so the activation cascade settles
+    /// before engines start or stop.
     func subscribeToLicenseChanges() {
-        licenseGate.$activatedKey
-            .removeDuplicates()
-            .receive(on: RunLoop.main)
-            .sink { [weak self] _ in
+        licenseGate.onActivationChange = { [weak self] in
+            RunLoop.main.perform { [weak self] in
                 self?.reconcilePlusGatedModules()
             }
-            .store(in: &cancellables)
+        }
     }
 
     /// Starts or stops CloudKit, Calendar, DeviceRegistry, and the

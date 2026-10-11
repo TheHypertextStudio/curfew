@@ -14,21 +14,29 @@ import Foundation
 /// someone reading the code can find all user-reachable actions in one file.
 @MainActor
 extension CurfewAppModel {
+    /// Stable `WindowGroup` id for the first-launch Getting Started scene,
+    /// shared by `CurfewApp` and the `openWindow`/`dismissWindow` triggers.
+    static let gettingStartedWindowID = "getting-started"
+
     /// Activates Curfew and opens the standard Settings window.
     func openSettings() {
         appRouter.activate()
         appRouter.showSettings()
     }
 
-    /// Brings the app to the foreground and presents the Getting Started window.
+    /// Brings the app to the foreground and requests the Getting Started window.
+    /// Bumps ``gettingStartedRequestID``; the SwiftUI scene graph observes it
+    /// and opens the `WindowGroup(id: "getting-started")` via `openWindow`.
     func showGettingStarted() {
         appRouter.activate()
-        gettingStartedPresenter.present(model: self)
+        gettingStartedRequestID += 1
     }
 
-    /// Dismisses the Getting Started window.
+    /// Requests dismissal of the Getting Started window by bumping
+    /// ``gettingStartedDismissID``; the scene graph observes it and calls
+    /// `dismissWindow`.
     func dismissGettingStarted() {
-        gettingStartedPresenter.dismiss()
+        gettingStartedDismissID += 1
     }
 
     /// Marks initial setup complete and dismisses the Getting Started window.

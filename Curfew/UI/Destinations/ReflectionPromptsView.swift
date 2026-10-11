@@ -14,7 +14,7 @@ import SwiftUI
 /// immediately, matching the rest of the app.
 struct ReflectionPromptsView: View {
     /// Shared app state — prompts read/write through it.
-    @EnvironmentObject private var model: CurfewAppModel
+    @Environment(CurfewAppModel.self) private var model
 
     /// Which prompt's text field should hold keyboard focus — set so a freshly
     /// added prompt is ready to type into.

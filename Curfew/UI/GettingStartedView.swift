@@ -3,8 +3,8 @@ import Combine
 import CurfewKit
 import SwiftUI
 
-/// First-launch onboarding view presented in its own AppKit window by
-/// `GettingStartedWindowPresenter`.
+/// First-launch onboarding view hosted by the `getting-started`
+/// `WindowGroup` scene in `CurfewApp`.
 ///
 /// Layout is deliberately static: a title, a commitment-framing sentence,
 /// a single `CurfewPanel` whose content switches on `flow.currentStep`, and
@@ -22,7 +22,7 @@ struct GettingStartedView: View {
     /// (extension/override budgets for the budget step) and trigger
     /// navigation actions (`openSettings`, `dismissGettingStarted`,
     /// `completeOnboardingFlow`).
-    @EnvironmentObject private var model: CurfewAppModel
+    @Environment(CurfewAppModel.self) private var model
 
     /// Local cursor tracking which onboarding pane is visible.
     @State private var flow = FirstRunFlow()

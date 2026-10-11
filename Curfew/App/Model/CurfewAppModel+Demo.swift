@@ -29,7 +29,6 @@ import CurfewKit
             return CurfewAppModel(
                 settingsStore: settingsStore,
                 appRouter: SystemAppRouter(),
-                gettingStartedPresenter: GettingStartedWindowPresenter(),
                 featureFlags: .default,
                 activityRecorder: makeDemoActivityRecorder(now: now),
                 browserNativeRuntime: makeDemoBrowserRuntime(
