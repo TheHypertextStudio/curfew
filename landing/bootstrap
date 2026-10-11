@@ -1,5 +1,0 @@
-#!/bin/sh
-# Reuse the repository's pinned worktree preparation engine.
-set -eu
-root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
-exec "$root/bootstrap" "$@"

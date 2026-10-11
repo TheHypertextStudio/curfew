@@ -249,36 +249,35 @@ existing build and test commands.
 
 ## Website and product documentation
 
-The marketing frontend is Astro in `landing/`; Mintlify source remains `web/docs/`.
-The independent `landing/` workspace owns the common Node 24.20.0 / pnpm 11.9.0
-website/docs toolchain; root commands delegate there, including the checksum-pinned lifecycle in
-`landing/run`/`landing/studio.yaml`. The existing `web/` backend
-workspace retains its own lockfile. Native application
-and backend commands above retain their existing release boundaries.
+The marketing frontend uses Astro in `landing/`; Mintlify source is `web/docs/`.
+Node 24.20.0 and pnpm 11.9.0 are pinned in the independent frontend package.
+The existing `web/` backend workspace retains its own lockfile, and native
+application setup continues through `./bootstrap worktree prepare`.
 
 ```sh
-./run setup
-./run doctor
-./run dev
-./run check
-./run build
+pnpm --dir landing install --frozen-lockfile
+pnpm dev
+pnpm check
+pnpm build
+pnpm preview:worker
 pnpm docs:config
 pnpm docs:config:check
 pnpm docs:dev
 pnpm docs:check
 ```
 
-Shared packages 0.0.1 are published and this repository has package-read grants.
-Native GitHub run `38119577450` resolved and replayed the adopted registry lock
-with its temporary job token, dependency scripts disabled, and no peer issues.
-The earlier website/docs CI passed in run `38120078658`; current production source
-reconciliation has changed the inputs, so its new acceptance remains pending. See the [website operating
-reference](Documentation/website.md) for exact configuration, current setup gates,
-site/docs previews, validation, Mintlify integration, candidate deployment, and
-recovery. Follow the [product authoring guide](Documentation/website-authoring.md)
-for MDX and generated configuration edits. The source defaults to the retained `/docs` HTML guide until the Mintlify project
-is connected and verified. Current production returns an upstream 404; the
-source reconciliation has not yet been published. Existing native/Pages wrappers
-stage a filtered raw output, preserving current appcast delivery without shipping
-frontend source or tooling. The Git-connected Pages output setting remains a
-separate integration gate.
+Astro reads `landing/src/` and `landing/public/`, then writes `landing/dist/`.
+Native Wrangler commands use that output; no custom asset copier, candidate
+assembler, parity script, or website lifecycle launcher is required. The signed
+appcast publisher stages its feed in `landing/public/` and builds before upload.
+Shared private packages and their adopted registry lock remain unchanged.
+
+The existing Mintlify project has published its first connected update. The
+reserved `/mcp` guide fix is prepared in this branch; complete public proxy and
+source identity acceptance remains open. Source retains HTML-guide mode until
+that acceptance, independently of the current provider configuration. No provider
+setting or publication is changed by this cleanup.
+
+See [website operations](Documentation/website.md) for native preview/deployment
+commands and publisher dependencies, and [authoring](Documentation/website-authoring.md)
+for product MDX and shared generated configuration.

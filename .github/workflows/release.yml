@@ -16,6 +16,7 @@ jobs:
     runs-on: macos-26
     permissions:
       contents: write
+      packages: read
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -198,6 +199,23 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: gh release upload "${{ github.ref_name }}" "$RUNNER_TEMP/appcast.xml" --clobber
 
+      - name: Set up frontend package manager
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.9.0
+
+      - name: Set up frontend Node and registry
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.20.0
+          registry-url: https://npm.pkg.github.com
+          scope: '@thehypertextstudio'
+
+      - name: Install frontend from the reviewed lock
+        run: pnpm --dir landing install --frozen-lockfile
+        env:
+          NODE_AUTH_TOKEN: ${{ github.token }}
+
       - name: Deploy live appcast
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -205,11 +223,8 @@ jobs:
         run: |
           : "${CLOUDFLARE_API_TOKEN:?CLOUDFLARE_API_TOKEN is required}"
           : "${CLOUDFLARE_ACCOUNT_ID:?CLOUDFLARE_ACCOUNT_ID is required}"
-          cp "$RUNNER_TEMP/appcast.xml" landing/appcast.xml
-          corepack enable
-          cd web
-          pnpm install --frozen-lockfile
-          pnpm --filter @curfew/landing deploy
+          cp "$RUNNER_TEMP/appcast.xml" landing/public/appcast.xml
+          pnpm --dir landing deploy:pages
 
       - name: Verify live appcast
         run: |

@@ -48,7 +48,7 @@ Manual steps that remain **after** the script (no API for these):
       must be told it lives under `/docs`.
 - [ ] Commit the values the script injected: the Ed25519 public key in
       `LicenseGate.swift` and the payment-link URLs/price in
-      `landing/index.html`.
+      `landing/src/pages/index.astro`.
 
 Steps 4–8 below are the manual fallback / reference for what the script does.
 
@@ -99,7 +99,7 @@ fraud — no separate tax-filing service is needed.
       **Managed Payments** (public preview — confirm eligibility).
 - [ ] Create the Curfew Plus lifetime and subscription products and their
       hosted Payment Links only after the production issuer is ready.
-- [ ] Keep `landing/index.html`'s sale gate in place until the production
+- [ ] Keep `landing/src/pages/index.astro`'s sale gate in place until the production
       purchase-to-license delivery path is proven end to end. Do not commit a
       hosted payment-link URL before that proof.
 - [ ] Developers → Webhooks → add an endpoint subscribed to

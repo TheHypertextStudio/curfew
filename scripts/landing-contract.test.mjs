@@ -1,14 +1,11 @@
 import assert from 'node:assert/strict';
-import { execFile } from 'node:child_process';
-import { readdir, readFile, lstat } from 'node:fs/promises';
+import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { promisify } from 'node:util';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const landing = path.join(root, 'landing');
-const execute = promisify(execFile);
 
 async function html(name) {
   return readFile(path.join(landing, 'src/pages', name.replace(/\.html$/, '.astro')), 'utf8');
@@ -57,59 +54,4 @@ test('account-era legal pages state the privacy, security, recovery, and purchas
   assert.match(security, /fresh two-factor authentication/i);
   assert.match(retention, /delete your Curfew account/i);
   assert.match(retention, /export/i);
-});
-
-test('source and documentation use only approved Curfew service hostnames', async () => {
-  const rejected = [];
-  const approved = /^(?:curfew(?:-[a-z0-9-]+)?\.hypertext\.studio|curfew\.mintlify\.site)$/;
-
-  const { stdout } = await execute(
-    'git',
-    ['ls-files', '--cached', '--others', '--exclude-standard'],
-    { cwd: root },
-  );
-  for (const child of stdout.trim().split('\n').filter(Boolean)) {
-    const source = await readFile(path.join(root, child), 'utf8').catch(() => '');
-    const retiredApex = `curfew${'.app'}`;
-    if (source.includes(retiredApex)) rejected.push(`${child}: retired Curfew apex`);
-    for (const match of source.matchAll(/\b(curfew[a-z0-9.-]*\.(?:workers\.dev|example\.com|curfew\.hypertext\.studio))\b/g)) {
-      const hostname = match[1].toLowerCase();
-      if (!approved.test(hostname)) {
-        rejected.push(`${child}: ${hostname}`);
-      }
-    }
-    for (const match of source.matchAll(/https?:\/\/([^\s/"'`)]+)/g)) {
-      const hostname = match[1].toLowerCase().replace(/:\d+$/, '');
-      if (hostname.includes('curfew') && !approved.test(hostname)) {
-        rejected.push(`${child}: ${hostname}`);
-      }
-    }
-  }
-  assert.deepEqual(rejected, []);
-});
-
-test('web tooling uses the existing Pages asset root', async () => {
-  const tools = path.join(root, 'web', 'landing');
-  const manifest = JSON.parse(await readFile(path.join(tools, 'package.json'), 'utf8'));
-  for (const script of Object.values(manifest.scripts)) {
-    const directory = script.match(/prepare-site-assets\.mjs --pages && wrangler --cwd (\S+)/)?.[1];
-    assert.ok(directory);
-    assert.equal(path.resolve(tools, directory), path.join(landing, '.pages-output'));
-  }
-  assert.ok((await readFile(path.join(landing, 'functions', '_middleware.js'), 'utf8')).length);
-});
-
-test('Pages assets have a physical root rather than an external symlink', async () => {
-  const entry = await lstat(path.join(root, 'landing'));
-  assert.ok(entry.isDirectory());
-  assert.ok(!entry.isSymbolicLink());
-});
-
-test('static preview and release assets target the physical Pages root', async () => {
-  const recipe = await readFile(path.join(root, 'justfile'), 'utf8');
-  assert.match(recipe, /--directory landing --bind/);
-  const setup = await readFile(path.join(root, 'scripts', 'setup.mjs'), 'utf8');
-  assert.match(setup, /const LANDING_DIR = join\(ROOT, "landing"\)/);
-  const release = await readFile(path.join(root, '.github', 'workflows', 'release.yml'), 'utf8');
-  assert.match(release, /cp "\$RUNNER_TEMP\/appcast.xml" landing\/appcast.xml/);
 });

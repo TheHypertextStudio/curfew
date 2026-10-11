@@ -1,5 +1,0 @@
-#!/bin/sh
-# Curfew's website lifecycle is scoped to landing; native/backend owners remain independent.
-set -eu
-root=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-exec "$root/landing/run" "$@"

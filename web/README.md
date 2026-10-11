@@ -6,13 +6,11 @@ so it can be extracted into a standalone repository.
 - `worker/` — the license API (Hono + `@hono/zod-openapi` on Cloudflare Workers);
   serves the generated OpenAPI spec at `/openapi.json` and a Scalar reference at
   `/reference`.
-- `landing/` — compatibility tooling for the physical `../landing/` Pages source.
-  Dev/deploy first stage an allowlisted `.pages-output` directory, including the
-  current appcast when present. Source, package metadata, locks, dependencies and
-  prior builds never enter that output. The Pages docs proxy stays inactive until
-  the existing Mintlify project and delivery have passed acceptance.
-- `../landing/` — independent pinned Astro/shared website lifecycle and current
-  raw Pages files. The canonical assets feed both outputs deterministically.
+- `landing/` — compatibility package scripts for native Wrangler Pages preview
+  and the existing appcast publisher. They build the independent frontend first
+  and publish only `../landing/dist/`, never the source directory.
+- `../landing/` — pinned Astro frontend. Source is `src/`, public files and the
+  release-staged appcast are in `public/`, and Astro generates `dist/`.
 - `docs/` — Mintlify developer guides.
 
 ## Commands (run from this directory)
@@ -23,6 +21,9 @@ pnpm dev          # turbo: every dev server
 pnpm typecheck    # turbo, cached
 pnpm deploy       # turbo: deploy
 ```
+
+Install the frontend independently with `pnpm --dir ../landing install --frozen-lockfile`
+before using its compatibility commands.
 
 A single package: `pnpm --filter @curfew/worker dev`, `pnpm --filter @curfew/landing dev`.
 

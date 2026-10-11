@@ -9,14 +9,7 @@
     "binding": "ASSETS",
     "html_handling": "auto-trailing-slash",
     "not_found_handling": "none",
-    "run_worker_first": [
-      "/__studio/release",
-      "/docs",
-      "/docs/*",
-      "/_mintlify/*",
-      "/mintlify-assets/*",
-      "/api/request"
-    ]
+    "run_worker_first": ["/docs", "/docs/*", "/_mintlify/*", "/mintlify-assets/*", "/api/request"]
   },
   "env": {
     "staging": {
@@ -24,14 +17,20 @@
       "workers_dev": false,
       "preview_urls": false,
       "routes": [],
-      "vars": { "DOCS_MODE": "html-guide", "DOCS_UPSTREAM": "https://curfew.mintlify.site" }
+      "vars": {
+        "DOCS_MODE": "html-guide",
+        "DOCS_UPSTREAM": "https://curfew.mintlify.site"
+      }
     },
     "production": {
       "name": "curfew-site-production",
       "workers_dev": false,
       "preview_urls": false,
       "routes": [],
-      "vars": { "DOCS_MODE": "html-guide", "DOCS_UPSTREAM": "https://curfew.mintlify.site" }
+      "vars": {
+        "DOCS_MODE": "html-guide",
+        "DOCS_UPSTREAM": "https://curfew.mintlify.site"
+      }
     }
   }
 }

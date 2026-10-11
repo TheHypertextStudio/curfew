@@ -72,11 +72,6 @@ test('keyboard access and reduced motion use the same real links', async ({
   await expect(page).toHaveURL(/#download$/);
 });
 
-test('unknown URLs remain 404 and metadata fails closed before candidate injection', async ({
-  request,
-}) => {
+test('unknown URLs remain 404', async ({ request }) => {
   expect((await request.get('/this-route-does-not-exist')).status()).toBe(404);
-  const response = await request.get('/__studio/release');
-  expect(response.status()).toBe(503);
-  expect(response.headers()['cache-control']).toBe('no-store');
 });

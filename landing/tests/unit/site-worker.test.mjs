@@ -111,23 +111,6 @@ test('upstream errors remain errors and unsafe methods never reach docs', async 
   assert.equal(rejected.status, 405);
 });
 
-test('release metadata is complete, noncacheable, and unavailable when not configured', async () => {
-  const request = new Request('https://preview.invalid/__studio/release');
-  assert.equal((await worker.fetch(request, env)).status, 503);
-  const response = await worker.fetch(request, {
-    ...env,
-    STUDIO_SOURCE_SHA: 'source',
-    STUDIO_ARTIFACT_SHA256: 'artifact',
-    STUDIO_CANDIDATE_ID: 'candidate',
-  });
-  assert.deepEqual(await response.json(), {
-    sourceSha: 'source',
-    artifactSha256: 'artifact',
-    candidateId: 'candidate',
-  });
-  assert.equal(response.headers.get('cache-control'), 'no-store');
-});
-
 test('search forwards POST body without frontend identity and preserves external redirects', async () => {
   let observed;
   const response = await worker.fetch(

@@ -28,20 +28,6 @@ export function docsTarget(url, env) {
 export default {
   async fetch(request, env, _context, fetcher = fetch) {
     const url = new URL(request.url);
-    if (url.pathname === '/__studio/release') {
-      const identity = {
-        sourceSha: env.STUDIO_SOURCE_SHA,
-        artifactSha256: env.STUDIO_ARTIFACT_SHA256,
-        candidateId: env.STUDIO_CANDIDATE_ID,
-      };
-      const complete = Object.values(identity).every(
-        (value) => typeof value === 'string' && value.length > 0,
-      );
-      return Response.json(complete ? identity : { error: 'Release identity is unavailable' }, {
-        status: complete ? 200 : 503,
-        headers: { 'cache-control': 'no-store' },
-      });
-    }
     let target;
     try {
       target = docsTarget(url, env);
