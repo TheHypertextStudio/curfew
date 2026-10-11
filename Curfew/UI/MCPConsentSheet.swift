@@ -1,3 +1,4 @@
+import CurfewKit
 import SwiftUI
 
 /// Modal sheet presented by the Curfew app when `curfew-mcp` has queued a

@@ -1,5 +1,6 @@
 import CloudKit
 import Combine
+import CurfewKit
 import Foundation
 import OSLog
 

@@ -22,7 +22,7 @@ DURATION="${1:-18}"
 SETTLE="${CURFEW_CAPTURE_SETTLE:-3}"
 
 echo "==> Pre-building bundled CLI tools"
-swift build -c release --product curfew-ctl --product curfew-mcp --product curfew-daemon
+swift build --package-path CurfewKit -c release --product curfew-ctl --product curfew-mcp --product curfew-daemon
 
 echo "==> Building Debug app"
 xcodebuild build \

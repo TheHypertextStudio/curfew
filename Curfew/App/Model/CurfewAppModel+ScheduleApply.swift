@@ -1,3 +1,4 @@
+import CurfewKit
 import Foundation
 
 /// Schedule-mutation and pending-swap helpers for `CurfewAppModel`.

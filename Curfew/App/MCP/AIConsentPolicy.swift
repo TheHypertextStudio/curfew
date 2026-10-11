@@ -1,3 +1,4 @@
+import CurfewKit
 import Foundation
 
 /// Governs how the Curfew app responds to write requests from `curfew-mcp`.

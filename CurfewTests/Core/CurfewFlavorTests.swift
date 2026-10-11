@@ -1,5 +1,6 @@
 @testable import Curfew
 import Foundation
+import CurfewKit
 import Testing
 
 /// Unit tests for ``CurfewFlavor`` resolution and its derived identifiers — the

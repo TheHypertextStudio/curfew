@@ -25,7 +25,7 @@ SCENARIOS=(overview configuration settings getting-started this-week warning loc
 CAPTURE_PID=""
 
 echo "==> Pre-building bundled CLI tools (so the app's bundle step succeeds)"
-swift build -c release --product curfew-ctl --product curfew-mcp --product curfew-daemon
+swift build --package-path CurfewKit -c release --product curfew-ctl --product curfew-mcp --product curfew-daemon
 
 echo "==> Building Debug app"
 xcodebuild build \

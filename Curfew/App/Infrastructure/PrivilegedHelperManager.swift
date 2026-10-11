@@ -1,5 +1,6 @@
 import AppKit
 import Combine
+import CurfewKit
 import Foundation
 import OSLog
 import ServiceManagement

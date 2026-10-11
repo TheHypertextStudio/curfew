@@ -1,4 +1,5 @@
 import AppKit
+import CurfewKit
 import SwiftUI
 
 /// Uninstall panel extensions on `SettingsView`. Isolated from the

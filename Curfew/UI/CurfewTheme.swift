@@ -1,4 +1,5 @@
 import AppKit
+import CurfewKit
 import SwiftUI
 
 /// Shared colour palette. Every palette member resolves via `adaptive(...)`

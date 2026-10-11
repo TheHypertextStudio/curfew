@@ -1,4 +1,5 @@
 @testable import Curfew
+import CurfewKit
 import Foundation
 
 /// Test-only helpers for building throwaway ``ReflectionStore`` instances,

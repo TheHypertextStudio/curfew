@@ -15,7 +15,7 @@ RAW="$ROOT/build/screenshots-raw"
 OUT="$ROOT/build/screenshots"
 
 echo "==> Pre-building bundled CLI tools"
-swift build -c release --product curfew-ctl --product curfew-mcp --product curfew-daemon
+swift build --package-path CurfewKit -c release --product curfew-ctl --product curfew-mcp --product curfew-daemon
 
 rm -rf "$BUNDLE" "$RAW"
 mkdir -p "$OUT"

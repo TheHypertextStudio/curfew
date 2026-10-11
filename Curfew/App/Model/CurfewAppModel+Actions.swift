@@ -1,3 +1,4 @@
+import CurfewKit
 import Foundation
 
 /// User-facing actions on `CurfewAppModel`.

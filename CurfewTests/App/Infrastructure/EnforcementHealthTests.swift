@@ -1,4 +1,5 @@
 @testable import Curfew
+import CurfewKit
 import Testing
 
 struct EnforcementHealthTests {

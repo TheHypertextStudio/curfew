@@ -1,5 +1,6 @@
 import ApplicationServices
 import CoreGraphics
+import CurfewKit
 import Foundation
 
 /// Pure-function policy for deciding whether a key event should be blocked

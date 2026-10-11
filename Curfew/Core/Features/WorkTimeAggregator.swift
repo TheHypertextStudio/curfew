@@ -1,3 +1,4 @@
+import CurfewKit
 import Foundation
 
 /// Computes "active work minutes today" for hours-based curfew enforcement.

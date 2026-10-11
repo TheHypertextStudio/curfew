@@ -1,3 +1,4 @@
+import CurfewKit
 import Foundation
 
 /// Warning-stage dedupe across devices. Carved out of `+Lifecycle.swift`

@@ -1,3 +1,4 @@
+import CurfewKit
 import SwiftUI
 
 /// Shared input form for a reflection gate. Renders a configured prompt set as
