@@ -1,0 +1,65 @@
+name: Deploy website staging
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+  packages: read
+
+concurrency:
+  group: curfew-website-staging
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy validated main website
+    if: github.repository == 'TheHypertextStudio/curfew' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Select successful website checks for this main commit
+        id: website
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          run_id=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow website.yml \
+            --event push --branch main --commit "$GITHUB_SHA" --status success \
+            --limit 1 --json databaseId --jq '.[0].databaseId // empty')
+          [[ "$run_id" =~ ^[0-9]+$ ]] || { echo 'Successful Website and docs checks are required for this exact commit.' >&2; exit 1; }
+          echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.9.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.20.0
+          registry-url: https://npm.pkg.github.com
+          scope: '@thehypertextstudio'
+      - name: Install pinned deployment tooling
+        run: pnpm --dir landing install --frozen-lockfile
+        env:
+          NODE_AUTH_TOKEN: ${{ github.token }}
+      - name: Download the validated static output
+        uses: actions/download-artifact@v4
+        with:
+          name: curfew-website-dist
+          path: landing/dist/
+          run-id: ${{ steps.website.outputs.run_id }}
+          github-token: ${{ github.token }}
+      - name: Deploy staging with its separate credential
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: '2500680a3b2b0fe6a011c1c25fed5008'
+        run: |
+          [[ -n "$CLOUDFLARE_API_TOKEN" ]] || { echo 'The staging credential is not configured.' >&2; exit 1; }
+          main_sha=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')
+          [[ "$main_sha" == "$GITHUB_SHA" ]] || { echo 'Main changed; dispatch the reviewed current commit instead.' >&2; exit 1; }
+          pnpm --dir landing exec wrangler deploy --config wrangler.site.json --env staging --env-file /dev/null
