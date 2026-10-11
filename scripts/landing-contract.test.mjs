@@ -87,3 +87,8 @@ test('source and documentation use only approved Curfew service hostnames', asyn
   }
   assert.deepEqual(rejected, []);
 });
+
+test('existing Pages root remains available after the web relocation', async () => {
+  const legacy = await readFile(path.join(root, 'landing', 'index.html'), 'utf8');
+  assert.equal(legacy, await html('index.html'));
+});

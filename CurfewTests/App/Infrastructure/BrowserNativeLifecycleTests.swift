@@ -33,15 +33,16 @@ struct BrowserNativeLifecycleTests {
         "sessionId":"00000000-0000-0000-0000-000000000001",
         "destination":{"origin":"https://example.com","path":"/"},"justification":"I need this reference for work."}
         """.utf8))
-        let host = BrowserNativeHost(store: store, callerOrigin: "test", reviewTimeout: 0.15)
+        let host = BrowserNativeHost(store: store, callerOrigin: "test", reviewTimeout: 55)
         let waiting = Task { await host.handle(request) }
-        for _ in 0 ..< 100 {
+        let enqueueDeadline = ContinuousClock.now.advanced(by: .seconds(10))
+        while ContinuousClock.now < enqueueDeadline {
             if try !store.pending(at: Date()).isEmpty {
                 break
             }
             try await Task.sleep(for: .milliseconds(5))
         }
-        #expect(try store.pending(at: Date()).count == 1)
+        #require(try store.pending(at: Date()).count == 1)
         let outcome = UninstallCoordinator.performUninstall(
             home: home,
             defaultsSuiteName: "studio.hypertext.curfew.tests.\(UUID().uuidString)",

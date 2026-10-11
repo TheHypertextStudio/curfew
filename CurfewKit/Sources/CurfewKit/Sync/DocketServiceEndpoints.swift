@@ -37,7 +37,10 @@ public nonisolated struct DocketServiceEndpoints: Equatable, Sendable {
     #if CURFEW_STAGING
         public static let current = forFlavor(CurfewFlavor.current)
     #else
-        public static let current = production
+        public static let current = forFlavor(CurfewFlavor.resolve(
+            environment: [:], bundleIdentifier: Bundle.main.bundleIdentifier,
+            executableURL: Bundle.main.executableURL
+        ))
     #endif
 
     private static func make(

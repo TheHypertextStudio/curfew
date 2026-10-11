@@ -51,7 +51,8 @@ struct CurfewTests {
             settingsStore: store,
             appRouter: AppRouterSpy(),
             activityRecorder: NullActivityRecording(),
-            lockoutDeadlineStore: LockoutDeadlineStore(recordURL: deadlineURL)
+            lockoutDeadlineStore: LockoutDeadlineStore(recordURL: deadlineURL),
+            accessibilityAuthorization: FakeAccessibilityAuthorization(trusted: true)
         )
 
         model.start()
