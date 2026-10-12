@@ -45,6 +45,7 @@ final class NativeAccountSyncTransport: AccountSyncTransporting {
     let now: () -> Date
     private var pollingTask: Task<Void, Never>?
     var tokenRefreshTask: Task<Void, Error>?
+    var tokenRefreshGeneration = 0
     private var statusPublicationTask: Task<Void, Never>?
     private var statusPublications = AccountStatusPublicationLedger()
     var onSynchronized: ((Date) -> Void)?
@@ -198,6 +199,9 @@ extension NativeAccountSyncTransport {
         reconciliationTasks.removeAll()
         statusPublicationTask?.cancel()
         deviceStatusGeneration += 1
+        tokenRefreshTask?.cancel()
+        tokenRefreshTask = nil
+        tokenRefreshGeneration += 1
     }
 
     private var elapsed: Duration {
@@ -283,6 +287,7 @@ extension NativeAccountSyncTransport {
         requiredChannels.insert(.deviceStatus)
         deviceStatusGeneration += 1
         let generation = deviceStatusGeneration
+        let connection = connectionGeneration
         do {
             try enrollmentStore.recordEligibility(
                 statusVersion: report.statusVersion,
@@ -297,27 +302,22 @@ extension NativeAccountSyncTransport {
             return
         }
         statusPublicationTask = Task { [weak self] in
-            do {
-                guard let self,
-                      let tokenData = try secretStore.data(for: "oauth-access-token"),
-                      let accessToken = String(data: tokenData, encoding: .utf8),
-                      let keys = try keyStore.load(deviceID: deviceID)
-                else { throw NativeAccountSyncError.missingCredentials }
-                try await authorizedHTTP.post(
+            guard let self else { return }
+            let succeeded = await pollWithRefresh(
+                deviceID: deviceID, channel: .deviceStatus, generation: connection
+            ) { [self] in
+                let credentials = try currentCredentials(deviceID: deviceID)
+                _ = try await authorizedHTTP.post(
                     path: "/sync/status",
                     body: report.encodedBody(),
                     deviceID: deviceID,
-                    accessToken: accessToken,
-                    signingPrivateKey: keys.signingPrivateKey
+                    accessToken: credentials.accessToken,
+                    signingPrivateKey: credentials.keys.signingPrivateKey
                 )
-                guard generation == deviceStatusGeneration else { return }
-                statusPublications.finish(attempt, succeeded: true)
-                recordSuccessfulOperation(.deviceStatus)
-            } catch {
-                guard let self, generation == deviceStatusGeneration else { return }
-                statusPublications.finish(attempt, succeeded: false)
-                recordOperationFailure(error, channel: .deviceStatus)
             }
+            guard generation == deviceStatusGeneration,
+                  isCurrentConnection(connection) else { return }
+            statusPublications.finish(attempt, succeeded: succeeded)
         }
     }
 }

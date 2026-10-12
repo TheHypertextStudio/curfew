@@ -68,8 +68,7 @@ public final class AccountSyncSocket {
     public func reconnect() {
         closeTasks()
         handlingFailure = false
-        lifecycle =
-            AccountSyncSocketLifecycle(retryJitter: .milliseconds(Int.random(in: 0 ... 5000)))
+        lifecycle.resume(at: elapsed)
     }
 
     private var elapsed: Duration {

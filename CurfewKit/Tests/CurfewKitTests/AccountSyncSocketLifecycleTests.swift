@@ -2,6 +2,21 @@
 import Testing
 
 struct AccountSyncSocketLifecycleTests {
+    @Test("Restoration permits an immediate attempt without resetting failure backoff")
+    func restorationPreservesBackoff() {
+        var socket = AccountSyncSocketLifecycle()
+        _ = socket.action(at: .zero)
+        socket.failed(at: .zero)
+        socket.resume(at: .seconds(1))
+        #expect(socket.action(at: .seconds(1)) == .connect)
+        socket.failed(at: .seconds(1))
+        #expect(socket.action(at: .seconds(16)) == nil)
+        #expect(socket.action(at: .seconds(31)) == .connect)
+        socket.failed(at: .seconds(32), terminal: true)
+        socket.resume(at: .seconds(33))
+        #expect(socket.action(at: .seconds(33)) == nil)
+    }
+
     @Test("A silent socket closes even when hints keep arriving")
     func halfOpenDeadline() {
         var socket = AccountSyncSocketLifecycle()
