@@ -19,6 +19,7 @@ final class NativeAccountSyncOverrideCadenceTests: XCTestCase {
         }
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [NativeOverrideCadenceURLProtocol.self]
+        configuration.httpAdditionalHeaders = ["X-Curfew-Test-Session": UUID().uuidString]
         let lifetime = NativeCadenceSessionLifetime()
         let session = URLSession(
             configuration: configuration,
@@ -48,7 +49,7 @@ final class NativeAccountSyncOverrideCadenceTests: XCTestCase {
         let replacementGeneration = transport.connectionGeneration
         _ = await oldFailure.value
         XCTAssertEqual(transport.connectionGeneration, replacementGeneration)
-        transport.disconnect()
+        await transport.disconnectAndWaitForPendingOperations()
         await lifetime.invalidate(session)
     }
 
@@ -64,6 +65,7 @@ final class NativeAccountSyncOverrideCadenceTests: XCTestCase {
         }
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [NativeOverrideCadenceURLProtocol.self]
+        configuration.httpAdditionalHeaders = ["X-Curfew-Test-Session": UUID().uuidString]
         let lifetime = NativeCadenceSessionLifetime()
         let session = URLSession(
             configuration: configuration,
@@ -90,7 +92,7 @@ final class NativeAccountSyncOverrideCadenceTests: XCTestCase {
         )
 
         await fulfillment(of: [polledTwice], timeout: 0.15)
-        transport.disconnect()
+        await transport.disconnectAndWaitForPendingOperations()
         await lifetime.invalidate(session)
     }
 
@@ -112,6 +114,7 @@ final class NativeAccountSyncOverrideCadenceTests: XCTestCase {
         }
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [NativeOverrideCadenceURLProtocol.self]
+        configuration.httpAdditionalHeaders = ["X-Curfew-Test-Session": UUID().uuidString]
         let lifetime = NativeCadenceSessionLifetime()
         let session = URLSession(
             configuration: configuration,
@@ -137,7 +140,7 @@ final class NativeAccountSyncOverrideCadenceTests: XCTestCase {
             )
         )
         try await Task.sleep(for: .milliseconds(250))
-        transport.disconnect()
+        await transport.disconnectAndWaitForPendingOperations()
         await lifetime.invalidate(session)
 
         XCTAssertEqual(refreshes.values, ["refresh"])
@@ -277,7 +280,10 @@ private final class NativeCadenceSessionLifetime: NSObject, URLSessionDelegate,
         }
     }
 
-    func urlSession(_: URLSession, didBecomeInvalidWithError _: Error?) {
+    func urlSession(_ session: URLSession, didBecomeInvalidWithError _: Error?) {
+        let owner = session.configuration.httpAdditionalHeaders?["X-Curfew-Test-Session"]
+            as? String ?? "unknown"
+        NSLog("Curfew cadence fixture session invalidated session=%@", owner)
         let completion = lock.withLock {
             defer { continuation = nil }
             return continuation
@@ -304,6 +310,7 @@ private final class NativeOverrideCadenceURLProtocol: URLProtocol, @unchecked Se
     private let delivery = NativeTransportProtocolDelivery()
     private let requestHandler: ((URLRequest) throws -> (Int, Data))?
     private let requestDelay: ((URLRequest) -> TimeInterval)?
+    private let diagnosticID = UUID().uuidString
 
     override init(
         request: URLRequest,
@@ -313,6 +320,7 @@ private final class NativeOverrideCadenceURLProtocol: URLProtocol, @unchecked Se
         self.requestHandler = Self.handler
         self.requestDelay = Self.responseDelay
         super.init(request: request, cachedResponse: cachedResponse, client: client)
+        trace("constructed")
     }
 
     override static func canInit(with _: URLRequest) -> Bool {
@@ -324,10 +332,14 @@ private final class NativeOverrideCadenceURLProtocol: URLProtocol, @unchecked Se
     }
 
     override func startLoading() {
+        trace("started")
         do {
             guard let handler = requestHandler else {
                 let path = request.url?.path ?? "missing URL"
-                DispatchQueue.main.async { XCTFail("No cadence handler for \(path)") }
+                let owner = request.value(forHTTPHeaderField: "X-Curfew-Test-Session") ?? "unknown"
+                let diagnostic = "No cadence handler for \(path); request=\(diagnosticID) " +
+                    "session=\(owner) stopped=\(delivery.isStopped)"
+                DispatchQueue.main.async { XCTFail(diagnostic) }
                 throw URLError(.badServerResponse)
             }
             let (status, data) = try handler(request)
@@ -350,6 +362,18 @@ private final class NativeOverrideCadenceURLProtocol: URLProtocol, @unchecked Se
     }
 
     override func stopLoading() {
+        trace("stopped")
         delivery.cancel()
+    }
+
+    private func trace(_ event: String) {
+        let owner = request.value(forHTTPHeaderField: "X-Curfew-Test-Session") ?? "unknown"
+        NSLog(
+            "Curfew cadence fixture %@ request=%@ session=%@ path=%@",
+            event,
+            diagnosticID,
+            owner,
+            request.url?.path ?? "unknown"
+        )
     }
 }

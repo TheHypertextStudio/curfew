@@ -191,6 +191,22 @@ extension NativeAccountSyncTransport {
         deviceStatusGeneration += 1
     }
 
+    /// Cancels immediately, then joins owned operations before their dependencies
+    /// are torn down. Normal interactive disconnect remains nonblocking.
+    /// Call only from outside those operations. Socket tasks remain driver-owned.
+    func disconnectAndWaitForPendingOperations() async {
+        let pending = Array(reconciliationTasks.values) +
+            [pollingTask, statusPublicationTask].compactMap(\.self)
+        let refresh = tokenRefreshTask
+        let publication = resultPublicationTask
+        disconnect()
+        for operation in pending {
+            await operation.value
+        }
+        _ = try? await refresh?.value
+        _ = try? await publication?.value
+    }
+
     func stopNetworkActivity() {
         connectionGeneration += 1
         pollingTask?.cancel()

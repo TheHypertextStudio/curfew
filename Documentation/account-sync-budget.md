@@ -73,6 +73,19 @@ rotated-token test; that fixture now takes the same construction-time snapshot.
 Missing-handler failures remain assertions. Hosted verification of
 these corrections remains required.
 
+CI 38312352269 still observed missing handlers after constructor snapshots;
+that alone does not identify the originating caller. Socket-disabled fixtures now
+join the currently owned reconciliation, publication and refresh tasks after
+canceling, before invalidating sessions or clearing dependencies. The explicit
+old-session/replacement race still uses immediate disconnect at its transition.
+`testFixtureShutdownWaitsForCanceledOwnedOperationToUnwind` holds an owned refresh
+past cancellation and requires shutdown to wait for its completion. Request/session
+IDs and construction/start/stop timestamps in fixture logs distinguish undrained
+callers from deferred Foundation callbacks. This is not universal socket quiescence:
+already discarded handles and driver-owned socket tasks are outside the join.
+Normal interactive disconnect and its latency remain unchanged. Hosted evidence
+must determine whether this resolves the missing-handler failures.
+
 CI 38307160113 also exposed late network work after fixture teardown. The crash
 attachment traces a nil URLProtocol handler to a background XCTest assertion,
 not a UI launch. A stale poll can currently invoke its operation before checking

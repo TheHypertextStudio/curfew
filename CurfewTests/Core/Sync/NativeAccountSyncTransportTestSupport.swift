@@ -9,6 +9,7 @@ final class NativeTransportURLProtocol: URLProtocol, @unchecked Sendable {
     private let delivery = NativeTransportProtocolDelivery()
     private let requestHandler: ((URLRequest) throws -> (Int, Data))?
     private let requestDelay: ((URLRequest) -> TimeInterval)?
+    private let diagnosticID = UUID().uuidString
 
     override init(
         request: URLRequest,
@@ -18,6 +19,7 @@ final class NativeTransportURLProtocol: URLProtocol, @unchecked Sendable {
         self.requestHandler = Self.handler
         self.requestDelay = Self.responseDelay
         super.init(request: request, cachedResponse: cachedResponse, client: client)
+        trace("constructed")
     }
 
     override static func canInit(with _: URLRequest) -> Bool {
@@ -29,10 +31,14 @@ final class NativeTransportURLProtocol: URLProtocol, @unchecked Sendable {
     }
 
     override func startLoading() {
+        trace("started")
         do {
             guard let handler = requestHandler else {
                 let path = request.url?.path ?? "missing URL"
-                DispatchQueue.main.async { XCTFail("No transport handler for \(path)") }
+                let owner = request.value(forHTTPHeaderField: "X-Curfew-Test-Session") ?? "unknown"
+                let diagnostic = "No transport handler for \(path); request=\(diagnosticID) " +
+                    "session=\(owner) stopped=\(delivery.isStopped)"
+                DispatchQueue.main.async { XCTFail(diagnostic) }
                 throw URLError(.badServerResponse)
             }
             let (status, data) = try handler(request)
@@ -55,7 +61,19 @@ final class NativeTransportURLProtocol: URLProtocol, @unchecked Sendable {
     }
 
     override func stopLoading() {
+        trace("stopped")
         delivery.cancel()
+    }
+
+    private func trace(_ event: String) {
+        let owner = request.value(forHTTPHeaderField: "X-Curfew-Test-Session") ?? "unknown"
+        NSLog(
+            "Curfew fixture %@ request=%@ session=%@ path=%@",
+            event,
+            diagnosticID,
+            owner,
+            request.url?.path ?? "unknown"
+        )
     }
 }
 
@@ -64,6 +82,10 @@ final class NativeTransportProtocolDelivery: @unchecked Sendable {
     private let lock = NSLock()
     private var stopped = false
     private var pending: DispatchWorkItem?
+
+    var isStopped: Bool {
+        lock.withLock { stopped }
+    }
 
     func schedule(after delay: TimeInterval, operation: @escaping @Sendable () -> Void) {
         let work = DispatchWorkItem { [self] in

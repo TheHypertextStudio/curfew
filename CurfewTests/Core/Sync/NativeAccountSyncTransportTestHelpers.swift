@@ -40,6 +40,7 @@ extension NativeAccountSyncTransportTests {
     ) -> NativeAccountSyncTransport {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [NativeTransportURLProtocol.self]
+        configuration.httpAdditionalHeaders = ["X-Curfew-Test-Session": UUID().uuidString]
         return NativeAccountSyncTransport(
             secretStore: secrets,
             session: URLSession(configuration: configuration),
