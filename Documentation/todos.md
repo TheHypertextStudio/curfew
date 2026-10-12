@@ -48,10 +48,13 @@
   CI 38311757940 passed those regressions and exposed the equivalent deferred
   handler race in the general transport fixture; its snapshot is now aligned.
   CI 38312352269 still failed both missing-handler cases, so snapshots alone
-  were insufficient. Async fixture teardown now cancels and joins currently
-  owned operations, with a suspended-operation regression and request/session
+  were insufficient. CI 38313551603 traces now prove Foundation constructed
+  cadence requests after session invalidation; cadence mock behavior is bound
+  per session, with canceled tombstones instead of a next-test global lookup.
+  Hosted green verification remains outstanding. Async fixture teardown cancels
+  and joins currently owned operations, with a suspended-operation regression and request/session
   lifecycle diagnostics. The intentional reconnect race keeps immediate
-  disconnect. Root-cause attribution and hosted GREEN remain open; normal
+  disconnect. Hosted GREEN remains open; normal
   interactive disconnect is unchanged.
   Native integration verification is still in progress;
   app-hosted tests are not run on this Mac because they can steal focus.

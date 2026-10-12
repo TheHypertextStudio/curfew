@@ -21,6 +21,10 @@ CI 38312352269 still failed missing cadence and transport handlers. The new
 joining of a canceled owned refresh rather than equating cancellation with
 completion. Async fixtures join currently registered operation handles before
 releasing dependencies; the mid-test reconnect race remains immediate.
+CI 38313551603 retained failing cadence assertions and traced their requests to
+the previous invalidated session. Per-session fixture binding now preserves that
+ownership and cancels late requests; missing setup remains an assertion. Both
+existing cadence regressions must pass on the final head, without timeout changes.
 Request/session lifecycle tracing retains missing-handler assertions and supplies
 the missing caller attribution. This does not prove driver socket quiescence.
 
