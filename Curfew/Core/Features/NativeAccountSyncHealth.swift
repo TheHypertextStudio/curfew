@@ -24,13 +24,17 @@ extension NativeAccountSyncTransport {
 
     private func reportFailure(_ error: Error) {
         if case NativeAccountSyncError.missingCredentials = error {
+            stopNetworkActivity()
             onFailure?(AccountSyncRejectionReason.signInRequired)
         } else if case AccountOAuthTokenRefreshError.missingCredentials = error {
+            stopNetworkActivity()
             onFailure?(AccountSyncRejectionReason.signInRequired)
         } else if case AccountOAuthTokenRefreshError.rejected = error {
+            stopNetworkActivity()
             onFailure?(AccountSyncRejectionReason.signInRequired)
         } else if case NativeAccountSyncError.rejected(let status) = error,
                   status == 401 || status == 403 {
+            stopNetworkActivity()
             onFailure?(AccountSyncRejectionReason.accessDenied)
         } else {
             onOffline?()

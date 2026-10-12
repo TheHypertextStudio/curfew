@@ -169,10 +169,9 @@ extension NativeAccountSyncTransportTests {
             Self.statusReport(deviceID: fixture.deviceID, statusVersion: 18),
             deviceID: fixture.deviceID
         )
-        transport.publishDeviceStatus(
-            Self.statusReport(deviceID: fixture.deviceID, statusVersion: 19),
-            deviceID: fixture.deviceID
-        )
+        var changed = Self.statusReport(deviceID: fixture.deviceID, statusVersion: 19)
+        changed.phase = .warning
+        transport.publishDeviceStatus(changed, deviceID: fixture.deviceID)
         await fulfillment(of: [offline], timeout: 1)
         try await Task.sleep(for: .milliseconds(200))
 

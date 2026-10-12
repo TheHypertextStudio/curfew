@@ -12,6 +12,9 @@ enum AccountHealthChannel: Hashable {
     case accountState
     case deviceStatus
     case remoteOverride
+    case remoteCommands
+    case peerDevices
+    case commandResults
 }
 
 struct NativeDeviceProofChallenge: Decodable {
@@ -21,31 +24,44 @@ struct NativeDeviceProofChallenge: Decodable {
 
 @MainActor
 final class NativeAccountSyncTransport: AccountSyncTransporting {
-    private let secretStore: any AccountSecretStoring
-    private let keyStore: AccountDeviceKeyStore
-    private let tokenRefresher: AccountOAuthTokenRefresher
-    private let authorizedHTTP: NativeAccountAuthorizedHTTPClient
-    private let inboxStore: RemoteCommandInboxStore
-    private let resultExchangeStore: RemoteCommandResultExchangeStore
+    let secretStore: any AccountSecretStoring
+    let keyStore: AccountDeviceKeyStore
+    let tokenRefresher: AccountOAuthTokenRefresher
+    let authorizedHTTP: NativeAccountAuthorizedHTTPClient
+    let inboxStore: RemoteCommandInboxStore
+    let resultExchangeStore: RemoteCommandResultExchangeStore
     private let enrollmentStore: RemoteCommandEnrollmentStore
-    private let pollingInterval: Duration
+    private let pollingInterval: Duration?
+    private let socketEnabled: Bool
+    private let clock = ContinuousClock()
+    private var startedAt = ContinuousClock.now
+    private var reconciliation = AccountSyncReconciliationSchedule()
+    private var reconciliationTasks: [
+        AccountSyncReconciliationSchedule.Channel: Task<Void, Never>
+    ] =
+        [:]
+    private var socket: AccountSyncSocket?
     let now: () -> Date
     private var pollingTask: Task<Void, Never>?
-    private var overridePollingTask: Task<Void, Never>?
-    private var tokenRefreshTask: Task<Void, Error>?
+    var tokenRefreshTask: Task<Void, Error>?
     private var statusPublicationTask: Task<Void, Never>?
     private var statusPublications = AccountStatusPublicationLedger()
     var onSynchronized: ((Date) -> Void)?
     var onOffline: (() -> Void)?
-    private var onWakeStatus: ((AccountWakeStatusUpdate) -> Void)?
-    private var onRemoteOverride: ((AccountRemoteOverride?) -> Void)?
-    private var onRemoteCommandResult: ((CurfewKit.RemoteCommandResult) -> Void)?
+    var onWakeStatus: ((AccountWakeStatusUpdate) -> Void)?
+    var onRemoteOverride: ((AccountRemoteOverride?) -> Void)?
+    var onRemoteCommandResult: ((CurfewKit.RemoteCommandResult) -> Void)?
     var onFailure: ((String) -> Void)?
     var healthyChannels: Set<AccountHealthChannel> = []
-    var requiredChannels: Set<AccountHealthChannel> = [.accountState, .remoteOverride]
+    var requiredChannels: Set<AccountHealthChannel> = [
+        .accountState,
+        .remoteOverride,
+        .remoteCommands,
+        .peerDevices
+    ]
     var connectionGeneration = 0
     private var deviceStatusGeneration = 0
-    private var distributedPeerEpochs: Set<String> = []
+    var distributedPeerEpochs: Set<String> = []
 
     init(
         secretStore: any AccountSecretStoring = KeychainAccountSecretStore(),
@@ -54,7 +70,8 @@ final class NativeAccountSyncTransport: AccountSyncTransporting {
         inboxStore: RemoteCommandInboxStore? = nil,
         resultExchangeStore: RemoteCommandResultExchangeStore? = nil,
         enrollmentStore: RemoteCommandEnrollmentStore? = nil,
-        pollingInterval: Duration = .seconds(15),
+        pollingInterval: Duration? = nil,
+        socketEnabled: Bool = true,
         now: @escaping () -> Date = Date.init
     ) {
         self.secretStore = secretStore
@@ -84,6 +101,7 @@ final class NativeAccountSyncTransport: AccountSyncTransporting {
             recordURL: SharedPaths.remoteCommandEnrollment
         )
         self.pollingInterval = pollingInterval
+        self.socketEnabled = socketEnabled
         self.now = now
     }
 }
@@ -99,17 +117,38 @@ extension NativeAccountSyncTransport {
         onRemoteCommandResult = callbacks.onRemoteCommandResult
         onFailure = callbacks.onFailure
         let generation = connectionGeneration
-        overridePollingTask = Task { [weak self] in
-            while !Task.isCancelled {
-                await self?.pollRemoteOverrideOnce(deviceID: deviceID, generation: generation)
-                guard let interval = self?.pollingInterval else { return }
-                try? await Task.sleep(for: interval)
-            }
+        startedAt = clock.now
+        reconciliation = AccountSyncReconciliationSchedule(intervalOverride: pollingInterval)
+        if socketEnabled {
+            socket = AccountSyncSocket(
+                open: { [weak self] in
+                    guard let self,
+                          isCurrentConnection(generation) else { throw CancellationError() }
+                    return try await openAccountSocket(deviceID: deviceID, generation: generation)
+                },
+                onHint: { [weak self] in
+                    guard let self, isCurrentConnection(generation) else { return }
+                    reconciliation.invalidate(at: elapsed)
+                    launchDueReconciliations(deviceID: deviceID, generation: generation)
+                },
+                onFailure: { [weak self] error, reason, token, status in
+                    guard let self, isCurrentConnection(generation) else { return false }
+                    let failure: Error = status.map { NativeAccountSyncError.rejected($0) } ?? error
+                    return await handleSocketFailure(
+                        failure,
+                        reason: reason,
+                        token: token,
+                        generation: generation
+                    )
+                }
+            )
         }
         pollingTask = Task { [weak self] in
             while !Task.isCancelled {
-                await self?.pollAccountStateOnce(deviceID: deviceID, generation: generation)
-                guard let interval = self?.pollingInterval else { return }
+                guard let self, isCurrentConnection(generation) else { return }
+                socket?.tick()
+                launchDueReconciliations(deviceID: deviceID, generation: generation)
+                let interval = min(pollingInterval ?? .seconds(1), .seconds(1))
                 try? await Task.sleep(for: interval)
             }
         }
@@ -119,10 +158,7 @@ extension NativeAccountSyncTransport {
         statusPublicationTask?.cancel()
         statusPublicationTask = nil
         statusPublications = AccountStatusPublicationLedger()
-        pollingTask?.cancel()
-        pollingTask = nil
-        overridePollingTask?.cancel()
-        overridePollingTask = nil
+        stopNetworkActivity()
         onSynchronized = nil
         onOffline = nil
         onWakeStatus = nil
@@ -130,9 +166,99 @@ extension NativeAccountSyncTransport {
         onRemoteCommandResult = nil
         onFailure = nil
         healthyChannels.removeAll()
-        requiredChannels = [.accountState, .remoteOverride]
-        connectionGeneration += 1
+        distributedPeerEpochs.removeAll()
+        requiredChannels = [.accountState, .remoteOverride, .remoteCommands, .peerDevices]
         deviceStatusGeneration += 1
+    }
+
+    func stopNetworkActivity() {
+        connectionGeneration += 1
+        pollingTask?.cancel()
+        pollingTask = nil
+        socket?.stop()
+        socket = nil
+        for task in reconciliationTasks.values {
+            task.cancel()
+        }
+        reconciliationTasks.removeAll()
+        statusPublicationTask?.cancel()
+        deviceStatusGeneration += 1
+    }
+
+    private var elapsed: Duration {
+        startedAt.duration(to: clock.now)
+    }
+
+    func handleSocketFailure(
+        _ error: Error,
+        reason: String?,
+        token: String?,
+        generation: Int
+    ) async -> Bool {
+        if ["device_revoked", "authorization_revoked", "account_recovery", "account_deleted"]
+            .contains(reason ?? "") {
+            recordOperationFailure(NativeAccountSyncError.rejected(403), channel: .accountState)
+            return false
+        }
+        if reason == "authorization_expired" || (Self.isUnauthorized(error) && token != nil) {
+            do {
+                try await refreshAccessToken(rejectedAccessToken: token)
+            } catch {
+                recordOperationFailure(error, channel: .accountState)
+                return false
+            }
+        } else if Self.isTerminalSyncError(error) {
+            recordOperationFailure(error, channel: .accountState)
+            return false
+        }
+        return isCurrentConnection(generation)
+    }
+
+    private static func isUnauthorized(_ error: Error) -> Bool {
+        if case NativeAccountSyncError.rejected(401) = error {
+            return true
+        }
+        return false
+    }
+
+    private static func isTerminalSyncError(_ error: Error) -> Bool {
+        switch error {
+        case NativeAccountSyncError.missingCredentials,
+             AccountOAuthTokenRefreshError.missingCredentials,
+             AccountOAuthTokenRefreshError.rejected,
+             NativeAccountSyncError.rejected(401),
+             NativeAccountSyncError.rejected(403): true
+        default: false
+        }
+    }
+
+    private func launchDueReconciliations(deviceID: UUID, generation: Int) {
+        for channel in reconciliation.beginDue(at: elapsed) {
+            reconciliationTasks[channel] = Task { [weak self] in
+                guard let self else { return }
+                let succeeded = await pollWithRefresh(
+                    deviceID: deviceID,
+                    channel: Self.healthChannel(channel),
+                    generation: generation
+                ) { [self] in
+                    try await reconcile(channel, deviceID: deviceID, generation: generation)
+                }
+                guard isCurrentConnection(generation) else { return }
+                reconciliation.finish(channel, at: elapsed, succeeded: succeeded)
+                reconciliationTasks[channel] = nil
+            }
+        }
+    }
+
+    static func healthChannel(_ channel: AccountSyncReconciliationSchedule
+        .Channel) -> AccountHealthChannel {
+        switch channel {
+        case .commands: .remoteCommands
+        case .overrides: .remoteOverride
+        case .wake: .accountState
+        case .peers: .peerDevices
+        case .results: .commandResults
+        }
     }
 
     func publishDeviceStatus(_ report: DeviceStatusReport, deviceID: UUID) {
@@ -176,219 +302,6 @@ extension NativeAccountSyncTransport {
                 statusPublications.finish(attempt, succeeded: false)
                 recordOperationFailure(error, channel: .deviceStatus)
             }
-        }
-    }
-
-    func pollOnce(deviceID: UUID) async {
-        let generation = connectionGeneration
-        await pollRemoteOverrideOnce(deviceID: deviceID, generation: generation)
-        await pollAccountStateOnce(deviceID: deviceID, generation: generation)
-    }
-
-    private func pollRemoteOverrideOnce(deviceID: UUID, generation: Int) async {
-        await pollWithRefresh(
-            deviceID: deviceID,
-            channel: .remoteOverride,
-            generation: generation
-        ) { [self] in
-            let remoteOverride = try await fetchRemoteOverride(deviceID: deviceID)
-            guard isCurrentConnection(generation) else { return }
-            onRemoteOverride?(remoteOverride)
-        }
-    }
-
-    private func pollAccountStateOnce(deviceID: UUID, generation: Int) async {
-        await pollWithRefresh(
-            deviceID: deviceID,
-            channel: .accountState,
-            generation: generation
-        ) { [self] in
-            try await pollAccountStateWithCurrentCredentials(
-                deviceID: deviceID,
-                generation: generation
-            )
-        }
-    }
-
-    private func pollWithRefresh(
-        deviceID _: UUID,
-        channel: AccountHealthChannel,
-        generation: Int,
-        operation: @MainActor () async throws -> Void
-    ) async {
-        let rejectedAccessToken = try? storedAccessToken()
-        do {
-            try await operation()
-            guard isCurrentConnection(generation) else { return }
-            recordSuccessfulOperation(channel)
-        } catch NativeAccountSyncError.rejected(401) {
-            do {
-                try await refreshAccessToken(rejectedAccessToken: rejectedAccessToken)
-                guard isCurrentConnection(generation) else { return }
-                try await operation()
-                guard isCurrentConnection(generation) else { return }
-                recordSuccessfulOperation(channel)
-            } catch {
-                guard isCurrentConnection(generation) else { return }
-                recordPollFailure(error, channel: channel)
-            }
-        } catch {
-            guard isCurrentConnection(generation) else { return }
-            recordPollFailure(error, channel: channel)
-        }
-    }
-
-    private func refreshAccessToken(rejectedAccessToken: String?) async throws {
-        if let rejectedAccessToken,
-           try storedAccessToken() != rejectedAccessToken {
-            return
-        }
-        if let tokenRefreshTask {
-            try await tokenRefreshTask.value
-            return
-        }
-        let task = Task { [tokenRefresher] in
-            try await tokenRefresher.refresh()
-        }
-        tokenRefreshTask = task
-        defer { tokenRefreshTask = nil }
-        try await task.value
-    }
-
-    private func storedAccessToken() throws -> String {
-        guard let tokenData = try secretStore.data(for: "oauth-access-token"),
-              let accessToken = String(data: tokenData, encoding: .utf8)
-        else { throw NativeAccountSyncError.missingCredentials }
-        return accessToken
-    }
-
-    private func currentCredentials(
-        deviceID: UUID
-    ) throws -> (accessToken: String, keys: AccountDeviceKeyMaterial) {
-        guard let keys = try keyStore.load(deviceID: deviceID)
-        else { throw NativeAccountSyncError.missingCredentials }
-        return try (storedAccessToken(), keys)
-    }
-
-    func fetchRemoteOverride(deviceID: UUID) async throws -> AccountRemoteOverride? {
-        let credentials = try currentCredentials(deviceID: deviceID)
-        return try await authorizedHTTP.get(
-            path: "/sync/remote-overrides/active",
-            deviceID: deviceID,
-            accessToken: credentials.accessToken,
-            signingPrivateKey: credentials.keys.signingPrivateKey
-        ).map { data in
-            try Self.remoteOverride(RemoteOverride(data: data))
-        }
-    }
-
-    private func pollAccountStateWithCurrentCredentials(
-        deviceID: UUID,
-        generation: Int
-    ) async throws {
-        let credentials = try currentCredentials(deviceID: deviceID)
-
-        try await publishPendingRemoteCommandResults(
-            deviceID: deviceID,
-            accessToken: credentials.accessToken,
-            signingPrivateKey: credentials.keys.signingPrivateKey,
-            generation: generation
-        )
-
-        try await distributeRootKey(
-            deviceID: deviceID,
-            accessToken: credentials.accessToken,
-            keys: credentials.keys
-        )
-        guard isCurrentConnection(generation) else { return }
-
-        if let data = try await authorizedHTTP.get(
-            path: "/sync/wake/status",
-            deviceID: deviceID,
-            accessToken: credentials.accessToken,
-            signingPrivateKey: credentials.keys.signingPrivateKey
-        ) {
-            guard isCurrentConnection(generation) else { return }
-            try onWakeStatus?(Self.wakeStatus(WakeStatus(data: data)))
-        }
-        if let data = try await authorizedHTTP.get(
-            path: "/sync/remote-control/commands",
-            deviceID: deviceID,
-            accessToken: credentials.accessToken,
-            signingPrivateKey: credentials.keys.signingPrivateKey
-        ) {
-            guard isCurrentConnection(generation) else { return }
-            for delivery in try Self.remoteCommandDeliveries(
-                RemoteCommandDeliveryBatch(data: data)
-            ) {
-                try inboxStore.stage(delivery)
-            }
-        }
-    }
-
-    private func publishPendingRemoteCommandResults(
-        deviceID: UUID,
-        accessToken: String,
-        signingPrivateKey: Data,
-        generation: Int
-    ) async throws {
-        for result in try resultExchangeStore.pendingResults() {
-            guard isCurrentConnection(generation) else { return }
-            guard result.deviceID == deviceID else {
-                throw NativeAccountSyncError.invalidResponse
-            }
-            onRemoteCommandResult?(result)
-            let wire = try Self.remoteCommandResult(result)
-            let response = try await authorizedHTTP.post(
-                path: "/sync/remote-control/commands/result",
-                body: wire.jsonData(),
-                deviceID: deviceID,
-                accessToken: accessToken,
-                signingPrivateKey: signingPrivateKey
-            )
-            guard isCurrentConnection(generation) else { return }
-            let receipt = try CurfewProtocols.SignedRemoteCommandResultReceiptEnvelope
-                .decodeValidated(response)
-            try resultExchangeStore.recordReceipt(
-                CoordinatorSignedRemoteCommandResultReceiptEnvelope(
-                    compactJWS: receipt.compactJws
-                ),
-                for: result
-            )
-        }
-    }
-
-    private func distributeRootKey(
-        deviceID: UUID,
-        accessToken: String,
-        keys: AccountDeviceKeyMaterial
-    ) async throws {
-        guard let data = try await authorizedHTTP.get(
-            path: "/sync/devices",
-            deviceID: deviceID,
-            accessToken: accessToken,
-            signingPrivateKey: keys.signingPrivateKey
-        ) else { return }
-        let devices = try JSONDecoder().decode(
-            [CurfewProtocols.AccountDeviceEnrollment].self,
-            from: data
-        )
-        for peer in devices where peer.deviceID != deviceID.uuidString.lowercased() {
-            let fingerprint = "\(peer.deviceID):\(peer.keyEpoch):\(peer.enrolledAt)"
-            guard !distributedPeerEpochs.contains(fingerprint) else { continue }
-            let envelope = try AccountRootKeyEnvelopeCrypto.seal(
-                rootKey: keys.accountRootKey,
-                recipient: peer,
-                createdAt: Date()
-            )
-            try await authorizedHTTP.put(
-                path: "/sync/devices/\(peer.deviceID)/root-key-envelope",
-                body: envelope.jsonData(),
-                deviceID: deviceID,
-                accessToken: accessToken,
-                signingPrivateKey: keys.signingPrivateKey
-            )
-            distributedPeerEpochs.insert(fingerprint)
         }
     }
 }

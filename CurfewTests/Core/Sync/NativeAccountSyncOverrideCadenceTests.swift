@@ -6,6 +6,45 @@ import XCTest
 
 @MainActor
 final class NativeAccountSyncOverrideCadenceTests: XCTestCase {
+    func testOldSocketRefreshRejectionCannotStopAReplacementConnection() async throws {
+        let fixture = try makeFixture(
+            accessToken: "expired-access-token", refreshToken: "old-refresh",
+            clientID: "native-client"
+        )
+        let refreshStarted = expectation(description: "old socket refresh started")
+        installDelayedRejectedRefreshHandler(refreshStarted: refreshStarted)
+        defer {
+            NativeOverrideCadenceURLProtocol.handler = nil
+            NativeOverrideCadenceURLProtocol.responseDelay = nil
+        }
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [NativeOverrideCadenceURLProtocol.self]
+        let transport = NativeAccountSyncTransport(
+            secretStore: fixture.secrets, session: URLSession(configuration: configuration),
+            socketEnabled: false
+        )
+        let previousGeneration = transport.connectionGeneration
+        let oldFailure = Task {
+            await transport.handleSocketFailure(
+                NativeAccountSyncError.rejected(401), reason: nil,
+                token: "expired-access-token", generation: previousGeneration
+            )
+        }
+        await fulfillment(of: [refreshStarted], timeout: 1)
+        try fixture.secrets.save(Data("fresh-access-token".utf8), for: "oauth-access-token")
+        transport.connect(
+            deviceID: fixture.deviceID,
+            callbacks: AccountSyncTransportCallbacks(
+                onSynchronized: { _ in }, onOffline: {}, onWakeStatus: { _ in },
+                onRemoteOverride: { _ in }, onRemoteCommandResult: { _ in }, onFailure: { _ in }
+            )
+        )
+        let replacementGeneration = transport.connectionGeneration
+        _ = await oldFailure.value
+        XCTAssertEqual(transport.connectionGeneration, replacementGeneration)
+        transport.disconnect()
+    }
+
     func testOverridePollingContinuesWhileWakeStatusHangs() async throws {
         let fixture = try makeFixture()
         let polledTwice = expectation(description: "override cadence remained independent")
@@ -21,7 +60,8 @@ final class NativeAccountSyncOverrideCadenceTests: XCTestCase {
         let transport = NativeAccountSyncTransport(
             secretStore: fixture.secrets,
             session: URLSession(configuration: configuration),
-            pollingInterval: .milliseconds(20)
+            pollingInterval: .milliseconds(20),
+            socketEnabled: false
         )
 
         transport.connect(
@@ -61,7 +101,8 @@ final class NativeAccountSyncOverrideCadenceTests: XCTestCase {
         let transport = NativeAccountSyncTransport(
             secretStore: fixture.secrets,
             session: URLSession(configuration: configuration),
-            pollingInterval: .seconds(10)
+            pollingInterval: .seconds(10),
+            socketEnabled: false
         )
 
         transport.connect(
@@ -79,6 +120,30 @@ final class NativeAccountSyncOverrideCadenceTests: XCTestCase {
         transport.disconnect()
 
         XCTAssertEqual(refreshes.values, ["refresh"])
+    }
+
+    private func installDelayedRejectedRefreshHandler(refreshStarted: XCTestExpectation) {
+        NativeOverrideCadenceURLProtocol.responseDelay = {
+            $0.url?.path == "/api/auth/oauth2/token" ? 0.1 : 0
+        }
+        NativeOverrideCadenceURLProtocol.handler = { request in
+            if request.url?.path == "/api/auth/oauth2/token" {
+                refreshStarted.fulfill()
+                return (400, Data())
+            }
+            switch request.url?.path {
+            case "/sync/device-proof/challenge":
+                return (
+                    200,
+                    Data(#"{"coordinatorNonce":"AAAAAAAAAAAAAAAAAAAAAA","keyEpoch":1}"#.utf8)
+                )
+            case "/sync/devices": return (200, Data("[]".utf8))
+            case "/sync/wake/status", "/sync/remote-overrides/active": return (404, Data())
+            case "/sync/remote-control/commands":
+                return try (200, RemoteCommandDeliveryBatch(commands: []).jsonData())
+            default: throw NativeAccountSyncError.invalidResponse
+            }
+        }
     }
 
     private func makeFixture(
