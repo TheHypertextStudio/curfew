@@ -17,7 +17,12 @@
   bounded reconnect jitter, coalescing and a full-day idle read budget (2,304
   protected reads versus 23,040 previously; this is not a live indexed-write count).
   Review found a delayed socket-refresh rejection can stop a replacement session;
-  an app-hosted regression is prepared for CI RED before its generation fence.
+  CI 38304524293 reproduced generation2 instead of1, then its generation fence
+  was restored. Terminal rejection now intentionally reports once and stops all
+  channels instead of producing duplicate failures. A wake/network observer now
+  reconnects without UI, and headless RED/GREEN regressions cover immediate
+  restoration and closing a dropped socket consumer. Status POST refresh has a
+  new app-hosted regression awaiting CI RED before its retry integration.
   Native integration verification is still in progress;
   app-hosted tests are not run on this Mac because they can steal focus.
   Keep a 60-second independent command fallback inside the five-minute delivery

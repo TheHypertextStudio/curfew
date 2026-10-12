@@ -4,6 +4,45 @@ import Testing
 
 @MainActor
 struct AccountSyncSocketTests {
+    @Test("An explicit connectivity restoration replaces the socket immediately")
+    func reconnectReplacesConnection() async {
+        let first = SocketBoundary()
+        let second = SocketBoundary()
+        var opens = 0
+        let socket = AccountSyncSocket(
+            open: {
+                opens += 1
+                return opens == 1 ? first : second
+            },
+            onHint: {}, onFailure: { _, _, _, _ in true }
+        )
+        socket.tick()
+        await first.waitForReceive()
+        socket.reconnect()
+        socket.tick()
+        for _ in 0 ..< 20 {
+            await Task.yield()
+        }
+        #expect(first.closed == 1)
+        #expect(second.receives == 1)
+        socket.stop()
+    }
+
+    @Test("Dropping the consumer closes its outstanding receive instead of leaking a socket")
+    func deallocationClosesConnection() async {
+        let connection = SocketBoundary()
+        var socket: AccountSyncSocket? = AccountSyncSocket(
+            open: { connection }, onHint: {}, onFailure: { _, _, _, _ in true }
+        )
+        socket?.tick()
+        await connection.waitForReceive()
+        socket = nil
+        for _ in 0 ..< 20 {
+            await Task.yield()
+        }
+        #expect(connection.closed == 1)
+    }
+
     @Test("Actual consumer keeps handshake deadline until its first pong")
     func silentHandshakeCloses() async {
         let connection = SocketBoundary()

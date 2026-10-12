@@ -30,7 +30,11 @@ HTTPS resource while the transport uses WSS. Opening a socket is not a successfu
 handshake: the first pong confirms it. Handshakes have a 30-second deadline;
 established connections require a pong within 75 seconds. Reconnects back off
 from 15 seconds to five minutes with bounded jitter; only a healthy minute resets
-backoff. Revocation stops network tasks until explicit reconnection.
+backoff. Revocation stops network tasks until explicit reconnection. System wake
+and restored network paths explicitly replace the socket and resume independent
+reconciliation without presenting UI. Deallocation closes the connection rather
+than leaving an outstanding receive task. The native polling owner is not retained
+across its timer sleeps.
 
 ## Evidence and remaining acceptance
 
@@ -43,7 +47,7 @@ in the final actual write budget. Multiple Macs and sustained active-user hint
 traffic must not be equated with the one-Mac idle baseline.
 
 Coordinator PRs 48 and 49 are deployed to staging. The native app work remains
-draft: full consumer CI, wake/network restoration, status POST token refresh and
+draft: full consumer CI, lifecycle-adapter runtime proof, status POST token refresh and
 installed non-lock verification are outstanding. Deploying source cannot restore
 an already-exhausted daily quota. No billing change or new lock is authorized.
 

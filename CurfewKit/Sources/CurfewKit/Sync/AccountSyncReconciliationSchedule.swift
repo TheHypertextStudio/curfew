@@ -47,6 +47,16 @@ public struct AccountSyncReconciliationSchedule {
         }
     }
 
+    public mutating func resume(at time: Duration) {
+        for channel in Channel.allCases {
+            var state = states[channel, default: State()]
+            state.retryNotBefore = .zero
+            state.nextDue = time
+            state.dirty = true
+            states[channel] = state
+        }
+    }
+
     public mutating func finish(_ channel: Channel, at time: Duration, succeeded: Bool) {
         guard var state = states[channel], state.inFlight else { return }
         state.inFlight = false

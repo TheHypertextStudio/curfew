@@ -2,6 +2,17 @@
 import Testing
 
 struct AccountSyncReconciliationScheduleTests {
+    @Test(
+        "Explicit network restoration allows reconciliation without waiting on old failure backoff"
+    )
+    func restoredNetworkResumesImmediately() {
+        var schedule = AccountSyncReconciliationSchedule()
+        _ = schedule.beginDue(at: .zero)
+        schedule.finish(.commands, at: .zero, succeeded: false)
+        schedule.resume(at: .seconds(1))
+        #expect(schedule.beginDue(at: .seconds(1)) == [.commands])
+    }
+
     @Test("Idle reconciliation has a bounded full-day protected-read budget")
     func idleBudget() {
         var schedule = AccountSyncReconciliationSchedule()

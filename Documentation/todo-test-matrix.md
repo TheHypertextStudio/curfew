@@ -22,8 +22,15 @@ actual asynchronous connection consumer through an injected network boundary:
 first-pong handshake deadline (observed RED, then GREEN), hint/pong distinction,
 terminal closure and late-open cleanup. These do not simulate installed acceptance.
 `NativeAccountSyncOverrideCadenceTests/testOldSocketRefreshRejectionCannotStopAReplacementConnection()`
-is prepared for app-hosted CI RED before the reviewed generation fix.
-Full native consumer CI, restored-network/wake handling, status POST refresh,
+failed on CI 38304524293 with generation2 instead of1 before the reviewed fence
+was restored. The existing rejection fixture now expects one terminal callback,
+since all channels stop instead of repeatedly reporting the same failure.
+Socket consumer deallocation and explicit reconnect, plus scheduler restoration,
+have observed headless RED/GREEN coverage. Native wake/path notifications are
+connected without foreground behavior.
+`NativeAccountSyncTransportTests/testStatusPublicationRefreshesExpiredCredentialsInsteadOfStoppingSync()`
+awaits app-hosted CI RED before status retry integration.
+Full native consumer CI, native lifecycle adapter runtime proof, status POST refresh,
 installed acceptance and actual indexed-write counts remain open.
 No local app-hosted test execution.
 
