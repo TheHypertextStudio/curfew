@@ -297,13 +297,14 @@ extension NativeAccountSyncTransportTests {
         resultAttempted.assertForOverFulfill = false
         let commands = expectation(description: "no commands past unreported result")
         commands.isInverted = true
+        commands.assertForOverFulfill = false
         NativeTransportURLProtocol.handler = { request in
             switch request.url?.path {
             case "/sync/remote-control/commands/result":
                 resultAttempted.fulfill()
                 return (503, Data())
             case "/sync/remote-control/commands":
-                commands.fulfill()
+                Task { @MainActor in commands.fulfill() }
                 return try Self.pollingResponse(for: request)
             default:
                 return try Self.pollingResponse(for: request)
