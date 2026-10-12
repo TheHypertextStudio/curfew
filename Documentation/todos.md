@@ -486,10 +486,16 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
       The Studio App ID and App Group are registered in Apple Developer;
       provisioned company signing and installation of the isolated Studio Dev
       app have been observed. Its account enrollment reached the Recovery Key
-      acknowledgement and its device appeared online in staging, but the
-      installed helper is still not registered, the native account poll is
-      currently rejected, and Claude OAuth consent and visible phone lock/unlock
-      remain unverified. An unsigned build alone is not a
+      acknowledgement. As of 2026-10-12, launchd reports the Studio helper
+      registered with a 15-second interval and last exit code zero. Codex's
+      authenticated MCP connection reports the Mac online with fresh native
+      status after curfew-sync PR #42. The previously authorized command
+      `d5c310ce-7bcf-4ce8-9cd0-87c98ba3a50a` has an applied receipt at
+      `07:00:55Z`, with deadline `07:05:55Z`; the app audit stream records
+      leaving the locked phase at that deadline. This does not establish
+      visible blocking, Claude phone execution, or remote unlock. Those
+      remain unverified; do not send another lock to repeat this check
+      without renewed user direction. An unsigned build alone is not a
       release or runtime proof. Operationally, install only the correctly
       provisioned Studio app after comparing the built team, entitlements,
       destination, and personal install. Rollback removes only the Studio
@@ -609,9 +615,11 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
       higher-priority Curfew app, so sign-in alone is not presented as remote
       lock readiness. Reconnect is single-flight, leaving an in-progress
       browser session cancellable after rapid taps. The signed Studio
-      Dev installation still needs a live reconnect, helper registration, and
-      a witnessed remote command;
-      unit tests and a new build cannot establish those outcomes. Rollback is
+      Dev installation now has live authenticated status, helper registration,
+      and an applied coordinator receipt. A witnessed physical lockout and
+      phone-side assistant execution remain open; unit tests, launchd state,
+      and a receipt cannot establish those outcomes. See
+      `Documentation/remote-mcp-acceptance.md`. Rollback is
       the previous app build while preserving the existing device enrollment;
       do not delete its Recovery Key or device record to force another sign-in.
       Roll back this polling-triggered heartbeat if it causes unexpected status
