@@ -41,6 +41,23 @@ final class NativeAccountSyncTransportTests: XCTestCase {
 }
 
 extension NativeAccountSyncTransportTests {
+    func testStalePollCannotStartAnOperationAfterDisconnect() async throws {
+        let fixture = try makeFixture(accessToken: "resource-bound-access-token")
+        let transport = makeTransport(secrets: fixture.secrets)
+        let generation = transport.connectionGeneration
+        transport.disconnect()
+        var operations = 0
+
+        let succeeded = await transport.pollWithRefresh(
+            deviceID: fixture.deviceID, channel: .deviceStatus, generation: generation
+        ) {
+            operations += 1
+        }
+
+        XCTAssertFalse(succeeded)
+        XCTAssertEqual(operations, 0)
+    }
+
     func testStatusPublicationRecordsTheExactLocalEligibilitySnapshot() throws {
         let fixture = try makeFixture(accessToken: "resource-bound-access-token")
         let root = temporaryDirectory()
@@ -56,6 +73,7 @@ extension NativeAccountSyncTransportTests {
             secrets: fixture.secrets,
             enrollmentStore: enrollmentStore
         )
+        defer { transport.disconnect() }
         let report = DeviceStatusReport(
             deviceID: fixture.deviceID.uuidString.lowercased(),
             phase: .warning,

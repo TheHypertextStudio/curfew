@@ -43,6 +43,11 @@ exercises the production scheduler with a real local pending result and a failed
 HTTP result response. It requires no command GET while the result is unreported;
 CI RED is pending before the ordering fix. This draft is not ready to ship.
 
+`NativeAccountSyncTransportTests/testStalePollCannotStartAnOperationAfterDisconnect()`
+requires stale reconciliation to return before invoking its operation, independent
+of network fixtures. CI RED is pending. CI 38307160113 exposed nil URLProtocol
+handlers after teardown; its status-refresh and cadence tests did not pass.
+
 This file maps completed todo items (`[x]`) in `Documentation/todos.md` to automated behavior tests.
 
 Signed-build/manual validation for shutdown, WidgetKit, the privileged helper,

@@ -30,6 +30,9 @@
   Final review identified command/result ordering lost by independent tasks;
   a real scheduler regression with a failed result POST awaits CI RED. Gate
   newer command fetching on successful pending-result reporting before shipping.
+  CI 38307160113 exposed fixture teardown traffic and failed status refresh/cadence;
+  add the explicit stale-poll no-operation regression before closing the missing
+  pre-operation generation/cancellation guard. Native CI is not green.
   Native integration verification is still in progress;
   app-hosted tests are not run on this Mac because they can steal focus.
   Keep a 60-second independent command fallback inside the five-minute delivery
