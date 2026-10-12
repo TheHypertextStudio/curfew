@@ -48,6 +48,7 @@ final class NativeAccountSyncTransport: AccountSyncTransporting {
     var tokenRefreshGeneration = 0
     var resultPublicationTask: Task<Void, Error>?
     var resultPublicationGeneration = 0
+    var publishedResults: [CurfewKit.RemoteCommandResult] = []
     private var statusPublicationTask: Task<Void, Never>?
     private var statusPublications = AccountStatusPublicationLedger()
     var onSynchronized: ((Date) -> Void)?
@@ -207,6 +208,7 @@ extension NativeAccountSyncTransport {
         resultPublicationTask?.cancel()
         resultPublicationTask = nil
         resultPublicationGeneration += 1
+        publishedResults.removeAll()
     }
 
     private var elapsed: Duration {

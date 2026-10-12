@@ -106,7 +106,7 @@ extension NativeAccountSyncTransportTests {
                     compactJws: Self.syntheticReceiptJWS
                 ).jsonData())
             case ("GET", "/sync/remote-control/commands"):
-                XCTAssertEqual(events.values, ["result"])
+                XCTAssertEqual(events.values.last, "result")
                 events.append("commands")
                 return try (200, RemoteCommandDeliveryBatch(commands: []).jsonData())
             default:

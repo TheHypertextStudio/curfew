@@ -19,8 +19,14 @@ final class NativeAccountSyncOverrideCadenceTests: XCTestCase {
         }
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [NativeOverrideCadenceURLProtocol.self]
+        let lifetime = NativeCadenceSessionLifetime()
+        let session = URLSession(
+            configuration: configuration,
+            delegate: lifetime,
+            delegateQueue: nil
+        )
         let transport = NativeAccountSyncTransport(
-            secretStore: fixture.secrets, session: URLSession(configuration: configuration),
+            secretStore: fixture.secrets, session: session,
             socketEnabled: false
         )
         let previousGeneration = transport.connectionGeneration
@@ -43,6 +49,7 @@ final class NativeAccountSyncOverrideCadenceTests: XCTestCase {
         _ = await oldFailure.value
         XCTAssertEqual(transport.connectionGeneration, replacementGeneration)
         transport.disconnect()
+        await lifetime.invalidate(session)
     }
 
     func testOverridePollingContinuesWhileWakeStatusHangs() async throws {
@@ -57,9 +64,15 @@ final class NativeAccountSyncOverrideCadenceTests: XCTestCase {
         }
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [NativeOverrideCadenceURLProtocol.self]
+        let lifetime = NativeCadenceSessionLifetime()
+        let session = URLSession(
+            configuration: configuration,
+            delegate: lifetime,
+            delegateQueue: nil
+        )
         let transport = NativeAccountSyncTransport(
             secretStore: fixture.secrets,
-            session: URLSession(configuration: configuration),
+            session: session,
             pollingInterval: .milliseconds(20),
             socketEnabled: false
         )
@@ -78,6 +91,7 @@ final class NativeAccountSyncOverrideCadenceTests: XCTestCase {
 
         await fulfillment(of: [polledTwice], timeout: 0.15)
         transport.disconnect()
+        await lifetime.invalidate(session)
     }
 
     func testStaggeredStaleTokenResponsesShareOneRefreshGeneration() async throws {
@@ -98,9 +112,15 @@ final class NativeAccountSyncOverrideCadenceTests: XCTestCase {
         }
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [NativeOverrideCadenceURLProtocol.self]
+        let lifetime = NativeCadenceSessionLifetime()
+        let session = URLSession(
+            configuration: configuration,
+            delegate: lifetime,
+            delegateQueue: nil
+        )
         let transport = NativeAccountSyncTransport(
             secretStore: fixture.secrets,
-            session: URLSession(configuration: configuration),
+            session: session,
             pollingInterval: .seconds(10),
             socketEnabled: false
         )
@@ -118,6 +138,7 @@ final class NativeAccountSyncOverrideCadenceTests: XCTestCase {
         )
         try await Task.sleep(for: .milliseconds(250))
         transport.disconnect()
+        await lifetime.invalidate(session)
 
         XCTAssertEqual(refreshes.values, ["refresh"])
     }
@@ -241,6 +262,27 @@ final class NativeAccountSyncOverrideCadenceTests: XCTestCase {
                 return (500, Data())
             }
         }
+    }
+}
+
+private final class NativeCadenceSessionLifetime: NSObject, URLSessionDelegate,
+    @unchecked Sendable {
+    private let lock = NSLock()
+    private var continuation: CheckedContinuation<Void, Never>?
+
+    func invalidate(_ session: URLSession) async {
+        await withCheckedContinuation { continuation in
+            lock.withLock { self.continuation = continuation }
+            session.invalidateAndCancel()
+        }
+    }
+
+    func urlSession(_: URLSession, didBecomeInvalidWithError _: Error?) {
+        let completion = lock.withLock {
+            defer { continuation = nil }
+            return continuation
+        }
+        completion?.resume()
     }
 }
 

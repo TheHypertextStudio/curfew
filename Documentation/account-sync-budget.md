@@ -54,6 +54,18 @@ begins, not a cross-process atomic barrier against subsequently created results.
 Generation-fenced task cleanup happens before completion so a token-refresh retry
 cannot rejoin a completed failed task. Full hosted verification remains required.
 
+CI 38309791533 exposed a second successful POST of the same daemon result in
+the sequential polling regression. The daemon retains pending results until it
+validates the coordinator receipt. The transport now remembers only results it
+successfully uploaded and wrote receipts for in this connection, prunes that
+memory against the pending snapshot, and clears it on teardown. It does not trust
+a user-created receipt file as evidence of server acceptance. Failures and changed
+results remain retryable; reconnect permits idempotent re-reporting. Authorized
+HTTP checks cancellation before challenges and after the challenge suspension.
+Cadence fixtures await URLSession invalidation before clearing their handlers,
+preserving failures without contaminating the next test. Hosted verification of
+these corrections remains required.
+
 CI 38307160113 also exposed late network work after fixture teardown. The crash
 attachment traces a nil URLProtocol handler to a background XCTest assertion,
 not a UI launch. A stale poll can currently invoke its operation before checking

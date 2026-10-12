@@ -225,7 +225,9 @@ extension NativeAccountSyncTransport {
         signingPrivateKey: Data,
         generation: Int
     ) async throws {
-        for result in try resultExchangeStore.pendingResults() {
+        let pending = try resultExchangeStore.pendingResults()
+        publishedResults.removeAll { !pending.contains($0) }
+        for result in pending where !publishedResults.contains(result) {
             guard isCurrentConnection(generation) else { return }
             guard result.deviceID == deviceID else {
                 throw NativeAccountSyncError.invalidResponse
@@ -248,6 +250,7 @@ extension NativeAccountSyncTransport {
                 ),
                 for: result
             )
+            publishedResults.append(result)
         }
     }
 
