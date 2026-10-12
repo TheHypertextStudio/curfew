@@ -200,6 +200,7 @@ extension NativeAccountSyncTransportTests {
 
         installPollingHandler(batch: RemoteCommandDeliveryBatch(commands: []))
         NativeTransportURLProtocol.responseDelay = nil
+        replaceSessionMockBehavior()
         let synchronized = expectation(description: "new polling session reported healthy")
         let offline = expectation(description: "old failure did not reach the new session")
         offline.isInverted = true

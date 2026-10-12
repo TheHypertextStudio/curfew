@@ -40,7 +40,9 @@ extension NativeAccountSyncTransportTests {
     ) -> NativeAccountSyncTransport {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [NativeTransportURLProtocol.self]
-        configuration.httpAdditionalHeaders = ["X-Curfew-Test-Session": UUID().uuidString]
+        NativeTransportURLProtocol.bind(configuration)
+        fixtureConfigurations.append(configuration)
+        addTeardownBlock { NativeTransportURLProtocol.cancel(configuration) }
         return NativeAccountSyncTransport(
             secretStore: secrets,
             session: URLSession(configuration: configuration),
@@ -51,6 +53,12 @@ extension NativeAccountSyncTransportTests {
             socketEnabled: false,
             now: now
         )
+    }
+
+    func replaceSessionMockBehavior() {
+        for configuration in fixtureConfigurations {
+            NativeTransportURLProtocol.replace(configuration)
+        }
     }
 
     func installPollingHandler(

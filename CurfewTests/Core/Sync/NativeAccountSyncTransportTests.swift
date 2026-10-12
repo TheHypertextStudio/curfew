@@ -6,6 +6,8 @@ import XCTest
 
 @MainActor
 final class NativeAccountSyncTransportTests: XCTestCase {
+    var fixtureConfigurations: [URLSessionConfiguration] = []
+
     func testUnchangedInFlightHeartbeatKeepsEligibleStatusVersion() throws {
         let fixture = try makeFixture(accessToken: "resource-bound-access-token")
         let root = temporaryDirectory()

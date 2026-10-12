@@ -32,6 +32,16 @@ final class NativeTransportProtocolSessions: @unchecked Sendable {
         else { return }
         lock.withLock { sessions[owner] }?.cancel()
     }
+
+    func replace(
+        _ configuration: URLSessionConfiguration,
+        handler: ((URLRequest) throws -> (Int, Data))?,
+        delay: ((URLRequest) -> TimeInterval)?
+    ) {
+        guard let owner = configuration.httpAdditionalHeaders?["X-Curfew-Test-Session"] as? String
+        else { return }
+        lock.withLock { sessions[owner] }?.replace(handler: handler, delay: delay)
+    }
 }
 
 final class NativeTransportProtocolSession: @unchecked Sendable {
@@ -57,7 +67,11 @@ final class NativeTransportProtocolSession: @unchecked Sendable {
     func response(to request: URLRequest) throws -> Response {
         let behavior = try lock.withLock {
             guard !canceled else { throw URLError(.cancelled) }
-            guard let handler else { throw URLError(.badServerResponse) }
+            guard let handler else {
+                let path = request.url?.path ?? "unknown"
+                DispatchQueue.main.async { XCTFail("No installed session handler for \(path)") }
+                throw URLError(.badServerResponse)
+            }
             return (handler, delay)
         }
         let (status, data) = try behavior.0(request)
@@ -71,14 +85,25 @@ final class NativeTransportProtocolSession: @unchecked Sendable {
             delay = nil
         }
     }
+
+    func replace(
+        handler: ((URLRequest) throws -> (Int, Data))?,
+        delay: ((URLRequest) -> TimeInterval)?
+    ) {
+        lock.withLock {
+            guard !canceled else { return }
+            self.handler = handler
+            self.delay = delay
+        }
+    }
 }
 
 final class NativeTransportURLProtocol: URLProtocol, @unchecked Sendable {
     nonisolated(unsafe) static var handler: ((URLRequest) throws -> (Int, Data))?
     nonisolated(unsafe) static var responseDelay: ((URLRequest) -> TimeInterval)?
     private let delivery = NativeTransportProtocolDelivery()
-    private let requestHandler: ((URLRequest) throws -> (Int, Data))?
-    private let requestDelay: ((URLRequest) -> TimeInterval)?
+    private static let sessions = NativeTransportProtocolSessions()
+    private let sessionState: NativeTransportProtocolSession?
     private let diagnosticID = UUID().uuidString
 
     override init(
@@ -86,8 +111,7 @@ final class NativeTransportURLProtocol: URLProtocol, @unchecked Sendable {
         cachedResponse: CachedURLResponse?,
         client: (any URLProtocolClient)?
     ) {
-        self.requestHandler = Self.handler
-        self.requestDelay = Self.responseDelay
+        self.sessionState = Self.sessions.session(for: request)
         super.init(request: request, cachedResponse: cachedResponse, client: client)
         trace("constructed")
     }
@@ -100,10 +124,22 @@ final class NativeTransportURLProtocol: URLProtocol, @unchecked Sendable {
         request
     }
 
+    static func bind(_ configuration: URLSessionConfiguration) {
+        sessions.bind(configuration, handler: handler, delay: responseDelay)
+    }
+
+    static func cancel(_ configuration: URLSessionConfiguration) {
+        sessions.cancel(configuration)
+    }
+
+    static func replace(_ configuration: URLSessionConfiguration) {
+        sessions.replace(configuration, handler: handler, delay: responseDelay)
+    }
+
     override func startLoading() {
         trace("started")
         do {
-            guard let handler = requestHandler else {
+            guard let sessionState else {
                 let path = request.url?.path ?? "missing URL"
                 let owner = request.value(forHTTPHeaderField: "X-Curfew-Test-Session") ?? "unknown"
                 let diagnostic = "No transport handler for \(path); request=\(diagnosticID) " +
@@ -111,20 +147,19 @@ final class NativeTransportURLProtocol: URLProtocol, @unchecked Sendable {
                 DispatchQueue.main.async { XCTFail(diagnostic) }
                 throw URLError(.badServerResponse)
             }
-            let (status, data) = try handler(request)
+            let result = try sessionState.response(to: request)
             let response = try XCTUnwrap(try HTTPURLResponse(
                 url: XCTUnwrap(request.url),
-                statusCode: status,
+                statusCode: result.status,
                 httpVersion: "HTTP/1.1",
                 headerFields: ["Content-Type": "application/json"]
             ))
             let deliver = { [self] in
                 client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
-                client?.urlProtocol(self, didLoad: data)
+                client?.urlProtocol(self, didLoad: result.data)
                 client?.urlProtocolDidFinishLoading(self)
             }
-            let delay = requestDelay?(request) ?? 0
-            delivery.schedule(after: delay, operation: deliver)
+            delivery.schedule(after: result.delay, operation: deliver)
         } catch {
             client?.urlProtocol(self, didFailWithError: error)
         }

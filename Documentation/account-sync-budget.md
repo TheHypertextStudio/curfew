@@ -97,6 +97,14 @@ handler closures and captured expectations are released. Unknown sessions and
 missing installed handlers still fail assertions. This is test-only isolation,
 not evidence of production liveness or a change to the network budget.
 
+CI 38314500184 passed all three cadence cases. Its only failure was the same
+cleared global handler in the general transport fixture. That fixture now uses
+the same session-owned state and registers cancellation in XCTest teardown.
+The reconnect regression explicitly replaces only its own session's behavior;
+already claimed old responses keep their old handler, and canceled sessions
+cannot be reactivated. This preserves the old-response/new-generation race rather
+than converting it into a fresh transport test. Final hosted verification is open.
+
 CI 38307160113 also exposed late network work after fixture teardown. The crash
 attachment traces a nil URLProtocol handler to a background XCTest assertion,
 not a UI launch. A stale poll can currently invoke its operation before checking
