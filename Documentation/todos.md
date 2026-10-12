@@ -6,8 +6,10 @@
   Separate liveness from semantic status, suppress only acknowledged or already
   in-flight identical reports, retry failed reports, and preserve the daemon's
   exact-version eligibility fence. A main-actor publication ledger has seven
-  headless regressions; native consumer integration and socket lifecycle are still
-  in progress. CI must observe the transport regression before implementation;
+  headless regressions and is connected to native publication. CI observed the
+  transport regression before implementation: unchanged heartbeat18 replaced
+  eligible version17. Consumer GREEN verification and socket lifecycle are still
+  in progress;
   app-hosted tests are not run on this Mac because they can steal focus.
   Keep a 60-second independent command fallback inside the five-minute delivery
   TTL, coalesced event reconciliation and slower peer/wake polling. Failed sends,
