@@ -266,6 +266,52 @@ extension NativeAccountSyncTransportTests {
         )
     }
 
+    func testScheduledCommandsWaitWhileResultPublicationFails() async throws {
+        let fixture = try makeFixture(accessToken: "resource-bound-access-token")
+        let root = temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let exchange = RemoteCommandResultExchangeStore(
+            resultsURL: root.appendingPathComponent("results.json"),
+            acknowledgementsDirectoryURL: root.appendingPathComponent("ack", isDirectory: true)
+        )
+        try exchange.publish([daemonResult(deviceID: fixture.deviceID)])
+        let resultAttempted = expectation(description: "terminal result publication attempted")
+        resultAttempted.assertForOverFulfill = false
+        let commands = expectation(description: "no commands past unreported result")
+        commands.isInverted = true
+        NativeTransportURLProtocol.handler = { request in
+            switch request.url?.path {
+            case "/sync/remote-control/commands/result":
+                resultAttempted.fulfill()
+                return (503, Data())
+            case "/sync/remote-control/commands":
+                commands.fulfill()
+                return try Self.pollingResponse(for: request)
+            default:
+                return try Self.pollingResponse(for: request)
+            }
+        }
+        defer { NativeTransportURLProtocol.handler = nil }
+        let transport = makeTransport(
+            secrets: fixture.secrets,
+            inboxStore: RemoteCommandInboxStore(
+                directoryURL: root.appendingPathComponent("inbox", isDirectory: true)
+            ),
+            resultExchangeStore: exchange,
+            pollingInterval: .milliseconds(20)
+        )
+        transport.connect(
+            deviceID: fixture.deviceID,
+            callbacks: AccountSyncTransportCallbacks(
+                onSynchronized: { _ in }, onOffline: {}, onWakeStatus: { _ in },
+                onRemoteOverride: { _ in }, onRemoteCommandResult: { _ in }, onFailure: { _ in }
+            )
+        )
+        await fulfillment(of: [resultAttempted], timeout: 1)
+        await fulfillment(of: [commands], timeout: 0.1)
+        transport.disconnect()
+    }
+
     func testPollPublishesDaemonResultBeforeFetchingMoreCommands() async throws {
         let fixture = try makeFixture(accessToken: "resource-bound-access-token")
         let root = temporaryDirectory()

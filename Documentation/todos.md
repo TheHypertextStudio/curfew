@@ -27,6 +27,9 @@
   owned refresh tasks and fences late credential writes; restored sockets retain
   their backoff history, with observed headless RED/GREEN coverage. Final native
   CI must verify these fixes before installation.
+  Final review identified command/result ordering lost by independent tasks;
+  a real scheduler regression with a failed result POST awaits CI RED. Gate
+  newer command fetching on successful pending-result reporting before shipping.
   Native integration verification is still in progress;
   app-hosted tests are not run on this Mac because they can steal focus.
   Keep a 60-second independent command fallback inside the five-minute delivery
