@@ -328,7 +328,7 @@ extension NativeAccountSyncTransportTests {
         )
         await fulfillment(of: [resultAttempted], timeout: 1)
         await fulfillment(of: [commands], timeout: 0.1)
-        transport.disconnect()
+        await transport.disconnectAndWaitForPendingOperations()
     }
 
     func testPollPublishesDaemonResultBeforeFetchingMoreCommands() async throws {

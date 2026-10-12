@@ -34,7 +34,7 @@ extension NativeAccountSyncTransportTests {
             try stringSecret("oauth-access-token", in: fixture.secrets),
             "fresh-access-token"
         )
-        transport.disconnect()
+        await transport.disconnectAndWaitForPendingOperations()
     }
 
     private func installStatusRefreshHandler(

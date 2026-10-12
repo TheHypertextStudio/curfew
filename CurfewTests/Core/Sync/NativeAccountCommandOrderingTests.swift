@@ -6,6 +6,35 @@ import XCTest
 
 @MainActor
 extension NativeAccountSyncTransportTests {
+    func testFixtureShutdownWaitsForCanceledOwnedOperationToUnwind() async throws {
+        let fixture = try makeFixture(accessToken: "resource-bound-access-token")
+        let transport = makeTransport(secrets: fixture.secrets)
+        let started = expectation(description: "owned refresh suspended")
+        let canceled = expectation(description: "owned refresh cancellation requested")
+        var release: CheckedContinuation<Void, Never>?
+        transport.tokenRefreshTask = Task<Void, Error> {
+            await withTaskCancellationHandler {
+                await withCheckedContinuation { continuation in
+                    release = continuation
+                    started.fulfill()
+                }
+            } onCancel: {
+                canceled.fulfill()
+            }
+        }
+        await fulfillment(of: [started], timeout: 1)
+        var finished = false
+        let shutdown = Task {
+            await transport.disconnectAndWaitForPendingOperations()
+            finished = true
+        }
+        await fulfillment(of: [canceled], timeout: 1)
+        XCTAssertFalse(finished, "Cancellation alone must not release fixture dependencies")
+        release?.resume()
+        await shutdown.value
+        XCTAssertTrue(finished)
+    }
+
     func testSharedResultRetryUsesAlreadyRotatedCredentials() async throws {
         let fixture = try makeFixture(accessToken: "expired-access-token")
         let root = temporaryDirectory()
@@ -38,7 +67,7 @@ extension NativeAccountSyncTransportTests {
         await fulfillment(of: [rejected], timeout: 1)
         try fixture.secrets.save(Data("fresh-access-token".utf8), for: "oauth-access-token")
         await fulfillment(of: [fetched], timeout: 1)
-        transport.disconnect()
+        await transport.disconnectAndWaitForPendingOperations()
         XCTAssertEqual(events.values, ["expired-result", "fresh-result", "commands-after-receipt"])
     }
 
@@ -84,7 +113,7 @@ extension NativeAccountSyncTransportTests {
         )
         connectForOrderingTest(transport, deviceID: fixture.deviceID)
         await fulfillment(of: [fetched], timeout: 1)
-        transport.disconnect()
+        await transport.disconnectAndWaitForPendingOperations()
         XCTAssertEqual(events.values, ["result", "commands-after-receipt"])
     }
 

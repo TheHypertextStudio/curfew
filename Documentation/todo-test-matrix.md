@@ -16,6 +16,13 @@ CI 38311757940 passed receipt retry and cadence tests; its sole failure was
 `testSharedResultRetryUsesAlreadyRotatedCredentials()` reading a cleared general
 transport handler. The general fixture now also snapshots at construction,
 retaining the same missing-handler assertion and rotated-token event expectations.
+CI 38312352269 still failed missing cadence and transport handlers. The new
+`testFixtureShutdownWaitsForCanceledOwnedOperationToUnwind` exercises explicit
+joining of a canceled owned refresh rather than equating cancellation with
+completion. Async fixtures join currently registered operation handles before
+releasing dependencies; the mid-test reconnect race remains immediate.
+Request/session lifecycle tracing retains missing-handler assertions and supplies
+the missing caller attribution. This does not prove driver socket quiescence.
 
 `CurfewKitTests/AccountStatusPublicationLedgerTests` covers acknowledged unchanged
 heartbeats, in-flight coalescing, failed-send retry, failed intermediate states,

@@ -33,7 +33,7 @@ extension NativeAccountSyncTransportTests {
         )
 
         await fulfillment(of: [offline, synchronized], timeout: 0.2)
-        transport.disconnect()
+        await transport.disconnectAndWaitForPendingOperations()
     }
 
     func testFailedStatusPublicationRemainsUnhealthyAfterSuccessfulPolls() async throws {
@@ -85,7 +85,7 @@ extension NativeAccountSyncTransportTests {
         await transport.pollOnce(deviceID: fixture.deviceID)
 
         XCTAssertEqual(synchronizationCount, 1)
-        transport.disconnect()
+        await transport.disconnectAndWaitForPendingOperations()
     }
 
     func testRejectedRefreshTokenRequiresSignInInsteadOfReportingOffline() async throws {
@@ -123,7 +123,7 @@ extension NativeAccountSyncTransportTests {
         )
 
         await fulfillment(of: [rejected, offline], timeout: 0.2)
-        transport.disconnect()
+        await transport.disconnectAndWaitForPendingOperations()
     }
 
     func testOlderStatusSuccessCannotOverwriteTheLatestStatusFailure() async throws {
@@ -176,7 +176,7 @@ extension NativeAccountSyncTransportTests {
         try await Task.sleep(for: .milliseconds(200))
 
         XCTAssertEqual(synchronizationCount, 1)
-        transport.disconnect()
+        await transport.disconnectAndWaitForPendingOperations()
     }
 
     func testReconnectIgnoresFailureFromThePreviousPollingSession() async throws {
@@ -213,6 +213,6 @@ extension NativeAccountSyncTransportTests {
         )
 
         await fulfillment(of: [synchronized, offline], timeout: 0.2)
-        transport.disconnect()
+        await transport.disconnectAndWaitForPendingOperations()
     }
 }
