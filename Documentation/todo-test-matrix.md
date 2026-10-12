@@ -7,6 +7,11 @@ with two result POSTs instead of one, and both cadence regressions with requests
 outliving fixture teardown. Connection-local successful-result suppression,
 challenge-boundary cancellation checks and awaited fixture session invalidation
 address these failures. The same assertions remain intact; hosted GREEN is pending.
+CI 38310819506 reproduced the new same-test receipt-removal case: commands were
+fetched without re-uploading the result or obtaining a fresh candidate. Receipt-
+aware suppression now invalidates when the exact candidate disappears/changes.
+The cadence missing-handler failure also requires construction-time handler
+snapshots, not merely waiting for session invalidation. Final hosted GREEN is open.
 
 `CurfewKitTests/AccountStatusPublicationLedgerTests` covers acknowledged unchanged
 heartbeats, in-flight coalescing, failed-send retry, failed intermediate states,

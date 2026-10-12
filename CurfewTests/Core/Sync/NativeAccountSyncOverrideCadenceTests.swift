@@ -302,6 +302,18 @@ private final class NativeOverrideCadenceURLProtocol: URLProtocol, @unchecked Se
     nonisolated(unsafe) static var handler: ((URLRequest) throws -> (Int, Data))?
     nonisolated(unsafe) static var responseDelay: ((URLRequest) -> TimeInterval)?
     private let delivery = NativeTransportProtocolDelivery()
+    private let requestHandler: ((URLRequest) throws -> (Int, Data))?
+    private let requestDelay: ((URLRequest) -> TimeInterval)?
+
+    override init(
+        request: URLRequest,
+        cachedResponse: CachedURLResponse?,
+        client: (any URLProtocolClient)?
+    ) {
+        self.requestHandler = Self.handler
+        self.requestDelay = Self.responseDelay
+        super.init(request: request, cachedResponse: cachedResponse, client: client)
+    }
 
     override static func canInit(with _: URLRequest) -> Bool {
         true
@@ -313,7 +325,7 @@ private final class NativeOverrideCadenceURLProtocol: URLProtocol, @unchecked Se
 
     override func startLoading() {
         do {
-            guard let handler = Self.handler else {
+            guard let handler = requestHandler else {
                 let path = request.url?.path ?? "missing URL"
                 DispatchQueue.main.async { XCTFail("No cadence handler for \(path)") }
                 throw URLError(.badServerResponse)
@@ -330,7 +342,7 @@ private final class NativeOverrideCadenceURLProtocol: URLProtocol, @unchecked Se
                 client?.urlProtocol(self, didLoad: data)
                 client?.urlProtocolDidFinishLoading(self)
             }
-            let delay = Self.responseDelay?(request) ?? 0
+            let delay = requestDelay?(request) ?? 0
             delivery.schedule(after: delay, operation: deliver)
         } catch {
             client?.urlProtocol(self, didFailWithError: error)

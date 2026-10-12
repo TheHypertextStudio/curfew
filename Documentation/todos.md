@@ -41,6 +41,10 @@
   now preserves retryability and clears on reconnect. Authorized HTTP checks
   cancellation across challenge suspension; cadence fixtures await session
   invalidation before releasing handlers. Final hosted verification remains open.
+  CI 38310819506 reproduced suppressed replacement delivery after receipt removal;
+  suppression now requires the exact still-present candidate and never represents
+  daemon acceptance. Protocol fixtures snapshot request handlers at construction
+  as invalidation alone did not prevent a delayed startLoading handler race.
   Native integration verification is still in progress;
   app-hosted tests are not run on this Mac because they can steal focus.
   Keep a 60-second independent command fallback inside the five-minute delivery
