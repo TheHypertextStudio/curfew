@@ -58,12 +58,16 @@ CI 38309791533 exposed a second successful POST of the same daemon result in
 the sequential polling regression. The daemon retains pending results until it
 validates the coordinator receipt. The transport now remembers only results it
 successfully uploaded and wrote receipts for in this connection, prunes that
-memory against the pending snapshot, and clears it on teardown. It does not trust
-a user-created receipt file as evidence of server acceptance. Failures and changed
-results remain retryable; reconnect permits idempotent re-reporting. Authorized
+memory against the pending snapshot and exact receipt candidate, and clears it on
+teardown. The daemon still verifies receipts: a removed, rejected or replaced
+candidate makes the result retryable. It does not trust a user-created receipt file
+as evidence of server acceptance. CI 38310819506 reproduced missing re-reporting
+after receipt removal before this cache correction. Failures and changed results
+remain retryable; reconnect permits idempotent re-reporting. Authorized
 HTTP checks cancellation before challenges and after the challenge suspension.
-Cadence fixtures await URLSession invalidation before clearing their handlers,
-preserving failures without contaminating the next test. Hosted verification of
+Cadence fixtures await URLSession invalidation and snapshot handlers at protocol
+construction, rather than reading mutable global configuration at deferred
+startLoading. Missing-handler failures remain assertions. Hosted verification of
 these corrections remains required.
 
 CI 38307160113 also exposed late network work after fixture teardown. The crash

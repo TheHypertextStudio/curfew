@@ -226,8 +226,11 @@ extension NativeAccountSyncTransport {
         generation: Int
     ) async throws {
         let pending = try resultExchangeStore.pendingResults()
-        publishedResults.removeAll { !pending.contains($0) }
-        for result in pending where !publishedResults.contains(result) {
+        try publishedResults.removeAll {
+            try !pending.contains($0.result) || resultExchangeStore.pendingReceipt(for: $0.result)
+                != $0.receipt
+        }
+        for result in pending where !publishedResults.contains(where: { $0.result == result }) {
             guard isCurrentConnection(generation) else { return }
             guard result.deviceID == deviceID else {
                 throw NativeAccountSyncError.invalidResponse
@@ -244,13 +247,11 @@ extension NativeAccountSyncTransport {
             guard isCurrentConnection(generation) else { return }
             let receipt = try CurfewProtocols.SignedRemoteCommandResultReceiptEnvelope
                 .decodeValidated(response)
-            try resultExchangeStore.recordReceipt(
-                CoordinatorSignedRemoteCommandResultReceiptEnvelope(
-                    compactJWS: receipt.compactJws
-                ),
-                for: result
+            let candidate = CoordinatorSignedRemoteCommandResultReceiptEnvelope(
+                compactJWS: receipt.compactJws
             )
-            publishedResults.append(result)
+            try resultExchangeStore.recordReceipt(candidate, for: result)
+            publishedResults.append((result, candidate))
         }
     }
 
