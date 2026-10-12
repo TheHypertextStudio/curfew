@@ -259,6 +259,7 @@ private final class NativeTransportDelaySequencer: @unchecked Sendable {
 private final class NativeOverrideCadenceURLProtocol: URLProtocol, @unchecked Sendable {
     nonisolated(unsafe) static var handler: ((URLRequest) throws -> (Int, Data))?
     nonisolated(unsafe) static var responseDelay: ((URLRequest) -> TimeInterval)?
+    private let delivery = NativeTransportProtocolDelivery()
 
     override static func canInit(with _: URLRequest) -> Bool {
         true
@@ -270,7 +271,11 @@ private final class NativeOverrideCadenceURLProtocol: URLProtocol, @unchecked Se
 
     override func startLoading() {
         do {
-            let handler = try XCTUnwrap(Self.handler)
+            guard let handler = Self.handler else {
+                let path = request.url?.path ?? "missing URL"
+                DispatchQueue.main.async { XCTFail("No cadence handler for \(path)") }
+                throw URLError(.badServerResponse)
+            }
             let (status, data) = try handler(request)
             let response = try XCTUnwrap(try HTTPURLResponse(
                 url: XCTUnwrap(request.url),
@@ -284,15 +289,13 @@ private final class NativeOverrideCadenceURLProtocol: URLProtocol, @unchecked Se
                 client?.urlProtocolDidFinishLoading(self)
             }
             let delay = Self.responseDelay?(request) ?? 0
-            if delay > 0 {
-                DispatchQueue.global().asyncAfter(deadline: .now() + delay, execute: deliver)
-            } else {
-                deliver()
-            }
+            delivery.schedule(after: delay, operation: deliver)
         } catch {
             client?.urlProtocol(self, didFailWithError: error)
         }
     }
 
-    override func stopLoading() {}
+    override func stopLoading() {
+        delivery.cancel()
+    }
 }

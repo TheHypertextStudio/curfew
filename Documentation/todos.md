@@ -28,11 +28,14 @@
   their backoff history, with observed headless RED/GREEN coverage. Final native
   CI must verify these fixes before installation.
   Final review identified command/result ordering lost by independent tasks;
-  a real scheduler regression with a failed result POST awaits CI RED. Gate
-  newer command fetching on successful pending-result reporting before shipping.
+  CI 38308503697 cleanly reproduced forbidden command fetching after a failed
+  result POST. Commands now await the same owned result-publication task as the
+  result channel; unrelated channels remain independent. Cleanup precedes task
+  completion so refreshed retries cannot rejoin cached failed work.
   CI 38307160113 exposed fixture teardown traffic and failed status refresh/cadence;
-  add the explicit stale-poll no-operation regression before closing the missing
-  pre-operation generation/cancellation guard. Native CI is not green.
+  CI 38308319780/38308503697 reproduced one stale operation instead of zero.
+  The pre-operation generation/cancellation guard and fixture cancellation are
+  fixed; full native CI is still required. No timeout budgets were increased.
   Native integration verification is still in progress;
   app-hosted tests are not run on this Mac because they can steal focus.
   Keep a 60-second independent command fallback inside the five-minute delivery

@@ -43,13 +43,22 @@ exercises the production scheduler with a real local pending result and a failed
 HTTP result response. It requires no command GET while the result is unreported;
 CI 38307577571 observed multiple forbidden command GETs, but the inverted
 expectation crashed on over-fulfillment. Its failure reporting now runs on the
-main actor without over-fulfillment exceptions; clean CI RED remains required
-before the ordering fix. This draft is not ready to ship.
+main actor without over-fulfillment exceptions; CI 38308503697 then reproduced
+the forbidden fetch as a clean assertion failure before shared publication wiring.
+`testScheduledCommandFetchWaitsForSharedResultReceipt()` checks one shared POST
+and receipt recording before command fetching. `testSharedResultRetryUsesAlreadyRotatedCredentials()`
+checks concurrent result/command retry after another channel has rotated tokens.
+Both success cases and the full native suite require hosted GREEN before shipping.
 
 `NativeAccountSyncTransportTests/testStalePollCannotStartAnOperationAfterDisconnect()`
 requires stale reconciliation to return before invoking its operation, independent
-of network fixtures. CI RED is pending. CI 38307160113 exposed nil URLProtocol
+of network fixtures. CI 38308319780/38308503697 observed one operation instead of
+zero before the entry fence. CI 38307160113 exposed nil URLProtocol
 handlers after teardown; its status-refresh and cadence tests did not pass.
+The shared HTTP fixture now cancels queued delayed responses in `stopLoading()`;
+missing-handler failures remain assertions, reported on the main thread with
+the request path. Already-running callbacks may finish during cancellation.
+No timeout budgets were increased. Full hosted verification remains pending.
 
 This file maps completed todo items (`[x]`) in `Documentation/todos.md` to automated behavior tests.
 
