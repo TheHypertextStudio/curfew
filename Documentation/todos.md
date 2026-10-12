@@ -51,6 +51,9 @@
   were insufficient. CI 38313551603 traces now prove Foundation constructed
   cadence requests after session invalidation; cadence mock behavior is bound
   per session, with canceled tombstones instead of a next-test global lookup.
+  CI 38314500184 passed all cadence cases but found the same cleared-handler
+  defect in the general fixture. Both fixtures now bind per-session behavior;
+  the reconnect regression explicitly replaces its own active mock behavior.
   Hosted green verification remains outstanding. Async fixture teardown cancels
   and joins currently owned operations, with a suspended-operation regression and request/session
   lifecycle diagnostics. The intentional reconnect race keeps immediate

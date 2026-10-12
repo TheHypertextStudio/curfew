@@ -25,6 +25,10 @@ CI 38313551603 retained failing cadence assertions and traced their requests to
 the previous invalidated session. Per-session fixture binding now preserves that
 ownership and cancels late requests; missing setup remains an assertion. Both
 existing cadence regressions must pass on the final head, without timeout changes.
+All cadence regressions passed on CI 38314500184. Its sole general-fixture
+missing-handler failure extends session binding to that fixture as well, with
+XCTest teardown cancellation and an explicit session-local behavior replacement
+for the reconnect race. Full hosted GREEN remains required.
 Request/session lifecycle tracing retains missing-handler assertions and supplies
 the missing caller attribution. This does not prove driver socket quiescence.
 
