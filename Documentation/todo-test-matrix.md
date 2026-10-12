@@ -1,5 +1,17 @@
 # Todo Test Matrix
 
+## In-progress event-driven account sync
+
+`CurfewKitTests/AccountStatusPublicationLedgerTests` covers acknowledged unchanged
+heartbeats, in-flight coalescing, failed-send retry, failed intermediate states,
+late success/failure fencing and every existing enforcement-report field. The
+headless package suite passes; this is publication policy evidence, not installed
+socket or remote-command acceptance. The app-hosted
+`NativeAccountSyncTransportTests/testUnchangedInFlightHeartbeatKeepsEligibleStatusVersion()`
+is the consumer regression to observe failing on CI before connecting the ledger.
+Socket half-open/reconnect/revocation, independent fallback cadence and actual
+idle write-budget coverage are still required. No local app-hosted test execution.
+
 This file maps completed todo items (`[x]`) in `Documentation/todos.md` to automated behavior tests.
 
 Signed-build/manual validation for shutdown, WidgetKit, the privileged helper,

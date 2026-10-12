@@ -1,5 +1,22 @@
 # Curfew Implementation TODOs
 
+## Idle account-sync write budget (2026-10-12)
+
+- [-] Replace idle protected HTTP polling with the existing authenticated socket.
+  Separate liveness from semantic status, suppress only acknowledged or already
+  in-flight identical reports, retry failed reports, and preserve the daemon's
+  exact-version eligibility fence. A main-actor publication ledger has seven
+  headless regressions; native consumer integration and socket lifecycle are still
+  in progress. CI must observe the transport regression before implementation;
+  app-hosted tests are not run on this Mac because they can steal focus.
+  Keep a 60-second independent command fallback inside the five-minute delivery
+  TTL, coalesced event reconciliation and slower peer/wake polling. Failed sends,
+  cancellation and reconnect cannot be mistaken for acknowledged synchronization.
+  No wire/schema/version change. Do not ship deduplication without socket liveness:
+  it would otherwise make an unchanged Mac appear offline. Installed acceptance
+  and a measured indexed-write budget remain open. Rollback is the previous app
+  build with enrollment preserved; no new remote lock is authorized.
+
 Source: [`Documentation/plan.md`](./plan.md)
 Test Matrix: [`Documentation/todo-test-matrix.md`](./todo-test-matrix.md)
 Owner: Willie + Claude
