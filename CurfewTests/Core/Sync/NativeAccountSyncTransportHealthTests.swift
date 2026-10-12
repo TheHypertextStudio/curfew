@@ -103,7 +103,7 @@ extension NativeAccountSyncTransportTests {
         defer { NativeTransportURLProtocol.handler = nil }
         let transport = makeTransport(secrets: fixture.secrets)
         let rejected = expectation(description: "revoked refresh token requires sign-in")
-        rejected.expectedFulfillmentCount = 2
+        // A terminal rejection stops every channel and is reported once.
         let offline = expectation(description: "permanent credential rejection is not offline")
         offline.isInverted = true
 

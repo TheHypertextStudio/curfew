@@ -41,6 +41,7 @@ final class NativeAccountSyncTransport: AccountSyncTransporting {
     ] =
         [:]
     private var socket: AccountSyncSocket?
+    private var connectivityObserver: NativeAccountSyncConnectivityObserver?
     let now: () -> Date
     private var pollingTask: Task<Void, Never>?
     var tokenRefreshTask: Task<Void, Error>?
@@ -142,16 +143,28 @@ extension NativeAccountSyncTransport {
                     )
                 }
             )
+            connectivityObserver = NativeAccountSyncConnectivityObserver { [weak self] in
+                guard let self, isCurrentConnection(generation) else { return }
+                socket?.reconnect()
+                reconciliation.resume(at: elapsed)
+                networkTick(deviceID: deviceID, generation: generation)
+            }
         }
         pollingTask = Task { [weak self] in
             while !Task.isCancelled {
-                guard let self, isCurrentConnection(generation) else { return }
-                socket?.tick()
-                launchDueReconciliations(deviceID: deviceID, generation: generation)
-                let interval = min(pollingInterval ?? .seconds(1), .seconds(1))
+                guard let interval = self?.networkTick(deviceID: deviceID, generation: generation)
+                else { return }
                 try? await Task.sleep(for: interval)
             }
         }
+    }
+
+    @discardableResult
+    private func networkTick(deviceID: UUID, generation: Int) -> Duration? {
+        guard isCurrentConnection(generation) else { return nil }
+        socket?.tick()
+        launchDueReconciliations(deviceID: deviceID, generation: generation)
+        return min(pollingInterval ?? .seconds(1), .seconds(1))
     }
 
     func disconnect() {
@@ -177,6 +190,8 @@ extension NativeAccountSyncTransport {
         pollingTask = nil
         socket?.stop()
         socket = nil
+        connectivityObserver?.stop()
+        connectivityObserver = nil
         for task in reconciliationTasks.values {
             task.cancel()
         }
@@ -204,6 +219,7 @@ extension NativeAccountSyncTransport {
             do {
                 try await refreshAccessToken(rejectedAccessToken: token)
             } catch {
+                guard isCurrentConnection(generation) else { return false }
                 recordOperationFailure(error, channel: .accountState)
                 return false
             }

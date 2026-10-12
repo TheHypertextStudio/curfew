@@ -42,6 +42,13 @@ public final class AccountSyncSocket {
         self.timeSource = elapsed
     }
 
+    deinit {
+        openingTask?.cancel()
+        receivingTask?.cancel()
+        sendingTask?.cancel()
+        Task { @MainActor [connection] in connection?.close() }
+    }
+
     public func tick() {
         guard !handlingFailure else { return }
         switch lifecycle.action(at: elapsed) {
@@ -56,6 +63,13 @@ public final class AccountSyncSocket {
     public func stop() {
         lifecycle.failed(at: elapsed, terminal: true)
         closeTasks()
+    }
+
+    public func reconnect() {
+        closeTasks()
+        handlingFailure = false
+        lifecycle =
+            AccountSyncSocketLifecycle(retryJitter: .milliseconds(Int.random(in: 0 ... 5000)))
     }
 
     private var elapsed: Duration {
