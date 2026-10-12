@@ -45,6 +45,7 @@ struct NativeAccountAuthorizedHTTPClient {
         signingPrivateKey: Data
     ) async throws -> Data? {
         let nonce = try await challenge(deviceID: deviceID, accessToken: accessToken)
+        try Task.checkCancellation()
         let url = baseURL.appending(path: path)
         let proof = try proofFactory.make(.init(
             accessToken: accessToken,
@@ -81,6 +82,7 @@ struct NativeAccountAuthorizedHTTPClient {
         signingPrivateKey: Data
     ) async throws -> any AccountSyncSocketConnection {
         let nonce = try await challenge(deviceID: deviceID, accessToken: accessToken)
+        try Task.checkCancellation()
         // DPoP binds the canonical HTTPS resource, not the WebSocket transport scheme.
         let resource = baseURL.appending(path: "/sync/socket")
         let proof = try proofFactory.make(.init(
@@ -141,6 +143,7 @@ struct NativeAccountAuthorizedHTTPClient {
 
     private func write(_ input: NativeAuthorizedWrite) async throws -> Data {
         let nonce = try await challenge(deviceID: input.deviceID, accessToken: input.accessToken)
+        try Task.checkCancellation()
         let url = baseURL.appending(path: input.path)
         let proof = try proofFactory.make(.init(
             accessToken: input.accessToken,
@@ -171,6 +174,7 @@ struct NativeAccountAuthorizedHTTPClient {
     }
 
     private func challenge(deviceID: UUID, accessToken: String) async throws -> String {
+        try Task.checkCancellation()
         let url = baseURL.appending(path: "/sync/device-proof/challenge")
         let body = try JSONSerialization.data(
             withJSONObject: ["deviceId": deviceID.uuidString.lowercased()],

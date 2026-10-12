@@ -36,6 +36,11 @@
   CI 38308319780/38308503697 reproduced one stale operation instead of zero.
   The pre-operation generation/cancellation guard and fixture cancellation are
   fixed; full native CI is still required. No timeout budgets were increased.
+  CI 38309791533 exposed duplicate successful result uploads while the daemon
+  awaits receipt verification. Connection-local acknowledged-result deduplication
+  now preserves retryability and clears on reconnect. Authorized HTTP checks
+  cancellation across challenge suspension; cadence fixtures await session
+  invalidation before releasing handlers. Final hosted verification remains open.
   Native integration verification is still in progress;
   app-hosted tests are not run on this Mac because they can steal focus.
   Keep a 60-second independent command fallback inside the five-minute delivery

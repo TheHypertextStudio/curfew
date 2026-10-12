@@ -359,5 +359,11 @@ extension NativeAccountSyncTransportTests {
             try exchange.pendingReceipt(for: result)?.compactJWS,
             Self.syntheticReceiptJWS
         )
+        // The daemon discards an unverifiable receipt without removing its result.
+        // The next reconciliation must obtain a fresh receipt, not suppress it forever.
+        try exchange.removeReceipt(for: result)
+        await transport.pollOnce(deviceID: fixture.deviceID)
+        XCTAssertEqual(events.values, ["result", "commands", "result", "commands"])
+        XCTAssertNotNil(try exchange.pendingReceipt(for: result))
     }
 }

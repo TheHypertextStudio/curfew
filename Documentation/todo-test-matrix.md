@@ -2,6 +2,12 @@
 
 ## In-progress event-driven account sync
 
+CI 38309791533 failed `testPollPublishesDaemonResultBeforeFetchingMoreCommands()`
+with two result POSTs instead of one, and both cadence regressions with requests
+outliving fixture teardown. Connection-local successful-result suppression,
+challenge-boundary cancellation checks and awaited fixture session invalidation
+address these failures. The same assertions remain intact; hosted GREEN is pending.
+
 `CurfewKitTests/AccountStatusPublicationLedgerTests` covers acknowledged unchanged
 heartbeats, in-flight coalescing, failed-send retry, failed intermediate states,
 late success/failure fencing and every existing enforcement-report field. The
