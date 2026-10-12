@@ -8,7 +8,8 @@ late success/failure fencing and every existing enforcement-report field. The
 headless package suite passes; this is publication policy evidence, not installed
 socket or remote-command acceptance. The app-hosted
 `NativeAccountSyncTransportTests/testUnchangedInFlightHeartbeatKeepsEligibleStatusVersion()`
-is the consumer regression to observe failing on CI before connecting the ledger.
+failed on CI run 38301226012 with actual eligible version18 instead of17 before
+the ledger was connected. Consumer GREEN verification remains pending on CI.
 Socket half-open/reconnect/revocation, independent fallback cadence and actual
 idle write-budget coverage are still required. No local app-hosted test execution.
 

@@ -33,6 +33,8 @@ final class NativeAccountSyncTransport: AccountSyncTransporting {
     private var pollingTask: Task<Void, Never>?
     private var overridePollingTask: Task<Void, Never>?
     private var tokenRefreshTask: Task<Void, Error>?
+    private var statusPublicationTask: Task<Void, Never>?
+    private var statusPublications = AccountStatusPublicationLedger()
     var onSynchronized: ((Date) -> Void)?
     var onOffline: (() -> Void)?
     private var onWakeStatus: ((AccountWakeStatusUpdate) -> Void)?
@@ -114,6 +116,9 @@ extension NativeAccountSyncTransport {
     }
 
     func disconnect() {
+        statusPublicationTask?.cancel()
+        statusPublicationTask = nil
+        statusPublications = AccountStatusPublicationLedger()
         pollingTask?.cancel()
         pollingTask = nil
         overridePollingTask?.cancel()
@@ -131,6 +136,8 @@ extension NativeAccountSyncTransport {
     }
 
     func publishDeviceStatus(_ report: DeviceStatusReport, deviceID: UUID) {
+        guard let attempt = statusPublications.begin(report) else { return }
+        statusPublicationTask?.cancel()
         requiredChannels.insert(.deviceStatus)
         deviceStatusGeneration += 1
         let generation = deviceStatusGeneration
@@ -140,13 +147,14 @@ extension NativeAccountSyncTransport {
                 scheduleDigest: report.scheduleDigest
             )
         } catch {
+            statusPublications.finish(attempt, succeeded: false)
             recordOperationFailure(
                 NativeAccountSyncError.missingCredentials,
                 channel: .deviceStatus
             )
             return
         }
-        Task { [weak self] in
+        statusPublicationTask = Task { [weak self] in
             do {
                 guard let self,
                       let tokenData = try secretStore.data(for: "oauth-access-token"),
@@ -161,9 +169,11 @@ extension NativeAccountSyncTransport {
                     signingPrivateKey: keys.signingPrivateKey
                 )
                 guard generation == deviceStatusGeneration else { return }
+                statusPublications.finish(attempt, succeeded: true)
                 recordSuccessfulOperation(.deviceStatus)
             } catch {
                 guard let self, generation == deviceStatusGeneration else { return }
+                statusPublications.finish(attempt, succeeded: false)
                 recordOperationFailure(error, channel: .deviceStatus)
             }
         }
