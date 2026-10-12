@@ -8,8 +8,17 @@
   exact-version eligibility fence. A main-actor publication ledger has seven
   headless regressions and is connected to native publication. CI observed the
   transport regression before implementation: unchanged heartbeat18 replaced
-  eligible version17. Consumer GREEN verification and socket lifecycle are still
-  in progress;
+  eligible version17; that regression now passes on CI 38302226143. That run also
+  exposed a stale fixture: its supposed changed report changed only metadata.
+  The fixture now changes phase and preserves its late-response assertions.
+  The socket consumer, monotonic scheduler and independent channels are wired.
+  Headless regressions cover an actual suspended connection boundary, handshake
+  timeout until first pong, receive-loop hints/revocation, late-open cleanup,
+  bounded reconnect jitter, coalescing and a full-day idle read budget (2,304
+  protected reads versus 23,040 previously; this is not a live indexed-write count).
+  Review found a delayed socket-refresh rejection can stop a replacement session;
+  an app-hosted regression is prepared for CI RED before its generation fence.
+  Native integration verification is still in progress;
   app-hosted tests are not run on this Mac because they can steal focus.
   Keep a 60-second independent command fallback inside the five-minute delivery
   TTL, coalesced event reconciliation and slower peer/wake polling. Failed sends,

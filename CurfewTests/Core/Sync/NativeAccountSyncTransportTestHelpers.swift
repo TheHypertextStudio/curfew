@@ -47,6 +47,7 @@ extension NativeAccountSyncTransportTests {
             resultExchangeStore: resultExchangeStore,
             enrollmentStore: enrollmentStore,
             pollingInterval: pollingInterval,
+            socketEnabled: false,
             now: now
         )
     }

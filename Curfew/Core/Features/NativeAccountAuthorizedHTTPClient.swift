@@ -75,6 +75,35 @@ struct NativeAccountAuthorizedHTTPClient {
         return data
     }
 
+    func openSocket(
+        deviceID: UUID,
+        accessToken: String,
+        signingPrivateKey: Data
+    ) async throws -> any AccountSyncSocketConnection {
+        let nonce = try await challenge(deviceID: deviceID, accessToken: accessToken)
+        // DPoP binds the canonical HTTPS resource, not the WebSocket transport scheme.
+        let resource = baseURL.appending(path: "/sync/socket")
+        let proof = try proofFactory.make(.init(
+            accessToken: accessToken,
+            nonce: nonce,
+            method: "GET",
+            url: resource,
+            body: nil,
+            signingPrivateKey: signingPrivateKey
+        ))
+        guard var components = URLComponents(url: resource, resolvingAgainstBaseURL: false)
+        else { throw NativeAccountSyncError.invalidResponse }
+        components.scheme = "wss"
+        guard let url = components.url else { throw NativeAccountSyncError.invalidResponse }
+        var request = URLRequest(url: url)
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        request.setValue(proof, forHTTPHeaderField: "DPoP")
+        request.setValue(deviceID.uuidString.lowercased(), forHTTPHeaderField: "X-Curfew-Device-ID")
+        let task = session.webSocketTask(with: request)
+        task.resume()
+        return NativeAccountSyncSocketConnection(task: task, accessToken: accessToken)
+    }
+
     func put(
         path: String,
         body: Data,

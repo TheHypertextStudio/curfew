@@ -9,9 +9,23 @@ headless package suite passes; this is publication policy evidence, not installe
 socket or remote-command acceptance. The app-hosted
 `NativeAccountSyncTransportTests/testUnchangedInFlightHeartbeatKeepsEligibleStatusVersion()`
 failed on CI run 38301226012 with actual eligible version18 instead of17 before
-the ledger was connected. Consumer GREEN verification remains pending on CI.
-Socket half-open/reconnect/revocation, independent fallback cadence and actual
-idle write-budget coverage are still required. No local app-hosted test execution.
+the ledger was connected and passed on CI 38302226143. That run exposed the
+late-response fixture using two semantically identical frames; it now changes
+phase while preserving the ordering assertions.
+
+`AccountSyncReconciliationScheduleTests` executes 86,400 monotonic seconds and
+checks the 2,304 protected-read idle budget, independent hung channels, coalesced
+dirty follow-ups and failure backoff that hints cannot bypass.
+`AccountSyncSocketLifecycleTests` covers handshake/half-open deadlines, healthy
+pong backoff reset and terminal revocation. `AccountSyncSocketTests` runs the
+actual asynchronous connection consumer through an injected network boundary:
+first-pong handshake deadline (observed RED, then GREEN), hint/pong distinction,
+terminal closure and late-open cleanup. These do not simulate installed acceptance.
+`NativeAccountSyncOverrideCadenceTests/testOldSocketRefreshRejectionCannotStopAReplacementConnection()`
+is prepared for app-hosted CI RED before the reviewed generation fix.
+Full native consumer CI, restored-network/wake handling, status POST refresh,
+installed acceptance and actual indexed-write counts remain open.
+No local app-hosted test execution.
 
 This file maps completed todo items (`[x]`) in `Documentation/todos.md` to automated behavior tests.
 
