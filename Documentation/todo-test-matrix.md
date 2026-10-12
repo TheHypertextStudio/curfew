@@ -12,6 +12,10 @@ fetched without re-uploading the result or obtaining a fresh candidate. Receipt-
 aware suppression now invalidates when the exact candidate disappears/changes.
 The cadence missing-handler failure also requires construction-time handler
 snapshots, not merely waiting for session invalidation. Final hosted GREEN is open.
+CI 38311757940 passed receipt retry and cadence tests; its sole failure was
+`testSharedResultRetryUsesAlreadyRotatedCredentials()` reading a cleared general
+transport handler. The general fixture now also snapshots at construction,
+retaining the same missing-handler assertion and rotated-token event expectations.
 
 `CurfewKitTests/AccountStatusPublicationLedgerTests` covers acknowledged unchanged
 heartbeats, in-flight coalescing, failed-send retry, failed intermediate states,

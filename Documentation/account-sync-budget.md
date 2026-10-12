@@ -67,7 +67,10 @@ remain retryable; reconnect permits idempotent re-reporting. Authorized
 HTTP checks cancellation before challenges and after the challenge suspension.
 Cadence fixtures await URLSession invalidation and snapshot handlers at protocol
 construction, rather than reading mutable global configuration at deferred
-startLoading. Missing-handler failures remain assertions. Hosted verification of
+startLoading. CI 38311757940 passed receipt retry and both cadence regressions,
+then exposed the same deferred-handler race in the general transport fixture's
+rotated-token test; that fixture now takes the same construction-time snapshot.
+Missing-handler failures remain assertions. Hosted verification of
 these corrections remains required.
 
 CI 38307160113 also exposed late network work after fixture teardown. The crash

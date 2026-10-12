@@ -45,6 +45,8 @@
   suppression now requires the exact still-present candidate and never represents
   daemon acceptance. Protocol fixtures snapshot request handlers at construction
   as invalidation alone did not prevent a delayed startLoading handler race.
+  CI 38311757940 passed those regressions and exposed the equivalent deferred
+  handler race in the general transport fixture; its snapshot is now aligned.
   Native integration verification is still in progress;
   app-hosted tests are not run on this Mac because they can steal focus.
   Keep a 60-second independent command fallback inside the five-minute delivery
