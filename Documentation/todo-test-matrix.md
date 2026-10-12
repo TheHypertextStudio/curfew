@@ -41,7 +41,10 @@ No local app-hosted test execution.
 `NativeAccountSyncTransportTests/testScheduledCommandsWaitWhileResultPublicationFails()`
 exercises the production scheduler with a real local pending result and a failed
 HTTP result response. It requires no command GET while the result is unreported;
-CI RED is pending before the ordering fix. This draft is not ready to ship.
+CI 38307577571 observed multiple forbidden command GETs, but the inverted
+expectation crashed on over-fulfillment. Its failure reporting now runs on the
+main actor without over-fulfillment exceptions; clean CI RED remains required
+before the ordering fix. This draft is not ready to ship.
 
 `NativeAccountSyncTransportTests/testStalePollCannotStartAnOperationAfterDisconnect()`
 requires stale reconciliation to return before invoking its operation, independent
