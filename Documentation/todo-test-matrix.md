@@ -38,6 +38,11 @@ Full native consumer CI, native lifecycle adapter runtime proof,
 installed acceptance and actual indexed-write counts remain open.
 No local app-hosted test execution.
 
+`NativeAccountSyncTransportTests/testScheduledCommandsWaitWhileResultPublicationFails()`
+exercises the production scheduler with a real local pending result and a failed
+HTTP result response. It requires no command GET while the result is unreported;
+CI RED is pending before the ordering fix. This draft is not ready to ship.
+
 This file maps completed todo items (`[x]`) in `Documentation/todos.md` to automated behavior tests.
 
 Signed-build/manual validation for shutdown, WidgetKit, the privileged helper,

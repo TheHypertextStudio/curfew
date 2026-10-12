@@ -44,6 +44,13 @@ stale work from affecting replacement connections.
 
 ## Evidence and remaining acceptance
 
+Final ordering review found that independent command/result tasks can fetch newer
+commands while a terminal result upload fails. Coordinator/inbox/daemon checks
+do not supply that missing ordering barrier. The production-scheduler regression
+`testScheduledCommandsWaitWhileResultPublicationFails` is awaiting CI RED before
+repair. Do not merge or install this draft until command fetching is gated on
+successful pending-result reconciliation, without coupling unrelated channels.
+
 The deterministic idle schedule performs 1,440 command reads plus 288 each for
 overrides, wake and peers: **2,304 protected reads per day**, a 90% reduction.
 The 5,760 empty result checks are local. This is a scheduling regression, not a
