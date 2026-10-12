@@ -86,6 +86,17 @@ already discarded handles and driver-owned socket tasks are outside the join.
 Normal interactive disconnect and its latency remain unchanged. Hosted evidence
 must determine whether this resolves the missing-handler failures.
 
+CI 38313551603 did not resolve both cadence failures. Its request/session traces
+identify requests constructed after the same session's invalidation callback,
+then attributed to the next test. Constructor snapshots cannot isolate those
+requests from a cleared global handler. Cadence fixtures now bind immutable mock
+behavior to a session ID and mark that session canceled before invalidation.
+Late requests receive cancellation rather than borrowing the next test's behavior.
+Canceled entries retain only a small ID/state tombstone for the test process;
+handler closures and captured expectations are released. Unknown sessions and
+missing installed handlers still fail assertions. This is test-only isolation,
+not evidence of production liveness or a change to the network budget.
+
 CI 38307160113 also exposed late network work after fixture teardown. The crash
 attachment traces a nil URLProtocol handler to a background XCTest assertion,
 not a UI launch. A stale poll can currently invoke its operation before checking

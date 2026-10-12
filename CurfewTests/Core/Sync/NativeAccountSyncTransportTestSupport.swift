@@ -3,6 +3,76 @@
 import Foundation
 import XCTest
 
+/// A session owns its mock behavior, including requests Foundation constructs after invalidation.
+/// Canceled sessions retain only a tombstone, never another test's handler or expectations.
+final class NativeTransportProtocolSessions: @unchecked Sendable {
+    private let lock = NSLock()
+    private var sessions: [String: NativeTransportProtocolSession] = [:]
+
+    func bind(
+        _ configuration: URLSessionConfiguration,
+        handler: ((URLRequest) throws -> (Int, Data))?,
+        delay: ((URLRequest) -> TimeInterval)?
+    ) {
+        let owner = UUID().uuidString
+        let state = NativeTransportProtocolSession(handler: handler, delay: delay)
+        lock.withLock { sessions[owner] = state }
+        configuration.httpAdditionalHeaders = ["X-Curfew-Test-Session": owner]
+    }
+
+    func session(for request: URLRequest) -> NativeTransportProtocolSession? {
+        guard let owner = request.value(forHTTPHeaderField: "X-Curfew-Test-Session") else {
+            return nil
+        }
+        return lock.withLock { sessions[owner] }
+    }
+
+    func cancel(_ configuration: URLSessionConfiguration) {
+        guard let owner = configuration.httpAdditionalHeaders?["X-Curfew-Test-Session"] as? String
+        else { return }
+        lock.withLock { sessions[owner] }?.cancel()
+    }
+}
+
+final class NativeTransportProtocolSession: @unchecked Sendable {
+    struct Response {
+        let status: Int
+        let data: Data
+        let delay: TimeInterval
+    }
+
+    private let lock = NSLock()
+    private var canceled = false
+    private var handler: ((URLRequest) throws -> (Int, Data))?
+    private var delay: ((URLRequest) -> TimeInterval)?
+
+    init(
+        handler: ((URLRequest) throws -> (Int, Data))?,
+        delay: ((URLRequest) -> TimeInterval)?
+    ) {
+        self.handler = handler
+        self.delay = delay
+    }
+
+    func response(to request: URLRequest) throws -> Response {
+        let behavior = try lock.withLock {
+            guard !canceled else { throw URLError(.cancelled) }
+            guard let handler else { throw URLError(.badServerResponse) }
+            return (handler, delay)
+        }
+        let (status, data) = try behavior.0(request)
+        return Response(status: status, data: data, delay: behavior.1?(request) ?? 0)
+    }
+
+    func cancel() {
+        lock.withLock {
+            canceled = true
+            handler = nil
+            delay = nil
+        }
+    }
+}
+
 final class NativeTransportURLProtocol: URLProtocol, @unchecked Sendable {
     nonisolated(unsafe) static var handler: ((URLRequest) throws -> (Int, Data))?
     nonisolated(unsafe) static var responseDelay: ((URLRequest) -> TimeInterval)?
