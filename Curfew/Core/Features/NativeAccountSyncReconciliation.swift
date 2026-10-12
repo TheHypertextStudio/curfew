@@ -16,6 +16,7 @@ extension NativeAccountSyncTransport {
                 signingPrivateKey: credentials.keys.signingPrivateKey
             )
         } catch NativeAccountSyncError.rejected(401) {
+            guard isCurrentConnection(generation) else { throw CancellationError() }
             try await refreshAccessToken(rejectedAccessToken: credentials.accessToken)
             guard isCurrentConnection(generation) else { throw CancellationError() }
             let refreshed = try currentCredentials(deviceID: deviceID)
@@ -61,6 +62,7 @@ extension NativeAccountSyncTransport {
             recordSuccessfulOperation(channel)
             return true
         } catch NativeAccountSyncError.rejected(401) {
+            guard isCurrentConnection(generation) else { return false }
             do {
                 try await refreshAccessToken(rejectedAccessToken: rejectedAccessToken)
                 guard isCurrentConnection(generation) else { return false }
@@ -80,6 +82,7 @@ extension NativeAccountSyncTransport {
     }
 
     func refreshAccessToken(rejectedAccessToken: String?) async throws {
+        try Task.checkCancellation()
         if let rejectedAccessToken,
            try storedAccessToken() != rejectedAccessToken {
             return
@@ -92,7 +95,13 @@ extension NativeAccountSyncTransport {
             try await tokenRefresher.refresh()
         }
         tokenRefreshTask = task
-        defer { tokenRefreshTask = nil }
+        tokenRefreshGeneration += 1
+        let generation = tokenRefreshGeneration
+        defer {
+            if generation == tokenRefreshGeneration {
+                tokenRefreshTask = nil
+            }
+        }
         try await task.value
     }
 

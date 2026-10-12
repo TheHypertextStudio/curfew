@@ -44,6 +44,12 @@ public struct AccountSyncSocketLifecycle {
         nextPing = time
     }
 
+    public mutating func resume(at time: Duration) {
+        guard state != .terminal else { return }
+        state = .waiting
+        nextConnect = time
+    }
+
     public mutating func receivedPong(at time: Duration) {
         guard state == .open else { return }
         lastPong = time

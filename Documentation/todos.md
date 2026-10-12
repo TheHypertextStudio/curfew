@@ -21,8 +21,12 @@
   was restored. Terminal rejection now intentionally reports once and stops all
   channels instead of producing duplicate failures. A wake/network observer now
   reconnects without UI, and headless RED/GREEN regressions cover immediate
-  restoration and closing a dropped socket consumer. Status POST refresh has a
-  new app-hosted regression awaiting CI RED before its retry integration.
+  restoration and closing a dropped socket consumer. CI 38305592933 passed the
+  stale socket-refresh fence and reproduced the new status POST refresh regression.
+  Status publication now shares the single-refresh retry path. Teardown cancels
+  owned refresh tasks and fences late credential writes; restored sockets retain
+  their backoff history, with observed headless RED/GREEN coverage. Final native
+  CI must verify these fixes before installation.
   Native integration verification is still in progress;
   app-hosted tests are not run on this Mac because they can steal focus.
   Keep a 60-second independent command fallback inside the five-minute delivery

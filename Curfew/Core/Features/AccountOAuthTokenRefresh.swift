@@ -35,6 +35,7 @@ final class AccountOAuthTokenRefresher {
     }
 
     func refresh() async throws {
+        try Task.checkCancellation()
         guard let clientData = try secretStore.data(for: "oauth-client-id"),
               let clientID = String(data: clientData, encoding: .utf8),
               let refreshData = try secretStore.data(for: "oauth-refresh-token"),
@@ -65,6 +66,7 @@ final class AccountOAuthTokenRefresher {
             throw AccountOAuthTokenRefreshError.invalidResponse
         }
         let tokens = try AccountOAuthWire.tokens(from: data)
+        try Task.checkCancellation()
         // Persist the rotated credential before exposing its paired access
         // token so a crash cannot strand the account on a spent refresh token.
         try secretStore.save(Data(tokens.refreshToken.utf8), for: "oauth-refresh-token")

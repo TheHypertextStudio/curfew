@@ -29,8 +29,12 @@ Socket consumer deallocation and explicit reconnect, plus scheduler restoration,
 have observed headless RED/GREEN coverage. Native wake/path notifications are
 connected without foreground behavior.
 `NativeAccountSyncTransportTests/testStatusPublicationRefreshesExpiredCredentialsInsteadOfStoppingSync()`
-awaits app-hosted CI RED before status retry integration.
-Full native consumer CI, native lifecycle adapter runtime proof, status POST refresh,
+failed on CI 38305592933 before status retry integration. That run passed the stale
+socket-refresh generation regression. The fixes now use shared refresh retry,
+owned-task cancellation and cancellation checks before HTTP/credential writes.
+Socket restoration preserves failure backoff with observed headless RED/GREEN
+coverage. Final native CI must verify the status retry and refresh ownership.
+Full native consumer CI, native lifecycle adapter runtime proof,
 installed acceptance and actual indexed-write counts remain open.
 No local app-hosted test execution.
 
