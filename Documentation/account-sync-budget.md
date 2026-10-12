@@ -44,18 +44,24 @@ stale work from affecting replacement connections.
 
 ## Evidence and remaining acceptance
 
-Final ordering review found that independent command/result tasks can fetch newer
-commands while a terminal result upload fails. Coordinator/inbox/daemon checks
-do not supply that missing ordering barrier. The production-scheduler regression
-`testScheduledCommandsWaitWhileResultPublicationFails` is awaiting CI RED before
-repair. Do not merge or install this draft until command fetching is gated on
-successful pending-result reconciliation, without coupling unrelated channels.
+Final ordering review found that independent command/result tasks could fetch
+newer commands while a terminal result upload failed. CI 38308503697 reproduced
+the forbidden command fetch with a clean inverted-expectation failure before
+repair. Both channels now share an owned result-publication task; command fetching
+waits for successful receipt recording. Failed uploads prevent the fetch, while
+unrelated channels remain independent. This orders results present when reporting
+begins, not a cross-process atomic barrier against subsequently created results.
+Generation-fenced task cleanup happens before completion so a token-refresh retry
+cannot rejoin a completed failed task. Full hosted verification remains required.
 
 CI 38307160113 also exposed late network work after fixture teardown. The crash
 attachment traces a nil URLProtocol handler to a background XCTest assertion,
 not a UI launch. A stale poll can currently invoke its operation before checking
-generation/cancellation; the explicit no-operation-after-disconnect regression
-awaits CI RED. The synchronous eligibility fixture now disconnects its transport.
+generation/cancellation; CI 38308319780 and 38308503697 observed one operation
+instead of zero in the explicit no-operation-after-disconnect regression. The
+entry fence now precedes credentials and operation invocation. The synchronous
+eligibility fixture disconnects its transport, and HTTP fixture cancellation
+suppresses queued delayed responses without hiding missing-handler failures.
 Do not hide these failures by increasing timeouts or dropping handler assertions.
 
 The deterministic idle schedule performs 1,440 command reads plus 288 each for

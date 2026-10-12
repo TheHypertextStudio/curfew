@@ -55,6 +55,7 @@ extension NativeAccountSyncTransport {
         generation: Int,
         operation: @MainActor () async throws -> Void
     ) async -> Bool {
+        guard isCurrentConnection(generation) else { return false }
         let rejectedAccessToken = try? storedAccessToken()
         do {
             try await operation()
@@ -147,26 +148,52 @@ extension NativeAccountSyncTransport {
             onRemoteOverride?(remoteOverride)
             return
         }
-        let credentials = try currentCredentials(deviceID: deviceID)
         switch channel {
         case .results:
-            try await publishPendingRemoteCommandResults(
-                deviceID: deviceID,
-                accessToken: credentials.accessToken,
-                signingPrivateKey: credentials.keys.signingPrivateKey,
-                generation: generation
-            )
+            try await reconcilePendingResults(deviceID: deviceID, generation: generation)
         case .peers:
+            let credentials = try currentCredentials(deviceID: deviceID)
             try await distributeRootKey(
                 deviceID: deviceID,
                 accessToken: credentials.accessToken,
                 keys: credentials.keys,
                 generation: generation
             )
-        case .wake, .commands:
+        case .commands:
+            try await reconcilePendingResults(deviceID: deviceID, generation: generation)
+            guard isCurrentConnection(generation) else { throw CancellationError() }
+            try await reconcileStateRead(channel, deviceID: deviceID, generation: generation)
+        case .wake:
             try await reconcileStateRead(channel, deviceID: deviceID, generation: generation)
         case .overrides: break
         }
+    }
+
+    private func reconcilePendingResults(deviceID: UUID, generation: Int) async throws {
+        guard isCurrentConnection(generation) else { throw CancellationError() }
+        if let resultPublicationTask {
+            try await resultPublicationTask.value
+            return
+        }
+        guard try !resultExchangeStore.pendingResults().isEmpty else { return }
+        resultPublicationGeneration += 1
+        let publication = resultPublicationGeneration
+        let task = Task { [weak self] in
+            guard let self else { throw CancellationError() }
+            defer {
+                if publication == resultPublicationGeneration {
+                    resultPublicationTask = nil
+                }
+            }
+            guard isCurrentConnection(generation) else { throw CancellationError() }
+            let credentials = try currentCredentials(deviceID: deviceID)
+            try await publishPendingRemoteCommandResults(
+                deviceID: deviceID, accessToken: credentials.accessToken,
+                signingPrivateKey: credentials.keys.signingPrivateKey, generation: generation
+            )
+        }
+        resultPublicationTask = task
+        try await task.value
     }
 
     private func reconcileStateRead(

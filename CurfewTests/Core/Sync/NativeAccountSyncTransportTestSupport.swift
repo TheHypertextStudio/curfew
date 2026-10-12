@@ -6,6 +6,7 @@ import XCTest
 final class NativeTransportURLProtocol: URLProtocol, @unchecked Sendable {
     nonisolated(unsafe) static var handler: ((URLRequest) throws -> (Int, Data))?
     nonisolated(unsafe) static var responseDelay: ((URLRequest) -> TimeInterval)?
+    private let delivery = NativeTransportProtocolDelivery()
 
     override static func canInit(with _: URLRequest) -> Bool {
         true
@@ -17,7 +18,11 @@ final class NativeTransportURLProtocol: URLProtocol, @unchecked Sendable {
 
     override func startLoading() {
         do {
-            let handler = try XCTUnwrap(Self.handler)
+            guard let handler = Self.handler else {
+                let path = request.url?.path ?? "missing URL"
+                DispatchQueue.main.async { XCTFail("No transport handler for \(path)") }
+                throw URLError(.badServerResponse)
+            }
             let (status, data) = try handler(request)
             let response = try XCTUnwrap(try HTTPURLResponse(
                 url: XCTUnwrap(request.url),
@@ -31,17 +36,52 @@ final class NativeTransportURLProtocol: URLProtocol, @unchecked Sendable {
                 client?.urlProtocolDidFinishLoading(self)
             }
             let delay = Self.responseDelay?(request) ?? 0
-            if delay > 0 {
-                DispatchQueue.global().asyncAfter(deadline: .now() + delay, execute: deliver)
-            } else {
-                deliver()
-            }
+            delivery.schedule(after: delay, operation: deliver)
         } catch {
             client?.urlProtocol(self, didFailWithError: error)
         }
     }
 
-    override func stopLoading() {}
+    override func stopLoading() {
+        delivery.cancel()
+    }
+}
+
+/// Mirrors URLSession cancellation instead of delivering a response after teardown.
+final class NativeTransportProtocolDelivery: @unchecked Sendable {
+    private let lock = NSLock()
+    private var stopped = false
+    private var pending: DispatchWorkItem?
+
+    func schedule(after delay: TimeInterval, operation: @escaping @Sendable () -> Void) {
+        let work = DispatchWorkItem { [self] in
+            let active = lock.withLock {
+                pending = nil
+                return !stopped
+            }
+            guard active else { return }
+            operation()
+        }
+        let active = lock.withLock {
+            guard !stopped else { return false }
+            pending = work
+            return true
+        }
+        guard active else { return }
+        if delay > 0 {
+            DispatchQueue.global().asyncAfter(deadline: .now() + delay, execute: work)
+        } else {
+            work.perform()
+        }
+    }
+
+    func cancel() {
+        lock.withLock {
+            stopped = true
+            pending?.cancel()
+            pending = nil
+        }
+    }
 }
 
 final class NativeTransportMemorySecretStore: AccountSecretStoring {

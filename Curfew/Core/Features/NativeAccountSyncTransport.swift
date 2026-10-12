@@ -46,6 +46,8 @@ final class NativeAccountSyncTransport: AccountSyncTransporting {
     private var pollingTask: Task<Void, Never>?
     var tokenRefreshTask: Task<Void, Error>?
     var tokenRefreshGeneration = 0
+    var resultPublicationTask: Task<Void, Error>?
+    var resultPublicationGeneration = 0
     private var statusPublicationTask: Task<Void, Never>?
     private var statusPublications = AccountStatusPublicationLedger()
     var onSynchronized: ((Date) -> Void)?
@@ -202,6 +204,9 @@ extension NativeAccountSyncTransport {
         tokenRefreshTask?.cancel()
         tokenRefreshTask = nil
         tokenRefreshGeneration += 1
+        resultPublicationTask?.cancel()
+        resultPublicationTask = nil
+        resultPublicationGeneration += 1
     }
 
     private var elapsed: Duration {
