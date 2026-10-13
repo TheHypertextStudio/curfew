@@ -46,7 +46,10 @@ extension SettingsView {
             }
             if model.featureFlags.privilegedHelperEnabled,
                !model.privilegedHelperManager.isRemoteLockEnforcementAvailable {
-                if model.privilegedHelperManager.daemonStatus == .requiresApproval {
+                if model.privilegedHelperManager.installationInProgress
+                    || model.privilegedHelperManager.repairInProgress {
+                    Label("Connecting background protection…", systemImage: "hourglass")
+                } else if model.privilegedHelperManager.daemonStatus == .requiresApproval {
                     Button("Approve Background Protection…") {
                         if !model.isDemoSession {
                             SMAppService.openSystemSettingsLoginItems()
@@ -57,8 +60,8 @@ extension SettingsView {
                     Button("Review Background Protection") { selection = .general }
                         .buttonStyle(CurfewPrimaryButtonStyle())
                 } else {
-                    Button("Install Background Protection…") {
-                        model.privilegedHelperManager.installDaemon()
+                    Button("Connect Background Protection…") {
+                        Task { await model.privilegedHelperManager.installAndConnectDaemon() }
                     }
                     .buttonStyle(CurfewPrimaryButtonStyle())
                 }
