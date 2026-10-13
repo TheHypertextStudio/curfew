@@ -38,9 +38,15 @@ test('the landing communicates the curfew and retains the shared design', async 
   await expect(page.locator('.assistant-example')).toHaveCount(0);
 });
 
-test('existing HTML guide keeps anchors and navigation history', async ({ page }) => {
+test('published guides are linked and the retained HTML guide keeps its anchors', async ({
+  page,
+}) => {
   await page.goto('/');
-  await page.getByRole('link', { name: 'Guides', exact: true }).first().click();
+  await expect(page.getByRole('link', { name: 'Guides', exact: true }).first()).toHaveAttribute(
+    'href',
+    'https://curfew.mintlify.site/docs',
+  );
+  await page.goto('/docs');
   await expect(page.locator('#claude-desktop')).toBeVisible();
   await page.locator('.docs-sidebar a[href="#command-line"]').click();
   await expect(page).toHaveURL(/#command-line$/);

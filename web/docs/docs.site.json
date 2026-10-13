@@ -11,12 +11,16 @@
       {
         "group": "Get started",
         "pages": [
-          "index"
+          "index",
+          "install",
+          "schedules"
         ]
       },
       {
         "group": "Use Curfew",
         "pages": [
+          "exceptions",
+          "accounts",
           "mcp-guide",
           "cli",
           "licensing"
