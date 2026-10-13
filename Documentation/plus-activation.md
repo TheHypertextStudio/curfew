@@ -105,7 +105,11 @@ legacy GET license delivery continue working.
 After deployment, resend historical **paid** `checkout.session.completed`
 events through the matching Stripe environment's signed webhook delivery. A
 previously handled event adds its purchase index only when the corresponding
-stored license exists, and leaves that license unchanged. Verify restoration
+stored Curfew license exists, even if historical checkout metadata is missing.
+For subscriptions, retain any existing renewed snapshot during that repair.
+If cancellation already deleted the old renewal, resend the latest paid invoice
+after the checkout backfill. Its signed paid-period snapshot repairs recovery;
+it does not change billing or restart the canceled subscription. Verify restoration
 for an old purchase as well as a fresh purchase. This is a licensing recovery
 change, not an account-recovery or encryption-key recovery mechanism.
 
@@ -145,3 +149,47 @@ the client/site/issuer release. Dashboard inspection has not changed resources.
   configuration remains compatible with recovery disabled. A bundle using the
   verified production identifiers and restricted sender passed Wrangler dry-run;
   no provider permission has been granted and no email sent.
+
+### Legacy recovery and concurrent delivery
+
+Sixteen issuer tests pass after further failing-first regressions for metadata-free
+legacy purchases, renewal retention before cancellation, invoice replay after a
+historical cancellation, UTF-8 inbox addresses, and concurrent out-of-order invoice
+completion. Paid invoice snapshots use immutable `period:<token>:<period-end>`
+records. Activation, restoration and refresh select the greatest valid expiry
+across those records and older pointers; convenience pointer races cannot erase
+a paid period. At most 1,000 period records are read per subscription; incomplete
+lists fail closed. KV propagation still requires actual provider acceptance.
+
+Nine native activation tests pass, including canceling an activation before its
+queued task starts. Full nonparallel verification passes: 81 XCTest and 927 Swift
+Testing tests, Debug build, SwiftFormat and strict SwiftLint. The latest native
+interaction CI still failed to expand manual entry after sheet dismissal; the
+test now targets the visible native disclosure arrow rather than its label's
+midpoint. Fresh CI must verify that change. The scoped follow-up review reports
+no remaining actionable findings in the recovery fixes.
+
+### Repeatable purchase-test inbox
+
+Use a fixed owner-controlled tagged address with the convention
+`<owner>+curfew-purchases-test@gmail.com`; Gmail delivers tagged addresses to the
+existing inbox. Set `CURFEW_PURCHASE_TEST_EMAIL` in the local test environment,
+not committed source, to that recipient. Test-mode Stripe checkout and restoration
+must use the exact same address. Search that recipient and the Curfew sender to
+verify a newly received message; record its timestamp and provider message ID
+without logging the restore ticket or signed key. Do not create a disposable
+third-party mailbox, another account, or DNS routing just for this walkthrough.
+This convention follows [Google's inbox guidance](https://support.google.com/a/users/answer/9282734).
+
+### Approved provider preparation
+
+The owner approved restricted restore email on 2026-10-13. The existing Studio
+issuer's build settings now persist all five recovery variables, with the
+`purchases@curfew.hypertext.studio` sender, `https://curfew.hypertext.studio` portal,
+and rate-limit namespace IDs `1781921001`/`1781921002`. A fresh dashboard tab
+confirmed persistence after Save. Runtime remains the prior issuer with its
+existing KV and secrets; the new bindings take effect only after the reviewed
+generator/code deploys. No signing credential was created, read, or rotated.
+No email has been sent. The connected owner inbox supplies the tagged test
+recipient locally. Stripe's test dashboard currently requires sign-in; the actual
+test checkout and inbox restore remain pending.

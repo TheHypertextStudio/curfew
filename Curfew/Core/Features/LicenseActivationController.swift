@@ -48,6 +48,7 @@ final class LicenseActivationController {
     }
 
     func activate(ticket: String) async {
+        guard !Task.isCancelled else { return }
         let operation = begin()
         currentTicket = ticket
         message = "Activating Curfew Plus…"
@@ -65,6 +66,7 @@ final class LicenseActivationController {
 
     @discardableResult
     func restore(email: String) async -> Bool {
+        guard !Task.isCancelled else { return false }
         let email = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         let operation = begin()
         message = "Sending restore link…"
