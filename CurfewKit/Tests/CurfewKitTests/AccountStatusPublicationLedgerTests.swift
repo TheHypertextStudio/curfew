@@ -39,6 +39,15 @@ struct AccountStatusPublicationLedgerTests {
         #expect(ledger.begin(report(version: 2)) == nil)
     }
 
+    @Test("An acknowledged status is refreshed when its heartbeat interval elapses")
+    func acknowledgedStatusGetsFreshHeartbeat() throws {
+        let ledger = AccountStatusPublicationLedger()
+        let first = try #require(ledger.begin(report(version: 1)))
+        ledger.finish(first, succeeded: true)
+
+        #expect(ledger.begin(report(version: 61)) != nil)
+    }
+
     @Test("An unchanged report retries after publication fails")
     func failedAttemptIsNotAcknowledged() throws {
         let ledger = AccountStatusPublicationLedger()

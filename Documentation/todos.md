@@ -1080,6 +1080,16 @@ The remote AX lookup demonstrated section-level identifier propagation overridin
   report before correction. Verify the installed report through Codex after
   background protection reconnects; no lock or unlock test is authorized.
 
+- [-] Refresh the account device's enforcement snapshot on its 60-second
+  heartbeat even when the phase is unchanged. The enrolled Studio Dev Mac was
+  online through routing while Codex retained an older status report. The
+  publication ledger suppressed timestamps as duplicate metadata after the
+  first acknowledgement. It now permits a due heartbeat while still coalescing
+  in-flight and early duplicates; the regression failed before the fix. This
+  changes no command, lockout, credential, or wire shape. Verify a fresh report
+  from the installed signed update through read-only Codex listing before
+  marking installed acceptance complete. Rollback reverts the ledger condition.
+
 - [-] Review contradictory account and protection states. Remote locks require both a fresh daemon heartbeat and an authenticated ready connection, while Studio Dev still yields to a live higher-priority Curfew owner. Settings refreshes signed status on opening, activation, and the existing heartbeat interval. Pending approval opens the macOS approval pane; installed connection failures route to General; installation is offered only when needed. Account messages describe an unchanged schedule instead of claiming protection is active.
 
 Hostless coverage: `PrivilegedHelperManagerTests.remoteReadinessRequiresAuthenticatedConnection` rejects unavailable, unauthorized, stale, and failed registration despite a fresh heartbeat file. `PresentationStateTests` checks recovery routing and copy. The new assertions failed before the fix; CI retains full app behavior and screenshot checks. No local UI execution or app launch. This changes readiness presentation and recovery routing, not enforcement rules, persisted identifiers, or the wire format. Rollback is the readiness/copy change; signed helper and real macOS approval verification remain separate.

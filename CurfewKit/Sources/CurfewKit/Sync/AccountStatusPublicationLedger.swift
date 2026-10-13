@@ -27,7 +27,10 @@ public final class AccountStatusPublicationLedger {
             var previous = latestAttempt.report
             previous.statusVersion = report.statusVersion
             previous.observedAt = report.observedAt
-            if previous == report {
+            let heartbeatIsDue = report.observedAt.timeIntervalSince(
+                latestAttempt.report.observedAt
+            ) >= Double(DeviceStatusReportingPolicy.heartbeatFloorSeconds)
+            if previous == report, outcome == .inFlight || !heartbeatIsDue {
                 return nil
             }
         }
