@@ -14,8 +14,43 @@ struct LicenseActivationTests {
             #expect(LicenseEndpoint.url(for: flavor)
                 .absoluteString == "https://curfew-license-staging.hypertext.studio")
         }
-        #expect(LicenseService().baseURL == LicenseEndpoint.url(for: .current))
-        #expect(LicenseRefresher().baseURL == LicenseEndpoint.url(for: .current))
+        #expect(LicenseService().baseURL == LicenseEndpoint.url(for: LicenseEndpoint.currentFlavor))
+        #expect(LicenseRefresher().baseURL == LicenseEndpoint
+            .url(for: LicenseEndpoint.currentFlavor))
+    }
+
+    @Test("Development and production verify only their paired issuer signing keys")
+    func isolatesIssuerSigningKeys() throws {
+        #expect(LicenseGate.publicKeyBase64(for: .production) ==
+            "wws4nqf0o6zvtOONgWITcqquPv6kIhd57WT2WLgMIvQ=")
+        for flavor in [CurfewFlavor.development, .studioDevelopment] {
+            let publicKey = LicenseGate.publicKeyBase64(for: flavor)
+            #expect(publicKey == "Yvu91gvPfXzgg375axY/mPHQMA/0ejiDPFZuDn8/qE4=")
+            #expect(try #require(Data(base64Encoded: publicKey)).count == 32)
+            #expect(publicKey != LicenseGate.publicKeyBase64(for: .production))
+        }
+    }
+
+    @Test("Production licensing follows bundle identity despite development environment overrides")
+    func productionLicenseTrustIgnoresEnvironmentOverrides() {
+        let bundleIdentifier = "studio.hypertext.curfew"
+        let inheritedFlavor = CurfewFlavor.resolve(
+            environment: ["CURFEW_FLAVOR": "development"],
+            bundleIdentifier: bundleIdentifier
+        )
+        #expect(inheritedFlavor == .development)
+        let licenseFlavor = LicenseEndpoint.buildFlavor(bundleIdentifier: bundleIdentifier)
+        #expect(licenseFlavor == .production)
+        #expect(LicenseEndpoint.url(for: licenseFlavor).absoluteString ==
+            "https://curfew-license.hypertext.studio")
+        #expect(LicenseGate.publicKeyBase64(for: licenseFlavor) ==
+            "wws4nqf0o6zvtOONgWITcqquPv6kIhd57WT2WLgMIvQ=")
+        #expect(LicenseEndpoint.buildFlavor(bundleIdentifier: "studio.hypertext.curfew.dev") ==
+            .development)
+        #expect(LicenseEndpoint
+            .buildFlavor(bundleIdentifier: "studio.hypertext.curfew.studio.dev") ==
+            .studioDevelopment)
+        #expect(LicenseEndpoint.buildFlavor(bundleIdentifier: nil) == .production)
     }
 
     @Test("Activation links accept only this build's scheme and one bounded ticket")
