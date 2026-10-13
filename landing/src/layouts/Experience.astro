@@ -1,0 +1,50 @@
+---
+import { footer, header, symbols } from '../../public/design/components.mjs';
+
+interface Props {
+  title: string;
+  description: string;
+  content: string;
+  home?: boolean;
+}
+
+const { title, description, content, home = false } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en" id="top">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#fbf7ef" />
+    <title>{title} — Curfew</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={Astro.url.href} />
+    <meta property="og:title" content={`${title} — Curfew`} />
+    <meta property="og:image" content="https://curfew.hypertext.studio/images/og.png" />
+    <link rel="icon" href="/images/favicon.png" />
+    <script is:inline src="/design/theme-init.js"></script>
+    <link
+      rel="preload"
+      href="/design/fonts/Calistoga-Regular.ttf"
+      as="font"
+      type="font/ttf"
+      crossorigin
+    />
+    <link rel="stylesheet" href="/design/tokens.css" />
+    <link rel="stylesheet" href="/design/components.css" />
+    <link rel="stylesheet" href="/curfew.css" />
+    {!home && <link rel="stylesheet" href="/curfew-pages.css" />}
+    <script is:inline src="/design/theme.js" defer></script>
+    <script is:inline type="module" src="/design/landscape.js"></script>
+    <script is:inline type="module" src="/design/motion.js"></script>
+  </head>
+  <body class={home ? 'home-page' : undefined}>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <Fragment set:html={symbols} />
+    <Fragment set:html={header()} />
+    <main id="main" class={home ? undefined : 'reading wrap'} set:html={content} />
+    <Fragment set:html={footer({ compact: !home })} />
+  </body>
+</html>

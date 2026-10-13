@@ -1,0 +1,52 @@
+.system-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-block: var(--space-5);
+}
+.system-main {
+  padding-block: var(--space-7) var(--space-9);
+}
+.system-main h1 {
+  font-size: clamp(3.5rem, 7vw, 6rem);
+}
+.system-main > p {
+  margin-top: var(--space-5);
+  max-width: 40rem;
+}
+.system-main section {
+  margin-top: var(--space-8);
+}
+.system-main section > h2 {
+  font-size: 2rem;
+  margin-bottom: var(--space-5);
+}
+.specimen {
+  padding: var(--space-5);
+  border: var(--stroke) solid var(--outline-variant);
+  border-radius: var(--radius-medium);
+  margin-block: var(--space-4);
+}
+.specimen p {
+  margin-top: var(--space-4);
+}
+.swatches {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+.swatch {
+  background: var(--sample);
+  color: var(--sample-text);
+  border-radius: var(--radius-medium);
+  padding: var(--space-5);
+  min-height: 120px;
+  border: var(--stroke) solid var(--outline-variant);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.swatch span {
+  font-size: var(--type-small);
+}

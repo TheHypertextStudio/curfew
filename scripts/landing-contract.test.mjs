@@ -16,6 +16,8 @@ function compact(source) {
 }
 
 test('every public page header offers the same account entry point', async () => {
+  const sharedHeader = await readFile(path.join(landing, 'public/design/components.mjs'), 'utf8');
+  assert.ok(sharedHeader.includes('href="/account"'));
   const names = (await readdir(path.join(landing, 'src/pages'))).filter((name) => name.endsWith('.astro')).map((name) => name.replace(/\.astro$/, '.html'));
   for (const name of names) {
     const source = await html(name);
@@ -28,18 +30,19 @@ test('every public page header offers the same account entry point', async () =>
   }
 });
 
-test('the download surface announces Android without claiming it is available', async () => {
-  const source = await html('index.html');
-  const download = source.match(/<section class="download(?: [^"\n]*)?"[^>]*>[\s\S]*?<\/section>/)?.[0] ?? '';
-  assert.match(download, /Android support is coming soon\./);
-  assert.doesNotMatch(download, /download[^<]*Android/i);
+test('the product story describes current Mac support and future cross-platform sync', async () => {
+  const source = await readFile(path.join(landing, 'src/content/home.html'), 'utf8');
+  assert.match(source, /available for Mac only/);
+  assert.match(source, /Cross-platform functionality is coming/);
+  assert.doesNotMatch(source, /download[^<]*Android/i);
 });
 
 test('account-era legal pages state the privacy, security, recovery, and purchase boundaries', async () => {
-  const privacy = compact(await html('privacy.html'));
-  const terms = compact(await html('terms.html'));
-  const security = compact(await html('security.html'));
-  const retention = compact(await html('retention.html'));
+  const policy = async (name) => compact(await readFile(path.join(landing, 'src/content', name + '.html'), 'utf8'));
+  const privacy = await policy('privacy');
+  const terms = await policy('terms');
+  const security = await policy('security');
+  const retention = await policy('retention');
 
   assert.match(privacy, /Accounts are optional\./);
   assert.match(privacy, /end-to-end encrypted/i);

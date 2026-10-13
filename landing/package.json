@@ -26,7 +26,7 @@
     "docs:config:check": "studio-docs config --directory ../web/docs --check",
     "docs:dev": "studio-docs dev --directory ../web/docs",
     "docs:check": "studio-docs check --directory ../web/docs",
-    "site:format:check": "prettier --check astro.config.mjs eslint.config.mjs package.json playwright.config.mjs prettier.config.mjs tsconfig.json worker.mjs wrangler.site.json tests/unit/*.test.mjs tests/acceptance/site.spec.mjs src/layouts/Page.astro",
+    "site:format:check": "prettier --check astro.config.mjs eslint.config.mjs package.json playwright.config.mjs prettier.config.mjs tsconfig.json worker.mjs wrangler.site.json tests/unit/*.test.mjs tests/acceptance/site.spec.mjs src/layouts/Page.astro src/layouts/Experience.astro public/curfew.css public/curfew-pages.css public/design/theme.js",
     "preview:worker": "wrangler dev --config wrangler.site.json --env staging --port 4325 --ip 127.0.0.1 --local",
     "deploy:worker:staging": "astro build && wrangler deploy --config wrangler.site.json --env staging",
     "deploy:worker:production": "astro build && wrangler deploy --config wrangler.site.json --env production",

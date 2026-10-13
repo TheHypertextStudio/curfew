@@ -1,0 +1,246 @@
+/* Curfew foundations → semantic roles → component tokens.
+   Theme changes replace semantic roles, never component rules. */
+@font-face {
+  font-family: "Calistoga";
+  src: url("fonts/Calistoga-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Hanken Grotesk";
+  src: url("fonts/HankenGrotesk.ttf") format("truetype");
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+:root {
+  color-scheme: light;
+
+  --surface: #fbf7ef;
+  --surface-container-low: #f4eee4;
+  --surface-container: #eee5d9;
+  --surface-container-high: #e6dacd;
+  --on-surface: #29221f;
+  --on-surface-variant: #65574f;
+  --outline: #85746a;
+  --outline-variant: #d8cbc0;
+  --primary: #a83b1b;
+  --on-primary: #fff8f2;
+  --primary-container: #ffdcc9;
+  --on-primary-container: #3b1003;
+  --secondary: #5b536d;
+  --on-secondary: #fff8ff;
+  --secondary-container: #e9def5;
+  --on-secondary-container: #211b30;
+  --tertiary: #76546b;
+  --on-tertiary: #fff7fc;
+  --tertiary-container: #ffdaee;
+  --on-tertiary-container: #2e1228;
+  --error: #ba1a1a;
+  --on-error: #fff;
+  --error-container: #ffdad6;
+  --on-error-container: #410002;
+  --warning: #765900;
+  --on-warning: #fff;
+  --warning-container: #ffdf90;
+  --on-warning-container: #261a00;
+  --success: #386542;
+  --on-success: #fff;
+  --success-container: #b9edbe;
+  --on-success-container: #002109;
+  --brand-orange: #e98243;
+  --shadow: 0 16px 44px #38251a14, 0 2px 5px #38251a0b;
+  --display: "Calistoga", Georgia, serif;
+  --body: "Hanken Grotesk", -apple-system, BlinkMacSystemFont, sans-serif;
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.92' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Cpath fill='%23808080' filter='url(%23n)' d='M0 0h180v180H0z'/%3E%3C/svg%3E");
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --surface: #1e1a20;
+  --surface-container-low: #252129;
+  --surface-container: #302a33;
+  --surface-container-high: #3b333e;
+  --on-surface: #f6eee3;
+  --on-surface-variant: #c5b8b5;
+  --outline: #a59498;
+  --outline-variant: #50434b;
+  --primary: #ffb58e;
+  --on-primary: #572009;
+  --primary-container: #783013;
+  --on-primary-container: #ffdcc9;
+  --secondary: #cdc0df;
+  --on-secondary: #362c45;
+  --secondary-container: #4d435c;
+  --on-secondary-container: #e9def5;
+  --tertiary: #e5b8d3;
+  --on-tertiary: #45263e;
+  --tertiary-container: #5d3c54;
+  --on-tertiary-container: #ffdaee;
+  --error: #ffb4ab;
+  --on-error: #690005;
+  --error-container: #93000a;
+  --on-error-container: #ffdad6;
+  --warning: #edc451;
+  --on-warning: #3f2e00;
+  --warning-container: #5a4300;
+  --on-warning-container: #ffdf90;
+  --success: #9dd3a4;
+  --on-success: #073817;
+  --success-container: #234f2c;
+  --on-success-container: #b9edbe;
+  --shadow: 0 18px 50px #0004, 0 2px 5px #0002;
+}
+
+:root {
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4.5rem;
+  --space-9: 6rem;
+  --type-small: 0.8125rem;
+  --type-body: 1rem;
+  --type-lead: 1.1875rem;
+  --type-title: clamp(2.5rem, 4.5vw, 4rem);
+  --page-content-space: clamp(2rem, 4.5vw, 4.5rem);
+  --auth-content-width: 25rem;
+  --auth-action-width: 20rem;
+  --auth-optical-offset: clamp(var(--space-5), 10svh, var(--space-9));
+  --type-auth: clamp(2rem, 4.5vw, 3rem);
+  --section-space: clamp(4rem, 6vw, 6rem);
+  --layout-gap: clamp(1.5rem, 3vw, 3rem);
+  --content-gap: clamp(1.5rem, 2.5vw, 2.5rem);
+  --hero-landscape-reserve: clamp(8rem, 12vw, 11rem);
+  --hero-copy-gap: var(--space-4);
+  --measure-copy: 60ch;
+  --type-display: clamp(5rem, 9.4vw, 8.5rem);
+  --line-body: 1.55;
+  --line-title: 1.02;
+  --radius-small: 0.5rem;
+  --radius-medium: 1rem;
+  --radius-full: 999px;
+  --stroke: 1px;
+  --focus-width: 2px;
+  --type-auth-title: clamp(2rem, 3vw, 2.5rem);
+  --auth-navigation-gap: 1.25rem;
+  --auth-utility-gap: var(--space-2);
+  --auth-content-space: clamp(var(--space-5), 5vh, var(--space-7));
+  --duration-short: 160ms;
+  --duration-press: 60ms;
+  --duration-feedback: 80ms;
+  --ease-responsive: cubic-bezier(0, 0, 0.2, 1);
+  --duration-disclosure: 220ms;
+  --interaction-inset: var(--space-3);
+  --state-hover: 8%;
+  --state-pressed: 12%;
+  --motion-icon-nudge: 3px;
+  --motion-icon-turn: 12deg;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --content-width: 1120px;
+  --page-gutter: clamp(1.5rem, 5vw, 4rem);
+  --button-background: var(--primary);
+  --button-foreground: var(--on-primary);
+  --button-radius: var(--radius-full);
+  --button-height: 3.25rem;
+  --focus-color: var(--primary);
+  --divider-color: var(--outline-variant);
+}
+
+/* Shared studio identity, verified against logdate.app. */
+@font-face {
+  font-family: "IBM Plex Mono";
+  src: url("fonts/IBMPlexMono-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+:root {
+  --font-studio-wordmark: "IBM Plex Mono", monospace;
+  --studio-hover: var(--surface-container-high);
+  --studio-duration: 180ms;
+  --footer-wordmark-size: clamp(4rem, 8vw, 7rem);
+}
+
+:root {
+  --wordmark-axes: normal;
+  --reading-width: 46rem;
+  --footer-wordmark-size: clamp(4.5rem, 10vw, 8rem);
+  --control-height: 3rem;
+  --control-radius: var(--radius-small);
+}
+
+/* A continuous evening scene; contrast roles are local to the illustrated footer. */
+:root {
+  --footer-surface: #29233f;
+  --footer-on-surface: #fff3df;
+  --footer-on-surface-variant: #e6dbd9;
+  --footer-action: #ffb58e;
+  --footer-on-action: #572009;
+  --footer-divider: #fff3df40;
+  --footer-signature-size: clamp(5rem, 21vw, 20rem);
+  --footer-scene-padding: var(--section-space);
+  --faq-row-padding: var(--space-4);
+  --closing-landscape-height: clamp(11rem, 22vw, 20rem);
+  --footer-sky: #704348;
+  --closing-content-inset: var(--space-6);
+}
+
+/* Landscape surfaces continue across product chapters without bitmap texture. */
+:root {
+  --chapter-surface: #e9e2ef;
+  --chapter-on-surface: #30283c;
+  --chapter-on-surface-variant: #5d5168;
+  --landscape-distant: #b5a6c6;
+  --evening-surface: #302940;
+  --evening-on-surface: #fff3df;
+  --evening-on-surface-variant: #dfd5df;
+  --evening-divider: #fff3df38;
+  --landscape-sun: #ee9157;
+  --connection-hub-surface: #49384d;
+  --connection-line: #ffb58e80;
+  --connection-line-width: 1.5;
+  --scene-edge-texture: 3;
+  --scene-depth-sun: 0.055;
+  --scene-depth-far: 0.035;
+  --scene-depth-near: 0.012;
+  --motion-enter-distance: 12px;
+  --motion-enter-duration: 320;
+  --motion-enter-easing: cubic-bezier(0.2, 0, 0, 1);
+  --motion-control-lift: -2px;
+  --motion-control-press: 0.98;
+  --scene-light-strength: 0.22;
+  --scene-product-light: #f4d6bb;
+  --landscape-grain-opacity: 0.025;
+  --landscape-edge-filter: url("#landscape-edge-texture");
+  --hero-sun-radius: min(20vw, 18.75rem);
+  --chapter-padding: clamp(4.5rem, 8vw, 8rem);
+  --capture-shadow: 0 24px 56px #20162f26;
+  --footer-hill-near: #272039;
+  --footer-hill-far: #514361;
+}
+:root[data-theme="dark"] {
+  --chapter-surface: #393044;
+  --chapter-on-surface: #f6eee3;
+  --chapter-on-surface-variant: #d1c2d5;
+  --landscape-distant: #655371;
+  --scene-light-strength: 0.2;
+  --scene-product-light: #4d3b4c;
+  --evening-surface: #251f33;
+  --footer-surface: #29233f;
+  --footer-hill-near: #211b30;
+  --footer-hill-far: #443651;
+}
+
+:root {
+  --capture-window-radius: 2.6% / 3.9%;
+}
+
+:root {
+  --display-heading-weight: 400;
+  --wordmark-weight: 400;
+  --display-small-weight: 400;
+}
