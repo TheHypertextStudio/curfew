@@ -174,23 +174,16 @@ final class OverlayCoordinator {
         }
         for screen in NSScreen.screens {
             let key = ObjectIdentifier(screen)
-            let root = DaybreakReflectionView().environment(model)
             if let window = daybreakWindows[key] {
-                window.setFrame(screen.frame, display: true)
-                window.contentView = NSHostingView(rootView: root)
-                window.orderFrontRegardless()
+                Self.reconcileExistingDaybreakWindow(window, frame: screen.frame)
                 continue
             }
 
-            let window = NSWindow(
-                contentRect: screen.frame,
-                styleMask: Self.daybreakWindowConfiguration.styleMask,
-                backing: .buffered,
-                defer: false,
-                screen: screen
-            )
+            let window = Self.makeDaybreakWindow(frame: screen.frame, screen: screen)
             apply(configuration: Self.daybreakWindowConfiguration, to: window)
-            window.contentView = NSHostingView(rootView: root)
+            window.contentView = NSHostingView(
+                rootView: DaybreakReflectionView().environment(model)
+            )
             window.makeKeyAndOrderFront(nil)
             daybreakWindows[key] = window
         }

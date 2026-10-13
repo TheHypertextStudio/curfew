@@ -56,22 +56,26 @@ struct AppCoordinator: AppCoordinating {
     }
 }
 
-/// Policy for whether the app arms enforcement on launch. Debug builds
-/// stay disarmed unless explicitly opted in via `CURFEW_ENABLE_ENFORCEMENT=1`
-/// so development doesn't accidentally lock the developer out. Release
-/// builds always arm — `CURFEW_SKIP_ENFORCEMENT=1` is honored only in
-/// Debug. Once a binary is notarised and distributed, a user-controllable
-/// env var must not be able to disable the lockout: that would be a
-/// trivial bypass. CI smoke tests that need to launch without enforcement
-/// use Debug builds (or a dedicated launch argument the harness controls).
+/// Policy for whether the app arms enforcement on launch. Personal Debug
+/// builds stay disarmed unless explicitly opted in. The isolated, signed
+/// Studio Dev app arms like Release despite being compiled with `DEBUG`, so
+/// an authenticated remote lock cannot be accepted by its helper while the
+/// app remains in display-only mode. Only loaded test runtimes are excluded.
 enum CurfewLaunchBehavior {
+    static let personalDebugBundleIdentifier = "studio.hypertext.curfew.dev"
+    static let studioDevBundleIdentifier = "studio.hypertext.curfew.studio.dev"
+
     /// Returns `true` when enforcement should arm at launch given the
-    /// current environment and build configuration.
+    /// actual app identity and build configuration. Environment-only test
+    /// markers cannot disarm a signed app.
     static func shouldStartEnforcement(
         environment: [String: String],
-        isDebugBuild: Bool
+        isDebugBuild: Bool,
+        bundleIdentifier: String? = nil,
+        hasLoadedTestRuntime: Bool = false
     ) -> Bool {
-        if isDebugBuild {
+        guard !hasLoadedTestRuntime else { return false }
+        if isDebugBuild, bundleIdentifier != studioDevBundleIdentifier {
             return environment["CURFEW_ENABLE_ENFORCEMENT"] == "1"
         }
         return true
@@ -82,7 +86,11 @@ enum CurfewLaunchBehavior {
         /// when `CURFEW_DEMO_FIXTURE` is not set to `1`. Unknown scenario
         /// tokens fall back to `.overview`. Debug-only: Release builds neither
         /// compile nor honour this flag.
-        static func demoScenario(environment: [String: String]) -> DemoScenario? {
+        static func demoScenario(
+            environment: [String: String],
+            bundleIdentifier: String? = Bundle.main.bundleIdentifier
+        ) -> DemoScenario? {
+            guard bundleIdentifier != studioDevBundleIdentifier else { return nil }
             guard environment["CURFEW_DEMO_FIXTURE"] == "1" else {
                 return nil
             }
@@ -108,7 +116,9 @@ struct CurfewApp: App {
 
     private static let shouldStartEnforcementOnLaunch = CurfewLaunchBehavior.shouldStartEnforcement(
         environment: ProcessInfo.processInfo.environment,
-        isDebugBuild: isDebugBuild
+        isDebugBuild: isDebugBuild,
+        bundleIdentifier: Bundle.main.bundleIdentifier,
+        hasLoadedTestRuntime: RuntimeEnvironment.hasLoadedTestRuntime
     )
 
     private static var isDebugBuild: Bool {

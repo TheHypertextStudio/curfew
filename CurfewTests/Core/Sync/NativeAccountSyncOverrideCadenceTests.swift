@@ -55,10 +55,12 @@ final class NativeAccountSyncOverrideCadenceTests: XCTestCase {
 
     func testOverridePollingContinuesWhileWakeStatusHangs() async throws {
         let fixture = try makeFixture()
+        let wakeStarted = expectation(description: "wake status request started")
         let polledTwice = expectation(description: "override cadence remained independent")
         polledTwice.expectedFulfillmentCount = 2
         polledTwice.assertForOverFulfill = false
-        installHandler(polledTwice: polledTwice)
+        let events = NativeTransportEventRecorder()
+        installHandler(wakeStarted: wakeStarted, polledTwice: polledTwice, events: events)
         defer {
             NativeOverrideCadenceURLProtocol.handler = nil
             NativeOverrideCadenceURLProtocol.responseDelay = nil
@@ -91,7 +93,8 @@ final class NativeAccountSyncOverrideCadenceTests: XCTestCase {
             )
         )
 
-        await fulfillment(of: [polledTwice], timeout: 0.15)
+        await fulfillment(of: [wakeStarted], timeout: 5)
+        await fulfillment(of: [polledTwice], timeout: 5)
         await transport.disconnectAndWaitForPendingOperations()
         await lifetime.invalidate(session)
     }
@@ -197,33 +200,6 @@ final class NativeAccountSyncOverrideCadenceTests: XCTestCase {
         return (deviceID, secrets)
     }
 
-    private func installHandler(polledTwice: XCTestExpectation) {
-        NativeOverrideCadenceURLProtocol.responseDelay = { request in
-            request.url?.path == "/sync/wake/status" ? 0.25 : 0
-        }
-        NativeOverrideCadenceURLProtocol.handler = { request in
-            let path = try XCTUnwrap(request.url?.path)
-            switch (request.httpMethod, path) {
-            case ("POST", "/sync/device-proof/challenge"):
-                let body = #"{"coordinatorNonce":"AAAAAAAAAAAAAAAAAAAAAA","# +
-                    #""expiresAt":"2026-09-05T08:35:00Z","keyEpoch":1}"#
-                return (200, Data(body.utf8))
-            case ("GET", "/sync/devices"):
-                return (200, Data("[]".utf8))
-            case ("GET", "/sync/remote-overrides/active"):
-                polledTwice.fulfill()
-                return (404, Data())
-            case ("GET", "/sync/wake/status"):
-                return (500, Data())
-            case ("GET", "/sync/remote-control/commands"):
-                return try (200, RemoteCommandDeliveryBatch(commands: []).jsonData())
-            default:
-                XCTFail("unexpected request: \(request.httpMethod ?? "nil") \(path)")
-                return (500, Data())
-            }
-        }
-    }
-
     private func installStaggeredRefreshHandler(
         refreshes: NativeTransportEventRecorder,
         delays: NativeTransportDelaySequencer
@@ -258,6 +234,43 @@ final class NativeAccountSyncOverrideCadenceTests: XCTestCase {
             case ("GET", "/sync/wake/status"),
                  ("GET", "/sync/remote-overrides/active"):
                 return (404, Data())
+            case ("GET", "/sync/remote-control/commands"):
+                return try (200, RemoteCommandDeliveryBatch(commands: []).jsonData())
+            default:
+                XCTFail("unexpected request: \(request.httpMethod ?? "nil") \(path)")
+                return (500, Data())
+            }
+        }
+    }
+}
+
+private extension NativeAccountSyncOverrideCadenceTests {
+    func installHandler(
+        wakeStarted: XCTestExpectation,
+        polledTwice: XCTestExpectation,
+        events: NativeTransportEventRecorder
+    ) {
+        NativeOverrideCadenceURLProtocol.responseDelay = { request in
+            request.url?.path == "/sync/wake/status" ? 30 : 0
+        }
+        NativeOverrideCadenceURLProtocol.handler = { request in
+            let path = try XCTUnwrap(request.url?.path)
+            switch (request.httpMethod, path) {
+            case ("POST", "/sync/device-proof/challenge"):
+                let body = #"{"coordinatorNonce":"AAAAAAAAAAAAAAAAAAAAAA","# +
+                    #""expiresAt":"2026-09-05T08:35:00Z","keyEpoch":1}"#
+                return (200, Data(body.utf8))
+            case ("GET", "/sync/devices"):
+                return (200, Data("[]".utf8))
+            case ("GET", "/sync/remote-overrides/active"):
+                if events.values.contains("wake-requested") {
+                    polledTwice.fulfill()
+                }
+                return (404, Data())
+            case ("GET", "/sync/wake/status"):
+                events.append("wake-requested")
+                wakeStarted.fulfill()
+                return (500, Data())
             case ("GET", "/sync/remote-control/commands"):
                 return try (200, RemoteCommandDeliveryBatch(commands: []).jsonData())
             default:
