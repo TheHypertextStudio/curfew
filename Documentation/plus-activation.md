@@ -193,3 +193,35 @@ generator/code deploys. No signing credential was created, read, or rotated.
 No email has been sent. The connected owner inbox supplies the tagged test
 recipient locally. Stripe's test dashboard currently requires sign-in; the actual
 test checkout and inbox restore remain pending.
+
+### Staging pairing verified during the walkthrough
+
+Stripe is now signed in to the Hypertext Studio sandbox. Its existing destination
+`Curfew staging license Worker` points to
+`https://curfew-issue-license-staging.hypertext-studio.workers.dev/`; `/health`
+returns envelope v2. The retained Worker and its `curfew-license-keys-staging`
+namespace exist. The missing `curfew-license-staging.hypertext.studio` DNS name
+did not imply a missing test service. No secret value was revealed.
+
+The existing test Worker is connected to this repository's reviewed
+`codex/plus-activation` branch, root `web`, using the same configuration-render
+deployment command and existing `curfew-issue-license-builds` credential. Its KV
+binding and both encrypted secrets remain in place. Build variables select the
+retained Worker/KV and first-party staging hostname; recovery remains disabled
+until its restricted sender binding is prepared. The next branch push triggers
+its first repository deployment. After the hostname is live, update the existing
+Stripe destination URL while retaining its signing secret before making a test
+purchase. Production checkout and the production issuer are unchanged.
+
+Native activation and renewal now share `LicenseEndpoint`: production uses
+`curfew-license.hypertext.studio`; development and Studio Dev use the fixed
+`curfew-license-staging.hypertext.studio`. A missing environment-selection contract
+failed before implementation. The full nonparallel unit run (81 XCTest and
+928 Swift Testing tests), Debug build, SwiftFormat, and strict SwiftLint pass.
+Incoming links still cannot choose an issuer, and signature verification remains
+unchanged. The installed signer pairing still needs the real test checkout.
+
+The native interaction recording showed that the disclosure's accessibility
+frame includes leading Form padding. The previous arrow coordinate hit that
+padding; the corrected test targets the visible arrow recorded inside the frame.
+Fresh isolated CI verification is still required.
