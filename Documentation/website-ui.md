@@ -22,3 +22,13 @@ Validation: `pnpm --dir landing site:check`, the website browser acceptance
 suite, and mobile/desktop light/dark visual review. These checks cover source,
 rendering, and layout; they do not prove hosted account sign-in or an MCP lock.
 Rollback is the previous website commit and its verified static artifact.
+
+The marketing and Support guide links now open the published Mintlify project
+at `curfew.mintlify.site/docs`. This avoids dead first-party deep links while
+the `/docs` proxy is still disabled; the old HTML guide remains at `/docs`
+for existing bookmarks. Mintlify navigation includes installation, scheduling,
+exceptions, accounts, and MCP setup. The account guide follows the live
+email-first recovery flow and introduces recovery codes only after a user
+selects that available method. Roll back this routing change with the previous
+landing and docs commit. This does not change authentication or device
+enforcement.

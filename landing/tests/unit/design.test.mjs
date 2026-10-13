@@ -31,3 +31,36 @@ test('primary navigation destinations have real pages', async () => {
     assert.match(page, /Experience/);
   }
 });
+
+test('guide links point to published Mintlify pages', async () => {
+  const home = await readFile(new URL('../../src/content/home.html', import.meta.url), 'utf8');
+  const support = await readFile(
+    new URL('../../src/content/support.html', import.meta.url),
+    'utf8',
+  );
+  const download = await readFile(
+    new URL('../../src/content/download.html', import.meta.url),
+    'utf8',
+  );
+  const components = await readFile(
+    new URL('../../public/design/components.mjs', import.meta.url),
+    'utf8',
+  );
+  const docs = JSON.parse(
+    await readFile(new URL('../../../web/docs/docs.json', import.meta.url), 'utf8'),
+  );
+  const published = new Set(docs.navigation.groups.flatMap((group) => group.pages));
+  const links = [home, support, download, components].flatMap((source) =>
+    [...source.matchAll(/href=["'](https:\/\/curfew\.mintlify\.site\/docs(?:\/[^"']*)?)["']/g)].map(
+      (match) => new URL(match[1]),
+    ),
+  );
+  assert.ok(links.length >= 9, 'all prominent guide links use Mintlify');
+  for (const link of links) {
+    const slug = link.pathname.slice('/docs/'.length);
+    if (slug && slug !== '/docs') assert.ok(published.has(slug), `missing guide: ${slug}`);
+  }
+  for (const source of [home, support, download, components]) {
+    assert.doesNotMatch(source, /href=["']\/docs(?:\/|["'])/);
+  }
+});

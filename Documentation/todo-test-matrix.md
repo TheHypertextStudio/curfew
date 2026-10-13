@@ -1380,3 +1380,12 @@ preserves account navigation and legal policy assertions. The Astro build and
 navigation, and imagery in Chromium, Firefox, and WebKit. Manual phone/desktop
 light/dark captures cover layout and overflow. No native app or account
 backend behavior changes; rollback by restoring the previous website commit.
+
+Guide routing: `landing/tests/unit/design.test.mjs` maps prominent guide
+links to navigation entries in `web/docs/docs.json`; its new assertion failed
+before the link correction. `landing/tests/acceptance/site.spec.mjs` checks
+the published Guides destination and the retained HTML guide's anchors.
+`pnpm --dir landing docs:check` validates the Mintlify source. Hosted checks
+must confirm each published destination and the live landing links after the
+Mintlify and Pages deployments. No account, native app, or wire behavior
+changes; rollback restores the prior landing release and docs commit.
