@@ -1791,6 +1791,10 @@ changes; rollback restores the prior landing release and docs commit.
     no redemption request and leaves no progress/error state.
     `isolatesIssuerEnvironments` checks production/development URL selection and
     that activation and renewal use the same build-specific issuer.
+    `isolatesIssuerSigningKeys` checks fixed production/development signer pins.
+    `productionLicenseTrustIgnoresEnvironmentOverrides` checks production bundle
+    selection despite the generic flavor resolver accepting a development
+    override, plus the isolated development/Studio Dev bundle identities.
   - `scripts/license-worker.test.mjs`: opt-in recovery configuration fails closed
     with missing settings and renders a sender allowlist plus two rate limits.
   - `CurfewUITests/testPurchaseRestoreAndManualActivationAreReachable`: native
@@ -1799,6 +1803,7 @@ changes; rollback restores the prior landing release and docs commit.
     the accessible manual-entry button and checks that its field appears.
     The later recording shows Expanded with an unnamed field; the fix adds an
     explicit label/identifier and checks both expansion and identified input.
+    The hosted interaction passed at `8399b8a4` in 12.392 seconds.
 - `The purchase preview has its own host without changing coordinator routes.`
   - `landing/tests/unit/site-worker.test.mjs`: observed the absent staging route
     first, then verifies the dedicated hostname, disabled workers.dev/previews,
@@ -1809,4 +1814,6 @@ changes; rollback restores the prior landing release and docs commit.
     signer. Both assertions failed first; all 18 issuer tests pass.
 - `Actual provider and installed-app behavior matches the new path.`
   - `Documentation/plus-activation.md`: provider/signer pairing, test checkout,
-    inbox delivery, cold/warm app opening and final distribution remain pending.
+    actual sandbox checkout, matching public signer and authenticated restore
+    inbox delivery are recorded. Cold/warm app opening, native restoration and
+    final distribution remain pending.

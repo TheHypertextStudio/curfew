@@ -1485,13 +1485,18 @@ asserts its own screen and state before attaching an image.
       Cancel queued native activation before making a redemption request.
 - [x] Pair development activation and subscription refresh with the fixed staging
       issuer; production continues to use its fixed production issuer.
-- [-] Replace the unreliable manual-key disclosure with an accessible button;
-      hosted UI verification follows the observed failing interaction.
-- [-] Host purchase acceptance on the existing website staging Worker at its
+- [x] Replace the unreliable manual-key disclosure with an accessible button
+      and identify its text field; hosted UI test passes at `8399b8a4`.
+- [x] Host purchase acceptance on the existing website staging Worker at its
       dedicated hostname; deploy a checksum-verified static artifact without
       transferring package or Cloudflare credentials.
-- [-] Identify the retained staging signer through public-only health metadata
-      after the real sandbox purchase revealed a development key mismatch.
+- [x] Identify the retained staging signer through public-only health metadata
+      and verify the actual paid sandbox envelope against it. Pin development
+      builds to that signer; keep production trust fixed to its original key.
+- [x] Select license trust, issuer and URL scheme from build identity, ignoring
+      inherited helper flavor overrides in the production app.
+- [x] Deploy restricted staging restore email and verify actual inbox delivery
+      with SPF, DKIM and DMARC passing. Native restoration remains pending.
 - [ ] Finish native/browser acceptance, provider email setup, environment/signer
       pairing, and real Stripe test-mode checkout plus inbox restoration.
 - [ ] Ship the verified client/service/site together, then update published help

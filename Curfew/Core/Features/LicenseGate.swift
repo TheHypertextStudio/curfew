@@ -58,6 +58,16 @@ final class LicenseGate {
     /// bundled, committed, logged, or read by the app.
     static let configuredPublicKeyBase64 = "wws4nqf0o6zvtOONgWITcqquPv6kIhd57WT2WLgMIvQ="
 
+    /// Retained sandbox signer, verified against an actual paid test checkout.
+    private static let developmentPublicKeyBase64 = "Yvu91gvPfXzgg375axY/mPHQMA/0ejiDPFZuDn8/qE4="
+
+    nonisolated static func publicKeyBase64(for flavor: CurfewFlavor) -> String {
+        switch flavor {
+        case .production: configuredPublicKeyBase64
+        case .development, .studioDevelopment: developmentPublicKeyBase64
+        }
+    }
+
     /// Verified Plus license currently in effect, or `nil` for free-tier
     /// users. Setting surfaces Plus features across the app through the
     /// `isPlusUnlocked` derived boolean.
@@ -106,7 +116,7 @@ final class LicenseGate {
     /// Creates a gate backed by `defaults` on the main actor.
     init(
         defaults: UserDefaults? = nil,
-        publicKeyBase64: String = LicenseGate.configuredPublicKeyBase64
+        publicKeyBase64: String = LicenseGate.publicKeyBase64(for: LicenseEndpoint.currentFlavor)
     ) {
         self.defaults = defaults
             ?? UserDefaults(suiteName: SharedPaths.defaultsSuiteName)
