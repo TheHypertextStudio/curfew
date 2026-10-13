@@ -163,6 +163,26 @@ struct LicenseActivationTests {
         #expect(!flow.isBusy)
     }
 
+    @Test("Canceling before a link task starts sends no redemption request")
+    func cancelsQueuedActivation() async throws {
+        let gate = try LicenseGate(defaults: #require(UserDefaults(suiteName: UUID().uuidString)))
+        let service = CountingPurchaseService()
+        let flow = LicenseActivationController(gate: gate, service: service)
+        let url =
+            try #require(
+                URL(string: "curfew://activate?token=\(String(repeating: "a", count: 43))")
+            )
+        #expect(flow.open(url, flavor: .production))
+        flow.cancel()
+        for _ in 0 ..< 50 {
+            await Task.yield()
+        }
+        #expect(await service.requests == 0)
+        #expect(flow.message == nil)
+        #expect(flow.error == nil)
+        #expect(!flow.isBusy)
+    }
+
     private func signedKey(
         _ signer: Curve25519.Signing.PrivateKey,
         expired: Bool = false,
@@ -187,6 +207,16 @@ struct LicenseActivationTests {
         }
         return try "\(encode(payload)).\(encode(signer.signature(for: payload)))"
     }
+}
+
+private actor CountingPurchaseService: LicenseServicing {
+    private(set) var requests = 0
+    func redeem(ticket _: String) async throws -> String {
+        requests += 1
+        throw LicenseServiceError.unavailable
+    }
+
+    func restore(email _: String) async throws {}
 }
 
 private actor SuspendedRestoreService: LicenseServicing {
