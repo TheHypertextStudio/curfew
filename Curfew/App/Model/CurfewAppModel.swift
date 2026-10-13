@@ -150,6 +150,8 @@ final class CurfewAppModel: NSObject {
     /// Respawn deterrent installed in `start()`, armed/disarmed on lockout.
     let respawnGuard: any RespawnGuardControlling
     let lockoutDeadlineStore: LockoutDeadlineStore
+    let observedStatusPublisher: CurfewObservedStatusPublisher
+    let observedStatusPublisherWasInjected: Bool
     /// Abstraction over "activate + show Settings". Tests substitute a spy.
     let appRouter: AppRouting
 
@@ -333,7 +335,8 @@ final class CurfewAppModel: NSObject {
         lockoutDeadlineStore: LockoutDeadlineStore? = nil,
         accountWakeLedgerStore: AccountWakeLedgerStore = AccountWakeLedgerStore(),
         accessibilityAuthorization: AccessibilityAuthorizing? = nil,
-        browserNativeRuntime: BrowserNativeRuntime? = nil
+        browserNativeRuntime: BrowserNativeRuntime? = nil,
+        observedStatusPublisher: CurfewObservedStatusPublisher? = nil
     ) {
         self.isDemoSession = Self.permitsDemoIsolation(isDemoSession)
         self.settingsStore = settingsStore
@@ -370,6 +373,13 @@ final class CurfewAppModel: NSObject {
         self.idleWatcher = idleWatcher ?? IdleWatcher(source: CGEventSourceIdleSource())
         self.respawnGuard = respawnGuard ?? NoOpRespawnGuard()
         self.lockoutDeadlineStore = lockoutDeadlineStore ?? LockoutDeadlineStore()
+        self.observedStatusPublisher = observedStatusPublisher ?? CurfewObservedStatusPublisher(
+            isWriterAlive: { pid in
+                NSRunningApplication(processIdentifier: pid)?.bundleIdentifier ==
+                    Bundle.main.bundleIdentifier
+            }
+        )
+        self.observedStatusPublisherWasInjected = observedStatusPublisher != nil
         self.accountWakeLedgerStore = accountWakeLedgerStore
         self.accountWakeLedger = accountWakeLedgerStore.load() ?? AccountWakeLedger()
         self.accountRemoteOverride = nil

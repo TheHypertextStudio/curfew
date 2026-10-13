@@ -47,66 +47,79 @@ struct MCPTool {
 
 // MARK: - Read tools
 
-private let statusTool = MCPTool(
-    name: "curfew_status",
-    description: """
-    Returns the current Curfew enforcement status: phase (working, warning, \
-    locked, day_off), minutes remaining until lock, today's schedule window, \
-    and whether an extension can be requested right now.
-    """,
-    inputSchema: emptySchema(),
-    call: { _ in
-        let settings = loadSharedSettings()
-        let now = Date()
-        let engine = CurfewEnforcementEngine()
-        let eval = engine.evaluate(
-            at: now,
-            schedule: settings.schedule,
-            extensionMinutesGrantedToday: 0,
-            overrideUntil: nil,
-            warningIntervals: settings.warningIntervals
+private let statusTool = MCPTool.makeStatus()
+
+extension MCPTool {
+    static func makeStatus(store: CurfewObservedStatusStore = CurfewObservedStatusStore())
+        -> MCPTool {
+        MCPTool(
+            name: "curfew_status",
+            description: """
+            Returns Curfew's latest app-observed enforcement phase, remaining \
+            time, and extension availability. If the app is off or its last \
+            observation is stale, phase is unknown instead of a schedule guess.
+            """,
+            inputSchema: emptySchema(),
+            call: { _ in
+                let settings = loadSharedSettings()
+                let now = Date()
+                let status = store.loadFresh(at: now)
+
+                var lines: [String] = []
+                lines.append("Phase: \(status?.phase ?? "unknown")")
+
+                switch status?.phase {
+                case "locked":
+                    if let unlock = status?.unlockDate {
+                        lines.append("Unlocks: \(formatTime(unlock))")
+                    }
+                case "day_off":
+                    lines.append("No curfew today.")
+                case "unknown", nil:
+                    lines
+                        .append(
+                            status?.availabilityDescription ?? "No recent Curfew status is available."
+                        )
+                default:
+                    if let minutes = status?.minutesRemaining {
+                        lines.append("Minutes remaining: \(minutes)")
+                    }
+                    if let lock = status?.lockDate {
+                        lines.append("Locks at: \(formatTime(lock))")
+                    }
+                    if let stage = status?.warningStage, stage != "none" {
+                        lines.append("Warning stage: \(stage)")
+                    }
+                }
+
+                lines
+                    .append(
+                        "Can request extension: \(status?.canRequestExtension == true ? "yes" : "no")"
+                    )
+
+                // Surfaced here so an agent can tell whether its own claim is still
+                // live without filing another one to find out.
+                let claims = ProtectedWorkStore().activeClaims(now: now)
+                if claims.isEmpty {
+                    lines.append("Protected work: none")
+                } else {
+                    lines.append("Protected work: \(claims.count) active claim(s)")
+                    for claim in claims {
+                        let remaining = max(0, Int(claim.expiresAt.timeIntervalSince(now)) / 60)
+                        lines
+                            .append(
+                                "  \(claim.label) — \(remaining) min left (\(claim.source.rawValue))"
+                            )
+                    }
+                    lines.append(
+                        "Max deferral: \(settings.protectedWork.maximumDeferralMinutes) min"
+                    )
+                }
+                return [textContent(lines.joined(separator: "\n"))]
+            }
         )
-
-        var lines: [String] = []
-        lines.append("Phase: \(phaseName(eval.phase))")
-
-        switch eval.phase {
-        case .locked:
-            if let unlock = eval.unlockDate {
-                lines.append("Unlocks: \(formatTime(unlock))")
-            }
-        case .dayOff:
-            lines.append("No curfew today.")
-        default:
-            lines.append("Minutes remaining: \(eval.minutesRemaining)")
-            if let lock = eval.lockDate {
-                lines.append("Locks at: \(formatTime(lock))")
-            }
-            if eval.warningStage != .none {
-                lines.append("Warning stage: \(eval.warningStage)")
-            }
-        }
-
-        lines.append("Can request extension: \(eval.canRequestExtension ? "yes" : "no")")
-
-        // Surfaced here so an agent can tell whether its own claim is still
-        // live without filing another one to find out.
-        let claims = ProtectedWorkStore().activeClaims(now: now)
-        if claims.isEmpty {
-            lines.append("Protected work: none")
-        } else {
-            lines.append("Protected work: \(claims.count) active claim(s)")
-            for claim in claims {
-                let remaining = max(0, Int(claim.expiresAt.timeIntervalSince(now)) / 60)
-                lines.append("  \(claim.label) — \(remaining) min left (\(claim.source.rawValue))")
-            }
-            lines.append(
-                "Max deferral: \(settings.protectedWork.maximumDeferralMinutes) min"
-            )
-        }
-        return [textContent(lines.joined(separator: "\n"))]
     }
-)
+}
 
 private let scheduleTool = MCPTool(
     name: "curfew_schedule",
@@ -339,39 +352,37 @@ private let requestExtensionTool = MCPTool(
 /// just the clock. Returns `{ minutes, mode, trigger }` so an AI assistant
 /// can answer "how much time is left" without parsing prose.
 ///
-/// `mode` and `trigger` are always `"time"` until hours-based enforcement
-/// lands — the field is in the response shape now so downstream clients
-/// can pattern-match without a schema bump later.
-private let timeRemainingTool = MCPTool(
-    name: "curfew_get_time_remaining",
-    description: """
-    Returns a compact machine-readable countdown: minutes until lockout, \
-    the current curfew mode ("time", "hours", or "combined"), and which \
-    trigger is driving the countdown. Useful for small widgets, status \
-    bars, and assistants that just need the number.
-    """,
-    inputSchema: emptySchema(),
-    call: { _ in
-        let settings = loadSharedSettings()
-        let now = Date()
-        let engine = CurfewEnforcementEngine()
-        let eval = engine.evaluate(
-            at: now,
-            schedule: settings.schedule,
-            extensionMinutesGrantedToday: 0,
-            overrideUntil: nil,
-            warningIntervals: settings.warningIntervals
-        )
+/// `mode` is currently `"time"`; trigger is taken from the observation or
+/// `"unknown"` when the app has not reported recently.
+private let timeRemainingTool = MCPTool.makeTimeRemaining()
 
-        let payload: [String: Any] = [
-            "minutes": eval.minutesRemaining,
-            "phase": phaseName(eval.phase),
-            "mode": "time",
-            "trigger": "time"
-        ]
-        return [jsonContent(payload)]
+extension MCPTool {
+    static func makeTimeRemaining(store: CurfewObservedStatusStore = CurfewObservedStatusStore())
+        -> MCPTool {
+        MCPTool(
+            name: "curfew_get_time_remaining",
+            description: """
+            Returns a compact app-observed countdown. Minutes are absent and \
+            phase is unknown when Curfew is off or its observation is stale.
+            """,
+            inputSchema: emptySchema(),
+            call: { _ in
+                let now = Date()
+                let status = store.loadFresh(at: now)
+
+                var payload: [String: Any] = [
+                    "phase": status?.phase ?? "unknown",
+                    "mode": status?.mode ?? "unknown",
+                    "trigger": status?.trigger ?? "unknown"
+                ]
+                if let minutes = status?.minutesRemaining {
+                    payload["minutes"] = minutes
+                }
+                return [jsonContent(payload)]
+            }
+        )
     }
-)
+}
 
 /// Device-attributed weekly summary. Feeds reflection-style conversations
 /// ("How did this week go?") without each assistant having to re-derive

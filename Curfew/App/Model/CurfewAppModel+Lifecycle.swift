@@ -52,7 +52,11 @@ extension CurfewAppModel {
     /// 7. Propagate derived effects: rotate lockout copy, toggle override
     ///    composer, fire warnings, toggle key tap, shutdown, overlays.
     func tick() {
-        guard !isDemoSession, !privilegedHelperManager.maintenancePaused else { return }
+        guard !isDemoSession else { return }
+        if privilegedHelperManager.maintenancePaused {
+            displayTick()
+            return
+        }
         // Captured from `lastEnforcedPhase` — the phase this (armed) tick last
         // acted on — not from `state.phase` directly. `state.phase` can have
         // been silently re-derived any number of times by the disarmed
@@ -105,6 +109,7 @@ extension CurfewAppModel {
         // Last, so every transition this tick produced is already settled.
         // Observes only — see `CurfewAppModel+Audit.swift`.
         recordAuditTickState(previousPhase: previousPhase)
+        publishObservedStatusIfDue()
         // Also last, and for the same reason. Event-driven reports already went
         // out above; this only covers the long quiet stretches, so a device that
         // has been `.working` all afternoon stays distinguishable from one that
@@ -124,12 +129,11 @@ extension CurfewAppModel {
         // effect, so the key shield, overlay, and shutdown below all agree on
         // whether this build is the one enforcing.
         reconcileEnforcementOwnership()
-        // Fold Accessibility trust + the keyboard shield's live tap state into
-        // the enforcement-health verdict. Runs after `reconcileEnforcementOwnership`
-        // so `isEnforcingLockout` reflects this tick's ownership decision, not the
-        // prior tick's — otherwise the badge/banner lag one second on transitions.
-        pollAndUpdateEnforcementHealth()
         updateLockoutInterception(for: state.phase)
+        // Check the actual tap after starting/stopping it, so health and the
+        // observed status mirror do not claim a lockout is healthy on a failed
+        // installation or briefly report degradation before a successful one.
+        pollAndUpdateEnforcementHealth()
         updateShutdownWorkflow()
         overlayCoordinator.updateOverlays(for: state, model: self, lockoutMessage: lockoutMessage)
 

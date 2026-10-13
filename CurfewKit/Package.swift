@@ -124,6 +124,14 @@ let package = Package(
                 .target(name: "curfew-mcp")
             ],
             path: "Tests/CurfewMCPTests"
+        ),
+        .testTarget(
+            name: "CurfewCtlTests",
+            dependencies: [
+                .target(name: "curfew-ctl"),
+                .target(name: "CurfewKit")
+            ],
+            path: "Tests/CurfewCtlTests"
         )
     ]
 )

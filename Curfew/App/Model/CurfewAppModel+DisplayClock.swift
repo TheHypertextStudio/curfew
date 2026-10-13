@@ -1,5 +1,11 @@
 import CurfewKit
 import Foundation
+import OSLog
+
+private let statusMirrorLogger = Logger(
+    subsystem: Bundle.main.bundleIdentifier ?? "studio.hypertext.curfew",
+    category: "observed-status"
+)
 
 /// The always-on display clock and the transient confirmation flags it drives.
 /// Split from the main class body so the two concerns — "what advances the UI
@@ -63,6 +69,31 @@ extension CurfewAppModel {
     func displayTick() {
         refreshDisplayState()
         pollAndUpdateEnforcementHealth()
+        publishObservedStatusIfDue()
+    }
+
+    /// Publish only the state this process actually settled, never a schedule
+    /// forecast. Tests must inject a temporary publisher to avoid touching the
+    /// running user's status file.
+    func publishObservedStatusIfDue() {
+        guard !isDemoSession,
+              !RuntimeEnvironment.isUnitTestHost || observedStatusPublisherWasInjected
+        else { return }
+        do {
+            try observedStatusPublisher.publish(
+                evaluation: state,
+                observedAt: currentTime,
+                enforcementRunning: isEnforcementRunning,
+                ownsLockout: isEnforcingLockout,
+                protectionHealthy: enforcementHealth.isFullyActive &&
+                    !privilegedHelperManager.maintenancePaused,
+                mode: settings.schedule.rule(for: state.lockDate ?? currentTime).mode
+            )
+        } catch {
+            statusMirrorLogger.error(
+                "unable to publish local status: \(error.localizedDescription, privacy: .public)"
+            )
+        }
     }
 
     /// Advances `currentTime` and re-derives observed display state — the
