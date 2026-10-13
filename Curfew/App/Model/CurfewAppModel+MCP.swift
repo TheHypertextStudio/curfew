@@ -25,6 +25,7 @@ extension CurfewAppModel {
     /// rogue user-process could append a forged request and have the app
     /// approve it silently.
     func handleNewMCPRequests(_ requests: [MCPPendingRequest]) {
+        guard !privilegedHelperManager.maintenancePaused else { return }
         for request in requests {
             recordAuditMCPRequestReceived(request)
             if request.tool == .requestOverride {

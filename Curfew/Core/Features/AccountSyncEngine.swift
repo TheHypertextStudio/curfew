@@ -10,6 +10,13 @@ protocol AccountSyncTransporting: AnyObject {
     func connect(deviceID: UUID, callbacks: AccountSyncTransportCallbacks)
     func publishDeviceStatus(_ report: DeviceStatusReport, deviceID: UUID)
     func disconnect()
+    func disconnectAndWaitForPendingOperations() async
+}
+
+extension AccountSyncTransporting {
+    func disconnectAndWaitForPendingOperations() async {
+        disconnect()
+    }
 }
 
 struct AccountSyncTransportCallbacks {
@@ -35,6 +42,7 @@ final class NoOpAccountSyncTransport: AccountSyncTransporting {
 final class AccountSyncEngine: ObservableObject {
     @Published private(set) var syncStatus: AccountSyncStatus = .accountFree
     private(set) var isActive = false
+    private(set) var isMaintenancePaused = false
 
     var onWakeStatusReceived: ((AccountWakeStatusUpdate) -> Void)?
     var onSynchronizedReceived: ((Date) -> Void)?
@@ -51,7 +59,7 @@ final class AccountSyncEngine: ObservableObject {
     }
 
     func start(enrollment: AccountDeviceEnrollment) {
-        guard !isActive else { return }
+        guard !isActive, !isMaintenancePaused else { return }
         isActive = true
         syncStatus = .connecting
         transport.connect(
@@ -74,6 +82,20 @@ final class AccountSyncEngine: ObservableObject {
         isActive = false
         hasPendingEncryptedChanges = false
         syncStatus = .accountFree
+    }
+
+    func pauseForMaintenance() async {
+        isMaintenancePaused = true
+        isActive = false
+        syncStatus = .offline
+        await transport.disconnectAndWaitForPendingOperations()
+    }
+
+    func resumeAfterMaintenance(enrollment: AccountDeviceEnrollment?) {
+        isMaintenancePaused = false
+        if let enrollment {
+            start(enrollment: enrollment)
+        }
     }
 
     func publishDeviceStatus(_ report: DeviceStatusReport, deviceID: UUID) {

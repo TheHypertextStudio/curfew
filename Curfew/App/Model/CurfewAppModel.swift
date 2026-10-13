@@ -427,7 +427,9 @@ final class CurfewAppModel: NSObject {
 
     /// Arms enforcement once setup is complete; isolated demos remain disarmed.
     func start() {
-        guard !isDemoSession, settings.hasCompletedInitialSetup, !started else { return }
+        guard !isDemoSession, settings.hasCompletedInitialSetup, !started,
+              !privilegedHelperManager.maintenancePaused,
+              !privilegedHelperManager.repairInProgress else { return }
         started = true
         notificationManager.requestPermissionIfNeeded()
         installRespawnGuardIfNeeded()

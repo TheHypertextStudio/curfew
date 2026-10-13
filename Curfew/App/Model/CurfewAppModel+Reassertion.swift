@@ -34,6 +34,7 @@ extension CurfewAppModel {
     ///   re-asserted, otherwise ``EnforcementReassertion/noop``.
     @discardableResult
     func reassertEnforcementIfNeeded() -> EnforcementReassertion {
+        guard !privilegedHelperManager.maintenancePaused else { return .noop }
         pollAndUpdateEnforcementHealth()
 
         let tapIsActive = tapLivenessOverride?() ?? lockoutKeyInterceptor.isEnabled

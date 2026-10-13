@@ -113,6 +113,7 @@ final class MCPRequestMonitor {
     /// Reads the queue file and fires `onNewRequests` for any pending entries
     /// the monitor hasn't already surfaced.
     private func check() {
+        guard isStarted else { return }
         let all = MCPRequestQueue.load()
         let pending = all.filter { $0.status == .pending }
         let newPending = pending.filter { !notifiedIDs.contains($0.id) }

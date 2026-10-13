@@ -4,6 +4,19 @@ import Testing
 
 @MainActor
 struct AccountStatusPublicationLedgerTests {
+    @Test("A disarmed schedule cannot publish an active lockout")
+    func disarmedScheduleIsNotAnEnforcedLock() throws {
+        var value = report(version: 1, phase: .locked)
+        value.activeLockoutEndsAt = Date().addingTimeInterval(600)
+        value.isEnforcementEnabled = false
+        let body = try #require(
+            JSONSerialization.jsonObject(with: value.encodedBody()) as? [String: Any]
+        )
+        #expect(body["phase"] as? String == "unknown")
+        #expect(body["activeLockoutEndsAt"] is NSNull)
+        #expect(body["nextTransitionAt"] is NSNull)
+    }
+
     private func report(version: Int, phase: EnforcementPhase = .working) -> DeviceStatusReport {
         DeviceStatusReport(
             deviceID: "20000000-0000-4000-8000-000000000001",
