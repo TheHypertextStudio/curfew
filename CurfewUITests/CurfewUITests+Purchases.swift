@@ -10,6 +10,8 @@ extension CurfewUITests {
         ]
         app.launchArguments = ["-SUEnableAutomaticChecks", "NO", "-SUHasLaunchedBefore", "YES"]
         app.launch()
+        let manualEntry = app.buttons["Enter a license key"]
+        XCTAssertTrue(manualEntry.waitForExistence(timeout: 3))
         let restore = app.buttons["Restore Purchase…"]
         XCTAssertTrue(restore.waitForExistence(timeout: 5))
         restore.click()
@@ -25,10 +27,7 @@ extension CurfewUITests {
             predicate: NSPredicate(format: "isEnabled == true"), object: restore
         )
         XCTAssertEqual(XCTWaiter.wait(for: [available], timeout: 3), .completed)
-        // The recorded accessibility frame includes leading Form padding.
-        // Target the visible arrow inside that frame, not the padding or label.
-        app.disclosureTriangles["Enter a license key"]
-            .coordinate(withNormalizedOffset: CGVector(dx: 0.18, dy: 0.5)).click()
+        manualEntry.click()
         XCTAssertTrue(app.textFields["License key"].waitForExistence(timeout: 3))
         XCTAssertFalse(app.buttons["Activate"].isEnabled)
     }
