@@ -1136,7 +1136,8 @@ asserts its own screen and state before attaching an image.
   interaction is available and reviewed.
 - [ ] Confirm account route ownership and the full hosted sign-in/recovery flow
   before presenting the account UI as a production-ready entry point.
-- [x] Replace broken marketing guide links with published Mintlify destinations
+- [-] Replace broken marketing guide links with published Mintlify destinations
   and add the missing installation, schedule, exception, and account guides.
-  Keep the old first-party HTML guide available for existing bookmarks while
-  the Mintlify subpath proxy remains unaccepted.
+  Source and local checks are ready; hosted Mintlify publication and Pages link
+  acceptance remain. Keep the old first-party HTML guide for existing
+  bookmarks while the Mintlify subpath proxy remains unaccepted.
