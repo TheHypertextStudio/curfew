@@ -235,15 +235,9 @@ extension CurfewAppModel {
         // half-configured install does not silently consume `statusVersion`s.
         guard let credential = deviceStatusCredential(at: currentTime) else { return }
         guard let runtime = liveStatusRuntimeEnsuringExists() else { return }
-        let report = DeviceStatusReport(
+        let report = currentDeviceStatusReport(
             deviceID: policy.deviceID,
-            phase: state.phase,
-            timeZone: DeviceStatusReport.wireTimeZoneIdentifier(for: .current),
-            scheduleDigest: DeviceStatusReport.scheduleDigest(for: settings.schedule),
-            statusVersion: runtime.versions.next(),
-            observedAt: currentTime,
-            nextTransitionAt: nextEnforcementTransition,
-            activeLockoutEndsAt: state.phase == .locked ? state.unlockDate : nil
+            version: runtime.versions.next()
         )
         statusReportingRuntimes[ObjectIdentifier(self)]?.lastReportedAt = currentTime
         deviceStatusLogger.debug("Reporting device status (\(trigger.rawValue, privacy: .public))")
@@ -267,7 +261,7 @@ extension CurfewAppModel {
     }
 
     private func currentDeviceStatusReport(deviceID: String, version: Int) -> DeviceStatusReport {
-        DeviceStatusReport(
+        var report = DeviceStatusReport(
             deviceID: deviceID,
             phase: state.phase,
             timeZone: DeviceStatusReport.wireTimeZoneIdentifier(for: .current),
@@ -277,6 +271,11 @@ extension CurfewAppModel {
             nextTransitionAt: nextEnforcementTransition,
             activeLockoutEndsAt: state.phase == .locked ? state.unlockDate : nil
         )
+        let durableDeadlineIsActive = lockoutDeadlineStore.load().map {
+            currentTime < $0.scheduledUnlockAt
+        } ?? false
+        report.isEnforcementEnabled = isEnforcementRunning || durableDeadlineIsActive
+        return report
     }
 
     /// Publishes a heartbeat when the configured cadence has elapsed. Called

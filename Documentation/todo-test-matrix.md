@@ -8,6 +8,26 @@ accepts numeric major, minor, and patch tags so pinning `v7.0.2` does not reject
 the unchanged diagnostics contract. Run `node --test scripts/*.test.mjs` for
 this test-only correction; hosted native CI remains separate acceptance.
 
+## Background protection reconnect and disarmed reporting
+
+`HelperRepairIntegrationTests` reproduces admission refusal pausing enforcement
+and a new arm RPC racing asynchronous admission. Both failed before correction.
+`DaemonRegistrationRepairTests` covers ordered replacement, failures,
+cancellation, and concurrent attempts. `DaemonMaintenanceAdmissionTests` checks
+independent deadlines, binding, malformed data, and mixed control formats.
+`AccountStatusPublicationLedgerTests.disarmedScheduleIsNotAnEnforcedLock` failed
+on phase and both deadline fields before the publisher correction.
+
+The existing hostless app harness passes 75 tests without UI, and the shared
+package suites pass. Strict lint, formatting, and signed StudioDev build pass.
+The repository's old format command names absent Sources/Tests directories;
+validation uses the actual CurfewKit/Sources and CurfewKit/Tests paths instead.
+Full hosted app tests remain assigned to isolated CI. Actual administrator
+prompt and installed helper registration acceptance remain separate: the first
+installed attempt exposed duplicate authopen prompts and registration error 1.
+The authorization update uses one exact-file read-only context per repair with
+fresh reads on both inspections; it never persists authorization or file state.
+
 ## In-progress event-driven account sync
 
 CI 38309791533 failed `testPollPublishesDaemonResultBeforeFetchingMoreCommands()`
@@ -1253,6 +1273,34 @@ The remote AX lookup demonstrated section-level identifier propagation overridin
   images do not prove layout acceptance, even if their screenshot suite passed.
 
 ### Account readiness consistency after main integration
+
+`DaemonRegistrationRepairTests` exercises the actual replacement workflow with
+isolated OS-operation boundaries: `orderedRepair`, `admissionFailure`,
+`registrationFailure`, and `authenticationFailure`. All four failed before the
+workflow was implemented and passed afterward. These do not register a real
+helper, inspect protected state, sign in, or control the desktop; signed-app
+wiring and live acceptance remain required.
+
+Review regressions: `cancellationDuringRemoval` and
+`cancellationDuringVerification` failed before adding cancellation fences;
+`concurrentRepairIsRejected` covers overlapping entry. Final producer activation
+is a synchronous, nonthrowing MainActor commit. `DaemonMaintenanceAdmissionTests`
+validates expired remote state, both local deadline files, malformed control
+state, device mismatch, and active authenticated/legacy control formats.
+`mixedControlFormatBlocks` observed the malformed authenticated-to-legacy
+downgrade before shape discrimination fixed it. These tests use isolated data;
+file ownership, authorized bounded reads, producer quiescence, and installed
+SMAppService replacement still require their app-boundary implementation.
+
+Installed-runtime acceptance on 2026-10-12 remains incomplete despite passing
+native CI `38315375674`: the signed StudioDev update is installed, but launchd
+retains a legacy helper registration without the authenticated XPC endpoint.
+The current Codex OAuth reconnect failed in Chrome and the hidden in-app browser;
+staging logs identify D1 write-quota errors in authorization and token refresh.
+Ordinary sign-in loads, so browser extension attribution remains unproven.
+Existing fixture/hostless coverage does not exercise that migration
+or prove real connector authentication. See `remote-mcp-acceptance.md`; no
+additional lock/unlock or local UI test was run for this documentation correction.
 
 Remote locks require both a fresh daemon heartbeat and an authenticated ready connection, while Studio Dev still yields to a live higher-priority Curfew owner. Settings refreshes signed status on opening, activation, and the existing heartbeat interval. Pending approval opens the macOS approval pane; installed connection failures route to General; installation is offered only when needed. Account messages describe an unchanged schedule instead of claiming protection is active.
 

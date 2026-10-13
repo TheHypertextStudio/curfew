@@ -12,28 +12,6 @@ private let helperLogger = Logger(
     category: "privileged-helper"
 )
 
-protocol AppServiceControlling {
-    var status: SMAppService.Status { get }
-    func register() throws
-    func unregister() throws
-}
-
-private struct SystemAppServiceController: AppServiceControlling {
-    let service: SMAppService
-
-    var status: SMAppService.Status {
-        service.status
-    }
-
-    func register() throws {
-        try service.register()
-    }
-
-    func unregister() throws {
-        try service.unregister()
-    }
-}
-
 /// Observable state machine for the `SMAppService`-managed LaunchDaemon and
 /// the app's login item registration.
 ///
@@ -70,7 +48,7 @@ final class PrivilegedHelperManager {
     private(set) var loginItemStatus: SMAppService.Status = .notRegistered
 
     /// Most recent error from `install()` or `uninstall()`, shown in the UI.
-    private(set) var lastError: String?
+    var lastError: String?
 
     /// Registration alone is not proof that the LaunchDaemon is still running.
     var isDaemonResponding: Bool {
@@ -96,7 +74,10 @@ final class PrivilegedHelperManager {
     }
 
     /// Runtime health of the authenticated XPC channel, separate from launchd registration.
-    private(set) var connectionState: ConnectionState = .unavailable
+    var connectionState: ConnectionState = .unavailable
+    var repairInProgress = false
+    var maintenancePaused = false
+    @ObservationIgnored let registrationRepair = DaemonRegistrationRepair()
 
     var enforcementAvailability: PrivilegedEnforcementAvailability {
         switch connectionState {
@@ -114,13 +95,13 @@ final class PrivilegedHelperManager {
         CurfewFlavor.current.daemonPlistName
     }
 
-    private let daemonService: any AppServiceControlling
+    let daemonService: any AppServiceControlling
     private let loginItemService: any AppServiceControlling
     private let daemonHeartbeatURL: URL
     private let now: () -> Date
     private let flavor: CurfewFlavor
     private let liveEnforcementOwnerOverride: (() -> EnforcementOwner?)?
-    private let daemonRPC: any PrivilegedDaemonRPCControlling
+    let daemonRPC: any PrivilegedDaemonRPCControlling
 
     // MARK: - Lifecycle
 
@@ -175,6 +156,7 @@ final class PrivilegedHelperManager {
     /// Registers the LaunchDaemon with the system. macOS will prompt the user
     /// for authorisation. Throws an `SMAppServiceError` on failure.
     func installDaemon() {
+        guard !repairInProgress else { return }
         do {
             try daemonService.register()
             daemonStatus = daemonService.status
@@ -192,6 +174,7 @@ final class PrivilegedHelperManager {
     /// Unregisters the LaunchDaemon. The daemon binary and plist remain on
     /// disk — only the system registration is removed.
     func uninstallDaemon() async {
+        guard !repairInProgress else { return }
         do {
             try await daemonRPC.prepareForUninstall()
             try daemonService.unregister()
@@ -208,6 +191,7 @@ final class PrivilegedHelperManager {
 
     /// Removes privileged and login-item registrations before user data is deleted.
     func prepareForFullUninstall() async -> Bool {
+        guard !repairInProgress else { return false }
         lastError = nil
         refreshStatus()
         if daemonStatus == .enabled {
@@ -251,6 +235,7 @@ final class PrivilegedHelperManager {
     }
 
     func armLockout(_ record: LockoutDeadlineRecord) async {
+        guard !maintenancePaused, !repairInProgress else { return }
         await performRPC { try await daemonRPC.armLockout(record) }
     }
 
@@ -348,19 +333,6 @@ final class PrivilegedHelperManager {
         refreshStatus()
         lastError = failures.first
         return failures
-    }
-}
-
-private extension SMAppService.Status {
-    /// Short human-readable description used for log messages.
-    var debugDescription: String {
-        switch self {
-        case .notRegistered: "notRegistered"
-        case .enabled: "enabled"
-        case .requiresApproval: "requiresApproval"
-        case .notFound: "notFound"
-        @unknown default: "unknown(\(rawValue))"
-        }
     }
 }
 

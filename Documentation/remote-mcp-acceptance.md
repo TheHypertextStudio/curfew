@@ -1,8 +1,97 @@
 # Remote MCP acceptance evidence
 
 Snapshot: 2026-10-12. This is an evidence ledger, not a claim that the full
-download-to-phone-control flow is released. No new lock or foreground UI
-interaction was used for this audit.
+download-to-phone-control flow is released. The later signed dev update and
+restart were explicitly authorized. No new lock or unlock was sent.
+
+## Latest installed-dev and Codex verification
+
+- Native PR #51 and coordinator PR #50 are rebase-merged. Native CI run
+  `38315375674` passed; staging deployment `38317602146` published Worker
+  `0c4b8c08-2d64-482b-aed9-eabd80e77caf`. These checks do not prove the installed
+  app's authenticated connection.
+- The signed StudioDev build was installed at `/Applications/Curfew Studio Dev.app`
+  and restarted. Deep strict signature verification passed. Its main executable
+  SHA-256 is `74e4445ad50186533270e31b80a3ed50b524e715bdfd61a24363cfad8a040d12`,
+  identical to the built executable. The signing team is `T95VDD3A4W` and the
+  identity is `studio.hypertext.curfew.studio.dev`.
+- The installed app reports remote control offline and background protection
+  not connected. The existing launchd registration lacks the new `MachServices`
+  endpoint, although the installed plist declares it. A running helper and exit
+  code zero therefore do **not** establish authenticated XPC readiness. The old
+  helper remains running; no unregister, bootout, or protected-state deletion
+  was performed.
+- A fresh Codex app-server status request reports `notLoggedIn`, with token
+  refresh rejected as requiring OAuth authorization. This is not proof that its
+  saved credentials are invalid: the latest staging log observation identifies
+  D1 daily row-write quota exhaustion on both `/api/auth/oauth2/token` and
+  `/api/auth/oauth2/authorize`. A direct unauthenticated authorization request
+  returned HTTP 500. The earlier Chrome reconnect displayed
+  `ERR_BLOCKED_BY_CLIENT` and timed out; the newly authorized hidden in-app
+  browser also failed to open the OAuth URL, but ordinary sign-in loaded with
+  both Apple and passkey buttons. An extension-specific diagnosis is therefore
+  unproven. No browser protections were disabled or credentials transferred.
+- At `2026-10-12T23:18:25Z`, quota exhaustion remains an active server-side
+  blocker. Cloudflare documents a daily reset at 00:00 UTC (5:00 PM Pacific on
+  October 12). Retry the saved connector credentials after reset before asking
+  for another sign-in. The database-info command's zero-valued 24-hour metrics
+  contradict the observed quota exception and cannot establish actual usage;
+  attribution and post-fix indexed row-write measurements remain unverified.
+  No billing changes, new database, or limiter bypass was used.
+- Legacy helper migration needs a trusted maintenance path. An app-side off
+  state or missing sentinel cannot establish absence of root-owned enforcement.
+  Do not bypass the authenticated uninstall admission merely because the old
+  registration has no XPC endpoint. Administrator-authenticated maintenance and
+  a fresh browser sign-in surface were authorized by the user. Browser work
+  stayed hidden. Background administrator authentication is unavailable;
+  protected-state inspection and maintenance still need a user-handled macOS
+  authentication prompt at a time that does not interrupt their work.
+
+The earlier online listing and command receipt below are historical evidence,
+not proof that the newly installed app or current Codex connector works.
+
+### Post-reset verification and legacy repair admission
+
+At `2026-10-13T04:10Z` (October 12 Pacific), the actual Codex staging
+`list_devices` tool succeeds again. It reports Studio Dev Mac offline with a
+stale native report, so connector recovery does not establish native recovery.
+Codex also lists and retrieves `ui://curfew/status-and-devices` with
+`text/html;profile=mcp-app`; the delivered panel uses host style variables.
+This is resource delivery, not a rendered interaction or device-control test.
+
+The user's administrator-authenticated inspection and a subsequent successful
+read through Apple's `/usr/libexec/authopen` agree: the persisted remote deadline
+expired at `2026-10-12T07:05:55Z`, the replay cursor remains 2, and there are no
+pending results. The root `lockout-state.json`, root `lockout-deadline.json`, and
+Studio Dev user-side `lockout-deadline.json` are absent under accessible existing
+parents. The remote-command inbox has no entries. No state was deleted or reset.
+These are point-in-time observations, not permission to unregister later without
+rechecking after producers are quiescent.
+
+Adversarial review conditionally approves a bounded signed-app reconnect path:
+serialize repair; prevent local arming; pause and join account transport and local
+command producers; check inbox emptiness and every authoritative deadline source;
+recheck the inbox; await asynchronous SMAppService unregister completion; register
+the bundled plist; and require authenticated XPC health before resuming producers.
+Malformed, unreadable, active, unexpected-owner/type, or unrecognized legacy state
+must block maintenance. Legacy admission must positively identify the supported
+helper/flavor, not merely observe an unavailable RPC. Registration failure leaves
+producers paused and protection visibly unavailable. Never restore an old state
+snapshot over newer replay state. The reconnect operation is now implemented.
+The first installed attempt completed removal but replacement returned macOS
+error 1. Commands remain paused, and installed acceptance is still open.
+The user also observed two generic authopen prompts; the correction uses a
+Curfew-owned authorization context shared by both exact-path, read-only checks.
+No authorization or state snapshot is persisted. UI explains the request.
+
+At `2026-10-13T05:37Z`, Codex reported this Mac online but its last enforcement
+report still claimed locked while the app was off. The native publisher used
+the predicted schedule regardless of whether enforcement was armed. The fix
+uses the existing protocol unknown phase and null deadlines when off without
+an active durable record. Fresh installed reporting remains to be verified.
+
+No lock, unlock, helper unregister, root-state write, or foreground test was used
+for these observations. The user authorized the narrow administrator prompt.
 
 ## Verified staging evidence
 

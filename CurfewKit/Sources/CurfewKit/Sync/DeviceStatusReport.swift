@@ -102,6 +102,10 @@ public struct DeviceStatusReport: Equatable {
     /// The enforcement phase this device is in.
     public var phase: EnforcementPhase
 
+    /// A disarmed schedule prediction must not claim that the Mac is locked.
+    /// False uses the protocol's existing unknown phase and clears predictions.
+    public var isEnforcementEnabled = true
+
     /// IANA timezone identifier, so a coordinator can render another Mac's
     /// deadline in its own local time.
     public var timeZone: String
@@ -183,13 +187,14 @@ public struct DeviceStatusReport: Equatable {
             "type": Self.frameType,
             "cursor": cursor,
             "deviceId": deviceID,
-            "phase": AuditTokens.phase(phase),
+            "phase": isEnforcementEnabled ? AuditTokens.phase(phase) : "unknown",
             "timeZone": timeZone,
             "scheduleDigest": scheduleDigest,
             "statusVersion": statusVersion,
             "observedAt": Self.instant(observedAt),
-            "nextTransitionAt": Self.instantOrNull(nextTransitionAt),
-            "activeLockoutEndsAt": Self.instantOrNull(activeLockoutEndsAt)
+            "nextTransitionAt": Self.instantOrNull(isEnforcementEnabled ? nextTransitionAt : nil),
+            "activeLockoutEndsAt": Self
+                .instantOrNull(isEnforcementEnabled ? activeLockoutEndsAt : nil)
         ]
         // `sortedKeys` makes the bytes deterministic. `withoutEscapingSlashes`
         // keeps `America/Los_Angeles` readable on the wire: an escaped solidus

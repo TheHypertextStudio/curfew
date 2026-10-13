@@ -186,6 +186,7 @@ struct CurfewApp: App {
         Window("Curfew", id: MainWorkspaceSection.windowID) {
             MainWindowView()
                 .environment(model)
+                .disabled(model.privilegedHelperManager.repairInProgress)
                 .frame(minWidth: 980, minHeight: 660)
                 .onOpenURL { _ = AccountOAuthCallbackRouter.shared.route($0) }
                 .demoWindowSize(width: 1080, height: 720, minimumWidth: 980, minimumHeight: 660)

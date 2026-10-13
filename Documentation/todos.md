@@ -566,7 +566,7 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
       app have been observed. Its account enrollment reached the Recovery Key
       acknowledgement. As of 2026-10-12, launchd reports the Studio helper
       registered with a 15-second interval and last exit code zero. Codex's
-      authenticated MCP connection reports the Mac online with fresh native
+      authenticated MCP connection previously reported the Mac online with fresh native
       status after curfew-sync PR #42. The previously authorized command
       `d5c310ce-7bcf-4ce8-9cd0-87c98ba3a50a` has an applied receipt at
       `07:00:55Z`, with deadline `07:05:55Z`; the app audit stream records
@@ -581,6 +581,16 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
       script or change the existing personal App IDs. The protocol consumer
       now pins the separately released 0.0.11 contract; this is not signed
       installation or phone-to-Mac proof.
+      Latest signed-update verification supersedes the earlier readiness result:
+      the installed app is offline, the existing helper registration lacks its
+      authenticated XPC endpoint, and Codex requires fresh OAuth authorization.
+      Reconnect navigation fails in both Chrome and the hidden in-app browser,
+      while ordinary sign-in loads. Staging logs identify D1 daily write quota
+      exhaustion in authorization and token refresh; retry saved credentials
+      after the quota reset before requiring another sign-in.
+      Preserve the running helper and protected state until trusted maintenance
+      is available; see the current findings in
+      `Documentation/remote-mcp-acceptance.md`. No new control command was sent.
 - [x] Pin both SwiftPM entry points to the immutable pre-1.0
       `curfew-protocols` 0.0.11 release. A Swift bridge test exercises the new
       one/all-device unlock scopes and a release-contract check rejects
@@ -693,8 +703,11 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
       higher-priority Curfew app, so sign-in alone is not presented as remote
       lock readiness. Reconnect is single-flight, leaving an in-progress
       browser session cancellable after rapid taps. The signed Studio
-      Dev installation now has live authenticated status, helper registration,
-      and an applied coordinator receipt. A witnessed physical lockout and
+      Dev installation previously produced live authenticated status, helper
+      registration, and an applied coordinator receipt. The latest signed
+      update is installed but its authenticated helper connection and current
+      Codex OAuth session are not working; see the acceptance ledger above.
+      A witnessed physical lockout and
       phone-side assistant execution remain open; unit tests, launchd state,
       and a receipt cannot establish those outcomes. See
       `Documentation/remote-mcp-acceptance.md`. Rollback is
@@ -1010,6 +1023,34 @@ The remote AX lookup demonstrated section-level identifier propagation overridin
   never change the user's display. Recapture the final matrix before acceptance.
 
 ### Account readiness consistency after main integration
+
+- [-] Implement guarded background-protection reconnect for the legacy Studio Dev
+  registration. The serialized replacement workflow now has seven hostless
+  regressions, including cancellation and overlap. The cancellation failures
+  were observed before correction; overlap characterizes the existing guard.
+  It waits for unregister
+  completion and never resumes producers after admission, registration, or XPC
+  verification failure. A canceled run attempts replacement after removal but
+  cannot resume producers; final activation is synchronous and nonthrowing.
+  Strict deadline admission now validates the remote device binding and each
+  local/control/shadow source, rejecting malformed or mixed control formats.
+  The mixed-format bypass regression failed before the decoder correction.
+  Trusted legacy inspection, producer-drain integration, and the signed-app
+  reconnect action are implemented. Repair requires enforcement Off and blocks
+  new arming throughout admission. Two manager regressions failed before the
+  admission ordering and arming guards were corrected. The first installed
+  attempt removed the obsolete registration, but macOS rejected replacement
+  with error 1; installed-runtime acceptance remains open. Authorization now
+  shares one exact-path read-only context across both fresh inspections and
+  explains the request as Curfew, rather than prompting as authopen twice.
+  Preserve all enrollment, deadlines, replay cursors, and receipts. This is not
+  evidence that the installed helper has been repaired.
+
+- [-] Publish observed enforcement rather than a disabled schedule prediction.
+  Disarmed devices without an active durable deadline use the existing unknown
+  protocol phase and null deadlines. The regression reproduced the false locked
+  report before correction. Verify the installed report through Codex after
+  background protection reconnects; no lock or unlock test is authorized.
 
 - [-] Review contradictory account and protection states. Remote locks require both a fresh daemon heartbeat and an authenticated ready connection, while Studio Dev still yields to a live higher-priority Curfew owner. Settings refreshes signed status on opening, activation, and the existing heartbeat interval. Pending approval opens the macOS approval pane; installed connection failures route to General; installation is offered only when needed. Account messages describe an unchanged schedule instead of claiming protection is active.
 
