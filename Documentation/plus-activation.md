@@ -395,8 +395,9 @@ The previous installed app is retained at
 The signed native **Restore Purchase…** form delivered a real message to the
 approved test inbox at 23:11:47 UTC, with SPF, DKIM and DMARC passing. Its hosted
 link clears the fragment and presents **Restore in Curfew** with the Studio Dev
-scheme. The final owner click remains pending: browser policy prohibits external
-protocol automation, so the operator must perform that handoff.
+scheme. After the owner clicked that action, the exact signed candidate showed
+**Curfew Plus is active.**, **Verified** and the lifetime entitlement. Signed
+checkout, restoration and retained entitlement are now observed end to end.
 
 The hosted artifact is prerelease `curfew-site-preview-5c494d3`: 50 public files,
 archive SHA-256
@@ -422,4 +423,11 @@ team and Studio Cloudflare account IDs are saved; secret metadata now lists
 Repository, accessible organization and production-environment metadata contain
 no other release secrets. Approved certificate, notarization-key and deployment-
 token sources are needed to configure the remaining inputs. Secret values must
-stay out of chat.
+stay out of chat. A scoped local check found `AuthKey_K5G9T6UX59.p8` in Downloads;
+its Apple account, issuer and role still need confirmation before reuse. The two
+downloaded certificates are Mac App Store distribution certificates for
+T95VDD3A4W, not Developer ID certificates. The local signing-identity inventory
+contains development and Mac App Store identities, with no Developer ID
+Application identity. No relevant Apple or Cloudflare credential is present in
+the shell environment. An organization-secret metadata refresh was stopped by
+GitHub's API rate limit; no authentication scope was changed.
