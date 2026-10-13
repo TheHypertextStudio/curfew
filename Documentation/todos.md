@@ -1480,6 +1480,9 @@ asserts its own screen and state before attaching an image.
       and prevent canceled restore requests from closing a subsequent sheet.
 - [x] Render opt-in, sender-restricted recovery configuration for the existing
       issuer deployment; keep recovery disabled until provider setup is selected.
+- [x] Repair historical paid periods through signed invoice replay, decode UTF-8
+      legacy inboxes, and select immutable periods during concurrent delivery.
+      Cancel queued native activation before making a redemption request.
 - [ ] Finish native/browser acceptance, provider email setup, environment/signer
       pairing, and real Stripe test-mode checkout plus inbox restoration.
 - [ ] Ship the verified client/service/site together, then update published help
