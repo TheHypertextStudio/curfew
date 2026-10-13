@@ -1826,5 +1826,6 @@ changes; rollback restores the prior landing release and docs commit.
     inbox delivery, actual native Debug checkout/restoration, cold opening and
     retained entitlement after a fresh process launch are recorded. Owner-clicked
     signed candidate activation and retained entitlement also pass. The signed
-    native restore form delivered its real email; its final owner click and
-    production distribution remain pending.
+    native restore form delivered its real email, and the owner-clicked handoff
+    shows active, verified lifetime access in that candidate. Production
+    distribution remains pending.
