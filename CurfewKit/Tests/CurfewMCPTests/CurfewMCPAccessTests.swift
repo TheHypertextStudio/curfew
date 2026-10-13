@@ -1,8 +1,57 @@
 @testable import curfew_mcp
+import CurfewKit
 import Foundation
 import Testing
 
 struct CurfewMCPAccessTests {
+    @Test("Local MCP read tools use fresh app observations, not schedule predictions")
+    func readToolsUseObservedStatus() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("curfew-mcp-status-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = CurfewObservedStatusStore(
+            fileURL: directory.appendingPathComponent("status.json")
+        )
+        let now = Date()
+        try store.save(CurfewObservedStatus(
+            evaluation: .locked(
+                lockDate: now.addingTimeInterval(-60),
+                unlockDate: now.addingTimeInterval(240)
+            ),
+            observedAt: now,
+            enforcementRunning: false,
+            ownsLockout: false
+        ))
+
+        let status = try #require(MCPTool.makeStatus(store: store).call([:]).first)
+        #expect((status["text"] as? String)?.contains("Phase: unknown") == true)
+        #expect((status["text"] as? String)?.contains("Unlocks:") == false)
+
+        let countdown = try #require(MCPTool.makeTimeRemaining(store: store).call([:]).first)
+        let countdownText = try #require(countdown["text"] as? String)
+        let payload = try #require(
+            JSONSerialization.jsonObject(with: Data(countdownText.utf8)) as? [String: Any]
+        )
+        #expect(payload["phase"] as? String == "unknown")
+        #expect(payload["minutes"] == nil)
+
+        try store.save(CurfewObservedStatus(
+            evaluation: .locked(
+                lockDate: now.addingTimeInterval(-60),
+                unlockDate: now.addingTimeInterval(240), trigger: .hours
+            ),
+            observedAt: now, enforcementRunning: true, ownsLockout: true,
+            mode: .hours
+        ))
+        let hoursContent = try #require(MCPTool.makeTimeRemaining(store: store).call([:]).first)
+        let hoursText = try #require(hoursContent["text"] as? String)
+        let hoursPayload = try #require(
+            JSONSerialization.jsonObject(with: Data(hoursText.utf8)) as? [String: Any]
+        )
+        #expect(hoursPayload["mode"] as? String == "hours")
+        #expect(hoursPayload["trigger"] as? String == "hours")
+    }
+
     @Test("Disabled local access hides tools and rejects cached calls")
     func disabledAccessClosesBothDispatcherPaths() throws {
         let server = MCPServer(isAccessEnabled: { false })

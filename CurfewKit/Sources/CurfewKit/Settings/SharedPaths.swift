@@ -294,6 +294,12 @@ public nonisolated enum SharedPaths {
         widgetSharedSupport.appendingPathComponent("app-heartbeat")
     }
 
+    /// Last app-observed enforcement state for user-context CLI and local MCP
+    /// reads. This is not the daemon's root-owned lockout authority.
+    public static var observedEnforcementStatus: URL {
+        applicationSupport.appendingPathComponent("observed-enforcement-status.json")
+    }
+
     /// Symmetric key used by `MCPRequestSigner` to authenticate MCP queue
     /// entries. Mode 0600 owned by the user; both the app and the
     /// `curfew-mcp` subprocess read it under the same UID. An attacker
