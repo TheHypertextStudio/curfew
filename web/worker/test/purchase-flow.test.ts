@@ -150,6 +150,99 @@ describe("purchase activation and recovery", () => {
     }
   });
 
+  it("indexes an already issued legacy Curfew purchase without requiring current metadata", async () => {
+    await checkout();
+    const original = await kv.get("session:cs_test_purchase");
+    for (const key of kv.values.keys()) if (key.startsWith("purchase:")) await kv.delete(key);
+    await stripeEvent("evt_paid_payment_lifetime", "checkout.session.completed", {
+      id: "cs_test_purchase", mode: "payment", payment_status: "paid",
+      customer_details: { email: "buyer@example.com" },
+    });
+    await post("/license/restore", { email: "buyer@example.com" });
+    const token = new URLSearchParams(new URL(mail[0].text.match(/https:\/\/\S+/)![0]).hash.slice(1)).get("token");
+    expect(await (await post("/license/redeem", { token })).json()).toEqual({ license_key: original });
+  });
+
+  it("preserves UTF-8 inbox addresses when indexing a stored legacy envelope", async () => {
+    const email = "buyer@例子.公司";
+    await stripeEvent("evt_unicode", "checkout.session.completed", {
+      id: "cs_unicode", mode: "payment", payment_status: "paid", customer_details: { email },
+      metadata: { curfew_sku: "lifetime" },
+    });
+    for (const key of kv.values.keys()) if (key.startsWith("purchase:")) await kv.delete(key);
+    await stripeEvent("evt_unicode", "checkout.session.completed", {
+      id: "cs_unicode", mode: "payment", payment_status: "paid", customer_details: { email },
+    });
+    await post("/license/restore", { email });
+    const token = new URLSearchParams(new URL(mail[0].text.match(/https:\/\/\S+/)![0]).hash.slice(1)).get("token");
+    expect((await post("/license/redeem", { token })).status).toBe(200);
+  });
+
+  it("restores the latest paid period when concurrent invoices finish out of order", async () => {
+    await checkout("paid", "subscription");
+    const oldEnd = 3786912000;
+    const newEnd = 3818448000;
+    const originalPut = kv.put.bind(kv);
+    let release: () => void = () => {};
+    let started: () => void = () => {};
+    const waiting = new Promise<void>(resolve => { started = resolve; });
+    const blocked = new Promise<void>(resolve => { release = resolve; });
+    kv.put = async (key, value) => {
+      if (key.startsWith("refresh:") && JSON.parse(atob(value.split(".")[0].replace(/-/g, "+").replace(/_/g, "/"))).expires_at.startsWith("2090-01-04")) {
+        started(); await blocked;
+      }
+      await originalPut(key, value);
+    };
+    const invoice = (end: number) => ({ subscription: "sub_test", customer_email: "buyer@example.com",
+      lines: { data: [{ period: { end } }] } });
+    const older = stripeEvent("evt_concurrent_old", "invoice.paid", invoice(oldEnd));
+    await waiting;
+    await stripeEvent("evt_concurrent_new", "invoice.paid", invoice(newEnd));
+    release(); await older;
+    await stripeEvent("evt_concurrent_cancel", "customer.subscription.deleted", { id: "sub_test" });
+    const response = await post("/license/activation", { session_id: "cs_test_purchase" });
+    const restored = (await response.json() as { license_key: string }).license_key;
+    expect(JSON.parse(atob(restored.split(".")[0].replace(/-/g, "+").replace(/_/g, "/"))).expires_at).toBe("2091-01-04T00:00:00Z");
+  });
+
+  it("retains an existing legacy renewal when a backfilled subscription is canceled", async () => {
+    await checkout("paid", "subscription");
+    await kv.delete("subsession:sub_test");
+    for (const key of kv.values.keys()) if (key.startsWith("purchase:")) await kv.delete(key);
+    await stripeEvent("evt_legacy_renewal", "invoice.paid", {
+      subscription: "sub_test", customer_email: "buyer@example.com",
+      lines: { data: [{ period: { end: Math.floor(Date.now() / 1000) + 365 * 86400 } }] },
+    });
+    const renewed = [...kv.values.entries()].find(([key]) => key.startsWith("refresh:"))![1];
+    await stripeEvent("evt_paid_subscription_subscription", "checkout.session.completed", {
+      id: "cs_test_purchase", mode: "subscription", payment_status: "paid", subscription: "sub_test",
+      customer_details: { email: "buyer@example.com" }, metadata: { curfew_sku: "subscription" },
+    });
+    await stripeEvent("evt_legacy_cancel", "customer.subscription.deleted", { id: "sub_test" });
+    await post("/license/restore", { email: "buyer@example.com" });
+    const token = new URLSearchParams(new URL(mail[0].text.match(/https:\/\/\S+/)![0]).hash.slice(1)).get("token");
+    expect(await (await post("/license/redeem", { token })).json()).toEqual({ license_key: renewed });
+  });
+
+  it("repairs a historical canceled paid period by replaying its signed invoice after checkout backfill", async () => {
+    await checkout("paid", "subscription");
+    await kv.delete("subsession:sub_test");
+    for (const key of kv.values.keys()) if (key.startsWith("purchase:")) await kv.delete(key);
+    const invoice = { subscription: "sub_test", customer_email: "buyer@example.com",
+      lines: { data: [{ period: { end: Math.floor(Date.now() / 1000) + 365 * 86400 } }] } };
+    await stripeEvent("evt_historical_renewal", "invoice.paid", invoice);
+    const renewed = [...kv.values.entries()].find(([key]) => key.startsWith("refresh:"))![1];
+    await stripeEvent("evt_historical_cancel", "customer.subscription.deleted", { id: "sub_test" });
+    await checkout("paid", "subscription");
+    await stripeEvent("evt_historical_renewal", "invoice.paid", invoice);
+    await post("/license/restore", { email: "buyer@example.com" });
+    const token = new URLSearchParams(new URL(mail[0].text.match(/https:\/\/\S+/)![0]).hash.slice(1)).get("token");
+    const response = await post("/license/redeem", { token });
+    const restored = (await response.json() as { license_key: string }).license_key;
+    const expiry = (key: string) => JSON.parse(atob(key.split(".")[0].replace(/-/g, "+").replace(/_/g, "/"))).expires_at;
+    expect(expiry(restored)).toBe(expiry(renewed));
+  });
+
   it("retains the last paid subscription period for restoration after cancellation", async () => {
     await checkout("paid", "subscription");
     const first = await kv.get("session:cs_test_purchase");
