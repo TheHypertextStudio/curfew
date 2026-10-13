@@ -1,26 +1,81 @@
 ---
-title: Command line
-description: Query Curfew from a shell script, status bar, or terminal.
+title: Use the command line
+description: Read your schedule, inspect recorded activity, or export reflections from Terminal with Curfew's bundled tool.
 ---
 
-`curfew-ctl` ships inside the Curfew app bundle. Run it directly, or create an
-alias if you use it often.
+Use the bundled `curfew-ctl` tool in Terminal.
 
-## Status
+## Run the bundled tool
 
-```bash
-/Applications/Curfew.app/Contents/Resources/curfew-ctl status
-```
-
-## Schedule and budget
+With Curfew in Applications, open Terminal and run:
 
 ```bash
-/Applications/Curfew.app/Contents/Resources/curfew-ctl schedule show
-/Applications/Curfew.app/Contents/Resources/curfew-ctl budget
+"/Applications/Curfew.app/Contents/Resources/curfew-ctl" --help
 ```
 
-## Reflections
+If Curfew is elsewhere, use that app's path.
+
+For shorter commands in the current Terminal session:
 
 ```bash
-/Applications/Curfew.app/Contents/Resources/curfew-ctl reflections --days 7
+alias curfew-ctl='/Applications/Curfew.app/Contents/Resources/curfew-ctl'
+curfew-ctl schedule
 ```
+
+The alias lasts for this shell session. Add it to your shell configuration to
+make it available in future sessions.
+
+## Read information
+
+```bash
+curfew-ctl status
+curfew-ctl schedule
+curfew-ctl budget
+curfew-ctl activity --help
+curfew-ctl reflections --days 7
+```
+
+Use `--json` for structured output:
+
+```bash
+curfew-ctl schedule --json
+curfew-ctl reflections --days 7 --gate evening --json
+```
+
+The schedule command shows the active rule, and its plain-text output identifies
+a pending change. Each time pair is **work ends → work resumes**. Reflection
+output contains your answers; take care when saving it to files or
+sending it to another program.
+
+<Note>
+`status` uses the saved schedule, excluding temporary extensions and active
+overrides. Check **Today** and **Protection** in the app for current
+enforcement. CLI budgets use the calendar week's start; check the app for
+budgets with a custom reset day.
+</Note>
+
+Read commands can work while the app is closed, but Curfew must have been
+launched and set up for them to find your saved information.
+
+## Export older reflections
+
+The Journal interface exports only the current calendar week. The CLI can
+save older entries still stored on this Mac. After setting the alias above:
+
+```bash
+curfew-ctl reflections --days 365 --json > "$HOME/Desktop/curfew-reflections.json"
+```
+
+Set `--days` to cover all entries you want to keep. Choose an unused output filename:
+the command replaces an existing file at that path. Open the file afterward
+and check that it contains the expected answers before uninstalling Curfew.
+The file contains private reflection content, so store and share it deliberately.
+
+## Requests that change access
+
+The legacy `override` command queues requests that Curfew rejects. Use
+**Need to get back in?** on the lockout screen for an
+[emergency override](/exceptions).
+
+If Terminal reports “no such file,” check the installation path. If reflections
+or activity are empty, check the app under the same macOS user account.

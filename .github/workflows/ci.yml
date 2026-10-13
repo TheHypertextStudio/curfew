@@ -7,6 +7,17 @@ on:
     branches: [main]
 
 jobs:
+  docs:
+    name: User documentation regressions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '24'
+      - name: Check user help and purchase recovery
+        run: node --test scripts/user-docs.test.mjs
+
   check:
     name: Format · Lint · Test · Build
     # Curfew's deployment target is macOS 26, so validation must run on a

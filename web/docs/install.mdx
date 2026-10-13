@@ -1,33 +1,54 @@
 ---
-title: Install Curfew
-description: Download Curfew and choose your first schedule.
+title: Install and set up Curfew
+description: Install Curfew on macOS, choose your first schedule, and grant the permissions needed for lockout.
 ---
 
-Curfew requires **macOS 26 or later**. The local app is free and open source.
-A public Mac installer has not been released yet. When one is available:
+You need **macOS 26 or later**. A public Mac installer has not been released yet.
+Check the [download page](https://curfew.hypertext.studio/download) for availability.
+Save your work before starting setup.
 
-1. Open the [latest GitHub release](https://github.com/TheHypertextStudio/curfew/releases/latest).
-2. Download the Mac installer and follow that release's installation instructions.
-3. Open Curfew and complete setup. If Curfew asks for Accessibility access, open
-   System Settings and enable access for Curfew under Privacy & Security →
-   Accessibility. Return to Curfew to continue.
-4. Choose your end and resume times in [your weekly schedule](/schedules).
+## Install the app
 
-Read the release notes before upgrading. They identify version-specific changes
-and requirements. Until a release is published, the
-[release page](https://github.com/TheHypertextStudio/curfew/releases) will not
-have an installer to download.
+When an installer is available:
 
-## Before your first lockout
+1. Download Curfew from the [download page](https://curfew.hypertext.studio/download).
+2. Open the disk image and drag **Curfew** into **Applications**.
+3. Open Curfew from Applications and follow **Welcome to Curfew**.
 
-Save your work when Curfew warns you. Review your [exception budgets](/exceptions)
-and leave automatic shutdown off until you understand its behavior.
+![Curfew's Welcome screen introduces the setup walkthrough and its Next button.](/images/setup.png)
 
-An account is optional. You can set and enforce a local schedule without signing
-in. See [account setup](/accounts) if you want device or assistant connections.
+## Choose your first boundary
 
-## Something went wrong?
+1. In the **Schedule** setup step, click **Open Schedule**.
+2. Set when work ends and resumes for each active day, and mark days off.
+   See [schedule settings](/schedules).
+3. Return to Getting Started and choose your weekly extension and override limits.
+4. Continue to **Permissions**.
 
-Check that your Mac meets the release requirements and that Curfew has the access
-requested during setup. [Contact support](https://curfew.hypertext.studio/support)
-with your Curfew version, macOS version, and what happened.
+## Grant permissions
+
+**Accessibility is required.** Curfew uses it to keep the lockout screen in
+place and intercept dismissal shortcuts. Follow the setup button to
+**System Settings → Privacy & Security → Accessibility**, enable Curfew, then
+return to the app.
+
+**Notifications are optional.** Allow them for early warnings before lockout.
+
+See [privacy and permissions](/privacy) for other permissions.
+
+## Review and enable
+
+Read the schedule summary on **Confirmation**, then finish setup when ready.
+Curfew starts enforcing your schedule. Check **Today** for your status and
+next boundary.
+
+<Warning>
+If your schedule is outside its permitted work window, enabling Curfew can
+start lockout. Save your work before finishing setup.
+</Warning>
+
+Reopen the walkthrough from **Settings → General → Review Setup…**.
+Change boundaries in **Schedule**, and warnings and exception budgets in
+**Settings → Limits**.
+
+If setup will not continue, follow [setup troubleshooting](/troubleshooting).

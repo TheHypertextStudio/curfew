@@ -106,7 +106,7 @@ import Page from "../layouts/Page.astro";
         <!-- Success state -->
         <div id="state-success" hidden>
           <p class="privacy-lede">
-            Here is your license key. Copy it now — this page is where it lives.
+            Copy and save your license key.
           </p>
 
           <div class="license-key-block">
@@ -115,31 +115,27 @@ import Page from "../layouts/Page.astro";
           </div>
 
           <ol class="activate-steps">
-            <li>Open Curfew and go to <strong>Settings → License</strong>.</li>
+            <li>Open Curfew and go to <strong>Settings → About → Curfew Plus</strong>.</li>
             <li>Paste the key above into the license field.</li>
-            <li>Click <strong>Activate</strong> — Plus unlocks immediately.</li>
+            <li>Click <strong>Activate</strong> and check your plan and purchase email.</li>
           </ol>
 
           <p class="license-email">
-            Keep this key somewhere safe. A one-time purchase is perpetual and
-            works on every Mac you own; a subscription renews itself and Curfew
-            refreshes the key for you. Stripe emails your payment receipt, but
-            the key only lives here — lost it? Reach
+            Stripe emails your payment receipt. For a lost key, contact
             <a href="mailto:hello@hypertext.studio">hello@hypertext.studio</a>
-            with your order details.
+            with your order details. See
+            <a href="https://curfew.mintlify.dev/docs/licensing">Curfew Plus plans and activation</a>.
           </p>
         </div>
 
         <!-- Not-found / error state -->
         <div id="state-error" hidden>
-          <p class="privacy-lede">We couldn't load your license key here.</p>
+          <p class="privacy-lede">We couldn't load your license key.</p>
           <p class="status-line error" id="error-detail"></p>
           <p class="status-line">
-            Your payment went through — Stripe has emailed your receipt. The key
-            is issued moments after checkout, so if this page loaded too early,
-            reload it. If it still doesn't appear, email
+            Wait a minute and reload this page. If the key still doesn't appear, email
             <a href="mailto:hello@hypertext.studio">hello@hypertext.studio</a>
-            with your order details and we'll sort it out.
+            with your order details.
           </p>
         </div>
       </div>
@@ -216,7 +212,7 @@ import Page from "../layouts/Page.astro";
       const sessionId = new URLSearchParams(window.location.search).get("session_id");
 
       if (!sessionId) {
-        showError("No checkout session was found in this link. Open the link from your purchase confirmation, or check your receipt email.");
+        showError("No purchase confirmation was found in this link. Reopen the original checkout confirmation page, or contact support with your receipt details.");
         return;
       }
 
@@ -248,7 +244,7 @@ import Page from "../layouts/Page.astro";
         show("success");
       } catch (err) {
         // Network failure, CORS, DNS, etc.
-        showError("We couldn't reach the license service. Check your connection and refresh — your key is also in your receipt email.");
+        showError("We couldn't reach the license service. Check your connection and refresh. If the key still does not appear, contact support with your receipt details.");
       }
     }
 

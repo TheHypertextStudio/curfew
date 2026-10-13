@@ -1151,3 +1151,24 @@ asserts its own screen and state before attaching an image.
   Source and local checks are ready; hosted Mintlify publication and Pages link
   acceptance remain. Keep the old first-party HTML guide for existing
   bookmarks while the Mintlify subpath proxy remains unaccepted.
+
+## 19. User-facing documentation and Plus launch
+
+- [x] Replace Mintlify developer guides with setup, daily-use, Plus, integration,
+      and recovery help. Preserve `/licensing`, `/mcp`, and `/cli` bookmarks.
+- [x] Explain activation in Settings → About, confirmation-page key delivery,
+      offline/subscription access, deactivation versus cancellation, and support.
+- [x] Correct purchase-confirmation help and errors; a failed key fetch must not
+      claim that payment succeeded or that the key is in a receipt email.
+- [x] Add failing-first documentation regression coverage in
+      `scripts/user-docs.test.mjs` for user journeys, local links, activation,
+      recovery, assistant privacy, and upcoming-feature availability.
+- [x] Audit all 15 guides and purchase-confirmation copy for self-narration,
+      redundant explanations, and unnecessary comparisons. Keep direct product
+      facts, instructions, and consequential limits; add an editorial regression.
+- [ ] Complete the signed-release, provider, visual, commercial-policy, and
+      hosted-site acceptance rows in `Documentation/user-docs-launch.md` before
+      publishing Plus launch claims. Source content and local checks are not
+      acceptance of a working purchase or enabled CloudKit/Calendar features.
+- [ ] Reconcile the app's email-key hint and historical privacy/terms copy with
+      actual delivery, network activity, and owner-reviewed launch terms.

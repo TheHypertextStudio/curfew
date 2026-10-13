@@ -1391,3 +1391,27 @@ the published Guides destination and the retained HTML guide's anchors.
 must confirm each published destination and the live landing links after the
 Mintlify and Pages deployments. No account, native app, or wire behavior
 changes; rollback restores the prior landing release and docs commit.
+
+## 19. User-facing documentation and launch acceptance
+
+- `Public help covers setup, daily use, Plus, integrations, and recovery while retaining existing routes.`
+  - `scripts/user-docs.test.mjs` — navigation journeys, unique routes, front matter,
+    local page links, and removal of issuer API references.
+- `Activation and purchase recovery describe the actual About panel and confirmation-page delivery.`
+  - `scripts/user-docs.test.mjs` — activation route, receipt distinction, and no
+    unsupported payment-success claims after failed key delivery.
+- `Assistant help explains provider processing; upcoming Plus guides do not imply current availability.`
+  - `scripts/user-docs.test.mjs` — provider disclosure and launch availability notes.
+- `Help accurately explains local-read disconnection, legacy override rejection, saved-schedule countdowns, and older-entry export before uninstall.`
+  - `scripts/user-docs.test.mjs` — four reviewer-found regressions, each observed
+    failing before correcting the guide; documentation tests also run in CI.
+- `Public help avoids self-narrating editorial phrases and unnecessary contrast.`
+  - `scripts/user-docs.test.mjs` — observed failure for the old guide prose and
+    purchase-confirmation narration before the copy audit. Existing factual
+    checks retain availability, disconnection, export, and enforcement limits.
+- `Mintlify renders the help with working navigation, anchors, and external links.`
+  - `mint validate` and `mint broken-links --check-anchors --check-external`
+  - Desktop/narrow, light/dark, and keyboard inspection of `mint dev` (manual).
+- `Launch instructions match signed app, purchase/provider, and actual hosted behavior.`
+  - `Documentation/user-docs-launch.md` — exact-artifact/operator acceptance;
+    intentionally pending until observed, not inferred from documentation tests.

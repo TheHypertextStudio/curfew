@@ -1,26 +1,38 @@
 ---
-title: Schedules and warnings
-description: Set end and resume times for each day and understand what happens at curfew.
+title: Set your schedule
+description: Choose when work ends and resumes, set days off, and understand why schedule edits may take time.
 ---
 
-## Set your week
+Open **Schedule** to set when work ends and resumes each day.
 
-Open Curfew's schedule settings. Set an end time and a resume time for each day.
-Days can have different hours, and you can turn a day off. Check both times: a
-resume time is when Curfew allows work again after that day's boundary.
+![The Schedule view shows per-day Work ends and Work resumes times, Day off switches, and Time, Hours, or Both triggers.](/images/schedule.png)
 
-## Warnings
+## Set a work window
 
-Curfew escalates its reminders as the end time approaches. You can adjust the
-warning intervals in settings. Early warnings give you time to save your work;
-later warnings make the approaching boundary harder to miss.
+1. Start from a preset, or edit a day in **Weekly Schedule**.
+2. Set **Work ends** to your stopping time.
+3. Set **Work resumes** to the time you can use the Mac again.
+4. Turn on **Day off** for days off. Use **Apply to all** to copy a day's rule.
+5. Read the schedule summary and any **Pending Change** message.
 
-## Lockout
+Work ending at 6 PM and resuming at 9 AM creates an overnight boundary.
 
-At your end time, Curfew covers every display. Lockout remains until your
-scheduled resume time unless you use an available [override](/exceptions).
-Curfew can retain the active lockout across relaunches; quitting and reopening
-it is not the normal way to request more time.
+## Choose what triggers lockout
 
-Curfew is a commitment device. A determined person who controls the Mac can
-bypass it. It is not a replacement for macOS security controls.
+The **Trigger** control offers a fixed stopping time, an hours limit, or both.
+With both, reaching either limit ends your session. Check **Today** for the
+next boundary.
+
+## When changes take effect
+
+| Change | Earliest application |
+| --- | --- |
+| Later stopping time, earlier resume time, or adding a day off | After a 24-hour cooldown |
+| More restrictive schedule without loosening another day | At the start of the next calendar day |
+| Changing the trigger mode | After a 24-hour cooldown |
+
+An edit that loosens one day and tightens another uses the 24-hour cooldown.
+During lockout, more permissive changes wait until access resumes.
+
+Check **Pending Change** for the application time. For extra time today, use
+an available [extension or override](/exceptions).

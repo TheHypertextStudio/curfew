@@ -1,31 +1,55 @@
 ---
-title: Connect an assistant
-description: Use Curfew with Claude Desktop or another MCP-compatible app.
+title: Connect an AI assistant
+description: Connect Claude Desktop or another compatible assistant, choose its permissions, and check that it works.
 ---
 
-Curfew includes a local MCP server. It can share your status, schedule, budget,
-activity, and reflections with a connected client.
+Connect an assistant to ask about your schedule, plan around your stopping
+time, or review reflections. Curfew connects through **MCP**. For remote assistants, start with
+[account setup](/accounts) and review the requested permissions.
 
-For remote assistants such as Claude, ChatGPT, or Codex, sign in to
-[your Curfew account](https://curfew.hypertext.studio/account), connect Curfew
-from the assistant, and review the requested permissions. Each Mac must opt in
-before the assistant can request a lock. Curfew asks you to confirm a lock in
-the assistant; a queued request to an offline Mac is not proof it has locked.
+## Connect Claude Desktop on this Mac
 
-## Claude Desktop
+1. Install and open Claude Desktop, and complete [Curfew setup](/install).
+2. Open **Curfew → Settings → Connections**.
+3. Turn on **Allow assistants on this Mac**.
+4. Leave **Changes** on **Ask before making changes**.
+5. Click **Add to Claude Desktop**, then fully quit Claude with **⌘Q** and reopen it.
+6. In Claude, ask: **“What is my Curfew schedule?”** Compare the answer with Curfew.
 
-1. In Curfew, open **Settings → Integrations** and enable MCP.
-2. Choose **Add to Claude Desktop**.
-3. Restart Claude Desktop, then ask for your Curfew status.
+If **Add to Claude Desktop** is missing, check that Claude Desktop is installed.
+Use the copy-config option below for other compatible assistant apps.
 
-Curfew adds the connection to Claude Desktop’s configuration for you.
+## Decide what the assistant may change
 
-## Add it manually
+| Policy | What happens |
+| --- | --- |
+| Ask before making changes | Changes wait for you to review them in Curfew. |
+| Allow changes automatically | Supported requests can take effect without an approval prompt. Only use this with a client you trust. |
+| Read only | The assistant can read available information but cannot request changes. |
 
-Use **Copy Claude Desktop Config** in Curfew. If the config file is empty,
-replace it with this complete file. Otherwise, add the `curfew` entry inside
-its existing `mcpServers` object. The file is
+Requests follow Curfew's schedule rules and budgets. Complete emergency
+overrides on the lockout screen.
+
+Try **“How long until my stopping time?”** or **“Summarize my reflections from
+this week.”** Check requested changes in Curfew.
+
+The assistant's countdown uses the saved schedule, excluding
+temporary extensions or active overrides. Check **Today** for current
+enforcement and hours-based limits.
+
+<Warning>
+Connected assistants can read saved reflections and send them to their
+provider. Review the provider's privacy settings before connecting.
+</Warning>
+
+## Connect another compatible app
+
+Use **Manual setup → Copy Configuration** in **Settings → Connections** to get the
+correct path to your installed app. Follow your assistant's instructions for
+adding a local MCP server. For Claude Desktop, the configuration file is
 `~/Library/Application Support/Claude/claude_desktop_config.json`.
+
+Add Curfew to the existing `mcpServers` section. For an app in Applications:
 
 ```json
 {
@@ -38,22 +62,15 @@ its existing `mcpServers` object. The file is
 }
 ```
 
-Restart Claude Desktop after changing its configuration.
+## Disconnect or troubleshoot
 
-## What an assistant can do
+Remove Curfew's server entry from the assistant's configuration or connected
+tools, then fully quit and restart the assistant. Also turn off **Enable MCP
+Control Plane** in Curfew to stop the app from handling integration requests.
+Locally configured assistants can still read saved schedules and reflections
+while the toggle is off. Manage retained copies through the provider's privacy
+settings.
 
-- Read your status, schedule, budget, activity, and reflections.
-- Request an extension or a schedule change.
-- Never write reflections or request an override through MCP.
-
-## Approving changes
-
-Curfew asks before change requests by default. In **Settings → Integrations**,
-you can keep that policy, deny requests automatically, or approve supported
-changes automatically.
-
-## Local HTTP
-
-The normal connection uses stdio. For a client that requires HTTP, enable
-loopback HTTP in **Settings → Advanced**. Curfew listens only at
-`127.0.0.1:9847`, so another machine cannot reach it.
+If tools do not appear during setup, fully quit and reopen the assistant and
+check the configured app path. For pending or denied requests, check the
+consent policy and keep Curfew running so you can review requests.
