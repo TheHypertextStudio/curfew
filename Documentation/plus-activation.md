@@ -371,3 +371,55 @@ Provisioning Profile: studio.hypertext.curfew.dev` lacks Associated Domains and
 `com.apple.developer.associated-domains`. No signing account, profile, certificate
 or permission was created or widened. A correctly provisioned signed client is
 still required for final installed-app acceptance.
+
+### Installed-client acceptance
+
+The real paid sandbox checkout activates Plus through the confirmation page's
+primary action. Debug acceptance covers warm and inactive cold launches, inbox
+restoration without manual key entry, and a retained verified lifetime purchase
+in a fresh process. The initial Debug startup block cleared before this proof.
+
+The owner-clicked checkout also activates the exact signed Studio Dev candidate;
+a fresh candidate process retains the verified entitlement. The standard
+`StudioDev` build uses the existing T95VDD3A4W profile and passes deep, strict
+signature verification. Its source is `5c494d330c0106b7f71cbcda75fd2c8bb2832158`
+and CDHash is `3ba7ebcc2a780953a8ce6d02ac7b5270de304110`.
+
+The installed and candidate apps had identical signing authority, bundle/team
+identifiers and entitlements before a same-identity update. Another concurrent
+install subsequently replaced the Applications copy with an older licensing UI;
+that copy remains intact. Acceptance uses the exact candidate in DerivedData.
+The previous installed app is retained at
+`/tmp/curfew-studio-dev-before-5c494d33.app` for rollback.
+
+The signed native **Restore Purchase…** form delivered a real message to the
+approved test inbox at 23:11:47 UTC, with SPF, DKIM and DMARC passing. Its hosted
+link clears the fragment and presents **Restore in Curfew** with the Studio Dev
+scheme. The final owner click remains pending: browser policy prohibits external
+protocol automation, so the operator must perform that handoff.
+
+The hosted artifact is prerelease `curfew-site-preview-5c494d3`: 50 public files,
+archive SHA-256
+`988ae95d423348458729b636858d66cc35482456f1ea3a013c2361721d217a64`.
+Build `44b453ca-4af2-4f4f-9c47-0ed081a095f8` verified its checksum and deployed
+version `b7a0ee3e-f606-4c4f-854a-30c7c5cd3d55`. The public marker and purchase HTML
+confirm the exact source, staging issuer and `curfew-studio-dev` scheme at
+`curfew-site-staging.hypertext.studio`. Reopening the Stripe sandbox editor
+confirms its saved hosted success redirect includes `{CHECKOUT_SESSION_ID}`.
+
+Every hosted check at `5c494d33` passes, including native format/lint/unit/build,
+issuer, website, docs and screenshot capture. The native purchase interaction
+passed in 14.237 seconds.
+
+Production distribution and coordinated issuer/site rollout remain pending.
+The production issuer resolves and reports healthy envelope v2, but its older
+deployment does not expose a public key. First-party licensing docs return 404.
+The Release Sparkle public-key setting is still a placeholder.
+
+The owner selected GitHub release configuration. The documented production Apple
+team and Studio Cloudflare account IDs are saved; secret metadata now lists
+`APPLE_TEAM_ID`, `CLOUDFLARE_ACCOUNT_ID` and the retained `SPARKLE_PRIVATE_KEY`.
+Repository, accessible organization and production-environment metadata contain
+no other release secrets. Approved certificate, notarization-key and deployment-
+token sources are needed to configure the remaining inputs. Secret values must
+stay out of chat.

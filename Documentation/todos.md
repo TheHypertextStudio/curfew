@@ -1497,8 +1497,15 @@ asserts its own screen and state before attaching an image.
       inherited helper flavor overrides in the production app.
 - [x] Deploy restricted staging restore email and verify actual inbox delivery
       with SPF, DKIM and DMARC passing. Native restoration remains pending.
-- [ ] Finish native/browser acceptance, provider email setup, environment/signer
-      pairing, and real Stripe test-mode checkout plus inbox restoration.
+- [x] Verify the real Stripe test-mode checkout, inbox restoration and native
+      Debug activation, including an inactive cold launch and saved entitlement
+      after normal relaunch.
+- [x] Verify owner-clicked activation and retained entitlement in the exact
+      signed Studio Dev candidate, using its existing signing profile.
+- [-] Finish signed native restoration. The form delivered the real inbox link;
+      browser policy requires the owner to click the prepared restore action.
+- [-] Configure the GitHub production release path. Known team/account IDs are
+      saved; approved Apple and deployment credential sources remain pending.
 - [ ] Ship the verified client/service/site together, then update published help
       to the new flow. Keep the public sale gate closed until purchase acceptance.
       `Documentation/plus-activation.md` records boundaries and remaining proof.
