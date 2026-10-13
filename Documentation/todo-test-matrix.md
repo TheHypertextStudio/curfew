@@ -86,9 +86,11 @@ Request/session lifecycle tracing retains missing-handler assertions and supplie
 the missing caller attribution. This does not prove driver socket quiescence.
 
 `CurfewKitTests/AccountStatusPublicationLedgerTests` covers acknowledged unchanged
-heartbeats, in-flight coalescing, failed-send retry, failed intermediate states,
+heartbeats, a fresh publication attempt after the 60-second heartbeat interval,
+in-flight coalescing, failed-send retry, failed intermediate states,
 late success/failure fencing and every existing enforcement-report field. The
-headless package suite passes; this is publication policy evidence, not installed
+new due-heartbeat regression failed before the ledger fix and passes after it.
+The headless package suite passes; this is publication policy evidence, not installed
 socket or remote-command acceptance. The app-hosted
 `NativeAccountSyncTransportTests/testUnchangedInFlightHeartbeatKeepsEligibleStatusVersion()`
 failed on CI run 38301226012 with actual eligible version18 instead of17 before
