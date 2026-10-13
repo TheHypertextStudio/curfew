@@ -4,7 +4,48 @@ Snapshot: 2026-10-12. This is an evidence ledger, not a claim that the full
 download-to-phone-control flow is released. The later signed dev update and
 restart were explicitly authorized. No new lock or unlock was sent.
 
-## Latest installed-dev and Codex verification
+## 2026-10-13 installed enforcement update
+
+The corrected company-signed `studio.hypertext.curfew.studio.dev` build was
+installed at `/Applications/Curfew Studio Dev.app` and restarted with
+`open -g`, without a foreground UI test or another remote command. Its
+`app.launched` audit at 12:57:55 Pacific records `enforcementArmed: true`,
+`setupComplete: true`, `accessibility: granted`, `phase: working`, and
+`autoShutdownEnabled: false`. Its enforcement health changed from a one-second
+startup helper probe to `active` at 12:57:56. The prior installed build's
+09:36:17 launch audit had `enforcementArmed: false`. The current local schedule
+reported working until 6 p.m. before restart. This verifies the fixed native
+launch path, but not a second physical remote-lock execution; the one authorized
+command had already expired and was not replayed. The replaced app remains
+recoverable at `/Applications/.Curfew Studio Dev.pre-enforcement.app`.
+
+## 2026-10-13 authorized lock diagnosis
+
+The user authorized one five-minute remote lock. Codex Staging listed Studio
+Dev Mac online with a report received at `19:29:40Z`. The single device-specific
+command `c864797a-33a8-476a-92d0-a9d472316ee0` queued at `19:30:51Z` and
+returned an **applied daemon receipt** at `19:31:09Z`, with deadline
+`19:36:09Z`. No second command or unlock was sent. The native process logged
+the durable deadline at `19:31:10Z`, but subsequent live reports at `19:31:45Z`
+and `19:32:47Z` said `working` with a null lockout deadline. An applied receipt
+therefore did **not** prove active UI enforcement.
+
+Source and build settings identify the cause: `StudioDev` compiles with `DEBUG`,
+and `CurfewLaunchBehavior` treated all Debug builds as display-only unless
+`CURFEW_ENABLE_ENFORCEMENT=1` was set. The signed installed app had been launched
+normally without that variable. The launch policy now arms the verified Studio
+Dev bundle by default while keeping personal Debug and loaded test hosts
+disarmed. Environment-only test markers and Debug demo fixtures cannot disarm
+the signed Studio Dev app; the shared test-host predicate also requires a loaded
+XCTest runtime for both signed Studio Dev and Release, preventing environment
+markers from suppressing their event tap or related enforcement effects.
+`CURFEW_FLAVOR` cannot make a personal Debug app arm.
+The old command expired; the signed update has since been installed and its
+armed startup verified, but a new command must not be sent without separate
+authorization. This change
+does not affect OAuth, coordinator delivery, or protocol schemas.
+
+## Earlier installed-dev and Codex verification
 
 At `2026-10-13T06:13:31.508Z` (October 12, 23:13 Pacific), the actual Codex
 staging `list_devices` tool reports Studio Dev Mac **online**, with a fresh
