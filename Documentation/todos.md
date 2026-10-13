@@ -1,5 +1,14 @@
 # Curfew Implementation TODOs
 
+## CI action version assertions (2026-10-12)
+
+- [x] Accept numeric major, minor, and patch action tags in the unit-test
+  diagnostics assertion. The pinned `actions/upload-artifact@v7.0.2` remains;
+  failure-only upload, artifact name, and result-bundle path are still required.
+  Focused Node script tests verify this correction; native build/lint checks are
+  outside this fix's authorized validation scope. No app behavior changes.
+  Rollback is the assertion change alone; action upgrades need not be reverted.
+
 ## Idle account-sync write budget (2026-10-12)
 
 - [-] Replace idle protected HTTP polling with the existing authenticated socket.

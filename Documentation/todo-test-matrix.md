@@ -1,5 +1,13 @@
 # Todo Test Matrix
 
+## CI action version assertions
+
+`scripts/release-entitlements.test.mjs` checks that failed CI checks preserve
+`build/CurfewTests.xcresult` as `curfew-unit-test-results`. Its action reference
+accepts numeric major, minor, and patch tags so pinning `v7.0.2` does not reject
+the unchanged diagnostics contract. Run `node --test scripts/*.test.mjs` for
+this test-only correction; hosted native CI remains separate acceptance.
+
 ## In-progress event-driven account sync
 
 CI 38309791533 failed `testPollPublishesDaemonResultBeforeFetchingMoreCommands()`
