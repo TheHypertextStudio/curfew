@@ -15,11 +15,11 @@ jobs:
     name: Website validation
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v7.0.1
+      - uses: pnpm/action-setup@v6.1.0
         with:
           version: 11.9.0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version: 24.20.0
           registry-url: https://npm.pkg.github.com
@@ -36,7 +36,7 @@ jobs:
         run: pnpm site:test:acceptance
       - name: Retain validated website output
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: curfew-website-dist
           path: landing/dist/
@@ -44,7 +44,7 @@ jobs:
           if-no-files-found: error
       - name: Retain browser diagnostics
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: curfew-website-browser-results
           path: test-results/
@@ -54,11 +54,11 @@ jobs:
     name: Docs validation
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v7.0.1
+      - uses: pnpm/action-setup@v6.1.0
         with:
           version: 11.9.0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version: 24.20.0
           registry-url: https://npm.pkg.github.com
