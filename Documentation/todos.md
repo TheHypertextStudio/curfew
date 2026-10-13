@@ -1513,7 +1513,10 @@ asserts its own screen and state before attaching an image.
 - [x] Verify signed native restoration from its real inbox link. The owner-clicked
       handoff shows active, verified lifetime access in the exact candidate.
 - [-] Configure the GitHub production release path. Known team/account IDs are
-      saved; approved Apple and deployment credential sources remain pending.
+      saved; the authenticated Studio notarization issuer is now configured.
+      Studio's signing team differs from Release's current team. Dedicated CI
+      signing/notarization creation and the team correction await confirmation;
+      no matching private files were found locally. Deployment-token setup remains.
 - [ ] Ship the verified client/service/site together, then update published help
       to the new flow. Keep the public sale gate closed until purchase acceptance.
       `Documentation/plus-activation.md` records boundaries and remaining proof.
