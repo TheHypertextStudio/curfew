@@ -635,6 +635,43 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
       Preserve the running helper and protected state until trusted maintenance
       is available; see the current findings in
       `Documentation/remote-mcp-acceptance.md`. No new control command was sent.
+      Superseding acceptance on 2026-10-13: after the signed Studio Dev app
+      launched armed and healthy, a separately authorized five-minute Codex
+      Staging command had an applied daemon receipt, a live locked report, an
+      installed-app `lockout.started` event, and an opaque full-screen Curfew
+      window. At the deadline, the report returned to working, the app logged
+      `lockout.ended`, and that window disappeared. This proves physical
+      enforcement and natural release for the signed dev app and Codex staging
+      connector; it does not prove Claude-phone execution, remote unlock, or a
+      downloadable production release. Do not repeat device-control commands
+      without new authorization. See `Documentation/remote-mcp-acceptance.md`.
+- [-] Make local status readers report observed enforcement rather than a
+      schedule-only prediction. During the verified remote lock,
+      `curfew-ctl status` said `working`; local MCP's `curfew_status` and
+      `curfew_get_time_remaining` use the same independent engine evaluation.
+      A shared, freshness-bounded app/daemon status source must account for
+      remote deadlines, active releases, Curfew-off state, and cross-flavor
+      enforcement ownership. When observation is unavailable, report that
+      limitation instead of claiming the schedule prediction is live status.
+      Test the actual CLI/MCP outputs against controlled persisted observations,
+      then verify a signed installed build without another control command.
+      No existing remote command or account schema needs to change; preserve
+      current command state and the separate coordinator status path on rollback.
+      The app now publishes a freshness-bounded, flavor-isolated, user-owned
+      observation after its enforcement tick settles. The CLI and local MCP
+      read that observation and say `unknown` when Curfew is off, another flavor
+      owns lockout, or the observation is stale. The publisher coalesces stable
+      one-second ticks and refreshes every 15 seconds; readers expire at 60
+      seconds. Package regressions failed first for the missing reader APIs,
+      then passed for the CLI JSON formatter, MCP handlers, and disarmed status.
+      Adversarial review added failing-first coverage for a standby process
+      clobbering the lock owner, degraded protection, and hours-based mode;
+      maintenance pause now publishes unavailable status instead of leaving
+      the prior snapshot fresh. A hosted app test was compiled headlessly;
+      hosted CI and a signed installed read-only check
+      remain before this item can be marked complete. Rollback removes only
+      the advisory status mirror and readers; daemon enforcement and remote
+      command state do not depend on it.
 - [x] Pin both SwiftPM entry points to the immutable pre-1.0
       `curfew-protocols` 0.0.11 release. A Swift bridge test exercises the new
       one/all-device unlock scopes and a release-contract check rejects
@@ -751,9 +788,10 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
       registration, and an applied coordinator receipt. The latest signed
       update is installed but its authenticated helper connection and current
       Codex OAuth session are not working; see the acceptance ledger above.
-      A witnessed physical lockout and
-      phone-side assistant execution remain open; unit tests, launchd state,
-      and a receipt cannot establish those outcomes. See
+      A witnessed physical lockout was completed through Codex staging on
+      2026-10-13; phone-side assistant execution and remote unlock remain open.
+      Unit tests, launchd state, and a receipt alone cannot establish those
+      outcomes. See
       `Documentation/remote-mcp-acceptance.md`. Rollback is
       the previous app build while preserving the existing device enrollment;
       do not delete its Recovery Key or device record to force another sign-in.
@@ -1129,7 +1167,9 @@ The remote AX lookup demonstrated section-level identifier propagation overridin
   those boundaries; the new assertions failed before the correction. The
   company-signed update is installed and its launch audit now records
   `enforcementArmed: true` with health `active`. A separately authorized
-  physical lock remains necessary before closing acceptance.
+  physical lock was subsequently observed through Codex staging; see the
+  acceptance ledger. Phone execution, remote unlock, and downloadable
+  production acceptance remain open.
   No wire, account, command, or deadline format changes are involved. Rollback
   is the launch-policy change; do not replay the expired command.
 

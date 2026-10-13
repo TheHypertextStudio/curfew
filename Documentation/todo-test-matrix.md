@@ -1,5 +1,30 @@
 # Todo Test Matrix
 
+## Local observed enforcement status
+
+`CurfewObservedStatusTests` covers owned lock state, disarmed and cross-flavor
+standby state, a real atomic-file round trip, stale expiry, and coalesced
+publication. Reviewer-driven tests also cover a live owner's priority over a
+standby process, degraded lock health, and hours-based countdown mode.
+`StatusCommandTests` checks that the CLI JSON formatter cannot turn a disarmed
+schedule prediction into a reported lock. `CurfewMCPAccessTests` invokes the
+actual local status and countdown handlers against a persisted disarmed
+observation; neither may report an unlock deadline or minutes. The MCP handler
+also preserves an observed hours trigger/mode. Each new package test
+was run red before the corresponding production change. `DisplayClockTests`
+uses an injected temporary store to check that the disarmed native model
+publishes `unknown` and that maintenance pause replaces an armed snapshot with
+unavailable status; other hosted tests cannot write the live status file.
+The native regression built headlessly but must run in hosted CI, not on the
+user's active desktop. Signed installed CLI/MCP read-only verification remains.
+
+This is advisory status, not lockout authority. A stale app expires after 60
+seconds; a stopped writer is rejected immediately. The app logs mirror write
+failures and marks degraded protection unavailable instead of claiming a healthy
+lock. No coordinator payload or daemon command
+schema changes. Removing the mirror/readers restores prior local-only status
+behavior; the separate remote device report and durable enforcement remain.
+
 ## Daybreak test-window lifecycle
 
 `DaybreakOverlayReconciliationTests` checks that the borderless morning window
@@ -1364,8 +1389,21 @@ bundle-bound policy parameter existed. `CurfewApp` passes its actual bundle ID,
 and `RuntimeEnvironment.testHostDecision` requires a loaded XCTest runtime for
 both signed Studio Dev and Release even when test environment markers are
 present. The installed signed launch audit records `enforcementArmed: true`
-and active health; a newly authorized physical lock remains runtime acceptance,
-separate from tests.
+and active health. A separately authorized Codex Staging lock subsequently
+produced an applied receipt, a live locked report, the installed app's
+`lockout.started` event, and a full-screen enforcement window; the report,
+audit stream, and window all returned to working/absent at the deadline. This
+is manual installed-runtime acceptance, separate from automated coverage and
+from the still-unverified Claude-phone and remote-unlock journeys. See
+`remote-mcp-acceptance.md`; no further control command is authorized.
+
+Local status truthfulness remains open: the verified remote lock exposed that
+`curfew-ctl status` and local MCP's `curfew_status` / `curfew_get_time_remaining`
+derive a schedule prediction instead of observing the app/daemon. A future
+regression must exercise the actual CLI and MCP outputs with controlled fresh,
+stale, remote-lock, release, disarmed, and cross-flavor observations. The
+current native and MCP suites do not cover that claim; do not count the
+coordinator's correct status report as coverage of these local readers.
 
 Hostless coverage: `PrivilegedHelperManagerTests.remoteReadinessRequiresAuthenticatedConnection` rejects unavailable, unauthorized, stale, and failed registration despite a fresh heartbeat file. `PresentationStateTests` checks recovery routing and copy. The new assertions failed before the fix; CI retains full app behavior and screenshot checks. No local UI execution or app launch. This changes readiness presentation and recovery routing, not enforcement rules, persisted identifiers, or the wire format. Rollback is the readiness/copy change; signed helper and real macOS approval verification remain separate.
 

@@ -1,8 +1,61 @@
 # Remote MCP acceptance evidence
 
-Snapshot: 2026-10-12. This is an evidence ledger, not a claim that the full
-download-to-phone-control flow is released. The later signed dev update and
-restart were explicitly authorized. No new lock or unlock was sent.
+Snapshot: 2026-10-13. This is an evidence ledger, not a claim that the full
+download-to-phone-control flow is released. Historical sections below retain
+their point-in-time wording; the latest evidence takes precedence.
+
+## 2026-10-13 read-only connector follow-up
+
+At 22:17 UTC, Codex Staging's read-only `list_devices` call succeeded and
+returned Studio Dev Mac, but it was offline with its last enforcement report
+received at 21:56:08 UTC. The signed Studio Dev app was not running at the time
+of a read-only process check; the root daemon was running. No app restart,
+window, lock, or unlock was caused by this check. A phone-side Codex device
+list is still pending. The status-mirror fix is source-only until hosted CI and
+signed installation; it does not explain why the installed app stopped.
+Review of that fix found four status edge cases. The same change now arbitrates
+two same-flavor writers so a live lock owner's observation wins, publishes an
+unavailable state during helper maintenance, suppresses a healthy-lock claim
+when protection is degraded, and retains the configured time/hours countdown
+mode. Package tests exercise the status file and real local MCP handler; the
+native maintenance regression must run in hosted CI. This does not change
+coordinator command delivery, lockout authority, or remote OAuth state.
+
+## 2026-10-13 signed physical-lock acceptance
+
+The user separately authorized one final five-minute lock after the signed
+Studio Dev update reported enforcement armed and healthy. Codex Staging listed
+Studio Dev Mac (`dfdde4c3-cffc-4c76-9e6a-ba2568b8f89c`) online. The one
+device-specific command `29ef25c6-66c2-42b9-a0d7-3f4947cec785` returned an
+applied daemon receipt at `21:39:09Z`, with deadline `21:44:09Z`. At
+`21:39:16Z`, staging reported the device locked. The installed app's audit
+stream recorded `lockout.started` and active lockout health; read-only
+WindowServer inspection showed Curfew's opaque full-screen, on-screen window
+at layer 1000. At the deadline, staging reported working, the app recorded
+`lockout.ended`, and the full-screen window disappeared. This is physical
+enforcement and natural-release evidence for the installed signed app and
+Codex staging connector, not merely a queue receipt. No additional lock or
+unlock command was sent.
+
+The user also confirmed after the restart that the morning reflection accepts
+typing and its buttons work without resetting. This closes that specific
+installed-UI regression, not all first-use or accessibility acceptance.
+
+Curfew PR #57 was rebase-merged as `c5fb4f69087f215024b14d17839677d599796a58`.
+Its native CI format/lint/test/build and documentation jobs succeeded; the
+separate screenshot capture job remained in progress when last inspected. A
+physical lock is now proven, but Claude-phone execution, remote unlock, and a
+downloadable production release are not. The user has not authorized another
+device-control command; do not repeat this test without fresh direction.
+
+`curfew-ctl status` returned `working` during that lock because it evaluates
+the saved schedule rather than reading the app's settled state or the daemon's
+remote deadline. Local MCP's `curfew_status` and
+`curfew_get_time_remaining` use the same schedule-only calculation. These
+local readouts must not be treated as proof of actual enforcement until they
+consume a fresh observed-state source that includes remote commands, overrides,
+and whether this app owns enforcement. Do not patch only the remote-deadline
+branch: a live release or another Curfew flavor can make that answer wrong.
 
 ## 2026-10-13 installed enforcement update
 
@@ -199,9 +252,10 @@ macOS approval remains a distinct action. The regression failed before this fix.
 
 - Claude phone execution remains unverified. Codex was used because Claude was
   out of quota. Do not label that substitute as a phone test.
-- Visible physical enforcement and remote-unlock behavior remain unverified.
-  Do not issue another lock, launch UI automation, or take focus to obtain proof
-  while the user's no-lock/background-only constraint remains active.
+- Visible physical enforcement is verified for the installed signed Studio Dev
+  app through Codex staging as recorded above. Remote-unlock behavior remains
+  unverified. Do not issue another lock or unlock, launch UI automation, or
+  take focus to obtain further proof without fresh user direction.
 - No downloadable GitHub release exists at this snapshot. The Curfew repository
   exposes only `SPARKLE_PRIVATE_KEY` among repository secret names; its release
   workflow also requires Apple signing/notarization and Cloudflare credentials.
@@ -224,8 +278,8 @@ macOS approval remains a distinct action. The regression failed before this fix.
 
 ## Change and rollback boundaries
 
-This audit changes documentation only: no app behavior, credentials, package
-versions, migrations, permissions, or wire shapes. Existing automated coverage
-stays unchanged. Revert the documentation commit if its snapshot is wrong;
-update this ledger when stronger evidence becomes available rather than marking
-the incomplete acceptance items complete.
+This ledger update changes documentation only: no app behavior, credentials,
+package versions, migrations, permissions, or wire shapes. Existing automated
+coverage stays unchanged. Revert the documentation change if its evidence is
+wrong; update this ledger when stronger evidence becomes available rather than
+marking the incomplete acceptance items complete.

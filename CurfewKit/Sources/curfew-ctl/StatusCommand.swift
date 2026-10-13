@@ -4,8 +4,8 @@ import Foundation
 
 /// Prints the current enforcement phase and time remaining.
 ///
-/// Reads settings from the Curfew app's UserDefaults domain — no IPC
-/// required, so this works whether or not the app is running.
+/// Reads the app's last settled observation without launching it. A missing
+/// or stale observation is unknown, never a predicted schedule phase.
 struct StatusCommand: ParsableCommand {
     /// ArgumentParser command metadata.
     static var configuration = CommandConfiguration(
@@ -18,69 +18,69 @@ struct StatusCommand: ParsableCommand {
     @Flag(name: .shortAndLong, help: "Output as JSON instead of plain text.")
     var json: Bool = false
 
-    /// Entry point — evaluates the engine against persisted settings
-    /// and prints the resulting snapshot.
+    /// Entry point — prints the last fresh app observation.
     func run() {
-        let settings = loadSettings()
-        let now = Date()
-        let engine = CurfewEnforcementEngine()
-        let eval = engine.evaluate(
-            at: now,
-            schedule: settings.schedule,
-            extensionMinutesGrantedToday: 0,
-            overrideUntil: nil,
-            warningIntervals: settings.warningIntervals
-        )
+        let status = CurfewObservedStatusStore().loadFresh(at: Date())
 
         if json {
-            printJSON(eval: eval, now: now, settings: settings)
+            printJSON(status: status)
         } else {
-            printPlain(eval: eval, now: now, settings: settings)
+            printPlain(status: status)
         }
     }
 
     // MARK: - Output formatters
 
-    private func printPlain(
-        eval: CurfewEvaluation,
-        now: Date,
-        settings: CurfewSettings
-    ) {
-        print("phase:     \(phaseName(eval.phase))")
+    private func printPlain(status: CurfewObservedStatus?) {
+        print("phase:     \(status?.phase ?? "unknown")")
 
-        if eval.phase == .locked || eval.phase == .dayOff {
-            if let unlock = eval.unlockDate {
-                print("unlocks:   \(formatTime(unlock))")
-            }
-        } else {
-            print("remaining: \(eval.minutesRemaining) min")
-            if let lock = eval.lockDate {
-                print("locks at:  \(formatTime(lock))")
-            }
+        if status == nil || status?.phase == "unknown" {
+            print(
+                "status:    \(status?.availabilityDescription ?? "No recent Curfew status is available.")"
+            )
         }
-
-        if eval.warningStage != .none {
-            print("warning:   \(eval.warningStage)")
+        if let minutes = status?.minutesRemaining {
+            print("remaining: \(minutes) min")
+        }
+        if let lock = status?.lockDate {
+            print("locks at:  \(formatTime(lock))")
+        }
+        if let unlock = status?.unlockDate {
+            print("unlocks:   \(formatTime(unlock))")
+        }
+        if let warning = status?.warningStage, warning != "none" {
+            print("warning:   \(warning)")
         }
     }
 
-    private func printJSON(
-        eval: CurfewEvaluation,
-        now: Date,
-        settings: CurfewSettings
-    ) {
+    static func jsonObject(from status: CurfewObservedStatus?) -> [String: Any] {
         var obj: [String: Any] = [
-            "phase": phaseName(eval.phase),
-            "minutes_remaining": eval.minutesRemaining,
-            "warning_stage": warningStageString(eval.warningStage),
-            "can_request_extension": eval.canRequestExtension
+            "phase": status?.phase ?? "unknown",
+            "warning_stage": status?.warningStage ?? "none",
+            "can_request_extension": status?.canRequestExtension ?? false
         ]
-        if let lock = eval.lockDate {
-            obj["lock_date"] = iso8601(lock)
+        if let reason = status?.unavailableReason {
+            obj["unavailable_reason"] = reason
         }
-        if let unlock = eval.unlockDate {
-            obj["unlock_date"] = iso8601(unlock)
+        if let mode = status?.mode {
+            obj["mode"] = mode
         }
+        if let minutes = status?.minutesRemaining {
+            obj["minutes_remaining"] = minutes
+        }
+        if let lock = status?
+            .lockDate {
+            obj["lock_date"] = ISO8601DateFormatter().string(from: lock)
+        }
+        if let unlock = status?
+            .unlockDate {
+            obj["unlock_date"] = ISO8601DateFormatter().string(from: unlock)
+        }
+        return obj
+    }
+
+    private func printJSON(status: CurfewObservedStatus?) {
+        let obj = Self.jsonObject(from: status)
         if let data = try? JSONSerialization.data(
             withJSONObject: obj,
             options: [.prettyPrinted, .sortedKeys]
@@ -96,21 +96,5 @@ struct StatusCommand: ParsableCommand {
         f.timeStyle = .short
         f.dateStyle = .none
         return f.string(from: date)
-    }
-
-    private func iso8601(_ date: Date) -> String {
-        ISO8601DateFormatter().string(from: date)
-    }
-
-    private func warningStageString(_ stage: WarningStage) -> String {
-        switch stage {
-        case .none: "none"
-        case .thirtyMinutes: "T-30"
-        case .fifteenMinutes: "T-15"
-        case .fiveMinutes: "T-5"
-        case .twoMinutes: "T-2"
-        case .oneMinute: "T-1"
-        case .lockout: "lockout"
-        }
     }
 }

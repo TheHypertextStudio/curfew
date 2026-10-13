@@ -32,6 +32,54 @@ struct DisplayClockTests {
         #expect(respawnGuard.callLog.isEmpty)
     }
 
+    @Test("Display-only app publishes unknown instead of its locked schedule prediction")
+    func displayTickPublishesUnavailableStatus() {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("curfew-display-status-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let statusStore = CurfewObservedStatusStore(
+            fileURL: directory.appendingPathComponent("status.json")
+        )
+        let model = makeModel(
+            setupComplete: true,
+            observedStatusPublisher: CurfewObservedStatusPublisher(store: statusStore)
+        )
+        var schedule = WeeklySchedule.standardNineToFive
+        for weekday in Weekday.allCases {
+            schedule.rules[weekday] = DayRule(
+                isDayOff: false,
+                lockMinutes: 0,
+                unlockMinutes: 1439
+            )
+        }
+        model.settings.schedule = schedule
+
+        model.displayTick()
+
+        #expect(model.state.phase == .locked)
+        #expect(statusStore.loadFresh(at: Date())?.phase == "unknown")
+    }
+
+    @Test("Paused maintenance replaces the prior armed observation with unavailable status")
+    func pausedTickPublishesUnavailableStatus() {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("curfew-paused-status-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let statusStore = CurfewObservedStatusStore(
+            fileURL: directory.appendingPathComponent("status.json")
+        )
+        let model = makeModel(
+            setupComplete: true,
+            observedStatusPublisher: CurfewObservedStatusPublisher(store: statusStore)
+        )
+        model.start()
+        model.privilegedHelperManager.maintenancePaused = true
+
+        model.tick()
+
+        #expect(statusStore.loadFresh(at: Date())?.unavailableReason == "enforcement_degraded")
+    }
+
     @Test("start() arms enforcement; the display clock alone does not")
     func startArmsButDisplayClockDoesNot() {
         let model = makeModel(setupComplete: true)
@@ -134,7 +182,8 @@ struct DisplayClockTests {
         accessibilityAuthorization: AccessibilityAuthorizing = FakeAccessibilityAuthorization(
             trusted: true
         ),
-        setupComplete: Bool = false
+        setupComplete: Bool = false,
+        observedStatusPublisher: CurfewObservedStatusPublisher? = nil
     ) -> CurfewAppModel {
         let suite = "studio.hypertext.curfew.tests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite) ?? .standard
@@ -158,7 +207,8 @@ struct DisplayClockTests {
             idleWatcher: watcher,
             respawnGuard: respawnGuard,
             lockoutDeadlineStore: LockoutDeadlineStore(recordURL: deadlineURL),
-            accessibilityAuthorization: accessibilityAuthorization
+            accessibilityAuthorization: accessibilityAuthorization,
+            observedStatusPublisher: observedStatusPublisher
         )
     }
 }
