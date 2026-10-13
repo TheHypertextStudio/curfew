@@ -173,12 +173,21 @@ final class LicenseGate {
     /// the next time they happen to open it, and a success shouldn't be able
     /// to silently wipe an error the user is actively looking at from
     /// something they *did* just type into that field.
-    func activateSilently(_ keyString: String) {
-        activatedKey = try? verifyAndPersist(keyString)
+    func activateSilently(_ keyString: String, replacing original: LicenseKey) {
+        let trimmed = keyString.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard activatedKey == original, original.plan == .subscription,
+              let token = original.refreshToken,
+              let renewed = try? verified(trimmed), renewed.plan == .subscription,
+              renewed.refreshToken == token,
+              let expiry = renewed.expiresAt, expiry > Date(),
+              expiry >= (original.expiresAt ?? .distantPast)
+        else { return }
+        defaults.set(trimmed, forKey: Self.storageKey)
+        activatedKey = renewed
     }
 
     /// Shared verify-and-persist body behind ``activate(_:)`` and
-    /// ``activateSilently(_:)``: trims, verifies, and — only on success —
+    /// trims, verifies, and — only on success —
     /// persists the raw string. Throws (rather than swallowing) so each
     /// caller decides for itself whether a failure is worth surfacing.
     private func verifyAndPersist(_ keyString: String) throws -> LicenseKey {

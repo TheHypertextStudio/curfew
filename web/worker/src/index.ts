@@ -1,4 +1,4 @@
-import { handleCheckoutCompleted, handleInvoicePaid, handleSubscriptionDeleted } from "./handlers.js";
+import { handleCheckoutCompleted, handleInvoicePaid, handleSubscriptionDeleted, isCurfewCheckout } from "./handlers.js";
 import { verifyStripeSignature } from "./stripe.js";
 import type { Env } from "./types.js";
 import { indexPurchase, json, purchaseRequest } from "./purchases.js";
@@ -32,9 +32,12 @@ export default {
       if (event.type === "checkout.session.completed") {
         const session = event.data?.object;
         const email = session?.customer_details?.email ?? session?.customer_email;
-        if (session?.payment_status === "paid" && typeof session.id === "string" &&
+        if (session?.payment_status === "paid" && isCurfewCheckout(session) && typeof session.id === "string" &&
           typeof email === "string" && await env.LICENSE_KV.get(`session:${session.id}`)) {
           await indexPurchase(env, email, session.id);
+          if (session.mode === "subscription" && typeof session.subscription === "string") {
+            await env.LICENSE_KV.put(`subsession:${session.subscription}`, session.id);
+          }
         }
       }
       return new Response("ok");
