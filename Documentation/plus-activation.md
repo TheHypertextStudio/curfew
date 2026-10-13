@@ -312,19 +312,62 @@ required an explicit shallow fetch of the pinned revision and `NODE_VERSION`
 24.20.0. The existing build credential successfully uploaded the static assets;
 no credential expansion was needed. The dedicated restore page renders over HTTPS.
 
-The user separately approved restricted email for the staging issuer. A fresh
-dashboard read confirms all eight build variables persisted, including recovery
-enabled, the approved sender, staging portal and distinct rate-limit IDs. They
-will take effect in the next reviewed issuer deployment. Actual inbox delivery
-and native restoration remain pending.
+The user separately approved restricted email for the staging issuer. All eight
+build variables persisted and deployed in build
+`2ddc598d-e2d9-4bff-976e-e1a7b0eeed36`, version
+`f693e63e-ab9f-4513-9a76-049582d4f649`. A restore request from the hosted staging
+page delivered the expected message to the approved purchase-test inbox at
+2026-10-13 22:08:25 UTC. SPF, DKIM and DMARC passed, and Gmail placed it in the
+Inbox. Native restoration remains pending.
 
 The hosted UI failure recording at `a83e1d6` shows the manual-entry button in
 Expanded state and a visible unnamed text field. This corrects the earlier hit
 testing diagnosis: the failing lookup missed the field's accessibility name. The
 field now has an explicit License key label and `license-key-input` identifier;
-the UI test checks Expanded and queries that identifier. Fresh hosted UI proof
-is still required. Reverting the label affects accessibility/test lookup only.
+the UI test checks Expanded and queries that identifier. Hosted CI at `8399b8a4`
+passed `testPurchaseRestoreAndManualActivationAreReachable` in 12.392 seconds.
+Reverting the label affects accessibility/test lookup only.
 
 Public-key health rollback is reverting the added response field/helper; license
 keys and purchase storage are unchanged. Keep public help and production sales
 on the released flow until client, service and website acceptance is complete.
+
+### Build-bound license trust and main sync
+
+The retained staging public key is
+`Yvu91gvPfXzgg375axY/mPHQMA/0ejiDPFZuDn8/qE4=`. It verifies the actual paid
+sandbox envelope. Development builds now pin this key; production retains
+`wws4nqf0o6zvtOONgWITcqquPv6kIhd57WT2WLgMIvQ=`. No private seed changed.
+
+Licensing selects its environment from the bundle/executable identity with an
+empty environment dictionary, following the account endpoint policy. The signer,
+redemption/restore issuer, renewal issuer and activation URL scheme share that
+selection. An inherited `CURFEW_FLAVOR=development` cannot redirect production
+licensing or enable sandbox keys. Tests still inject keys, services and flavors
+explicitly. The new production-bundle regression failed first for the missing
+build-bound selector; all 12 activation tests then passed. Reverting this pairing
+disables sandbox activation while retaining production trust and stored keys.
+
+Main's `c5fb4f69` was cherry-picked without a merge commit, preserving the published
+activation branch and local signer work. The Mintlify files already match main;
+the local server at port 3317 was restarted and the licensing page refreshed.
+
+Final local verification passed: 12 targeted activation tests, 81 XCTest cases
+and 937 Swift Testing cases in the complete unit suite, strict SwiftLint,
+SwiftFormat and the unsigned Debug build. A normal CUA launch of that Debug app
+did not reach its UI. A one-second process sample shows the main thread blocked
+in `WidgetSharedStateStore.sync(settings:)` → `Data.write` → `open` during model
+initialization. This prevents native link acceptance on this launch; it does not
+establish a licensing failure or successful activation. No widget settings,
+permissions, retained data or enforcement state were reset to bypass it.
+
+A fresh staging restore email also arrived at 22:23:57 UTC. Opening its link
+cleared the fragment and showed **Restore in Curfew** with the development
+scheme. The sandbox payment-link editor required Stripe reauthentication when
+saving the hosted return URL; its persistence remains unverified.
+
+The normal signed Debug build fails before compilation because `Mac Team
+Provisioning Profile: studio.hypertext.curfew.dev` lacks Associated Domains and
+`com.apple.developer.associated-domains`. No signing account, profile, certificate
+or permission was created or widened. A correctly provisioned signed client is
+still required for final installed-app acceptance.

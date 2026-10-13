@@ -36,7 +36,7 @@ final class LicenseActivationController {
     }
 
     @discardableResult
-    func open(_ url: URL, flavor: CurfewFlavor = .current) -> Bool {
+    func open(_ url: URL, flavor: CurfewFlavor = LicenseEndpoint.currentFlavor) -> Bool {
         guard let token = Self.token(in: url, flavor: flavor) else { return false }
         if currentTicket == token {
             return true
