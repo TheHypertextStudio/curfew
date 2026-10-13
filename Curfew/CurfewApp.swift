@@ -188,7 +188,7 @@ struct CurfewApp: App {
                 .environment(model)
                 .disabled(model.privilegedHelperManager.repairInProgress)
                 .frame(minWidth: 980, minHeight: 660)
-                .onOpenURL { _ = AccountOAuthCallbackRouter.shared.route($0) }
+                .onOpenURL { _ = model.handleIncomingURL($0) }
                 .demoWindowSize(width: 1080, height: 720, minimumWidth: 980, minimumHeight: 660)
                 .preferredColorScheme(Self.demoColorScheme)
         }
@@ -210,7 +210,7 @@ struct CurfewApp: App {
             ContentView()
                 .preferredColorScheme(Self.demoColorScheme)
                 .environment(model)
-                .onOpenURL { _ = AccountOAuthCallbackRouter.shared.route($0) }
+                .onOpenURL { _ = model.handleIncomingURL($0) }
         } label: {
             // Morph between phase glyphs on change, and pulse when enforcement
             // is degraded so a silently-broken lockout draws the eye in the
@@ -230,7 +230,7 @@ struct CurfewApp: App {
                 .preferredColorScheme(Self.demoColorScheme)
                 .environment(model)
                 .frame(minWidth: 760, minHeight: 520)
-                .onOpenURL { _ = AccountOAuthCallbackRouter.shared.route($0) }
+                .onOpenURL { _ = model.handleIncomingURL($0) }
                 .demoWindowSize(width: 860, height: 620, minimumWidth: 760, minimumHeight: 520)
         }
 
@@ -280,8 +280,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Universal-link callbacks from another browser profile are accepted only
     /// for the exact pending claimed-HTTPS OAuth transaction.
     func application(_: NSApplication, open urls: [URL]) {
-        for url in urls where callbackRouter.route(url) {
-            break
+        for url in urls {
+            if callbackRouter.route(url) || model?.handleLicenseActivationURL(url) == true {
+                break
+            }
         }
     }
 

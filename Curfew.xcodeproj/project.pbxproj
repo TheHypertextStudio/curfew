@@ -691,6 +691,7 @@
 				CODE_SIGN_ENTITLEMENTS = Curfew/Curfew.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURFEW_DOCKET_CALLBACK_SCHEME = studio.hypertext.curfew;
+				CURFEW_LICENSE_SCHEME = curfew-dev;
 				CURFEW_DAEMON_PLIST_NAME = studio.hypertext.curfew.dev.daemon.plist;
                 INFOPLIST_KEY_CurfewBrowserExtensionID = "loammdknmfbkjnckaeeagnmakinknbck";
 				DEVELOPMENT_TEAM = 39AB9DY3K8;
@@ -738,6 +739,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURFEW_DAEMON_PLIST_NAME = studio.hypertext.curfew.studio.dev.daemon.plist;
 				CURFEW_DOCKET_CALLBACK_SCHEME = studio.hypertext.curfew.studio.dev;
+				CURFEW_LICENSE_SCHEME = curfew-studio-dev;
 				DEVELOPMENT_TEAM = T95VDD3A4W;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
@@ -785,6 +787,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURFEW_DAEMON_PLIST_NAME = studio.hypertext.curfew.daemon.plist;
 				CURFEW_DOCKET_CALLBACK_SCHEME = studio.hypertext.curfew;
+				CURFEW_LICENSE_SCHEME = curfew;
                 CURFEW_BROWSER_EXTENSION_ID = "";
                 INFOPLIST_KEY_CurfewBrowserExtensionID = "$(CURFEW_BROWSER_EXTENSION_ID)";
 				DEVELOPMENT_TEAM = 39AB9DY3K8;

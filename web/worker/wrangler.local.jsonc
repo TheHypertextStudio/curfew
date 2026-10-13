@@ -1,0 +1,17 @@
+{
+  "$schema": "../../landing/node_modules/wrangler/config-schema.json",
+  "name": "curfew-license-local",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-13",
+  "workers_dev": false,
+  "kv_namespaces": [{ "binding": "LICENSE_KV", "id": "00000000000000000000000000000000" }],
+  "send_email": [{ "name": "EMAIL", "allowed_sender_addresses": ["purchases@hypertext.studio"] }],
+  "ratelimits": [
+    { "name": "RESTORE_IP_LIMIT", "namespace_id": "1001", "simple": { "limit": 5, "period": 60 } },
+    { "name": "RESTORE_EMAIL_LIMIT", "namespace_id": "1002", "simple": { "limit": 1, "period": 60 } }
+  ],
+  "vars": {
+    "RESTORE_EMAIL_FROM": "purchases@hypertext.studio",
+    "PURCHASE_PORTAL_URL": "http://localhost:4321"
+  }
+}

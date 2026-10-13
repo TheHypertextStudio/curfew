@@ -28,7 +28,7 @@ test("every public page has reader metadata and working local page links", async
 });
 
 test("activation help matches the app's About tab instead of the removed License tab", async () => {
-  for (const path of ["web/docs/licensing.mdx", "landing/src/pages/success.astro"]) {
+  for (const path of ["web/docs/licensing.mdx", "landing/src/components/PurchasePanel.astro"]) {
     const content = await read(path);
     assert.match(content, /Settings → About/);
     assert.doesNotMatch(content, /Settings → License/);
@@ -36,7 +36,7 @@ test("activation help matches the app's About tab instead of the removed License
 });
 
 test("purchase help never claims a missing key is in the receipt or proves payment succeeded", async () => {
-  const content = await read("landing/src/pages/success.astro");
+  const content = await read("landing/src/components/PurchasePanel.astro");
   assert.doesNotMatch(content, /key is also in your receipt email|check your receipt email|Your payment went through/);
   assert.match(content, /Stripe emails your payment receipt/);
 });
@@ -87,7 +87,7 @@ test("assistant help does not present its countdown as current enforcement", asy
 
 test("public help avoids self-narration and unnecessary contrast", async () => {
   const narration = /\b(?:this guide covers|this guide connects|the Plus guides cover|these policies govern|this page is where it lives|the key only lives here|rather than|as proof|does not confirm|does not promise|not a substitute|do not assume)\b/i;
-  for (const path of [...pages.map(page => `web/docs/${page}.mdx`), "landing/src/pages/success.astro"]) {
+  for (const path of [...pages.map(page => `web/docs/${page}.mdx`), "landing/src/components/PurchasePanel.astro"]) {
     const content = await read(path);
     assert.equal(narration.test(content), false, `${path} contains editorial narration or unnecessary contrast`);
   }
