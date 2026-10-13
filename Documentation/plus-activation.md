@@ -272,3 +272,15 @@ workflow/local build. No new persistent credential or broader token is required.
 The public release marker records the revision, staging issuer, and `curfew-dev`
 scheme. Hosted runtime, signed activation and inbox restoration still require
 verification after deployment.
+
+The staged artifact is published as prerelease `curfew-site-preview-a83e1d6`,
+source `a83e1d6925647f505cc2adbd005012465471e680`, with SHA-256
+`a2c3eb7b0cf1b1c786140b408724851f1ffccf050b512747f2fd719895aae585`.
+Its 50 public files (4.3 MB archive) contain no package credentials or environment
+files. Both purchase pages select the staging issuer and `curfew-dev` scheme.
+An unauthenticated download produced the same checksum. The existing staging
+website Worker is connected to the reviewed branch and existing build token,
+with preview builds disabled and `SKIP_DEPENDENCY_INSTALL=1`. Its build checks out
+the released revision before fetching and checking the archive, so subsequent
+branch changes cannot silently change the candidate. Hosted build verification
+is pending.
