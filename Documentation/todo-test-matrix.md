@@ -10,6 +10,12 @@ this test-only correction; hosted native CI remains separate acceptance.
 
 ## Background protection reconnect and disarmed reporting
 
+`HelperRepairIntegrationTests.installationChecksConnection` reproduces an
+installation returning while the connection stays unavailable. It failed before
+the installation action was made to await connection verification. The hostless
+suite now passes 76 tests. Live installed helper connection was verified through
+both the app and launchd after the user's repair on October 12 at 22:53 Pacific.
+
 `HelperRepairIntegrationTests` reproduces admission refusal pausing enforcement
 and a new arm RPC racing asynchronous admission. Both failed before correction.
 `DaemonRegistrationRepairTests` covers ordered replacement, failures,

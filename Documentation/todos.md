@@ -1046,6 +1046,12 @@ The remote AX lookup demonstrated section-level identifier propagation overridin
   Preserve all enrollment, deadlines, replay cursors, and receipts. This is not
   evidence that the installed helper has been repaired.
 
+  Update: the user completed repair at 22:53 Pacific on October 12. The installed
+  app reports Connected, launchd exposes the expected endpoint, and the daemon
+  heartbeat advances. Native account renewal remains open. The installation
+  action now waits for connection verification, removing the rapid action-label
+  changes the user observed. Installed acceptance of this last UI change remains.
+
 - [-] Publish observed enforcement rather than a disabled schedule prediction.
   Disarmed devices without an active durable deadline use the existing unknown
   protocol phase and null deadlines. The regression reproduced the false locked

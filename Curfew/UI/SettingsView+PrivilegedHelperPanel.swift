@@ -24,7 +24,12 @@ extension SettingsView {
                 }
             }
             LabeledContent("Background protection") {
-                if helper.daemonStatus == .requiresApproval {
+                if helper.installationInProgress || helper.repairInProgress {
+                    HStack {
+                        ProgressView().controlSize(.small)
+                        Text("Connecting…")
+                    }
+                } else if helper.daemonStatus == .requiresApproval {
                     Button("Approve…") {
                         if !model.isDemoSession {
                             SMAppService.openSystemSettingsLoginItems()
@@ -35,7 +40,7 @@ extension SettingsView {
                         Text(helper.connectionState.statusText)
                             .foregroundStyle(CurfewTheme.mutedInk)
                         if helper.connectionState != .ready || helper.maintenancePaused {
-                            Button(helper.repairInProgress ? "Reconnecting…" : "Reconnect…") {
+                            Button("Connect…") {
                                 Task { await model.reconnectBackgroundProtection() }
                             }
                             .disabled(helper.repairInProgress || model.isEnforcementRunning)
@@ -43,17 +48,19 @@ extension SettingsView {
                         }
                     }
                 } else if helper.maintenancePaused {
-                    Button("Retry Reconnect…") {
+                    Button("Connect…") {
                         Task { await model.reconnectBackgroundProtection() }
                     }
                     .disabled(helper.repairInProgress || model.isEnforcementRunning)
                 } else {
-                    Button("Install…") { helper.installDaemon() }
+                    Button("Connect…") {
+                        Task { await helper.installAndConnectDaemon() }
+                    }
                 }
             }
             if helper.connectionState != .ready {
                 Text(
-                    "Reconnect checks saved protection state and reinstalls the background helper. "
+                    "Connect checks saved protection state and restores background protection. "
                         + "macOS may ask for your administrator password to verify that state."
                 )
                 .font(.caption)
@@ -86,7 +93,7 @@ extension SettingsView {
                 "Install with macOS approval to keep your curfew in place if the app stops."
             )
         }
-        .disabled(helper.repairInProgress)
+        .disabled(helper.repairInProgress || helper.installationInProgress)
     }
 }
 

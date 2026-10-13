@@ -95,6 +95,19 @@ for these observations. The user authorized the narrow administrator prompt.
 
 ## Verified staging evidence
 
+On October 12 at 22:53 Pacific, the user completed the installed repair. Live
+launchd inspection confirms a running Studio Dev daemon with the expected
+Mach service endpoint; the installed app displays Background protection:
+Connected. Its root-owned heartbeat advances. This is actual installed helper
+acceptance, with no lock or unlock sent. The native account separately reports
+rejected saved authentication and awaits user sign-in renewal; Codex listing
+continues to work but reports the Mac offline with the old enforcement report.
+
+The user observed Install/Connect/Reconnect cycling before the eventual prompt.
+Installation now waits for authenticated connection health and shows Connecting
+throughout. A stable Connect action covers unavailable registration/connection;
+macOS approval remains a distinct action. The regression failed before this fix.
+
 - Curfew Sync PR #42 was rebase-merged as `0d08fc64cf1c029cec0f18825bcd166dd37951aa`.
   Deployment run `38217175834` succeeded, publishing Worker version
   `6a600727-030b-4cda-bae8-113bd08c4209`. All 454 Worker and 7 DOM tests passed,
