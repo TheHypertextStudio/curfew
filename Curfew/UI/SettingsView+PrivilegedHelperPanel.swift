@@ -58,14 +58,6 @@ extension SettingsView {
                     }
                 }
             }
-            if helper.connectionState != .ready {
-                Text(
-                    "Connect checks saved protection state and restores background protection. "
-                        + "macOS may ask for your administrator password to verify that state."
-                )
-                .font(.caption)
-                .foregroundStyle(CurfewTheme.mutedInk)
-            }
             DisclosureGroup("Details") {
                 LabeledContent(
                     "Installation",
@@ -90,7 +82,10 @@ extension SettingsView {
             Text("Options")
         } footer: {
             Text(
-                "Install with macOS approval to keep your curfew in place if the app stops."
+                helper.connectionState == .ready
+                    ? "Keeps your curfew in place if the app stops."
+                    : "Connect checks saved protection state. "
+                    + "macOS may ask for your administrator password."
             )
         }
         .disabled(helper.repairInProgress || helper.installationInProgress)

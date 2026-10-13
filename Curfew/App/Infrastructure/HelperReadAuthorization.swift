@@ -23,24 +23,32 @@ final nonisolated class HelperReadAuthorization: @unchecked Sendable {
         let message = "Curfew needs to read its saved protection state "
             + "before repairing background protection."
         let result = ("sys.openfile.readonly." + path).withCString { rightName in
-            message.withCString { prompt in
-                var right = AuthorizationItem(name: rightName, valueLength: 0, value: nil, flags: 0)
-                var environment = AuthorizationItem(
-                    name: kAuthorizationEnvironmentPrompt,
-                    valueLength: strlen(prompt), value: UnsafeMutableRawPointer(mutating: prompt),
-                    flags: 0
-                )
-                return withUnsafeMutablePointer(to: &right) { rightsPointer in
-                    withUnsafeMutablePointer(to: &environment) { environmentPointer in
-                        var rights = AuthorizationRights(count: 1, items: rightsPointer)
-                        var environments = AuthorizationEnvironment(
-                            count: 1,
-                            items: environmentPointer
-                        )
-                        return AuthorizationCopyRights(
-                            authorization, &rights, &environments,
-                            [.interactionAllowed, .extendRights], nil
-                        )
+            kAuthorizationEnvironmentPrompt.withCString { promptName in
+                message.withCString { prompt in
+                    var right = AuthorizationItem(
+                        name: rightName,
+                        valueLength: 0,
+                        value: nil,
+                        flags: 0
+                    )
+                    var environment = AuthorizationItem(
+                        name: promptName,
+                        valueLength: strlen(prompt),
+                        value: UnsafeMutableRawPointer(mutating: prompt),
+                        flags: 0
+                    )
+                    return withUnsafeMutablePointer(to: &right) { rightsPointer in
+                        withUnsafeMutablePointer(to: &environment) { environmentPointer in
+                            var rights = AuthorizationRights(count: 1, items: rightsPointer)
+                            var environments = AuthorizationEnvironment(
+                                count: 1,
+                                items: environmentPointer
+                            )
+                            return AuthorizationCopyRights(
+                                authorization, &rights, &environments,
+                                [.interactionAllowed, .extendRights], nil
+                            )
+                        }
                     }
                 }
             }

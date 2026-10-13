@@ -16,23 +16,18 @@ extension NativeAccountSyncTransportTests {
         }
         defer { NativeTransportURLProtocol.handler = nil }
         let transport = makeTransport(secrets: fixture.secrets)
-        let offline = expectation(description: "root-key distribution failure reported offline")
-        let synchronized = expectation(description: "failed account poll must not report healthy")
-        synchronized.isInverted = true
+        var offlineCount = 0
+        var synchronizedCount = 0
+        transport.onOffline = { offlineCount += 1 }
+        transport.onSynchronized = { _ in synchronizedCount += 1 }
 
-        transport.connect(
-            deviceID: fixture.deviceID,
-            callbacks: AccountSyncTransportCallbacks(
-                onSynchronized: { _ in synchronized.fulfill() },
-                onOffline: { offline.fulfill() },
-                onWakeStatus: { _ in },
-                onRemoteOverride: { _ in },
-                onRemoteCommandResult: { _ in },
-                onFailure: { _ in }
-            )
-        )
+        // Await real reconciliation, not the scheduler beating a 200ms deadline.
+        // Later healthy channels must not mask the failed peer-key channel.
+        await transport.pollOnce(deviceID: fixture.deviceID)
 
-        await fulfillment(of: [offline, synchronized], timeout: 0.2)
+        XCTAssertGreaterThan(offlineCount, 0)
+        XCTAssertEqual(synchronizedCount, 0)
+        XCTAssertFalse(transport.healthyChannels.contains(.peerDevices))
         await transport.disconnectAndWaitForPendingOperations()
     }
 

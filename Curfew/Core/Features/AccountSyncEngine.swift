@@ -51,15 +51,26 @@ final class AccountSyncEngine: ObservableObject {
 
     private let transport: any AccountSyncTransporting
     private var hasPendingEncryptedChanges = false
+    private var lifecycleGeneration = 0
 
-    init(
-        transport: (any AccountSyncTransporting)? = nil
-    ) {
-        self.transport = transport ?? NativeAccountSyncTransport()
+    init(transport: any AccountSyncTransporting) {
+        self.transport = transport
+    }
+
+    func reconnectAfterAuthentication(enrollment: AccountDeviceEnrollment) async {
+        guard !isMaintenancePaused else { return }
+        lifecycleGeneration += 1
+        let generation = lifecycleGeneration
+        isActive = false
+        syncStatus = .connecting
+        await transport.disconnectAndWaitForPendingOperations()
+        guard generation == lifecycleGeneration, !isMaintenancePaused else { return }
+        start(enrollment: enrollment)
     }
 
     func start(enrollment: AccountDeviceEnrollment) {
         guard !isActive, !isMaintenancePaused else { return }
+        lifecycleGeneration += 1
         isActive = true
         syncStatus = .connecting
         transport.connect(
@@ -76,6 +87,7 @@ final class AccountSyncEngine: ObservableObject {
     }
 
     func stop() {
+        lifecycleGeneration += 1
         if isActive {
             transport.disconnect()
         }
@@ -85,6 +97,7 @@ final class AccountSyncEngine: ObservableObject {
     }
 
     func pauseForMaintenance() async {
+        lifecycleGeneration += 1
         isMaintenancePaused = true
         isActive = false
         syncStatus = .offline

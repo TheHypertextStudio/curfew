@@ -6,6 +6,33 @@ restart were explicitly authorized. No new lock or unlock was sent.
 
 ## Latest installed-dev and Codex verification
 
+At `2026-10-13T06:13:31.508Z` (October 12, 23:13 Pacific), the actual Codex
+staging `list_devices` tool reports Studio Dev Mac **online**, with a fresh
+native report observed at `06:13:30Z`, phase `unknown`, and null lockout deadline.
+The installed app visibly says Curfew is off. This verifies the installed Mac's
+authenticated reporting through staging to Codex; it is not an enforcement test.
+
+The user's last native sign-in succeeded: restarting the signed app consumed
+those credentials without another browser sign-in. The defect was the missing
+post-reauthentication transport restart. The installed correction explicitly
+reconnects after successful same-account persistence, but a second interactive
+reauthentication has not been performed just to exercise that callback.
+
+The installed and built debug library SHA-256 both equal
+`17f03dac6d9223f29772c59820e9b486a577e1056326d9758bf7cd5e01be201f`.
+Deep strict signature verification passes under team `T95VDD3A4W` and bundle
+`studio.hypertext.curfew.studio.dev`. The helper remains running as PID 27480
+with its Mach endpoint active; no second repair was performed. No lock or
+unlock was sent, no enrollment/replay state was reset, and no UI test ran on
+the user's desktop. Final PR CI is tracked separately from this runtime proof.
+
+Remaining acceptance is the rendered MCP panel, interactive Apple/TOTP/recovery
+provider paths, measured sustained indexed-write usage, and any future physical
+device-control test explicitly authorized by the user. Production downloadable
+release credentials are not a blocker for this installed-dev/staging result.
+
+### Earlier offline and quota observations (superseded)
+
 - Native PR #51 and coordinator PR #50 are rebase-merged. Native CI run
   `38315375674` passed; staging deployment `38317602146` published Worker
   `0c4b8c08-2d64-482b-aed9-eabd80e77caf`. These checks do not prove the installed

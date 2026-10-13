@@ -72,7 +72,13 @@ extension SettingsView {
                 } else {
                     Button("Sign in again to reconnect this Mac") {
                         if let enrollment = model.settings.accountSync.enrollment {
-                            Task { await accountEnrollment.reconnectEnrolledMac(enrollment) }
+                            Task {
+                                guard await accountEnrollment.reconnectEnrolledMac(enrollment),
+                                      model.settings.accountSync.enrollment == enrollment
+                                else { return }
+                                await model.accountSyncEngine
+                                    .reconnectAfterAuthentication(enrollment: enrollment)
+                            }
                         }
                     }
                     .buttonStyle(CurfewPrimaryButtonStyle())
