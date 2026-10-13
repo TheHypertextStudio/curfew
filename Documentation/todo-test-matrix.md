@@ -1795,6 +1795,8 @@ changes; rollback restores the prior landing release and docs commit.
     with missing settings and renders a sender allowlist plus two rate limits.
   - `CurfewUITests/testPurchaseRestoreAndManualActivationAreReachable`: native
     restore sheet, empty-field validation, cancellation, and manual-key fallback.
+    CI at `3f12cda` failed to expand the disclosure; the replacement test uses
+    the accessible manual-entry button and checks that its field appears.
 - `Actual provider and installed-app behavior matches the new path.`
   - `Documentation/plus-activation.md`: provider/signer pairing, test checkout,
     inbox delivery, cold/warm app opening and final distribution remain pending.
