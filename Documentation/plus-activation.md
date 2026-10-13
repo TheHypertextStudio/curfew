@@ -221,7 +221,36 @@ failed before implementation. The full nonparallel unit run (81 XCTest and
 Incoming links still cannot choose an issuer, and signature verification remains
 unchanged. The installed signer pairing still needs the real test checkout.
 
-The native interaction recording showed that the disclosure's accessibility
-frame includes leading Form padding. The previous arrow coordinate hit that
-padding; the corrected test targets the visible arrow recorded inside the frame.
-Fresh isolated CI verification is still required.
+The exact-head native CI suite passed format, lint, units and build. Its purchase
+interaction still failed at manual entry after clicking the recorded disclosure
+arrow: the license field never appeared. This is the failing behavior proof for
+replacing that narrow disclosure target with a standard accessible button. The
+button exposes Expanded/Collapsed state, retains the draft, and the UI test uses
+its accessible name rather than geometry. A local rerun first hit the development
+provisioning profile's missing Associated Domains capability; an unsigned UI run
+stalled before test execution and was canceled. Hosted interaction verification
+is still required. No enforcement settings or running lockout were changed.
+
+### Current sandbox deployment and checkout preparation
+
+Cloudflare build `b3a94171-e45b-41ec-9d8e-8d53579a126f` deployed commit
+`3f12cda3e4371b6b3b535b3ff643a5355d680327` to the retained staging issuer,
+version `f7ce105d-291c-4da4-b95f-0bb27e43ab8f`, at 100 percent traffic.
+The first-party staging health endpoint returns envelope v2 and the activation
+route rejects an invalid request with HTTP 400. The existing Stripe destination
+now points to `https://curfew-license-staging.hypertext.studio/`, retaining its
+three selected events and encrypted signing secret.
+
+The existing sandbox payment link has `curfew_sku=lifetime` metadata and its
+saved After payment redirect is temporarily
+`http://127.0.0.1:4325/success?session_id={CHECKOUT_SESSION_ID}`. The preview uses
+the deployed staging issuer and `curfew-dev` scheme; it is a real-provider check,
+not hosted website acceptance. The retained website staging Worker has no route
+or Git build, and GitHub's staging environment has no deployment credential.
+Unauthenticated access to the required GitHub npm package registry returns 401.
+Do not widen credentials or undo the paused Pages migration to conceal this gap.
+A hosted portal and sender-restricted staging recovery are still required for
+actual inbox restoration. Production sale availability remains unchanged.
+
+Rollback for the manual-entry interaction is reverting the Button/conditional
+content to the prior disclosure; stored keys and issuer behavior are unaffected.
