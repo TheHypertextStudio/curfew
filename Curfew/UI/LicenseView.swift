@@ -169,6 +169,7 @@ struct LicenseView: View {
         restoreRequestID = requestID
         let email = purchaseEmail
         Task {
+            guard showingRestore, restoreRequestID == requestID else { return }
             if await activation.restore(email: email), restoreRequestID == requestID {
                 showingRestore = false
             }

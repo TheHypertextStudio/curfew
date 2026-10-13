@@ -1,7 +1,7 @@
 import { isoSeconds, signLicenseKey } from "./crypto.js";
 import { invoicePeriodEnd, nowSeconds, subscriptionIDFromInvoice } from "./stripe.js";
 import type { Env } from "./types.js";
-import { indexPurchase } from "./purchases.js";
+import { indexPurchase, payload } from "./purchases.js";
 
 const graceSeconds = 3 * 24 * 60 * 60;
 const provisionalSubscriptionSeconds = 33 * 24 * 60 * 60;
@@ -53,13 +53,20 @@ export async function handleInvoicePaid(event: any, env: Env): Promise<boolean> 
   const periodEnd = invoicePeriodEnd(invoice);
   const email = String(invoice.customer_email ?? invoice.customer_details?.email ?? "");
   if (!subscriptionID || !periodEnd || !email) return false;
-  const token = await env.LICENSE_KV.get(`subtoken:${subscriptionID}`);
+  const sessionID = await env.LICENSE_KV.get(`subsession:${subscriptionID}`);
+  const existing = sessionID ? await env.LICENSE_KV.get(`session:${sessionID}`) : null;
+  const purchase = existing ? payload(existing) : null;
+  const token = await env.LICENSE_KV.get(`subtoken:${subscriptionID}`) ??
+    (purchase?.plan === "subscription" ? purchase.refresh_token : null);
   if (!token) {
     await env.LICENSE_KV.put(`subpending:${subscriptionID}`, String(periodEnd));
     return true;
   }
-  const sessionID = await env.LICENSE_KV.get(`subsession:${subscriptionID}`);
+  // Signed invoice replays may arrive out of order. Preserve the latest paid
+  // period, including a snapshot repaired after a historical cancellation.
+  if (purchase?.expires_at && Date.parse(purchase.expires_at) >= (periodEnd + graceSeconds) * 1000) return true;
   const key = await mintSubscriptionKey(env, email, sessionID ?? subscriptionID, token, periodEnd);
+  await env.LICENSE_KV.put(`period:${token}:${periodEnd}`, key);
   await env.LICENSE_KV.put(`refresh:${token}`, key);
   if (sessionID) await env.LICENSE_KV.put(`session:${sessionID}`, key);
   return true;

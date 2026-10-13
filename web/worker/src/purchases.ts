@@ -1,4 +1,4 @@
-import { base64url } from "./crypto.js";
+import { base64url, base64urlDecode } from "./crypto.js";
 import type { Env } from "./types.js";
 
 const ticketSeconds = 15 * 60;
@@ -27,13 +27,13 @@ async function ticket(env: Env, owner: Omit<Ticket, "expiresAt">): Promise<strin
   return token;
 }
 
-interface LicensePayload { plan: "lifetime" | "subscription"; refresh_token?: string; expires_at?: string }
+interface LicensePayload { plan: "lifetime" | "subscription"; email: string; refresh_token?: string; expires_at?: string }
 
-function payload(key: string): LicensePayload | null {
+export function payload(key: string): LicensePayload | null {
   try {
-    const value = JSON.parse(atob(key.split(".")[0].replace(/-/g, "+").replace(/_/g, "/")));
+    const value = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(base64urlDecode(key.split(".")[0])));
     const plan = value.plan ?? "lifetime";
-    if (!(value.product === "curfew-plus" || (value.product === "curfew-pro" && plan === "lifetime")) ||
+    if (typeof value.email !== "string" || !(value.product === "curfew-plus" || (value.product === "curfew-pro" && plan === "lifetime")) ||
       !(plan === "lifetime" || plan === "subscription")) return null;
     return { ...value, plan };
   } catch { return null; }
@@ -43,7 +43,22 @@ async function currentKey(env: Env, sessionID: string): Promise<string | null> {
   const key = await env.LICENSE_KV.get(`session:${sessionID}`);
   if (!key) return null;
   const token = payload(key)?.refresh_token;
-  return token ? (await env.LICENSE_KV.get(`refresh:${token}`)) ?? key : key;
+  return token ? currentSubscriptionKey(env, token, key) : key;
+}
+
+export async function currentSubscriptionKey(env: Env, token: string, fallback?: string): Promise<string | null> {
+  // Invoice periods are immutable. Concurrent webhook completions may replace
+  // a convenience pointer out of order, but cannot erase a later paid period.
+  const periods = await env.LICENSE_KV.list({ prefix: `period:${token}:`, limit: 1000 });
+  if (!periods.list_complete) return null;
+  const candidates = [fallback, await env.LICENSE_KV.get(`refresh:${token}`),
+    ...await Promise.all(periods.keys.map(({ name }) => env.LICENSE_KV.get(name)))];
+  return candidates.filter((key): key is string => {
+    if (!key) return false;
+    const purchase = payload(key);
+    return purchase?.plan === "subscription" && purchase.refresh_token === token &&
+      Number.isFinite(Date.parse(purchase.expires_at ?? ""));
+  }).sort((a, b) => Date.parse(payload(b)!.expires_at!) - Date.parse(payload(a)!.expires_at!))[0] ?? null;
 }
 
 async function restoredKey(env: Env, emailHash: string): Promise<string | null> {
