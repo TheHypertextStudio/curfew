@@ -1371,3 +1371,12 @@ Both regression cases failed before implementation on remote run 38114876113.
 `ConsentPresentationTests.exhaustedExtension` and source binding/fixture check
 cover the disabled action and reason. Ten preflight families include an actual
 exhausted consent sheet in four appearance/size combinations. No local app launch.
+
+Website identity: `landing/tests/unit/design.test.mjs` verifies the shared
+design source, user-facing product proposition, real navigation pages, and
+absence of the standalone MCP fixture. `scripts/landing-contract.test.mjs`
+preserves account navigation and legal policy assertions. The Astro build and
+`landing/tests/acceptance/site.spec.mjs` cover rendered routes, keyboard
+navigation, and imagery in Chromium, Firefox, and WebKit. Manual phone/desktop
+light/dark captures cover layout and overflow. No native app or account
+backend behavior changes; rollback by restoring the previous website commit.

@@ -1,7 +1,17 @@
 import { expect, test } from '@playwright/test';
 
 test('retained routes and HTML aliases survive direct visits and refresh', async ({ page }) => {
-  for (const name of ['privacy', 'terms', 'security', 'retention', 'refund', 'docs', 'success']) {
+  for (const name of [
+    'privacy',
+    'terms',
+    'security',
+    'retention',
+    'refund',
+    'docs',
+    'success',
+    'download',
+    'support',
+  ]) {
     for (const suffix of ['', '.html']) {
       const response = await page.goto(`/${name}${suffix}`);
       expect([200, 304], `${name}${suffix}`).toContain(response.status());
@@ -11,23 +21,26 @@ test('retained routes and HTML aliases survive direct visits and refresh', async
   }
 });
 
-test('marketing content, download boundaries and original styles remain', async ({ page }) => {
+test('the landing communicates the curfew and retains the shared design', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'A hard stop for your Mac.' })).toBeVisible();
-  await expect(page.locator('.nav-account')).toHaveAttribute('href', '/account');
-  await expect(page.locator('#download')).toContainText('Android support is coming soon.');
-  expect(
-    await page.locator('body').evaluate((node) => getComputedStyle(node).fontFamily),
-  ).toContain('sans-serif');
-  expect(await page.locator('.lockout-shot').evaluate((node) => node.naturalWidth)).toBeGreaterThan(
-    0,
+  await expect(page.getByRole('heading', { name: 'Call it a day.' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Account', exact: true })).toHaveAttribute(
+    'href',
+    '/account',
   );
-  expect(await page.locator('script').count()).toBe(3);
+  await expect(page.getByText(/Cross-platform sync is coming soon/)).toBeVisible();
+  expect(await page.locator('h1').evaluate((node) => getComputedStyle(node).fontFamily)).toContain(
+    'Calistoga',
+  );
+  expect(
+    await page.locator('.schedule-image').evaluate((node) => node.naturalWidth),
+  ).toBeGreaterThan(0);
+  await expect(page.locator('.assistant-example')).toHaveCount(0);
 });
 
 test('existing HTML guide keeps anchors and navigation history', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('link', { name: 'Docs', exact: true }).click();
+  await page.getByRole('link', { name: 'Guides', exact: true }).first().click();
   await expect(page.locator('#claude-desktop')).toBeVisible();
   await page.locator('.docs-sidebar a[href="#command-line"]').click();
   await expect(page).toHaveURL(/#command-line$/);
@@ -63,13 +76,11 @@ test('keyboard access and reduced motion use the same real links', async ({
   await page.goto('/');
   // WebKit on macOS uses Option+Tab to include links when Full Keyboard Access is off.
   const nextLink = browserName === 'webkit' ? 'Alt+Tab' : 'Tab';
+  const account = page.getByRole('link', { name: 'Account', exact: true });
+  await account.focus();
+  await expect(account).toBeFocused();
   await page.keyboard.press(nextLink);
-  await expect(page.locator('.nav-account')).toBeFocused();
-  await page.keyboard.press(nextLink);
-  await page.keyboard.press(nextLink);
-  await expect(page.getByRole('link', { name: 'Download free', exact: true })).toBeFocused();
-  await page.keyboard.press('Enter');
-  await expect(page).toHaveURL(/#download$/);
+  await expect(page.getByRole('link', { name: 'Download for Mac' }).first()).toBeFocused();
 });
 
 test('unknown URLs remain 404', async ({ request }) => {

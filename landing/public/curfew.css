@@ -1,0 +1,545 @@
+/* Proximity roles: copy, actions, feature groups, then chapter transitions. */
+.home-page {
+  --feature-copy-gap: var(--space-2);
+  --feature-action-gap: var(--space-3);
+  --feature-group-gap: var(--space-5);
+  --chapter-gap: clamp(3rem, 5vw, 5rem);
+  --scene-content-inset: calc(var(--section-space) + var(--space-6));
+}
+/* Page composition uses the shared landscape and component roles. */
+.opening-scene {
+  background: var(--chapter-surface);
+}
+.hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background: var(--surface);
+}
+.sky {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 95% 32% at 20% 110%, var(--chapter-surface) 99.5%, transparent 100%),
+    radial-gradient(ellipse 85% 36% at 110% 110%, var(--landscape-distant) 99.5%, transparent 100%),
+    radial-gradient(
+      circle var(--hero-sun-radius) at 82% 96%,
+      var(--landscape-sun) 99.5%,
+      transparent 100%
+    );
+}
+.sky::after,
+.evening-scene::after,
+.opening-scene::before,
+.footer-landscape::after {
+  display: none;
+}
+.hero-content {
+  min-height: 740px;
+  padding-block: var(--space-8) 200px;
+}
+.hero h1 {
+  max-width: none;
+  font-size: var(--type-display);
+}
+.hero-description {
+  color: var(--on-surface);
+  font-size: var(--type-lead);
+  margin-block: var(--hero-copy-gap) var(--space-6);
+  max-width: var(--measure-copy);
+}
+.hero .supporting {
+  margin-top: var(--space-4);
+  color: var(--on-surface);
+}
+.product,
+.enforcement {
+  display: grid;
+  align-items: center;
+  gap: var(--layout-gap);
+  padding-block: var(--section-space);
+}
+.product {
+  grid-template-columns: 0.85fr 1.5fr;
+  --on-surface: var(--chapter-on-surface);
+  --on-surface-variant: var(--chapter-on-surface-variant);
+  color: var(--on-surface);
+  padding-top: var(--space-6);
+  padding-bottom: var(--section-space);
+}
+.product-heading p {
+  max-width: var(--measure-copy);
+  margin-top: var(--feature-copy-gap);
+  font-size: var(--type-lead);
+}
+.product-capture {
+  min-width: 0;
+  border-radius: var(--radius-small);
+  box-shadow: var(--capture-shadow);
+}
+.product-capture a,
+.product-capture img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: inherit;
+}
+.evening-scene {
+  position: relative;
+  isolation: isolate;
+  background: transparent;
+  --on-surface: var(--evening-on-surface);
+  --on-surface-variant: var(--evening-on-surface-variant);
+  --divider-color: var(--evening-divider);
+  --primary: var(--footer-action);
+  --focus-color: var(--footer-action);
+  color: var(--on-surface);
+}
+.evening-scene::before {
+  content: '';
+  position: absolute;
+  inset: 0 -12px -12px;
+  background: var(--evening-surface);
+  border-radius: 65% 35% 0 0 / var(--space-9) var(--space-9) 0 0;
+  filter: var(--landscape-edge-filter);
+  pointer-events: none;
+  z-index: -1;
+}
+.evening-scene::after {
+  z-index: -1;
+}
+.enforcement {
+  row-gap: var(--feature-group-gap);
+  padding-bottom: var(--chapter-gap);
+  grid-template-columns: 1.3fr 1fr;
+}
+.enforcement .product-capture {
+  box-shadow: 0 24px 56px #100d1b50;
+}
+.steps {
+  grid-column: 1/-1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  margin-top: 0;
+  padding-top: 0;
+  gap: var(--feature-group-gap) var(--layout-gap);
+}
+.steps article {
+  padding-inline: var(--space-6);
+  border-left: var(--stroke) solid var(--divider-color);
+}
+.steps article:first-child {
+  border: 0;
+  padding-left: 0;
+}
+.steps article:last-child {
+  padding-right: 0;
+}
+.steps p {
+  margin-top: var(--feature-copy-gap);
+  max-width: var(--measure-copy);
+}
+.questions {
+  padding-block: 0;
+}
+@media (max-width: 900px) {
+  .product,
+  .enforcement {
+    gap: var(--space-6);
+  }
+  .hero-content {
+    min-height: 700px;
+  }
+  .sky {
+    --hero-sun-radius: 20vw;
+  }
+}
+@media (max-width: 700px) {
+  :root {
+    --type-display: clamp(4.3rem, 18vw, 6.5rem);
+    --type-lead: 1.0625rem;
+  }
+  .site-header {
+    min-height: 80px;
+  }
+  .wordmark {
+    font-size: 1.75rem;
+  }
+  .hero-content {
+    min-height: 730px;
+    padding-block: var(--space-7) 300px;
+  }
+  .sky {
+    --hero-sun-radius: 10rem;
+    background:
+      radial-gradient(ellipse 140% 20% at 0% 106%, var(--chapter-surface) 99.5%, transparent 100%),
+      radial-gradient(
+        ellipse 140% 24% at 125% 112%,
+        var(--landscape-distant) 99.5%,
+        transparent 100%
+      ),
+      radial-gradient(
+        circle var(--hero-sun-radius) at 84% calc(100% - 140px),
+        var(--landscape-sun) 99.5%,
+        transparent 100%
+      );
+  }
+  .hero-description {
+    margin-block: var(--space-5);
+  }
+  .product,
+  .enforcement {
+    grid-template-columns: 1fr;
+    gap: var(--space-6);
+  }
+  .product {
+    padding-top: var(--space-5);
+  }
+  .product-heading p {
+    margin-top: var(--feature-copy-gap);
+  }
+  .enforcement .product-heading {
+    grid-row: 1;
+  }
+  .steps {
+    grid-column: auto;
+    grid-template-columns: 1fr;
+    margin-top: 0;
+    padding-top: 0;
+  }
+  .steps article,
+  .steps article:first-child,
+  .steps article:last-child {
+    border: 0;
+    padding: 0;
+  }
+  .steps article:last-child {
+    border: 0;
+    padding-bottom: 0;
+  }
+  .steps p {
+    max-width: 100%;
+    margin-top: var(--space-2);
+  }
+  .questions summary {
+    font-size: 0.9375rem;
+  }
+}
+@media (forced-colors: active) {
+  .evening-scene::before,
+  .evening-scene::after {
+    display: none;
+  }
+}
+
+/* The captured Mac window already supplies its own edge. */
+.schedule-capture,
+.schedule-capture a,
+.schedule-capture img {
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.schedule-capture img {
+  border-radius: var(--capture-window-radius);
+}
+
+.footer-scene .footer-bottom {
+  border-top: 0;
+}
+
+/* Texture follows the silhouette contours; content stays outside the filter. */
+.opening-scene {
+  position: relative;
+  isolation: isolate;
+}
+.questions {
+  display: grid;
+  grid-template-columns: 1fr 1.3fr;
+  gap: var(--layout-gap);
+  align-items: start;
+}
+.questions h2 {
+  font-size: clamp(2.5rem, 3.5vw, 3.5rem);
+}
+.question-list {
+  min-width: 0;
+}
+.question-list details:first-child summary {
+  padding-top: var(--space-2);
+}
+@media (max-width: 700px) {
+  .questions {
+    grid-template-columns: 1fr;
+    gap: var(--space-6);
+  }
+}
+@media (forced-colors: active) {
+  .opening-scene::before {
+    display: none;
+  }
+}
+
+/* One complete softened fill owns the evening transition. */
+.opening-scene {
+  padding-bottom: var(--space-9);
+}
+.evening-scene {
+  margin-top: calc(-1 * var(--space-9));
+  overflow-x: clip;
+  overflow-y: visible;
+}
+.questions h2 {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.hero .button {
+  max-width: 100%;
+}
+
+.sky,
+.footer-landscape {
+  inset: -12px;
+  filter: var(--landscape-edge-filter);
+}
+
+.home-page .site-header {
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 2;
+}
+.home-page .hero-content {
+  min-height: 836px;
+  padding-top: calc(96px + var(--space-8));
+}
+@media (max-width: 900px) and (min-width: 701px) {
+  .home-page .hero-content {
+    min-height: 796px;
+  }
+}
+@media (max-width: 700px) {
+  .home-page .hero-content {
+    min-height: 810px;
+    padding-top: calc(80px + var(--space-7));
+  }
+}
+
+/* The same light and contour material carries from the opening to the close. */
+.sky[data-renderer='webgl'],
+.footer-landscape[data-renderer='webgl'] {
+  inset: 0;
+  background: none;
+  filter: none;
+}
+.sky canvas,
+.footer-landscape canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.sky canvas[hidden],
+.footer-landscape canvas[hidden] {
+  display: none;
+}
+.product::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 40% 45% at 60% 50%,
+    var(--scene-product-light),
+    transparent 100%
+  );
+  pointer-events: none;
+}
+.home-page .hero-content {
+  min-height: 0;
+  padding-bottom: var(--hero-landscape-reserve);
+}
+.product {
+  position: relative;
+  isolation: isolate;
+  padding-top: var(--space-7);
+  padding-bottom: var(--section-space);
+}
+.enforcement {
+  padding-top: var(--scene-content-inset);
+}
+.footer-scene {
+  background: var(--footer-surface);
+}
+@media (max-width: 700px) {
+  .home-page .hero-content {
+    min-height: 0;
+    padding-bottom: 240px;
+  }
+  .opening-scene {
+    background: var(--chapter-surface);
+  }
+  .product {
+    padding-top: var(--space-5);
+  }
+}
+
+.connections {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--feature-group-gap) var(--layout-gap);
+  padding-block: 0 var(--chapter-gap);
+}
+.connections h2 {
+  grid-column: 1 / -1;
+}
+.connections article {
+  max-width: 28rem;
+}
+.connections p {
+  margin-block: var(--feature-copy-gap) var(--feature-action-gap);
+  color: var(--on-surface-variant);
+}
+.connections a {
+  color: var(--footer-action);
+  text-underline-offset: 0.25em;
+}
+.connections a span {
+  display: inline-block;
+  margin-left: var(--space-2);
+}
+@media (max-width: 700px) {
+  .connections {
+    grid-template-columns: 1fr;
+    gap: var(--feature-group-gap);
+  }
+}
+
+.connection-diagram {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--evening-on-surface);
+}
+.connection-map {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+.connection-map-compact {
+  display: none;
+}
+.connection-paths {
+  fill: none;
+  stroke: var(--connection-line);
+  stroke-width: var(--connection-line-width);
+}
+.connection-future {
+  stroke-dasharray: 5 7;
+}
+.connection-icon {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.connection-map text {
+  fill: currentColor;
+  text-anchor: middle;
+  font-family: var(--body);
+  font-size: 18px;
+}
+.connection-map .connection-detail {
+  fill: var(--evening-on-surface-variant);
+  font-size: 14px;
+}
+.connection-map .connection-brand {
+  font-family: var(--display);
+  font-size: 28px;
+}
+.connection-hub {
+  fill: var(--connection-hub-surface);
+  filter: var(--landscape-edge-filter);
+}
+@media (max-width: 700px) {
+  .connection-map-wide {
+    display: none;
+  }
+  .connection-map-compact {
+    display: block;
+    max-width: 26rem;
+    margin-inline: auto;
+  }
+  .connection-map .connection-label {
+    font-size: 16px;
+  }
+  .connection-map .connection-detail {
+    font-size: 12px;
+  }
+}
+@media (forced-colors: active) {
+  .connection-hub {
+    fill: Canvas;
+    stroke: CanvasText;
+    filter: none;
+  }
+  .connection-paths,
+  .connection-icon {
+    stroke: CanvasText;
+  }
+  .connection-map text {
+    fill: CanvasText;
+  }
+}
+
+.product-heading,
+.connections article,
+.steps article {
+  min-width: 0;
+}
+
+/* Keep controls and labels inside their groups, with one gap between chapters. */
+.home-page .enforcement {
+  row-gap: var(--feature-group-gap);
+}
+.home-page .footer-directory {
+  padding-top: var(--closing-content-inset);
+}
+.home-page .footer-directory nav h2 {
+  margin-bottom: 0;
+}
+.home-page .footer-invitation h2 {
+  margin-bottom: var(--feature-group-gap);
+}
+.home-page .footer-directory nav {
+  gap: var(--feature-action-gap);
+}
+
+/* Enforcement establishes the boundary; scheduling and flexibility follow in one scene. */
+.evening-scene .product {
+  --on-surface: var(--evening-on-surface);
+  --on-surface-variant: var(--evening-on-surface-variant);
+  margin-top: 0;
+  padding-block: 0 var(--chapter-gap);
+  row-gap: var(--feature-group-gap);
+}
+.evening-scene .product::before {
+  content: none;
+}
+
+/* A compact FAQ rhythm gives way to the separate closing landscape. */
+.questions {
+  padding-bottom: var(--space-6);
+}
+.question-list summary {
+  padding-block: var(--faq-row-padding);
+}
+.question-list details p {
+  padding-bottom: var(--space-4);
+}
+@media (max-width: 700px) {
+  .questions {
+    gap: var(--feature-group-gap);
+  }
+}

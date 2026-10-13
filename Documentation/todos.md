@@ -1123,3 +1123,16 @@ asserts its own screen and state before attaching an image.
   rejection refreshes the displayed allowance and records a denied extension.
   Consent explains the weekly limit and disables approval; remote verification
   of the final guard and its four visual captures remains required before merge.
+
+## Website visual identity release
+
+- [x] Bring the Curfew landing, legal pages, Download, and Support onto one
+  token-based, responsive light/dark design shell in the current Astro site.
+  Preserve the existing policy text and Mintlify integration.
+- [x] Remove the standalone MCP fixture from marketing. The connection diagram
+  and copy identify Claude, ChatGPT, and Codex without claiming a captured
+  conversation.
+- [ ] Add a real assistant-host conversation capture after an actual Curfew tool
+  interaction is available and reviewed.
+- [ ] Confirm account route ownership and the full hosted sign-in/recovery flow
+  before presenting the account UI as a production-ready entry point.
