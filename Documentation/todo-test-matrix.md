@@ -1505,5 +1505,8 @@ changes; rollback restores the prior landing release and docs commit.
 - `Actual provider and installed-app behavior matches the new path.`
   - `Documentation/plus-activation.md`: provider/signer pairing, test checkout,
     actual sandbox checkout, matching public signer and authenticated restore
-    inbox delivery are recorded. Cold/warm app opening, native restoration and
-    final distribution remain pending.
+    inbox delivery, actual native Debug checkout/restoration, cold opening and
+    retained entitlement after a fresh process launch are recorded. Owner-clicked
+    signed candidate activation and retained entitlement also pass. The signed
+    native restore form delivered its real email; its final owner click and
+    production distribution remain pending.
