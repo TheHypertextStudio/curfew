@@ -7,6 +7,18 @@ nonisolated protocol LicenseServicing: Sendable {
 }
 
 nonisolated enum LicenseEndpoint {
+    static let currentFlavor = buildFlavor(
+        bundleIdentifier: Bundle.main.bundleIdentifier,
+        executableURL: Bundle.main.executableURL
+    )
+
+    /// Licensing trusts the installed build identity, never inherited helper overrides.
+    static func buildFlavor(bundleIdentifier: String?, executableURL: URL? = nil) -> CurfewFlavor {
+        CurfewFlavor.resolve(
+            environment: [:], bundleIdentifier: bundleIdentifier, executableURL: executableURL
+        )
+    }
+
     static func url(for flavor: CurfewFlavor) -> URL {
         switch flavor {
         case .production: URL(string: "https://curfew-license.hypertext.studio")!
@@ -17,7 +29,7 @@ nonisolated enum LicenseEndpoint {
 }
 
 nonisolated struct LicenseService: LicenseServicing {
-    var baseURL = LicenseEndpoint.url(for: .current)
+    var baseURL = LicenseEndpoint.url(for: LicenseEndpoint.currentFlavor)
     var session = URLSession.shared
 
     func redeem(ticket: String) async throws -> String {
