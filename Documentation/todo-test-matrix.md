@@ -1,5 +1,23 @@
 # Todo Test Matrix
 
+## Renewed account connection handoff
+
+`AccountStatusSyncTests.testRenewedCredentialsReconnectRejectedTransportWithoutLosingPendingChanges`
+reproduces the rejected-but-active engine and checks a fresh connection plus
+preserved pending encryption. The maintenance-paused regression prohibits
+resuming during repair. Both run against the production engine in the existing
+hostless harness, with an injected transport; only its production default
+initializer lives with the native adapter. `ReadyAccountReauthorizationSafetyTests`
+checks explicit success and cancellation outcomes; these app integration tests
+run in isolated CI, not by launching a test app on the user's desktop.
+Installed success requires fresh Codex device status, not merely passing tests.
+
+CI 38355685931 passed 998 native cases and failed the existing root-key health
+test because its offline callback did not arrive within 200ms on the loaded
+runner. That test now awaits the actual native reconciliation operation and
+asserts offline, no healthy callback, and an unhealthy peer-key channel. It does
+not increase a timeout or replace the transport with a simulated result.
+
 ## CI action version assertions
 
 `scripts/release-entitlements.test.mjs` checks that failed CI checks preserve

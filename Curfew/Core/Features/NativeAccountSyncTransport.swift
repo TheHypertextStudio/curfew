@@ -2,6 +2,12 @@ import CurfewKit
 import CurfewProtocols
 import Foundation
 
+extension AccountSyncEngine {
+    convenience init() {
+        self.init(transport: NativeAccountSyncTransport())
+    }
+}
+
 enum NativeAccountSyncError: Error {
     case missingCredentials
     case invalidResponse

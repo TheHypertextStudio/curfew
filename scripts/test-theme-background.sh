@@ -9,6 +9,8 @@ for source in UI/CurfewTheme.swift UI/Destinations/SundownType.swift UI/Sundown/
     ln -sfn "$repo_root/Curfew/$source" "$theme_package/Sources/Curfew/$(basename "$source")"
 done
 ln -sfn "$repo_root/Curfew/App/Infrastructure/PrivilegedHelperMaintenance.swift" "$theme_package/Sources/Curfew/PrivilegedHelperMaintenance.swift"
+ln -sfn "$repo_root/Curfew/Core/Features/AccountSyncEngine.swift" "$theme_package/Sources/Curfew/AccountSyncEngine.swift"
+ln -sfn "$repo_root/CurfewTests/Core/Sync/AccountStatusSyncTests.swift" "$theme_package/Tests/ThemeTests/AccountStatusSyncTests.swift"
 ln -sfn "$repo_root/Curfew/App/Infrastructure/AppServiceController.swift" "$theme_package/Sources/Curfew/AppServiceController.swift"
 ln -sfn "$repo_root/Curfew/App/Infrastructure/HelperReadAuthorization.swift" "$theme_package/Sources/Curfew/HelperReadAuthorization.swift"
 ln -sfn "$repo_root/Curfew/App/Infrastructure/PrivilegedHelperManager+Repair.swift" "$theme_package/Sources/Curfew/PrivilegedHelperManager+Repair.swift"

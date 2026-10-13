@@ -3,14 +3,15 @@ import Foundation
 
 @MainActor
 extension AccountEnrollmentController {
-    func reconnectEnrolledMac(_ enrollment: AccountDeviceEnrollment) async {
+    @discardableResult
+    func reconnectEnrolledMac(_ enrollment: AccountDeviceEnrollment) async -> Bool {
         switch state {
         case .accountFree:
             break
         case .ready(let saved) where saved == enrollment:
             break
         default:
-            return
+            return false
         }
         let owner: RemoteCommandEnrollment
         do {
@@ -19,12 +20,12 @@ extension AccountEnrollmentController {
                   !saved.userID.isEmpty
             else {
                 enrollmentRetryError = AccountEnrollmentFailureCopy.unanchoredCheckpoint
-                return
+                return false
             }
             owner = saved
         } catch {
             enrollmentRetryError = AccountEnrollmentFailureCopy.unanchoredCheckpoint
-            return
+            return false
         }
         signInCancellationRequested = false
         state = .signingIn
@@ -35,19 +36,22 @@ extension AccountEnrollmentController {
                 try AccountEnrollmentPendingStore(secretStore: secretStore).markReady(enrollment)
             } catch {
                 state = .storageUnavailable
-                return
+                return false
             }
             enrollmentRetryError = nil
+            state = .ready(enrollment)
+            return true
         } catch AccountOAuthEnrollmentError.accountMismatch {
             enrollmentRetryError = AccountEnrollmentFailureCopy.wrongAccount
         } catch OAuthCredentialPersistenceError.storageUnavailable {
             state = .storageUnavailable
-            return
+            return false
         } catch is CancellationError {
             // The existing device and its credentials are untouched.
         } catch {
             enrollmentRetryError = AccountEnrollmentFailureCopy.reauthorization
         }
         state = .ready(enrollment)
+        return false
     }
 }

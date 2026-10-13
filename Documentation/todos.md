@@ -1,5 +1,27 @@
 # Curfew Implementation TODOs
 
+## Renewed account connection handoff (2026-10-12)
+
+- [x] Resume the native transport after successful same-account reauthentication.
+  The previous flow persisted credentials but left the rejected transport stopped
+  and the engine active, so another ordinary start was ignored. Reauthentication
+  now returns explicit success; Connections checks the enrollment is unchanged
+  and drains/restarts transport. Cancellation and failure do not restart it.
+  Pending encrypted changes survive; maintenance and intervening lifecycle
+  changes prevent a stale restart. The actual engine regression failed first
+  with one connection instead of two and a still-rejected status, then passed
+  in the existing background harness. At 06:13:31Z the signed installed update
+  reports online with fresh disarmed status through the actual Codex connector.
+  A second interactive reauthentication is not claimed. No wire, version,
+  enrollment, permission, or enforcement change is introduced. Rollback is the
+  prior signed app with stored credentials and all device state preserved.
+  CI also exposed two enforcement fixtures that never enabled enforcement and
+  an overlong helper explanation; the fixtures now explicitly enable their
+  isolated models, and the permission explanation uses the existing footer.
+  The authorization prompt key now has explicit C-string lifetime through the
+  system call, resolving a compiler pointer-lifetime warning without adding
+  rights or another prompt.
+
 ## CI action version assertions (2026-10-12)
 
 - [x] Accept numeric major, minor, and patch action tags in the unit-test

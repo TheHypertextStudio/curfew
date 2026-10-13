@@ -5,6 +5,37 @@ import XCTest
 
 @MainActor
 final class AccountStatusSyncTests: XCTestCase {
+    func testRenewedCredentialsDoNotResumeMaintenancePausedConnection() async {
+        let transport = RecordingAccountSyncTransport()
+        let engine = AccountSyncEngine(transport: transport)
+        let enrollment = AccountDeviceEnrollment(deviceID: UUID(), keyEpoch: 1, enrolledAt: Date())
+        engine.start(enrollment: enrollment)
+        await engine.pauseForMaintenance()
+
+        await engine.reconnectAfterAuthentication(enrollment: enrollment)
+
+        XCTAssertEqual(transport.connectionCount, 1)
+        XCTAssertTrue(engine.isMaintenancePaused)
+        XCTAssertFalse(engine.isActive)
+    }
+
+    func testRenewedCredentialsReconnectRejectedTransportWithoutLosingPendingChanges() async {
+        let transport = RecordingAccountSyncTransport()
+        let engine = AccountSyncEngine(transport: transport)
+        let enrollment = AccountDeviceEnrollment(deviceID: UUID(), keyEpoch: 1, enrolledAt: Date())
+        engine.start(enrollment: enrollment)
+        engine.noteLocalSettingsChanged()
+        transport.sendRejected(AccountSyncRejectionReason.signInRequired)
+
+        await engine.reconnectAfterAuthentication(enrollment: enrollment)
+
+        XCTAssertEqual(transport.connectionCount, 2)
+        XCTAssertEqual(transport.disconnectCount, 1)
+        XCTAssertEqual(engine.syncStatus, .connecting)
+        transport.sendSuccessfulPoll(at: Date())
+        XCTAssertEqual(engine.syncStatus, .pendingEncryption)
+    }
+
     func testAccountSyncPublishesStatusThroughTheEnrolledTransport() throws {
         let deviceID = try XCTUnwrap(
             UUID(uuidString: "018f4f45-cafe-7f00-9a82-e47805fb4d35")
@@ -166,12 +197,15 @@ private final class RecordingAccountSyncTransport: AccountSyncTransporting {
     }
 
     private(set) var statuses: [Status] = []
+    private(set) var connectionCount = 0
+    private(set) var disconnectCount = 0
     private var onRemoteCommandResult: ((RemoteCommandResult) -> Void)?
     private var onSynchronized: ((Date) -> Void)?
     private var onOffline: (() -> Void)?
     private var onFailure: ((String) -> Void)?
 
     func connect(deviceID _: UUID, callbacks: AccountSyncTransportCallbacks) {
+        connectionCount += 1
         onSynchronized = callbacks.onSynchronized
         onOffline = callbacks.onOffline
         onFailure = callbacks.onFailure
@@ -198,5 +232,7 @@ private final class RecordingAccountSyncTransport: AccountSyncTransporting {
         statuses.append(Status(report: report, deviceID: deviceID))
     }
 
-    func disconnect() {}
+    func disconnect() {
+        disconnectCount += 1
+    }
 }

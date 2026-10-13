@@ -70,7 +70,7 @@ struct DeviceStatusWiringTests {
             unlockDate: nil
         )
 
-        model.tick()
+        model.start()
         await harness.settle()
 
         #expect(model.state.phase == .locked)
@@ -98,7 +98,7 @@ struct DeviceStatusWiringTests {
             lockDate: nil,
             unlockDate: nil
         )
-        model.tick()
+        model.start()
 
         model.lockoutDeadlineStore.clear()
         model.settings.schedule = DeviceStatusWiringHarness.allDaysOff

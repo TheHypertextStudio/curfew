@@ -39,7 +39,8 @@ extension AccountEnrollmentReauthorizationTests {
 
         controller.cancelSignIn()
         oauth.resumeFirstAttempt()
-        await first.value
+        let renewed = await first.value
+        #expect(!renewed)
         #expect(controller.state == .ready(fixture.enrollment))
         #expect(try fixture.secrets.data(for: "oauth-refresh-token") == Data("old-refresh".utf8))
     }
@@ -69,8 +70,9 @@ extension AccountEnrollmentReauthorizationTests {
         )
         #expect(controller.state == .accountFree)
 
-        await controller.reconnectEnrolledMac(fixture.enrollment)
+        let renewed = await controller.reconnectEnrolledMac(fixture.enrollment)
 
+        #expect(renewed)
         #expect(controller.state == .ready(fixture.enrollment))
         #expect(try fixture.pending.load() == .ready(fixture.enrollment))
         #expect(oauth.expectedAccountUserID == "original-account")
