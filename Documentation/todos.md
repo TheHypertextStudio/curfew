@@ -1502,8 +1502,8 @@ asserts its own screen and state before attaching an image.
       after normal relaunch.
 - [x] Verify owner-clicked activation and retained entitlement in the exact
       signed Studio Dev candidate, using its existing signing profile.
-- [-] Finish signed native restoration. The form delivered the real inbox link;
-      browser policy requires the owner to click the prepared restore action.
+- [x] Verify signed native restoration from its real inbox link. The owner-clicked
+      handoff shows active, verified lifetime access in the exact candidate.
 - [-] Configure the GitHub production release path. Known team/account IDs are
       saved; approved Apple and deployment credential sources remain pending.
 - [ ] Ship the verified client/service/site together, then update published help
