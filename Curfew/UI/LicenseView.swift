@@ -125,6 +125,8 @@ struct LicenseView: View {
 
             if manualEntryExpanded {
                 TextField("License key", text: $keyDraft)
+                    .accessibilityLabel("License key")
+                    .accessibilityIdentifier("license-key-input")
                     .font(CurfewTypography.body(13))
                     .textFieldStyle(.roundedBorder)
                     .disableAutocorrection(true)

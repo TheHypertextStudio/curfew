@@ -1,4 +1,5 @@
 import { handleCheckoutCompleted, handleInvoicePaid, handleSubscriptionDeleted } from "./handlers.js";
+import { licensePublicKey } from "./crypto.js";
 import { subscriptionIDFromInvoice, verifyStripeSignature } from "./stripe.js";
 import type { Env } from "./types.js";
 import { currentSubscriptionKey, indexPurchase, json, payload, purchaseRequest } from "./purchases.js";
@@ -11,7 +12,13 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: json(null).headers });
-    if (request.method === "GET" && url.pathname === "/health") return json({ status: "ok", envelope_version: 2 });
+    if (request.method === "GET" && url.pathname === "/health") {
+      try {
+        return json({ status: "ok", envelope_version: 2, public_key: await licensePublicKey(env.LICENSE_PRIVATE_KEY) });
+      } catch {
+        return json({ error: "License signing is not configured" }, 503);
+      }
+    }
     if (request.method === "GET" && url.pathname === "/license") return getLicense(url, env, "session_id", "session");
     if (request.method === "GET" && url.pathname === "/license/refresh") return getLicense(url, env, "token", "refresh");
     if (request.method === "POST" && ["/license/activation", "/license/redeem", "/license/restore"].includes(url.pathname)) {

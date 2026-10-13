@@ -1196,6 +1196,8 @@ asserts its own screen and state before attaching an image.
 - [-] Host purchase acceptance on the existing website staging Worker at its
       dedicated hostname; deploy a checksum-verified static artifact without
       transferring package or Cloudflare credentials.
+- [-] Identify the retained staging signer through public-only health metadata
+      after the real sandbox purchase revealed a development key mismatch.
 - [ ] Finish native/browser acceptance, provider email setup, environment/signer
       pairing, and real Stripe test-mode checkout plus inbox restoration.
 - [ ] Ship the verified client/service/site together, then update published help
