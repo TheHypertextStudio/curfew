@@ -3,13 +3,27 @@ import Foundation
 import ServiceManagement
 
 extension PrivilegedHelperManager {
+    func installAndConnectDaemon() async {
+        guard !installationInProgress, !repairInProgress else { return }
+        installationInProgress = true
+        defer { installationInProgress = false }
+        installDaemon()
+        guard daemonStatus == .enabled else { return }
+        do {
+            try await verifyRepairedConnection(contextIsCurrent: { true })
+        } catch {
+            connectionState = .unavailable
+            lastError = error.localizedDescription
+        }
+    }
+
     func reconnectBackgroundProtection(
         quiesce: @escaping DaemonRegistrationRepair.Step,
         legacyAdmission: @escaping DaemonRegistrationRepair.Step,
         contextIsCurrent: @escaping @MainActor () -> Bool,
         resume: @escaping @MainActor () -> Void
     ) async {
-        guard !repairInProgress else { return }
+        guard !repairInProgress, !installationInProgress else { return }
         repairInProgress = true
         defer { repairInProgress = false }
         lastError = nil

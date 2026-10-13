@@ -6,6 +6,28 @@ import Testing
 
 @MainActor
 struct HelperRepairIntegrationTests {
+    @Test("Installation finishes by verifying the connection, without a second action")
+    func installationChecksConnection() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let heartbeat = root.appendingPathComponent("heartbeat")
+        try Data("alive".utf8).write(to: heartbeat)
+        let daemon = StubAppService(status: .notRegistered)
+        let manager = PrivilegedHelperManager(
+            daemonService: daemon,
+            loginItemService: StubAppService(status: .notRegistered),
+            daemonHeartbeatURL: heartbeat,
+            daemonRPC: StubDaemonRPC(statusResult: .success(PrivilegedDaemonStatus(
+                activeRecord: nil, lastHeartbeatAt: nil, shutdownIssued: false
+            )))
+        )
+        await manager.installAndConnectDaemon()
+        #expect(manager.connectionState == .ready)
+        #expect(daemon.registerCallCount == 1)
+        #expect(daemon.unregisterCallCount == 0)
+    }
+
     @Test("New arming cannot race asynchronous repair admission")
     func repairAdmissionPreventsNewArming() async {
         let rpc = StubDaemonRPC(statusResult: .failure(PrivilegedDaemonRPCError.unavailable))

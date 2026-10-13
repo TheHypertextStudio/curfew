@@ -76,6 +76,7 @@ final class PrivilegedHelperManager {
     /// Runtime health of the authenticated XPC channel, separate from launchd registration.
     var connectionState: ConnectionState = .unavailable
     var repairInProgress = false
+    var installationInProgress = false
     var maintenancePaused = false
     @ObservationIgnored let registrationRepair = DaemonRegistrationRepair()
 
