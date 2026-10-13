@@ -25,7 +25,10 @@ extension CurfewUITests {
             predicate: NSPredicate(format: "isEnabled == true"), object: restore
         )
         XCTAssertEqual(XCTWaiter.wait(for: [available], timeout: 3), .completed)
-        app.disclosureTriangles["Enter a license key"].click()
+        // The native disclosure's hit target is its arrow; the label midpoint
+        // exposed by XCTest does not expand the group on macOS.
+        app.disclosureTriangles["Enter a license key"]
+            .coordinate(withNormalizedOffset: CGVector(dx: 0.04, dy: 0.5)).click()
         XCTAssertTrue(app.textFields["License key"].waitForExistence(timeout: 3))
         XCTAssertFalse(app.buttons["Activate"].isEnabled)
     }
