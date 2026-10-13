@@ -440,3 +440,31 @@ Both staging build checks pass at evidence commit
 `f1cfb193d241374ece4267a8a37335e267103403`. Apple Developer inspection now has a
 working in-app sign-in page awaiting the owner; no private key was uploaded or
 new certificate created. The stale Chrome connection could not retain its tabs.
+
+### Verified Apple release account
+
+The owner completed Apple sign-in. The authenticated Studio account is Hypertext
+Studio, LLC, team `T95VDD3A4W`. It has Developer ID Application certificate
+`XVQ7Y8JRL8` and Developer-role team key **Studio Notarization**, ID `W7P5H42MGS`.
+The downloaded public certificate confirms the Studio team and has SHA-256
+fingerprint `D6D5BE372FF992DED26BA680E70F0C1AABC46A3D2EEDF7F01BBCB01227DFE124`.
+
+The local `AuthKey_K5G9T6UX59.p8` does not match that notarization key. Scoped
+configuration, Downloads, Documents and project-file searches, plus indexed
+filename lookup, found no matching notarization file or signing `.p12`/`.pfx`.
+No private key was uploaded, read from Keychain or regenerated. The verified
+issuer `fd6e9c9a-cb8f-49b0-accf-dce2180b1440` is now saved as
+`APPLE_API_ISSUER` in this repository's Actions secrets. Its production
+environment still has no secrets.
+
+Release source and the saved `APPLE_TEAM_ID` still name `39AB9DY3K8`. Changing
+them to the verified Studio team and provisioning dedicated CI signing and
+notarization credentials are awaiting the owner's requested confirmation. The
+prepared notarization key has the Developer role; Apple team API keys cover all
+apps in the team. Existing credentials are retained. The certificate form is
+prepared for the G2 Developer ID authority, with no CSR or certificate created.
+
+The Studio Cloudflare account lists an active **Curfew production GitHub
+Actions** token. This repository has no corresponding deployment secret. Token
+metadata alone does not provide its value or authorize reuse from another
+system; no Cloudflare credential was changed.

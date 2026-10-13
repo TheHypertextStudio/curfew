@@ -1857,3 +1857,8 @@ changes; rollback restores the prior landing release and docs commit.
     native restore form delivered its real email, and the owner-clicked handoff
     shows active, verified lifetime access in that candidate. Production
     distribution remains pending.
+  - Authenticated Apple account and downloaded public-certificate metadata
+    establish Studio team `T95VDD3A4W`, its existing signing certificate and
+    notarization key ID. GitHub secret metadata confirms the verified issuer is
+    configured. These checks establish setup metadata, not signing or notarization
+    success; private-file provisioning and team alignment remain unfinished.
