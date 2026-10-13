@@ -12,7 +12,8 @@ this test-only correction; hosted native CI remains separate acceptance.
 
 `HelperRepairIntegrationTests.installationChecksConnection` reproduces an
 installation returning while the connection stays unavailable. It failed before
-the installation action was made to await connection verification. The hostless
+the installation action was made to await connection verification. General and
+Connections now invoke that same asynchronous installation action. The hostless
 suite now passes 76 tests. Live installed helper connection was verified through
 both the app and launchd after the user's repair on October 12 at 22:53 Pacific.
 
