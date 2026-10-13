@@ -1,5 +1,25 @@
 # Todo Test Matrix
 
+## Daybreak test-window lifecycle
+
+`DaybreakOverlayReconciliationTests` checks that the borderless morning window
+accepts keyboard focus and a tick preserves the form view. The first two
+hosted parallel runs crashed before finishing all tests. The diagnostic serial
+run completed 1,004 tests and isolated the two SIGSEGV failures to this suite;
+its crash report faults in `objc_release`. Test windows now leave the screen
+with `orderOut(nil)`, matching `OverlayCoordinator.hideDaybreakWindows`, rather
+than calling `close()`. The next full hosted suite must pass with the normal
+parallel setting; a build-only result is not enough. The separate CI UI-capture
+job and the installed app are not used as unit-test hosts.
+
+`NativeAccountSyncOverrideCadenceTests.testOverridePollingContinuesWhileWakeStatusHangs`
+now proves event order: a wake-status request is observed and its response held
+pending, then two subsequent override polls are observed. Hosted CI
+38469181460 is the failing-first evidence for the old 150 ms wall-clock wait;
+1,005 other native tests passed. The new expectation deadline is a bounded
+deadlock guard, not an override-poll performance assertion. A passing hosted
+full suite is still required.
+
 ## Renewed account connection handoff
 
 `AccountStatusSyncTests.testRenewedCredentialsReconnectRejectedTransportWithoutLosingPendingChanges`
@@ -615,6 +635,10 @@ tests cannot read or mutate a user's App Group lockout record.
   - `ReflectionGatingTests/eveningGateOnLockout()`
   - `ReflectionGatingTests/saveResolvesGate()`
   - `ReflectionGatingTests/skipResolvesGate()`
+- `Keep the morning reflection form mounted across one-second enforcement ticks.`
+  - `DaybreakOverlayReconciliationTests/existingWindowKeepsContent()`
+- `Allow keyboard focus in the borderless morning reflection window.`
+  - `DaybreakOverlayReconciliationTests/daybreakWindowAcceptsKeyboardFocus()`
 - `Persist user-authored reflection answers without losing their prompt snapshots or value types.`
   - `ReflectionModelTests/answersRoundTrip()`
   - `ReflectionStoreTests/roundTrip()`
@@ -1330,6 +1354,18 @@ or prove real connector authentication. See `remote-mcp-acceptance.md`; no
 additional lock/unlock or local UI test was run for this documentation correction.
 
 Remote locks require both a fresh daemon heartbeat and an authenticated ready connection, while Studio Dev still yields to a live higher-priority Curfew owner. Settings refreshes signed status on opening, activation, and the existing heartbeat interval. Pending approval opens the macOS approval pane; installed connection failures route to General; installation is offered only when needed. Account messages describe an unchanged schedule instead of claiming protection is active.
+
+Signed Studio Dev launch policy: `StudioDevLaunchBehaviorTests` checks that its
+Debug-compiled app arms without an opt-in variable, ignores spoofed test-host
+environment markers, and rejects the demo fixture; personal Debug cannot spoof
+Studio Dev through `CURFEW_FLAVOR`. The existing Debug and Release tests retain
+their respective policies. The assertions failed at compile time before the
+bundle-bound policy parameter existed. `CurfewApp` passes its actual bundle ID,
+and `RuntimeEnvironment.testHostDecision` requires a loaded XCTest runtime for
+both signed Studio Dev and Release even when test environment markers are
+present. The installed signed launch audit records `enforcementArmed: true`
+and active health; a newly authorized physical lock remains runtime acceptance,
+separate from tests.
 
 Hostless coverage: `PrivilegedHelperManagerTests.remoteReadinessRequiresAuthenticatedConnection` rejects unavailable, unauthorized, stale, and failed registration despite a fresh heartbeat file. `PresentationStateTests` checks recovery routing and copy. The new assertions failed before the fix; CI retains full app behavior and screenshot checks. No local UI execution or app launch. This changes readiness presentation and recovery routing, not enforcement rules, persisted identifiers, or the wire format. Rollback is the readiness/copy change; signed helper and real macOS approval verification remain separate.
 

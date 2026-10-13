@@ -1,5 +1,27 @@
 # Curfew Implementation TODOs
 
+## Daybreak test-window lifecycle (2026-10-13)
+
+- [x] Match the production daybreak-window cleanup in the native regressions.
+  Two hosted parallel test attempts ended in a SIGSEGV and left hundreds of
+  tests unrun. A diagnostic serial attempt completed 1,004 of 1,006 tests and
+  isolated both failures to the new daybreak window tests; its crash report
+  faults in `objc_release` while the test host drains an autorelease pool.
+  Those tests called `close()` on their windows, unlike production, which uses
+  `orderOut(nil)` and releases its strong references. The tests now use that
+  same lifecycle. The temporary serial CI setting was removed because it did
+  not resolve the crash. This is test-only: installed behavior, signing,
+  permissions, and remote-command handling do not change. Hosted full-suite
+  and UI-capture CI must pass before release acceptance.
+
+- [x] Make the override-vs-wake cadence regression event-driven. After the
+  daybreak tests passed, hosted CI 38469181460 completed 1,005 of 1,006 native
+  tests; the lone failure was a 150 ms wall-clock expectation under runner
+  load. The test now waits for the wake request to begin, holds its response
+  pending, and counts two override polls that occur afterward. Its five-second
+  expectation is only a deadlock guard, not a cadence or latency requirement;
+  the production transport and its 20 ms fixture interval are unchanged.
+
 ## Renewed account connection handoff (2026-10-12)
 
 - [x] Resume the native transport after successful same-account reauthentication.
@@ -1091,6 +1113,38 @@ The remote AX lookup demonstrated section-level identifier propagation overridin
   marking installed acceptance complete. Rollback reverts the ledger condition.
 
 - [-] Review contradictory account and protection states. Remote locks require both a fresh daemon heartbeat and an authenticated ready connection, while Studio Dev still yields to a live higher-priority Curfew owner. Settings refreshes signed status on opening, activation, and the existing heartbeat interval. Pending approval opens the macOS approval pane; installed connection failures route to General; installation is offered only when needed. Account messages describe an unchanged schedule instead of claiming protection is active.
+
+- [-] Arm enforcement on ordinary signed Studio Dev launches. The authorized
+  staging MCP command on 2026-10-13 returned an applied daemon receipt, but the
+  next native report was working with no lockout: StudioDev compiles with
+  `DEBUG`, so the app launched its display-only timer without the developer
+  opt-in environment variable. The verified Studio Dev bundle now follows
+  Release's armed launch policy; personal Debug remains opt-in and genuinely
+  loaded XCTest hosts remain disarmed. Demo-fixture and environment-only test
+  markers cannot disarm Studio Dev or spoof its identity. The shared test-host
+  predicate also requires a loaded XCTest runtime for both signed Studio Dev
+  and Release, so spoofed environment markers cannot skip the event tap and
+  other enforcement effects.
+  `StudioDevLaunchBehaviorTests` and the existing Debug/Release tests cover
+  those boundaries; the new assertions failed before the correction. The
+  company-signed update is installed and its launch audit now records
+  `enforcementArmed: true` with health `active`. A separately authorized
+  physical lock remains necessary before closing acceptance.
+  No wire, account, command, or deadline format changes are involved. Rollback
+  is the launch-policy change; do not replay the expired command.
+
+- [x] Keep the morning reflection interactive while enforcement ticks. The
+  signed Studio Dev app exposed a one-second full-screen refresh that reset
+  typing and made buttons difficult to click: its overlay coordinator replaced
+  the `NSHostingView` and raised the window on every tick. The first installed
+  correction stopped remounting, but typing still failed because a plain
+  borderless `NSWindow` cannot become key. Existing windows now retain SwiftUI
+  state, and the daybreak window is key-eligible; only a changed display frame
+  or hidden window needs AppKit work. Both `DaybreakOverlayReconciliationTests`
+  regressions were added failing-first. The signed update was installed on
+  Studio Dev Mac, and the owner confirmed that typing and both form buttons
+  work without resetting. No reflection answers, schedule, remote command,
+  or wire data are migrated; rollback is the daybreak-window change.
 
 Hostless coverage: `PrivilegedHelperManagerTests.remoteReadinessRequiresAuthenticatedConnection` rejects unavailable, unauthorized, stale, and failed registration despite a fresh heartbeat file. `PresentationStateTests` checks recovery routing and copy. The new assertions failed before the fix; CI retains full app behavior and screenshot checks. No local UI execution or app launch. This changes readiness presentation and recovery routing, not enforcement rules, persisted identifiers, or the wire format. Rollback is the readiness/copy change; signed helper and real macOS approval verification remain separate.
 
