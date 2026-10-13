@@ -111,7 +111,19 @@ struct LicenseView: View {
                     .buttonStyle(CurfewLinkButtonStyle())
             }
 
-            DisclosureGroup("Enter a license key", isExpanded: $manualEntryExpanded) {
+            Button {
+                manualEntryExpanded.toggle()
+            } label: {
+                Label(
+                    "Enter a license key",
+                    systemImage: manualEntryExpanded ? "chevron.down" : "chevron.right"
+                )
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityValue(manualEntryExpanded ? "Expanded" : "Collapsed")
+
+            if manualEntryExpanded {
                 TextField("License key", text: $keyDraft)
                     .font(CurfewTypography.body(13))
                     .textFieldStyle(.roundedBorder)
