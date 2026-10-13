@@ -1,21 +1,42 @@
 ---
-title: Extensions and overrides
-description: Use limited extra time deliberately.
+title: Extensions and emergency overrides
+description: Request more time before lockout or deliberately regain temporary access after it begins.
 ---
 
-## Before lockout
+Set weekly extension and override budgets in **Settings → Limits**.
 
-An extension adds time before the end of your work window when the warning stage
-and your remaining extension budget allow it. Review the extension duration and
-weekly budget in Curfew's settings.
+| | Extension | Emergency override |
+| --- | --- | --- |
+| When | Before lockout, when the extension action is available | During lockout |
+| Result | Pushes back the stopping time | Temporarily restores access |
+| Confirmation | Hold the extension button | Write a reason, wait through a cooldown, then hold to confirm |
 
-## During lockout
+## Request an extension
 
-An override lets you return to urgent work when you have budget remaining.
-Use the override action on the lockout screen, enter a reason, and complete its
-confirmation. Curfew adds deliberate friction so using an exception is a choice.
+1. Check **Today** or the warning screen for the extension action and remaining
+   budget.
+2. Read the duration on the button.
+3. Hold it for the displayed time until confirmation completes.
+4. Check that the stopping time moved and your remaining budget decreased.
 
-Extension and override budgets are separate. Their remaining counts appear in
-Curfew; do not assume that one available budget means the other is available.
+Extensions require available weekly budget.
 
-If you regularly need an exception at the same time, review your schedule.
+## Use an emergency override
+
+1. On the lockout screen, choose **Need to get back in?**.
+2. Write a reason of at least **50 characters** explaining why you need access.
+3. Wait for the **five-minute cooldown**.
+4. Read the access duration and budget consequence, then hold the confirmation
+   button for **three seconds**.
+
+When granted, the override consumes one available override and is recorded in
+your activity. Lockout resumes when temporary access ends. Overrides require
+available weekly budget.
+
+## Set budgets before you need them
+
+Open **Settings → Limits**. Choose weekly
+limits, extension duration, override duration, and **Resets on**.
+
+An assistant can request supported changes under your [consent policy](/mcp-guide).
+Complete emergency overrides on the lockout screen.

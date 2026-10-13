@@ -11,7 +11,9 @@ so it can be extracted into a standalone repository.
   and publish only `../landing/dist/`, never the source directory.
 - `../landing/` — pinned Astro frontend. Source is `src/`, public files and the
   release-staged appcast are in `public/`, and Astro generates `dist/`.
-- `docs/` — Mintlify developer guides.
+- `docs/` — Mintlify user help for setup, daily use, Plus, connections, and recovery.
+  Public instructions use direct actions and product facts. License internals and
+  deployment references belong in `Documentation/`.
 
 ## Commands (run from this directory)
 

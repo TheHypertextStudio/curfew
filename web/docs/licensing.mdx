@@ -1,53 +1,88 @@
 ---
-title: Licensing & activation
-description: How Curfew Plus is sold, delivered, activated, and (for subscriptions) refreshed.
+title: Curfew Plus plans and activation
+description: Choose a Plus plan, find your license key, activate it on your Mac, and resolve purchase problems.
 ---
 
-Curfew Plus is **one entitlement** — the same features either way — sold two ways.
+Curfew's schedule and lockout features are free.
 
-| SKU | Stripe `mode` | Enforcement |
+<Note>
+**Plus is not on sale yet.** Check the
+[Curfew website](https://curfew.hypertext.studio/#plus) for availability and pricing.
+</Note>
+
+## What Plus includes
+
+- [iCloud sync](/sync) keeps your schedule in sync across your Macs.
+- [Widgets](/widgets) let you check your stopping time without opening Curfew.
+- [Calendar](/calendar) shows today's events alongside your Curfew status.
+
+## Choose a plan
+
+Both plans include the same Plus features.
+
+| | Lifetime | Subscription |
 | --- | --- | --- |
-| **Lifetime** | `payment` (one-time) | Perpetual key, verified **fully offline**. Never expires, never phones home. |
-| **Subscription** | `subscription` (recurring) | Key carries `expires_at` + a `refresh_token`; the app re-fetches it while the subscription is active and locks Plus after a grace period when it lapses. |
+| Payment | One payment | Recurring payments |
+| Access | Lifetime access | While your subscription is active |
+| License connection | Activation and license checks work offline | Curfew periodically connects to keep your license up to date |
 
-## The license token
+Check [current pricing](https://curfew.hypertext.studio/#plus) and the
+[purchase terms](https://curfew.hypertext.studio/terms.html) before buying.
 
-A license key is `base64url(payloadJSON).base64url(ed25519Signature)`. The payload:
+## Find and save your key
 
-```json
-{
-  "email": "buyer@example.com",
-  "product": "curfew-plus",
-  "plan": "subscription",
-  "order_id": "sub_ABC123",
-  "issued_at": "2026-06-25T00:00:00Z",
-  "expires_at": "2026-07-28T00:00:00Z",
-  "refresh_token": "7b3f0c2e-…"
-}
-```
+After checkout, the purchase confirmation page displays your license key.
+Choose **Copy**, then save the key somewhere you can find it again, such as a
+password manager.
 
-`expires_at` and `refresh_token` are present only for subscriptions. The app
-verifies the Ed25519 signature with an embedded public key — there is no online
-"validate" call.
+Stripe emails your payment receipt. Save it with your key for purchase support.
 
-## Delivery & activation
+## Activate Plus
 
-1. The buyer completes Stripe Checkout and lands on the success page with their
-   `session_id`.
-2. The page calls [`GET /license?session_id=…`](https://curfew-license.hypertext.studio/reference) and shows the key.
-3. The user pastes it into **Settings → License → Activate**.
+1. Open Curfew and choose **Settings** from the app menu, or press **⌘,**.
+2. Open **Settings → About** and find **Curfew Plus**.
+3. Paste the complete key into **License key**.
+4. Click **Activate** and check your plan and purchase email in the panel.
 
-<Warning>
-The key is **not** emailed. Stripe sends the payment receipt; the custom license
-key lives only on the success page (and, for subscriptions, refreshes in-app).
-</Warning>
+## Use Plus on another Mac
 
-## Subscription refresh
+Your license is personal to you and can be used on Macs you own or control,
+under the [purchase terms](https://curfew.hypertext.studio/terms.html).
+Install Curfew and activate your key on each Mac. For [iCloud sync](/sync), sign
+in to the same Apple Account on each one. Keep your key private.
 
-While a subscription is active, the app calls
-[`GET /license/refresh?token=…`](https://curfew-license.hypertext.studio/reference) on launch and once a day. The Worker
-re-mints the key with an extended `expires_at` on each `invoice.paid`. On
-`customer.subscription.deleted` it drops the token, the refresh route 404s, and
-the stored key lapses at its deadline — locking Plus automatically.
+## Offline use and subscriptions
 
-See the full request/response shapes in the [API reference](https://curfew-license.hypertext.studio/reference).
+A lifetime license works offline. iCloud sync requires an internet connection.
+
+Subscriptions refresh on launch and periodically while Curfew is running.
+Your saved license works until its access deadline. Reconnect and open Curfew
+before that deadline to keep access up to date.
+
+When access expires, Curfew's free schedule and lockout features remain
+available.
+
+## Cancel, deactivate, or request a refund
+
+To cancel a subscription or ask about billing, email
+[hello@hypertext.studio](mailto:hello@hypertext.studio) from your purchase email
+address and include your order details. Cancellation stops future renewals. See the
+[refund policy](https://curfew.hypertext.studio/refund.html) for refund requests.
+
+To remove the key from this Mac, open **Settings → About → Curfew Plus** and
+click **Deactivate License**. Plus features become unavailable on this Mac;
+subscription billing continues until you cancel. Save your key to activate it again later.
+
+## Activation or delivery problems
+
+| Problem | What to do |
+| --- | --- |
+| The confirmation page has no key yet | Wait a minute and reload the original confirmation page. If it still fails, contact support with your purchase details. |
+| You closed the page or lost your key | Contact support using the email address and order details from your receipt. |
+| “The license key format is invalid.” | Copy the entire key again. Paste only the key, without surrounding quotes or other text. |
+| “This license key could not be verified.” | Check that you copied the correct key and are using the current official Curfew release. If it still fails, contact support. |
+| “This license key is for a different product.” | Make sure you are using your Curfew Plus key. Contact support if that is the key you received. |
+| Your subscription has lapsed | Connect to the internet and reopen Curfew. If you recently renewed and access does not return, contact support. |
+
+If the app says activation is disabled for this build, install the official
+release. If the message persists, contact support with the app version.

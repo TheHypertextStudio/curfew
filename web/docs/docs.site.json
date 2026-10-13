@@ -12,18 +12,41 @@
         "group": "Get started",
         "pages": [
           "index",
-          "install",
-          "schedules"
+          "install"
         ]
       },
       {
-        "group": "Use Curfew",
+        "group": "Using Curfew",
         "pages": [
+          "schedules",
+          "lockout",
           "exceptions",
+          "reflections"
+        ]
+      },
+      {
+        "group": "Curfew Plus",
+        "pages": [
+          "licensing",
+          "sync",
+          "widgets",
+          "calendar"
+        ]
+      },
+      {
+        "group": "Connections",
+        "pages": [
           "accounts",
           "mcp-guide",
-          "cli",
-          "licensing"
+          "cli"
+        ]
+      },
+      {
+        "group": "Help",
+        "pages": [
+          "troubleshooting",
+          "privacy",
+          "uninstall"
         ]
       }
     ]
