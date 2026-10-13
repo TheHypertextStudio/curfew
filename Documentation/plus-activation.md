@@ -42,27 +42,31 @@ format. No `curfew-protocols` or coordinator change is required.
 
 - [x] Worker regressions observed failing for missing activation/recovery and
   unpaid checkouts; implement ticket redemption and inbox recovery.
-- [-] Native tests: exact link routing, cryptographic verification, offline
+- [x] Native tests: exact link routing, cryptographic verification, offline
   relaunch, preserving active purchases, restoration, cancellation/races.
-- [-] Browser tests: checkout action, delayed delivery, fallback, restore form,
+- [x] Browser tests: checkout action, delayed delivery, fallback, restore form,
   fragment privacy, keyboard access, failure and retry.
 - [ ] Update user help, backlog and test mapping for the finished flow.
-- [ ] Full unit tests, format/lint, app build, issuer typecheck/tests, website
+- [x] Full unit tests, format/lint, app build, issuer typecheck/tests, website
   build and browser acceptance; inspect rendered app and website.
-- [ ] Provision the existing issuer's email binding and rate limits, backfill
-  legacy paid purchase indexes, and verify real inbox delivery in Stripe test
-  mode against a signed app with the matching signer.
+- [x] Provision staging email and rate limits; verify real sandbox checkout and
+  inbox restoration against a signed app with the matching signer.
+- [ ] Apply the approved production restore-email binding and rate limits
+  before the coordinated issuer/site/client rollout.
+- [ ] Backfill historical paid purchase indexes in the matching Stripe
+  environment and verify an old purchase restores through the hosted page.
 - [ ] Deploy the verified issuer and website, distribute the app, and verify
   actual checkout → activation plus restoration. Keep the public sale gate
   closed until production acceptance; do not call local fixtures purchase proof.
 
 ## Operational boundary
 
-The current production issuer `/health` returns HTTP 200. The recorded staging
-issuer hostname does not resolve on 2026-10-13; restore email provisioning and
-the signer/environment pairing require fresh provider verification. Existing
-keys and GET delivery endpoints remain compatible. Reverting the new UI and
-POST routes restores manual activation; stored signed keys remain untouched.
+The production issuer `/health` reports envelope v2. Staging has a verified
+public signer, restricted restore email and successful signed-app checkout and
+restoration. Production release credentials and coordinated rollout remain
+unfinished. Existing keys and GET delivery endpoints remain compatible.
+Reverting the new UI and POST routes restores manual activation; stored signed
+keys remain untouched.
 
 ## Verification record — 2026-10-13
 
@@ -431,3 +435,8 @@ contains development and Mac App Store identities, with no Developer ID
 Application identity. No relevant Apple or Cloudflare credential is present in
 the shell environment. An organization-secret metadata refresh was stopped by
 GitHub's API rate limit; no authentication scope was changed.
+
+Both staging build checks pass at evidence commit
+`f1cfb193d241374ece4267a8a37335e267103403`. Apple Developer inspection now has a
+working in-app sign-in page awaiting the owner; no private key was uploaded or
+new certificate created. The stale Chrome connection could not retain its tabs.
