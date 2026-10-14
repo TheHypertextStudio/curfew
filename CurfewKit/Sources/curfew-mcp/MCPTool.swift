@@ -121,36 +121,64 @@ extension MCPTool {
     }
 }
 
-private let scheduleTool = MCPTool(
-    name: "curfew_schedule",
-    description: """
-    Returns the full weekly Curfew schedule: per-day lock and unlock times, \
-    which days are marked as day-off, and any pending schedule change that \
-    is waiting out a 24-hour anti-bypass cooldown.
-    """,
-    inputSchema: emptySchema(),
-    call: { _ in
-        let settings = loadSharedSettings()
-        var lines = ["Weekly schedule:"]
-        for weekday in Weekday.allCases {
-            let rule = settings.schedule.rule(for: weekday)
-            if rule.isDayOff {
-                lines.append("  \(weekday.shortName): day off")
-            } else {
-                let lock = minutesToHHMM(rule.lockMinutes)
-                let unlock = minutesToHHMM(rule.unlockMinutes)
-                lines.append("  \(weekday.shortName): \(lock) → \(unlock)")
+private let scheduleTool = MCPTool.makeSchedule()
+
+extension MCPTool {
+    static func makeSchedule(
+        settingsStore: CurfewSettingsStore? = nil,
+        flavor: CurfewFlavor = .current
+    ) -> MCPTool {
+        let store = settingsStore ?? CurfewSettingsStore(
+            defaults: UserDefaults(suiteName: SharedPaths.defaultsSuiteName) ?? .standard
+        )
+        return MCPTool(
+            name: "curfew_schedule",
+            description: """
+            Returns the saved weekly Curfew schedule, whether automatic weekly \
+            lockouts are active, and any pending anti-bypass change.
+            """,
+            inputSchema: emptySchema(),
+            call: { _ in
+                let settings = store.load()
+                let enabled = AutomaticScheduleConsentPolicy.isEnabled(
+                    savedConsent: store.loadAutomaticScheduleConsent(),
+                    hasCompletedInitialSetup: settings.hasCompletedInitialSetup,
+                    flavor: flavor
+                )
+                var lines = [
+                    "Automatic weekly schedule: \(enabled ? "on" : "off")",
+                    "Saved weekly schedule:"
+                ]
+                if !enabled {
+                    lines
+                        .append(
+                            "  These saved rules are inactive; authorized remote locks remain available."
+                        )
+                }
+                for weekday in Weekday.allCases {
+                    let rule = settings.schedule.rule(for: weekday)
+                    if rule.isDayOff {
+                        lines.append("  \(weekday.shortName): day off")
+                    } else {
+                        let lock = minutesToHHMM(rule.lockMinutes)
+                        let unlock = minutesToHHMM(rule.unlockMinutes)
+                        lines.append("  \(weekday.shortName): \(lock) → \(unlock)")
+                    }
+                }
+                if let pending = settings.pendingScheduleChange {
+                    let fmt = DateFormatter()
+                    fmt.dateStyle = .medium
+                    fmt.timeStyle = .none
+                    lines
+                        .append(
+                            "Pending change effective: \(fmt.string(from: pending.effectiveAt))"
+                        )
+                }
+                return [textContent(lines.joined(separator: "\n"))]
             }
-        }
-        if let pending = settings.pendingScheduleChange {
-            let fmt = DateFormatter()
-            fmt.dateStyle = .medium
-            fmt.timeStyle = .none
-            lines.append("Pending change effective: \(fmt.string(from: pending.effectiveAt))")
-        }
-        return [textContent(lines.joined(separator: "\n"))]
+        )
     }
-)
+}
 
 private let budgetTool = MCPTool(
     name: "curfew_budget",

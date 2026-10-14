@@ -89,10 +89,22 @@ extension CurfewAppModel {
         automaticScheduleEnabled ? settings.schedule : .allDaysOff
     }
 
-    /// Show a direct warning before a user enables an already-expired rule.
+    /// Warn before a lock that would start now or during the arming tick.
     var scheduleWouldLockNow: Bool {
-        let now = Date()
-        return enforcementEngine.evaluate(
+        scheduleMayLockOnArming(at: Date())
+    }
+
+    /// Leave one minute of margin for the first tick to cross a lock boundary
+    /// after consent is persisted. An imminent lock requires the same explicit
+    /// acknowledgement as an already-active schedule window.
+    func scheduleMayLockOnArming(at now: Date) -> Bool {
+        scheduleWouldLock(at: now) || scheduleWouldLock(at: now.addingTimeInterval(60))
+    }
+
+    /// Evaluates the saved schedule at an exact instant, independent of the
+    /// currently inactive automatic-schedule consent.
+    func scheduleWouldLock(at now: Date) -> Bool {
+        enforcementEngine.evaluate(
             at: now,
             schedule: settings.schedule,
             extensionMinutesGrantedToday: extensionMinutesGrantedToday + snoozeMinutesGrantedToday,

@@ -396,8 +396,10 @@ final class CurfewAppModel: NSObject {
         let loadedSettings = settingsStore.load()
         self.settings = loadedSettings
         let savedScheduleConsent = settingsStore.loadAutomaticScheduleConsent()
-        let resolvedScheduleConsent = savedScheduleConsent ?? (
-            flavor != .studioDevelopment && loadedSettings.hasCompletedInitialSetup
+        let resolvedScheduleConsent = AutomaticScheduleConsentPolicy.isEnabled(
+            savedConsent: savedScheduleConsent,
+            hasCompletedInitialSetup: loadedSettings.hasCompletedInitialSetup,
+            flavor: flavor
         )
         self.hasExplicitAutomaticScheduleConsent = savedScheduleConsent != nil
         self.automaticScheduleEnabled = resolvedScheduleConsent

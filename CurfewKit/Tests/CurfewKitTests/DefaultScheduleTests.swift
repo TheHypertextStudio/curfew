@@ -3,6 +3,47 @@ import Foundation
 import Testing
 
 struct NewInstallScheduleTests {
+    @Test(
+        "Fresh local settings cross the 22:00 and 06:00 enforcement boundaries",
+        arguments: [false, true]
+    )
+    func freshInstallOvernightBoundary(corruptSettings: Bool) throws {
+        let suiteName = "CurfewSettingsStoreTests.DefaultBoundary.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        if corruptSettings {
+            defaults.set(Data("invalid settings".utf8), forKey: "curfew.settings.v1")
+        }
+        let schedule = CurfewSettingsStore(defaults: defaults).load().schedule
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try #require(TimeZone(identifier: "America/Los_Angeles"))
+        let engine = CurfewEnforcementEngine(calendar: calendar)
+        let cases: [(day: Int, hour: Int, minute: Int, phase: EnforcementPhase)] = [
+            (13, 18, 0, .working),
+            (13, 21, 59, .warning),
+            (13, 22, 0, .locked),
+            (14, 5, 59, .locked),
+            (14, 6, 0, .working)
+        ]
+
+        for sample in cases {
+            let date = try #require(calendar.date(from: DateComponents(
+                year: 2026,
+                month: 10,
+                day: sample.day,
+                hour: sample.hour,
+                minute: sample.minute
+            )))
+            let evaluation = engine.evaluate(
+                at: date,
+                schedule: schedule,
+                extensionMinutesGrantedToday: 0,
+                overrideUntil: nil
+            )
+            #expect(evaluation.phase == sample.phase)
+        }
+    }
+
     @Test("A fresh install proposes 22:00 to 06:00 on weekdays")
     func freshInstallProposesTenToSix() {
         let schedule = CurfewSettings.default.schedule

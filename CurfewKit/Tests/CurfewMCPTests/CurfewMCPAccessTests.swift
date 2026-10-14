@@ -4,6 +4,26 @@ import Foundation
 import Testing
 
 struct CurfewMCPAccessTests {
+    @Test("Local schedule tool labels saved rules inactive when weekly consent is off")
+    func inactiveScheduleIsLabeled() throws {
+        let suiteName = "CurfewSettingsStoreTests.MCPScheduleConsent.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let store = CurfewSettingsStore(defaults: defaults)
+        var settings = CurfewSettings.default
+        settings.hasCompletedInitialSetup = true
+        store.save(settings)
+
+        let content = try #require(MCPTool.makeSchedule(
+            settingsStore: store,
+            flavor: .studioDevelopment
+        ).call([:]).first)
+        let text = try #require(content["text"] as? String)
+        #expect(text.contains("Automatic weekly schedule: off"))
+        #expect(text.contains("Saved weekly schedule:"))
+        #expect(text.contains("Mon: 22:00 → 06:00"))
+    }
+
     @Test("Local MCP read tools use fresh app observations, not schedule predictions")
     func readToolsUseObservedStatus() throws {
         let directory = FileManager.default.temporaryDirectory

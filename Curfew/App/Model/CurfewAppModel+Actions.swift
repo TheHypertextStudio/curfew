@@ -1,6 +1,12 @@
 import CurfewKit
 import Foundation
 
+enum ScheduleActivationOutcome: Equatable {
+    case activated
+    case requiresImmediateLockConfirmation
+    case unavailable
+}
+
 /// User-facing actions on `CurfewAppModel`.
 ///
 /// "Actions" means: methods invoked from UI event handlers (button taps,
@@ -49,11 +55,21 @@ extension CurfewAppModel {
 
     /// Marks initial setup complete and dismisses the Getting Started window.
     /// Idempotent — safe to call if setup was already completed.
-    func completeOnboardingFlow(choice: AutomaticScheduleChoice) {
-        completeInitialSetup(choice: choice)
-        if settings.hasCompletedInitialSetup {
+    @discardableResult
+    func completeOnboardingFlow(
+        choice: AutomaticScheduleChoice,
+        confirmedImmediateLock: Bool = false,
+        at now: Date = Date()
+    ) -> ScheduleActivationOutcome {
+        let outcome = completeInitialSetup(
+            choice: choice,
+            confirmedImmediateLock: confirmedImmediateLock,
+            at: now
+        )
+        if outcome == .activated {
             dismissGettingStarted()
         }
+        return outcome
     }
 
     /// Flips `hasCompletedInitialSetup` to `true` and starts the enforcement
@@ -67,31 +83,47 @@ extension CurfewAppModel {
     /// silently inert; the guard below re-checks the *real* grant (not a
     /// self-attested checkbox) regardless of which surface called this, and
     /// prompts for it instead of completing setup on a broken foundation.
-    func completeInitialSetup(choice: AutomaticScheduleChoice) {
+    @discardableResult
+    func completeInitialSetup(
+        choice: AutomaticScheduleChoice,
+        confirmedImmediateLock: Bool = false,
+        at now: Date = Date()
+    ) -> ScheduleActivationOutcome {
         guard !settings.hasCompletedInitialSetup else {
-            return
+            return .unavailable
         }
         guard isAccessibilityTrusted else {
             requestAccessibilityAccess()
-            return
+            return .unavailable
         }
         let enabled = choice == .weeklySchedule
+        if enabled, scheduleMayLockOnArming(at: now), !confirmedImmediateLock {
+            return .requiresImmediateLockConfirmation
+        }
         settingsStore.saveAutomaticScheduleConsent(enabled)
         hasExplicitAutomaticScheduleConsent = true
         automaticScheduleEnabled = enabled
         settings.hasCompletedInitialSetup = true
         start()
+        return .activated
     }
 
     /// Explicitly opts an already-onboarded remote-only install into its
     /// configured weekly schedule. The UI presents the effective schedule and
     /// immediate-lock warning before calling this action.
-    func enableAutomaticSchedule() {
+    @discardableResult
+    func enableAutomaticSchedule(
+        confirmedImmediateLock: Bool = false,
+        at now: Date = Date()
+    ) -> ScheduleActivationOutcome {
         guard settings.hasCompletedInitialSetup, !automaticScheduleEnabled,
-              settings.pendingScheduleChange == nil else { return }
+              settings.pendingScheduleChange == nil else { return .unavailable }
         guard isAccessibilityTrusted else {
             requestAccessibilityAccess()
-            return
+            return .unavailable
+        }
+        if scheduleMayLockOnArming(at: now), !confirmedImmediateLock {
+            return .requiresImmediateLockConfirmation
         }
         settingsStore.saveAutomaticScheduleConsent(true)
         hasExplicitAutomaticScheduleConsent = true
@@ -101,6 +133,7 @@ extension CurfewAppModel {
         } else {
             start()
         }
+        return .activated
     }
 
     /// Queues a schedule change to the built-in `preset`. Subject to the same

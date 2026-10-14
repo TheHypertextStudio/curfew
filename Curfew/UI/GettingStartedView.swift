@@ -72,43 +72,22 @@ struct GettingStartedView: View {
         ) { _ in
             syncAccessibilityGrant()
         }
-        .alert("This Mac will lock now", isPresented: $showingImmediateLockConfirmation) {
-            Button("Enable schedule and lock now", role: .destructive) {
-                model.completeOnboardingFlow(choice: .weeklySchedule)
+        .alert(
+            "This Mac may lock within a minute",
+            isPresented: $showingImmediateLockConfirmation
+        ) {
+            Button("Enable imminent lockout", role: .destructive) {
+                model.completeOnboardingFlow(
+                    choice: .weeklySchedule,
+                    confirmedImmediateLock: true
+                )
             }
             Button("Keep reviewing", role: .cancel) {}
-        }
-    }
-
-    /// Re-polls the model's Accessibility-trust state and folds it into the
-    /// flow's hard gate. The model's `refreshAccessibilityTrust()` only *reads*
-    /// the trust seam (never the prompting API), so this is safe to call on a
-    /// timer; `updateAccessibilityGranted` then opens or re-closes the gate to
-    /// match, so a revoked permission cannot leave a stale "granted" reading.
-    private func syncAccessibilityGrant() {
-        if !model.isDemoSession {
-            model.refreshAccessibilityTrust()
-        }
-        flow.updateAccessibilityGranted(model.isAccessibilityTrusted)
-    }
-
-    /// Static title + commitment sentence at the top of the window.
-    private var header: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            if model.settings.hasCompletedInitialSetup {
-                Text("Review setup")
-                    .font(CurfewTypography.display(30))
-                Text(model.automaticScheduleEnabled
-                    ? "Automatic weekly lockouts are on."
-                    : "Automatic weekly lockouts are off. Authorized remote locks can still apply.")
-                    .foregroundStyle(CurfewTheme.mutedInk)
-            } else {
-                Text(flow.currentStep == .welcome ? GettingStartedCopy.title : flow.currentStep
-                    .title)
-                    .font(CurfewTypography.display(30))
-                Text("Step \(flow.currentStep.rawValue + 1) of \(FirstRunStep.allCases.count)")
-                    .foregroundStyle(CurfewTheme.mutedInk)
-            }
+        } message: {
+            Text(
+                model.settings.schedule.reviewLines.joined(separator: "\n") +
+                    "\n\nMay lock this Mac now. Existing lockouts stay active."
+            )
         }
     }
 
@@ -130,25 +109,24 @@ struct GettingStartedView: View {
     @ViewBuilder
     private var stepExtras: some View {
         if !model.settings.hasCompletedInitialSetup, flow.currentStep == .schedule {
-            Button("Review weekly schedule") {
-                flow.markScheduleReviewed()
+            Button("Edit weekly schedule") {
                 model.requestWorkspaceNavigation(to: .schedule)
             }
             .buttonStyle(CurfewSecondaryButtonStyle())
 
-            if flow.hasReviewedScheduleSettings {
-                Text(model.scheduleSummarySentence)
+            Text("Review all seven saved rules before choosing automatic lockouts:")
+                .font(CurfewTypography.body(13))
+                .foregroundStyle(CurfewTheme.mutedInk)
+            ForEach(model.settings.schedule.reviewLines, id: \.self) { line in
+                Text(line)
                     .font(CurfewTypography.body(13))
-                    .foregroundStyle(CurfewTheme.mutedInk)
-                Button("Use this weekly schedule") {
-                    flow.chooseSchedule(.weeklySchedule)
-                }
-                .buttonStyle(CurfewSecondaryButtonStyle())
-            } else {
-                Text("Review the times before enabling automatic lockouts.")
-                    .font(CurfewTypography.body(13))
-                    .foregroundStyle(CurfewTheme.mutedInk)
+                    .foregroundStyle(CurfewTheme.ink)
             }
+            Button("I've reviewed these seven days — use this weekly schedule") {
+                flow.markScheduleReviewed()
+                flow.chooseSchedule(.weeklySchedule)
+            }
+            .buttonStyle(CurfewSecondaryButtonStyle())
 
             Button("No automatic schedule — remote controls only") {
                 flow.chooseSchedule(.remoteControlsOnly)
@@ -207,12 +185,12 @@ struct GettingStartedView: View {
                     .font(CurfewTypography.body(13))
                     .foregroundStyle(CurfewTheme.mutedInk)
             } else if flow.scheduleChoice == .weeklySchedule {
-                Text(model.scheduleSummarySentence)
+                Text(model.settings.schedule.reviewLines.joined(separator: "\n"))
                     .font(CurfewTypography.body(13))
                     .foregroundStyle(CurfewTheme.mutedInk)
                 if model.scheduleWouldLockNow {
                     Label(
-                        "Finishing setup with this schedule will lock this Mac immediately.",
+                        "Finishing setup may lock this Mac now or within a minute.",
                         systemImage: "exclamationmark.triangle.fill"
                     )
                     .foregroundStyle(CurfewTheme.warning)
@@ -309,10 +287,9 @@ struct GettingStartedView: View {
                         ? "Enable schedule and finish"
                         : "Finish without automatic schedule") {
                             guard let choice = flow.scheduleChoice else { return }
-                            if choice == .weeklySchedule, model.scheduleWouldLockNow {
+                            if model.completeOnboardingFlow(choice: choice)
+                                == .requiresImmediateLockConfirmation {
                                 showingImmediateLockConfirmation = true
-                            } else {
-                                model.completeOnboardingFlow(choice: choice)
                             }
                         }
                         .buttonStyle(CurfewPrimaryButtonStyle())
@@ -328,5 +305,39 @@ struct GettingStartedView: View {
                 }
             }
         }
+    }
+}
+
+private extension GettingStartedView {
+    /// Static title + commitment sentence at the top of the window.
+    var header: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            if model.settings.hasCompletedInitialSetup {
+                Text("Review setup")
+                    .font(CurfewTypography.display(30))
+                Text(model.automaticScheduleEnabled
+                    ? "Automatic weekly lockouts are on."
+                    : "Automatic weekly lockouts are off. Authorized remote locks can still apply.")
+                    .foregroundStyle(CurfewTheme.mutedInk)
+            } else {
+                Text(flow.currentStep == .welcome ? GettingStartedCopy.title : flow.currentStep
+                    .title)
+                    .font(CurfewTypography.display(30))
+                Text("Step \(flow.currentStep.rawValue + 1) of \(FirstRunStep.allCases.count)")
+                    .foregroundStyle(CurfewTheme.mutedInk)
+            }
+        }
+    }
+
+    /// Re-polls the model's Accessibility-trust state and folds it into the
+    /// flow's hard gate. The model's `refreshAccessibilityTrust()` only *reads*
+    /// the trust seam (never the prompting API), so this is safe to call on a
+    /// timer; `updateAccessibilityGranted` then opens or re-closes the gate to
+    /// match, so a revoked permission cannot leave a stale "granted" reading.
+    func syncAccessibilityGrant() {
+        if !model.isDemoSession {
+            model.refreshAccessibilityTrust()
+        }
+        flow.updateAccessibilityGranted(model.isAccessibilityTrusted)
     }
 }

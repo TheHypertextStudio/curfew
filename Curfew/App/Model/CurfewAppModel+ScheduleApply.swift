@@ -21,11 +21,7 @@ extension CurfewAppModel {
             settings.schedule = proposedSchedule
             settings.pendingScheduleChange = nil
             persistSettings()
-            if started {
-                tick()
-            } else {
-                displayTick()
-            }
+            refreshAfterScheduleEdit()
             return
         }
         let classification = policyEngine.classifyChange(
@@ -41,11 +37,7 @@ extension CurfewAppModel {
             }
             settings.pendingScheduleChange = nil
             persistSettings()
-            if started {
-                tick()
-            } else {
-                displayTick()
-            }
+            refreshAfterScheduleEdit()
             return
         }
 
@@ -66,6 +58,11 @@ extension CurfewAppModel {
             classification: classification
         )
         persistSettings()
+        refreshAfterScheduleEdit()
+    }
+
+    private func refreshAfterScheduleEdit() {
+        guard !isDemoSession else { return }
         if started {
             tick()
         } else {
