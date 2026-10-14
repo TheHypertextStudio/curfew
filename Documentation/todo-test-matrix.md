@@ -1,5 +1,14 @@
 # Todo Test Matrix
 
+## Website domain preparation
+
+`scripts/pages-domain.test.mjs` covers read-only status, cf preview, attachment,
+idempotent reruns, preservation of existing domains, alternate configured
+hostnames, invalid origins/actions, provider failures, and mismatched readback.
+The manual workflow validates source commit and configuration hash before the
+operation. Provider status, public DNS, and live TLS must establish activation;
+unit tests do not prove infrastructure or production cutover.
+
 ## Public legal policies
 
 `landing/tests/unit/legal.test.mjs` checks official contact, notice dates,
