@@ -1,5 +1,11 @@
 import CurfewKit
 import Foundation
+import OSLog
+
+private let accountOAuthUserInfoLogger = Logger(
+    subsystem: "studio.hypertext.curfew",
+    category: "account-oauth"
+)
 
 /// This is an unverified hint until the coordinator accepts the access token.
 enum AccountOAuthTokenSubject {
@@ -39,14 +45,28 @@ enum AccountOAuthUserInfo {
         request.httpMethod = "GET"
         request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
-        let (data, response) = try await session.data(for: request)
-        guard let response = response as? HTTPURLResponse,
-              response.statusCode == 200,
+        let (data, response): (Data, URLResponse)
+        do {
+            (data, response) = try await session.data(for: request)
+        } catch {
+            accountOAuthUserInfoLogger.error("OAuth userinfo network request failed")
+            throw error
+        }
+        guard let response = response as? HTTPURLResponse else {
+            accountOAuthUserInfoLogger.error("OAuth userinfo returned a non-HTTP response")
+            throw AccountOAuthEnrollmentError.invalidResponse
+        }
+        guard response.statusCode == 200,
               data.count <= 32 * 1024,
               let claims = try? JSONDecoder().decode(Claims.self, from: data),
               !claims.sub.isEmpty,
               claims.sub.utf8.count <= 256
-        else { throw AccountOAuthEnrollmentError.invalidResponse }
+        else {
+            accountOAuthUserInfoLogger.error(
+                "OAuth userinfo rejected response: status \(response.statusCode, privacy: .public)"
+            )
+            throw AccountOAuthEnrollmentError.invalidResponse
+        }
         return claims.sub
     }
 

@@ -712,6 +712,7 @@ tests cannot read or mutate a user's App Group lockout record.
   - `AccountOAuthUserInfoTests/testFailedCredentialWriteDoesNotReplaceExistingAccountTokens()`
   - `AccountEnrollmentReauthorizationTests/sameAccountResumesSavedRegistration()`
   - `AccountEnrollmentReauthorizationTests/readyMacRenewsSameAccount()`
+  - `AccountEnrollmentReauthorizationTests/browserCompletionFailureExplainsConnectionStage()`
   - `AccountEnrollmentReauthorizationTests/readyMacWithoutMatchingOwnerFailsClosed()`
   - `AccountEnrollmentReauthorizationTests/savedSettingsWithoutReadyMarkerRenewSafely()`
   - `AccountEnrollmentReauthorizationTests/duplicateReadyReconnectIsSingleFlight()`

@@ -2,6 +2,7 @@ import CryptoKit
 import CurfewKit
 import CurfewProtocols
 import Foundation
+import Security
 
 struct AccountOAuthEnrollmentRequest: Equatable {
     let authorizationURL: URL
@@ -77,6 +78,57 @@ struct AccountOAuthEnrollmentRequest: Equatable {
             .replacingOccurrences(of: "+", with: "-")
             .replacingOccurrences(of: "/", with: "_")
             .replacingOccurrences(of: "=", with: "")
+    }
+
+    static func randomURLSafe(byteCount: Int) -> String {
+        var data = Data(count: byteCount)
+        data.withUnsafeMutableBytes { buffer in
+            _ = SecRandomCopyBytes(kSecRandomDefault, byteCount, buffer.baseAddress!)
+        }
+        return base64URL(data)
+    }
+}
+
+enum AccountOAuthTokenRequest {
+    static func authorizationCodeBody(
+        code: String,
+        clientID: String,
+        verifier: String,
+        redirectURI: String,
+        resource: String = CurfewServiceEndpoints.current.syncResource.absoluteString
+    ) -> Data {
+        formBody([
+            "grant_type": "authorization_code",
+            "client_id": clientID,
+            "code": code,
+            "code_verifier": verifier,
+            "redirect_uri": redirectURI,
+            "resource": resource
+        ])
+    }
+
+    static func refreshBody(
+        refreshToken: String,
+        clientID: String,
+        resource: String = CurfewServiceEndpoints.current.syncResource.absoluteString
+    ) -> Data {
+        formBody([
+            "grant_type": "refresh_token",
+            "refresh_token": refreshToken,
+            "client_id": clientID,
+            "resource": resource
+        ])
+    }
+
+    private static func formBody(_ fields: [String: String]) -> Data {
+        let body = fields.sorted(by: { $0.key < $1.key }).map { key, value in
+            "\(formEncode(key))=\(formEncode(value))"
+        }.joined(separator: "&")
+        return Data(body.utf8)
+    }
+
+    private static func formEncode(_ value: String) -> String {
+        value.addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? ""
     }
 }
 

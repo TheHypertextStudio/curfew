@@ -49,7 +49,7 @@ extension AccountEnrollmentController {
         } catch is CancellationError {
             // The existing device and its credentials are untouched.
         } catch {
-            enrollmentRetryError = AccountEnrollmentFailureCopy.reauthorization
+            enrollmentRetryError = AccountEnrollmentFailureCopy.reauthorizationMessage(for: error)
         }
         state = .ready(enrollment)
         return false
