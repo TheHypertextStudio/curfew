@@ -1,5 +1,19 @@
 # Todo Test Matrix
 
+## Production publication
+
+`scripts/pages-artifact.test.mjs` verifies retained file identity, alternate
+configuration, changed assets, and middleware routing coverage.
+`scripts/pages-bundle.node.mjs` executes the actual compiled Pages handler for
+public redirects, sensitive traffic retirement, and both documentation modes.
+`scripts/publication.test.mjs` covers signed candidate/site identity, owner
+acceptance freshness, successful source workflows, changed main/tag protection,
+release asset reuse/conflicts, active-domain/maintenance admission, live feed
+and redirect verification, private receipt permissions/hash binding, draft
+asset readback, and upload isolation from checkout Functions.
+These checks do not replace actual signed Mac, provider, assistant, billing,
+licensing, mail, update, or production browser acceptance.
+
 ## Website domain preparation
 
 `scripts/pages-domain.test.mjs` covers read-only status, cf preview, attachment,
