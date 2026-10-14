@@ -31,6 +31,69 @@ struct FirstRunSafetyFlowTests {
 
 @MainActor
 struct FirstRunSafetyModelTests {
+    @Test("First-run setup cannot silently arm a schedule that already locks")
+    func immediateLockNeedsSeparateAcknowledgement() {
+        let suiteName = "CurfewSettingsStoreTests.ImmediateSetup.\(UUID().uuidString)"
+        guard let defaults = UserDefaults(suiteName: suiteName) else {
+            Issue.record("Unable to create isolated UserDefaults suite.")
+            return
+        }
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let store = CurfewSettingsStore(defaults: defaults)
+        var settings = CurfewSettings.default
+        settings.schedule = .init(rules: Dictionary(
+            uniqueKeysWithValues: Weekday.allCases.map {
+                ($0, DayRule(isDayOff: false, lockMinutes: 0, unlockMinutes: 23 * 60 + 59))
+            }
+        ))
+        store.save(settings)
+        let model = CurfewAppModel(
+            settingsStore: store,
+            appRouter: AppRouterSpy(),
+            activityRecorder: NullActivityRecording(),
+            lockoutDeadlineStore: .ephemeralForTesting(),
+            accessibilityAuthorization: FakeAccessibilityAuthorization(trusted: true)
+        )
+
+        model.completeInitialSetup(choice: .weeklySchedule)
+
+        #expect(!model.settings.hasCompletedInitialSetup)
+        #expect(!model.automaticScheduleEnabled)
+    }
+
+    @Test("Returning remote-only users cannot silently arm a lock-now schedule")
+    func enableNeedsSeparateImmediateLockAcknowledgement() {
+        let suiteName = "CurfewSettingsStoreTests.ImmediateEnable.\(UUID().uuidString)"
+        guard let defaults = UserDefaults(suiteName: suiteName) else {
+            Issue.record("Unable to create isolated UserDefaults suite.")
+            return
+        }
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let store = CurfewSettingsStore(defaults: defaults)
+        var settings = CurfewSettings.default
+        settings.hasCompletedInitialSetup = true
+        settings.schedule = .init(rules: Dictionary(
+            uniqueKeysWithValues: Weekday.allCases.map {
+                ($0, DayRule(isDayOff: false, lockMinutes: 0, unlockMinutes: 23 * 60 + 59))
+            }
+        ))
+        store.save(settings)
+        let model = CurfewAppModel(
+            settingsStore: store,
+            appRouter: AppRouterSpy(),
+            flavor: .studioDevelopment,
+            activityRecorder: NullActivityRecording(),
+            lockoutDeadlineStore: .ephemeralForTesting(),
+            accessibilityAuthorization: FakeAccessibilityAuthorization(trusted: true)
+        )
+
+        model.enableAutomaticSchedule()
+
+        #expect(!model.automaticScheduleEnabled)
+    }
+
     @Test("Completed Studio Dev installs remain remote-only until schedule consent")
     func completedStudioDevDefaultsToRemoteOnly() {
         let suiteName = "CurfewSettingsStoreTests.StudioConsent.\(UUID().uuidString)"
