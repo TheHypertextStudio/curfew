@@ -16,6 +16,13 @@ enum AccountEnrollmentFailureCopy {
     static let reauthorization =
         "Curfew can’t use this sign-in anymore. Sign in again to connect this Mac. "
             + "Remote control is still off."
+    static func reauthorizationMessage(for error: Error) -> String {
+        if case AccountOAuthEnrollmentError.browserCompletedConnectionFailed = error {
+            return browserCompleted
+        }
+        return reauthorization
+    }
+
     static let wrongAccount =
         "That sign-in belongs to a different Curfew account. Use the original account "
             + "to finish connecting this Mac. Your saved device has not changed."

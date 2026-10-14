@@ -1,5 +1,19 @@
 # Curfew Implementation TODOs
 
+## Native reconnect after browser sign-in (2026-10-13)
+
+- [-] Diagnose the currently offline Studio Dev Mac without repeating account,
+  authenticator, or recovery setup. An enrolled Mac's same-account reconnect
+  previously converted a completed browser sign-in followed by native OAuth
+  connection failure into an expired-sign-in instruction, encouraging another
+  browser loop. The failing-first controller regression on PR #61 now preserves
+  the existing enrollment and refresh token while requiring the truthful
+  post-browser connection message. Privacy-safe stage/status diagnostics and
+  one installed-app reconnect are still needed to identify the failing native
+  boundary and prove a fresh online report through authenticated staging MCP.
+  Do not issue another lock or unlock for this check. Rollback is the previous
+  signed Dev app; do not erase the existing device or account keys.
+
 ## Daybreak test-window lifecycle (2026-10-13)
 
 - [x] Match the production daybreak-window cleanup in the native regressions.

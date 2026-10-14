@@ -4,6 +4,12 @@ import CryptoKit
 import CurfewKit
 import CurfewProtocols
 import Foundation
+import OSLog
+
+private let accountOAuthLogger = Logger(
+    subsystem: "studio.hypertext.curfew",
+    category: "account-oauth"
+)
 
 enum AccountOAuthEnrollmentError: Error {
     case invalidClientID
@@ -99,49 +105,6 @@ enum AccountOAuthOfficialClient {
     static let clientID = "curfew-native-client"
 }
 
-enum AccountOAuthTokenRequest {
-    static func authorizationCodeBody(
-        code: String,
-        clientID: String,
-        verifier: String,
-        redirectURI: String,
-        resource: String = CurfewServiceEndpoints.current.syncResource.absoluteString
-    ) -> Data {
-        formBody([
-            "grant_type": "authorization_code",
-            "client_id": clientID,
-            "code": code,
-            "code_verifier": verifier,
-            "redirect_uri": redirectURI,
-            "resource": resource
-        ])
-    }
-
-    static func refreshBody(
-        refreshToken: String,
-        clientID: String,
-        resource: String = CurfewServiceEndpoints.current.syncResource.absoluteString
-    ) -> Data {
-        formBody([
-            "grant_type": "refresh_token",
-            "refresh_token": refreshToken,
-            "client_id": clientID,
-            "resource": resource
-        ])
-    }
-
-    private static func formBody(_ fields: [String: String]) -> Data {
-        let body = fields.sorted(by: { $0.key < $1.key }).map { key, value in
-            "\(formEncode(key))=\(formEncode(value))"
-        }.joined(separator: "&")
-        return Data(body.utf8)
-    }
-
-    private static func formEncode(_ value: String) -> String {
-        value.addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? ""
-    }
-}
-
 @MainActor
 final class AccountOAuthEnrollmentService: NSObject {
     private let secretStore: any AccountSecretStoring
@@ -209,8 +172,8 @@ final class AccountOAuthEnrollmentService: NSObject {
         let clientID = AccountOAuthOfficialClient.clientID
         let request = try AccountOAuthEnrollmentRequest.create(
             clientID: clientID,
-            state: Self.randomURLSafe(byteCount: 32),
-            verifier: Self.randomURLSafe(byteCount: 64),
+            state: AccountOAuthEnrollmentRequest.randomURLSafe(byteCount: 32),
+            verifier: AccountOAuthEnrollmentRequest.randomURLSafe(byteCount: 64),
             endpoints: endpoints
         )
         authorizationURLHandler(request.authorizationURL)
@@ -220,8 +183,29 @@ final class AccountOAuthEnrollmentService: NSObject {
             expectedState: request.state,
             expectedRedirectURI: request.redirectURI
         )
+        accountOAuthLogger.info("OAuth browser callback accepted")
+        return try await completeAuthorization(
+            code: code,
+            clientID: clientID,
+            request: request,
+            expectedAccountUserID: expectedAccountUserID
+        )
+    }
+
+    private func completeAuthorization(
+        code: String,
+        clientID: String,
+        request: AccountOAuthEnrollmentRequest,
+        expectedAccountUserID: String?
+    ) async throws -> AccountOAuthGrant {
         do {
-            let tokens = try await exchange(code: code, clientID: clientID, request: request)
+            let tokens: AccountOAuthTokens
+            do {
+                tokens = try await exchange(code: code, clientID: clientID, request: request)
+            } catch {
+                accountOAuthLogger.error("OAuth token exchange failed after browser callback")
+                throw error
+            }
             guard !cancellationRequested else { throw CancellationError() }
             try Task.checkCancellation()
             let grant = AccountOAuthGrant(
@@ -229,7 +213,13 @@ final class AccountOAuthEnrollmentService: NSObject {
                 state: request.state,
                 codeChallenge: request.codeChallenge
             )
-            try await persist(grant, expectedAccountUserID: expectedAccountUserID)
+            do {
+                try await persist(grant, expectedAccountUserID: expectedAccountUserID)
+            } catch {
+                accountOAuthLogger.error("OAuth account verification or credential commit failed")
+                throw error
+            }
+            accountOAuthLogger.info("OAuth grant committed")
             return grant
         } catch is CancellationError {
             throw CancellationError()
@@ -350,23 +340,24 @@ final class AccountOAuthEnrollmentService: NSObject {
     }
 
     private func responseData(for request: URLRequest) async throws -> Data {
-        let (data, response) = try await session.data(for: request)
-        guard let response = response as? HTTPURLResponse,
-              (200 ..< 300).contains(response.statusCode),
-              data.count <= 32 * 1024
-        else { throw AccountOAuthEnrollmentError.invalidResponse }
-        return data
-    }
-
-    private static func randomURLSafe(byteCount: Int) -> String {
-        var data = Data(count: byteCount)
-        data.withUnsafeMutableBytes { buffer in
-            _ = SecRandomCopyBytes(kSecRandomDefault, byteCount, buffer.baseAddress!)
+        let (data, response): (Data, URLResponse)
+        do {
+            (data, response) = try await session.data(for: request)
+        } catch {
+            accountOAuthLogger.error("OAuth token endpoint network request failed")
+            throw error
         }
-        return data.base64EncodedString()
-            .replacingOccurrences(of: "+", with: "-")
-            .replacingOccurrences(of: "/", with: "_")
-            .replacingOccurrences(of: "=", with: "")
+        guard let response = response as? HTTPURLResponse else {
+            accountOAuthLogger.error("OAuth token endpoint returned a non-HTTP response")
+            throw AccountOAuthEnrollmentError.invalidResponse
+        }
+        guard (200 ..< 300).contains(response.statusCode), data.count <= 32 * 1024 else {
+            accountOAuthLogger.error(
+                "OAuth token endpoint rejected response: status \(response.statusCode, privacy: .public)"
+            )
+            throw AccountOAuthEnrollmentError.invalidResponse
+        }
+        return data
     }
 
     private static let accountOrigin = URL(string: "https://curfew-account.hypertext.studio")!

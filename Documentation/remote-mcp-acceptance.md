@@ -4,6 +4,32 @@ Snapshot: 2026-10-13. This is an evidence ledger, not a claim that the full
 download-to-phone-control flow is released. Historical sections below retain
 their point-in-time wording; the latest evidence takes precedence.
 
+## 2026-10-13 native reconnect diagnosis in progress
+
+Hosted CI on the test-only PR #61 head `08980730` reproduced the reconnect
+regression: after a successful browser callback but failed native connection,
+the controller showed the generic expired-sign-in instruction. The existing
+enrollment and refresh token stayed intact. The proposed fix distinguishes
+that post-browser failure from cancellation and records only OAuth stage and
+HTTP status in unified logging under the `account-oauth` category. It does not
+log authorization codes, tokens, account identifiers, response bodies, or
+the sign-in URL. The installed signed app has not received this fix yet; a
+green hosted run and a single same-account reconnect are still required.
+
+For a user-initiated reconnect, inspect the last ten minutes without opening
+another browser window or changing device state:
+
+```sh
+log show --last 10m --style compact --predicate 'subsystem == "studio.hypertext.curfew" && category == "account-oauth"'
+```
+
+An accepted callback followed by token endpoint, userinfo, or credential
+commit failure identifies the native boundary; a missing callback points to
+the browser handoff. This is diagnosis, not evidence that the app is online.
+Rollback retains existing enrollment and keys by reinstalling the prior signed
+Studio Dev build; do not erase or re-register the device. No lock or unlock is
+needed for verification.
+
 ## 2026-10-13 read-only connector follow-up
 
 At 22:17 UTC, Codex Staging's read-only `list_devices` call succeeded and
