@@ -52,6 +52,13 @@ or authorize widening an internal build's distribution.
    - `APPLE_API_ISSUER`
    - `APPLE_API_KEY_ID`
    - `APPLE_API_PRIVATE_KEY`
+   - `APPLE_PROVISIONING_PROFILES`: a JSON array containing the Base64-encoded
+     Developer ID provisioning profiles for `studio.hypertext.curfew` and
+     `studio.hypertext.curfew.widget`. Keep the original identifiers and Studio
+     team; do not substitute Personal Team or development profiles.
+   - Export the approved profiles to the existing private Secret Manager entry
+     `curfew-apple-provisioning-profiles` and the repository secret. Never put
+     their contents in workflow inputs, source files, or release artifacts.
 
 2. **CloudKit / push-backed Pro sync** (optional until the feature is enabled)
    - Provision `iCloud.studio.hypertext.curfew`.
@@ -187,8 +194,10 @@ For a strict `v0.0.x` tag, `.github/workflows/release.yml`:
 
 1. Runs the unsigned quality gate and rejects placeholder or missing keys.
 2. Imports the Developer ID certificate only after quality checks finish, then
-   archives and exports the signed app. Unsigned quality-check dependencies must
-   not run with the certificate or temporary signing keychain available.
+   validates and installs both approved production profiles. Archive and export
+   select their exact UUIDs separately for the app and widget. Unsigned
+   quality-check dependencies must not run with the certificate or temporary
+   signing keychain available.
 3. Notarizes and staples the app.
 4. Verifies the app artifact.
 5. Builds, signs, notarizes, and staples the DMG.
@@ -201,7 +210,15 @@ For a strict `v0.0.x` tag, `.github/workflows/release.yml`:
 
 After signing and before upload, an always-run cleanup removes the job-owned temporary signing
 keychain (including the imported private key), certificate P12 and notarization
-P8. Cleanup failure blocks upload and diagnostics name only basenames. The
+P8, plus job-installed provisioning profiles and their temporary configuration.
+The installer rejects wrong bundles/teams, expired or development profiles, and
+missing account association authority before installation. Apple/Xcode still
+validate the signed profile and certificate during archive/export; source tests
+do not prove that an issued production profile is available or usable.
+Existing installed profiles and auxiliary files are never replaced. Independent
+always-run profile cleanup checks ownership and recorded digests, and refuses to
+delete changed files. It still runs if certificate cleanup fails. Any cleanup
+failure blocks upload and diagnostics name only basenames. The
 artifact action is pinned to official v7.0.2 commit
 `cf430e030ddbb5b0abf93d22962f4752f3646cd9`, verified through GitHub's official tag
 and action metadata. No real local signing credential is deleted by source tests.
@@ -428,7 +445,14 @@ It fails closed on changed bytes, signature, configuration, team, version or
 missing/mismatched evidence. An eligible result permits owner review only; it
 does not authenticate evidence, perform cutover or establish production success.
 
-Production activation remains a separate owner-controlled operation. This change does not migrate domains, alter issuer or website source, update provider settings, or authorize any purchase-service rollout. Upload only the exact retained DMG/appcast after signed-device, account/provider, recovery and rollback acceptance. The live feed must remain on the existing production address unless a separately reviewed domain cutover is accepted. Verify live feed bytes and downloaded DMG hash against the candidate before announcing. If any gate is missing, withhold activation; never use a receipt as production proof.
+Production activation uses `.github/workflows/activate-production.yml` after
+signed-device, account/provider, recovery, assistant and rollback acceptance.
+Follow [the domain migration runbook](domain-migration.md) for the coordinated
+service, website, provider and update-feed cutover. Publish only the exact
+retained candidate and matching website bytes. Verify the live feed and
+downloaded DMG hash against the candidate before announcing. If any gate is
+missing, withhold activation; never use a receipt as production proof or enable
+sales while the commercial stop remains.
 
 The pull-request CI workflow also runs on `macos-26` so its test host matches
 Curfew's macOS 26 deployment target; running it on an older macOS image cannot

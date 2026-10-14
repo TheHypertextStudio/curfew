@@ -105,6 +105,11 @@ jobs:
           security list-keychains -d user -s "$KEYCHAIN_PATH"
           security set-key-partition-list -S apple-tool:,apple: -s -k "" "$KEYCHAIN_PATH"
 
+      - name: Install approved production provisioning profiles
+        env:
+          APPLE_PROVISIONING_PROFILES: ${{ secrets.APPLE_PROVISIONING_PROFILES }}
+        run: node scripts/release-profiles.mjs install
+
       - name: Archive
         run: |
           # Derive the build + marketing version from the tag so the shipped
@@ -115,6 +120,7 @@ jobs:
             -project Curfew.xcodeproj \
             -scheme Curfew \
             -configuration Release \
+            -xcconfig "$RUNNER_TEMP/provisioning.xcconfig" \
             -destination 'platform=macOS' \
             -archivePath "$RUNNER_TEMP/Curfew.xcarchive" \
             CODE_SIGN_STYLE=Manual \
@@ -128,17 +134,6 @@ jobs:
 
       - name: Export app
         run: |
-          cat > "$RUNNER_TEMP/ExportOptions.plist" <<'EOF'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-            <key>method</key><string>developer-id</string>
-            <key>teamID</key><string>T95VDD3A4W</string>
-            <key>signingStyle</key><string>manual</string>
-          </dict>
-          </plist>
-          EOF
           xcodebuild -exportArchive \
             -archivePath "$RUNNER_TEMP/Curfew.xcarchive" \
             -exportPath "$RUNNER_TEMP/export" \
@@ -235,6 +230,10 @@ jobs:
           for name in signing.keychain-db certificate.p12 AuthKey.p8; do
             [[ ! -e "$RUNNER_TEMP/$name" ]] || { echo "::error::Temporary $name remains"; exit 1; }
           done
+
+      - name: Remove job-installed provisioning profiles
+        if: always()
+        run: node scripts/release-profiles.mjs cleanup
 
       - name: Retain signed candidate without activation
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
