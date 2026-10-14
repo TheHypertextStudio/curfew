@@ -109,40 +109,7 @@ struct GettingStartedView: View {
     @ViewBuilder
     private var stepExtras: some View {
         if !model.settings.hasCompletedInitialSetup, flow.currentStep == .schedule {
-            Button("Edit weekly schedule") {
-                model.requestWorkspaceNavigation(to: .schedule)
-            }
-            .buttonStyle(CurfewSecondaryButtonStyle())
-
-            Text("Review all seven saved rules before choosing automatic lockouts:")
-                .font(CurfewTypography.body(13))
-                .foregroundStyle(CurfewTheme.mutedInk)
-            ForEach(model.settings.schedule.reviewLines, id: \.self) { line in
-                Text(line)
-                    .font(CurfewTypography.body(13))
-                    .foregroundStyle(CurfewTheme.ink)
-            }
-            Button("I've reviewed these seven days — use this weekly schedule") {
-                flow.chooseReviewedWeeklySchedule()
-            }
-            .buttonStyle(CurfewSecondaryButtonStyle())
-
-            Button("No automatic schedule — remote controls only") {
-                flow.chooseSchedule(.remoteControlsOnly)
-            }
-            .buttonStyle(CurfewSecondaryButtonStyle())
-
-            if let choice = flow.scheduleChoice {
-                Label(
-                    choice == .weeklySchedule
-                        ? "Weekly lockouts selected. They start only when you finish setup."
-                        :
-                        "No automatic lockouts. Authorized remote locks still work.",
-                    systemImage: "checkmark.circle.fill"
-                )
-                .font(CurfewTypography.body(13))
-                .foregroundStyle(CurfewTheme.accent)
-            }
+            scheduleReviewAndChoice
         }
 
         if !model.settings.hasCompletedInitialSetup, flow.currentStep == .extensionBudget {
@@ -201,6 +168,62 @@ struct GettingStartedView: View {
                 .font(CurfewTypography.body(13))
                 .foregroundStyle(CurfewTheme.mutedInk)
             }
+        }
+    }
+
+    /// Keep the effective seven-day review beside both choices at the minimum
+    /// onboarding window size. A tall single-column stack put the choice
+    /// buttons below the scroll viewport, where clicking could not select one.
+    private var scheduleReviewAndChoice: some View {
+        HStack(alignment: .top, spacing: 16) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Review all seven saved rules before choosing automatic lockouts:")
+                    .font(CurfewTypography.body(13))
+                    .foregroundStyle(CurfewTheme.mutedInk)
+                ForEach(model.settings.schedule.reviewLines, id: \.self) { line in
+                    Text(line)
+                        .font(CurfewTypography.body(12))
+                        .foregroundStyle(CurfewTheme.ink)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            VStack(alignment: .leading, spacing: 8) {
+                Button("Edit weekly schedule") {
+                    model.requestWorkspaceNavigation(to: .schedule)
+                }
+                .buttonStyle(CurfewSecondaryButtonStyle())
+
+                Button {
+                    flow.chooseReviewedWeeklySchedule()
+                } label: {
+                    Text("I've reviewed these seven days — use this weekly schedule")
+                        .fixedSize(horizontal: false, vertical: true)
+                        .multilineTextAlignment(.leading)
+                }
+                .buttonStyle(CurfewSecondaryButtonStyle())
+
+                Button {
+                    flow.chooseSchedule(.remoteControlsOnly)
+                } label: {
+                    Text("No automatic schedule — remote controls only")
+                        .fixedSize(horizontal: false, vertical: true)
+                        .multilineTextAlignment(.leading)
+                }
+                .buttonStyle(CurfewSecondaryButtonStyle())
+
+                if let choice = flow.scheduleChoice {
+                    Label(
+                        choice == .weeklySchedule
+                            ? "Weekly lockouts selected. They start only when you finish setup."
+                            : "No automatic lockouts. Authorized remote locks still work.",
+                        systemImage: "checkmark.circle.fill"
+                    )
+                    .font(CurfewTypography.body(13))
+                    .foregroundStyle(CurfewTheme.accent)
+                }
+            }
+            .frame(width: 228, alignment: .leading)
         }
     }
 

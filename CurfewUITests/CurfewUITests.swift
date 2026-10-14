@@ -125,27 +125,6 @@ final class CurfewUITests: XCTestCase {
     }
 
     @MainActor
-    func testSetupUsesOneInstructionAndPreservesScheduleGate() {
-        let app = launchFixture("getting-started")
-        XCTAssertTrue(app.buttons["Next"].waitForExistence(timeout: 5))
-        app.buttons["Next"].click()
-        XCTAssertTrue(app.staticTexts["Choose when your Mac locks and unlocks."]
-            .waitForExistence(timeout: 3))
-        XCTAssertFalse(app.buttons["Next"].isEnabled)
-        XCTAssertTrue(app.buttons["Edit weekly schedule"].exists)
-        XCTAssertTrue(app.buttons["I've reviewed these seven days — use this weekly schedule"]
-            .exists)
-        app.buttons["I've reviewed these seven days — use this weekly schedule"].click()
-        XCTAssertTrue(app.staticTexts.containing(NSPredicate(
-            format: "label CONTAINS %@",
-            "Weekly lockouts selected."
-        )).firstMatch.waitForExistence(timeout: 3))
-        XCTAssertTrue(app.buttons["Next"].isEnabled)
-        app.buttons["Next"].click()
-        XCTAssertTrue(app.staticTexts["Step 3 of 5"].waitForExistence(timeout: 3))
-    }
-
-    @MainActor
     func testPromptEditorDoesNotAdvertiseFutureFeatures() {
         let app = launchFixture("this-week")
         app.radioButtons["Prompts"].click()
@@ -248,11 +227,16 @@ final class CurfewUITests: XCTestCase {
     }
 
     @MainActor
-    func launchFixture(_ scenario: String, state: String = "default") -> XCUIApplication {
+    func launchFixture(
+        _ scenario: String,
+        state: String = "default",
+        size: String = "default"
+    ) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchEnvironment["CURFEW_DEMO_FIXTURE"] = "1"
         app.launchEnvironment["CURFEW_DEMO_SCENARIO"] = scenario
         app.launchEnvironment["CURFEW_DEMO_STATE"] = state
+        app.launchEnvironment["CURFEW_DEMO_SIZE"] = size
         app.launchArguments += ["-SUEnableAutomaticChecks", "NO", "-SUHasLaunchedBefore", "YES"]
         app.launch()
         if app.state != .runningForeground {
@@ -267,6 +251,45 @@ final class CurfewUITests: XCTestCase {
 }
 
 extension CurfewUITests {
+    @MainActor
+    func testSetupUsesOneInstructionAndPreservesScheduleGate() {
+        let app = launchFixture("getting-started", size: "minimum")
+        XCTAssertTrue(app.buttons["Next"].waitForExistence(timeout: 5))
+        app.buttons["Next"].click()
+        XCTAssertTrue(app.staticTexts["Choose when your Mac locks and unlocks."]
+            .waitForExistence(timeout: 3))
+        XCTAssertFalse(app.buttons["Next"].isEnabled)
+        XCTAssertTrue(app.buttons["Edit weekly schedule"].isHittable)
+        for day in ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] {
+            let rule = app.staticTexts.containing(NSPredicate(
+                format: "label BEGINSWITH %@",
+                "\(day):"
+            )).firstMatch
+            XCTAssertTrue(rule.isHittable, "\(day)'s effective rule must be visible")
+        }
+        let weeklyChoice = app.buttons[
+            "I've reviewed these seven days — use this weekly schedule"
+        ]
+        let remoteOnlyChoice = app.buttons["No automatic schedule — remote controls only"]
+        XCTAssertTrue(weeklyChoice.isHittable)
+        XCTAssertTrue(remoteOnlyChoice.isHittable)
+        XCTAssertGreaterThan(
+            weeklyChoice.frame.height,
+            45,
+            "The full weekly-choice label should wrap, not truncate"
+        )
+        weeklyChoice.click()
+        let selectedFeedback = app.staticTexts.containing(NSPredicate(
+            format: "label CONTAINS %@",
+            "Weekly lockouts selected."
+        )).firstMatch
+        XCTAssertTrue(selectedFeedback.waitForExistence(timeout: 3))
+        XCTAssertTrue(selectedFeedback.isHittable)
+        XCTAssertTrue(app.buttons["Next"].isEnabled)
+        app.buttons["Next"].click()
+        XCTAssertTrue(app.staticTexts["Step 3 of 5"].waitForExistence(timeout: 3))
+    }
+
     @MainActor
     func testTaskBrowserEnforcementPanelActions() {
         let app = launchFixture("settings")
