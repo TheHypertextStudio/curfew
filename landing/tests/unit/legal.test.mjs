@@ -48,6 +48,8 @@ test('privacy explains task review transfer and avoids unconditional deletion pr
   assert.match(retention, /52 weeks/);
   assert.match(retention, /365 days/);
   assert.match(retention, /30 days after/);
+  assert.match(retention, /Scheduled sweeps/);
+  assert.doesNotMatch(retention, /Hourly sweeps/);
   assert.match(retention, /during the deletion request/);
   assert.doesNotMatch(retention, /queued for deletion|temporary hold|within 30 days/);
 });

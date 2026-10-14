@@ -7,6 +7,7 @@
   and source-backed privacy/retention disclosures including local MCP activity
   and device-attributed summaries. Current public contact links distinguish
   product help and general inquiries from official Studio legal/privacy notices.
+  Retention describes scheduled batch cleanup without assuming a cron interval.
   Preserve previous policies in native `/legal/history` routes and retain HTML
   aliases. Terms changes use a 30-day existing-user notice; lifetime/MIT/refund
   rights remain intact.
