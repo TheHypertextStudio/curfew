@@ -57,6 +57,7 @@ hostname, or secret. Export these non-secret values only in the operator shell:
 export CURFEW_LICENSE_WORKER_NAME='example-worker-name'
 export CURFEW_LICENSE_KV_NAMESPACE_ID='00000000000000000000000000000000'
 export CURFEW_LICENSE_HOSTNAME='curfew-license.hypertext.studio'
+export CURFEW_LICENSE_STRIPE_MODE='live'
 node scripts/license-worker.mjs validate-config
 node scripts/license-worker.mjs render-config --output /secure/user-owned/wrangler.toml
 node scripts/license-worker.mjs dry-run --config /secure/user-owned/wrangler.toml
@@ -69,13 +70,33 @@ same approved Curfew hostname convention:
 export CURFEW_LICENSE_WORKER_NAME='curfew-issue-license-staging'
 export CURFEW_LICENSE_KV_NAMESPACE_ID='your-staging-kv-namespace-id'
 export CURFEW_LICENSE_HOSTNAME='curfew-license-staging.hypertext.studio'
+export CURFEW_LICENSE_STRIPE_MODE='test'
 node scripts/license-worker.mjs render-config \
   --output /secure/user-owned/wrangler-staging.toml
 ```
 
-Set a distinct staging `LICENSE_PRIVATE_KEY` and Stripe **test-mode** webhook
-secret on that Worker. Never reuse its KV namespace, webhook secret, or
-checkout links in production.
+Use an empty private Stripe general sandbox for staging. Give it its own
+products, prices, payment links and webhook endpoint, and keep its webhook
+signing secret on the staging Worker. Give that Worker a distinct
+`LICENSE_PRIVATE_KEY` and KV namespace. Do not copy live settings, keys or
+objects into staging. The account's shared Test mode is insufficient for
+settings isolation.
+
+`CURFEW_LICENSE_STRIPE_MODE` is required. The renderer permits `live` only for
+`curfew-license.hypertext.studio` and requires `test` for other license hostnames.
+It writes the runtime `STRIPE_MODE` binding. After signature verification, the
+issuer requires the event's boolean `livemode` to match that binding before any
+KV access, including event replay and historical index repair. Missing or invalid
+configuration returns 503; missing, malformed or opposite-mode event flags return
+400. Correct-mode events continue through the existing paid-purchase checks.
+
+The guard is local and has not been deployed. Before an approved staging
+publication, save `CURFEW_LICENSE_STRIPE_MODE=test` in that Worker's Build
+configuration and verify the rendered runtime binding. Production configuration
+and deployment require explicit owner direction; its eventual value is `live`.
+Do not push this source into an automatic deployment before reviewing those
+settings and the separate sandbox webhook. Revert the code and renderer together
+if rollback is needed; retain the separate KVs, signers and webhook secrets.
 
 `validate-config` fails closed when any required field is absent or malformed.
 `render-config` resolves the Worker entry point from this clone, so the
