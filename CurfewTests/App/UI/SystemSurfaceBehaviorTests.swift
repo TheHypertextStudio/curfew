@@ -247,7 +247,8 @@ struct AccountConnectionPresentationTests {
             .resolve(.rejected("Curfew Account access was rejected.")) == .init(
                 title: "Check this Mac’s account access",
                 detail: "Curfew Account denied this Mac’s request. Its device access may have "
-                    + "been removed. Check this Mac in your account. Your schedule is unchanged.",
+                    + "been removed. Check this Mac in your account, then retry the connection "
+                    + "if access is restored. Your schedule is unchanged.",
                 systemImage: "exclamationmark.triangle.fill",
                 tone: .warning,
                 lastConfirmedAt: nil
