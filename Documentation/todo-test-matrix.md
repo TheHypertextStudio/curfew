@@ -676,7 +676,8 @@ tests cannot read or mutate a user's App Group lockout record.
     confirmation appears before Next advances to the next setup step, and both
     choices remain hittable after opening the live schedule editor.
   - `CurfewUITests/testSetupUsesOneInstructionAndPreservesScheduleGate()` checks
-    all seven rules and both choices are hittable at minimum window size.
+    all seven rules and both choices are hittable at minimum window size;
+    rule and feedback text may be exposed as either an accessibility label or value.
   - `SetupUXTests/completeOnboardingFlowUpdatesState()`
 - `Onboarding completion requires acknowledging all seven effective weekly rules
   or choosing remote-only mode, plus the existing permissions gate before finish.`
