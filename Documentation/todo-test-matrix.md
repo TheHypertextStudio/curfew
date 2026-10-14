@@ -1884,10 +1884,17 @@ changes; rollback restores the prior landing release and docs commit.
     with the derived fixture public key. No production secret was retrieved;
     execution with the retained GitHub secret and the signed artifact is pending.
 - `Stripe staging and production are explicitly isolated.`
-  - Pending: expected webhook `livemode` rejection tests before KV reads/writes,
-    including event-replay backfill. Separate signatures and license stores
-    currently exist; the explicit mode guard is absent.
+  - `web/worker/test/purchase-flow.test.ts`: nine guard regressions failed first;
+    live/test mismatches, malformed/missing event flags, invalid/missing runtime
+    configuration and wrong-mode replay are rejected before KV access. A valid
+    live fixture is accepted only with explicit live configuration. All 28 issuer
+    tests and TypeScript checks pass locally.
+  - `scripts/license-worker.test.mjs`: six rendering regressions failed first;
+    required live/test values reach runtime bindings, and missing/invalid or
+    hostname-mismatched selections cannot produce a deployment config. All 61
+    repository script tests pass. Generated Wrangler bindings include the mode.
   - Provider audit: only the account's shared Test mode environment exists.
     Full settings isolation requires an empty private general sandbox. The owner
     stopped live Stripe mutations and production purchase-service rollout;
     `Documentation/plus-activation.md` records the two prior live metadata edits.
+    The new guard remains local, unpushed and undeployed pending provider setup.

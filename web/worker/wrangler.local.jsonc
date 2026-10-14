@@ -11,6 +11,7 @@
     { "name": "RESTORE_EMAIL_LIMIT", "namespace_id": "1002", "simple": { "limit": 1, "period": 60 } }
   ],
   "vars": {
+    "STRIPE_MODE": "test",
     "RESTORE_EMAIL_FROM": "purchases@curfew.hypertext.studio",
     "PURCHASE_PORTAL_URL": "http://localhost:4321"
   }
