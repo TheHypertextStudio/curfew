@@ -48,6 +48,32 @@ Attach the new apex to the existing Pages project through `cf pages domains crea
 
 ## Acceptance and rollback
 
+The website pipeline compiles the Pages middleware before retention, executes
+its redirect/retirement and documentation-mode tests, and seals the complete
+static output against the shared configuration. Publication consumes those
+retained files; it does not rebuild the app, website, or middleware.
+
+After the candidate's acceptance gates pass, store the exact owner receipt as
+the production environment secret `CURFEW_RELEASE_ACCEPTANCE_RECEIPT`. Dispatch
+`activate-production.yml` on main with its SHA-256, the successful candidate run,
+and the successful main website run. Both runs and the current main/tag must
+identify the same source revision. The receipt remains private, must match the
+candidate, and expires after one hour. It is never published as a release asset.
+
+Activation requires both Pages hostnames to be active, valid new-site TLS, and
+the configuration-matched account/sync services in maintenance plus the
+configuration-matched license issuer. It publishes the exact signed DMG, feed,
+and candidate identity to GitHub before uploading the retained Pages output
+with bundling disabled from a fresh directory without checkout Functions, so
+the uploader cannot compile source again. The pinned cf release explicitly
+rejects legacy Pages publication, so this uploader retains the documented Wrangler exception; cf
+still inspects custom domains. Existing documentation mode and project bindings
+are retained. A retry reuses matching public release assets and refuses changed
+bytes. Draft retries use authenticated release discovery and read asset digests
+back by release ID before publication; a failed site publication can retry the
+same release without replacing assets or restoring revoked authorization. Final checks require the exact live
+feed, public path/query-preserving 308, and callback retirement without redirect.
+
 Acceptance includes real passkey recovery/replacement, Apple/Google sign-in, transactional email, native callback and same-device reconnection, retained encrypted-data readability, a real assistant command with Mac receipt/enforcement, Stripe test webhook, license delivery/refresh, and a verified signed app update. Passing local checks or a homepage 200 does not establish these outcomes.
 
 The cf Durable Object export conversion is one-way: Cloudflare retains the existing namespace, but subsequent rollbacks must use cf exports with the same Worker/export/resource identities. Roll back code and assets through that configuration; do not redeploy the legacy Wrangler migrations array.

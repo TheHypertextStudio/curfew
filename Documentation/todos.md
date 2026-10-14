@@ -1,5 +1,15 @@
 # Curfew Implementation TODOs
 
+## Production publication
+
+- [x] Retain the compiled Pages middleware and a content/configuration identity
+      with the browser-validated static website.
+- [x] Provide manual activation of matching signed candidate and website bytes,
+      with fresh private owner acceptance, active domains, prepared services,
+      immutable release assets, and live feed/redirect/retirement checks.
+- [ ] Complete production provider, device, assistant, billing, licensing, mail,
+      and update acceptance; publish the approved artifacts and verify the cutover.
+
 ## Website domain preparation
 
 - [x] Provide a manual cf operation that derives the production website hostname
