@@ -38,6 +38,8 @@ Acceptance includes real passkey recovery/replacement, Apple/Google sign-in, tra
 
 Monitor these journeys through the following day. Keep the public redirect indefinitely and service retirement responses only. Roll back application/configuration versions against retained data if needed; never resurrect revoked grants or overwrite post-cutover writes. Staging retains its existing hosts. Unrelated Studio domains and support email addresses are unchanged.
 
-## Current execution blockers
+## Provider inventory and candidate identity
 
-The local environment has no Cloudflare API token/account selection or Stripe credential. Production recovery audit, zone/DNS/TLS changes, provider registration, sender verification, signing/notarization, production cutover and live acceptance therefore remain unverified. No production routing or account revocation has been performed by this change.
+The website PR workflow runs a read-only inventory using the existing repository Cloudflare token and pinned cf CLI. It reports each operation independently, so Pages access cannot be mistaken for Worker, DNS, or database permission. The output contains selected infrastructure metadata and secret names only. It never exports credentials or account data. Missing permission is a prerequisite to resolve before mutation.
+
+The candidate retains both `environment-artifact.json` and `release-configuration.json`. Native `CurfewConfigurationSHA256` and candidate `configurationSHA256` identify the same endpoint artifact consumed by the backend. `releaseConfigurationSHA256` separately seals the resolved Sparkle public key and source file digests. Changing a configured domain requires no candidate code change; the resolved feed must match the approved manifest. Candidate retention does not activate the site, update feed, or service.

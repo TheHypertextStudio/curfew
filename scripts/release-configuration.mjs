@@ -4,16 +4,28 @@ import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import {
+  verifyArtifact as verifyDeployment,
+  resolveEnvironment,
+} from "./deployment-config.mjs";
+
 const digest = (bytes) => createHash("sha256").update(bytes).digest("hex");
 export function createReleaseConfiguration({
   sourceCommit,
   appcast,
   sparkleKey,
   inputs,
+  deployment,
 }) {
+  if (!deployment) throw new Error("Shared deployment artifact required");
+  verifyDeployment(deployment, deployment.sha256, sourceCommit);
+  const endpoint = resolveEnvironment(
+    deployment.manifest.environments.production,
+    "production",
+  ).appcast;
   if (
     !/^[a-f0-9]{40}$/.test(sourceCommit) ||
-    appcast !== "https://curfew.hypertext.studio/appcast.xml" ||
+    appcast !== endpoint ||
     typeof sparkleKey !== "string" ||
     !/^[A-Za-z0-9+/]{43}=$/.test(sparkleKey) ||
     Buffer.from(sparkleKey, "base64").length !== 32 ||
@@ -21,7 +33,7 @@ export function createReleaseConfiguration({
     !Object.keys(inputs).length
   )
     throw new Error(
-      "Invalid release configuration; domain activation is outside this pipeline",
+      "Invalid release configuration; resolved feed must match the shared deployment",
     );
   const normalizedInputs = Object.fromEntries(
     Object.entries(inputs).sort(([a], [b]) => a.localeCompare(b)),
@@ -39,6 +51,7 @@ export function createReleaseConfiguration({
     appcast,
     sparkleKey,
     inputs: normalizedInputs,
+    deployment,
   };
   return Object.freeze({
     ...identity,
@@ -59,7 +72,7 @@ export function verifyArtifact(artifact, expectedHash, expectedCommit) {
   return actual;
 }
 
-// Snapshot source bytes, not a new endpoint configuration or deployment plan.
+// Seal signing identity and source bytes alongside the shared endpoint artifact.
 export async function recordReleaseConfiguration(
   settings,
   root = fileURLToPath(new URL("../", import.meta.url)),
@@ -76,8 +89,17 @@ export async function recordReleaseConfiguration(
     cwd: root,
     encoding: "utf8",
   }).trim();
+  const deployment = JSON.parse(
+    await readFile(
+      resolve(root, "deployment/generated/environment-artifact.json"),
+      "utf8",
+    ),
+  );
   const inputs = {};
   for (const path of [
+    "deployment/environments.json",
+    "deployment/generated/CurfewEndpoints.xcconfig",
+    "CurfewKit/Sources/CurfewKit/Sync/DeploymentProfile.generated.swift",
     "CurfewKit/Sources/CurfewKit/Sync/CurfewServiceEndpoints.swift",
     "Curfew/Core/Features/LicenseRefresher.swift",
     "Curfew.xcodeproj/project.pbxproj",
@@ -92,6 +114,7 @@ export async function recordReleaseConfiguration(
   return createReleaseConfiguration({
     sourceCommit,
     inputs,
+    deployment,
     appcast: app[0].buildSettings.INFOPLIST_KEY_SUFeedURL,
     sparkleKey: app[0].buildSettings.INFOPLIST_KEY_SUPublicEDKey,
   });

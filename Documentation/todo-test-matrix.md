@@ -1574,3 +1574,6 @@ changes; rollback restores the prior landing release and docs commit.
 | New native endpoints and authorization-only migration | `DeploymentEndpointTests`; `AccountOAuthEnrollmentTests` | Same Mac reconnects and reads retained encrypted data |
 | Safe public redirect and API retirement | `landing/tests/unit/domain-routing.test.mjs`; license domain tests | DNS/TLS and old/new host requests |
 | Recovery gate, transactional revocation and idempotency | curfew-sync `domain-migration.test.ts`, `service-config.test.ts` | Provider-ready maintenance cutover and drained fences |
+
+- Release endpoint provenance: `scripts/release-configuration.test.mjs` covers configured and alternate domains, changed manifests, source revisions, and signing keys; `scripts/release-candidate.test.mjs` binds native configuration and candidate signatures to the shared deployment identity.
+- Provider inventory: `scripts/cloudflare-inventory.test.mjs` requires read-only CLI operations, independent results after permission failures, and selected metadata output. Inventory is access evidence, not release acceptance.

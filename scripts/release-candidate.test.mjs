@@ -12,6 +12,11 @@ import { join } from "node:path";
 import { execFileSync, spawnSync } from "node:child_process";
 import { generateKeyPairSync, sign } from "node:crypto";
 import test from "node:test";
+import { createArtifact } from "./deployment-config.mjs";
+const deploymentManifest = JSON.parse(
+  await readFile("deployment/environments.json", "utf8"),
+);
+const deployment = createArtifact(deploymentManifest, "a".repeat(40));
 
 // Catch a tag restoring public release/feed/site writes before owner acceptance.
 test("a version tag can retain a candidate but cannot publish or deploy it", () => {
@@ -123,7 +128,9 @@ test("unsigned quality checks finish before Developer ID material is imported", 
     ),
   );
   const steps = workflow.jobs.release.steps;
-  const qualityIndex = steps.findIndex((step) => step.name === "Run quality gate");
+  const qualityIndex = steps.findIndex(
+    (step) => step.name === "Run quality gate",
+  );
   const importIndex = steps.findIndex(
     (step) => step.name === "Import Developer ID certificate",
   );
@@ -326,13 +333,14 @@ async function fixture() {
     await import("./release-configuration.mjs");
   const configuration = createReleaseConfiguration({
     sourceCommit: "a".repeat(40),
-    appcast: "https://curfew.hypertext.studio/appcast.xml",
+    appcast: "https://thecurfew.app/appcast.xml",
+    deployment,
     sparkleKey,
     inputs: { "Curfew/Info.plist": "b".repeat(64) },
   });
   const signature = sign(null, dmg, privateKey).toString("base64");
   const appcast = Buffer.from(
-    `<rss><channel><link>https://curfew.hypertext.studio/appcast.xml</link><item><sparkle:version>0.0.1</sparkle:version><enclosure url="https://github.com/TheHypertextStudio/curfew/releases/download/v0.0.1/Curfew-v0.0.1.dmg" length="${dmg.length}" sparkle:edSignature="${signature}" /></item></channel></rss>`,
+    `<rss><channel><link>https://thecurfew.app/appcast.xml</link><item><sparkle:version>0.0.1</sparkle:version><enclosure url="https://github.com/TheHypertextStudio/curfew/releases/download/v0.0.1/Curfew-v0.0.1.dmg" length="${dmg.length}" sparkle:edSignature="${signature}" /></item></channel></rss>`,
   );
   const candidate = api.createCandidate({
     dmg,
@@ -343,6 +351,8 @@ async function fixture() {
     sparkleKey,
     runID: "123",
   });
+  assert.equal(candidate.configurationSHA256, deployment.sha256);
+  assert.equal(candidate.releaseConfigurationSHA256, configuration.sha256);
   return { api, dmg, appcast, configuration, candidate };
 }
 
@@ -458,8 +468,8 @@ test("signed app identity rejects Development signing, old team, and wrong embed
     CFBundleShortVersionString: "0.0.1",
     CFBundleVersion: "0.0.1",
     CurfewConfigurationCommit: f.configuration.sourceCommit,
-    CurfewConfigurationSHA256: f.configuration.sha256,
-    SUFeedURL: "https://curfew.hypertext.studio/appcast.xml",
+    CurfewConfigurationSHA256: f.configuration.deployment.sha256,
+    SUFeedURL: "https://thecurfew.app/appcast.xml",
     SUPublicEDKey: f.candidate.sparkleKey,
   };
   const signature =
@@ -477,7 +487,10 @@ test("signed app identity rejects Development signing, old team, and wrong embed
       { ...info, SUPublicEDKey: Buffer.alloc(32, 8).toString("base64") },
       signature,
     ],
-    [{ ...info, SUFeedURL: "https://thecurfew.app/appcast.xml" }, signature],
+    [
+      { ...info, SUFeedURL: "https://unapproved.example/appcast.xml" },
+      signature,
+    ],
   ])
     assert.throws(() =>
       f.api.validateAppIdentity(properties, signing, f.configuration, "0.0.1"),

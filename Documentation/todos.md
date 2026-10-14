@@ -1333,3 +1333,6 @@ asserts its own screen and state before attaching an image.
 
 - [-] Centralize environment configuration, remove protocol hostname constants, adopt pinned cf, derive native/web/service endpoints, and retire old traffic. See `domain-migration.md`.
 - [ ] Complete authenticated provider preflight, account recovery audit, signed release, backups, coordinated production cutover and live acceptance. Local changes do not establish deployment.
+
+- [x] Bind signed candidate provenance to the shared endpoint manifest and retain the newer release credential cleanup and unsigned quality checks.
+- [x] Inventory Cloudflare access through the pinned CLI using existing CI credentials without changing infrastructure or printing secret values.
