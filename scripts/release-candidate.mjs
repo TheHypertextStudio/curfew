@@ -90,7 +90,7 @@ export function validateAppIdentity(info, signature, configuration, version) {
     info.CFBundleShortVersionString !== version ||
     info.CFBundleVersion !== version ||
     info.CurfewConfigurationCommit !== configuration.sourceCommit ||
-    info.CurfewConfigurationSHA256 !== configuration.sha256 ||
+    info.CurfewConfigurationSHA256 !== configuration.deployment.sha256 ||
     info.SUPublicEDKey !== configuration.sparkleKey ||
     info.SUFeedURL !== feed
   )
@@ -175,7 +175,8 @@ export function createCandidate({
     team,
     runID,
     sourceCommit: configuration.sourceCommit,
-    configurationSHA256: configuration.sha256,
+    configurationSHA256: configuration.deployment.sha256,
+    releaseConfigurationSHA256: configuration.sha256,
     dmgSHA256: hash(dmg),
     appcastSHA256: hash(appcast),
     sparkleKey,

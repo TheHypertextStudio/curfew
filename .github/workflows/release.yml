@@ -49,6 +49,9 @@ jobs:
       - name: Install tools
         run: brew install create-dmg swiftlint swiftformat just
 
+      - name: Generate shared deployment configuration
+        run: node scripts/deployment-config.mjs generate
+
       - name: Reject placeholder license public key
         # Refuses to release if LicenseGate.swift still embeds the all-zero
         # placeholder in the ACTIVE `configuredPublicKeyBase64` constant. Without
@@ -75,7 +78,8 @@ jobs:
             -configuration Release CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
             INFOPLIST_KEY_SUPublicEDKey="$SPARKLE_PUBLIC_KEY" > "$RUNNER_TEMP/release-build-settings.json"
           node scripts/release-candidate.mjs verify-update-key "$RUNNER_TEMP/release-build-settings.json"
-          configuration_hash=$(node scripts/release-configuration.mjs record "$RUNNER_TEMP/release-build-settings.json" "$RUNNER_TEMP/release-configuration.json")
+          node scripts/release-configuration.mjs record "$RUNNER_TEMP/release-build-settings.json" "$RUNNER_TEMP/release-configuration.json" > "$RUNNER_TEMP/release-configuration.sha256"
+          configuration_hash=$(node -p "JSON.parse(require('fs').readFileSync('deployment/generated/environment-artifact.json')).sha256")
           printf 'CURFEW_CONFIGURATION_SHA256=%s\n' "$configuration_hash" >> "$GITHUB_ENV"
 
       - name: Run quality gate
@@ -205,7 +209,7 @@ jobs:
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
           mkdir "$RUNNER_TEMP/candidate"
-          cp "$RUNNER_TEMP/Curfew-$RELEASE_TAG.dmg" "$RUNNER_TEMP/appcast.xml" "$RUNNER_TEMP/release-configuration.json" "$RUNNER_TEMP/candidate/"
+          cp "$RUNNER_TEMP/Curfew-$RELEASE_TAG.dmg" "$RUNNER_TEMP/appcast.xml" "$RUNNER_TEMP/release-configuration.json" deployment/generated/environment-artifact.json "$RUNNER_TEMP/candidate/"
           cp "$RUNNER_TEMP/app-notarization.json" "$RUNNER_TEMP/dmg-notarization.json" "$RUNNER_TEMP/candidate/"
           export VERSION="${RELEASE_TAG#v}"
           CANDIDATE_TEAM="$(codesign -dv --verbose=4 "$RUNNER_TEMP/export/Curfew.app" 2>&1 | awk -F= '/^TeamIdentifier=/{print $2}')"
