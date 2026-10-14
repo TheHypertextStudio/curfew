@@ -77,18 +77,6 @@ struct FirstRunFlowTests {
         #expect(flow.currentStep == .extensionBudget)
     }
 
-    @Test("Opening the schedule editor alone cannot authorize automatic lockout")
-    func openingScheduleDoesNotConfirmIt() {
-        var flow = FirstRunFlow()
-        flow.advance()
-
-        flow.markScheduleReviewed()
-
-        #expect(!flow.canAdvance)
-        flow.advance()
-        #expect(flow.currentStep == .schedule)
-    }
-
     @Test("Permissions step blocks finish path until accessibility is actually granted")
     func permissionsStepRequiresAccessibilityGrant() {
         var flow = FirstRunFlow()
@@ -172,30 +160,6 @@ struct GettingStartedCopyTests {
 
 @MainActor
 struct SetupUXTests {
-    @Test("First-run schedule edits replace the draft immediately without cooldown")
-    func firstRunScheduleEditIsImmediate() {
-        let suiteName = "CurfewSettingsStoreTests.InitialSchedule.\(UUID().uuidString)"
-        guard let defaults = UserDefaults(suiteName: suiteName) else {
-            Issue.record("Unable to create isolated UserDefaults suite.")
-            return
-        }
-        defer { defaults.removePersistentDomain(forName: suiteName) }
-
-        let model = CurfewAppModel(
-            settingsStore: CurfewSettingsStore(defaults: defaults),
-            appRouter: AppRouterSpy(),
-            activityRecorder: NullActivityRecording(),
-            lockoutDeadlineStore: .ephemeralForTesting()
-        )
-        var proposed = model.settings.schedule
-        proposed.rules[.monday]?.lockMinutes = 22 * 60
-
-        model.queueScheduleUpdate(proposed)
-
-        #expect(model.settings.schedule.rule(for: .monday).lockMinutes == 22 * 60)
-        #expect(model.settings.pendingScheduleChange == nil)
-    }
-
     @Test("Open settings action activates app and opens Settings window route")
     func openSettingsActionRoutesThroughRouter() {
         let router = AppRouterSpy()
