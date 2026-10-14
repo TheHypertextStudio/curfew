@@ -40,6 +40,9 @@
   public-exposure approval and activation remain open. See `RELEASE.md` and
   `release-evidence/v0.0.1.md`. Withhold activation or withdraw the first release;
   never replace an active helper or overwrite enforcement state as rollback.
+  Adversarial review added fail-closed cleanup of job-owned signing material
+  before an immutable artifact action. A synthetic-file regression failed first
+  for missing cleanup, then verified actual removal and Keychain-failure handling.
 
 ## Daybreak test-window lifecycle (2026-10-13)
 

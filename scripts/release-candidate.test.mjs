@@ -1,5 +1,12 @@
 import assert from "node:assert/strict";
-import { readFile, mkdtemp, mkdir, writeFile, rm } from "node:fs/promises";
+import {
+  readFile,
+  mkdtemp,
+  mkdir,
+  writeFile,
+  rm,
+  access,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execFileSync, spawnSync } from "node:child_process";
@@ -136,6 +143,83 @@ test("public candidate retention requires explicit exposure approval before sign
       expected,
       "public exposure must be an explicit owner choice",
     );
+  }
+});
+
+test("artifact upload is immutable and follows successful transient credential cleanup", async () => {
+  const workflow = JSON.parse(
+    execFileSync(
+      "ruby",
+      [
+        "-rjson",
+        "-ryaml",
+        "-e",
+        "puts JSON.generate(YAML.load_file(ARGV[0]))",
+        ".github/workflows/release.yml",
+      ],
+      { encoding: "utf8" },
+    ),
+  );
+  const steps = workflow.jobs.release.steps;
+  const cleanupIndex = steps.findIndex(
+    (step) => step.name === "Remove transient signing credentials",
+  );
+  assert.ok(
+    cleanupIndex >= 0,
+    "temporary signing credentials must be removed before artifact code executes",
+  );
+  const cleanup = steps[cleanupIndex];
+  assert.equal(cleanup.if, "always()");
+  for (const [index, step] of steps.entries()) {
+    if (!step.uses?.startsWith("actions/upload-artifact@")) continue;
+    assert.match(step.uses, /^actions\/upload-artifact@[a-f0-9]{40}$/);
+    assert.ok(index > cleanupIndex);
+    assert.ok(
+      !step.if || step.if === "success()",
+      "cleanup failure must block artifact upload",
+    );
+  }
+  for (const failure of [false, true]) {
+    const root = await mkdtemp(join(tmpdir(), "curfew-signing-cleanup-"));
+    try {
+      const bin = join(root, "bin");
+      await mkdir(bin);
+      await writeFile(
+        join(bin, "security"),
+        '#!/bin/bash\n[[ "$1" == delete-keychain ]] || exit 66\n[[ "${FAKE_SECURITY_FAIL:-0}" == 0 ]] || exit 7\nrm -f -- "$2"\n',
+        { mode: 0o700 },
+      );
+      for (const name of [
+        "signing.keychain-db",
+        "certificate.p12",
+        "AuthKey.p8",
+      ])
+        await writeFile(join(root, name), "synthetic credential fixture");
+      const result = spawnSync("bash", ["-c", cleanup.run], {
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          PATH: `${bin}:${process.env.PATH}`,
+          RUNNER_TEMP: root,
+          FAKE_SECURITY_FAIL: failure ? "1" : "0",
+        },
+      });
+      assert.equal(result.status, failure ? 1 : 0);
+      for (const name of [
+        "signing.keychain-db",
+        "certificate.p12",
+        "AuthKey.p8",
+      ]) {
+        if (failure) await assert.doesNotReject(() => access(join(root, name)));
+        else await assert.rejects(() => access(join(root, name)));
+      }
+      assert.ok(
+        !result.stdout.includes(root) && !result.stderr.includes(root),
+        "cleanup diagnostics must not expose secret paths",
+      );
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
   }
 });
 

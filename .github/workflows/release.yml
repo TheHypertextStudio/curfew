@@ -213,8 +213,27 @@ jobs:
           export CANDIDATE_TEAM SPARKLE_PUBLIC_KEY
           node scripts/release-candidate.mjs record "$RUNNER_TEMP/candidate"
 
+      - name: Remove transient signing credentials
+        if: always()
+        run: |
+          set -euo pipefail
+          : "${RUNNER_TEMP:?}"
+          if [[ -e "$RUNNER_TEMP/signing.keychain-db" ]]; then
+            if ! security delete-keychain "$RUNNER_TEMP/signing.keychain-db" >/dev/null 2>&1; then
+              echo '::error::Cannot remove temporary signing.keychain-db'
+              exit 1
+            fi
+          fi
+          if ! rm -f -- "$RUNNER_TEMP/certificate.p12" "$RUNNER_TEMP/AuthKey.p8" >/dev/null 2>&1; then
+            echo '::error::Cannot remove transient certificate.p12 and AuthKey.p8'
+            exit 1
+          fi
+          for name in signing.keychain-db certificate.p12 AuthKey.p8; do
+            [[ ! -e "$RUNNER_TEMP/$name" ]] || { echo "::error::Temporary $name remains"; exit 1; }
+          done
+
       - name: Retain signed candidate without activation
-        uses: actions/upload-artifact@v7.0.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: curfew-signed-candidate
           path: ${{ runner.temp }}/candidate/
