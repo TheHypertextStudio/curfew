@@ -264,6 +264,7 @@ tests cannot read or mutate a user's App Group lockout record.
   - `FirstRunSafetyModelTests/immediateLockNeedsSeparateAcknowledgement()`
   - `FirstRunSafetyModelTests/enableNeedsSeparateImmediateLockAcknowledgement()`
   - `FirstRunSafetyModelTests/boundaryIsCheckedAtActivation()`
+  - `CurfewUITests/testSetupUsesOneInstructionAndPreservesScheduleGate()`
 - `Studio Dev migration requires local schedule consent while retaining remote deadlines.`
   - `AutomaticScheduleConsentPolicyTests/studioDevMigrationStaysOff()`
   - `ScheduleConsentReadSurfaceTests/intentDoesNotPredictAnInactiveLock()`
