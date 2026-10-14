@@ -45,6 +45,42 @@ public struct DaemonCommandBackendSet {
         self.backends = backends
     }
 
+    /// Reads durable authority without synchronizing transports. The caller
+    /// may reject a released local candidate before it is combined with a
+    /// still-active remote deadline.
+    public func activeDeadline(
+        at now: Date,
+        accepting: (LockoutDeadlineRecord) -> LockoutDeadlineRecord?
+    ) -> DaemonCommandBackendSnapshot {
+        var deadline: LockoutDeadlineRecord?
+        var failures: [DaemonCommandBackendFailure] = []
+
+        for backend in backends {
+            do {
+                let candidate = try backend.activeDeadline(at: now).flatMap(accepting)
+                deadline = DaemonLockoutDeadlineResolver.resolve(
+                    now: now,
+                    user: deadline,
+                    shadow: nil,
+                    remote: candidate
+                )
+            } catch {
+                failures.append(
+                    DaemonCommandBackendFailure(
+                        backend: backend.name,
+                        message: error.localizedDescription
+                    )
+                )
+            }
+        }
+
+        return DaemonCommandBackendSnapshot(
+            deadline: deadline,
+            receipts: [],
+            failures: failures
+        )
+    }
+
     public func synchronize(at now: Date) -> DaemonCommandBackendSnapshot {
         var deadline: LockoutDeadlineRecord?
         var receipts: [RemoteCommandDaemonReceipt] = []
