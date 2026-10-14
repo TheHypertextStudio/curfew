@@ -36,6 +36,45 @@ final class AccountStatusSyncTests: XCTestCase {
         XCTAssertEqual(engine.syncStatus, .pendingEncryption)
     }
 
+    func testTerminalRejectionCannotPublishOrRestartUntilReauthorized() async {
+        let transport = RecordingAccountSyncTransport()
+        let engine = AccountSyncEngine(transport: transport)
+        let deviceID = UUID()
+        let enrollment = AccountDeviceEnrollment(
+            deviceID: deviceID,
+            keyEpoch: 1,
+            enrolledAt: Date()
+        )
+        let report = DeviceStatusReport(
+            deviceID: deviceID.uuidString.lowercased(),
+            phase: .working,
+            timeZone: "America/Los_Angeles",
+            scheduleDigest: String(repeating: "a", count: 64),
+            statusVersion: 1,
+            observedAt: Date(),
+            nextTransitionAt: nil,
+            activeLockoutEndsAt: nil
+        )
+        engine.start(enrollment: enrollment)
+
+        transport.sendRejected(AccountSyncRejectionReason.signInRequired)
+        engine.publishDeviceStatus(report, deviceID: deviceID)
+        transport.sendSuccessfulPoll(at: Date())
+        engine.start(enrollment: enrollment)
+
+        XCTAssertFalse(engine.isActive)
+        XCTAssertEqual(engine.syncStatus, .rejected(AccountSyncRejectionReason.signInRequired))
+        XCTAssertTrue(transport.statuses.isEmpty)
+        XCTAssertEqual(transport.connectionCount, 1)
+
+        await engine.reconnectAfterAuthentication(enrollment: enrollment)
+        engine.publishDeviceStatus(report, deviceID: deviceID)
+
+        XCTAssertTrue(engine.isActive)
+        XCTAssertEqual(transport.connectionCount, 2)
+        XCTAssertEqual(transport.statuses.map(\.report), [report])
+    }
+
     func testAccountSyncPublishesStatusThroughTheEnrolledTransport() throws {
         let deviceID = try XCTUnwrap(
             UUID(uuidString: "018f4f45-cafe-7f00-9a82-e47805fb4d35")
