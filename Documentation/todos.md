@@ -1,5 +1,14 @@
 # Curfew Implementation TODOs
 
+## Website domain preparation
+
+- [x] Provide a manual cf operation that derives the production website hostname
+      from a reviewed immutable configuration artifact, previews attachment, and
+      reads the existing Pages project's domain back without replacing other domains.
+- [ ] Attach and activate the new hostname with verified DNS and TLS before the
+      coordinated production cutover; retain the existing public hostname for its
+      permanent redirect.
+
 ## Public legal policies
 
 - [x] Standardize operator, official contact, eligibility, authorized content use,
