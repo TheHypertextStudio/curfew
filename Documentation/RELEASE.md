@@ -357,11 +357,26 @@ xcrun stapler validate "$APP"
    - archive with Developer ID signing
    - notarize with `notarytool`
    - staple/build the DMG
-   - upload the DMG as a GitHub Release asset
-   - skip Sparkle appcast generation and upload until Sparkle is explicitly
-     provisioned; the initial build has no updater UI
+   - derive the app's Sparkle public key from the retained `SPARKLE_PRIVATE_KEY`
+     seed and verify the exported app embeds that key
+   - generate the signed appcast before publishing the DMG
+   - upload the DMG and appcast as GitHub Release assets
+   - publish the exact feed through the existing Pages publisher and compare
+     its served bytes with the signed release appcast
 5. Download the GitHub Release DMG and repeat the final smoke test above on the
    actual shipped artifact before announcing the release.
+
+The Sparkle seed remains in GitHub Actions. `scripts/sparkle-public-key.mjs`
+accepts the base64-encoded 32-byte seed used by the provisioning script and
+prints only its public key. Missing or malformed material stops the job before
+archiving. Release receives that key as an Xcode build setting; do not copy the
+Debug key or generate a replacement to resolve a placeholder. The published
+RFC 8032 test vector and a signature from the pinned Sparkle binary verify the
+derivation independently of the retained production secret.
+
+Production publication still requires the Cloudflare deployment credential and
+an accepted website destination. The source retains the existing Pages publisher;
+the proposed production website Worker has not been provisioned or cut over.
 
 The pull-request CI workflow also runs on `macos-26` so its test host matches
 Curfew's macOS 26 deployment target; running it on an older macOS image cannot

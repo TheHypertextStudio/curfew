@@ -49,6 +49,18 @@ test("release guard inspects the active Curfew Plus verifier", () => {
   assert.doesNotMatch(releaseWorkflow, /licensePublicKeyBase64/);
 });
 
+test("Release embeds the public key derived from its retained Sparkle signing seed", () => {
+  assert.match(releaseWorkflow, /node scripts\/sparkle-public-key\.mjs/);
+  assert.match(releaseWorkflow, /INFOPLIST_KEY_SUPublicEDKey="\$CURFEW_SPARKLE_PUBLIC_KEY"/);
+  assert.doesNotMatch(releaseWorkflow, /grep -q 'REPLACE_WITH_SPARKLE_PUBLIC_ED_KEY' Curfew\/Info\.plist/);
+});
+
+test("Release generates the signed appcast before publishing the DMG", () => {
+  const generate = releaseWorkflow.indexOf("- name: Generate appcast");
+  const publish = releaseWorkflow.indexOf("- name: Publish signed DMG");
+  assert.ok(generate >= 0 && publish > generate, "an appcast signing failure must stop publication");
+});
+
 test("unprovisioned Sparkle releases upload only the generated DMG", () => {
   assert.match(
     releaseWorkflow,

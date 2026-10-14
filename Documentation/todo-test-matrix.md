@@ -1565,3 +1565,13 @@ changes; rollback restores the prior landing release and docs commit.
   - `LifecycleWiringTests/licenseActivationReconciles()`: observed failing with
     the real retained sandbox purchase before injecting the helper's per-test
     defaults into its license gate. The original free-to-Plus assertions remain.
+- `The release embeds the public half of its retained updater signing key.`
+  - `scripts/sparkle-public-key.test.mjs`: published RFC 8032 seed/public-key
+    vector, malformed/missing inputs, and absence of private material in output.
+    All four cases failed before the helper existed and pass afterward.
+  - `scripts/release-entitlements.test.mjs`: derived key reaches the archive and
+    appcast signing precedes DMG publication; both workflow regressions failed
+    before their corrections. All 57 repository script tests pass.
+  - A signature from the installed pinned Sparkle `sign_update` binary verifies
+    with the derived fixture public key. No production secret was retrieved;
+    execution with the retained GitHub secret and the signed artifact is pending.

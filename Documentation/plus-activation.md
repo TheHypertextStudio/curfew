@@ -63,8 +63,9 @@ format. No `curfew-protocols` or coordinator change is required.
 
 The production issuer `/health` reports envelope v2. Staging has a verified
 public signer, restricted restore email and successful signed-app checkout and
-restoration. Production release credentials and coordinated rollout remain
-unfinished. Existing keys and GET delivery endpoints remain compatible.
+restoration. Apple CI credentials are configured; Cloudflare publication access,
+actual release signing/notarization and coordinated rollout remain unfinished.
+Existing keys and GET delivery endpoints remain compatible.
 Reverting the new UI and POST routes restores manual activation; stored signed
 keys remain untouched.
 
@@ -512,7 +513,47 @@ Swift Testing cases, the CurfewKit package suites, formatting, strict lint,
 the unsigned Debug build and release-policy checks. The signing-team correction
 and fixture fix remain intact after the sync.
 
-Remaining release inputs include the Cloudflare deployment credential and a
-verified production Sparkle public/private-key pair. The current Release pin
-is still a placeholder, and appcast deployment still targets the paused Pages
-path. Resolve that path with the Workers migration before tagging a release.
+Remaining release inputs include the Cloudflare deployment credential and
+production execution with the retained Sparkle signing seed. The release job
+now derives the public key from that seed, passes it into the archive, and checks
+the exported app embeds the exact key. Appcast signing precedes DMG publication.
+No updater key was regenerated or retrieved from GitHub. Four helper regressions
+and two workflow regressions were observed red first; all 57 script tests pass.
+The published RFC 8032 seed/public-key vector passes, and a signature made by the
+pinned Sparkle tool verifies with the helper's derived fixture key.
+
+Fresh provider inspection confirms `curfew-site-production` does not exist. The
+issuer's approved restricted email/rate-limit Build variables are saved, but its
+current runtime still has the old deployment's KV and encrypted signer/webhook
+bindings. Do not call the restore binding live until the new source is deployed.
+Appcast publication still targets the existing Pages path; reconcile that
+publisher with the website migration before tagging a release. No website
+cutover, new Cloudflare credential, or native release was performed.
+
+Raw command-line HTTP requests to both staging and production Curfew hosts return
+Cloudflare error 1010. This is a client-filter response, not proof of an issuer or
+website outage. No firewall setting or request identity was changed.
+
+The live Stripe links originally had no metadata. Saved and verified
+`curfew_sku=lifetime` on `plink_1TzTyyAREPz33Avb9vvmySJI` and
+`curfew_sku=subscription` on `plink_1TzU00AREPz33Avbc4pqHz5W`, matching the new
+issuer's paid-checkout guard. Both retain the existing `success.html` redirect,
+which matches Astro's file output. Historical sessions do not acquire this new
+metadata; recovery backfill still requires the existing paid-license evidence.
+Removing these two metadata entries reverts this provider change. No checkout
+or charge was submitted.
+
+Authenticated Cloudflare inspection confirms the existing `curfew-landing`
+Pages project owns `curfew.hypertext.studio`, with automatic deployments paused
+at `7616316e`. Its native direct-upload publisher remains available for review;
+no automatic deploy was resumed. A new Pages-only account token has been
+prepared for owner approval, expiring October 14, 2027. It grants Pages Write
+across the Studio account; Cloudflare's form offers no individual Pages-project
+scope. No token has been created or stored.
+
+Final release-script verification: all 57 repository script tests pass, including
+the six regressions observed failing first. Full native unit tests, unsigned
+Debug build, SwiftFormat check (zero of 332 files) and strict SwiftLint (zero
+violations) pass. Review found no actionable defect. Actual retained-secret
+execution, signed/notarized distribution and production purchase acceptance
+remain pending.

@@ -36,6 +36,13 @@ jobs:
       - name: Install tools
         run: brew install create-dmg swiftlint swiftformat just
 
+      - name: Set up frontend Node and registry
+        uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 24.20.0
+          registry-url: https://npm.pkg.github.com
+          scope: '@thehypertextstudio'
+
       - name: Import Developer ID certificate
         env:
           CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE }}
@@ -70,17 +77,6 @@ jobs:
             exit 1
           fi
 
-      - name: Reject placeholder Sparkle public key
-        # Mirrors the license-key gate: refuses to release while
-        # Curfew/Info.plist still contains the placeholder, which would ship
-        # an app whose Sparkle update signatures can never verify.
-        run: |
-          if grep -q 'REPLACE_WITH_SPARKLE_PUBLIC_ED_KEY' Curfew/Info.plist; then
-            echo "::error::Curfew/Info.plist still embeds the placeholder SUPublicEDKey."
-            echo "Run scripts/gen-sparkle-keypair.sh and paste the public key into SUPublicEDKey before tagging."
-            exit 1
-          fi
-
       - name: Require release secrets
         env:
           SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
@@ -90,6 +86,13 @@ jobs:
           : "${SPARKLE_PRIVATE_KEY:?SPARKLE_PRIVATE_KEY is required}"
           : "${CLOUDFLARE_API_TOKEN:?CLOUDFLARE_API_TOKEN is required}"
           : "${CLOUDFLARE_ACCOUNT_ID:?CLOUDFLARE_ACCOUNT_ID is required}"
+
+      - name: Derive the retained Sparkle public key
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        run: |
+          public_key=$(node scripts/sparkle-public-key.mjs)
+          echo "CURFEW_SPARKLE_PUBLIC_KEY=$public_key" >> "$GITHUB_ENV"
 
       - name: Run quality gate
         run: just check
@@ -108,7 +111,8 @@ jobs:
             CODE_SIGN_IDENTITY="Developer ID Application" \
             CURRENT_PROJECT_VERSION="$VERSION" \
             MARKETING_VERSION="$VERSION" \
-            DEVELOPMENT_TEAM="${{ secrets.APPLE_TEAM_ID }}"
+            DEVELOPMENT_TEAM="${{ secrets.APPLE_TEAM_ID }}" \
+            INFOPLIST_KEY_SUPublicEDKey="$CURFEW_SPARKLE_PUBLIC_KEY"
 
       - name: Export app
         run: |
@@ -144,7 +148,10 @@ jobs:
           xcrun stapler staple "$RUNNER_TEMP/export/Curfew.app"
 
       - name: Verify signed app artifact
-        run: bash scripts/verify-release-artifact.sh "$RUNNER_TEMP/export/Curfew.app"
+        run: |
+          embedded_key=$(/usr/libexec/PlistBuddy -c 'Print :SUPublicEDKey' "$RUNNER_TEMP/export/Curfew.app/Contents/Info.plist")
+          [[ "$embedded_key" == "$CURFEW_SPARKLE_PUBLIC_KEY" ]] || { echo 'Archive does not embed the retained Sparkle public key.' >&2; exit 1; }
+          bash scripts/verify-release-artifact.sh "$RUNNER_TEMP/export/Curfew.app"
 
       - name: Build DMG
         run: |
@@ -167,13 +174,6 @@ jobs:
           xcrun stapler staple "$DMG"
           xcrun stapler validate "$DMG"
 
-      - name: Publish signed DMG
-        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
-        with:
-          files: |
-            ${{ runner.temp }}/Curfew-${{ github.ref_name }}.dmg
-          generate_release_notes: true
-
       - name: Generate appcast
         env:
           # scripts/generate-appcast.sh signs the DMG with the Sparkle private
@@ -188,11 +188,17 @@ jobs:
           VERSION="${VERSION#v}"
           export VERSION
           export DMG_PATH="$RUNNER_TEMP/Curfew-${{ github.ref_name }}.dmg"
-          # Point the enclosure URL at the GitHub release asset that the
-          # Publish signed DMG step uploaded above. The DMG basename matches
-          # the asset name, so Sparkle downloads exactly what we signed.
+          # The following publication step uploads this exact signed DMG.
+          # Generate its signature first so signing failures stop publication.
           export APPCAST_URL_BASE="${{ github.server_url }}/${{ github.repository }}/releases/download/${{ github.ref_name }}"
           bash scripts/generate-appcast.sh > "$RUNNER_TEMP/appcast.xml"
+
+      - name: Publish signed DMG
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
+        with:
+          files: |
+            ${{ runner.temp }}/Curfew-${{ github.ref_name }}.dmg
+          generate_release_notes: true
 
       - name: Attach signed appcast
         env:
@@ -203,13 +209,6 @@ jobs:
         uses: pnpm/action-setup@v6.1.0
         with:
           version: 11.9.0
-
-      - name: Set up frontend Node and registry
-        uses: actions/setup-node@v7.1.0
-        with:
-          node-version: 24.20.0
-          registry-url: https://npm.pkg.github.com
-          scope: '@thehypertextstudio'
 
       - name: Install frontend from the reviewed lock
         run: pnpm --dir landing install --frozen-lockfile
