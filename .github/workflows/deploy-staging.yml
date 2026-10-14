@@ -62,4 +62,5 @@ jobs:
           [[ -n "$CLOUDFLARE_API_TOKEN" ]] || { echo 'The staging credential is not configured.' >&2; exit 1; }
           main_sha=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')
           [[ "$main_sha" == "$GITHUB_SHA" ]] || { echo 'Main changed; dispatch the reviewed current commit instead.' >&2; exit 1; }
-          pnpm --dir landing exec wrangler deploy --config wrangler.site.json --env staging --env-file /dev/null
+          pnpm --dir landing/hosting exec cf build --mode staging
+          pnpm --dir landing/hosting exec cf deploy --prebuilt --mode staging

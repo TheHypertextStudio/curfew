@@ -1599,3 +1599,12 @@ changes; rollback restores the prior landing release and docs commit.
 - These changes affect website presentation only. Policy source archives, native app,
   enforcement, billing, and providers are unchanged. Rollback restores the prior
   landing build; publication requires the normal website release checks.
+
+## Domain migration
+
+| Behavior | Automated coverage | Live acceptance |
+| --- | --- | --- |
+| Derived URLs, invalid origin rejection, immutable artifact identity | `scripts/deployment-config.test.mjs` | Same artifact/hash in native and backend release |
+| New native endpoints and authorization-only migration | `DeploymentEndpointTests`; `AccountOAuthEnrollmentTests` | Same Mac reconnects and reads retained encrypted data |
+| Safe public redirect and API retirement | `landing/tests/unit/domain-routing.test.mjs`; license domain tests | DNS/TLS and old/new host requests |
+| Recovery gate, transactional revocation and idempotency | curfew-sync `domain-migration.test.ts`, `service-config.test.ts` | Provider-ready maintenance cutover and drained fences |

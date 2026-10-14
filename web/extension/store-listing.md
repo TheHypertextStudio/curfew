@@ -11,8 +11,8 @@ publishing.
 - Summary: `Blocks unapproved Chrome destinations while you work on a tracked Docket task.`
 - Category: `Productivity`
 - Language: `English (United States)`
-- Homepage: `https://curfew.hypertext.studio`
-- Privacy policy: `https://curfew.hypertext.studio/privacy`
+- Homepage: `https://thecurfew.app`
+- Privacy policy: `https://thecurfew.app/privacy`
 
 Use this detailed description:
 

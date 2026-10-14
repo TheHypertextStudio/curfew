@@ -2,4 +2,4 @@ User-agent: *
 Allow: /
 Disallow: /success.html
 
-Sitemap: https://curfew.hypertext.studio/sitemap.xml
+Sitemap: https://thecurfew.app/sitemap.xml

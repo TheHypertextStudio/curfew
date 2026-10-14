@@ -1356,3 +1356,8 @@ asserts its own screen and state before attaching an image.
       acceptance of a working purchase or enabled CloudKit/Calendar features.
 - [ ] Reconcile the app's email-key hint and historical privacy/terms copy with
       actual delivery, network activity, and owner-reviewed launch terms.
+
+## Domain migration to thecurfew.app
+
+- [-] Centralize environment configuration, remove protocol hostname constants, adopt pinned cf, derive native/web/service endpoints, and retire old traffic. See `domain-migration.md`.
+- [ ] Complete authenticated provider preflight, account recovery audit, signed release, backups, coordinated production cutover and live acceptance. Local changes do not establish deployment.

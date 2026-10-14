@@ -7,7 +7,7 @@ EXPECTED_VERSION=${3:?0.0.x version is required}
 CONTENTS="$APP_PATH/Contents"
 INFO="$CONTENTS/Info.plist"
 EXPECTED_ENTITLEMENTS="Curfew/Curfew-Release.entitlements"
-EXPECTED_FEED="https://curfew.hypertext.studio/appcast.xml"
+EXPECTED_FEED=$(node "$(dirname "$0")/deployment-config.mjs" get appcast)
 EXPECTED_TEAM="T95VDD3A4W"
 
 fail() {
