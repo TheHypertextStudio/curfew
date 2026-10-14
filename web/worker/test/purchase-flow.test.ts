@@ -8,10 +8,12 @@ import { indexPurchase } from "../src/purchases.js";
 // Requests exercise the real HTTP handler and signed Stripe webhook boundary.
 class MemoryKV {
   values = new Map<string, string>();
-  async get(key: string) { return this.values.get(key) ?? null; }
-  async put(key: string, value: string) { this.values.set(key, value); }
-  async delete(key: string) { this.values.delete(key); }
+  operations: string[] = [];
+  async get(key: string) { this.operations.push(`get:${key}`); return this.values.get(key) ?? null; }
+  async put(key: string, value: string) { this.operations.push(`put:${key}`); this.values.set(key, value); }
+  async delete(key: string) { this.operations.push(`delete:${key}`); this.values.delete(key); }
   async list({ prefix = "" } = {}) {
+    this.operations.push(`list:${prefix}`);
     return { keys: [...this.values.keys()].filter(name => name.startsWith(prefix)).map(name => ({ name })), list_complete: true };
   }
 }
@@ -28,6 +30,7 @@ describe("purchase activation and recovery", () => {
     signer = pair.privateKey;
     const privateKey = new Uint8Array(await crypto.subtle.exportKey("pkcs8", pair.privateKey));
     env = {
+      STRIPE_MODE: "test",
       STRIPE_WEBHOOK_SECRET: "test-webhook-secret",
       LICENSE_PRIVATE_KEY: base64url(privateKey.slice(-32)),
       LICENSE_KV: kv as unknown as KVNamespace,
@@ -55,14 +58,66 @@ describe("purchase activation and recovery", () => {
     });
   }
 
-  async function stripeEvent(id: string, type: string, object: unknown) {
-    const body = JSON.stringify({ id, type, data: { object } });
+  async function stripeEvent(id: string, type: string, object: unknown, ...modeOverride: [unknown?]) {
+    const livemode = modeOverride.length ? modeOverride[0] : false;
+    const body = JSON.stringify({ id, object: "event", type, livemode, data: { object } });
     const timestamp = Math.floor(Date.now() / 1000);
     const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(env.STRIPE_WEBHOOK_SECRET), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
     const signature = new Uint8Array(await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(`${timestamp}.${body}`)));
     const hex = [...signature].map(byte => byte.toString(16).padStart(2, "0")).join("");
     return worker.fetch(new Request("https://issuer.example/", { method: "POST", headers: { "Stripe-Signature": `t=${timestamp},v1=${hex}` }, body }), env);
   }
+
+  for (const [mode, eventMode] of [["test", true], ["live", false]] as const) {
+    it(`rejects a signed ${eventMode ? "live" : "test"} event at the ${mode} issuer before accessing purchase data`, async () => {
+      env.STRIPE_MODE = mode;
+      const response = await stripeEvent("evt_wrong_environment", "checkout.session.completed", {
+        id: "cs_wrong_environment", mode: "payment", payment_status: "paid",
+        customer_details: { email: "buyer@example.com" }, metadata: { curfew_sku: "lifetime" },
+      }, eventMode);
+      expect(response.status).toBe(400);
+      expect(kv.operations).toEqual([]);
+      expect(kv.values.size).toBe(0);
+      expect(mail).toEqual([]);
+    });
+  }
+
+  for (const eventMode of [undefined, "false", null]) {
+    it(`rejects a signed event with invalid livemode ${String(eventMode)} before accessing purchase data`, async () => {
+      const response = await stripeEvent("evt_missing_mode", "checkout.session.completed", {}, eventMode);
+      expect(response.status).toBe(400);
+      expect(kv.operations).toEqual([]);
+    });
+  }
+
+  for (const configuredMode of [undefined, "", "production"]) {
+    it(`fails closed when Stripe mode configuration is ${String(configuredMode)}`, async () => {
+      env.STRIPE_MODE = configuredMode;
+      expect((await checkout()).status).toBe(503);
+      expect(kv.operations).toEqual([]);
+    });
+  }
+
+  it("rejects wrong-mode replay before an existing event can backfill an inbox", async () => {
+    await checkout();
+    const retained = [...kv.values.entries()];
+    kv.operations = [];
+    env.STRIPE_MODE = "live";
+    const response = await checkout();
+    expect(response.status).toBe(400);
+    expect(kv.operations).toEqual([]);
+    expect([...kv.values.entries()]).toEqual(retained);
+  });
+
+  it("accepts a correctly signed live purchase only when the issuer explicitly expects live events", async () => {
+    env.STRIPE_MODE = "live";
+    const response = await stripeEvent("evt_live_purchase", "checkout.session.completed", {
+      id: "cs_live_fixture", mode: "payment", payment_status: "paid",
+      customer_details: { email: "buyer@example.com" }, metadata: { curfew_sku: "lifetime" },
+    }, true);
+    expect(response.status).toBe(200);
+    expect(await kv.get("session:cs_live_fixture")).not.toBeNull();
+  });
 
   it("publishes only the actual signer public key so build pairing can be verified", async () => {
     const response = await worker.fetch(new Request("https://issuer.example/health"), env);

@@ -18,6 +18,7 @@ const requiredConfig = [
   "CURFEW_LICENSE_WORKER_NAME",
   "CURFEW_LICENSE_KV_NAMESPACE_ID",
   "CURFEW_LICENSE_HOSTNAME",
+  "CURFEW_LICENSE_STRIPE_MODE",
 ];
 
 const [command, ...args] = process.argv.slice(2);
@@ -65,6 +66,12 @@ function validateConfig() {
   if (![...Object.values(deployment).map(value => new URL(value.licenseOrigin).host), ...Object.values(deployment.production.retiredLicenseOrigins || []).map(value => new URL(value).host)].includes(process.env.CURFEW_LICENSE_HOSTNAME)) {
     throw new Error("CURFEW_LICENSE_HOSTNAME must match the approved deployment manifest");
   }
+  const mode = process.env.CURFEW_LICENSE_STRIPE_MODE;
+  if (mode !== "live" && mode !== "test") throw new Error("Stripe mode must be explicitly live or test");
+  const productionHost = process.env.CURFEW_LICENSE_HOSTNAME === "curfew-license.hypertext.studio";
+  if (productionHost !== (mode === "live")) {
+    throw new Error("Stripe mode must be live only for the production license hostname, and test for other license hostnames");
+  }
   const recovery = recoveryConfiguration();
   console.log("License Worker configuration is structurally valid.");
   return recovery;
@@ -90,8 +97,9 @@ async function renderConfig(arguments_) {
 }
 
 function recoveryConfiguration() {
+  const stripeMode = `\n[vars]\nSTRIPE_MODE = ${JSON.stringify(process.env.CURFEW_LICENSE_STRIPE_MODE)}\n`;
   const enabled = process.env.CURFEW_LICENSE_RESTORE_ENABLED;
-  if (!enabled || enabled === "0") return "";
+  if (!enabled || enabled === "0") return stripeMode;
   if (enabled !== "1") throw new Error("CURFEW_LICENSE_RESTORE_ENABLED must be 0 or 1");
   const names = ["CURFEW_LICENSE_RESTORE_FROM", "CURFEW_LICENSE_PORTAL_URL",
     "CURFEW_LICENSE_RESTORE_IP_NAMESPACE_ID", "CURFEW_LICENSE_RESTORE_EMAIL_NAMESPACE_ID"];
@@ -108,8 +116,7 @@ function recoveryConfiguration() {
   }
   if (![ipNamespace, emailNamespace].every(value => /^\d{1,10}$/.test(value) && Number(value) > 0 && Number(value) <= 4294967295) ||
       ipNamespace === emailNamespace) throw new Error("Recovery rate-limit namespace IDs must be distinct positive 32-bit integers");
-  return `
-[vars]
+  return `${stripeMode}
 RESTORE_EMAIL_FROM = ${JSON.stringify(sender)}
 PURCHASE_PORTAL_URL = ${JSON.stringify(url.origin)}
 

@@ -33,7 +33,13 @@ export default {
     if (!signature || !(await verifyStripeSignature(body, signature, env.STRIPE_WEBHOOK_SECRET))) {
       return new Response("Invalid signature", { status: 400 });
     }
+    if (env.STRIPE_MODE !== "live" && env.STRIPE_MODE !== "test") {
+      return json({ error: "Stripe mode is not configured" }, 503);
+    }
     const event = JSON.parse(body);
+    if (typeof event?.livemode !== "boolean" || event.livemode !== (env.STRIPE_MODE === "live")) {
+      return json({ error: "Stripe event environment does not match this issuer" }, 400);
+    }
     const eventID = String(event.id ?? "");
     if (eventID && (await env.LICENSE_KV.get(`event:${eventID}`))) {
       // A Stripe dashboard resend backfills pre-restoration purchases without

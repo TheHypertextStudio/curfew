@@ -1518,8 +1518,12 @@ asserts its own screen and state before attaching an image.
       in Curfew Actions; verify account status and access to the existing project.
 - [ ] Isolate further purchase acceptance in an empty private Stripe staging
       sandbox. Current test-mode proof does not establish settings isolation.
-      Add a tested expected-mode webhook guard. Live Stripe changes and production
+      Deploy the locally tested expected-mode guard only after the intended
+      provider bindings are reviewed. Live Stripe changes and production
       purchase-service publication require explicit owner direction.
+- [x] Add local webhook/configuration rejection for wrong-mode signed events,
+      replay/backfill, malformed flags and missing mode configuration before KV
+      access. Keep the source local pending isolated sandbox approval and setup.
 - [x] Isolate the lifecycle reconciliation fixture's license store from the real
       saved sandbox purchase; retain its free-to-Plus assertions.
 - [ ] Ship the verified client/service/site together, then update published help
