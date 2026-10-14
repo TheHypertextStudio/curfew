@@ -1538,14 +1538,15 @@ asserts its own screen and state before attaching an image.
       Stripe payment links before the issuer's strict paid-checkout guard ships.
 - [x] Configure the owner-approved Pages-only production publication credential
       in Curfew Actions; verify account status and access to the existing project.
-- [ ] Isolate further purchase acceptance in an empty private Stripe staging
-      sandbox. Current test-mode proof does not establish settings isolation.
+- [ ] Verify the existing Stripe Test mode resources, webhook and staging-only
+      storage before further purchase acceptance. Keep shared settings untouched;
+      an additional general sandbox is optional for this existing integration.
       Deploy the locally tested expected-mode guard only after the intended
       provider bindings are reviewed. Live Stripe changes and production
       purchase-service publication require explicit owner direction.
 - [x] Add local webhook/configuration rejection for wrong-mode signed events,
       replay/backfill, malformed flags and missing mode configuration before KV
-      access. Keep the source local pending isolated sandbox approval and setup.
+      access. Keep the source local pending staging binding and webhook review.
 - [x] Isolate the lifecycle reconciliation fixture's license store from the real
       saved sandbox purchase; retain its free-to-Plus assertions.
 - [ ] Ship the verified client/service/site together, then update published help
