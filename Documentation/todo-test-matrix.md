@@ -1578,3 +1578,15 @@ changes; rollback restores the prior landing release and docs commit.
 - `Launch instructions match signed app, purchase/provider, and actual hosted behavior.`
   - `Documentation/user-docs-launch.md` — exact-artifact/operator acceptance;
     intentionally pending until observed, not inferred from documentation tests.
+
+## Legal page readability
+
+- `Current legal pages group title, introduction, dates, and update navigation.`
+  - `landing/tests/unit/legal.test.mjs` checks one publication date and grouped metadata.
+  - `landing/tests/acceptance/site.spec.mjs` checks metadata and history navigation in the rendered pages.
+- `Archived privacy tables retain column context in their stacked narrow layout.`
+  - `landing/tests/unit/legal.test.mjs` verifies labels are derived from retained table headings.
+  - `landing/tests/acceptance/site.spec.mjs` checks visible mobile labels and overflow.
+- These changes affect website presentation only. Policy source archives, native app,
+  enforcement, billing, and providers are unchanged. Rollback restores the prior
+  landing build; publication requires the normal website release checks.

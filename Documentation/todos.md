@@ -1306,6 +1306,10 @@ asserts its own screen and state before attaching an image.
 
 ## Website visual identity release
 
+- [x] Group current legal headings and publication/effective metadata, keep the
+  update notice concise, and label archived privacy-table values on narrow
+  screens without changing archived policy prose.
+
 - [x] Bring the Curfew landing, legal pages, Download, and Support onto one
   token-based, responsive light/dark design shell in the current Astro site.
   Preserve the existing policy text and Mintlify integration.

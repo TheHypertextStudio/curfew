@@ -123,3 +123,38 @@ test('current policies and help pages use product contact roles without replacin
   assert.match(success, /mailto:support@thecurfew\.app/);
   assert.doesNotMatch(success, /hello@hypertext\.studio/);
 });
+
+test('mobile policy tables retain column labels alongside every value', async () => {
+  const { labelPolicyTables } = await import('../../src/lib/policy-tables.mjs');
+  const source =
+    '<table class="privacy-table"><thead><tr><th>Data</th><th>Where</th><th>Retention</th></tr></thead><tbody><tr><td>Activity</td><td>On device</td><td>52 weeks</td></tr><tr><td>Settings</td><td>Preferences</td><td>Until removed</td></tr></tbody></table>';
+  const rendered = labelPolicyTables(source);
+  for (const label of ['Data', 'Where', 'Retention']) {
+    assert.equal(
+      rendered.split(`<span class="cell-label" aria-hidden="true">${label}</span>`).length - 1,
+      2,
+    );
+  }
+  assert.match(
+    rendered,
+    /<thead><tr><th>Data<\/th><th>Where<\/th><th>Retention<\/th><\/tr><\/thead>/,
+  );
+  assert.match(rendered, /52 weeks/);
+  assert.equal(labelPolicyTables('<p>No table here.</p>'), '<p>No table here.</p>');
+  const permissions =
+    '<table class="privacy-table"><thead><tr><th>Permission</th><th>Why</th></tr></thead><tbody><tr><td>Calendars</td><td>Show events</td></tr></tbody></table>';
+  assert.match(labelPolicyTables(permissions), /aria-hidden="true">Why<\/span>Show events/);
+});
+
+test('current policy headings group their readable publication metadata', async () => {
+  for (const name of ['privacy', 'terms', 'refund', 'retention']) {
+    const policy = await content(name);
+    const header = policy.match(/<header class="policy-header">.*?<\/header>/)?.[0];
+    assert.ok(header, `${name} has a grouped policy header`);
+    assert.match(header, /<h1>/);
+    assert.match(header, /class="policy-meta"/);
+    assert.equal((header.match(/datetime="2026-10-14"/g) ?? []).length, 1);
+    assert.match(header, /href="\/legal\/history"/);
+    assert.doesNotMatch(header.match(/class="privacy-lede">.*?<\/p>/)?.[0] ?? '', /Published/);
+  }
+});

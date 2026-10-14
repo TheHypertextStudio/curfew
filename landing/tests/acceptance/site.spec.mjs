@@ -108,6 +108,11 @@ test('current policies expose the notice, official contact, and preserved refund
   for (const name of ['privacy', 'terms', 'refund', 'retention']) {
     await page.goto(`/${name}`);
     await expect(page.getByRole('complementary', { name: 'Policy update' })).toBeVisible();
+    await expect(page.locator('main .policy-header h1')).toBeVisible();
+    await expect(
+      page.locator('main .policy-header .policy-meta time[datetime="2026-10-14"]'),
+    ).toHaveCount(1);
+    await expect(page.locator('main .policy-header .privacy-lede')).not.toContainText('Published');
     await expect(page.locator('main a[href="mailto:legal@hypertext.studio"]')).toHaveCount(1);
     await expect(page.locator('main')).toContainText('1810 East Sahara Avenue STE75246');
     expect(
@@ -149,6 +154,20 @@ test('legal notices and history remain usable on narrow screens', async ({ page 
         await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
       ).toBe(true);
     }
+    await page.goto('/legal/history/2026-10-13/privacy');
+    const tables = page.locator('.privacy-table');
+    for (const [index, labels] of [
+      [0, ['Data', 'Where', 'Retention']],
+      [1, ['Permission', 'Why']],
+    ]) {
+      const firstRow = tables.nth(index).locator('tbody tr').first();
+      for (const label of labels) {
+        await expect(firstRow.getByText(label, { exact: true })).toBeVisible();
+      }
+    }
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+    ).toBe(true);
     await page.goto('/retention');
     await page.getByText('Where current macOS versions store local information').click();
     await expect(page.locator('details')).toHaveAttribute('open', '');

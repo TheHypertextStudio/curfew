@@ -159,3 +159,15 @@ body:has(.footer-compact) {
   cursor: pointer;
   color: var(--primary);
 }
+
+.reading .policy-header {
+  margin-block-end: var(--space-7);
+}
+.reading .policy-meta {
+  font-size: var(--type-small);
+  line-height: 1.6;
+  color: var(--on-surface-variant);
+}
+.reading .policy-header .legal-notice {
+  margin-block-end: 0;
+}

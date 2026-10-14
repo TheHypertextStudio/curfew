@@ -1,5 +1,6 @@
 ---
 import { footer, header, symbols } from '../../public/design/components.mjs';
+import { labelPolicyTables } from '../lib/policy-tables.mjs';
 
 interface Props {
   title: string;
@@ -53,7 +54,11 @@ const { title, description, content, home = false } = Astro.props;
         </aside>
       )
     }
-    <main id="main" class={home ? undefined : 'reading wrap'} set:html={content} />
+    <main
+      id="main"
+      class={home ? undefined : 'reading wrap'}
+      set:html={labelPolicyTables(content)}
+    />
     <Fragment set:html={footer({ compact: !home })} />
   </body>
 </html>
