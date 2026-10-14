@@ -68,14 +68,20 @@ earlier test checkout used the account's shared Test mode environment, not a
 separately provisioned general sandbox. On inspection, Stripe lists zero of
 five general sandboxes. Its Test mode shares some settings with live mode, so
 that walkthrough establishes test-payment behavior but not full configuration
-isolation. Provision an empty private staging sandbox with its own products,
-links and webhook secret before further payment acceptance. Do not copy live
-credentials, resources or settings into staging. The deployed webhook handlers
+isolation. The existing Test mode sandbox can support this checkout/restore
+integration using its test-only products, links and webhook secret. Creating an
+additional general sandbox is optional and is not a prerequisite for this flow.
+Do not change shared account settings during testing or copy live credentials
+or objects into staging. The deployed webhook handlers
 lack an explicit expected `livemode` check. A local, tested guard now requires
 an explicit `STRIPE_MODE` binding and rejects an opposite-mode or malformed
 event before KV access, including replay/backfill. It has not been pushed or
 deployed. Separate Worker KVs and Ed25519 signers already exist and must remain
 separate.
+
+The earlier requirement to create a general sandbox was an agent interpretation,
+not an owner instruction. It has been removed. The owner correctly identified
+the existing Test mode sandbox; no additional sandbox creation was approved.
 
 Live mutations made before this correction: `curfew_sku=lifetime` on
 `plink_1TzTyyAREPz33Avb9vvmySJI` and `curfew_sku=subscription` on
@@ -594,4 +600,5 @@ with recovery both enabled and disabled produce valid staging bundles with
 suite, unsigned Debug build, SwiftFormat check and strict SwiftLint also pass.
 No Stripe mutation or deployment occurred in this verification turn. The source
 is retained in a local commit only, because pushing would trigger the staging
-Worker build before its sandbox and required binding are reviewed.
+Worker build before its existing Test mode webhook and required binding are
+reviewed. An additional general sandbox is not required for that review.
