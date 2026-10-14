@@ -1,5 +1,14 @@
 # Todo Test Matrix
 
+## Cross-browser account callback
+
+`AccountOAuthHandoffTests` exercises the native custom-scheme continuation's
+exact scheme, host, path, state, parameter cardinality, and canonical HTTPS
+mapping without launching an app. `AccountOAuthHandoffRouterTests` exercises
+pending-state consumption and Docket isolation in the app-host router. A
+signed Studio Dev app and real browser remain the acceptance check for URL
+delivery; neither suite substitutes for that live handoff.
+
 ## Local observed enforcement status
 
 `CurfewObservedStatusTests` covers owned lock state, disarmed and cross-flavor
