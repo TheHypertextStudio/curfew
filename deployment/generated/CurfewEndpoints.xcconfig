@@ -1,0 +1,3 @@
+// Generated deployment configuration.
+#include? "CurfewBuildIdentity.xcconfig"
+CURFEW_APPCAST_URL = https:/$()/thecurfew.app/appcast.xml

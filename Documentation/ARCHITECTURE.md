@@ -110,18 +110,23 @@ therefore carries only Apple Events and App Group capabilities; iCloud and APS
 entitlements are intentionally absent. The deployment floor is macOS 26.
 
 ### Pure enforcement engine
+
 `CurfewEnforcementEngine` is a stateless function: `(schedule, now, extensionMinutes, overrideUntil, warningIntervals) → CurfewEvaluation`. It has no side effects and no stored state. The app model calls it every second and reacts to the result. This makes every enforcement behavior trivially testable and keeps the Core completely independent of AppKit.
 
 ### `CurfewKit` as the shared library
+
 Everything shares a single SPM library, `CurfewKit`, whose source lives canonically under `CurfewKit/Sources/CurfewKit/` and is auto-discovered by SPM. The package sits in its own `CurfewKit/` subfolder (not the repo root) so opening the repo folder in Xcode resolves to `Curfew.xcodeproj`, not a package-only window. `Curfew.xcodeproj` references the package locally and links the `CurfewKit` library product into the app, the widget, and the three CLI executables — every consumer `import CurfewKit`. There is one compiled copy of CurfewKit (no dual-compilation); a new file dropped into `CurfewKit/Sources/CurfewKit/{Domain,Storage,Settings,MCP}/` is picked up by SPM automatically and is visible to every consumer once it is marked `public`. (An earlier revision compiled these files directly into the app/widget targets via `PBXFileSystemSynchronizedRootGroup`, with no `import` on the app side; that dual-compile was replaced by the conventional library-product dependency.)
 
 ### Feature flags + license as two separate gates
-`FeatureFlags` controls whether a code path is *reachable at all* (off by default for incomplete features). `LicenseGate` controls whether a reachable feature is *unlocked* for the user. Both must pass for Pro surfaces to activate. This means a free-tier user who reverse-engineers the binary still hits the license check; a Pro user on an early build still hits the feature flag.
+
+`FeatureFlags` controls whether a code path is _reachable at all_ (off by default for incomplete features). `LicenseGate` controls whether a reachable feature is _unlocked_ for the user. Both must pass for Pro surfaces to activate. This means a free-tier user who reverse-engineers the binary still hits the license check; a Pro user on an early build still hits the feature flag.
 
 ### Long-term gate seams
+
 The activity log schema carries optional `gateKind` and `reflection` fields. MCP tool verbs use generic names where sensible so future gate types (morning intent, midday check-in, evening retrospective) can land as sibling tools rather than overloads of the existing ones. `CurfewEnforcementEngine` is intentionally narrow — future gate types will live as sibling engines, not as modifications to the existing one.
 
 ### CloudKit sync strategy
+
 The dormant v0.2 implementation splits the private database into four record types — `Settings`, `Device`, `DeviceActivity`, `LockoutState` — collected in `Core/Features/CloudKitSchema.swift`. `Settings` preserves the earlier single-record JSON payload for back-compat. `Device` and `DeviceActivity` carry per-Mac identifiers + 60 s heartbeats; `DeviceRegistry` publishes them and drives the Settings → Devices list. `LockoutState` carries the live warning/lockout snapshot so a Mac joining the warning phase mid-escalation can align with whichever device entered warning first.
 
 Delivery is push-based: `CloudKitSyncEngine.start()` registers a deterministic `CKDatabaseSubscription`, and silent APS notifications trigger a pull on remote change. Conflict resolution stays last-write-wins on `modifiedAt` — small values, rare edits, minor consequences.
@@ -147,6 +152,7 @@ unavailable, unauthorized, stale, and registration failures degrade the shared
 enforcement-health status.
 
 ### MCP transports
+
 Two transports share the same `MCPServer.handle(line:)` dispatcher:
 
 - **stdio** — the default. Claude Desktop spawns `curfew-mcp` and pipes stdin/stdout.
@@ -199,3 +205,7 @@ base block before its first complete ruleset. Later policy or current-clock
 expiry changes replace the persisted ruleset with one validated atomic update. See
 `Documentation/browser-enforcement.md`, `Documentation/chrome-extension.md`,
 and the linked sequence diagram for the boundary and privacy rules.
+
+## Deployment endpoint ownership
+
+`deployment/environments.json` is the canonical environment manifest. Generated Swift profiles, appcast xcconfig, associated domains and site metadata share it with commit/hash-bound backend artifacts. Operational origins are configuration; tool scopes, schema IDs, bundle IDs and Keychain service identities remain stable. `AccountDomainAuthorizationMigration` removes obsolete production authorization without deleting device identities, encryption keys or local content. See `domain-migration.md` for cf adoption, service retirement, provider acceptance and rollback.

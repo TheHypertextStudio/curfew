@@ -36,6 +36,7 @@ final class AccountOAuthTokenRefresher {
 
     func refresh() async throws {
         try Task.checkCancellation()
+        try AccountDomainAuthorizationMigration.prepare(store: secretStore, endpoints: endpoints)
         guard let clientData = try secretStore.data(for: "oauth-client-id"),
               let clientID = String(data: clientData, encoding: .utf8),
               let refreshData = try secretStore.data(for: "oauth-refresh-token"),

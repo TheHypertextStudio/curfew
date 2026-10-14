@@ -15,6 +15,9 @@ const corsHeaders = {
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
+    if ((JSON.parse(env.RETIRED_LICENSE_HOSTS || "[]") as string[]).includes(url.hostname)) {
+      return json({ error: "service_moved" }, 410);
+    }
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders });
     if (request.method === "GET" && url.pathname === "/health") return json({ status: "ok", envelope_version: 2 });
     if (request.method === "GET" && url.pathname === "/license") return getLicense(url, env, "session_id", "session");

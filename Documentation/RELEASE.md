@@ -451,3 +451,7 @@ client into an obsolete authority, or revive revoked sessions. Withdrawing an
 Actions artifact requires an explicit owner decision; retention approval does
 not imply it is private. Never reinstall/restart a helper or overwrite its
 state as rollback during active enforcement.
+
+## Domain migration release
+
+Use the shared endpoint artifact and the pinned cf build/deployment commands in `domain-migration.md`. Protocol 0.0.13 is the domain-independent contract. A signed native release, verified callback associations, provider registrations, account recovery audit and production acceptance remain required; local unsigned builds do not satisfy them.

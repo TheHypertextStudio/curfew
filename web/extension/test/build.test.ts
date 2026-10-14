@@ -119,7 +119,7 @@ describe("extension build", () => {
   it("copies the complete Chrome icon package", async () => {
     const output = await build("development");
 
-    expect(output.manifest.homepage_url).toBe("https://curfew.hypertext.studio");
+    expect(output.manifest.homepage_url).toBe("https://thecurfew.app");
     for (const size of [16, 32, 48, 128]) {
       const icon = await readFile(resolve(output.output, `icons/icon-${size}.png`));
       expect(icon.subarray(1, 4).toString()).toBe("PNG");

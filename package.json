@@ -31,5 +31,8 @@
     "deploy:worker:staging": "pnpm --dir landing deploy:worker:staging",
     "deploy:worker:production": "pnpm --dir landing deploy:worker:production",
     "deploy:pages": "pnpm --dir landing deploy:pages"
+  },
+  "devDependencies": {
+    "cf": "1.0.0-beta.16"
   }
 }

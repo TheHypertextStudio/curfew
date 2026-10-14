@@ -99,7 +99,7 @@ test("config validation rejects hostnames outside the Curfew service namespace",
   });
 
   assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /curfew-prefixed Hypertext Studio hostname/);
+  assert.match(result.stderr, /approved deployment manifest/);
 });
 
 test("the retired workers.dev rendering mode is rejected", async () => {
@@ -135,4 +135,12 @@ test("only the envelope-v2 Worker bootstrap remains deployable", async () => {
   }
   await access("scripts/license-worker.mjs");
   await access("web/worker/wrangler.toml.example");
+});
+
+test("license bootstrap accepts the hostname selected by the production manifest", () => {
+  const result = spawnSync(process.execPath, ["scripts/license-worker.mjs", "validate-config"], {
+    encoding: "utf8",
+    env: { CURFEW_LICENSE_WORKER_NAME: "curfew-issue-license", CURFEW_LICENSE_KV_NAMESPACE_ID: "4313ea07769f4578a8fdd412620a412e", CURFEW_LICENSE_HOSTNAME: "license.thecurfew.app" },
+  });
+  assert.equal(result.status, 0, result.stderr);
 });

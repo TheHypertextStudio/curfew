@@ -23,8 +23,8 @@
 
     <key>com.apple.developer.associated-domains</key>
     <array>
-        <string>applinks:curfew-account.hypertext.studio</string>
-        <string>webcredentials:curfew-account.hypertext.studio</string>
+        <string>applinks:account.thecurfew.app</string>
+        <string>webcredentials:account.thecurfew.app</string>
     </array>
 
 </dict>

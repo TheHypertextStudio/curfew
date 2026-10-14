@@ -1,3 +1,5 @@
+import deployment from '../../deployment/generated/environments.mjs';
+import { legacyDomainResponse } from '../domain-routing.mjs';
 // Cloudflare Pages Function — reverse-proxy /docs to Mintlify.
 //
 // The existing project dashboard identified `curfew.mintlify.site`. It has
@@ -17,10 +19,12 @@
 // public `/docs/mcp` alias maps to the nonreserved upstream `/docs/mcp-guide`.
 
 const DOCS_HOST = "curfew.mintlify.site";
-const CUSTOM_HOST = "curfew.hypertext.studio";
+const CUSTOM_HOST = new URL(deployment.production.siteOrigin).host;
 
 export async function onRequest(context) {
   const { request, next } = context;
+  const legacy = legacyDomainResponse(request, deployment.production);
+  if (legacy) return legacy;
   const url = new URL(request.url);
 
   const isDocs = url.pathname === "/docs" || url.pathname.startsWith("/docs/");

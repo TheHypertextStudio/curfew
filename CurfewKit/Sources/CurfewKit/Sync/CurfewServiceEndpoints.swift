@@ -7,6 +7,10 @@ import Foundation
 /// packaged tools also receive the explicit staging flag. This prevents staging
 /// account tokens or command keys from being mixed with production state.
 public nonisolated struct CurfewServiceEndpoints: Equatable, Sendable {
+    public let siteOrigin: URL
+    public let licenseOrigin: URL
+    public let appcast: URL
+    public let pricingURL: URL
     public let accountOrigin: URL
     public let accountPortal: URL
     public let syncResource: URL
@@ -15,23 +19,17 @@ public nonisolated struct CurfewServiceEndpoints: Equatable, Sendable {
     public let keychainService: String
 
     public static let production = make(
-        accountOrigin: "https://curfew-account.hypertext.studio",
-        accountPortal: "https://curfew.hypertext.studio/account",
-        syncOrigin: "https://curfew-sync.hypertext.studio",
+        profile: .production,
         keychainService: "studio.hypertext.curfew.account-e2ee"
     )
 
     public static let staging = make(
-        accountOrigin: "https://curfew-account-staging.hypertext.studio",
-        accountPortal: "https://curfew-staging.hypertext.studio/account",
-        syncOrigin: "https://curfew-sync-staging.hypertext.studio",
+        profile: .staging,
         keychainService: "studio.hypertext.curfew.account-e2ee.staging"
     )
 
     public static let studioDevelopment = make(
-        accountOrigin: "https://curfew-account-staging.hypertext.studio",
-        accountPortal: "https://curfew-staging.hypertext.studio/account",
-        syncOrigin: "https://curfew-sync-staging.hypertext.studio",
+        profile: .staging,
         keychainService: "studio.hypertext.curfew.account-e2ee.studio.dev"
     )
 
@@ -53,12 +51,17 @@ public nonisolated struct CurfewServiceEndpoints: Equatable, Sendable {
     #endif
 
     private static func make(
-        accountOrigin: String,
-        accountPortal: String,
-        syncOrigin: String,
+        profile: DeploymentProfile,
         keychainService: String
     ) -> CurfewServiceEndpoints {
-        guard let accountOriginURL = URL(string: accountOrigin),
+        let accountOrigin = profile.accountOrigin
+        let accountPortal = profile.siteOrigin + "/account"
+        let syncOrigin = profile.syncOrigin
+        guard let siteURL = URL(string: profile.siteOrigin),
+              let licenseURL = URL(string: profile.licenseOrigin),
+              let appcastURL = URL(string: profile.siteOrigin + "/appcast.xml"),
+              let pricingURL = URL(string: profile.siteOrigin + "/#plus"),
+              let accountOriginURL = URL(string: accountOrigin),
               let accountPortalURL = URL(string: accountPortal),
               let syncResourceURL = URL(string: syncOrigin),
               let mcpResourceURL = URL(string: syncOrigin + "/mcp"),
@@ -69,6 +72,10 @@ public nonisolated struct CurfewServiceEndpoints: Equatable, Sendable {
             preconditionFailure("Curfew service endpoints must be valid HTTPS URLs")
         }
         return CurfewServiceEndpoints(
+            siteOrigin: siteURL,
+            licenseOrigin: licenseURL,
+            appcast: appcastURL,
+            pricingURL: pricingURL,
             accountOrigin: accountOriginURL,
             accountPortal: accountPortalURL,
             syncResource: syncResourceURL,

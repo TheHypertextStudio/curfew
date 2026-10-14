@@ -360,6 +360,6 @@ final class AccountOAuthEnrollmentService: NSObject {
         return data
     }
 
-    private static let accountOrigin = URL(string: "https://curfew-account.hypertext.studio")!
+    private static let accountOrigin = CurfewServiceEndpoints.current.accountOrigin
     private static let redirectURI = AccountOAuthClaimedCallback.redirectURI(for: .current)
 }

@@ -43,7 +43,14 @@ final class AccountEnrollmentController: ObservableObject {
 
     func reloadSavedEnrollment() {
         do {
+            let moved = try AccountDomainAuthorizationMigration.prepare(
+                store: secretStore,
+                endpoints: .current
+            )
             state = try pending.load() ?? .accountFree
+            if moved {
+                requireSavedEnrollmentReauthorization()
+            }
             switch state {
             case .finishDeviceRegistration, .finishRecoverySetup, .enterRecoveryKey:
                 if try !OAuthCredentials(secretStore: secretStore).hasUsableTokenPair {

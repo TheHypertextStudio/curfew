@@ -29,7 +29,9 @@ set -euo pipefail
 VERSION=${VERSION:?VERSION is required}
 DMG_PATH=${DMG_PATH:?DMG_PATH is required}
 SPARKLE_PRIVATE_KEY=${SPARKLE_PRIVATE_KEY:?SPARKLE_PRIVATE_KEY is required}
-RELEASE_NOTES_URL=${RELEASE_NOTES_URL:-https://curfew.hypertext.studio/releases/${VERSION}.html}
+SITE_ORIGIN=$(node "$(dirname "$0")/deployment-config.mjs" get siteOrigin)
+FEED_URL=$(node "$(dirname "$0")/deployment-config.mjs" get appcast)
+RELEASE_NOTES_URL=${RELEASE_NOTES_URL:-${SITE_ORIGIN}/releases/${VERSION}.html}
 MIN_MACOS_VERSION=${MIN_MACOS_VERSION:-26.0}
 APPCAST_URL_BASE=${APPCAST_URL_BASE:-https://github.com/TheHypertextStudio/curfew/releases/download/v${VERSION}}
 
@@ -72,7 +74,7 @@ cat <<EOF
 <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
   <channel>
     <title>Curfew</title>
-    <link>https://curfew.hypertext.studio/appcast.xml</link>
+    <link>${FEED_URL}</link>
     <description>Updates for Curfew</description>
     <language>en</language>
     <item>

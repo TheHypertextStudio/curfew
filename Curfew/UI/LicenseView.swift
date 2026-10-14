@@ -131,5 +131,5 @@ struct LicenseView: View {
 /// the landing page's pricing section, which presents both the one-time and the
 /// subscription options together, rather than embedding two Stripe links here.
 enum LicensePurchase {
-    static let pricingURL = URL(string: "https://curfew.hypertext.studio/#plus")!
+    static let pricingURL = CurfewServiceEndpoints.current.pricingURL
 }

@@ -92,7 +92,7 @@ struct AccountOAuthEnrollmentTests {
             code: "authorization-code",
             clientID: "curfew-native-client",
             verifier: String(repeating: "v", count: 64),
-            redirectURI: "https://curfew-account.hypertext.studio/oauth/callback/native/macos",
+            redirectURI: "https://account.thecurfew.app/oauth/callback/native/macos",
             resource: CurfewServiceEndpoints.production.syncResource.absoluteString
         )
         let refresh = AccountOAuthTokenRequest.refreshBody(
@@ -109,7 +109,7 @@ struct AccountOAuthEnrollmentTests {
             let values = Dictionary(uniqueKeysWithValues: fields.compactMap { item in
                 item.value.map { (item.name, $0) }
             })
-            #expect(values["resource"] == "https://curfew-sync.hypertext.studio")
+            #expect(values["resource"] == "https://sync.thecurfew.app")
             #expect(values["client_id"] == "curfew-native-client")
         }
     }
@@ -131,13 +131,13 @@ struct AccountOAuthEnrollmentTests {
         })
 
         #expect(components.scheme == "https")
-        #expect(components.host == "curfew-account.hypertext.studio")
-        #expect(query["resource"] == "https://curfew-sync.hypertext.studio")
+        #expect(components.host == "account.thecurfew.app")
+        #expect(query["resource"] == "https://sync.thecurfew.app")
         #expect(query["code_challenge_method"] == "S256")
         #expect(query["state"] == "state-value")
         #expect(
             query["redirect_uri"]
-                == "https://curfew-account.hypertext.studio/oauth/callback/native/macos"
+                == "https://account.thecurfew.app/oauth/callback/native/macos"
         )
         let scopes = try Set(#require(query["scope"]).split(separator: " ").map(String.init))
         #expect(scopes.contains("openid"))
@@ -237,7 +237,7 @@ struct AccountOAuthCallbackTests {
 
     @Test("OAuth callback returns a code only for the exact one-time state")
     func callbackStateIsExact() throws {
-        let callbackValue = "https://curfew-account.hypertext.studio/oauth/callback/native/macos?" +
+        let callbackValue = "https://account.thecurfew.app/oauth/callback/native/macos?" +
             "code=code-value&state=state-value"
         let callback =
             try #require(
@@ -262,7 +262,7 @@ struct AccountOAuthCallbackTests {
             "code=code-value&state=state-value&state=state-value"
         ] {
             let ambiguous = try #require(URL(
-                string: "https://curfew-account.hypertext.studio/oauth/callback/native/macos?\(ambiguousValue)"
+                string: "https://account.thecurfew.app/oauth/callback/native/macos?\(ambiguousValue)"
             ))
             #expect(throws: AccountOAuthEnrollmentError.self) {
                 _ = try AccountOAuthCallback.authorizationCode(
@@ -276,7 +276,7 @@ struct AccountOAuthCallbackTests {
 
     @Test("OAuth callback surfaces provider rejection without accepting a code")
     func callbackProviderErrorFailsClosed() throws {
-        let callbackValue = "https://curfew-account.hypertext.studio/oauth/callback/native/macos?" +
+        let callbackValue = "https://account.thecurfew.app/oauth/callback/native/macos?" +
             "error=access_denied&state=state-value"
         let callback =
             try #require(
