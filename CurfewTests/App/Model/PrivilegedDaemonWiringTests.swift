@@ -17,6 +17,9 @@ struct PrivilegedDaemonWiringTests {
             await Task.yield()
         }
         #expect(rpc.statusCallCount == 1)
+        for _ in 0 ..< 1000 where model.privilegedHelperManager.connectionState != .ready {
+            await Task.yield()
+        }
         #expect(model.privilegedHelperManager.connectionState == .ready)
 
         model.displayTick()

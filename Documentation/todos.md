@@ -83,8 +83,10 @@
   reauthentication succeeds. A rejected transport must stop publishing status
   and ignore stale callbacks; ordinary settings or license reconciliation
   must not restart it. Preserve pending encrypted changes across the explicit
-  reconnect. This prevents a completed browser sign-in from appearing to
-  reconnect a Mac while its status channel remains stopped.
+  reconnect. Reject invalid wake updates and failed local release writes
+  without terminating otherwise valid credentials. This prevents a completed
+  browser sign-in from appearing to reconnect a Mac while its status channel
+  remains stopped, without turning local update errors into sign-in loops.
 - [-] Retry an unavailable or stale privileged-helper status channel from the
   display clock, at most once per 30 seconds and only while the registered
   helper is enabled. The read-only check must not arm enforcement, prompt for
