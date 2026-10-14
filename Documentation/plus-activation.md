@@ -61,6 +61,28 @@ format. No `curfew-protocols` or coordinator change is required.
 
 ## Operational boundary
 
+**Stripe environment isolation:** the owner requires staging and production to
+remain separate. Stop live Stripe mutations, real payment submissions and
+production purchase-service deployment pending explicit owner direction. The
+earlier test checkout used the account's shared Test mode environment, not a
+separately provisioned general sandbox. On inspection, Stripe lists zero of
+five general sandboxes. Its Test mode shares some settings with live mode, so
+that walkthrough establishes test-payment behavior but not full configuration
+isolation. Provision an empty private staging sandbox with its own products,
+links and webhook secret before further payment acceptance. Do not copy live
+credentials, resources or settings into staging. Webhook handlers currently
+verify signatures but lack an explicit expected `livemode` check; add and test
+that boundary before provider deployment. Separate Worker KVs and Ed25519
+signers already exist and must remain separate.
+
+Live mutations made before this correction: `curfew_sku=lifetime` on
+`plink_1TzTyyAREPz33Avb9vvmySJI` and `curfew_sku=subscription` on
+`plink_1TzU00AREPz33Avbc4pqHz5W`. Both remain saved. No production checkout,
+price, redirect, payment method or webhook was changed in this turn. Do not
+silently revert these entries; that is another production configuration change
+and requires owner direction. All further Stripe inspection is read-only until
+the intended environment and allowed mutation are explicit.
+
 The production issuer `/health` reports envelope v2. Staging has a verified
 public signer, restricted restore email and successful signed-app checkout and
 restoration. Apple CI credentials are configured; Cloudflare publication access,
@@ -546,10 +568,13 @@ or charge was submitted.
 Authenticated Cloudflare inspection confirms the existing `curfew-landing`
 Pages project owns `curfew.hypertext.studio`, with automatic deployments paused
 at `7616316e`. Its native direct-upload publisher remains available for review;
-no automatic deploy was resumed. A new Pages-only account token has been
-prepared for owner approval, expiring October 14, 2027. It grants Pages Write
-across the Studio account; Cloudflare's form offers no individual Pages-project
-scope. No token has been created or stored.
+no automatic deploy was resumed. The owner approved the Pages-only account token,
+expiring October 14, 2027. Token `0e598bba29877a654849a2f1f5111340` is active
+with Pages Write across the Studio account; Cloudflare's form offers no
+individual Pages-project scope. Its account verification succeeds and it can
+read the existing `curfew-landing` project's main production branch. The private
+value is stored in the mode-600 protected release folder and Curfew's repository
+Actions secret `CLOUDFLARE_API_TOKEN`, through stdin. No deployment was performed.
 
 Final release-script verification: all 57 repository script tests pass, including
 the six regressions observed failing first. Full native unit tests, unsigned
