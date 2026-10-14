@@ -300,6 +300,7 @@ tests cannot read or mutate a user's App Group lockout record.
   - `AutomaticScheduleConsentPolicyTests/studioDevMigrationStaysOff()`
   - `ScheduleConsentReadSurfaceTests/intentDoesNotPredictAnInactiveLock()`
   - `CurfewMCPAccessTests/inactiveScheduleIsLabeled()`
+  - `ScheduleConsentReadSurfaceTests/intentReportsObservedRemoteLock()`
   - `FirstRunSafetyModelTests/completedStudioDevDefaultsToRemoteOnly()`
   - `FirstRunSafetyModelTests/completedProductionInstallKeepsSchedule()`
   - `FirstRunSafetyModelTests/remoteOnlyPreservesDurableDeadline(kind:)`
