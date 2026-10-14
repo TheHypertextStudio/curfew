@@ -75,3 +75,33 @@ test('native history routes preserve all prior documents', async () => {
     assert.match(index, new RegExp(`/legal/history/2026-10-13/${name}`));
   }
 });
+
+test('local MCP disclosure includes schedules, budgets, activity and device-attributed summaries', async () => {
+  const privacy = await content('privacy');
+  const disclosure = privacy.match(/<p>When you run local.*?<\/p>/)?.[0];
+  assert.ok(disclosure, 'local assistant disclosure exists');
+  for (const category of [
+    /schedules/,
+    /budgets/,
+    /current-week activity/,
+    /weekly summaries/,
+    /device names/,
+    /device attribution/,
+    /reflections/,
+    /enforcement state/,
+  ]) {
+    assert.match(disclosure, category);
+  }
+});
+
+test('organization purchasers must also satisfy the adult purchase requirement', async () => {
+  const terms = await content('terms');
+  const eligibility = terms.match(/<h2>Eligibility<\/h2>.*?<h2>/)?.[0];
+  assert.ok(eligibility, 'eligibility section exists');
+  assert.match(
+    eligibility,
+    /Purchases must be made by an adult[^.]*contractual capacity[^.]*authority/,
+  );
+  assert.match(eligibility, /organization[^.]*also[^.]*authorized/);
+  assert.doesNotMatch(eligibility, /or someone authorized/);
+});
