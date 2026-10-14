@@ -68,6 +68,12 @@
   expectation is only a deadlock guard, not a cadence or latency requirement;
   the production transport and its 20 ms fixture interval are unchanged.
 
+- [x] Keep the override-failure health regression event-bound under parallel
+  test-host scheduling. The account-poll and offline callbacks must both occur,
+  and a healthy callback must remain absent throughout the bounded wait. The
+  wait is a test deadlock guard, not a product latency target; transport behavior
+  and release configuration are unchanged.
+
 ## Renewed account connection handoff (2026-10-12)
 
 - [x] Resume the native transport after successful same-account reauthentication.

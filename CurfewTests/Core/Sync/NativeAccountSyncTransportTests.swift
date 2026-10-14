@@ -258,7 +258,7 @@ extension NativeAccountSyncTransportTests {
             )
         )
 
-        await fulfillment(of: [accountPollCompleted, offline, synchronized], timeout: 0.2)
+        await fulfillment(of: [accountPollCompleted, offline, synchronized], timeout: 1)
         transport.disconnect()
     }
 
