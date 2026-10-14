@@ -280,6 +280,11 @@ final class CurfewAppModel: NSObject {
     /// `lockoutKeyInterceptor.isEnabled`; tests assign a closure instead.
     @ObservationIgnored var tapLivenessOverride: (() -> Bool)?
 
+    /// A failed helper channel is rechecked at a bounded cadence by the
+    /// display clock, without requiring the user to open Settings.
+    @ObservationIgnored var lastHelperStatusProbeAt: Date?
+    @ObservationIgnored var helperStatusProbeInFlight = false
+
     /// Memoisation cache for ``thisWeekRollup()``. Invalidated on week
     /// boundary advance or activity-recorder mutation.
     @ObservationIgnored var cachedThisWeekKey: ThisWeekCacheKey?

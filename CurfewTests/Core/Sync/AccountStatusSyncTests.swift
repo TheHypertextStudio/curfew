@@ -30,7 +30,7 @@ final class AccountStatusSyncTests: XCTestCase {
         await engine.reconnectAfterAuthentication(enrollment: enrollment)
 
         XCTAssertEqual(transport.connectionCount, 2)
-        XCTAssertEqual(transport.disconnectCount, 1)
+        XCTAssertEqual(transport.disconnectCount, 2)
         XCTAssertEqual(engine.syncStatus, .connecting)
         transport.sendSuccessfulPoll(at: Date())
         XCTAssertEqual(engine.syncStatus, .pendingEncryption)
@@ -208,7 +208,7 @@ final class AccountStatusSyncTests: XCTestCase {
         XCTAssertEqual(engine.syncStatus, .pendingEncryption)
     }
 
-    func testPendingEncryptedChangesSurviveRejectedRecovery() throws {
+    func testPendingEncryptedChangesSurviveRejectedRecovery() async throws {
         let deviceID = try XCTUnwrap(
             UUID(uuidString: "018f4f45-cafe-7f00-9a82-e47805fb4d35")
         )
@@ -223,7 +223,14 @@ final class AccountStatusSyncTests: XCTestCase {
         engine.noteLocalSettingsChanged()
         transport.sendRejected("Curfew needs you to sign in again.")
         transport.sendSuccessfulPoll(at: Date(timeIntervalSince1970: 1_800_000_123))
+        XCTAssertEqual(engine.syncStatus, .rejected("Curfew needs you to sign in again."))
 
+        await engine.reconnectAfterAuthentication(enrollment: AccountDeviceEnrollment(
+            deviceID: deviceID,
+            keyEpoch: 1,
+            enrolledAt: Date(timeIntervalSince1970: 1_800_000_000)
+        ))
+        transport.sendSuccessfulPoll(at: Date(timeIntervalSince1970: 1_800_000_124))
         XCTAssertEqual(engine.syncStatus, .pendingEncryption)
     }
 }

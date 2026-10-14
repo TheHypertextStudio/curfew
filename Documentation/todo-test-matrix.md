@@ -145,6 +145,21 @@ full suite is still required.
 
 ## Renewed account connection handoff
 
+`AccountStatusSyncTests.testTerminalRejectionCannotPublishOrRestartUntilReauthorized`
+checks that rejected credentials stop status publication and cannot be
+reactivated by an ordinary start; only the explicit successful same-account
+reauthorization restarts the transport. The pending-encryption recovery test
+requires the rejection to remain visible until that reconnect. No account
+secret or wire format changes. The installed Mac must still demonstrate a
+fresh online report; an isolated test pass alone is not acceptance.
+
+`PrivilegedDaemonWiringTests.displayTickRetriesUnavailableHelper` checks one
+read-only helper status retry from the disarmed display clock and no repeated
+RPC on the next tick. The retry is single-flight, limited to an enabled helper,
+and skipped during installation, maintenance, and repair. No new privilege or
+authorization prompt is required. If a signed update regresses helper health,
+roll back the app without replacing or clearing the daemon's durable state.
+
 `NativeAccountSyncTransportTests.testRejectedRefreshTokenRequiresSignInInsteadOfReportingOffline`
 exercises the real transport's rejected refresh response. It requires a
 sign-in-required callback and excludes a later offline callback; the terminal

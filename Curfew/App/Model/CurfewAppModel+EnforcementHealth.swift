@@ -2,6 +2,7 @@ import AppKit
 import Combine
 import CurfewKit
 import Foundation
+import ServiceManagement
 
 // Enforcement-health wiring for `CurfewAppModel`: the per-tick poll that
 // folds Accessibility trust and the keyboard shield's tap state into an
@@ -86,6 +87,7 @@ extension CurfewAppModel {
     /// stored writes are guarded by their mutators so an unchanged verdict does
     /// not refresh every menu-bar surface each second.
     func pollAndUpdateEnforcementHealth() {
+        retryUnavailableHelperIfDue()
         let trusted = accessibilityAuthorization.isTrusted()
         setAccessibilityTrusted(trusted)
         // Use real tap liveness (`isEnabled`), not mere installation
@@ -103,6 +105,36 @@ extension CurfewAppModel {
                     : .notRequired
             )
         )
+    }
+
+    /// A transient XPC interruption should not leave enforcement marked
+    /// degraded until Settings is opened or the app is relaunched. Status RPC
+    /// is read-only, single-flight, and capped at one attempt per 30 seconds.
+    private func retryUnavailableHelperIfDue() {
+        let helper = privilegedHelperManager
+        guard featureFlags.privilegedHelperEnabled,
+              !isDemoSession,
+              helper.daemonStatus == .enabled,
+              !helper.maintenancePaused,
+              !helper.repairInProgress,
+              !helper.installationInProgress,
+              !helperStatusProbeInFlight,
+              helper.connectionState == .unavailable || helper.connectionState == .stale
+        else { return }
+        if let lastHelperStatusProbeAt,
+           currentTime.timeIntervalSince(lastHelperStatusProbeAt) >= 0,
+           currentTime.timeIntervalSince(lastHelperStatusProbeAt) < 30 {
+            return
+        }
+
+        lastHelperStatusProbeAt = currentTime
+        helperStatusProbeInFlight = true
+        Task { [weak self] in
+            await helper.reconcileDaemonStatus()
+            guard let self else { return }
+            helperStatusProbeInFlight = false
+            pollAndUpdateEnforcementHealth()
+        }
     }
 
     /// Re-polls Accessibility trust (and the folded enforcement-health verdict)

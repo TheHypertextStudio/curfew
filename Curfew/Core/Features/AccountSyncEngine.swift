@@ -52,6 +52,7 @@ final class AccountSyncEngine: ObservableObject {
     private let transport: any AccountSyncTransporting
     private var hasPendingEncryptedChanges = false
     private var lifecycleGeneration = 0
+    private var requiresAuthentication = false
 
     init(transport: any AccountSyncTransporting) {
         self.transport = transport
@@ -62,26 +63,48 @@ final class AccountSyncEngine: ObservableObject {
         lifecycleGeneration += 1
         let generation = lifecycleGeneration
         isActive = false
-        syncStatus = .connecting
+        if !requiresAuthentication {
+            syncStatus = .connecting
+        }
         await transport.disconnectAndWaitForPendingOperations()
         guard generation == lifecycleGeneration, !isMaintenancePaused else { return }
+        requiresAuthentication = false
         start(enrollment: enrollment)
     }
 
     func start(enrollment: AccountDeviceEnrollment) {
-        guard !isActive, !isMaintenancePaused else { return }
+        guard !isActive, !isMaintenancePaused, !requiresAuthentication else { return }
         lifecycleGeneration += 1
+        let generation = lifecycleGeneration
         isActive = true
         syncStatus = .connecting
         transport.connect(
             deviceID: enrollment.deviceID,
             callbacks: AccountSyncTransportCallbacks(
-                onSynchronized: { [weak self] in self?.markSynchronized(at: $0) },
-                onOffline: { [weak self] in self?.markOffline() },
-                onWakeStatus: { [weak self] in self?.receiveAuthenticatedWakeStatus($0) },
-                onRemoteOverride: { [weak self] in self?.receiveAuthenticatedRemoteOverride($0) },
-                onRemoteCommandResult: { [weak self] in self?.receiveRemoteCommandResult($0) },
-                onFailure: { [weak self] in self?.reject($0) }
+                onSynchronized: { [weak self] date in
+                    guard let self, lifecycleGeneration == generation else { return }
+                    markSynchronized(at: date)
+                },
+                onOffline: { [weak self] in
+                    guard let self, lifecycleGeneration == generation else { return }
+                    markOffline()
+                },
+                onWakeStatus: { [weak self] status in
+                    guard let self, lifecycleGeneration == generation else { return }
+                    receiveAuthenticatedWakeStatus(status)
+                },
+                onRemoteOverride: { [weak self] override in
+                    guard let self, lifecycleGeneration == generation else { return }
+                    receiveAuthenticatedRemoteOverride(override)
+                },
+                onRemoteCommandResult: { [weak self] result in
+                    guard let self, lifecycleGeneration == generation else { return }
+                    receiveRemoteCommandResult(result)
+                },
+                onFailure: { [weak self] reason in
+                    guard let self, lifecycleGeneration == generation else { return }
+                    reject(reason)
+                }
             )
         )
     }
@@ -93,6 +116,7 @@ final class AccountSyncEngine: ObservableObject {
         }
         isActive = false
         hasPendingEncryptedChanges = false
+        requiresAuthentication = false
         syncStatus = .accountFree
     }
 
@@ -100,7 +124,9 @@ final class AccountSyncEngine: ObservableObject {
         lifecycleGeneration += 1
         isMaintenancePaused = true
         isActive = false
-        syncStatus = .offline
+        if !requiresAuthentication {
+            syncStatus = .offline
+        }
         await transport.disconnectAndWaitForPendingOperations()
     }
 
@@ -152,6 +178,10 @@ final class AccountSyncEngine: ObservableObject {
 
     func reject(_ reason: String) {
         guard isActive else { return }
+        lifecycleGeneration += 1
+        isActive = false
+        requiresAuthentication = true
         syncStatus = .rejected(reason)
+        transport.disconnect()
     }
 }

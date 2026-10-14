@@ -79,17 +79,22 @@
 
 ## Native reconnect after browser sign-in (2026-10-13)
 
-- [-] Diagnose the currently offline Studio Dev Mac without repeating account,
-  authenticator, or recovery setup. An enrolled Mac's same-account reconnect
-  previously converted a completed browser sign-in followed by native OAuth
-  connection failure into an expired-sign-in instruction, encouraging another
-  browser loop. The failing-first controller regression on PR #61 now preserves
-  the existing enrollment and refresh token while requiring the truthful
-  post-browser connection message. Privacy-safe stage/status diagnostics and
-  one installed-app reconnect are still needed to identify the failing native
-  boundary and prove a fresh online report through authenticated staging MCP.
-  Do not issue another lock or unlock for this check. Rollback is the previous
-  signed Dev app; do not erase the existing device or account keys.
+- [-] Keep a rejected account credential terminal until same-account
+  reauthentication succeeds. A rejected transport must stop publishing status
+  and ignore stale callbacks; ordinary settings or license reconciliation
+  must not restart it. Preserve pending encrypted changes across the explicit
+  reconnect. This prevents a completed browser sign-in from appearing to
+  reconnect a Mac while its status channel remains stopped.
+- [-] Retry an unavailable or stale privileged-helper status channel from the
+  display clock, at most once per 30 seconds and only while the registered
+  helper is enabled. The read-only check must not arm enforcement, prompt for
+  approval, run during maintenance, or make the one-second UI clock block.
+  This lets a transient helper interruption recover without opening Settings.
+- [ ] Prove the signed installed Studio Dev app completes one same-account
+  reconnect and publishes fresh online status to the authenticated staging
+  connector. Do not repeat authenticator or recovery setup, erase enrollment,
+  or issue a lock/unlock during this check. Rollback is the prior signed Dev
+  app; preserve stored credentials, device keys, and lockout state.
 
 ## Safe release candidate boundary
 
