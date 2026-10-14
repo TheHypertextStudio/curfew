@@ -29,7 +29,7 @@ describe("buildManifest", () => {
     expect(manifest.host_permissions).toEqual(["http://*/*", "https://*/*"]);
     expect(manifest.key).toBe(DEVELOPMENT_PUBLIC_KEY);
     expect(manifest.background).toEqual({ service_worker: "background.js", type: "module" });
-    expect(manifest.homepage_url).toBe("https://curfew.hypertext.studio");
+    expect(manifest.homepage_url).toBe("https://thecurfew.app");
     expect(manifest.icons).toEqual({
       16: "icons/icon-16.png",
       32: "icons/icon-32.png",

@@ -6,7 +6,7 @@ cask "curfew" do
       verified: "github.com/TheHypertextStudio/curfew/"
   name "Curfew"
   desc "A hard stop for your Mac"
-  homepage "https://curfew.hypertext.studio/"
+  homepage "https://thecurfew.app/"
 
   livecheck do
     url :url

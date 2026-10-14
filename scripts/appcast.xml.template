@@ -3,7 +3,7 @@
   Curfew Sparkle appcast template.
 
   Fill in the placeholders below and publish to:
-  https://curfew.hypertext.studio/appcast.xml
+  the appcast URL from deployment/environments.json ({{APPCAST_URL}})
 
   Generate the EdDSA signature with:
     .build/artifacts/sparkle/Sparkle/bin/generate_appcast --ed-key-file sparkle-private-key.pem Curfew-<VERSION>.dmg
@@ -15,7 +15,7 @@
      xmlns:dc="http://purl.org/dc/elements/1.1/">
   <channel>
     <title>Curfew</title>
-    <link>https://curfew.hypertext.studio/appcast.xml</link>
+    <link>{{APPCAST_URL}}</link>
     <description>Curfew release feed</description>
     <language>en</language>
 

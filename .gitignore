@@ -83,3 +83,7 @@ __pycache__/
 landing/build/
 landing/.site-assets/
 landing/.pages-output/
+
+.cloudflare/
+deployment/generated/environment-artifact.json
+deployment/generated/CurfewBuildIdentity.xcconfig

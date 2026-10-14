@@ -14,7 +14,7 @@ import Foundation
 ///
 /// This is the only network call Curfew makes outside of Pro CloudKit sync.
 struct LicenseRefresher {
-    var baseURL = URL(string: "https://curfew-license.hypertext.studio")!
+    var baseURL = CurfewServiceEndpoints.current.licenseOrigin
     var session: URLSession = .shared
 
     /// Returns a renewed signed license key string for `refreshToken`, or `nil`

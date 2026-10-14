@@ -8,7 +8,9 @@ interface Props {
   home?: boolean;
 }
 
-const { title, description, content, home = false } = Astro.props;
+const { title, description, content: rawContent, home = false } = Astro.props;
+const siteOrigin = Astro.site!.origin;
+const content = rawContent.replaceAll('{{SITE_ORIGIN}}', siteOrigin);
 ---
 
 <!doctype html>
@@ -22,7 +24,7 @@ const { title, description, content, home = false } = Astro.props;
     <meta name="description" content={description} />
     <link rel="canonical" href={Astro.url.href} />
     <meta property="og:title" content={`${title} — Curfew`} />
-    <meta property="og:image" content="https://curfew.hypertext.studio/images/og.png" />
+    <meta property="og:image" content={new URL('/images/og.png', Astro.site).href} />
     <link rel="icon" href="/images/favicon.png" />
     <script is:inline src="/design/theme-init.js"></script>
     <link

@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "environments": {
+    "production": {
+      "siteOrigin": "https://thecurfew.app",
+      "accountOrigin": "https://account.thecurfew.app",
+      "syncOrigin": "https://sync.thecurfew.app",
+      "licenseOrigin": "https://license.thecurfew.app",
+      "passkeyRPID": "thecurfew.app",
+      "recoveryEmailFrom": "accounts@thecurfew.app",
+      "legacySiteOrigin": "https://curfew.hypertext.studio",
+      "retiredServiceOrigins": [
+        "https://curfew-account.hypertext.studio",
+        "https://curfew-sync.hypertext.studio"
+      ],
+      "retiredLicenseOrigins": ["https://curfew-license.hypertext.studio"]
+    },
+    "staging": {
+      "siteOrigin": "https://curfew-staging.hypertext.studio",
+      "accountOrigin": "https://curfew-account-staging.hypertext.studio",
+      "syncOrigin": "https://curfew-sync-staging.hypertext.studio",
+      "licenseOrigin": "https://curfew-license-staging.hypertext.studio",
+      "passkeyRPID": "curfew-staging.hypertext.studio",
+      "recoveryEmailFrom": "accounts@curfew.hypertext.studio"
+    },
+    "local": {
+      "siteOrigin": "http://localhost:4321",
+      "accountOrigin": "http://localhost:8787",
+      "syncOrigin": "http://localhost:8787",
+      "licenseOrigin": "http://localhost:8788",
+      "passkeyRPID": "localhost",
+      "recoveryEmailFrom": "accounts@thecurfew.app"
+    }
+  }
+}

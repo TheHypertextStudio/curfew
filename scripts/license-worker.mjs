@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import deployment from "../deployment/generated/environments.mjs";
 /**
  * Reproducible, no-secret bootstrap for Curfew's license Worker.
  *
@@ -61,8 +62,8 @@ function validateConfig() {
   if (missing.length > 0) throw new Error(`missing required configuration: ${missing.join(", ")}`);
   if (!/^[a-z0-9-]+$/.test(process.env.CURFEW_LICENSE_WORKER_NAME)) throw new Error("CURFEW_LICENSE_WORKER_NAME must be lowercase letters, digits, or hyphens");
   if (!/^[a-f0-9]{32}$/i.test(process.env.CURFEW_LICENSE_KV_NAMESPACE_ID)) throw new Error("CURFEW_LICENSE_KV_NAMESPACE_ID must be a 32-character hexadecimal KV namespace ID");
-  if (!/^curfew(?:-[a-z0-9-]+)?\.hypertext\.studio$/.test(process.env.CURFEW_LICENSE_HOSTNAME)) {
-    throw new Error("CURFEW_LICENSE_HOSTNAME must be a curfew-prefixed Hypertext Studio hostname");
+  if (![...Object.values(deployment).map(value => new URL(value.licenseOrigin).host), ...Object.values(deployment.production.retiredLicenseOrigins || []).map(value => new URL(value).host)].includes(process.env.CURFEW_LICENSE_HOSTNAME)) {
+    throw new Error("CURFEW_LICENSE_HOSTNAME must match the approved deployment manifest");
   }
   console.log("License Worker configuration is structurally valid.");
 }
@@ -90,7 +91,7 @@ function dryRun(arguments_) {
   const config = option(arguments_, "--config");
   if (!config) throw new Error("dry-run requires --config <rendered-local-config>");
   const workerDirectory = resolve(root, "web/worker");
-  const result = spawnSync("pnpm", ["exec", "wrangler", "deploy", "--dry-run", "--config", resolve(config)], {
+  const result = spawnSync("pnpm", ["exec", "cf", "deploy", "--mode", process.env.CURFEW_DEPLOYMENT_MODE || "production", "--dry-run"], {
     cwd: workerDirectory,
     stdio: "inherit",
   });

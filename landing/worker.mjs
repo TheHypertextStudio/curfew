@@ -1,3 +1,5 @@
+import deployment from '../deployment/generated/environments.mjs';
+import { legacyDomainResponse } from './domain-routing.mjs';
 /** The site delegates public docs only after the existing Mintlify project is connected and accepted. */
 export function docsTarget(url, env) {
   if (env.DOCS_MODE !== 'mintlify') return null;
@@ -27,6 +29,8 @@ export function docsTarget(url, env) {
 
 export default {
   async fetch(request, env, _context, fetcher = fetch) {
+    const legacy = legacyDomainResponse(request, deployment.production);
+    if (legacy) return legacy;
     const url = new URL(request.url);
     let target;
     try {

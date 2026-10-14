@@ -25,6 +25,7 @@
 //   SKIP_WORKER / SKIP_KEYPAIR / SKIP_STRIPE / SKIP_PAGES = 1 to skip a phase
 //   RECREATE_WEBHOOK=1        delete + recreate the Stripe webhook (to re-read its secret)
 
+import deployment from "../deployment/generated/environments.mjs";
 import { execFileSync } from "node:child_process";
 import { generateKeyPairSync } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
@@ -35,8 +36,8 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const WORKER_DIR = join(ROOT, "web", "worker");
 const LANDING_DIR = join(ROOT, "landing");
 
-const WORKER_DOMAIN = "curfew-license.hypertext.studio";
-const LANDING_DOMAIN = "curfew.hypertext.studio";
+const WORKER_DOMAIN = new URL(deployment.production.licenseOrigin).host;
+const LANDING_DOMAIN = new URL(deployment.production.siteOrigin).host;
 const PAGES_PROJECT = "curfew-landing";
 const WEBHOOK_URL = `https://${WORKER_DOMAIN}/`;
 const SUCCESS_URL = `https://${LANDING_DOMAIN}/success.html?session_id={CHECKOUT_SESSION_ID}`;

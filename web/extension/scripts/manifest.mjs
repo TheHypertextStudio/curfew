@@ -1,3 +1,4 @@
+import deployment from "../../../deployment/generated/environments.mjs";
 import { createHash, createPublicKey } from "node:crypto";
 
 export const DEVELOPMENT_EXTENSION_ID = "loammdknmfbkjnckaeeagnmakinknbck";
@@ -74,7 +75,7 @@ export function buildManifest(flavor, identity = {}) {
     description: "Keeps Chrome destinations bound to the current Curfew task.",
     version: "0.1.0",
     ...(publicKey ? { key: publicKey } : {}),
-    homepage_url: "https://curfew.hypertext.studio",
+    homepage_url: deployment.production.siteOrigin,
     icons: {
       16: "icons/icon-16.png",
       32: "icons/icon-32.png",

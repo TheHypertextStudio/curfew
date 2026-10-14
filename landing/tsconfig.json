@@ -1,5 +1,9 @@
 {
   "extends": "@thehypertextstudio/web-config/tsconfig/base.json",
   "include": [".astro/types.d.ts", "**/*"],
-  "exclude": ["dist", "build", "node_modules", ".site-assets", "functions"]
+  "exclude": ["dist", "build", "node_modules", ".site-assets", "functions"],
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler"
+  }
 }
