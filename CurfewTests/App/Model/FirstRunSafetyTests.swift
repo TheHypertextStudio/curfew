@@ -60,6 +60,14 @@ struct FirstRunSafetyModelTests {
 
         #expect(!model.settings.hasCompletedInitialSetup)
         #expect(!model.automaticScheduleEnabled)
+
+        let outcome = model.completeInitialSetup(
+            choice: .weeklySchedule,
+            confirmedImmediateLock: true
+        )
+        #expect(outcome == .activated)
+        #expect(model.settings.hasCompletedInitialSetup)
+        #expect(model.automaticScheduleEnabled)
     }
 
     @Test("Returning remote-only users cannot silently arm a lock-now schedule")
@@ -92,6 +100,42 @@ struct FirstRunSafetyModelTests {
         model.enableAutomaticSchedule()
 
         #expect(!model.automaticScheduleEnabled)
+
+        let outcome = model.enableAutomaticSchedule(confirmedImmediateLock: true)
+        #expect(outcome == .activated)
+        #expect(model.automaticScheduleEnabled)
+    }
+
+    @Test("Crossing 22:00 between render and click requires a fresh lock-now decision")
+    func boundaryIsCheckedAtActivation() throws {
+        let suiteName = "CurfewSettingsStoreTests.BoundaryActivation.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let model = CurfewAppModel(
+            settingsStore: CurfewSettingsStore(defaults: defaults),
+            appRouter: AppRouterSpy(),
+            activityRecorder: NullActivityRecording(),
+            lockoutDeadlineStore: .ephemeralForTesting(),
+            accessibilityAuthorization: FakeAccessibilityAuthorization(trusted: true)
+        )
+        let calendar = Calendar.current
+        let before = try #require(calendar.date(from: DateComponents(
+            year: 2026, month: 10, day: 13, hour: 21, minute: 59
+        )))
+        let after = try #require(calendar.date(from: DateComponents(
+            year: 2026, month: 10, day: 13, hour: 22
+        )))
+        let nearlyAtBoundary = try #require(calendar.date(from: DateComponents(
+            year: 2026, month: 10, day: 13, hour: 21, minute: 59, second: 59
+        )))
+
+        #expect(!model.scheduleWouldLock(at: before))
+        #expect(model.scheduleWouldLock(at: after))
+        #expect(model.completeInitialSetup(choice: .weeklySchedule, at: after)
+            == .requiresImmediateLockConfirmation)
+        #expect(model.completeInitialSetup(choice: .weeklySchedule, at: nearlyAtBoundary)
+            == .requiresImmediateLockConfirmation)
+        #expect(!model.settings.hasCompletedInitialSetup)
     }
 
     @Test("Completed Studio Dev installs remain remote-only until schedule consent")
@@ -246,9 +290,12 @@ struct FirstRunSafetyModelTests {
         model.enforceDurableDeadlineIfActive()
 
         #expect(model.state.phase == .locked)
-        #expect(model.state.unlockDate == now.addingTimeInterval(300))
+        #expect(model.state.unlockDate == deadlineStore.load()?.scheduledUnlockAt)
     }
+}
 
+@MainActor
+struct FirstRunScheduleEditTests {
     @Test("First-run schedule edits replace the draft immediately without cooldown")
     func firstRunScheduleEditIsImmediate() {
         let suiteName = "CurfewSettingsStoreTests.InitialSchedule.\(UUID().uuidString)"

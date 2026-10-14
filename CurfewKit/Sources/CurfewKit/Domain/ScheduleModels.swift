@@ -202,6 +202,28 @@ public struct WeeklySchedule: Equatable, Codable {
         return rule(for: weekday)
     }
 
+    /// Every saved rule in the same Monday-to-Sunday order as the editor.
+    /// Use these lines when asking for consent to enable automatic lockouts:
+    /// a one-day preview can hide a stricter rule later in the week.
+    public var reviewLines: [String] {
+        Weekday.allCases.map { weekday in
+            let rule = rule(for: weekday)
+            guard !rule.isDayOff else { return "\(weekday.shortName): day off" }
+            let lock = minutesToHHMM(rule.lockMinutes)
+            let unlock = minutesToHHMM(rule.unlockMinutes)
+            let hours = rule.hoursLimitMinutes ?? 8 * 60
+            let hoursText = hours.isMultiple(of: 60)
+                ? "\(hours / 60) h"
+                : "\(hours / 60) h \(hours % 60) m"
+            let trigger = switch rule.mode {
+            case .time: "locks at \(lock)"
+            case .hours: "locks after \(hoursText) of work"
+            case .combined: "locks at \(lock) or after \(hoursText) of work"
+            }
+            return "\(weekday.shortName): \(trigger); unlocks at \(unlock)"
+        }
+    }
+
     /// Returns the active ``ScheduleWindow`` for `date`, accounting for
     /// extension minutes and previous-day carryover (when the unlock time
     /// of the previous day falls after midnight into the current day).

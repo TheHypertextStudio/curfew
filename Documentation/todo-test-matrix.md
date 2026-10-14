@@ -253,13 +253,21 @@ tests cannot read or mutate a user's App Group lockout record.
 
 - `Propose 22:00–06:00 on fresh installs without rewriting saved schedules.`
   - `NewInstallScheduleTests/freshInstallProposesTenToSix()`
+  - `NewInstallScheduleTests/freshInstallOvernightBoundary(corruptSettings:)`
   - `NewInstallScheduleTests/existingSettingsRetainCustomSchedule()`
 - `First-run schedule edits apply immediately but opening the editor does not arm it.`
   - `FirstRunSafetyFlowTests/openingScheduleDoesNotConfirmIt()`
   - `FirstRunSafetyFlowTests/remoteOnlyChoiceAdvancesWithoutScheduleReview()`
-  - `FirstRunSafetyModelTests/firstRunScheduleEditIsImmediate()`
+  - `FirstRunScheduleEditTests/firstRunScheduleEditIsImmediate()`
   - `FirstRunSafetyModelTests/remoteOnlyScheduleEditIsImmediate()`
+  - `WeeklyScheduleReviewTests/allSevenRulesAreVisible()`
+  - `FirstRunSafetyModelTests/immediateLockNeedsSeparateAcknowledgement()`
+  - `FirstRunSafetyModelTests/enableNeedsSeparateImmediateLockAcknowledgement()`
+  - `FirstRunSafetyModelTests/boundaryIsCheckedAtActivation()`
 - `Studio Dev migration requires local schedule consent while retaining remote deadlines.`
+  - `AutomaticScheduleConsentPolicyTests/studioDevMigrationStaysOff()`
+  - `ScheduleConsentReadSurfaceTests/intentDoesNotPredictAnInactiveLock()`
+  - `CurfewMCPAccessTests/inactiveScheduleIsLabeled()`
   - `FirstRunSafetyModelTests/completedStudioDevDefaultsToRemoteOnly()`
   - `FirstRunSafetyModelTests/completedProductionInstallKeepsSchedule()`
   - `FirstRunSafetyModelTests/remoteOnlyPreservesDurableDeadline(kind:)`

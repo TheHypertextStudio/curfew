@@ -33,12 +33,24 @@ enum CurfewIntentSupport {
     /// storage, so they intentionally do not reach into the running app's
     /// live in-memory extension/override counters — they report the
     /// schedule-derived state exactly as the MCP surface does.
-    static func currentEvaluation(at date: Date = Date()) -> CurfewEvaluation {
-        let settings = loadSharedSettings()
+    static func currentEvaluation(
+        at date: Date = Date(),
+        settingsStore: CurfewSettingsStore? = nil,
+        flavor: CurfewFlavor = .current
+    ) -> CurfewEvaluation {
+        let store = settingsStore ?? CurfewSettingsStore(
+            defaults: UserDefaults(suiteName: SharedPaths.defaultsSuiteName) ?? .standard
+        )
+        let settings = store.load()
+        let enabled = AutomaticScheduleConsentPolicy.isEnabled(
+            savedConsent: store.loadAutomaticScheduleConsent(),
+            hasCompletedInitialSetup: settings.hasCompletedInitialSetup,
+            flavor: flavor
+        )
         let engine = CurfewEnforcementEngine()
         return engine.evaluate(
             at: date,
-            schedule: settings.schedule,
+            schedule: enabled ? settings.schedule : .allDaysOff,
             extensionMinutesGrantedToday: 0,
             overrideUntil: nil,
             warningIntervals: settings.warningIntervals
