@@ -23,6 +23,9 @@ synthetic files, with only the external Keychain command replaced. Successful
 cleanup removes all three fixtures; Keychain failure stops before upload and
 retains the fixtures. It also requires immutable upload action pinning and
 success-only ordering. This does not simulate signing or notarization success.
+The workflow-order regression requires the Developer ID import and temporary
+keychain to occur after unsigned quality checks and before the signed archive;
+those checks cannot receive certificate material through step environment.
 
 ## Local observed enforcement status
 

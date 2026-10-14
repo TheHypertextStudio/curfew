@@ -183,8 +183,10 @@ exact app entitlements.
 
 For a strict `v0.0.x` tag, `.github/workflows/release.yml`:
 
-1. Runs the quality gate and rejects placeholder or missing keys.
-2. Archives and exports the Developer ID app.
+1. Runs the unsigned quality gate and rejects placeholder or missing keys.
+2. Imports the Developer ID certificate only after quality checks finish, then
+   archives and exports the signed app. Unsigned quality-check dependencies must
+   not run with the certificate or temporary signing keychain available.
 3. Notarizes and staples the app.
 4. Verifies the app artifact.
 5. Builds, signs, notarizes, and staples the DMG.
@@ -195,7 +197,7 @@ For a strict `v0.0.x` tag, `.github/workflows/release.yml`:
    manifest and notarization receipts. It does not publish a GitHub Release,
    deploy a site/feed, or access Cloudflare secrets.
 
-Before upload, an always-run cleanup removes the job-owned temporary signing
+After signing and before upload, an always-run cleanup removes the job-owned temporary signing
 keychain (including the imported private key), certificate P12 and notarization
 P8. Cleanup failure blocks upload and diagnostics name only basenames. The
 artifact action is pinned to official v7.0.2 commit
