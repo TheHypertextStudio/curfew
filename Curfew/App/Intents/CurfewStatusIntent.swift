@@ -1,9 +1,8 @@
 import AppIntents
 import CurfewKit
 
-/// Mirrors the MCP `curfew_status` read tool. Returns the current phase plus a
-/// spoken/typed summary, reading the same shared settings + enforcement engine
-/// the MCP surface uses (see ``CurfewIntentSupport/currentEvaluation(at:)``).
+/// Mirrors the MCP `curfew_status` read tool. A stale observation is unknown,
+/// never a schedule-derived guess about a live remote lock.
 ///
 /// Read-only: no consent flow, no queue write.
 struct CurfewStatusIntent: AppIntent {
@@ -19,9 +18,9 @@ struct CurfewStatusIntent: AppIntent {
 
     @MainActor
     func perform() async throws -> some IntentResult & ProvidesDialog & ReturnsValue<String> {
-        let eval = CurfewIntentSupport.currentEvaluation()
-        let phase = phaseName(eval.phase)
-        let summary = CurfewIntentSupport.statusSummary(eval)
+        let status = CurfewIntentSupport.currentObservedStatus()
+        let phase = status?.phase ?? "unknown"
+        let summary = CurfewIntentSupport.statusSummary(status)
         return .result(value: phase, dialog: IntentDialog(stringLiteral: summary))
     }
 }

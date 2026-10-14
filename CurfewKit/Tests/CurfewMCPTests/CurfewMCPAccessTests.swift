@@ -12,6 +12,8 @@ struct CurfewMCPAccessTests {
         let store = CurfewSettingsStore(defaults: defaults)
         var settings = CurfewSettings.default
         settings.hasCompletedInitialSetup = true
+        settings.schedule.rules[.monday]?.mode = .hours
+        settings.schedule.rules[.monday]?.hoursLimitMinutes = 6 * 60
         store.save(settings)
 
         let content = try #require(MCPTool.makeSchedule(
@@ -21,7 +23,7 @@ struct CurfewMCPAccessTests {
         let text = try #require(content["text"] as? String)
         #expect(text.contains("Automatic weekly schedule: off"))
         #expect(text.contains("Saved weekly schedule:"))
-        #expect(text.contains("Mon: 22:00 → 06:00"))
+        #expect(text.contains("Mon: locks after 6 h of work; unlocks at 06:00"))
     }
 
     @Test("Local MCP read tools use fresh app observations, not schedule predictions")

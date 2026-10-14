@@ -18,18 +18,28 @@ struct TimeRemainingIntent: AppIntent {
 
     @MainActor
     func perform() async throws -> some IntentResult & ProvidesDialog & ReturnsValue<Int> {
-        let eval = CurfewIntentSupport.currentEvaluation()
-        let minutes = eval.minutesRemaining
+        guard let status = CurfewIntentSupport.currentObservedStatus() else {
+            throw CurfewIntentError.statusUnavailable
+        }
 
+        let minutes: Int
         let dialog: IntentDialog
-        switch eval.phase {
-        case .locked:
+        switch status.phase {
+        case "locked":
+            minutes = 0
             dialog = "Curfew is already active."
-        case .dayOff:
-            dialog = "There's no curfew today."
-        case .working, .warning:
+        case "day_off":
+            minutes = .max
+            dialog = "No automatic lockout is scheduled now. Remote locks remain possible."
+        case "working", "warning":
+            guard let observedMinutes = status.minutesRemaining else {
+                throw CurfewIntentError.statusUnavailable
+            }
+            minutes = observedMinutes
             let noun = minutes == 1 ? "minute" : "minutes"
             dialog = IntentDialog(stringLiteral: "\(minutes) \(noun) until curfew.")
+        default:
+            throw CurfewIntentError.statusUnavailable
         }
         return .result(value: minutes, dialog: dialog)
     }

@@ -5,14 +5,11 @@ import Foundation
 /// Shared plumbing for Curfew's App Intents surface (Shortcuts, Spotlight,
 /// Siri).
 ///
-/// The intents deliberately reuse the *exact* code paths the MCP tool surface
-/// (`curfew-mcp`) and the bundled CLI (`curfew-ctl`) use — they are a third
-/// front-end onto the same shared storage, not a parallel data path:
+/// The intents reuse the same observed-status store and signed write queue as
+/// `curfew-mcp` and `curfew-ctl`, rather than guessing from saved rules:
 ///
-/// * **Reads** open the app's `UserDefaults` suite by name
-///   (``SharedPaths/defaultsSuiteName``), load `CurfewSettings` through
-///   `CurfewSettingsStore`, and evaluate with `CurfewEnforcementEngine` — the
-///   same three steps `MCPTool.statusTool` / `timeRemainingTool` perform.
+/// * **Reads** load only a fresh app-observed status; stale or absent state is
+///   unknown, never proof that an independently authorized lock is absent.
 /// * **Writes** build a signed ``MCPPendingRequest`` and hand it to
 ///   ``MCPSocketClient/send(_:)`` (which appends to ``MCPRequestQueue``),
 ///   identical to the MCP write tools. The running app's `MCPRequestMonitor`
@@ -27,12 +24,9 @@ enum CurfewIntentSupport {
         return CurfewSettingsStore(defaults: defaults).load()
     }
 
-    /// Evaluates the current enforcement state with the identical arguments
-    /// the MCP read tools pass (`extensionMinutesGrantedToday: 0`,
-    /// `overrideUntil: nil`). The intents are a read-through onto shared
-    /// storage, so they intentionally do not reach into the running app's
-    /// live in-memory extension/override counters — they report the
-    /// schedule-derived state exactly as the MCP surface does.
+    /// A schedule-only forecast used to test weekly-consent interpretation.
+    /// User-facing status intents must use `currentObservedStatus` instead:
+    /// a fixed-duration remote lock or a durable deadline is not a saved rule.
     static func currentEvaluation(
         at date: Date = Date(),
         settingsStore: CurfewSettingsStore? = nil,
@@ -55,6 +49,14 @@ enum CurfewIntentSupport {
             overrideUntil: nil,
             warningIntervals: settings.warningIntervals
         )
+    }
+
+    /// Reads the same fresh, app-settled status as the local MCP and CLI.
+    static func currentObservedStatus(
+        at date: Date = Date(),
+        store: CurfewObservedStatusStore = CurfewObservedStatusStore()
+    ) -> CurfewObservedStatus? {
+        store.loadFresh(at: date)
     }
 
     /// Builds, signs, and enqueues a write request exactly like the MCP write
@@ -90,24 +92,30 @@ enum CurfewIntentSupport {
         return data.flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
     }
 
-    /// Human-readable, present-tense summary of an evaluation for an intent
-    /// dialog, e.g. `"You're in your work session — 42 minutes until curfew."`
-    static func statusSummary(_ eval: CurfewEvaluation) -> String {
-        switch eval.phase {
-        case .locked:
-            if let unlock = eval.unlockDate {
+    /// A stale observation never becomes a false claim that the Mac is free.
+    static func statusSummary(_ status: CurfewObservedStatus?) -> String {
+        guard let status else {
+            return "Curfew has not reported active enforcement recently. Open Curfew to check."
+        }
+        switch status.phase {
+        case "locked":
+            if let unlock = status.unlockDate {
                 return "Curfew is active. Unlocks at \(formatTime(unlock))."
             }
             return "Curfew is active."
-        case .dayOff:
-            return "No curfew today — enjoy your day off."
-        case .working, .warning:
-            let minutes = eval.minutesRemaining
+        case "day_off":
+            return "No automatic lockout is scheduled now. Authorized remote locks can still apply."
+        case "working", "warning":
+            guard let minutes = status.minutesRemaining else {
+                return "Curfew's countdown is unavailable. Open Curfew to check."
+            }
             let noun = minutes == 1 ? "minute" : "minutes"
-            if let lock = eval.lockDate {
+            if let lock = status.lockDate {
                 return "Work session active — \(minutes) \(noun) until curfew at \(formatTime(lock))."
             }
             return "Work session active — \(minutes) \(noun) until curfew."
+        default:
+            return status.availabilityDescription
         }
     }
 
@@ -131,12 +139,17 @@ enum CurfewIntentError: Error, CustomLocalizedStringResourceConvertible {
     /// A supplied "HH:MM" lock time was malformed or out of range.
     case invalidLockTime
 
+    /// No fresh app observation exists for a reliable countdown.
+    case statusUnavailable
+
     var localizedStringResource: LocalizedStringResource {
         switch self {
         case .queueUnavailable:
             "Couldn't reach Curfew's request queue. Make sure Curfew has been launched once."
         case .invalidLockTime:
             "That lock time isn't valid. Use a time of day between 00:00 and 23:59."
+        case .statusUnavailable:
+            "Curfew has not reported a reliable countdown recently. Open Curfew to check."
         }
     }
 }

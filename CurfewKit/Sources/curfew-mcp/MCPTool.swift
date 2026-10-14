@@ -155,16 +155,7 @@ extension MCPTool {
                             "  These saved rules are inactive; authorized remote locks remain available."
                         )
                 }
-                for weekday in Weekday.allCases {
-                    let rule = settings.schedule.rule(for: weekday)
-                    if rule.isDayOff {
-                        lines.append("  \(weekday.shortName): day off")
-                    } else {
-                        let lock = minutesToHHMM(rule.lockMinutes)
-                        let unlock = minutesToHHMM(rule.unlockMinutes)
-                        lines.append("  \(weekday.shortName): \(lock) → \(unlock)")
-                    }
-                }
+                lines.append(contentsOf: settings.schedule.reviewLines.map { "  \($0)" })
                 if let pending = settings.pendingScheduleChange {
                     let fmt = DateFormatter()
                     fmt.dateStyle = .medium

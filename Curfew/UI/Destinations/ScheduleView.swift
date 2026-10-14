@@ -37,7 +37,6 @@ struct ScheduleContent: View {
     /// Shared app model — schedule reads/writes round-trip through it so the
     /// anti-bypass policy engine stays the single mutation entry point.
     @Environment(CurfewAppModel.self) private var model
-    @State private var showingEnableConfirmation = false
     @State private var showingImmediateLockConfirmation = false
 
     /// Padded column of schedule panels.
@@ -62,18 +61,19 @@ struct ScheduleContent: View {
         .padding(24)
         .frame(maxWidth: 900, alignment: .leading)
         .animation(.easeInOut, value: model.scheduleChangeJustApplied)
-        .alert("Enable automatic weekly lockouts?", isPresented: $showingEnableConfirmation) {
-            Button("Enable schedule") {
-                if model.enableAutomaticSchedule() == .requiresImmediateLockConfirmation {
-                    showingImmediateLockConfirmation = true
-                }
+        .alert(
+            "This Mac may lock within a minute",
+            isPresented: $showingImmediateLockConfirmation
+        ) {
+            Button("Enable imminent lockout", role: .destructive) {
+                model.enableAutomaticSchedule(confirmedImmediateLock: true)
             }
             Button("Keep automatic schedule off", role: .cancel) {}
         } message: {
-            Text(model.settings.schedule.reviewLines.joined(separator: "\n") + "\n\n" +
-                (model.scheduleWouldLockNow
-                    ? "May lock now or within a minute. Existing lockouts remain active."
-                    : "These weekly lockouts begin when enabled. Existing lockouts remain active."))
+            Text(
+                model.settings.schedule.reviewLines.joined(separator: "\n") +
+                    "\n\nMay lock this Mac now. Existing lockouts stay active."
+            )
         }
     }
 
@@ -111,25 +111,13 @@ struct ScheduleContent: View {
                 .font(CurfewTypography.body(13))
                 .foregroundStyle(CurfewTheme.warning)
             }
-            Button("Enable saved weekly schedule…") {
-                showingEnableConfirmation = true
+            Button("I've reviewed all seven days — enable weekly lockouts") {
+                if model.enableAutomaticSchedule() == .requiresImmediateLockConfirmation {
+                    showingImmediateLockConfirmation = true
+                }
             }
             .buttonStyle(CurfewSecondaryButtonStyle())
             .disabled(model.settings.pendingScheduleChange != nil)
-        }
-        .alert(
-            "This Mac may lock within a minute",
-            isPresented: $showingImmediateLockConfirmation
-        ) {
-            Button("Enable imminent lockout", role: .destructive) {
-                model.enableAutomaticSchedule(confirmedImmediateLock: true)
-            }
-            Button("Keep automatic schedule off", role: .cancel) {}
-        } message: {
-            Text(
-                model.settings.schedule.reviewLines.joined(separator: "\n") +
-                    "\n\nMay lock this Mac now. Existing lockouts stay active."
-            )
         }
     }
 
