@@ -70,10 +70,12 @@ five general sandboxes. Its Test mode shares some settings with live mode, so
 that walkthrough establishes test-payment behavior but not full configuration
 isolation. Provision an empty private staging sandbox with its own products,
 links and webhook secret before further payment acceptance. Do not copy live
-credentials, resources or settings into staging. Webhook handlers currently
-verify signatures but lack an explicit expected `livemode` check; add and test
-that boundary before provider deployment. Separate Worker KVs and Ed25519
-signers already exist and must remain separate.
+credentials, resources or settings into staging. The deployed webhook handlers
+lack an explicit expected `livemode` check. A local, tested guard now requires
+an explicit `STRIPE_MODE` binding and rejects an opposite-mode or malformed
+event before KV access, including replay/backfill. It has not been pushed or
+deployed. Separate Worker KVs and Ed25519 signers already exist and must remain
+separate.
 
 Live mutations made before this correction: `curfew_sku=lifetime` on
 `plink_1TzTyyAREPz33Avb9vvmySJI` and `curfew_sku=subscription` on
@@ -582,3 +584,14 @@ Debug build, SwiftFormat check (zero of 332 files) and strict SwiftLint (zero
 violations) pass. Review found no actionable defect. Actual retained-secret
 execution, signed/notarized distribution and production purchase acceptance
 remain pending.
+
+The local Stripe mode guard has nine runtime regressions observed failing first
+and passing afterward. Configuration rendering has six regressions observed
+failing first; all 61 script tests now pass. All 28 issuer tests and TypeScript
+checks pass. Wrangler-generated bindings include `STRIPE_MODE`, and dry-runs
+with recovery both enabled and disabled produce valid staging bundles with
+`STRIPE_MODE=test`. Review found no actionable defect. The full native unit
+suite, unsigned Debug build, SwiftFormat check and strict SwiftLint also pass.
+No Stripe mutation or deployment occurred in this verification turn. The source
+is retained in a local commit only, because pushing would trigger the staging
+Worker build before its sandbox and required binding are reviewed.
