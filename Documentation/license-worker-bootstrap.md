@@ -75,12 +75,12 @@ node scripts/license-worker.mjs render-config \
   --output /secure/user-owned/wrangler-staging.toml
 ```
 
-Use an empty private Stripe general sandbox for staging. Give it its own
-products, prices, payment links and webhook endpoint, and keep its webhook
-signing secret on the staging Worker. Give that Worker a distinct
-`LICENSE_PRIVATE_KEY` and KV namespace. Do not copy live settings, keys or
-objects into staging. The account's shared Test mode is insufficient for
-settings isolation.
+The existing Stripe Test mode sandbox supports this integration. Use its
+test-only products, prices, payment links and webhook endpoint, and keep that
+webhook's signing secret on the staging Worker. Give the Worker a distinct
+`LICENSE_PRIVATE_KEY` and KV namespace. Do not copy live keys or objects into
+staging or change shared account settings during testing. A separate general
+sandbox adds settings isolation and is optional for this existing integration.
 
 `CURFEW_LICENSE_STRIPE_MODE` is required. The renderer permits `live` only for
 `curfew-license.hypertext.studio` and requires `test` for other license hostnames.
@@ -95,7 +95,7 @@ publication, save `CURFEW_LICENSE_STRIPE_MODE=test` in that Worker's Build
 configuration and verify the rendered runtime binding. Production configuration
 and deployment require explicit owner direction; its eventual value is `live`.
 Do not push this source into an automatic deployment before reviewing those
-settings and the separate sandbox webhook. Revert the code and renderer together
+settings and the test-only staging webhook. Revert the code and renderer together
 if rollback is needed; retain the separate KVs, signers and webhook secrets.
 
 `validate-config` fails closed when any required field is absent or malformed.
