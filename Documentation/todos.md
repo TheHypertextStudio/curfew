@@ -1,5 +1,20 @@
 # Curfew Implementation TODOs
 
+## Cross-browser account callback (2026-10-13)
+
+- [x] Accept a user-clicked `account-oauth/callback` continuation using the
+  already registered, environment-specific scheme only for an exact pending
+  state. Convert it to the claimed HTTPS callback before the existing native
+  exchange; leave the PKCE verifier in memory and Docket routing separate.
+  Headless CurfewKit tests cover malformed and cross-environment URLs; an
+  app-host regression covers pending-state consumption and Docket isolation.
+  No wire format, entitlement, account data, or app version changed.
+- [ ] Run the app-host regression on hosted CI, install a signed update, and
+  prove one cross-browser Studio Dev sign-in reaches the same enrolled Mac and
+  reports online through the staging connector. Local headless tests/builds
+  cannot establish that live callback. Rollback is the prior signed app; do
+  not erase the enrollment or repeat authenticator/recovery setup.
+
 ## Native reconnect after browser sign-in (2026-10-13)
 
 - [-] Diagnose the currently offline Studio Dev Mac without repeating account,

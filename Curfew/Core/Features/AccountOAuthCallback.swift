@@ -104,15 +104,22 @@ final class AccountOAuthCallbackRouter: AccountOAuthCallbackRouting {
 
     @discardableResult
     func route(_ callback: URL) -> Bool {
-        guard let pending,
-              AccountOAuthCallback.matchesPendingRequest(
-                  callback,
-                  expectedState: pending.expectedState,
-                  expectedRedirectURI: pending.expectedRedirectURI
-              )
+        guard let pending else { return false }
+        let resolved = AccountOAuthHandoff.canonicalCallback(
+            from: callback,
+            registeredScheme: DocketOAuthAuthorizationRequest.callbackScheme(for: .current),
+            expectedRedirectURI: pending.expectedRedirectURI,
+            expectedState: pending.expectedState
+        ) ?? callback
+        guard
+            AccountOAuthCallback.matchesPendingRequest(
+                resolved,
+                expectedState: pending.expectedState,
+                expectedRedirectURI: pending.expectedRedirectURI
+            )
         else { return false }
         self.pending = nil
-        pending.handler(callback)
+        pending.handler(resolved)
         return true
     }
 }

@@ -22,12 +22,18 @@ user's passkey, so Settings keeps the exact authorization URL visible for
 copying while the session is active. PKCE and a one-time state value protect the
 pending transaction when that same URL is completed in the correct profile;
 Curfew clears it as soon as authorization finishes, before device enrollment.
-A callback launched by that ordinary tab is routed back into
-the pending native transaction only when its Hypertext-owned claimed HTTPS
-origin, callback path, and one-time state match exactly. AuthenticationServices
-uses the domain's `webcredentials` association, while the same narrowly scoped
-universal link lets another browser profile return to the signed Curfew app.
-The former private-use callback scheme is not accepted as first-party identity.
+A callback launched by that ordinary tab is routed back into the pending native
+transaction only when its Hypertext-owned claimed HTTPS origin, callback path,
+and one-time state match exactly. AuthenticationServices uses the domain's
+`webcredentials` association, while the same narrowly scoped universal link
+may return another browser profile to the signed Curfew app. If the browser
+instead renders the callback as a page, a user-clicked link may pass its code
+and state through Curfew's already registered, environment-specific URL scheme
+at `account-oauth/callback`. The app accepts this continuation only while the
+original state and in-memory PKCE verifier are pending, then maps it back to
+the canonical HTTPS callback. The scheme itself is never first-party identity;
+another scheme handler could deny completion or see a code but cannot redeem
+it without the verifier. The separate `docket-oauth/callback` path is unchanged.
 If the user copies the link, Curfew also removes it from
 the pasteboard when the attempt ends, unless the user has copied something else
 in the meantime. Settings then reports that it is connecting the Mac instead of
@@ -281,7 +287,13 @@ This protects against two distinct threats: account compromise leading to indefi
   attached, rather than guessing an unrelated window or waiting indefinitely.
   Enrollment is single-flight at both the Settings controller and native
   authorization service, so repeated activation cannot replace an in-progress
-  system session or orphan its completion.
+  system session or orphan its completion. A cross-browser handoff requires a
+  deliberate click on the coordinator's callback page and the exact pending
+  state; it cannot restart enrollment or skip the Recovery Key step. Shipping
+  this source change requires a signed-app/browser proof because a headless
+  test cannot verify Launch Services or the user's browser profile. Rollback
+  uses the previous signed app and query-free server retry page, preserving
+  enrollment and account keys.
 - **Staging proof.** The Dev app's Debug configuration binds the app, OAuth
   exchanges, sync transport, account portal, MCP resource, and embedded daemon
   JWKS trust to the three `curfew-*-staging.hypertext.studio` hosts and selects an isolated
