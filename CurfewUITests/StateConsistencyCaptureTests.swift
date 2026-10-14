@@ -138,7 +138,8 @@ extension MarketingCaptureTests {
             XCTAssertFalse(app.staticTexts["Curfew is active."].exists, app.debugDescription)
         } else {
             assertText("Review setup", in: app)
-            assertText("Curfew is off.", in: app)
+            assertText("Automatic weekly lockouts are off.", in: app)
+            assertText("Authorized remote locks can still apply.", in: app)
             XCTAssertTrue(app.buttons["Done"].exists, app.debugDescription)
             XCTAssertFalse(app.buttons["Finish Setup"].exists, app.debugDescription)
             if state == "setup-review-denied" {

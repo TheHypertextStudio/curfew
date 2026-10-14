@@ -105,8 +105,11 @@ final class MarketingCaptureTests: XCTestCase {
                     if scenario == "getting-started" {
                         for step in 1 ... 4 {
                             if step == 2 {
-                                app.buttons["Open Schedule"].click()
+                                app.buttons["Edit weekly schedule"].click()
                                 app.typeKey("w", modifierFlags: .command)
+                                let reviewLabel =
+                                    "I've reviewed these seven days — use this weekly schedule"
+                                app.buttons[reviewLabel].click()
                             }
                             app.buttons["Next"].click()
                             assertText("Step \(step + 1) of 5", in: app)
