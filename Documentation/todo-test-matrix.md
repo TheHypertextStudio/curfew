@@ -74,6 +74,11 @@ full suite is still required.
 
 ## Renewed account connection handoff
 
+`NativeAccountSyncTransportTests.testRejectedRefreshTokenRequiresSignInInsteadOfReportingOffline`
+exercises the real transport's rejected refresh response. It requires a
+sign-in-required callback and excludes a later offline callback; the terminal
+event drives the assertion, with timeout only guarding a hung test.
+
 `AccountStatusSyncTests.testRenewedCredentialsReconnectRejectedTransportWithoutLosingPendingChanges`
 reproduces the rejected-but-active engine and checks a fresh connection plus
 preserved pending encryption. The maintenance-paused regression prohibits
