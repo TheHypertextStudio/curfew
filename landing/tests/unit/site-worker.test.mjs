@@ -80,6 +80,10 @@ test('proxy forwards the actual public origin, drops cookies/authorization and r
     headers: {
       cookie: 'session=private',
       authorization: 'Bearer private',
+      'cf-access-jwt-assertion': 'test-private-jwt',
+      'cf-access-authenticated-user-email': 'staff@example.invalid',
+      'cf-access-client-id': 'test-client-id',
+      'cf-access-client-secret': 'test-client-secret',
       'x-forwarded-host': 'spoof.invalid',
       'x-forwarded-proto': 'http',
     },
@@ -90,6 +94,14 @@ test('proxy forwards the actual public origin, drops cookies/authorization and r
   assert.equal(observed.headers.get('x-forwarded-proto'), 'https');
   assert.equal(observed.headers.get('cookie'), null);
   assert.equal(observed.headers.get('authorization'), null);
+  for (const name of [
+    'cf-access-jwt-assertion',
+    'cf-access-authenticated-user-email',
+    'cf-access-client-id',
+    'cf-access-client-secret',
+  ]) {
+    assert.equal(observed.headers.get(name), null, `${name} must stay outside public docs`);
+  }
   assert.equal(response.headers.get('location'), 'https://preview.invalid/docs/cli?view=all');
   assert.equal(response.headers.get('set-cookie'), null);
 });
@@ -116,7 +128,11 @@ test('search forwards POST body without frontend identity and preserves external
   const response = await worker.fetch(
     new Request('https://preview.invalid/api/request?locale=en', {
       method: 'POST',
-      headers: { 'content-type': 'application/json', cookie: 'session=private' },
+      headers: {
+        'content-type': 'application/json',
+        cookie: 'session=private',
+        'cf-access-jwt-assertion': 'test-private-jwt',
+      },
       body: '{"query":"CLI setup"}',
     }),
     { ...env, DOCS_MODE: 'mintlify' },
@@ -133,6 +149,7 @@ test('search forwards POST body without frontend identity and preserves external
   assert.equal(observed.method, 'POST');
   assert.equal(await observed.text(), '{"query":"CLI setup"}');
   assert.equal(observed.headers.get('cookie'), null);
+  assert.equal(observed.headers.get('cf-access-jwt-assertion'), null);
   assert.equal(response.headers.get('location'), 'https://hypertext.studio/contact');
 });
 

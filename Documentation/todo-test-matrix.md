@@ -292,13 +292,24 @@ tests cannot read or mutate a user's App Group lockout record.
 ## 0. Foundation and Project Structure
 
 - `Adopt the Studio website and Mintlify standard` (in progress).
-  - `landing/tests/unit/site-worker.test.mjs` retains docs/asset/search delegation, path/query/forwarded origin, credential isolation, redirects/errors and HTML-guide mode behavior.
-  - `landing/tests/acceptance/site.spec.mjs` retains clean/HTML aliases, direct URL/reload, Back/Forward, keyboard/reduced motion, safe unconfigured license error and 404 behavior.
-  - `scripts/landing-contract.test.mjs` retains public account, download and legal-content behavior. Obsolete command-string/source-policy checks, lifecycle declaration tests and release-identity assertions are removed with their implementation.
-  - Website CI uses the adopted frozen registry lock, normal Astro build and native Wrangler preview. The temporary registry proposal job and bespoke parity/copier/assembler/lifecycle are removed.
-  - Successful main Website and docs runs retain native Astro dist after the existing three-browser checks. Manual staging uses only an exact successful push/main run, verifies main immediately before Wrangler, and requires its distinct staging credential. Static workflow validation is separate from deployment acceptance; no new/manual tests or provider operations are performed for this slice.
-  - Shared docs generation and pinned native Mintlify validation remain. The prepared `mcp-guide` source, old public canonical and exact Pages/Worker alias remain; public proxy/source identity acceptance is separate.
-  - This source cleanup adds/runs no manual tests. Static lint/type/build and workflow checks are recorded separately; existing hosted behavior suites remain configured.
+  - `landing/tests/unit/site-worker.test.mjs` covers docs/asset/search delegation,
+    path/query/forwarded origin, cookie/Authorization/Cloudflare Access header
+    isolation, redirects/errors and HTML-guide mode behavior.
+  - `landing/tests/acceptance/site.spec.mjs` covers clean/HTML aliases, direct
+    URL/reload, Back/Forward, keyboard/reduced motion, the unconfigured license
+    error and 404 behavior. Its local server explicitly selects HTML-guide mode
+    through the native `--var` option to retain deterministic fallback coverage.
+  - `scripts/landing-contract.test.mjs` covers public account, download and legal
+    content. Shared docs generation and pinned native Mintlify validation cover
+    the generated configuration and documentation source.
+  - Ordinary website CI uses the frozen registry lock, Astro build and existing
+    three-browser checks. Manual staging selects exact successful main output,
+    checks main before deployment and uses the separate staging credential.
+  - Protected staging must separately accept the real Mintlify HTML, navigation,
+    assets, anchors, search, discovery and `/docs/mcp` alias. Unit fixtures and
+    fallback browser checks do not establish hosted proxy acceptance.
+  - `scripts/user-docs.test.mjs` retains reader metadata and page-link checks,
+    including the existing public MCP guide canonical URL.
 
 - `Bundle the pinned Chrome native messaging host.`
   - `BrowserNativeProtocolTests` checks versioning, strict fields, correlation, and framing limits.

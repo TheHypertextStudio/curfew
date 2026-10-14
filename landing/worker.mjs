@@ -52,6 +52,9 @@ export default {
     const headers = new Headers(request.headers);
     for (const name of ['authorization', 'cookie', 'host', 'x-forwarded-for', 'cf-connecting-ip'])
       headers.delete(name);
+    for (const name of [...headers.keys()]) {
+      if (name.startsWith('cf-access-')) headers.delete(name);
+    }
     headers.set('x-forwarded-host', url.host);
     headers.set('x-forwarded-proto', url.protocol.slice(0, -1));
     const outbound = new Request(target, {

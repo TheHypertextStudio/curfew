@@ -18,7 +18,7 @@
       "preview_urls": false,
       "routes": [],
       "vars": {
-        "DOCS_MODE": "html-guide",
+        "DOCS_MODE": "mintlify",
         "DOCS_UPSTREAM": "https://curfew.mintlify.site"
       }
     },

@@ -17,7 +17,13 @@ test("public help covers setup, everyday use, Plus, integrations, and recovery",
 test("every public page has reader metadata and working local page links", async () => {
   for (const page of pages) {
     const content = await read(`web/docs/${page}.mdx`);
-    assert.match(content, /^---\ntitle: .+\ndescription: .+\n---/);
+    const metadata = content.match(/^---\n([\s\S]*?)\n---/);
+    assert.ok(metadata, `${page} needs page metadata`);
+    assert.match(metadata[1], /^title: .+$/m);
+    assert.match(metadata[1], /^description: .+$/m);
+    if (page === "mcp-guide") {
+      assert.match(metadata[1], /^canonical: https:\/\/curfew\.hypertext\.studio\/docs\/mcp$/m);
+    }
     for (const match of content.matchAll(/(?:\]\(|href=")[\/]([^"\s)#]+)(?:#[^"\s)]+)?[)"]/g)) {
       const target = match[1];
       if (target.includes(".")) continue;
