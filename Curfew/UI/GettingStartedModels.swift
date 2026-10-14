@@ -100,6 +100,13 @@ enum FirstRunStep: Int, CaseIterable, Identifiable {
     }
 }
 
+/// An explicit choice about automatic lockouts, distinct from editing the
+/// proposed schedule and from authorizing remote fixed-duration controls.
+enum AutomaticScheduleChoice: Equatable {
+    case weeklySchedule
+    case remoteControlsOnly
+}
+
 /// Stateful cursor into the first-run onboarding flow.
 ///
 /// Kept as a plain value type rather than an `ObservableObject` so it can be
@@ -113,6 +120,10 @@ struct FirstRunFlow {
 
     /// Whether onboarding has routed the user through live schedule settings.
     private(set) var hasReviewedScheduleSettings = false
+
+    /// Opening the editor is not consent. A choice is required before the
+    /// schedule step can advance or setup can arm enforcement.
+    private(set) var scheduleChoice: AutomaticScheduleChoice?
 
     /// Whether the app currently holds macOS Accessibility trust.
     ///
@@ -144,7 +155,7 @@ struct FirstRunFlow {
     var canAdvance: Bool {
         switch currentStep {
         case .schedule:
-            hasReviewedScheduleSettings
+            scheduleChoice != nil
         case .permissions:
             isAccessibilityGranted
         case .welcome, .extensionBudget, .confirmation:
@@ -154,12 +165,19 @@ struct FirstRunFlow {
 
     /// Whether the final onboarding action should be enabled.
     var canFinish: Bool {
-        isLastStep && hasReviewedScheduleSettings && isAccessibilityGranted
+        isLastStep && scheduleChoice != nil && isAccessibilityGranted
     }
 
     /// Records that the user has opened the live schedule editor from onboarding.
     mutating func markScheduleReviewed() {
         hasReviewedScheduleSettings = true
+    }
+
+    /// Selects remote-only setup directly, or the weekly schedule after the
+    /// user has opened its editor and seen the actual configured rules.
+    mutating func chooseSchedule(_ choice: AutomaticScheduleChoice) {
+        guard choice == .remoteControlsOnly || hasReviewedScheduleSettings else { return }
+        scheduleChoice = choice
     }
 
     /// Syncs the live Accessibility-trust state into the flow.
@@ -204,6 +222,7 @@ struct FirstRunFlow {
         var flow = FirstRunFlow()
         flow.currentStep = .confirmation
         flow.hasReviewedScheduleSettings = true
+        flow.scheduleChoice = .weeklySchedule
         return flow
     }
 }

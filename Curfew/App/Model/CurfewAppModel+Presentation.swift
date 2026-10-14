@@ -14,6 +14,10 @@ extension CurfewAppModel {
     /// Menu-bar status distinguishes a scheduled boundary from armed enforcement.
     var menuBarHeaderLine: String {
         guard isEnforcementRunning else { return "Curfew is off" }
+        if settings.hasCompletedInitialSetup,
+           !automaticScheduleEnabled, state.phase != .locked {
+            return "Automatic schedule off"
+        }
         if let lock = state.lockDate, state.phase == .working {
             return "Locks at \(lock.formatted(date: .omitted, time: .shortened))"
         }
@@ -36,7 +40,11 @@ extension CurfewAppModel {
     /// One-line description of the current phase for the status bar and
     /// popover header.
     var statusLine: String {
-        statusLine(for: state.phase)
+        if settings.hasCompletedInitialSetup,
+           !automaticScheduleEnabled, state.phase != .locked {
+            return "Remote controls only"
+        }
+        return statusLine(for: state.phase)
     }
 
     /// `H:MM` string of minutes remaining, or `"—"` when not applicable.
@@ -50,7 +58,7 @@ extension CurfewAppModel {
         EnforcementSnapshot(
             phase: state.phase,
             symbolName: symbolName(for: state.phase),
-            statusLine: statusLine(for: state.phase),
+            statusLine: statusLine,
             timeRemainingText: timeRemainingText(for: state.minutesRemaining),
             scheduleWindowText: scheduleWindowText,
             scheduleSummarySentence: scheduleSummarySentence,
@@ -73,6 +81,25 @@ extension CurfewAppModel {
     /// proposed schedule when a change is in flight, otherwise the active one.
     var editableSchedule: WeeklySchedule {
         settings.pendingScheduleChange?.proposedSchedule ?? settings.schedule
+    }
+
+    /// Only this schedule is evaluated for automatic lockout. The configured
+    /// rules remain available for editing while local consent is off.
+    var effectiveSchedule: WeeklySchedule {
+        automaticScheduleEnabled ? settings.schedule : .allDaysOff
+    }
+
+    /// Show a direct warning before a user enables an already-expired rule.
+    var scheduleWouldLockNow: Bool {
+        let now = Date()
+        return enforcementEngine.evaluate(
+            at: now,
+            schedule: settings.schedule,
+            extensionMinutesGrantedToday: extensionMinutesGrantedToday + snoozeMinutesGrantedToday,
+            overrideUntil: accountReleaseOverrideUntil() ?? overrideUntil,
+            warningIntervals: settings.warningIntervals,
+            workedMinutesToday: workedMinutesToday(at: now)
+        ).phase == .locked
     }
 
     /// One-sentence summary of any queued schedule change, shown above

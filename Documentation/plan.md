@@ -432,12 +432,12 @@ If the user also has calendar, task management (Linear, Todoist), and communicat
 
 - Multi-step onboarding flow (4–5 screens):
   1. **Welcome:** *"Curfew helps you stop working on time. Not tomorrow. Today."* Brief explanation of the commitment model.
-  2. **Schedule Setup:** Interactive weekly schedule picker. Pre-filled with "9-to-5" as default.
+  2. **Schedule Setup:** Interactive weekly schedule picker. Fresh installs propose 22:00 lock and 06:00 unlock on weekdays, with weekends off. Saved schedules are not rewritten. The user explicitly chooses this automatic schedule or no automatic schedule with remote controls only.
   3. **Extension Budget:** Explain the extension system. Let user pick budget (1–5/week) and duration (10, 15, 30 min).
   4. **Permissions:** Request notification permission, calendar access (optional), accessibility access (for event tap — required for full lockout).
-  5. **Confirmation:** Summary of chosen schedule. *"Starting tomorrow, Curfew will enforce this schedule. Ready?"* Large "Activate" button.
+  5. **Confirmation:** Summary of the effective choice and an explicit warning if enabling the weekly schedule would lock immediately. Finishing setup applies that choice; remote-only mode can still enforce authorized fixed-duration commands.
 - Onboarding only runs on first launch. Can be re-accessed from Settings.
-- Schedule changes made during onboarding take effect the next day (consistent with the anti-bypass principle).
+- Schedule edits made before setup completes or while automatic scheduling is off update the saved draft immediately; there is no active weekly lockout to bypass. Once automatic scheduling is enabled, weaker edits retain the 24-hour anti-bypass cooldown.
 
 **UX Notes:**
 

@@ -43,6 +43,11 @@ final class CurfewAppModel: NSObject {
         didSet { handleSettingsMutation(from: oldValue) }
     }
 
+    /// Separate local consent keeps a stored schedule editable without
+    /// allowing an unconfirmed Studio Dev schedule to lock the Mac.
+    var automaticScheduleEnabled: Bool
+    var hasExplicitAutomaticScheduleConsent: Bool
+
     /// Latest evaluation from the enforcement engine. Replaced every tick.
     var state: CurfewEvaluation
 
@@ -319,6 +324,7 @@ final class CurfewAppModel: NSObject {
     init(
         settingsStore: CurfewSettingsStore,
         appRouter: AppRouting,
+        flavor: CurfewFlavor = .current,
         isDemoSession: Bool = false,
         featureFlags: FeatureFlags? = nil,
         activityRecorder: any ActivityRecording,
@@ -389,6 +395,12 @@ final class CurfewAppModel: NSObject {
 
         let loadedSettings = settingsStore.load()
         self.settings = loadedSettings
+        let savedScheduleConsent = settingsStore.loadAutomaticScheduleConsent()
+        let resolvedScheduleConsent = savedScheduleConsent ?? (
+            flavor != .studioDevelopment && loadedSettings.hasCompletedInitialSetup
+        )
+        self.hasExplicitAutomaticScheduleConsent = savedScheduleConsent != nil
+        self.automaticScheduleEnabled = resolvedScheduleConsent
         self.shouldOpenSettingsOnLaunch = settingsStore.consumeShouldShowInitialSetup()
         self.overrideEvents = settingsStore.loadOverrideEvents()
 
@@ -398,7 +410,10 @@ final class CurfewAppModel: NSObject {
 
         let now = Date()
         self.state = Self.initialEvaluation(
-            settings: loadedSettings, now: now, enforcementEngine: enforcementEngine
+            settings: loadedSettings,
+            automaticScheduleEnabled: resolvedScheduleConsent,
+            now: now,
+            enforcementEngine: enforcementEngine
         )
         self.extensionsRemaining = extensionTracker.remaining
         self.overridesRemaining = overrideTracker.remaining

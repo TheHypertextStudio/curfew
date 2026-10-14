@@ -49,9 +49,11 @@ extension CurfewAppModel {
 
     /// Marks initial setup complete and dismisses the Getting Started window.
     /// Idempotent — safe to call if setup was already completed.
-    func completeOnboardingFlow() {
-        completeInitialSetup()
-        dismissGettingStarted()
+    func completeOnboardingFlow(choice: AutomaticScheduleChoice) {
+        completeInitialSetup(choice: choice)
+        if settings.hasCompletedInitialSetup {
+            dismissGettingStarted()
+        }
     }
 
     /// Flips `hasCompletedInitialSetup` to `true` and starts the enforcement
@@ -65,7 +67,7 @@ extension CurfewAppModel {
     /// silently inert; the guard below re-checks the *real* grant (not a
     /// self-attested checkbox) regardless of which surface called this, and
     /// prompts for it instead of completing setup on a broken foundation.
-    func completeInitialSetup() {
+    func completeInitialSetup(choice: AutomaticScheduleChoice) {
         guard !settings.hasCompletedInitialSetup else {
             return
         }
@@ -73,8 +75,32 @@ extension CurfewAppModel {
             requestAccessibilityAccess()
             return
         }
+        let enabled = choice == .weeklySchedule
+        settingsStore.saveAutomaticScheduleConsent(enabled)
+        hasExplicitAutomaticScheduleConsent = true
+        automaticScheduleEnabled = enabled
         settings.hasCompletedInitialSetup = true
         start()
+    }
+
+    /// Explicitly opts an already-onboarded remote-only install into its
+    /// configured weekly schedule. The UI presents the effective schedule and
+    /// immediate-lock warning before calling this action.
+    func enableAutomaticSchedule() {
+        guard settings.hasCompletedInitialSetup, !automaticScheduleEnabled,
+              settings.pendingScheduleChange == nil else { return }
+        guard isAccessibilityTrusted else {
+            requestAccessibilityAccess()
+            return
+        }
+        settingsStore.saveAutomaticScheduleConsent(true)
+        hasExplicitAutomaticScheduleConsent = true
+        automaticScheduleEnabled = true
+        if started {
+            tick()
+        } else {
+            start()
+        }
     }
 
     /// Queues a schedule change to the built-in `preset`. Subject to the same

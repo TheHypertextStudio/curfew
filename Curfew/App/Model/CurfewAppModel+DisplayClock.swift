@@ -87,7 +87,7 @@ extension CurfewAppModel {
                 ownsLockout: isEnforcingLockout,
                 protectionHealthy: enforcementHealth.isFullyActive &&
                     !privilegedHelperManager.maintenancePaused,
-                mode: settings.schedule.rule(for: state.lockDate ?? currentTime).mode
+                mode: effectiveSchedule.rule(for: state.lockDate ?? currentTime).mode
             )
         } catch {
             statusMirrorLogger.error(
@@ -138,7 +138,7 @@ extension CurfewAppModel {
 
         let newState = enforcementEngine.evaluate(
             at: currentTime,
-            schedule: settings.schedule,
+            schedule: effectiveSchedule,
             extensionMinutesGrantedToday: extensionMinutesGrantedToday + snoozeMinutesGrantedToday,
             overrideUntil: accountReleaseOverrideUntil() ?? overrideUntil,
             warningIntervals: settings.warningIntervals,

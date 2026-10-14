@@ -228,7 +228,7 @@ extension CurfewAppModel {
     private func releaseAccountWakeDeadline(_ record: LockoutDeadlineRecord) {
         state = enforcementEngine.evaluate(
             at: currentTime,
-            schedule: settings.schedule,
+            schedule: effectiveSchedule,
             extensionMinutesGrantedToday:
             extensionMinutesGrantedToday + snoozeMinutesGrantedToday,
             overrideUntil: currentTime,

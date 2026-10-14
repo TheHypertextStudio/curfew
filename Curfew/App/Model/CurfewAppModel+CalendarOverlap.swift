@@ -19,7 +19,7 @@ extension CurfewAppModel {
         guard featureFlags.calendarEnabled, licenseGate.isPlusUnlocked else { return }
         guard state.phase == .working || state.phase == .warning else { return }
 
-        let todayRule = settings.schedule.rule(for: Weekday(from: currentTime))
+        let todayRule = effectiveSchedule.rule(for: Weekday(from: currentTime))
         guard !todayRule.isDayOff else { return }
 
         guard let event = calendarMonitor.eventNearingCurfew(

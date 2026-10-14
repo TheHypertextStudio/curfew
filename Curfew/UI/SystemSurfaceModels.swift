@@ -17,10 +17,10 @@ extension FirstRunFlow {
         [
             OnboardingConfirmationRequirement(
                 id: .scheduleReview,
-                title: hasReviewedScheduleSettings
-                    ? "Schedule review complete"
-                    : "Schedule review still required",
-                isSatisfied: hasReviewedScheduleSettings
+                title: scheduleChoice != nil
+                    ? "Automatic schedule choice confirmed"
+                    : "Choose whether to use automatic lockouts",
+                isSatisfied: scheduleChoice != nil
             ),
             OnboardingConfirmationRequirement(
                 id: .accessibilityGrant,

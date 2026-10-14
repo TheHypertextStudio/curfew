@@ -187,6 +187,8 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 ## 1. Schedule + Enforcement Core
 
 - [x] Implement weekly schedule model (per-day end time, unlock time, day-off support). The Settings/onboarding copy now frames these as "Work ends" and "Work resumes" so the editable times line up with the actual enforcement window.
+- [x] Propose 22:00–06:00 on weekdays for a new install without rewriting saved schedules. Edits apply immediately while automatic scheduling is off; automatic lockouts require an explicit weekly-schedule choice before setup finishes.
+- [x] Keep previously completed Studio Dev installs remote-only until they explicitly enable their saved weekly schedule. Show that state and warn before enabling a schedule that would lock immediately; preserve active durable deadlines and authorized fixed-duration remote locks.
 - [x] Implement schedule presets: 9-to-5, Startup Hours, Half Day.
 - [x] Enforce anti-bypass policy — stricter changes apply next day; weaker require 24-hour cooldown.
 - [x] Add DST-safe local timezone handling and schedule resolution tests.

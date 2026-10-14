@@ -15,6 +15,19 @@ extension CurfewAppModel {
         _ proposedSchedule: WeeklySchedule,
         requestedBy actor: AuditActor = .user
     ) {
+        // No automatic schedule is active before setup or in remote-only
+        // mode, so editing stored rules cannot bypass a live weekly lockout.
+        if !settings.hasCompletedInitialSetup || !automaticScheduleEnabled {
+            settings.schedule = proposedSchedule
+            settings.pendingScheduleChange = nil
+            persistSettings()
+            if started {
+                tick()
+            } else {
+                displayTick()
+            }
+            return
+        }
         let classification = policyEngine.classifyChange(
             from: settings.schedule,
             to: proposedSchedule
@@ -28,7 +41,11 @@ extension CurfewAppModel {
             }
             settings.pendingScheduleChange = nil
             persistSettings()
-            tick()
+            if started {
+                tick()
+            } else {
+                displayTick()
+            }
             return
         }
 
@@ -49,7 +66,11 @@ extension CurfewAppModel {
             classification: classification
         )
         persistSettings()
-        tick()
+        if started {
+            tick()
+        } else {
+            displayTick()
+        }
     }
 
     /// Swaps in any `PendingScheduleChange` whose `effectiveAt` has

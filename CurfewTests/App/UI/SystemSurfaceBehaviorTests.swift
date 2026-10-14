@@ -14,7 +14,7 @@ struct OnboardingConfirmationRequirementTests {
         #expect(flow.confirmationRequirements == [
             OnboardingConfirmationRequirement(
                 id: .scheduleReview,
-                title: "Schedule review still required",
+                title: "Choose whether to use automatic lockouts",
                 isSatisfied: false
             ),
             OnboardingConfirmationRequirement(
@@ -27,15 +27,17 @@ struct OnboardingConfirmationRequirementTests {
         flow.markScheduleReviewed()
         #expect(flow.confirmationRequirements[0] == OnboardingConfirmationRequirement(
             id: .scheduleReview,
-            title: "Schedule review complete",
-            isSatisfied: true
+            title: "Choose whether to use automatic lockouts",
+            isSatisfied: false
         ))
+
+        flow.chooseSchedule(.weeklySchedule)
 
         flow.updateAccessibilityGranted(true)
         #expect(flow.confirmationRequirements == [
             OnboardingConfirmationRequirement(
                 id: .scheduleReview,
-                title: "Schedule review complete",
+                title: "Automatic schedule choice confirmed",
                 isSatisfied: true
             ),
             OnboardingConfirmationRequirement(
