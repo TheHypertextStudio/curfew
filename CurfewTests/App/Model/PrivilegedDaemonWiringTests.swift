@@ -6,6 +6,22 @@ import Testing
 
 @MainActor
 struct PrivilegedDaemonWiringTests {
+    @Test("A display tick retries an unavailable helper without probing every second")
+    func displayTickRetriesUnavailableHelper() async {
+        let now = Date()
+        let (model, rpc) = makeModel(record: makeRecord(now: now, duration: 600), now: now)
+
+        model.displayTick()
+        for _ in 0 ..< 1000 where rpc.statusCallCount == 0 {
+            await Task.yield()
+        }
+        #expect(rpc.statusCallCount == 1)
+
+        model.displayTick()
+        await Task.yield()
+        #expect(rpc.statusCallCount == 1)
+    }
+
     @Test("Daemon relaunch status replaces a weaker local lockout deadline")
     func daemonStatusOverridesWeakerLocalDeadline() async throws {
         let now = Date()
@@ -87,6 +103,12 @@ struct PrivilegedDaemonWiringTests {
 private final class ModelDaemonRPC: PrivilegedDaemonRPCControlling, @unchecked Sendable {
     let daemonStatus: PrivilegedDaemonStatus
     private(set) var heartbeatIDs: [UUID] = []
+    private let statusLock = NSLock()
+    private var recordedStatusCallCount = 0
+
+    var statusCallCount: Int {
+        statusLock.withLock { recordedStatusCallCount }
+    }
 
     init(status: PrivilegedDaemonStatus) {
         self.daemonStatus = status
@@ -99,7 +121,8 @@ private final class ModelDaemonRPC: PrivilegedDaemonRPCControlling, @unchecked S
 
     func completeLockout(lockoutID _: UUID, reason _: PrivilegedCompletionReason) async throws {}
     func status() async throws -> PrivilegedDaemonStatus {
-        daemonStatus
+        statusLock.withLock { recordedStatusCallCount += 1 }
+        return daemonStatus
     }
 
     func prepareForUninstall() async throws {}
