@@ -1,5 +1,16 @@
 # Curfew Implementation TODOs
 
+## Public legal policies
+
+- [x] Standardize operator, official contact, eligibility, authorized content use,
+  purchases, consumer rights, and source-backed privacy/retention disclosures.
+  Preserve previous policies in native `/legal/history` routes and retain HTML
+  aliases. Terms changes use a 30-day existing-user notice; lifetime/MIT/refund
+  rights remain intact.
+- [ ] Publish policies and deliver the material-change notice through account
+  communications before relying on revised Terms for existing users. Verify
+  the legal mailbox and deployed routes separately from local site checks.
+
 ## Cross-browser account callback (2026-10-13)
 
 - [x] Accept a user-clicked `account-oauth/callback` continuation using the

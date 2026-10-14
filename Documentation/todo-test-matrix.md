@@ -1,5 +1,16 @@
 # Todo Test Matrix
 
+## Public legal policies
+
+`landing/tests/unit/legal.test.mjs` checks official contact, notice dates,
+consumer and purchase rights, renewal refunds, deletion disclosures, and native
+history routes. Website acceptance tests exercise current and prior routes,
+compatibility aliases, refund/contact links, and notices at desktop and mobile
+sizes. Existing site checks cover Astro, lint, format, and built output. Native
+behavior is unchanged. Local checks do not prove deployed policies, mailbox
+operation, account notice delivery, or production retention sweeps. Rollback
+restores the prior publication while retaining the archive and accrued rights.
+
 ## Cross-browser account callback
 
 `AccountOAuthHandoffTests` exercises the native custom-scheme continuation's

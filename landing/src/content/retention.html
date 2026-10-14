@@ -1,41 +1,20 @@
 <section>
-      <div class="section-inner" style="max-width:640px">
-        <h1 class="privacy-heading">Data Retention</h1>
-        <p class="privacy-lede">
-          Account-free Curfew data stays on your devices. Account data is kept
-          only as long as needed to synchronize, secure, and support purchases.
-        </p>
-
-        <h2 class="privacy-section-title">On your devices</h2>
-        <p class="privacy-prose">
-          You control schedules, wake settings, callback secrets, and local
-          history. Current macOS activity and reflection history roll off after
-          52 weeks. Removing the app does not always remove shared containers or
-          operating-system backups; use Curfew's data controls before uninstalling.
-        </p>
-
-        <h2 class="privacy-section-title">In a Curfew Account</h2>
-        <ul class="privacy-list">
-          <li>Encrypted sync records remain until you delete the record or account.</li>
-          <li>Expired or revoked sessions, OAuth grants, and routing artifacts are removed within 30 days unless security investigation requires a temporary hold.</li>
-          <li>Remote-unlock audit records are retained for 365 days.</li>
-          <li>Entitlement, refund, and payment-reference records are retained as needed for licensing, fraud prevention, accounting, and legal obligations.</li>
-          <li>IP addresses may be processed for transport security and rate limiting but are not stored in Curfew application records.</li>
-        </ul>
-
-        <h2 class="privacy-section-title">Export and deletion</h2>
-        <p class="privacy-prose">
-          You can export your purchases, devices, grants, audits, and encrypted
-          records before deletion. When you delete your Curfew account, active
-          sessions and grants are revoked and account-scoped sync data is queued
-          for deletion. Required purchase records are disassociated where
-          possible and retained only for the purposes above. Signed offline
-          licenses remain subject to their purchase and refund state.
-        </p>
-
-        <p class="privacy-prose">
-          Questions about retention or deletion:
-          <a href="mailto:hello@hypertext.studio">hello@hypertext.studio</a>
-        </p>
-      </div>
-    </section>
+  <h1>Data Retention Policy</h1>
+  <aside class="legal-notice" aria-label="Policy update"><strong>Policy update: October 14, 2026.</strong> We have clarified our operator and contacts, account eligibility, assistant sharing, retention and deletion, refunds, and applicable law. The Privacy and Data Retention policies apply immediately. Updated Terms apply to new users when they sign up or accept them, and to existing users on November 13, 2026, after 30 days’ notice. Existing purchase, refund, and MIT license rights are preserved. <a href="/legal/history">Read the previous policies and change summary.</a></aside>
+  <p class="privacy-lede">Published and effective October 14, 2026. Hypertext Studio keeps Curfew information for the purposes described in the <a href="/privacy">Privacy Policy</a>.</p>
+<h2>On your devices</h2>
+<p>Schedules, preferences, license keys, wake settings, and local integration configuration remain until you remove them. Local activity and reflections have a rolling 52 weeks of history; trimming runs on day rollover while the app is running. A stopped app or failed trim can leave older records until a later successful cleanup.</p>
+<p>Local MCP write requests and their approval or denial records remain in the local queue until removed; there is no fixed automatic deletion period for resolved entries. The Chrome extension keeps initial review justifications only while a live challenge is pending and does not retain completed justifications or challenge answers in extension state. The native browser queue temporarily persists review inputs and clears justification and answer text on resolution. Pending entries become stale after 60 seconds; resolved metadata becomes eligible for removal after 120 seconds. Cleanup runs while the integration is active, so stopped software or cleanup failures can leave records longer. Browser decision audit segments use a 90-day rotation retention policy. The active segment remains until rotation; audit metadata contains the hostname, decision, and scope type rather than full URLs or answers.</p>
+<p>Camera presence frames are processed in memory only; the derived verdict is replaced by the next reading or cleared when capture stops. Manage private iCloud records through that service.</p>
+<h2>Hosted accounts</h2>
+<ul><li>Encrypted records remain while needed for synchronization until deleted by you or with your account.</li><li>Expired sessions, applicable expired or revoked OAuth tokens and assurance records, and routing/proof artifacts become eligible for scheduled cleanup 30 days after expiry or revocation. Some short-lived authorization artifacts are eligible at expiry. Hourly sweeps process bounded batches, so the cutoff is not a guarantee of deletion at an exact time.</li><li>Remote-control commands, results, and receipts become eligible for cleanup 30 days after issuance.</li><li>Remote-unlock and account security audit records use a retention cutoff of 365 days, followed by scheduled batch cleanup.</li><li>Purchase entitlements and payment/refund references remain as needed for licensing, accounting, fraud prevention, and applicable legal obligations. Account deletion disassociates the account and clears its guest email hash from entitlements; it does not delete payment-provider records.</li><li>Transport security uses hashed rate-limit buckets rather than storing raw IP addresses in account authentication records. Those buckets become eligible for cleanup 30 days after last use. Hosting infrastructure may process transport logs separately.</li></ul>
+<h2>Export and account deletion</h2>
+<p>Export your account information before you delete your Curfew account. The export includes purchases, devices, grants, audits, and encrypted records. Encrypted content still needs your enrolled device or Recovery Key to be readable.</p>
+<p>On successful account deletion, the service closes coordinator connections, removes coordinator content, revokes grants, and removes account-scoped encrypted records, devices, remote-control data, recovery envelopes, and the account during the deletion request. Purchases are disassociated and security audits pseudonymized for their remaining retention period. A minimal deletion marker prevents renewed coordinator access. If deletion fails, the service reports an error rather than confirming completion; contact support if you cannot complete it.</p>
+<p>Account deletion does not remove local files, operating-system backups, your private iCloud records, information already sent to assistants or Docket and Athena, or records held independently by payment providers. Manage those copies through the relevant service. Removing the app may leave preferences and shared containers. Export wanted history and remove local data separately. Cancel subscriptions before account deletion; signed offline licenses remain governed by their purchase and refund terms.</p>
+<h2>Optional technical storage reference</h2>
+<details><summary>Where current macOS versions store local information</summary><ul><li>Preferences: <code>~/Library/Preferences/studio.hypertext.curfew.plist</code>.</li><li>Widget settings: <code>~/Library/Group Containers/group.studio.hypertext.curfew/Curfew/widget-settings.json</code>. Older builds may leave migrated activity copies in that shared directory.</li><li>Activity, reflections, and MCP request records: <code>~/Library/Application Support/Curfew/activity.sqlite3</code>, <code>reflections.sqlite3</code>, and <code>mcp-requests.json</code>. Native browser request files are in its <code>browser</code> subdirectory.</li><li>Browser audit segments: <code>~/Library/Logs/Curfew</code>.</li></ul><p>Paths can vary by build flavor. Contact support if you need help identifying your copies; do not remove data you want to keep.</p></details>
+<h2>Changes and contact</h2>
+<p>See the <a href="/legal/history">policy history</a> for the previous retention document and the changes in this publication.</p>
+<p>For legal notices and privacy requests, email <a href="mailto:legal@hypertext.studio">legal@hypertext.studio</a> or write to Hypertext Studio, 1810 East Sahara Avenue STE75246, Las Vegas, NV 89104, United States. For ordinary support and refund requests, use <a href="mailto:hello@hypertext.studio">hello@hypertext.studio</a>.</p>
+</section>

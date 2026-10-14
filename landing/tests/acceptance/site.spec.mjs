@@ -32,9 +32,10 @@ test('the landing communicates the curfew and retains the shared design', async 
   expect(await page.locator('h1').evaluate((node) => getComputedStyle(node).fontFamily)).toContain(
     'Calistoga',
   );
-  expect(
-    await page.locator('.schedule-image').evaluate((node) => node.naturalWidth),
-  ).toBeGreaterThan(0);
+  await page.locator('.schedule-image').scrollIntoViewIfNeeded();
+  await expect
+    .poll(() => page.locator('.schedule-image').evaluate((node) => node.naturalWidth))
+    .toBeGreaterThan(0);
   await expect(page.locator('.assistant-example')).toHaveCount(0);
 });
 
@@ -86,9 +87,73 @@ test('keyboard access and reduced motion use the same real links', async ({
   await account.focus();
   await expect(account).toBeFocused();
   await page.keyboard.press(nextLink);
+  await expect(
+    page.getByRole('link', { name: 'Read the changes and previous policies' }),
+  ).toBeFocused();
+  await page.keyboard.press(nextLink);
   await expect(page.getByRole('link', { name: 'Download for Mac' }).first()).toBeFocused();
 });
 
 test('unknown URLs remain 404', async ({ request }) => {
   expect((await request.get('/this-route-does-not-exist')).status()).toBe(404);
+});
+
+test('current policies expose the notice, official contact, and preserved refund promise', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await expect(page.getByRole('complementary', { name: 'Policy update' })).toContainText(
+    'November 13, 2026',
+  );
+  for (const name of ['privacy', 'terms', 'refund', 'retention']) {
+    await page.goto(`/${name}`);
+    await expect(page.getByRole('complementary', { name: 'Policy update' })).toBeVisible();
+    await expect(page.locator('main a[href="mailto:legal@hypertext.studio"]')).toHaveCount(1);
+    await expect(page.locator('main')).toContainText('1810 East Sahara Avenue STE75246');
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+    ).toBe(true);
+  }
+  await page.goto('/refund');
+  await expect(page.locator('main')).toContainText('most recent renewal charge');
+  await expect(page.locator('main')).toContainText('14 days');
+  await expect(page.locator('main')).toContainText('not remotely revocable');
+  await page.locator('main a[href="/legal/history"]').first().click();
+  await expect(page.getByRole('heading', { name: 'Policy history', exact: true })).toBeVisible();
+});
+
+test('policy history routes render previous documents with their original contacts', async ({
+  page,
+}) => {
+  await page.goto('/legal/history');
+  for (const name of ['privacy', 'terms', 'refund', 'retention']) {
+    const response = await page.goto(`/legal/history/2026-10-13/${name}`);
+    expect(response.status()).toBe(200);
+    await expect(page.locator('main h1')).toBeVisible();
+    await expect(page.locator('main')).toContainText('Archived policy.');
+    await expect(
+      page.locator('main a[href="mailto:hello@hypertext.studio"]').first(),
+    ).toBeVisible();
+    await page.locator(`main a[href="/${name}"]`).click();
+    await expect(page.getByRole('complementary', { name: 'Policy update' })).toBeVisible();
+  }
+});
+
+test('legal notices and history remain usable on narrow screens', async ({ page }) => {
+  for (const width of [320, 390]) {
+    await page.setViewportSize({ width, height: 844 });
+    for (const name of ['privacy', 'terms', 'refund', 'retention', 'legal/history']) {
+      await page.goto(`/${name}`);
+      await expect(page.locator('main h1')).toBeVisible();
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+      ).toBe(true);
+    }
+    await page.goto('/retention');
+    await page.getByText('Where current macOS versions store local information').click();
+    await expect(page.locator('details')).toHaveAttribute('open', '');
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+    ).toBe(true);
+  }
 });

@@ -44,6 +44,15 @@ const { title, description, content, home = false } = Astro.props;
     <a class="skip-link" href="#main">Skip to content</a>
     <Fragment set:html={symbols} />
     <Fragment set:html={header()} />
+    {
+      home && (
+        <aside class="legal-notice wrap" aria-label="Policy update">
+          <strong>Curfew policies updated October 14, 2026.</strong> Privacy applies immediately.
+          Updated Terms apply to existing users November 13, 2026.
+          <a href="/legal/history">Read the changes and previous policies</a>.
+        </aside>
+      )
+    }
     <main id="main" class={home ? undefined : 'reading wrap'} set:html={content} />
     <Fragment set:html={footer({ compact: !home })} />
   </body>
