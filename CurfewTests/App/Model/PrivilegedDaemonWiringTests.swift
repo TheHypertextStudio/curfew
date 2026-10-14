@@ -10,12 +10,14 @@ struct PrivilegedDaemonWiringTests {
     func displayTickRetriesUnavailableHelper() async {
         let now = Date()
         let (model, rpc) = makeModel(record: makeRecord(now: now, duration: 600), now: now)
+        model.privilegedHelperManager.refreshStatus()
 
         model.displayTick()
         for _ in 0 ..< 1000 where rpc.statusCallCount == 0 {
             await Task.yield()
         }
         #expect(rpc.statusCallCount == 1)
+        #expect(model.privilegedHelperManager.connectionState == .ready)
 
         model.displayTick()
         await Task.yield()
