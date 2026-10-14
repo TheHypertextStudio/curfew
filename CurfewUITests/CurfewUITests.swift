@@ -262,10 +262,13 @@ extension CurfewUITests {
         XCTAssertTrue(app.buttons["Edit weekly schedule"].isHittable)
         for day in ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] {
             let rule = app.staticTexts.containing(NSPredicate(
-                format: "label BEGINSWITH %@",
-                "\(day):"
+                format: "label BEGINSWITH %@ OR value BEGINSWITH %@",
+                "\(day):", "\(day):"
             )).firstMatch
-            XCTAssertTrue(rule.isHittable, "\(day)'s effective rule must be visible")
+            XCTAssertTrue(
+                rule.isHittable,
+                "\(day)'s effective rule must be visible.\n\(app.debugDescription)"
+            )
         }
         let weeklyChoice = app.buttons[
             "I've reviewed these seven days — use this weekly schedule"
@@ -280,8 +283,8 @@ extension CurfewUITests {
         )
         weeklyChoice.click()
         let selectedFeedback = app.staticTexts.containing(NSPredicate(
-            format: "label CONTAINS %@",
-            "Weekly lockouts selected."
+            format: "label CONTAINS %@ OR value CONTAINS %@",
+            "Weekly lockouts selected.", "Weekly lockouts selected."
         )).firstMatch
         XCTAssertTrue(selectedFeedback.waitForExistence(timeout: 3))
         XCTAssertTrue(selectedFeedback.isHittable)
