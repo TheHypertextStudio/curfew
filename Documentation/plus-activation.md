@@ -506,6 +506,12 @@ Debug build. Review found no actionable regression in the team correction or
 fixture isolation. Developer ID archive/export, notarization, stapling and
 Gatekeeper acceptance remain unverified.
 
+Current main `adf41e70` is incorporated without a merge commit. A merge-tree
+check succeeds. Revalidation of the combined source passes 81 XCTest and 939
+Swift Testing cases, the CurfewKit package suites, formatting, strict lint,
+the unsigned Debug build and release-policy checks. The signing-team correction
+and fixture fix remain intact after the sync.
+
 Remaining release inputs include the Cloudflare deployment credential and a
 verified production Sparkle public/private-key pair. The current Release pin
 is still a placeholder, and appcast deployment still targets the paused Pages
