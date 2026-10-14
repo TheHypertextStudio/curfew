@@ -10,6 +10,18 @@ Production, staging and local profiles are isolated. Production HTTPS origins ca
 
 ## Cloudflare CLI
 
+License Worker builds also require `CURFEW_DEPLOYMENT_ARTIFACT`, independently
+pinned `CURFEW_CONFIGURATION_COMMIT` and `CURFEW_CONFIGURATION_SHA256`. Its cf
+configuration verifies that artifact before reading endpoints, retains the
+existing account/Worker/KV identities, and records the shared provenance in
+health response headers. CI tests the real cf configuration against alternate
+domains and performs Worker tests/typecheck plus a build/prebuilt dry-run.
+Before production activation, disable the independent license Worker Git build
+so its legacy Wrangler command cannot race the coordinated cf deployment.
+Preserve signing secrets; the pinned cf deployment retains existing secret
+bindings. Roll back using the previous artifact and matching configuration,
+never by creating a replacement namespace or signing key.
+
 Use the pinned `cf@1.0.0-beta.16`. Worker projects have explicit `cloudflare.config.ts`; never run cf automatic setup over an unmigrated Wrangler project. Use `cf cli search` then `cf schema` for resource operations. Queries contain generic resource descriptions, never identifying values or credentials. CI uses explicit account IDs and approved API-token credentials; Wrangler login is not reused.
 
 Build with `cf build --mode production`, validate with `cf deploy --prebuilt --mode production --dry-run`, then deploy the same output. Preserve IDs and the `UserCoordinator` SQLite export. The static Astro renderer is separate from its small `landing/hosting` Worker packaging entry point, preventing cf framework detection from treating a static build as Worker Build Output. D1 forward migrations and live-log streaming retain Wrangler where required; Pages artifact publication retains its existing uploader. Email Sending onboarding also retains the Cloudflare dashboard or Wrangler email commands because the pinned cf command catalog does not expose that service. Verify the selected zone and the resulting SPF, DKIM, DMARC and bounce records. These are explicit CLI beta exceptions.

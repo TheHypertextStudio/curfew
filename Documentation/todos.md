@@ -9,6 +9,17 @@
       coordinated production cutover; retain the existing public hostname for its
       permanent redirect.
 
+## License deployment configuration
+
+- [x] Require a verified shared deployment artifact for license cf builds,
+  retain the existing Worker/account/KV identities, and expose configuration
+  provenance on health responses without changing the health payload.
+- [x] Validate license Worker behavior, types, artifact identity, and the same
+  cf build/prebuilt dry-run in CI before deployment.
+- [ ] Disable the independent license Git build before coordinated activation;
+  deploy the approved artifact with retained signing secrets and verify its
+  health identity, licensing, and Stripe delivery on the new hostname.
+
 ## Public legal policies
 
 - [x] Standardize operator, official contact, eligibility, authorized content use,

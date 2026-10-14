@@ -11,6 +11,35 @@ permissions:
   packages: read
 
 jobs:
+  license:
+    name: License Worker validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: pnpm/action-setup@v6.1.0
+        with:
+          version: 11.9.0
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 24.20.0
+      - run: pnpm --dir web/worker install --frozen-lockfile
+      - name: Validate shared configuration and Worker behavior
+        run: |
+          node --test web/worker/test/deployment.node.mjs
+          pnpm --dir web/worker test
+          pnpm --dir web/worker typecheck
+      - name: Prepare immutable configuration identity
+        run: |
+          node scripts/deployment-config.mjs generate
+          echo "CURFEW_CONFIGURATION_COMMIT=$GITHUB_SHA" >> "$GITHUB_ENV"
+          echo "CURFEW_CONFIGURATION_SHA256=$(jq -r .sha256 deployment/generated/environment-artifact.json)" >> "$GITHUB_ENV"
+      - name: Build and validate the same cf artifact
+        env:
+          CURFEW_DEPLOYMENT_ARTIFACT: ${{ github.workspace }}/deployment/generated/environment-artifact.json
+        run: |
+          pnpm --dir web/worker exec cf build --mode production
+          pnpm --dir web/worker exec cf deploy --prebuilt --mode production --dry-run
+
   website:
     name: Website validation
     runs-on: ubuntu-latest

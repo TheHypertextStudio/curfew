@@ -9,6 +9,19 @@ The manual workflow validates source commit and configuration hash before the
 operation. Provider status, public DNS, and live TLS must establish activation;
 unit tests do not prove infrastructure or production cutover.
 
+## License deployment configuration
+
+`scripts/deployment-config.test.mjs` covers approved artifact loading, mismatched
+hash/commit, missing artifact/environment, production/staging origin isolation,
+immutable resolved endpoints, and CI
+coverage. `web/worker/test/deployment.node.mjs` evaluates the real cf config with
+an alternate domain, preserving Worker/account/KV identity while rejecting
+unapproved or tampered builds. `web/worker/test/domain.test.ts` covers health
+provenance headers with the unchanged health payload and legacy retirement.
+CI runs Worker tests/typecheck and cf build followed by a prebuilt dry-run.
+Actual license issuance, refresh, webhook delivery, and retained signing-key
+behavior require live acceptance at cutover.
+
 ## Public legal policies
 
 `landing/tests/unit/legal.test.mjs` checks official contact, notice dates,

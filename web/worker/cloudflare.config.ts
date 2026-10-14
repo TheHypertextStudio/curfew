@@ -1,10 +1,10 @@
 import { bindings, defineConfig } from "cf/config";
-import { loadEnvironment } from "../../scripts/deployment-config.mjs";
+import { loadDeploymentArtifact } from "../../scripts/deployment-config.mjs";
 
 export default defineConfig(async (ctx) => {
   if (!["production", "staging"].includes(ctx.mode || ""))
     throw new Error("Explicit license deployment mode required");
-  const config = await loadEnvironment(ctx.mode);
+  const config = await loadDeploymentArtifact(ctx.mode);
   const production = ctx.mode === "production";
   const id = production
     ? "4313ea07769f4578a8fdd412620a412e"
@@ -15,6 +15,7 @@ export default defineConfig(async (ctx) => {
     (origin) => new URL(origin).host,
   );
   return {
+    accountId: "2500680a3b2b0fe6a011c1c25fed5008",
     worker: {
       name: production
         ? "curfew-issue-license"
@@ -27,6 +28,8 @@ export default defineConfig(async (ctx) => {
       env: {
         LICENSE_KV: bindings.kv({ id }),
         LICENSE_ORIGIN: bindings.text(config.licenseOrigin),
+        CONFIGURATION_SHA256: bindings.text(config.sha256),
+        CONFIGURATION_COMMIT: bindings.text(config.sourceCommit),
         RETIRED_LICENSE_HOSTS: bindings.text(JSON.stringify(retiredHosts)),
       },
     },
