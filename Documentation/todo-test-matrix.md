@@ -821,6 +821,9 @@ tests cannot read or mutate a user's App Group lockout record.
   - `AccountStatusSyncTests/testNetworkFailureMarksTheAccountConnectionOffline()`
   - `NativeAccountSyncTransportTests/testPollClearsAnOverrideAndReportsAHealthyConnectionWithoutAWakeCampaign()`
   - `NativeAccountSyncTransportTests/testOverrideFailureCannotBeOverwrittenByAHealthyAccountPoll()`
+    Both positive callbacks must complete; the inverted healthy callback remains
+    absent through the full bounded wait. The bound tolerates parallel test-host
+    scheduling and does not assert product polling latency.
   - `NativeAccountSyncTransportTests/testRootKeyDistributionFailureCannotBeOverwrittenByAHealthyAccountPoll()`
   - `NativeAccountSyncTransportTests/testFailedStatusPublicationRemainsUnhealthyAfterSuccessfulPolls()`
   - `NativeAccountSyncTransportTests/testOlderStatusSuccessCannotOverwriteTheLatestStatusFailure()`
