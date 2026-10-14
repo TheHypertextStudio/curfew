@@ -29,6 +29,18 @@
   Do not issue another lock or unlock for this check. Rollback is the previous
   signed Dev app; do not erase the existing device or account keys.
 
+## Safe release candidate boundary
+
+- [-] Separate candidate preparation from production activation without domain
+  or purchase-service changes. Exact 0.0.13 consumers, Studio signing, independent
+  existing-source configuration snapshot, four embedded executable checks,
+  prearchive public-key pairing and public-retention admission are covered by
+  failing-first policy tests. This source split excludes issuer/site/public-docs
+  and Cloudflare production configuration. Real signed-device/provider evidence,
+  public-exposure approval and activation remain open. See `RELEASE.md` and
+  `release-evidence/v0.0.1.md`. Withhold activation or withdraw the first release;
+  never replace an active helper or overwrite enforcement state as rollback.
+
 ## Daybreak test-window lifecycle (2026-10-13)
 
 - [x] Match the production daybreak-window cleanup in the native regressions.

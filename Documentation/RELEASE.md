@@ -1,8 +1,9 @@
-# Curfew v0.1 release runbook
+# Curfew 0.0.x candidate and activation runbook
 
-v0.1 is blocked until automated checks pass and signed-device evidence is
-recorded in `Documentation/release-evidence/v0.1.0.md`. A local build is not
-distribution proof.
+Public activation is blocked until actual signed-device, provider, retained-data
+and operational evidence exists for the exact candidate. Current evidence lives in
+`Documentation/release-evidence/v0.0.1.md`; the old v0.1 ledger is historical, not
+approval to use a non-0.0.x version. A local build is not distribution proof.
 
 - Apple Events-backed shutdown
 - WidgetKit signing + App Group reads
@@ -18,7 +19,7 @@ distribution proof.
 - Release app entitlements: Apple Events, App Group, non-sandboxed app, and
   disabled library validation for bundled Sparkle XPC services.
 - Intentionally absent: iCloud container and APS entitlements.
-- App identity: Team ID `39AB9DY3K8`, bundle ID
+- App identity: Hypertext Studio, LLC team `T95VDD3A4W`, bundle ID
   `studio.hypertext.curfew`.
 
 ## Required credentials
@@ -36,6 +37,13 @@ identifiers that must stay aligned are:
 
 Before running the signed-build checks below, make sure these external
 prerequisites exist:
+
+Candidate retention in this **public repository is publicly retrievable by
+signed-in readers**, not private/internal distribution. By default signing and
+upload are blocked. The owner must explicitly approve that exposure by setting
+`CURFEW_PUBLIC_CANDIDATE_RETENTION_APPROVED=true`, or first implement/review an
+access-controlled retention path. This source change does not set the variable
+or authorize widening an internal build's distribution.
 
 1. **Apple signing + notarization credentials**
    - `APPLE_TEAM_ID`
@@ -57,7 +65,7 @@ prerequisites exist:
      verification below passes.
 
 3. **Release entitlements**
-   - The conservative v0.1 `Curfew/Curfew-Release.entitlements` carries:
+   - The conservative initial `Curfew/Curfew-Release.entitlements` carries:
      - `com.apple.security.automation.apple-events = true`
      - `com.apple.security.application-groups = group.studio.hypertext.curfew`
    - It deliberately omits iCloud and `aps-environment` while CloudKit and
@@ -123,6 +131,23 @@ not a pass.
 Create the signed Release archive with the same Developer ID identity used by
 CI, export it, then validate the exported app:
 
+Prefer the retained CI candidate. For an explicitly authorized local build, the
+owner must supply the existing private seed securely; never retrieve/export a
+GitHub secret, generate a replacement key, or assume a Debug key matches. On the
+exact clean candidate commit, resolve and snapshot the unchanged Release inputs:
+
+```bash
+mkdir -p release
+SPARKLE_PUBLIC_KEY=$(node scripts/release-candidate.mjs derive-update-key)
+env -u SPARKLE_PRIVATE_KEY xcodebuild -showBuildSettings -json \
+  -project Curfew.xcodeproj -scheme Curfew -configuration Release \
+  CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
+  INFOPLIST_KEY_SUPublicEDKey="$SPARKLE_PUBLIC_KEY" > release/resolved-settings.json
+node scripts/release-candidate.mjs verify-update-key release/resolved-settings.json
+CURFEW_CONFIGURATION_SHA256=$(node scripts/release-configuration.mjs record \
+  release/resolved-settings.json release/release-configuration.json)
+```
+
 ```bash
 xcodebuild archive \
   -project Curfew.xcodeproj \
@@ -132,31 +157,49 @@ xcodebuild archive \
   -archivePath build/Curfew-Release.xcarchive \
   CODE_SIGN_STYLE=Manual \
   CODE_SIGN_IDENTITY='Developer ID Application' \
-  DEVELOPMENT_TEAM=39AB9DY3K8
+  DEVELOPMENT_TEAM=T95VDD3A4W \
+  MARKETING_VERSION=0.0.1 CURRENT_PROJECT_VERSION=0.0.1 \
+  INFOPLIST_KEY_SUPublicEDKey="$SPARKLE_PUBLIC_KEY" \
+  CURFEW_CONFIGURATION_COMMIT="$(git rev-parse HEAD)" \
+  CURFEW_CONFIGURATION_SHA256="$CURFEW_CONFIGURATION_SHA256"
 
-bash scripts/verify-release-artifact.sh build/release-export/Curfew.app
+bash scripts/verify-release-artifact.sh build/release-export/Curfew.app \
+  release/release-configuration.json 0.0.1
 ```
 
-The verifier checks the embedded Sparkle framework, live feed URL, non-placeholder
-public key, Widget extension, all three helper binaries, nested signatures,
-Gatekeeper assessment, and exact app entitlements.
+Snapshot existing source/build inputs with `scripts/release-configuration.mjs` at the exact clean candidate commit before archiving. This does not generate or change endpoints.
+Export with `method=developer-id`, then notarize and staple before verification.
+The candidate job derives the public update key from the existing private seed
+in process memory, passes it explicitly as `INFOPLIST_KEY_SUPublicEDKey`, and
+checks resolved Release settings before archive. The source placeholder remains
+fail-closed for local archives without that explicit verified override. Never
+assume a Debug key matches, print the private seed, or rotate it to get a pass.
+The verifier checks Sparkle, the existing production feed, public key, Widget, all
+four embedded executables, nested signatures, Developer ID Application authority, Studio team,
+exact 0.0.x version, embedded configuration hash/commit, Gatekeeper, stapling and
+exact app entitlements.
 
 ## Release automation
 
-For a `v0.1.0` tag, `.github/workflows/release.yml`:
+For a strict `v0.0.x` tag, `.github/workflows/release.yml`:
 
 1. Runs the quality gate and rejects placeholder or missing keys.
 2. Archives and exports the Developer ID app.
 3. Notarizes and staples the app.
 4. Verifies the app artifact.
 5. Builds, signs, notarizes, and staples the DMG.
-6. Publishes the signed DMG to the GitHub release.
-7. Signs an appcast whose enclosure points at that exact asset.
-8. Attaches the appcast, deploys it to
-   `https://curfew.hypertext.studio/appcast.xml`, and compares the live bytes.
+6. Signs an appcast whose enclosure identifies the future exact GitHub asset.
+7. Verifies that signature with the public key from the signed app and records
+   DMG/feed hashes, Studio team, version, run, source and configuration identity.
+8. Retains `curfew-signed-candidate` for 30 days, with DMG, appcast, configuration,
+   manifest and notarization receipts. It does not publish a GitHub Release,
+   deploy a site/feed, or access Cloudflare secrets.
 
-Any failure stops the release. Do not announce or update the Homebrew cask
-until the downloaded GitHub artifact passes the signed-device gate.
+Any failure withholds the candidate. Download the retained artifact from the exact
+successful run and review its manifest/run provenance before validation on an
+authorized Mac. Expired artifacts must be rebuilt and revalidated. Do not announce
+or update Homebrew until actual acceptance passes. Historical Studio Dev evidence
+does not close these production gates.
 
 ## Signed-device gate
 
@@ -174,7 +217,7 @@ ls "$WIDGET" "$HELPER" "$HELPER_PLIST"
 
 ### Distribution
 
-1. Download the GitHub Release DMG, not a local replacement.
+1. Download the retained candidate DMG from its exact Actions run, not a local replacement.
 2. Run `spctl --assess --type open --context context:primary-signature` on the
    DMG and `spctl --assess --type execute` on the installed app.
 3. Run `xcrun stapler validate` on both artifacts.
@@ -224,12 +267,11 @@ leave lockout active, avoid retry churn, and point the user to System Settings.
 
 ### Sparkle staging upgrade
 
-1. Produce a signed `0.0.99` staging build with `SUFeedURL` set to
-   `https://curfew.hypertext.studio/appcast-staging.xml`.
-2. Publish a staging appcast for the signed `0.1.0` candidate using the same
+1. Produce an older signed `0.0.x` validation build with an isolated staging feed.
+2. Publish a staging appcast for the newer signed `0.0.x` candidate using the same
    EdDSA key and candidate DMG.
-3. Install `0.0.99`, choose **Check for Updates…**, and complete the upgrade.
-4. Verify the relaunched app is the signed `0.1.0` candidate and Gatekeeper
+3. Install the older build, choose **Check for Updates…**, and complete the upgrade.
+4. Verify the relaunched app is the exact signed candidate and Gatekeeper
    accepts it.
 
 ## CI boundary
@@ -340,21 +382,42 @@ xcrun stapler validate "$APP"
 - Paste a known-good Pro license and confirm only the explicitly enabled Pro
   previews in that build unlock.
 
-## Shipping a release
+## Controlled activation (manual and withheld)
 
-1. Update `MARKETING_VERSION` + `CURRENT_PROJECT_VERSION` in `Curfew.xcodeproj`.
-2. Push the final commit to `main`; `just check` should already be green.
-3. Tag the release: `git tag v0.0.1 && git push origin v0.0.1`
-4. `.github/workflows/release.yml` will resolve the public `curfew-protocols` SPM dependency without an additional repository secret, then:
-   - run `just check`
-   - archive with Developer ID signing
-   - notarize with `notarytool`
-   - staple/build the DMG
-   - upload the DMG as a GitHub Release asset
-   - skip Sparkle appcast generation and upload until Sparkle is explicitly
-     provisioned; the initial build has no updater UI
-5. Download the GitHub Release DMG and repeat the final smoke test above on the
-   actual shipped artifact before announcing the release.
+No tag is permission to activate. There is no autonomous activation workflow
+until backend/provider cutover can safely coordinate it. The owner reviews actual
+evidence, not only green jobs or self-asserted JSON.
+
+Before creating any tag, read `git ls-remote origin refs/heads/main` and compare
+its exact 40-character SHA with the reviewed and fully tested candidate commit.
+Inspect `git show <that-exact-sha>:.github/workflows/release.yml` and confirm the
+candidate-only workflow, public-exposure admission and unsigned quality gate
+exist in that commit. Recheck no matching local/remote tag exists immediately
+before tagging. If the SHA differs, checks are stale, or the workflow is older,
+stop: tagging a historical commit executes its historical publishing workflow,
+even when the current default branch has been fixed. Never retag old source or
+rewrite an immutable tag. A successful preflight is not authority to push a tag.
+
+After real acceptance, save an owner receipt outside the candidate directory.
+`candidate` is an exact copy of retained `candidate.json`; `operator` names the
+observer; `observedAt` is the ISO observation timestamp. `gates` contains
+`signedDevice`, `retainedDataRecovery`, `providerIdentity`, `backendCutover`,
+`assistantReconnect`, `rollback` and `commercialScope`. Each has `outcome: "pass"`
+and an `evidence` reference to actual observations. Never generate passing
+evidence to satisfy the inspector. Commercial scope must retain disabled sales
+while the production billing stop remains.
+
+Run the read-only gate:
+
+```bash
+node scripts/release-candidate.mjs inspect <downloaded-candidate-directory> <owner-receipt.json>
+```
+
+It fails closed on changed bytes, signature, configuration, team, version or
+missing/mismatched evidence. An eligible result permits owner review only; it
+does not authenticate evidence, perform cutover or establish production success.
+
+Production activation remains a separate owner-controlled operation. This change does not migrate domains, alter issuer or website source, update provider settings, or authorize any purchase-service rollout. Upload only the exact retained DMG/appcast after signed-device, account/provider, recovery and rollback acceptance. The live feed must remain on the existing production address unless a separately reviewed domain cutover is accepted. Verify live feed bytes and downloaded DMG hash against the candidate before announcing. If any gate is missing, withhold activation; never use a receipt as production proof.
 
 The pull-request CI workflow also runs on `macos-26` so its test host matches
 Curfew's macOS 26 deployment target; running it on an older macOS image cannot
@@ -370,3 +433,12 @@ Remove the release and live appcast immediately. Restore the last known-good
 appcast and DMG together so the feed never points to a missing or mismatched
 asset. A helper protocol regression requires shipping a newer signed app; do
 not weaken client authentication or delete active root state to roll back.
+
+For the first release there may be no prior feed or artifact. In that case
+withdraw the new feed/download links and restore the reviewed unavailable state,
+keep affected service access in maintenance, and issue a corrected newer signed
+candidate after acceptance. Do not restore an invented older feed, redirect a
+client into an obsolete authority, or revive revoked sessions. Withdrawing an
+Actions artifact requires an explicit owner decision; retention approval does
+not imply it is private. Never reinstall/restart a helper or overwrite its
+state as rollback during active enforcement.

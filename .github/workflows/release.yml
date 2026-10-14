@@ -1,9 +1,9 @@
-name: Release
+name: Signed release candidate
 
 on:
   push:
     tags:
-      - 'v*'
+      - "v0.0.*"
 
 jobs:
   release:
@@ -15,11 +15,24 @@ jobs:
     # the newest installed Xcode, so a label bump is usually all that's needed.
     runs-on: macos-26
     permissions:
-      contents: write
+      contents: read
       packages: read
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Validate candidate identity
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          PUBLIC_RETENTION_APPROVED: ${{ vars.CURFEW_PUBLIC_CANDIDATE_RETENTION_APPROVED }}
+        run: |
+          [[ "$RELEASE_TAG" =~ ^v0\.0\.(0|[1-9][0-9]*)$ ]] || exit 1
+          [[ "$APPLE_TEAM_ID" == T95VDD3A4W ]] || exit 1
+          if [[ "$PUBLIC_RETENTION_APPROVED" != true ]]; then
+            echo '::error::Candidate retention is public to signed-in repository readers. Explicit owner exposure approval or a reviewed private retention path is required.'
+            exit 1
+          fi
 
       - name: Select Xcode
         # Prefer Xcode 26 (required for the macOS 26 / Tahoe deployment target);
@@ -29,7 +42,7 @@ jobs:
           if [ -d /Applications/Xcode_26.app ]; then
             sudo xcode-select -s /Applications/Xcode_26.app
           else
-            sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)"
+            sudo xcode-select -s "$(find /Applications -maxdepth 1 -name 'Xcode_*.app' -type d | sort -V | tail -1)"
           fi
           xcodebuild -version
 
@@ -70,28 +83,22 @@ jobs:
             exit 1
           fi
 
-      - name: Reject placeholder Sparkle public key
-        # Mirrors the license-key gate: refuses to release while
-        # Curfew/Info.plist still contains the placeholder, which would ship
-        # an app whose Sparkle update signatures can never verify.
-        run: |
-          if grep -q 'REPLACE_WITH_SPARKLE_PUBLIC_ED_KEY' Curfew/Info.plist; then
-            echo "::error::Curfew/Info.plist still embeds the placeholder SUPublicEDKey."
-            echo "Run scripts/gen-sparkle-keypair.sh and paste the public key into SUPublicEDKey before tagging."
-            exit 1
-          fi
-
-      - name: Require release secrets
+      - name: Resolve and verify Release update key before archive
         env:
           SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          : "${SPARKLE_PRIVATE_KEY:?SPARKLE_PRIVATE_KEY is required}"
-          : "${CLOUDFLARE_API_TOKEN:?CLOUDFLARE_API_TOKEN is required}"
-          : "${CLOUDFLARE_ACCOUNT_ID:?CLOUDFLARE_ACCOUNT_ID is required}"
+          SPARKLE_PUBLIC_KEY=$(node scripts/release-candidate.mjs derive-update-key)
+          printf 'SPARKLE_PUBLIC_KEY=%s\n' "$SPARKLE_PUBLIC_KEY" >> "$GITHUB_ENV"
+          env -u SPARKLE_PRIVATE_KEY xcodebuild -showBuildSettings -json -project Curfew.xcodeproj -scheme Curfew \
+            -configuration Release CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
+            INFOPLIST_KEY_SUPublicEDKey="$SPARKLE_PUBLIC_KEY" > "$RUNNER_TEMP/release-build-settings.json"
+          node scripts/release-candidate.mjs verify-update-key "$RUNNER_TEMP/release-build-settings.json"
+          configuration_hash=$(node scripts/release-configuration.mjs record "$RUNNER_TEMP/release-build-settings.json" "$RUNNER_TEMP/release-configuration.json")
+          printf 'CURFEW_CONFIGURATION_SHA256=%s\n' "$configuration_hash" >> "$GITHUB_ENV"
 
       - name: Run quality gate
+        env:
+          CURFEW_XCODEBUILD_SETTINGS: "CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO"
         run: just check
 
       - name: Archive
@@ -103,12 +110,17 @@ jobs:
           xcodebuild archive \
             -project Curfew.xcodeproj \
             -scheme Curfew \
+            -configuration Release \
+            -destination 'platform=macOS' \
             -archivePath "$RUNNER_TEMP/Curfew.xcarchive" \
             CODE_SIGN_STYLE=Manual \
             CODE_SIGN_IDENTITY="Developer ID Application" \
             CURRENT_PROJECT_VERSION="$VERSION" \
             MARKETING_VERSION="$VERSION" \
-            DEVELOPMENT_TEAM="${{ secrets.APPLE_TEAM_ID }}"
+            INFOPLIST_KEY_SUPublicEDKey="$SPARKLE_PUBLIC_KEY" \
+            CURFEW_CONFIGURATION_COMMIT="$GITHUB_SHA" \
+            CURFEW_CONFIGURATION_SHA256="$CURFEW_CONFIGURATION_SHA256" \
+            DEVELOPMENT_TEAM=T95VDD3A4W
 
       - name: Export app
         run: |
@@ -118,7 +130,7 @@ jobs:
           <plist version="1.0">
           <dict>
             <key>method</key><string>developer-id</string>
-            <key>teamID</key><string>${{ secrets.APPLE_TEAM_ID }}</string>
+            <key>teamID</key><string>T95VDD3A4W</string>
             <key>signingStyle</key><string>manual</string>
           </dict>
           </plist>
@@ -140,11 +152,13 @@ jobs:
             --issuer "$APPLE_API_ISSUER" \
             --key-id "$APPLE_API_KEY_ID" \
             --key "$RUNNER_TEMP/AuthKey.p8" \
-            --wait
+            --wait --output-format json > "$RUNNER_TEMP/app-notarization.json"
           xcrun stapler staple "$RUNNER_TEMP/export/Curfew.app"
 
       - name: Verify signed app artifact
-        run: bash scripts/verify-release-artifact.sh "$RUNNER_TEMP/export/Curfew.app"
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: bash scripts/verify-release-artifact.sh "$RUNNER_TEMP/export/Curfew.app" "$RUNNER_TEMP/release-configuration.json" "${RELEASE_TAG#v}"
 
       - name: Build DMG
         run: |
@@ -163,16 +177,9 @@ jobs:
             --issuer "$APPLE_API_ISSUER" \
             --key-id "$APPLE_API_KEY_ID" \
             --key "$RUNNER_TEMP/AuthKey.p8" \
-            --wait
+            --wait --output-format json > "$RUNNER_TEMP/dmg-notarization.json"
           xcrun stapler staple "$DMG"
           xcrun stapler validate "$DMG"
-
-      - name: Publish signed DMG
-        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
-        with:
-          files: |
-            ${{ runner.temp }}/Curfew-${{ github.ref_name }}.dmg
-          generate_release_notes: true
 
       - name: Generate appcast
         env:
@@ -182,59 +189,34 @@ jobs:
           SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
         run: |
           : "${SPARKLE_PRIVATE_KEY:?SPARKLE_PRIVATE_KEY is required}"
-          # github.ref_name is the tag (e.g. v1.0.1); the script wants a bare
+          # github.ref_name is the tag (e.g. v0.0.1); the script wants a bare
           # semver for <sparkle:version>/shortVersionString, so strip the 'v'.
           VERSION="${{ github.ref_name }}"
           VERSION="${VERSION#v}"
           export VERSION
           export DMG_PATH="$RUNNER_TEMP/Curfew-${{ github.ref_name }}.dmg"
-          # Point the enclosure URL at the GitHub release asset that the
-          # Publish signed DMG step uploaded above. The DMG basename matches
-          # the asset name, so Sparkle downloads exactly what we signed.
+          # Future activation uploads these exact bytes to this URL. A tag
+          # retains the feed; it does not make the enclosure publicly available.
           export APPCAST_URL_BASE="${{ github.server_url }}/${{ github.repository }}/releases/download/${{ github.ref_name }}"
           bash scripts/generate-appcast.sh > "$RUNNER_TEMP/appcast.xml"
 
-      - name: Attach signed appcast
+      - name: Seal candidate bytes and configuration
         env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh release upload "${{ github.ref_name }}" "$RUNNER_TEMP/appcast.xml" --clobber
-
-      - name: Set up frontend package manager
-        uses: pnpm/action-setup@v6.1.0
-        with:
-          version: 11.9.0
-
-      - name: Set up frontend Node and registry
-        uses: actions/setup-node@v7.1.0
-        with:
-          node-version: 24.20.0
-          registry-url: https://npm.pkg.github.com
-          scope: '@thehypertextstudio'
-
-      - name: Install frontend from the reviewed lock
-        run: pnpm --dir landing install --frozen-lockfile
-        env:
-          NODE_AUTH_TOKEN: ${{ github.token }}
-
-      - name: Deploy live appcast
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          RELEASE_TAG: ${{ github.ref_name }}
         run: |
-          : "${CLOUDFLARE_API_TOKEN:?CLOUDFLARE_API_TOKEN is required}"
-          : "${CLOUDFLARE_ACCOUNT_ID:?CLOUDFLARE_ACCOUNT_ID is required}"
-          cp "$RUNNER_TEMP/appcast.xml" landing/public/appcast.xml
-          pnpm --dir landing deploy:pages
+          mkdir "$RUNNER_TEMP/candidate"
+          cp "$RUNNER_TEMP/Curfew-$RELEASE_TAG.dmg" "$RUNNER_TEMP/appcast.xml" "$RUNNER_TEMP/release-configuration.json" "$RUNNER_TEMP/candidate/"
+          cp "$RUNNER_TEMP/app-notarization.json" "$RUNNER_TEMP/dmg-notarization.json" "$RUNNER_TEMP/candidate/"
+          export VERSION="${RELEASE_TAG#v}"
+          CANDIDATE_TEAM="$(codesign -dv --verbose=4 "$RUNNER_TEMP/export/Curfew.app" 2>&1 | awk -F= '/^TeamIdentifier=/{print $2}')"
+          SPARKLE_PUBLIC_KEY="$(/usr/libexec/PlistBuddy -c 'Print :SUPublicEDKey' "$RUNNER_TEMP/export/Curfew.app/Contents/Info.plist")"
+          export CANDIDATE_TEAM SPARKLE_PUBLIC_KEY
+          node scripts/release-candidate.mjs record "$RUNNER_TEMP/candidate"
 
-      - name: Verify live appcast
-        run: |
-          for attempt in 1 2 3 4 5; do
-            if curl -fsS https://curfew.hypertext.studio/appcast.xml \
-              -o "$RUNNER_TEMP/live-appcast.xml" \
-              && cmp "$RUNNER_TEMP/appcast.xml" "$RUNNER_TEMP/live-appcast.xml"; then
-              exit 0
-            fi
-            sleep 10
-          done
-          echo "::error::live Sparkle feed does not match the signed release appcast"
-          exit 1
+      - name: Retain signed candidate without activation
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: curfew-signed-candidate
+          path: ${{ runner.temp }}/candidate/
+          if-no-files-found: error
+          retention-days: 30

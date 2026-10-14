@@ -76,7 +76,7 @@ Steps 4–8 below are the manual fallback / reference for what the script does.
 - [ ] `gh secret set APPLE_API_KEY_ID --body "<10-char key id>"`
 - [ ] `gh secret set APPLE_API_PRIVATE_KEY < AuthKey_XXXX.p8`
 
-### 3. iCloud container for CloudKit sync (v0.2, not a v0.1 gate)
+### 3. iCloud container for CloudKit sync (deferred, not an initial candidate gate)
 
 - [ ] App Store Connect → CloudKit Database → Create container
       `iCloud.studio.hypertext.curfew`.
@@ -149,7 +149,7 @@ fraud — no separate tax-filing service is needed.
       a distinct Stripe test-mode Worker/KV/secrets configuration; do not use
       a real card for that proof.
 
-### 7. Sparkle EdDSA keypair (post-v0.1)
+### 7. Sparkle EdDSA keypair (candidate prerequisite)
 
 Sparkle is linked exactly at `2.9.4`. `Curfew/Info.plist` contains the final
 feed URL and public key; CI rejects a placeholder and treats a missing private
@@ -182,8 +182,8 @@ license delivery are independently verified.
 
 ### 9. Homebrew Cask submission
 
-- [ ] After the first signed release lands (`v1.0.0`), compute
-      `shasum -a 256 Curfew-v1.0.0.dmg`.
+- [ ] After the first signed 0.0.x release is activated (for example `v0.0.1`), compute
+      `shasum -a 256 Curfew-v0.0.1.dmg` for those exact retained bytes.
 - [ ] Paste the sha and version into `Casks/curfew.rb`.
 - [ ] Fork `homebrew/homebrew-cask`, PR `Casks/curfew.rb`.
 - [ ] Run `brew style --fix` and `brew audit --new --cask` locally before PR.
@@ -215,30 +215,34 @@ The release workflow runs on `macos-26` to match the target.
 
 ## Per-release sequence
 
-Once the infrastructure above is in place, every release is:
+Once the infrastructure above is in place, prepare a candidate, not an implicit
+production publication. Follow `Documentation/RELEASE.md` for owner-controlled
+activation after real signed-device/provider/recovery evidence.
 
 1. Land the final commit on `main`; `just check` must be green.
-2. `git tag v0.1.0 && git push origin v0.1.0`. The version is derived from the
+2. Only when authorized, tag the next `v0.0.x`. The version is derived from the
    tag — CI passes `MARKETING_VERSION`/`CURRENT_PROJECT_VERSION` to the
    archive, so there is no `project.pbxproj` version to bump by hand.
 3. `.github/workflows/release.yml` runs automatically:
-   - Signs with the Developer ID certificate.
+   - Requires Developer ID Application signing under Studio team T95VDD3A4W.
    - Notarizes via `notarytool`.
    - Verifies the signed app, then builds/signs/notarizes/staples the DMG.
-   - Publishes the DMG to the GitHub Release first.
-   - Generates and attaches a signed appcast pointing at that exact asset.
-   - Deploys the appcast to `https://curfew.hypertext.studio/appcast.xml`
-     and verifies the live bytes match.
+   - Generates a signed appcast for the future exact asset and verifies its
+     Ed25519 signature against the signed app's public key.
+   - Retains `curfew-signed-candidate`, with exact DMG/feed/configuration hashes
+     and notarization receipts. No public release, site or feed is activated.
 4. Run every signed-device check in `Documentation/RELEASE.md` and record the
-   artifact hash and outcome in `Documentation/release-evidence/v0.1.0.md`.
+   artifact hash and outcome in `Documentation/release-evidence/v0.0.1.md` (or the
+   next exact 0.0.x ledger). Inspect the owner receipt and coordinate backend,
+   provider and domain activation manually. A receipt is not production proof.
 5. Bump the `Casks/curfew.rb` version + sha256 and push to homebrew-cask
    (only required after the first release is out).
 6. Post the release to the landing page's release notes page at
    `landing/releases/<version>.html`.
 
-## Smoke tests after tagging
+## Smoke tests on the retained candidate (authorized validation host only)
 
-- [ ] Download the DMG from the GitHub Release.
+- [ ] Download the retained DMG from the exact successful Actions run.
 - [ ] `spctl --assess --verbose /Applications/Curfew.app` → accepted.
 - [ ] `xcrun stapler validate /Applications/Curfew.app` → stapled.
 - [ ] Activate a known-good Pro license → Pro surfaces unlock.

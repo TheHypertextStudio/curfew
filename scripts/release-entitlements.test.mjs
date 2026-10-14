@@ -2,12 +2,18 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-const releaseEntitlements = await readFile("Curfew/Curfew-Release.entitlements", "utf8");
+const releaseEntitlements = await readFile(
+  "Curfew/Curfew-Release.entitlements",
+  "utf8",
+);
 const releaseWorkflow = await readFile(".github/workflows/release.yml", "utf8");
 const ciWorkflow = await readFile(".github/workflows/ci.yml", "utf8");
 const releaseChecklist = await readFile("scripts/release-checklist.md", "utf8");
 const productPlan = await readFile("Documentation/plan.md", "utf8");
-const screenshotExtractor = await readFile("scripts/extract-screenshots.sh", "utf8");
+const screenshotExtractor = await readFile(
+  "scripts/extract-screenshots.sh",
+  "utf8",
+);
 const projectFile = await readFile("Curfew.xcodeproj/project.pbxproj", "utf8");
 const packageManifest = await readFile("CurfewKit/Package.swift", "utf8");
 const homebrewCask = await readFile("Casks/curfew.rb", "utf8");
@@ -22,15 +28,32 @@ function buildConfigurationBlock(id, name) {
 }
 
 test("app and command-line tools pin the same exact 0.0.x protocol release", () => {
-  const swiftPin = packageManifest.match(/curfew-protocols\.git"[\s\S]*?exact: "(0\.0\.\d+)"/);
-  const xcodePin = projectFile.match(/repositoryURL = "https:\/\/github\.com\/TheHypertextStudio\/curfew-protocols\.git";[\s\S]*?version = (0\.0\.\d+);/);
+  const swiftPin = packageManifest.match(
+    /curfew-protocols\.git"[\s\S]*?exact: "(0\.0\.\d+)"/,
+  );
+  const xcodePin = projectFile.match(
+    /repositoryURL = "https:\/\/github\.com\/TheHypertextStudio\/curfew-protocols\.git";[\s\S]*?version = (0\.0\.\d+);/,
+  );
   assert.ok(swiftPin, "Swift package protocol pin missing");
   assert.ok(xcodePin, "Xcode protocol pin missing");
   assert.equal(xcodePin[1], swiftPin[1]);
+  assert.match(
+    swiftPin[1],
+    /^0\.0\.\d+$/,
+    "protocol consumers must remain on exact 0.0.x releases",
+  );
+  assert.equal(
+    swiftPin[1],
+    "0.0.13",
+    "candidate must consume the reviewed published protocol contract",
+  );
 });
 
 test("conservative initial Release keeps only the signed core entitlements", () => {
-  assert.match(releaseEntitlements, /com\.apple\.security\.automation\.apple-events/);
+  assert.match(
+    releaseEntitlements,
+    /com\.apple\.security\.automation\.apple-events/,
+  );
   assert.match(releaseEntitlements, /group\.studio\.hypertext\.curfew/);
   assert.doesNotMatch(releaseEntitlements, /com\.apple\.developer\.icloud-/);
   assert.doesNotMatch(releaseEntitlements, /aps-environment/);
@@ -41,13 +64,7 @@ test("release guard inspects the active Curfew Plus verifier", () => {
   assert.doesNotMatch(releaseWorkflow, /licensePublicKeyBase64/);
 });
 
-test("unprovisioned Sparkle releases upload only the generated DMG", () => {
-  assert.match(
-    releaseWorkflow,
-    /files: \|\n\s+\$\{\{ runner\.temp \}\}\/Curfew-\$\{\{ github\.ref_name \}\}\.dmg/,
-  );
-  assert.doesNotMatch(releaseWorkflow, /\$\{\{ runner\.temp \}\}\/appcast\.xml/);
-});
+// Candidate retention/publication behavior is exercised by release-candidate.test.mjs.
 
 test("v0.1 release docs match the shipping feature contract", () => {
   assert.match(productPlan, /Release status \(v0\.1\).*forward-looking/s);
@@ -59,7 +76,6 @@ test("v0.1 release docs match the shipping feature contract", () => {
     productPlan,
     /CloudKit and\s*> Calendar remain compiled but dormant/s,
   );
-  assert.match(releaseChecklist, /Generates and attaches a signed appcast/);
 });
 
 test("CI screenshot capture forwards its unsigned build settings to Xcode", () => {
@@ -105,10 +121,22 @@ test("interactive builds reject an unresolved signing identity before TCC can mi
 });
 
 test("a staging build compiles the app and every embedded tool for the same service boundary", () => {
-  const projectDebug = buildConfigurationBlock("9BD3FBA32F4D4587007B2E95", "Debug");
-  const projectStudioDev = buildConfigurationBlock("C0FE00000000000000000310", "StudioDev");
-  const projectRelease = buildConfigurationBlock("9BD3FBA42F4D4587007B2E95", "Release");
-  const appRelease = buildConfigurationBlock("9BD3FBA72F4D4587007B2E95", "Release");
+  const projectDebug = buildConfigurationBlock(
+    "9BD3FBA32F4D4587007B2E95",
+    "Debug",
+  );
+  const projectStudioDev = buildConfigurationBlock(
+    "C0FE00000000000000000310",
+    "StudioDev",
+  );
+  const projectRelease = buildConfigurationBlock(
+    "9BD3FBA42F4D4587007B2E95",
+    "Release",
+  );
+  const appRelease = buildConfigurationBlock(
+    "9BD3FBA72F4D4587007B2E95",
+    "Release",
+  );
   assert.match(
     projectDebug,
     /SWIFT_ACTIVE_COMPILATION_CONDITIONS = "[^"]*\$\(CURFEW_SERVICE_SWIFT_FLAG\)[^"]*";/,
@@ -122,9 +150,15 @@ test("a staging build compiles the app and every embedded tool for the same serv
   assert.doesNotMatch(projectRelease, /CURFEW_SERVICE_SWIFT_FLAG/);
   assert.doesNotMatch(appRelease, /CURFEW_SERVICE_SWIFT_FLAG/);
   assert.match(projectFile, /SWIFT_SERVICE_FLAGS=.*-Xswiftc -DCURFEW_STAGING/);
-  assert.match(projectFile, /swift build --package-path CurfewKit -c release --jobs 2 --product curfew-daemon \$SWIFT_SERVICE_FLAGS/);
+  assert.match(
+    projectFile,
+    /swift build --package-path CurfewKit -c release --jobs 2 --product curfew-daemon \$SWIFT_SERVICE_FLAGS/,
+  );
   assert.match(projectFile, /if \[ \\"\$CONFIGURATION\\" != \\"Debug\\" \]/);
-  assert.match(projectFile, /CURFEW_STAGING requires an isolated Debug or StudioDev app and helper identity/);
+  assert.match(
+    projectFile,
+    /CURFEW_STAGING requires an isolated Debug or StudioDev app and helper identity/,
+  );
   assert.match(projectFile, /CURFEW_DAEMON_PLIST_NAME/);
 });
 
@@ -134,8 +168,15 @@ test("every user-facing release version is the same 0.0.x version", () => {
   ].map((match) => match[1]);
   const caskVersion = /version "(\d+\.\d+\.\d+)"/.exec(homebrewCask)?.[1];
 
-  assert.ok(marketingVersions.length > 0, "Xcode must declare a marketing version");
-  assert.equal(new Set(marketingVersions).size, 1, "all Xcode targets must agree");
+  assert.ok(
+    marketingVersions.length > 0,
+    "Xcode must declare a marketing version",
+  );
+  assert.equal(
+    new Set(marketingVersions).size,
+    1,
+    "all Xcode targets must agree",
+  );
   assert.match(marketingVersions[0], /^0\.0\.\d+$/);
   assert.equal(caskVersion, marketingVersions[0]);
 });

@@ -9,6 +9,16 @@ pending-state consumption and Docket isolation in the app-host router. A
 signed Studio Dev app and real browser remain the acceptance check for URL
 delivery; neither suite substitutes for that live handoff.
 
+## Safe release candidate policy
+
+`scripts/release-candidate.test.mjs` checks candidate-only tag permissions,
+public-retention approval, unsigned quality checks versus signed archive, Studio
+identity, browser-host packaging, real Ed25519 update signatures, and evidence
+substitution. `scripts/release-configuration.test.mjs` binds existing source inputs,
+resolved production feed, public key and commit; a new domain is rejected.
+`release-entitlements.test.mjs` requires matching exact published 0.0.13 consumers.
+Actual signed/provider/device and production acceptance remain separate gates.
+
 ## Local observed enforcement status
 
 `CurfewObservedStatusTests` covers owned lock state, disarmed and cross-flavor

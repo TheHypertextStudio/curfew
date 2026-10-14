@@ -5,8 +5,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/TheHypertextStudio/curfew-protocols.git",
       "state" : {
-        "revision" : "20454536f314219b4c4068fd9515a49be6bde1e6",
-        "version" : "0.0.11"
+        "revision" : "764ec480a5e5424856150be767a33a8ab022ae08",
+        "version" : "0.0.13"
       }
     },
     {
