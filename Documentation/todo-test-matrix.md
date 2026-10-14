@@ -4,7 +4,8 @@
 
 `landing/tests/unit/legal.test.mjs` checks official contact, notice dates,
 consumer and adult purchase requirements, renewal refunds, local MCP data
-categories including activity/device attribution, deletion disclosures, and native
+categories including activity/device attribution, product contact roles, deletion
+disclosures, and native
 history routes. Website acceptance tests exercise current and prior routes,
 compatibility aliases, refund/contact links, and notices at desktop and mobile
 sizes. Existing site checks cover Astro, lint, format, and built output. Native

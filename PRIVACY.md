@@ -23,5 +23,6 @@ Implementation references:
 - [Curfew Sync](Documentation/curfew-sync.md): hosted sync, recovery, and remote
   control; coordinator implementation lives in the separate `curfew-sync` repo.
 
-Official legal and privacy contact: legal@hypertext.studio. Ordinary support:
-hello@hypertext.studio.
+Official legal and privacy contact: legal@hypertext.studio. Ordinary help,
+refunds, billing, security and abuse: support@thecurfew.app. General inquiries:
+contact@thecurfew.app.

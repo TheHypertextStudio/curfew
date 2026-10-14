@@ -157,3 +157,24 @@ test('legal notices and history remain usable on narrow screens', async ({ page 
     ).toBe(true);
   }
 });
+
+test('product help and general inquiries use separate mail links', async ({ page }) => {
+  await page.goto('/support');
+  for (const email of [
+    'support@thecurfew.app',
+    'contact@thecurfew.app',
+    'legal@hypertext.studio',
+  ]) {
+    await expect(page.locator(`main a[href="mailto:${email}"]`)).toBeVisible();
+  }
+  await page.goto('/security');
+  await expect(page.locator('main a[href="mailto:support@thecurfew.app"]')).toBeVisible();
+  await page.goto('/success');
+  await expect(page.locator('#state-error a[href="mailto:support@thecurfew.app"]')).toBeVisible();
+  for (const policy of ['privacy', 'terms', 'refund', 'retention']) {
+    await page.goto(`/${policy}`);
+    await expect(page.locator('main a[href="mailto:support@thecurfew.app"]').first()).toBeVisible();
+    await expect(page.locator('main a[href="mailto:contact@thecurfew.app"]')).toBeVisible();
+    await expect(page.locator('main a[href="mailto:legal@hypertext.studio"]')).toBeVisible();
+  }
+});

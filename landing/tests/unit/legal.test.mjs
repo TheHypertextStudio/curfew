@@ -105,3 +105,21 @@ test('organization purchasers must also satisfy the adult purchase requirement',
   assert.match(eligibility, /organization[^.]*also[^.]*authorized/);
   assert.doesNotMatch(eligibility, /or someone authorized/);
 });
+
+test('current policies and help pages use product contact roles without replacing legal notices', async () => {
+  for (const name of ['privacy', 'terms', 'refund', 'retention']) {
+    const policy = await content(name);
+    assert.match(policy, /mailto:support@thecurfew\.app/);
+    assert.match(policy, /mailto:contact@thecurfew\.app/);
+    assert.match(policy, /mailto:legal@hypertext\.studio/);
+    assert.doesNotMatch(policy, /hello@hypertext\.studio/);
+  }
+  const support = await content('support');
+  assert.match(support, /mailto:support@thecurfew\.app/);
+  assert.match(support, /mailto:contact@thecurfew\.app/);
+  assert.match(support, /mailto:legal@hypertext\.studio/);
+  assert.match(await content('security'), /mailto:support@thecurfew\.app/);
+  const success = await readFile(new URL('../../src/pages/success.astro', import.meta.url), 'utf8');
+  assert.match(success, /mailto:support@thecurfew\.app/);
+  assert.doesNotMatch(success, /hello@hypertext\.studio/);
+});
