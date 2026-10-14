@@ -1894,7 +1894,9 @@ changes; rollback restores the prior landing release and docs commit.
     hostname-mismatched selections cannot produce a deployment config. All 61
     repository script tests pass. Generated Wrangler bindings include the mode.
   - Provider audit: only the account's shared Test mode environment exists.
-    Full settings isolation requires an empty private general sandbox. The owner
+    A separate general sandbox provides full settings isolation, but is optional
+    for the existing checkout/restore integration. Keep shared settings untouched
+    and use test-only payment objects and the staging webhook. The owner
     stopped live Stripe mutations and production purchase-service rollout;
     `Documentation/plus-activation.md` records the two prior live metadata edits.
     The new guard remains local, unpushed and undeployed pending provider setup.
