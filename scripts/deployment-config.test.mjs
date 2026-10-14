@@ -184,7 +184,7 @@ test("license CI verifies the artifact-bound cf build and actual Worker tests", 
     new URL("../.github/workflows/website.yml", import.meta.url),
     "utf8",
   );
-  assert.match(workflow, /node --test web\/worker\/test\/deployment.node.mjs/);
+  assert.match(workflow, /node --test web\/worker\/test\/\*\.node\.mjs/);
   assert.match(workflow, /pnpm --dir web\/worker test/);
   assert.match(workflow, /pnpm --dir web\/worker typecheck/);
   assert.match(

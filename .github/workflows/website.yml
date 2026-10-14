@@ -25,7 +25,7 @@ jobs:
       - run: pnpm --dir web/worker install --frozen-lockfile
       - name: Validate shared configuration and Worker behavior
         run: |
-          node --test web/worker/test/deployment.node.mjs
+          node --test web/worker/test/*.node.mjs
           pnpm --dir web/worker test
           pnpm --dir web/worker typecheck
       - name: Prepare immutable configuration identity
