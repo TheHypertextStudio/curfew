@@ -64,6 +64,16 @@ export function createArtifact(manifest, sourceCommit) {
         .map((key) => [key, env[key]]),
     );
   }
+  if (normalized.environments.production && normalized.environments.staging) {
+    const keys = ["siteOrigin", "accountOrigin", "syncOrigin", "licenseOrigin"];
+    const production = new Set(
+      keys.map((key) => normalized.environments.production[key]),
+    );
+    if (
+      keys.some((key) => production.has(normalized.environments.staging[key]))
+    )
+      throw new Error("Production and staging origins must be isolated");
+  }
   return {
     sourceCommit,
     sha256: createHash("sha256")
@@ -98,6 +108,28 @@ export async function loadEnvironment(mode = "production") {
     ),
   );
   return resolveEnvironment(manifest.environments[mode], mode);
+}
+
+export async function loadDeploymentArtifact(
+  mode,
+  {
+    artifactPath = process.env.CURFEW_DEPLOYMENT_ARTIFACT,
+    expectedHash = process.env.CURFEW_CONFIGURATION_SHA256,
+    expectedCommit = process.env.CURFEW_CONFIGURATION_COMMIT,
+  } = {},
+) {
+  if (!artifactPath)
+    throw new Error("An approved deployment artifact is required");
+  const artifact = verifyArtifact(
+    JSON.parse(await readFile(artifactPath, "utf8")),
+    expectedHash,
+    expectedCommit,
+  );
+  return Object.freeze({
+    ...resolveEnvironment(artifact.manifest.environments[mode], mode),
+    sourceCommit: artifact.sourceCommit,
+    sha256: artifact.sha256,
+  });
 }
 
 export async function generateDeployment(

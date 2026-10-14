@@ -19,7 +19,12 @@ export default {
       return json({ error: "service_moved" }, 410);
     }
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders });
-    if (request.method === "GET" && url.pathname === "/health") return json({ status: "ok", envelope_version: 2 });
+    if (request.method === "GET" && url.pathname === "/health") {
+      const response = json({ status: "ok", envelope_version: 2 });
+      if (env.CONFIGURATION_SHA256) response.headers.set("x-curfew-configuration", env.CONFIGURATION_SHA256);
+      if (env.CONFIGURATION_COMMIT) response.headers.set("x-curfew-configuration-commit", env.CONFIGURATION_COMMIT);
+      return response;
+    }
     if (request.method === "GET" && url.pathname === "/license") return getLicense(url, env, "session_id", "session");
     if (request.method === "GET" && url.pathname === "/license/refresh") return getLicense(url, env, "token", "refresh");
     if (request.method !== "POST" || url.pathname !== "/") return json({ error: "not found" }, 404);

@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readFile, mkdtemp, writeFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { createHash } from "node:crypto";
 const implementation = new URL("./deployment-config.mjs", import.meta.url);
 async function config() {
@@ -97,6 +99,28 @@ test("configuration artifacts are deterministic and bind content to source revis
   );
 });
 
+test("artifact generation rejects production origins reused by staging", async () => {
+  const { createArtifact } = await config();
+  assert.throws(
+    () =>
+      createArtifact(
+        {
+          version: 1,
+          environments: {
+            production: fixture,
+            staging: {
+              ...fixture,
+              siteOrigin: "https://staging.example.net",
+              passkeyRPID: "staging.example.net",
+            },
+          },
+        },
+        "a".repeat(40),
+      ),
+    /isolated/,
+  );
+});
+
 test("native builds record the same immutable configuration identity as services", async () => {
   const { createArtifact, nativeBuildIdentity } = await config();
   const artifact = createArtifact(
@@ -104,6 +128,71 @@ test("native builds record the same immutable configuration identity as services
     "a".repeat(40),
   );
   const identity = nativeBuildIdentity(artifact);
-  assert.match(identity, new RegExp(`CURFEW_CONFIGURATION_COMMIT = ${artifact.sourceCommit}`));
-  assert.match(identity, new RegExp(`CURFEW_CONFIGURATION_SHA256 = ${artifact.sha256}`));
+  assert.match(
+    identity,
+    new RegExp(`CURFEW_CONFIGURATION_COMMIT = ${artifact.sourceCommit}`),
+  );
+  assert.match(
+    identity,
+    new RegExp(`CURFEW_CONFIGURATION_SHA256 = ${artifact.sha256}`),
+  );
+});
+
+test("service builds load only the independently approved artifact identity", async (t) => {
+  const { createArtifact, loadDeploymentArtifact } = await config();
+  const directory = await mkdtemp(join(tmpdir(), "curfew-artifact-loader-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const artifact = createArtifact(
+    { version: 1, environments: { production: fixture } },
+    "a".repeat(40),
+  );
+  const artifactPath = join(directory, "environment.json");
+  await writeFile(artifactPath, JSON.stringify(artifact));
+  const identity = {
+    artifactPath,
+    expectedHash: artifact.sha256,
+    expectedCommit: artifact.sourceCommit,
+  };
+  const result = await loadDeploymentArtifact("production", identity);
+  assert.equal(result.licenseOrigin, fixture.licenseOrigin);
+  assert.equal(result.sha256, artifact.sha256);
+  assert.equal(result.sourceCommit, artifact.sourceCommit);
+  assert.ok(Object.isFrozen(result));
+  await assert.rejects(() =>
+    loadDeploymentArtifact("production", {
+      ...identity,
+      expectedCommit: "b".repeat(40),
+    }),
+  );
+  await assert.rejects(() =>
+    loadDeploymentArtifact("production", {
+      ...identity,
+      expectedHash: "b".repeat(64),
+    }),
+  );
+  await assert.rejects(() =>
+    loadDeploymentArtifact("production", {
+      ...identity,
+      artifactPath: undefined,
+    }),
+  );
+  await assert.rejects(() => loadDeploymentArtifact("staging", identity));
+});
+
+test("license CI verifies the artifact-bound cf build and actual Worker tests", async () => {
+  const workflow = await readFile(
+    new URL("../.github/workflows/website.yml", import.meta.url),
+    "utf8",
+  );
+  assert.match(workflow, /node --test web\/worker\/test\/deployment.node.mjs/);
+  assert.match(workflow, /pnpm --dir web\/worker test/);
+  assert.match(workflow, /pnpm --dir web\/worker typecheck/);
+  assert.match(
+    workflow,
+    /pnpm --dir web\/worker exec cf build --mode production/,
+  );
+  assert.match(
+    workflow,
+    /pnpm --dir web\/worker exec cf deploy --prebuilt --mode production --dry-run/,
+  );
 });
