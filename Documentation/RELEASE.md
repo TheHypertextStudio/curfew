@@ -195,6 +195,13 @@ For a strict `v0.0.x` tag, `.github/workflows/release.yml`:
    manifest and notarization receipts. It does not publish a GitHub Release,
    deploy a site/feed, or access Cloudflare secrets.
 
+Before upload, an always-run cleanup removes the job-owned temporary signing
+keychain (including the imported private key), certificate P12 and notarization
+P8. Cleanup failure blocks upload and diagnostics name only basenames. The
+artifact action is pinned to official v7.0.2 commit
+`cf430e030ddbb5b0abf93d22962f4752f3646cd9`, verified through GitHub's official tag
+and action metadata. No real local signing credential is deleted by source tests.
+
 Any failure withholds the candidate. Download the retained artifact from the exact
 successful run and review its manifest/run provenance before validation on an
 authorized Mac. Expired artifacts must be rebuilt and revalidated. Do not announce

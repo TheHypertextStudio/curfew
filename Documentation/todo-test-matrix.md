@@ -18,6 +18,11 @@ substitution. `scripts/release-configuration.test.mjs` binds existing source inp
 resolved production feed, public key and commit; a new domain is rejected.
 `release-entitlements.test.mjs` requires matching exact published 0.0.13 consumers.
 Actual signed/provider/device and production acceptance remain separate gates.
+The credential-cleanup workflow regression executes the actual cleanup script on
+synthetic files, with only the external Keychain command replaced. Successful
+cleanup removes all three fixtures; Keychain failure stops before upload and
+retains the fixtures. It also requires immutable upload action pinning and
+success-only ordering. This does not simulate signing or notarization success.
 
 ## Local observed enforcement status
 
