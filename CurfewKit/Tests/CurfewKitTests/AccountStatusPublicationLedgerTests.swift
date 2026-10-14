@@ -65,6 +65,17 @@ struct AccountStatusPublicationLedgerTests {
         #expect(ledger.begin(report(version: 2)) == nil)
     }
 
+    @Test("Cancelling an in-flight status allows the next unchanged heartbeat")
+    func cancelledPublicationCanRetry() throws {
+        let ledger = AccountStatusPublicationLedger()
+        let cancelled = try #require(ledger.begin(report(version: 1)))
+
+        ledger.abortInFlight()
+        ledger.finish(cancelled, succeeded: true)
+
+        #expect(ledger.begin(report(version: 2)) != nil)
+    }
+
     @Test("A late failed attempt cannot invalidate a newer acknowledgement")
     func lateFailureIsFenced() throws {
         let ledger = AccountStatusPublicationLedger()

@@ -226,6 +226,7 @@ extension NativeAccountSyncTransport {
         }
         reconciliationTasks.removeAll()
         statusPublicationTask?.cancel()
+        statusPublications.abortInFlight()
         deviceStatusGeneration += 1
         tokenRefreshTask?.cancel()
         tokenRefreshTask = nil

@@ -17,6 +17,14 @@
 
 ## Native reconnect after browser sign-in (2026-10-13)
 
+- [-] Retry an unchanged device heartbeat after a status HTTP operation is
+  cancelled during connection shutdown. The publication ledger must forget the
+  cancelled in-flight attempt and fence any late completion; otherwise the app
+  can remain open while every later heartbeat is suppressed. This changes no
+  remote command, schedule, or account data. The package and native transport
+  regressions cover the retry; hosted native tests and a fresh installed-app
+  staging status report remain required. Rollback preserves enrollment and
+  disables this retry, so an offline device may again remain stale.
 - [-] Diagnose the currently offline Studio Dev Mac without repeating account,
   authenticator, or recovery setup. An enrolled Mac's same-account reconnect
   previously converted a completed browser sign-in followed by native OAuth

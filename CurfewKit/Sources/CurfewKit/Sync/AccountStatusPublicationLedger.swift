@@ -44,4 +44,12 @@ public final class AccountStatusPublicationLedger {
         guard latestAttempt?.identifier == attempt.identifier else { return }
         outcome = succeeded ? .acknowledged : .failed
     }
+
+    /// A cancelled HTTP operation has no acknowledgement. Forget its identity
+    /// so a late completion cannot suppress the next unchanged heartbeat.
+    public func abortInFlight() {
+        guard outcome == .inFlight else { return }
+        latestAttempt = nil
+        outcome = .failed
+    }
 }

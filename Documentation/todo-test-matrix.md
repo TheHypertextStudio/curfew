@@ -27,6 +27,19 @@ The workflow-order regression requires the Developer ID import and temporary
 keychain to occur after unsigned quality checks and before the signed archive;
 those checks cannot receive certificate material through step environment.
 
+## Cancelled account status publication
+
+`AccountStatusPublicationLedgerTests.cancelledPublicationCanRetry` reproduces
+the in-flight cancellation that used to suppress every unchanged heartbeat;
+it also checks that a late success cannot acknowledge the cancelled attempt.
+`NativeAccountSyncTransportTests.testCancelledStatusPublicationDoesNotSuppressNextHeartbeat`
+checks that transport shutdown allows the next heartbeat to record its current
+local eligibility version. The package test runs without opening the app;
+app-hosted transport and full native suites remain for isolated CI because
+they can take focus on the owner's active Mac. Installed staging acceptance
+still requires a fresh coordinator report; this ledger correction does not
+repair an invalid OAuth credential by itself.
+
 ## Local observed enforcement status
 
 `CurfewObservedStatusTests` covers owned lock state, disarmed and cross-flavor
