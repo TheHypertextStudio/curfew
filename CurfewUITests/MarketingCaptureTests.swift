@@ -110,6 +110,7 @@ final class MarketingCaptureTests: XCTestCase {
                                 let reviewLabel =
                                     "I've reviewed these seven days — use this weekly schedule"
                                 app.buttons[reviewLabel].click()
+                                assertText("Weekly lockouts selected.", in: app)
                             }
                             app.buttons["Next"].click()
                             assertText("Step \(step + 1) of 5", in: app)

@@ -118,7 +118,7 @@ struct FirstRunFlow {
     /// `advance()` / `retreat()`.
     private(set) var currentStep: FirstRunStep = .welcome
 
-    /// Whether onboarding has routed the user through live schedule settings.
+    /// Whether the user has acknowledged the seven effective weekly rules.
     private(set) var hasReviewedScheduleSettings = false
 
     /// Opening the editor is not consent. A choice is required before the
@@ -168,13 +168,21 @@ struct FirstRunFlow {
         isLastStep && scheduleChoice != nil && isAccessibilityGranted
     }
 
-    /// Records that the user has opened the live schedule editor from onboarding.
+    /// Records explicit review of the seven rules shown during onboarding.
     mutating func markScheduleReviewed() {
         hasReviewedScheduleSettings = true
     }
 
+    /// The onboarding review button is one state transition. Splitting the
+    /// review acknowledgement and choice into separate SwiftUI `@State`
+    /// mutations can leave the second mutation reading the old review flag.
+    mutating func chooseReviewedWeeklySchedule() {
+        hasReviewedScheduleSettings = true
+        scheduleChoice = .weeklySchedule
+    }
+
     /// Selects remote-only setup directly, or the weekly schedule after the
-    /// user has opened its editor and seen the actual configured rules.
+    /// user has acknowledged the actual configured rules.
     mutating func chooseSchedule(_ choice: AutomaticScheduleChoice) {
         guard choice == .remoteControlsOnly || hasReviewedScheduleSettings else { return }
         scheduleChoice = choice
