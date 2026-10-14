@@ -265,7 +265,7 @@ extension CurfewAppModel {
             deviceID: deviceID,
             phase: state.phase,
             timeZone: DeviceStatusReport.wireTimeZoneIdentifier(for: .current),
-            scheduleDigest: DeviceStatusReport.scheduleDigest(for: settings.schedule),
+            scheduleDigest: DeviceStatusReport.scheduleDigest(for: effectiveSchedule),
             statusVersion: version,
             observedAt: currentTime,
             nextTransitionAt: nextEnforcementTransition,

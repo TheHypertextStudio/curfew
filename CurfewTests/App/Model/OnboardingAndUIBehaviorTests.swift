@@ -40,6 +40,7 @@ struct FirstRunFlowTests {
         #expect(flow.currentStep == .schedule)
 
         flow.markScheduleReviewed()
+        flow.chooseSchedule(.weeklySchedule)
         #expect(flow.canAdvance)
 
         flow.advance()
@@ -59,7 +60,7 @@ struct FirstRunFlowTests {
         #expect(flow.currentStep == .confirmation)
     }
 
-    @Test("Schedule step blocks progress until settings review is recorded")
+    @Test("Schedule step blocks progress until a reviewed schedule is explicitly chosen")
     func scheduleStepRequiresReview() {
         var flow = FirstRunFlow()
 
@@ -71,6 +72,8 @@ struct FirstRunFlowTests {
         #expect(flow.currentStep == .schedule)
 
         flow.markScheduleReviewed()
+        #expect(!flow.canAdvance)
+        flow.chooseSchedule(.weeklySchedule)
         #expect(flow.canAdvance)
 
         flow.advance()
@@ -83,6 +86,7 @@ struct FirstRunFlowTests {
 
         flow.advance()
         flow.markScheduleReviewed()
+        flow.chooseSchedule(.weeklySchedule)
         flow.advance()
         flow.advance()
 
@@ -107,6 +111,7 @@ struct FirstRunFlowTests {
 
         flow.advance()
         flow.markScheduleReviewed()
+        flow.chooseSchedule(.weeklySchedule)
         flow.advance()
         flow.advance()
         #expect(flow.currentStep == .permissions)
@@ -214,7 +219,7 @@ struct SetupUXTests {
         )
 
         #expect(!model.settings.hasCompletedInitialSetup)
-        model.completeOnboardingFlow()
+        model.completeOnboardingFlow(choice: .remoteControlsOnly)
         #expect(model.settings.hasCompletedInitialSetup)
         #expect(model.gettingStartedDismissID == 1)
     }
@@ -243,7 +248,7 @@ struct SetupUXTests {
             accessibilityAuthorization: FakeAccessibilityAuthorization(trusted: false)
         )
 
-        model.completeInitialSetup()
+        model.completeInitialSetup(choice: .weeklySchedule)
 
         #expect(!model.settings.hasCompletedInitialSetup)
         #expect(!model.isEnforcementRunning)

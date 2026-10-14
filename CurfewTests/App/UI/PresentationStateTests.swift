@@ -155,8 +155,8 @@ struct PresentationStateTests {
         let setup = try source("Curfew/UI/GettingStartedView.swift")
         #expect(setup.contains("Button(\"Done\")"))
         #expect(setup.contains("Text(\"Review setup\")"))
-        #expect(setup
-            .contains("model.isEnforcementRunning ? \"Curfew is on.\" : \"Curfew is off.\""))
+        #expect(setup.contains("Automatic weekly lockouts are on."))
+        #expect(setup.contains("Automatic weekly lockouts are off."))
     }
 
     @Test("Authentication failure explains the problem without blaming the user or build")

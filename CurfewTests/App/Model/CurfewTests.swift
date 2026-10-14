@@ -59,7 +59,7 @@ struct CurfewTests {
         #expect(!model.isEnforcementRunning)
         #expect(!model.settings.hasCompletedInitialSetup)
 
-        model.completeInitialSetup()
+        model.completeInitialSetup(choice: .remoteControlsOnly)
         #expect(model.settings.hasCompletedInitialSetup)
         #expect(model.isEnforcementRunning)
     }

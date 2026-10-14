@@ -120,6 +120,31 @@ public struct WeeklySchedule: Equatable, Codable {
         )
     )
 
+    /// No automatic weekly lockout. A remote fixed-duration command remains
+    /// independent of this schedule and can still be enforced by the app.
+    public static let allDaysOff: WeeklySchedule = .init(
+        rules: Dictionary(
+            uniqueKeysWithValues: Weekday.allCases.map { ($0, .weekendDefault) }
+        )
+    )
+
+    /// Fresh-install proposal: weekdays lock at 22:00 and unlock at 06:00;
+    /// weekends remain off. Existing saved schedules are never rewritten.
+    public static let tenToSix: WeeklySchedule = .init(
+        rules: Dictionary(
+            uniqueKeysWithValues: Weekday.allCases.map { weekday in
+                if weekday == .saturday || weekday == .sunday {
+                    return (weekday, .weekendDefault)
+                }
+                return (weekday, DayRule(
+                    isDayOff: false,
+                    lockMinutes: 22 * 60,
+                    unlockMinutes: 6 * 60
+                ))
+            }
+        )
+    )
+
     /// Monday–Friday: 20:00 lock (start-up / longer hours), 08:00 unlock.
     /// Saturday and Sunday off.
     public static let startupHours: WeeklySchedule = .init(

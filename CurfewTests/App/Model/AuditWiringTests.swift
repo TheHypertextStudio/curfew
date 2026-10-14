@@ -23,9 +23,9 @@ struct AuditWiringTests {
         let defaults = UserDefaults(suiteName: suite) ?? .standard
         defaults.removePersistentDomain(forName: suite)
         let store = CurfewSettingsStore(defaults: defaults)
-        if let settings {
-            store.save(settings)
-        }
+        var liveSettings = settings ?? .default
+        liveSettings.hasCompletedInitialSetup = true
+        store.save(liveSettings)
         let deadlineURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("curfew-audit-deadline-\(UUID().uuidString).json")
 

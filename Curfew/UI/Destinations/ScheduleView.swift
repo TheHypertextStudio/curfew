@@ -37,10 +37,14 @@ struct ScheduleContent: View {
     /// Shared app model — schedule reads/writes round-trip through it so the
     /// anti-bypass policy engine stays the single mutation entry point.
     @Environment(CurfewAppModel.self) private var model
+    @State private var showingEnableConfirmation = false
 
     /// Padded column of schedule panels.
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
+            if model.settings.hasCompletedInitialSetup, !model.automaticScheduleEnabled {
+                automaticScheduleOffPanel
+            }
             presetsPanel
             // A queued schedule change (anti-bypass cooldown) is high-priority —
             // surface it directly under the presets, not buried beneath the
@@ -57,6 +61,43 @@ struct ScheduleContent: View {
         .padding(24)
         .frame(maxWidth: 900, alignment: .leading)
         .animation(.easeInOut, value: model.scheduleChangeJustApplied)
+        .alert("Enable automatic weekly lockouts?", isPresented: $showingEnableConfirmation) {
+            Button(model.scheduleWouldLockNow ? "Enable and lock now" : "Enable schedule") {
+                model.enableAutomaticSchedule()
+            }
+            Button("Keep automatic schedule off", role: .cancel) {}
+        } message: {
+            Text(model.scheduleWouldLockNow
+                ? "Your saved schedule would lock now. Existing remote deadlines remain active."
+                :
+                "Curfew will apply your saved weekly schedule. Remote locks continue to work.")
+        }
+    }
+
+    private var automaticScheduleOffPanel: some View {
+        CurfewPanel {
+            CurfewSectionTitle(title: "Automatic schedule off")
+            Text(
+                "Saved weekly times are inactive. Authorized remote locks can still apply."
+            )
+            .font(CurfewTypography.body(14))
+            .foregroundStyle(CurfewTheme.mutedInk)
+            Text(model.settings.schedule.summarySentence(forNextDayFrom: model.currentTime))
+                .font(CurfewTypography.body(14))
+                .foregroundStyle(CurfewTheme.ink)
+            if model.settings.pendingScheduleChange != nil {
+                Text(
+                    "A change is pending. Wait for it to apply before enabling weekly lockouts."
+                )
+                .font(CurfewTypography.body(13))
+                .foregroundStyle(CurfewTheme.warning)
+            }
+            Button("Enable saved weekly schedule…") {
+                showingEnableConfirmation = true
+            }
+            .buttonStyle(CurfewSecondaryButtonStyle())
+            .disabled(model.settings.pendingScheduleChange != nil)
+        }
     }
 
     /// One-click preset selector (9-to-5 / Startup Hours / Half Day). Acts

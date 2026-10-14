@@ -10,8 +10,7 @@ import SwiftUI
 /// a single `CurfewPanel` whose content switches on `flow.currentStep`, and
 /// a bottom action row. Advancing / retreating through the five
 /// `FirstRunStep` cases updates the panel; "Finish Setup" on the final
-/// step calls `completeOnboardingFlow()` on the model, which marks the
-/// setup-complete flag and arms enforcement.
+/// step passes an explicit schedule choice to the model before setup arms.
 ///
 /// Uses `@State` (rather than `@StateObject` + an `ObservableObject`) for
 /// the flow cursor because the cursor is a plain value type and all
@@ -26,6 +25,7 @@ struct GettingStartedView: View {
 
     /// Local cursor tracking which onboarding pane is visible.
     @State private var flow = FirstRunFlow()
+    @State private var showingImmediateLockConfirmation = false
 
     /// Light poll that keeps the accessibility gate live while the window is
     /// open. Accessibility trust is granted out-of-process in System Settings,
@@ -72,6 +72,12 @@ struct GettingStartedView: View {
         ) { _ in
             syncAccessibilityGrant()
         }
+        .alert("This Mac will lock now", isPresented: $showingImmediateLockConfirmation) {
+            Button("Enable schedule and lock now", role: .destructive) {
+                model.completeOnboardingFlow(choice: .weeklySchedule)
+            }
+            Button("Keep reviewing", role: .cancel) {}
+        }
     }
 
     /// Re-polls the model's Accessibility-trust state and folds it into the
@@ -92,7 +98,9 @@ struct GettingStartedView: View {
             if model.settings.hasCompletedInitialSetup {
                 Text("Review setup")
                     .font(CurfewTypography.display(30))
-                Text(model.isEnforcementRunning ? "Curfew is on." : "Curfew is off.")
+                Text(model.automaticScheduleEnabled
+                    ? "Automatic weekly lockouts are on."
+                    : "Automatic weekly lockouts are off. Authorized remote locks can still apply.")
                     .foregroundStyle(CurfewTheme.mutedInk)
             } else {
                 Text(flow.currentStep == .welcome ? GettingStartedCopy.title : flow.currentStep
@@ -122,20 +130,41 @@ struct GettingStartedView: View {
     @ViewBuilder
     private var stepExtras: some View {
         if !model.settings.hasCompletedInitialSetup, flow.currentStep == .schedule {
-            Button("Open Schedule") {
+            Button("Review weekly schedule") {
                 flow.markScheduleReviewed()
                 model.requestWorkspaceNavigation(to: .schedule)
             }
             .buttonStyle(CurfewSecondaryButtonStyle())
 
             if flow.hasReviewedScheduleSettings {
-                Label("Schedule opened", systemImage: "checkmark.circle.fill")
-                    .font(CurfewTypography.body(13))
-                    .foregroundStyle(CurfewTheme.accent)
-            } else {
-                Text("Review your schedule to continue.")
+                Text(model.scheduleSummarySentence)
                     .font(CurfewTypography.body(13))
                     .foregroundStyle(CurfewTheme.mutedInk)
+                Button("Use this weekly schedule") {
+                    flow.chooseSchedule(.weeklySchedule)
+                }
+                .buttonStyle(CurfewSecondaryButtonStyle())
+            } else {
+                Text("Review the times before enabling automatic lockouts.")
+                    .font(CurfewTypography.body(13))
+                    .foregroundStyle(CurfewTheme.mutedInk)
+            }
+
+            Button("No automatic schedule — remote controls only") {
+                flow.chooseSchedule(.remoteControlsOnly)
+            }
+            .buttonStyle(CurfewSecondaryButtonStyle())
+
+            if let choice = flow.scheduleChoice {
+                Label(
+                    choice == .weeklySchedule
+                        ? "Weekly lockouts selected. They start only when you finish setup."
+                        :
+                        "No automatic lockouts. Authorized remote locks still work.",
+                    systemImage: "checkmark.circle.fill"
+                )
+                .font(CurfewTypography.body(13))
+                .foregroundStyle(CurfewTheme.accent)
             }
         }
 
@@ -171,9 +200,30 @@ struct GettingStartedView: View {
                 }
             }
 
-            Text(model.scheduleSummarySentence)
+            if model.settings.hasCompletedInitialSetup {
+                Text(model.automaticScheduleEnabled
+                    ? model.scheduleSummarySentence
+                    : "Automatic schedule is off; your saved times are not enforcing lockouts.")
+                    .font(CurfewTypography.body(13))
+                    .foregroundStyle(CurfewTheme.mutedInk)
+            } else if flow.scheduleChoice == .weeklySchedule {
+                Text(model.scheduleSummarySentence)
+                    .font(CurfewTypography.body(13))
+                    .foregroundStyle(CurfewTheme.mutedInk)
+                if model.scheduleWouldLockNow {
+                    Label(
+                        "Finishing setup with this schedule will lock this Mac immediately.",
+                        systemImage: "exclamationmark.triangle.fill"
+                    )
+                    .foregroundStyle(CurfewTheme.warning)
+                }
+            } else if flow.scheduleChoice == .remoteControlsOnly {
+                Text(
+                    "No automatic lockouts. Authorized remote locks can still apply."
+                )
                 .font(CurfewTypography.body(13))
                 .foregroundStyle(CurfewTheme.mutedInk)
+            }
         }
     }
 
@@ -255,12 +305,19 @@ struct GettingStartedView: View {
                 Spacer()
 
                 if flow.isLastStep {
-                    Button("Finish Setup") {
-                        model.completeOnboardingFlow()
-                    }
-                    .buttonStyle(CurfewPrimaryButtonStyle())
-                    .keyboardShortcut(.defaultAction)
-                    .disabled(!flow.canFinish)
+                    Button(flow.scheduleChoice == .weeklySchedule
+                        ? "Enable schedule and finish"
+                        : "Finish without automatic schedule") {
+                            guard let choice = flow.scheduleChoice else { return }
+                            if choice == .weeklySchedule, model.scheduleWouldLockNow {
+                                showingImmediateLockConfirmation = true
+                            } else {
+                                model.completeOnboardingFlow(choice: choice)
+                            }
+                        }
+                        .buttonStyle(CurfewPrimaryButtonStyle())
+                        .keyboardShortcut(.defaultAction)
+                        .disabled(!flow.canFinish)
                 } else {
                     Button("Next") {
                         flow.advance()

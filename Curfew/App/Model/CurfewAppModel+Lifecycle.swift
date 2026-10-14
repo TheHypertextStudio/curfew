@@ -362,6 +362,7 @@ extension CurfewAppModel {
     /// fires warnings on first launch.
     static func initialEvaluation(
         settings: CurfewSettings,
+        automaticScheduleEnabled: Bool = true,
         now: Date,
         enforcementEngine: CurfewEnforcementEngine
     ) -> CurfewEvaluation {
@@ -371,7 +372,7 @@ extension CurfewAppModel {
 
         return enforcementEngine.evaluate(
             at: now,
-            schedule: settings.schedule,
+            schedule: automaticScheduleEnabled ? settings.schedule : .allDaysOff,
             extensionMinutesGrantedToday: 0,
             overrideUntil: nil,
             warningIntervals: settings.warningIntervals

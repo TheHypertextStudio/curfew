@@ -339,14 +339,14 @@ public struct CurfewSettings: Codable, Equatable {
         try container.encode(aiConsentPolicyRawValue, forKey: .aiConsentPolicyRawValue)
     }
 
-    /// Factory defaults for a fresh install: 9-to-5 schedule, 3 × 15 min
+    /// Factory defaults for a fresh install: 22:00–06:00 weekday proposal, 3 × 15 min
     /// extensions/week, 2 × 30 min overrides/week, Monday reset, auto-
     /// shutdown off, canonical warning intervals, MCP on, loopback HTTP
     /// off, camera presence detection off, status reporting off with no
     /// coordinator endpoint. Consumed by
     /// `CurfewSettingsStore.load()` when the `UserDefaults` key is absent.
     public static let `default` = CurfewSettings(
-        schedule: .standardNineToFive,
+        schedule: .tenToSix,
         pendingScheduleChange: nil,
         hasCompletedInitialSetup: false,
         extensionWeeklyLimit: 3,
@@ -379,6 +379,7 @@ public final class CurfewSettingsStore {
         static let hasShownInitialSetup = "curfew.initialSetupShown.v1"
         static let overrideEvents = "curfew.overrideEvents.v1"
         static let reflectionConfig = "curfew.reflectionConfig.v1"
+        static let automaticScheduleConsent = "curfew.automaticScheduleConsent.v1"
     }
 
     private let defaults: UserDefaults
@@ -417,6 +418,19 @@ public final class CurfewSettingsStore {
             return
         }
         defaults.set(data, forKey: Key.settings)
+    }
+
+    /// Local-only consent. `nil` distinguishes an older install from an
+    /// explicit choice without changing the encrypted cross-device schema.
+    public func loadAutomaticScheduleConsent() -> Bool? {
+        guard defaults.object(forKey: Key.automaticScheduleConsent) != nil else { return nil }
+        return defaults.bool(forKey: Key.automaticScheduleConsent)
+    }
+
+    /// Records an explicit choice before completing setup, so a crash cannot
+    /// arm a Studio Dev schedule without a persisted confirmation.
+    public func saveAutomaticScheduleConsent(_ enabled: Bool) {
+        defaults.set(enabled, forKey: Key.automaticScheduleConsent)
     }
 
     /// Returns `true` and records the flag on first call; returns `false` on

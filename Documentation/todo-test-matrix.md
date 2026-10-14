@@ -283,6 +283,24 @@ tests cannot read or mutate a user's App Group lockout record.
 
 ## 1. Schedule + Enforcement Core
 
+- `Propose 22:00–06:00 on fresh installs without rewriting saved schedules.`
+  - `NewInstallScheduleTests/freshInstallProposesTenToSix()`
+  - `NewInstallScheduleTests/existingSettingsRetainCustomSchedule()`
+- `First-run schedule edits apply immediately but opening the editor does not arm it.`
+  - `FirstRunSafetyFlowTests/openingScheduleDoesNotConfirmIt()`
+  - `FirstRunSafetyFlowTests/remoteOnlyChoiceAdvancesWithoutScheduleReview()`
+  - `FirstRunSafetyModelTests/firstRunScheduleEditIsImmediate()`
+  - `FirstRunSafetyModelTests/remoteOnlyScheduleEditIsImmediate()`
+- `Studio Dev migration requires local schedule consent while retaining remote deadlines.`
+  - `FirstRunSafetyModelTests/completedStudioDevDefaultsToRemoteOnly()`
+  - `FirstRunSafetyModelTests/completedProductionInstallKeepsSchedule()`
+  - `FirstRunSafetyModelTests/remoteOnlyPreservesDurableDeadline(kind:)`
+  - `FirstRunSafetyModelTests/activeScheduleWeakeningStillQueues()`
+  - `AccountLifecycleWiringTests/authenticatedRemoteResultPresentsLockout()`
+- `After setup, weaker edits still obey the anti-bypass cooldown.`
+  - `AuditWiringTests/weakerScheduleChangeIsRecorded()`
+  - `SchedulePolicyEngineTests/weakeningChangeHas24HourCooldown()`
+
 - `Implement weekly schedule model (per-day end time, unlock time, day-off support).`
   - `ScheduleResolutionTests/scheduleWindowResolvesSpringForwardGap()`
   - `CurfewEnforcementEngineTests/dayOffState()`
