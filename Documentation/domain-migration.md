@@ -12,7 +12,7 @@ Production, staging and local profiles are isolated. Production HTTPS origins ca
 
 Use the pinned `cf@1.0.0-beta.16`. Worker projects have explicit `cloudflare.config.ts`; never run cf automatic setup over an unmigrated Wrangler project. Use `cf cli search` then `cf schema` for resource operations. Queries contain generic resource descriptions, never identifying values or credentials. CI uses explicit account IDs and approved API-token credentials; Wrangler login is not reused.
 
-Build with `cf build --mode production`, validate with `cf deploy --prebuilt --mode production --dry-run`, then deploy the same output. Preserve IDs and the `UserCoordinator` SQLite export. The static Astro renderer is separate from its small `landing/hosting` Worker packaging entry point, preventing cf framework detection from treating a static build as Worker Build Output. D1 forward migrations and live-log streaming retain Wrangler where required; Pages artifact publication retains its existing uploader. These are explicit CLI beta exceptions.
+Build with `cf build --mode production`, validate with `cf deploy --prebuilt --mode production --dry-run`, then deploy the same output. Preserve IDs and the `UserCoordinator` SQLite export. The static Astro renderer is separate from its small `landing/hosting` Worker packaging entry point, preventing cf framework detection from treating a static build as Worker Build Output. D1 forward migrations and live-log streaming retain Wrangler where required; Pages artifact publication retains its existing uploader. Email Sending onboarding also retains the Cloudflare dashboard or Wrangler email commands because the pinned cf command catalog does not expose that service. Verify the selected zone and the resulting SPF, DKIM, DMARC and bounce records. These are explicit CLI beta exceptions.
 
 ## Cutover prerequisites
 
@@ -26,7 +26,7 @@ Build with `cf build --mode production`, validate with `cf deploy --prebuilt --m
 
 ## Apply and verify
 
-The backend's `domain:preflight`, `domain:dry-run`, `domain:apply`, and `domain:verify` commands use cf and refuse interactive authentication. Supply the exact configuration artifact/hash/commit, API token and account ID. Apply also requires `CURFEW_CUTOVER_READINESS`, a JSON receipt naming the configuration hash, backup bookmark, signed release URL and provider-verification timestamp from the past hour. The new backend must report that exact configuration and maintenance=true before revocation.
+The backend's `domain:preflight`, `domain:dry-run`, `domain:apply`, and `domain:verify` commands use cf and refuse interactive authentication. Supply the exact configuration artifact/hash/commit, API token and account ID. Prepare and resume validate the full readiness receipt before schema or deployment mutations. Apply repeats that validation immediately before revocation and requires `CURFEW_CUTOVER_READINESS`, a JSON receipt naming the configuration hash, backup bookmark, signed release URL and provider-verification timestamp from the past hour. The new backend must report that exact configuration and maintenance=true before revocation.
 
 Enable maintenance, close sockets through authority fencing, apply the transactional revocation batch, wait for the fence outbox to drain, activate provider settings and new site/app release, verify live journeys, then disable maintenance. Checkpoints make a resumed apply non-destructive. Account data and encryption epochs are retained; obsolete sessions, tokens, consents, direct-unlock grants and pending commands cannot carry over. The native one-time migration deletes authorization keys only and prompts reconnection.
 
@@ -35,6 +35,8 @@ Attach the new apex to the existing Pages project through `cf pages domains crea
 ## Acceptance and rollback
 
 Acceptance includes real passkey recovery/replacement, Apple/Google sign-in, transactional email, native callback and same-device reconnection, retained encrypted-data readability, a real assistant command with Mac receipt/enforcement, Stripe test webhook, license delivery/refresh, and a verified signed app update. Passing local checks or a homepage 200 does not establish these outcomes.
+
+The cf Durable Object export conversion is one-way: Cloudflare retains the existing namespace, but subsequent rollbacks must use cf exports with the same Worker/export/resource identities. Roll back code and assets through that configuration; do not redeploy the legacy Wrangler migrations array.
 
 Monitor these journeys through the following day. Keep the public redirect indefinitely and service retirement responses only. Roll back application/configuration versions against retained data if needed; never resurrect revoked grants or overwrite post-cutover writes. Staging retains its existing hosts. Unrelated Studio domains and support email addresses are unchanged.
 

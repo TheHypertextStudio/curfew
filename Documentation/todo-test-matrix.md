@@ -1611,3 +1611,5 @@ changes; rollback restores the prior landing release and docs commit.
 
 - Release endpoint provenance: `scripts/release-configuration.test.mjs` covers configured and alternate domains, changed manifests, source revisions, and signing keys; `scripts/release-candidate.test.mjs` binds native configuration and candidate signatures to the shared deployment identity.
 - Provider inventory: `scripts/cloudflare-inventory.test.mjs` requires read-only CLI operations, independent results after permission failures, and selected metadata output. Inventory is access evidence, not release acceptance.
+
+- Domain migration operator sequence: backend `scripts/production-audit.test.mjs` verifies readiness before production mutations; `scripts/cutover-readiness.test.mjs` covers receipt completeness, identity and freshness. Email sender activation additionally requires Cloudflare DNS verification and live delivery acceptance.
