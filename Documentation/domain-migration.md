@@ -16,6 +16,8 @@ configuration verifies that artifact before reading endpoints, retains the
 existing account/Worker/KV identities, and records the shared provenance in
 health response headers. CI tests the real cf configuration against alternate
 domains and performs Worker tests/typecheck plus a build/prebuilt dry-run.
+The license project owns its Vitest root and test discovery, including when
+the backend pipeline checks out the app as a nested configuration source.
 Before production activation, disable the independent license Worker Git build
 so its legacy Wrangler command cannot race the coordinated cf deployment.
 Preserve signing secrets; the pinned cf deployment retains existing secret

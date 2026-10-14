@@ -22,6 +22,10 @@ CI runs Worker tests/typecheck and cf build followed by a prebuilt dry-run.
 Actual license issuance, refresh, webhook delivery, and retained signing-key
 behavior require live acceptance at cutover.
 
+`web/worker/test/discovery.node.mjs` creates an enclosing test configuration
+that refuses to load, then runs the actual license test discovery. The license
+project must select its own behavior tests and ignore the parent configuration.
+
 ## Public legal policies
 
 `landing/tests/unit/legal.test.mjs` checks official contact, notice dates,

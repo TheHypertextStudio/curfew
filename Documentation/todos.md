@@ -16,6 +16,8 @@
   provenance on health responses without changing the health payload.
 - [x] Validate license Worker behavior, types, artifact identity, and the same
   cf build/prebuilt dry-run in CI before deployment.
+- [x] Isolate license test configuration and discovery when CI checks out the
+  app beneath the backend repository; never inherit the enclosing test runner.
 - [ ] Disable the independent license Git build before coordinated activation;
   deploy the approved artifact with retained signing secrets and verify its
   health identity, licensing, and Stripe delivery on the new hostname.
