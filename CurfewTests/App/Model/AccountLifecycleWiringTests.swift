@@ -7,6 +7,63 @@ import Testing
 // swiftlint:disable file_length
 @MainActor
 struct AccountLifecycleWiringTests {
+    @Test("A rejected wake update does not terminate valid account credentials")
+    func invalidWakeUpdateKeepsAccountTransportActive() throws {
+        let deviceID = UUID()
+        let model = try makeModel(accountSync: configuration(deviceID: deviceID))
+        #expect(model.accountSyncEngine.isActive)
+
+        model.acceptAccountWakeStatus(AccountWakeStatusUpdate(
+            campaignID: UUID(),
+            state: .scheduled,
+            attemptNumber: 0,
+            selectedDeviceIDs: [deviceID],
+            statusVersion: 0,
+            updatedAt: Date()
+        ))
+
+        #expect(model.accountSyncEngine.isActive)
+        #expect(model.accountSyncEngine.syncStatus == .rejected(
+            "Rejected stale or invalid wake state."
+        ))
+    }
+
+    @Test("A local remote-release write failure does not terminate valid account credentials")
+    func remoteReleaseWriteFailureKeepsAccountTransportActive() throws {
+        let now = Date()
+        let deviceID = UUID()
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let blocker = directory.appendingPathComponent("blocked-secret-parent")
+        try Data("blocked".utf8).write(to: blocker)
+
+        let model = try makeModel(accountSync: configuration(deviceID: deviceID))
+        model.currentTime = now
+        model.remoteOverrideReleaseStore = BreakGlassStore(
+            recordURL: directory.appendingPathComponent("release.json"),
+            secretURL: blocker.appendingPathComponent("secret")
+        )
+        #expect(model.accountSyncEngine.isActive)
+
+        model.acceptAccountRemoteOverride(AccountRemoteOverride(
+            overrideID: UUID(),
+            requestID: UUID(),
+            targetDeviceIDs: [deviceID],
+            reason: "A temporary owner-authorized release.",
+            durationMinutes: 5,
+            startsAt: now,
+            authorizedBy: .mcpPreauthorizedClient,
+            status: .active
+        ))
+
+        #expect(model.accountSyncEngine.isActive)
+        #expect(model.accountSyncEngine.syncStatus == .rejected(
+            "Could not authorize remote unlock on this Mac."
+        ))
+    }
+
     @Test("Curfew Account enrollment makes account sync canonical over CloudKit")
     func accountEnrollmentSuppressesCloudKit() throws {
         let cloud = CloudKitSyncEngine()
