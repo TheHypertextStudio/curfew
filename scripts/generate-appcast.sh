@@ -8,16 +8,16 @@
 # DMG bytes, produced by Sparkle's `sign_update` binary.
 #
 # Usage:
-#   VERSION=1.0.1 \
-#   DMG_PATH=./Curfew-v1.0.1.dmg \
-#   RELEASE_NOTES_URL=https://curfew.hypertext.studio/releases/1.0.1.html \
+#   VERSION=0.0.1 \
+#   DMG_PATH=./Curfew-v0.0.1.dmg \
+#   RELEASE_NOTES_URL=https://curfew.hypertext.studio/releases/0.0.1.html \
 #   SPARKLE_PRIVATE_KEY="$(cat private.key)" \
 #   bash scripts/generate-appcast.sh > appcast.xml
 #
 # Required:
-#   VERSION              — semver, e.g. 1.0.1
+#   VERSION              — 0.0.x semver, e.g. 0.0.1
 #   DMG_PATH             — path to the notarized DMG
-#   SPARKLE_PRIVATE_KEY  — base64url-encoded Ed25519 seed (from gen-sparkle-keypair.sh)
+#   SPARKLE_PRIVATE_KEY  — standard-base64 Ed25519 seed (from gen-sparkle-keypair.sh)
 #
 # Optional:
 #   RELEASE_NOTES_URL    — URL Sparkle shows in the update prompt

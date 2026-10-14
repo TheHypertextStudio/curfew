@@ -9,7 +9,7 @@ let curfewProtocolsDependency: Package.Dependency = if let localPath =
 } else {
     .package(
         url: "https://github.com/TheHypertextStudio/curfew-protocols.git",
-        exact: "0.0.11"
+        exact: "0.0.13"
     )
 }
 
@@ -45,7 +45,7 @@ let package = Package(
         ),
         // Versioned wire-format contract shared with curfew-sync (the
         // Cloudflare coordinator). The Swift face of
-        // Swift package face of the same exact 0.0.11 contract published as
+        // Swift package face of the same exact 0.0.13 contract published as
         // @thehypertextstudio/curfew-protocols through GitHub Packages. The
         // bridge and curfew-mcp targets below consume its generated Codable
         // types; wire shapes are never duplicated locally.

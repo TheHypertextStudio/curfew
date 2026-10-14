@@ -361,7 +361,7 @@
 			repositoryURL = "https://github.com/TheHypertextStudio/curfew-protocols.git";
 			requirement = {
 				kind = exactVersion;
-				version = 0.0.11;
+				version = 0.0.13;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
@@ -693,7 +693,7 @@
 				CURFEW_DOCKET_CALLBACK_SCHEME = studio.hypertext.curfew;
 				CURFEW_DAEMON_PLIST_NAME = studio.hypertext.curfew.dev.daemon.plist;
                 INFOPLIST_KEY_CurfewBrowserExtensionID = "loammdknmfbkjnckaeeagnmakinknbck";
-				DEVELOPMENT_TEAM = 39AB9DY3K8;
+				DEVELOPMENT_TEAM = T95VDD3A4W;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_APP_SANDBOX = NO;
@@ -787,7 +787,7 @@
 				CURFEW_DOCKET_CALLBACK_SCHEME = studio.hypertext.curfew;
                 CURFEW_BROWSER_EXTENSION_ID = "";
                 INFOPLIST_KEY_CurfewBrowserExtensionID = "$(CURFEW_BROWSER_EXTENSION_ID)";
-				DEVELOPMENT_TEAM = 39AB9DY3K8;
+				DEVELOPMENT_TEAM = T95VDD3A4W;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_APP_SANDBOX = NO;
@@ -946,7 +946,7 @@
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = CurfewWidget/CurfewWidget-Debug.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 39AB9DY3K8;
+				DEVELOPMENT_TEAM = T95VDD3A4W;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_APP_SANDBOX = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -1006,7 +1006,7 @@
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = CurfewWidget/CurfewWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 39AB9DY3K8;
+				DEVELOPMENT_TEAM = T95VDD3A4W;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_APP_SANDBOX = YES;
 				GENERATE_INFOPLIST_FILE = NO;

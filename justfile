@@ -286,6 +286,7 @@ install-hooks:
 # CloudKit or APNs before those deferred integrations are provisioned.
 release-policy:
     node --test scripts/release-entitlements.test.mjs
+    node --test scripts/release-candidate.test.mjs scripts/release-configuration.test.mjs
     node --test scripts/landing-contract.test.mjs
 
 # Ship-gate alias — the exact chain AGENTS.md requires before any

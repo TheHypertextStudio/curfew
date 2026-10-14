@@ -1,0 +1,373 @@
+import assert from "node:assert/strict";
+import { readFile, mkdtemp, mkdir, writeFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { execFileSync, spawnSync } from "node:child_process";
+import { generateKeyPairSync, sign } from "node:crypto";
+import test from "node:test";
+
+// Catch a tag restoring public release/feed/site writes before owner acceptance.
+test("a version tag can retain a candidate but cannot publish or deploy it", () => {
+  const workflow = JSON.parse(
+    execFileSync(
+      "ruby",
+      [
+        "-rjson",
+        "-ryaml",
+        "-e",
+        "puts JSON.generate(YAML.load_file(ARGV[0]))",
+        ".github/workflows/release.yml",
+      ],
+      { encoding: "utf8" },
+    ),
+  );
+  for (const job of Object.values(workflow.jobs)) {
+    assert.notEqual(
+      job.permissions?.contents,
+      "write",
+      "candidate job must not write public releases",
+    );
+    for (const step of job.steps) {
+      assert.ok(
+        !step.uses?.startsWith("softprops/action-gh-release"),
+        "tag must not publish a GitHub Release",
+      );
+      assert.doesNotMatch(
+        step.run || "",
+        /\bgh release\b|\bdeploy(?::pages|:worker|\s+--|\s+dist)|\bwrangler pages deploy\b/,
+        "tag must not deploy the site/feed or public release",
+      );
+    }
+    assert.ok(
+      job.steps.some(
+        (step) =>
+          step.uses?.startsWith("actions/upload-artifact") &&
+          step.with?.name === "curfew-signed-candidate",
+      ),
+      "signed candidate bytes must be retained together",
+    );
+  }
+});
+
+test("every explicitly signed Xcode configuration selects the Studio team", () => {
+  const project = JSON.parse(
+    execFileSync(
+      "plutil",
+      ["-convert", "json", "-o", "-", "Curfew.xcodeproj/project.pbxproj"],
+      { encoding: "utf8" },
+    ),
+  );
+  const configurations = Object.values(project.objects).filter(
+    (object) =>
+      object.isa === "XCBuildConfiguration" &&
+      object.buildSettings.DEVELOPMENT_TEAM,
+  );
+  assert.ok(configurations.length > 0);
+  for (const configuration of configurations)
+    assert.equal(
+      configuration.buildSettings.DEVELOPMENT_TEAM,
+      "T95VDD3A4W",
+      `${configuration.name} selects a non-Studio signing team`,
+    );
+});
+
+test("candidate quality gate is unsigned without weakening the Release archive", () => {
+  const workflow = JSON.parse(
+    execFileSync(
+      "ruby",
+      [
+        "-rjson",
+        "-ryaml",
+        "-e",
+        "puts JSON.generate(YAML.load_file(ARGV[0]))",
+        ".github/workflows/release.yml",
+      ],
+      { encoding: "utf8" },
+    ),
+  );
+  const steps = workflow.jobs.release.steps;
+  const quality = steps.find((step) => step.run === "just check");
+  assert.equal(
+    quality.env?.CURFEW_XCODEBUILD_SETTINGS,
+    "CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO",
+  );
+  const archive = steps.find((step) =>
+    /xcodebuild archive/.test(step.run || ""),
+  );
+  assert.equal(archive.env?.CURFEW_XCODEBUILD_SETTINGS, undefined);
+  assert.doesNotMatch(
+    archive.run,
+    /CODE_SIGNING_ALLOWED=NO|CODE_SIGNING_REQUIRED=NO/,
+  );
+});
+
+test("public candidate retention requires explicit exposure approval before signing", () => {
+  const workflow = JSON.parse(
+    execFileSync(
+      "ruby",
+      [
+        "-rjson",
+        "-ryaml",
+        "-e",
+        "puts JSON.generate(YAML.load_file(ARGV[0]))",
+        ".github/workflows/release.yml",
+      ],
+      { encoding: "utf8" },
+    ),
+  );
+  const admission = workflow.jobs.release.steps.find(
+    (step) => step.name === "Validate candidate identity",
+  );
+  for (const [approval, expected] of [
+    ["", 1],
+    ["false", 1],
+    ["true", 0],
+  ]) {
+    const result = spawnSync("bash", ["-e", "-c", admission.run], {
+      env: {
+        ...process.env,
+        RELEASE_TAG: "v0.0.1",
+        APPLE_TEAM_ID: "T95VDD3A4W",
+        PUBLIC_RETENTION_APPROVED: approval,
+      },
+    });
+    assert.equal(
+      result.status,
+      expected,
+      "public exposure must be an explicit owner choice",
+    );
+  }
+});
+
+test("resolved Release update key must match the existing private seed before archive", async () => {
+  const api = await import("./release-candidate.mjs");
+  assert.equal(
+    typeof api.validateReleaseUpdateKey,
+    "function",
+    "resolved Release settings need a prearchive key-pair gate",
+  );
+  const { privateKey, publicKey } = generateKeyPairSync("ed25519");
+  const seed = privateKey
+    .export({ type: "pkcs8", format: "der" })
+    .subarray(-32)
+    .toString("base64");
+  const publicValue = publicKey
+    .export({ type: "spki", format: "der" })
+    .subarray(-32)
+    .toString("base64");
+  assert.equal(api.sparklePublicKey(seed), publicValue);
+  const settings = [
+    {
+      target: "Curfew",
+      buildSettings: {
+        CONFIGURATION: "Release",
+        INFOPLIST_KEY_SUPublicEDKey: publicValue,
+      },
+    },
+  ];
+  assert.doesNotThrow(() => api.validateReleaseUpdateKey(settings, seed));
+  for (const value of [
+    "REPLACE_WITH_SPARKLE_PUBLIC_ED_KEY",
+    "$(INFOPLIST_KEY_SUPublicEDKey)",
+    "A".repeat(43) + "=",
+  ])
+    assert.throws(() =>
+      api.validateReleaseUpdateKey(
+        [
+          {
+            target: "Curfew",
+            buildSettings: {
+              CONFIGURATION: "Release",
+              INFOPLIST_KEY_SUPublicEDKey: value,
+            },
+          },
+        ],
+        seed,
+      ),
+    );
+  assert.throws(() => api.validateReleaseUpdateKey(settings, "invalid"));
+  assert.throws(() => api.validateReleaseUpdateKey([], seed));
+});
+
+async function fixture() {
+  const api = await import("./release-candidate.mjs");
+  const dmg = Buffer.from("test signed disk image bytes");
+  const { privateKey, publicKey } = generateKeyPairSync("ed25519");
+  const sparkleKey = publicKey
+    .export({ type: "spki", format: "der" })
+    .subarray(-32)
+    .toString("base64");
+  const { createReleaseConfiguration } =
+    await import("./release-configuration.mjs");
+  const configuration = createReleaseConfiguration({
+    sourceCommit: "a".repeat(40),
+    appcast: "https://curfew.hypertext.studio/appcast.xml",
+    sparkleKey,
+    inputs: { "Curfew/Info.plist": "b".repeat(64) },
+  });
+  const signature = sign(null, dmg, privateKey).toString("base64");
+  const appcast = Buffer.from(
+    `<rss><channel><link>https://curfew.hypertext.studio/appcast.xml</link><item><sparkle:version>0.0.1</sparkle:version><enclosure url="https://github.com/TheHypertextStudio/curfew/releases/download/v0.0.1/Curfew-v0.0.1.dmg" length="${dmg.length}" sparkle:edSignature="${signature}" /></item></channel></rss>`,
+  );
+  const candidate = api.createCandidate({
+    dmg,
+    appcast,
+    configuration,
+    version: "0.0.1",
+    team: "T95VDD3A4W",
+    sparkleKey,
+    runID: "123",
+  });
+  return { api, dmg, appcast, configuration, candidate };
+}
+
+test("candidate packaging refuses an absent or non-executable browser native host", async () => {
+  const api = await import("./release-candidate.mjs");
+  assert.equal(
+    typeof api.verifyEmbeddedToolPackaging,
+    "function",
+    "candidate packaging must validate every embedded executable before signature checks",
+  );
+  const root = await mkdtemp(join(tmpdir(), "curfew-candidate-packaging-"));
+  try {
+    const resources = join(root, "Contents/Resources");
+    await mkdir(resources, { recursive: true });
+    for (const name of ["curfew-ctl", "curfew-mcp", "curfew-daemon"])
+      await writeFile(join(resources, name), "test executable", {
+        mode: 0o700,
+      });
+    await assert.rejects(
+      () => api.verifyEmbeddedToolPackaging(root),
+      /studio.hypertext.curfew.browser/,
+    );
+    await writeFile(
+      join(resources, "studio.hypertext.curfew.browser"),
+      "test executable",
+      { mode: 0o600 },
+    );
+    await assert.rejects(
+      () => api.verifyEmbeddedToolPackaging(root),
+      /executable/,
+    );
+    await rm(join(resources, "studio.hypertext.curfew.browser"));
+    await writeFile(
+      join(resources, "studio.hypertext.curfew.browser"),
+      "test executable",
+      { mode: 0o700 },
+    );
+    assert.deepEqual(await api.verifyEmbeddedToolPackaging(root), [
+      "curfew-ctl",
+      "curfew-mcp",
+      "curfew-daemon",
+      "studio.hypertext.curfew.browser",
+    ]);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+// Catch a substituted DMG/feed/config or a receipt for a different candidate.
+test("candidate verification binds bytes, Studio identity, configuration and update signature", async () => {
+  const f = await fixture();
+  assert.doesNotThrow(() => f.api.verifyCandidate(f));
+  for (const change of [
+    { dmg: Buffer.from("replacement") },
+    { appcast: Buffer.from("replacement") },
+    { candidate: { ...f.candidate, team: "39AB9DY3K8" } },
+    { candidate: { ...f.candidate, version: "1.0.0" } },
+    { configuration: { ...f.configuration, sourceCommit: "b".repeat(40) } },
+  ])
+    assert.throws(() => f.api.verifyCandidate({ ...f, ...change }));
+});
+
+test("candidate creation rejects a mismatched Sparkle signature and non-0.0.x version", async () => {
+  const f = await fixture();
+  assert.throws(() =>
+    f.api.createCandidate({ ...f.candidate, ...f, dmg: Buffer.from("other") }),
+  );
+  assert.throws(() =>
+    f.api.createCandidate({ ...f.candidate, ...f, version: "0.1.0" }),
+  );
+});
+
+test("activation inspection withholds missing failed or mismatched owner evidence", async () => {
+  const f = await fixture();
+  const receipt = {
+    candidate: f.candidate,
+    operator: "owner",
+    observedAt: "2026-10-14T01:00:00Z",
+    gates: Object.fromEntries(
+      f.api.activationGates.map((name) => [
+        name,
+        { outcome: "pass", evidence: "owner-recorded evidence reference" },
+      ]),
+    ),
+  };
+  assert.equal(
+    f.api.inspectActivation(f, receipt).status,
+    "eligible-for-owner-controlled-activation",
+  );
+  for (const bad of [
+    null,
+    {
+      ...receipt,
+      candidate: { ...f.candidate, configurationSHA256: "0".repeat(64) },
+    },
+    { ...receipt, gates: {} },
+    {
+      ...receipt,
+      gates: {
+        ...receipt.gates,
+        signedDevice: { outcome: "pending", evidence: "pending" },
+      },
+    },
+  ]) {
+    assert.throws(() => f.api.inspectActivation(f, bad));
+  }
+});
+
+test("signed app identity rejects Development signing, old team, and wrong embedded configuration", async () => {
+  const f = await fixture();
+  const info = {
+    CFBundleIdentifier: "studio.hypertext.curfew",
+    CFBundleShortVersionString: "0.0.1",
+    CFBundleVersion: "0.0.1",
+    CurfewConfigurationCommit: f.configuration.sourceCommit,
+    CurfewConfigurationSHA256: f.configuration.sha256,
+    SUFeedURL: "https://curfew.hypertext.studio/appcast.xml",
+    SUPublicEDKey: f.candidate.sparkleKey,
+  };
+  const signature =
+    "Authority=Developer ID Application: Hypertext Studio, LLC (T95VDD3A4W)\nTeamIdentifier=T95VDD3A4W\n";
+  assert.doesNotThrow(() =>
+    f.api.validateAppIdentity(info, signature, f.configuration, "0.0.1"),
+  );
+  for (const [properties, signing] of [
+    [info, signature.replace("Developer ID Application", "Apple Development")],
+    [info, signature.replaceAll("T95VDD3A4W", "39AB9DY3K8")],
+    [{ ...info, CurfewConfigurationSHA256: "b".repeat(64) }, signature],
+    [{ ...info, CurfewConfigurationCommit: "b".repeat(40) }, signature],
+    [{ ...info, CFBundleVersion: "1" }, signature],
+    [
+      { ...info, SUPublicEDKey: Buffer.alloc(32, 8).toString("base64") },
+      signature,
+    ],
+    [{ ...info, SUFeedURL: "https://thecurfew.app/appcast.xml" }, signature],
+  ])
+    assert.throws(() =>
+      f.api.validateAppIdentity(properties, signing, f.configuration, "0.0.1"),
+    );
+});
+
+test("candidate and signed app must use the public key in the immutable source snapshot", async () => {
+  const f = await fixture();
+  const { createReleaseConfiguration } =
+    await import("./release-configuration.mjs");
+  const configuration = createReleaseConfiguration({
+    ...f.configuration,
+    sparkleKey: Buffer.alloc(32, 8).toString("base64"),
+  });
+  assert.throws(() =>
+    f.api.createCandidate({ ...f.candidate, ...f, configuration }),
+  );
+});
