@@ -79,6 +79,37 @@ extension AccountEnrollmentReauthorizationTests {
         #expect(devices.enrollCount == 0)
     }
 
+    @Test("A completed browser sign-in does not become an expired-sign-in loop")
+    func browserCompletionFailureExplainsConnectionStage() async throws {
+        let fixture = try makeFixture(accountUserID: "original-account")
+        try fixture.pending.markReady(fixture.enrollment)
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("curfew-browser-complete-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: root) }
+        let remoteEnrollment = RemoteCommandEnrollmentStore(
+            recordURL: root.appendingPathComponent("remote-command-enrollment.json")
+        )
+        try remoteEnrollment.save(RemoteCommandEnrollment(
+            userID: "original-account",
+            deviceID: fixture.enrollment.deviceID
+        ))
+        let oauth = ReauthorizationOAuthFixture(secretStore: fixture.secrets)
+        oauth.failure = .browserCompletedConnectionFailed
+        let controller = AccountEnrollmentController(
+            secretStore: fixture.secrets,
+            oauth: oauth,
+            devices: ReauthorizationDeviceFixture(enrollment: fixture.enrollment),
+            remoteCommandEnrollmentStore: remoteEnrollment
+        )
+
+        let renewed = await controller.reconnectEnrolledMac(fixture.enrollment)
+
+        #expect(!renewed)
+        #expect(controller.state == .ready(fixture.enrollment))
+        #expect(controller.enrollmentRetryError?.contains("signed in in the browser") == true)
+        #expect(try fixture.secrets.data(for: "oauth-refresh-token") == Data("old-refresh".utf8))
+    }
+
     @Test("An enrolled Mac cannot renew without its matching owner record")
     func readyMacWithoutMatchingOwnerFailsClosed() async throws {
         let fixture = try makeFixture(accountUserID: "original-account")

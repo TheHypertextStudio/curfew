@@ -7,6 +7,7 @@ import Testing
 @MainActor
 final class ReauthorizationOAuthFixture: AccountOAuthEnrolling {
     var rejectAsDifferentAccount = false
+    var failure: AccountOAuthEnrollmentError?
     var afterPersist: (@MainActor () -> Void)?
     var suspendFirstAttempt = false
     var suspended: CheckedContinuation<Void, Never>?
@@ -38,6 +39,9 @@ final class ReauthorizationOAuthFixture: AccountOAuthEnrolling {
         }
         if rejectAsDifferentAccount {
             throw AccountOAuthEnrollmentError.accountMismatch
+        }
+        if let failure {
+            throw failure
         }
         try secretStore.save(Data(AccountOAuthOfficialClient.clientID.utf8), for: "oauth-client-id")
         try secretStore.save(Data("new-refresh".utf8), for: "oauth-refresh-token")
