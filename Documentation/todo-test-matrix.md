@@ -2,6 +2,11 @@
 
 ## Production publication
 
+`scripts/release-profiles.test.mjs` covers exact production profile identity,
+expiry/distribution/capability rejection, target-specific archive/export mapping,
+private installation, existing-file preservation, and digest-checked cleanup.
+Issued-profile acceptance requires the actual signed/notarized candidate.
+
 `scripts/pages-artifact.test.mjs` verifies retained file identity, alternate
 configuration, changed assets, and middleware routing coverage.
 `scripts/pages-bundle.node.mjs` executes the actual compiled Pages handler for

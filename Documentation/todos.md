@@ -2,6 +2,10 @@
 
 ## Production publication
 
+- [x] Install approved Developer ID app/widget provisioning profiles for signed
+  candidates, bind archive/export to their UUIDs, and remove job-owned files.
+- [ ] Resolve Apple identifier ownership and supply the issued production
+  profiles; verify archive, signing, notarization, and native acceptance.
 - [x] Retain the compiled Pages middleware and a content/configuration identity
       with the browser-validated static website.
 - [x] Provide manual activation of matching signed candidate and website bytes,
