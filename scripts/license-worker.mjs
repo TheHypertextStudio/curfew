@@ -17,6 +17,7 @@ const requiredConfig = [
   "CURFEW_LICENSE_WORKER_NAME",
   "CURFEW_LICENSE_KV_NAMESPACE_ID",
   "CURFEW_LICENSE_HOSTNAME",
+  "CURFEW_LICENSE_STRIPE_MODE",
 ];
 
 const [command, ...args] = process.argv.slice(2);
@@ -64,11 +65,19 @@ function validateConfig() {
   if (!/^curfew(?:-[a-z0-9-]+)?\.hypertext\.studio$/.test(process.env.CURFEW_LICENSE_HOSTNAME)) {
     throw new Error("CURFEW_LICENSE_HOSTNAME must be a curfew-prefixed Hypertext Studio hostname");
   }
+  const mode = process.env.CURFEW_LICENSE_STRIPE_MODE;
+  if (mode !== "live" && mode !== "test") throw new Error("Stripe mode must be explicitly live or test");
+  const productionHost = process.env.CURFEW_LICENSE_HOSTNAME === "curfew-license.hypertext.studio";
+  if (productionHost !== (mode === "live")) {
+    throw new Error("Stripe mode must be live only for the production license hostname, and test for other license hostnames");
+  }
+  const recovery = recoveryConfiguration();
   console.log("License Worker configuration is structurally valid.");
+  return recovery;
 }
 
 async function renderConfig(arguments_) {
-  validateConfig();
+  const recovery = validateConfig();
   if (arguments_.includes("--workers-dev")) {
     throw new Error("workers.dev routing is not supported; use a curfew-*.hypertext.studio custom hostname");
   }
@@ -82,8 +91,48 @@ async function renderConfig(arguments_) {
     .replaceAll("__CURFEW_LICENSE_HOSTNAME__", process.env.CURFEW_LICENSE_HOSTNAME)
     .replaceAll("__CURFEW_LICENSE_WORKER_MAIN__", resolve(root, "web/worker/src/index.ts"))
     .replaceAll("__CURFEW_LICENSE_WORKER_ROUTE__", route);
-  await writePublic(output, rendered);
+  await writePublic(output, rendered + recovery);
   console.log(`Rendered local Worker configuration: ${resolve(output)}`);
+}
+
+function recoveryConfiguration() {
+  const stripeMode = `\n[vars]\nSTRIPE_MODE = ${JSON.stringify(process.env.CURFEW_LICENSE_STRIPE_MODE)}\n`;
+  const enabled = process.env.CURFEW_LICENSE_RESTORE_ENABLED;
+  if (!enabled || enabled === "0") return stripeMode;
+  if (enabled !== "1") throw new Error("CURFEW_LICENSE_RESTORE_ENABLED must be 0 or 1");
+  const names = ["CURFEW_LICENSE_RESTORE_FROM", "CURFEW_LICENSE_PORTAL_URL",
+    "CURFEW_LICENSE_RESTORE_IP_NAMESPACE_ID", "CURFEW_LICENSE_RESTORE_EMAIL_NAMESPACE_ID"];
+  const missing = names.filter(name => !process.env[name]);
+  if (missing.length) throw new Error(`missing recovery configuration: ${missing.join(", ")}`);
+  const [sender, portal, ipNamespace, emailNamespace] = names.map(name => process.env[name]);
+  if (!/^[a-z0-9._+-]+@curfew(?:-[a-z0-9-]+)?\.hypertext\.studio$/.test(sender)) {
+    throw new Error("Recovery sender must use an approved Curfew sending domain");
+  }
+  const url = new URL(portal);
+  if (url.protocol !== "https:" || !/^curfew(?:-[a-z0-9-]+)?\.hypertext\.studio$/.test(url.hostname) ||
+      url.username || url.password || url.port || url.pathname !== "/" || url.search || url.hash) {
+    throw new Error("Recovery portal must be an HTTPS Curfew origin without a path or credentials");
+  }
+  if (![ipNamespace, emailNamespace].every(value => /^\d{1,10}$/.test(value) && Number(value) > 0 && Number(value) <= 4294967295) ||
+      ipNamespace === emailNamespace) throw new Error("Recovery rate-limit namespace IDs must be distinct positive 32-bit integers");
+  return `${stripeMode}
+RESTORE_EMAIL_FROM = ${JSON.stringify(sender)}
+PURCHASE_PORTAL_URL = ${JSON.stringify(url.origin)}
+
+[[send_email]]
+name = "EMAIL"
+allowed_sender_addresses = [${JSON.stringify(sender)}]
+
+[[ratelimits]]
+name = "RESTORE_IP_LIMIT"
+namespace_id = ${JSON.stringify(ipNamespace)}
+simple = { limit = 5, period = 60 }
+
+[[ratelimits]]
+name = "RESTORE_EMAIL_LIMIT"
+namespace_id = ${JSON.stringify(emailNamespace)}
+simple = { limit = 1, period = 60 }
+`;
 }
 
 function dryRun(arguments_) {

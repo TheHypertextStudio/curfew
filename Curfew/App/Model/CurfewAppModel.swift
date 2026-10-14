@@ -31,6 +31,7 @@ final class CurfewAppModel: NSObject {
     /// Plus license gate. Verifies the stored license key on startup and
     /// exposes `isPlusUnlocked` for all Plus-gated surfaces.
     let licenseGate: LicenseGate
+    let licenseActivation: LicenseActivationController
 
     /// Pulls renewed subscription license keys from the license Worker. Used
     /// only for `.subscription` plans; lifetime keys never touch the network.
@@ -366,6 +367,7 @@ final class CurfewAppModel: NSObject {
         )
         self.mcpSocketServer = MCPSocketServer()
         self.licenseGate = licenseGate ?? LicenseGate()
+        self.licenseActivation = LicenseActivationController(gate: self.licenseGate)
         self.cloudKitSyncEngine = cloudKitSyncEngine ?? CloudKitSyncEngine()
         self.accountSyncEngine = accountSyncEngine ?? AccountSyncEngine()
         self.calendarMonitor = calendarMonitor ?? CalendarMonitor()

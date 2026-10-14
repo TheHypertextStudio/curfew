@@ -49,12 +49,14 @@ test("rendered config resolves the Worker entry point from a caller-selected pat
           CURFEW_LICENSE_WORKER_NAME: "curfew-license",
           CURFEW_LICENSE_KV_NAMESPACE_ID: "00000000000000000000000000000000",
           CURFEW_LICENSE_HOSTNAME: "curfew-license.hypertext.studio",
+          CURFEW_LICENSE_STRIPE_MODE: "live",
         },
       }
     );
 
     assert.equal(result.status, 0, result.stderr);
     const config = await readFile(configFile, "utf8");
+    assert.match(config, /STRIPE_MODE = "live"/);
     assert.match(config, /^main = ".*\/web\/worker\/src\/index\.ts"$/m);
     assert.match(config, /^routes = \[\{ pattern = "curfew-license\.hypertext\.studio", custom_domain = true \}\]$/m);
   } finally {
@@ -76,12 +78,14 @@ test("staging also uses an approved curfew-prefixed Hypertext Studio hostname", 
           CURFEW_LICENSE_WORKER_NAME: "curfew-license-staging",
           CURFEW_LICENSE_KV_NAMESPACE_ID: "00000000000000000000000000000000",
           CURFEW_LICENSE_HOSTNAME: "curfew-license-staging.hypertext.studio",
+          CURFEW_LICENSE_STRIPE_MODE: "test",
         },
       }
     );
 
     assert.equal(result.status, 0, result.stderr);
     const config = await readFile(configFile, "utf8");
+    assert.match(config, /STRIPE_MODE = "test"/);
     assert.match(config, /^routes = \[\{ pattern = "curfew-license-staging\.hypertext\.studio", custom_domain = true \}\]$/m);
   } finally {
     await rm(directory, { recursive: true, force: true });
@@ -95,6 +99,7 @@ test("config validation rejects hostnames outside the Curfew service namespace",
       CURFEW_LICENSE_WORKER_NAME: "curfew-license",
       CURFEW_LICENSE_KV_NAMESPACE_ID: "00000000000000000000000000000000",
       CURFEW_LICENSE_HOSTNAME: "license.example.com",
+      CURFEW_LICENSE_STRIPE_MODE: "test",
     },
   });
 
@@ -115,6 +120,7 @@ test("the retired workers.dev rendering mode is rejected", async () => {
           CURFEW_LICENSE_WORKER_NAME: "curfew-license-staging",
           CURFEW_LICENSE_KV_NAMESPACE_ID: "00000000000000000000000000000000",
           CURFEW_LICENSE_HOSTNAME: "curfew-license-staging.hypertext.studio",
+          CURFEW_LICENSE_STRIPE_MODE: "test",
         },
       },
     );
@@ -136,3 +142,72 @@ test("only the envelope-v2 Worker bootstrap remains deployable", async () => {
   await access("scripts/license-worker.mjs");
   await access("web/worker/wrangler.toml.example");
 });
+
+test("recovery deployment fails closed until its sender, portal, and rate limits are selected", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "curfew-recovery-config-"));
+  const configFile = join(directory, "wrangler.toml");
+  try {
+    const result = spawnSync(process.execPath, ["scripts/license-worker.mjs", "render-config", "--output", configFile], {
+      encoding: "utf8", env: {
+        CURFEW_LICENSE_WORKER_NAME: "curfew-issue-license",
+        CURFEW_LICENSE_KV_NAMESPACE_ID: "00000000000000000000000000000000",
+        CURFEW_LICENSE_HOSTNAME: "curfew-license.hypertext.studio",
+        CURFEW_LICENSE_STRIPE_MODE: "live",
+        CURFEW_LICENSE_RESTORE_ENABLED: "1",
+      },
+    });
+    assert.notEqual(result.status, 0);
+    await assert.rejects(access(configFile));
+  } finally { await rm(directory, { recursive: true, force: true }); }
+});
+
+test("recovery deployment renders a restricted sender and both environment-specific rate limits", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "curfew-recovery-config-"));
+  const configFile = join(directory, "wrangler.toml");
+  try {
+    const result = spawnSync(process.execPath, ["scripts/license-worker.mjs", "render-config", "--output", configFile], {
+      encoding: "utf8", env: {
+        CURFEW_LICENSE_WORKER_NAME: "curfew-issue-license",
+        CURFEW_LICENSE_KV_NAMESPACE_ID: "00000000000000000000000000000000",
+        CURFEW_LICENSE_HOSTNAME: "curfew-license.hypertext.studio",
+        CURFEW_LICENSE_STRIPE_MODE: "live",
+        CURFEW_LICENSE_RESTORE_ENABLED: "1",
+        CURFEW_LICENSE_RESTORE_FROM: "purchases@curfew.hypertext.studio",
+        CURFEW_LICENSE_PORTAL_URL: "https://curfew.hypertext.studio",
+        CURFEW_LICENSE_RESTORE_IP_NAMESPACE_ID: "1781921001",
+        CURFEW_LICENSE_RESTORE_EMAIL_NAMESPACE_ID: "1781921002",
+      },
+    });
+    assert.equal(result.status, 0, result.stderr);
+    const config = await readFile(configFile, "utf8");
+    assert.match(config, /allowed_sender_addresses = \["purchases@curfew.hypertext.studio"\]/);
+    assert.match(config, /PURCHASE_PORTAL_URL = "https:\/\/curfew.hypertext.studio"/);
+    assert.match(config, /name = "RESTORE_IP_LIMIT"\nnamespace_id = "1781921001"\nsimple = \{ limit = 5, period = 60 \}/);
+    assert.match(config, /name = "RESTORE_EMAIL_LIMIT"\nnamespace_id = "1781921002"\nsimple = \{ limit = 1, period = 60 \}/);
+  } finally { await rm(directory, { recursive: true, force: true }); }
+});
+
+for (const [mode, host] of [
+  [undefined, "curfew-license.hypertext.studio"],
+  ["production", "curfew-license.hypertext.studio"],
+  ["test", "curfew-license.hypertext.studio"],
+  ["live", "curfew-license-staging.hypertext.studio"],
+]) {
+  test(`rendering refuses Stripe mode ${String(mode)} for ${host}`, async () => {
+    const directory = await mkdtemp(join(tmpdir(), "curfew-stripe-mode-config-"));
+    const configFile = join(directory, "wrangler.toml");
+    try {
+      const result = spawnSync(process.execPath, ["scripts/license-worker.mjs", "render-config", "--output", configFile], {
+        encoding: "utf8", env: {
+          CURFEW_LICENSE_WORKER_NAME: "curfew-license",
+          CURFEW_LICENSE_KV_NAMESPACE_ID: "00000000000000000000000000000000",
+          CURFEW_LICENSE_HOSTNAME: host,
+          ...(mode === undefined ? {} : { CURFEW_LICENSE_STRIPE_MODE: mode }),
+        },
+      });
+      assert.notEqual(result.status, 0);
+      assert.match(result.stderr, /Stripe mode|required configuration/);
+      await assert.rejects(access(configFile));
+    } finally { await rm(directory, { recursive: true, force: true }); }
+  });
+}

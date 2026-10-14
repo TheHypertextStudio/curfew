@@ -125,9 +125,13 @@ fraud — no separate tax-filing service is needed.
 
 - [ ] Install from the locked workspace and validate only non-secret settings:
       `(cd web && pnpm install --frozen-lockfile)`, then set
-      `CURFEW_LICENSE_WORKER_NAME`, `CURFEW_LICENSE_KV_NAMESPACE_ID`, and
-      `CURFEW_LICENSE_HOSTNAME` and run
+      `CURFEW_LICENSE_WORKER_NAME`, `CURFEW_LICENSE_KV_NAMESPACE_ID`,
+      `CURFEW_LICENSE_HOSTNAME`, and `CURFEW_LICENSE_STRIPE_MODE` and run
       `node scripts/license-worker.mjs validate-config`.
+- [ ] Verify the issuer expects the correct Stripe environment: `test` for the
+      dedicated staging sandbox, `live` only for the production license hostname.
+      Confirm a signed opposite-mode event is rejected before purchase-store
+      access. Keep sandbox keys, products, links, webhook secrets and KV separate.
 - [ ] Render an untracked deployment config from
       `web/worker/wrangler.toml.example` with
       `node scripts/license-worker.mjs render-config --output

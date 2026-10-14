@@ -1249,7 +1249,7 @@ asserts its own screen and state before attaching an image.
 ## 19. User-facing documentation and Plus launch
 
 - [x] Replace Mintlify developer guides with setup, daily-use, Plus, integration,
-      and recovery help. Preserve `/licensing`, `/mcp`, and `/cli` bookmarks.
+      and recovery help. Preserve `/licensing`, `/mcp-guide`, and `/cli` bookmarks.
 - [x] Explain activation in Settings → About, confirmation-page key delivery,
       offline/subscription access, deactivation versus cancellation, and support.
 - [x] Correct purchase-confirmation help and errors; a failed key fetch must not
@@ -1266,3 +1266,71 @@ asserts its own screen and state before attaching an image.
       acceptance of a working purchase or enabled CloudKit/Calendar features.
 - [ ] Reconcile the app's email-key hint and historical privacy/terms copy with
       actual delivery, network activity, and owner-reviewed launch terms.
+
+## 20. Plus activation and purchase restoration
+
+- [-] End checkout with **Activate in Curfew**, verify and save the signed key,
+      and show the result in Settings → About. Keep manual key entry available.
+- [-] Offer **Restore Purchase…** using proof at the purchase inbox, bounded
+      requests, short-lived links, current subscription keys, and safe retries.
+- [x] Reject unpaid completed checkouts. Backfill old paid purchases by resending
+      their already processed, signed Stripe event without replacing the key.
+- [x] Reject other product payments; restore renewed/canceled subscriptions and
+      legacy lifetime keys. Preserve fresh activations during background refresh
+      and prevent canceled restore requests from closing a subsequent sheet.
+- [x] Render opt-in, sender-restricted recovery configuration for the existing
+      issuer deployment; keep recovery disabled until provider setup is selected.
+- [x] Repair historical paid periods through signed invoice replay, decode UTF-8
+      legacy inboxes, and select immutable periods during concurrent delivery.
+      Cancel queued native activation before making a redemption request.
+- [x] Pair development activation and subscription refresh with the fixed staging
+      issuer; production continues to use its fixed production issuer.
+- [x] Replace the unreliable manual-key disclosure with an accessible button
+      and identify its text field; hosted UI test passes at `8399b8a4`.
+- [x] Host purchase acceptance on the existing website staging Worker at its
+      dedicated hostname; deploy a checksum-verified static artifact without
+      transferring package or Cloudflare credentials.
+- [x] Identify the retained staging signer through public-only health metadata
+      and verify the actual paid sandbox envelope against it. Pin development
+      builds to that signer; keep production trust fixed to its original key.
+- [x] Select license trust, issuer and URL scheme from build identity, ignoring
+      inherited helper flavor overrides in the production app.
+- [x] Deploy restricted staging restore email and verify actual inbox delivery
+      with SPF, DKIM and DMARC passing. Native restoration remains pending.
+- [x] Verify the real Stripe test-mode checkout, inbox restoration and native
+      Debug activation, including an inactive cold launch and saved entitlement
+      after normal relaunch.
+- [x] Verify owner-clicked activation and retained entitlement in the exact
+      signed Studio Dev candidate, using its existing signing profile.
+- [x] Verify signed native restoration from its real inbox link. The owner-clicked
+      handoff shows active, verified lifetime access in the exact candidate.
+- [-] Configure the GitHub production release path. Known team/account IDs are
+      saved; the authenticated Studio notarization issuer is now configured.
+      Approved dedicated Apple signing/notarization credentials are configured;
+      Release app/widget/verifier now use the verified Studio team. Deployment-token
+      setup, Sparkle pair verification and the Workers appcast path remain.
+- [x] Derive the Release updater public key from its retained signing seed,
+      verify the exported app embeds it, and sign the appcast before publishing
+      the DMG. Production-secret execution and website publication remain pending.
+- [x] Save and verify the required Curfew SKU metadata on both existing live
+      Stripe payment links before the issuer's strict paid-checkout guard ships.
+- [x] Configure the owner-approved Pages-only production publication credential
+      in Curfew Actions; verify account status and access to the existing project.
+- [ ] Verify the existing Stripe Test mode resources, webhook and staging-only
+      storage before further purchase acceptance. Keep shared settings untouched;
+      an additional general sandbox is optional for this existing integration.
+      Deploy the locally tested expected-mode guard only after the intended
+      provider bindings are reviewed. Live Stripe changes and production
+      purchase-service publication require explicit owner direction.
+- [x] Add local webhook/configuration rejection for wrong-mode signed events,
+      replay/backfill, malformed flags and missing mode configuration before KV
+      access. Staging Worker Build passes at `e6fc60c9`; runtime mode read-back
+      and webhook acceptance remain pending.
+- [x] Add a read-only, sanitized Stripe-mode health field for runtime staging
+      verification without exposing credentials or purchase data. Ten mode/signer
+      cases fail first and pass locally; hold the diagnostic push for review.
+- [x] Isolate the lifecycle reconciliation fixture's license store from the real
+      saved sandbox purchase; retain its free-to-Plus assertions.
+- [ ] Ship the verified client/service/site together, then update published help
+      to the new flow. Keep the public sale gate closed until purchase acceptance.
+      `Documentation/plus-activation.md` records boundaries and remaining proof.

@@ -18,10 +18,17 @@ distribution proof.
 - Release app entitlements: Apple Events, App Group, non-sandboxed app, and
   disabled library validation for bundled Sparkle XPC services.
 - Intentionally absent: iCloud container and APS entitlements.
-- App identity: Team ID `39AB9DY3K8`, bundle ID
+- App identity: Team ID `T95VDD3A4W`, bundle ID
   `studio.hypertext.curfew`.
 
 ## Required credentials
+
+Curfew CI uses a dedicated Developer ID Application certificate and Developer-role
+notarization API key for Studio team `T95VDD3A4W`. The six Apple inputs below are
+configured in repository Actions secrets. The protected local backup lives at
+`~/.config/curfew/release-credentials`; keep its files private and transmit secret
+values through stdin. Existing Studio credentials remain active. Successful
+`notarytool history` authentication does not establish artifact notarization.
 
 Use `scripts/release-checklist.md` for the full business/infrastructure setup
 (Stripe, Cloudflare Worker, Sparkle, landing page, Homebrew), and
@@ -132,7 +139,7 @@ xcodebuild archive \
   -archivePath build/Curfew-Release.xcarchive \
   CODE_SIGN_STYLE=Manual \
   CODE_SIGN_IDENTITY='Developer ID Application' \
-  DEVELOPMENT_TEAM=39AB9DY3K8
+  DEVELOPMENT_TEAM=T95VDD3A4W
 
 bash scripts/verify-release-artifact.sh build/release-export/Curfew.app
 ```
@@ -350,11 +357,26 @@ xcrun stapler validate "$APP"
    - archive with Developer ID signing
    - notarize with `notarytool`
    - staple/build the DMG
-   - upload the DMG as a GitHub Release asset
-   - skip Sparkle appcast generation and upload until Sparkle is explicitly
-     provisioned; the initial build has no updater UI
+   - derive the app's Sparkle public key from the retained `SPARKLE_PRIVATE_KEY`
+     seed and verify the exported app embeds that key
+   - generate the signed appcast before publishing the DMG
+   - upload the DMG and appcast as GitHub Release assets
+   - publish the exact feed through the existing Pages publisher and compare
+     its served bytes with the signed release appcast
 5. Download the GitHub Release DMG and repeat the final smoke test above on the
    actual shipped artifact before announcing the release.
+
+The Sparkle seed remains in GitHub Actions. `scripts/sparkle-public-key.mjs`
+accepts the base64-encoded 32-byte seed used by the provisioning script and
+prints only its public key. Missing or malformed material stops the job before
+archiving. Release receives that key as an Xcode build setting; do not copy the
+Debug key or generate a replacement to resolve a placeholder. The published
+RFC 8032 test vector and a signature from the pinned Sparkle binary verify the
+derivation independently of the retained production secret.
+
+Production publication still requires the Cloudflare deployment credential and
+an accepted website destination. The source retains the existing Pages publisher;
+the proposed production website Worker has not been provisioned or cut over.
 
 The pull-request CI workflow also runs on `macos-26` so its test host matches
 Curfew's macOS 26 deployment target; running it on an older macOS image cannot

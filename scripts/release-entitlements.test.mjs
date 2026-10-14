@@ -11,6 +11,7 @@ const screenshotExtractor = await readFile("scripts/extract-screenshots.sh", "ut
 const projectFile = await readFile("Curfew.xcodeproj/project.pbxproj", "utf8");
 const packageManifest = await readFile("CurfewKit/Package.swift", "utf8");
 const homebrewCask = await readFile("Casks/curfew.rb", "utf8");
+const artifactVerifier = await readFile("scripts/verify-release-artifact.sh", "utf8");
 
 function buildConfigurationBlock(id, name) {
   const marker = `\t\t${id} /* ${name} */ = {`;
@@ -36,9 +37,28 @@ test("conservative initial Release keeps only the signed core entitlements", () 
   assert.doesNotMatch(releaseEntitlements, /aps-environment/);
 });
 
+test("Release app, widget and artifact verifier use the verified Studio signing team", () => {
+  for (const id of ["9BD3FBA72F4D4587007B2E95", "C0FE00000000000000000012"]) {
+    assert.match(buildConfigurationBlock(id, "Release"), /DEVELOPMENT_TEAM = T95VDD3A4W;/);
+  }
+  assert.match(artifactVerifier, /EXPECTED_TEAM="T95VDD3A4W"/);
+});
+
 test("release guard inspects the active Curfew Plus verifier", () => {
   assert.match(releaseWorkflow, /configuredPublicKeyBase64/);
   assert.doesNotMatch(releaseWorkflow, /licensePublicKeyBase64/);
+});
+
+test("Release embeds the public key derived from its retained Sparkle signing seed", () => {
+  assert.match(releaseWorkflow, /node scripts\/sparkle-public-key\.mjs/);
+  assert.match(releaseWorkflow, /INFOPLIST_KEY_SUPublicEDKey="\$CURFEW_SPARKLE_PUBLIC_KEY"/);
+  assert.doesNotMatch(releaseWorkflow, /grep -q 'REPLACE_WITH_SPARKLE_PUBLIC_ED_KEY' Curfew\/Info\.plist/);
+});
+
+test("Release generates the signed appcast before publishing the DMG", () => {
+  const generate = releaseWorkflow.indexOf("- name: Generate appcast");
+  const publish = releaseWorkflow.indexOf("- name: Publish signed DMG");
+  assert.ok(generate >= 0 && publish > generate, "an appcast signing failure must stop publication");
 });
 
 test("unprovisioned Sparkle releases upload only the generated DMG", () => {

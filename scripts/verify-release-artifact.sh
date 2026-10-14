@@ -6,7 +6,7 @@ CONTENTS="$APP_PATH/Contents"
 INFO="$CONTENTS/Info.plist"
 EXPECTED_ENTITLEMENTS="Curfew/Curfew-Release.entitlements"
 EXPECTED_FEED="https://curfew.hypertext.studio/appcast.xml"
-EXPECTED_TEAM="39AB9DY3K8"
+EXPECTED_TEAM="T95VDD3A4W"
 
 fail() {
   echo "artifact verification failed: $*" >&2

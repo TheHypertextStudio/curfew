@@ -20,6 +20,16 @@
 	<array>
 		<dict>
 			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>CFBundleURLName</key>
+			<string>studio.hypertext.curfew.purchase</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>$(CURFEW_LICENSE_SCHEME)</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>CFBundleURLName</key>
 			<string>studio.hypertext.curfew.oauth</string>

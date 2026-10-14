@@ -1489,3 +1489,112 @@ changes; rollback restores the prior landing release and docs commit.
 - `Launch instructions match signed app, purchase/provider, and actual hosted behavior.`
   - `Documentation/user-docs-launch.md` — exact-artifact/operator acceptance;
     intentionally pending until observed, not inferred from documentation tests.
+
+## 20. Plus activation and purchase restoration
+
+- `A paid checkout opens Curfew in one click and persists a verified license.`
+  - `web/worker/test/purchase-flow.test.ts`: paid/unpaid webhook boundary,
+    activation ticket exchange/redemption, expiration, no-store responses.
+  - `LicenseActivationTests`: real Ed25519 verification, offline reload,
+    rejection of forged/expired keys, strict build-specific URL parsing, and
+    repeated-callback race (observed failing before the fix).
+  - `landing/tests/acceptance/site.spec.mjs`: primary activation link, manual
+    fallback, delayed delivery, unavailable service, and retry entry point.
+- `Restoration proves purchase-inbox ownership without requiring an account.`
+  - Issuer tests: identical unknown/known inbox responses, delivery link without
+    a license, latest subscription refresh, rate-limit/invalid-email failures,
+    missing email setup, and signed legacy-event index repair.
+    Review regressions cover unrelated-product rejection, actual signed renewal
+    followed by cancellation, and old `curfew-pro` lifetime keys without `plan`.
+    Additional failing-first cases cover metadata-free checkout backfill, prior
+    cancellation repair, Unicode inboxes, and a deliberately delayed older
+    invoice completing after a newer one. All 16 issuer tests pass.
+  - Browser tests: email form, sent state, activation link from fragment,
+    fragment removal and same-document navigation.
+  - `LicenseActivationTests/requestsRestoration`: sending a link does not grant Plus.
+  - `LicenseActivationTests`: failed silent refresh, stale refresh after a newer
+    activation (including the same subscription), and canceled restore completion
+    while a subsequent request remains suspended.
+    `cancelsQueuedActivation` verifies cancellation before task execution sends
+    no redemption request and leaves no progress/error state.
+    `isolatesIssuerEnvironments` checks production/development URL selection and
+    that activation and renewal use the same build-specific issuer.
+    `isolatesIssuerSigningKeys` checks fixed production/development signer pins.
+    `productionLicenseTrustIgnoresEnvironmentOverrides` checks production bundle
+    selection despite the generic flavor resolver accepting a development
+    override, plus the isolated development/Studio Dev bundle identities.
+  - `scripts/license-worker.test.mjs`: opt-in recovery configuration fails closed
+    with missing settings and renders a sender allowlist plus two rate limits.
+  - `CurfewUITests/testPurchaseRestoreAndManualActivationAreReachable`: native
+    restore sheet, empty-field validation, cancellation, and manual-key fallback.
+    CI at `3f12cda` failed to expand the disclosure; the replacement test uses
+    the accessible manual-entry button and checks that its field appears.
+    The later recording shows Expanded with an unnamed field; the fix adds an
+    explicit label/identifier and checks both expansion and identified input.
+    The hosted interaction passed at `8399b8a4` in 12.392 seconds.
+- `The purchase preview has its own host without changing coordinator routes.`
+  - `landing/tests/unit/site-worker.test.mjs`: observed the absent staging route
+    first, then verifies the dedicated hostname, disabled workers.dev/previews,
+    and unchanged production routes.
+- `The issuer exposes its public verification identity without secret material.`
+  - `web/worker/test/purchase-flow.test.ts`: exact public-only health response,
+    issued-envelope verification against that key, and generic 503 for a bad
+    signer. Both assertions failed first; all 18 issuer tests pass.
+- `Actual provider and installed-app behavior matches the new path.`
+  - `Documentation/plus-activation.md`: provider/signer pairing, test checkout,
+    actual sandbox checkout, matching public signer and authenticated restore
+    inbox delivery, actual native Debug checkout/restoration, cold opening and
+    retained entitlement after a fresh process launch are recorded. Owner-clicked
+    signed candidate activation and retained entitlement also pass. The signed
+    native restore form delivered its real email, and the owner-clicked handoff
+    shows active, verified lifetime access in that candidate. Production
+    distribution remains pending.
+  - Authenticated Apple account and downloaded public-certificate metadata
+    establish Studio team `T95VDD3A4W`, its existing signing certificate and
+    notarization key ID. GitHub secret metadata confirms the verified issuer is
+    configured. These checks establish setup metadata, not signing or notarization
+    success; private-file provisioning and team alignment remain unfinished.
+  - The approved CI certificate matches its generated key; `notarytool history`
+    authenticates with the new dedicated key. GitHub secret metadata confirms all
+    six Apple inputs are configured. Artifact notarization remains unverified.
+- `Release signing matches the verified Studio account.`
+  - `scripts/release-entitlements.test.mjs`: app, widget and artifact-verifier
+    identity must match `T95VDD3A4W`; the regression failed before the correction
+    and passes afterward. The twelve release-policy tests pass.
+- `Lifecycle reconciliation tests use an isolated license store.`
+  - `LifecycleWiringTests/licenseActivationReconciles()`: observed failing with
+    the real retained sandbox purchase before injecting the helper's per-test
+    defaults into its license gate. The original free-to-Plus assertions remain.
+- `The release embeds the public half of its retained updater signing key.`
+  - `scripts/sparkle-public-key.test.mjs`: published RFC 8032 seed/public-key
+    vector, malformed/missing inputs, and absence of private material in output.
+    All four cases failed before the helper existed and pass afterward.
+  - `scripts/release-entitlements.test.mjs`: derived key reaches the archive and
+    appcast signing precedes DMG publication; both workflow regressions failed
+    before their corrections. All 57 repository script tests pass.
+  - A signature from the installed pinned Sparkle `sign_update` binary verifies
+    with the derived fixture public key. No production secret was retrieved;
+    execution with the retained GitHub secret and the signed artifact is pending.
+- `Stripe staging and production are explicitly isolated.`
+  - `web/worker/test/purchase-flow.test.ts`: nine guard regressions failed first;
+    live/test mismatches, malformed/missing event flags, invalid/missing runtime
+    configuration and wrong-mode replay are rejected before KV access. A valid
+    live fixture is accepted only with explicit live configuration. All 28 issuer
+    tests and TypeScript checks pass locally.
+  - `scripts/license-worker.test.mjs`: six rendering regressions failed first;
+    required live/test values reach runtime bindings, and missing/invalid or
+    hostname-mismatched selections cannot produce a deployment config. All 61
+    repository script tests pass. Generated Wrangler bindings include the mode.
+  - Provider audit: only the account's shared Test mode environment exists.
+    A separate general sandbox provides full settings isolation, but is optional
+    for the existing checkout/restore integration. Keep shared settings untouched
+    and use test-only payment objects and the staging webhook. The owner
+    stopped live Stripe mutations and production purchase-service rollout;
+    `Documentation/plus-activation.md` records the two prior live metadata edits.
+    Guard source is pushed at `e6fc60c9` with a successful staging Worker Build;
+    deployed runtime mode and provider purchase acceptance remain unverified.
+  - `web/worker/test/purchase-flow.test.ts`: ten health mode/signer combinations
+    failed first and pass with allowlisted `test`/`live` output and sanitized
+    `unconfigured` for missing/invalid bindings. Exact response keys, no-store,
+    unchanged signer HTTP status and absence of KV/email side effects are covered.
+    The diagnostic is local pending review/push; it does not certify payment flow.
