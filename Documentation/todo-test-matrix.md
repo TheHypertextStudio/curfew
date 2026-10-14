@@ -153,6 +153,14 @@ requires the rejection to remain visible until that reconnect. No account
 secret or wire format changes. The installed Mac must still demonstrate a
 fresh online report; an isolated test pass alone is not acceptance.
 
+`AccountLifecycleWiringTests.invalidWakeUpdateKeepsAccountTransportActive` and
+`remoteReleaseWriteFailureKeepsAccountTransportActive` cover non-authentication
+rejections at their actual app-model call sites. Invalid or stale wake data and
+a failed local release write must fail closed for those updates without
+discarding still-valid account credentials, status publication, or inbound
+remote-command delivery. A credential rejection remains a separate terminal
+condition requiring same-account sign-in.
+
 `PrivilegedDaemonWiringTests.displayTickRetriesUnavailableHelper` checks one
 read-only helper status retry from the disarmed display clock and no repeated
 RPC on the next tick. The retry is single-flight, limited to an enabled helper,

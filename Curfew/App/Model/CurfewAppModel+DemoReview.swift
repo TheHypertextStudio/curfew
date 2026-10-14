@@ -25,7 +25,8 @@
                 switch review {
                 case .accountOffline: accountSyncEngine.markOffline()
                 case .accountSignInRequired:
-                    accountSyncEngine.reject(AccountSyncRejectionReason.signInRequired)
+                    accountSyncEngine
+                        .rejectAuthentication(AccountSyncRejectionReason.signInRequired)
                 case .accountUpdateFailed:
                     accountSyncEngine.reject("Rejected stale or invalid wake state.")
                 default: accountSyncEngine.markSynchronized(at: currentTime)

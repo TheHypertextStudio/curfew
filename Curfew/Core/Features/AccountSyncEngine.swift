@@ -103,7 +103,7 @@ final class AccountSyncEngine: ObservableObject {
                 },
                 onFailure: { [weak self] reason in
                     guard let self, lifecycleGeneration == generation else { return }
-                    reject(reason)
+                    rejectAuthentication(reason)
                 }
             )
         )
@@ -177,6 +177,14 @@ final class AccountSyncEngine: ObservableObject {
     }
 
     func reject(_ reason: String) {
+        guard isActive else { return }
+        syncStatus = .rejected(reason)
+    }
+
+    /// Only credential and coordinator-authorization failures terminate the
+    /// transport. A rejected local wake projection or release write must not
+    /// discard otherwise valid account credentials.
+    func rejectAuthentication(_ reason: String) {
         guard isActive else { return }
         lifecycleGeneration += 1
         isActive = false
