@@ -134,18 +134,20 @@ CI, export it, then validate the exported app:
 Prefer the retained CI candidate. For an explicitly authorized local build, the
 owner must supply the existing private seed securely; never retrieve/export a
 GitHub secret, generate a replacement key, or assume a Debug key matches. On the
-exact clean candidate commit, resolve and snapshot the unchanged Release inputs:
+exact clean candidate commit, generate the shared endpoints, then resolve and seal the Release inputs:
 
 ```bash
 mkdir -p release
+node scripts/deployment-config.mjs generate
 SPARKLE_PUBLIC_KEY=$(node scripts/release-candidate.mjs derive-update-key)
 env -u SPARKLE_PRIVATE_KEY xcodebuild -showBuildSettings -json \
   -project Curfew.xcodeproj -scheme Curfew -configuration Release \
   CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
   INFOPLIST_KEY_SUPublicEDKey="$SPARKLE_PUBLIC_KEY" > release/resolved-settings.json
 node scripts/release-candidate.mjs verify-update-key release/resolved-settings.json
-CURFEW_CONFIGURATION_SHA256=$(node scripts/release-configuration.mjs record \
-  release/resolved-settings.json release/release-configuration.json)
+node scripts/release-configuration.mjs record \
+  release/resolved-settings.json release/release-configuration.json > release/release-configuration.sha256
+CURFEW_CONFIGURATION_SHA256=$(node -p "JSON.parse(require('fs').readFileSync('deployment/generated/environment-artifact.json')).sha256")
 ```
 
 ```bash
@@ -167,7 +169,7 @@ bash scripts/verify-release-artifact.sh build/release-export/Curfew.app \
   release/release-configuration.json 0.0.1
 ```
 
-Snapshot existing source/build inputs with `scripts/release-configuration.mjs` at the exact clean candidate commit before archiving. This does not generate or change endpoints.
+Seal the shared endpoint artifact and resolved signing key with `scripts/release-configuration.mjs` at the exact clean candidate commit before archiving. The generator creates deterministic endpoint inputs; the release snapshot records their digests.
 Export with `method=developer-id`, then notarize and staple before verification.
 The candidate job derives the public update key from the existing private seed
 in process memory, passes it explicitly as `INFOPLIST_KEY_SUPublicEDKey`, and
@@ -455,3 +457,5 @@ state as rollback during active enforcement.
 ## Domain migration release
 
 Use the shared endpoint artifact and the pinned cf build/deployment commands in `domain-migration.md`. Protocol 0.0.13 is the domain-independent contract. A signed native release, verified callback associations, provider registrations, account recovery audit and production acceptance remain required; local unsigned builds do not satisfy them.
+
+The domain migration uses the shared endpoint artifact for native and backend configuration identity. The retained release snapshot additionally binds the resolved Sparkle public key and source digests; it does not substitute its own hash for the endpoint identity. See `domain-migration.md` for preparation, activation and rollback requirements.
