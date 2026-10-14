@@ -43,6 +43,8 @@
   Adversarial review added fail-closed cleanup of job-owned signing material
   before an immutable artifact action. A synthetic-file regression failed first
   for missing cleanup, then verified actual removal and Keychain-failure handling.
+  Keep the Developer ID certificate import after unsigned quality checks and
+  before archive, so test dependencies cannot access the signing keychain.
 
 ## Daybreak test-window lifecycle (2026-10-13)
 

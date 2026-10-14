@@ -49,24 +49,6 @@ jobs:
       - name: Install tools
         run: brew install create-dmg swiftlint swiftformat just
 
-      - name: Import Developer ID certificate
-        env:
-          CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE }}
-          CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-        run: |
-          KEYCHAIN_PATH=$RUNNER_TEMP/signing.keychain-db
-          security create-keychain -p "" "$KEYCHAIN_PATH"
-          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
-          security unlock-keychain -p "" "$KEYCHAIN_PATH"
-          echo "$CERTIFICATE_BASE64" | base64 --decode > "$RUNNER_TEMP/certificate.p12"
-          security import "$RUNNER_TEMP/certificate.p12" \
-            -k "$KEYCHAIN_PATH" \
-            -P "$CERTIFICATE_PASSWORD" \
-            -T /usr/bin/codesign \
-            -T /usr/bin/productbuild
-          security list-keychains -d user -s "$KEYCHAIN_PATH"
-          security set-key-partition-list -S apple-tool:,apple: -s -k "" "$KEYCHAIN_PATH"
-
       - name: Reject placeholder license public key
         # Refuses to release if LicenseGate.swift still embeds the all-zero
         # placeholder in the ACTIVE `configuredPublicKeyBase64` constant. Without
@@ -100,6 +82,24 @@ jobs:
         env:
           CURFEW_XCODEBUILD_SETTINGS: "CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO"
         run: just check
+
+      - name: Import Developer ID certificate
+        env:
+          CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE }}
+          CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          KEYCHAIN_PATH=$RUNNER_TEMP/signing.keychain-db
+          security create-keychain -p "" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "" "$KEYCHAIN_PATH"
+          echo "$CERTIFICATE_BASE64" | base64 --decode > "$RUNNER_TEMP/certificate.p12"
+          security import "$RUNNER_TEMP/certificate.p12" \
+            -k "$KEYCHAIN_PATH" \
+            -P "$CERTIFICATE_PASSWORD" \
+            -T /usr/bin/codesign \
+            -T /usr/bin/productbuild
+          security list-keychains -d user -s "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple: -s -k "" "$KEYCHAIN_PATH"
 
       - name: Archive
         run: |

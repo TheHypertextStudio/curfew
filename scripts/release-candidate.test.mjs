@@ -108,6 +108,47 @@ test("candidate quality gate is unsigned without weakening the Release archive",
   );
 });
 
+test("unsigned quality checks finish before Developer ID material is imported", () => {
+  const workflow = JSON.parse(
+    execFileSync(
+      "ruby",
+      [
+        "-rjson",
+        "-ryaml",
+        "-e",
+        "puts JSON.generate(YAML.load_file(ARGV[0]))",
+        ".github/workflows/release.yml",
+      ],
+      { encoding: "utf8" },
+    ),
+  );
+  const steps = workflow.jobs.release.steps;
+  const qualityIndex = steps.findIndex((step) => step.name === "Run quality gate");
+  const importIndex = steps.findIndex(
+    (step) => step.name === "Import Developer ID certificate",
+  );
+  const archiveIndex = steps.findIndex((step) => step.name === "Archive");
+  assert.ok(qualityIndex >= 0 && importIndex >= 0 && archiveIndex >= 0);
+  assert.ok(
+    qualityIndex < importIndex && importIndex < archiveIndex,
+    "unsigned quality checks must finish before the signing keychain is created",
+  );
+  assert.doesNotMatch(
+    JSON.stringify(workflow.jobs.release.env || {}),
+    /secrets\.APPLE_CERTIFICATE(?:_PASSWORD)?/,
+  );
+  for (const step of steps.slice(0, qualityIndex + 1)) {
+    assert.doesNotMatch(
+      JSON.stringify(step.env || {}),
+      /secrets\.APPLE_CERTIFICATE(?:_PASSWORD)?/,
+    );
+    assert.doesNotMatch(
+      step.run || "",
+      /\bsecurity\s+(?:create-keychain|import|set-key-partition-list)\b/,
+    );
+  }
+});
+
 test("public candidate retention requires explicit exposure approval before signing", () => {
   const workflow = JSON.parse(
     execFileSync(
