@@ -267,6 +267,7 @@ struct LifecycleWiringTests {
             appRouter: AppRouterSpy(),
             featureFlags: featureFlags,
             activityRecorder: activityRecorder,
+            licenseGate: LicenseGate(defaults: defaults),
             cloudKitSyncEngine: cloudKitSyncEngine,
             accountSyncEngine: accountSyncEngine,
             privilegedHelperManager: privilegedHelperManager,

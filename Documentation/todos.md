@@ -1266,9 +1266,11 @@ asserts its own screen and state before attaching an image.
       handoff shows active, verified lifetime access in the exact candidate.
 - [-] Configure the GitHub production release path. Known team/account IDs are
       saved; the authenticated Studio notarization issuer is now configured.
-      Studio's signing team differs from Release's current team. Dedicated CI
-      signing/notarization creation and the team correction await confirmation;
-      no matching private files were found locally. Deployment-token setup remains.
+      Approved dedicated Apple signing/notarization credentials are configured;
+      Release app/widget/verifier now use the verified Studio team. Deployment-token
+      setup, Sparkle pair verification and the Workers appcast path remain.
+- [x] Isolate the lifecycle reconciliation fixture's license store from the real
+      saved sandbox purchase; retain its free-to-Plus assertions.
 - [ ] Ship the verified client/service/site together, then update published help
       to the new flow. Keep the public sale gate closed until purchase acceptance.
       `Documentation/plus-activation.md` records boundaries and remaining proof.

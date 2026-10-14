@@ -18,10 +18,17 @@ distribution proof.
 - Release app entitlements: Apple Events, App Group, non-sandboxed app, and
   disabled library validation for bundled Sparkle XPC services.
 - Intentionally absent: iCloud container and APS entitlements.
-- App identity: Team ID `39AB9DY3K8`, bundle ID
+- App identity: Team ID `T95VDD3A4W`, bundle ID
   `studio.hypertext.curfew`.
 
 ## Required credentials
+
+Curfew CI uses a dedicated Developer ID Application certificate and Developer-role
+notarization API key for Studio team `T95VDD3A4W`. The six Apple inputs below are
+configured in repository Actions secrets. The protected local backup lives at
+`~/.config/curfew/release-credentials`; keep its files private and transmit secret
+values through stdin. Existing Studio credentials remain active. Successful
+`notarytool history` authentication does not establish artifact notarization.
 
 Use `scripts/release-checklist.md` for the full business/infrastructure setup
 (Stripe, Cloudflare Worker, Sparkle, landing page, Homebrew), and
@@ -132,7 +139,7 @@ xcodebuild archive \
   -archivePath build/Curfew-Release.xcarchive \
   CODE_SIGN_STYLE=Manual \
   CODE_SIGN_IDENTITY='Developer ID Application' \
-  DEVELOPMENT_TEAM=39AB9DY3K8
+  DEVELOPMENT_TEAM=T95VDD3A4W
 
 bash scripts/verify-release-artifact.sh build/release-export/Curfew.app
 ```
