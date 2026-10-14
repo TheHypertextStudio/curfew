@@ -1021,6 +1021,7 @@ tests cannot read or mutate a user's App Group lockout record.
   - `DaemonCommandBackendTests/remoteBackendOwnsTransportAndDeadline()`
   - `DaemonCommandBackendTests/backendSetIsolatesFailures()`
   - `DaemonCommandBackendTests/synchronizationFailurePreservesDurableDeadline()`
+  - `DaemonCommandBackendReadTests/releasedLocalDeadlinePreservesRemote()` (headless package test; read-only composition never synchronizes transports)
   - `DaemonLockoutDeadlineResolverTests`
   - `AccountLifecycleWiringTests/authenticatedRemoteResultPresentsLockout()`
   - `swift build --product curfew-daemon`

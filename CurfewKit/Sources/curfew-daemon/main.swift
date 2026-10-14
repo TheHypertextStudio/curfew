@@ -62,27 +62,29 @@ private let localBackend = DaemonLocalCommandBackend(
     userStore: LockoutDeadlineStore(recordURL: SharedPaths.lockoutDeadline),
     shadowStore: LockoutDeadlineStore(recordURL: SharedPaths.lockoutDeadlineShadow)
 )
-private let commandBackends = DaemonCommandBackendSet(backends: [
-    DaemonRemoteMCPBackend(
-        commandProcessor: DaemonRemoteCommandBackend(
-            enrollmentStore: RemoteCommandEnrollmentStore(
-                recordURL: SharedPaths.remoteCommandEnrollment
-            ),
-            inboxStore: RemoteCommandInboxStore(
-                directoryURL: SharedPaths.remoteCommandInbox
-            ),
-            stateStore: remoteCommandStateStore,
-            jwksProvider: HTTPRemoteCommandJWKSProvider(endpoint: remoteCommandJWKSURL),
-            enforcementAllowed: { studioDevMayApplyCommand() }
+private let remoteBackend = DaemonRemoteMCPBackend(
+    commandProcessor: DaemonRemoteCommandBackend(
+        enrollmentStore: RemoteCommandEnrollmentStore(
+            recordURL: SharedPaths.remoteCommandEnrollment
+        ),
+        inboxStore: RemoteCommandInboxStore(
+            directoryURL: SharedPaths.remoteCommandInbox
         ),
         stateStore: remoteCommandStateStore,
-        resultExchange: RemoteCommandResultExchangeStore(
-            resultsURL: SharedPaths.remoteCommandResults,
-            acknowledgementsDirectoryURL: SharedPaths.remoteCommandResultAcknowledgements,
-            requiredDirectoryOwnerUserID: 0
-        )
+        jwksProvider: HTTPRemoteCommandJWKSProvider(endpoint: remoteCommandJWKSURL),
+        enforcementAllowed: { studioDevMayApplyCommand() }
+    ),
+    stateStore: remoteCommandStateStore,
+    resultExchange: RemoteCommandResultExchangeStore(
+        resultsURL: SharedPaths.remoteCommandResults,
+        acknowledgementsDirectoryURL: SharedPaths.remoteCommandResultAcknowledgements,
+        requiredDirectoryOwnerUserID: 0
     )
-])
+)
+// Remote discovery runs on its own queue. Local shadow mirroring must remain
+// on the serialized status path rather than race that queue's file writes.
+private let discoveryBackends = DaemonCommandBackendSet(backends: [remoteBackend])
+private let commandBackends = DaemonCommandBackendSet(backends: [localBackend, remoteBackend])
 
 /// Removes the shadow copy. Called after the deadline naturally elapses
 /// so the next launch starts clean.
@@ -261,7 +263,7 @@ private let observer = DaemonAuditObserver(auditLog: .shared)
 var runtime = DaemonEnforcementRuntime(auditLog: .shared)
 
 private func discoverRemoteCommands() {
-    let backendSnapshot = commandBackends.synchronize(at: Date())
+    let backendSnapshot = discoveryBackends.synchronize(at: Date())
     for receipt in backendSnapshot.receipts {
         daemonLogger.notice(
             "remote command \(receipt.result.commandID, privacy: .public) resolved as \(receipt.result.stage.rawValue, privacy: .public)"
@@ -279,9 +281,9 @@ private func externalDeadline(
     now: Date
 ) -> LockoutDeadlineRecord? {
     _ = try? localBackend.synchronize(at: now)
-    let local = control.activeLocalCandidate(try? localBackend.activeDeadline(at: now), now: now)
-    let remote = try? remoteCommandStateStore.load().activeLockout
-    return DaemonLockoutDeadlineResolver.resolve(now: now, user: local, shadow: nil, remote: remote)
+    return commandBackends.activeDeadline(at: now) { candidate in
+        control.activeLocalCandidate(candidate, now: now)
+    }.deadline
 }
 
 private func evaluatePolicy(
