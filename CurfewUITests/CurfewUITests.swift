@@ -132,7 +132,9 @@ final class CurfewUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Choose when your Mac locks and unlocks."]
             .waitForExistence(timeout: 3))
         XCTAssertFalse(app.buttons["Next"].isEnabled)
-        XCTAssertTrue(app.buttons["Open Schedule"].exists)
+        XCTAssertTrue(app.buttons["Edit weekly schedule"].exists)
+        XCTAssertTrue(app.buttons["I've reviewed these seven days — use this weekly schedule"]
+            .exists)
     }
 
     @MainActor
