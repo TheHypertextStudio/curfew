@@ -13,10 +13,11 @@ export default {
     const url = new URL(request.url);
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: json(null).headers });
     if (request.method === "GET" && url.pathname === "/health") {
+      const stripeMode = env.STRIPE_MODE === "test" || env.STRIPE_MODE === "live" ? env.STRIPE_MODE : "unconfigured";
       try {
-        return json({ status: "ok", envelope_version: 2, public_key: await licensePublicKey(env.LICENSE_PRIVATE_KEY) });
+        return json({ status: "ok", envelope_version: 2, public_key: await licensePublicKey(env.LICENSE_PRIVATE_KEY), stripe_mode: stripeMode });
       } catch {
-        return json({ error: "License signing is not configured" }, 503);
+        return json({ error: "License signing is not configured", stripe_mode: stripeMode }, 503);
       }
     }
     if (request.method === "GET" && url.pathname === "/license") return getLicense(url, env, "session_id", "session");

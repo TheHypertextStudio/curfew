@@ -1591,4 +1591,10 @@ changes; rollback restores the prior landing release and docs commit.
     and use test-only payment objects and the staging webhook. The owner
     stopped live Stripe mutations and production purchase-service rollout;
     `Documentation/plus-activation.md` records the two prior live metadata edits.
-    The new guard remains local, unpushed and undeployed pending provider setup.
+    Guard source is pushed at `e6fc60c9` with a successful staging Worker Build;
+    deployed runtime mode and provider purchase acceptance remain unverified.
+  - `web/worker/test/purchase-flow.test.ts`: ten health mode/signer combinations
+    failed first and pass with allowlisted `test`/`live` output and sanitized
+    `unconfigured` for missing/invalid bindings. Exact response keys, no-store,
+    unchanged signer HTTP status and absence of KV/email side effects are covered.
+    The diagnostic is local pending review/push; it does not certify payment flow.

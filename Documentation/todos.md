@@ -1324,7 +1324,11 @@ asserts its own screen and state before attaching an image.
       purchase-service publication require explicit owner direction.
 - [x] Add local webhook/configuration rejection for wrong-mode signed events,
       replay/backfill, malformed flags and missing mode configuration before KV
-      access. Keep the source local pending staging binding and webhook review.
+      access. Staging Worker Build passes at `e6fc60c9`; runtime mode read-back
+      and webhook acceptance remain pending.
+- [x] Add a read-only, sanitized Stripe-mode health field for runtime staging
+      verification without exposing credentials or purchase data. Ten mode/signer
+      cases fail first and pass locally; hold the diagnostic push for review.
 - [x] Isolate the lifecycle reconciliation fixture's license store from the real
       saved sandbox purchase; retain its free-to-Plus assertions.
 - [ ] Ship the verified client/service/site together, then update published help
