@@ -702,8 +702,13 @@ tests cannot read or mutate a user's App Group lockout record.
 - `Build first-run flow: welcome, schedule, extension budget, permissions, confirmation.`
   - `FirstRunFlowTests/requiredSteps()`
   - `FirstRunFlowTests/navigationBounds()`
+  - `FirstRunSafetyFlowTests/reviewedWeeklyChoiceAdvances()` verifies the
+    seven-rule acknowledgement and weekly choice are one state transition.
+  - `MarketingCaptureTests/testCaptureWorkspaceMatrix()` checks the selected
+    confirmation appears before Next advances to the next setup step.
   - `SetupUXTests/completeOnboardingFlowUpdatesState()`
-- `Onboarding completion now requires opening live schedule settings and acknowledging permissions guidance before finish.`
+- `Onboarding completion requires acknowledging all seven effective weekly rules
+  or choosing remote-only mode, plus the existing permissions gate before finish.`
   - `FirstRunFlowTests/scheduleStepRequiresReview()`
   - `FirstRunFlowTests/permissionsStepRequiresAcknowledgement()`
   - `OnboardingConfirmationRequirementTests/confirmationRequirementsTrackOutstandingSteps()`

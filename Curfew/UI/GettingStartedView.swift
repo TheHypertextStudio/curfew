@@ -123,8 +123,7 @@ struct GettingStartedView: View {
                     .foregroundStyle(CurfewTheme.ink)
             }
             Button("I've reviewed these seven days — use this weekly schedule") {
-                flow.markScheduleReviewed()
-                flow.chooseSchedule(.weeklySchedule)
+                flow.chooseReviewedWeeklySchedule()
             }
             .buttonStyle(CurfewSecondaryButtonStyle())
 

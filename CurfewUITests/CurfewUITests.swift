@@ -135,6 +135,14 @@ final class CurfewUITests: XCTestCase {
         XCTAssertTrue(app.buttons["Edit weekly schedule"].exists)
         XCTAssertTrue(app.buttons["I've reviewed these seven days — use this weekly schedule"]
             .exists)
+        app.buttons["I've reviewed these seven days — use this weekly schedule"].click()
+        XCTAssertTrue(app.staticTexts.containing(NSPredicate(
+            format: "label CONTAINS %@",
+            "Weekly lockouts selected."
+        )).firstMatch.waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["Next"].isEnabled)
+        app.buttons["Next"].click()
+        XCTAssertTrue(app.staticTexts["Step 3 of 5"].waitForExistence(timeout: 3))
     }
 
     @MainActor

@@ -16,6 +16,19 @@ struct FirstRunSafetyFlowTests {
         #expect(flow.currentStep == .schedule)
     }
 
+    @Test("Reviewing seven rules and choosing the weekly schedule is one transition")
+    func reviewedWeeklyChoiceAdvances() {
+        var flow = FirstRunFlow()
+        flow.advance()
+
+        flow.chooseReviewedWeeklySchedule()
+
+        #expect(flow.scheduleChoice == .weeklySchedule)
+        #expect(flow.canAdvance)
+        flow.advance()
+        #expect(flow.currentStep == .extensionBudget)
+    }
+
     @Test("Remote-only setup can be explicitly selected without a weekly schedule")
     func remoteOnlyChoiceAdvancesWithoutScheduleReview() {
         var flow = FirstRunFlow()
