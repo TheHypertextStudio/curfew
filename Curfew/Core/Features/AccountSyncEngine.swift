@@ -72,6 +72,16 @@ final class AccountSyncEngine: ObservableObject {
         start(enrollment: enrollment)
     }
 
+    /// A server-side access denial stays terminal until the owner explicitly
+    /// asks Curfew to check the same saved enrollment again. The coordinator
+    /// still decides whether that enrollment has access.
+    func retryAfterAccessReview(enrollment: AccountDeviceEnrollment) async {
+        guard case .rejected(AccountSyncRejectionReason.accessDenied) = syncStatus,
+              requiresAuthentication
+        else { return }
+        await reconnectAfterAuthentication(enrollment: enrollment)
+    }
+
     func start(enrollment: AccountDeviceEnrollment) {
         guard !isActive, !isMaintenancePaused, !requiresAuthentication else { return }
         lifecycleGeneration += 1

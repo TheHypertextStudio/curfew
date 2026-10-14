@@ -88,6 +88,18 @@ extension SettingsView {
                     }
                 }
             }
+            if case .rejected(AccountSyncRejectionReason.accessDenied) =
+                model.accountSyncEngine.syncStatus {
+                Button("Retry account connection") {
+                    if let enrollment = model.settings.accountSync.enrollment {
+                        Task {
+                            await model.accountSyncEngine
+                                .retryAfterAccessReview(enrollment: enrollment)
+                        }
+                    }
+                }
+                .buttonStyle(CurfewSecondaryButtonStyle())
+            }
             openAccountButton
         } else {
             switch accountEnrollment.state {

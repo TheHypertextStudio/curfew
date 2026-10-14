@@ -75,6 +75,41 @@ final class AccountStatusSyncTests: XCTestCase {
         XCTAssertEqual(transport.statuses.map(\.report), [report])
     }
 
+    func testAccessDeniedRequiresManualReviewBeforeRetryingSavedEnrollment() async {
+        let transport = RecordingAccountSyncTransport()
+        let engine = AccountSyncEngine(transport: transport)
+        let enrollment = AccountDeviceEnrollment(deviceID: UUID(), keyEpoch: 1, enrolledAt: Date())
+        engine.start(enrollment: enrollment)
+        engine.noteLocalSettingsChanged()
+        transport.sendRejected(AccountSyncRejectionReason.accessDenied)
+
+        engine.start(enrollment: enrollment)
+        XCTAssertFalse(engine.isActive)
+        XCTAssertEqual(transport.connectionCount, 1)
+
+        await engine.retryAfterAccessReview(enrollment: enrollment)
+
+        XCTAssertTrue(engine.isActive)
+        XCTAssertEqual(transport.connectionCount, 2)
+        XCTAssertEqual(engine.syncStatus, .connecting)
+        transport.sendSuccessfulPoll(at: Date())
+        XCTAssertEqual(engine.syncStatus, .pendingEncryption)
+    }
+
+    func testAccessReviewCannotBypassRequiredSameAccountSignIn() async {
+        let transport = RecordingAccountSyncTransport()
+        let engine = AccountSyncEngine(transport: transport)
+        let enrollment = AccountDeviceEnrollment(deviceID: UUID(), keyEpoch: 1, enrolledAt: Date())
+        engine.start(enrollment: enrollment)
+        transport.sendRejected(AccountSyncRejectionReason.signInRequired)
+
+        await engine.retryAfterAccessReview(enrollment: enrollment)
+
+        XCTAssertFalse(engine.isActive)
+        XCTAssertEqual(transport.connectionCount, 1)
+        XCTAssertEqual(engine.syncStatus, .rejected(AccountSyncRejectionReason.signInRequired))
+    }
+
     func testAccountSyncPublishesStatusThroughTheEnrolledTransport() throws {
         let deviceID = try XCTUnwrap(
             UUID(uuidString: "018f4f45-cafe-7f00-9a82-e47805fb4d35")

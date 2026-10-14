@@ -153,6 +153,15 @@ requires the rejection to remain visible until that reconnect. No account
 secret or wire format changes. The installed Mac must still demonstrate a
 fresh online report; an isolated test pass alone is not acceptance.
 
+`AccountStatusSyncTests.testAccessDeniedRequiresManualReviewBeforeRetryingSavedEnrollment`
+checks that ordinary startup cannot resume a coordinator-denied device, while
+an explicit retry can recheck the existing enrollment and retain encrypted
+pending changes. `testAccessReviewCannotBypassRequiredSameAccountSignIn`
+keeps that retry from clearing a missing-credential rejection. The account
+status copy directs the owner to restore access first. Hosted app tests and
+the signed installed Mac still need to confirm the visible recovery action;
+these tests do not grant device access or exercise remote locks.
+
 `AccountLifecycleWiringTests.invalidWakeUpdateKeepsAccountTransportActive` and
 `remoteReleaseWriteFailureKeepsAccountTransportActive` cover non-authentication
 rejections at their actual app-model call sites. Invalid or stale wake data and

@@ -87,6 +87,11 @@
   without terminating otherwise valid credentials. This prevents a completed
   browser sign-in from appearing to reconnect a Mac while its status channel
   remains stopped, without turning local update errors into sign-in loops.
+- [-] Keep coordinator access denial terminal until the owner reviews this
+  Mac’s access and explicitly retries its saved enrollment. Settings offers
+  that retry without opening sign-in or registering a new device; the
+  coordinator must still authorize it. Confirm the installed app’s recovery
+  path before marking this complete. No credential or wire format changes.
 - [-] Retry an unavailable or stale privileged-helper status channel from the
   display clock, at most once per 30 seconds and only while the registered
   helper is enabled. The read-only check must not arm enforcement, prompt for
