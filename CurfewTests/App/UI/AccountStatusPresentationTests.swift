@@ -14,9 +14,10 @@ struct AccountStatusPresentationTests {
             #expect(!presentation.detail.contains("removed"))
             #expect(presentation.detail.contains("schedule is unchanged"))
         }
-        #expect(AccountConnectionPresentation
+        let denied = AccountConnectionPresentation
             .resolve(.rejected(AccountSyncRejectionReason.accessDenied))
-            .title == "Check this Mac’s account access")
+        #expect(denied.title == "Check this Mac’s account access")
+        #expect(denied.detail.contains("retry the connection if access is restored"))
     }
 
     @Test("Hidden background protection never directs users to its missing settings")
