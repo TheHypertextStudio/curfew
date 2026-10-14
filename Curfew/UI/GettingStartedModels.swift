@@ -195,6 +195,7 @@ struct FirstRunFlow {
     /// previous `true` re-closes the gate, so a revoked permission can never
     /// leave the user advancing on a stale "granted" reading.
     mutating func updateAccessibilityGranted(_ granted: Bool) {
+        guard isAccessibilityGranted != granted else { return }
         isAccessibilityGranted = granted
     }
 

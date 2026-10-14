@@ -105,10 +105,16 @@ final class MarketingCaptureTests: XCTestCase {
                     if scenario == "getting-started" {
                         for step in 1 ... 4 {
                             if step == 2 {
-                                app.buttons["Edit weekly schedule"].click()
-                                app.typeKey("w", modifierFlags: .command)
+                                XCTAssertTrue(app.buttons["Edit weekly schedule"].isHittable)
                                 let reviewLabel =
                                     "I've reviewed these seven days — use this weekly schedule"
+                                XCTAssertTrue(app.buttons[reviewLabel].isHittable)
+                                XCTAssertTrue(app.buttons[
+                                    "No automatic schedule — remote controls only"
+                                ].isHittable)
+                                app.buttons["Edit weekly schedule"].click()
+                                app.typeKey("w", modifierFlags: .command)
+                                XCTAssertTrue(app.buttons[reviewLabel].isHittable)
                                 app.buttons[reviewLabel].click()
                                 assertText("Weekly lockouts selected.", in: app)
                             }

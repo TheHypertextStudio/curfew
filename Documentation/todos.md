@@ -234,6 +234,7 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 - [x] Propose 22:00–06:00 on weekdays for a new install without rewriting saved schedules. Edits apply immediately while automatic scheduling is off; automatic lockouts require an explicit weekly-schedule choice before setup finishes.
 - [x] Keep previously completed Studio Dev installs remote-only until they explicitly enable their saved weekly schedule. Show all seven effective rules and require separate confirmation if arming may lock now or within a minute; preserve active durable deadlines and authorized fixed-duration remote locks. App Intents, the local schedule tool, and the CLI must report observed enforcement and the inactive automatic schedule accurately.
 - [x] Make onboarding's reviewed-weekly-schedule selection one state transition so the choice reliably enables Next after viewing the saved rules; the remote-only choice remains available.
+- [x] Keep all seven effective rules and both automatic-schedule choices visible and clickable in the minimum first-run window; show the selected choice before Next advances.
 - [x] Implement schedule presets: 9-to-5, Startup Hours, Half Day.
 - [x] Enforce anti-bypass policy — stricter changes apply next day; weaker require 24-hour cooldown.
 - [x] Add DST-safe local timezone handling and schedule resolution tests.

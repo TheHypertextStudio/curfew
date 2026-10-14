@@ -705,7 +705,10 @@ tests cannot read or mutate a user's App Group lockout record.
   - `FirstRunSafetyFlowTests/reviewedWeeklyChoiceAdvances()` verifies the
     seven-rule acknowledgement and weekly choice are one state transition.
   - `MarketingCaptureTests/testCaptureWorkspaceMatrix()` checks the selected
-    confirmation appears before Next advances to the next setup step.
+    confirmation appears before Next advances to the next setup step, and both
+    choices remain hittable after opening the live schedule editor.
+  - `CurfewUITests/testSetupUsesOneInstructionAndPreservesScheduleGate()` checks
+    all seven rules and both choices are hittable at minimum window size.
   - `SetupUXTests/completeOnboardingFlowUpdatesState()`
 - `Onboarding completion requires acknowledging all seven effective weekly rules
   or choosing remote-only mode, plus the existing permissions gate before finish.`
