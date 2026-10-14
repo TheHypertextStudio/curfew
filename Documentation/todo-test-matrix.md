@@ -1855,3 +1855,11 @@ changes; rollback restores the prior landing release and docs commit.
   - A signature from the installed pinned Sparkle `sign_update` binary verifies
     with the derived fixture public key. No production secret was retrieved;
     execution with the retained GitHub secret and the signed artifact is pending.
+- `Stripe staging and production are explicitly isolated.`
+  - Pending: expected webhook `livemode` rejection tests before KV reads/writes,
+    including event-replay backfill. Separate signatures and license stores
+    currently exist; the explicit mode guard is absent.
+  - Provider audit: only the account's shared Test mode environment exists.
+    Full settings isolation requires an empty private general sandbox. The owner
+    stopped live Stripe mutations and production purchase-service rollout;
+    `Documentation/plus-activation.md` records the two prior live metadata edits.
