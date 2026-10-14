@@ -76,6 +76,12 @@
 
 ## Renewed account connection handoff (2026-10-12)
 
+- [x] Keep revoked refresh credentials distinct from temporary offline status.
+  The native transport regression waits for the terminal sign-in-required
+  callback before checking that no offline callback follows; its bounded wait
+  is a deadlock guard, not an OAuth latency requirement. This changes only test
+  synchronization, not credential handling or installed-app behavior.
+
 - [x] Resume the native transport after successful same-account reauthentication.
   The previous flow persisted credentials but left the rejected transport stopped
   and the engine active, so another ordinary start was ignored. Reauthentication

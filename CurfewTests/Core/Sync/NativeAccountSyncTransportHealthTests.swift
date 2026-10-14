@@ -117,7 +117,9 @@ extension NativeAccountSyncTransportTests {
             )
         )
 
-        await fulfillment(of: [rejected, offline], timeout: 0.2)
+        // Wait for the terminal auth result, not a 200 ms network/scheduler budget.
+        await fulfillment(of: [rejected], timeout: 3)
+        await fulfillment(of: [offline], timeout: 0.2)
         await transport.disconnectAndWaitForPendingOperations()
     }
 
