@@ -16,7 +16,7 @@ A change to a wire-format shape (MCP tool argument schemas, the `MCPPendingReque
 
 1. **`curfew-protocols`** — edit schema, run `pnpm codegen`, contract tests, bump to the next `0.0.x` version, tag, and publish once to GitHub Packages.
 2. **`curfew-sync`** — bump `@thehypertextstudio/curfew-protocols` in `package.json`, update consuming code, and deploy with GitHub Packages read credentials.
-3. **`curfew`** (this repo) — bump the exact SPM tag in `Package.swift` (currently `0.0.8`), update consuming Swift code, and ship in the next macOS release.
+3. **`curfew`** (this repo) — bump the exact SPM tag in `Package.swift`, update consuming Swift code, and ship in the next macOS release.
 
 Do not invent new shapes in this repo. If a shape needs to exist on the wire (anything the local app sends to or receives from a remote AI host or the coordinator), it goes through `curfew-protocols` first.
 

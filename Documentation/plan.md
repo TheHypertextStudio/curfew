@@ -737,16 +737,19 @@ If the user also has calendar, task management (Linear, Todoist), and communicat
 ### CI/CD Pipeline (GitHub Actions)
 
 ```
-Push tag (v1.0.0)
-  → Build universal binary (Xcode, xcodebuild)
-  → Sign with Developer ID (via Keychain on runner)
-  → Create .dmg (create-dmg)
-  → Notarize (notarytool submit, notarytool wait)
-  → Staple (stapler staple)
-  → Generate Sparkle appcast entry (generate_appcast)
-  → Upload to GitHub Releases
-  → Update Homebrew Cask formula (PR to homebrew-cask)
+Push a 0.0.x candidate tag after approving artifact retention
+  → Run the unsigned quality gate
+  → Build and sign the app with Hypertext Studio Developer ID
+  → Notarize and staple the app and signed .dmg
+  → Generate a signed Sparkle appcast
+  → Retain the exact candidate bytes in GitHub Actions for 30 days
+  → Verify the installed candidate, provider, updater, and recovery behavior
+  → Activate a public release, feed, site, and Homebrew update separately
 ```
+
+A candidate tag does not publish a GitHub Release or update the live feed, site,
+or Homebrew cask. See `Documentation/RELEASE.md` for the activation gates and
+withdrawal procedure.
 
 ### Uninstallation
 
