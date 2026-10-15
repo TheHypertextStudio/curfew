@@ -169,7 +169,7 @@ test('legal notices and history remain usable on narrow screens', async ({ page 
       await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
     ).toBe(true);
     await page.goto('/retention');
-    await page.getByText('Short-lived browser review data').click();
+    await page.locator('details summary').click();
     await expect(page.locator('details')).toHaveAttribute('open', '');
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
