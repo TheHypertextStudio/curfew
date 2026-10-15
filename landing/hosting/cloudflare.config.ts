@@ -1,4 +1,5 @@
 import { bindings, defineConfig } from 'cf/config';
+import deployment from '../../deployment/generated/environments.mjs';
 
 export default defineConfig((ctx) => {
   switch (ctx.mode) {
@@ -17,6 +18,7 @@ export default defineConfig((ctx) => {
             runWorkerFirst: true,
           },
           env: {
+            ACCOUNT_PORTAL: bindings.text(deployment.staging.accountPortal),
             DOCS_MODE: bindings.text('mintlify'),
             DOCS_UPSTREAM: bindings.text('https://curfew.mintlify.site'),
             ASSETS: bindings.assets(),
@@ -39,6 +41,9 @@ export default defineConfig((ctx) => {
             runWorkerFirst: true,
           },
           env: {
+            ACCOUNT_PORTAL: bindings.text(
+              new URL('/account', deployment.production.legacySiteOrigin).href,
+            ),
             DOCS_MODE: bindings.text('html-guide'),
             DOCS_UPSTREAM: bindings.text('https://curfew.mintlify.site'),
             ASSETS: bindings.assets(),

@@ -1,12 +1,24 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import worker, { docsTarget } from '../../worker.mjs';
+import deployment from '../../../deployment/generated/environments.mjs';
 
 const env = {
   ASSETS: { fetch: async () => new Response('retained HTML guide', { status: 200 }) },
   DOCS_MODE: 'html-guide',
   DOCS_UPSTREAM: 'https://curfew.mintlify.site',
 };
+
+test('account entry cannot redirect to itself if site and portal routes overlap', async () => {
+  const portal = deployment.staging.accountPortal;
+  const response = await worker.fetch(new Request(portal), {
+    ...env,
+    ACCOUNT_PORTAL: portal,
+  });
+  assert.equal(response.status, 503);
+  assert.equal(response.headers.get('location'), null);
+  assert.equal(response.headers.get('cache-control'), 'no-store');
+});
 
 test('unconnected Mintlify retains the HTML guide and never calls an upstream', async () => {
   const response = await worker.fetch(new Request('https://preview.invalid/docs?query=one'), env);

@@ -1702,6 +1702,13 @@ changes; rollback restores the prior landing release and docs commit.
   `_routes.json`, while the native `.assetsignore` excludes them from Static
   Assets. Run the existing Pages middleware build followed by native staging
   `cf build` and `cf deploy --prebuilt --dry-run` to validate that exact layout.
+- Account navigation: hosted marketing `/account` must return a noncached 302
+  to the existing staging portal. Account subpaths, query-bearing callbacks,
+  POST bodies and Authorization-bearing requests must not use this handoff.
+  `landing/tests/unit/site-worker.test.mjs` verifies that overlapping site and
+  portal host configuration returns a noncached 503 without a redirect loop.
+  Accept the destination's actual sign-in delivery separately; the marketing
+  Worker does not own account sessions or API behavior.
 
 ## 19. User-facing documentation and launch acceptance
 
