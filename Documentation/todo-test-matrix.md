@@ -1,5 +1,13 @@
 # Todo Test Matrix
 
+## Native reconnect regression timing
+
+`NativeAccountSyncTransportTests.testReconnectIgnoresFailureFromThePreviousPollingSession`
+waits for the new-session health callback with a deadlock guard, then checks the
+inverted old-session failure expectation. That expectation remains active
+throughout reconnection. The test no longer imposes a 200 ms positive-health
+deadline on loaded runners; production generation checks are unchanged.
+
 ## Production publication
 
 Website publication uses the ordinary Astro/browser checks and native `cf`

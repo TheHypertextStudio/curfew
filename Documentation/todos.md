@@ -1,5 +1,13 @@
 # Curfew Implementation TODOs
 
+## Native reconnect regression timing
+
+- [x] Wait for the new polling session's health event independently of the
+  inverted old-session failure expectation. Preserve the reconnect isolation
+  assertion under hosted runner load without treating a 200 ms wait as a
+  transport latency requirement. Production transport and installed behavior
+  are unchanged; verify the full native suite before release.
+
 ## Production publication
 
 - [-] Publish the public marketing frontend through native Astro and Worker

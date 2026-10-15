@@ -211,7 +211,10 @@ extension NativeAccountSyncTransportTests {
             )
         )
 
-        await fulfillment(of: [synchronized, offline], timeout: 0.2)
+        // The new connection must report healthy; 200 ms is not its latency contract.
+        // Keep the old-session failure check active while awaiting that real event.
+        await fulfillment(of: [synchronized], timeout: 3)
+        await fulfillment(of: [offline], timeout: 0.2)
         await transport.disconnectAndWaitForPendingOperations()
     }
 }
