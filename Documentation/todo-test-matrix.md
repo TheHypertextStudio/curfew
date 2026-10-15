@@ -177,6 +177,28 @@ and skipped during installation, maintenance, and repair. No new privilege or
 authorization prompt is required. If a signed update regresses helper health,
 roll back the app without replacing or clearing the daemon's durable state.
 
+`AccountLifecycleWiringTests.disarmedEnrollmentPublishesStatusHeartbeat` checks
+that an enrolled, disarmed Mac's display tick uses the existing bounded account
+publication path, sends an `unknown` enforcement phase rather than its schedule
+forecast, and does not arm enforcement or publish again on the next tick. The
+`disarmedEnrollmentSuppressesHeartbeatDuringMaintenance` companion protects
+the helper-repair pause from a misleading online report. The
+coordinator's two-minute online window and signed installed-app behavior remain
+separate runtime acceptance checks; no lock command is part of this test.
+
+`NativeAccountSyncTransportTests.testLocalEligibilityWriteFailureDoesNotRequireAccountSignIn`
+reproduces a failed local eligibility-snapshot write after valid enrollment. It
+requires a retryable offline signal, not a credential-rejection callback; the
+coordinator POST remains blocked until the local snapshot can be saved.
+`testStatusPublicationRetriesAfterLocalStorageRecovers` verifies the next
+attempt persists that snapshot before POST. A missing enrollment stays terminal
+but `testMissingLocalEnrollmentDoesNotOfferImpossibleSignInRetry` and
+`AccountStatusPresentationTests.missingLocalEnrollment` forbid the unusable
+sign-in CTA and require distinct device-repair copy. Settings links directly to
+Curfew support; native accessibility of that link remains a rendered UI check.
+This is an isolated filesystem and transport test, not a live lock or
+recovery-code flow.
+
 `NativeAccountSyncTransportTests.testRejectedRefreshTokenRequiresSignInInsteadOfReportingOffline`
 exercises the real transport's rejected refresh response. It requires a
 sign-in-required callback and excludes a later offline callback; the terminal

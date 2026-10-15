@@ -102,10 +102,17 @@ extension NativeAccountSyncTransportTests {
         try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: root.path)
         let recoveredPost = expectation(description: "report after local storage recovers")
         NativeTransportURLProtocol.handler = { request in
-            XCTAssertEqual(request.httpMethod, "POST")
-            XCTAssertEqual(request.url?.path, "/sync/status")
-            recoveredPost.fulfill()
-            return (204, Data())
+            switch request.url?.path {
+            case "/sync/device-proof/challenge":
+                return Self.challengeResponse()
+            case "/sync/status":
+                XCTAssertEqual(request.httpMethod, "POST")
+                recoveredPost.fulfill()
+                return (204, Data())
+            default:
+                XCTFail("unexpected request: \(request.url?.path ?? "unknown")")
+                return (500, Data())
+            }
         }
         replaceSessionMockBehavior()
         transport.publishDeviceStatus(report, deviceID: fixture.deviceID)
