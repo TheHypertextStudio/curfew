@@ -1655,6 +1655,8 @@ changes; rollback restores the prior landing release and docs commit.
 
 ## Domain migration
 
+- Owner-only maintenance: backend policy/owner/auth/admission/recovery/passkey/billing/socket suites cover strict deployment binding, normal Apple/authenticator/recovery/Google onboarding, credential isolation, single-use DPoP, bounded bodies, private commit deadlines and actual Durable Object hibernation/alarms. Backend operator tests cover exclusive private input files, phase/environment mismatch, checkpoint/fence ordering, no repeated revocation, audit isolation, staging credential retention and cf database identity/schema/migration checks. Actual provider, signed native and physical-device journeys remain live gates.
+
 | Behavior | Automated coverage | Live acceptance |
 | --- | --- | --- |
 | Derived URLs, invalid origin rejection, immutable artifact identity | `scripts/deployment-config.test.mjs` | Same artifact/hash in native and backend release |
