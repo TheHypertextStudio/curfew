@@ -46,11 +46,11 @@ test('account-era legal pages state the privacy, security, recovery, and purchas
 
   assert.match(privacy, /Accounts are optional\./);
   assert.match(privacy, /end-to-end encrypted/i);
-  assert.match(privacy, /unavoidable metadata/i);
-  assert.match(privacy, /Google Play Services/i);
+  assert.match(privacy, /account identity, purchase records, device connections, and security activity/i);
+  assert.match(privacy, /Cloudflare forwards support email to Google Workspace/i);
   assert.match(privacy, /remote unlock/i);
   assert.match(terms, /lifetime license or subscription/i);
-  assert.match(terms, /payment processor/i);
+  assert.match(terms, /Stripe handles payment details and receipts/i);
   assert.doesNotMatch(terms, /merchant of record/i);
   assert.match(security, /backup codes recover sign-in only/i);
   assert.match(security, /Curfew Recovery Key/i);

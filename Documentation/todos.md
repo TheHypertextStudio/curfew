@@ -1393,3 +1393,5 @@ asserts its own screen and state before attaching an image.
 - [x] Inventory Cloudflare access through the pinned CLI using existing CI credentials without changing infrastructure or printing secret values.
 
 - [x] Document the Email Sending CLI exception, readiness validation before production mutations, and the cf Durable Object rollback constraint in the domain migration runbook.
+
+- [x] Keep the public policy announcement below the navigation at wide and narrow widths; keep current policy copy focused on user choices, rights, sharing, and retention.

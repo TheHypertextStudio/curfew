@@ -169,7 +169,7 @@ test('legal notices and history remain usable on narrow screens', async ({ page 
       await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
     ).toBe(true);
     await page.goto('/retention');
-    await page.getByText('Where current macOS versions store local information').click();
+    await page.getByText('Short-lived browser review data').click();
     await expect(page.locator('details')).toHaveAttribute('open', '');
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
@@ -195,5 +195,28 @@ test('product help and general inquiries use separate mail links', async ({ page
     await expect(page.locator('main a[href="mailto:support@thecurfew.app"]').first()).toBeVisible();
     await expect(page.locator('main a[href="mailto:contact@thecurfew.app"]')).toBeVisible();
     await expect(page.locator('main a[href="mailto:legal@hypertext.studio"]')).toBeVisible();
+  }
+});
+
+test('home policy announcement clears the header and hero at desktop and mobile sizes', async ({
+  page,
+}) => {
+  for (const width of [1920, 390, 320]) {
+    await page.setViewportSize({ width, height: 1080 });
+    await page.goto('/');
+    const header = await page.locator('.site-header').boundingBox();
+    const notice = await page.getByRole('complementary', { name: 'Policy update' }).boundingBox();
+    const hero = await page.locator('.hero').boundingBox();
+    expect(notice.y, `notice clears header at ${width}px`).toBeGreaterThanOrEqual(
+      header.y + header.height,
+    );
+    expect(hero.y, `hero clears announcement at ${width}px`).toBeGreaterThanOrEqual(
+      notice.y + notice.height,
+    );
+    const link = page.getByRole('link', { name: 'Read the changes and previous policies' });
+    await link.focus();
+    await expect(link).toBeFocused();
+    await link.click();
+    await expect(page.getByRole('heading', { name: 'Policy history', exact: true })).toBeVisible();
   }
 });

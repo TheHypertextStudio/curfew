@@ -1649,3 +1649,5 @@ changes; rollback restores the prior landing release and docs commit.
 - Provider inventory: `scripts/cloudflare-inventory.test.mjs` requires read-only CLI operations, independent results after permission failures, and selected metadata output. Inventory is access evidence, not release acceptance.
 
 - Domain migration operator sequence: backend `scripts/production-audit.test.mjs` verifies readiness before production mutations; `scripts/cutover-readiness.test.mjs` covers receipt completeness, identity and freshness. Email sender activation additionally requires Cloudflare DNS verification and live delivery acceptance.
+
+- Public policy announcement: browser acceptance covers separate header, notice, and hero bounds at 1920, 390, and 320px; current-policy checks preserve rights and exclude internal implementation inventories.

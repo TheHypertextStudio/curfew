@@ -48,7 +48,7 @@ test('privacy explains task review transfer and avoids unconditional deletion pr
   assert.match(retention, /52 weeks/);
   assert.match(retention, /365 days/);
   assert.match(retention, /30 days after/);
-  assert.match(retention, /Scheduled sweeps/);
+  assert.match(retention, /scheduled cleanup/);
   assert.doesNotMatch(retention, /Hourly sweeps/);
   assert.match(retention, /during the deletion request/);
   assert.doesNotMatch(retention, /queued for deletion|temporary hold|within 30 days/);
@@ -80,7 +80,7 @@ test('native history routes preserve all prior documents', async () => {
 
 test('local MCP disclosure includes schedules, budgets, activity and device-attributed summaries', async () => {
   const privacy = await content('privacy');
-  const disclosure = privacy.match(/<p>When you run local.*?<\/p>/)?.[0];
+  const disclosure = privacy.match(/<p>When you connect an assistant on your Mac.*?<\/p>/)?.[0];
   assert.ok(disclosure, 'local assistant disclosure exists');
   for (const category of [
     /schedules/,
@@ -158,5 +158,17 @@ test('current policy headings group their readable publication metadata', async 
     assert.equal((header.match(/datetime="2026-10-14"/g) ?? []).length, 1);
     assert.match(header, /href="\/legal\/history"/);
     assert.doesNotMatch(header.match(/class="privacy-lede">.*?<\/p>/)?.[0] ?? '', /Published/);
+  }
+});
+
+test('current policy prose excludes internal platform inventories and storage mechanics', async () => {
+  for (const name of ['privacy', 'terms', 'refund', 'retention']) {
+    const policy = await content(name);
+    const mainCopy = policy.replace(/<details>.*?<\/details>/g, '');
+    assert.doesNotMatch(
+      mainCopy,
+      /staging|deployment|build flavor|encrypted-record headers|routing handles|sequence counter|bounded batches|guest email hash|hashed rate-limit buckets|Future Android|~\/Library/i,
+      name,
+    );
   }
 });
