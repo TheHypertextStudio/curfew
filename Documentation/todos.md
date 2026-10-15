@@ -1357,13 +1357,16 @@ asserts its own screen and state before attaching an image.
   before presenting the account UI as a production-ready entry point.
 - [-] Replace broken marketing guide links with published Mintlify destinations
   and add the missing installation, schedule, exception, and account guides.
-  Source and local checks are ready; hosted Mintlify publication and Pages link
-  acceptance remain. Keep the old first-party HTML guide for existing
-  bookmarks while the Mintlify subpath proxy remains unaccepted.
+  Accept hosted Mintlify publication and landing links through the selected
+  frontend. Keep the old first-party HTML guide for existing bookmarks until the
+  Mintlify subpath proxy is accepted.
 
 - [x] Use the same native hosting configuration for local website preview and
   Workers deployment, with Mintlify enabled in staging and an explicit local HTML
   guide mode for the existing browser fixture.
+- [-] Exclude the retained Pages runtime and route configuration from Workers
+  Static Assets with the native `.assetsignore` file. Validate the actual Pages
+  artifact through native Workers packaging before staging publication.
 
 ## 19. User-facing documentation and Plus launch
 

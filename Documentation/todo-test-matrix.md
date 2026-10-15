@@ -1616,6 +1616,10 @@ changes; rollback restores the prior landing release and docs commit.
   `landing/tests/unit/site-worker.test.mjs` covers proxy routing and credential
   isolation; `landing/tests/acceptance/site.spec.mjs` uses the explicit local HTML
   guide mode through the same native hosting configuration.
+- Workers asset safety: the retained Pages build keeps `_worker.js` and
+  `_routes.json`, while the native `.assetsignore` excludes them from Static
+  Assets. Run the existing Pages middleware build followed by native staging
+  `cf build` and `cf deploy --prebuilt --dry-run` to validate that exact layout.
 
 ## 19. User-facing documentation and launch acceptance
 

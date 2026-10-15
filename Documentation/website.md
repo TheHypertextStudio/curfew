@@ -2,9 +2,16 @@
 
 ## Source and setup
 
-The marketing origin is `https://curfew.hypertext.studio`. Astro source lives
+The production and legacy marketing origins come from the generated deployment
+configuration in `deployment/generated/environments.mjs`. Preserve the declared
+legacy redirects. Astro source lives
 in `landing/src/`; public assets, headers, redirects and the 404 page live in
 `landing/public/`. Astro builds `landing/dist/`.
+
+The retained Pages artifact also contains its compiled `_worker.js` runtime and
+`_routes.json`. `landing/public/.assetsignore` is copied into that output and
+excludes these Pages files from Workers Static Assets. Keep the Pages runtime
+in the retained Pages artifact; never publish it as a static download.
 
 Follow the common [web-platform setup and documentation](https://github.com/TheHypertextStudio/web-platform#readme).
 Select the repository's pinned Node and pnpm versions, then prepare a fresh
