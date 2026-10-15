@@ -122,6 +122,17 @@ frontend has assets and docs settings, without licensing or database bindings.
 `curfew-staging.hypertext.studio` belongs to the backend; the marketing preview
 uses `curfew-site-staging.hypertext.studio`.
 
+`ACCOUNT_PORTAL` points plain `/account` navigation to the existing account
+application: staging uses the configured staging portal, and production retains
+the legacy portal until the separate service-domain cutover. The marketing
+Worker accepts only these configured destinations and sends a noncached 302.
+If a route accidentally gives the marketing Worker the portal's own host,
+`/account` instead returns a noncached 503; redirecting to itself would trap
+people in another sign-in loop. Keep site and portal host ownership separate.
+It does not redirect POST bodies, Authorization-bearing requests, account
+subpaths or query-bearing auth callbacks. Account APIs, sessions and provider
+registrations remain with their existing owner.
+
 After the required checks and staging authorization:
 
 ```sh

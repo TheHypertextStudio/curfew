@@ -32,6 +32,37 @@ export default {
     const legacy = legacyDomainResponse(request, deployment.production);
     if (legacy) return legacy;
     const url = new URL(request.url);
+    // The marketing Worker owns navigation, not the account application.
+    // Hand off only a plain account-entry navigation, never a request body,
+    // Authorization header or query that could contain an auth callback.
+    if (
+      env.ACCOUNT_PORTAL &&
+      ['/account', '/account/'].includes(url.pathname) &&
+      ['GET', 'HEAD'].includes(request.method) &&
+      !url.search &&
+      !request.headers.has('authorization')
+    ) {
+      const allowed = [
+        deployment.staging.accountPortal,
+        new URL('/account', deployment.production.legacySiteOrigin).href,
+      ];
+      if (!allowed.includes(env.ACCOUNT_PORTAL)) {
+        return new Response('Account portal is not configured safely', {
+          status: 503,
+          headers: { 'cache-control': 'no-store' },
+        });
+      }
+      if (new URL(env.ACCOUNT_PORTAL).origin === url.origin) {
+        return new Response('Account sign-in is temporarily unavailable', {
+          status: 503,
+          headers: { 'cache-control': 'no-store' },
+        });
+      }
+      return new Response(null, {
+        status: 302,
+        headers: { location: env.ACCOUNT_PORTAL, 'cache-control': 'no-store' },
+      });
+    }
     let target;
     try {
       target = docsTarget(url, env);
