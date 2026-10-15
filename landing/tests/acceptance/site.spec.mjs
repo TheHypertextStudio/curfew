@@ -1,4 +1,6 @@
 import { expect, test } from '@playwright/test';
+import { createHash } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
 
 test('retained routes and HTML aliases survive direct visits and refresh', async ({ page }) => {
   for (const name of [
@@ -202,6 +204,14 @@ test('home policy announcement clears the header and hero at desktop and mobile 
   for (const width of [1920, 390, 320]) {
     await page.setViewportSize({ width, height: 1080 });
     await page.goto('/');
+    const version = createHash('sha256')
+      .update(await readFile(new URL('../../public/curfew.css', import.meta.url)))
+      .digest('hex')
+      .slice(0, 12);
+    await expect(page.locator('link[href^="/curfew.css"]')).toHaveAttribute(
+      'href',
+      `/curfew.css?v=${version}`,
+    );
     const header = await page.locator('.site-header').boundingBox();
     const notice = await page.getByRole('complementary', { name: 'Policy update' }).boundingBox();
     const hero = await page.locator('.hero').boundingBox();

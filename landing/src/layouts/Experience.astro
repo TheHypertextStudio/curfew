@@ -1,6 +1,7 @@
 ---
 import { footer, header, symbols } from '../../public/design/components.mjs';
 import { labelPolicyTables } from '../lib/policy-tables.mjs';
+import { stylesheet } from '../lib/stylesheet-url.mjs';
 
 interface Props {
   title: string;
@@ -37,8 +38,8 @@ const content = rawContent.replaceAll('{{SITE_ORIGIN}}', siteOrigin);
     />
     <link rel="stylesheet" href="/design/tokens.css" />
     <link rel="stylesheet" href="/design/components.css" />
-    <link rel="stylesheet" href="/curfew.css" />
-    {!home && <link rel="stylesheet" href="/curfew-pages.css" />}
+    <link rel="stylesheet" href={stylesheet('curfew.css')} />
+    {!home && <link rel="stylesheet" href={stylesheet('curfew-pages.css')} />}
     <script is:inline src="/design/theme.js" defer></script>
     <script is:inline type="module" src="/design/landscape.js"></script>
     <script is:inline type="module" src="/design/motion.js"></script>
