@@ -20,6 +20,19 @@ struct AccountStatusPresentationTests {
         #expect(denied.detail.contains("retry the connection if access is restored"))
     }
 
+    @Test("Missing local device identity does not send the owner through sign-in again")
+    func missingLocalEnrollment() {
+        let reason = "Curfew cannot find this Mac’s local device identity."
+        let status = AccountSyncStatus.rejected(reason)
+        let presentation = AccountConnectionPresentation.resolve(status)
+
+        #expect(!status.requiresSameAccountSignIn)
+        #expect(presentation.title == "This Mac needs device repair")
+        #expect(presentation.detail.contains("local device identity"))
+        #expect(!presentation.detail.contains("Sign in again"))
+        #expect(presentation.detail.contains("local schedule stays unchanged"))
+    }
+
     @Test("Hidden background protection never directs users to its missing settings")
     func unavailableHelper() {
         let presentation = AccountConnectionPresentation.resolve(
