@@ -103,6 +103,32 @@ struct AccountLifecycleWiringTests {
         #expect(!model.isEnforcementRunning)
     }
 
+    @Test("A disarmed enrolled Mac keeps publishing bounded account heartbeats")
+    func disarmedEnrollmentPublishesStatusHeartbeat() throws {
+        let transport = RemoteResultTransportSpy()
+        let model = try makeModel(
+            accountSync: configuration(),
+            accountSyncEngine: AccountSyncEngine(transport: transport),
+            hasCompletedInitialSetup: false
+        )
+
+        #expect(!model.isEnforcementRunning)
+        #expect(transport.publishedReports.isEmpty)
+
+        model.displayTick()
+
+        let report = try #require(transport.publishedReports.first)
+        let body = try #require(
+            JSONSerialization.jsonObject(with: report.encodedBody()) as? [String: Any]
+        )
+        #expect(body["phase"] as? String == "unknown")
+        #expect(transport.publishedReports.count == 1)
+        #expect(!model.isEnforcementRunning)
+
+        model.displayTick()
+        #expect(transport.publishedReports.count == 1)
+    }
+
     @Test("Authenticated daemon result immediately presents the enrolled device lockout")
     func authenticatedRemoteResultPresentsLockout() throws {
         let now = Date(timeIntervalSince1970: 1_800_000_000)
