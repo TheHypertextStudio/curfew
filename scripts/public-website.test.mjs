@@ -102,7 +102,7 @@ test("public-only publication retains native update bytes and uses the existing 
     '<a href="https://old.example/account">Account</a><a href="https://github.com/TheHypertextStudio/curfew/releases/latest">Download</a>',
   );
   assert.equal(
-    await readFile(join(input.destination, "_worker.js/index.js"), "utf8"),
+    await readFile(join(input.destination, "_worker.js/retained.js"), "utf8"),
     "export default {}",
   );
   assert.equal(
@@ -251,4 +251,31 @@ test("live verification accepts the static homepage canonical and rejects anothe
       live("https://old.example/index.html"),
     ),
   );
+});
+
+test("the retained public worker enables only the public phase while preserving request and bindings", async (t) => {
+  const input = await fixture(t);
+  await writeFile(
+    join(input.website.directory, "_worker.js/index.js"),
+    "export default {fetch(request, env) {return Response.json({phase: env.CURFEW_PUBLIC_SITE_ONLY ?? null, mode: env.DOCS_MODE, url: request.url})}}",
+  );
+  input.website.stamp = await sealWebsite(
+    input.website.directory,
+    input.website.deployment,
+  );
+  const { preparePublicWebsite } = await api();
+  await preparePublicWebsite(input, network());
+  const { default: worker } = await import(
+    join(input.destination, "_worker.js/index.js")
+  );
+  const response = await worker.fetch(
+    new Request("https://old.example/success?session_id=existing"),
+    { DOCS_MODE: "mintlify" },
+    {},
+  );
+  assert.deepEqual(await response.json(), {
+    phase: "true",
+    mode: "mintlify",
+    url: "https://old.example/success?session_id=existing",
+  });
 });

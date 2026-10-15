@@ -7,6 +7,10 @@ existing account links and signed-feed preservation, absent feeds, source/CI
 identity failures, inactive domains, unavailable accounts, feed failures and
 live canonical/redirect/feed verification. It uses an alternate domain pair;
 native signing and account-service readiness are outside this public phase.
+The domain-routing unit regression keeps credential-bearing requests on the
+old host during public publication; default coordinated retirement still
+returns 410. The prepared Worker regression verifies the public-phase wrapper
+preserves request identity and existing documentation bindings.
 
 `scripts/release-profiles.test.mjs` covers exact production profile identity,
 expiry/distribution/capability rejection, target-specific archive/export mapping,
