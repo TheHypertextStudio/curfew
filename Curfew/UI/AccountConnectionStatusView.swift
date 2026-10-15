@@ -25,6 +25,12 @@ struct AccountConnectionStatusView: View {
                     .font(CurfewTypography.body(12))
                     .foregroundStyle(CurfewTheme.mutedInk)
                     .fixedSize(horizontal: false, vertical: true)
+                if case .rejected(AccountSyncRejectionReason.localDeviceIdentityMissing) =
+                    engine.syncStatus,
+                    let supportURL = URL(string: "mailto:hello@hypertext.studio") {
+                    Link("Contact Curfew support", destination: supportURL)
+                        .font(CurfewTypography.bodyEmphasis(12))
+                }
                 if let lastConfirmedAt = presentation.lastConfirmedAt {
                     Text("Last confirmed \(lastConfirmedAt, style: .relative)")
                         .font(CurfewTypography.body(11))

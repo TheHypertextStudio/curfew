@@ -70,6 +70,9 @@ extension CurfewAppModel {
         refreshDisplayState()
         pollAndUpdateEnforcementHealth()
         publishObservedStatusIfDue()
+        if !isEnforcementRunning, !privilegedHelperManager.maintenancePaused {
+            publishDeviceStatusHeartbeatIfDue()
+        }
     }
 
     /// Publish only the state this process actually settled, never a schedule

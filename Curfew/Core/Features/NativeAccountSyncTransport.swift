@@ -327,10 +327,7 @@ extension NativeAccountSyncTransport {
             )
         } catch {
             statusPublications.finish(attempt, succeeded: false)
-            recordOperationFailure(
-                NativeAccountSyncError.missingCredentials,
-                channel: .deviceStatus
-            )
+            recordOperationFailure(error, channel: .deviceStatus)
             return
         }
         statusPublicationTask = Task { [weak self] in

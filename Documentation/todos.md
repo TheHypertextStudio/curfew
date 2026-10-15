@@ -150,6 +150,19 @@
 
 ## Renewed account connection handoff (2026-10-12)
 
+- [-] Keep a failed local eligibility-snapshot write separate from lost account
+  credentials. A full or temporarily read-only disk must leave the saved
+  enrollment and OAuth session intact, report the status channel offline, and
+  retry on a later heartbeat after storage recovers. A genuinely missing
+  enrollment still requires device-identity repair, without offering a sign-in
+  action that cannot work without that same record. Settings instead gives a
+  direct support contact while leaving the local schedule intact. The coordinator
+  must never receive a report whose matching local command-eligibility snapshot
+  was not saved.
+  Verify the signed installed app resumes status publication after recovery;
+  no remote lock or unlock is needed. Rollback keeps the existing enrollment
+  but restores the prior false sign-in-required behavior on local write errors.
+
 - [x] Keep revoked refresh credentials distinct from temporary offline status.
   The native transport regression waits for the terminal sign-in-required
   callback before checking that no offline callback follows; its bounded wait
@@ -913,6 +926,14 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
       account's online indicator and remote-command eligibility aligned with
       the running app without starting local enforcement early. Once setup is
       complete, the existing 1 Hz enforcement tick owns status heartbeats.
+      A running enrolled Mac must also keep the bounded account heartbeat when
+      Curfew is disarmed: its display clock continues without local lockout
+      effects, and the outbound report marks enforcement state unknown rather
+      than claiming that a scheduled lock is active. Without this path the
+      coordinator marks a still-running Mac offline after two minutes. The
+      status report does not arm Curfew or prove a remote lock can be enforced.
+      Rollback is the previous signed app; the coordinator will again age out
+      a disarmed Mac until it resumes authenticated status publication.
       A Mac that has already completed enrollment can now renew rejected OAuth
       credentials against its saved account identity without registering a new
       device or rotating its Recovery Key. Settings offers this same-account
