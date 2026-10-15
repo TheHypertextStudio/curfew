@@ -44,7 +44,7 @@ export default defineConfig((ctx) => {
             ACCOUNT_PORTAL: bindings.text(
               new URL('/account', deployment.production.legacySiteOrigin).href,
             ),
-            DOCS_MODE: bindings.text('html-guide'),
+            DOCS_MODE: bindings.text('mintlify'),
             DOCS_UPSTREAM: bindings.text('https://curfew.mintlify.site'),
             ASSETS: bindings.assets(),
           },

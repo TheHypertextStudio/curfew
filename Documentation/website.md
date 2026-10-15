@@ -88,10 +88,10 @@ pnpm docs:check
 combines it with the shared base. Follow [website authoring](website-authoring.md)
 when editing either.
 
-Staging selects `DOCS_MODE=mintlify` and the explicit upstream
-`https://curfew.mintlify.site`. Production retains `html-guide` until proxy
-acceptance and the separate production cutover approval. The retained HTML
-guide remains available as a static compatibility asset.
+Staging and production select `DOCS_MODE=mintlify` and the explicit upstream
+`https://curfew.mintlify.site`. Production publication still requires the separate
+cutover approval. Local fixture mode retains `html-guide`; its HTML guide also
+remains available as a static compatibility asset.
 
 The Worker delegates `/docs`, `/docs/*`, `/_mintlify/*`, `/mintlify-assets/*`
 and `/api/request`. Mintlify reserves `/mcp`, so the source guide is
