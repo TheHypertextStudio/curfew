@@ -129,6 +129,21 @@ struct AccountLifecycleWiringTests {
         #expect(transport.publishedReports.count == 1)
     }
 
+    @Test("A paused helper does not publish a misleading disarmed heartbeat")
+    func disarmedEnrollmentSuppressesHeartbeatDuringMaintenance() throws {
+        let transport = RemoteResultTransportSpy()
+        let model = try makeModel(
+            accountSync: configuration(),
+            accountSyncEngine: AccountSyncEngine(transport: transport),
+            hasCompletedInitialSetup: false
+        )
+        model.privilegedHelperManager.maintenancePaused = true
+
+        model.displayTick()
+
+        #expect(transport.publishedReports.isEmpty)
+    }
+
     @Test("Authenticated daemon result immediately presents the enrolled device lockout")
     func authenticatedRemoteResultPresentsLockout() throws {
         let now = Date(timeIntervalSince1970: 1_800_000_000)
