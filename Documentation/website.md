@@ -8,6 +8,11 @@ legacy redirects. Astro source lives
 in `landing/src/`; public assets, headers, redirects and the 404 page live in
 `landing/public/`. Astro builds `landing/dist/`.
 
+Workers Static Assets uses `404-page` missing-route handling so unknown URLs
+retain the existing `public/404.html` design and a real HTTP 404 status. Keep
+`runWorkerFirst` enabled so the Mintlify proxy still handles documentation
+before the static fallback.
+
 The retained Pages artifact also contains its compiled `_worker.js` runtime and
 `_routes.json`. `landing/public/.assetsignore` is copied into that output and
 excludes these Pages files from Workers Static Assets. Keep the Pages runtime
@@ -40,8 +45,7 @@ pnpm check
 ```
 
 Root scripts forward to the frontend package. `preview:worker` uses the staging
-mode of `landing/hosting/cloudflare.config.ts` through native `cf dev` on port
-4325. Build-only assets configuration lives in `hosting/wrangler.config.ts`;
+mode of `landing/hosting/cloudflare.config.ts` through native `cf dev` on port 4325. Build-only assets configuration lives in `hosting/wrangler.config.ts`;
 preview and deployment share the same Worker identity and docs bindings.
 To inspect the retained HTML guide,
 select the local fixture mode explicitly:

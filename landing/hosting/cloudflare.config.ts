@@ -13,7 +13,7 @@ export default defineConfig((ctx) => {
           previewUrls: false,
           assets: {
             htmlHandling: 'auto-trailing-slash',
-            notFoundHandling: 'none',
+            notFoundHandling: '404-page',
             runWorkerFirst: true,
           },
           env: {
@@ -35,7 +35,7 @@ export default defineConfig((ctx) => {
           previewUrls: false,
           assets: {
             htmlHandling: 'auto-trailing-slash',
-            notFoundHandling: 'none',
+            notFoundHandling: '404-page',
             runWorkerFirst: true,
           },
           env: {
@@ -58,7 +58,7 @@ export default defineConfig((ctx) => {
           entrypoint: '../worker.mjs',
           assets: {
             htmlHandling: 'auto-trailing-slash',
-            notFoundHandling: 'none',
+            notFoundHandling: '404-page',
             runWorkerFirst: true,
           },
           env: {
