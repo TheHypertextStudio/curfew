@@ -27,7 +27,12 @@ The selected documentation mode remains unchanged. No signed application or
 GitHub release is created by this workflow.
 
 After publication, verify the new canonical homepage, public redirects, retained
-feed state and existing account access. The publication artifact records the
+feed state and existing account access. Cloudflare may briefly serve the previous
+deployment immediately after upload. If the first check sees old content,
+repeat the read-only verifier against the retained publication record and its
+matching deployment-configuration artifact; do not upload again solely for
+propagation. `node scripts/public-website.mjs verify <record-directory>` checks
+the same deployed identity without changing services or releases. The publication artifact records the
 previous Pages deployment IDs for rollback. Restore that Pages deployment if
 the public site fails; do not roll back account data or revoke authentication.
 The later coordinated activation removes the wrapper, replaces these temporary account links with

@@ -21,10 +21,14 @@
 
 ## Website domain preparation
 
+- [x] Activate the public website on the new main domain and permanently redirect
+  public old-domain paths and queries, retaining existing account access and
+  native update-feed state independently of the signed app release.
+
 - [x] Provide a manual cf operation that derives the production website hostname
       from a reviewed immutable configuration artifact, previews attachment, and
       reads the existing Pages project's domain back without replacing other domains.
-- [ ] Attach and activate the new hostname with verified DNS and TLS before the
+- [x] Attach and activate the new hostname with verified DNS and TLS before the
       coordinated production cutover; retain the existing public hostname for its
       permanent redirect.
 
