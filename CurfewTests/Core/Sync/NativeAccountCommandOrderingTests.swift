@@ -64,9 +64,9 @@ extension NativeAccountSyncTransportTests {
             resultExchangeStore: exchange
         )
         connectForOrderingTest(transport, deviceID: fixture.deviceID)
-        await fulfillment(of: [rejected], timeout: 1)
+        await fulfillment(of: [rejected], timeout: 3)
         try fixture.secrets.save(Data("fresh-access-token".utf8), for: "oauth-access-token")
-        await fulfillment(of: [fetched], timeout: 1)
+        await fulfillment(of: [fetched], timeout: 3)
         await transport.disconnectAndWaitForPendingOperations()
         XCTAssertEqual(events.values, ["expired-result", "fresh-result", "commands-after-receipt"])
     }

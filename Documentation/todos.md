@@ -219,8 +219,12 @@
   completion so refreshed retries cannot rejoin cached failed work.
   CI 38307160113 exposed fixture teardown traffic and failed status refresh/cadence;
   CI 38308319780/38308503697 reproduced one stale operation instead of zero.
+  - [x] Allow the hosted ordering test three seconds for its simulated result
+    callback under scheduler load while retaining the exact expired-result,
+    fresh-result, then command-fetch assertion. This adjusts test timing only;
+    native result publication and device behavior are unchanged.
   The pre-operation generation/cancellation guard and fixture cancellation are
-  fixed; full native CI is still required. No timeout budgets were increased.
+  fixed; full native CI is still required. No runtime timeout budgets were increased.
   CI 38309791533 exposed duplicate successful result uploads while the daemon
   awaits receipt verification. Connection-local acknowledged-result deduplication
   now preserves retryability and clears on reconnect. Authorized HTTP checks

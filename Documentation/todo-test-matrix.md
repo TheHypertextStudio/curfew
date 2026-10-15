@@ -313,7 +313,11 @@ the forbidden fetch as a clean assertion failure before shared publication wirin
 `testScheduledCommandFetchWaitsForSharedResultReceipt()` checks one shared POST
 and receipt recording before command fetching. `testSharedResultRetryUsesAlreadyRotatedCredentials()`
 checks concurrent result/command retry after another channel has rotated tokens.
-Both success cases and the full native suite require hosted GREEN before shipping.
+The retry test gives each simulated network callback a three-second hosted-CI
+window; a missing callback or wrong event order still fails. This changes test
+tolerance, not transport behavior, and can be rolled back if it masks a measured
+runtime delay. Both success cases and the full native suite require hosted GREEN
+before shipping.
 
 `NativeAccountSyncTransportTests/testStalePollCannotStartAnOperationAfterDisconnect()`
 requires stale reconciliation to return before invoking its operation, independent
