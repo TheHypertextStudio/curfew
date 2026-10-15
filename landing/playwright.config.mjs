@@ -7,7 +7,7 @@ export default acceptanceConfig({
   outputDir: '../test-results/website',
   webServer: {
     cwd: path.dirname(fileURLToPath(import.meta.url)),
-    command: 'pnpm preview:worker --var DOCS_MODE:html-guide',
+    command: 'pnpm --dir hosting exec cf dev --mode local --port 4325',
     url: 'http://127.0.0.1:4325',
     reuseExistingServer: false,
     timeout: 60000,

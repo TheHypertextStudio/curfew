@@ -1611,6 +1611,12 @@ must confirm each published destination and the live landing links after the
 Mintlify and Pages deployments. No account, native app, or wire behavior
 changes; rollback restores the prior landing release and docs commit.
 
+- Website hosting configuration: native `cf build --mode staging` must emit
+  `DOCS_MODE=mintlify` with the reviewed upstream and static assets. Existing
+  `landing/tests/unit/site-worker.test.mjs` covers proxy routing and credential
+  isolation; `landing/tests/acceptance/site.spec.mjs` uses the explicit local HTML
+  guide mode through the same native hosting configuration.
+
 ## 19. User-facing documentation and launch acceptance
 
 - `Public help covers setup, daily use, Plus, integrations, and recovery while retaining existing routes.`

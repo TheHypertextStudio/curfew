@@ -33,11 +33,14 @@ pnpm check
 ```
 
 Root scripts forward to the frontend package. `preview:worker` uses the staging
-Worker configuration locally on port 4325. To inspect the retained HTML guide,
-select its supported mode explicitly:
+mode of `landing/hosting/cloudflare.config.ts` through native `cf dev` on port
+4325. Build-only assets configuration lives in `hosting/wrangler.config.ts`;
+preview and deployment share the same Worker identity and docs bindings.
+To inspect the retained HTML guide,
+select the local fixture mode explicitly:
 
 ```sh
-pnpm --dir landing preview:worker --var DOCS_MODE:html-guide
+pnpm --dir landing/hosting exec cf dev --mode local --port 4325
 ```
 
 `just landing` previews the existing Pages Functions through `web/landing`;

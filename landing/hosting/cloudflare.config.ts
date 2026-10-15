@@ -17,7 +17,7 @@ export default defineConfig((ctx) => {
             runWorkerFirst: true,
           },
           env: {
-            DOCS_MODE: bindings.text('html-guide'),
+            DOCS_MODE: bindings.text('mintlify'),
             DOCS_UPSTREAM: bindings.text('https://curfew.mintlify.site'),
             ASSETS: bindings.assets(),
           },
@@ -46,11 +46,14 @@ export default defineConfig((ctx) => {
         },
       };
     }
+    case 'local':
     default: {
       return {
         accountId: '2500680a3b2b0fe6a011c1c25fed5008',
         worker: {
-          name: 'curfew-site',
+          name: 'curfew-site-local',
+          workersDev: false,
+          previewUrls: false,
           compatibilityDate: '2026-10-10',
           entrypoint: '../worker.mjs',
           assets: {
@@ -59,6 +62,7 @@ export default defineConfig((ctx) => {
             runWorkerFirst: true,
           },
           env: {
+            DOCS_MODE: bindings.text('html-guide'),
             ASSETS: bindings.assets(),
           },
         },

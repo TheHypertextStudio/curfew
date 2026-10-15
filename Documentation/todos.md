@@ -1361,6 +1361,10 @@ asserts its own screen and state before attaching an image.
   acceptance remain. Keep the old first-party HTML guide for existing
   bookmarks while the Mintlify subpath proxy remains unaccepted.
 
+- [x] Use the same native hosting configuration for local website preview and
+  Workers deployment, with Mintlify enabled in staging and an explicit local HTML
+  guide mode for the existing browser fixture.
+
 ## 19. User-facing documentation and Plus launch
 
 - [x] Replace Mintlify developer guides with setup, daily-use, Plus, integration,
