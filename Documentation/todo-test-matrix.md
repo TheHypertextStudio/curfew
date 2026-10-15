@@ -1018,6 +1018,9 @@ tests cannot read or mutate a user's App Group lockout record.
   - `NativeAccountSyncTransportTests/testRootKeyDistributionFailureCannotBeOverwrittenByAHealthyAccountPoll()`
   - `NativeAccountSyncTransportTests/testFailedStatusPublicationRemainsUnhealthyAfterSuccessfulPolls()`
   - `NativeAccountSyncTransportTests/testOlderStatusSuccessCannotOverwriteTheLatestStatusFailure()`
+    Both wait for actual fixture callbacks with a hosted-runner scheduling
+    allowance; the assertions still require initial health followed by the
+    correct failed-publication state, not a particular network latency.
   - `NativeAccountSyncTransportTests/testReconnectIgnoresFailureFromThePreviousPollingSession()`
   - `NativeAccountSyncTransportTests/testRejectedRefreshTokenRequiresSignInInsteadOfReportingOffline()`
 - `Returning from System Settings refreshes live Accessibility trust even when
