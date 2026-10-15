@@ -87,9 +87,7 @@ test('keyboard access and reduced motion use the same real links', async ({
   await account.focus();
   await expect(account).toBeFocused();
   await page.keyboard.press(nextLink);
-  await expect(
-    page.getByRole('link', { name: 'Read the changes and previous policies' }),
-  ).toBeFocused();
+  await expect(page.getByRole('link', { name: 'Read the changes', exact: true })).toBeFocused();
   await page.keyboard.press(nextLink);
   await expect(page.getByRole('link', { name: 'Download for Mac' }).first()).toBeFocused();
 });
@@ -103,7 +101,7 @@ test('current policies expose the notice, official contact, and preserved refund
 }) => {
   await page.goto('/');
   await expect(page.getByRole('complementary', { name: 'Policy update' })).toContainText(
-    'November 13, 2026',
+    'November 13',
   );
   for (const name of ['privacy', 'terms', 'refund', 'retention']) {
     await page.goto(`/${name}`);
@@ -213,7 +211,16 @@ test('home policy announcement clears the header and hero at desktop and mobile 
     expect(hero.y, `hero clears announcement at ${width}px`).toBeGreaterThanOrEqual(
       notice.y + notice.height,
     );
-    const link = page.getByRole('link', { name: 'Read the changes and previous policies' });
+    const announcement = page.getByRole('complementary', { name: 'Policy update' });
+    expect(await announcement.evaluate((node) => getComputedStyle(node).borderTopWidth)).toBe(
+      '0px',
+    );
+    await expect(announcement.locator('time[datetime="2026-10-14"]')).toHaveCount(1);
+    await expect(announcement.locator('time[datetime="2026-11-13"]')).toHaveCount(1);
+    const link = page.getByRole('link', { name: 'Read the changes', exact: true });
+    expect(await link.evaluate((node) => getComputedStyle(node).textDecorationLine)).toContain(
+      'underline',
+    );
     await link.focus();
     await expect(link).toBeFocused();
     await link.click();

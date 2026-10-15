@@ -102,7 +102,7 @@ test('organization purchasers must also satisfy the adult purchase requirement',
   assert.ok(eligibility, 'eligibility section exists');
   assert.match(
     eligibility,
-    /Purchases must be made by an adult[^.]*contractual capacity[^.]*authority/,
+    /Purchases must be made by an adult[^.]*legally able to agree[^.]*authorized to pay/,
   );
   assert.match(eligibility, /organization[^.]*also[^.]*authorized/);
   assert.doesNotMatch(eligibility, /or someone authorized/);

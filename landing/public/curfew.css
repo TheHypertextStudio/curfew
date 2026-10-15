@@ -548,3 +548,18 @@
   background: var(--surface-container);
   overflow-wrap: anywhere;
 }
+
+.legal-notice a {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.home-page > .legal-notice {
+  padding: 0;
+  margin-block: 0 var(--space-5);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  font-size: var(--type-small);
+}
