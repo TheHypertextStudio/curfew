@@ -1,6 +1,33 @@
 # Domain migration to thecurfew.app
 
-Production moves as one cutover. Users sign in again and reconnect Macs and assistants. Local schedules, journals, device identities, encryption keys, accounts and purchases remain. The old public website redirects permanently; retired APIs return 410 without forwarding credentials.
+The public website can move before the account services and native release. The
+service cutover remains coordinated: users sign in again and reconnect Macs and
+assistants. Local schedules, journals, device identities, encryption keys,
+accounts and purchases remain. The old public website redirects permanently;
+service endpoints retire only during the service cutover.
+
+## Public website first
+
+Dispatch `deploy-public-website.yml` on main to publish the exact successful
+main website artifact independently of Apple provisioning or a native release.
+The workflow verifies its complete byte tree, source/configuration identity,
+active Pages domains and TLS through the pinned cf CLI. It retains the Pages
+uploader exception and does not rebuild the website during publication.
+
+This phase keeps website account links on the existing portal derived from
+`legacySiteOrigin`, preserves the current signed appcast bytes if one exists,
+and leaves a missing feed absent. Existing download links, service hostnames,
+provider registrations, sessions and account Worker routes remain in place.
+Only public Pages routes acquire the permanent path/query-preserving redirect.
+The selected documentation mode remains unchanged. No signed application or
+GitHub release is created by this workflow.
+
+After publication, verify the new canonical homepage, public redirects, retained
+feed state and existing account access. The publication artifact records the
+previous Pages deployment IDs for rollback. Restore that Pages deployment if
+the public site fails; do not roll back account data or revoke authentication.
+The later coordinated activation replaces these temporary account links with
+the new portal and publishes the approved signed feed.
 
 ## Configuration ownership
 

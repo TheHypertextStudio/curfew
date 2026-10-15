@@ -2,6 +2,9 @@
 
 ## Production publication
 
+- [x] Provide public website publication independently of Apple/native release readiness,
+  retaining existing account links, service routes, downloads and update-feed
+  state; validate immutable website inputs and live public redirects.
 - [x] Install approved Developer ID app/widget provisioning profiles for signed
   candidates, bind archive/export to their UUIDs, and remove job-owned files.
 - [ ] Resolve Apple identifier ownership and supply the issued production
