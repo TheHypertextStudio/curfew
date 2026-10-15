@@ -66,6 +66,30 @@ extension NativeAccountSyncTransportTests {
         XCTAssertEqual(offlineCount, 0)
     }
 
+    func testCorruptLocalEnrollmentNeedsDeviceRepairInsteadOfOfflineRetry() throws {
+        let fixture = try makeFixture(accessToken: "resource-bound-access-token")
+        let root = temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let recordURL = root.appendingPathComponent("corrupt-enrollment.json")
+        try Data("{not valid json".utf8).write(to: recordURL)
+        let transport = makeTransport(
+            secrets: fixture.secrets,
+            enrollmentStore: RemoteCommandEnrollmentStore(recordURL: recordURL)
+        )
+        defer { transport.disconnect() }
+        var repairReasons: [String] = []
+        var offlineCount = 0
+        transport.onFailure = { repairReasons.append($0) }
+        transport.onOffline = { offlineCount += 1 }
+
+        transport.publishDeviceStatus(
+            statusReport(deviceID: fixture.deviceID), deviceID: fixture.deviceID
+        )
+
+        XCTAssertEqual(repairReasons, [AccountSyncRejectionReason.localDeviceIdentityMissing])
+        XCTAssertEqual(offlineCount, 0)
+    }
+
     func testStatusPublicationRetriesAfterLocalStorageRecovers() async throws {
         let fixture = try makeFixture(accessToken: "resource-bound-access-token")
         let root = temporaryDirectory()
