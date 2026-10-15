@@ -19,6 +19,10 @@ This phase keeps website account links on the existing portal derived from
 and leaves a missing feed absent. Existing download links, service hostnames,
 provider registrations, sessions and account Worker routes remain in place.
 Only public Pages routes acquire the permanent path/query-preserving redirect.
+The retained middleware runs with a public-phase binding in a small module
+wrapper. Credential-bearing requests stay on the existing host; retirement
+responses remain part of the later service activation. No credential payload
+is redirected between hosts.
 The selected documentation mode remains unchanged. No signed application or
 GitHub release is created by this workflow.
 
@@ -26,7 +30,7 @@ After publication, verify the new canonical homepage, public redirects, retained
 feed state and existing account access. The publication artifact records the
 previous Pages deployment IDs for rollback. Restore that Pages deployment if
 the public site fails; do not roll back account data or revoke authentication.
-The later coordinated activation replaces these temporary account links with
+The later coordinated activation removes the wrapper, replaces these temporary account links with
 the new portal and publishes the approved signed feed.
 
 ## Configuration ownership

@@ -1,6 +1,14 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { cp, lstat, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import {
+  cp,
+  lstat,
+  readFile,
+  readdir,
+  rename,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createArtifact, resolveEnvironment } from "./deployment-config.mjs";
@@ -104,6 +112,20 @@ export async function preparePublicWebsite(input, fetcher = fetch) {
     }
   };
   await visit(input.destination);
+  const workerDirectory = join(input.destination, "_worker.js");
+  await rename(
+    join(workerDirectory, "index.js"),
+    join(workerDirectory, "retained.js"),
+  );
+  await writeFile(
+    join(workerDirectory, "index.js"),
+    `import worker from './retained.js';
+export default {...worker, fetch(request, env, context) {
+  return worker.fetch(request, {...env, CURFEW_PUBLIC_SITE_ONLY: 'true'}, context);
+}};
+`,
+    { flag: "wx" },
+  );
   if (bytes) await writeFile(join(input.destination, "appcast.xml"), bytes);
   else await rm(join(input.destination, "appcast.xml"), { force: true });
   return {
