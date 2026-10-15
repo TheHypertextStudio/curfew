@@ -7,6 +7,8 @@
   state; validate immutable website inputs and live public redirects.
   Keep credential-bearing old-site requests on their existing host until
   coordinated service retirement, without cross-domain redirects.
+- [x] Allow a bounded read-only verification window for Pages edge propagation;
+  retain failure for persistent canonical, redirect, account or feed mismatches.
 - [x] Install approved Developer ID app/widget provisioning profiles for signed
   candidates, bind archive/export to their UUIDs, and remove job-owned files.
 - [ ] Resolve Apple identifier ownership and supply the issued production

@@ -28,8 +28,10 @@ GitHub release is created by this workflow.
 
 After publication, verify the new canonical homepage, public redirects, retained
 feed state and existing account access. Cloudflare may briefly serve the previous
-deployment immediately after upload. If the first check sees old content,
-repeat the read-only verifier against the retained publication record and its
+deployment immediately after upload. The verifier retries read-only checks for
+up to three minutes, including an overall request deadline, and still fails
+if the required identity, redirect, account access or feed never matches.
+If verification fails, repeat it against the retained publication record and its
 matching deployment-configuration artifact; do not upload again solely for
 propagation. `node scripts/public-website.mjs verify <record-directory>` checks
 the same deployed identity without changing services or releases. The publication artifact records the
