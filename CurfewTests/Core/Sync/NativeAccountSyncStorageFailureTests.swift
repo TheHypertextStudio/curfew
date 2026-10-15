@@ -70,6 +70,7 @@ extension NativeAccountSyncTransportTests {
         let fixture = try makeFixture(accessToken: "resource-bound-access-token")
         let root = temporaryDirectory()
         defer { try? FileManager.default.removeItem(at: root) }
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         let recordURL = root.appendingPathComponent("corrupt-enrollment.json")
         try Data("{not valid json".utf8).write(to: recordURL)
         let transport = makeTransport(
