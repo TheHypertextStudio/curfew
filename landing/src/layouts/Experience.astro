@@ -48,9 +48,9 @@ const { title, description, content, home = false } = Astro.props;
     {
       home && (
         <aside class="legal-notice wrap" aria-label="Policy update">
-          <strong>Curfew policies updated October 14, 2026.</strong> Privacy applies immediately.
-          Updated Terms apply to existing users November 13, 2026.
-          <a href="/legal/history">Read the changes and previous policies</a>.
+          Terms and privacy updated <time datetime="2026-10-14">October 14</time>. Updated terms
+          apply to existing users <time datetime="2026-11-13">November 13</time>.
+          <a href="/legal/history">Read the changes</a>.
         </aside>
       )
     }

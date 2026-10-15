@@ -144,14 +144,6 @@ body:has(.footer-compact) {
   }
 }
 
-.legal-notice {
-  padding: var(--space-5);
-  margin-block: var(--space-5);
-  border: var(--stroke) solid var(--outline);
-  border-radius: var(--radius-small);
-  background: var(--surface-container);
-  overflow-wrap: anywhere;
-}
 .reading details {
   margin-block: var(--space-5);
 }

@@ -1590,3 +1590,5 @@ changes; rollback restores the prior landing release and docs commit.
 - These changes affect website presentation only. Policy source archives, native app,
   enforcement, billing, and providers are unchanged. Rollback restores the prior
   landing build; publication requires the normal website release checks.
+
+- Public policy announcement: browser acceptance covers separate header, notice, and hero bounds at 1920, 390, and 320px; current-policy checks preserve rights and exclude internal implementation inventories.
