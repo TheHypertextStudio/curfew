@@ -8,37 +8,28 @@ service endpoints retire only during the service cutover.
 
 ## Public website first
 
-Dispatch `deploy-public-website.yml` on main to publish the exact successful
-main website artifact independently of Apple provisioning or a native release.
-The workflow verifies its complete byte tree, source/configuration identity,
-active Pages domains and TLS through the pinned cf CLI. It retains the Pages
-uploader exception and does not rebuild the website during publication.
+The public marketing frontend uses the native Astro build and the production
+mode in `landing/hosting/cloudflare.config.ts`. Follow
+[website operations](website.md#production-and-rollback): review successful main
+website checks and the accepted staging output, build with native `cf build`,
+inspect its prebuilt deployment dry-run, then obtain production cutover approval
+before native `cf deploy`. There is no separate website preparation wrapper,
+publication receipt format or Pages-only publishing workflow.
 
-This phase keeps website account links on the existing portal derived from
-`legacySiteOrigin`, preserves the current signed appcast bytes if one exists,
-and leaves a missing feed absent. Existing download links, service hostnames,
-provider registrations, sessions and account Worker routes remain in place.
-Only public Pages routes acquire the permanent path/query-preserving redirect.
-The retained middleware runs with a public-phase binding in a small module
-wrapper. Credential-bearing requests stay on the existing host; retirement
-responses remain part of the later service activation. No credential payload
-is redirected between hosts.
-The selected documentation mode remains unchanged. No signed application or
-GitHub release is created by this workflow.
+The marketing Worker keeps account entry on the existing portal derived from
+`legacySiteOrigin` until the coordinated service cutover. It delegates public
+documentation to the accepted Mintlify upstream. Preserve existing download
+links, service routes, provider registrations, account sessions and genuine
+signed appcast bytes. A missing update feed stays absent until the native
+release owner publishes a real signed release.
 
-After publication, verify the new canonical homepage, public redirects, retained
-feed state and existing account access. Cloudflare may briefly serve the previous
-deployment immediately after upload. The verifier retries read-only checks for
-up to three minutes, including an overall request deadline, and still fails
-if the required identity, redirect, account access or feed never matches.
-If verification fails, repeat it against the retained publication record and its
-matching deployment-configuration artifact; do not upload again solely for
-propagation. `node scripts/public-website.mjs verify <record-directory>` checks
-the same deployed identity without changing services or releases. The publication artifact records the
-previous Pages deployment IDs for rollback. Restore that Pages deployment if
-the public site fails; do not roll back account data or revoke authentication.
-The later coordinated activation removes the wrapper, replaces these temporary account links with
-the new portal and publishes the approved signed feed.
+Capture current DNS, route ownership and the retained Pages deployment before
+cutover. Verify the canonical site, documentation, public redirects, account
+entry and feed state after publication. Use native Worker deployment history
+for code rollback and reverse only the routes changed by the cutover. Keep
+Pages available through the agreed recovery window; retiring it is a separate
+approved operation. Signed native publication and coordinated service activation
+retain their existing release-owner workflows.
 
 ## Configuration ownership
 
