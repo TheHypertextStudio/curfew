@@ -636,6 +636,7 @@ tests cannot read or mutate a user's App Group lockout record.
   - `BreakGlassStoreTests/releaseAgesOut()`
   - `BreakGlassStoreTests/futureDatedRecordIsIgnored()`
   - `BreakGlassStoreTests/clearRemovesTheRelease()`
+  - `BreakGlassStoreTests/signedTimestampsSurvivePersistence(fraction:)`
   - `ProtectedWorkShutdownTests/breakGlassReleasesTheWorkflow()`
   - `ProtectedWorkShutdownTests/breakGlassOutranksDeferral()`
 - `Revoking a break-glass release re-arms both the app and the daemon.`

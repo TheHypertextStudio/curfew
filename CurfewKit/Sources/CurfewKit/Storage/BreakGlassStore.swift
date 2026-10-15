@@ -10,23 +10,13 @@ private let breakGlassLogger = Logger(
 /// A recorded decision to stand root-level enforcement down for the rest of
 /// the current lockout window.
 ///
-/// Break-glass exists because the privileged daemon turns a mistake into a
-/// trap. The daemon's answer to "the Curfew app stopped heartbeating during a
-/// lockout" is `/sbin/shutdown -h +1`, chosen precisely because user space
-/// cannot cancel it. Anyone who reaches for `killall Curfew` — to debug, to
-/// recover from a crash loop, or because a background agent is mid-task — gets
-/// a forced power-off a minute later, and the only surface offering to help is
-/// behind a locked display.
+/// The daemon schedules `/sbin/shutdown -h +1` if Curfew stops heartbeating
+/// during lockout. User space cannot cancel that shutdown, so emergency
+/// recovery must work from a terminal or SSH while the display is locked.
+/// This record lets an intentional release stop the pending shutdown and
+/// tell the daemon to stand down.
 ///
-/// So there has to be a release that does not depend on the display: one
-/// command, from any terminal or over SSH, that stops the pending shutdown and
-/// tells the daemon to stand down. That is this record.
-///
-/// It is not a security boundary. The signing key sits in the user's own
-/// Application Support directory, and anybody who can read it can already run
-/// `sudo`. What the signature buys is that a stray write, a stale file from a
-/// previous install, or a buggy script cannot disable root-level enforcement
-/// by accident — releasing has to be something a person meant to do.
+/// HMAC detects unintended or stale writes; its key lives in the user's Application Support.
 public struct BreakGlassRelease: Codable, Equatable, Identifiable, Sendable {
     /// Stable key for the release, logged so the event is traceable.
     public let id: UUID
@@ -34,10 +24,8 @@ public struct BreakGlassRelease: Codable, Equatable, Identifiable, Sendable {
     /// When the release was issued.
     public let issuedAt: Date
 
-    /// Why. Required, and required to be substantial — see
-    /// ``BreakGlassStore/minimumReasonCharacters``. The friction is the point:
-    /// a commitment device whose escape hatch costs nothing is not a
-    /// commitment device.
+    /// Required explanation, at least ``BreakGlassStore/minimumReasonCharacters``
+    /// characters, so emergency release remains an intentional decision.
     public let reason: String
 
     /// `user@host` of whoever issued it, captured for the audit trail.
@@ -239,6 +227,13 @@ public struct BreakGlassStore {
             issuedBy: issuedBy,
             expiresAt: expiresAt
         )
+        // Sign the dates consumers reload. ISO8601DateFormatter can round a
+        // submillisecond boundary up while JSONEncoder's ISO8601 storage truncates it.
+        do {
+            release = try decoder.decode(BreakGlassRelease.self, from: encoder.encode(release))
+        } catch {
+            throw BreakGlassError.writeFailed(error.localizedDescription)
+        }
         guard let signature = BreakGlassSigner.sign(release, secretURL: secretURL) else {
             throw BreakGlassError.signingUnavailable
         }
