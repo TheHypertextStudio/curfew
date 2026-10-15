@@ -23,9 +23,14 @@ extension NativeAccountSyncTransport {
     }
 
     private func reportFailure(_ error: Error) {
-        if case RemoteCommandEnrollmentStoreError.missingEnrollment = error {
+        if let enrollmentError = error as? RemoteCommandEnrollmentStoreError {
             stopNetworkActivity()
-            onFailure?(AccountSyncRejectionReason.localDeviceIdentityMissing)
+            switch enrollmentError {
+            case .missingEnrollment:
+                onFailure?(AccountSyncRejectionReason.localDeviceIdentityMissing)
+            case .invalidEnrollment:
+                onFailure?(AccountSyncRejectionReason.localDeviceIdentityInvalid)
+            }
         } else if case NativeAccountSyncError.missingCredentials = error {
             stopNetworkActivity()
             onFailure?(AccountSyncRejectionReason.signInRequired)

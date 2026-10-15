@@ -87,10 +87,11 @@ struct AccountConnectionPresentation: Equatable {
                 tone: .warning
             )
         }
-        if reason == AccountSyncRejectionReason.localDeviceIdentityMissing {
+        if reason == AccountSyncRejectionReason.localDeviceIdentityMissing ||
+            reason == AccountSyncRejectionReason.localDeviceIdentityInvalid {
             return AccountConnectionPresentation(
                 title: "This Mac needs device repair",
-                detail: "Curfew cannot find this Mac’s local device identity. Remote control is "
+                detail: "Curfew cannot use this Mac’s saved device identity. Remote control is "
                     + "paused; your local schedule stays unchanged. Contact support before "
                     + "connecting this Mac again.",
                 systemImage: "exclamationmark.triangle.fill",

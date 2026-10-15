@@ -192,7 +192,13 @@ requires a retryable offline signal, not a credential-rejection callback; the
 coordinator POST remains blocked until the local snapshot can be saved.
 `testStatusPublicationRetriesAfterLocalStorageRecovers` verifies the next
 attempt persists that snapshot before POST. A missing enrollment stays terminal
-but `testMissingLocalEnrollmentDoesNotOfferImpossibleSignInRetry` and
+and a malformed, oversized, or unsafe entry produces a distinct invalid-identity
+error rather than an endless offline retry. The headless CurfewKit
+`RemoteCommandEnrollmentStoreTests` checks these permanent read boundaries,
+while a temporarily unreadable regular record keeps the open error and retries
+after permissions recover. The native
+`testMissingLocalEnrollmentDoesNotOfferImpossibleSignInRetry`,
+`testCorruptLocalEnrollmentNeedsDeviceRepairInsteadOfOfflineRetry`, and
 `AccountStatusPresentationTests.missingLocalEnrollment` forbid the unusable
 sign-in CTA and require distinct device-repair copy. Settings links directly to
 Curfew support; native accessibility of that link remains a rendered UI check.

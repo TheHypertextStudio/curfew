@@ -25,9 +25,10 @@ struct AccountConnectionStatusView: View {
                     .font(CurfewTypography.body(12))
                     .foregroundStyle(CurfewTheme.mutedInk)
                     .fixedSize(horizontal: false, vertical: true)
-                if case .rejected(AccountSyncRejectionReason.localDeviceIdentityMissing) =
-                    engine.syncStatus,
-                    let supportURL = URL(string: "mailto:hello@hypertext.studio") {
+                if case .rejected(let reason) = engine.syncStatus,
+                   reason == AccountSyncRejectionReason.localDeviceIdentityMissing ||
+                   reason == AccountSyncRejectionReason.localDeviceIdentityInvalid,
+                   let supportURL = URL(string: "mailto:hello@hypertext.studio") {
                     Link("Contact Curfew support", destination: supportURL)
                         .font(CurfewTypography.bodyEmphasis(12))
                 }

@@ -86,7 +86,7 @@ extension NativeAccountSyncTransportTests {
             statusReport(deviceID: fixture.deviceID), deviceID: fixture.deviceID
         )
 
-        XCTAssertEqual(repairReasons, [AccountSyncRejectionReason.localDeviceIdentityMissing])
+        XCTAssertEqual(repairReasons, [AccountSyncRejectionReason.localDeviceIdentityInvalid])
         XCTAssertEqual(offlineCount, 0)
     }
 
