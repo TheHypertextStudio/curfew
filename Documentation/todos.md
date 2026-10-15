@@ -1391,6 +1391,8 @@ asserts its own screen and state before attaching an image.
 
 ## Domain migration to thecurfew.app
 
+- [x] Document protected owner-testing phases, Apple-first authenticator/recovery bootstrap, private policy input/expiry, socket and write deadlines, retained cf D1 migration history and isolated staging rehearsal.
+
 - [-] Centralize environment configuration, remove protocol hostname constants, adopt pinned cf, derive native/web/service endpoints, and retire old traffic. See `domain-migration.md`.
 - [ ] Complete authenticated provider preflight, account recovery audit, signed release, backups, coordinated production cutover and live acceptance. Local changes do not establish deployment.
 
