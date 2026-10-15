@@ -12,6 +12,7 @@ public struct RemoteCommandEligibilitySnapshot: Codable, Equatable, Sendable {
 
 public enum RemoteCommandEnrollmentStoreError: Error, Equatable {
     case missingEnrollment
+    case invalidEnrollment
 }
 
 /// Public account binding used by the privileged verifier. No OAuth token or
@@ -55,14 +56,26 @@ public struct RemoteCommandEnrollmentStore: Sendable {
     }
 
     public func load() throws -> RemoteCommandEnrollment? {
-        guard let data = try BoundedRegularFileReader.read(
-            recordURL,
-            maximumBytes: 65536
-        ) else { return nil }
-        return try JSONDecoder().decode(
-            RemoteCommandEnrollment.self,
-            from: data
-        )
+        let data: Data?
+        do {
+            data = try BoundedRegularFileReader.read(recordURL, maximumBytes: 65536)
+        } catch let error as BoundedRegularFileReadError {
+            switch error {
+            case .unsafeEntry, .tooLarge:
+                throw RemoteCommandEnrollmentStoreError.invalidEnrollment
+            case .openFailed, .readFailed:
+                throw error
+            }
+        }
+        guard let data else { return nil }
+        do {
+            return try JSONDecoder().decode(
+                RemoteCommandEnrollment.self,
+                from: data
+            )
+        } catch {
+            throw RemoteCommandEnrollmentStoreError.invalidEnrollment
+        }
     }
 
     /// Records the exact local status frame against which the daemon may

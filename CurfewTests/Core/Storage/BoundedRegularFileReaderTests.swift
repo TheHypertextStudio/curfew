@@ -76,7 +76,7 @@ struct BoundedRegularFileReaderTests {
 
         let enrollment = root.appendingPathComponent("enrollment")
         #expect(mkfifo(enrollment.path, 0o600) == 0)
-        #expect(throws: BoundedRegularFileReadError.unsafeEntry) {
+        #expect(throws: RemoteCommandEnrollmentStoreError.invalidEnrollment) {
             try RemoteCommandEnrollmentStore(recordURL: enrollment).load()
         }
     }

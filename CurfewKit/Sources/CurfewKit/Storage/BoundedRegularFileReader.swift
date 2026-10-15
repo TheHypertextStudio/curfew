@@ -4,6 +4,7 @@ import Foundation
 public enum BoundedRegularFileReadError: Error, Equatable {
     case unsafeEntry
     case tooLarge
+    case openFailed(Int32)
     case readFailed(Int32)
 }
 
@@ -24,10 +25,14 @@ public nonisolated enum BoundedRegularFileReader {
             O_RDONLY | O_NONBLOCK | O_NOFOLLOW | O_CLOEXEC
         )
         guard descriptor >= 0 else {
-            if errno == ENOENT {
+            let openError = errno
+            if openError == ENOENT {
                 return nil
             }
-            throw BoundedRegularFileReadError.unsafeEntry
+            if openError == ELOOP {
+                throw BoundedRegularFileReadError.unsafeEntry
+            }
+            throw BoundedRegularFileReadError.openFailed(openError)
         }
         defer { Darwin.close(descriptor) }
 

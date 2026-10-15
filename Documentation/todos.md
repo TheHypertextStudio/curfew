@@ -154,11 +154,12 @@
   credentials. A full or temporarily read-only disk must leave the saved
   enrollment and OAuth session intact, report the status channel offline, and
   retry on a later heartbeat after storage recovers. A genuinely missing
-  enrollment still requires device-identity repair, without offering a sign-in
-  action that cannot work without that same record. Settings instead gives a
-  direct support contact while leaving the local schedule intact. The coordinator
-  must never receive a report whose matching local command-eligibility snapshot
-  was not saved.
+  enrollment, malformed or oversized JSON, or an unsafe file entry still
+  requires device-identity repair, without offering a sign-in action that
+  cannot work without that same record. Settings instead gives a direct support
+  contact while leaving the local schedule intact. The coordinator must never
+  receive a report whose matching local command-eligibility snapshot was not
+  saved.
   Verify the signed installed app resumes status publication after recovery;
   no remote lock or unlock is needed. Rollback keeps the existing enrollment
   but restores the prior false sign-in-required behavior on local write errors.

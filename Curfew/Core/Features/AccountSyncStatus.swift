@@ -19,5 +19,6 @@ enum AccountSyncStatus: Equatable {
 enum AccountSyncRejectionReason {
     static let signInRequired = "Curfew needs you to sign in again."
     static let localDeviceIdentityMissing = "Curfew cannot find this Mac’s local device identity."
+    static let localDeviceIdentityInvalid = "Curfew cannot read this Mac’s saved device identity."
     static let accessDenied = "Curfew Account access was rejected."
 }
