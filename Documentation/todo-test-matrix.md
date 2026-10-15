@@ -2,6 +2,12 @@
 
 ## Production publication
 
+`scripts/public-website.test.mjs` covers website-only artifact preparation,
+existing account links and signed-feed preservation, absent feeds, source/CI
+identity failures, inactive domains, unavailable accounts, feed failures and
+live canonical/redirect/feed verification. It uses an alternate domain pair;
+native signing and account-service readiness are outside this public phase.
+
 `scripts/release-profiles.test.mjs` covers exact production profile identity,
 expiry/distribution/capability rejection, target-specific archive/export mapping,
 private installation, existing-file preservation, and digest-checked cleanup.
