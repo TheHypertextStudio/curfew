@@ -36,6 +36,34 @@ struct BreakGlassStoreTests {
         #expect(active.reason == goodReason)
     }
 
+    @Test(
+        "Signed timestamps survive persistence near a second boundary",
+        arguments: [0.9995, 0.9998, 0.9999]
+    )
+    func signedTimestampsSurvivePersistence(fraction: TimeInterval) throws {
+        let (store, directory) = makeStore()
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let issued = Date(timeIntervalSince1970: 1_700_000_000 + fraction)
+        let expires = issued.addingTimeInterval(5 * 60)
+        let release = try store.issue(
+            reason: goodReason,
+            issuedBy: "remote-mcp@curfew",
+            now: issued,
+            expiresAt: expires
+        )
+        let stored = try #require(store.load())
+        let storedExpiry = try #require(stored.expiresAt)
+
+        #expect(stored == release)
+        #expect(BreakGlassSigner.verify(release, secretURL: store.secretURL))
+        #expect(BreakGlassSigner.verify(stored, secretURL: store.secretURL))
+        #expect(stored.issuedAt <= issued)
+        #expect(storedExpiry <= expires)
+        #expect(store.activeRelease(now: expires.addingTimeInterval(-1)) != nil)
+        #expect(store.activeRelease(now: expires) == nil)
+    }
+
     @Test("A thin reason is refused before anything is written")
     func shortReasonIsRefused() throws {
         let (store, directory) = makeStore()

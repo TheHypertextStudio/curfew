@@ -21,6 +21,14 @@
 - [ ] Complete production provider, device, assistant, billing, licensing, mail,
       and update acceptance; publish the approved artifacts and verify the cutover.
 
+## Signed emergency-release timestamp persistence
+
+- [x] Sign emergency releases using the timestamp precision stored in their existing
+  JSON record, so a release remains verifiable after saving and loading at a second
+  boundary. Preserve the signing contract, record format and grant expiry bound.
+- [x] Cover deterministic boundary timestamps and validate the native checks before
+  integrating the website and documentation changes.
+
 ## Website domain preparation
 
 - [x] Activate the public website on the new main domain and permanently redirect
