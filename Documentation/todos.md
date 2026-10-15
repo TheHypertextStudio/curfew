@@ -1348,4 +1348,4 @@ asserts its own screen and state before attaching an image.
 - [ ] Reconcile the app's email-key hint and historical privacy/terms copy with
       actual delivery, network activity, and owner-reviewed launch terms.
 
-- [x] Keep the public policy announcement below the navigation at wide and narrow widths; keep current policy copy focused on user choices, rights, sharing, and retention.
+- [x] Keep the public policy announcement below the navigation at wide and narrow widths; keep current policy copy focused on user choices, rights, sharing, and retention. Version changed stylesheets by their content so normal reloads receive the correction.

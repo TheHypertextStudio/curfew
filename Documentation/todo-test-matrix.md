@@ -1591,4 +1591,4 @@ changes; rollback restores the prior landing release and docs commit.
   enforcement, billing, and providers are unchanged. Rollback restores the prior
   landing build; publication requires the normal website release checks.
 
-- Public policy announcement: browser acceptance covers separate header, notice, and hero bounds at 1920, 390, and 320px; current-policy checks preserve rights and exclude internal implementation inventories.
+- Public policy announcement: browser acceptance covers separate header, notice, and hero bounds at 1920, 390, and 320px; current-policy checks preserve rights and exclude internal implementation inventories. The home regression also checks that the stylesheet URL matches the current CSS content.
