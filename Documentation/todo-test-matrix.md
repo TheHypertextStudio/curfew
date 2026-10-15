@@ -2,18 +2,12 @@
 
 ## Production publication
 
-`scripts/public-website.test.mjs` covers website-only artifact preparation,
-existing account links and signed-feed preservation, absent feeds, source/CI
-identity failures, inactive domains, unavailable accounts, feed failures and
-live canonical/redirect/feed verification. It uses an alternate domain pair;
-native signing and account-service readiness are outside this public phase.
-The domain-routing unit regression keeps credential-bearing requests on the
-old host during public publication; default coordinated retirement still
-returns 410. The prepared Worker regression verifies the public-phase wrapper
-preserves request identity and existing documentation bindings.
-Propagation regressions reproduce a stale canonical response followed by the
-correct deployment, and persistent stale content through the deadline. They
-verify retry success and bounded failure without another publication.
+Website publication uses the ordinary Astro/browser checks and native `cf`
+build/prebuilt dry-run described under website hosting configuration. Existing
+Worker regressions cover docs proxy behavior, credential isolation, account
+handoff and public domain routing. Production provider, canonical URL, account
+entry and real signed-feed acceptance remain required after cutover; local
+fixtures do not establish those outcomes.
 
 `scripts/release-profiles.test.mjs` covers exact production profile identity,
 expiry/distribution/capability rejection, target-specific archive/export mapping,

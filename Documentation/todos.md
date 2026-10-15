@@ -2,13 +2,13 @@
 
 ## Production publication
 
-- [x] Provide public website publication independently of Apple/native release readiness,
-  retaining existing account links, service routes, downloads and update-feed
-  state; validate immutable website inputs and live public redirects.
-  Keep credential-bearing old-site requests on their existing host until
-  coordinated service retirement, without cross-domain redirects.
-- [x] Allow a bounded read-only verification window for Pages edge propagation;
-  retain failure for persistent canonical, redirect, account or feed mismatches.
+- [-] Publish the public marketing frontend through native Astro and Worker
+  commands independently of Apple/native release readiness. Preserve account
+  entry, service routes, documentation, downloads and genuine update-feed bytes;
+  accept the actual public site after separately approved cutover.
+- [x] Remove the standalone Pages-only website publication workflow and its
+  custom preparation/verification wrapper. Use native deployment history and
+  retain the previous host through the agreed recovery window.
 - [x] Install approved Developer ID app/widget provisioning profiles for signed
   candidates, bind archive/export to their UUIDs, and remove job-owned files.
 - [ ] Resolve Apple identifier ownership and supply the issued production
