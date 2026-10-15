@@ -1693,8 +1693,11 @@ must confirm each published destination and the live landing links after the
 Mintlify and Pages deployments. No account, native app, or wire behavior
 changes; rollback restores the prior landing release and docs commit.
 
-- Website hosting configuration: native `cf build --mode staging` must emit
-  `DOCS_MODE=mintlify` with the reviewed upstream and static assets. Existing
+- Website hosting configuration: native `cf build --mode staging` and
+  `cf build --mode production` must emit `DOCS_MODE=mintlify` with the reviewed
+  upstream and static assets. Validate the selected production bindings through
+  native `cf deploy --prebuilt --mode production --dry-run --provision=false`
+  before requesting cutover approval. Existing
   `landing/tests/unit/site-worker.test.mjs` covers proxy routing and credential
   isolation; `landing/tests/acceptance/site.spec.mjs` uses the explicit local HTML
   guide mode through the same native hosting configuration.
