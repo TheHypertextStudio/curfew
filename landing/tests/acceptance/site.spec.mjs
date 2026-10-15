@@ -95,7 +95,13 @@ test('keyboard access and reduced motion use the same real links', async ({
 });
 
 test('unknown URLs remain 404', async ({ request }) => {
-  expect((await request.get('/this-route-does-not-exist')).status()).toBe(404);
+  for (const path of ['/this-route-does-not-exist', '/missing/nested/page']) {
+    const response = await request.get(path);
+    expect(response.status()).toBe(404);
+    const html = await response.text();
+    expect(html).toContain('<title>404: Page not found — Curfew</title>');
+    expect(html).toContain('<a href="/" rel="home">Home</a>');
+  }
 });
 
 test('current policies expose the notice, official contact, and preserved refund promise', async ({
