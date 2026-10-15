@@ -11,6 +11,7 @@ import {
 } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { setTimeout as delay } from "node:timers/promises";
 import { createArtifact, resolveEnvironment } from "./deployment-config.mjs";
 import { sealWebsite, verifyWebsite } from "./pages-artifact.mjs";
 
@@ -184,6 +185,48 @@ export async function verifyPublicWebsite(
     );
 }
 
+export async function waitForPublicWebsite(
+  deployment,
+  publication,
+  {
+    fetcher = fetch,
+    now = () => performance.now(),
+    pause = delay,
+    timeoutMs = 180_000,
+    intervalMs = 5_000,
+  } = {},
+) {
+  assert.equal(publication.sourceCommit, deployment.sourceCommit);
+  assert.equal(publication.configurationSHA256, deployment.sha256);
+  const deadline = now() + timeoutMs;
+  let lastError;
+  while (now() < deadline) {
+    try {
+      await verifyPublicWebsite(deployment, publication, (url, init) => {
+        const remaining = deadline - now();
+        if (remaining <= 0)
+          throw (
+            lastError ??
+            new Error("Public website verification deadline exceeded")
+          );
+        return fetcher(url, {
+          ...init,
+          signal: AbortSignal.any([
+            init.signal,
+            AbortSignal.timeout(Math.ceil(remaining)),
+          ]),
+        });
+      });
+      return;
+    } catch (error) {
+      lastError = error;
+    }
+    const remaining = deadline - now();
+    if (remaining > 0) await pause(Math.min(intervalMs, remaining));
+  }
+  throw lastError;
+}
+
 if (
   process.argv[1] &&
   resolve(process.argv[1]) === fileURLToPath(import.meta.url)
@@ -221,7 +264,7 @@ if (
     );
     console.log(JSON.stringify(publication));
   } else {
-    await verifyPublicWebsite(deployment, await json("publication.json"));
+    await waitForPublicWebsite(deployment, await json("publication.json"));
     console.log(
       "Public website and redirect verified; existing account and native feed state preserved.",
     );

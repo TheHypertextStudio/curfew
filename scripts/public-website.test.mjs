@@ -279,3 +279,76 @@ test("the retained public worker enables only the public phase while preserving 
     url: "https://old.example/success?session_id=existing",
   });
 });
+
+test("publication verification waits for edge propagation without repeating publication", async (t) => {
+  const input = await fixture(t);
+  const { preparePublicWebsite, waitForPublicWebsite } = await api();
+  assert.equal(
+    typeof waitForPublicWebsite,
+    "function",
+    "Publication must tolerate a stale edge response after upload",
+  );
+  const publication = await preparePublicWebsite(input, network());
+  let time = 0,
+    homepages = 0;
+  const pauses = [];
+  const fetcher = async (url, options) => {
+    if (url === "https://new.example")
+      return new Response(
+        `<link rel="canonical" href="${++homepages === 1 ? "https://old.example/" : "https://new.example/"}">`,
+      );
+    if (url === "https://old.example/download?curfew_migration_check=1")
+      return new Response(null, {
+        status: 308,
+        headers: {
+          location: "https://new.example/download?curfew_migration_check=1",
+        },
+      });
+    return network()(url, options);
+  };
+  await waitForPublicWebsite(input.website.deployment, publication, {
+    fetcher,
+    now: () => time,
+    pause: async (milliseconds) => {
+      pauses.push(milliseconds);
+      time += milliseconds;
+    },
+    timeoutMs: 20,
+    intervalMs: 5,
+  });
+  assert.equal(homepages, 2);
+  assert.deepEqual(pauses, [5]);
+});
+
+test("a persistent publication mismatch fails at the verification deadline", async (t) => {
+  const input = await fixture(t);
+  const { preparePublicWebsite, waitForPublicWebsite } = await api();
+  assert.equal(
+    typeof waitForPublicWebsite,
+    "function",
+    "Propagation waiting must remain bounded and fail closed",
+  );
+  const publication = await preparePublicWebsite(input, network());
+  let time = 0,
+    homepages = 0;
+  await assert.rejects(
+    () =>
+      waitForPublicWebsite(input.website.deployment, publication, {
+        fetcher: async () => {
+          homepages++;
+          return new Response(
+            '<link rel="canonical" href="https://old.example/">',
+          );
+        },
+        now: () => time,
+        pause: async (milliseconds) => {
+          time += milliseconds;
+        },
+        timeoutMs: 10,
+        intervalMs: 5,
+      }),
+    /Homepage must identify the new canonical domain/,
+  );
+  assert.equal(time, 10);
+  assert.equal(homepages, 2);
+});

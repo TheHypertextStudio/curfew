@@ -11,6 +11,9 @@ The domain-routing unit regression keeps credential-bearing requests on the
 old host during public publication; default coordinated retirement still
 returns 410. The prepared Worker regression verifies the public-phase wrapper
 preserves request identity and existing documentation bindings.
+Propagation regressions reproduce a stale canonical response followed by the
+correct deployment, and persistent stale content through the deadline. They
+verify retry success and bounded failure without another publication.
 
 `scripts/release-profiles.test.mjs` covers exact production profile identity,
 expiry/distribution/capability rejection, target-specific archive/export mapping,
