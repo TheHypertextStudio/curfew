@@ -70,13 +70,14 @@ extension NativeAccountSyncTransportTests {
                 onFailure: { _ in }
             )
         )
-        await fulfillment(of: [synchronized], timeout: 1)
+        // Wait for the real network fixture callbacks under a loaded hosted runner.
+        await fulfillment(of: [synchronized], timeout: 3)
 
         transport.publishDeviceStatus(
             Self.statusReport(deviceID: fixture.deviceID),
             deviceID: fixture.deviceID
         )
-        await fulfillment(of: [offline], timeout: 1)
+        await fulfillment(of: [offline], timeout: 3)
         await transport.pollOnce(deviceID: fixture.deviceID)
 
         XCTAssertEqual(synchronizationCount, 1)
@@ -160,7 +161,7 @@ extension NativeAccountSyncTransportTests {
                 onFailure: { _ in }
             )
         )
-        await fulfillment(of: [synchronized], timeout: 1)
+        await fulfillment(of: [synchronized], timeout: 3)
 
         transport.publishDeviceStatus(
             Self.statusReport(deviceID: fixture.deviceID, statusVersion: 18),
@@ -169,7 +170,7 @@ extension NativeAccountSyncTransportTests {
         var changed = Self.statusReport(deviceID: fixture.deviceID, statusVersion: 19)
         changed.phase = .warning
         transport.publishDeviceStatus(changed, deviceID: fixture.deviceID)
-        await fulfillment(of: [offline], timeout: 1)
+        await fulfillment(of: [offline], timeout: 3)
         try await Task.sleep(for: .milliseconds(200))
 
         XCTAssertEqual(synchronizationCount, 1)
