@@ -19,7 +19,7 @@ test('purchase deployment pairs each configured issuer with the matching install
     scheme: 'curfew-studio-dev',
   });
   assert.deepEqual(await profile('local'), {
-    issuer: 'http://localhost:8788',
+    issuer: 'https://license.staging.example.org',
     scheme: 'curfew-dev',
   });
 });
