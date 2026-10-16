@@ -17,6 +17,7 @@ const screenshotExtractor = await readFile(
 const projectFile = await readFile("Curfew.xcodeproj/project.pbxproj", "utf8");
 const packageManifest = await readFile("CurfewKit/Package.swift", "utf8");
 const homebrewCask = await readFile("Casks/curfew.rb", "utf8");
+const artifactVerifier = await readFile("scripts/verify-release-artifact.sh", "utf8");
 
 function buildConfigurationBlock(id, name) {
   const marker = `\t\t${id} /* ${name} */ = {`;
@@ -57,6 +58,13 @@ test("conservative initial Release keeps only the signed core entitlements", () 
   assert.match(releaseEntitlements, /group\.studio\.hypertext\.curfew/);
   assert.doesNotMatch(releaseEntitlements, /com\.apple\.developer\.icloud-/);
   assert.doesNotMatch(releaseEntitlements, /aps-environment/);
+});
+
+test("Release app, widget and artifact verifier use the verified Studio signing team", () => {
+  for (const id of ["9BD3FBA72F4D4587007B2E95", "C0FE00000000000000000012"]) {
+    assert.match(buildConfigurationBlock(id, "Release"), /DEVELOPMENT_TEAM = T95VDD3A4W;/);
+  }
+  assert.match(artifactVerifier, /EXPECTED_TEAM="T95VDD3A4W"/);
 });
 
 test("release guard inspects the active Curfew Plus verifier", () => {
