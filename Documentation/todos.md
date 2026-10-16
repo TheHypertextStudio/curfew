@@ -1505,6 +1505,8 @@ asserts its own screen and state before attaching an image.
 - [x] Repair historical paid periods through signed invoice replay, decode UTF-8
       legacy inboxes, and select immutable periods during concurrent delivery.
       Cancel queued native activation before making a redemption request.
+- [x] Pair development activation and subscription refresh with the fixed staging
+      issuer; production continues to use its fixed production issuer.
 - [ ] Finish native/browser acceptance, provider email setup, environment/signer
       pairing, and real Stripe test-mode checkout plus inbox restoration.
 - [ ] Ship the verified client/service/site together, then update published help
