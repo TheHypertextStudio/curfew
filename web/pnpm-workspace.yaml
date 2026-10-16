@@ -1,7 +1,6 @@
 packages:
   - extension
   - worker
-  - landing
 
 # Native deps whose install/build scripts we trust to run (pnpm v11 replaced the
 # package.json `pnpm.onlyBuiltDependencies` list with this allowBuilds map).

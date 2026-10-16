@@ -46,16 +46,21 @@ test('recovery links and session cookies never cross domains in a redirect', asy
   }
 });
 
-test('the public-only phase leaves sensitive requests on the existing host', async (t) => {
-  const { onRequest } = await import('../../functions/_middleware.js');
+test('the marketing Worker never proxies legacy credentials while public redirects preserve queries', async () => {
+  const { default: worker } = await import('../../worker.mjs');
   const { default: deployment } = await import('../../../deployment/generated/environments.mjs');
   const old = deployment.production.legacySiteOrigin;
-  const originalFetch = globalThis.fetch;
-  t.after(() => {
-    globalThis.fetch = originalFetch;
-  });
-  globalThis.fetch = async () => {
-    throw new Error('Credential-bearing requests must not reach a documentation upstream');
+  const env = {
+    DOCS_MODE: 'mintlify',
+    DOCS_UPSTREAM: 'https://curfew.mintlify.site',
+    ASSETS: {
+      fetch: () => {
+        throw new Error('Legacy credentials must not reach assets');
+      },
+    },
+  };
+  const fetcher = async () => {
+    throw new Error('Legacy credentials must not reach a docs upstream');
   };
   for (const request of [
     new Request(`${old}/success?session_id=existing`),
@@ -63,22 +68,12 @@ test('the public-only phase leaves sensitive requests on the existing host', asy
     new Request(`${old}/docs?access_token=existing`),
     new Request(`${old}/account`, { headers: { authorization: 'Bearer existing' } }),
   ]) {
-    const response = await onRequest({
-      request,
-      env: { CURFEW_PUBLIC_SITE_ONLY: 'true', DOCS_MODE: 'mintlify' },
-      next: () => new Response('existing route'),
-    });
-    assert.equal(response.status, 200);
+    const response = await worker.fetch(request, env, {}, fetcher);
+    assert.equal(response.status, 410);
     assert.equal(response.headers.get('location'), null);
-    assert.equal(await response.text(), 'existing route');
+    assert.equal(response.headers.get('cache-control'), 'no-store');
   }
-  const response = await onRequest({
-    request: new Request(`${old}/download?from=guide`),
-    env: { CURFEW_PUBLIC_SITE_ONLY: 'true' },
-    next: () => {
-      throw new Error('Public pages must redirect');
-    },
-  });
+  const response = await worker.fetch(new Request(`${old}/download?from=guide`), env, {}, fetcher);
   assert.equal(response.status, 308);
   assert.equal(
     response.headers.get('location'),

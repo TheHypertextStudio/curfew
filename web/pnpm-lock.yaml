@@ -33,12 +33,6 @@ importers:
         specifier: ^3.2.4
         version: 3.2.7(@types/node@24.13.3)(yaml@2.9.0)
 
-  landing:
-    devDependencies:
-      wrangler:
-        specifier: ^4.105.0
-        version: 4.116.0(@cloudflare/workers-types@5.20260801.1)
-
   worker:
     dependencies:
       '@hono/zod-openapi':

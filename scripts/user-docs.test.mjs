@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 const read = path => readFile(path, "utf8");
+const deployment = (await import("../deployment/generated/environments.mjs")).default;
 const config = JSON.parse(await read("web/docs/docs.json"));
 const pages = config.navigation.groups.flatMap(group => group.pages);
 
@@ -22,7 +23,7 @@ test("every public page has reader metadata and working local page links", async
     assert.match(metadata[1], /^title: .+$/m);
     assert.match(metadata[1], /^description: .+$/m);
     if (page === "mcp-guide") {
-      assert.match(metadata[1], /^canonical: https:\/\/curfew\.hypertext\.studio\/docs\/mcp$/m);
+      assert.equal(metadata[1].match(/^canonical: (.+)$/m)?.[1], new URL("/docs/mcp", deployment.production.siteOrigin).href);
     }
     for (const match of content.matchAll(/(?:\]\(|href=")[\/]([^"\s)#]+)(?:#[^"\s)]+)?[)"]/g)) {
       const target = match[1];

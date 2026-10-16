@@ -104,25 +104,21 @@ jobs:
           JS
       - name: Verify retained bytes and owner acceptance
         run: node scripts/publication.mjs prepare .publication
-      - name: Verify active Pages domains and prepared services through cf
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: "2500680a3b2b0fe6a011c1c25fed5008"
-        run: |
-          node_modules/.bin/cf pages domains list --project-name curfew-landing > .publication/pages-domains.json
-          node scripts/publication.mjs ready .publication
+      - name: Verify website TLS and prepared services
+        run: node scripts/publication.mjs ready .publication
       - name: Publish the verified signed release without replacing assets
         run: node scripts/publication.mjs publish .publication
-      - name: Publish the same Pages artifact and signed update feed
+      - name: Publish the same Worker assets and signed update feed
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: "2500680a3b2b0fe6a011c1c25fed5008"
         run: |
           main_sha=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')
-          [[ "$main_sha" == "$GITHUB_SHA" ]] || { echo 'Main changed before Pages publication.' >&2; exit 1; }
-          upload_directory=$(mktemp -d "$RUNNER_TEMP/curfew-pages-publication.XXXXXX")
-          cd "$upload_directory"
-          "$GITHUB_WORKSPACE/landing/node_modules/.bin/wrangler" pages deploy "$GITHUB_WORKSPACE/.publication/site-ready" --project-name curfew-landing --branch main --commit-hash "$GITHUB_SHA" --commit-dirty=false --no-bundle
+          [[ "$main_sha" == "$GITHUB_SHA" ]] || { echo 'Main changed before Worker publication.' >&2; exit 1; }
+          export CURFEW_WEBSITE_ASSETS_DIRECTORY="$GITHUB_WORKSPACE/.publication/site-ready"
+          pnpm --dir landing/hosting exec cf build --mode production
+          pnpm --dir landing/hosting exec cf deploy --prebuilt --mode production --dry-run --provision=false
+          pnpm --dir landing/hosting exec cf deploy --prebuilt --mode production --provision=false
       - name: Verify live site, feed, redirect, and retirement
         run: node scripts/publication.mjs verify .publication
       - name: Remove the private owner receipt

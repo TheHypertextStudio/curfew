@@ -72,11 +72,8 @@ jobs:
         run: pnpm --dir landing exec playwright install --with-deps chromium firefox webkit
       - name: Accept local Worker runtime in three browsers
         run: pnpm site:test:acceptance
-      - name: Compile and verify the retained Pages middleware
-        run: |
-          pnpm --dir landing exec wrangler pages functions build functions --outdir dist/_worker.js --build-output-directory dist --output-routes-path dist/_routes.json
-          node --test scripts/pages-bundle.node.mjs
-          node scripts/pages-artifact.mjs landing/dist deployment/generated/environment-artifact.json deployment/generated/website-build.json
+      - name: Seal the validated static output
+        run: node scripts/website-artifact.mjs landing/dist deployment/generated/environment-artifact.json deployment/generated/website-build.json
       - name: Retain validated website output
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@v7.0.2

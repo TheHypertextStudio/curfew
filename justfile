@@ -213,7 +213,7 @@ snapshot:
 # The web monorepo lives in `web/` (pnpm + Turborepo), kept separate so it can be
 # extracted into its own repo. These recipes drive it from the repo root.
 
-# Start every JS/TS dev server (worker + landing) together via Turborepo.
+# Start backend and extension development through the existing web workspace.
 # (`dev` is the Swift app; this is the web side.) Ctrl+C stops them.
 web:
     cd web && pnpm dev
@@ -223,13 +223,12 @@ web:
 web-typecheck:
     cd web && pnpm typecheck
 
-# Serve the landing page locally (Wrangler Pages dev): runs the
-# `landing/functions` Pages Function (the /docs → Mintlify proxy), serves
-# `_headers`, and live-reloads. Ctrl+C stops it. (Static fallback: `landing-static`.)
+# Preview the marketing Worker through the shared native staging configuration.
 landing:
-    cd web && pnpm --filter @curfew/landing dev
+    pnpm build
+    pnpm preview:worker
 
-# Serve the native Astro output without Pages Functions or live reload.
+# Serve the native Astro output without the Worker proxy or live reload.
 # The frontend dependencies must already be installed to build it.
 landing-static port="8765":
     @echo "→ http://localhost:{{ port }}"
@@ -237,16 +236,15 @@ landing-static port="8765":
     pnpm --dir landing build
     python3 -m http.server {{ port }} --directory landing/dist --bind 127.0.0.1
 
-# Deploy the landing page to Cloudflare Pages (Wrangler, via the workspace).
-# Builds Astro and uploads `landing/dist/` plus its Pages Function. First deploy creates the
-# project; the custom domain `curfew.hypertext.studio` is attached by `just setup`.
+# Publish the marketing Worker through its native production configuration.
+# Requires separate production authorization.
 deploy-landing:
-    cd web && pnpm --filter @curfew/landing deploy
+    pnpm deploy:worker:production
 
 # One-shot infrastructure setup — Cloudflare + Stripe. Deploys the Worker (with
 # its custom domain), generates + uploads the signing keypair, creates the Stripe
 # product/prices/payment-links/webhook and wires the secrets, injects live values
-# into the repo, and deploys the landing + /docs proxy. Idempotent. Dry-runs
+# into the repo. Website deployment uses deploy-landing. Dry-runs
 # unless `--yes` is passed. Requires STRIPE_API_KEY in the environment (sk_test_…
 # recommended first); see the header of scripts/setup.mjs for all env options.
 # Example:  STRIPE_API_KEY=sk_test_… STRIPE_SUB_AMOUNT=4000 just setup --yes

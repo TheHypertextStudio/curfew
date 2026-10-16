@@ -6,7 +6,7 @@ import { resolve, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { inspectActivation } from "./release-candidate.mjs";
 import { resolveEnvironment } from "./deployment-config.mjs";
-import { verifyWebsite, sealWebsite } from "./pages-artifact.mjs";
+import { verifyWebsite, sealWebsite } from "./website-artifact.mjs";
 
 async function admit(input) {
   const { candidate } = inspectActivation(input.native, input.receipt);
@@ -72,19 +72,7 @@ const requestOptions = () => ({
   cache: "no-store",
   signal: AbortSignal.timeout(15_000),
 });
-export async function checkPublicationReadiness(
-  config,
-  domains,
-  fetcher = fetch,
-) {
-  for (const origin of [config.siteOrigin, config.legacySiteOrigin])
-    assert.ok(
-      domains.some(
-        (domain) =>
-          domain.name === new URL(origin).host && domain.status === "active",
-      ),
-      "Both Pages domains must be active before publication",
-    );
+export async function checkPublicationReadiness(config, fetcher = fetch) {
   assert.equal(
     (await fetcher(config.siteOrigin, { ...requestOptions(), method: "HEAD" }))
       .status,
@@ -332,11 +320,8 @@ if (
     );
   } else if (command === "ready") {
     await admit(input);
-    const domains = JSON.parse(
-      await readFile(join(base, "pages-domains.json"), "utf8"),
-    );
-    await checkPublicationReadiness(config, domains.result ?? domains);
-    console.log("Pages domains, TLS, and maintenance services are ready");
+    await checkPublicationReadiness(config);
+    console.log("Website TLS and maintenance services are ready");
   } else if (command === "verify") {
     const candidate = await admit(input);
     await verifyLivePublication(config, candidate);

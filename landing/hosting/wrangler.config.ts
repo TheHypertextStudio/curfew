@@ -1,21 +1,8 @@
 import { defineWranglerConfig } from 'wrangler/experimental-config';
 
-export default defineWranglerConfig((ctx) => {
-  switch (ctx.mode) {
-    case 'staging': {
-      return {
-        assetsDirectory: '../dist',
-      };
-    }
-    case 'production': {
-      return {
-        assetsDirectory: '../dist',
-      };
-    }
-    default: {
-      return {
-        assetsDirectory: '../dist',
-      };
-    }
-  }
-});
+export default defineWranglerConfig((ctx) => ({
+  assetsDirectory:
+    ctx.mode === 'production'
+      ? process.env.CURFEW_WEBSITE_ASSETS_DIRECTORY || '../dist'
+      : '../dist',
+}));

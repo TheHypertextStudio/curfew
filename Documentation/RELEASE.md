@@ -449,7 +449,9 @@ Production activation uses `.github/workflows/activate-production.yml` after
 signed-device, account/provider, recovery, assistant and rollback acceptance.
 Follow [the domain migration runbook](domain-migration.md) for the coordinated
 service, website, provider and update-feed cutover. Publish only the exact
-retained candidate and matching website bytes. Verify the live feed and
+retained candidate and matching website bytes through the production Worker.
+The activation workflow adds the signed feed to the verified static output and
+uses native build/prebuilt deployment without provisioning or rebuilding Astro. Verify the live feed and
 downloaded DMG hash against the candidate before announcing. If any gate is
 missing, withhold activation; never use a receipt as production proof or enable
 sales while the commercial stop remains.

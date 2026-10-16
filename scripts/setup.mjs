@@ -4,8 +4,8 @@
 // Automates the bulk of `scripts/release-checklist.md`: deploys the license
 // Worker (auto-provisioning its custom domain), generates the signing keypair
 // and uploads it, creates the Stripe product/prices/payment-links/webhook and
-// wires the secrets, injects the live values into the repo, and deploys the
-// landing + /docs proxy. Idempotent: safe to re-run.
+// wires the secrets and injects the live values into the repo. Website
+// publication uses the native frontend commands.
 //
 // What it CANNOT do (no API): the Mintlify dashboard (connect repo + set the
 // /docs subpath) and Stripe "Managed Payments" account enablement.
@@ -20,9 +20,8 @@
 //   STRIPE_LIFETIME_AMOUNT    cents for the one-time price (default 2000 = $20)
 //   STRIPE_SUB_AMOUNT         cents for the recurring price (omit to skip the sub SKU)
 //   STRIPE_SUB_INTERVAL       'year' | 'month' (default 'year')
-//   CLOUDFLARE_API_TOKEN      optional; needed to attach the Pages custom domain
 //   CLOUDFLARE_ACCOUNT_ID     optional; auto-detected from `wrangler whoami`
-//   SKIP_WORKER / SKIP_KEYPAIR / SKIP_STRIPE / SKIP_PAGES = 1 to skip a phase
+//   SKIP_WORKER / SKIP_KEYPAIR / SKIP_STRIPE = 1 to skip a phase
 //   RECREATE_WEBHOOK=1        delete + recreate the Stripe webhook (to re-read its secret)
 
 import deployment from "../deployment/generated/environments.mjs";
@@ -38,7 +37,6 @@ const LANDING_DIR = join(ROOT, "landing");
 
 const WORKER_DOMAIN = new URL(deployment.production.licenseOrigin).host;
 const LANDING_DOMAIN = new URL(deployment.production.siteOrigin).host;
-const PAGES_PROJECT = "curfew-landing";
 const WEBHOOK_URL = `https://${WORKER_DOMAIN}/`;
 const SUCCESS_URL = `https://${LANDING_DOMAIN}/success.html?session_id={CHECKOUT_SESSION_ID}`;
 const EXPECTED_ACCOUNT = "willie@hypertext.studio";
@@ -82,18 +80,6 @@ async function stripe(method, path, params) {
   return json;
 }
 
-async function cloudflare(method, path, body) {
-  const token = env.CLOUDFLARE_API_TOKEN;
-  const account = env.CLOUDFLARE_ACCOUNT_ID || detectAccountId();
-  if (!token) return { skipped: true, account };
-  const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${account}${path}`, {
-    method,
-    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  return res.json();
-}
-
 let _accountId;
 function detectAccountId() {
   if (_accountId) return _accountId;
@@ -126,8 +112,6 @@ function preflight() {
   log(`  3. Stripe: product + lifetime price ($${(LIFETIME_AMOUNT / 100).toFixed(2)})` +
       (SUB_AMOUNT ? ` + subscription ($${(SUB_AMOUNT / 100).toFixed(2)}/${SUB_INTERVAL})` : " (no sub — STRIPE_SUB_AMOUNT unset)") +
       ` + payment links + webhook → secret STRIPE_WEBHOOK_SECRET`);
-  log(`  4. Deploy landing + /docs proxy → ${PAGES_PROJECT}` +
-      (env.CLOUDFLARE_API_TOKEN ? ` + attach ${LANDING_DOMAIN}` : ` (Pages domain attach skipped — no CLOUDFLARE_API_TOKEN)`));
 
   if (!EXECUTE) {
     warn("\nDry run. Re-run with --yes to execute.");
@@ -255,21 +239,6 @@ async function phaseStripe() {
   } else warn(`Webhook ${hook.id} already exists; its secret can't be re-read. Re-run with RECREATE_WEBHOOK=1 to rotate.`);
 }
 
-async function phasePages() {
-  if (env.SKIP_PAGES) return warn("Skipping landing deploy (SKIP_PAGES).");
-  step("Deploy landing + /docs proxy");
-  execFileSync("pnpm", ["build"], { cwd: LANDING_DIR, stdio: "inherit" });
-  execFileSync("pnpm", ["exec", "wrangler", "pages", "deploy", "dist", "--project-name", PAGES_PROJECT], { cwd: LANDING_DIR, stdio: "inherit" });
-
-  const res = await cloudflare("POST", `/pages/projects/${PAGES_PROJECT}/domains`, { name: LANDING_DOMAIN });
-  if (res.skipped) {
-    warn(`Set CLOUDFLARE_API_TOKEN to auto-attach ${LANDING_DOMAIN}. Manual:`);
-    log(`  curl -X POST https://api.cloudflare.com/client/v4/accounts/${res.account || "<acct>"}/pages/projects/${PAGES_PROJECT}/domains \\`);
-    log(`    -H "Authorization: Bearer <token>" -H "Content-Type: application/json" -d '{"name":"${LANDING_DOMAIN}"}'`);
-  } else if (res.success) log(`Attached custom domain ${LANDING_DOMAIN}`);
-  else warn(`Pages domain attach: ${JSON.stringify(res.errors || res)}`);
-}
-
 // --- run ----------------------------------------------------------------------
 
 (async () => {
@@ -278,7 +247,6 @@ async function phasePages() {
     phaseWorker();
     phaseKeypair();
     await phaseStripe();
-    await phasePages();
   } catch (e) {
     die(e.message);
   }

@@ -29,8 +29,7 @@
     "site:format:check": "pnpm --dir landing site:format:check",
     "preview:worker": "pnpm --dir landing preview:worker",
     "deploy:worker:staging": "pnpm --dir landing deploy:worker:staging",
-    "deploy:worker:production": "pnpm --dir landing deploy:worker:production",
-    "deploy:pages": "pnpm --dir landing deploy:pages"
+    "deploy:worker:production": "pnpm --dir landing deploy:worker:production"
   },
   "devDependencies": {
     "cf": "1.0.0-beta.16"

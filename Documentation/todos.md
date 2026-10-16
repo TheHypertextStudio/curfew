@@ -8,7 +8,7 @@
   accept the actual public site after separately approved cutover.
 - [x] Remove the standalone Pages-only website publication workflow and its
   custom preparation/verification wrapper. Use native deployment history and
-  retain the previous host through the agreed recovery window.
+  retain recorded native versions and routing baselines for explicit recovery.
 - [x] Remove website-only domain and provider-inventory wrappers. Keep production
   Cloudflare credentials out of PR validation and use native operator commands
   for approved domain administration.
@@ -16,10 +16,10 @@
   candidates, bind archive/export to their UUIDs, and remove job-owned files.
 - [ ] Resolve Apple identifier ownership and supply the issued production
   profiles; verify archive, signing, notarization, and native acceptance.
-- [x] Retain the compiled Pages middleware and a content/configuration identity
-      with the browser-validated static website.
+- [x] Retain the browser-validated static website with a content/configuration
+      identity; reject obsolete Pages runtime files.
 - [x] Provide manual activation of matching signed candidate and website bytes,
-      with fresh private owner acceptance, active domains, prepared services,
+      with fresh private owner acceptance, website TLS, prepared services,
       immutable release assets, and live feed/redirect/retirement checks.
 - [ ] Complete production provider, device, assistant, billing, licensing, mail,
       and update acceptance; publish the approved artifacts and verify the cutover.
@@ -39,8 +39,8 @@
   native update-feed state independently of the signed app release.
 
 - [x] Document Worker hostname setup through the shared hosting configuration and
-      native deployment, with Pages inspection and recorded-domain restoration
-      reserved for approved rollback. Preserve native/backend release requirements.
+      native deployment and explicit route/DNS reversal for approved recovery.
+      Preserve native/backend release requirements.
 - [x] Attach and activate the new hostname with verified DNS and TLS before the
       coordinated production cutover; retain the existing public hostname for its
       permanent redirect.
@@ -562,7 +562,7 @@ mid-lockout, and every action the root daemon takes. Format specification:
 - [x] Signed-build validation runbook for shutdown, Widget, helper, Sparkle, notarization, and DMG installation lives in `Documentation/RELEASE.md`.
 - [-] Standardize the landing frontend on native Astro public/dist builds and the pinned Worker tools. Manual staging must select exact successful main website/docs output, use its separate credential, and verify main before publication. Accept isolated routing, staff Access protection, bindings, Mintlify proxy behavior and native rollback before production cutover. Coordinate the signed appcast publication destination with the native release owner; a first signed app release is not required for frontend migration.
   - [x] Accept the marketing Account navigation handoff to the existing environment-specific portal without redirecting credentials, request bodies or authentication callbacks. Keep site and portal routes on separate hosts; overlapping ownership must fail closed instead of looping.
-  - [ ] Publish the accepted Mintlify proxy configuration on the production marketing Worker after cutover approval. Preserve the HTML compatibility asset and existing account service ownership.
+  - [x] Publish the accepted Mintlify proxy configuration on the production marketing Worker after cutover approval. Preserve the HTML compatibility asset and existing account service ownership.
 - [x] Account-era landing contract — every public header links to the optional
       same-origin account portal, Android is labeled as coming soon, and the
       privacy, security, retention, purchase, recovery, and remote-unlock
@@ -1213,11 +1213,11 @@ Landing integration: restored the account navigation and Android coming-soon not
 
 Fixture safety review: demo Settings uses an ephemeral account secret store and inert enrollment services; synthetic camera authorization cannot prompt TCC or open Camera Settings. Real account checkpoints, recovery keys, network enrollment, and camera access stay outside captures. ThemeConsistencyTests includes a fixture-wiring regression (14 theme/UI-source tests total). Assistant disclosure includes activity access.
 
-Remote full-suite follow-up: package endpoints now derive app/widget service isolation from their bundle identity when app-only compilation flags cannot propagate into SwiftPM; standalone tools retain their explicit service flag. Setup tests inject Accessibility trust, consent-copy expectations use the approved shorter labels, and the browser uninstall test waits for actual enqueue under loaded CI. A compatibility `landing` symlink preserves the existing Pages root without deployment configuration changes.
+Remote full-suite follow-up: package endpoints now derive app/widget service isolation from their bundle identity when app-only compilation flags cannot propagate into SwiftPM; standalone tools retain their explicit service flag. Setup tests inject Accessibility trust, consent-copy expectations use the approved shorter labels, and the browser uninstall test waits for actual enqueue under loaded CI.
 
 Remote capture correction: fully fitting native forms may expose a scrollbar with zero range. Bottom captures now verify the lowest text/control bounds as well as scrollbar position, and accommodate native wheel direction; long clipped panes still fail. The initial remote General capture was visually inspected and shared inline; it is interim evidence until final-head recapture.
 
-Pages verification rejected assets linked outside its configured root, so the compatibility symlink was replaced by the physical `landing/` asset directory. `web/landing/package.json` retains workspace commands and points Wrangler at that root, including its Functions. Deployment settings stay unchanged; script checks verify physical assets and the command target.
+The independent `landing/` package owns Astro source and native Workers hosting. Root commands and `just landing` use that package directly; backend workspace setup does not publish the frontend.
 
 Visual inspection found the isolated runner Dock overlapping Today’s primary action. Screenshot CI now hides and delays only its own Dock before capture; no local desktop preferences change. A workflow regression check protects this capture setup, and unobstructed recaptures are required.
 
@@ -1427,9 +1427,9 @@ asserts its own screen and state before attaching an image.
 - [x] Use the same native hosting configuration for local website preview and
   Workers deployment, with Mintlify enabled in staging and an explicit local HTML
   guide mode for the existing browser fixture.
-- [-] Exclude the retained Pages runtime and route configuration from Workers
-  Static Assets with the native `.assetsignore` file. Validate the actual Pages
-  artifact through native Workers packaging before staging publication.
+- [x] Retire Pages publication, preview and middleware compilation. Retain ordinary
+  static artifacts and package genuine signed feeds through native Workers builds;
+  preserve account, licensing, sync and native release ownership.
 
 ## 19. User-facing documentation and Plus launch
 
