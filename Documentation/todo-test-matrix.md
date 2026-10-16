@@ -1929,4 +1929,5 @@ changes; rollback restores the prior landing release and docs commit.
   development app's staging issuer.
 - `scripts/website-deploy.test.mjs` executes each operator command with an inherited
   opposite mode and mismatched page output. Correct builds retain their requested
-  mode; mismatches stop before any provider command.
+  mode and package the verified directory despite an inherited asset override;
+  mismatches stop before any provider command.
