@@ -1829,6 +1829,10 @@ changes; rollback restores the prior landing release and docs commit.
     restore sheet, empty-field validation, cancellation, and manual-key fallback.
     CI at `3f12cda` failed to expand the disclosure; the replacement test uses
     the accessible manual-entry button and checks that its field appears.
+- `The purchase preview has its own host without changing coordinator routes.`
+  - `landing/tests/unit/site-worker.test.mjs`: observed the absent staging route
+    first, then verifies the dedicated hostname, disabled workers.dev/previews,
+    and unchanged production routes.
 - `Actual provider and installed-app behavior matches the new path.`
   - `Documentation/plus-activation.md`: provider/signer pairing, test checkout,
     inbox delivery, cold/warm app opening and final distribution remain pending.
