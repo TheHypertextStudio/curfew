@@ -48,7 +48,7 @@ recorded launch evidence; continue testing routes, metadata, and recovery copy.
 - Current source supports lifetime and subscription keys. Plans, prices, billing
   cadence, cancellation handling, and license coverage must agree with checkout
   and the owner-reviewed terms. Guides link to prices rather than inventing them.
-- `web/landing/terms.html` and `refund.html` still contain legal-review TODOs,
+- `landing/src/pages/terms.astro` and `refund.astro` still contain legal-review TODOs,
   including subscription cancellation/refund treatment. They also describe
   Stripe as merchant of record; verify the actual commercial arrangement before
   launch. This rewrite does not ratify that claim or change legal policy.

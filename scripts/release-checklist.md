@@ -30,22 +30,21 @@ Run it (dry run prints the plan; `--yes` executes; add `--live` only with an
 ```sh
 # Test mode, both SKUs ($20 lifetime + $40/yr subscription):
 STRIPE_API_KEY=sk_test_… STRIPE_SUB_AMOUNT=4000 just setup --yes
-# Also attach the curfew.hypertext.studio Pages domain automatically:
-CLOUDFLARE_API_TOKEN=… STRIPE_API_KEY=sk_live_… STRIPE_SUB_AMOUNT=4000 just setup --yes --live
+# Live billing setup requires its separate release-owner authorization:
+STRIPE_API_KEY=sk_live_… STRIPE_SUB_AMOUNT=4000 just setup --yes --live
 ```
 
 Env: `STRIPE_LIFETIME_AMOUNT` (cents, default 2000), `STRIPE_SUB_AMOUNT` (cents;
 omit to ship lifetime-only), `STRIPE_SUB_INTERVAL` (`year`|`month`),
 `RECREATE_WEBHOOK=1` to rotate the webhook secret, `SKIP_WORKER`/`SKIP_KEYPAIR`/
-`SKIP_STRIPE`/`SKIP_PAGES=1` to skip a phase.
+`SKIP_STRIPE=1` to skip a phase.
 
 Manual steps that remain **after** the script (no API for these):
 
-- [ ] **Mintlify** dashboard → connect this GitHub repo and set the project to
-      serve from the **`/docs` subpath** of `curfew.hypertext.studio`. The Pages
-      Function in `landing/functions/_middleware.js` reverse-proxies
-      `/docs` → `curfew.mintlify.dev` without rewriting the path, so Mintlify
-      must be told it lives under `/docs`.
+- [ ] **Mintlify** dashboard → connect this GitHub repo (`web/docs/`) and serve
+      the `/docs` subpath of the production origin in shared configuration.
+      The marketing Worker proxies the accepted `https://curfew.mintlify.site`
+      upstream, including the `/docs/mcp` guide alias.
 - [ ] Commit the values the script injected: the Ed25519 public key in
       `LicenseGate.swift` and the payment-link URLs/price in
       `landing/src/pages/index.astro`.
@@ -166,19 +165,15 @@ key as fatal before publishing.
 
 ### 8. Landing page hosting
 
-- [x] Cloudflare Pages project serves this repo's `landing/` directory.
-- [x] Custom domain: `curfew.hypertext.studio` (HTTPS 200 verified 2026-08-01).
-- [x] Cloudflare Pages preview deployment runs for repository changes.
+Use the existing native Astro and Worker commands described in
+[`Documentation/website.md`](../Documentation/website.md). Website publication
+and preview do not run through whole-product billing setup. Retain account,
+licensing and sync ownership and the absent feed until a genuine signed release.
 
-The completed hosting setup does **not** authorize a sale: keep the root
-landing sale gate closed until the production Stripe webhook and signed-app
-license delivery are independently verified.
-- [ ] **Docs proxy:** the landing project ships a Pages Function
-      (`landing/functions/_middleware.js`) that reverse-proxies `/docs` and
-      `/docs/*` to `curfew.mintlify.dev`. In the Mintlify dashboard, connect this
-      repo (docs source in `web/docs/`) and set the project to serve from the
-      `/docs` subpath of `curfew.hypertext.studio`. The proxy does not rewrite
-      the path, so Mintlify must know it lives under `/docs`.
+The hosting setup does **not** authorize a sale: keep the root landing sale gate
+closed until the production Stripe webhook and signed-app license delivery are
+independently verified. Verify actual Mintlify guides, navigation, assets and
+search on the serving Worker.
 
 ### 9. Homebrew Cask submission
 

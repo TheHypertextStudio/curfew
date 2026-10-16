@@ -29,8 +29,7 @@
     "site:format:check": "prettier --check astro.config.mjs eslint.config.mjs package.json playwright.config.mjs prettier.config.mjs tsconfig.json worker.mjs hosting/cloudflare.config.ts hosting/wrangler.config.ts tests/unit/*.test.mjs tests/acceptance/site.spec.mjs src/layouts/Page.astro src/layouts/Experience.astro public/curfew.css public/curfew-pages.css public/design/theme.js",
     "preview:worker": "pnpm --dir hosting exec cf dev --mode staging --port 4325",
     "deploy:worker:staging": "astro build && pnpm --dir hosting exec cf build --mode staging && pnpm --dir hosting exec cf deploy --prebuilt --mode staging",
-    "deploy:worker:production": "astro build && pnpm --dir hosting exec cf build --mode production && pnpm --dir hosting exec cf deploy --prebuilt --mode production",
-    "deploy:pages": "astro build && wrangler pages deploy dist --project-name curfew-landing"
+    "deploy:worker:production": "astro build && pnpm --dir hosting exec cf build --mode production && pnpm --dir hosting exec cf deploy --prebuilt --mode production"
   },
   "devDependencies": {
     "@astrojs/check": "0.9.10",

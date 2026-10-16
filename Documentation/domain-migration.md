@@ -23,12 +23,13 @@ links, service routes, provider registrations, account sessions and genuine
 signed appcast bytes. A missing update feed stays absent until the native
 release owner publishes a real signed release.
 
-Capture current DNS, route ownership and the retained Pages deployment before
+Capture current DNS, route ownership and native deployment versions before
 cutover. Verify the canonical site, documentation, public redirects, account
 entry and feed state after publication. Use native Worker deployment history
 for code rollback and reverse only the routes changed by the cutover. Keep
-Pages available through the agreed recovery window; retiring it is a separate
-approved operation. Signed native publication and coordinated service activation
+recorded DNS/routes available for explicit reversal. No fixed recovery or
+observation delay applies. Retiring provider resources is a separate approved
+operation and must preserve the legacy account portal. Signed native publication and coordinated service activation
 retain their existing release-owner workflows.
 
 ## Configuration ownership
@@ -55,7 +56,7 @@ never by creating a replacement namespace or signing key.
 
 Use the pinned `cf@1.0.0-beta.16`. Worker projects have explicit `cloudflare.config.ts`; never run cf automatic setup over an unmigrated Wrangler project. Use `cf cli search` then `cf schema` for resource operations. Queries contain generic resource descriptions, never identifying values or credentials. CI uses explicit account IDs and approved API-token credentials; Wrangler login is not reused.
 
-Build with `cf build --mode production`, validate with `cf deploy --prebuilt --mode production --dry-run --provision=false`, then deploy the same output. Preserve IDs and the `UserCoordinator` SQLite export. The static Astro renderer is separate from its small `landing/hosting` Worker packaging entry point, preventing cf framework detection from treating a static build as Worker Build Output. The pinned cf release applies forward D1 migrations with the existing database IDs and bookkeeping history. Wrangler remains for local/test configuration, generated types and live logs; Pages artifact publication retains its existing uploader. Email Sending onboarding also retains the Cloudflare dashboard or Wrangler email commands because the pinned cf command catalog does not expose that service. Verify the selected zone and the resulting SPF, DKIM, DMARC and bounce records. These are explicit CLI beta exceptions.
+Build with `cf build --mode production`, validate with `cf deploy --prebuilt --mode production --dry-run --provision=false`, then deploy the same output. Preserve IDs and the `UserCoordinator` SQLite export. The static Astro renderer is separate from its small `landing/hosting` Worker packaging entry point, preventing cf framework detection from treating a static build as Worker Build Output. The pinned cf release applies forward D1 migrations with the existing database IDs and bookkeeping history. Wrangler remains for local/test configuration, generated types and live logs. Email Sending onboarding also retains the Cloudflare dashboard or Wrangler email commands because the pinned cf command catalog does not expose that service. Verify the selected zone and the resulting SPF, DKIM, DMARC and bounce records. These are explicit CLI beta exceptions.
 
 ## Cutover prerequisites
 
@@ -81,14 +82,13 @@ The policy selects one principal and grants no authentication, assurance, scope,
 
 Staging uses its existing domains, database and provider assignments with a separately protected staging policy. Normal deployment remains the default; maintenance rehearsal is opt-in and requires confirmed isolated test data plus a fresh backup/provider/release receipt. Its workflow supplies only the policy secret and retains existing provider credentials. Stage checkpoint/fence checks select the staging database explicitly through cf. Rehearse before production enablement; source tests and dry-runs cannot stand in for provider callbacks, native reconnection, email, payments or physical-device acceptance.
 
-Attach the new apex to the existing Pages project through `cf pages domains create`; verify its activation rather than creating only a DNS CNAME. The Pages middleware performs the old-site redirect before docs/static handling. Exclude API/callback/authenticated traffic from public redirects.
+Use the native production marketing Worker for the public apex. Verify its route ownership and TLS. Its Worker handles declared public redirects before docs/static handling. Keep account, API, callback and authenticated traffic with their service owner; do not claim legacy-host routing for the marketing Worker while it serves the account portal.
 
 ## Acceptance and rollback
 
-The website pipeline compiles the Pages middleware before retention, executes
-its redirect/retirement and documentation-mode tests, and seals the complete
-static output against the shared configuration. Publication consumes those
-retained files; it does not rebuild the app, website, or middleware.
+The website pipeline validates the ordinary Worker and browser behavior and
+seals static output against the shared configuration. The signed native release
+workflow consumes those retained files without rebuilding Astro or the app.
 
 After the candidate's acceptance gates pass, store the exact owner receipt as
 the production environment secret `CURFEW_RELEASE_ACCEPTANCE_RECEIPT`. Dispatch
@@ -97,25 +97,28 @@ and the successful main website run. Both runs and the current main/tag must
 identify the same source revision. The receipt remains private, must match the
 candidate, and expires after one hour. It is never published as a release asset.
 
-Activation requires both Pages hostnames to be active, valid new-site TLS, and
-the configuration-matched account/sync services in maintenance plus the
-configuration-matched license issuer. It publishes the exact signed DMG, feed,
-and candidate identity to GitHub before uploading the retained Pages output
-with bundling disabled from a fresh directory without checkout Functions, so
-the uploader cannot compile source again. The pinned cf release explicitly
-rejects legacy Pages publication, so this uploader retains the documented Wrangler exception; cf
-still inspects custom domains. Existing documentation mode and project bindings
-are retained. A retry reuses matching public release assets and refuses changed
-bytes. Draft retries use authenticated release discovery and read asset digests
-back by release ID before publication; a failed site publication can retry the
-same release without replacing assets or restoring revoked authorization. Final checks require the exact live
-feed, public path/query-preserving 308, and callback retirement without redirect.
+Activation requires valid website TLS, configuration-matched account/sync
+services in maintenance, and the configuration-matched license issuer. It
+publishes the exact signed DMG, feed and candidate identity to GitHub, then adds
+the signed feed to a copy of the verified static output. Native `cf build`
+packages that directory through the production `assetsDirectory` input, selected
+with the absolute `CURFEW_WEBSITE_ASSETS_DIRECTORY` environment value. A prebuilt
+dry-run and deployment both disable provisioning. The Worker configuration and
+Mintlify bindings remain the ordinary production configuration.
+
+A retry reuses matching public release assets and refuses changed bytes. Draft
+retries use authenticated release discovery and read asset digests back by
+release ID before publication. A failed site publication can retry the same
+release without replacing assets or restoring revoked authorization. Final
+checks require the exact live feed, public path/query-preserving 308, and
+callback retirement without redirect during coordinated service activation.
+These service-cutover requirements do not gate independent marketing releases.
 
 Acceptance includes real passkey recovery/replacement, Apple/Google sign-in, transactional email, native callback and same-device reconnection, retained encrypted-data readability, a real assistant command with Mac receipt/enforcement, Stripe test webhook, license delivery/refresh, and a verified signed app update. Passing local checks or a homepage 200 does not establish these outcomes.
 
 The cf Durable Object export conversion is one-way: Cloudflare retains the existing namespace, but subsequent rollbacks must use cf exports with the same Worker/export/resource identities. Roll back code and assets through that configuration; do not redeploy the legacy Wrangler migrations array.
 
-Monitor these journeys through the following day. Keep the public redirect indefinitely and service retirement responses only. Roll back application/configuration versions against retained data if needed; never resurrect revoked grants or overwrite post-cutover writes. Staging retains its existing hosts. Unrelated Studio domains and support email addresses are unchanged.
+Verify these journeys after activation. No fixed observation or recovery delay applies. Keep the public redirect indefinitely and service retirement responses only. Roll back application/configuration versions against retained data if needed; never resurrect revoked grants or overwrite post-cutover writes. Staging retains its existing hosts. Unrelated Studio domains and support email addresses are unchanged.
 
 ## Provider inventory and candidate identity
 

@@ -23,31 +23,22 @@ const deployment = createArtifact(
 );
 
 async function fixture(t) {
-  const directory = await mkdtemp(join(tmpdir(), "curfew-pages-artifact-"));
+  const directory = await mkdtemp(join(tmpdir(), "curfew-website-artifact-"));
   t.after(() => rm(directory, { recursive: true, force: true }));
-  await mkdir(join(directory, "_worker.js"));
   await writeFile(join(directory, "index.html"), "<h1>Curfew</h1>");
-  await writeFile(
-    join(directory, "_worker.js/index.js"),
-    "export default {fetch(){return new Response('Curfew')}}",
-  );
-  await writeFile(
-    join(directory, "_routes.json"),
-    JSON.stringify({ version: 1, include: ["/*"], exclude: [] }),
-  );
   return directory;
 }
 async function api() {
-  const value = await import("./pages-artifact.mjs").catch(() => null);
+  const value = await import("./website-artifact.mjs").catch(() => null);
   assert.equal(
     typeof value?.sealWebsite,
     "function",
-    "The retained Pages build must have an identity",
+    "The retained static build must have an identity",
   );
   return value;
 }
 
-test("Pages sealing binds an alternate-domain build to its configuration and source", async (t) => {
+test("Static sealing binds an alternate-domain build to its configuration and source", async (t) => {
   const directory = await fixture(t);
   const { sealWebsite, verifyWebsite } = await api();
   const stamp = await sealWebsite(directory, deployment);
@@ -62,7 +53,7 @@ test("Pages sealing binds an alternate-domain build to its configuration and sou
     "a".repeat(40),
   );
 });
-test("Pages publication rejects changed assets and a different candidate configuration", async (t) => {
+test("Static publication rejects changed assets and a different candidate configuration", async (t) => {
   const directory = await fixture(t);
   const { sealWebsite, verifyWebsite } = await api();
   const stamp = await sealWebsite(directory, deployment);
@@ -82,16 +73,16 @@ test("Pages publication rejects changed assets and a different candidate configu
     /website build/i,
   );
 });
-test("Pages sealing refuses an absent redirect bundle or routes that bypass middleware", async (t) => {
+test("static sealing refuses missing output and obsolete Pages runtime files", async (t) => {
   const directory = await fixture(t);
   const { sealWebsite } = await api();
-  await rm(join(directory, "_worker.js"), { recursive: true });
+  await rm(join(directory, "index.html"));
   await assert.rejects(() => sealWebsite(directory, deployment));
+  await writeFile(join(directory, "index.html"), "<h1>Curfew</h1>");
   await mkdir(join(directory, "_worker.js"));
   await writeFile(join(directory, "_worker.js/index.js"), "export default {}");
-  await writeFile(
-    join(directory, "_routes.json"),
-    JSON.stringify({ version: 1, include: ["/*"], exclude: ["/download"] }),
-  );
-  await assert.rejects(() => sealWebsite(directory, deployment), /middleware/i);
+  await assert.rejects(() => sealWebsite(directory, deployment), /Pages/i);
+  await rm(join(directory, "_worker.js"), { recursive: true });
+  await writeFile(join(directory, "_routes.json"), "{}");
+  await assert.rejects(() => sealWebsite(directory, deployment), /Pages/i);
 });

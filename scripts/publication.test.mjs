@@ -18,19 +18,14 @@ import { join } from "node:path";
 import { createArtifact } from "./deployment-config.mjs";
 import { createReleaseConfiguration } from "./release-configuration.mjs";
 import { createCandidate, activationGates } from "./release-candidate.mjs";
-import { sealWebsite } from "./pages-artifact.mjs";
+import { sealWebsite } from "./website-artifact.mjs";
 
 async function fixture(t) {
   const directory = await mkdtemp(join(tmpdir(), "curfew-publication-"));
   t.after(() => rm(directory, { recursive: true, force: true }));
   const site = join(directory, "website");
-  await mkdir(join(site, "_worker.js"), { recursive: true });
+  await mkdir(site, { recursive: true });
   await writeFile(join(site, "index.html"), "verified site");
-  await writeFile(join(site, "_worker.js/index.js"), "export default {}");
-  await writeFile(
-    join(site, "_routes.json"),
-    '{"version":1,"include":["/*"],"exclude":[]}',
-  );
   const deployment = createArtifact(
     {
       version: 1,
@@ -305,14 +300,10 @@ test("draft release activation verifies uploaded retained bytes before making th
   assert.equal(release.draft, false);
 });
 
-test("publication readiness requires active domains and the reviewed backend in maintenance", async (t) => {
+test("publication readiness requires live website TLS and the reviewed backend in maintenance", async (t) => {
   const input = await fixture(t);
   const { checkPublicationReadiness } = await api();
   assert.equal(typeof checkPublicationReadiness, "function");
-  const domains = [
-    { name: "alternate.example", status: "active" },
-    { name: "old.example", status: "active" },
-  ];
   const config = {
     ...input.website.deployment.manifest.environments.production,
     legacySiteOrigin: "https://old.example",
@@ -327,18 +318,16 @@ test("publication readiness requires active domains and the reviewed backend in 
         "x-curfew-maintenance": url.includes("license.") ? "false" : "true",
       },
     });
-  await checkPublicationReadiness(config, domains, fetcher);
+  await checkPublicationReadiness(config, fetcher);
   await assert.rejects(() =>
     checkPublicationReadiness(
       config,
-      [{ name: "alternate.example", status: "pending" }],
-      fetcher,
+      async () => new Response("unavailable", { status: 503 }),
     ),
   );
   await assert.rejects(() =>
     checkPublicationReadiness(
       config,
-      domains,
       async () =>
         new Response("healthy", {
           headers: {
@@ -474,12 +463,9 @@ test("activation can read source records on a clean runner before loading its re
     );
 });
 
-test("Pages publication cannot compile checkout Functions while uploading a retained directory bundle", async (t) => {
+test("native publication builds and deploys the retained static directory with its signed feed", async (t) => {
   const input = await fixture(t);
   const root = join(input.destination, "..");
-  await mkdir(join(root, "landing/functions"), { recursive: true });
-  await mkdir(join(root, "landing/node_modules/.bin"), { recursive: true });
-  await mkdir(join(root, "runner"));
   await writeFile(
     join(root, "gh"),
     '#!/bin/sh\nprintf "%s\\n" "$GITHUB_SHA"\n',
@@ -487,15 +473,9 @@ test("Pages publication cannot compile checkout Functions while uploading a reta
   );
   await writeFile(
     join(root, "pnpm"),
-    '#!/bin/sh\ncd "$GITHUB_WORKSPACE/landing"\nshift 3\nexec ./node_modules/.bin/"$@"\n',
-    { mode: 0o700 },
-  );
-  await writeFile(
-    join(root, "landing/node_modules/.bin/wrangler"),
     `#!/usr/bin/env node
-import {existsSync,writeFileSync} from 'node:fs';
-if(existsSync('functions')) {console.error('Pages uploader would compile checkout Functions');process.exit(42);}
-writeFileSync(process.env.GITHUB_WORKSPACE+'/uploaded-arguments.json',JSON.stringify(process.argv.slice(2)));
+import {appendFileSync} from 'node:fs';
+appendFileSync(process.env.GITHUB_WORKSPACE+'/uploaded-arguments.jsonl',JSON.stringify({args:process.argv.slice(2),assets:process.env.CURFEW_WEBSITE_ASSETS_DIRECTORY})+'\\n');
 `,
     { mode: 0o700 },
   );
@@ -514,7 +494,7 @@ writeFileSync(process.env.GITHUB_WORKSPACE+'/uploaded-arguments.json',JSON.strin
   );
   const script = workflow.jobs.activate.steps.find(
     (step) =>
-      step.name === "Publish the same Pages artifact and signed update feed",
+      step.name === "Publish the same Worker assets and signed update feed",
   ).run;
   const result = spawnSync("bash", ["-e", "-c", script], {
     cwd: root,
@@ -524,17 +504,30 @@ writeFileSync(process.env.GITHUB_WORKSPACE+'/uploaded-arguments.json',JSON.strin
       GITHUB_WORKSPACE: root,
       GITHUB_SHA: "a".repeat(40),
       GITHUB_REPOSITORY: "TheHypertextStudio/curfew",
-      RUNNER_TEMP: join(root, "runner"),
     },
   });
   assert.equal(result.status, 0, result.stderr);
-  const args = JSON.parse(
-    await readFile(join(root, "uploaded-arguments.json"), "utf8"),
+  const calls = (await readFile(join(root, "uploaded-arguments.jsonl"), "utf8"))
+    .trim()
+    .split("\n")
+    .map((line) => JSON.parse(line));
+  assert.deepEqual(
+    calls,
+    [
+      ["build", "--mode", "production"],
+      [
+        "deploy",
+        "--prebuilt",
+        "--mode",
+        "production",
+        "--dry-run",
+        "--provision=false",
+      ],
+      ["deploy", "--prebuilt", "--mode", "production", "--provision=false"],
+    ].map((args) => ({
+      args: ["--dir", "landing/hosting", "exec", "cf", ...args],
+      assets: join(root, ".publication/site-ready"),
+    })),
   );
-  assert.deepEqual(args.slice(0, 3), [
-    "pages",
-    "deploy",
-    join(root, ".publication/site-ready"),
-  ]);
-  assert.ok(args.includes("--no-bundle"));
+  assert.doesNotMatch(script, /astro build|pages deploy/);
 });

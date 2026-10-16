@@ -14,28 +14,25 @@ expiry/distribution/capability rejection, target-specific archive/export mapping
 private installation, existing-file preservation, and digest-checked cleanup.
 Issued-profile acceptance requires the actual signed/notarized candidate.
 
-`scripts/pages-artifact.test.mjs` verifies retained file identity, alternate
-configuration, changed assets, and middleware routing coverage.
-`scripts/pages-bundle.node.mjs` executes the actual compiled Pages handler for
-public redirects, sensitive traffic retirement, and both documentation modes.
+`scripts/website-artifact.test.mjs` verifies retained static identity, alternate
+configuration, changed assets and rejection of obsolete Pages runtime files.
 `scripts/publication.test.mjs` covers signed candidate/site identity, owner
 acceptance freshness, successful source workflows, changed main/tag protection,
-release asset reuse/conflicts, active-domain/maintenance admission, live feed
-and redirect verification, private receipt permissions/hash binding, draft
-asset readback, and upload isolation from checkout Functions.
+release asset reuse/conflicts, website TLS/maintenance admission, live feed and
+redirect verification, private receipt permissions/hash binding, draft asset
+readback, and native build/prebuilt publication using the exact prepared assets.
 These checks do not replace actual signed Mac, provider, assistant, billing,
 licensing, mail, update, or production browser acceptance.
 
 ## Website domain preparation
 
-Current frontend hostname setup uses the shared Worker hosting configuration and
-native deployment. Pages inspection records rollback baselines; attachment is
-reserved for restoring a recorded domain during approved rollback, as described
-in `website-domain-preparation.md`. `scripts/deployment-config.test.mjs` covers the
-configuration contract and refuses production deployment credentials in the
-PR-triggered website workflow. Provider status, public DNS and live TLS must
-establish activation; unit tests do not prove infrastructure or production
-cutover. Existing Pages publication/middleware checks and recovery remain intact.
+Current frontend hostname setup uses shared Worker configuration and native
+deployment. Recovery uses native versions and recorded route/DNS reversal, as
+described in `website-domain-preparation.md`, without a fixed delay.
+`scripts/deployment-config.test.mjs` covers the configuration contract and refuses
+production credentials in PR website validation. Provider status, public DNS
+and live TLS must establish activation; unit tests do not prove infrastructure
+or production cutover. Existing account/service hosts remain independently owned.
 
 ## License deployment configuration
 
@@ -1502,11 +1499,11 @@ Landing integration: restored the account navigation and Android coming-soon not
 
 Fixture safety review: demo Settings uses an ephemeral account secret store and inert enrollment services; synthetic camera authorization cannot prompt TCC or open Camera Settings. Real account checkpoints, recovery keys, network enrollment, and camera access stay outside captures. ThemeConsistencyTests includes a fixture-wiring regression (14 theme/UI-source tests total). Assistant disclosure includes activity access.
 
-Remote full-suite follow-up: package endpoints now derive app/widget service isolation from their bundle identity when app-only compilation flags cannot propagate into SwiftPM; standalone tools retain their explicit service flag. Setup tests inject Accessibility trust, consent-copy expectations use the approved shorter labels, and the browser uninstall test waits for actual enqueue under loaded CI. A compatibility `landing` symlink preserves the existing Pages root without deployment configuration changes.
+Remote full-suite follow-up: package endpoints now derive app/widget service isolation from their bundle identity when app-only compilation flags cannot propagate into SwiftPM; standalone tools retain their explicit service flag. Setup tests inject Accessibility trust, consent-copy expectations use the approved shorter labels, and the browser uninstall test waits for actual enqueue under loaded CI.
 
 Remote capture correction: fully fitting native forms may expose a scrollbar with zero range. Bottom captures now verify the lowest text/control bounds as well as scrollbar position, and accommodate native wheel direction; long clipped panes still fail. The initial remote General capture was visually inspected and shared inline; it is interim evidence until final-head recapture.
 
-Pages verification rejected assets linked outside its configured root, so the compatibility symlink was replaced by the physical `landing/` asset directory. `web/landing/package.json` retains workspace commands and points Wrangler at that root, including its Functions. Deployment settings stay unchanged; script checks verify physical assets and the command target.
+The independent `landing/` package owns Astro source and native Workers hosting. Root commands and `just landing` use that package directly; backend workspace setup does not publish the frontend.
 
 Visual inspection found the isolated runner Dock overlapping Today’s primary action. Screenshot CI now hides and delays only its own Dock before capture; no local desktop preferences change. A workflow regression check protects this capture setup, and unobstructed recaptures are required.
 
@@ -1686,7 +1683,7 @@ before the link correction. `landing/tests/acceptance/site.spec.mjs` checks
 the published Guides destination and the retained HTML guide's anchors.
 `pnpm --dir landing docs:check` validates the Mintlify source. Hosted checks
 must confirm each published destination and the live landing links after the
-Mintlify and Pages deployments. No account, native app, or wire behavior
+Mintlify and Workers deployments. No account, native app, or wire behavior
 changes; rollback restores the prior landing release and docs commit.
 
 - Website hosting configuration: native `cf build --mode staging` and
@@ -1697,10 +1694,11 @@ changes; rollback restores the prior landing release and docs commit.
   `landing/tests/unit/site-worker.test.mjs` covers proxy routing and credential
   isolation; `landing/tests/acceptance/site.spec.mjs` uses the explicit local HTML
   guide mode through the same native hosting configuration.
-- Workers asset safety: the retained Pages build keeps `_worker.js` and
-  `_routes.json`, while the native `.assetsignore` excludes them from Static
-  Assets. Run the existing Pages middleware build followed by native staging
-  `cf build` and `cf deploy --prebuilt --dry-run` to validate that exact layout.
+- Workers asset safety: static artifact sealing rejects `_worker.js` and
+  `_routes.json`; `.assetsignore` also excludes them from Static Assets.
+  Validate ordinary native staging/production build and prebuilt dry-run output.
+  Signed native activation selects the verified prepared directory through the
+  existing production `assetsDirectory` setting rather than rebuilding Astro.
 - Account navigation: hosted marketing `/account` must return a noncached 302
   to the existing staging portal. Account subpaths, query-bearing callbacks,
   POST bodies and Authorization-bearing requests must not use this handoff.

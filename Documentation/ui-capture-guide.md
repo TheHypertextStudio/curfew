@@ -127,11 +127,11 @@ Remote CI follow-up: screenshot extraction preserves the original failed UI-test
 
 Fixture safety review: demo Settings uses an ephemeral account secret store and inert enrollment services; synthetic camera authorization cannot prompt TCC or open Camera Settings. Real account checkpoints, recovery keys, network enrollment, and camera access stay outside captures. ThemeConsistencyTests includes a fixture-wiring regression (14 theme/UI-source tests total). Assistant disclosure includes activity access.
 
-Remote full-suite follow-up: package endpoints now derive app/widget service isolation from their bundle identity when app-only compilation flags cannot propagate into SwiftPM; standalone tools retain their explicit service flag. Setup tests inject Accessibility trust, consent-copy expectations use the approved shorter labels, and the browser uninstall test waits for actual enqueue under loaded CI. A compatibility `landing` symlink preserves the existing Pages root without deployment configuration changes.
+Remote full-suite follow-up: package endpoints now derive app/widget service isolation from their bundle identity when app-only compilation flags cannot propagate into SwiftPM; standalone tools retain their explicit service flag. Setup tests inject Accessibility trust, consent-copy expectations use the approved shorter labels, and the browser uninstall test waits for actual enqueue under loaded CI.
 
 Remote capture correction: fully fitting native forms may expose a scrollbar with zero range. Bottom captures now verify the lowest text/control bounds as well as scrollbar position, and accommodate native wheel direction; long clipped panes still fail. The initial remote General capture was visually inspected and shared inline; it is interim evidence until final-head recapture.
 
-Pages verification rejected assets linked outside its configured root, so the compatibility symlink was replaced by the physical `landing/` asset directory. `web/landing/package.json` retains workspace commands and points Wrangler at that root, including its Functions. Deployment settings stay unchanged; script checks verify physical assets and the command target.
+The independent `landing/` package owns Astro source and native Workers hosting. Root commands and `just landing` use that package directly; backend workspace setup does not publish the frontend.
 
 Visual inspection found the isolated runner Dock overlapping Today’s primary action. Screenshot CI now hides and delays only its own Dock before capture; no local desktop preferences change. A workflow regression check protects this capture setup, and unobstructed recaptures are required.
 
