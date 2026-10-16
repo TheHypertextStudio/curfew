@@ -468,3 +468,45 @@ The Studio Cloudflare account lists an active **Curfew production GitHub
 Actions** token. This repository has no corresponding deployment secret. Token
 metadata alone does not provide its value or authorize reuse from another
 system; no Cloudflare credential was changed.
+
+### Approved CI credential provisioning
+
+The owner approved dedicated CI credentials, protected local storage, GitHub
+secret configuration and the Studio team correction. Apple issued Developer ID
+Application certificate `9954666T44` for `T95VDD3A4W`. Its SHA-256 fingerprint is
+`2911C79C76F5614F3F84E7F291B070052FECC3069FE587F5BF21247010E7FB52`, and its
+public key matches the generated RSA signing key. The protected PKCS#12 includes
+the G2 intermediate. Certificate validity ends on 2027-11-12.
+
+The new **Curfew GitHub Notarization** key is `3P5K858QJ5`, with Developer access.
+`notarytool history` authenticated successfully and returned no previous
+submissions. This proves credential access; no app notarization is claimed.
+The six Apple release inputs are now configured in this repository's Actions
+secrets. Private files have mode `0600` under
+`~/.config/curfew/release-credentials` (directory `0700`). Secret uploads used
+stdin; no private values were printed or passed in command arguments. Existing
+Apple credentials remain active.
+
+The Release app, widget and artifact verifier now agree on `T95VDD3A4W`, matching
+the saved team secret. The signing-team regression failed before that source
+change and passed afterward; all twelve release-policy tests pass. Bundle IDs,
+license signers and enforcement behavior are unchanged. Roll back the source
+team and verifier together only with matching approved signing credentials.
+
+Native revalidation found that `LifecycleWiringTests` read the sandbox license
+retained by the real Debug walkthrough. Its reconciliation test also failed in
+isolation before the fixture correction. The helper now supplies a license gate
+backed by its existing per-test defaults suite, preserving the saved purchase
+and the test's original free-to-Plus assertions. This is test isolation only.
+
+Final verification passes: twelve activation cases; the isolated lifecycle
+regression; 81 XCTest and 937 Swift Testing cases across 162 suites; SwiftFormat
+apply/check and strict SwiftLint (zero violations in 332 files); and the unsigned
+Debug build. Review found no actionable regression in the team correction or
+fixture isolation. Developer ID archive/export, notarization, stapling and
+Gatekeeper acceptance remain unverified.
+
+Remaining release inputs include the Cloudflare deployment credential and a
+verified production Sparkle public/private-key pair. The current Release pin
+is still a placeholder, and appcast deployment still targets the paused Pages
+path. Resolve that path with the Workers migration before tagging a release.
