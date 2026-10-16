@@ -148,7 +148,10 @@ cf workers deployments list --worker curfew-site-staging --profile hypertext-stu
 ```
 
 For an authorized local publication of reviewed source, the existing
-`pnpm deploy:worker:staging` script builds Astro and invokes the pinned tool.
+`pnpm deploy:worker:staging` script explicitly builds Astro for staging, verifies
+the checkout and restore pages against the staging issuer and app scheme, then
+invokes the pinned tool. Both local deployment scripts reject mismatched purchase
+pages before any provider command and override an inherited opposite build mode.
 Keep prior native versions and route/domain baselines available for recovery.
 
 ## Production and rollback

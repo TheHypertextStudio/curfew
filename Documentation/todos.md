@@ -1556,3 +1556,5 @@ asserts its own screen and state before attaching an image.
   issuer/scheme pairing before staging deployment and production publication.
 - [x] Validate restore portals against the issuer's deployment profile and pair
   local purchase pages with the native development app's retained staging issuer.
+- [x] Pin the purchase environment in local website deployment commands and reject
+  mismatched checkout or restore pages before invoking provider build/deploy.
