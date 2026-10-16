@@ -41,7 +41,7 @@ jobs:
         with:
           node-version: 24.20.0
           registry-url: https://npm.pkg.github.com
-          scope: '@thehypertextstudio'
+          scope: "@thehypertextstudio"
       - name: Install pinned deployment tooling
         run: pnpm --dir landing install --frozen-lockfile
         env:
@@ -49,15 +49,41 @@ jobs:
       - name: Download the validated static output
         uses: actions/download-artifact@v8.0.2
         with:
-          name: curfew-website-dist
+          name: curfew-website-staging-dist
           path: landing/dist/
           run-id: ${{ steps.website.outputs.run_id }}
           github-token: ${{ github.token }}
+      - name: Download staging website identity
+        uses: actions/download-artifact@v8.0.2
+        with:
+          name: curfew-website-staging-build
+          path: deployment/generated/
+          run-id: ${{ steps.website.outputs.run_id }}
+          github-token: ${{ github.token }}
+      - name: Download shared deployment identity
+        uses: actions/download-artifact@v8.0.2
+        with:
+          name: curfew-deployment-configuration
+          path: deployment/generated/
+          run-id: ${{ steps.website.outputs.run_id }}
+          github-token: ${{ github.token }}
+      - name: Verify retained staging purchase environment
+        run: |
+          node --input-type=module <<'JS'
+          import {readFile} from 'node:fs/promises';
+          import {createArtifact} from './scripts/deployment-config.mjs';
+          import {verifyWebsite} from './scripts/website-artifact.mjs';
+          const json = async path => JSON.parse(await readFile(path, 'utf8'));
+          const artifact = await json('deployment/generated/environment-artifact.json');
+          const stamp = await json('deployment/generated/staging-website-build.json');
+          const expected = createArtifact(await json('deployment/environments.json'), process.env.GITHUB_SHA);
+          await verifyWebsite('landing/dist', stamp, artifact, expected.sha256, process.env.GITHUB_SHA, 'staging');
+          JS
       - name: Deploy staging with its separate credential
         env:
           GH_TOKEN: ${{ github.token }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: '2500680a3b2b0fe6a011c1c25fed5008'
+          CLOUDFLARE_ACCOUNT_ID: "2500680a3b2b0fe6a011c1c25fed5008"
         run: |
           [[ -n "$CLOUDFLARE_API_TOKEN" ]] || { echo 'The staging credential is not configured.' >&2; exit 1; }
           main_sha=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')
