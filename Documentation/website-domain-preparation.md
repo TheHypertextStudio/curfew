@@ -2,14 +2,23 @@
 
 ## Frontend: Workers
 
-Frontend hostname setup belongs to `landing/hosting/cloudflare.config.ts` and
-native Worker deployment. `deployment/environments.json` owns shared marketing,
-account, licensing, sync and native endpoints. Regenerate existing consumers
-with `node scripts/deployment-config.mjs generate` after an approved edit.
+`landing/hosting/cloudflare.config.ts` owns frontend Worker identity, assets
+and bindings. `deployment/environments.json` owns shared marketing, account,
+licensing, sync and native endpoints. Regenerate existing consumers with
+`node scripts/deployment-config.mjs generate` after an approved edit.
+
+Administer managed Custom Domains separately through Cloudflare's native API
+using approved operator access. Read the existing account, zone, hostname and
+Worker/environment association before an approved change; read back that exact
+association and managed DNS afterward. Keep domain provisioning out of restricted
+Worker deployment configuration and credentials. Preserve more-specific account,
+coordinator and other service routes; a frontend domain change does not transfer
+their ownership.
 
 Use `pnpm deploy:worker:staging` or, after production authorization,
 `pnpm deploy:worker:production`. Verify the intended hostname's native route
-ownership, TLS, bindings and actual serving Worker version. Follow
+ownership, managed domain association, TLS, selected-version bindings and actual
+serving Worker version. Follow
 [website hosting](website.md) and [domain migration](domain-migration.md).
 A successful deployment alone does not establish these outcomes.
 
@@ -22,12 +31,12 @@ authorize account, license, signed-feed or service changes.
 
 Retain the native deployment and DNS/route baselines privately. Roll back code
 and assets through native Worker deployment history; reverse only explicitly
-changed routes and DNS fields. Version rollback does not reverse routing.
+changed domain associations, routes and DNS fields. Version rollback does not
+reverse routing.
 Verify public DNS, HTTPS and the actual serving deployment after recovery.
 No fixed observation or recovery delay is required.
 
-Pages is no longer a frontend publication or preview target. Removing its
-source tooling does not delete provider resources or authorize domain changes.
+Pages is not a frontend publication, preview or recovery dependency.
 The legacy account portal remains an active dependency of production `/account`;
 retain its serving host and resources until an independently approved service
 migration replaces them. Preserve licensing, sync, callbacks, sessions and

@@ -159,11 +159,17 @@ canonical routing, TLS and reversal steps. Use the existing
 keeps production and staging Worker names separate and workers.dev/version
 preview URLs disabled.
 
+Managed Custom Domain administration uses Cloudflare's native API through approved
+operator access, separately from Worker build/deploy credentials and configuration.
+Follow [hostname ownership](website-domain-preparation.md) for association and DNS
+readback. Preserve all more-specific account, coordinator and service routes.
+Pages is not a frontend publication or recovery dependency.
+
 Before cutover, accept the Mintlify proxy and documented website journeys,
 including anonymous rejection and successful staff access on staging. Retain
 the previous accepted native Worker version. Restore it through native Worker
-deployment history when needed; reverse changed DNS/routes separately. Retain
-the recorded route and DNS baseline for explicit routing reversal. No fixed
+deployment history when needed; reverse approved domain/DNS/route changes
+separately. Retain the recorded route and DNS baseline for explicit routing reversal. No fixed
 observation or recovery delay is required. Existing account/service hosts remain
 with their current owners.
 
