@@ -3,6 +3,17 @@ import Foundation
 import Testing
 
 struct DeploymentEndpointTests {
+    @Test func purchaseEntryUsesTheWebsiteWithoutChangingAccountIdentity() {
+        for endpoints in [CurfewServiceEndpoints.staging, .studioDevelopment] {
+            #expect(endpoints.pricingURL
+                .absoluteString == "https://curfew-site-staging.hypertext.studio/#plus")
+            #expect(endpoints.accountPortal
+                .absoluteString == "https://curfew-staging.hypertext.studio/account")
+        }
+        #expect(CurfewServiceEndpoints.production.pricingURL
+            .absoluteString == "https://thecurfew.app/#plus")
+    }
+
     @Test func productionUsesNewAuthorityAndResource() {
         let endpoints = CurfewServiceEndpoints.production
         #expect(endpoints.accountOrigin.host == "account.thecurfew.app")
