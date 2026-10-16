@@ -28,8 +28,8 @@
     "docs:check": "studio-docs check --directory ../web/docs",
     "site:format:check": "prettier --check astro.config.mjs eslint.config.mjs package.json playwright.config.mjs prettier.config.mjs tsconfig.json worker.mjs hosting/cloudflare.config.ts hosting/wrangler.config.ts tests/unit/*.test.mjs tests/acceptance/site.spec.mjs src/layouts/Page.astro src/layouts/Experience.astro public/curfew.css public/curfew-pages.css public/design/theme.js public/purchase.js src/lib/purchase-profile.mjs src/components/PurchasePanel.astro src/pages/success.astro src/pages/restore.astro",
     "preview:worker": "pnpm --dir hosting exec cf dev --mode staging --port 4325",
-    "deploy:worker:staging": "astro build && pnpm --dir hosting exec cf build --mode staging && pnpm --dir hosting exec cf deploy --prebuilt --mode staging",
-    "deploy:worker:production": "astro build && pnpm --dir hosting exec cf build --mode production && pnpm --dir hosting exec cf deploy --prebuilt --mode production"
+    "deploy:worker:staging": "CURFEW_DEPLOYMENT_MODE=staging astro build && node ../scripts/website-artifact.mjs check-environment dist ../deployment/environments.json staging && pnpm --dir hosting exec cf build --mode staging && pnpm --dir hosting exec cf deploy --prebuilt --mode staging",
+    "deploy:worker:production": "CURFEW_DEPLOYMENT_MODE=production astro build && node ../scripts/website-artifact.mjs check-environment dist ../deployment/environments.json production && pnpm --dir hosting exec cf build --mode production && pnpm --dir hosting exec cf deploy --prebuilt --mode production"
   },
   "devDependencies": {
     "@astrojs/check": "0.9.10",

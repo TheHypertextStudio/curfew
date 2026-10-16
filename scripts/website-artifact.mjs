@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { verifyArtifact } from "./deployment-config.mjs";
 
 export async function sealWebsite(directory, deployment, mode = "production") {
-  await verifyPurchaseEnvironment(directory, deployment, mode);
+  await verifyPurchaseEnvironment(directory, deployment.manifest, mode);
   verifyArtifact(deployment, deployment.sha256, deployment.sourceCommit);
   assert.ok(
     (await lstat(join(directory, "index.html"))).isFile(),
@@ -49,12 +49,12 @@ export async function sealWebsite(directory, deployment, mode = "production") {
   });
 }
 
-async function verifyPurchaseEnvironment(directory, deployment, mode) {
+async function verifyPurchaseEnvironment(directory, manifest, mode) {
   assert.ok(
     ["production", "staging"].includes(mode),
     "Unsupported website deployment mode",
   );
-  const profile = deployment.manifest.environments[mode];
+  const profile = manifest.environments[mode];
   assert.ok(profile, "Missing website deployment profile");
   const scheme = mode === "production" ? "curfew" : "curfew-studio-dev";
   for (const [page, kind] of [
@@ -110,14 +110,20 @@ if (
   process.argv[1] &&
   resolve(process.argv[1]) === fileURLToPath(import.meta.url)
 ) {
-  const [directory, artifactPath, stampPath, mode = "production"] =
-    process.argv.slice(2);
-  const deployment = JSON.parse(await readFile(artifactPath, "utf8"));
-  verifyArtifact(deployment, deployment.sha256, process.env.GITHUB_SHA);
-  await writeFile(
-    stampPath,
-    JSON.stringify(await sealWebsite(directory, deployment, mode), null, 2) +
-      "\n",
-    { flag: "wx" },
-  );
+  if (process.argv[2] === "check-environment") {
+    const [directory, manifestPath, mode] = process.argv.slice(3);
+    const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+    await verifyPurchaseEnvironment(directory, manifest, mode);
+  } else {
+    const [directory, artifactPath, stampPath, mode = "production"] =
+      process.argv.slice(2);
+    const deployment = JSON.parse(await readFile(artifactPath, "utf8"));
+    verifyArtifact(deployment, deployment.sha256, process.env.GITHUB_SHA);
+    await writeFile(
+      stampPath,
+      JSON.stringify(await sealWebsite(directory, deployment, mode), null, 2) +
+        "\n",
+      { flag: "wx" },
+    );
+  }
 }
