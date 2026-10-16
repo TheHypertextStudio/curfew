@@ -6,6 +6,26 @@ final class CurfewUITests: XCTestCase {
     }
 
     @MainActor
+    func testPurchaseRestoreAndManualActivationAreReachable() {
+        let app = XCUIApplication()
+        app.launchEnvironment = [
+            "CURFEW_DEMO_FIXTURE": "1", "CURFEW_DEMO_SCENARIO": "settings",
+            "CURFEW_DEMO_STATE": "license-expired"
+        ]
+        app.launchArguments = ["-SUEnableAutomaticChecks", "NO", "-SUHasLaunchedBefore", "YES"]
+        app.launch()
+        let restore = app.buttons["Restore Purchase…"]
+        XCTAssertTrue(restore.waitForExistence(timeout: 5))
+        restore.click()
+        XCTAssertTrue(app.textFields["Purchase email"].waitForExistence(timeout: 3))
+        XCTAssertFalse(app.buttons["Send Restore Link"].isEnabled)
+        app.buttons["Cancel"].click()
+        app.disclosureTriangles["Enter a license key"].click()
+        XCTAssertTrue(app.textFields["License key"].waitForExistence(timeout: 3))
+        XCTAssertFalse(app.buttons["Activate"].isEnabled)
+    }
+
+    @MainActor
     func testOnboardingStartsAtARealGate() {
         let app = launchFixture("getting-started")
 
