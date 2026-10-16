@@ -1497,6 +1497,11 @@ asserts its own screen and state before attaching an image.
       requests, short-lived links, current subscription keys, and safe retries.
 - [x] Reject unpaid completed checkouts. Backfill old paid purchases by resending
       their already processed, signed Stripe event without replacing the key.
+- [x] Reject other product payments; restore renewed/canceled subscriptions and
+      legacy lifetime keys. Preserve fresh activations during background refresh
+      and prevent canceled restore requests from closing a subsequent sheet.
+- [x] Render opt-in, sender-restricted recovery configuration for the existing
+      issuer deployment; keep recovery disabled until provider setup is selected.
 - [ ] Finish native/browser acceptance, provider email setup, environment/signer
       pairing, and real Stripe test-mode checkout plus inbox restoration.
 - [ ] Ship the verified client/service/site together, then update published help

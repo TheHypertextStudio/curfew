@@ -6,11 +6,19 @@ import { indexPurchase } from "./purchases.js";
 const graceSeconds = 3 * 24 * 60 * 60;
 const provisionalSubscriptionSeconds = 33 * 24 * 60 * 60;
 
+export function isCurfewCheckout(session: any): boolean {
+  const metadata = session.metadata ?? {};
+  const sku = metadata.curfew_sku ??
+    (metadata.curfew_product_id === "curfew-plus" ? metadata.curfew_entitlement_kind : undefined);
+  return (sku === "lifetime" && session.mode === "payment") ||
+    (sku === "subscription" && session.mode === "subscription");
+}
+
 export async function handleCheckoutCompleted(event: any, env: Env): Promise<boolean> {
   const session = event.data?.object ?? {};
   const sessionID = String(session.id ?? "");
   const email = String(session.customer_details?.email ?? session.customer_email ?? "");
-  if (!sessionID || !email || session.payment_status !== "paid") return false;
+  if (!sessionID || !email || session.payment_status !== "paid" || !isCurfewCheckout(session)) return false;
 
   if (session.mode !== "subscription") {
     const key = await signLicenseKey({ email, plan: "lifetime", orderID: sessionID }, env.LICENSE_PRIVATE_KEY);
@@ -21,6 +29,7 @@ export async function handleCheckoutCompleted(event: any, env: Env): Promise<boo
 
   const subscriptionID = String(session.subscription ?? "");
   if (!subscriptionID) return false;
+  await env.LICENSE_KV.put(`subsession:${subscriptionID}`, sessionID);
   let token = await env.LICENSE_KV.get(`subtoken:${subscriptionID}`);
   if (!token) {
     token = crypto.randomUUID();
@@ -49,8 +58,10 @@ export async function handleInvoicePaid(event: any, env: Env): Promise<boolean> 
     await env.LICENSE_KV.put(`subpending:${subscriptionID}`, String(periodEnd));
     return true;
   }
-  const key = await mintSubscriptionKey(env, email, subscriptionID, token, periodEnd);
+  const sessionID = await env.LICENSE_KV.get(`subsession:${subscriptionID}`);
+  const key = await mintSubscriptionKey(env, email, sessionID ?? subscriptionID, token, periodEnd);
   await env.LICENSE_KV.put(`refresh:${token}`, key);
+  if (sessionID) await env.LICENSE_KV.put(`session:${sessionID}`, key);
   return true;
 }
 
