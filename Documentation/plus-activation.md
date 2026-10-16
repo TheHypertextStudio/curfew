@@ -602,3 +602,33 @@ No Stripe mutation or deployment occurred in this verification turn. The source
 is retained in a local commit only, because pushing would trigger the staging
 Worker build before its existing Test mode webhook and required binding are
 reviewed. An additional general sandbox is not required for that review.
+
+### Runtime mode diagnostic — 2026-10-13
+
+The guard and Test-mode clarification are now pushed at `e6fc60c9`. GitHub
+reports successful staging issuer and website Worker Builds for that head.
+Build success alone does not prove the deployed Stripe-mode binding: the
+available CLI authenticates only to the personal account, and the Studio
+Pages-only credential cannot read the Workers Builds API. No provider setting
+was changed during that inspection.
+
+The additive `GET /health` diagnostic exposes only the allowlisted `stripe_mode`
+values `test`, `live`, or `unconfigured`, alongside existing public signer
+metadata. Missing or arbitrary binding contents are sanitized, never echoed.
+The mode is present on signer-unavailable 503 responses too. HTTP status retains
+its existing signer semantics; webhook mode validation still independently fails
+closed. Health uses no purchase storage, mail, or rate limiter and remains
+uncached. It cannot prove checkout/restoration, Build-variable persistence or
+build identity, but can verify the mode actually available to the serving runtime.
+
+Ten mode/signer combinations and two updated exact-response assertions failed
+first because the field was absent. All 38 issuer tests, TypeScript checking and
+61 repository script tests pass afterward. The local Worker dry-run bundles
+successfully. SwiftFormat reports zero of 459 files needing changes; strict
+SwiftLint reports zero violations in 332 files. The legacy runbook format command
+first failed because root `Sources`/`Tests` no longer exist; the successful run
+uses `CurfewKit/Sources` and `CurfewKit/Tests`. Native tests/build are deferred to
+isolated CI for this Worker-only change. This diagnostic awaits its reviewed
+staging push; no runtime diagnostic result is claimed yet. Production Stripe
+mutations and issuer publication remain stopped. Reverting the diagnostic removes
+the additive field without changing billing, stored licenses or webhook checks.
