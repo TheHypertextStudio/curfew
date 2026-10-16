@@ -20,6 +20,15 @@ Worker and purchase-store identifiers before constructing a deployment.
 Health retains deployment identity headers alongside public signer and sanitized
 payment-mode metadata. Private keys and purchase contents remain excluded.
 
+Website validation builds and retains production and staging output separately.
+Each retained build records its deployment mode and verifies the issuer and app
+scheme on both purchase pages. Staging deployment downloads only the staging
+artifact and verifies it against the current source configuration before using
+its separate deployment credential. Production publication refuses staging
+purchase settings. Local purchase pages use the development app's staging issuer.
+Recovery portal validation follows the selected deployment profile; a production
+issuer cannot send recovery links to a staging portal or the reverse.
+
 The activation branch must be integrated with the current release configuration
 before building a candidate. Preserve the candidate-only release workflow and
 its production activation gates. Local compilation and provider mocks do not
