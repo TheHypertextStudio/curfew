@@ -1825,6 +1825,8 @@ changes; rollback restores the prior landing release and docs commit.
     while a subsequent request remains suspended.
     `cancelsQueuedActivation` verifies cancellation before task execution sends
     no redemption request and leaves no progress/error state.
+    `isolatesIssuerEnvironments` checks production/development URL selection and
+    that activation and renewal use the same build-specific issuer.
   - `scripts/license-worker.test.mjs`: opt-in recovery configuration fails closed
     with missing settings and renders a sender allowlist plus two rate limits.
   - `CurfewUITests/testPurchaseRestoreAndManualActivationAreReachable`: native
