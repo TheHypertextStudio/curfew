@@ -90,13 +90,27 @@ KV access, including event replay and historical index repair. Missing or invali
 configuration returns 503; missing, malformed or opposite-mode event flags return
 400. Correct-mode events continue through the existing paid-purchase checks.
 
-The guard is local and has not been deployed. Before an approved staging
-publication, save `CURFEW_LICENSE_STRIPE_MODE=test` in that Worker's Build
-configuration and verify the rendered runtime binding. Production configuration
+The guard's staging Worker Build succeeded at `e6fc60c9`; runtime mode still
+requires read-back verification. For staging publication, save
+`CURFEW_LICENSE_STRIPE_MODE=test` in that Worker's Build configuration and verify
+the rendered runtime binding. Production configuration
 and deployment require explicit owner direction; its eventual value is `live`.
-Do not push this source into an automatic deployment before reviewing those
-settings and the test-only staging webhook. Revert the code and renderer together
+Do not merge or push to a production auto-deployment branch while that stop
+remains. Staging Build success does not establish the runtime mode; verify its
+health field and the test-only webhook separately. Revert the code and renderer together
 if rollback is needed; retain the separate KVs, signers and webhook secrets.
+
+`GET /health` reports `stripe_mode` as exactly `test`, `live`, or `unconfigured`.
+Only the first two runtime binding values are disclosed; missing or invalid
+values are never echoed. This read-only response retains `Cache-Control:
+no-store`, performs no purchase-store, email or rate-limit operation, and exposes
+no credentials or purchase data. It includes the mode even when an unavailable
+signer returns 503. The existing 200 status only establishes a configured signer;
+an `unconfigured` mode still blocks webhook processing with 503. Require `test`
+on staging before claiming its payment boundary is configured. Mode read-back
+does not prove a checkout, signer pairing, inbox restoration, or build identity.
+No build identity is reported because no authenticated version binding exists.
+Reverting this diagnostic removes only the additive health field.
 
 `validate-config` fails closed when any required field is absent or malformed.
 `render-config` resolves the Worker entry point from this clone, so the
