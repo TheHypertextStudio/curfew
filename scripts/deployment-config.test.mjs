@@ -35,6 +35,59 @@ test("derives all endpoint consumers from a different approved deployment", asyn
   );
   assert.equal(result.appcast, "https://example.net/appcast.xml");
   assert.equal(result.pricing, "https://example.net/#plus");
+  assert.equal(result.purchasePortalOrigin, fixture.siteOrigin);
+});
+test("a separate purchase website preserves account and passkey identity", async () => {
+  const { resolveEnvironment } = await config();
+  const result = resolveEnvironment(
+    { ...fixture, purchasePortalOrigin: "https://website.example.net" },
+    "staging",
+  );
+  assert.equal(result.purchasePortalOrigin, "https://website.example.net");
+  assert.equal(result.pricing, "https://website.example.net/#plus");
+  assert.equal(result.accountPortal, "https://example.net/account");
+  assert.equal(result.passkeyRPID, "example.net");
+  for (const purchasePortalOrigin of [
+    "http://website.example.net",
+    "https://website.example.net/restore",
+    "https://user:password@website.example.net",
+    "https://website.example.net?q=x",
+  ]) {
+    assert.throws(
+      () => resolveEnvironment({ ...fixture, purchasePortalOrigin }, "staging"),
+      /purchasePortalOrigin/,
+    );
+  }
+});
+test("staging purchase websites cannot use a production service origin", async () => {
+  const { createArtifact } = await config();
+  for (const purchasePortalOrigin of [
+    fixture.siteOrigin,
+    fixture.licenseOrigin,
+  ]) {
+    assert.throws(
+      () =>
+        createArtifact(
+          {
+            version: 1,
+            environments: {
+              production: fixture,
+              staging: {
+                siteOrigin: "https://staging.example.net",
+                accountOrigin: "https://account.staging.example.net",
+                syncOrigin: "https://sync.staging.example.net",
+                licenseOrigin: "https://license.staging.example.net",
+                passkeyRPID: "staging.example.net",
+                recoveryEmailFrom: "accounts@staging.example.net",
+                purchasePortalOrigin,
+              },
+            },
+          },
+          "a".repeat(40),
+        ),
+      /isolated/,
+    );
+  }
 });
 test("rejects insecure or ambiguous trust configuration", async () => {
   const { resolveEnvironment } = await config();

@@ -60,7 +60,7 @@ public nonisolated struct CurfewServiceEndpoints: Equatable, Sendable {
         guard let siteURL = URL(string: profile.siteOrigin),
               let licenseURL = URL(string: profile.licenseOrigin),
               let appcastURL = URL(string: profile.siteOrigin + "/appcast.xml"),
-              let pricingURL = URL(string: profile.siteOrigin + "/#plus"),
+              let pricingURL = URL(string: profile.purchasePortalOrigin + "/#plus"),
               let accountOriginURL = URL(string: accountOrigin),
               let accountPortalURL = URL(string: accountPortal),
               let syncResourceURL = URL(string: syncOrigin),

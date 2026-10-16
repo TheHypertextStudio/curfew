@@ -113,7 +113,7 @@ function recoveryConfiguration() {
   const url = new URL(portal);
   const profile = process.env.CURFEW_LICENSE_STRIPE_MODE === "live" ? deployment.production : deployment.staging;
   const retiredIssuer = (profile.retiredLicenseOrigins || []).some(origin => new URL(origin).host === process.env.CURFEW_LICENSE_HOSTNAME);
-  const allowedPortals = [profile.siteOrigin, ...(retiredIssuer && profile.legacySiteOrigin ? [profile.legacySiteOrigin] : [])];
+  const allowedPortals = [profile.purchasePortalOrigin, ...(retiredIssuer && profile.legacySiteOrigin ? [profile.legacySiteOrigin] : [])];
   if (url.protocol !== "https:" || !allowedPortals.includes(url.origin) ||
       url.username || url.password || url.port || url.pathname !== "/" || url.search || url.hash) {
     throw new Error("Recovery portal must match the selected deployment profile without a path or credentials");
