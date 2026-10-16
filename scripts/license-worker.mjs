@@ -68,7 +68,8 @@ function validateConfig() {
   }
   const mode = process.env.CURFEW_LICENSE_STRIPE_MODE;
   if (mode !== "live" && mode !== "test") throw new Error("Stripe mode must be explicitly live or test");
-  const productionHost = process.env.CURFEW_LICENSE_HOSTNAME === "curfew-license.hypertext.studio";
+  const productionHost = [deployment.production.licenseOrigin, ...(deployment.production.retiredLicenseOrigins || [])]
+    .some(origin => new URL(origin).host === process.env.CURFEW_LICENSE_HOSTNAME);
   if (productionHost !== (mode === "live")) {
     throw new Error("Stripe mode must be live only for the production license hostname, and test for other license hostnames");
   }

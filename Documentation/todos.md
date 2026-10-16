@@ -1542,3 +1542,12 @@ asserts its own screen and state before attaching an image.
 - [ ] Ship the verified client/service/site together, then update published help
       to the new flow. Keep the public sale gate closed until purchase acceptance.
       `Documentation/plus-activation.md` records boundaries and remaining proof.
+
+## Plus activation deployment integration
+
+- [x] Derive activation and renewal origins from the installed build's deployment
+  profile and preserve retired-host denial and deployment health identity.
+- [x] Include the restricted restore sender, matching portal, isolated rate limits,
+  and explicit payment mode in the native license deployment configuration.
+- [-] Validate the integrated app and website candidate, then complete signed
+  distribution and hosted purchase/restore acceptance before advertising the flow.

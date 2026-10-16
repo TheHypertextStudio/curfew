@@ -78,7 +78,7 @@ test('a paid confirmation offers one activation click and a separate manual-key 
   page,
 }) => {
   const token = 'a'.repeat(43);
-  await page.route('https://curfew-license.hypertext.studio/license/activation', (route) => {
+  await page.route('https://license.thecurfew.app/license/activation', (route) => {
     expect(route.request().postDataJSON()).toEqual({ session_id: 'cs_test_purchase' });
     return route.fulfill({ json: { license_key: 'signed-purchase-key', activation_token: token } });
   });
@@ -94,7 +94,7 @@ test('a paid confirmation offers one activation click and a separate manual-key 
 
 test('a pending purchase retries delivery and then offers activation', async ({ page }) => {
   let attempts = 0;
-  await page.route('https://curfew-license.hypertext.studio/license/activation', (route) => {
+  await page.route('https://license.thecurfew.app/license/activation', (route) => {
     attempts += 1;
     return route.fulfill(
       attempts === 1
@@ -110,7 +110,7 @@ test('a pending purchase retries delivery and then offers activation', async ({ 
 test('service failure offers retry without claiming the purchase is processing', async ({
   page,
 }) => {
-  await page.route('https://curfew-license.hypertext.studio/license/activation', (route) =>
+  await page.route('https://license.thecurfew.app/license/activation', (route) =>
     route.fulfill({ status: 503, json: { error: 'unavailable' } }),
   );
   await page.goto('/success?session_id=cs_test_purchase');
@@ -124,7 +124,7 @@ test('service failure offers retry without claiming the purchase is processing',
 test('restore requests proof at the purchase inbox and keeps its link out of server requests', async ({
   page,
 }) => {
-  await page.route('https://curfew-license.hypertext.studio/license/restore', (route) => {
+  await page.route('https://license.thecurfew.app/license/restore', (route) => {
     expect(route.request().postDataJSON()).toEqual({ email: 'buyer@example.com' });
     return route.fulfill({ status: 202, json: { status: 'check_email' } });
   });
