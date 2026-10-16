@@ -146,7 +146,7 @@ test("only the envelope-v2 Worker bootstrap remains deployable", async () => {
 test("license bootstrap accepts the hostname selected by the production manifest", () => {
   const result = spawnSync(process.execPath, ["scripts/license-worker.mjs", "validate-config"], {
     encoding: "utf8",
-    env: { CURFEW_LICENSE_WORKER_NAME: "curfew-issue-license", CURFEW_LICENSE_KV_NAMESPACE_ID: "4313ea07769f4578a8fdd412620a412e", CURFEW_LICENSE_HOSTNAME: "license.thecurfew.app" },
+    env: { CURFEW_LICENSE_WORKER_NAME: "curfew-issue-license", CURFEW_LICENSE_KV_NAMESPACE_ID: "4313ea07769f4578a8fdd412620a412e", CURFEW_LICENSE_HOSTNAME: "license.thecurfew.app", CURFEW_LICENSE_STRIPE_MODE: "live" },
   });
   assert.equal(result.status, 0, result.stderr);
 });
