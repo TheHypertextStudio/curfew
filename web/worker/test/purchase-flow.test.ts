@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import worker from "../src/index.js";
-import { base64url } from "../src/crypto.js";
+import { base64url, base64urlDecode } from "../src/crypto.js";
 import type { Env } from "../src/types.js";
 import { indexPurchase } from "../src/purchases.js";
 
@@ -63,6 +63,27 @@ describe("purchase activation and recovery", () => {
     const hex = [...signature].map(byte => byte.toString(16).padStart(2, "0")).join("");
     return worker.fetch(new Request("https://issuer.example/", { method: "POST", headers: { "Stripe-Signature": `t=${timestamp},v1=${hex}` }, body }), env);
   }
+
+  it("publishes only the actual signer public key so build pairing can be verified", async () => {
+    const response = await worker.fetch(new Request("https://issuer.example/health"), env);
+    const signingJWK = await crypto.subtle.exportKey("jwk", signer);
+    const publicBytes = base64urlDecode(signingJWK.x!);
+    const publicBase64 = btoa(String.fromCharCode(...publicBytes));
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ status: "ok", envelope_version: 2, public_key: publicBase64 });
+    await checkout();
+    const { license_key: licenseKey } = await (await post("/license/activation", { session_id: "cs_test_purchase" })).json() as { license_key: string };
+    const [body, signature] = licenseKey.split(".");
+    const publicKey = await crypto.subtle.importKey("raw", publicBytes.slice().buffer as ArrayBuffer, "Ed25519", false, ["verify"]);
+    expect(await crypto.subtle.verify("Ed25519", publicKey, base64urlDecode(signature).slice().buffer as ArrayBuffer, base64urlDecode(body).slice().buffer as ArrayBuffer)).toBe(true);
+  });
+
+  it("reports an unavailable signer without exposing key material or exception details", async () => {
+    env.LICENSE_PRIVATE_KEY = "not-a-signing-key";
+    const response = await worker.fetch(new Request("https://issuer.example/health"), env);
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({ error: "License signing is not configured" });
+  });
 
   it("exchanges a paid checkout for a short-lived activation ticket and a signed key", async () => {
     expect((await checkout()).status).toBe(200);

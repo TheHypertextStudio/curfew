@@ -284,3 +284,47 @@ with preview builds disabled and `SKIP_DEPENDENCY_INSTALL=1`. Its build checks o
 the released revision before fetching and checking the archive, so subsequent
 branch changes cannot silently change the candidate. Hosted build verification
 is pending.
+
+### Actual purchase and signer acceptance
+
+The existing sandbox link completed a $1 test-card checkout using the dedicated
+purchase-test alias. Stripe returned to the confirmation page and the deployed
+staging issuer delivered a `curfew-plus` lifetime envelope with the matching
+inbox and an activation ticket. Its signature does not verify against the app's
+embedded public key, or any prior public key recorded in LicenseGate history.
+No private signing seed was viewed, copied, changed, or rotated. Native activation
+is not accepted until the development build pins the actual staging public key.
+
+`GET /health` now exposes only the current Ed25519 public verification key in
+standard base64, alongside status and envelope version. The runtime derives it
+from its configured signer internally; it never returns the private JWK or seed.
+A malformed or missing signer produces a generic 503. Tests first failed for the
+absent public key and false healthy response, then verified the exact public-only
+JSON and a real issued envelope signature. Existing signing stays non-extractable.
+All 18 issuer tests and type checking pass. This endpoint does not configure app
+trust dynamically: production and development pins remain build-time decisions.
+
+The retained website preview deployed successfully in build
+`a2a5a713-531d-418a-ae1b-5aaf3db4af2a`, Worker version
+`f43d6c5f-c7f5-431c-b573-12d0cb69cff3`. Its public release marker matches the
+artifact source revision, staging issuer and development scheme. Cloudflare
+required an explicit shallow fetch of the pinned revision and `NODE_VERSION`
+24.20.0. The existing build credential successfully uploaded the static assets;
+no credential expansion was needed. The dedicated restore page renders over HTTPS.
+
+The user separately approved restricted email for the staging issuer. A fresh
+dashboard read confirms all eight build variables persisted, including recovery
+enabled, the approved sender, staging portal and distinct rate-limit IDs. They
+will take effect in the next reviewed issuer deployment. Actual inbox delivery
+and native restoration remain pending.
+
+The hosted UI failure recording at `a83e1d6` shows the manual-entry button in
+Expanded state and a visible unnamed text field. This corrects the earlier hit
+testing diagnosis: the failing lookup missed the field's accessibility name. The
+field now has an explicit License key label and `license-key-input` identifier;
+the UI test checks Expanded and queries that identifier. Fresh hosted UI proof
+is still required. Reverting the label affects accessibility/test lookup only.
+
+Public-key health rollback is reverting the added response field/helper; license
+keys and purchase storage are unchanged. Keep public help and production sales
+on the released flow until client, service and website acceptance is complete.
