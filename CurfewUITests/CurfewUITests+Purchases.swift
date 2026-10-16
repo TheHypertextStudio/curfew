@@ -28,7 +28,8 @@ extension CurfewUITests {
         )
         XCTAssertEqual(XCTWaiter.wait(for: [available], timeout: 3), .completed)
         manualEntry.click()
-        XCTAssertTrue(app.textFields["License key"].waitForExistence(timeout: 3))
+        XCTAssertEqual(manualEntry.value as? String, "Expanded")
+        XCTAssertTrue(app.textFields["license-key-input"].waitForExistence(timeout: 3))
         XCTAssertFalse(app.buttons["Activate"].isEnabled)
     }
 }

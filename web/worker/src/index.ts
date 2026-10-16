@@ -1,4 +1,5 @@
 import { handleCheckoutCompleted, handleInvoicePaid, handleSubscriptionDeleted } from "./handlers.js";
+import { licensePublicKey } from "./crypto.js";
 import { subscriptionIDFromInvoice, verifyStripeSignature } from "./stripe.js";
 import type { Env } from "./types.js";
 import { currentSubscriptionKey, indexPurchase, json, payload, purchaseRequest } from "./purchases.js";
