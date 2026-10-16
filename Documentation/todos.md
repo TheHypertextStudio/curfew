@@ -1509,6 +1509,11 @@ asserts its own screen and state before attaching an image.
       Approved dedicated Apple signing/notarization credentials are configured;
       Release app/widget/verifier now use the verified Studio team. Deployment-token
       setup, Sparkle pair verification and the Workers appcast path remain.
+- [x] Derive the Release updater public key from its retained signing seed,
+      verify the exported app embeds it, and sign the appcast before publishing
+      the DMG. Production-secret execution and website publication remain pending.
+- [x] Save and verify the required Curfew SKU metadata on both existing live
+      Stripe payment links before the issuer's strict paid-checkout guard ships.
 - [x] Isolate the lifecycle reconciliation fixture's license store from the real
       saved sandbox purchase; retain its free-to-Plus assertions.
 - [ ] Ship the verified client/service/site together, then update published help
