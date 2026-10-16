@@ -9,6 +9,9 @@
 - [x] Remove the standalone Pages-only website publication workflow and its
   custom preparation/verification wrapper. Use native deployment history and
   retain the previous host through the agreed recovery window.
+- [x] Remove website-only domain and provider-inventory wrappers. Keep production
+  Cloudflare credentials out of PR validation and use native operator commands
+  for approved domain administration.
 - [x] Install approved Developer ID app/widget provisioning profiles for signed
   candidates, bind archive/export to their UUIDs, and remove job-owned files.
 - [ ] Resolve Apple identifier ownership and supply the issued production
@@ -35,9 +38,9 @@
   public old-domain paths and queries, retaining existing account access and
   native update-feed state independently of the signed app release.
 
-- [x] Provide a manual cf operation that derives the production website hostname
-      from a reviewed immutable configuration artifact, previews attachment, and
-      reads the existing Pages project's domain back without replacing other domains.
+- [x] Document Worker hostname setup through the shared hosting configuration and
+      native deployment, with Pages inspection and recorded-domain restoration
+      reserved for approved rollback. Preserve native/backend release requirements.
 - [x] Attach and activate the new hostname with verified DNS and TLS before the
       coordinated production cutover; retain the existing public hostname for its
       permanent redirect.
