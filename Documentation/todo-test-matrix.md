@@ -26,9 +26,10 @@ licensing, mail, update, or production browser acceptance.
 
 ## Website domain preparation
 
-Current frontend hostname setup uses shared Worker configuration and native
-deployment. Recovery uses native versions and recorded route/DNS reversal, as
-described in `website-domain-preparation.md`, without a fixed delay.
+Frontend Worker identity, assets and bindings use shared configuration and native
+deployment; managed Custom Domains use separately approved native API administration.
+Recovery uses native versions and recorded domain/route/DNS reversal, as described
+in `website-domain-preparation.md`, without a Pages dependency or fixed delay.
 `scripts/deployment-config.test.mjs` covers the configuration contract and refuses
 production credentials in PR website validation. Provider status, public DNS
 and live TLS must establish activation; unit tests do not prove infrastructure

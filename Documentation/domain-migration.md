@@ -23,14 +23,20 @@ links, service routes, provider registrations, account sessions and genuine
 signed appcast bytes. A missing update feed stays absent until the native
 release owner publishes a real signed release.
 
-Capture current DNS, route ownership and native deployment versions before
-cutover. Verify the canonical site, documentation, public redirects, account
+Capture current managed domain associations, DNS, route ownership and native
+deployment versions before cutover. Verify the canonical site, documentation, public redirects, account
 entry and feed state after publication. Use native Worker deployment history
-for code rollback and reverse only the routes changed by the cutover. Keep
-recorded DNS/routes available for explicit reversal. No fixed recovery or
-observation delay applies. Retiring provider resources is a separate approved
+for code rollback and reverse only approved domain, DNS and route changes. Keep
+recorded associations and DNS/routes available for explicit reversal. No fixed
+recovery or observation delay applies. Retiring provider resources is a separate approved
 operation and must preserve the legacy account portal. Signed native publication and coordinated service activation
 retain their existing release-owner workflows.
+
+Managed Custom Domains use separate native API administration under approved
+operator access, as described in [hostname ownership](website-domain-preparation.md).
+Keep domain provisioning out of restricted Worker deployment configuration.
+Pages is not a frontend publication or recovery dependency; retain the existing
+account, coordinator and other service owners.
 
 ## Configuration ownership
 
