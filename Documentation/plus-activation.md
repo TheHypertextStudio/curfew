@@ -254,3 +254,21 @@ actual inbox restoration. Production sale availability remains unchanged.
 
 Rollback for the manual-entry interaction is reverting the Button/conditional
 content to the prior disclosure; stored keys and issuer behavior are unaffected.
+
+### Hosted purchase preview deployment
+
+The website staging environment is assigned only
+`curfew-site-staging.hypertext.studio`. Its account/sync coordinator domains and
+all production routing stay as configured. The route contract failed first when
+the staging route was empty. Revert that route and roll back the previous Worker
+version to remove the purchase preview; no purchase or account storage changes.
+
+The preview deployment uses a public prerelease containing only built static
+website files, paired with an exact source commit and SHA-256. Cloudflare skips
+package installation, fetches that artifact, verifies the checksum and source
+revision, then deploys with pinned Wrangler and the existing build credential.
+Build dependencies and registry authentication remain in the validated GitHub
+workflow/local build. No new persistent credential or broader token is required.
+The public release marker records the revision, staging issuer, and `curfew-dev`
+scheme. Hosted runtime, signed activation and inbox restoration still require
+verification after deployment.

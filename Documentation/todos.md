@@ -1487,6 +1487,9 @@ asserts its own screen and state before attaching an image.
       issuer; production continues to use its fixed production issuer.
 - [-] Replace the unreliable manual-key disclosure with an accessible button;
       hosted UI verification follows the observed failing interaction.
+- [-] Host purchase acceptance on the existing website staging Worker at its
+      dedicated hostname; deploy a checksum-verified static artifact without
+      transferring package or Cloudflare credentials.
 - [ ] Finish native/browser acceptance, provider email setup, environment/signer
       pairing, and real Stripe test-mode checkout plus inbox restoration.
 - [ ] Ship the verified client/service/site together, then update published help
