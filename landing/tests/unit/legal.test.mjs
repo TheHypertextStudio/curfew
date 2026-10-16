@@ -121,7 +121,10 @@ test('current policies and help pages use product contact roles without replacin
   assert.match(support, /mailto:contact@thecurfew\.app/);
   assert.match(support, /mailto:legal@hypertext\.studio/);
   assert.match(await content('security'), /mailto:support@thecurfew\.app/);
-  const success = await readFile(new URL('../../src/pages/success.astro', import.meta.url), 'utf8');
+  const success = await readFile(
+    new URL('../../src/components/PurchasePanel.astro', import.meta.url),
+    'utf8',
+  );
   assert.match(success, /mailto:support@thecurfew\.app/);
   assert.doesNotMatch(success, /hello@hypertext\.studio/);
 });

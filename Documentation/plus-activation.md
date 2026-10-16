@@ -4,6 +4,30 @@ The requested outcome is checkout → **Activate in Curfew** → verified Plus,
 with **Restore Purchase…** available without finding an old key or creating an
 account. Existing manually entered lifetime keys remain valid offline.
 
+## Deployment integration
+
+Native activation and renewal select the license origin from the deployment
+profile for the installed build. Bundle identity selects the production or
+development signer; inherited helper environment overrides cannot change trust.
+The website uses the same generated endpoint profile, including after a domain
+migration, and pairs production, staging, and local links with their matching
+installed-app URL scheme. Build-time public overrides cannot mix those pairs. Retired issuer hosts return 410 without forwarding purchase tokens.
+
+The native license deployment configuration includes the restricted purchase
+sender, matching purchase portal, explicit Stripe live/test mode, and distinct
+production/staging rate-limit namespaces. A staging build rejects production
+Worker and purchase-store identifiers before constructing a deployment.
+Health retains deployment identity headers alongside public signer and sanitized
+payment-mode metadata. Private keys and purchase contents remain excluded.
+
+The activation branch must be integrated with the current release configuration
+before building a candidate. Preserve the candidate-only release workflow and
+its production activation gates. Local compilation and provider mocks do not
+replace signed-app, hosted purchase, restoration, or distribution acceptance.
+Rollback restores the previous activation routes and native UI while retaining
+stored signed licenses; preserve the shared deployment identity and domain
+retirement rules when reverting.
+
 ## Implementation
 
 1. The signed Stripe webhook records a paid Curfew purchase and an inbox index.

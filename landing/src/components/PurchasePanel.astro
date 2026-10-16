@@ -1,11 +1,10 @@
 ---
+import { purchaseProfile } from '../lib/purchase-profile.mjs';
 interface Props {
   mode: 'checkout' | 'restore';
 }
 const { mode } = Astro.props;
-const issuer =
-  import.meta.env.PUBLIC_CURFEW_LICENSE_URL || 'https://curfew-license.hypertext.studio';
-const scheme = import.meta.env.PUBLIC_CURFEW_LICENSE_SCHEME || 'curfew';
+const { issuer, scheme } = purchaseProfile(process.env.CURFEW_DEPLOYMENT_MODE || 'production');
 ---
 
 <div class="purchase-panel" data-purchase-mode={mode} data-issuer={issuer} data-scheme={scheme}>
@@ -54,7 +53,7 @@ const scheme = import.meta.env.PUBLIC_CURFEW_LICENSE_SCHEME || 'curfew';
     <p id="error-detail" role="alert"></p>
     <button type="button" class="btn-secondary" id="retry-btn">Try Again</button>
     <p>
-      <a href="/restore">Restore a purchase</a> or <a href="mailto:hello@hypertext.studio"
+      <a href="/restore">Restore a purchase</a> or <a href="mailto:support@thecurfew.app"
         >contact support</a
       >.
     </p>
