@@ -151,7 +151,9 @@ For an authorized local publication of reviewed source, the existing
 `pnpm deploy:worker:staging` script explicitly builds Astro for staging, verifies
 the checkout and restore pages against the staging issuer and app scheme, then
 invokes the pinned tool. Both local deployment scripts reject mismatched purchase
-pages before any provider command and override an inherited opposite build mode.
+pages before any provider command, override an inherited opposite build mode, and
+package the verified `dist` directory even if a retained-artifact asset override
+is inherited. Retained production publication keeps its separate asset path.
 Keep prior native versions and route/domain baselines available for recovery.
 
 ## Production and rollback
