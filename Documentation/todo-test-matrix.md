@@ -1906,3 +1906,21 @@ changes; rollback restores the prior landing release and docs commit.
     `unconfigured` for missing/invalid bindings. Exact response keys, no-store,
     unchanged signer HTTP status and absence of KV/email side effects are covered.
     The diagnostic is local pending review/push; it does not certify payment flow.
+
+## Plus activation deployment integration
+
+- `LicenseActivationTests` covers issuer selection, independent signer trust,
+  activation persistence, invalid callbacks, and restoration/renewal races.
+- `scripts/license-worker.test.mjs` exercises the approved production domain with
+  live payment mode and rejects incompatible host/mode configuration.
+- `web/worker/test/deployment.node.mjs` checks generated native configuration,
+  restricted recovery email, matching portal, environment-specific rate limits,
+  explicit live/test modes, and refusal of production resources in staging.
+- `web/worker/test/domain.test.ts` covers deployment identity headers and retired
+  hosts; purchase-flow tests cover sanitized signer/mode health and purchase paths.
+- `landing/tests/unit/purchase-profile.test.mjs` exercises production, staging,
+  and local issuer/scheme pairs and rejects unknown deployment modes.
+- Website checks and purchase browser scenarios cover the generated issuer,
+  one-click callback, manual fallback, retry, and inbox restoration.
+- Signed candidate and actual hosted purchase/restoration remain release checks;
+  local mock responses and unsigned compilation cannot satisfy them.

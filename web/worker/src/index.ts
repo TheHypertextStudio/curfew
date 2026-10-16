@@ -16,7 +16,13 @@ export default {
     }
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: json(null).headers });
     if (request.method === "GET" && url.pathname === "/health") {
-      const response = json({ status: "ok", envelope_version: 2 });
+      const stripeMode = env.STRIPE_MODE === "test" || env.STRIPE_MODE === "live" ? env.STRIPE_MODE : "unconfigured";
+      let response: Response;
+      try {
+        response = json({ status: "ok", envelope_version: 2, public_key: await licensePublicKey(env.LICENSE_PRIVATE_KEY), stripe_mode: stripeMode });
+      } catch {
+        response = json({ error: "License signing is not configured", stripe_mode: stripeMode }, 503);
+      }
       if (env.CONFIGURATION_SHA256) response.headers.set("x-curfew-configuration", env.CONFIGURATION_SHA256);
       if (env.CONFIGURATION_COMMIT) response.headers.set("x-curfew-configuration-commit", env.CONFIGURATION_COMMIT);
       return response;
