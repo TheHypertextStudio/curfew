@@ -44,6 +44,14 @@ account, coordinator and other service owners.
 
 Production, staging and local profiles are isolated. Production HTTPS origins cannot contain credentials, ports, paths, queries or fragments. Local HTTP is restricted to loopback. Relative website links and derived endpoint paths avoid duplicate configuration. Signing identities, schema identifiers, tool scopes and Keychain namespaces remain stable. OAuth resources and MCP origin schemas describe structure; server/native consumers enforce exact trusted environment identities.
 
+`purchasePortalOrigin` optionally selects the website that serves purchase
+confirmation and restoration; it defaults to `siteOrigin`. Staging uses the
+protected frontend hostname independently of its account portal and passkey
+identity. The configuration validator applies the same origin restrictions and
+production/staging isolation to this field. Both native license deployment and
+the recovery configuration renderer use it for emailed restoration links. Native
+purchase entry and initial checkout confirmation also use the purchase website.
+
 ## Cloudflare CLI
 
 License Worker builds also require `CURFEW_DEPLOYMENT_ARTIFACT`, independently

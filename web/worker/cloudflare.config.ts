@@ -36,7 +36,7 @@ export default defineConfig(async (ctx) => {
         LICENSE_ORIGIN: bindings.text(config.licenseOrigin),
         STRIPE_MODE: bindings.text(production ? "live" : "test"),
         RESTORE_EMAIL_FROM: bindings.text("purchases@curfew.hypertext.studio"),
-        PURCHASE_PORTAL_URL: bindings.text(config.siteOrigin),
+        PURCHASE_PORTAL_URL: bindings.text(config.purchasePortalOrigin),
         EMAIL: bindings.sendEmail({
           allowedSenderAddresses: ["purchases@curfew.hypertext.studio"],
         }),
