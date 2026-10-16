@@ -1812,9 +1812,16 @@ changes; rollback restores the prior landing release and docs commit.
   - Issuer tests: identical unknown/known inbox responses, delivery link without
     a license, latest subscription refresh, rate-limit/invalid-email failures,
     missing email setup, and signed legacy-event index repair.
+    Review regressions cover unrelated-product rejection, actual signed renewal
+    followed by cancellation, and old `curfew-pro` lifetime keys without `plan`.
   - Browser tests: email form, sent state, activation link from fragment,
     fragment removal and same-document navigation.
   - `LicenseActivationTests/requestsRestoration`: sending a link does not grant Plus.
+  - `LicenseActivationTests`: failed silent refresh, stale refresh after a newer
+    activation (including the same subscription), and canceled restore completion
+    while a subsequent request remains suspended.
+  - `scripts/license-worker.test.mjs`: opt-in recovery configuration fails closed
+    with missing settings and renders a sender allowlist plus two rate limits.
   - `CurfewUITests/testPurchaseRestoreAndManualActivationAreReachable`: native
     restore sheet, empty-field validation, cancellation, and manual-key fallback.
 - `Actual provider and installed-app behavior matches the new path.`

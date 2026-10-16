@@ -8,6 +8,7 @@ struct LicenseView: View {
     @State private var manualEntryExpanded = false
     @State private var showingRestore = false
     @State private var purchaseEmail = ""
+    @State private var restoreRequestID = UUID()
 
     private var gate: LicenseGate {
         model.licenseGate
@@ -28,7 +29,8 @@ struct LicenseView: View {
                 Text(message).foregroundStyle(CurfewTheme.accent)
                     .accessibilityIdentifier("license-activation-status")
             }
-            if let error = activation.error ?? gate.activationError {
+            if let error = activation
+                .error ?? (activation.message == nil ? gate.activationError : nil) {
                 Text(error).foregroundStyle(CurfewTheme.warning)
                     .textSelection(.enabled)
             }
@@ -100,6 +102,7 @@ struct LicenseView: View {
 
             HStack(spacing: 10) {
                 Button("Restore Purchase…") {
+                    restoreRequestID = UUID()
                     showingRestore = true
                 }
                 .buttonStyle(CurfewSecondaryButtonStyle())
@@ -135,6 +138,7 @@ struct LicenseView: View {
             }
             HStack {
                 Button("Cancel") {
+                    restoreRequestID = UUID()
                     activation.cancel()
                     showingRestore = false
                 }
@@ -161,9 +165,11 @@ struct LicenseView: View {
 
     private func requestRestore() {
         guard canRestore, !activation.isBusy else { return }
+        let requestID = UUID()
+        restoreRequestID = requestID
+        let email = purchaseEmail
         Task {
-            await activation.restore(email: purchaseEmail)
-            if activation.error == nil {
+            if await activation.restore(email: email), restoreRequestID == requestID {
                 showingRestore = false
             }
         }
