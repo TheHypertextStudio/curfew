@@ -136,7 +136,7 @@ Delivery is push-based: `CloudKitSyncEngine.start()` registers a deterministic `
 The app and `curfew-daemon` communicate through the
 `studio.hypertext.curfew.daemon` Mach service using
 `CurfewDaemonXPCProtocol`. The daemon validates the connecting process against
-the exact Team ID `39AB9DY3K8` and app bundle ID
+the exact Team ID `T95VDD3A4W` and app bundle ID
 `studio.hypertext.curfew` before accepting a request. It exclusively owns
 `/Library/Application Support/Curfew/lockout-state.json`; the directory is
 root-owned mode `0755` and the atomically replaced state file is mode `0600`.
