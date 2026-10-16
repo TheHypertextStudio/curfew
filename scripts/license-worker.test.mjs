@@ -222,7 +222,8 @@ for (const [mode, host] of [
 
 for (const [host, mode, portal, accepted] of [
   ["license.thecurfew.app", "live", "https://thecurfew.app", true],
-  ["curfew-license-staging.hypertext.studio", "test", "https://curfew-staging.hypertext.studio", true],
+  ["curfew-license-staging.hypertext.studio", "test", "https://curfew-site-staging.hypertext.studio", true],
+  ["curfew-license-staging.hypertext.studio", "test", "https://curfew-staging.hypertext.studio", false],
   ["license.thecurfew.app", "live", "https://curfew-staging.hypertext.studio", false],
   ["curfew-license-staging.hypertext.studio", "test", "https://curfew.hypertext.studio", false],
 ]) {

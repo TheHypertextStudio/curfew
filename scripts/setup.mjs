@@ -11,12 +11,11 @@
 // /docs subpath) and Stripe "Managed Payments" account enablement.
 //
 // Usage:
-//   STRIPE_API_KEY=sk_test_… node scripts/setup.mjs            # dry run (prints the plan)
-//   STRIPE_API_KEY=sk_test_… node scripts/setup.mjs --yes      # execute (test mode)
+//   STRIPE_API_KEY=sk_live_… node scripts/setup.mjs --live     # review production plan
 //   STRIPE_API_KEY=sk_live_… node scripts/setup.mjs --yes --live
 //
 // Env:
-//   STRIPE_API_KEY            required (sk_test_… or sk_live_…)
+//   STRIPE_API_KEY            required production key (sk_live_…)
 //   STRIPE_LIFETIME_AMOUNT    cents for the one-time price (default 2000 = $20)
 //   STRIPE_SUB_AMOUNT         cents for the recurring price (omit to skip the sub SKU)
 //   STRIPE_SUB_INTERVAL       'year' | 'month' (default 'year')
@@ -38,7 +37,7 @@ const LANDING_DIR = join(ROOT, "landing");
 const WORKER_DOMAIN = new URL(deployment.production.licenseOrigin).host;
 const LANDING_DOMAIN = new URL(deployment.production.siteOrigin).host;
 const WEBHOOK_URL = `https://${WORKER_DOMAIN}/`;
-const SUCCESS_URL = `https://${LANDING_DOMAIN}/success.html?session_id={CHECKOUT_SESSION_ID}`;
+const SUCCESS_URL = `${deployment.production.purchasePortalOrigin}/success.html?session_id={CHECKOUT_SESSION_ID}`;
 const EXPECTED_ACCOUNT = "willie@hypertext.studio";
 
 const ARGS = new Set(process.argv.slice(2));
@@ -94,9 +93,10 @@ function detectAccountId() {
 
 function preflight() {
   step("Preflight");
-  if (!STRIPE_KEY) die("STRIPE_API_KEY is required (sk_test_… or sk_live_…).");
+  if (!STRIPE_KEY) die("STRIPE_API_KEY is required (sk_live_…).");
   const mode = STRIPE_KEY.startsWith("sk_live_") ? "LIVE" : STRIPE_KEY.startsWith("sk_test_") ? "TEST" : "UNKNOWN";
   if (mode === "UNKNOWN") die("STRIPE_API_KEY must start with sk_test_ or sk_live_.");
+  if (mode === "TEST") die("This production bootstrap cannot use test payment credentials. Use the isolated staging license configuration.");
   if (mode === "LIVE" && !ALLOW_LIVE) die("Refusing LIVE Stripe key without --live. Re-run with --yes --live to confirm.");
   log(`Stripe mode: ${mode === "LIVE" ? C.red + "LIVE" + C.rst : C.grn + "TEST" + C.rst}`);
 
@@ -107,6 +107,7 @@ function preflight() {
   log(`Cloudflare account: ${C.grn}Hypertext Studio${C.rst} (${detectAccountId() || "?"})`);
 
   log(`\nPlan:`);
+  log(`  Checkout confirmation → ${SUCCESS_URL}`);
   log(`  1. Deploy Worker → ${WORKER_DOMAIN} (custom domain auto-provisioned)`);
   log(`  2. Generate Ed25519 keypair → secret LICENSE_PRIVATE_KEY + public key into LicenseGate.swift`);
   log(`  3. Stripe: product + lifetime price ($${(LIFETIME_AMOUNT / 100).toFixed(2)})` +

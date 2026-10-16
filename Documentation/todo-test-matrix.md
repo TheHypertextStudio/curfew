@@ -1907,3 +1907,11 @@ changes; rollback restores the prior landing release and docs commit.
   opposite mode and mismatched page output. Correct builds retain their requested
   mode and package the verified directory despite an inherited asset override;
   mismatches stop before any provider command.
+- Deployment configuration tests validate an independent purchase website while
+  preserving account/passkey identity and rejecting insecure or cross-environment
+  origins. Native Worker configuration and recovery renderer tests both select
+  the purchase website and reject the staging account portal as a restore target.
+- `DeploymentEndpointTests` checks staging/Studio purchase entry independently
+  of account identity and preserves the production destination. Setup command
+  tests review the separate checkout website and reject test credentials before
+  any provider command using disposable local fixtures.

@@ -50,6 +50,7 @@ test("license cf configuration uses the shared artifact and retains resource ide
         },
         staging: {
           siteOrigin: "https://staging.other.example",
+          purchasePortalOrigin: "https://website.staging.other.example",
           accountOrigin: "https://account.staging.other.example",
           syncOrigin: "https://sync.staging.other.example",
           licenseOrigin: "https://license.staging.other.example",
@@ -107,7 +108,7 @@ test("license cf configuration uses the shared artifact and retains resource ide
   assert.equal(staging.worker.env.STRIPE_MODE?.value, "test");
   assert.equal(
     staging.worker.env.PURCHASE_PORTAL_URL?.value,
-    "https://staging.other.example",
+    "https://website.staging.other.example",
   );
   assert.equal(staging.worker.env.RESTORE_IP_LIMIT?.namespace, "1781921101");
   assert.equal(staging.worker.env.RESTORE_EMAIL_LIMIT?.namespace, "1781921102");
