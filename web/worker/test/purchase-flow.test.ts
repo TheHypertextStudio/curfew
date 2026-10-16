@@ -125,7 +125,7 @@ describe("purchase activation and recovery", () => {
     const publicBytes = base64urlDecode(signingJWK.x!);
     const publicBase64 = btoa(String.fromCharCode(...publicBytes));
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ status: "ok", envelope_version: 2, public_key: publicBase64 });
+    expect(await response.json()).toEqual({ status: "ok", envelope_version: 2, public_key: publicBase64, stripe_mode: "test" });
     await checkout();
     const { license_key: licenseKey } = await (await post("/license/activation", { session_id: "cs_test_purchase" })).json() as { license_key: string };
     const [body, signature] = licenseKey.split(".");
@@ -137,8 +137,29 @@ describe("purchase activation and recovery", () => {
     env.LICENSE_PRIVATE_KEY = "not-a-signing-key";
     const response = await worker.fetch(new Request("https://issuer.example/health"), env);
     expect(response.status).toBe(503);
-    expect(await response.json()).toEqual({ error: "License signing is not configured" });
+    expect(await response.json()).toEqual({ error: "License signing is not configured", stripe_mode: "test" });
   });
+
+  for (const [configuredMode, expectedMode] of [
+    ["test", "test"], ["live", "live"], [undefined, "unconfigured"],
+    ["", "unconfigured"], ["accidental-private-value", "unconfigured"],
+  ] as const) {
+    for (const signerAvailable of [true, false]) {
+      it(`reports sanitized health mode ${expectedMode} for configuration ${String(configuredMode)} with signer available ${signerAvailable}`, async () => {
+        env.STRIPE_MODE = configuredMode;
+        if (!signerAvailable) env.LICENSE_PRIVATE_KEY = "not-a-signing-key";
+        const response = await worker.fetch(new Request("https://issuer.example/health"), env);
+        expect(response.status).toBe(signerAvailable ? 200 : 503);
+        expect(response.headers.get("Cache-Control")).toBe("no-store");
+        const body = await response.json() as Record<string, unknown>;
+        expect(body.stripe_mode).toBe(expectedMode);
+        expect(Object.keys(body).sort()).toEqual(signerAvailable ?
+          ["envelope_version", "public_key", "status", "stripe_mode"] : ["error", "stripe_mode"]);
+        expect(kv.operations).toEqual([]);
+        expect(mail).toEqual([]);
+      });
+    }
+  }
 
   it("exchanges a paid checkout for a short-lived activation ticket and a signed key", async () => {
     expect((await checkout()).status).toBe(200);
