@@ -3,17 +3,20 @@ import Foundation
 
 struct DeploymentProfile {
     let siteOrigin: String
+    let purchasePortalOrigin: String
     let accountOrigin: String
     let syncOrigin: String
     let licenseOrigin: String
     static let production = DeploymentProfile(
         siteOrigin: "https://thecurfew.app",
+        purchasePortalOrigin: "https://thecurfew.app",
         accountOrigin: "https://account.thecurfew.app",
         syncOrigin: "https://sync.thecurfew.app",
         licenseOrigin: "https://license.thecurfew.app"
     )
     static let staging = DeploymentProfile(
         siteOrigin: "https://curfew-staging.hypertext.studio",
+        purchasePortalOrigin: "https://curfew-site-staging.hypertext.studio",
         accountOrigin: "https://curfew-account-staging.hypertext.studio",
         syncOrigin: "https://curfew-sync-staging.hypertext.studio",
         licenseOrigin: "https://curfew-license-staging.hypertext.studio"
