@@ -5,7 +5,8 @@ import { resolve, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { verifyArtifact } from "./deployment-config.mjs";
 
-export async function sealWebsite(directory, deployment) {
+export async function sealWebsite(directory, deployment, mode = "production") {
+  await verifyPurchaseEnvironment(directory, deployment, mode);
   verifyArtifact(deployment, deployment.sha256, deployment.sourceCommit);
   assert.ok(
     (await lstat(join(directory, "index.html"))).isFile(),
@@ -38,7 +39,8 @@ export async function sealWebsite(directory, deployment) {
   };
   await visit();
   return Object.freeze({
-    schemaVersion: 1,
+    schemaVersion: 2,
+    deploymentMode: mode,
     sourceCommit: deployment.sourceCommit,
     configurationSHA256: deployment.sha256,
     contentSHA256: createHash("sha256")
@@ -47,17 +49,58 @@ export async function sealWebsite(directory, deployment) {
   });
 }
 
+async function verifyPurchaseEnvironment(directory, deployment, mode) {
+  assert.ok(
+    ["production", "staging"].includes(mode),
+    "Unsupported website deployment mode",
+  );
+  const profile = deployment.manifest.environments[mode];
+  assert.ok(profile, "Missing website deployment profile");
+  const scheme = mode === "production" ? "curfew" : "curfew-studio-dev";
+  for (const [page, kind] of [
+    ["success", "checkout"],
+    ["restore", "restore"],
+  ]) {
+    const html = await readFile(join(directory, `${page}.html`), "utf8");
+    const panels = [
+      ...html.matchAll(/<div\b[^>]*\bdata-purchase-mode="[^"]*"[^>]*>/g),
+    ];
+    assert.equal(
+      panels.length,
+      1,
+      "Purchase page environment must be unambiguous",
+    );
+    const attributes = Object.fromEntries(
+      [
+        ...panels[0][0].matchAll(
+          /\b(data-(?:purchase-mode|issuer|scheme))="([^"]*)"/g,
+        ),
+      ].map((match) => [match[1], match[2]]),
+    );
+    assert.deepEqual(
+      attributes,
+      {
+        "data-purchase-mode": kind,
+        "data-issuer": profile.licenseOrigin,
+        "data-scheme": scheme,
+      },
+      "Purchase page environment does not match the retained deployment mode",
+    );
+  }
+}
+
 export async function verifyWebsite(
   directory,
   stamp,
   deployment,
   expectedHash,
   expectedCommit,
+  mode = "production",
 ) {
   verifyArtifact(deployment, expectedHash, expectedCommit);
   assert.deepEqual(
     stamp,
-    await sealWebsite(directory, deployment),
+    await sealWebsite(directory, deployment, mode),
     "Retained website build identity mismatch",
   );
   return stamp;
@@ -67,12 +110,14 @@ if (
   process.argv[1] &&
   resolve(process.argv[1]) === fileURLToPath(import.meta.url)
 ) {
-  const [directory, artifactPath, stampPath] = process.argv.slice(2);
+  const [directory, artifactPath, stampPath, mode = "production"] =
+    process.argv.slice(2);
   const deployment = JSON.parse(await readFile(artifactPath, "utf8"));
   verifyArtifact(deployment, deployment.sha256, process.env.GITHUB_SHA);
   await writeFile(
     stampPath,
-    JSON.stringify(await sealWebsite(directory, deployment), null, 2) + "\n",
+    JSON.stringify(await sealWebsite(directory, deployment, mode), null, 2) +
+      "\n",
     { flag: "wx" },
   );
 }

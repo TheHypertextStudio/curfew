@@ -111,9 +111,12 @@ function recoveryConfiguration() {
     throw new Error("Recovery sender must use an approved Curfew sending domain");
   }
   const url = new URL(portal);
-  if (url.protocol !== "https:" || !/^curfew(?:-[a-z0-9-]+)?\.hypertext\.studio$/.test(url.hostname) ||
+  const profile = process.env.CURFEW_LICENSE_STRIPE_MODE === "live" ? deployment.production : deployment.staging;
+  const retiredIssuer = (profile.retiredLicenseOrigins || []).some(origin => new URL(origin).host === process.env.CURFEW_LICENSE_HOSTNAME);
+  const allowedPortals = [profile.siteOrigin, ...(retiredIssuer && profile.legacySiteOrigin ? [profile.legacySiteOrigin] : [])];
+  if (url.protocol !== "https:" || !allowedPortals.includes(url.origin) ||
       url.username || url.password || url.port || url.pathname !== "/" || url.search || url.hash) {
-    throw new Error("Recovery portal must be an HTTPS Curfew origin without a path or credentials");
+    throw new Error("Recovery portal must match the selected deployment profile without a path or credentials");
   }
   if (![ipNamespace, emailNamespace].every(value => /^\d{1,10}$/.test(value) && Number(value) > 0 && Number(value) <= 4294967295) ||
       ipNamespace === emailNamespace) throw new Error("Recovery rate-limit namespace IDs must be distinct positive 32-bit integers");

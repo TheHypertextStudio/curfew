@@ -26,6 +26,15 @@ async function fixture(t) {
   const site = join(directory, "website");
   await mkdir(site, { recursive: true });
   await writeFile(join(site, "index.html"), "verified site");
+  for (const [page, mode] of [
+    ["success", "checkout"],
+    ["restore", "restore"],
+  ]) {
+    await writeFile(
+      join(site, `${page}.html`),
+      `<div data-purchase-mode="${mode}" data-issuer="https://license.alternate.example" data-scheme="curfew"></div>`,
+    );
+  }
   const deployment = createArtifact(
     {
       version: 1,
