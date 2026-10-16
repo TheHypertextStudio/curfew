@@ -20,11 +20,7 @@ nonisolated enum LicenseEndpoint {
     }
 
     static func url(for flavor: CurfewFlavor) -> URL {
-        switch flavor {
-        case .production: URL(string: "https://curfew-license.hypertext.studio")!
-        case .development, .studioDevelopment:
-            URL(string: "https://curfew-license-staging.hypertext.studio")!
-        }
+        CurfewServiceEndpoints.forFlavor(flavor).licenseOrigin
     }
 }
 
