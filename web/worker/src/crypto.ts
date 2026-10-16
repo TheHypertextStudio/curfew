@@ -63,6 +63,20 @@ export async function signLicenseKey(
   return `${base64url(payloadBytes)}.${base64url(new Uint8Array(signature))}`;
 }
 
+/** Public verification identity; the private JWK is never returned or logged. */
+export async function licensePublicKey(privateKeyBase64url: string): Promise<string> {
+  const rawKey = base64urlDecode(privateKeyBase64url);
+  const keyMaterial = rawKey.length === 32 ? wrapPkcs8(rawKey) : rawKey;
+  const privateKey = await crypto.subtle.importKey(
+    "pkcs8", keyMaterial.slice().buffer as ArrayBuffer, "Ed25519", true, ["sign"]
+  );
+  const jwk = await crypto.subtle.exportKey("jwk", privateKey);
+  if (typeof jwk.x !== "string") throw new Error("Signer public key is unavailable");
+  const publicBytes = base64urlDecode(jwk.x);
+  if (publicBytes.length !== 32) throw new Error("Signer public key is unavailable");
+  return btoa(String.fromCharCode(...publicBytes));
+}
+
 function wrapPkcs8(seed: Uint8Array): Uint8Array {
   const result = new Uint8Array(pkcs8Ed25519Prefix.length + seed.length);
   result.set(pkcs8Ed25519Prefix);
