@@ -9,7 +9,7 @@ struct LicenseActivationTests {
     @Test("Production and development purchases use their fixed issuer environments")
     func isolatesIssuerEnvironments() {
         #expect(LicenseEndpoint.url(for: .production)
-            .absoluteString == "https://curfew-license.hypertext.studio")
+            .absoluteString == "https://license.thecurfew.app")
         for flavor in [CurfewFlavor.development, .studioDevelopment] {
             #expect(LicenseEndpoint.url(for: flavor)
                 .absoluteString == "https://curfew-license-staging.hypertext.studio")
@@ -42,7 +42,7 @@ struct LicenseActivationTests {
         let licenseFlavor = LicenseEndpoint.buildFlavor(bundleIdentifier: bundleIdentifier)
         #expect(licenseFlavor == .production)
         #expect(LicenseEndpoint.url(for: licenseFlavor).absoluteString ==
-            "https://curfew-license.hypertext.studio")
+            "https://license.thecurfew.app")
         #expect(LicenseGate.publicKeyBase64(for: licenseFlavor) ==
             "wws4nqf0o6zvtOONgWITcqquPv6kIhd57WT2WLgMIvQ=")
         #expect(LicenseEndpoint.buildFlavor(bundleIdentifier: "studio.hypertext.curfew.dev") ==
