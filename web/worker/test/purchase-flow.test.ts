@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import worker from "../src/index.js";
 import { base64url } from "../src/crypto.js";
 import type { Env } from "../src/types.js";
+import { indexPurchase } from "../src/purchases.js";
 
 // Only the external storage, email delivery, and edge rate limiter are doubled.
 // Requests exercise the real HTTP handler and signed Stripe webhook boundary.
@@ -19,10 +20,12 @@ describe("purchase activation and recovery", () => {
   let env: Env;
   let kv: MemoryKV;
   let mail: Array<{ to: string; text: string }>;
+  let signer: CryptoKey;
   beforeEach(async () => {
     kv = new MemoryKV();
     mail = [];
     const pair = await crypto.subtle.generateKey({ name: "Ed25519" }, true, ["sign", "verify"]) as CryptoKeyPair;
+    signer = pair.privateKey;
     const privateKey = new Uint8Array(await crypto.subtle.exportKey("pkcs8", pair.privateKey));
     env = {
       STRIPE_WEBHOOK_SECRET: "test-webhook-secret",
@@ -33,7 +36,7 @@ describe("purchase activation and recovery", () => {
         mail.push({ to: message.to, text: message.text });
         return { messageId: "test" } as EmailSendResult;
       } },
-      RESTORE_EMAIL_FROM: "purchases@hypertext.studio",
+      RESTORE_EMAIL_FROM: "purchases@curfew.hypertext.studio",
       PURCHASE_PORTAL_URL: "https://curfew.hypertext.studio",
       RESTORE_IP_LIMIT: { async limit() { return { success: true }; } },
       RESTORE_EMAIL_LIMIT: { async limit() { return { success: true }; } },
@@ -44,11 +47,16 @@ describe("purchase activation and recovery", () => {
     method: "POST", headers: { "Content-Type": "application/json", "CF-Connecting-IP": "192.0.2.1" }, body: JSON.stringify(body),
   }), env);
 
-  async function checkout(paymentStatus = "paid", mode = "payment") {
-    const body = JSON.stringify({ id: `evt_${paymentStatus}_${mode}`, type: "checkout.session.completed", data: { object: {
+  async function checkout(paymentStatus = "paid", mode = "payment", sku = mode === "subscription" ? "subscription" : "lifetime") {
+    return stripeEvent(`evt_${paymentStatus}_${mode}_${sku}`, "checkout.session.completed", {
       id: "cs_test_purchase", mode, status: "complete", payment_status: paymentStatus,
       customer_details: { email: "Buyer@Example.com" }, subscription: mode === "subscription" ? "sub_test" : undefined,
-    } } });
+      metadata: { curfew_sku: sku },
+    });
+  }
+
+  async function stripeEvent(id: string, type: string, object: unknown) {
+    const body = JSON.stringify({ id, type, data: { object } });
     const timestamp = Math.floor(Date.now() / 1000);
     const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(env.STRIPE_WEBHOOK_SECRET), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
     const signature = new Uint8Array(await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(`${timestamp}.${body}`)));
@@ -105,10 +113,14 @@ describe("purchase activation and recovery", () => {
   it("uses the latest subscription key when restoring instead of the checkout's old period", async () => {
     await checkout("paid", "subscription");
     const refreshEntry = [...kv.values.keys()].find(key => key.startsWith("refresh:"))!;
-    await kv.put(refreshEntry, "renewed-signed-key");
+    await stripeEvent("evt_new_period", "invoice.paid", {
+      subscription: "sub_test", customer_email: "buyer@example.com",
+      lines: { data: [{ period: { end: Math.floor(Date.now() / 1000) + 365 * 86400 } }] },
+    });
+    const renewed = await kv.get(refreshEntry);
     await post("/license/restore", { email: "buyer@example.com" });
     const token = new URLSearchParams(new URL(mail[0].text.match(/https:\/\/\S+/)![0]).hash.slice(1)).get("token");
-    expect(await (await post("/license/redeem", { token })).json()).toEqual({ license_key: "renewed-signed-key" });
+    expect(await (await post("/license/redeem", { token })).json()).toEqual({ license_key: renewed });
   });
 
   it("fails clearly when email delivery is unavailable and rejects abusive or invalid requests", async () => {
@@ -129,5 +141,45 @@ describe("purchase activation and recovery", () => {
     const token = new URLSearchParams(new URL(mail[0].text.match(/https:\/\/\S+/)![0]).hash.slice(1)).get("token");
     expect((await post("/license/redeem", { token })).status).toBe(200);
     expect(await kv.get("session:cs_test_purchase")).toBe(original);
+  });
+
+  it("does not issue a license for another product or a mismatched checkout mode", async () => {
+    for (const [mode, sku] of [["payment", "unrelated-product"], ["subscription", "lifetime"], ["setup", "lifetime"]]) {
+      await checkout("paid", mode, sku);
+      expect(await kv.get("session:cs_test_purchase")).toBeNull();
+    }
+  });
+
+  it("retains the last paid subscription period for restoration after cancellation", async () => {
+    await checkout("paid", "subscription");
+    const first = await kv.get("session:cs_test_purchase");
+    await stripeEvent("evt_renewal", "invoice.paid", {
+      subscription: "sub_test", customer_email: "buyer@example.com",
+      lines: { data: [{ period: { end: Math.floor(Date.now() / 1000) + 365 * 86400 } }] },
+    });
+    const renewed = [...kv.values.entries()].find(([key]) => key.startsWith("refresh:"))![1];
+    expect(renewed).not.toBe(first);
+    await stripeEvent("evt_cancel", "customer.subscription.deleted", { id: "sub_test" });
+    await post("/license/restore", { email: "buyer@example.com" });
+    const token = new URLSearchParams(new URL(mail[0].text.match(/https:\/\/\S+/)![0]).hash.slice(1)).get("token");
+    expect(await (await post("/license/redeem", { token })).json()).toEqual({ license_key: renewed });
+  });
+
+  it("prefers a legacy lifetime envelope over an expired subscription for the same inbox", async () => {
+    async function signed(payload: unknown) {
+      const data = new TextEncoder().encode(JSON.stringify(payload));
+      return `${base64url(data)}.${base64url(new Uint8Array(await crypto.subtle.sign("Ed25519", signer, data)))}`;
+    }
+    const expired = await signed({ email: "buyer@example.com", product: "curfew-plus", plan: "subscription",
+      order_id: "cs_a_expired", issued_at: "2019-01-01T00:00:00Z", expires_at: "2020-01-01T00:00:00Z" });
+    const lifetime = await signed({ email: "buyer@example.com", product: "curfew-pro",
+      order_id: "cs_z_legacy", issued_at: "2019-01-01T00:00:00Z" });
+    await kv.put("session:cs_a_expired", expired);
+    await kv.put("session:cs_z_legacy", lifetime);
+    await indexPurchase(env, "buyer@example.com", "cs_a_expired");
+    await indexPurchase(env, "buyer@example.com", "cs_z_legacy");
+    await post("/license/restore", { email: "buyer@example.com" });
+    const token = new URLSearchParams(new URL(mail[0].text.match(/https:\/\/\S+/)![0]).hash.slice(1)).get("token");
+    expect(await (await post("/license/redeem", { token })).json()).toEqual({ license_key: lifetime });
   });
 });
