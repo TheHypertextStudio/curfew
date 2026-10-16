@@ -1,28 +1,69 @@
-# Prepare a website hostname
+# Website hostname ownership and retained Pages rollback
 
-Use the manual **Prepare website domain** GitHub workflow on main to attach a
-configured hostname to the existing `curfew-landing` Pages project. Supply the
-reviewed configuration source commit and manifest hash used by the native and
-backend releases. The workflow installs that source's exact cf package and
-validates its generated configuration artifact before operating on Pages.
+## Current frontend: Workers
 
-Run `status`, then `preview`, then `attach`. The hostname comes from the
-production website origin in the artifact. Preview uses cf's deployment-free
-dry-run. Attachment preserves all existing domains; rerunning reads an existing
-attachment instead of creating another. A successful attachment can remain
-pending until DNS and certificate validation finish. Run status again and
-verify public DNS and HTTPS before treating the hostname as active.
+New and current frontend hostname setup belongs to
+`landing/hosting/cloudflare.config.ts` and native Worker deployment. Review
+`deployment/environments.json` before changing origins; the shared configuration
+also supplies native and backend endpoints. Regenerate its existing consumers
+with `node scripts/deployment-config.mjs generate` after an approved edit.
 
-The existing website token operates on Pages. DNS for a new zone may require
-the separately approved zone credential. Do not expand either token merely to
-combine those operations. The workflow does not publish assets, modify DNS,
-redirect the old website, deploy account services, or revoke authorization.
-Those actions belong to the coordinated migration after its readiness gates.
+Use the existing `pnpm deploy:worker:staging` or, after separate production
+approval, `pnpm deploy:worker:production` command. Verify the intended hostname's
+native route/domain ownership, TLS, bindings and actual serving Worker version.
+Follow [website hosting](website.md) and [domain migration](domain-migration.md)
+for readiness, cutover approval and recovery. A successful deployment alone does
+not establish those outcomes. Do not attach a new production frontend hostname
+to Pages as part of normal setup.
 
-Validate changes with `node --test scripts/pages-domain.test.mjs` and actionlint.
-Failure to inspect the project or verify the artifact stops attachment. If
-attachment itself fails, inspect status before retrying; a provider may have
-accepted the request before the client lost its response. Rollback before
-cutover consists of leaving the existing public domain active and removing only
-the newly added attachment if necessary. Never remove the old public redirect
-hostname as part of migration cleanup.
+PR validation receives no production Cloudflare deployment credentials. Use an
+approved operator profile and the repository's pinned native `cf` CLI for provider
+administration. DNS and hosting administration retain their separately approved
+access; do not expand credentials to combine operations. Website changes do not
+authorize account, license, signed-feed or service changes.
+
+## Record the retained Pages baseline
+
+Keep the existing `curfew-landing` deployment and its recorded domains through
+the agreed recovery window. Inspect them without changing routing:
+
+```sh
+pnpm exec cf pages domains list --project-name curfew-landing
+```
+
+Set `retained_hostname` to the exact existing hostname from the Pages rollback
+baseline, then read its status:
+
+```sh
+pnpm exec cf pages domains get "$retained_hostname" --project-name curfew-landing
+```
+
+Retain the native deployment and DNS/route baselines with the existing Pages
+artifact. The current Worker hostname is not a default Pages attachment target.
+Never remove the old public redirect hostname as part of migration cleanup.
+
+## Restore a recorded Pages domain only for approved rollback
+
+Only an approved rollback may restore a specifically retained Pages domain that
+is now absent. Confirm the recorded hostname, project and intended DNS/route
+reversal before previewing its restoration:
+
+```sh
+: "${retained_hostname:?Set the exact hostname from the approved Pages rollback baseline}"
+pnpm exec cf pages domains create curfew-landing --name "$retained_hostname" --dry-run
+```
+
+After that rollback is approved, restore only the recorded attachment and read
+its status:
+
+```sh
+pnpm exec cf pages domains create curfew-landing --name "$retained_hostname"
+pnpm exec cf pages domains get "$retained_hostname" --project-name curfew-landing
+```
+
+An existing attachment needs only the read operation. Attachment does not publish
+the retained artifact or restore DNS/Worker route ownership; follow the approved
+rollback plan for those operations. Pending status can persist until DNS and
+certificate validation finish. Verify public DNS, HTTPS and the actual serving
+deployment before treating restoration as accepted. If attachment fails, inspect
+status before retrying because the provider may already have accepted it.

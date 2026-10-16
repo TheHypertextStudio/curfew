@@ -28,12 +28,14 @@ licensing, mail, update, or production browser acceptance.
 
 ## Website domain preparation
 
-`scripts/pages-domain.test.mjs` covers read-only status, cf preview, attachment,
-idempotent reruns, preservation of existing domains, alternate configured
-hostnames, invalid origins/actions, provider failures, and mismatched readback.
-The manual workflow validates source commit and configuration hash before the
-operation. Provider status, public DNS, and live TLS must establish activation;
-unit tests do not prove infrastructure or production cutover.
+Current frontend hostname setup uses the shared Worker hosting configuration and
+native deployment. Pages inspection records rollback baselines; attachment is
+reserved for restoring a recorded domain during approved rollback, as described
+in `website-domain-preparation.md`. `scripts/deployment-config.test.mjs` covers the
+configuration contract and refuses production deployment credentials in the
+PR-triggered website workflow. Provider status, public DNS and live TLS must
+establish activation; unit tests do not prove infrastructure or production
+cutover. Existing Pages publication/middleware checks and recovery remain intact.
 
 ## License deployment configuration
 
@@ -1755,7 +1757,7 @@ changes; rollback restores the prior landing release and docs commit.
 | Recovery gate, transactional revocation and idempotency | curfew-sync `domain-migration.test.ts`, `service-config.test.ts` | Provider-ready maintenance cutover and drained fences |
 
 - Release endpoint provenance: `scripts/release-configuration.test.mjs` covers configured and alternate domains, changed manifests, source revisions, and signing keys; `scripts/release-candidate.test.mjs` binds native configuration and candidate signatures to the shared deployment identity.
-- Provider inventory: `scripts/cloudflare-inventory.test.mjs` requires read-only CLI operations, independent results after permission failures, and selected metadata output. Inventory is access evidence, not release acceptance.
+- Provider administration: use approved native CLI access outside PR validation. `scripts/deployment-config.test.mjs` prevents the website workflow from receiving production Cloudflare deployment credentials; provider inventory remains access evidence, not release acceptance.
 
 - Domain migration operator sequence: backend `scripts/production-audit.test.mjs` verifies readiness before production mutations; `scripts/cutover-readiness.test.mjs` covers receipt completeness, identity and freshness. Email sender activation additionally requires Cloudflare DNS verification and live delivery acceptance.
 

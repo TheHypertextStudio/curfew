@@ -196,3 +196,14 @@ test("license CI verifies the artifact-bound cf build and actual Worker tests", 
     /pnpm --dir web\/worker exec cf deploy --prebuilt --mode production --dry-run/,
   );
 });
+
+test("website PR validation does not receive production deployment credentials", async () => {
+  const workflow = await readFile(
+    new URL("../.github/workflows/website.yml", import.meta.url),
+    "utf8",
+  );
+  assert.doesNotMatch(
+    workflow,
+    /\$\{\{\s*secrets\.CLOUDFLARE_API_TOKEN\s*\}\}/,
+  );
+});

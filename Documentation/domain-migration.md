@@ -119,6 +119,6 @@ Monitor these journeys through the following day. Keep the public redirect indef
 
 ## Provider inventory and candidate identity
 
-The website PR workflow runs a read-only inventory using the existing repository Cloudflare token and pinned cf CLI. It reports each operation independently, so Pages access cannot be mistaken for Worker, DNS, or database permission. The output contains selected infrastructure metadata and secret names only. It never exports credentials or account data. Missing permission is a prerequisite to resolve before mutation.
+Provider inspection uses the pinned native cf CLI under approved operator authentication. PR validation receives no production Cloudflare deployment credentials. Inspect each service and its permissions independently: Pages access does not establish Worker, DNS or database permission. Resolve missing access before an approved mutation and keep credentials and account data private.
 
 The candidate retains both `environment-artifact.json` and `release-configuration.json`. Native `CurfewConfigurationSHA256` and candidate `configurationSHA256` identify the same endpoint artifact consumed by the backend. `releaseConfigurationSHA256` separately seals the resolved Sparkle public key and source file digests. Changing a configured domain requires no candidate code change; the resolved feed must match the approved manifest. Candidate retention does not activate the site, update feed, or service.
