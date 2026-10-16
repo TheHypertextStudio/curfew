@@ -148,8 +148,20 @@ cf workers deployments list --worker curfew-site-staging --profile hypertext-stu
 ```
 
 For an authorized local publication of reviewed source, the existing
-`pnpm deploy:worker:staging` script builds Astro and invokes the pinned tool.
+`pnpm deploy:worker:staging` script explicitly builds Astro for staging, verifies
+the checkout and restore pages against the staging issuer and app scheme, then
+invokes the pinned tool. Both local deployment scripts reject mismatched purchase
+pages before any provider command, override an inherited opposite build mode, and
+package the verified `dist` directory even if a retained-artifact asset override
+is inherited. Retained production publication keeps its separate asset path.
 Keep prior native versions and route/domain baselines available for recovery.
+
+Staging purchase confirmation and restoration use
+`https://curfew-site-staging.hypertext.studio`, the protected frontend host.
+The shared profile's `purchasePortalOrigin` selects this destination independently
+of the account portal at `curfew-staging.hypertext.studio`. Keep that host's
+Access protection enabled during acceptance; sign in normally to inspect the
+purchase pages.
 
 ## Production and rollback
 

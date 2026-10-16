@@ -7,6 +7,22 @@ on:
     branches: [main]
 
 jobs:
+  purchases:
+    name: License activation and restoration
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: pnpm/action-setup@v6.1.0
+        with:
+          version: 11.9.0
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '24'
+      - name: Install issuer dependencies from the reviewed lock
+        run: pnpm --dir web --filter @curfew/license-worker install --frozen-lockfile
+      - name: Verify signed payment, activation, and recovery boundaries
+        run: pnpm --dir web/worker test && pnpm --dir web/worker typecheck
+
   docs:
     name: User documentation regressions
     runs-on: ubuntu-latest

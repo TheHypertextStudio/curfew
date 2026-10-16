@@ -57,6 +57,7 @@ hostname, or secret. Export these non-secret values only in the operator shell:
 export CURFEW_LICENSE_WORKER_NAME='example-worker-name'
 export CURFEW_LICENSE_KV_NAMESPACE_ID='00000000000000000000000000000000'
 export CURFEW_LICENSE_HOSTNAME='curfew-license.hypertext.studio'
+export CURFEW_LICENSE_STRIPE_MODE='live'
 node scripts/license-worker.mjs validate-config
 node scripts/license-worker.mjs render-config --output /secure/user-owned/wrangler.toml
 node scripts/license-worker.mjs dry-run --config /secure/user-owned/wrangler.toml
@@ -69,13 +70,47 @@ same approved Curfew hostname convention:
 export CURFEW_LICENSE_WORKER_NAME='curfew-issue-license-staging'
 export CURFEW_LICENSE_KV_NAMESPACE_ID='your-staging-kv-namespace-id'
 export CURFEW_LICENSE_HOSTNAME='curfew-license-staging.hypertext.studio'
+export CURFEW_LICENSE_STRIPE_MODE='test'
 node scripts/license-worker.mjs render-config \
   --output /secure/user-owned/wrangler-staging.toml
 ```
 
-Set a distinct staging `LICENSE_PRIVATE_KEY` and Stripe **test-mode** webhook
-secret on that Worker. Never reuse its KV namespace, webhook secret, or
-checkout links in production.
+The existing Stripe Test mode sandbox supports this integration. Use its
+test-only products, prices, payment links and webhook endpoint, and keep that
+webhook's signing secret on the staging Worker. Give the Worker a distinct
+`LICENSE_PRIVATE_KEY` and KV namespace. Do not copy live keys or objects into
+staging or change shared account settings during testing. A separate general
+sandbox adds settings isolation and is optional for this existing integration.
+
+`CURFEW_LICENSE_STRIPE_MODE` is required. The renderer permits `live` only for
+`curfew-license.hypertext.studio` and requires `test` for other license hostnames.
+It writes the runtime `STRIPE_MODE` binding. After signature verification, the
+issuer requires the event's boolean `livemode` to match that binding before any
+KV access, including event replay and historical index repair. Missing or invalid
+configuration returns 503; missing, malformed or opposite-mode event flags return
+400. Correct-mode events continue through the existing paid-purchase checks.
+
+The guard's staging Worker Build succeeded at `e6fc60c9`; runtime mode still
+requires read-back verification. For staging publication, save
+`CURFEW_LICENSE_STRIPE_MODE=test` in that Worker's Build configuration and verify
+the rendered runtime binding. Production configuration
+and deployment require explicit owner direction; its eventual value is `live`.
+Do not merge or push to a production auto-deployment branch while that stop
+remains. Staging Build success does not establish the runtime mode; verify its
+health field and the test-only webhook separately. Revert the code and renderer together
+if rollback is needed; retain the separate KVs, signers and webhook secrets.
+
+`GET /health` reports `stripe_mode` as exactly `test`, `live`, or `unconfigured`.
+Only the first two runtime binding values are disclosed; missing or invalid
+values are never echoed. This read-only response retains `Cache-Control:
+no-store`, performs no purchase-store, email or rate-limit operation, and exposes
+no credentials or purchase data. It includes the mode even when an unavailable
+signer returns 503. The existing 200 status only establishes a configured signer;
+an `unconfigured` mode still blocks webhook processing with 503. Require `test`
+on staging before claiming its payment boundary is configured. Mode read-back
+does not prove a checkout, signer pairing, inbox restoration, or build identity.
+No build identity is reported because no authenticated version binding exists.
+Reverting this diagnostic removes only the additive health field.
 
 `validate-config` fails closed when any required field is absent or malformed.
 `render-config` resolves the Worker entry point from this clone, so the

@@ -1,0 +1,126 @@
+---
+import { purchaseProfile } from '../lib/purchase-profile.mjs';
+interface Props {
+  mode: 'checkout' | 'restore';
+}
+const { mode } = Astro.props;
+const { issuer, scheme } = purchaseProfile(process.env.CURFEW_DEPLOYMENT_MODE || 'production');
+---
+
+<div class="purchase-panel" data-purchase-mode={mode} data-issuer={issuer} data-scheme={scheme}>
+  <h1 class="privacy-heading">
+    {mode === 'checkout' ? 'Activate Curfew Plus' : 'Restore Curfew Plus'}
+  </h1>
+  <p id="purchase-status" role="status" aria-live="polite"></p>
+  <div id="state-loading" hidden><p>Preparing your purchase…</p></div>
+  <div id="state-success" hidden>
+    <p class="privacy-lede">Open Curfew to activate Plus on this Mac.</p>
+    <a id="activate-link" class="btn-primary"
+      >{mode === 'checkout' ? 'Activate in Curfew' : 'Restore in Curfew'}</a
+    >
+    <p class="purchase-help">Need the app? <a href="/download">Download Curfew for Mac</a>.</p>
+    <details id="manual-entry">
+      <summary>Enter a license key</summary>
+      <div id="manual-key" hidden>
+        <pre><code id="license-key" /></pre>
+        <button type="button" class="btn-secondary" id="copy-btn">Copy License Key</button>
+        <p>
+          In Curfew, open <strong>Settings → About → Curfew Plus</strong>, enter your key, and
+          choose <strong>Activate</strong>.
+        </p>
+      </div>
+    </details>
+    <p class="purchase-help">
+      Stripe emails your payment receipt. <a href="/restore">Restore a purchase</a> · <a
+        href="https://curfew.mintlify.dev/docs/licensing">Activation help</a
+      >
+    </p>
+  </div>
+  <form id="restore-form" hidden>
+    <p class="privacy-lede">Enter the email address on your receipt.</p>
+    <label for="purchase-email">Purchase email</label>
+    <input
+      id="purchase-email"
+      name="email"
+      type="email"
+      autocomplete="email"
+      required
+      maxlength="254"
+    />
+    <button type="submit" class="btn-primary">Send Restore Link</button>
+  </form>
+  <div id="state-error" hidden>
+    <p id="error-detail" role="alert"></p>
+    <button type="button" class="btn-secondary" id="retry-btn">Try Again</button>
+    <p>
+      <a href="/restore">Restore a purchase</a> or <a href="mailto:support@thecurfew.app"
+        >contact support</a
+      >.
+    </p>
+  </div>
+</div>
+<style>
+  .purchase-panel {
+    max-width: 640px;
+  }
+  [hidden] {
+    display: none !important;
+  }
+  .purchase-help {
+    color: var(--muted);
+    font-size: 14px;
+    margin-top: 20px;
+  }
+  details {
+    margin-top: 28px;
+  }
+  summary {
+    cursor: pointer;
+  }
+  pre {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+  #manual-key p {
+    color: var(--muted);
+    line-height: 1.7;
+  }
+  form {
+    max-width: 320px;
+  }
+  label {
+    display: block;
+    margin: 24px 0 8px;
+    font-weight: 600;
+  }
+  input {
+    box-sizing: border-box;
+    width: 100%;
+    font: inherit;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--ink);
+  }
+  form button {
+    margin-top: 16px;
+  }
+  button {
+    font-family: inherit;
+  }
+  button.btn-primary {
+    border: 0;
+  }
+  #error-detail {
+    color: var(--accent);
+  }
+  #purchase-status {
+    line-height: 1.6;
+  }
+</style>
+<script is:inline type="module" src="/purchase.js"></script>

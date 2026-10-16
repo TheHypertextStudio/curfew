@@ -177,3 +177,15 @@ test('an unavailable upstream reports 502 without converting to the HTML guide',
   assert.equal(response.status, 502);
   assert.equal(response.headers.get('cache-control'), 'no-store');
 });
+
+test('purchase preview stays in the staging Worker without acquiring production domains', async () => {
+  const configure = (await import('../../hosting/cloudflare.config.ts')).default;
+  const staging = configure({ mode: 'staging' }).worker;
+  const production = configure({ mode: 'production' }).worker;
+  assert.equal(staging.name, 'curfew-site-staging');
+  assert.equal(production.name, 'curfew-site-production');
+  assert.equal(staging.domains, undefined);
+  assert.equal(staging.workersDev, false);
+  assert.equal(staging.previewUrls, false);
+  assert.equal(production.domains, undefined);
+});

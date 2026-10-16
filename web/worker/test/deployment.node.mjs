@@ -10,6 +10,8 @@ const keys = [
   "CURFEW_DEPLOYMENT_ARTIFACT",
   "CURFEW_CONFIGURATION_SHA256",
   "CURFEW_CONFIGURATION_COMMIT",
+  "CURFEW_LICENSE_KV_NAMESPACE_ID",
+  "CURFEW_LICENSE_WORKER_NAME",
 ];
 test("license cf configuration rejects an unapproved build", async (t) => {
   const saved = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
@@ -46,6 +48,15 @@ test("license cf configuration uses the shared artifact and retains resource ide
           recoveryEmailFrom: "accounts@other.example",
           retiredLicenseOrigins: ["https://old-license.example"],
         },
+        staging: {
+          siteOrigin: "https://staging.other.example",
+          purchasePortalOrigin: "https://website.staging.other.example",
+          accountOrigin: "https://account.staging.other.example",
+          syncOrigin: "https://sync.staging.other.example",
+          licenseOrigin: "https://license.staging.other.example",
+          passkeyRPID: "staging.other.example",
+          recoveryEmailFrom: "accounts@staging.other.example",
+        },
       },
     },
     "a".repeat(40),
@@ -67,6 +78,55 @@ test("license cf configuration uses the shared artifact and retains resource ide
   assert.equal(
     config.worker.env.LICENSE_KV.id,
     "4313ea07769f4578a8fdd412620a412e",
+  );
+  assert.equal(config.worker.env.STRIPE_MODE?.value, "live");
+  assert.deepEqual(config.worker.env.EMAIL?.allowedSenderAddresses, [
+    "purchases@curfew.hypertext.studio",
+  ]);
+  assert.equal(
+    config.worker.env.RESTORE_EMAIL_FROM?.value,
+    "purchases@curfew.hypertext.studio",
+  );
+  assert.equal(
+    config.worker.env.PURCHASE_PORTAL_URL?.value,
+    "https://other.example",
+  );
+  assert.equal(config.worker.env.RESTORE_IP_LIMIT?.namespace, "1781921001");
+  assert.deepEqual(config.worker.env.RESTORE_IP_LIMIT?.simple, {
+    limit: 5,
+    period: 60,
+  });
+  assert.equal(config.worker.env.RESTORE_EMAIL_LIMIT?.namespace, "1781921002");
+  assert.deepEqual(config.worker.env.RESTORE_EMAIL_LIMIT?.simple, {
+    limit: 1,
+    period: 60,
+  });
+  process.env.CURFEW_LICENSE_KV_NAMESPACE_ID =
+    "f533e31c946f4960898e09ef285bd743";
+  process.env.CURFEW_LICENSE_WORKER_NAME = "curfew-issue-license-staging";
+  const staging = await licenseConfig({ mode: "staging" });
+  assert.equal(staging.worker.env.STRIPE_MODE?.value, "test");
+  assert.equal(
+    staging.worker.env.PURCHASE_PORTAL_URL?.value,
+    "https://website.staging.other.example",
+  );
+  assert.equal(staging.worker.env.RESTORE_IP_LIMIT?.namespace, "1781921101");
+  assert.equal(staging.worker.env.RESTORE_EMAIL_LIMIT?.namespace, "1781921102");
+  assert.notEqual(
+    staging.worker.env.LICENSE_KV.id,
+    config.worker.env.LICENSE_KV.id,
+  );
+  process.env.CURFEW_LICENSE_KV_NAMESPACE_ID = config.worker.env.LICENSE_KV.id;
+  await assert.rejects(
+    () => licenseConfig({ mode: "staging" }),
+    /staging.*production/i,
+  );
+  process.env.CURFEW_LICENSE_KV_NAMESPACE_ID =
+    "f533e31c946f4960898e09ef285bd743";
+  process.env.CURFEW_LICENSE_WORKER_NAME = "curfew-issue-license";
+  await assert.rejects(
+    () => licenseConfig({ mode: "staging" }),
+    /staging.*production/i,
   );
   assert.equal(config.worker.env.CONFIGURATION_SHA256.value, artifact.sha256);
   assert.equal(

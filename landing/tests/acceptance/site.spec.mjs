@@ -2,6 +2,14 @@ import { expect, test } from '@playwright/test';
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 
+const purchase =
+  process.env.CURFEW_PURCHASE_TEST_MODE === 'staging'
+    ? { issuer: 'https://curfew-license-staging.hypertext.studio', scheme: 'curfew-studio-dev' }
+    : { issuer: 'https://license.thecurfew.app', scheme: 'curfew' };
+test.beforeEach(async ({ page }) => {
+  await page.route('**/license/**', (route) => route.abort());
+});
+
 test('retained routes and HTML aliases survive direct visits and refresh', async ({ page }) => {
   for (const name of [
     'privacy',
@@ -61,20 +69,84 @@ test('published guides are linked and the retained HTML guide keeps its anchors'
   await expect(page.locator('#overview')).toBeVisible();
 });
 
-test('license delivery fails safely without contacting or mutating the licensing backend', async ({
+test('an invalid purchase link fails without contacting the licensing backend', async ({
   page,
 }) => {
-  const requests = [];
-  page.on('request', (request) => {
-    if (request.resourceType() === 'fetch' || request.resourceType() === 'xhr')
-      requests.push(request.url());
+  let requested = false;
+  await page.route('**/license/**', (route) => {
+    requested = true;
+    return route.abort();
   });
-  await page.goto('/success?session_id=test-not-a-real-checkout');
+  await page.goto('/success?session_id=invalid');
   await expect(page.locator('#state-error')).toBeVisible();
-  await expect(page.locator('#error-detail')).toContainText(
-    'License delivery is not configured yet.',
+  expect(requested).toBe(false);
+});
+
+test('a paid confirmation offers one activation click and a separate manual-key fallback', async ({
+  page,
+}) => {
+  const token = 'a'.repeat(43);
+  await page.route(`${purchase.issuer}/license/activation`, (route) => {
+    expect(route.request().postDataJSON()).toEqual({ session_id: 'cs_test_purchase' });
+    return route.fulfill({ json: { license_key: 'signed-purchase-key', activation_token: token } });
+  });
+  await page.goto('/success?session_id=cs_test_purchase');
+  await expect(page.getByRole('link', { name: 'Activate in Curfew', exact: true })).toHaveAttribute(
+    'href',
+    `${purchase.scheme}://activate?token=${token}`,
   );
-  expect(requests).toEqual([]);
+  await expect(page.locator('#license-key')).not.toBeVisible();
+  await page.getByText('Enter a license key', { exact: true }).click();
+  await expect(page.locator('#license-key')).toHaveText('signed-purchase-key');
+});
+
+test('a pending purchase retries delivery and then offers activation', async ({ page }) => {
+  let attempts = 0;
+  await page.route(`${purchase.issuer}/license/activation`, (route) => {
+    attempts += 1;
+    return route.fulfill(
+      attempts === 1
+        ? { status: 404, json: { error: 'purchase_pending' } }
+        : { json: { license_key: 'signed-purchase-key', activation_token: 'b'.repeat(43) } },
+    );
+  });
+  await page.goto('/success?session_id=cs_test_purchase');
+  await expect(page.getByRole('link', { name: 'Activate in Curfew', exact: true })).toBeVisible();
+  expect(attempts).toBe(2);
+});
+
+test('service failure offers retry without claiming the purchase is processing', async ({
+  page,
+}) => {
+  await page.route(`${purchase.issuer}/license/activation`, (route) =>
+    route.fulfill({ status: 503, json: { error: 'unavailable' } }),
+  );
+  await page.goto('/success?session_id=cs_test_purchase');
+  await expect(page.locator('#state-error')).toBeVisible();
+  await expect(page.locator('#error-detail')).toContainText("Couldn't reach the purchase service");
+  await expect(
+    page.getByRole('link', { name: 'Activate in Curfew', exact: true }),
+  ).not.toBeVisible();
+});
+
+test('restore requests proof at the purchase inbox and keeps its link out of server requests', async ({
+  page,
+}) => {
+  await page.route(`${purchase.issuer}/license/restore`, (route) => {
+    expect(route.request().postDataJSON()).toEqual({ email: 'buyer@example.com' });
+    return route.fulfill({ status: 202, json: { status: 'check_email' } });
+  });
+  await page.goto('/restore');
+  await page.getByLabel('Purchase email').fill('buyer@example.com');
+  await page.getByRole('button', { name: 'Send Restore Link', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('Check buyer@example.com');
+  const token = 'c'.repeat(43);
+  await page.goto(`/restore#token=${token}`);
+  await expect(page.getByRole('link', { name: 'Restore in Curfew', exact: true })).toHaveAttribute(
+    'href',
+    `${purchase.scheme}://activate?token=${token}`,
+  );
+  await expect(page).not.toHaveURL(/token=/);
 });
 
 test('keyboard access and reduced motion use the same real links', async ({

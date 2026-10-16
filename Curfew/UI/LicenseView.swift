@@ -5,21 +5,42 @@ import SwiftUI
 struct LicenseView: View {
     @Environment(CurfewAppModel.self) private var model
     @State private var keyDraft = ""
+    @State private var manualEntryExpanded = false
+    @State private var showingRestore = false
+    @State private var purchaseEmail = ""
+    @State private var restoreRequestID = UUID()
 
     private var gate: LicenseGate {
         model.licenseGate
+    }
+
+    private var activation: LicenseActivationController {
+        model.licenseActivation
     }
 
     /// Panel that swaps between an activation form and the activated
     /// licence summary depending on `LicenseGate.isPlusUnlocked`.
     var body: some View {
         Section("Curfew Plus") {
+            if activation.isBusy {
+                HStack { ProgressView().controlSize(.small); Text(activation.message ?? "Working…")
+                }
+            } else if let message = activation.message {
+                Text(message).foregroundStyle(CurfewTheme.accent)
+                    .accessibilityIdentifier("license-activation-status")
+            }
+            if let error = activation
+                .error ?? (activation.message == nil ? gate.activationError : nil) {
+                Text(error).foregroundStyle(CurfewTheme.warning)
+                    .textSelection(.enabled)
+            }
             if gate.isPlusUnlocked {
                 unlockedBody
             } else {
                 lockedBody
             }
         }
+        .sheet(isPresented: $showingRestore) { restoreSheet }
     }
 
     // MARK: - Unlocked state
@@ -35,6 +56,7 @@ struct LicenseView: View {
             }
 
             Button("Deactivate License") {
+                activation.cancel()
                 gate.deactivate()
                 keyDraft = ""
             }
@@ -78,30 +100,92 @@ struct LicenseView: View {
 
             plusFeatureList
 
-            TextField("License key", text: $keyDraft)
-                .font(CurfewTypography.body(13))
-                .textFieldStyle(.roundedBorder)
-                .disableAutocorrection(true)
-
-            Text("Use the key from your purchase email.")
-                .font(CurfewTypography.label(12))
-                .foregroundStyle(CurfewTheme.mutedInk)
-
-            if let error = gate.activationError {
-                Text(error)
-                    .font(CurfewTypography.label(12))
-                    .foregroundStyle(CurfewTheme.warning)
-            }
-
             HStack(spacing: 10) {
-                Button("Activate") {
-                    gate.activate(keyDraft)
+                Button("Restore Purchase…") {
+                    restoreRequestID = UUID()
+                    showingRestore = true
                 }
-                .buttonStyle(CurfewPrimaryButtonStyle())
-                .disabled(keyDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-
+                .buttonStyle(CurfewSecondaryButtonStyle())
+                .disabled(activation.isBusy)
                 Link("Get Curfew Plus", destination: LicensePurchase.pricingURL)
                     .buttonStyle(CurfewLinkButtonStyle())
+            }
+
+            Button {
+                manualEntryExpanded.toggle()
+            } label: {
+                Label(
+                    "Enter a license key",
+                    systemImage: manualEntryExpanded ? "chevron.down" : "chevron.right"
+                )
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityValue(manualEntryExpanded ? "Expanded" : "Collapsed")
+
+            if manualEntryExpanded {
+                TextField("License key", text: $keyDraft)
+                    .accessibilityLabel("License key")
+                    .accessibilityIdentifier("license-key-input")
+                    .font(CurfewTypography.body(13))
+                    .textFieldStyle(.roundedBorder)
+                    .disableAutocorrection(true)
+                Button("Activate") { activation.activateManually(keyDraft) }
+                    .buttonStyle(CurfewPrimaryButtonStyle())
+                    .disabled(activation.isBusy || keyDraft
+                        .trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+        }
+    }
+
+    private var restoreSheet: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Restore Purchase").font(.title2.bold())
+            Text("Enter the email address on your receipt.")
+                .foregroundStyle(CurfewTheme.mutedInk)
+            TextField("Purchase email", text: $purchaseEmail)
+                .textFieldStyle(.roundedBorder)
+                .disableAutocorrection(true)
+                .onSubmit { requestRestore() }
+            if let error = activation.error {
+                Text(error).foregroundStyle(CurfewTheme.warning)
+            }
+            HStack {
+                Button("Cancel") {
+                    restoreRequestID = UUID()
+                    activation.cancel()
+                    showingRestore = false
+                }
+                .keyboardShortcut(.cancelAction)
+                Spacer()
+                if activation.isBusy {
+                    ProgressView().controlSize(.small)
+                }
+                Button("Send Restore Link", action: requestRestore)
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(!canRestore || activation.isBusy)
+            }
+        }
+        .padding(24)
+        .frame(width: 420)
+    }
+
+    private var canRestore: Bool {
+        let email = purchaseEmail.trimmingCharacters(in: .whitespacesAndNewlines)
+        return email.count <= 254 && email.range(
+            of: "^[^\\s<>@]+@[^\\s<>@]+\\.[^\\s<>@]+$", options: .regularExpression
+        ) != nil
+    }
+
+    private func requestRestore() {
+        guard canRestore, !activation.isBusy else { return }
+        let requestID = UUID()
+        restoreRequestID = requestID
+        let email = purchaseEmail
+        Task {
+            guard showingRestore, restoreRequestID == requestID else { return }
+            if await activation.restore(email: email), restoreRequestID == requestID {
+                showingRestore = false
             }
         }
     }

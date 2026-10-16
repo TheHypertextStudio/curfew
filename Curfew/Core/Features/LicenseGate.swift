@@ -23,6 +23,7 @@ enum LicenseActivationError: LocalizedError {
     /// Signature is valid but the payload's `product` field names a
     /// different Curfew SKU — e.g. a Team licence presented to a Pro build.
     case wrongProduct
+    case expired
     /// The app was built with the placeholder public key still in place.
     /// License verification is skipped rather than accepting a key that
     /// could be forged against the all-zero key.
@@ -34,6 +35,7 @@ enum LicenseActivationError: LocalizedError {
         case .malformed: "The license key format is invalid."
         case .invalidSignature: "This license key could not be verified."
         case .wrongProduct: "This license key is for a different product."
+        case .expired: "Your subscription has expired. Renew it to restore Curfew Plus."
         case .publicKeyNotProvisioned:
             "This build does not have a license public key configured. " +
                 "Plus activation is disabled until the developer ships a signed build."
@@ -55,6 +57,16 @@ final class LicenseGate {
     /// The matching private seed is an external Worker secret and is never
     /// bundled, committed, logged, or read by the app.
     static let configuredPublicKeyBase64 = "wws4nqf0o6zvtOONgWITcqquPv6kIhd57WT2WLgMIvQ="
+
+    /// Retained sandbox signer, verified against an actual paid test checkout.
+    private static let developmentPublicKeyBase64 = "Yvu91gvPfXzgg375axY/mPHQMA/0ejiDPFZuDn8/qE4="
+
+    nonisolated static func publicKeyBase64(for flavor: CurfewFlavor) -> String {
+        switch flavor {
+        case .production: configuredPublicKeyBase64
+        case .development, .studioDevelopment: developmentPublicKeyBase64
+        }
+    }
 
     /// Verified Plus license currently in effect, or `nil` for free-tier
     /// users. Setting surfaces Plus features across the app through the
@@ -95,6 +107,7 @@ final class LicenseGate {
     }
 
     private let defaults: UserDefaults
+    private let publicKeyBase64: String
     /// Kept as the original `"pro.licenseKey"` across the Plus rename: it is an
     /// internal UserDefaults key, never shown to users, and renaming it would
     /// need a migration to avoid dropping already-activated keys for no gain.
@@ -102,11 +115,13 @@ final class LicenseGate {
 
     /// Creates a gate backed by `defaults` on the main actor.
     init(
-        defaults: UserDefaults? = nil
+        defaults: UserDefaults? = nil,
+        publicKeyBase64: String = LicenseGate.publicKeyBase64(for: LicenseEndpoint.currentFlavor)
     ) {
         self.defaults = defaults
             ?? UserDefaults(suiteName: SharedPaths.defaultsSuiteName)
             ?? .standard
+        self.publicKeyBase64 = publicKeyBase64
     }
 
     #if DEBUG
@@ -168,17 +183,29 @@ final class LicenseGate {
     /// the next time they happen to open it, and a success shouldn't be able
     /// to silently wipe an error the user is actively looking at from
     /// something they *did* just type into that field.
-    func activateSilently(_ keyString: String) {
-        activatedKey = try? verifyAndPersist(keyString)
+    func activateSilently(_ keyString: String, replacing original: LicenseKey) {
+        let trimmed = keyString.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard activatedKey == original, original.plan == .subscription,
+              let token = original.refreshToken,
+              let renewed = try? verified(trimmed), renewed.plan == .subscription,
+              renewed.refreshToken == token,
+              let expiry = renewed.expiresAt, expiry > Date(),
+              expiry >= (original.expiresAt ?? .distantPast)
+        else { return }
+        defaults.set(trimmed, forKey: Self.storageKey)
+        activatedKey = renewed
     }
 
     /// Shared verify-and-persist body behind ``activate(_:)`` and
-    /// ``activateSilently(_:)``: trims, verifies, and — only on success —
+    /// trims, verifies, and — only on success —
     /// persists the raw string. Throws (rather than swallowing) so each
     /// caller decides for itself whether a failure is worth surfacing.
     private func verifyAndPersist(_ keyString: String) throws -> LicenseKey {
         let trimmed = keyString.trimmingCharacters(in: .whitespacesAndNewlines)
         let key = try verified(trimmed)
+        if key.plan == .subscription, (key.expiresAt ?? .distantPast) <= Date() {
+            throw LicenseActivationError.expired
+        }
         defaults.set(trimmed, forKey: Self.storageKey)
         return key
     }
@@ -207,7 +234,7 @@ final class LicenseGate {
         // Fail-closed when the build still carries the placeholder zero key.
         // Without this guard an attacker who discovered the all-zero private
         // key (trivially derivable) could forge arbitrary licenses.
-        guard Self.configuredPublicKeyBase64 != placeholderPublicKeyBase64
+        guard publicKeyBase64 != placeholderPublicKeyBase64
         else { throw LicenseActivationError.publicKeyNotProvisioned }
 
         let parts = keyString.split(separator: ".", maxSplits: 1)
@@ -217,7 +244,7 @@ final class LicenseGate {
         else { throw LicenseActivationError.malformed }
 
         guard
-            let rawKey = Data(base64Encoded: Self.configuredPublicKeyBase64),
+            let rawKey = Data(base64Encoded: publicKeyBase64),
             let publicKey = try? Curve25519.Signing.PublicKey(rawRepresentation: rawKey),
             publicKey.isValidSignature(signatureData, for: payloadData)
         else { throw LicenseActivationError.invalidSignature }

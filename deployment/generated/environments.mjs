@@ -15,6 +15,7 @@ export default {
     "retiredLicenseOrigins": [
       "https://curfew-license.hypertext.studio"
     ],
+    "purchasePortalOrigin": "https://thecurfew.app",
     "accountPortal": "https://thecurfew.app/account",
     "mcpResource": "https://sync.thecurfew.app/mcp",
     "remoteCommandJWKS": "https://sync.thecurfew.app/.well-known/curfew-command-jwks.json",
@@ -24,6 +25,7 @@ export default {
   },
   "staging": {
     "siteOrigin": "https://curfew-staging.hypertext.studio",
+    "purchasePortalOrigin": "https://curfew-site-staging.hypertext.studio",
     "accountOrigin": "https://curfew-account-staging.hypertext.studio",
     "syncOrigin": "https://curfew-sync-staging.hypertext.studio",
     "licenseOrigin": "https://curfew-license-staging.hypertext.studio",
@@ -34,7 +36,7 @@ export default {
     "remoteCommandJWKS": "https://curfew-sync-staging.hypertext.studio/.well-known/curfew-command-jwks.json",
     "nativeCallback": "https://curfew-account-staging.hypertext.studio/oauth/callback/native/macos",
     "appcast": "https://curfew-staging.hypertext.studio/appcast.xml",
-    "pricing": "https://curfew-staging.hypertext.studio/#plus"
+    "pricing": "https://curfew-site-staging.hypertext.studio/#plus"
   },
   "local": {
     "siteOrigin": "http://localhost:4321",
@@ -43,6 +45,7 @@ export default {
     "licenseOrigin": "http://localhost:8788",
     "passkeyRPID": "localhost",
     "recoveryEmailFrom": "accounts@thecurfew.app",
+    "purchasePortalOrigin": "http://localhost:4321",
     "accountPortal": "http://localhost:4321/account",
     "mcpResource": "http://localhost:8787/mcp",
     "remoteCommandJWKS": "http://localhost:8787/.well-known/curfew-command-jwks.json",

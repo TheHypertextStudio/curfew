@@ -63,17 +63,15 @@ jobs:
           node scripts/check-deployment-hosts.mjs
           git diff --exit-code -- CurfewKit/Sources/CurfewKit/Sync/DeploymentProfile.generated.swift deployment/generated Curfew/Curfew.entitlements Curfew/Curfew-Release.entitlements landing/public
       - name: Validate website source
+        env:
+          CURFEW_DEPLOYMENT_MODE: production
         run: pnpm site:check
-      - name: Validate cf Worker packaging
-        run: |
-          pnpm --dir landing/hosting exec cf build --mode staging
-          pnpm --dir landing/hosting exec cf deploy --prebuilt --mode staging --dry-run
       - name: Install browser runtimes
         run: pnpm --dir landing exec playwright install --with-deps chromium firefox webkit
       - name: Accept local Worker runtime in three browsers
         run: pnpm site:test:acceptance
       - name: Seal the validated static output
-        run: node scripts/website-artifact.mjs landing/dist deployment/generated/environment-artifact.json deployment/generated/website-build.json
+        run: node scripts/website-artifact.mjs landing/dist deployment/generated/environment-artifact.json deployment/generated/website-build.json production
       - name: Retain validated website output
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@v7.0.2
@@ -95,6 +93,33 @@ jobs:
         with:
           name: curfew-website-build
           path: deployment/generated/website-build.json
+          if-no-files-found: error
+      - name: Build and seal isolated staging purchase pages
+        env:
+          CURFEW_DEPLOYMENT_MODE: staging
+        run: |
+          pnpm --dir landing build
+          node scripts/website-artifact.mjs landing/dist deployment/generated/environment-artifact.json deployment/generated/staging-website-build.json staging
+          pnpm --dir landing/hosting exec cf build --mode staging
+          pnpm --dir landing/hosting exec cf deploy --prebuilt --mode staging --dry-run
+      - name: Accept staging purchase links in three browsers
+        env:
+          CURFEW_PURCHASE_TEST_MODE: staging
+        run: pnpm site:test:acceptance
+      - name: Retain validated staging website output
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: curfew-website-staging-dist
+          path: landing/dist/
+          include-hidden-files: true
+          if-no-files-found: error
+      - name: Retain staging website build identity
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: curfew-website-staging-build
+          path: deployment/generated/staging-website-build.json
           if-no-files-found: error
       - name: Retain browser diagnostics
         if: failure()

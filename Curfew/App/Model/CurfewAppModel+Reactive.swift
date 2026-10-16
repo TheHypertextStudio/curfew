@@ -96,8 +96,8 @@ extension CurfewAppModel {
             guard let renewed = await refresher.refreshedKey(for: refreshToken) else { return }
             // Silent: this refresh is unattended, so it must not populate or
             // clear `activationError` — that field is for the user's own
-            // Activate-button attempts. See `activateSilently(_:)`.
-            await MainActor.run { self?.licenseGate.activateSilently(renewed) }
+            // Activate-button attempts. Only replace the purchase captured above.
+            await MainActor.run { self?.licenseGate.activateSilently(renewed, replacing: key) }
         }
     }
 }

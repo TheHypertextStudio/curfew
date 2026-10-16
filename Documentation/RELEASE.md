@@ -24,6 +24,13 @@ approval to use a non-0.0.x version. A local build is not distribution proof.
 
 ## Required credentials
 
+Curfew CI uses a dedicated Developer ID Application certificate and Developer-role
+notarization API key for Studio team `T95VDD3A4W`. The six Apple inputs below are
+configured in repository Actions secrets. The protected local backup lives at
+`~/.config/curfew/release-credentials`; keep its files private and transmit secret
+values through stdin. Existing Studio credentials remain active. Successful
+`notarytool history` authentication does not establish artifact notarization.
+
 Use `scripts/release-checklist.md` for the full business/infrastructure setup
 (Stripe, Cloudflare Worker, Sparkle, landing page, Homebrew), and
 `Documentation/license-worker-bootstrap.md` for the sole reproducible issuer
@@ -455,6 +462,18 @@ uses native build/prebuilt deployment without provisioning or rebuilding Astro. 
 downloaded DMG hash against the candidate before announcing. If any gate is
 missing, withhold activation; never use a receipt as production proof or enable
 sales while the commercial stop remains.
+
+The Sparkle seed remains in GitHub Actions. `scripts/sparkle-public-key.mjs`
+accepts the base64-encoded 32-byte seed used by the provisioning script and
+prints only its public key. Missing or malformed material stops the job before
+archiving. Release receives that key as an Xcode build setting; do not copy the
+Debug key or generate a replacement to resolve a placeholder. The published
+RFC 8032 test vector and a signature from the pinned Sparkle binary verify the
+derivation independently of the retained production secret.
+
+Production publication still requires the Cloudflare deployment credential and
+an accepted website destination. The source retains the existing Pages publisher;
+the proposed production website Worker has not been provisioned or cut over.
 
 The pull-request CI workflow also runs on `macos-26` so its test host matches
 Curfew's macOS 26 deployment target; running it on an older macOS image cannot
