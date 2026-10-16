@@ -1896,3 +1896,10 @@ changes; rollback restores the prior landing release and docs commit.
   one-click callback, manual fallback, retry, and inbox restoration.
 - Signed candidate and actual hosted purchase/restoration remain release checks;
   local mock responses and unsigned compilation cannot satisfy them.
+
+- `scripts/website-artifact.test.mjs` rejects production purchase settings in a
+  staging artifact, staging stamps in production publication, and incorrect
+  restoration schemes. Website CI runs browser acceptance for both retained modes.
+- Recovery-renderer regressions accept the current production portal and reject
+  issuer/portal environment mismatches; local profile tests use the native
+  development app's staging issuer.
