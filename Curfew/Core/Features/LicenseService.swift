@@ -6,8 +6,18 @@ nonisolated protocol LicenseServicing: Sendable {
     func restore(email: String) async throws
 }
 
+nonisolated enum LicenseEndpoint {
+    static func url(for flavor: CurfewFlavor) -> URL {
+        switch flavor {
+        case .production: URL(string: "https://curfew-license.hypertext.studio")!
+        case .development, .studioDevelopment:
+            URL(string: "https://curfew-license-staging.hypertext.studio")!
+        }
+    }
+}
+
 nonisolated struct LicenseService: LicenseServicing {
-    var baseURL = URL(string: "https://curfew-license.hypertext.studio")!
+    var baseURL = LicenseEndpoint.url(for: .current)
     var session = URLSession.shared
 
     func redeem(ticket: String) async throws -> String {
