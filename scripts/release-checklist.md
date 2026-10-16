@@ -11,11 +11,12 @@ next step needs.
 
 ### 0. Fast path: `just setup`
 
-`scripts/setup.mjs` automates the **web/purchase** infrastructure — steps 4
-(Stripe product/prices/payment-links/webhook), 5 (license keypair), 6
-(Worker deploy + secrets), and 8 (landing + `/docs` proxy deploy) — in one
-idempotent run. It does *not* touch the Apple/notarization/Sparkle/Cask
-steps (1–3, 7, 9–10); do those separately.
+`scripts/setup.mjs` is a legacy initial-production bootstrap for purchase
+infrastructure. It generates a signing keypair and creates Stripe resources;
+use the native deployment commands for existing environments so their signer,
+purchase store and credentials are retained. Frontend publication uses the
+separate website commands. Apple, notarization, Sparkle and Cask setup remain
+separate.
 
 Prerequisites it can't do for you (do these first):
 
@@ -24,12 +25,13 @@ Prerequisites it can't do for you (do these first):
 - [ ] `(cd web/worker && pnpm exec wrangler login)` as **willie@hypertext.studio**
       (the script refuses any other account).
 
-Run it (dry run prints the plan; `--yes` executes; add `--live` only with an
-`sk_live_…` key):
+For an initial production setup, review the plan first. Execution requires
+separate release-owner authorization. Test credentials are rejected before
+provider access; staging uses its existing isolated license configuration.
 
 ```sh
-# Test mode, both SKUs ($20 lifetime + $40/yr subscription):
-STRIPE_API_KEY=sk_test_… STRIPE_SUB_AMOUNT=4000 just setup --yes
+# Review the production plan, including its checkout confirmation URL:
+STRIPE_API_KEY=sk_live_… STRIPE_SUB_AMOUNT=4000 just setup --live
 # Live billing setup requires its separate release-owner authorization:
 STRIPE_API_KEY=sk_live_… STRIPE_SUB_AMOUNT=4000 just setup --yes --live
 ```
