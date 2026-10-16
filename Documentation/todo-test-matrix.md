@@ -1826,3 +1826,14 @@ changes; rollback restores the prior landing release and docs commit.
     notarization key ID. GitHub secret metadata confirms the verified issuer is
     configured. These checks establish setup metadata, not signing or notarization
     success; private-file provisioning and team alignment remain unfinished.
+  - The approved CI certificate matches its generated key; `notarytool history`
+    authenticates with the new dedicated key. GitHub secret metadata confirms all
+    six Apple inputs are configured. Artifact notarization remains unverified.
+- `Release signing matches the verified Studio account.`
+  - `scripts/release-entitlements.test.mjs`: app, widget and artifact-verifier
+    identity must match `T95VDD3A4W`; the regression failed before the correction
+    and passes afterward. The twelve release-policy tests pass.
+- `Lifecycle reconciliation tests use an isolated license store.`
+  - `LifecycleWiringTests/licenseActivationReconciles()`: observed failing with
+    the real retained sandbox purchase before injecting the helper's per-test
+    defaults into its license gate. The original free-to-Plus assertions remain.
