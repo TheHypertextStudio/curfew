@@ -5,5 +5,8 @@ export function purchaseProfile(mode, profiles = deployment) {
     throw new Error('Unknown purchase deployment mode');
   }
   const schemes = { production: 'curfew', staging: 'curfew-studio-dev', local: 'curfew-dev' };
-  return { issuer: profiles[mode].licenseOrigin, scheme: schemes[mode] };
+  return {
+    issuer: profiles[mode === 'local' ? 'staging' : mode].licenseOrigin,
+    scheme: schemes[mode],
+  };
 }

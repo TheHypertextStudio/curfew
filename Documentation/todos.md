@@ -1543,3 +1543,8 @@ asserts its own screen and state before attaching an image.
   and explicit payment mode in the native license deployment configuration.
 - [-] Validate the integrated app and website candidate, then complete signed
   distribution and hosted purchase/restore acceptance before advertising the flow.
+
+- [x] Retain separate production/staging website artifacts and verify purchase
+  issuer/scheme pairing before staging deployment and production publication.
+- [x] Validate restore portals against the issuer's deployment profile and pair
+  local purchase pages with the native development app's retained staging issuer.

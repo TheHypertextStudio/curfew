@@ -17,6 +17,14 @@ const deployment = createArtifact(
         passkeyRPID: "alternate.example",
         recoveryEmailFrom: "accounts@alternate.example",
       },
+      staging: {
+        siteOrigin: "https://staging.alternate.example",
+        accountOrigin: "https://account.staging.alternate.example",
+        syncOrigin: "https://sync.staging.alternate.example",
+        licenseOrigin: "https://license.staging.alternate.example",
+        passkeyRPID: "staging.alternate.example",
+        recoveryEmailFrom: "accounts@staging.alternate.example",
+      },
     },
   },
   "a".repeat(40),
@@ -26,6 +34,7 @@ async function fixture(t) {
   const directory = await mkdtemp(join(tmpdir(), "curfew-website-artifact-"));
   t.after(() => rm(directory, { recursive: true, force: true }));
   await writeFile(join(directory, "index.html"), "<h1>Curfew</h1>");
+  await purchasePages(directory, "https://license.alternate.example", "curfew");
   return directory;
 }
 async function api() {
@@ -79,10 +88,73 @@ test("static sealing refuses missing output and obsolete Pages runtime files", a
   await rm(join(directory, "index.html"));
   await assert.rejects(() => sealWebsite(directory, deployment));
   await writeFile(join(directory, "index.html"), "<h1>Curfew</h1>");
+  await purchasePages(directory, "https://license.alternate.example", "curfew");
   await mkdir(join(directory, "_worker.js"));
   await writeFile(join(directory, "_worker.js/index.js"), "export default {}");
   await assert.rejects(() => sealWebsite(directory, deployment), /Pages/i);
   await rm(join(directory, "_worker.js"), { recursive: true });
   await writeFile(join(directory, "_routes.json"), "{}");
   await assert.rejects(() => sealWebsite(directory, deployment), /Pages/i);
+});
+
+async function purchasePages(directory, issuer, scheme) {
+  for (const [page, mode] of [
+    ["success", "checkout"],
+    ["restore", "restore"],
+  ]) {
+    await writeFile(
+      join(directory, `${page}.html`),
+      `<div data-purchase-mode="${mode}" data-issuer="${issuer}" data-scheme="${scheme}"></div>`,
+    );
+  }
+}
+test("staging website sealing rejects production purchase settings", async (t) => {
+  const directory = await fixture(t);
+  const { sealWebsite } = await api();
+  await assert.rejects(
+    () => sealWebsite(directory, deployment, "staging"),
+    /purchase.*environment/i,
+  );
+});
+test("staging build identity cannot be admitted for production publication", async (t) => {
+  const directory = await fixture(t);
+  await purchasePages(
+    directory,
+    "https://license.staging.alternate.example",
+    "curfew-studio-dev",
+  );
+  const { sealWebsite, verifyWebsite } = await api();
+  const stamp = await sealWebsite(directory, deployment, "staging");
+  assert.equal(stamp.deploymentMode, "staging");
+  await verifyWebsite(
+    directory,
+    stamp,
+    deployment,
+    deployment.sha256,
+    "a".repeat(40),
+    "staging",
+  );
+  await assert.rejects(
+    () =>
+      verifyWebsite(
+        directory,
+        stamp,
+        deployment,
+        deployment.sha256,
+        "a".repeat(40),
+      ),
+    /purchase.*environment|website build/i,
+  );
+});
+test("static sealing checks both checkout and restoration app pairing", async (t) => {
+  const directory = await fixture(t);
+  const { sealWebsite } = await api();
+  await writeFile(
+    join(directory, "restore.html"),
+    '<div data-purchase-mode="restore" data-issuer="https://license.alternate.example" data-scheme="curfew-studio-dev"></div>',
+  );
+  await assert.rejects(
+    () => sealWebsite(directory, deployment),
+    /purchase.*environment/i,
+  );
 });
