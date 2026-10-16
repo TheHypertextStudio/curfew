@@ -1,6 +1,7 @@
 import { isoSeconds, signLicenseKey } from "./crypto.js";
 import { invoicePeriodEnd, nowSeconds, subscriptionIDFromInvoice } from "./stripe.js";
 import type { Env } from "./types.js";
+import { indexPurchase } from "./purchases.js";
 
 const graceSeconds = 3 * 24 * 60 * 60;
 const provisionalSubscriptionSeconds = 33 * 24 * 60 * 60;
@@ -9,11 +10,12 @@ export async function handleCheckoutCompleted(event: any, env: Env): Promise<boo
   const session = event.data?.object ?? {};
   const sessionID = String(session.id ?? "");
   const email = String(session.customer_details?.email ?? session.customer_email ?? "");
-  if (!sessionID || !email || !(session.payment_status === "paid" || session.status === "complete")) return false;
+  if (!sessionID || !email || session.payment_status !== "paid") return false;
 
   if (session.mode !== "subscription") {
     const key = await signLicenseKey({ email, plan: "lifetime", orderID: sessionID }, env.LICENSE_PRIVATE_KEY);
     await env.LICENSE_KV.put(`session:${sessionID}`, key);
+    await indexPurchase(env, email, sessionID);
     return true;
   }
 
@@ -32,6 +34,7 @@ export async function handleCheckoutCompleted(event: any, env: Env): Promise<boo
     env.LICENSE_KV.put(`session:${sessionID}`, key),
     ...(pendingPeriodEnd ? [env.LICENSE_KV.delete(`subpending:${subscriptionID}`)] : []),
   ]);
+  await indexPurchase(env, email, sessionID);
   return true;
 }
 
