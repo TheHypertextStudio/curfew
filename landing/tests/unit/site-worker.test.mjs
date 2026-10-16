@@ -177,3 +177,16 @@ test('an unavailable upstream reports 502 without converting to the HTML guide',
   assert.equal(response.status, 502);
   assert.equal(response.headers.get('cache-control'), 'no-store');
 });
+
+test('the purchase preview uses a dedicated staging hostname without taking account routes', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const config = JSON.parse(
+    await readFile(new URL('../../wrangler.site.json', import.meta.url), 'utf8'),
+  );
+  assert.deepEqual(config.env.staging.routes, [
+    { pattern: 'curfew-site-staging.hypertext.studio', custom_domain: true },
+  ]);
+  assert.equal(config.env.staging.workers_dev, false);
+  assert.equal(config.env.staging.preview_urls, false);
+  assert.deepEqual(config.env.production.routes, []);
+});
