@@ -27,15 +27,22 @@ async function ticket(env: Env, owner: Omit<Ticket, "expiresAt">): Promise<strin
   return token;
 }
 
-function payload(key: string): { plan?: string; refresh_token?: string; expires_at?: string } {
-  try { return JSON.parse(atob(key.split(".")[0].replace(/-/g, "+").replace(/_/g, "/"))); }
-  catch { return {}; }
+interface LicensePayload { plan: "lifetime" | "subscription"; refresh_token?: string; expires_at?: string }
+
+function payload(key: string): LicensePayload | null {
+  try {
+    const value = JSON.parse(atob(key.split(".")[0].replace(/-/g, "+").replace(/_/g, "/")));
+    const plan = value.plan ?? "lifetime";
+    if (!(value.product === "curfew-plus" || (value.product === "curfew-pro" && plan === "lifetime")) ||
+      !(plan === "lifetime" || plan === "subscription")) return null;
+    return { ...value, plan };
+  } catch { return null; }
 }
 
 async function currentKey(env: Env, sessionID: string): Promise<string | null> {
   const key = await env.LICENSE_KV.get(`session:${sessionID}`);
   if (!key) return null;
-  const token = payload(key).refresh_token;
+  const token = payload(key)?.refresh_token;
   return token ? (await env.LICENSE_KV.get(`refresh:${token}`)) ?? key : key;
 }
 
@@ -48,8 +55,11 @@ async function restoredKey(env: Env, emailHash: string): Promise<string | null> 
     const sessionID = await env.LICENSE_KV.get(name);
     return sessionID ? currentKey(env, sessionID) : null;
   }))).filter((key): key is string => key !== null);
-  return keys.find(key => payload(key).plan === "lifetime") ?? keys.sort((a, b) =>
-    Date.parse(payload(b).expires_at ?? "") - Date.parse(payload(a).expires_at ?? "")
+  const lifetime = keys.find(key => payload(key)?.plan === "lifetime");
+  if (lifetime) return lifetime;
+  return keys.filter(key => payload(key)?.plan === "subscription" &&
+    Number.isFinite(Date.parse(payload(key)?.expires_at ?? ""))).sort((a, b) =>
+    Date.parse(payload(b)!.expires_at!) - Date.parse(payload(a)!.expires_at!)
   )[0] ?? null;
 }
 

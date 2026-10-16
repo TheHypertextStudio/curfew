@@ -63,17 +63,20 @@ final class LicenseActivationController {
         }
     }
 
-    func restore(email: String) async {
+    @discardableResult
+    func restore(email: String) async -> Bool {
         let email = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         let operation = begin()
         message = "Sending restore link…"
         defer { finish(operation) }
         do {
             try await service.restore(email: email)
-            guard generation == operation, !Task.isCancelled else { return }
+            guard generation == operation, !Task.isCancelled else { return false }
             message = "Check \(email) for your restore link."
+            return true
         } catch {
             fail(error, operation: operation)
+            return false
         }
     }
 

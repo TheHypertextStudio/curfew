@@ -6,8 +6,8 @@ account. Existing manually entered lifetime keys remain valid offline.
 
 ## Implementation
 
-1. The signed Stripe webhook records a paid purchase and an inbox index. A
-   checkout's `complete` status alone never grants access.
+1. The signed Stripe webhook records a paid Curfew purchase and an inbox index.
+   The SKU and checkout mode must match; completion alone never grants access.
 2. The confirmation page exchanges its checkout session for a random 256-bit
    activation ticket. **Activate in Curfew** opens the correct build's URL
    scheme. The ticket lasts 15 minutes and stores only a hashed bearer token.
@@ -20,7 +20,15 @@ account. Existing manually entered lifetime keys remain valid offline.
    disclosed only after proof of inbox control. Email contains no license key.
 5. The restore page keeps the ticket in the URL fragment, clears it from browser
    history, and offers **Restore in Curfew**. Manual key entry is an available
-   fallback. Subscription restoration resolves the latest refresh key.
+   fallback. Subscription restoration resolves the latest refresh key or the
+   retained paid-period snapshot after cancellation. Legacy lifetime keys take
+   precedence over expired subscriptions.
+
+Background renewal only replaces the exact subscription captured before its
+request, with a verified key for the same refresh token and no earlier expiry.
+Failed refreshes preserve the current purchase. Restore sheet dismissal belongs
+to the successful request that opened it; canceled requests cannot dismiss a
+later sheet.
 
 Tickets are retryable until expiry so an email scanner or repeated OS callback
 does not consume them. They are bearer capabilities; never log them. The
@@ -100,3 +108,40 @@ previously handled event adds its purchase index only when the corresponding
 stored license exists, and leaves that license unchanged. Verify restoration
 for an old purchase as well as a fresh purchase. This is a licensing recovery
 change, not an account-recovery or encryption-key recovery mechanism.
+
+### Verified studio provider state
+
+The existing Chrome session reaches the **Hypertext Studio** account. Its Email
+Sending dashboard lists `curfew.hypertext.studio` as **Enabled**, with DNS
+**Configured**, and a 1,000-email daily quota. Use the existing approved sending
+domain: `purchases@curfew.hypertext.studio`. No domain onboarding or credential
+creation is needed. The `curfew-issue-license` production Worker serves
+`curfew-license.hypertext.studio` and deploys from this repository main branch.
+Its existing deployment at docs commit `bdd703f` confirms that docs merges also
+trigger issuer builds; preserve existing bindings and signer while coordinating
+the client/site/issuer release. Dashboard inspection has not changed resources.
+
+### Review verification — 2026-10-13
+
+- All six reviewer findings have source fixes and regression coverage. The issuer
+  product, cancellation, and legacy-key regressions failed before the fixes;
+  all 11 issuer tests and TypeScript checks now pass.
+- The existing silent-refresh path was observed clearing a valid purchase on an
+  invalid response. Eight native activation tests pass after the refresh and
+  restore-generation fixes. Full native verification passes with parallel test
+  workers disabled: 81 XCTest tests and 926 Swift Testing tests, plus the Debug
+  build. The parallel run hit the existing 150/200 ms sync-test deadlines; both
+  affected suites passed separately. No sync assertion or production source changed.
+- SwiftFormat apply/check and strict SwiftLint pass (329 files). Website source,
+  lint, format, types and build pass; all 30 browser checks and 50 script tests pass.
+- CI on the initial PR revision passed native unit/build, issuer, website, and docs
+  checks. The interaction test opened the restore sheet but failed to open manual
+  entry after Cancel. It now waits for sheet dismissal and enabled controls before
+  the next click; that change still requires fresh isolated CI verification.
+- The production generator supports `CURFEW_LICENSE_RESTORE_ENABLED=1` with an
+  approved `CURFEW_LICENSE_RESTORE_FROM`, HTTPS `CURFEW_LICENSE_PORTAL_URL`, and
+  distinct positive `CURFEW_LICENSE_RESTORE_IP_NAMESPACE_ID` and
+  `CURFEW_LICENSE_RESTORE_EMAIL_NAMESPACE_ID`. Existing three-field deployment
+  configuration remains compatible with recovery disabled. A bundle using the
+  verified production identifiers and restricted sender passed Wrangler dry-run;
+  no provider permission has been granted and no email sent.

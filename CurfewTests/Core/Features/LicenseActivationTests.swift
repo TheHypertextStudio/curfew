@@ -83,6 +83,59 @@ struct LicenseActivationTests {
         #expect(!flow.isBusy)
     }
 
+    @Test("A failed unattended refresh preserves the current purchase")
+    func failedSilentRefreshPreservesPurchase() throws {
+        let signer = Curve25519.Signing.PrivateKey()
+        let gate = try LicenseGate(
+            defaults: #require(UserDefaults(suiteName: UUID().uuidString)),
+            publicKeyBase64: signer.publicKey.rawRepresentation
+                .base64EncodedString()
+        )
+        try gate.activate(signedKey(signer))
+        let original = gate.activatedKey
+        try gate.activateSilently("invalid-response", replacing: #require(original))
+        #expect(gate.activatedKey == original)
+        #expect(gate.isPlusUnlocked)
+    }
+
+    @Test("An old refresh cannot replace a newer activation, including the same subscription")
+    func staleRefreshPreservesNewActivation() throws {
+        let signer = Curve25519.Signing.PrivateKey()
+        for lifetime in [true, false] {
+            let gate = try LicenseGate(
+                defaults: #require(UserDefaults(suiteName: UUID().uuidString)),
+                publicKeyBase64: signer.publicKey.rawRepresentation.base64EncodedString()
+            )
+            try gate.activate(signedKey(signer, expiresAt: "2090-01-01T00:00:00Z"))
+            let original = try #require(gate.activatedKey)
+            try gate.activate(signedKey(signer, expiresAt: lifetime ? nil : "2092-01-01T00:00:00Z"))
+            let replacement = gate.activatedKey
+            try gate.activateSilently(
+                signedKey(signer, expiresAt: "2091-01-01T00:00:00Z"),
+                replacing: original
+            )
+            #expect(gate.activatedKey == replacement)
+        }
+    }
+
+    @Test("A canceled restore cannot report success for a subsequent request")
+    func canceledRestoreCannotDismissNewRequest() async throws {
+        let gate = try LicenseGate(defaults: #require(UserDefaults(suiteName: UUID().uuidString)))
+        let service = SuspendedRestoreService()
+        let flow = LicenseActivationController(gate: gate, service: service)
+        let first = Task { await flow.restore(email: "old@example.com") }
+        await service.waitForRequest("old@example.com")
+        flow.cancel()
+        let second = Task { await flow.restore(email: "new@example.com") }
+        await service.waitForRequest("new@example.com")
+        await service.release("old@example.com")
+        #expect(await first.value == false)
+        #expect(flow.isBusy)
+        await service.release("new@example.com")
+        #expect(await second.value == true)
+        #expect(flow.message == "Check new@example.com for your restore link.")
+    }
+
     @Test("Repeated OS delivery of one link still activates exactly once")
     func repeatedLinkDelivery() async throws {
         let signer = Curve25519.Signing.PrivateKey()
@@ -112,18 +165,53 @@ struct LicenseActivationTests {
 
     private func signedKey(
         _ signer: Curve25519.Signing.PrivateKey,
-        expired: Bool = false
+        expired: Bool = false,
+        expiresAt: String? = nil
     ) throws -> String {
-        let payload = Data("""
-        {"email":"buyer@example.com","product":"curfew-plus","order_id":"cs_test",\
-        "issued_at":"2026-01-01T00:00:00Z",\
-        "plan":"\(expired ? "subscription" : "lifetime")"\(expired ? ",\"expires_at\":\"2020-01-01T00:00:00Z\"" : "")}
-        """.utf8)
+        let expiry = expired ? "2020-01-01T00:00:00Z" : expiresAt
+        var fields = [
+            "email": "buyer@example.com",
+            "product": "curfew-plus",
+            "order_id": "cs_test",
+            "issued_at": "2026-01-01T00:00:00Z",
+            "plan": expiry == nil ? "lifetime" : "subscription"
+        ]
+        if let expiry {
+            fields["expires_at"] = expiry
+            fields["refresh_token"] = "same-subscription-token"
+        }
+        let payload = try JSONSerialization.data(withJSONObject: fields, options: [.sortedKeys])
         func encode(_ data: Data) -> String {
             data.base64EncodedString().replacingOccurrences(of: "+", with: "-")
                 .replacingOccurrences(of: "/", with: "_").replacingOccurrences(of: "=", with: "")
         }
         return try "\(encode(payload)).\(encode(signer.signature(for: payload)))"
+    }
+}
+
+private actor SuspendedRestoreService: LicenseServicing {
+    private var requests: [String: CheckedContinuation<Void, Never>] = [:]
+    private var starts: [String: CheckedContinuation<Void, Never>] = [:]
+    func redeem(ticket _: String) async throws -> String {
+        throw LicenseServiceError.unavailable
+    }
+
+    func restore(email: String) async throws {
+        await withCheckedContinuation {
+            requests[email] = $0
+            starts.removeValue(forKey: email)?.resume()
+        }
+    }
+
+    func waitForRequest(_ email: String) async {
+        if requests[email] != nil {
+            return
+        }
+        await withCheckedContinuation { starts[email] = $0 }
+    }
+
+    func release(_ email: String) {
+        requests.removeValue(forKey: email)?.resume()
     }
 }
 
