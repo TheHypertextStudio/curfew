@@ -6,6 +6,18 @@ import Testing
 
 @MainActor
 struct LicenseActivationTests {
+    @Test("Production and development purchases use their fixed issuer environments")
+    func isolatesIssuerEnvironments() {
+        #expect(LicenseEndpoint.url(for: .production)
+            .absoluteString == "https://curfew-license.hypertext.studio")
+        for flavor in [CurfewFlavor.development, .studioDevelopment] {
+            #expect(LicenseEndpoint.url(for: flavor)
+                .absoluteString == "https://curfew-license-staging.hypertext.studio")
+        }
+        #expect(LicenseService().baseURL == LicenseEndpoint.url(for: .current))
+        #expect(LicenseRefresher().baseURL == LicenseEndpoint.url(for: .current))
+    }
+
     @Test("Activation links accept only this build's scheme and one bounded ticket")
     func validatesActivationLink() throws {
         let token = String(repeating: "a", count: 43)
