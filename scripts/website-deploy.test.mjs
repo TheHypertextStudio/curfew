@@ -50,7 +50,7 @@ writeFileSync('built-mode', actualMode);
     join(directory, "bin/pnpm"),
     `#!/usr/bin/env node
 import { appendFileSync } from 'node:fs';
-appendFileSync('provider-commands', JSON.stringify(process.argv.slice(2)) + '\\n');
+appendFileSync('provider-commands', JSON.stringify({ args: process.argv.slice(2), assetsDirectory: process.env.CURFEW_WEBSITE_ASSETS_DIRECTORY }) + '\\n');
 `,
     { mode: 0o755 },
   );
@@ -63,6 +63,7 @@ appendFileSync('provider-commands', JSON.stringify(process.argv.slice(2)) + '\\n
         ...process.env,
         PATH: join(directory, "bin") + delimiter + process.env.PATH,
         CURFEW_DEPLOYMENT_MODE: mode === "staging" ? "production" : "staging",
+        CURFEW_WEBSITE_ASSETS_DIRECTORY: "/unrelated/staging-assets",
       },
       encoding: "utf8",
     },
@@ -81,19 +82,26 @@ for (const mode of ["production", "staging"]) {
       .trim()
       .split("\n")
       .map(JSON.parse);
-    assert.deepEqual(commands, [
-      ["--dir", "hosting", "exec", "cf", "build", "--mode", mode],
+    assert.ok(
+      commands.every((command) => command.assetsDirectory === "../dist"),
+      "Native provider commands must package the directory that passed verification",
+    );
+    assert.deepEqual(
+      commands.map((command) => command.args),
       [
-        "--dir",
-        "hosting",
-        "exec",
-        "cf",
-        "deploy",
-        "--prebuilt",
-        "--mode",
-        mode,
+        ["--dir", "hosting", "exec", "cf", "build", "--mode", mode],
+        [
+          "--dir",
+          "hosting",
+          "exec",
+          "cf",
+          "deploy",
+          "--prebuilt",
+          "--mode",
+          mode,
+        ],
       ],
-    ]);
+    );
   });
 
   test(`direct ${mode} deployment stops before provider commands when purchase pages belong to the other environment`, async (t) => {
