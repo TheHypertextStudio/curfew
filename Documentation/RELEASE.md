@@ -24,6 +24,13 @@ approval to use a non-0.0.x version. A local build is not distribution proof.
 
 ## Required credentials
 
+Curfew CI uses a dedicated Developer ID Application certificate and Developer-role
+notarization API key for Studio team `T95VDD3A4W`. The six Apple inputs below are
+configured in repository Actions secrets. The protected local backup lives at
+`~/.config/curfew/release-credentials`; keep its files private and transmit secret
+values through stdin. Existing Studio credentials remain active. Successful
+`notarytool history` authentication does not establish artifact notarization.
+
 Use `scripts/release-checklist.md` for the full business/infrastructure setup
 (Stripe, Cloudflare Worker, Sparkle, landing page, Homebrew), and
 `Documentation/license-worker-bootstrap.md` for the sole reproducible issuer
