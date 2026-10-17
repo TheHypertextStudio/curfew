@@ -13,5 +13,10 @@
       "cache": false,
       "persistent": true
     }
+  },
+  "remoteCache": {
+    "apiUrl": "https://turbo-cache.hypertext.studio",
+    "teamSlug": "curfew-web",
+    "signature": true
   }
 }

@@ -7,7 +7,7 @@
     "deploy": "turbo run deploy",
     "build": "pnpm --filter @curfew/chrome-extension build",
     "test": "pnpm --filter @curfew/license-worker test && pnpm --filter @curfew/chrome-extension test",
-    "typecheck": "pnpm --filter @curfew/license-worker typecheck && pnpm --filter @curfew/chrome-extension typecheck"
+    "typecheck": "turbo run typecheck"
   },
   "devDependencies": {
     "turbo": "^2"

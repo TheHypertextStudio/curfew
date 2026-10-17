@@ -1769,3 +1769,15 @@ changes; rollback restores the prior landing release and docs commit.
 - Domain migration operator sequence: backend `scripts/production-audit.test.mjs` verifies readiness before production mutations; `scripts/cutover-readiness.test.mjs` covers receipt completeness, identity and freshness. Email sender activation additionally requires Cloudflare DNS verification and live delivery acceptance.
 
 - Public policy announcement: browser acceptance covers separate header, notice, and hero bounds at 1920, 390, and 320px; current-policy checks preserve rights and exclude internal implementation inventories. The home regression also checks that the stylesheet URL matches the current CSS content.
+
+## Private web build cache
+
+- `scripts/turbo-cache.test.mjs` verifies the Studio endpoint, Curfew namespace,
+  signed artifacts, uncached deploy/development tasks, native Turbo invocation,
+  pinned shared authentication action and trusted-main credential boundary.
+- `pnpm --dir web typecheck` checks both web packages; CI runs the same task after
+  short-lived workload-identity authentication. An authenticated two-run Turbo
+  HIT remains the live acceptance check; source assertions alone do not prove it.
+- This affects development checks only. The native app, release signing, license
+  behavior, Astro frontend and Mintlify publishing remain independently managed.
+  Removing remote authentication returns CI to its existing local-only cache.

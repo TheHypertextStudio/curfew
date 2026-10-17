@@ -584,10 +584,11 @@ mid-lockout, and every action the root daemon takes. Format specification:
   Worker staging before the approved public cutover. Preserve the existing
   public documentation through preview acceptance.
 - [ ] Apple Developer credentials in GitHub secrets. (external launch gate)
-- [x] Cloudflare Pages production deployment and `curfew.hypertext.studio`
-      DNS/TLS. The public site returned HTTPS 200 on 2026-08-01; checkout
-      remains intentionally gated pending the separate production delivery
-      proof.
+- [x] Serve the public frontend through the native Cloudflare Worker with
+      managed domains; keep Pages and Vercel out of frontend deployment.
+- [x] Cache the web workspace's TypeScript checks in Studio's private signed
+      Workers/R2 cache using a Curfew-specific namespace and workload identity.
+      Trusted main checks use short-lived authentication; PRs stay local-only.
 - [ ] Homebrew Cask. (v0.2)
 - [-] Sparkle autoupdate scaffolding present; framework wiring + signed appcast
   flow still pending. v0.1 releases publish only the notarized DMG. (v0.2)

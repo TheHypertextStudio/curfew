@@ -3,6 +3,7 @@ name: Website and docs
 on:
   push:
     branches: [main]
+  workflow_dispatch:
   pull_request:
     branches: [main]
     types: [opened, reopened, synchronize, ready_for_review]
@@ -12,8 +13,15 @@ permissions:
 
 jobs:
   license:
-    name: License Worker validation
+    name: Web workspace validation
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+      id-token: write
+    env:
+      TURBO_CACHE: local:rw
+      TURBO_REMOTE_CACHE_SIGNATURE_KEY: ${{ github.repository == 'TheHypertextStudio/curfew' && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.workflow_ref == 'TheHypertextStudio/curfew/.github/workflows/website.yml@refs/heads/main' && secrets.TURBO_REMOTE_CACHE_SIGNATURE_KEY || '' }}
     steps:
       - uses: actions/checkout@v7.0.1
       - uses: pnpm/action-setup@v6.1.0
@@ -25,9 +33,19 @@ jobs:
       - run: pnpm --dir web/worker install --frozen-lockfile
       - name: Validate shared configuration and Worker behavior
         run: |
-          node --test web/worker/test/*.node.mjs
+          node --test scripts/turbo-cache.test.mjs web/worker/test/*.node.mjs
           pnpm --dir web/worker test
-          pnpm --dir web/worker typecheck
+      - name: Authenticate the private Studio Turbo cache
+        id: turbo-cache
+        if: github.repository == 'TheHypertextStudio/curfew' && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.workflow_ref == 'TheHypertextStudio/curfew/.github/workflows/website.yml@refs/heads/main'
+        uses: TheHypertextStudio/release-engineering/actions/turbo-cache@a6dfdc28ff1dfbb4de567d813bfbee4208145367
+        with:
+          api: ${{ vars.TURBO_API }}
+          team: ${{ vars.TURBO_TEAM }}
+          service-account: ${{ vars.GCP_TURBO_CACHE_SERVICE_ACCOUNT }}
+          workload-identity-provider: ${{ vars.GCP_TURBO_CACHE_WIF_PROVIDER }}
+      - name: Typecheck both web packages with Turbo
+        run: pnpm --dir web typecheck
       - name: Prepare immutable configuration identity
         run: |
           node scripts/deployment-config.mjs generate
