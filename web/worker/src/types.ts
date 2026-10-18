@@ -1,5 +1,5 @@
 /** Runtime bindings. Secrets are uploaded separately and never committed. */
-export interface Env {
+export interface Env extends Partial<Omit<LicenseWorkerBindings, "LICENSE_KV">> {
   CONFIGURATION_SHA256?: string;
   CONFIGURATION_COMMIT?: string;
   LICENSE_ORIGIN?: string;
