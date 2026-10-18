@@ -1621,7 +1621,7 @@ asserts its own screen and state before attaching an image.
 - [-] Ship one Studio-signed Curfew Dev alongside production Curfew. Use the
   canonical `.dev` app/widget IDs and only Debug/Release configurations. Preserve
   the installed development preferences, history, enrollment, Keychain access
-  group, App Group, helper service, active deadlines and update trust through
+  group, App Group, active deadlines and update trust through
   explicit compatibility identities. Keep dormant personal-development data
   untouched. Replace the old installed wrapper only after a signed build and
   data-preservation check; retire obsolete Apple IDs after acceptance.
@@ -1629,3 +1629,7 @@ asserts its own screen and state before attaching an image.
 - [-] Make background protection discoverable in Settings: name its destination
   Protection and expose removal outside collapsed technical details. Preserve
   the existing authenticated removal and active-deadline safeguards.
+
+- [-] Refresh embedded helpers on every incremental app build and use the
+  canonical development helper registration. Retire the old helper through
+  authenticated removal; preserve its existing deadline and command-state paths.

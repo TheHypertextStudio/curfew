@@ -11,9 +11,8 @@ test('Xcode resolves shared library, protocol contract, and updater together', (
   }
 });
 
-for (const suffix of ['', '.studio.dev']) {
-  test(`Helper ${suffix || 'production'} registers its own authenticated endpoint`, () => {
-    const label = `studio.hypertext.curfew${suffix}.daemon`;
+for (const label of ['studio.hypertext.curfew.daemon', 'studio.hypertext.apps.curfew.dev.daemon']) {
+  test(`Helper ${label} registers its own authenticated endpoint`, () => {
     const plist = readFileSync(new URL(`../Curfew/Resources/LaunchDaemons/${label}.plist`, import.meta.url), 'utf8');
     const services = /<key>MachServices<\/key>\s*<dict>([\s\S]*?)<\/dict>/.exec(plist);
     assert.ok(services, 'Mach service registration is required for authenticated replies');

@@ -4,7 +4,7 @@
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>studio.hypertext.curfew.studio.dev.daemon</string>
+    <string>studio.hypertext.apps.curfew.dev.daemon</string>
     <key>BundleProgram</key>
     <string>Contents/Resources/curfew-daemon</string>
     <key>EnvironmentVariables</key>
@@ -26,7 +26,7 @@
     <true/>
     <key>MachServices</key>
     <dict>
-        <key>studio.hypertext.curfew.studio.dev.daemon</key>
+        <key>studio.hypertext.apps.curfew.dev.daemon</key>
         <true/>
     </dict>
 </dict>
