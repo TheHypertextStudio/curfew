@@ -1,5 +1,14 @@
 # Todo Test Matrix
 
+## Update retry and first-run instructions
+
+`CurfewUpdaterTests` covers initial unavailability, availability changes,
+in-flight duplicate denial, and retry after Sparkle releases the check.
+`scripts/user-docs.test.mjs` checks seven-day review, the explicit schedule and
+remote-only choices, and current settings destinations. Signed Mac acceptance
+must still exercise the actual Sparkle error, cancellation, retry, and update
+installation with the release feed; injected availability is not feed proof.
+
 ## Native reconnect regression timing
 
 `NativeAccountSyncTransportTests.testReconnectIgnoresFailureFromThePreviousPollingSession`
