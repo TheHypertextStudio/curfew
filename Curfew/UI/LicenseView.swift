@@ -102,6 +102,7 @@ struct LicenseView: View {
 
             HStack(spacing: 10) {
                 Button("Restore Purchase…") {
+                    activation.cancel()
                     restoreRequestID = UUID()
                     showingRestore = true
                 }
