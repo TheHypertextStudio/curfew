@@ -464,7 +464,7 @@ test("activation inspection withholds missing failed or mismatched owner evidenc
 test("signed app identity rejects Development signing, old team, and wrong embedded configuration", async () => {
   const f = await fixture();
   const info = {
-    CFBundleIdentifier: "studio.hypertext.curfew",
+    CFBundleIdentifier: "studio.hypertext.apps.curfew",
     CFBundleShortVersionString: "0.0.1",
     CFBundleVersion: "0.0.1",
     CurfewConfigurationCommit: f.configuration.sourceCommit,

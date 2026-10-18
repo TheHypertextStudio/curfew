@@ -1,9 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFile, mkdtemp, writeFile, rm } from "node:fs/promises";
+import { readFile, mkdtemp, writeFile, rm, mkdir, copyFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
+import { execFileSync } from "node:child_process";
 const implementation = new URL("./deployment-config.mjs", import.meta.url);
 async function config() {
   await assert.doesNotReject(
@@ -262,4 +263,81 @@ test("website PR validation does not receive production deployment credentials",
     workflow,
     /\$\{\{\s*secrets\.CLOUDFLARE_API_TOKEN\s*\}\}/,
   );
+});
+
+test("signed app flavors retain the default Keychain access group used by existing credentials", async () => {
+  for (const [path, expected] of [
+    [
+      "Curfew/Curfew.entitlements",
+      "$(AppIdentifierPrefix)studio.hypertext.curfew.dev",
+    ],
+    [
+      "Curfew/Curfew-StudioDev.entitlements",
+      "$(AppIdentifierPrefix)studio.hypertext.curfew.studio.dev",
+    ],
+    [
+      "Curfew/Curfew-Release.entitlements",
+      "$(AppIdentifierPrefix)studio.hypertext.curfew",
+    ],
+  ]) {
+    const entitlements = JSON.parse(
+      execFileSync("plutil", ["-convert", "json", "-o", "-", path], {
+        encoding: "utf8",
+      }),
+    );
+    assert.deepEqual(entitlements["keychain-access-groups"], [expected], path);
+  }
+});
+
+test("deployment generation preserves the retained Keychain group when rewriting account associations", async (t) => {
+  const { generateDeployment } = await config();
+  // Keep the fixture under the source checkout so provenance resolves from its real Git parent.
+  const root = await mkdtemp(join(process.cwd(), ".keychain-generation-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  for (const folder of [
+    "deployment",
+    "Curfew",
+    "landing/public",
+    "CurfewKit/Sources/CurfewKit/Sync",
+  ])
+    await mkdir(join(root, folder), { recursive: true });
+  const manifest = JSON.parse(
+    await readFile("deployment/environments.json", "utf8"),
+  );
+  manifest.environments.production.accountOrigin =
+    "https://account.updated.example.net";
+  await writeFile(
+    join(root, "deployment/environments.json"),
+    JSON.stringify(manifest),
+  );
+  for (const path of [
+    "Curfew/Curfew-Release.entitlements",
+    "Curfew/Curfew.entitlements",
+    "landing/public/sitemap.xml",
+    "landing/public/robots.txt",
+  ])
+    await copyFile(path, join(root, path));
+  await generateDeployment(root);
+  for (const [path, expected] of [
+    [
+      "Curfew/Curfew-Release.entitlements",
+      "$(AppIdentifierPrefix)studio.hypertext.curfew",
+    ],
+    [
+      "Curfew/Curfew.entitlements",
+      "$(AppIdentifierPrefix)studio.hypertext.curfew.dev",
+    ],
+  ]) {
+    const entitlements = JSON.parse(
+      execFileSync("plutil", ["-convert", "json", "-o", "-", join(root, path)], {
+        encoding: "utf8",
+      }),
+    );
+    assert.deepEqual(entitlements["keychain-access-groups"], [expected]);
+    assert.ok(
+      entitlements["com.apple.developer.associated-domains"].includes(
+        "applinks:account.updated.example.net",
+      ),
+    );
+  }
 });

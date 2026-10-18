@@ -127,7 +127,7 @@ extension CurfewAppModel {
     static func migrateActivityDatabaseFromSharedContainerOnce(
         canonical: URL,
         source: @autoclosure () -> URL = SharedPaths.sharedContainerActivityDatabase,
-        defaults: UserDefaults = .standard,
+        defaults: UserDefaults = SharedPaths.preferences,
         fileManager: FileManager = .default
     ) {
         guard !defaults.bool(forKey: activityMigrationDefaultsKey) else { return }

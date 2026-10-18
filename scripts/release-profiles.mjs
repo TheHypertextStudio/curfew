@@ -18,7 +18,10 @@ import { fileURLToPath } from "node:url";
 import { loadEnvironment } from "./deployment-config.mjs";
 
 const team = "T95VDD3A4W";
-const bundles = ["studio.hypertext.curfew", "studio.hypertext.curfew.widget"];
+const bundles = [
+  "studio.hypertext.apps.curfew",
+  "studio.hypertext.apps.curfew.widget",
+];
 const uuidPattern = /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i;
 const digest = (bytes) => createHash("sha256").update(bytes).digest("hex");
 const paths = ({ home, temporary }) => ({
@@ -103,7 +106,21 @@ export async function installProfiles(
       ),
     );
     assert.ok(bundle, "The exact production bundle identity is required");
-    if (bundle === bundles[0])
+    const allowedAppGroups =
+      entitlements["com.apple.security.application-groups"];
+    assert.ok(
+      Array.isArray(allowedAppGroups) &&
+        allowedAppGroups.includes("group.studio.hypertext.apps.curfew"),
+      "The production widget App Group must be provisioned for both app and widget",
+    );
+    if (bundle === bundles[0]) {
+      const allowedKeychainGroups = entitlements["keychain-access-groups"];
+      assert.ok(
+        Array.isArray(allowedKeychainGroups) &&
+          (allowedKeychainGroups.includes(`${team}.studio.hypertext.curfew`) ||
+            allowedKeychainGroups.includes(`${team}.*`)),
+        "The retained Keychain access group must be provisioned by the signing team",
+      );
       for (const kind of ["applinks", "webcredentials"]) {
         const allowed = entitlements["com.apple.developer.associated-domains"];
         assert.ok(
@@ -115,6 +132,7 @@ export async function installProfiles(
           "The configured account association must be provisioned",
         );
       }
+    }
     return { uuid: profile.UUID, bundle, bytes };
   });
   assert.deepEqual(

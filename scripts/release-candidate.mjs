@@ -86,7 +86,7 @@ export function validateAppIdentity(info, signature, configuration, version) {
       signature,
     ) ||
     !/^TeamIdentifier=T95VDD3A4W$/m.test(signature) ||
-    info.CFBundleIdentifier !== "studio.hypertext.curfew" ||
+    info.CFBundleIdentifier !== "studio.hypertext.apps.curfew" ||
     info.CFBundleShortVersionString !== version ||
     info.CFBundleVersion !== version ||
     info.CurfewConfigurationCommit !== configuration.sourceCommit ||

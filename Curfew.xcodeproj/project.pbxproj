@@ -723,7 +723,7 @@
 				);
 				MARKETING_VERSION = 0.0.1;
 				INFOPLIST_KEY_CFBundleDisplayName = "Curfew (Dev)";
-				PRODUCT_BUNDLE_IDENTIFIER = studio.hypertext.curfew.dev;
+				PRODUCT_BUNDLE_IDENTIFIER = studio.hypertext.apps.curfew.dev;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -771,7 +771,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MARKETING_VERSION = 0.0.1;
-				PRODUCT_BUNDLE_IDENTIFIER = studio.hypertext.curfew.studio.dev;
+				PRODUCT_BUNDLE_IDENTIFIER = studio.hypertext.apps.curfew.studio.dev;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -821,7 +821,7 @@
 				);
 				MARKETING_VERSION = 0.0.1;
 				INFOPLIST_KEY_CFBundleDisplayName = "Curfew";
-				PRODUCT_BUNDLE_IDENTIFIER = studio.hypertext.curfew;
+				PRODUCT_BUNDLE_IDENTIFIER = studio.hypertext.apps.curfew;
 				PROVISIONING_PROFILE_SPECIFIER = "$(CURFEW_APP_PROFILE)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -845,7 +845,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 0.0.1;
-				PRODUCT_BUNDLE_IDENTIFIER = studio.hypertext.curfew.tests;
+				PRODUCT_BUNDLE_IDENTIFIER = studio.hypertext.apps.curfew.dev.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -867,7 +867,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 0.0.1;
-				PRODUCT_BUNDLE_IDENTIFIER = studio.hypertext.curfew.studio.dev.tests;
+				PRODUCT_BUNDLE_IDENTIFIER = studio.hypertext.apps.curfew.studio.dev.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -888,7 +888,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 0.0.1;
-				PRODUCT_BUNDLE_IDENTIFIER = studio.hypertext.curfew.tests;
+				PRODUCT_BUNDLE_IDENTIFIER = studio.hypertext.apps.curfew.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -907,7 +907,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 0.0.1;
-				PRODUCT_BUNDLE_IDENTIFIER = studio.hypertext.curfew.uitests;
+				PRODUCT_BUNDLE_IDENTIFIER = studio.hypertext.apps.curfew.dev.uitests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -927,7 +927,7 @@
 				DEVELOPMENT_TEAM = T95VDD3A4W;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 0.0.1;
-				PRODUCT_BUNDLE_IDENTIFIER = studio.hypertext.curfew.studio.dev.uitests;
+				PRODUCT_BUNDLE_IDENTIFIER = studio.hypertext.apps.curfew.studio.dev.uitests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -946,7 +946,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 0.0.1;
-				PRODUCT_BUNDLE_IDENTIFIER = studio.hypertext.curfew.uitests;
+				PRODUCT_BUNDLE_IDENTIFIER = studio.hypertext.apps.curfew.uitests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -976,7 +976,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 0.0.1;
-				PRODUCT_BUNDLE_IDENTIFIER = studio.hypertext.curfew.dev.widget;
+				PRODUCT_BUNDLE_IDENTIFIER = studio.hypertext.apps.curfew.dev.widget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SKIP_INSTALL = YES;
@@ -1007,7 +1007,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 0.0.1;
-				PRODUCT_BUNDLE_IDENTIFIER = studio.hypertext.curfew.studio.dev.widget;
+				PRODUCT_BUNDLE_IDENTIFIER = studio.hypertext.apps.curfew.studio.dev.widget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SKIP_INSTALL = YES;
@@ -1038,7 +1038,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 0.0.1;
-				PRODUCT_BUNDLE_IDENTIFIER = studio.hypertext.curfew.widget;
+				PRODUCT_BUNDLE_IDENTIFIER = studio.hypertext.apps.curfew.widget;
 				PROVISIONING_PROFILE_SPECIFIER = "$(CURFEW_WIDGET_PROFILE)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
