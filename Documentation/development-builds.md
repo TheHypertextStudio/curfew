@@ -22,7 +22,8 @@ there is no automatic merge and no deletion of its history.
 
 Before replacing an installed build, back up its preferences and databases using
 SQLite backup, verify no active lockout is interrupted, and disconnect background
-protection through the old app. Install the signed replacement at
+protection through the old app. Current builds put these controls in Settings → Protection,
+with removal visible beside connection status. Install the signed replacement at
 `/Applications/Curfew Dev.app`, connect background protection through the normal
 macOS approval flow, then verify account connectivity, unchanged schedule/history,
 assistant consent, login behavior and update trust. Retain a rollback copy until

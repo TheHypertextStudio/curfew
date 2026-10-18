@@ -89,6 +89,8 @@ final class CurfewUITests: XCTestCase {
         XCTAssertLessThan(review.frame.maxY, window.frame.maxY - 12)
         XCTAssertFalse(app.staticTexts["Initial setup"].exists)
         XCTAssertFalse(app.staticTexts["Installation"].exists)
+        XCTAssertTrue(general.label.contains("Protection"))
+        XCTAssertTrue(app.buttons["background-protection-remove"].exists)
     }
 
     @MainActor

@@ -106,14 +106,14 @@ enum EnforcementHealth: Equatable {
         case .degradedTapDown:
             Self.tapDownBannerDetail
         case .degradedHelperUnavailable:
-            "Background protection isn't connected. Install or approve it in Settings → General."
+            "Background protection isn't connected. Install or approve it in Settings → Protection."
         case .degradedHelperUnauthorized:
             "Background protection couldn't verify Curfew. "
                 + "Reinstall Curfew from the official website."
         case .degradedHelperStale:
             "Background protection lost its connection. Reopen Curfew before relying on lockout."
         case .degradedHelperRegistration:
-            "Background protection couldn't start. Open Settings → General to try again."
+            "Background protection couldn't start. Open Settings → Protection to try again."
         }
     }
 
@@ -143,13 +143,13 @@ enum EnforcementHealth: Equatable {
         case .degradedTapDown:
             "Keyboard protection interrupted. Reopen Curfew to restore it."
         case .degradedHelperUnavailable:
-            "Background protection isn't connected. Review setup in Settings → General."
+            "Background protection isn't connected. Review setup in Settings → Protection."
         case .degradedHelperUnauthorized:
             "Background protection can't verify Curfew. Reinstall Curfew from the official website."
         case .degradedHelperStale:
             "Background protection lost its connection. Reopen Curfew."
         case .degradedHelperRegistration:
-            "Background protection couldn't start. Try again in Settings → General."
+            "Background protection couldn't start. Try again in Settings → Protection."
         }
     }
 

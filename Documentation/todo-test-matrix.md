@@ -2003,3 +2003,5 @@ changes; rollback restores the prior landing release and docs commit.
 The installed upgrade additionally requires readback of schedule, history,
 account connectivity, authenticated helper readiness, and ordinary update trust.
 Do not run lockout/shutdown acceptance or UI suites on the operator desktop.
+
+| Protection discovery and visible background-protection removal | `scripts/protection-settings.test.mjs`; `CurfewUITests.testGeneralKeepsNavigationAndSetupInView`; signed installed Settings review |
