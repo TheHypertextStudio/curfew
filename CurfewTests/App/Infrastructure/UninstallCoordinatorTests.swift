@@ -126,7 +126,7 @@ struct UninstallCoordinatorTests {
         #expect(services == [
             "curfew",
             "docket",
-            KeychainDeviceAssertionSecretStore.service
+            KeychainDeviceAssertionSecretStore.service(for: .production)
         ])
     }
 

@@ -58,6 +58,13 @@ extension SettingsView {
                     }
                 }
             }
+            if helper.daemonStatus == .enabled {
+                Button("Remove Background Protection…") {
+                    Task { await helper.uninstallDaemon() }
+                }
+                .accessibilityIdentifier("background-protection-remove")
+                .help("Disconnects background enforcement. Your schedule and history stay saved.")
+            }
             DisclosureGroup("Details") {
                 LabeledContent(
                     "Installation",
@@ -66,11 +73,6 @@ extension SettingsView {
                     )
                 )
                 LabeledContent("Connection", value: helper.connectionState.statusText)
-                if helper.daemonStatus == .enabled {
-                    Button("Remove Background Protection…") {
-                        Task { await helper.uninstallDaemon() }
-                    }
-                }
             }
             if let error = helper.lastError {
                 DisclosureGroup("Troubleshooting") {
@@ -79,7 +81,7 @@ extension SettingsView {
                 }
             }
         } header: {
-            Text("Options")
+            Text("Background protection")
         } footer: {
             Text(
                 helper.connectionState == .ready
