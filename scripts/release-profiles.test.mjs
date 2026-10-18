@@ -16,7 +16,10 @@ import fs from "node:fs/promises";
 import { syncBuiltinESMExports } from "node:module";
 
 const team = "T95VDD3A4W";
-const bundles = ["studio.hypertext.curfew", "studio.hypertext.curfew.widget"];
+const bundles = [
+  "studio.hypertext.apps.curfew",
+  "studio.hypertext.apps.curfew.widget",
+];
 const uuids = [
   "11111111-1111-4111-8111-111111111111",
   "22222222-2222-4222-8222-222222222222",
@@ -34,10 +37,13 @@ function profiles() {
       "com.apple.application-identifier": `${team}.${bundle}`,
       "com.apple.developer.team-identifier": team,
       "com.apple.security.application-groups": [
-        "group.studio.hypertext.curfew",
+        "group.studio.hypertext.apps.curfew",
       ],
       ...(index === 0
-        ? { "com.apple.developer.associated-domains": ["*"] }
+        ? {
+            "com.apple.developer.associated-domains": ["*"],
+            "keychain-access-groups": [`${team}.studio.hypertext.curfew`],
+          }
         : {}),
     },
   }));
@@ -101,7 +107,7 @@ test("release profiles reject missing, wrong, expired, development, or incomplet
     (p) => (p[0].DeveloperCertificates = []),
     (p) =>
       (p[0].Entitlements["com.apple.application-identifier"] =
-        `${team}.studio.hypertext.curfew.dev`),
+        `${team}.studio.hypertext.apps.curfew.dev`),
     (p) =>
       (p[0].Entitlements["com.apple.developer.team-identifier"] = "39AB9DY3K8"),
     (p) => (p[0].Entitlements["com.apple.security.get-task-allow"] = true),
@@ -225,8 +231,8 @@ if(!args.includes('-xcconfig')||!readFileSync(path,'utf8').includes('CURFEW_WIDG
     ),
   );
   assert.deepEqual(exported.provisioningProfiles, {
-    "studio.hypertext.curfew": uuids[0],
-    "studio.hypertext.curfew.widget": uuids[1],
+    "studio.hypertext.apps.curfew": uuids[0],
+    "studio.hypertext.apps.curfew.widget": uuids[1],
   });
 });
 async function installProfilesFixture(f) {
@@ -312,5 +318,77 @@ test("a failed ownership update rolls back the new profile and preserves earlier
       await readdir(join(f.home, "Library/MobileDevice/Provisioning Profiles")),
       [],
     );
+  }
+});
+
+test("release app profile must authorize the retained Keychain group before installation", async (t) => {
+  const { installProfiles } = await api();
+  for (const allowed of [
+    undefined,
+    [],
+    [`${team}.studio.hypertext.apps.curfew`],
+    ["39AB9DY3K8.studio.hypertext.curfew"],
+    ["39AB9DY3K8.*"],
+    ["*"],
+    [`${team}.studio.hypertext.curfew.dev`],
+  ]) {
+    const f = await fixture(t);
+    const p = profiles();
+    p[0].Entitlements["keychain-access-groups"] = allowed;
+    await assert.rejects(
+      () =>
+        installProfiles(JSON.stringify(["MA==", "MQ=="]), {
+          ...f,
+          decode: (bytes) => p[Number(bytes.toString())],
+        }),
+      /retained Keychain access group/,
+    );
+    await assert.rejects(() =>
+      readdir(join(f.home, "Library/MobileDevice/Provisioning Profiles")),
+    );
+  }
+});
+
+test("release app profile accepts the exact retained Keychain group or its same-team wildcard", async (t) => {
+  const { installProfiles, cleanupProfiles } = await api();
+  for (const allowed of [[`${team}.studio.hypertext.curfew`], [`${team}.*`]]) {
+    const f = await fixture(t);
+    const p = profiles();
+    p[0].Entitlements["keychain-access-groups"] = allowed;
+    await installProfiles(JSON.stringify(["MA==", "MQ=="]), {
+      ...f,
+      decode: (bytes) => p[Number(bytes.toString())],
+    });
+    await cleanupProfiles(f);
+  }
+});
+
+test("both production profiles must authorize the new widget snapshot group before installation", async (t) => {
+  const { installProfiles } = await api();
+  for (const index of [0, 1]) {
+    for (const allowed of [
+      undefined,
+      [],
+      "group.studio.hypertext.apps.curfew",
+      ["group.studio.hypertext.curfew"],
+      ["group.studio.hypertext.curfew.dev"],
+      ["group.studio.hypertext.curfew.studio.dev"],
+      ["*"],
+    ]) {
+      const f = await fixture(t);
+      const p = profiles();
+      p[index].Entitlements["com.apple.security.application-groups"] = allowed;
+      await assert.rejects(
+        () =>
+          installProfiles(JSON.stringify(["MA==", "MQ=="]), {
+            ...f,
+            decode: (bytes) => p[Number(bytes.toString())],
+          }),
+        /production widget App Group/,
+      );
+      await assert.rejects(() =>
+        readdir(join(f.home, "Library/MobileDevice/Provisioning Profiles")),
+      );
+    }
   }
 });

@@ -23,7 +23,7 @@ public struct DeviceStatusVersionCounter {
 
     /// Creates a counter backed by `defaults`. Tests pass an isolated suite so
     /// one suite's versions never leak into another's.
-    public init(defaults: UserDefaults = .standard) {
+    public init(defaults: UserDefaults = SharedPaths.preferences) {
         self.defaults = defaults
     }
 

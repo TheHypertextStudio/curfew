@@ -96,23 +96,19 @@ public nonisolated enum SharedPaths {
         return String(cString: directory)
     }
 
-    /// App Group / shared-container identifier reserved for the future
-    /// WidgetKit extension. The main app and bundled CLI tools use the
-    /// explicit filesystem path below today; the widget target will gain the
-    /// actual entitlement when it is wired into the Xcode project.
-    /// Flavor-suffixed for development (`group.studio.hypertext.curfew.dev`) so
-    /// a dev build's shared container is distinct; empty suffix leaves the
-    /// production group untouched. The main app is unsandboxed and reaches the
-    /// container through the filesystem fallback below, so the suffix needs no
-    /// entitlement change.
+    /// App Group shared by the app and sandboxed WidgetKit extension.
+    /// Production uses the Studio-owned snapshot group; development flavors
+    /// retain their established groups. Canonical data stays in Application Support.
     public static let widgetAppGroupIdentifier =
         widgetAppGroupIdentifier(for: CurfewFlavor.current)
 
     public static func widgetAppGroupIdentifier(for flavor: CurfewFlavor) -> String {
-        "group.studio.hypertext.curfew\(flavor.identifierSuffix)"
+        flavor == .production
+            ? "group.studio.hypertext.apps.curfew"
+            : "group.studio.hypertext.curfew\(flavor.identifierSuffix)"
     }
 
-    /// `~/Library/Group Containers/group.studio.hypertext.curfew/`
+    /// The active widget snapshot container for the current flavor.
     ///
     /// Uses the system-resolved App Group container when available, otherwise
     /// falls back to the well-known filesystem location so unsandboxed helper
@@ -130,8 +126,7 @@ public nonisolated enum SharedPaths {
             .appendingPathComponent(widgetAppGroupIdentifier, isDirectory: true)
     }
 
-    /// Shared storage root used by the app, bundled CLI tools, and the future
-    /// widget extension for files that must cross the sandbox boundary.
+    /// Shared storage root for snapshots that cross the widget sandbox boundary.
     public static var widgetSharedSupport: URL {
         widgetSharedContainer.appendingPathComponent("Curfew", isDirectory: true)
     }
@@ -154,7 +149,16 @@ public nonisolated enum SharedPaths {
     /// it moved back to ``activityDatabase``. Used once, on first launch of the
     /// new layout, to migrate any existing history into the canonical store.
     public static var sharedContainerActivityDatabase: URL {
-        widgetSharedSupport.appendingPathComponent("activity.sqlite3")
+        // This is a historical read source, not the active widget destination.
+        // The new production group contains regenerated snapshots, not old history.
+        userHomeDirectory
+            .appendingPathComponent("Library/Group Containers", isDirectory: true)
+            .appendingPathComponent(
+                "group.studio.hypertext.curfew\(CurfewFlavor.current.identifierSuffix)",
+                isDirectory: true
+            )
+            .appendingPathComponent("Curfew", isDirectory: true)
+            .appendingPathComponent("activity.sqlite3")
     }
 
     /// Canonical SQLite database written by the app's `ReflectionStore` and
@@ -185,17 +189,25 @@ public nonisolated enum SharedPaths {
         widgetSharedSupport.appendingPathComponent("widget-settings.json")
     }
 
-    /// User Defaults suite name used by the Curfew app (= its bundle ID).
-    /// CLI/MCP tools pass this to `UserDefaults(suiteName:)` to read the
-    /// same preferences plist the app writes via `UserDefaults.standard`.
+    /// Stable preferences domain shared with CLI/MCP tools. It intentionally
+    /// retains the pre-namespace identity, including schedules, consent,
+    /// budgets, license and account metadata, across the app bundle rename.
     ///
-    /// Flavor-suffixed so the suite still equals the running app's bundle id
-    /// (`studio.hypertext.curfew.dev` for development). Helper tools resolve the
-    /// flavor from `CURFEW_FLAVOR`, so they read the matching plist.
+    /// Flavor-suffixed (`studio.hypertext.curfew.dev` for development). Helper
+    /// tools resolve the flavor from `CURFEW_FLAVOR` and read the same domain.
     public static let defaultsSuiteName = defaultsSuiteName(for: CurfewFlavor.current)
 
     public static func defaultsSuiteName(for flavor: CurfewFlavor) -> String {
         "studio.hypertext.curfew\(flavor.identifierSuffix)"
+    }
+
+    /// Explicitly open the established domain instead of the renamed app's
+    /// `UserDefaults.standard` domain. Injected test stores remain independent.
+    public static var preferences: UserDefaults {
+        guard let defaults = UserDefaults(suiteName: defaultsSuiteName) else {
+            preconditionFailure("Unable to open Curfew preferences.")
+        }
+        return defaults
     }
 
     // MARK: - Privileged daemon paths (root-readable, user-writable via App Group)

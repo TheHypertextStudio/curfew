@@ -137,7 +137,9 @@ The app and `curfew-daemon` communicate through the
 `studio.hypertext.curfew.daemon` Mach service using
 `CurfewDaemonXPCProtocol`. The daemon validates the connecting process against
 the exact Team ID `T95VDD3A4W` and app bundle ID
-`studio.hypertext.curfew` before accepting a request. It exclusively owns
+`studio.hypertext.apps.curfew` before accepting a request. Development flavors
+pin their own app IDs. The service name and storage domains remain stable; see
+[app identity migration](app-identity.md). It exclusively owns
 `/Library/Application Support/Curfew/lockout-state.json`; the directory is
 root-owned mode `0755` and the atomically replaced state file is mode `0600`.
 
