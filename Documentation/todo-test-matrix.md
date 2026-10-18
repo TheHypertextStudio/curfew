@@ -1980,3 +1980,6 @@ changes; rollback restores the prior landing release and docs commit.
 - Provisioning validation reads Apple’s ApplicationIdentifierPrefix and accepts
   its literal wildcard-string domain authorization
   while the signed app retains its exact account-domain entitlements.
+- `scripts/release-entitlements.test.mjs` requires Hardened Runtime in the app
+  and widget Release configurations. The signed candidate still requires Apple
+  notarization acceptance; build-setting checks do not establish that outcome.

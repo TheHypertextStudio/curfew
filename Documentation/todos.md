@@ -1590,6 +1590,9 @@ asserts its own screen and state before attaching an image.
 
 ## Plus activation deployment integration
 
+- [x] Enable Hardened Runtime for both Release executables, including the widget,
+  and guard the configuration before submitting a notarized candidate.
+
 - [x] Derive activation and renewal origins from the installed build's deployment
   profile and preserve retired-host denial and deployment health identity.
 - [x] Include the restricted restore sender, matching portal, isolated rate limits,
