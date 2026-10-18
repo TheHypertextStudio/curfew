@@ -30,10 +30,16 @@ one-time historical activity migration still reads the old production
 not redirect the history migration source or require copying the old container.
 Application Support directories, databases, lockout records, account enrollment,
 Keychain service names, local browser-host names and helper launchd labels remain
-unchanged. Each app flavor explicitly retains its legacy default Keychain access
+unchanged. Each app flavor explicitly retains its same-team legacy default Keychain access
 group as its first group. Production profiles must authorize that same-team group;
 the release gate rejects profiles that would isolate existing credentials. Existing URL callback schemes also remain registered, preserving
 pending integrations without changing their server-side redirect configuration.
+
+Retained Keychain access applies to upgrades signed by the same team. A legacy
+Personal Team build has a different access-group prefix; a Studio profile cannot
+authorize those keys. Keep its old signed app and verify account recovery or an
+explicit credential migration before changing teams or retiring its registration.
+Do not treat a bundle rename as proof of migration between signing teams.
 
 Both the old and new bundle IDs are recognized in existing enforcement-owner
 records only for their matching flavor. Helper XPC client trust pins the new app
