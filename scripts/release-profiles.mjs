@@ -99,7 +99,7 @@ export async function installProfiles(
       "Development profiles cannot be released",
     );
     const bundle = bundles.find((id) =>
-      profile.AppIdentifierPrefix?.some(
+      profile.ApplicationIdentifierPrefix?.some(
         (prefix) =>
           entitlements["com.apple.application-identifier"] ===
           `${prefix}.${id}`,
@@ -124,11 +124,12 @@ export async function installProfiles(
       for (const kind of ["applinks", "webcredentials"]) {
         const allowed = entitlements["com.apple.developer.associated-domains"];
         assert.ok(
-          Array.isArray(allowed) &&
-            (allowed.includes("*") ||
-              allowed.includes(
-                `${kind}:${new URL(config.accountOrigin).hostname}`,
-              )),
+          allowed === "*" ||
+            (Array.isArray(allowed) &&
+              (allowed.includes("*") ||
+                allowed.includes(
+                  `${kind}:${new URL(config.accountOrigin).hostname}`,
+                ))),
           "The configured account association must be provisioned",
         );
       }

@@ -1974,3 +1974,7 @@ changes; rollback restores the prior landing release and docs commit.
   of account identity and preserves the production destination. Setup command
   tests review the separate checkout website and reject test credentials before
   any provider command using disposable local fixtures.
+
+- Provisioning validation reads Apple’s ApplicationIdentifierPrefix and accepts
+  its literal wildcard-string domain authorization
+  while the signed app retains its exact account-domain entitlements.
