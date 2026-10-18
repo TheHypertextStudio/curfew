@@ -28,7 +28,7 @@ function profiles() {
   return bundles.map((bundle, index) => ({
     UUID: uuids[index],
     TeamIdentifier: [team],
-    AppIdentifierPrefix: [team],
+    ApplicationIdentifierPrefix: [team],
     Platform: ["OSX"],
     ExpirationDate: "2099-01-01T00:00:00Z",
     ProvisionsAllDevices: true,
@@ -391,4 +391,16 @@ test("both production profiles must authorize the new widget snapshot group befo
       );
     }
   }
+});
+
+test("Apple Developer ID profiles may authorize associated domains with a wildcard string", async (t) => {
+  const { installProfiles, cleanupProfiles } = await api();
+  const f = await fixture(t);
+  const p = profiles();
+  p[0].Entitlements["com.apple.developer.associated-domains"] = "*";
+  await installProfiles(JSON.stringify(["MA==", "MQ=="]), {
+    ...f,
+    decode: (bytes) => p[Number(bytes.toString())],
+  });
+  await cleanupProfiles(f);
 });
