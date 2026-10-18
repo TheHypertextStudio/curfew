@@ -74,6 +74,16 @@ test("Release app, widget and artifact verifier use the verified Studio signing 
   assert.match(artifactVerifier, /EXPECTED_TEAM="T95VDD3A4W"/);
 });
 
+test("both Release executables enable Hardened Runtime for notarization", () => {
+  for (const id of ["9BD3FBA72F4D4587007B2E95", "C0FE00000000000000000012"]) {
+    assert.match(
+      buildConfigurationBlock(id, "Release"),
+      /ENABLE_HARDENED_RUNTIME = YES;/,
+      "the app and its widget must both opt into Hardened Runtime",
+    );
+  }
+});
+
 test("Debug test bundles are isolated beneath the development app identity", () => {
   assert.match(
     buildConfigurationBlock("9BD3FBA92F4D4587007B2E95", "Debug"),
