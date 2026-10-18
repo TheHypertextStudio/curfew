@@ -64,7 +64,7 @@ final class LicenseGate {
     nonisolated static func publicKeyBase64(for flavor: CurfewFlavor) -> String {
         switch flavor {
         case .production: configuredPublicKeyBase64
-        case .development, .studioDevelopment: developmentPublicKeyBase64
+        case .development: developmentPublicKeyBase64
         }
     }
 

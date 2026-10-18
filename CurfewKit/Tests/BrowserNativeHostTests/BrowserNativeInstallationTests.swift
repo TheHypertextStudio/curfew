@@ -20,11 +20,12 @@ struct BrowserNativeInstallationTests {
             home: home, flavor: .development
         )
         #expect(productionManifest.lastPathComponent == "studio.hypertext.curfew.browser.json")
-        #expect(developmentManifest.lastPathComponent == "studio.hypertext.curfew.dev.browser.json")
+        #expect(developmentManifest
+            .lastPathComponent == "studio.hypertext.curfew.studio.dev.browser.json")
         #expect(try Data(contentsOf: productionManifest) == productionData)
         let object = try #require(JSONSerialization
             .jsonObject(with: Data(contentsOf: developmentManifest)) as? [String: Any])
-        #expect(object["name"] as? String == "studio.hypertext.curfew.dev.browser")
+        #expect(object["name"] as? String == "studio.hypertext.curfew.studio.dev.browser")
         try BrowserNativeInstallation.removeManifest(
             home: home,
             executable: development,

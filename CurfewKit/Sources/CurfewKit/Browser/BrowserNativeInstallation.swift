@@ -5,12 +5,12 @@ import Foundation
 public nonisolated enum BrowserNativeInstallation {
     public static let hostName = "studio.hypertext.curfew.browser"
     public static func hostName(for flavor: CurfewFlavor) -> String {
-        "studio.hypertext.curfew\(flavor.identifierSuffix).browser"
+        "studio.hypertext.curfew\(flavor.storageIdentifierSuffix).browser"
     }
 
     public static func browserDirectory(home: URL, flavor: CurfewFlavor) -> URL {
         home.appendingPathComponent(
-            "Library/Application Support/Curfew\(flavor.displaySuffix)/browser",
+            "Library/Application Support/Curfew\(flavor.storageDisplaySuffix)/browser",
             isDirectory: true
         )
     }

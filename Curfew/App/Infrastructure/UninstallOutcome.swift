@@ -6,7 +6,7 @@ extension UninstallCoordinator {
         flavor: CurfewFlavor,
         unregisterServices: (() -> [String])?
     ) -> Outcome? {
-        guard flavor == .studioDevelopment else { return nil }
+        guard flavor == .development else { return nil }
         guard let unregisterServices else {
             return Outcome(
                 removed: [],

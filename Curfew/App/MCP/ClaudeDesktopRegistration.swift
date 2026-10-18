@@ -77,8 +77,7 @@ enum ClaudeDesktopRegistration {
     nonisolated static func serverKey(for flavor: CurfewFlavor) -> String {
         switch flavor {
         case .production: "curfew"
-        case .development: "curfew-dev"
-        case .studioDevelopment: "curfew-studio-dev"
+        case .development: "curfew-studio-dev"
         }
     }
 

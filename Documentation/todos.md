@@ -1612,3 +1612,14 @@ asserts its own screen and state before attaching an image.
 - [x] Use the purchase website for native purchase entry and checkout
   confirmation. Reject test credentials in the legacy production bootstrap
   before any provider access.
+
+
+### Consolidated development app
+
+- [-] Ship one Studio-signed Curfew Dev alongside production Curfew. Use the
+  canonical `.dev` app/widget IDs and only Debug/Release configurations. Preserve
+  the installed development preferences, history, enrollment, Keychain access
+  group, App Group, helper service, active deadlines and update trust through
+  explicit compatibility identities. Keep dormant personal-development data
+  untouched. Replace the old installed wrapper only after a signed build and
+  data-preservation check; retire obsolete Apple IDs after acceptance.

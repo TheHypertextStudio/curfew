@@ -75,7 +75,7 @@ extension SettingsView {
         if outcome.blockedBeforeCleanup {
             let warning = NSAlert()
             warning.alertStyle = .warning
-            warning.messageText = "Curfew Studio Dev could not be uninstalled yet."
+            warning.messageText = "Curfew Dev could not be uninstalled yet."
             warning.informativeText = outcome.summary +
                 "\n\nThe app and its saved state were kept. " +
                 "Retry from Settings before moving the app to Trash."

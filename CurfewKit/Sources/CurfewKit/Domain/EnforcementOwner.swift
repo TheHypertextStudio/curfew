@@ -22,16 +22,25 @@ public nonisolated struct EnforcementOwner: Codable, Equatable, Sendable {
         self.acquiredAt = acquiredAt
     }
 
+    private var resolvedFlavor: CurfewFlavor? {
+        flavor == "studioDevelopment" ? .development : CurfewFlavor(rawValue: flavor)
+    }
+
     public var enforcementPriority: Int {
-        CurfewFlavor(rawValue: flavor)?.enforcementPriority ?? Int.min
+        resolvedFlavor?.enforcementPriority ?? Int.min
     }
 
     /// A forged owner must not gain another flavor's priority by changing a
     /// string in the shared user-writable record.
     public var hasRecognizedIdentity: Bool {
-        guard let flavor = CurfewFlavor(rawValue: flavor) else { return false }
-        return bundleIdentifier == flavor.bundleIdentifier ||
-            bundleIdentifier == SharedPaths.defaultsSuiteName(for: flavor)
+        guard let flavor = resolvedFlavor else { return false }
+        if bundleIdentifier == flavor.bundleIdentifier ||
+            bundleIdentifier == SharedPaths.defaultsSuiteName(for: flavor) {
+            return true
+        }
+        return flavor == .development && [
+            "studio.hypertext.apps.curfew.studio.dev", "studio.hypertext.curfew.dev"
+        ].contains(bundleIdentifier)
     }
 }
 

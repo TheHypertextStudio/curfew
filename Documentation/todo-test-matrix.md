@@ -1983,3 +1983,19 @@ changes; rollback restores the prior landing release and docs commit.
   prefix, validates signing-derived identity fields, and rejects added, missing,
   or changed capabilities. Read-only file selection remains explicitly declared;
   the comparison does not discard unexpected permissions to accept an artifact.
+
+
+### Development app consolidation
+
+| Behavior | Coverage |
+| --- | --- |
+| Only Curfew and Curfew Dev are built; app/widget IDs and install paths stay distinct | `scripts/dev-consolidation.test.mjs`; signed Debug/Release builds |
+| Development preferences, shared history, account and Docket credential services stay in the installed store | `CurfewFlavorTests.derivedValues`; `AppNamespaceTests`; `scripts/dev-consolidation.test.mjs` |
+| Canonical and predecessor development identities resolve consistently for embedded helpers | `CurfewFlavorTests`; `AppNamespaceTests.studioIdentityWins` |
+| A development app cannot inherit production enforcement priority | `AppNamespaceTests.ownershipSurvivesTheRename`; `DevelopmentDaemonSafetyTests` |
+| Signed Dev arms normally, cannot enter demo fixtures, and disarms only in a real test host | `DevelopmentLaunchBehaviorTests`; isolated CI captures exercise unsigned demo fixtures |
+| Uninstall targets Curfew Dev and its retained store without removing production or dormant personal-development state | `UninstallCoordinatorTests` |
+
+The installed upgrade additionally requires readback of schedule, history,
+account connectivity, authenticated helper readiness, and ordinary update trust.
+Do not run lockout/shutdown acceptance or UI suites on the operator desktop.

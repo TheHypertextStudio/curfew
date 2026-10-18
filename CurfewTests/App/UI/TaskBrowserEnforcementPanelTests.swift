@@ -4,9 +4,8 @@ import Testing
 
 struct TaskBrowserEnforcementPanelTests {
     @Test func studioDevelopmentExplainsChromeIsUnavailableOnlyHere() {
-        #expect(TaskBrowserPanelCopy.availabilityMessage(for: .studioDevelopment)
-            == "Chrome task-browser enforcement is unavailable in this Studio Dev build.")
-        #expect(TaskBrowserPanelCopy.availabilityMessage(for: .development) == nil)
+        #expect(TaskBrowserPanelCopy.availabilityMessage(for: .development)
+            == "Chrome task-browser enforcement is unavailable in this development build.")
         #expect(TaskBrowserPanelCopy.availabilityMessage(for: .production) == nil)
     }
 

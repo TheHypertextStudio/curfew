@@ -23,7 +23,7 @@ enum HelperMaintenanceError: LocalizedError {
     }
 }
 
-/// Read-only admission for the one shipped Studio Dev registration predating XPC.
+/// Read-only admission for the one shipped Curfew Dev registration predating XPC.
 /// An unavailable connection alone is never sufficient to enable this fallback.
 @MainActor
 final class PrivilegedHelperMaintenance {
@@ -31,8 +31,8 @@ final class PrivilegedHelperMaintenance {
     func admitLegacy(deviceID: UUID, requireLegacyRegistration: Bool = true) async throws {
         let flavor = CurfewFlavor.current
         let label = "studio.hypertext.curfew.studio.dev.daemon"
-        guard flavor == .studioDevelopment,
-              Bundle.main.bundleIdentifier == CurfewFlavor.studioDevelopment.bundleIdentifier else {
+        guard flavor == .development,
+              Bundle.main.bundleIdentifier == CurfewFlavor.development.bundleIdentifier else {
             throw HelperMaintenanceError.unsupportedRegistration
         }
         if requireLegacyRegistration {

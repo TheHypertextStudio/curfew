@@ -58,7 +58,7 @@ final class KeychainDeviceAssertionSecretStore: DeviceAssertionSecretStoring {
     }
 
     static func service(for flavor: CurfewFlavor) -> String {
-        flavor == .studioDevelopment
+        flavor == .development
             ? "studio.hypertext.curfew.studio.dev.coordinator"
             : "studio.hypertext.curfew.coordinator"
     }

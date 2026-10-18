@@ -4,7 +4,7 @@ import Testing
 
 struct DeploymentEndpointTests {
     @Test func purchaseEntryUsesTheWebsiteWithoutChangingAccountIdentity() {
-        for endpoints in [CurfewServiceEndpoints.staging, .studioDevelopment] {
+        for endpoints in [CurfewServiceEndpoints.staging, .development] {
             #expect(endpoints.pricingURL
                 .absoluteString == "https://curfew-site-staging.hypertext.studio/#plus")
             #expect(endpoints.accountPortal

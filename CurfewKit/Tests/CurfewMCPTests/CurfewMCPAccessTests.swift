@@ -18,7 +18,7 @@ struct CurfewMCPAccessTests {
 
         let content = try #require(MCPTool.makeSchedule(
             settingsStore: store,
-            flavor: .studioDevelopment
+            flavor: .development
         ).call([:]).first)
         let text = try #require(content["text"] as? String)
         #expect(text.contains("Automatic weekly schedule: off"))

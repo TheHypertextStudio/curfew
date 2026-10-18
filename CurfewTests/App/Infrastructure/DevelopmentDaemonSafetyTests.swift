@@ -3,30 +3,30 @@
 import Foundation
 import Testing
 
-struct StudioDevDaemonSafetyTests {
+struct DevelopmentDaemonSafetyTests {
     private let now = Date(timeIntervalSince1970: 1_800_000_000)
 
-    @Test("A live higher-priority app prevents Studio Dev command enforcement")
+    @Test("A live higher-priority app prevents Curfew Dev command enforcement")
     func liveOwnerDeniesRemoteLock() {
-        let owner = makeOwner(flavor: .development, bundleIdentifier: "studio.hypertext.curfew.dev")
-        #expect(StudioDevDaemonSafety.shouldStandDown(
-            flavor: .studioDevelopment,
+        let owner = makeOwner(flavor: .production, bundleIdentifier: "studio.hypertext.curfew")
+        #expect(DevelopmentDaemonSafety.shouldStandDown(
+            flavor: .development,
             owner: owner,
             ownerIsLive: true
         ))
-        #expect(!StudioDevDaemonSafety.shouldStandDown(
-            flavor: .studioDevelopment,
+        #expect(!DevelopmentDaemonSafety.shouldStandDown(
+            flavor: .development,
             owner: owner,
             ownerIsLive: false
         ))
-        #expect(!StudioDevDaemonSafety.shouldStandDown(
-            flavor: .studioDevelopment,
+        #expect(!DevelopmentDaemonSafety.shouldStandDown(
+            flavor: .development,
             owner: makeOwner(flavor: .development, bundleIdentifier: "com.example.imposter"),
             ownerIsLive: true
         ))
     }
 
-    @Test("A stale Studio Dev heartbeat never schedules root shutdown")
+    @Test("A stale Curfew Dev heartbeat never schedules root shutdown")
     func staleHeartbeatCannotShutdown() {
         let deadline = LockoutDeadlineRecord(
             lockoutStartedAt: now.addingTimeInterval(-120),
@@ -41,15 +41,15 @@ struct StudioDevDaemonSafetyTests {
         )
         let owner = makeOwner(flavor: .production, bundleIdentifier: "studio.hypertext.curfew")
 
-        let withOwner = StudioDevDaemonSafety.evaluate(
+        let withOwner = DevelopmentDaemonSafety.evaluate(
             input,
-            flavor: .studioDevelopment,
+            flavor: .development,
             owner: owner,
             ownerIsLive: true
         )
-        let withoutOwner = StudioDevDaemonSafety.evaluate(
+        let withoutOwner = DevelopmentDaemonSafety.evaluate(
             input,
-            flavor: .studioDevelopment,
+            flavor: .development,
             owner: nil,
             ownerIsLive: false
         )
@@ -59,12 +59,12 @@ struct StudioDevDaemonSafetyTests {
         #expect(!withoutOwner.cancelsPendingShutdown)
     }
 
-    @Test("Studio Dev effects cannot issue or cancel another daemon's shutdown")
+    @Test("Curfew Dev effects cannot issue or cancel another daemon's shutdown")
     func rootShutdownEffectsAreInert() {
         let underlying = RecordingShutdownEffects()
-        let effects = StudioDevDaemonEffects(underlying: underlying)
+        let effects = DevelopmentDaemonEffects(underlying: underlying)
         effects.cancelPendingShutdown()
-        #expect(throws: StudioDevShutdownDisabled.self) {
+        #expect(throws: DevelopmentShutdownDisabled.self) {
             try effects.issueShutdown()
         }
         #expect(underlying.issueCount == 0)

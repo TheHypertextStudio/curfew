@@ -56,14 +56,13 @@ struct AppCoordinator: AppCoordinating {
     }
 }
 
-/// Policy for whether the app arms enforcement on launch. Personal Debug
-/// builds stay disarmed unless explicitly opted in. The isolated, signed
-/// Studio Dev app arms like Release despite being compiled with `DEBUG`, so
+/// Both installed apps arm enforcement on ordinary launch. Curfew Dev uses
+/// the staging services and retains its separate schedule consent. It arms
+/// like Release despite being compiled with `DEBUG`, so
 /// an authenticated remote lock cannot be accepted by its helper while the
 /// app remains in display-only mode. Only loaded test runtimes are excluded.
 enum CurfewLaunchBehavior {
-    static let personalDebugBundleIdentifier = CurfewFlavor.development.bundleIdentifier
-    static let studioDevBundleIdentifier = CurfewFlavor.studioDevelopment.bundleIdentifier
+    static let developmentBundleIdentifier = CurfewFlavor.development.bundleIdentifier
 
     /// Returns `true` when enforcement should arm at launch given the
     /// actual app identity and build configuration. Environment-only test
@@ -75,7 +74,7 @@ enum CurfewLaunchBehavior {
         hasLoadedTestRuntime: Bool = false
     ) -> Bool {
         guard !hasLoadedTestRuntime else { return false }
-        if isDebugBuild, bundleIdentifier != studioDevBundleIdentifier {
+        if isDebugBuild, bundleIdentifier != developmentBundleIdentifier {
             return environment["CURFEW_ENABLE_ENFORCEMENT"] == "1"
         }
         return true
@@ -88,9 +87,10 @@ enum CurfewLaunchBehavior {
         /// compile nor honour this flag.
         static func demoScenario(
             environment: [String: String],
-            bundleIdentifier: String? = Bundle.main.bundleIdentifier
+            bundleIdentifier: String? = Bundle.main.bundleIdentifier,
+            isSignedBuild: Bool = DaemonSigningIdentity.current != nil
         ) -> DemoScenario? {
-            guard bundleIdentifier != studioDevBundleIdentifier else { return nil }
+            guard !isSignedBuild else { return nil }
             guard environment["CURFEW_DEMO_FIXTURE"] == "1" else {
                 return nil
             }

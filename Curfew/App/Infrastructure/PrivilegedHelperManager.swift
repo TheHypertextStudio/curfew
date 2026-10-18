@@ -66,7 +66,7 @@ final class PrivilegedHelperManager {
     var isRemoteLockEnforcementAvailable: Bool {
         guard isDaemonResponding, connectionState == .ready else { return false }
         let owner = liveEnforcementOwnerOverride?() ?? currentLiveEnforcementOwner()
-        return !StudioDevDaemonSafety.shouldStandDown(
+        return !DevelopmentDaemonSafety.shouldStandDown(
             flavor: flavor,
             owner: owner,
             ownerIsLive: owner != nil

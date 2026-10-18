@@ -104,7 +104,7 @@ struct FirstRunSafetyModelTests {
         let model = CurfewAppModel(
             settingsStore: store,
             appRouter: AppRouterSpy(),
-            flavor: .studioDevelopment,
+            flavor: .development,
             activityRecorder: NullActivityRecording(),
             lockoutDeadlineStore: .ephemeralForTesting(),
             accessibilityAuthorization: FakeAccessibilityAuthorization(trusted: true)
@@ -151,7 +151,7 @@ struct FirstRunSafetyModelTests {
         #expect(!model.settings.hasCompletedInitialSetup)
     }
 
-    @Test("Completed Studio Dev installs remain remote-only until schedule consent")
+    @Test("Completed Curfew Dev installs remain remote-only until schedule consent")
     func completedStudioDevDefaultsToRemoteOnly() {
         let suiteName = "CurfewSettingsStoreTests.StudioConsent.\(UUID().uuidString)"
         guard let defaults = UserDefaults(suiteName: suiteName) else {
@@ -171,7 +171,7 @@ struct FirstRunSafetyModelTests {
         let model = CurfewAppModel(
             settingsStore: store,
             appRouter: AppRouterSpy(),
-            flavor: .studioDevelopment,
+            flavor: .development,
             activityRecorder: NullActivityRecording(),
             lockoutDeadlineStore: .ephemeralForTesting()
         )
@@ -199,7 +199,7 @@ struct FirstRunSafetyModelTests {
         let model = CurfewAppModel(
             settingsStore: store,
             appRouter: AppRouterSpy(),
-            flavor: .studioDevelopment,
+            flavor: .development,
             activityRecorder: NullActivityRecording(),
             lockoutDeadlineStore: .ephemeralForTesting()
         )
@@ -229,7 +229,7 @@ struct FirstRunSafetyModelTests {
         let model = CurfewAppModel(
             settingsStore: store,
             appRouter: AppRouterSpy(),
-            flavor: .studioDevelopment,
+            flavor: .development,
             activityRecorder: NullActivityRecording(),
             lockoutDeadlineStore: .ephemeralForTesting()
         )
@@ -288,7 +288,7 @@ struct FirstRunSafetyModelTests {
         let model = CurfewAppModel(
             settingsStore: store,
             appRouter: AppRouterSpy(),
-            flavor: .studioDevelopment,
+            flavor: .development,
             activityRecorder: NullActivityRecording(),
             lockoutDeadlineStore: deadlineStore
         )
