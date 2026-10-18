@@ -212,7 +212,7 @@ struct AccountOAuthEnrollmentTests {
     @Test("The selected endpoint set follows the whole-build service flag")
     func currentEndpointsFollowBuildFlag() {
         #if DEBUG
-            #expect(CurfewServiceEndpoints.current == .staging)
+            #expect(CurfewServiceEndpoints.current == .development)
         #else
             #expect(CurfewServiceEndpoints.current == .production)
         #endif

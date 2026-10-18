@@ -23,6 +23,7 @@ extension SettingsView {
 }
 
 private struct TaskBrowserEnforcementPanel: View {
+    @Environment(CurfewAppModel.self) private var model
     @ObservedObject var controller: TaskBrowserEnforcementController
     @State private var selectorKind = SelectorKind.task
     @State private var selectorID = ""
@@ -32,7 +33,8 @@ private struct TaskBrowserEnforcementPanel: View {
 
     var body: some View {
         Section {
-            if let unavailable = TaskBrowserPanelCopy.availabilityMessage(for: .current) {
+            if let unavailable = TaskBrowserPanelCopy.availabilityMessage(for: .current),
+               !model.isDemoSession {
                 Text(unavailable).foregroundStyle(CurfewTheme.mutedInk)
             } else {
                 Text("Limit Chrome to websites for your active Docket task.")
@@ -68,7 +70,7 @@ private struct TaskBrowserEnforcementPanel: View {
                 .accessibilityIdentifier("task-browser-enforcement-panel")
         }
         .task {
-            if CurfewFlavor.current != .development {
+            if CurfewFlavor.current != .development || model.isDemoSession {
                 controller.refresh()
             }
         }

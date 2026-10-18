@@ -16,7 +16,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .general: "General"
+        case .general: "Protection"
         case .enforcement: "Limits"
         case .warnings: "Warnings"
         case .integrations: "Connections"
@@ -27,7 +27,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
 
     var icon: String {
         switch self {
-        case .general: "gearshape"
+        case .general: "shield.lefthalf.filled"
         case .enforcement: "hourglass"
         case .warnings: "bell"
         case .integrations: "puzzlepiece.extension"

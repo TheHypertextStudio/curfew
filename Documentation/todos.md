@@ -1623,3 +1623,7 @@ asserts its own screen and state before attaching an image.
   explicit compatibility identities. Keep dormant personal-development data
   untouched. Replace the old installed wrapper only after a signed build and
   data-preservation check; retire obsolete Apple IDs after acceptance.
+
+- [-] Make background protection discoverable in Settings: name its destination
+  Protection and expose removal outside collapsed technical details. Preserve
+  the existing authenticated removal and active-deadline safeguards.
