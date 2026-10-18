@@ -13,6 +13,13 @@
 - [ ] Verify update failure and retry in the signed release candidate, alongside
   first-run schedule consent and a successful signed update on an isolated Mac.
 
+## Native wake-failure regression timing
+
+- [-] Await override clearing and offline reporting independently of the
+  inverted healthy-state expectation. Preserve partial-poll failure coverage
+  under hosted runner load and join pending operations before fixture teardown.
+  Production behavior is unchanged; full native-suite validation is required.
+
 ## Native reconnect regression timing
 
 - [x] Wait for the new polling session's health event independently of the

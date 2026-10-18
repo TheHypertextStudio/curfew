@@ -12,6 +12,14 @@ installation with the release feed; injected availability is not feed proof.
 and pre-release availability; the browser suite checks its keyboard access.
 Both suites also cover the app's Plus anchor and visible purchase availability.
 
+## Native wake-failure regression timing
+
+`NativeAccountSyncTransportTests.testPollClearsAnOverrideWhenWakeStatusFails`
+waits for the override-cleared and offline callbacks with a deadlock guard,
+then checks the inverted healthy-state expectation. That expectation stays
+active throughout the positive wait. Pending operations finish before the
+network fixture is removed; installed sync behavior is unchanged.
+
 ## Native reconnect regression timing
 
 `NativeAccountSyncTransportTests.testReconnectIgnoresFailureFromThePreviousPollingSession`
