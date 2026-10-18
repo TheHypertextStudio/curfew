@@ -35,14 +35,7 @@ struct BrowserNativeLifecycleTests {
         """.utf8))
         let host = BrowserNativeHost(store: store, callerOrigin: "test", reviewTimeout: 55)
         let waiting = Task.detached { await host.handle(request) }
-        let enqueueDeadline = ContinuousClock.now.advanced(by: .seconds(10))
-        while ContinuousClock.now < enqueueDeadline {
-            if try !store.pending(at: Date()).isEmpty {
-                break
-            }
-            try await Task.sleep(for: .milliseconds(5))
-        }
-        try #require(store.pending(at: Date()).count == 1)
+        try await waitForPendingRequest(store)
         let outcome = UninstallCoordinator.performUninstall(
             home: home,
             defaultsSuiteName: "studio.hypertext.curfew.tests.\(UUID().uuidString)",
@@ -59,6 +52,17 @@ struct BrowserNativeLifecycleTests {
             flavor: other
         ))
         #expect(try otherStore.isActive())
+    }
+
+    private func waitForPendingRequest(_ store: BrowserNativeStore) async throws {
+        let deadline = ContinuousClock.now.advanced(by: .seconds(10))
+        while ContinuousClock.now < deadline {
+            if try !store.pending(at: Date()).isEmpty {
+                break
+            }
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        try #require(store.pending(at: Date()).count == 1)
     }
 
     @Test func failedFirstPollPreservesSignedPolicyAcrossRuntimeRestart() async throws {
