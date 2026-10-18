@@ -37,7 +37,11 @@ struct AppConfigurationTests {
         )
         let ownsCallbackScheme = urlTypes.contains { urlType in
             let schemes = urlType["CFBundleURLSchemes"] as? [String]
-            return schemes?.contains("studio.hypertext.curfew") == true
+            return schemes?
+                .contains(DocketOAuthAuthorizationRequest.callbackScheme(for: CurfewFlavor.resolve(
+                    environment: [:],
+                    bundleIdentifier: appBundle.bundleIdentifier
+                ))) == true
         }
 
         #expect(ownsCallbackScheme)

@@ -134,7 +134,7 @@ struct AccountConnectionPresentation: Equatable {
             return AccountConnectionPresentation(
                 title: "Remote locks are not ready",
                 detail: "This Mac is signed in, but background protection cannot enforce remote "
-                    + "locks right now. Review Background Protection in General.",
+                    + "locks right now. Review Background Protection in Protection.",
                 systemImage: "exclamationmark.triangle.fill",
                 tone: .warning,
                 lastConfirmedAt: date

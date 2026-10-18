@@ -10,7 +10,7 @@
     <key>EnvironmentVariables</key>
     <dict>
         <key>CURFEW_FLAVOR</key>
-        <string>studioDevelopment</string>
+        <string>development</string>
     </dict>
     <key>StartInterval</key>
     <integer>15</integer>
