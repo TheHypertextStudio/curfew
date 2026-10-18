@@ -1793,3 +1793,26 @@ changes; rollback restores the prior landing release and docs commit.
 - This affects development checks only. The native app, release signing, license
   behavior, Astro frontend and Mintlify publishing remain independently managed.
   Removing remote authentication returns CI to its existing local-only cache.
+
+## 20. Plus activation and purchase restoration
+
+- `A paid checkout opens Curfew in one click and persists a verified license.`
+  - `web/worker/test/purchase-flow.test.ts`: paid/unpaid webhook boundary,
+    activation ticket exchange/redemption, expiration, no-store responses.
+  - `LicenseActivationTests`: real Ed25519 verification, offline reload,
+    rejection of forged/expired keys, strict build-specific URL parsing, and
+    repeated-callback race (observed failing before the fix).
+  - `landing/tests/acceptance/site.spec.mjs`: primary activation link, manual
+    fallback, delayed delivery, unavailable service, and retry entry point.
+- `Restoration proves purchase-inbox ownership without requiring an account.`
+  - Issuer tests: identical unknown/known inbox responses, delivery link without
+    a license, latest subscription refresh, rate-limit/invalid-email failures,
+    missing email setup, and signed legacy-event index repair.
+  - Browser tests: email form, sent state, activation link from fragment,
+    fragment removal and same-document navigation.
+  - `LicenseActivationTests/requestsRestoration`: sending a link does not grant Plus.
+  - `CurfewUITests/testPurchaseRestoreAndManualActivationAreReachable`: native
+    restore sheet, empty-field validation, cancellation, and manual-key fallback.
+- `Actual provider and installed-app behavior matches the new path.`
+  - `Documentation/plus-activation.md`: provider/signer pairing, test checkout,
+    inbox delivery, cold/warm app opening and final distribution remain pending.

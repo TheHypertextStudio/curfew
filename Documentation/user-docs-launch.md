@@ -41,7 +41,7 @@ recorded launch evidence; continue testing routes, metadata, and recovery copy.
 | CLI examples from distributed bundle, including snapshot/budget limitations | Local bundled help checked; published-release installation remains pending |
 | Safe fixture screenshots for setup, schedule, and activation; no real journal/key data | Setup and schedule captured manually from the ephemeral Debug fixture; activation screenshot held until conflicting in-app copy is corrected; release comparison pending |
 | Rendered Mintlify pages at desktop/narrow widths, light/dark, keyboard navigation, and links | Local licensing/setup review passed, including 390-pixel layout and keyboard navigation; search needs Mintlify login and hosted verification |
-| Actual Mintlify `/docs` hosting, bookmarked routes, assets, and navigation after publication | Publication in progress; record source SHA and observed public pages below |
+| Actual Mintlify `/docs` hosting, bookmarked routes, assets, and navigation after publication | Mintlify successfully published `bdd703f1a6832da1f2ab99e222908a07b37d0bf5` on 2026-10-13. All 16 pages and both screenshots returned 200; titles, rendered navigation, activation anchor, and hosted search were verified at `https://curfew.mintlify.dev/docs`. First-party `/docs/licensing` remains 404. |
 
 ## Claims requiring launch review
 

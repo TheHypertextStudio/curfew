@@ -1457,7 +1457,7 @@ asserts its own screen and state before attaching an image.
 ## 19. User-facing documentation and Plus launch
 
 - [x] Replace Mintlify developer guides with setup, daily-use, Plus, integration,
-      and recovery help. Preserve `/licensing`, `/mcp`, and `/cli` bookmarks.
+      and recovery help. Preserve `/licensing`, `/mcp-guide`, and `/cli` bookmarks.
 - [x] Explain activation in Settings → About, confirmation-page key delivery,
       offline/subscription access, deactivation versus cancellation, and support.
 - [x] Correct purchase-confirmation help and errors; a failed key fetch must not
@@ -1488,3 +1488,17 @@ asserts its own screen and state before attaching an image.
 - [x] Document the Email Sending CLI exception, readiness validation before production mutations, and the cf Durable Object rollback constraint in the domain migration runbook.
 
 - [x] Keep the public policy announcement below the navigation at wide and narrow widths; keep current policy copy focused on user choices, rights, sharing, and retention. Version changed stylesheets by their content so normal reloads receive the correction.
+
+## 20. Plus activation and purchase restoration
+
+- [-] End checkout with **Activate in Curfew**, verify and save the signed key,
+      and show the result in Settings → About. Keep manual key entry available.
+- [-] Offer **Restore Purchase…** using proof at the purchase inbox, bounded
+      requests, short-lived links, current subscription keys, and safe retries.
+- [x] Reject unpaid completed checkouts. Backfill old paid purchases by resending
+      their already processed, signed Stripe event without replacing the key.
+- [ ] Finish native/browser acceptance, provider email setup, environment/signer
+      pairing, and real Stripe test-mode checkout plus inbox restoration.
+- [ ] Ship the verified client/service/site together, then update published help
+      to the new flow. Keep the public sale gate closed until purchase acceptance.
+      `Documentation/plus-activation.md` records boundaries and remaining proof.
