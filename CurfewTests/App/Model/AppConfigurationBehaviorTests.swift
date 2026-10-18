@@ -374,13 +374,6 @@ struct SettingsSectionTests {
     }
 }
 
-struct CurfewUpdaterTests {
-    @Test("Current build always includes the required Sparkle updater")
-    func updateAvailabilityMatchesLinkedFramework() {
-        #expect(CurfewUpdater.isAvailable)
-    }
-}
-
 struct ShutdownSupportTests {
     @Test("Current build only shows auto-shutdown when Apple Events entitlement is present")
     func shutdownAvailabilityMatchesEntitlements() throws {

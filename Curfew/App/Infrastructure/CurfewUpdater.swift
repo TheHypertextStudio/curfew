@@ -1,4 +1,4 @@
-import CurfewKit
+import Combine
 import Observation
 import Sparkle
 
@@ -8,21 +8,35 @@ import Sparkle
 final class CurfewUpdater {
     static let isAvailable = true
 
-    @ObservationIgnored private let controller: SPUStandardUpdaterController
+    @ObservationIgnored private let performUpdateCheck: () -> Void
+    @ObservationIgnored private var availabilitySubscription: AnyCancellable?
 
     private(set) var canCheckForUpdates = false
 
-    init() {
-        self.controller = SPUStandardUpdaterController(
+    convenience init() {
+        let controller = SPUStandardUpdaterController(
             startingUpdater: true,
             updaterDelegate: nil,
             userDriverDelegate: nil
         )
-        self.canCheckForUpdates = controller.updater.canCheckForUpdates
+        self.init(availability: controller.updater.publisher(for: \.canCheckForUpdates)
+            .eraseToAnyPublisher()) {
+                controller.checkForUpdates(nil)
+            }
+    }
+
+    /// Sparkle publishes availability on the main thread, including after an
+    /// update dialog is canceled or fails. Keep observing for the whole session
+    /// instead of freezing the menu at its startup or in-flight value.
+    init(availability: AnyPublisher<Bool, Never>, check: @escaping () -> Void) {
+        self.performUpdateCheck = check
+        self.availabilitySubscription = availability.sink { [weak self] available in
+            self?.canCheckForUpdates = available
+        }
     }
 
     func checkForUpdates() {
-        controller.checkForUpdates(nil)
-        canCheckForUpdates = controller.updater.canCheckForUpdates
+        guard canCheckForUpdates else { return }
+        performUpdateCheck()
     }
 }

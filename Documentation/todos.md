@@ -1,5 +1,15 @@
 # Curfew Implementation TODOs
 
+## Update retry and first-run instructions
+
+- [x] Observe Sparkle availability throughout an update check so the command
+  becomes available again after a failure or cancellation, and reject duplicate
+  requests while a check is in progress.
+- [x] Explain seven-day schedule consent and the remote-controls-only choice in
+  installation help; use the current Warnings and Limits settings destinations.
+- [ ] Verify update failure and retry in the signed release candidate, alongside
+  first-run schedule consent and a successful signed update on an isolated Mac.
+
 ## Native reconnect regression timing
 
 - [x] Wait for the new polling session's health event independently of the

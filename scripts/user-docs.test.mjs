@@ -107,3 +107,12 @@ test("published help follows current Settings labels and installer availability"
   assert.match(await read("web/docs/install.mdx"), /public Mac installer has not been released yet/);
   assert.match(await read("web/docs/mcp-guide.mdx"), /Allow assistants on this Mac/);
 });
+
+test("setup help explains seven-day consent and the choice to leave automatic lockouts off", async () => {
+  const content = await read("web/docs/install.mdx");
+  assert.match(content, /all seven days/i);
+  assert.match(content, /No automatic schedule — remote controls only/);
+  assert.match(content, /Enable schedule and finish/);
+  assert.match(content, /Settings → Warnings/);
+  assert.doesNotMatch(content, /Curfew starts enforcing your schedule\./);
+});
