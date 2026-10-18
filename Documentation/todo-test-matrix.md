@@ -10,6 +10,7 @@ must still exercise the actual Sparkle error, cancellation, retry, and update
 installation with the release feed; injected availability is not feed proof.
 `landing/tests/unit/design.test.mjs` checks the homepage download destination
 and pre-release availability; the browser suite checks its keyboard access.
+Both suites also cover the app's Plus anchor and visible purchase availability.
 
 ## Native reconnect regression timing
 
