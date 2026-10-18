@@ -7,6 +7,8 @@
   requests while a check is in progress.
 - [x] Explain seven-day schedule consent and the remote-controls-only choice in
   installation help; use the current Warnings and Limits settings destinations.
+- [x] Route the homepage download entry through the download page and describe
+  installer availability honestly until the first public Mac release exists.
 - [ ] Verify update failure and retry in the signed release candidate, alongside
   first-run schedule consent and a successful signed update on an isolated Mac.
 

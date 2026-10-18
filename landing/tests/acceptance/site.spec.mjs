@@ -91,7 +91,7 @@ test('keyboard access and reduced motion use the same real links', async ({
   await page.keyboard.press(nextLink);
   await expect(page.getByRole('link', { name: 'Read the changes', exact: true })).toBeFocused();
   await page.keyboard.press(nextLink);
-  await expect(page.getByRole('link', { name: 'Download for Mac' }).first()).toBeFocused();
+  await expect(page.getByRole('link', { name: 'Get Curfew', exact: true })).toBeFocused();
 });
 
 test('unknown URLs remain 404', async ({ request }) => {

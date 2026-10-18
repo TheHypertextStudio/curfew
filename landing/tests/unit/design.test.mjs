@@ -32,6 +32,22 @@ test('primary navigation destinations have real pages', async () => {
   }
 });
 
+test('download entry explains availability before sending visitors to GitHub', async () => {
+  const home = await readFile(new URL('../../src/content/home.html', import.meta.url), 'utf8');
+  const download = await readFile(
+    new URL('../../src/content/download.html', import.meta.url),
+    'utf8',
+  );
+  assert.match(home, /href="\/download"/);
+  assert.match(download, /public Mac download is coming soon/i);
+  for (const source of [home, download]) {
+    assert.doesNotMatch(
+      source,
+      /releases\/latest|Download for Mac|Download the latest Mac release/,
+    );
+  }
+});
+
 test('guide links point to published Mintlify pages', async () => {
   const home = await readFile(new URL('../../src/content/home.html', import.meta.url), 'utf8');
   const support = await readFile(
