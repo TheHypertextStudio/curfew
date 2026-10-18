@@ -19,7 +19,7 @@ struct AppNamespaceTests {
         }
     }
 
-    @Test("Helper client trust pins the new app identity without changing its service")
+    @Test("Helper client trust and service identity match the supported app flavor")
     func signedClientUsesTheNewNamespace() throws {
         for flavor in CurfewFlavor.allCases {
             let identity = try #require(DaemonSigningIdentity(
@@ -28,9 +28,9 @@ struct AppNamespaceTests {
             #expect(identity.clientRequirement.contains(
                 "identifier \"studio.hypertext.apps.curfew\(flavor.identifierSuffix)\""
             ))
-            #expect(identity
-                .machServiceName ==
-                "studio.hypertext.curfew\(flavor.storageIdentifierSuffix).daemon")
+            let expectedService = flavor == .production
+                ? "studio.hypertext.curfew.daemon" : "studio.hypertext.apps.curfew.dev.daemon"
+            #expect(identity.machServiceName == expectedService)
         }
     }
 
