@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { execFileSync } from "node:child_process";
+import { validateReleaseEntitlements } from "./release-entitlements.mjs";
 
 const releaseEntitlements = await readFile(
   "Curfew/Curfew-Release.entitlements",
@@ -31,6 +32,33 @@ function buildConfigurationBlock(id, name) {
   assert.notEqual(end, -1, `unterminated ${name} build configuration ${id}`);
   return projectFile.slice(start, end + "\n\t\t};".length);
 }
+
+test("signed entitlements resolve the approved Keychain prefix and declared file access", () => {
+  const expected = JSON.parse(execFileSync("plutil", [
+    "-convert", "json", "-o", "-", "Curfew/Curfew-Release.entitlements",
+  ], { encoding: "utf8" }));
+  const actual = {
+    ...expected,
+    "keychain-access-groups": ["T95VDD3A4W.studio.hypertext.curfew"],
+    "com.apple.security.files.user-selected.read-only": true,
+    "com.apple.application-identifier": "T95VDD3A4W.studio.hypertext.apps.curfew",
+    "com.apple.developer.team-identifier": "T95VDD3A4W",
+  };
+  assert.doesNotThrow(() => validateReleaseEntitlements(actual, expected));
+  for (const changed of [
+    { "keychain-access-groups": ["OTHERTEAM.studio.hypertext.curfew"] },
+    { "com.apple.security.files.user-selected.read-write": true },
+    { "com.apple.security.application-groups": ["group.unrelated"] },
+    { "com.apple.developer.team-identifier": "OTHERTEAM" },
+    { "com.apple.application-identifier": "T95VDD3A4W.unrelated" },
+    { "com.apple.security.app-sandbox": true },
+  ]) {
+    assert.throws(() => validateReleaseEntitlements({ ...actual, ...changed }, expected));
+  }
+  const missing = { ...actual };
+  delete missing["com.apple.security.files.user-selected.read-only"];
+  assert.throws(() => validateReleaseEntitlements(missing, expected));
+});
 
 test("app and command-line tools pin the same exact 0.0.x protocol release", () => {
   const swiftPin = packageManifest.match(
