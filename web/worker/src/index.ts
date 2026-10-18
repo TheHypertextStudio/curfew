@@ -1,12 +1,7 @@
 import { handleCheckoutCompleted, handleInvoicePaid, handleSubscriptionDeleted } from "./handlers.js";
 import { verifyStripeSignature } from "./stripe.js";
 import type { Env } from "./types.js";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, OPTIONS",
-  "Content-Type": "application/json",
-};
+import { indexPurchase, json, purchaseRequest } from "./purchases.js";
 
 /**
  * Curfew internal license issuer, envelope v2. This is deliberately distinct
@@ -18,7 +13,7 @@ export default {
     if ((JSON.parse(env.RETIRED_LICENSE_HOSTS || "[]") as string[]).includes(url.hostname)) {
       return json({ error: "service_moved" }, 410);
     }
-    if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders });
+    if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: json(null).headers });
     if (request.method === "GET" && url.pathname === "/health") {
       const response = json({ status: "ok", envelope_version: 2 });
       if (env.CONFIGURATION_SHA256) response.headers.set("x-curfew-configuration", env.CONFIGURATION_SHA256);
@@ -27,6 +22,9 @@ export default {
     }
     if (request.method === "GET" && url.pathname === "/license") return getLicense(url, env, "session_id", "session");
     if (request.method === "GET" && url.pathname === "/license/refresh") return getLicense(url, env, "token", "refresh");
+    if (request.method === "POST" && ["/license/activation", "/license/redeem", "/license/restore"].includes(url.pathname)) {
+      return purchaseRequest(request, env);
+    }
     if (request.method !== "POST" || url.pathname !== "/") return json({ error: "not found" }, 404);
 
     const body = await request.text();
@@ -36,7 +34,19 @@ export default {
     }
     const event = JSON.parse(body);
     const eventID = String(event.id ?? "");
-    if (eventID && (await env.LICENSE_KV.get(`event:${eventID}`))) return new Response("ok");
+    if (eventID && (await env.LICENSE_KV.get(`event:${eventID}`))) {
+      // A Stripe dashboard resend backfills pre-restoration purchases without
+      // minting a new key or changing the original payment/access decision.
+      if (event.type === "checkout.session.completed") {
+        const session = event.data?.object;
+        const email = session?.customer_details?.email ?? session?.customer_email;
+        if (session?.payment_status === "paid" && typeof session.id === "string" &&
+          typeof email === "string" && await env.LICENSE_KV.get(`session:${session.id}`)) {
+          await indexPurchase(env, email, session.id);
+        }
+      }
+      return new Response("ok");
+    }
 
     let handled = false;
     switch (event.type) {
@@ -56,8 +66,4 @@ async function getLicense(url: URL, env: Env, parameter: string, prefix: string)
   if (!token) return json({ error: `${parameter} required` }, 400);
   const key = await env.LICENSE_KV.get(`${prefix}:${token}`);
   return key ? json({ license_key: key }) : json({ error: "not found" }, 404);
-}
-
-function json(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), { status, headers: corsHeaders });
 }

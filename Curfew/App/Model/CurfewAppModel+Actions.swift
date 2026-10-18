@@ -38,6 +38,22 @@ extension CurfewAppModel {
         appRouter.showSettings()
     }
 
+    @discardableResult
+    func handleIncomingURL(_ url: URL) -> Bool {
+        if AccountOAuthCallbackRouter.shared.route(url) {
+            return true
+        }
+        return handleLicenseActivationURL(url)
+    }
+
+    @discardableResult
+    func handleLicenseActivationURL(_ url: URL) -> Bool {
+        guard licenseActivation.open(url) else { return false }
+        settingsDestination = .about
+        openSettings()
+        return true
+    }
+
     /// Brings the app to the foreground and requests the Getting Started window.
     /// Bumps ``gettingStartedRequestID``; the SwiftUI scene graph observes it
     /// and opens the `WindowGroup(id: "getting-started")` via `openWindow`.
