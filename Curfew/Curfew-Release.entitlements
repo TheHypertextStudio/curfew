@@ -16,6 +16,11 @@
     <key>com.apple.security.cs.disable-library-validation</key>
     <true/>
 
+    <!-- Declare the existing Xcode read-only user-selected-file capability so
+         the source policy exactly matches the signed artifact. -->
+    <key>com.apple.security.files.user-selected.read-only</key>
+    <true/>
+
     <!-- Keep existing Data Protection Keychain credentials accessible after
          the bundle rename. The first access group remains the legacy default. -->
     <key>keychain-access-groups</key>
