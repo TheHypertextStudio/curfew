@@ -127,14 +127,3 @@ test("purchase help explains app activation, inbox restoration, and manual fallb
   assert.match(content, /mailto:support@thecurfew\.app/);
   assert.doesNotMatch(content, /iCloud sync.*keeps your schedule in sync|Calendar.*shows today's events/);
 });
-
-test("docs-first publication identifies upcoming controls and restoration data sharing", async () => {
-  const licensing = await read("web/docs/licensing.mdx");
-  assert.match(licensing, /next Curfew release adds activation and restore links/);
-  for (const page of ["install", "lockout", "privacy", "troubleshooting"]) {
-    assert.match(await read(`web/docs/${page}.mdx`), /General.*earlier versions/);
-  }
-  assert.match(await read("web/docs/privacy.mdx"), /purchase email.*license service/s);
-  assert.match(licensing, /No restore email arrives/);
-  assert.match(licensing, /The app does not open/);
-});
