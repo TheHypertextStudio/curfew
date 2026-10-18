@@ -128,7 +128,7 @@ public nonisolated enum CurfewFlavor: String, Sendable, CaseIterable {
     /// LaunchDaemon identity for this flavor. Development must never replace
     /// the production helper registration while staging is under test.
     public var daemonLabel: String {
-        "studio.hypertext.curfew\(storageIdentifierSuffix).daemon"
+        self == .production ? "studio.hypertext.curfew.daemon" : "studio.hypertext.apps.curfew.dev.daemon"
     }
 
     public var daemonPlistName: String {

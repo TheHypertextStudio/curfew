@@ -126,7 +126,7 @@ struct CurfewFlavorTests {
             .keychainService == "studio.hypertext.curfew.account-e2ee.studio.dev")
         #expect(DocketServiceEndpoints.forFlavor(.development)
             .keychainService == "studio.hypertext.curfew.docket.studio.dev")
-        #expect(CurfewFlavor.development.daemonLabel == "studio.hypertext.curfew.studio.dev.daemon")
+        #expect(CurfewFlavor.development.daemonLabel == "studio.hypertext.apps.curfew.dev.daemon")
         #expect(CurfewFlavor.production.enforcementPriority > CurfewFlavor.development
             .enforcementPriority)
     }

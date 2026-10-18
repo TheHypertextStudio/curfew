@@ -44,3 +44,10 @@ test('Capture entrypoints build isolated unsigned fixtures and never stop instal
     assert.doesNotMatch(script, /pkill/);
   }
 });
+
+test('Incremental builds refresh embedded helpers and their launch registration', () => {
+  const phase = /9BD3FBCC2F4D4584007B2E95 \/\* Bundle CLI Tools \*\/ = \{([\s\S]*?)\n\t\t\};/.exec(project)?.[1];
+  assert.ok(phase);
+  assert.match(phase, /alwaysOutOfDate = 1;/);
+  assert.match(project, /CURFEW_DAEMON_PLIST_NAME = studio\.hypertext\.apps\.curfew\.dev\.daemon\.plist;/);
+});
