@@ -56,7 +56,7 @@ final class CurfewUITests: XCTestCase {
         XCTAssertFalse(app.staticTexts["Calendar"].exists)
         XCTAssertFalse(app.staticTexts["iCloud sync"].exists)
         app.descendants(matching: .any)["settings-general-tab"].click()
-        XCTAssertTrue(app.staticTexts["Background protection"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["background-protection-heading"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.disclosureTriangles["Troubleshooting"].exists)
     }
 
@@ -362,7 +362,9 @@ extension CurfewUITests {
         app.typeKey(.downArrow, modifierFlags: [])
         XCTAssertTrue(app.staticTexts["Weekly allowance"].waitForExistence(timeout: 3))
         app.typeKey(.upArrow, modifierFlags: [])
-        XCTAssertTrue(app.staticTexts["Protection"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts.matching(identifier: "settings-page-title")
+            .matching(NSPredicate(format: "label == %@", "Protection")).element
+            .waitForExistence(timeout: 3))
     }
 
     @MainActor
@@ -377,7 +379,9 @@ extension CurfewUITests {
         manage.click()
         XCTAssertTrue(app.staticTexts["AI assistants"].waitForExistence(timeout: 3))
         app.descendants(matching: .any)["settings-general-tab"].click()
-        XCTAssertTrue(app.staticTexts["Protection"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts.matching(identifier: "settings-page-title")
+            .matching(NSPredicate(format: "label == %@", "Protection")).element
+            .waitForExistence(timeout: 3))
         app.windows["main-workspace"].click()
         manage.click()
         XCTAssertTrue(app.staticTexts["AI assistants"].waitForExistence(timeout: 3))
