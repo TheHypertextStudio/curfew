@@ -48,6 +48,12 @@ test('download entry explains availability before sending visitors to GitHub', a
   }
 });
 
+test('the app pricing link has a visible Plus availability destination', async () => {
+  const home = await readFile(new URL('../../src/content/home.html', import.meta.url), 'utf8');
+  assert.match(home, /<article id="plus">/);
+  assert.match(home, /Plus is not available for purchase yet/);
+});
+
 test('guide links point to published Mintlify pages', async () => {
   const home = await readFile(new URL('../../src/content/home.html', import.meta.url), 'utf8');
   const support = await readFile(

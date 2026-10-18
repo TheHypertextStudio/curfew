@@ -94,6 +94,21 @@ test('keyboard access and reduced motion use the same real links', async ({
   await expect(page.getByRole('link', { name: 'Get Curfew', exact: true })).toBeFocused();
 });
 
+test('the app Plus link reaches visible availability information', async ({ page }) => {
+  await page.goto('/#plus');
+  const heading = page.getByRole('heading', { name: 'Curfew Plus', exact: true });
+  await expect(heading).toBeVisible();
+  await expect
+    .poll(() =>
+      heading.evaluate((node) => {
+        const bounds = node.getBoundingClientRect();
+        return bounds.top >= 0 && bounds.bottom <= innerHeight;
+      }),
+    )
+    .toBe(true);
+  await expect(page.locator('#plus')).toContainText('Plus is not available for purchase yet.');
+});
+
 test('unknown URLs remain 404', async ({ request }) => {
   for (const path of ['/this-route-does-not-exist', '/missing/nested/page']) {
     const response = await request.get(path);
