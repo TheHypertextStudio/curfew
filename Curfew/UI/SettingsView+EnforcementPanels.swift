@@ -3,7 +3,7 @@ import SwiftUI
 
 extension SettingsView {
     var enforcementHealthPanel: some View {
-        Section("Protection") {
+        Section("Status") {
             if model.enforcementHealth.isFullyActive {
                 LabeledContent("Lockout", value: model.enforcementHealth.settingsStatusTitle)
             } else {
