@@ -237,10 +237,10 @@ struct PrivilegedDaemonProtocolTests {
     @Test("Daemon signing requirement pins the release team and app bundle")
     func daemonSigningRequirement() {
         let expected = "anchor apple generic and "
-            + "certificate leaf[subject.OU] = \"39AB9DY3K8\" and "
-            + "identifier \"studio.hypertext.curfew\""
+            + "certificate leaf[subject.OU] = \"T95VDD3A4W\" and "
+            + "identifier \"studio.hypertext.apps.curfew\""
 
-        #expect(DaemonSigningIdentity(flavor: .production, teamIdentifier: "39AB9DY3K8")?
+        #expect(DaemonSigningIdentity(flavor: .production, teamIdentifier: "T95VDD3A4W")?
             .clientRequirement == expected)
     }
 

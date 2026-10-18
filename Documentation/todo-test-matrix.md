@@ -6,7 +6,9 @@
 stable preferences, development widget groups, the new production widget snapshot
 group, the historical activity migration source, and old/new ownership records
 with cross-flavor rejection. `DaemonIdentityIntegrationTests` verifies exact
-team and client-role requirements. Existing release candidate, configuration and
+team and client-role requirements. The native `PrivilegedDaemonProtocolTests`
+contract pins the Studio team and the new production app ID. Existing release
+candidate, configuration and
 profile tests bind the new production app/widget IDs, require both profiles to
 authorize the new production snapshot group, retain legacy Keychain access, and
 preserve updater trust. Full native CI and an actual signed installation
