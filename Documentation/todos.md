@@ -1590,6 +1590,8 @@ asserts its own screen and state before attaching an image.
 
 - [x] Enable Hardened Runtime for both Release executables, including the widget,
   and guard the configuration before submitting a notarized candidate.
+- [x] Compare signed capabilities with resolved Studio Keychain identifiers and
+  explicitly declare existing read-only file selection, rejecting capability drift.
 
 - [x] Derive activation and renewal origins from the installed build's deployment
   profile and preserve retired-host denial and deployment health identity.

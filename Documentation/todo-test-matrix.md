@@ -1979,3 +1979,7 @@ changes; rollback restores the prior landing release and docs commit.
 - `scripts/release-entitlements.test.mjs` requires Hardened Runtime in the app
   and widget Release configurations. The signed candidate still requires Apple
   notarization acceptance; build-setting checks do not establish that outcome.
+- Signed entitlement comparison resolves only the approved Studio Keychain
+  prefix, validates signing-derived identity fields, and rejects added, missing,
+  or changed capabilities. Read-only file selection remains explicitly declared;
+  the comparison does not discard unexpected permissions to accept an artifact.

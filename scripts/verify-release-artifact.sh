@@ -51,16 +51,8 @@ public_key=$(/usr/libexec/PlistBuddy -c 'Print :SUPublicEDKey' "$INFO")
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 /usr/bin/codesign -d --entitlements :- "$APP_PATH" > "$tmp/actual.plist" 2>/dev/null
-/bin/cp "$tmp/actual.plist" "$tmp/normalized.plist"
-# Developer ID signing may inject identity metadata. Remove only those two
-# signing-derived keys before enforcing an exact capability comparison.
-/usr/libexec/PlistBuddy -c 'Delete :com.apple.application-identifier' \
-  "$tmp/normalized.plist" 2>/dev/null || true
-/usr/libexec/PlistBuddy -c 'Delete :com.apple.developer.team-identifier' \
-  "$tmp/normalized.plist" 2>/dev/null || true
-/usr/bin/plutil -p "$EXPECTED_ENTITLEMENTS" > "$tmp/expected.txt"
-/usr/bin/plutil -p "$tmp/normalized.plist" > "$tmp/actual.txt"
-diff -u "$tmp/expected.txt" "$tmp/actual.txt" || fail "release entitlements differ"
+node "$(dirname "$0")/release-entitlements.mjs" \
+  "$tmp/actual.plist" "$EXPECTED_ENTITLEMENTS"
 
 /usr/sbin/spctl --assess --type execute --verbose=2 "$APP_PATH"
 /usr/bin/xcrun stapler validate "$APP_PATH"
