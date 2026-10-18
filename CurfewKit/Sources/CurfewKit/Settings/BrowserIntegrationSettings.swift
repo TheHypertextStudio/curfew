@@ -75,7 +75,7 @@ public final class BrowserIntegrationSettingsStore {
     private let encoder = JSONEncoder()
     private let decoder = JSONDecoder()
 
-    public init(defaults: UserDefaults = .standard) {
+    public init(defaults: UserDefaults = SharedPaths.preferences) {
         self.defaults = defaults
     }
 

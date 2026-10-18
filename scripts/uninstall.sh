@@ -13,6 +13,27 @@
 # The /Applications/Curfew.app bundle is intentionally left for the user
 # to drag to the Trash — matches macOS convention and avoids sudo prompts.
 
+# Kept sourceable so path cleanup can be exercised only against a temporary tree.
+remove_shared_storage() {
+  local user_home="$1"
+  local shared_support
+  for shared_support in \
+    "$user_home/Library/Group Containers/group.studio.hypertext.curfew/Curfew" \
+    "$user_home/Library/Group Containers/group.studio.hypertext.apps.curfew/Curfew"; do
+    if [[ -d "$shared_support" ]]; then
+      if confirm "Remove shared storage directory $shared_support?"; then
+        rm -rf "$shared_support"
+        say "  removed: $shared_support"
+      fi
+    else
+      say "  (no shared storage directory at $shared_support)"
+    fi
+  done
+}
+
+# Sourcing exposes only the isolated helper, never the actual uninstall flow.
+if [[ "${BASH_SOURCE[0]}" != "$0" ]]; then return 0; fi
+
 set -euo pipefail
 
 FORCE=0
@@ -30,7 +51,6 @@ say() { printf '%s\n' "$1"; }
 
 AGENT_PLIST="$HOME/Library/LaunchAgents/studio.hypertext.curfew.lockdown.plist"
 APP_SUPPORT="$HOME/Library/Application Support/Curfew"
-SHARED_SUPPORT="$HOME/Library/Group Containers/group.studio.hypertext.curfew/Curfew"
 CACHES="$HOME/Library/Caches/studio.hypertext.curfew"
 PREFS="$HOME/Library/Preferences/studio.hypertext.curfew.plist"
 APP_BUNDLE="/Applications/Curfew.app"
@@ -69,15 +89,8 @@ else
   say "  (no application support directory)"
 fi
 
-# 4. Shared group-container storage — activity SQLite + widget settings snapshot.
-if [[ -d "$SHARED_SUPPORT" ]]; then
-  if confirm "Remove shared storage directory $SHARED_SUPPORT?"; then
-    rm -rf "$SHARED_SUPPORT"
-    say "  removed: $SHARED_SUPPORT"
-  fi
-else
-  say "  (no shared storage directory)"
-fi
+# 4. Shared group-container storage — legacy activity history and widget snapshots.
+remove_shared_storage "$HOME"
 
 # 5. Caches — bundle-ID keyed, OS-created.
 if [[ -d "$CACHES" ]]; then

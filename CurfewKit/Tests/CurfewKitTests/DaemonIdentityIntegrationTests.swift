@@ -11,7 +11,7 @@ struct DaemonIdentityIntegrationTests {
             ))
             #expect(identity.machServiceName == flavor.daemonLabel)
             #expect(identity.clientRequirement
-                .contains("identifier \"studio.hypertext.curfew\(flavor.identifierSuffix)\""))
+                .contains("identifier \"studio.hypertext.apps.curfew\(flavor.identifierSuffix)\""))
             #expect(identity.serverRequirement.contains("identifier \"curfew-daemon\""))
             #expect(identity.clientRequirement.contains("SYNTHETIC1"))
         }
