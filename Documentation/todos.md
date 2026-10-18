@@ -6,8 +6,9 @@
   `studio.hypertext.apps.curfew`, with isolated development variants and exact
   helper-client trust for the new app IDs.
 - [x] Preserve existing settings, licenses, account-key services, canonical
-  filesystem storage and helper service names. Recognize old and new ownership
-  records without allowing one flavor to impersonate another.
+  filesystem storage. Migrate the development helper registration after
+  authenticated removal, and recognize old and new ownership records without
+  allowing one flavor to impersonate another.
 - [x] Use the Studio-owned production widget snapshot group
   `group.studio.hypertext.apps.curfew`; retain development flavor groups and the
   historical legacy-group activity migration source. Regenerate widget snapshots
