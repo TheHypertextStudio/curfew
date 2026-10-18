@@ -31,5 +31,20 @@ extension CurfewUITests {
         XCTAssertEqual(manualEntry.value as? String, "Expanded")
         XCTAssertTrue(app.textFields["license-key-input"].waitForExistence(timeout: 3))
         XCTAssertFalse(app.buttons["Activate"].isEnabled)
+
+        app.textFields["license-key-input"].click()
+        app.textFields["license-key-input"].typeText("not-a-license")
+        app.buttons["Activate"].click()
+        let invalidKey = "The license key format is invalid."
+        XCTAssertTrue(app.staticTexts[invalidKey].waitForExistence(timeout: 3))
+        restore.click()
+        let sheet = app.sheets.firstMatch
+        XCTAssertTrue(sheet.textFields["Purchase email"].waitForExistence(timeout: 3))
+        XCTAssertFalse(
+            sheet.staticTexts[invalidKey].exists,
+            "A manual activation error must not appear in a new restoration form."
+        )
+        XCTAssertFalse(sheet.buttons["Send Restore Link"].isEnabled)
+        sheet.buttons["Cancel"].click()
     }
 }
