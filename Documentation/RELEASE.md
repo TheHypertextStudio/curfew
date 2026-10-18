@@ -104,6 +104,11 @@ or authorize widening an internal build's distribution.
      `curfew-daemon` with `EXPANDED_CODE_SIGN_IDENTITY`; copying SwiftPM's
      ad-hoc linker signature into `Contents/Resources` is not sufficient.
 
+Profile identity validation reads Apple’s `ApplicationIdentifierPrefix` field.
+Apple may encode Associated Domains authorization as the literal `*` string or
+an array of permitted domains. Profile validation accepts those Apple formats;
+the signed app still requests only its configured account host.
+
 ## Build against Curfew Sync staging
 
 The isolated Dev app's Debug configuration selects staging by default. It binds
