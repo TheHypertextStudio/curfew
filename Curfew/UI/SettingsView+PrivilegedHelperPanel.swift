@@ -23,7 +23,7 @@ extension SettingsView {
                     }
                 }
             }
-            LabeledContent("Background protection") {
+            LabeledContent("Connection") {
                 if helper.installationInProgress || helper.repairInProgress {
                     HStack {
                         ProgressView().controlSize(.small)
@@ -82,6 +82,7 @@ extension SettingsView {
             }
         } header: {
             Text("Background protection")
+                .accessibilityIdentifier("background-protection-heading")
         } footer: {
             Text(
                 helper.connectionState == .ready
