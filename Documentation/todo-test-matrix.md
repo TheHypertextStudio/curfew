@@ -8,6 +8,8 @@ in-flight duplicate denial, and retry after Sparkle releases the check.
 remote-only choices, and current settings destinations. Signed Mac acceptance
 must still exercise the actual Sparkle error, cancellation, retry, and update
 installation with the release feed; injected availability is not feed proof.
+`landing/tests/unit/design.test.mjs` checks the homepage download destination
+and pre-release availability; the browser suite checks its keyboard access.
 
 ## Native reconnect regression timing
 
