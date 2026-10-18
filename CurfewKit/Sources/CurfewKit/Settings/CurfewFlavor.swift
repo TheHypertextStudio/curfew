@@ -10,10 +10,9 @@ import Foundation
 /// deliberate exception — see ``enforcementPriority`` and the cross-flavor
 /// ownership lock — because only one Curfew may ever lock the user out at once.
 ///
-/// Production is the *neutral* flavor: it carries no suffix, so its identifiers
-/// and paths are byte-for-byte what they have always been. Only non-production
-/// flavors diverge, which means shipping the flavor split requires zero data
-/// migration for existing users.
+/// Production carries no suffix. Signed app identities use the Studio apps
+/// namespace; established storage paths and service identifiers remain stable
+/// so changing the app identity does not relocate existing data or deadlines.
 public nonisolated enum CurfewFlavor: String, Sendable, CaseIterable {
     /// The signed, notarised build the user installs and runs day to day.
     case production
@@ -68,8 +67,12 @@ public nonisolated enum CurfewFlavor: String, Sendable, CaseIterable {
     }
 
     private static func isStudioDevelopmentBundle(_ identifier: String?) -> Bool {
-        identifier == "studio.hypertext.curfew.studio.dev" ||
-            identifier == "studio.hypertext.curfew.studio.dev.widget"
+        [
+            "studio.hypertext.apps.curfew.studio.dev",
+            "studio.hypertext.apps.curfew.studio.dev.widget",
+            "studio.hypertext.curfew.studio.dev",
+            "studio.hypertext.curfew.studio.dev.widget"
+        ].contains(identifier ?? "")
     }
 
     private static func containingAppIdentifier(for executableURL: URL?) -> String? {
@@ -81,6 +84,12 @@ public nonisolated enum CurfewFlavor: String, Sendable, CaseIterable {
             ancestor.deleteLastPathComponent()
         }
         return nil
+    }
+
+    /// Signed app identity. Storage and service names retain their established
+    /// identifiers so existing tester data is not relocated by this rename.
+    public var bundleIdentifier: String {
+        "studio.hypertext.apps.curfew\(identifierSuffix)"
     }
 
     /// Dotted suffix appended to reverse-DNS identifiers (App Group, defaults

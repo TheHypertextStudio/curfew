@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
+import { execFileSync } from "node:child_process";
 
 const releaseEntitlements = await readFile(
   "Curfew/Curfew-Release.entitlements",
@@ -17,7 +18,10 @@ const screenshotExtractor = await readFile(
 const projectFile = await readFile("Curfew.xcodeproj/project.pbxproj", "utf8");
 const packageManifest = await readFile("CurfewKit/Package.swift", "utf8");
 const homebrewCask = await readFile("Casks/curfew.rb", "utf8");
-const artifactVerifier = await readFile("scripts/verify-release-artifact.sh", "utf8");
+const artifactVerifier = await readFile(
+  "scripts/verify-release-artifact.sh",
+  "utf8",
+);
 
 function buildConfigurationBlock(id, name) {
   const marker = `\t\t${id} /* ${name} */ = {`;
@@ -55,16 +59,30 @@ test("conservative initial Release keeps only the signed core entitlements", () 
     releaseEntitlements,
     /com\.apple\.security\.automation\.apple-events/,
   );
-  assert.match(releaseEntitlements, /group\.studio\.hypertext\.curfew/);
+  assert.match(releaseEntitlements, /group\.studio\.hypertext\.apps\.curfew/);
   assert.doesNotMatch(releaseEntitlements, /com\.apple\.developer\.icloud-/);
   assert.doesNotMatch(releaseEntitlements, /aps-environment/);
 });
 
 test("Release app, widget and artifact verifier use the verified Studio signing team", () => {
   for (const id of ["9BD3FBA72F4D4587007B2E95", "C0FE00000000000000000012"]) {
-    assert.match(buildConfigurationBlock(id, "Release"), /DEVELOPMENT_TEAM = T95VDD3A4W;/);
+    assert.match(
+      buildConfigurationBlock(id, "Release"),
+      /DEVELOPMENT_TEAM = T95VDD3A4W;/,
+    );
   }
   assert.match(artifactVerifier, /EXPECTED_TEAM="T95VDD3A4W"/);
+});
+
+test("Debug test bundles are isolated beneath the development app identity", () => {
+  assert.match(
+    buildConfigurationBlock("9BD3FBA92F4D4587007B2E95", "Debug"),
+    /PRODUCT_BUNDLE_IDENTIFIER = studio\.hypertext\.apps\.curfew\.dev\.tests;/,
+  );
+  assert.match(
+    buildConfigurationBlock("9BD3FBAC2F4D4587007B2E95", "Debug"),
+    /PRODUCT_BUNDLE_IDENTIFIER = studio\.hypertext\.apps\.curfew\.dev\.uitests;/,
+  );
 });
 
 test("release guard inspects the active Curfew Plus verifier", () => {
@@ -187,4 +205,24 @@ test("every user-facing release version is the same 0.0.x version", () => {
   );
   assert.match(marketingVersions[0], /^0\.0\.\d+$/);
   assert.equal(caskVersion, marketingVersions[0]);
+});
+
+test("production app and widget share the new snapshot group without changing legacy Keychain access", () => {
+  for (const path of [
+    "Curfew/Curfew-Release.entitlements",
+    "CurfewWidget/CurfewWidget.entitlements",
+  ]) {
+    const entitlements = JSON.parse(
+      execFileSync("plutil", ["-convert", "json", "-o", "-", path], {
+        encoding: "utf8",
+      }),
+    );
+    assert.deepEqual(entitlements["com.apple.security.application-groups"], [
+      "group.studio.hypertext.apps.curfew",
+    ]);
+    if (path.startsWith("Curfew/"))
+      assert.deepEqual(entitlements["keychain-access-groups"], [
+        "$(AppIdentifierPrefix)studio.hypertext.curfew",
+      ]);
+  }
 });

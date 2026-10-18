@@ -82,7 +82,7 @@ export async function recordReleaseConfiguration(
   if (
     app.length !== 1 ||
     app[0].buildSettings.CONFIGURATION !== "Release" ||
-    app[0].buildSettings.PRODUCT_BUNDLE_IDENTIFIER !== "studio.hypertext.curfew"
+    app[0].buildSettings.PRODUCT_BUNDLE_IDENTIFIER !== "studio.hypertext.apps.curfew"
   )
     throw new Error("Resolved production Release settings required");
   const sourceCommit = execFileSync("git", ["rev-parse", "HEAD"], {

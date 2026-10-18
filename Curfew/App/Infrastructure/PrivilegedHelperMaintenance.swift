@@ -32,7 +32,7 @@ final class PrivilegedHelperMaintenance {
         let flavor = CurfewFlavor.current
         let label = "studio.hypertext.curfew.studio.dev.daemon"
         guard flavor == .studioDevelopment,
-              Bundle.main.bundleIdentifier == "studio.hypertext.curfew.studio.dev" else {
+              Bundle.main.bundleIdentifier == CurfewFlavor.studioDevelopment.bundleIdentifier else {
             throw HelperMaintenanceError.unsupportedRegistration
         }
         if requireLegacyRegistration {

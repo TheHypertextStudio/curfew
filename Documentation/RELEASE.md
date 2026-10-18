@@ -20,7 +20,11 @@ approval to use a non-0.0.x version. A local build is not distribution proof.
   disabled library validation for bundled Sparkle XPC services.
 - Intentionally absent: iCloud container and APS entitlements.
 - App identity: Hypertext Studio, LLC team `T95VDD3A4W`, bundle ID
-  `studio.hypertext.curfew`.
+  `studio.hypertext.apps.curfew`.
+
+The bundle namespace and preserved storage identities are documented in
+[Curfew app identity](app-identity.md). Older release evidence describes the
+pre-migration identifiers and does not establish acceptance of the new build.
 
 ## Required credentials
 
@@ -60,8 +64,8 @@ or authorize widening an internal build's distribution.
    - `APPLE_API_KEY_ID`
    - `APPLE_API_PRIVATE_KEY`
    - `APPLE_PROVISIONING_PROFILES`: a JSON array containing the Base64-encoded
-     Developer ID provisioning profiles for `studio.hypertext.curfew` and
-     `studio.hypertext.curfew.widget`. Keep the original identifiers and Studio
+     Developer ID provisioning profiles for `studio.hypertext.apps.curfew` and
+     `studio.hypertext.apps.curfew.widget`. Require those exact bundle IDs and the Studio
      team; do not substitute Personal Team or development profiles.
    - Export the approved profiles to the existing private Secret Manager entry
      `curfew-apple-provisioning-profiles` and the repository secret. Never put
@@ -81,13 +85,15 @@ or authorize widening an internal build's distribution.
 3. **Release entitlements**
    - The conservative initial `Curfew/Curfew-Release.entitlements` carries:
      - `com.apple.security.automation.apple-events = true`
-     - `com.apple.security.application-groups = group.studio.hypertext.curfew`
+     - `com.apple.security.application-groups = group.studio.hypertext.apps.curfew`
+     - the retained same-team `keychain-access-groups` value
+     - account `applinks` and `webcredentials` Associated Domains
    - It deliberately omits iCloud and `aps-environment` while CloudKit and
      push-backed sync are disabled. Reintroduce and validate those entitlements
      only in the release that enables `cloudSyncEnabled`.
    - `CurfewWidget/CurfewWidget.entitlements` must continue to carry:
      - `com.apple.security.app-sandbox = true`
-     - `com.apple.security.application-groups = group.studio.hypertext.curfew`
+     - `com.apple.security.application-groups = group.studio.hypertext.apps.curfew`
 
 4. **Helper packaging**
    - The app bundle must contain:
@@ -261,10 +267,16 @@ ls "$WIDGET" "$HELPER" "$HELPER_PLIST"
 
 ### Widget and App Group
 
-1. Confirm `studio.hypertext.curfew.widget` appears in `pluginkit -m -A -D`.
+1. Confirm `studio.hypertext.apps.curfew.widget` appears in `pluginkit -m -A -D`.
 2. Add each supported Curfew widget from the gallery.
 3. Change the schedule and verify the widget refreshes from the App Group.
-4. Verify the signed app and Widget entitlements contain the same App Group.
+4. Verify both signed production targets and profiles authorize
+   `group.studio.hypertext.apps.curfew`. Dev and StudioDev retain their existing
+   flavor groups.
+5. Verify existing settings regenerate widget snapshots in the new group while
+   canonical databases stay in Application Support. An older activity database
+   still migrates from the legacy `group.studio.hypertext.curfew` path; do not
+   move that historical source to the new snapshot container.
 
 ### Authenticated helper
 

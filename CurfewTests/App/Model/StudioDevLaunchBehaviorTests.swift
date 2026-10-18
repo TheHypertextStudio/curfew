@@ -2,9 +2,9 @@
 import Testing
 
 struct StudioDevLaunchBehaviorTests {
-    private let studioBundleID = "studio.hypertext.curfew.studio.dev"
-    private let personalDebugBundleID = "studio.hypertext.curfew.dev"
-    private let releaseBundleID = "studio.hypertext.curfew"
+    private let studioBundleID = "studio.hypertext.apps.curfew.studio.dev"
+    private let personalDebugBundleID = "studio.hypertext.apps.curfew.dev"
+    private let releaseBundleID = "studio.hypertext.apps.curfew"
 
     @Test("Signed Studio Dev launches arm enforcement without a developer environment variable")
     func studioDevelopmentLaunchStartsByDefault() {

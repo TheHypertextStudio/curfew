@@ -388,7 +388,7 @@ public final class CurfewSettingsStore {
 
     /// Creates a store backed by `defaults`. Pass a custom suite in tests
     /// to avoid polluting `UserDefaults.standard`.
-    public init(defaults: UserDefaults = .standard) {
+    public init(defaults: UserDefaults = SharedPaths.preferences) {
         self.defaults = defaults
     }
 

@@ -6,6 +6,13 @@
     <false/>
     <key>com.apple.security.cs.disable-library-validation</key>
     <true/>
+    <!-- Keep existing Data Protection Keychain credentials accessible after
+         the bundle rename. The first access group remains the legacy default. -->
+    <key>keychain-access-groups</key>
+    <array>
+        <string>$(AppIdentifierPrefix)studio.hypertext.curfew.studio.dev</string>
+    </array>
+
     <key>com.apple.security.application-groups</key>
     <array>
         <string>group.studio.hypertext.curfew.studio.dev</string>

@@ -1,5 +1,20 @@
 # Curfew Implementation TODOs
 
+## Studio app namespace
+
+- [x] Move signed app, widget, and test bundle identities beneath
+  `studio.hypertext.apps.curfew`, with isolated development variants and exact
+  helper-client trust for the new app IDs.
+- [x] Preserve existing settings, licenses, account-key services, canonical
+  filesystem storage and helper service names. Recognize old and new ownership
+  records without allowing one flavor to impersonate another.
+- [x] Use the Studio-owned production widget snapshot group
+  `group.studio.hypertext.apps.curfew`; retain development flavor groups and the
+  historical legacy-group activity migration source. Regenerate widget snapshots
+  from canonical settings instead of relocating user databases.
+- [ ] Issue matching Studio production profiles and verify a signed install,
+  retained data/key access, helper registration, widgets and update behavior.
+
 ## Update retry and first-run instructions
 
 - [x] Observe Sparkle availability throughout an update check so the command

@@ -15,7 +15,7 @@ public struct DaemonSigningIdentity: Equatable, Sendable {
         else { return nil }
         self.machServiceName = flavor.daemonLabel
         let anchor = "anchor apple generic and certificate leaf[subject.OU] = \"\(teamIdentifier)\" and identifier "
-        self.clientRequirement = anchor + "\"studio.hypertext.curfew\(flavor.identifierSuffix)\""
+        self.clientRequirement = anchor + "\"\(flavor.bundleIdentifier)\""
         self.serverRequirement = anchor + "\"curfew-daemon\""
     }
 

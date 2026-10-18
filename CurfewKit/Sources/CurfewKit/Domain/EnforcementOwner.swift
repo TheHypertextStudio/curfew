@@ -30,7 +30,8 @@ public nonisolated struct EnforcementOwner: Codable, Equatable, Sendable {
     /// string in the shared user-writable record.
     public var hasRecognizedIdentity: Bool {
         guard let flavor = CurfewFlavor(rawValue: flavor) else { return false }
-        return bundleIdentifier == SharedPaths.defaultsSuiteName(for: flavor)
+        return bundleIdentifier == flavor.bundleIdentifier ||
+            bundleIdentifier == SharedPaths.defaultsSuiteName(for: flavor)
     }
 }
 

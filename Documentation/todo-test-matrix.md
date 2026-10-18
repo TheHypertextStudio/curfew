@@ -1,5 +1,18 @@
 # Todo Test Matrix
 
+## Studio app namespace
+
+`AppNamespaceTests` covers signed-client identity, inherited flavor isolation,
+stable preferences, development widget groups, the new production widget snapshot
+group, the historical activity migration source, and old/new ownership records
+with cross-flavor rejection. `DaemonIdentityIntegrationTests` verifies exact
+team and client-role requirements. Existing release candidate, configuration and
+profile tests bind the new production app/widget IDs, require both profiles to
+authorize the new production snapshot group, retain legacy Keychain access, and
+preserve updater trust. Full native CI and an actual signed installation
+must still prove platform permissions, Keychain access, helper replacement,
+widget access, saved data and update behavior.
+
 ## Update retry and first-run instructions
 
 `CurfewUpdaterTests` covers initial unavailability, availability changes,

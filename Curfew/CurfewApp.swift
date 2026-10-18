@@ -62,8 +62,8 @@ struct AppCoordinator: AppCoordinating {
 /// an authenticated remote lock cannot be accepted by its helper while the
 /// app remains in display-only mode. Only loaded test runtimes are excluded.
 enum CurfewLaunchBehavior {
-    static let personalDebugBundleIdentifier = "studio.hypertext.curfew.dev"
-    static let studioDevBundleIdentifier = "studio.hypertext.curfew.studio.dev"
+    static let personalDebugBundleIdentifier = CurfewFlavor.development.bundleIdentifier
+    static let studioDevBundleIdentifier = CurfewFlavor.studioDevelopment.bundleIdentifier
 
     /// Returns `true` when enforcement should arm at launch given the
     /// actual app identity and build configuration. Environment-only test
