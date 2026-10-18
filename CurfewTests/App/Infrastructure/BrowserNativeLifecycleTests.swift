@@ -46,6 +46,7 @@ struct BrowserNativeLifecycleTests {
         let outcome = UninstallCoordinator.performUninstall(
             home: home,
             defaultsSuiteName: "studio.hypertext.curfew.tests.\(UUID().uuidString)",
+            unregisterServices: { [] },
             eraseKeychainService: { _ in }
         )
         #expect(outcome.allSucceeded)
@@ -242,6 +243,7 @@ struct BrowserNativeLifecycleTests {
         let outcome = UninstallCoordinator.performUninstall(
             home: home,
             defaultsSuiteName: "studio.hypertext.curfew.tests.\(UUID().uuidString)",
+            unregisterServices: { [] },
             eraseKeychainService: { _ in }
         )
         #expect(outcome.allSucceeded)

@@ -82,6 +82,7 @@ enum ModelTestSupport {
         return CurfewAppModel(
             settingsStore: CurfewSettingsStore(defaults: defaults),
             appRouter: AppRouterSpy(),
+            flavor: .production,
             activityRecorder: NullActivityRecording(),
             lockoutDeadlineStore: lockoutDeadlineStore(),
             accessibilityAuthorization: FakeAccessibilityAuthorization(trusted: true)
