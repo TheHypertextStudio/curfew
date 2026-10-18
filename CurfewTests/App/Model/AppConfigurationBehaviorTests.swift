@@ -231,7 +231,7 @@ struct WidgetIdentityTests {
         #expect(CurfewWidgetIdentity.kind.hasSuffix(".widget"))
         #expect(
             CurfewWidgetIdentity.kind
-                == "studio.hypertext.curfew\(CurfewFlavor.current.identifierSuffix).widget"
+                == "studio.hypertext.curfew\(CurfewFlavor.current.storageIdentifierSuffix).widget"
         )
     }
 }
@@ -257,6 +257,7 @@ struct AppCoordinatorTests {
         let model = CurfewAppModel(
             settingsStore: store,
             appRouter: AppRouterSpy(),
+            flavor: .production,
             activityRecorder: NullActivityRecording(),
             lockoutDeadlineStore: .ephemeralForTesting()
         )
@@ -290,6 +291,7 @@ struct AppCoordinatorTests {
         let model = CurfewAppModel(
             settingsStore: store,
             appRouter: AppRouterSpy(),
+            flavor: .production,
             activityRecorder: NullActivityRecording(),
             lockoutDeadlineStore: .ephemeralForTesting()
         )

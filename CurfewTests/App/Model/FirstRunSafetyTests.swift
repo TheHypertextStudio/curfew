@@ -64,6 +64,7 @@ struct FirstRunSafetyModelTests {
         let model = CurfewAppModel(
             settingsStore: store,
             appRouter: AppRouterSpy(),
+            flavor: .production,
             activityRecorder: NullActivityRecording(),
             lockoutDeadlineStore: .ephemeralForTesting(),
             accessibilityAuthorization: FakeAccessibilityAuthorization(trusted: true)
@@ -127,6 +128,7 @@ struct FirstRunSafetyModelTests {
         let model = CurfewAppModel(
             settingsStore: CurfewSettingsStore(defaults: defaults),
             appRouter: AppRouterSpy(),
+            flavor: .production,
             activityRecorder: NullActivityRecording(),
             lockoutDeadlineStore: .ephemeralForTesting(),
             accessibilityAuthorization: FakeAccessibilityAuthorization(trusted: true)
@@ -321,6 +323,7 @@ struct FirstRunScheduleEditTests {
         let model = CurfewAppModel(
             settingsStore: CurfewSettingsStore(defaults: defaults),
             appRouter: AppRouterSpy(),
+            flavor: .production,
             activityRecorder: NullActivityRecording(),
             lockoutDeadlineStore: .ephemeralForTesting()
         )

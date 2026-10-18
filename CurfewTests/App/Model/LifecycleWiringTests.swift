@@ -265,6 +265,7 @@ struct LifecycleWiringTests {
         return CurfewAppModel(
             settingsStore: store,
             appRouter: AppRouterSpy(),
+            flavor: .production,
             featureFlags: featureFlags,
             activityRecorder: activityRecorder,
             licenseGate: LicenseGate(defaults: defaults),

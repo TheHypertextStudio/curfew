@@ -158,13 +158,14 @@ struct UninstallCoordinatorTests {
 
         #expect(outcome.allSucceeded)
         #expect(erasedServices == [
-            CurfewServiceEndpoints.current.keychainService,
-            DocketServiceEndpoints.current.keychainService
+            CurfewServiceEndpoints.production.keychainService,
+            DocketServiceEndpoints.production.keychainService,
+            KeychainDeviceAssertionSecretStore.service(for: .production)
         ])
         #expect(outcome.removed
-            .contains("Keychain: \(CurfewServiceEndpoints.current.keychainService)"))
+            .contains("Keychain: \(CurfewServiceEndpoints.production.keychainService)"))
         #expect(outcome.removed
-            .contains("Keychain: \(DocketServiceEndpoints.current.keychainService)"))
+            .contains("Keychain: \(DocketServiceEndpoints.production.keychainService)"))
     }
 
     @Test func completedUninstallTerminatesAfterPresentingTheOutcome() {

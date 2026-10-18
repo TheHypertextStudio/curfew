@@ -95,6 +95,7 @@ struct DeviceStatusWiringHarness {
         let model = CurfewAppModel(
             settingsStore: store,
             appRouter: AppRouterSpy(),
+            flavor: .production,
             activityRecorder: NullActivityRecording(),
             idleWatcher: IdleWatcher(
                 source: MutableIdleSource(seconds: idleSeconds),

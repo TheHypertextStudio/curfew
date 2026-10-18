@@ -204,6 +204,7 @@ struct EnforcementHealthWiringTests {
         return CurfewAppModel(
             settingsStore: CurfewSettingsStore(defaults: defaults),
             appRouter: AppRouterSpy(),
+            flavor: .production,
             activityRecorder: NullActivityRecording(),
             lockoutDeadlineStore: .ephemeralForTesting(),
             accessibilityAuthorization: authorization

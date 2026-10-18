@@ -94,6 +94,7 @@ struct PrivilegedDaemonWiringTests {
         let model = CurfewAppModel(
             settingsStore: CurfewSettingsStore(defaults: defaults),
             appRouter: AppRouterSpy(),
+            flavor: .production,
             featureFlags: .shippingV1,
             activityRecorder: NullActivityRecording(),
             privilegedHelperManager: helper,
