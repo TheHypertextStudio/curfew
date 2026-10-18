@@ -222,8 +222,11 @@ extension NativeAccountSyncTransportTests {
             )
         )
 
-        await fulfillment(of: [cleared, offline, synchronized], timeout: 0.2)
-        transport.disconnect()
+        // Await both real callbacks before observing the forbidden healthy state.
+        // The inverted expectation remains active throughout the positive wait.
+        await fulfillment(of: [cleared, offline], timeout: 3)
+        await fulfillment(of: [synchronized], timeout: 0.2)
+        await transport.disconnectAndWaitForPendingOperations()
     }
 
     func testOverrideFailureCannotBeOverwrittenByAHealthyAccountPoll() async throws {
