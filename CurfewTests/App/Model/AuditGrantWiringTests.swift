@@ -20,6 +20,7 @@ struct AuditGrantWiringTests {
         let model = CurfewAppModel(
             settingsStore: CurfewSettingsStore(defaults: defaults),
             appRouter: AppRouterSpy(),
+            flavor: .production,
             activityRecorder: NullActivityRecording(),
             respawnGuard: respawnGuard,
             lockoutDeadlineStore: LockoutDeadlineStore(recordURL: deadlineURL),

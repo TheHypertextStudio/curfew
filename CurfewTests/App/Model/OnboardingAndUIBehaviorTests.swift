@@ -173,6 +173,7 @@ struct SetupUXTests {
                 defaults: UserDefaults(suiteName: UUID().uuidString) ?? .standard
             ),
             appRouter: router,
+            flavor: .production,
             activityRecorder: NullActivityRecording(),
             lockoutDeadlineStore: .ephemeralForTesting()
         )
@@ -190,6 +191,7 @@ struct SetupUXTests {
                 defaults: UserDefaults(suiteName: UUID().uuidString) ?? .standard
             ),
             appRouter: AppRouterSpy(),
+            flavor: .production,
             activityRecorder: NullActivityRecording(),
             lockoutDeadlineStore: .ephemeralForTesting()
         )
@@ -213,6 +215,7 @@ struct SetupUXTests {
         let model = CurfewAppModel(
             settingsStore: CurfewSettingsStore(defaults: defaults),
             appRouter: AppRouterSpy(),
+            flavor: .production,
             activityRecorder: NullActivityRecording(),
             lockoutDeadlineStore: .ephemeralForTesting(),
             accessibilityAuthorization: FakeAccessibilityAuthorization(trusted: true)
@@ -243,6 +246,7 @@ struct SetupUXTests {
         let model = CurfewAppModel(
             settingsStore: CurfewSettingsStore(defaults: defaults),
             appRouter: AppRouterSpy(),
+            flavor: .production,
             activityRecorder: NullActivityRecording(),
             lockoutDeadlineStore: .ephemeralForTesting(),
             accessibilityAuthorization: FakeAccessibilityAuthorization(trusted: false)
@@ -392,6 +396,7 @@ struct MenuBarPresentationModelTests {
         return CurfewAppModel(
             settingsStore: CurfewSettingsStore(defaults: defaults),
             appRouter: AppRouterSpy(),
+            flavor: .production,
             activityRecorder: NullActivityRecording(),
             lockoutDeadlineStore: .ephemeralForTesting(),
             accessibilityAuthorization: FakeAccessibilityAuthorization(trusted: true)

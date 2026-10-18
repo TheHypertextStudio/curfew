@@ -203,6 +203,7 @@ struct DisplayClockTests {
         return CurfewAppModel(
             settingsStore: store,
             appRouter: AppRouterSpy(),
+            flavor: .production,
             featureFlags: .default,
             activityRecorder: NullActivityRecording(),
             idleWatcher: watcher,

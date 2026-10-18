@@ -21,6 +21,7 @@ struct AuditRespawnGuardTests {
         let model = CurfewAppModel(
             settingsStore: CurfewSettingsStore(defaults: defaults),
             appRouter: AppRouterSpy(),
+            flavor: .production,
             activityRecorder: NullActivityRecording(),
             respawnGuard: respawnGuard,
             accessibilityAuthorization: FakeAccessibilityAuthorization(trusted: true)
@@ -114,6 +115,7 @@ struct AuditOverrideRedactionTests {
         let model = CurfewAppModel(
             settingsStore: CurfewSettingsStore(defaults: defaults),
             appRouter: AppRouterSpy(),
+            flavor: .production,
             activityRecorder: NullActivityRecording(),
             accessibilityAuthorization: FakeAccessibilityAuthorization(trusted: true)
         )
