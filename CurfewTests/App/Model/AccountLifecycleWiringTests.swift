@@ -459,6 +459,7 @@ extension AccountLifecycleWiringTests {
         return CurfewAppModel(
             settingsStore: store,
             appRouter: AppRouterSpy(),
+            flavor: .production,
             featureFlags: FeatureFlags(
                 widgetKitEnabled: false,
                 cloudSyncEnabled: true,

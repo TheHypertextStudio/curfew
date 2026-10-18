@@ -183,6 +183,7 @@ struct ProtectedWorkWiringTests {
             let model = CurfewAppModel(
                 settingsStore: CurfewSettingsStore(defaults: defaults),
                 appRouter: AppRouterSpy(),
+                flavor: .production,
                 activityRecorder: NullActivityRecording(),
                 lockoutDeadlineStore: LockoutDeadlineStore(
                     recordURL: directory.appendingPathComponent("lockout-deadline.json")

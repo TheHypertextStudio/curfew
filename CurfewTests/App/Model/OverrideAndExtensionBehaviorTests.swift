@@ -208,6 +208,7 @@ struct OverrideEventLoggingTests {
         let model = CurfewAppModel(
             settingsStore: store,
             appRouter: AppRouterSpy(),
+            flavor: .production,
             activityRecorder: NullActivityRecording(),
             lockoutDeadlineStore: .ephemeralForTesting()
         )
