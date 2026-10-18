@@ -12,6 +12,16 @@ installation with the release feed; injected availability is not feed proof.
 and pre-release availability; the browser suite checks its keyboard access.
 Both suites also cover the app's Plus anchor and visible purchase availability.
 
+## Purchase restoration entry
+
+`CurfewUITests/testPurchaseRestoreAndManualActivationAreReachable` rejects a
+manual key, opens a fresh restoration sheet, and checks that the activation error
+is absent before any restore request. It also checks empty-field validation and
+cancellation without sending mail. `scripts/user-docs.test.mjs` covers the app
+activation and inbox restore paths, manual fallback, offline boundaries, and
+product support contact. Real email delivery and signed-app handoff remain
+separate provider acceptance checks.
+
 ## Native wake-failure regression timing
 
 `NativeAccountSyncTransportTests.testPollClearsAnOverrideWhenWakeStatusFails`

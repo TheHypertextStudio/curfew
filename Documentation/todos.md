@@ -13,6 +13,13 @@
 - [ ] Verify update failure and retry in the signed release candidate, alongside
   first-run schedule consent and a successful signed update on an isolated Mac.
 
+## Purchase restoration entry
+
+- [x] Start a new restoration form without errors from an earlier manual-key
+  activation. Keep existing licenses intact and invalidate earlier operations.
+- [x] Explain app activation, inbox restoration, manual-key fallback, and offline
+  license verification in purchase help, with current product support contact.
+
 ## Native wake-failure regression timing
 
 - [-] Await override clearing and offline reporting independently of the
