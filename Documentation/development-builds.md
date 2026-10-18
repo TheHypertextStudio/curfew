@@ -14,7 +14,8 @@ signing team. Debug produces `Curfew Dev.app`; it must never overwrite `Curfew.a
 ## Existing internal installations
 
 Curfew Dev continues to use the former Studio Dev preferences, Application Support
-folder, Keychain services/access group, App Group and background state. The helper registration uses
+folder, Keychain services/access group, App Group and background state. The helper
+registration uses
 `studio.hypertext.apps.curfew.dev.daemon`; the old helper must be unregistered
 before installing it so macOS cannot reuse an obsolete app path.
 These compatibility identifiers are private storage contracts, not additional
