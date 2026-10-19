@@ -2001,5 +2001,6 @@ account connectivity, authenticated helper readiness, and ordinary update trust.
 Do not run lockout/shutdown acceptance or UI suites on the operator desktop.
 
 | Protection discovery and visible background-protection removal | `scripts/protection-settings.test.mjs`; `CurfewUITests.testGeneralKeepsNavigationAndSetupInView`; signed installed Settings review |
+| Protection navigation exposes its title through the native text value; demo Connections includes browser controls | `CurfewUITests.testSettingsSidebarSupportsArrowKeys`; `testManageAIAccessAlwaysOpensConnections`; `testTaskBrowserEnforcementPanelActions` on the isolated runner |
 
 | Incremental signed builds refresh embedded helpers/plists; Dev uses its canonical service | `scripts/dev-consolidation.test.mjs`; `DaemonPlistTests`; `AppNamespaceTests`; signed helper reconnect |

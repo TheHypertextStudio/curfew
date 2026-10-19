@@ -1626,7 +1626,9 @@ asserts its own screen and state before attaching an image.
   data-preservation check; retire obsolete Apple IDs after acceptance.
 
 - [-] Make background protection discoverable in Settings: name its destination
-  Protection and expose removal outside collapsed technical details. Preserve
+  Protection and expose removal outside collapsed technical details. Native UI
+  checks read the text value exposed by macOS. Unsigned demo sessions retain
+  the browser panel for interaction coverage; installed Dev builds hide it. Preserve
   the existing authenticated removal and active-deadline safeguards.
 
 - [-] Refresh embedded helpers on every incremental app build and use the
