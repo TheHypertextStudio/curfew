@@ -2006,5 +2006,7 @@ Do not run lockout/shutdown acceptance or UI suites on the operator desktop.
 
 | Protection discovery and visible background-protection removal | `scripts/protection-settings.test.mjs`; `CurfewUITests.testGeneralKeepsNavigationAndSetupInView`; signed installed Settings review |
 | Protection navigation exposes its title through the native text value; demo Connections includes browser controls | `CurfewUITests.testSettingsSidebarSupportsArrowKeys`; `testManageAIAccessAlwaysOpensConnections`; `testTaskBrowserEnforcementPanelActions` on the isolated runner |
+| Home leads with the product; footer policies remain keyboard accessible; Plus deep links survive delayed webfonts | `landing/tests/acceptance/site.spec.mjs` in Chromium, Firefox and WebKit |
+| Purchase pages use the matching production or canonical Dev activation scheme | `landing/tests/unit/purchase-profile.test.mjs`; staging and production browser acceptance; Astro typecheck and shared TypeScript lint |
 
 | Incremental signed builds refresh embedded helpers/plists; Dev uses its canonical service | `scripts/dev-consolidation.test.mjs`; `DaemonPlistTests`; `AppNamespaceTests`; signed helper reconnect |

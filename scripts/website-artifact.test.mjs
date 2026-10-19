@@ -121,7 +121,7 @@ test("staging build identity cannot be admitted for production publication", asy
   await purchasePages(
     directory,
     "https://license.staging.alternate.example",
-    "curfew-studio-dev",
+    "curfew-dev",
   );
   const { sealWebsite, verifyWebsite } = await api();
   const stamp = await sealWebsite(directory, deployment, "staging");
@@ -151,7 +151,7 @@ test("static sealing checks both checkout and restoration app pairing", async (t
   const { sealWebsite } = await api();
   await writeFile(
     join(directory, "restore.html"),
-    '<div data-purchase-mode="restore" data-issuer="https://license.alternate.example" data-scheme="curfew-studio-dev"></div>',
+    '<div data-purchase-mode="restore" data-issuer="https://license.alternate.example" data-scheme="curfew-dev"></div>',
   );
   await assert.rejects(
     () => sealWebsite(directory, deployment),

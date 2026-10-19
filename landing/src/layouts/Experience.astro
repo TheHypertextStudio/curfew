@@ -48,15 +48,6 @@ const content = rawContent.replaceAll('{{SITE_ORIGIN}}', siteOrigin);
     <a class="skip-link" href="#main">Skip to content</a>
     <Fragment set:html={symbols} />
     <Fragment set:html={header()} />
-    {
-      home && (
-        <aside class="legal-notice wrap" aria-label="Policy update">
-          Terms and privacy updated <time datetime="2026-10-14">October 14</time>. Updated terms
-          apply to existing users <time datetime="2026-11-13">November 13</time>.
-          <a href="/legal/history">Read the changes</a>.
-        </aside>
-      )
-    }
     <main
       id="main"
       class={home ? undefined : 'reading wrap'}
