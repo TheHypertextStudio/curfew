@@ -49,6 +49,9 @@ public nonisolated enum CurfewFlavor: String, Sendable, CaseIterable {
             isDevelopmentBundle(containingAppIdentifier(for: executableURL)) {
             return .development
         }
+        if isDevelopmentAppBundle(bundleIdentifier) {
+            return .development
+        }
         if let raw = environment["CURFEW_FLAVOR"]?.lowercased(), !raw.isEmpty {
             switch raw {
             case "dev", "development": return .development
@@ -73,6 +76,11 @@ public nonisolated enum CurfewFlavor: String, Sendable, CaseIterable {
             "studio.hypertext.curfew.studio.dev",
             "studio.hypertext.curfew.studio.dev.widget"
         ].contains(identifier ?? "")
+    }
+
+    private static func isDevelopmentAppBundle(_ identifier: String?) -> Bool {
+        identifier == "studio.hypertext.curfew.dev" ||
+            identifier == "studio.hypertext.apps.curfew.dev"
     }
 
     private static func containingAppIdentifier(for executableURL: URL?) -> String? {

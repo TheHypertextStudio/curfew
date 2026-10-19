@@ -493,7 +493,11 @@ tests cannot read or mutate a user's App Group lockout record.
   - `MarketingCaptureTests/testCaptureAStateConsistencySetupReview()`
   - `MarketingCaptureTests/testCaptureAStateConsistencySetupPermission()`
   - `MarketingCaptureTests/testCaptureWorkspaceMatrix()` follows seven-day review before advancing.
-- `Studio Dev migration requires local schedule consent while retaining remote deadlines.`
+- `Curfew Dev migration requires local schedule consent while retaining remote deadlines.`
+  - `AutomaticScheduleConsentPolicyTests/developmentInstallDefaultsToRemoteOnly()` covers the signed development bundle and an explicit opt-in.
+  - `AutomaticScheduleConsentPolicyTests/developmentIdentityOverridesProductionEnvironment()` prevents inherited flavor variables from rearming the signed development app.
+  - `CurfewFlavorTests/developmentAppOverridesEnvironment()` pins the app-target identity boundary.
+  - `DevelopmentScheduleMigrationTests/completedDevelopmentDefaultsToRemoteOnly(flavor:)` covers the retained development store, durable persistence of the protective off value, and the UI distinction from an explicit choice; `FirstRunSafetyModelTests/completedProductionInstallKeepsSchedule()` keeps production's missing-consent behavior unchanged.
   - `AutomaticScheduleConsentPolicyTests/studioDevMigrationStaysOff()`
   - `ScheduleConsentReadSurfaceTests/intentDoesNotPredictAnInactiveLock()`
   - `CurfewMCPAccessTests/inactiveScheduleIsLabeled()`

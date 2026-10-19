@@ -402,13 +402,18 @@ final class CurfewAppModel: NSObject {
 
         let loadedSettings = settingsStore.load()
         self.settings = loadedSettings
+        settingsStore.migrateMissingDevelopmentScheduleConsentIfNeeded(
+            hasCompletedInitialSetup: loadedSettings.hasCompletedInitialSetup,
+            flavor: flavor
+        )
         let savedScheduleConsent = settingsStore.loadAutomaticScheduleConsent()
         let resolvedScheduleConsent = AutomaticScheduleConsentPolicy.isEnabled(
             savedConsent: savedScheduleConsent,
             hasCompletedInitialSetup: loadedSettings.hasCompletedInitialSetup,
             flavor: flavor
         )
-        self.hasExplicitAutomaticScheduleConsent = savedScheduleConsent != nil
+        self.hasExplicitAutomaticScheduleConsent = savedScheduleConsent != nil &&
+            !settingsStore.wasAutomaticScheduleConsentMigrated()
         self.automaticScheduleEnabled = resolvedScheduleConsent
         self.shouldOpenSettingsOnLaunch = settingsStore.consumeShouldShowInitialSetup()
         self.overrideEvents = settingsStore.loadOverrideEvents()
