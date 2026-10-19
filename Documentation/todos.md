@@ -1602,7 +1602,8 @@ asserts its own screen and state before attaching an image.
   distribution and hosted purchase/restore acceptance before advertising the flow.
 
 - [x] Retain separate production/staging website artifacts and verify purchase
-  issuer/scheme pairing before staging deployment and production publication.
+  issuer/scheme pairing before staging deployment and production publication,
+  rejecting retired callbacks on checkout, restoration, or both pages.
 - [x] Validate restore portals against the issuer's deployment profile and pair
   local purchase pages with the native development app's retained staging issuer.
 - [x] Pin the purchase environment in local website deployment commands and reject
