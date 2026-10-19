@@ -465,12 +465,12 @@ tests cannot read or mutate a user's App Group lockout record.
   - `AutomaticScheduleConsentPolicyTests/developmentIdentityOverridesProductionEnvironment()` prevents inherited flavor variables from rearming the signed development app.
   - `CurfewFlavorTests/developmentAppOverridesEnvironment()` pins the app-target identity boundary.
   - `DevelopmentScheduleMigrationTests/completedDevelopmentDefaultsToRemoteOnly(flavor:)` covers both development flavors, durable persistence of the protective off value, and the UI distinction from an explicit choice; `FirstRunSafetyModelTests/completedProductionInstallKeepsSchedule()` keeps production's missing-consent behavior unchanged.
+  - Active-schedule app-host fixtures in `DisplayClockTests`, `LifecycleWiringTests`, and `AuditWiringTests` save explicit weekly consent before constructing the model. `DeviceStatusWiringTests` and `DeviceStatusFailureIsolationTests` opt into their all-day-locked scenarios through `DeviceStatusWiringHarness`; `AccountLifecycleWiringTests` opts in only for schedule edits. Remote-only command/status cases leave consent absent, preserving coverage of a disabled weekly schedule with lock-capable saved rules.
+  - `DeviceStatusWiringTests/remoteOnlyStatusUsesInactiveSchedule()` checks the local day-off state, reported unknown phase, and inactive schedule digest with saved all-day-locked rules; an unarmed Mac must not claim live enforcement.
   - `AutomaticScheduleConsentPolicyTests/studioDevMigrationStaysOff()`
   - `ScheduleConsentReadSurfaceTests/intentDoesNotPredictAnInactiveLock()`
   - `CurfewMCPAccessTests/inactiveScheduleIsLabeled()`
   - `ScheduleConsentReadSurfaceTests/intentReportsObservedRemoteLock()`
-  - `FirstRunSafetyModelTests/completedStudioDevDefaultsToRemoteOnly()`
-  - `FirstRunSafetyModelTests/completedProductionInstallKeepsSchedule()`
   - `FirstRunSafetyModelTests/remoteOnlyPreservesDurableDeadline(kind:)`
   - `FirstRunSafetyModelTests/activeScheduleWeakeningStillQueues()`
   - `AccountLifecycleWiringTests/authenticatedRemoteResultPresentsLockout()`

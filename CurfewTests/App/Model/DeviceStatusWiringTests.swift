@@ -53,7 +53,8 @@ struct DeviceStatusWiringTests {
     func enforcementTransitionPublishes() async {
         let harness = DeviceStatusWiringHarness(
             reporting: DeviceStatusWiringHarness.configured(),
-            schedule: DeviceStatusWiringHarness.allDayLocked
+            schedule: DeviceStatusWiringHarness.allDayLocked,
+            automaticScheduleConsent: true
         )
         let model = harness.model
         // Hermetic start, as `LifecycleWiringTests` does it: seed a known
@@ -86,7 +87,8 @@ struct DeviceStatusWiringTests {
     func leavingLockoutPublishes() async {
         let harness = DeviceStatusWiringHarness(
             reporting: DeviceStatusWiringHarness.configured(),
-            schedule: DeviceStatusWiringHarness.allDayLocked
+            schedule: DeviceStatusWiringHarness.allDayLocked,
+            automaticScheduleConsent: true
         )
         let model = harness.model
         model.lockoutDeadlineStore.clear()
@@ -113,6 +115,32 @@ struct DeviceStatusWiringTests {
     }
 
     // MARK: - Presence transitions
+
+    @Test("A remote-only Mac reports its inactive schedule without claiming live enforcement")
+    func remoteOnlyStatusUsesInactiveSchedule() async throws {
+        let harness = DeviceStatusWiringHarness(
+            reporting: DeviceStatusWiringHarness.configured(),
+            schedule: DeviceStatusWiringHarness.allDayLocked
+        )
+        let model = harness.model
+        #expect(!model.automaticScheduleEnabled)
+
+        model.tick()
+        model.publishDeviceStatus(trigger: .configuration)
+        await harness.settle()
+
+        #expect(model.state.phase == .dayOff)
+        let last = harness.transport.calls.count - 1
+        let body = try #require(harness.transport.decodedBody(at: last))
+        #expect(body["phase"] as? String == "unknown")
+        #expect(body["scheduleDigest"] as? String == DeviceStatusReport
+            .scheduleDigest(for: .allDaysOff))
+        #expect(
+            body["scheduleDigest"] as? String != DeviceStatusReport.scheduleDigest(
+                for: DeviceStatusWiringHarness.allDayLocked
+            )
+        )
+    }
 
     @Test("A presence transition publishes a report")
     func presenceTransitionPublishes() async {

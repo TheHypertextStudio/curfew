@@ -194,6 +194,7 @@ struct DisplayClockTests {
             var settings = CurfewSettings.default
             settings.hasCompletedInitialSetup = true
             store.save(settings)
+            store.saveAutomaticScheduleConsent(true)
         }
         // Isolated lockout-deadline file so concurrent/sequential test runs
         // cannot share durable state (see `LifecycleWiringTests.makeModel`).

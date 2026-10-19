@@ -65,6 +65,9 @@ struct DeviceStatusWiringHarness {
     ///   - reporting: The status-reporting policy to start with. Defaults to
     ///     the shipped one, which is off.
     ///   - schedule: The schedule to evaluate against. Defaults to all days off.
+    ///   - automaticScheduleConsent: Whether weekly enforcement was explicitly
+    ///     enabled. Scheduled-transition fixtures opt in; nil exercises the
+    ///     completed-install migration to a remote-only schedule.
     ///   - outcome: What the fake transport answers every publish with.
     ///   - idleSeconds: How idle the fake HID source reports.
     ///   - secret: The shared signing secret to seed the in-memory store with.
@@ -72,6 +75,7 @@ struct DeviceStatusWiringHarness {
     init(
         reporting: DeviceStatusReportingPolicy = .default,
         schedule: WeeklySchedule? = nil,
+        automaticScheduleConsent: Bool? = nil,
         outcome: DeviceStatusPublishOutcome = .accepted,
         idleSeconds: TimeInterval = 600,
         secret: String = DeviceStatusWiringHarness.secret
@@ -85,6 +89,9 @@ struct DeviceStatusWiringHarness {
         settings.schedule = schedule ?? Self.allDaysOff
         settings.statusReporting = reporting
         store.save(settings)
+        if let automaticScheduleConsent {
+            store.saveAutomaticScheduleConsent(automaticScheduleConsent)
+        }
 
         // An isolated deadline file, for the same reason `LifecycleWiringTests`
         // uses one: a durable record left by another run would push the model
