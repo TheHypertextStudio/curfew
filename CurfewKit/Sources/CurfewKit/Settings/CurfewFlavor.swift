@@ -33,8 +33,8 @@ public nonisolated enum CurfewFlavor: String, Sendable, CaseIterable {
     /// the real process environment.
     ///
     /// Resolution order:
-    /// 1. A verified Studio app or widget bundle identity. This must not be
-    ///    overridden by an inherited development or production environment.
+    /// 1. A verified Studio or development app bundle identity. This must not
+    ///    be overridden by an inherited environment from another flavor.
     /// 2. The `CURFEW_FLAVOR` environment variable. The app exports this when it
     ///    spawns `curfew-ctl` / `curfew-mcp` and embeds it in the daemon plist,
     ///    so helper processes — whose own `Bundle.main` has no bundle id —
@@ -51,6 +51,9 @@ public nonisolated enum CurfewFlavor: String, Sendable, CaseIterable {
         if isStudioDevelopmentBundle(bundleIdentifier) ||
             isStudioDevelopmentBundle(containingAppIdentifier(for: executableURL)) {
             return .studioDevelopment
+        }
+        if isDevelopmentAppBundle(bundleIdentifier) {
+            return .development
         }
         if let raw = environment["CURFEW_FLAVOR"]?.lowercased(), !raw.isEmpty {
             switch raw {
@@ -70,6 +73,11 @@ public nonisolated enum CurfewFlavor: String, Sendable, CaseIterable {
     private static func isStudioDevelopmentBundle(_ identifier: String?) -> Bool {
         identifier == "studio.hypertext.curfew.studio.dev" ||
             identifier == "studio.hypertext.curfew.studio.dev.widget"
+    }
+
+    private static func isDevelopmentAppBundle(_ identifier: String?) -> Bool {
+        identifier == "studio.hypertext.curfew.dev" ||
+            identifier == "studio.hypertext.apps.curfew.dev"
     }
 
     private static func containingAppIdentifier(for executableURL: URL?) -> String? {

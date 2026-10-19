@@ -8,6 +8,6 @@ public enum AutomaticScheduleConsentPolicy {
         flavor: CurfewFlavor
     ) -> Bool {
         guard hasCompletedInitialSetup else { return false }
-        return savedConsent ?? (flavor != .studioDevelopment)
+        return savedConsent ?? (flavor == .production)
     }
 }

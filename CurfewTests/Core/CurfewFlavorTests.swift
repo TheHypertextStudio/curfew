@@ -7,19 +7,23 @@ import Testing
 /// single source of truth that keeps a development build's data and identity
 /// separate from the production install.
 struct CurfewFlavorTests {
-    @Test("CURFEW_FLAVOR overrides the bundle identifier")
-    func environmentOverridesBundle() {
+    @Test("CURFEW_FLAVOR can select a flavor for an unverified bundle")
+    func environmentOverridesUnverifiedBundle() {
         #expect(
             CurfewFlavor.resolve(
                 environment: ["CURFEW_FLAVOR": "development"],
                 bundleIdentifier: "studio.hypertext.curfew"
             ) == .development
         )
+    }
+
+    @Test("A signed development app ignores an inherited production flavor")
+    func developmentAppOverridesEnvironment() {
         #expect(
             CurfewFlavor.resolve(
                 environment: ["CURFEW_FLAVOR": "prod"],
                 bundleIdentifier: "studio.hypertext.curfew.dev"
-            ) == .production
+            ) == .development
         )
     }
 
