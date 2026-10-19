@@ -1634,3 +1634,9 @@ asserts its own screen and state before attaching an image.
 - [-] Refresh embedded helpers on every incremental app build and use the
   canonical development helper registration. Retire the old helper through
   authenticated removal; preserve its existing deadline and command-state paths.
+
+- [-] Keep the home page focused on the product, with policy changes on policy
+  pages and accessible footer links. Preserve fragment destinations through late
+  webfont loading in every supported browser.
+- [-] Pair staging purchase activation with the canonical Curfew Dev URL scheme
+  and maintain its purchase-page configuration in checked TypeScript.

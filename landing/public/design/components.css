@@ -3,7 +3,6 @@
   box-sizing: border-box;
 }
 html {
-  scroll-behavior: smooth;
   scroll-padding-top: var(--space-6);
 }
 body {

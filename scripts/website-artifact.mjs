@@ -56,7 +56,7 @@ async function verifyPurchaseEnvironment(directory, manifest, mode) {
   );
   const profile = manifest.environments[mode];
   assert.ok(profile, "Missing website deployment profile");
-  const scheme = mode === "production" ? "curfew" : "curfew-studio-dev";
+  const scheme = mode === "production" ? "curfew" : "curfew-dev";
   for (const [page, kind] of [
     ["success", "checkout"],
     ["restore", "restore"],

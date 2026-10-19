@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 
 const purchase =
   process.env.CURFEW_PURCHASE_TEST_MODE === 'staging'
-    ? { issuer: 'https://curfew-license-staging.hypertext.studio', scheme: 'curfew-studio-dev' }
+    ? { issuer: 'https://curfew-license-staging.hypertext.studio', scheme: 'curfew-dev' }
     : { issuer: 'https://license.thecurfew.app', scheme: 'curfew' };
 test.beforeEach(async ({ page }) => {
   await page.route('**/license/**', (route) => route.abort());
@@ -161,8 +161,6 @@ test('keyboard access and reduced motion use the same real links', async ({
   await account.focus();
   await expect(account).toBeFocused();
   await page.keyboard.press(nextLink);
-  await expect(page.getByRole('link', { name: 'Read the changes', exact: true })).toBeFocused();
-  await page.keyboard.press(nextLink);
   await expect(page.getByRole('link', { name: 'Get Curfew', exact: true })).toBeFocused();
 });
 
@@ -181,6 +179,27 @@ test('the app Plus link reaches visible availability information', async ({ page
   await expect(page.locator('#plus')).toContainText('Plus is not available for purchase yet.');
 });
 
+test('Plus deep links stay visible when fonts arrive after navigation', async ({ page }) => {
+  let releaseFonts;
+  const fontsMayLoad = new Promise((resolve) => {
+    releaseFonts = resolve;
+  });
+  await page.route('**/design/fonts/*', async (route) => {
+    await fontsMayLoad;
+    await route.continue();
+  });
+  try {
+    await page.goto('/#plus', { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('#plus')).toBeVisible();
+  } finally {
+    releaseFonts();
+  }
+  await page.evaluate(() => document.fonts.ready);
+  await expect(page.getByRole('heading', { name: 'Curfew Plus', exact: true })).toBeInViewport({
+    ratio: 1,
+  });
+});
+
 test('unknown URLs remain 404', async ({ request }) => {
   for (const path of ['/this-route-does-not-exist', '/missing/nested/page']) {
     const response = await request.get(path);
@@ -194,10 +213,6 @@ test('unknown URLs remain 404', async ({ request }) => {
 test('current policies expose the notice, official contact, and preserved refund promise', async ({
   page,
 }) => {
-  await page.goto('/');
-  await expect(page.getByRole('complementary', { name: 'Policy update' })).toContainText(
-    'November 13',
-  );
   for (const name of ['privacy', 'terms', 'refund', 'retention']) {
     await page.goto(`/${name}`);
     await expect(page.getByRole('complementary', { name: 'Policy update' })).toBeVisible();
@@ -291,8 +306,9 @@ test('product help and general inquiries use separate mail links', async ({ page
   }
 });
 
-test('home policy announcement clears the header and hero at desktop and mobile sizes', async ({
+test('home leads with the product and keeps policies in the footer at desktop and mobile sizes', async ({
   page,
+  browserName,
 }) => {
   for (const width of [1920, 390, 320]) {
     await page.setViewportSize({ width, height: 1080 });
@@ -306,27 +322,19 @@ test('home policy announcement clears the header and hero at desktop and mobile 
       `/curfew.css?v=${version}`,
     );
     const header = await page.locator('.site-header').boundingBox();
-    const notice = await page.getByRole('complementary', { name: 'Policy update' }).boundingBox();
     const hero = await page.locator('.hero').boundingBox();
-    expect(notice.y, `notice clears header at ${width}px`).toBeGreaterThanOrEqual(
+    await expect(page.getByRole('complementary', { name: 'Policy update' })).toHaveCount(0);
+    expect(hero.y, `hero clears header at ${width}px`).toBeGreaterThanOrEqual(
       header.y + header.height,
     );
-    expect(hero.y, `hero clears announcement at ${width}px`).toBeGreaterThanOrEqual(
-      notice.y + notice.height,
-    );
-    const announcement = page.getByRole('complementary', { name: 'Policy update' });
-    expect(await announcement.evaluate((node) => getComputedStyle(node).borderTopWidth)).toBe(
-      '0px',
-    );
-    await expect(announcement.locator('time[datetime="2026-10-14"]')).toHaveCount(1);
-    await expect(announcement.locator('time[datetime="2026-11-13"]')).toHaveCount(1);
-    const link = page.getByRole('link', { name: 'Read the changes', exact: true });
-    expect(await link.evaluate((node) => getComputedStyle(node).textDecorationLine)).toContain(
-      'underline',
-    );
-    await link.focus();
+    const link = page.locator('footer').getByRole('link', { name: 'Terms', exact: true });
+    await link.scrollIntoViewIfNeeded();
+    await page.locator('footer').getByRole('link', { name: 'Privacy', exact: true }).focus();
+    await page.keyboard.press(browserName === 'webkit' ? 'Alt+Tab' : 'Tab');
     await expect(link).toBeFocused();
-    await link.click();
+    await page.keyboard.press('Enter');
+    await expect(page.locator('main .policy-header h1')).toBeVisible();
+    await page.locator('main a[href="/legal/history"]').first().click();
     await expect(page.getByRole('heading', { name: 'Policy history', exact: true })).toBeVisible();
   }
 });
