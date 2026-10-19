@@ -26,6 +26,7 @@ struct AuditWiringTests {
         var liveSettings = settings ?? .default
         liveSettings.hasCompletedInitialSetup = true
         store.save(liveSettings)
+        store.saveAutomaticScheduleConsent(true)
         let deadlineURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("curfew-audit-deadline-\(UUID().uuidString).json")
 
