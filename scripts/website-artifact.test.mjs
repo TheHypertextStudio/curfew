@@ -146,6 +146,32 @@ test("staging build identity cannot be admitted for production publication", asy
     /purchase.*environment|website build/i,
   );
 });
+test("staging sealing refuses a retired app callback on either purchase page", async (t) => {
+  const { sealWebsite } = await api();
+  for (const retiredPages of [
+    ["success", "restore"],
+    ["success"],
+    ["restore"],
+  ]) {
+    const directory = await fixture(t);
+    await purchasePages(
+      directory,
+      "https://license.staging.alternate.example",
+      "curfew-dev",
+    );
+    for (const page of retiredPages) {
+      const kind = page === "success" ? "checkout" : "restore";
+      await writeFile(
+        join(directory, `${page}.html`),
+        `<div data-purchase-mode="${kind}" data-issuer="https://license.staging.alternate.example" data-scheme="curfew-studio-dev"></div>`,
+      );
+    }
+    await assert.rejects(
+      () => sealWebsite(directory, deployment, "staging"),
+      /purchase.*environment/i,
+    );
+  }
+});
 test("static sealing checks both checkout and restoration app pairing", async (t) => {
   const directory = await fixture(t);
   const { sealWebsite } = await api();
