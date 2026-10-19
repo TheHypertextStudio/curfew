@@ -89,7 +89,7 @@ final class CurfewUITests: XCTestCase {
         XCTAssertLessThan(review.frame.maxY, window.frame.maxY - 12)
         XCTAssertFalse(app.staticTexts["Initial setup"].exists)
         XCTAssertFalse(app.staticTexts["Installation"].exists)
-        XCTAssertTrue(general.label.contains("Protection"))
+        XCTAssertEqual(general.value as? String, "Protection")
         XCTAssertTrue(app.buttons["background-protection-remove"].exists)
     }
 
@@ -363,7 +363,7 @@ extension CurfewUITests {
         XCTAssertTrue(app.staticTexts["Weekly allowance"].waitForExistence(timeout: 3))
         app.typeKey(.upArrow, modifierFlags: [])
         XCTAssertTrue(app.staticTexts.matching(identifier: "settings-page-title")
-            .matching(NSPredicate(format: "label == %@", "Protection")).element
+            .matching(NSPredicate(format: "value == %@", "Protection")).element
             .waitForExistence(timeout: 3))
     }
 
@@ -380,7 +380,7 @@ extension CurfewUITests {
         XCTAssertTrue(app.staticTexts["AI assistants"].waitForExistence(timeout: 3))
         app.descendants(matching: .any)["settings-general-tab"].click()
         XCTAssertTrue(app.staticTexts.matching(identifier: "settings-page-title")
-            .matching(NSPredicate(format: "label == %@", "Protection")).element
+            .matching(NSPredicate(format: "value == %@", "Protection")).element
             .waitForExistence(timeout: 3))
         app.windows["main-workspace"].click()
         manage.click()

@@ -6,7 +6,7 @@ extension SettingsView {
     var integrationsPanel: some View {
         Group {
             coordinatorSyncPanel
-            if CurfewFlavor.current != .development {
+            if CurfewFlavor.current != .development || model.isDemoSession {
                 taskBrowserEnforcementPanel
             }
             if model.featureFlags.mcpServerEnabled {
