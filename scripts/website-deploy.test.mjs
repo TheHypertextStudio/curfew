@@ -40,7 +40,7 @@ const actualMode = ${wrongOutput ? JSON.stringify(mode === "staging" ? "producti
 const manifest = JSON.parse(readFileSync('../deployment/environments.json', 'utf8'));
 mkdirSync('dist', { recursive: true });
 for (const [page, kind] of [['success', 'checkout'], ['restore', 'restore']]) {
-  writeFileSync('dist/' + page + '.html', '<div data-purchase-mode="' + kind + '" data-issuer="' + manifest.environments[actualMode].licenseOrigin + '" data-scheme="' + (actualMode === 'production' ? 'curfew' : 'curfew-studio-dev') + '"></div>');
+  writeFileSync('dist/' + page + '.html', '<div data-purchase-mode="' + kind + '" data-issuer="' + manifest.environments[actualMode].licenseOrigin + '" data-scheme="' + (actualMode === 'production' ? 'curfew' : 'curfew-dev') + '"></div>');
 }
 writeFileSync('built-mode', actualMode);
 `,

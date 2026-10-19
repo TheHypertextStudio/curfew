@@ -6,7 +6,7 @@ const profiles = {
   local: { licenseOrigin: 'http://localhost:8788' },
 };
 async function profile(mode) {
-  const { purchaseProfile } = await import('../../src/lib/purchase-profile.mjs');
+  const { purchaseProfile } = await import('../../src/lib/purchase-profile.ts');
   return purchaseProfile(mode, profiles);
 }
 test('purchase deployment pairs each configured issuer with the matching installed app', async () => {
@@ -16,7 +16,7 @@ test('purchase deployment pairs each configured issuer with the matching install
   });
   assert.deepEqual(await profile('staging'), {
     issuer: 'https://license.staging.example.org',
-    scheme: 'curfew-studio-dev',
+    scheme: 'curfew-dev',
   });
   assert.deepEqual(await profile('local'), {
     issuer: 'https://license.staging.example.org',
