@@ -23,6 +23,19 @@ suite, and mobile/desktop light/dark visual review. These checks cover source,
 rendering, and layout; they do not prove hosted account sign-in or an MCP lock.
 Rollback is the previous website commit and its verified static artifact.
 
+The home page leads directly from navigation into the product introduction.
+Policy dates, change notices, and version history belong on the policy pages;
+footer links keep them accessible. Fragment links use native scrolling so late
+webfont layout changes do not strand the requested section outside the viewport.
+Browser acceptance covers the Plus deep link with delayed font responses and
+home/footer keyboard navigation at desktop and narrow widths.
+
+Purchase-page configuration lives in TypeScript under `landing/src/lib/` and
+is checked by Astro and the shared TypeScript lint rules. Production activation
+links open Curfew; staging and local links open the canonical Curfew Dev scheme.
+The browser acceptance suite checks both deployment modes. Node test and
+configuration files retain their existing module format.
+
 The marketing and Support guide links now open the published Mintlify project
 at `curfew.mintlify.site/docs`. This avoids dead first-party deep links while
 the `/docs` proxy is still disabled; the old HTML guide remains at `/docs`
