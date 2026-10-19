@@ -151,38 +151,6 @@ struct FirstRunSafetyModelTests {
         #expect(!model.settings.hasCompletedInitialSetup)
     }
 
-    @Test("Completed Studio Dev installs remain remote-only until schedule consent")
-    func completedStudioDevDefaultsToRemoteOnly() {
-        let suiteName = "CurfewSettingsStoreTests.StudioConsent.\(UUID().uuidString)"
-        guard let defaults = UserDefaults(suiteName: suiteName) else {
-            Issue.record("Unable to create isolated UserDefaults suite.")
-            return
-        }
-        defer { defaults.removePersistentDomain(forName: suiteName) }
-
-        let store = CurfewSettingsStore(defaults: defaults)
-        var settings = CurfewSettings.default
-        var savedRule = settings.schedule.rule(for: .monday)
-        savedRule.lockMinutes = 22 * 60
-        savedRule.unlockMinutes = 8 * 60
-        settings.schedule.rules[.monday] = savedRule
-        settings.hasCompletedInitialSetup = true
-        store.save(settings)
-        let model = CurfewAppModel(
-            settingsStore: store,
-            appRouter: AppRouterSpy(),
-            flavor: .studioDevelopment,
-            activityRecorder: NullActivityRecording(),
-            lockoutDeadlineStore: .ephemeralForTesting()
-        )
-
-        #expect(!model.automaticScheduleEnabled)
-        #expect(model.effectiveSchedule == .allDaysOff)
-        #expect(model.state.phase == .dayOff)
-        #expect(model.settings.schedule.rule(for: .monday) == savedRule)
-        #expect(store.loadAutomaticScheduleConsent() == nil)
-    }
-
     @Test("Completed remote-only installs edit their inactive schedule immediately")
     func remoteOnlyScheduleEditIsImmediate() {
         let suiteName = "CurfewSettingsStoreTests.RemoteOnlyEdit.\(UUID().uuidString)"
@@ -266,6 +234,7 @@ struct FirstRunSafetyModelTests {
 
         #expect(model.automaticScheduleEnabled)
         #expect(model.effectiveSchedule == .startupHours)
+        #expect(store.loadAutomaticScheduleConsent() == nil)
     }
 
     @Test(
@@ -304,6 +273,66 @@ struct FirstRunSafetyModelTests {
 
         #expect(model.state.phase == .locked)
         #expect(model.state.unlockDate == deadlineStore.load()?.scheduledUnlockAt)
+    }
+}
+
+@MainActor
+struct DevelopmentScheduleMigrationTests {
+    @Test(
+        "Completed development installs persist remote-only rollback safety",
+        arguments: [CurfewFlavor.development, .studioDevelopment]
+    )
+    func completedDevelopmentDefaultsToRemoteOnly(flavor: CurfewFlavor) {
+        let suiteName = "CurfewSettingsStoreTests.StudioConsent.\(UUID().uuidString)"
+        guard let defaults = UserDefaults(suiteName: suiteName) else {
+            Issue.record("Unable to create isolated UserDefaults suite.")
+            return
+        }
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let store = CurfewSettingsStore(defaults: defaults)
+        var settings = CurfewSettings.default
+        var savedRule = settings.schedule.rule(for: .monday)
+        savedRule.lockMinutes = 22 * 60
+        savedRule.unlockMinutes = 8 * 60
+        settings.schedule.rules[.monday] = savedRule
+        settings.hasCompletedInitialSetup = true
+        store.save(settings)
+        let model = CurfewAppModel(
+            settingsStore: store,
+            appRouter: AppRouterSpy(),
+            flavor: flavor,
+            activityRecorder: NullActivityRecording(),
+            lockoutDeadlineStore: .ephemeralForTesting()
+        )
+
+        #expect(!model.automaticScheduleEnabled)
+        #expect(model.effectiveSchedule == .allDaysOff)
+        #expect(model.state.phase == .dayOff)
+        #expect(model.settings.schedule.rule(for: .monday) == savedRule)
+        #expect(!model.hasExplicitAutomaticScheduleConsent)
+        #expect(store.loadAutomaticScheduleConsent() == false)
+
+        let relaunchedModel = CurfewAppModel(
+            settingsStore: CurfewSettingsStore(defaults: defaults),
+            appRouter: AppRouterSpy(),
+            flavor: flavor,
+            activityRecorder: NullActivityRecording(),
+            lockoutDeadlineStore: .ephemeralForTesting()
+        )
+        #expect(!relaunchedModel.automaticScheduleEnabled)
+        #expect(!relaunchedModel.hasExplicitAutomaticScheduleConsent)
+
+        store.saveAutomaticScheduleConsent(true)
+        let optedInModel = CurfewAppModel(
+            settingsStore: CurfewSettingsStore(defaults: defaults),
+            appRouter: AppRouterSpy(),
+            flavor: flavor,
+            activityRecorder: NullActivityRecording(),
+            lockoutDeadlineStore: .ephemeralForTesting()
+        )
+        #expect(optedInModel.automaticScheduleEnabled)
+        #expect(optedInModel.hasExplicitAutomaticScheduleConsent)
     }
 }
 

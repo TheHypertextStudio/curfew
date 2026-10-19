@@ -380,6 +380,7 @@ public final class CurfewSettingsStore {
         static let overrideEvents = "curfew.overrideEvents.v1"
         static let reflectionConfig = "curfew.reflectionConfig.v1"
         static let automaticScheduleConsent = "curfew.automaticScheduleConsent.v1"
+        static let automaticScheduleConsentMigrated = "curfew.automaticScheduleConsentMigrated.v1"
     }
 
     private let defaults: UserDefaults
@@ -427,10 +428,32 @@ public final class CurfewSettingsStore {
         return defaults.bool(forKey: Key.automaticScheduleConsent)
     }
 
+    /// Protects an already-onboarded development install whose older binary
+    /// would treat a missing choice as permission to run its weekly schedule.
+    /// The false value is readable by that older binary after a rollback.
+    public func migrateMissingDevelopmentScheduleConsentIfNeeded(
+        hasCompletedInitialSetup: Bool,
+        flavor: CurfewFlavor
+    ) {
+        guard hasCompletedInitialSetup,
+              flavor != .production,
+              defaults.object(forKey: Key.automaticScheduleConsent) == nil else { return }
+        defaults.set(false, forKey: Key.automaticScheduleConsent)
+        defaults.set(true, forKey: Key.automaticScheduleConsentMigrated)
+    }
+
+    /// Keeps Settings from presenting a protective migration as the user's
+    /// own choice, including after relaunch. An explicit save clears this flag.
+    public func wasAutomaticScheduleConsentMigrated() -> Bool {
+        defaults.bool(forKey: Key.automaticScheduleConsentMigrated) &&
+            loadAutomaticScheduleConsent() == false
+    }
+
     /// Records an explicit choice before completing setup, so a crash cannot
     /// arm a Studio Dev schedule without a persisted confirmation.
     public func saveAutomaticScheduleConsent(_ enabled: Bool) {
         defaults.set(enabled, forKey: Key.automaticScheduleConsent)
+        defaults.removeObject(forKey: Key.automaticScheduleConsentMigrated)
     }
 
     /// Returns `true` and records the flag on first call; returns `false` on
