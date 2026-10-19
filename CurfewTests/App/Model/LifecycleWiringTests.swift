@@ -259,6 +259,7 @@ struct LifecycleWiringTests {
             settings.hasCompletedInitialSetup = true
             settings.accountSync = accountSync
             store.save(settings)
+            store.saveAutomaticScheduleConsent(true)
         }
         let deadlineURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("curfew-deadline-\(UUID().uuidString).json")

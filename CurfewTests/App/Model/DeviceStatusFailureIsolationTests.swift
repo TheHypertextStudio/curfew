@@ -76,11 +76,13 @@ struct DeviceStatusFailureIsolationTests {
         failure: DeviceStatusPublishOutcome
     ) async {
         let control = DeviceStatusWiringHarness(
-            schedule: DeviceStatusWiringHarness.allDayLocked
+            schedule: DeviceStatusWiringHarness.allDayLocked,
+            automaticScheduleConsent: true
         )
         let reporting = DeviceStatusWiringHarness(
             reporting: DeviceStatusWiringHarness.configured(heartbeatSeconds: 60),
             schedule: DeviceStatusWiringHarness.allDayLocked,
+            automaticScheduleConsent: true,
             outcome: failure
         )
 
@@ -102,12 +104,14 @@ struct DeviceStatusFailureIsolationTests {
     @Test("A coordinator that never answers cannot stall the tick loop")
     func aHangingCoordinatorCannotStallEnforcement() async {
         let control = DeviceStatusWiringHarness(
-            schedule: DeviceStatusWiringHarness.allDayLocked
+            schedule: DeviceStatusWiringHarness.allDayLocked,
+            automaticScheduleConsent: true
         )
         let hanging = BlockingStatusTransport()
         let harness = DeviceStatusWiringHarness(
             reporting: DeviceStatusWiringHarness.configured(heartbeatSeconds: 60),
-            schedule: DeviceStatusWiringHarness.allDayLocked
+            schedule: DeviceStatusWiringHarness.allDayLocked,
+            automaticScheduleConsent: true
         )
         // Swap in a transport that accepts a publish and then never returns.
         // `tick()` is synchronous, so if reporting could block enforcement at
@@ -183,6 +187,7 @@ struct DeviceStatusFailureIsolationTests {
         let harness = DeviceStatusWiringHarness(
             reporting: DeviceStatusWiringHarness.configured(heartbeatSeconds: 60),
             schedule: DeviceStatusWiringHarness.allDayLocked,
+            automaticScheduleConsent: true,
             outcome: .unreachable
         )
         let locked = driveLockout(harness)

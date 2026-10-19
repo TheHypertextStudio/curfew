@@ -157,8 +157,10 @@ struct AccountLifecycleWiringTests {
         let transport = RemoteResultTransportSpy()
         let model = makeModel(
             accountSync: account,
-            accountSyncEngine: AccountSyncEngine(transport: transport)
+            accountSyncEngine: AccountSyncEngine(transport: transport),
+            flavor: .development
         )
+        #expect(!model.automaticScheduleEnabled)
         model.currentTime = now
         model.state = CurfewEvaluation(
             phase: .dayOff,
@@ -400,7 +402,8 @@ extension AccountLifecycleWiringTests {
         let account = try configuration()
         let model = makeModel(
             accountSync: account,
-            accountSyncEngine: AccountSyncEngine(transport: transport)
+            accountSyncEngine: AccountSyncEngine(transport: transport),
+            automaticScheduleConsent: true
         )
         model.licenseGate.testInjectActivatedKey(LicenseKey(
             email: "tester@example.com",
@@ -438,7 +441,9 @@ extension AccountLifecycleWiringTests {
         accountSync: AccountSyncConfiguration,
         accountSyncEngine: AccountSyncEngine? = nil,
         cloudKitSyncEngine: CloudKitSyncEngine? = nil,
-        hasCompletedInitialSetup: Bool = true
+        hasCompletedInitialSetup: Bool = true,
+        automaticScheduleConsent: Bool? = nil,
+        flavor: CurfewFlavor = .production
     ) -> CurfewAppModel {
         let suite = "studio.hypertext.curfew.tests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite) ?? .standard
@@ -448,12 +453,15 @@ extension AccountLifecycleWiringTests {
         settings.accountSync = accountSync
         let store = CurfewSettingsStore(defaults: defaults)
         store.save(settings)
+        if let automaticScheduleConsent {
+            store.saveAutomaticScheduleConsent(automaticScheduleConsent)
+        }
         let deadlineURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("curfew-deadline-\(UUID().uuidString).json")
         return CurfewAppModel(
             settingsStore: store,
             appRouter: AppRouterSpy(),
-            flavor: .production,
+            flavor: flavor,
             featureFlags: FeatureFlags(
                 widgetKitEnabled: false,
                 cloudSyncEnabled: true,
