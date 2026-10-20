@@ -2047,5 +2047,6 @@ Do not run lockout/shutdown acceptance or UI suites on the operator desktop.
 | Home leads with the product; footer policies remain keyboard accessible; Plus deep links survive delayed webfonts | `landing/tests/acceptance/site.spec.mjs` in Chromium, Firefox and WebKit |
 | Purchase pages use the matching production or canonical Dev activation scheme | `landing/tests/unit/purchase-profile.test.mjs`; staging and production browser acceptance; Astro typecheck and shared TypeScript lint |
 | Static builds contain namespaced website styles, scripts and fonts; retired staging links cannot redirect to another host | `landing/tests/acceptance/site.spec.mjs` asset delivery; `landing/tests/unit/site-worker.test.mjs` double-slash redirect regression |
+| Consolidated staging keeps website and account navigation on its canonical host; old emailed links retain their fragments | Hosted modern homepage, account security-check navigation, actual restore email and compatibility redirect review; native signed-upgrade activation check |
 
 | Incremental signed builds refresh embedded helpers/plists; Dev uses its canonical service | `scripts/dev-consolidation.test.mjs`; `DaemonPlistTests`; `AppNamespaceTests`; signed helper reconnect |

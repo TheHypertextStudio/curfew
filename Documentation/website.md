@@ -137,6 +137,12 @@ canonical host before accepting the cutover. The frontend has no license keys
 or database bindings. Account authorization remains enforced by the backend.
 Production routes and payment configuration do not change during consolidation.
 
+Keep the staging account service's `PUBLIC_HOME_URL` equal to the staging
+`siteOrigin` so account home, support and recovery navigation stay on the same
+website. Preserve its authentication origin and native callback compatibility.
+Disable obsolete branch publishers that deploy a pinned preview archive before
+cutover; use the reviewed staging artifact and the main-only publication path.
+
 Outside the staging account-service binding, `ACCOUNT_PORTAL` points plain
 `/account` navigation to the existing account application. Production retains
 the legacy portal until the separate service-domain cutover. The marketing
