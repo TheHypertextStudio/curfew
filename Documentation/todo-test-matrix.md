@@ -159,6 +159,27 @@ full suite is still required.
 
 ## Renewed account connection handoff
 
+`AccountOAuthBrowserLifetimeTests.testLateBrowserCompletionCannotEndTheNextSignIn`
+starts a replacement sign-in through the real enrollment service, delivers a
+late cancellation from the first browser, and verifies that the replacement
+receives only its own browser result. The browser seam prevents an operating
+system sign-in window from opening during this regression. Attempt identity is
+cleared before browser cancellation so completed sign-ins also ignore the
+browser's subsequent cancellation callback and do not log a false failure.
+
+`NativeAccountSyncTransportTests.testPollClearsAnOverrideWhenWakeStatusFails`
+awaits a complete reconciliation and checks override removal, offline reporting,
+and absence of a healthy notification. Its callback assertions do not impose a
+200 ms network deadline. Transport fixtures use temporary inbox, results, and
+enrollment stores and mark in-memory grants for their current deployment, so
+they never inherit installed-app state or simulate an unrelated domain move.
+The separate
+`NativeAccountSyncOverrideCadenceTests.testOverridePollingContinuesWhileWakeStatusHangs`
+retains coverage of independent override polling while wake I/O remains pending.
+Native OAuth presentation and browser failures use the existing `account-oauth`
+log category with only error domain and code; they do not change sign-in behavior
+or justify new account, recovery, or lockout setup.
+
 `AccountStatusSyncTests.testTerminalRejectionCannotPublishOrRestartUntilReauthorized`
 checks that rejected credentials stop status publication and cannot be
 reactivated by an ordinary start; only the explicit successful same-account

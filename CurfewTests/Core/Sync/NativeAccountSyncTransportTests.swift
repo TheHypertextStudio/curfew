@@ -202,28 +202,22 @@ extension NativeAccountSyncTransportTests {
         }
         defer { NativeTransportURLProtocol.handler = nil }
         let transport = makeTransport(secrets: fixture.secrets)
-        let cleared = expectation(description: "inactive override cleared despite wake failure")
-        let offline = expectation(description: "wake failure reported after override clear")
-        let synchronized = expectation(description: "partial poll must not report healthy")
-        synchronized.isInverted = true
+        defer { transport.disconnect() }
+        var overrideWasCleared = false
+        var wasOffline = false
+        var wasSynchronized = false
+        transport.onRemoteOverride = { override in
+            XCTAssertNil(override)
+            overrideWasCleared = true
+        }
+        transport.onOffline = { wasOffline = true }
+        transport.onSynchronized = { _ in wasSynchronized = true }
 
-        transport.connect(
-            deviceID: fixture.deviceID,
-            callbacks: AccountSyncTransportCallbacks(
-                onSynchronized: { _ in synchronized.fulfill() },
-                onOffline: { offline.fulfill() },
-                onWakeStatus: { _ in },
-                onRemoteOverride: { override in
-                    XCTAssertNil(override)
-                    cleared.fulfill()
-                },
-                onRemoteCommandResult: { _ in },
-                onFailure: { _ in }
-            )
-        )
+        await transport.pollOnce(deviceID: fixture.deviceID)
 
-        await fulfillment(of: [cleared, offline, synchronized], timeout: 0.2)
-        transport.disconnect()
+        XCTAssertTrue(overrideWasCleared, "Wake failure must not prevent override removal")
+        XCTAssertTrue(wasOffline, "A failed wake read must report the partial failure")
+        XCTAssertFalse(wasSynchronized, "A partial poll must not report healthy")
     }
 
     func testOverrideFailureCannotBeOverwrittenByAHealthyAccountPoll() async throws {

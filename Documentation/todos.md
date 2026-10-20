@@ -15,6 +15,18 @@
 
 ## Native reconnect regression timing
 
+- [x] Bind every browser completion to the sign-in attempt that opened it so
+  delayed cancellation cannot close a replacement sign-in. Keep existing
+  enrollment and credentials untouched when an old completion is ignored.
+- [x] Verify override removal and partial-poll health by awaiting a completed
+  reconciliation instead of requiring network callbacks within 200 ms. Keep
+  independent polling coverage for a wake request that never returns.
+- [x] Record native sign-in presentation, browser-start, and browser-completion
+  failures in the existing OAuth diagnostic category. Include only the error
+  domain and numeric code, never the sign-in URL, credentials, or response body.
+  This changes diagnostics only; reconnect, consent, and enforcement rules stay
+  unchanged. Reverting these logs does not require a data migration.
+
 - [x] Wait for the new polling session's health event independently of the
   inverted old-session failure expectation. Preserve the reconnect isolation
   assertion under hosted runner load without treating a 200 ms wait as a
