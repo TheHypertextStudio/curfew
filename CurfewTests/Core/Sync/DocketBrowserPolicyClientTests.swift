@@ -126,7 +126,8 @@ struct DocketBrowserPolicyClientTests {
         let client = DocketOAuthClient(
             store: store,
             session: URLSession(configuration: configuration),
-            endpoints: .production
+            endpoints: .production,
+            flavor: .production
         )
 
         let first = try await client.makeAuthorizationRequest(
