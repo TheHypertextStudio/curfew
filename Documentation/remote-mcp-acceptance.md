@@ -1,8 +1,89 @@
 # Remote MCP acceptance evidence
 
-Snapshot: 2026-10-13. This is an evidence ledger, not a claim that the full
+Snapshot: 2026-10-20. This is an evidence ledger, not a claim that the full
 download-to-phone-control flow is released. Historical sections below retain
 their point-in-time wording; the latest evidence takes precedence.
+
+## 2026-10-20 installed-dev and staging acceptance
+
+The earlier company-signed Studio Dev installation completed the real native
+OAuth callback and retained its existing enrollment.
+The browser lifetime correction in [native PR #87](https://github.com/TheHypertextStudio/curfew/pull/87)
+ignores a previous attempt's delayed cancellation rather than closing a newer
+sign-in. Its regression was observed failing before implementation and passing
+afterward. The final targeted run passes 44 native tests; shared-package tests,
+97 repository script tests, strict lint, formatting, unsigned Release compilation,
+and the signed Studio Dev build also pass. These results do not substitute for
+the full app-host and graphical suites, which remain pending in hosted CI.
+
+The consent correction in [coordinator PR #88](https://github.com/TheHypertextStudio/curfew-sync/pull/88)
+aligns readiness with the five-minute security window enforced on submission.
+Expired requests now redirect to a separate restart page before rendering,
+after an idle consent page expires, or after an invalid-signature response.
+A successful grant redirect takes precedence. Existing authenticator enrollment
+and saved recovery codes are preserved. All 739 Worker and 181 browser tests
+pass, with failing-first regressions for the changed transitions.
+
+The reviewed coordinator commit `ab7077a7b4ebb0c1764ae1d6cf772562d48deae2`
+is active on staging as Worker version `c891961e-d7a9-476f-ba09-628e31283257`.
+The owner authorized a one-time local deployment after GitHub rejected the
+protected deployment job before it started because of its account billing
+restriction. The retained database schema and authority guards were checked
+before deployment, existing provider-secret names were unchanged afterward,
+and the temporary branch deployment permission was removed. No production
+deployment, billing change, new schema, or protocol version was introduced.
+
+The deployed expired-request route returned a noncached 303 to
+`/account/connection-expired`; the final page displays “Start this connection
+again” without loading the account-flow script. The real Codex staging connector
+received fresh reports from the installed Mac at `2026-10-20T17:34:50.332Z` and
+`17:35:51.319Z`, after deployment. Both reported Studio Dev Mac online, with a
+day off and no active lockout. This proves the existing native grant and Codex
+connector remained usable across two reporting cycles; it is not another
+physical enforcement test. No lock, unlock, or foreground desktop interaction
+was performed for this acceptance.
+
+A later read-only installation check found that the parallel consolidation work
+had replaced Studio Dev with `/Applications/Curfew Dev.app`, signed under the
+same Studio team with bundle ID `studio.hypertext.apps.curfew.dev`. Its matching
+helper is running, and Codex received another online report at
+`2026-10-20T17:46:56.154Z`, again with no active lockout. At that observation, the
+consolidated source did not contain PR #87's browser-attempt fix. Its running
+connectivity must not be presented as installed acceptance of that fix;
+acceptance on the replacement installation remains required. Do not reinstall the retired
+Studio Dev identity or overwrite the other session's active work.
+
+The fix has since been integrated onto the canonical development source in the
+existing isolated checkout. All 44 targeted native tests pass headlessly on that
+identity, and shared-package tests, all 142 repository script tests, workflow
+lint, formatting, and strict SwiftLint pass. Independent review confirms that
+the integration preserves the canonical purchase-validation job and protected
+deployment workflows. This closes the source-integration gap, not acceptance of
+a replacement installation; the running app has not been restarted or replaced
+by this work. Full native app-host and graphical checks remain required.
+
+The current implementation uses Better Auth MCP and CIMD together, with the
+`mcp-2026-07-28` metadata profile and SDK tests exercising that protocol version.
+Device-specific and all-device lock scopes remain distinct; unlock permissions
+are separate. The MCP App uses the official extension SDK. The daemon composes
+local and remote command backends behind the shared backend interface; the
+versioned wire contracts remain independent of macOS UI and helper machinery.
+Relevant source and coverage are linked through `Documentation/todo-test-matrix.md`
+and the coordinator's architecture notes. These source/test observations do not
+claim a Windows implementation or production-provider acceptance.
+
+The earlier Apple callback correction was accepted by the owner, who confirmed
+Apple sign-in worked. Authenticator setup and recovery-code saving were already
+completed; neither was repeated for this reconnect. The owner accepted desktop
+Codex connector verification instead of another phone walkthrough. The earlier
+physical-lock observation below remains historical evidence, not permission for
+another command or proof of a fresh physical test on this candidate.
+
+Delivery remains the reviewed native/coordinator PRs. Historical Studio Dev
+connectivity and current staging behavior are accepted only in their observed
+scopes; canonical Dev installation acceptance and full native hosted checks
+remain required. Production promotion, public release artifacts, and Plus/billing activation remain withheld;
+staging acceptance must not be represented as a general-availability release.
 
 ## 2026-10-13 native reconnect diagnosis in progress
 
