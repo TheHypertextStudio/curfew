@@ -26,10 +26,7 @@ final class NativeAccountSyncOverrideCadenceTests: XCTestCase {
             delegate: lifetime,
             delegateQueue: nil
         )
-        let transport = NativeAccountSyncTransport(
-            secretStore: fixture.secrets, session: session,
-            socketEnabled: false
-        )
+        let transport = makeTransport(secrets: fixture.secrets, session: session)
         let previousGeneration = transport.connectionGeneration
         let oldFailure = Task {
             await transport.handleSocketFailure(
@@ -74,11 +71,10 @@ final class NativeAccountSyncOverrideCadenceTests: XCTestCase {
             delegate: lifetime,
             delegateQueue: nil
         )
-        let transport = NativeAccountSyncTransport(
-            secretStore: fixture.secrets,
+        let transport = makeTransport(
+            secrets: fixture.secrets,
             session: session,
-            pollingInterval: .milliseconds(20),
-            socketEnabled: false
+            pollingInterval: .milliseconds(20)
         )
 
         transport.connect(
@@ -124,11 +120,10 @@ final class NativeAccountSyncOverrideCadenceTests: XCTestCase {
             delegate: lifetime,
             delegateQueue: nil
         )
-        let transport = NativeAccountSyncTransport(
-            secretStore: fixture.secrets,
+        let transport = makeTransport(
+            secrets: fixture.secrets,
             session: session,
-            pollingInterval: .seconds(10),
-            socketEnabled: false
+            pollingInterval: .seconds(10)
         )
 
         transport.connect(
@@ -177,14 +172,17 @@ final class NativeAccountSyncOverrideCadenceTests: XCTestCase {
         accessToken: String = "resource-bound-access-token",
         refreshToken: String? = nil,
         clientID: String? = nil
-    ) throws -> (
-        deviceID: UUID,
-        secrets: NativeTransportMemorySecretStore
-    ) {
+    ) throws -> (deviceID: UUID, secrets: NativeTransportMemorySecretStore) {
         let deviceID = try XCTUnwrap(
             UUID(uuidString: "018f4f45-cafe-7f00-9a82-e47805fb4d35")
         )
         let secrets = NativeTransportMemorySecretStore()
+        let endpoints = CurfewServiceEndpoints.current
+        try secrets.save(
+            Data((endpoints.accountOrigin.absoluteString + "|" + endpoints.syncResource
+                    .absoluteString).utf8),
+            for: "oauth-deployment-identity"
+        )
         try secrets.save(Data(accessToken.utf8), for: "oauth-access-token")
         if let refreshToken {
             try secrets.save(Data(refreshToken.utf8), for: "oauth-refresh-token")
