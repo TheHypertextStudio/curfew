@@ -1614,7 +1614,8 @@ asserts its own screen and state before attaching an image.
 - [-] Consolidate the modern staging website, purchase activation, restoration
   and account entry at `curfew-staging.hypertext.studio`. Retain the existing
   passkey identity and account service, preserve authenticated request/response
-  semantics, isolate website assets, and redirect old purchase links. Accept
+  semantics, package isolated website assets for static and Worker hosting, and
+  keep old purchase redirects on the canonical host. Accept
   hosted sign-in and purchase recovery before retiring the extra entry point.
 - [x] Use the purchase website for native purchase entry and checkout
   confirmation. Reject test credentials in the legacy production bootstrap
