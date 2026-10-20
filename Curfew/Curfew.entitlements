@@ -2,64 +2,25 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <!--
-      Debug/local entitlements. Intentionally minimal so `xcodebuild test`
-      with ad-hoc signing succeeds without a Developer ID. The production
-      (Release) build points at `Curfew-Release.entitlements`, which adds
-      iCloud container identifiers for CloudKit sync.
-
-      v0.1 ships without App Sandbox. Three capabilities force this:
-      1. PersistentLockdown writes to ~/Library/LaunchAgents/.
-      2. LockoutKeyInterceptor installs a CGEventTap (Accessibility).
-      3. SharedPaths.applicationSupport resolves to the user's Library so
-         the app and the unsandboxed curfew-ctl / curfew-mcp binaries see
-         the same activity.sqlite3 and mcp-requests.json.
-    -->
     <key>com.apple.security.app-sandbox</key>
     <false/>
-
-    <!--
-      Sparkle loads bundled XPC helpers via @rpath; Hardened Runtime
-      library validation otherwise rejects them.
-    -->
     <key>com.apple.security.cs.disable-library-validation</key>
     <true/>
-
     <!-- Keep existing Data Protection Keychain credentials accessible after
          the bundle rename. The first access group remains the legacy default. -->
     <key>keychain-access-groups</key>
     <array>
-        <string>$(AppIdentifierPrefix)studio.hypertext.curfew.dev</string>
+        <string>$(AppIdentifierPrefix)studio.hypertext.curfew.studio.dev</string>
     </array>
 
-    <!-- WidgetKit reads mirrored settings + activity data from the shared App Group. -->
     <key>com.apple.security.application-groups</key>
     <array>
-        <string>group.studio.hypertext.curfew.dev</string>
+        <string>group.studio.hypertext.curfew.studio.dev</string>
     </array>
-
-    <!-- Bind the OAuth callback to Hypertext Studio's verified HTTPS origins. -->
     <key>com.apple.developer.associated-domains</key>
     <array>
         <string>applinks:curfew-account-staging.hypertext.studio</string>
-        <string>applinks:account.thecurfew.app</string>
         <string>webcredentials:curfew-account-staging.hypertext.studio</string>
-        <string>webcredentials:account.thecurfew.app</string>
     </array>
-
-    <!--
-      Silent-push for CloudKit `CKDatabaseSubscription` is configured
-      only in Curfew-Release.entitlements — requesting `aps-environment`
-      in the Debug build would force development-cert signing, which
-      breaks `xcodebuild test` under ad-hoc signing. The CKDatabaseSubscription
-      still registers in dev; Apple delivers the silent push only when
-      the entitlement is present, which is fine because local builds
-      can still manually-pull on tick via the existing
-      NSWorkspace.didWakeNotification path.
-
-      Likewise, Apple Events automation for auto-shutdown stays release-only.
-      The shutdown UI now checks `ShutdownSupport` at runtime, so debug and
-      ad-hoc test builds hide that surface instead of pretending it works.
-    -->
 </dict>
 </plist>

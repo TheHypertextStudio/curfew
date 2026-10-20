@@ -128,7 +128,7 @@ enum UninstallCoordinator {
     ) {
         let paths = [
             home.appendingPathComponent(
-                "Library/Application Support/Curfew\(flavor.displaySuffix)",
+                "Library/Application Support/Curfew\(flavor.storageDisplaySuffix)",
                 isDirectory: true
             ),
             home.appendingPathComponent("Library/Group Containers", isDirectory: true)
@@ -230,15 +230,15 @@ enum UninstallCoordinator {
         var services = [curfewService, docketService]
         if flavor == .production {
             services.append(KeychainDeviceAssertionSecretStore.service(for: .production))
-        } else if flavor == .studioDevelopment {
-            services.append(KeychainDeviceAssertionSecretStore.service(for: .studioDevelopment))
+        } else if flavor == .development {
+            services.append(KeychainDeviceAssertionSecretStore.service(for: .development))
         }
         return services
     }
 
     static func appBundleURL(for flavor: CurfewFlavor) -> URL {
-        URL(fileURLWithPath: flavor == .studioDevelopment
-            ? "/Applications/Curfew Studio Dev.app"
+        URL(fileURLWithPath: flavor == .development
+            ? "/Applications/Curfew Dev.app"
             : "/Applications/Curfew.app")
     }
 

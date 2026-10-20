@@ -38,7 +38,7 @@ struct UninstallCoordinatorTests {
 
         let outcome = UninstallCoordinator.performUninstall(
             home: home,
-            flavor: .studioDevelopment,
+            flavor: .development,
             defaultsSuiteName: "studio.hypertext.curfew.studio.dev.tests.\(UUID().uuidString)",
             unregisterServices: { [] },
             eraseKeychainService: { erasedServices.append($0) }
@@ -54,9 +54,9 @@ struct UninstallCoordinatorTests {
             "studio.hypertext.curfew.docket.studio.dev",
             "studio.hypertext.curfew.studio.dev.coordinator"
         ])
-        #expect(UninstallCoordinator.appBundleURL(for: .studioDevelopment).path
-            == "/Applications/Curfew Studio Dev.app")
         #expect(UninstallCoordinator.appBundleURL(for: .development).path
+            == "/Applications/Curfew Dev.app")
+        #expect(UninstallCoordinator.appBundleURL(for: .production).path
             == "/Applications/Curfew.app")
     }
 
@@ -73,7 +73,7 @@ struct UninstallCoordinatorTests {
         var erasedServices: [String] = []
         let outcome = UninstallCoordinator.performUninstall(
             home: home,
-            flavor: .studioDevelopment,
+            flavor: .development,
             defaultsSuiteName: "studio.test.\(UUID().uuidString)",
             unregisterServices: { ["Privileged daemon could not be removed"] },
             eraseKeychainService: { erasedServices.append($0) }
@@ -137,7 +137,11 @@ struct UninstallCoordinatorTests {
             docketService: "docket-staging"
         )
 
-        #expect(services == ["curfew-dev", "docket-staging"])
+        #expect(services == [
+            "curfew-dev",
+            "docket-staging",
+            "studio.hypertext.curfew.studio.dev.coordinator"
+        ])
     }
 
     @Test func uninstallErasesFlavorScopedAccountKeychainState() {
@@ -147,6 +151,7 @@ struct UninstallCoordinatorTests {
 
         let outcome = UninstallCoordinator.performUninstall(
             home: home,
+            flavor: .production,
             defaultsSuiteName: "studio.hypertext.curfew.tests.\(UUID().uuidString)",
             eraseKeychainService: { erasedServices.append($0) }
         )

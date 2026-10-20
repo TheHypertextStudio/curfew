@@ -59,7 +59,7 @@ final class BrowserNativeRuntime {
     }
 
     func start() {
-        guard flavor != .studioDevelopment, maintenance == nil, startupIsAllowed() else { return }
+        guard flavor != .development, maintenance == nil, startupIsAllowed() else { return }
         do {
             if let installForStartup {
                 try installForStartup()
@@ -99,7 +99,7 @@ final class BrowserNativeRuntime {
     }
 
     func install() throws {
-        guard flavor != .studioDevelopment else { throw BrowserNativeError.invalidIdentity }
+        guard flavor != .development else { throw BrowserNativeError.invalidIdentity }
         let extensionID = flavor == .development
             ? BrowserNativeInstallation.developmentExtensionID
             : Bundle.main.object(forInfoDictionaryKey: "CurfewBrowserExtensionID") as? String ?? ""

@@ -67,25 +67,25 @@ struct CurfewFlavorTests {
             CurfewFlavor.resolve(
                 environment: [:],
                 bundleIdentifier: "studio.hypertext.curfew.studio.dev"
-            ).rawValue == "studioDevelopment"
+            ).rawValue == "development"
         )
         #expect(
             CurfewFlavor.resolve(
                 environment: [:],
                 bundleIdentifier: "studio.hypertext.curfew.studio.dev.widget"
-            ).rawValue == "studioDevelopment"
+            ).rawValue == "development"
         )
         #expect(
             CurfewFlavor.resolve(
                 environment: ["CURFEW_FLAVOR": "studioDevelopment"],
                 bundleIdentifier: nil
-            ).rawValue == "studioDevelopment"
+            ).rawValue == "development"
         )
         #expect(
             CurfewFlavor.resolve(
                 environment: ["CURFEW_FLAVOR": "production"],
                 bundleIdentifier: "studio.hypertext.curfew.studio.dev"
-            ) == .studioDevelopment
+            ) == .development
         )
     }
 
@@ -93,7 +93,7 @@ struct CurfewFlavorTests {
     func bundledHelperUsesContainingAppIdentity() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: root) }
-        let app = root.appendingPathComponent("Curfew Studio Dev.app")
+        let app = root.appendingPathComponent("Curfew Dev.app")
         let contents = app.appendingPathComponent("Contents")
         let resources = contents.appendingPathComponent("Resources")
         try FileManager.default.createDirectory(at: resources, withIntermediateDirectories: true)
@@ -106,57 +106,32 @@ struct CurfewFlavorTests {
             environment: [:],
             bundleIdentifier: nil,
             executableURL: resources.appendingPathComponent("curfew-daemon")
-        ) == .studioDevelopment)
+        ) == .development)
         #expect(CurfewFlavor.resolve(
             environment: ["CURFEW_FLAVOR": "production"],
             bundleIdentifier: nil,
             executableURL: resources.appendingPathComponent("curfew-daemon")
-        ) == .studioDevelopment)
+        ) == .development)
     }
 
-    @Test("Derived suffixes and precedence match the flavor")
+    @Test("Two app identities retain production and installed development storage")
     func derivedValues() {
-        #expect(CurfewFlavor.production.identifierSuffix == "")
-        #expect(CurfewFlavor.development.identifierSuffix == ".dev")
-        #expect(CurfewFlavor.production.displaySuffix == "")
-        #expect(CurfewFlavor.development.displaySuffix == " (Dev)")
-        #expect(CurfewFlavor.production.daemonPlistName == "studio.hypertext.curfew.daemon.plist")
-        #expect(
-            CurfewFlavor.development.daemonPlistName
-                == "studio.hypertext.curfew.dev.daemon.plist"
-        )
-        #expect(
-            CurfewFlavor.production.enforcementPriority
-                > CurfewFlavor.development.enforcementPriority
-        )
-        #expect(CurfewFlavor.studioDevelopment.identifierSuffix == ".studio.dev")
-        #expect(CurfewFlavor.studioDevelopment.displaySuffix == " (Studio Dev)")
-        #expect(CurfewFlavor.studioDevelopment
-            .daemonLabel == "studio.hypertext.curfew.studio.dev.daemon")
-        #expect(CurfewFlavor.studioDevelopment.enforcementPriority < CurfewFlavor.development
+        #expect(CurfewFlavor.allCases == [.production, .development])
+        #expect(CurfewFlavor.development.bundleIdentifier == "studio.hypertext.apps.curfew.dev")
+        #expect(CurfewFlavor.development.displaySuffix == " Dev")
+        #expect(CurfewFlavor.development.storageIdentifierSuffix == ".studio.dev")
+        #expect(CurfewFlavor.development.storageDisplaySuffix == " (Studio Dev)")
+        #expect(SharedPaths
+            .defaultsSuiteName(for: .development) == "studio.hypertext.curfew.studio.dev")
+        #expect(SharedPaths
+            .widgetAppGroupIdentifier(for: .development) ==
+            "group.studio.hypertext.curfew.studio.dev")
+        #expect(CurfewServiceEndpoints.forFlavor(.development)
+            .keychainService == "studio.hypertext.curfew.account-e2ee.studio.dev")
+        #expect(DocketServiceEndpoints.forFlavor(.development)
+            .keychainService == "studio.hypertext.curfew.docket.studio.dev")
+        #expect(CurfewFlavor.development.daemonLabel == "studio.hypertext.curfew.studio.dev.daemon")
+        #expect(CurfewFlavor.production.enforcementPriority > CurfewFlavor.development
             .enforcementPriority)
-        #expect(BrowserNativeInstallation
-            .hostName(for: .studioDevelopment) == "studio.hypertext.curfew.studio.dev.browser")
-        #expect(KeychainDeviceAssertionSecretStore
-            .service(for: .studioDevelopment) == "studio.hypertext.curfew.studio.dev.coordinator")
-        #expect(KeychainDeviceAssertionSecretStore
-            .service(for: .studioDevelopment) != KeychainDeviceAssertionSecretStore
-            .service(for: .development))
-    }
-
-    @Test("Studio development keeps preferences, App Group, and Claude registration separate")
-    func studioMutableIdentitiesAreDisjoint() {
-        #expect(SharedPaths.defaultsSuiteName(for: .studioDevelopment)
-            == "studio.hypertext.curfew.studio.dev")
-        #expect(SharedPaths.widgetAppGroupIdentifier(for: .studioDevelopment)
-            == "group.studio.hypertext.curfew.studio.dev")
-        #expect(ClaudeDesktopRegistration.serverKey(for: .studioDevelopment)
-            == "curfew-studio-dev")
-        #expect(SharedPaths.defaultsSuiteName(for: .production)
-            == "studio.hypertext.curfew")
-        #expect(SharedPaths.defaultsSuiteName(for: .development)
-            == "studio.hypertext.curfew.dev")
-        #expect(ClaudeDesktopRegistration.serverKey(for: .production) == "curfew")
-        #expect(ClaudeDesktopRegistration.serverKey(for: .development) == "curfew-dev")
     }
 }

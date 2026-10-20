@@ -172,7 +172,7 @@ dev:
         -destination '{{ destination }}' \
         -derivedDataPath build
     just kill
-    open -n build/Build/Products/Debug/Curfew.app
+    open -n "build/Build/Products/Debug/Curfew Dev.app"
 
 # -----------------------------------------------------------------------
 # Capture (marketing + debug screenshots / video)

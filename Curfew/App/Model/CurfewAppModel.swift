@@ -45,7 +45,7 @@ final class CurfewAppModel: NSObject {
     }
 
     /// Separate local consent keeps a stored schedule editable without
-    /// allowing an unconfirmed Studio Dev schedule to lock the Mac.
+    /// allowing an unconfirmed Curfew Dev schedule to lock the Mac.
     var automaticScheduleEnabled: Bool
     var hasExplicitAutomaticScheduleConsent: Bool
 

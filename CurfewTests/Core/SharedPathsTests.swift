@@ -90,7 +90,7 @@ struct SharedPathsTests {
         )
         #expect(
             SharedPaths.privilegedApplicationSupport(for: .development).path
-                == "/Library/Application Support/Curfew (Dev)"
+                == "/Library/Application Support/Curfew (Studio Dev)"
         )
     }
 }

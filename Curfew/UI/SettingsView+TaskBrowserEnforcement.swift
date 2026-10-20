@@ -10,8 +10,8 @@ nonisolated enum TaskBrowserPanelCopy {
     static let scopeKinds = ["Origin", "Path prefix"]
 
     static func availabilityMessage(for flavor: CurfewFlavor) -> String? {
-        flavor == .studioDevelopment
-            ? "Chrome task-browser enforcement is unavailable in this Studio Dev build."
+        flavor == .development
+            ? "Chrome task-browser enforcement is unavailable in this development build."
             : nil
     }
 }
@@ -68,7 +68,7 @@ private struct TaskBrowserEnforcementPanel: View {
                 .accessibilityIdentifier("task-browser-enforcement-panel")
         }
         .task {
-            if CurfewFlavor.current != .studioDevelopment {
+            if CurfewFlavor.current != .development {
                 controller.refresh()
             }
         }

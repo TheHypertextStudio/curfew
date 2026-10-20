@@ -2,13 +2,13 @@ import Foundation
 
 /// The company-signed test build may verify commands and show overlays, but
 /// must not issue or cancel a machine-wide root shutdown beside another build.
-public nonisolated enum StudioDevDaemonSafety {
+public nonisolated enum DevelopmentDaemonSafety {
     public static func shouldStandDown(
         flavor: CurfewFlavor,
         owner: EnforcementOwner?,
         ownerIsLive: Bool
     ) -> Bool {
-        guard flavor == .studioDevelopment,
+        guard flavor == .development,
               let owner,
               ownerIsLive,
               owner.hasRecognizedIdentity,
@@ -24,7 +24,7 @@ public nonisolated enum StudioDevDaemonSafety {
         ownerIsLive: Bool
     ) -> DaemonEnforcementDecision.Outcome {
         let outcome = DaemonEnforcementDecision.evaluate(input)
-        guard flavor == .studioDevelopment else { return outcome }
+        guard flavor == .development else { return outcome }
         let action: DaemonEnforcementDecision.Action =
             shouldStandDown(flavor: flavor, owner: owner, ownerIsLive: ownerIsLive)
                 || outcome.action == .shutDown ? .wait : outcome.action
@@ -36,12 +36,12 @@ public nonisolated enum StudioDevDaemonSafety {
     }
 }
 
-public enum StudioDevShutdownDisabled: Error, Equatable {
+public enum DevelopmentShutdownDisabled: Error, Equatable {
     case disabled
 }
 
 /// Secondary guard if a future decision regression reaches the effect seam.
-public final class StudioDevDaemonEffects: DaemonEnforcementEffects {
+public final class DevelopmentDaemonEffects: DaemonEnforcementEffects {
     private let underlying: any DaemonEnforcementEffects
 
     public init(underlying: any DaemonEnforcementEffects) {
@@ -55,7 +55,7 @@ public final class StudioDevDaemonEffects: DaemonEnforcementEffects {
     public func cancelPendingShutdown() {}
 
     public func issueShutdown() throws {
-        throw StudioDevShutdownDisabled.disabled
+        throw DevelopmentShutdownDisabled.disabled
     }
 
     public func clearDeadlineShadow() {

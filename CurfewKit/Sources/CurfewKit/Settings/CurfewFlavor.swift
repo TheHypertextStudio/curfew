@@ -16,10 +16,8 @@ import Foundation
 public nonisolated enum CurfewFlavor: String, Sendable, CaseIterable {
     /// The signed, notarised build the user installs and runs day to day.
     case production
-    /// A local developer build (Debug configuration, bundle id `…curfew.dev`).
+    /// The Studio-signed development build, installed as Curfew Dev.
     case development
-    /// A Hypertext Studio-signed staging build isolated from the personal dev app.
-    case studioDevelopment
 
     /// The flavor of the current process, resolved once at first access.
     public static let current: CurfewFlavor = resolve(
@@ -32,8 +30,8 @@ public nonisolated enum CurfewFlavor: String, Sendable, CaseIterable {
     /// the real process environment.
     ///
     /// Resolution order:
-    /// 1. A verified Studio or development app bundle identity. This must not
-    ///    be overridden by an inherited environment from another flavor.
+    /// 1. A recognized development app or widget bundle identity. This must not be
+    ///    overridden by an inherited development or production environment.
     /// 2. The `CURFEW_FLAVOR` environment variable. The app exports this when it
     ///    spawns `curfew-ctl` / `curfew-mcp` and embeds it in the daemon plist,
     ///    so helper processes — whose own `Bundle.main` has no bundle id —
@@ -47,9 +45,9 @@ public nonisolated enum CurfewFlavor: String, Sendable, CaseIterable {
         bundleIdentifier: String?,
         executableURL: URL? = nil
     ) -> CurfewFlavor {
-        if isStudioDevelopmentBundle(bundleIdentifier) ||
-            isStudioDevelopmentBundle(containingAppIdentifier(for: executableURL)) {
-            return .studioDevelopment
+        if isDevelopmentBundle(bundleIdentifier) ||
+            isDevelopmentBundle(containingAppIdentifier(for: executableURL)) {
+            return .development
         }
         if isDevelopmentAppBundle(bundleIdentifier) {
             return .development
@@ -57,7 +55,7 @@ public nonisolated enum CurfewFlavor: String, Sendable, CaseIterable {
         if let raw = environment["CURFEW_FLAVOR"]?.lowercased(), !raw.isEmpty {
             switch raw {
             case "dev", "development": return .development
-            case "studiodevelopment": return .studioDevelopment
+            case "studiodevelopment": return .development
             case "prod", "production": return .production
             default: break
             }
@@ -69,8 +67,10 @@ public nonisolated enum CurfewFlavor: String, Sendable, CaseIterable {
         return .production
     }
 
-    private static func isStudioDevelopmentBundle(_ identifier: String?) -> Bool {
+    private static func isDevelopmentBundle(_ identifier: String?) -> Bool {
         [
+            "studio.hypertext.apps.curfew.dev",
+            "studio.hypertext.apps.curfew.dev.widget",
             "studio.hypertext.apps.curfew.studio.dev",
             "studio.hypertext.apps.curfew.studio.dev.widget",
             "studio.hypertext.curfew.studio.dev",
@@ -100,25 +100,31 @@ public nonisolated enum CurfewFlavor: String, Sendable, CaseIterable {
         "studio.hypertext.apps.curfew\(identifierSuffix)"
     }
 
-    /// Dotted suffix appended to reverse-DNS identifiers (App Group, defaults
-    /// suite, widget kind). Empty for production so those identifiers — and the
-    /// data behind them — never move for an existing install.
+    /// Canonical app identity suffix. Storage and service identities use
+    /// storageIdentifierSuffix independently for upgrade compatibility.
     public var identifierSuffix: String {
         switch self {
         case .production: ""
         case .development: ".dev"
-        case .studioDevelopment: ".studio.dev"
         }
     }
 
-    /// Parenthetical appended to human-facing names and the Application Support
-    /// directory, e.g. `" (Dev)"`. Empty for production.
+    /// Human-facing app suffix. Never use this to derive a data directory.
     public var displaySuffix: String {
         switch self {
         case .production: ""
-        case .development: " (Dev)"
-        case .studioDevelopment: " (Studio Dev)"
+        case .development: " Dev"
         }
+    }
+
+    /// Compatibility identities of the installed development store. These are
+    /// deliberately independent of the app name and canonical bundle suffix.
+    public var storageIdentifierSuffix: String {
+        self == .production ? "" : ".studio.dev"
+    }
+
+    public var storageDisplaySuffix: String {
+        self == .production ? "" : " (Studio Dev)"
     }
 
     /// Value propagated to helper subprocesses through the `CURFEW_FLAVOR`
@@ -130,7 +136,7 @@ public nonisolated enum CurfewFlavor: String, Sendable, CaseIterable {
     /// LaunchDaemon identity for this flavor. Development must never replace
     /// the production helper registration while staging is under test.
     public var daemonLabel: String {
-        "studio.hypertext.curfew\(identifierSuffix).daemon"
+        self == .production ? "studio.hypertext.curfew.daemon" : "studio.hypertext.apps.curfew.dev.daemon"
     }
 
     public var daemonPlistName: String {
@@ -145,7 +151,6 @@ public nonisolated enum CurfewFlavor: String, Sendable, CaseIterable {
         switch self {
         case .production: 100
         case .development: 0
-        case .studioDevelopment: -100
         }
     }
 }

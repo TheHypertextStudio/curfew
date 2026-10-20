@@ -3,7 +3,7 @@ import Foundation
 import Testing
 
 struct AccountOAuthHandoffTests {
-    @Test("Only the pending Studio Dev callback becomes the claimed HTTPS callback")
+    @Test("Only the pending Curfew Dev callback becomes the claimed HTTPS callback")
     func studioDevCallbackRequiresExactStateAndRoute() throws {
         let expected = "https://curfew-account-staging.hypertext.studio/oauth/callback/native/macos"
         let incoming = try #require(URL(
