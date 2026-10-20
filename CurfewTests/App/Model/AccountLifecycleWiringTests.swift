@@ -157,7 +157,8 @@ struct AccountLifecycleWiringTests {
         let transport = RemoteResultTransportSpy()
         let model = makeModel(
             accountSync: account,
-            accountSyncEngine: AccountSyncEngine(transport: transport)
+            accountSyncEngine: AccountSyncEngine(transport: transport),
+            flavor: .development
         )
         #expect(!model.automaticScheduleEnabled)
         model.currentTime = now
@@ -441,7 +442,8 @@ extension AccountLifecycleWiringTests {
         accountSyncEngine: AccountSyncEngine? = nil,
         cloudKitSyncEngine: CloudKitSyncEngine? = nil,
         hasCompletedInitialSetup: Bool = true,
-        automaticScheduleConsent: Bool? = nil
+        automaticScheduleConsent: Bool? = nil,
+        flavor: CurfewFlavor = .production
     ) -> CurfewAppModel {
         let suite = "studio.hypertext.curfew.tests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite) ?? .standard
@@ -459,7 +461,7 @@ extension AccountLifecycleWiringTests {
         return CurfewAppModel(
             settingsStore: store,
             appRouter: AppRouterSpy(),
-            flavor: .production,
+            flavor: flavor,
             featureFlags: FeatureFlags(
                 widgetKitEnabled: false,
                 cloudSyncEnabled: true,
