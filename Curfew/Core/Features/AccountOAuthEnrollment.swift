@@ -32,6 +32,7 @@ final class AccountOAuthAuthenticationGate {
 
     func begin() throws {
         guard !isActive else {
+            accountOAuthLogger.error("OAuth browser session already active")
             throw AccountOAuthEnrollmentError.authenticationInProgress
         }
         isActive = true
@@ -50,6 +51,7 @@ final class AccountOAuthPresentationContext: NSObject,
 
     func prepareForPresentation() throws {
         guard let settingsWindow else {
+            accountOAuthLogger.error("OAuth presentation window unavailable")
             throw AccountOAuthEnrollmentError.missingPresentationAnchor
         }
         activePresentationWindow = settingsWindow
@@ -105,28 +107,40 @@ enum AccountOAuthOfficialClient {
     static let clientID = "curfew-native-client"
 }
 
+typealias AccountOAuthBrowserSessionFactory = @MainActor (
+    URL,
+    ASWebAuthenticationSession.Callback,
+    @escaping ASWebAuthenticationSession.CompletionHandler
+) -> ASWebAuthenticationSession
+
 @MainActor
 final class AccountOAuthEnrollmentService: NSObject {
     private let secretStore: any AccountSecretStoring
     private let session: URLSession
     private let endpoints: CurfewServiceEndpoints
     private let callbackRouter: any AccountOAuthCallbackRouting
+    private let browserSessionFactory: AccountOAuthBrowserSessionFactory
     private let authenticationGate = AccountOAuthAuthenticationGate()
     private let presentationContext = AccountOAuthPresentationContext()
     private var browserSession: ASWebAuthenticationSession?
     private var callbackRegistration: UUID?
     private var authenticationContinuation: CheckedContinuation<URL, any Error>?
+    private var authenticationAttempt: UUID?
     private var cancellationRequested = false
 
     init(
         secretStore: any AccountSecretStoring = KeychainAccountSecretStore(),
         session: URLSession? = nil,
         endpoints: CurfewServiceEndpoints = .current,
-        callbackRouter: (any AccountOAuthCallbackRouting)? = nil
+        callbackRouter: (any AccountOAuthCallbackRouting)? = nil,
+        browserSessionFactory: @escaping AccountOAuthBrowserSessionFactory = {
+            ASWebAuthenticationSession(url: $0, callback: $1, completionHandler: $2)
+        }
     ) {
         self.secretStore = secretStore
         self.endpoints = endpoints
         self.callbackRouter = callbackRouter ?? AccountOAuthCallbackRouter.shared
+        self.browserSessionFactory = browserSessionFactory
         self.session = session ?? URLSession(
             configuration: .ephemeral,
             delegate: RejectingRedirectSessionDelegate(),
@@ -263,39 +277,42 @@ final class AccountOAuthEnrollmentService: NSObject {
         cancellationRequested = true
         finishAuthentication(with: .failure(CancellationError()))
     }
+}
 
-    private func authenticate(_ request: AccountOAuthEnrollmentRequest) async throws -> URL {
-        try await withCheckedThrowingContinuation { continuation in
+private extension AccountOAuthEnrollmentService {
+    func authenticate(_ request: AccountOAuthEnrollmentRequest) async throws -> URL {
+        accountOAuthLogger.info("OAuth browser session requested")
+        let attempt = UUID()
+        return try await withCheckedThrowingContinuation { continuation in
+            authenticationAttempt = attempt
             authenticationContinuation = continuation
             do {
                 callbackRegistration = try callbackRouter.register(
                     expectedState: request.state,
                     expectedRedirectURI: request.redirectURI
                 ) { [weak self] callback in
+                    guard self?.authenticationAttempt == attempt else { return }
                     self?.finishAuthentication(with: .success(callback))
                 }
             } catch {
                 finishAuthentication(with: .failure(error))
                 return
             }
-            let browserSession = ASWebAuthenticationSession(
-                url: request.authorizationURL,
-                callback: AccountOAuthCallbackPolicy.callback(for: endpoints)
+            let browserSession = browserSessionFactory(
+                request.authorizationURL,
+                AccountOAuthCallbackPolicy.callback(for: endpoints)
             ) { [weak self] callback, error in
-                if let callback {
-                    self?.finishAuthentication(with: .success(callback))
-                } else {
-                    self?.finishAuthentication(
-                        with: .failure(
-                            error ?? AccountOAuthEnrollmentError.authorizationRejected
-                        )
-                    )
-                }
+                self?.completeBrowserAuthentication(
+                    callback: callback,
+                    error: error,
+                    attempt: attempt
+                )
             }
             browserSession.presentationContextProvider = presentationContext
             AccountOAuthBrowserPolicy.configure(browserSession)
             self.browserSession = browserSession
             guard browserSession.start() else {
+                accountOAuthLogger.error("OAuth browser session refused to start")
                 finishAuthentication(with: .failure(
                     AccountOAuthEnrollmentError.authorizationRejected
                 ))
@@ -304,9 +321,25 @@ final class AccountOAuthEnrollmentService: NSObject {
         }
     }
 
-    private func finishAuthentication(with result: Swift.Result<URL, any Error>) {
+    func completeBrowserAuthentication(callback: URL?, error: Error?, attempt: UUID) {
+        guard authenticationAttempt == attempt, authenticationContinuation != nil else { return }
+        if let callback {
+            finishAuthentication(with: .success(callback))
+        } else {
+            let failure = error as NSError?
+            accountOAuthLogger.error(
+                "OAuth browser session failed: domain=\(failure?.domain ?? "none", privacy: .public) code=\(failure?.code ?? 0)"
+            )
+            finishAuthentication(with: .failure(
+                error ?? AccountOAuthEnrollmentError.authorizationRejected
+            ))
+        }
+    }
+
+    func finishAuthentication(with result: Swift.Result<URL, any Error>) {
         guard let continuation = authenticationContinuation else { return }
         authenticationContinuation = nil
+        authenticationAttempt = nil
         if let callbackRegistration {
             callbackRouter.unregister(callbackRegistration)
             self.callbackRegistration = nil
@@ -317,7 +350,7 @@ final class AccountOAuthEnrollmentService: NSObject {
         continuation.resume(with: result)
     }
 
-    private func exchange(
+    func exchange(
         code: String,
         clientID: String,
         request: AccountOAuthEnrollmentRequest
@@ -339,7 +372,7 @@ final class AccountOAuthEnrollmentService: NSObject {
         return try await AccountOAuthWire.tokens(from: responseData(for: tokenRequest))
     }
 
-    private func responseData(for request: URLRequest) async throws -> Data {
+    func responseData(for request: URLRequest) async throws -> Data {
         let (data, response): (Data, URLResponse)
         do {
             (data, response) = try await session.data(for: request)
@@ -360,6 +393,6 @@ final class AccountOAuthEnrollmentService: NSObject {
         return data
     }
 
-    private static let accountOrigin = CurfewServiceEndpoints.current.accountOrigin
-    private static let redirectURI = AccountOAuthClaimedCallback.redirectURI(for: .current)
+    static let accountOrigin = CurfewServiceEndpoints.current.accountOrigin
+    static let redirectURI = AccountOAuthClaimedCallback.redirectURI(for: .current)
 }

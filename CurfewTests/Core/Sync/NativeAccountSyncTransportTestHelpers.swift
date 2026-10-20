@@ -15,6 +15,12 @@ extension NativeAccountSyncTransportTests {
             UUID(uuidString: "018f4f45-cafe-7f00-9a82-e47805fb4d35")
         )
         let secrets = NativeTransportMemorySecretStore()
+        let endpoints = CurfewServiceEndpoints.current
+        try secrets.save(
+            Data((endpoints.accountOrigin.absoluteString + "|" + endpoints.syncResource
+                    .absoluteString).utf8),
+            for: "oauth-deployment-identity"
+        )
         try secrets.save(Data(accessToken.utf8), for: "oauth-access-token")
         if let refreshToken {
             try secrets.save(Data(refreshToken.utf8), for: "oauth-refresh-token")
@@ -38,6 +44,8 @@ extension NativeAccountSyncTransportTests {
         pollingInterval: Duration = .seconds(15),
         now: @escaping () -> Date = Date.init
     ) -> NativeAccountSyncTransport {
+        let root = temporaryDirectory()
+        addTeardownBlock { try? FileManager.default.removeItem(at: root) }
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [NativeTransportURLProtocol.self]
         NativeTransportURLProtocol.bind(configuration)
@@ -46,9 +54,16 @@ extension NativeAccountSyncTransportTests {
         return NativeAccountSyncTransport(
             secretStore: secrets,
             session: URLSession(configuration: configuration),
-            inboxStore: inboxStore,
-            resultExchangeStore: resultExchangeStore,
-            enrollmentStore: enrollmentStore,
+            inboxStore: inboxStore ?? RemoteCommandInboxStore(
+                directoryURL: root.appendingPathComponent("inbox")
+            ),
+            resultExchangeStore: resultExchangeStore ?? RemoteCommandResultExchangeStore(
+                resultsURL: root.appendingPathComponent("results.json"),
+                acknowledgementsDirectoryURL: root.appendingPathComponent("acknowledgements")
+            ),
+            enrollmentStore: enrollmentStore ?? RemoteCommandEnrollmentStore(
+                recordURL: root.appendingPathComponent("enrollment.json")
+            ),
             pollingInterval: pollingInterval,
             socketEnabled: false,
             now: now
