@@ -47,6 +47,13 @@ network fixture is removed; installed sync behavior is unchanged.
 
 ## Native reconnect regression timing
 
+The ordinary `CI` workflow runs the full app-host suite, Debug/Release builds,
+and existing UI/screenshot acceptance on `macos-26-intel`. This is a supported
+macOS 26 host, not a reduced test lane or an owner-desktop workaround. The
+DerivedData key and restore prefix include `runner.arch` so Intel and ARM64
+artifacts cannot share a cache. `actionlint` validates the workflow; actual
+hosted completion, rather than successful queueing, establishes acceptance.
+
 `NativeAccountSyncTransportTests.testReconnectIgnoresFailureFromThePreviousPollingSession`
 waits for the new-session health callback with a deadlock guard, then checks the
 inverted old-session failure expectation. That expectation remains active
