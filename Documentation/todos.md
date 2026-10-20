@@ -92,6 +92,10 @@
 - [x] Provide manual activation of matching signed candidate and website bytes,
       with fresh private owner acceptance, website TLS, prepared services,
       immutable release assets, and live feed/redirect/retirement checks.
+- [x] Keep publication workflow tests hermetic on clean runners: intercept the
+      workflow's GitHub CLI and hosting commands in the test shell without
+      depending on executable temporary files or ambient credentials. This
+      changes test execution only; production activation commands are unchanged.
 - [ ] Complete production provider, device, assistant, billing, licensing, mail,
       and update acceptance; publish the approved artifacts and verify the cutover.
 
