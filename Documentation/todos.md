@@ -1490,3 +1490,7 @@ asserts its own screen and state before attaching an image.
 - [x] Document the Email Sending CLI exception, readiness validation before production mutations, and the cf Durable Object rollback constraint in the domain migration runbook.
 
 - [x] Keep the public policy announcement below the navigation at wide and narrow widths; keep current policy copy focused on user choices, rights, sharing, and retention. Version changed stylesheets by their content so normal reloads receive the correction.
+
+### Public Plus help
+
+- [x] Explain one-click checkout activation, receipt-email restoration and manual-key recovery in the licensing guide. Keep planned features and purchase availability explicit, and use the product support address.

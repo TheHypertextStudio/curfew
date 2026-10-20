@@ -116,3 +116,14 @@ test("setup help explains seven-day consent and the choice to leave automatic lo
   assert.match(content, /Settings → Warnings/);
   assert.doesNotMatch(content, /Curfew starts enforcing your schedule\./);
 });
+
+test("purchase help explains app activation, inbox restoration, and manual fallback", async () => {
+  const content = await read("web/docs/licensing.mdx");
+  assert.match(content, /Activate in Curfew/);
+  assert.match(content, /Restore Purchase…/);
+  assert.match(content, /Restore in Curfew/);
+  assert.match(content, /Enter a license key/);
+  assert.match(content, /Activation links and purchase restoration require an internet connection/);
+  assert.match(content, /mailto:support@thecurfew\.app/);
+  assert.doesNotMatch(content, /iCloud sync.*keeps your schedule in sync|Calendar.*shows today's events/);
+});
