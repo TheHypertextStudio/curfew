@@ -269,10 +269,6 @@ test("signed app flavors retain the default Keychain access group used by existi
   for (const [path, expected] of [
     [
       "Curfew/Curfew.entitlements",
-      "$(AppIdentifierPrefix)studio.hypertext.curfew.dev",
-    ],
-    [
-      "Curfew/Curfew-StudioDev.entitlements",
       "$(AppIdentifierPrefix)studio.hypertext.curfew.studio.dev",
     ],
     [
@@ -325,7 +321,7 @@ test("deployment generation preserves the retained Keychain group when rewriting
     ],
     [
       "Curfew/Curfew.entitlements",
-      "$(AppIdentifierPrefix)studio.hypertext.curfew.dev",
+      "$(AppIdentifierPrefix)studio.hypertext.curfew.studio.dev",
     ],
   ]) {
     const entitlements = JSON.parse(
@@ -336,7 +332,7 @@ test("deployment generation preserves the retained Keychain group when rewriting
     assert.deepEqual(entitlements["keychain-access-groups"], [expected]);
     assert.ok(
       entitlements["com.apple.developer.associated-domains"].includes(
-        "applinks:account.updated.example.net",
+        path.includes("Release") ? "applinks:account.updated.example.net" : "applinks:curfew-account-staging.hypertext.studio",
       ),
     );
   }

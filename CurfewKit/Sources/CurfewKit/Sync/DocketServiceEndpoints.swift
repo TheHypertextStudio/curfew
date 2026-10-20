@@ -20,7 +20,7 @@ public nonisolated struct DocketServiceEndpoints: Equatable, Sendable {
         keychainService: "studio.hypertext.curfew.docket.staging"
     )
 
-    public static let studioDevelopment = make(
+    public static let development = make(
         webOrigin: "https://docket-staging.hypertext.studio",
         apiOrigin: "https://docket-api-staging.hypertext.studio",
         keychainService: "studio.hypertext.curfew.docket.studio.dev"
@@ -29,8 +29,7 @@ public nonisolated struct DocketServiceEndpoints: Equatable, Sendable {
     public static func forFlavor(_ flavor: CurfewFlavor) -> DocketServiceEndpoints {
         switch flavor {
         case .production: production
-        case .development: staging
-        case .studioDevelopment: studioDevelopment
+        case .development: development
         }
     }
 

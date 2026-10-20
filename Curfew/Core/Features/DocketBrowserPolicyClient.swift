@@ -23,7 +23,7 @@ nonisolated struct DocketOAuthAuthorizationRequest: Equatable, Sendable {
 
     static let scopes = ["work:read", "agents:run", "offline_access"]
     static func callbackScheme(for flavor: CurfewFlavor) -> String {
-        flavor == .studioDevelopment
+        flavor == .development
             ? "studio.hypertext.curfew.studio.dev"
             : "studio.hypertext.curfew"
     }

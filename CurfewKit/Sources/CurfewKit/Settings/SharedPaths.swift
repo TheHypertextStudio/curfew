@@ -8,7 +8,7 @@ import Foundation
 /// All three processes must read from / write to the same files; any
 /// divergence here silently produces stale reads.
 public nonisolated enum SharedPaths {
-    /// `~/Library/Application Support/Curfew/` — or `Curfew (Dev)` for a
+    /// `~/Library/Application Support/Curfew/` — or the retained `Curfew (Studio Dev)` for a
     /// development build, so a dev run's database, request queue, and settings
     /// never touch the production install the user relies on. The suffix is
     /// empty for production, so its directory is unchanged.
@@ -17,7 +17,7 @@ public nonisolated enum SharedPaths {
     /// assume it exists and fail gracefully when it doesn't (no app run yet).
     public static var applicationSupport: URL {
         applicationSupportBase.appendingPathComponent(
-            "Curfew\(CurfewFlavor.current.displaySuffix)",
+            "Curfew\(CurfewFlavor.current.storageDisplaySuffix)",
             isDirectory: true
         )
     }
@@ -105,7 +105,7 @@ public nonisolated enum SharedPaths {
     public static func widgetAppGroupIdentifier(for flavor: CurfewFlavor) -> String {
         flavor == .production
             ? "group.studio.hypertext.apps.curfew"
-            : "group.studio.hypertext.curfew\(flavor.identifierSuffix)"
+            : "group.studio.hypertext.curfew\(flavor.storageIdentifierSuffix)"
     }
 
     /// The active widget snapshot container for the current flavor.
@@ -154,7 +154,7 @@ public nonisolated enum SharedPaths {
         userHomeDirectory
             .appendingPathComponent("Library/Group Containers", isDirectory: true)
             .appendingPathComponent(
-                "group.studio.hypertext.curfew\(CurfewFlavor.current.identifierSuffix)",
+                "group.studio.hypertext.curfew\(CurfewFlavor.current.storageIdentifierSuffix)",
                 isDirectory: true
             )
             .appendingPathComponent("Curfew", isDirectory: true)
@@ -193,12 +193,12 @@ public nonisolated enum SharedPaths {
     /// retains the pre-namespace identity, including schedules, consent,
     /// budgets, license and account metadata, across the app bundle rename.
     ///
-    /// Flavor-suffixed (`studio.hypertext.curfew.dev` for development). Helper
+    /// Flavor-suffixed (`studio.hypertext.curfew.studio.dev` for development). Helper
     /// tools resolve the flavor from `CURFEW_FLAVOR` and read the same domain.
     public static let defaultsSuiteName = defaultsSuiteName(for: CurfewFlavor.current)
 
     public static func defaultsSuiteName(for flavor: CurfewFlavor) -> String {
-        "studio.hypertext.curfew\(flavor.identifierSuffix)"
+        "studio.hypertext.curfew\(flavor.storageIdentifierSuffix)"
     }
 
     /// Explicitly open the established domain instead of the renamed app's
@@ -213,7 +213,7 @@ public nonisolated enum SharedPaths {
     // MARK: - Privileged daemon paths (root-readable, user-writable via App Group)
 
     /// `/Library/Application Support/Curfew/` — written by the app, read by
-    /// the privileged daemon. Development uses `Curfew (Dev)` so its helper,
+    /// the privileged daemon. Development retains `Curfew (Studio Dev)` so its helper,
     /// deadlines, and remote-command transaction state cannot touch production.
     /// The app writes a sentinel file here when lockout starts; the daemon uses
     /// `KeepAlive.PathState` to watch it.
@@ -223,7 +223,7 @@ public nonisolated enum SharedPaths {
 
     public static func privilegedApplicationSupport(for flavor: CurfewFlavor) -> URL {
         URL(
-            fileURLWithPath: "/Library/Application Support/Curfew\(flavor.displaySuffix)",
+            fileURLWithPath: "/Library/Application Support/Curfew\(flavor.storageDisplaySuffix)",
             isDirectory: true
         )
     }

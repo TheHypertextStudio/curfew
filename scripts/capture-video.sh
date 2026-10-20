@@ -15,7 +15,7 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 ROOT="$(pwd)"
-APP="$ROOT/build/Build/Products/Debug/Curfew.app"
+APP="$ROOT/build/capture/Build/Products/Debug/Curfew Dev.app"
 BIN="$APP/Contents/MacOS/Curfew"
 OUT="$ROOT/build/screenshots"
 DURATION="${1:-18}"
@@ -30,15 +30,23 @@ xcodebuild build \
     -scheme Curfew \
     -configuration Debug \
     -destination 'platform=macOS' \
-    -derivedDataPath build \
+    -derivedDataPath build/capture \
+    CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
     >/dev/null
 
+# Fail closed if an unexpected signing override produced an installed-app identity.
+if /usr/bin/codesign -dv --verbose=4 "$APP" 2>&1 | /usr/bin/grep -Eq '^TeamIdentifier=[A-Z0-9]{10}$'; then
+    echo "Capture requires an unsigned fixture build; refusing to launch a signed app." >&2
+    exit 1
+fi
+
 mkdir -p "$OUT"
-pkill -x Curfew 2>/dev/null || true
-sleep 0.4
+CAPTURE_PID=""
+trap 'if [[ -n "$CAPTURE_PID" ]]; then kill "$CAPTURE_PID" 2>/dev/null || true; fi' EXIT
 
 echo "==> Launching reel scenario"
 CURFEW_DEMO_FIXTURE=1 CURFEW_DEMO_SCENARIO=reel "$BIN" >/dev/null 2>&1 &
+CAPTURE_PID="$!"
 sleep "$SETTLE"
 
 echo "==> Recording ${DURATION}s to $OUT/curfew-reel.mov"
@@ -47,6 +55,8 @@ if ! screencapture -V "$DURATION" -x "$OUT/curfew-reel.mov"; then
     echo "    !! fallback: ffmpeg -f avfoundation -i 'Capture screen 0' -t $DURATION out.mov"
 fi
 
-pkill -x Curfew 2>/dev/null || true
+kill "$CAPTURE_PID" 2>/dev/null || true
+wait "$CAPTURE_PID" 2>/dev/null || true
+CAPTURE_PID=""
 echo "==> Done."
 ls -la "$OUT/curfew-reel.mov" 2>/dev/null || echo "(no video produced)"

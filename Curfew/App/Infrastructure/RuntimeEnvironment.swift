@@ -11,8 +11,7 @@ import Foundation
 /// mirror), and requesting Notifications authorization — so the developer is
 /// never spammed with permission dialogs on every run.
 ///
-/// Detection accepts test environment markers for the personal Debug app, but
-/// signed Studio Dev and Release apps require a loaded test runtime. Otherwise
+/// Both Curfew and Curfew Dev require a loaded test runtime. Otherwise
 /// a launch environment could silently suppress enforcement side effects.
 enum RuntimeEnvironment {
     /// `true` when running inside an `xcodebuild test` host process.
@@ -32,17 +31,11 @@ enum RuntimeEnvironment {
         if hasLoadedTestRuntime {
             return true
         }
-        if bundleIdentifier != CurfewLaunchBehavior.personalDebugBundleIdentifier {
-            return false
-        }
-        return environment["XCTestConfigurationFilePath"] != nil
-            || environment["XCTestBundlePath"] != nil
-            || environment["XCTestSessionIdentifier"] != nil
-            || environment["DYLD_INSERT_LIBRARIES"]?.contains("libXCTestBundleInject") == true
+        return false
     }
 
     /// Stronger test-host evidence for enforcement launch policy. An
-    /// environment variable alone must not disarm a signed Studio Dev app.
+    /// environment variable alone must not disarm a signed Curfew Dev app.
     static var hasLoadedTestRuntime: Bool {
         if NSClassFromString("XCTestCase") != nil || NSClassFromString("XCTest") != nil {
             return true

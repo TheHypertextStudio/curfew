@@ -1,12 +1,12 @@
 @testable import Curfew
 import Testing
 
-struct StudioDevLaunchBehaviorTests {
-    private let studioBundleID = "studio.hypertext.apps.curfew.studio.dev"
-    private let personalDebugBundleID = "studio.hypertext.apps.curfew.dev"
+struct DevelopmentLaunchBehaviorTests {
+    private let studioBundleID = "studio.hypertext.apps.curfew.dev"
+    private let personalDebugBundleID = "studio.hypertext.curfew.dev"
     private let releaseBundleID = "studio.hypertext.apps.curfew"
 
-    @Test("Signed Studio Dev launches arm enforcement without a developer environment variable")
+    @Test("Signed Curfew Dev launches arm enforcement without a developer environment variable")
     func studioDevelopmentLaunchStartsByDefault() {
         #expect(
             CurfewLaunchBehavior.shouldStartEnforcement(
@@ -29,7 +29,7 @@ struct StudioDevLaunchBehaviorTests {
         )
     }
 
-    @Test("Only a loaded test runtime disarms Studio Dev")
+    @Test("Only a loaded test runtime disarms Curfew Dev")
     func genuineTestHostRemainsDisarmed() {
         #expect(!CurfewLaunchBehavior.shouldStartEnforcement(
             environment: [:],
@@ -39,7 +39,7 @@ struct StudioDevLaunchBehaviorTests {
         ))
     }
 
-    @Test("Personal Debug cannot spoof Studio Dev through the flavor environment")
+    @Test("Personal Debug cannot spoof Curfew Dev through the flavor environment")
     func personalDebugRemainsOptIn() {
         #expect(!CurfewLaunchBehavior.shouldStartEnforcement(
             environment: ["CURFEW_FLAVOR": "studioDevelopment"],
@@ -49,11 +49,11 @@ struct StudioDevLaunchBehaviorTests {
         ))
     }
 
-    @Test("Studio Dev cannot enter the Debug demo fixture")
+    @Test("Curfew Dev cannot enter the Debug demo fixture")
     func studioDevRejectsDemoFixture() {
         #expect(CurfewLaunchBehavior.demoScenario(
             environment: ["CURFEW_DEMO_FIXTURE": "1"],
-            bundleIdentifier: studioBundleID
+            bundleIdentifier: studioBundleID, isSignedBuild: true
         ) == nil)
     }
 
@@ -70,7 +70,7 @@ struct StudioDevLaunchBehaviorTests {
             bundleIdentifier: studioBundleID,
             hasLoadedTestRuntime: true
         ))
-        #expect(RuntimeEnvironment.testHostDecision(
+        #expect(!RuntimeEnvironment.testHostDecision(
             environment: spoofedEnvironment,
             bundleIdentifier: personalDebugBundleID,
             hasLoadedTestRuntime: false

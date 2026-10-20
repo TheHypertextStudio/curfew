@@ -18,7 +18,7 @@ public enum AuditLogPaths {
         return base
             .appendingPathComponent("Logs", isDirectory: true)
             .appendingPathComponent(
-                "Curfew\(CurfewFlavor.current.displaySuffix)",
+                "Curfew\(CurfewFlavor.current.storageDisplaySuffix)",
                 isDirectory: true
             )
     }

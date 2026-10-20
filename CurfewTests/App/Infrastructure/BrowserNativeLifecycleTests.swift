@@ -234,7 +234,7 @@ struct BrowserNativeLifecycleTests {
         )
         let directory = home
             .appendingPathComponent(
-                "Library/Application Support/Curfew\(CurfewFlavor.current.displaySuffix)/browser"
+                "Library/Application Support/Curfew\(CurfewFlavor.current.storageDisplaySuffix)/browser"
             )
         let store = BrowserNativeStore(directory: directory)
         try store.activate()

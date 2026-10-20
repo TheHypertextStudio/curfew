@@ -40,22 +40,22 @@ struct AutomaticScheduleConsentPolicyTests {
         }
     }
 
-    @Test("Completed Studio Dev installs require explicit weekly consent")
+    @Test("Completed Curfew Dev installs require explicit weekly consent")
     func studioDevMigrationStaysOff() {
         #expect(!AutomaticScheduleConsentPolicy.isEnabled(
             savedConsent: nil,
             hasCompletedInitialSetup: true,
-            flavor: .studioDevelopment
+            flavor: .development
         ))
         #expect(AutomaticScheduleConsentPolicy.isEnabled(
             savedConsent: true,
             hasCompletedInitialSetup: true,
-            flavor: .studioDevelopment
+            flavor: .development
         ))
         #expect(!AutomaticScheduleConsentPolicy.isEnabled(
             savedConsent: false,
             hasCompletedInitialSetup: true,
-            flavor: .studioDevelopment
+            flavor: .development
         ))
     }
 
@@ -64,7 +64,7 @@ struct AutomaticScheduleConsentPolicyTests {
         #expect(!AutomaticScheduleConsentPolicy.isEnabled(
             savedConsent: true,
             hasCompletedInitialSetup: false,
-            flavor: .studioDevelopment
+            flavor: .development
         ))
         #expect(AutomaticScheduleConsentPolicy.isEnabled(
             savedConsent: nil,

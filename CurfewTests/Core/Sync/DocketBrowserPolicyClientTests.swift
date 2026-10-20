@@ -43,7 +43,7 @@ struct DocketBrowserPolicyClientTests {
 
     @Test("Studio development Docket credentials and callbacks cannot alias personal development")
     func studioDevelopmentDocketIdentity() throws {
-        let endpoints = DocketServiceEndpoints.forFlavor(.studioDevelopment)
+        let endpoints = DocketServiceEndpoints.forFlavor(.development)
         #expect(endpoints.webOrigin.absoluteString == "https://docket-staging.hypertext.studio")
         #expect(endpoints.keychainService == "studio.hypertext.curfew.docket.studio.dev")
         #expect(endpoints.keychainService != DocketServiceEndpoints.staging.keychainService)
@@ -53,7 +53,7 @@ struct DocketBrowserPolicyClientTests {
             state: "state-value",
             verifier: String(repeating: "v", count: 64),
             endpoints: endpoints,
-            flavor: .studioDevelopment
+            flavor: .development
         )
         let studioCallback = "studio.hypertext.curfew.studio.dev://docket-oauth/callback"
         #expect(request.redirectURI == studioCallback)
@@ -62,7 +62,7 @@ struct DocketBrowserPolicyClientTests {
                 URL(string: "\(studioCallback)?state=s&code=c")
             ),
             expectedState: "s",
-            flavor: .studioDevelopment
+            flavor: .development
         ) == "c")
         #expect(throws: DocketClientError.invalidResponse) {
             _ = try DocketOAuthCallback.authorizationCode(
@@ -70,7 +70,7 @@ struct DocketBrowserPolicyClientTests {
                     URL(string: "studio.hypertext.curfew://docket-oauth/callback?state=s&code=c")
                 ),
                 expectedState: "s",
-                flavor: .studioDevelopment
+                flavor: .development
             )
         }
     }

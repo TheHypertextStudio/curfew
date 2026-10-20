@@ -14,7 +14,7 @@ struct BrowserNativeStartupTests {
         let runtime = BrowserNativeRuntime(
             store: store,
             coordinator: makeCoordinator(),
-            flavor: .studioDevelopment,
+            flavor: .development,
             startupIsAllowed: { true },
             installForStartup: { installationAttempts += 1 }
         )
@@ -126,6 +126,7 @@ private final class StartupFixture {
         let runtime = BrowserNativeRuntime(
             store: nativeStore,
             coordinator: coordinator,
+            flavor: .production,
             startupIsAllowed: { true },
             installForStartup: { try nativeStore.activate() }
         )
