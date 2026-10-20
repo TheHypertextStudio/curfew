@@ -77,7 +77,7 @@ test('marketing assets have their own paths beside the account design assets', a
       },
     },
   );
-  assert.equal(new URL(asset.url).pathname, '/design/fonts/Calistoga-Regular.ttf');
+  assert.equal(new URL(asset.url).pathname, '/site-assets/design/fonts/Calistoga-Regular.ttf');
   assert.equal(new URL(asset.url).search, '?v=one');
   assert.equal(await response.text(), 'font');
 });
@@ -150,6 +150,19 @@ test('old staging purchase links redirect to the canonical host while authentica
     assert.equal(response.status, 410);
     assert.equal(response.headers.get('location'), null);
   }
+});
+
+test('old staging double-slash paths cannot redirect to another host', async () => {
+  const response = await worker.fetch(
+    new Request(
+      'https://curfew-site-staging.hypertext.studio//example.invalid/restore?from=fixture',
+    ),
+    { ...env, STAGING_ACCOUNT_SERVICE: { fetch: () => assert.fail('must not delegate') } },
+  );
+  const destination = new URL(response.headers.get('location'));
+  assert.equal(destination.origin, deployment.staging.siteOrigin);
+  assert.equal(destination.pathname, '//example.invalid/restore');
+  assert.equal(destination.search, '?from=fixture');
 });
 
 test('account entry cannot redirect to itself if site and portal routes overlap', async () => {

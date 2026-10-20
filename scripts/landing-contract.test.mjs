@@ -16,7 +16,7 @@ function compact(source) {
 }
 
 test('every public page header offers the same account entry point', async () => {
-  const sharedHeader = await readFile(path.join(landing, 'public/design/components.mjs'), 'utf8');
+  const sharedHeader = await readFile(path.join(landing, 'public/site-assets/design/components.mjs'), 'utf8');
   assert.ok(sharedHeader.includes('href="/account"'));
   const names = (await readdir(path.join(landing, 'src/pages'))).filter((name) => name.endsWith('.astro')).map((name) => name.replace(/\.astro$/, '.html'));
   for (const name of names) {

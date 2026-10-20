@@ -2,7 +2,7 @@
 
 The current Astro site uses `landing/src/layouts/Experience.astro` for the
 landing, Download, Support, and legal pages. Reusable colors, typography,
-controls, landscape treatment, and motion live in `landing/public/design/`;
+controls, landscape treatment, and motion live in `landing/public/site-assets/design/`;
 the page layout and responsive composition live in `landing/public/curfew.css`.
 The legal text was moved intact into `landing/src/content/` so presentation can
 change without silently rewriting policy.

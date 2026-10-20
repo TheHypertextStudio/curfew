@@ -120,14 +120,16 @@ checkout confirmation, purchase restoration and account navigation. The existing
 hostname route. Retain the account service's custom domain and passkey identity.
 Its service binding targets only `curfew-account-platform-staging`; account
 paths, callbacks, request bodies and response cookies stay with that service.
-Website design assets use `/site-assets/design/`, keeping them separate from
-the account service's `/design/` assets. Both activation and restoration use the
+Website builds include design assets at `/site-assets/design/` for both Worker
+and static hosting, keeping them separate from the account service's `/design/`
+assets without a runtime alias. Both activation and restoration use the
 same modern page shell as the website.
 
 The former `curfew-site-staging.hypertext.studio` entry redirects public
 navigations to the canonical staging host. Existing restore fragments remain
 browser-side; checkout session queries are retained only on the confirmation
-route. Authenticated requests and writes on the old host return 410.
+route. Redirect destinations retain the canonical host even for double-slash
+paths. Authenticated requests and writes on the old host return 410.
 
 Configure the protected staging deployment credential for the existing website
 Worker and its exact hostname route. Verify staff Access protection on the

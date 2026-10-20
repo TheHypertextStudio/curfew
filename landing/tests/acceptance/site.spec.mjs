@@ -325,6 +325,13 @@ test('legal notices and history remain usable on narrow screens', async ({ page 
   }
 });
 
+test('built website includes its design assets without a runtime alias', async ({ request }) => {
+  for (const asset of ['tokens.css', 'components.css', 'theme.js', 'fonts/Calistoga-Regular.ttf']) {
+    const response = await request.get(`/site-assets/design/${asset}`);
+    expect(response.status(), asset).toBe(200);
+  }
+});
+
 test('product help and general inquiries use separate mail links', async ({ page }) => {
   await page.goto('/support');
   for (const email of [
