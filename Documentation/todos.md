@@ -24,6 +24,8 @@
 
 ## Update retry and first-run instructions
 
+- [x] Route every homepage Mac download link through the installer-availability
+  page, including the closing footer invitation.
 - [x] Observe Sparkle availability throughout an update check so the command
   becomes available again after a failure or cancellation, and reject duplicate
   requests while a check is in progress.

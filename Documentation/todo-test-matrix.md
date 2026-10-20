@@ -25,6 +25,10 @@ widget access, saved data and update behavior.
 
 ## Update retry and first-run instructions
 
+The browser acceptance case `homepage download links use the installer availability
+page` checks every rendered Mac download link, including the shared footer.
+It rejects a direct link to an unpublished GitHub release.
+
 `CurfewUpdaterTests` covers initial unavailability, availability changes,
 in-flight duplicate denial, and retry after Sparkle releases the check.
 `scripts/user-docs.test.mjs` checks seven-day review, the explicit schedule and

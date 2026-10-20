@@ -49,6 +49,15 @@ test('the landing communicates the curfew and retains the shared design', async 
   await expect(page.locator('.assistant-example')).toHaveCount(0);
 });
 
+test('homepage download links use the installer availability page', async ({ page }) => {
+  await page.goto('/');
+  const links = page.getByRole('link', { name: 'Download for Mac', exact: true });
+  expect(await links.count()).toBeGreaterThanOrEqual(2);
+  for (const link of await links.all()) {
+    await expect(link).toHaveAttribute('href', '/download');
+  }
+});
+
 test('published guides are linked and the retained HTML guide keeps its anchors', async ({
   page,
 }) => {
