@@ -1,5 +1,11 @@
 # Curfew Implementation TODOs
 
+## Worktree preparation
+
+- [x] Keep root command shortcuts separate from the independent frontend and
+  backend pnpm workspaces. Resolve frozen dependency locks through the pinned
+  setup command without a conflicting ancestor workspace.
+
 ## Studio app namespace
 
 - [x] Move signed app, widget, and test bundle identities beneath

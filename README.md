@@ -253,6 +253,10 @@ The marketing frontend uses Astro in `landing/`; Mintlify source is `web/docs/`.
 Node 24.20.0 and pnpm 11.9.0 are pinned in the independent frontend package.
 The existing `web/` backend workspace retains its own lockfile, and native
 application setup continues through `./bootstrap worktree prepare`.
+The root package provides command shortcuts and the pinned Node runtime; it is
+not a parent workspace. Website deployment tools belong to `landing/hosting`.
+Keep the frontend and backend workspace boundaries separate so preparation can
+install each frozen lockfile without treating either as a redundant nested lock.
 
 ```sh
 pnpm --dir landing install --frozen-lockfile
