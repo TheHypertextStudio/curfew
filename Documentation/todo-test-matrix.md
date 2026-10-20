@@ -1797,3 +1797,11 @@ changes; rollback restores the prior landing release and docs commit.
 - This affects development checks only. The native app, release signing, license
   behavior, Astro frontend and Mintlify publishing remain independently managed.
   Removing remote authentication returns CI to its existing local-only cache.
+
+### Public Plus help
+
+| Behavior | Coverage |
+| --- | --- |
+| Licensing help covers app activation, email restoration, manual fallback and offline access without advertising planned features as available | `scripts/user-docs.test.mjs`; Mintlify validation and hosted licensing-page review |
+
+Docs publish independently of app and payment-service rollout. Revert this docs-only change to restore the prior instructions; no account or purchase data changes.
