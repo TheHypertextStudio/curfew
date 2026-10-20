@@ -3,10 +3,10 @@ import Foundation
 import Testing
 
 struct DeploymentEndpointTests {
-    @Test func purchaseEntryUsesTheWebsiteWithoutChangingAccountIdentity() {
+    @Test func stagingPurchasesAndAccountsUseOneWebsite() {
         for endpoints in [CurfewServiceEndpoints.staging, .development] {
             #expect(endpoints.pricingURL
-                .absoluteString == "https://curfew-site-staging.hypertext.studio/#plus")
+                .absoluteString == "https://curfew-staging.hypertext.studio/#plus")
             #expect(endpoints.accountPortal
                 .absoluteString == "https://curfew-staging.hypertext.studio/account")
         }
