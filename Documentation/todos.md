@@ -1641,12 +1641,19 @@ asserts its own screen and state before attaching an image.
   semantics, package isolated website assets for static and Worker hosting, and
   keep old purchase redirects on the canonical host. Accept
   hosted sign-in and purchase recovery before retiring the extra entry point.
+- [x] Serve the modern staging site and purchase pages from the canonical host,
+  redirect old purchase links with their fragments intact, keep account home
+  navigation in staging, and disable obsolete pinned-preview publishers.
 - [x] Use the purchase website for native purchase entry and checkout
   confirmation. Reject test credentials in the legacy production bootstrap
   before any provider access.
 
 
 ### Consolidated development app
+
+- [x] Install the current canonical Curfew Dev with one authenticated helper,
+  retaining settings, account connectivity, assistant consent, purchase and
+  existing history. Verify the native activation route on the signed upgrade.
 
 - [-] Ship one Studio-signed Curfew Dev alongside production Curfew. Use the
   canonical `.dev` app/widget IDs and only Debug/Release configurations. Preserve
