@@ -1970,13 +1970,17 @@ changes; rollback restores the prior landing release and docs commit.
   opposite mode and mismatched page output. Correct builds retain their requested
   mode and package the verified directory despite an inherited asset override;
   mismatches stop before any provider command.
-- Deployment configuration tests validate an independent purchase website while
-  preserving account/passkey identity and rejecting insecure or cross-environment
-  origins. Native Worker configuration and recovery renderer tests both select
-  the purchase website and reject the staging account portal as a restore target.
-- `DeploymentEndpointTests` checks staging/Studio purchase entry independently
-  of account identity and preserves the production destination. Setup command
-  tests review the separate checkout website and reject test credentials before
+- Deployment configuration tests preserve account/passkey identity and reject
+  insecure or cross-environment origins. `DeploymentEndpointTests` and the recovery
+  renderer tests require purchases and account entry on the canonical staging
+  website. Site Worker tests preserve callback bodies, authorization, session
+  cookies and backend errors through the staging-only account binding; website
+  assets use a separate path and old public purchase links redirect without
+  forwarding authenticated writes. Browser acceptance checks the modern shell
+  and the checkout/restore states in each supported browser.
+- `DeploymentEndpointTests` keeps staging purchase and account entry on one
+  website and preserves the production destination. Setup command
+  tests review the checkout website and reject test credentials before
   any provider command using disposable local fixtures.
 
 - Provisioning validation reads Apple’s ApplicationIdentifierPrefix and accepts

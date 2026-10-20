@@ -1,24 +1,17 @@
 ---
-import Page from '../layouts/Page.astro';
+import Experience from '../layouts/Experience.astro';
 import PurchasePanel from '../components/PurchasePanel.astro';
 ---
 
-<Page title="Activate Curfew Plus" description="Activate your Curfew Plus purchase on this Mac.">
+<Experience
+  title="Activate Curfew Plus"
+  description="Activate your Curfew Plus purchase on this Mac."
+>
   <Fragment slot="head"
     ><meta name="robots" content="noindex" /><meta
       name="referrer"
       content="no-referrer"
     /></Fragment
   >
-  <header class="site-header">
-    <nav>
-      <a href="/" class="wordmark">Curfew</a><a class="nav-account" href="/account">Open Account</a>
-    </nav>
-  </header>
-  <main><section><div class="section-inner"><PurchasePanel mode="checkout" /></div></section></main>
-  <footer>
-    <p>Made by <a href="https://hypertext.studio">Hypertext Studio</a>.</p><p>
-      <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · <a href="/support">Support</a>
-    </p>
-  </footer>
-</Page>
+  <PurchasePanel mode="checkout" />
+</Experience>

@@ -82,6 +82,46 @@ test('an invalid purchase link fails without contacting the licensing backend', 
   expect(requested).toBe(false);
 });
 
+test('activation and restoration keep the modern site navigation and typography', async ({
+  page,
+  browserName,
+}, testInfo) => {
+  for (const route of ['/success?session_id=invalid', '/restore']) {
+    await page.goto(route);
+    await expect(page.getByRole('link', { name: 'Skip to content', exact: true })).toHaveAttribute(
+      'href',
+      '#main',
+    );
+    await expect(
+      page
+        .getByRole('navigation', { name: 'Main navigation' })
+        .getByRole('link', { name: 'Account', exact: true }),
+    ).toHaveAttribute('href', '/account');
+    expect(
+      await page.locator('main h1').evaluate((node) => getComputedStyle(node).fontFamily),
+    ).toContain('Calistoga');
+    await expect(page.getByRole('link', { name: 'Hypertext Studio', exact: true })).toBeVisible();
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
+  for (const colorScheme of ['light', 'dark']) {
+    await page.emulateMedia({ colorScheme });
+    await page.goto('/restore');
+    await page.getByRole('textbox', { name: 'Purchase email', exact: true }).focus();
+    await page.keyboard.press(browserName === 'webkit' ? 'Alt+Tab' : 'Tab');
+    await expect(
+      page.getByRole('button', { name: 'Send Restore Link', exact: true }),
+    ).toBeFocused();
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+    ).toBe(true);
+    if (testInfo.project.name === 'chromium')
+      await page.screenshot({
+        path: testInfo.outputPath(`modern-restore-${colorScheme}-mobile.png`),
+        fullPage: true,
+      });
+  }
+});
+
 test('a paid confirmation offers one activation click and a separate manual-key fallback', async ({
   page,
 }) => {

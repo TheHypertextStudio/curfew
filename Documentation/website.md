@@ -114,23 +114,44 @@ successful push/main Website and docs run for the exact commit, downloads its
 validated `curfew-website-dist` artifact, and installs pinned deployment tools.
 It checks main again immediately before deployment. Deployments are serialized.
 
-Configure `CLOUDFLARE_STAGING_API_TOKEN` in that protected environment with
-Editor access to `curfew-site-staging` only. Verify its isolated hostname,
-existing route ownership and staff Access protection before acceptance. The
-frontend has assets and docs settings, without licensing or database bindings.
-`curfew-staging.hypertext.studio` belongs to the backend; the marketing preview
-uses `curfew-site-staging.hypertext.studio`.
+The staging website uses `curfew-staging.hypertext.studio` for the modern site,
+checkout confirmation, purchase restoration and account navigation. The existing
+`curfew-site-staging` Worker runs in front of the account service through an exact
+hostname route. Retain the account service's custom domain and passkey identity.
+Its service binding targets only `curfew-account-platform-staging`; account
+paths, callbacks, request bodies and response cookies stay with that service.
+Website design assets use `/site-assets/design/`, keeping them separate from
+the account service's `/design/` assets. Both activation and restoration use the
+same modern page shell as the website.
 
-`ACCOUNT_PORTAL` points plain `/account` navigation to the existing account
-application: staging uses the configured staging portal, and production retains
+The former `curfew-site-staging.hypertext.studio` entry redirects public
+navigations to the canonical staging host. Existing restore fragments remain
+browser-side; checkout session queries are retained only on the confirmation
+route. Authenticated requests and writes on the old host return 410.
+
+Configure the protected staging deployment credential for the existing website
+Worker and its exact hostname route. Verify staff Access protection on the
+canonical host before accepting the cutover. The frontend has no license keys
+or database bindings. Account authorization remains enforced by the backend.
+Production routes and payment configuration do not change during consolidation.
+
+Outside the staging account-service binding, `ACCOUNT_PORTAL` points plain
+`/account` navigation to the existing account application. Production retains
 the legacy portal until the separate service-domain cutover. The marketing
 Worker accepts only these configured destinations and sends a noncached 302.
 If a route accidentally gives the marketing Worker the portal's own host,
 `/account` instead returns a noncached 503; redirecting to itself would trap
-people in another sign-in loop. Keep site and portal host ownership separate.
+people in another sign-in loop. On the consolidated staging host, the service
+binding handles account entry before this redirect path.
 It does not redirect POST bodies, Authorization-bearing requests, account
 subpaths or query-bearing auth callbacks. Account APIs, sessions and provider
 registrations remain with their existing owner.
+
+For rollback, remove the staging website's exact-hostname route first so the
+existing account custom domain serves requests directly. Restore the preceding
+purchase-portal configuration and website artifact together; retain both old
+and new email links throughout verification. Do not change passkey registration,
+account data, Stripe objects or license signing keys to roll back the website.
 
 After the required checks and staging authorization:
 
