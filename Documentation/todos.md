@@ -1611,8 +1611,11 @@ asserts its own screen and state before attaching an image.
 - [x] Pin the purchase environment in local website deployment commands and reject
   mismatched checkout or restore pages before invoking provider build/deploy. Pin
   the provider asset directory to the same verified output.
-- [x] Route staging purchase recovery to the protected frontend independently of
-  the account portal, with validated and isolated purchase origin configuration.
+- [-] Consolidate the modern staging website, purchase activation, restoration
+  and account entry at `curfew-staging.hypertext.studio`. Retain the existing
+  passkey identity and account service, preserve authenticated request/response
+  semantics, isolate website assets, and redirect old purchase links. Accept
+  hosted sign-in and purchase recovery before retiring the extra entry point.
 - [x] Use the purchase website for native purchase entry and checkout
   confirmation. Reject test credentials in the legacy production bootstrap
   before any provider access.

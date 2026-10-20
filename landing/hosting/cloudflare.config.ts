@@ -1,4 +1,4 @@
-import { bindings, defineConfig } from 'cf/config';
+import { bindings, defineConfig, triggers } from 'cf/config';
 import deployment from '../../deployment/generated/environments.mjs';
 
 export default defineConfig((ctx) => {
@@ -12,6 +12,12 @@ export default defineConfig((ctx) => {
           entrypoint: '../worker.mjs',
           workersDev: false,
           previewUrls: false,
+          triggers: [
+            triggers.fetch({
+              pattern: `${new URL(deployment.staging.siteOrigin).host}/*`,
+              zone: 'hypertext.studio',
+            }),
+          ],
           assets: {
             htmlHandling: 'auto-trailing-slash',
             notFoundHandling: '404-page',
@@ -19,6 +25,7 @@ export default defineConfig((ctx) => {
           },
           env: {
             ACCOUNT_PORTAL: bindings.text(deployment.staging.accountPortal),
+            STAGING_ACCOUNT_SERVICE: bindings.worker({ worker: 'curfew-account-platform-staging' }),
             DOCS_MODE: bindings.text('mintlify'),
             DOCS_UPSTREAM: bindings.text('https://curfew.mintlify.site'),
             ASSETS: bindings.assets(),

@@ -8,14 +8,14 @@ const { issuer, scheme } = purchaseProfile(process.env.CURFEW_DEPLOYMENT_MODE ||
 ---
 
 <div class="purchase-panel" data-purchase-mode={mode} data-issuer={issuer} data-scheme={scheme}>
-  <h1 class="privacy-heading">
+  <h1>
     {mode === 'checkout' ? 'Activate Curfew Plus' : 'Restore Curfew Plus'}
   </h1>
   <p id="purchase-status" role="status" aria-live="polite"></p>
   <div id="state-loading" hidden><p>Preparing your purchase…</p></div>
   <div id="state-success" hidden>
-    <p class="privacy-lede">Open Curfew to activate Plus on this Mac.</p>
-    <a id="activate-link" class="btn-primary"
+    <p class="lede">Open Curfew to activate Plus on this Mac.</p>
+    <a id="activate-link" class="button primary"
       >{mode === 'checkout' ? 'Activate in Curfew' : 'Restore in Curfew'}</a
     >
     <p class="purchase-help">Need the app? <a href="/download">Download Curfew for Mac</a>.</p>
@@ -23,7 +23,7 @@ const { issuer, scheme } = purchaseProfile(process.env.CURFEW_DEPLOYMENT_MODE ||
       <summary>Enter a license key</summary>
       <div id="manual-key" hidden>
         <pre><code id="license-key" /></pre>
-        <button type="button" class="btn-secondary" id="copy-btn">Copy License Key</button>
+        <button type="button" class="button secondary" id="copy-btn">Copy License Key</button>
         <p>
           In Curfew, open <strong>Settings → About → Curfew Plus</strong>, enter your key, and
           choose <strong>Activate</strong>.
@@ -32,12 +32,12 @@ const { issuer, scheme } = purchaseProfile(process.env.CURFEW_DEPLOYMENT_MODE ||
     </details>
     <p class="purchase-help">
       Stripe emails your payment receipt. <a href="/restore">Restore a purchase</a> · <a
-        href="https://curfew.mintlify.dev/docs/licensing">Activation help</a
+        href="https://curfew.mintlify.site/docs/licensing">Activation help</a
       >
     </p>
   </div>
   <form id="restore-form" hidden>
-    <p class="privacy-lede">Enter the email address on your receipt.</p>
+    <p class="lede">Enter the email address on your receipt.</p>
     <label for="purchase-email">Purchase email</label>
     <input
       id="purchase-email"
@@ -47,11 +47,11 @@ const { issuer, scheme } = purchaseProfile(process.env.CURFEW_DEPLOYMENT_MODE ||
       required
       maxlength="254"
     />
-    <button type="submit" class="btn-primary">Send Restore Link</button>
+    <button type="submit" class="button primary">Send Restore Link</button>
   </form>
   <div id="state-error" hidden>
     <p id="error-detail" role="alert"></p>
-    <button type="button" class="btn-secondary" id="retry-btn">Try Again</button>
+    <button type="button" class="button secondary" id="retry-btn">Try Again</button>
     <p>
       <a href="/restore">Restore a purchase</a> or <a href="mailto:support@thecurfew.app"
         >contact support</a
@@ -61,63 +61,73 @@ const { issuer, scheme } = purchaseProfile(process.env.CURFEW_DEPLOYMENT_MODE ||
 </div>
 <style>
   .purchase-panel {
-    max-width: 640px;
+    max-width: 40rem;
   }
   [hidden] {
     display: none !important;
   }
   .purchase-help {
-    color: var(--muted);
-    font-size: 14px;
-    margin-top: 20px;
+    color: var(--on-surface-variant);
+    font-size: var(--type-small);
+    margin-top: var(--space-5);
+  }
+  .purchase-help a,
+  #manual-key p a,
+  #state-error a {
+    text-decoration: underline;
+    text-underline-offset: 0.18em;
   }
   details {
-    margin-top: 28px;
+    margin-top: var(--space-6);
   }
   summary {
     cursor: pointer;
   }
   pre {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 16px;
+    background: var(--surface-container);
+    border: var(--stroke) solid var(--outline);
+    border-radius: var(--radius-small);
+    padding: var(--space-4);
     white-space: pre-wrap;
     overflow-wrap: anywhere;
   }
   #manual-key p {
-    color: var(--muted);
+    color: var(--on-surface-variant);
     line-height: 1.7;
   }
   form {
-    max-width: 320px;
+    max-width: 24rem;
   }
   label {
     display: block;
-    margin: 24px 0 8px;
+    margin: var(--space-6) 0 var(--space-2);
     font-weight: 600;
   }
   input {
     box-sizing: border-box;
     width: 100%;
     font: inherit;
-    padding: 12px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--surface);
-    color: var(--ink);
+    padding: var(--space-3);
+    border: var(--stroke) solid var(--outline);
+    border-radius: var(--radius-small);
+    background: var(--surface-container);
+    color: var(--on-surface);
+  }
+  input:focus-visible {
+    outline: var(--focus-width) solid var(--focus-color);
+    outline-offset: var(--space-1);
   }
   form button {
-    margin-top: 16px;
+    margin-top: var(--space-4);
   }
   button {
     font-family: inherit;
   }
-  button.btn-primary {
+  button.primary {
     border: 0;
   }
   #error-detail {
-    color: var(--accent);
+    color: var(--error);
   }
   #purchase-status {
     line-height: 1.6;

@@ -25,7 +25,7 @@ export default {
   },
   "staging": {
     "siteOrigin": "https://curfew-staging.hypertext.studio",
-    "purchasePortalOrigin": "https://curfew-site-staging.hypertext.studio",
+    "purchasePortalOrigin": "https://curfew-staging.hypertext.studio",
     "accountOrigin": "https://curfew-account-staging.hypertext.studio",
     "syncOrigin": "https://curfew-sync-staging.hypertext.studio",
     "licenseOrigin": "https://curfew-license-staging.hypertext.studio",
@@ -36,7 +36,7 @@ export default {
     "remoteCommandJWKS": "https://curfew-sync-staging.hypertext.studio/.well-known/curfew-command-jwks.json",
     "nativeCallback": "https://curfew-account-staging.hypertext.studio/oauth/callback/native/macos",
     "appcast": "https://curfew-staging.hypertext.studio/appcast.xml",
-    "pricing": "https://curfew-site-staging.hypertext.studio/#plus"
+    "pricing": "https://curfew-staging.hypertext.studio/#plus"
   },
   "local": {
     "siteOrigin": "http://localhost:4321",

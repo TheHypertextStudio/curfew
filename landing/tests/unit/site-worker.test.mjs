@@ -9,6 +9,149 @@ const env = {
   DOCS_UPSTREAM: 'https://curfew.mintlify.site',
 };
 
+test('one staging host preserves account requests and response cookies without redirects', async () => {
+  for (const path of [
+    '/account',
+    '/account/sign-in?return_section=security',
+    '/account-assets/authenticator-qr.js',
+    '/api/auth/callback/apple?code=fixture',
+    '/api/account',
+    '/design/components.css?rev=fixture',
+    '/sync/status',
+    '/.well-known/openid-configuration',
+    '/mcp',
+  ]) {
+    let observed;
+    const request = new Request(new URL(path, deployment.staging.siteOrigin), {
+      method: 'POST',
+      headers: {
+        cookie: 'session=fixture',
+        authorization: 'Bearer fixture',
+        'content-type': 'application/json',
+      },
+      body: '{"fixture":true}',
+    });
+    const response = await worker.fetch(request, {
+      ...env,
+      ACCOUNT_PORTAL: deployment.staging.accountPortal,
+      STAGING_ACCOUNT_SERVICE: {
+        fetch: async (incoming) => {
+          observed = incoming;
+          return new Response('account result', {
+            status: 401,
+            headers: { 'set-cookie': 'session=renewed; Secure; HttpOnly; Path=/' },
+          });
+        },
+      },
+    });
+    assert.equal(observed?.url, request.url, path);
+    assert.equal(observed.method, 'POST');
+    assert.equal(observed.headers.get('cookie'), 'session=fixture');
+    assert.equal(observed.headers.get('authorization'), 'Bearer fixture');
+    assert.equal(await observed.text(), '{"fixture":true}');
+    assert.equal(response.status, 401);
+    assert.equal(response.headers.get('set-cookie'), 'session=renewed; Secure; HttpOnly; Path=/');
+    assert.equal(response.headers.get('location'), null);
+  }
+});
+
+test('marketing assets have their own paths beside the account design assets', async () => {
+  let asset;
+  const response = await worker.fetch(
+    new Request(
+      new URL(
+        '/site-assets/design/fonts/Calistoga-Regular.ttf?v=one',
+        deployment.staging.siteOrigin,
+      ),
+    ),
+    {
+      ...env,
+      STAGING_ACCOUNT_SERVICE: {
+        fetch: () => assert.fail('website assets must not reach accounts'),
+      },
+      ASSETS: {
+        fetch: async (request) => {
+          asset = request;
+          return new Response('font');
+        },
+      },
+    },
+  );
+  assert.equal(new URL(asset.url).pathname, '/design/fonts/Calistoga-Regular.ttf');
+  assert.equal(new URL(asset.url).search, '?v=one');
+  assert.equal(await response.text(), 'font');
+});
+
+test('consolidated staging remains unindexed on pages and backend errors', async () => {
+  const configuration = {
+    ...env,
+    STAGING_ACCOUNT_SERVICE: { fetch: async () => new Response('sign in', { status: 401 }) },
+  };
+  for (const path of ['/', '/restore', '/api/account']) {
+    const response = await worker.fetch(
+      new Request(new URL(path, deployment.staging.siteOrigin)),
+      configuration,
+    );
+    assert.equal(response.headers.get('x-robots-tag'), 'noindex, nofollow');
+  }
+});
+
+test('staging delegation cannot forward production requests and fails closed on service errors', async () => {
+  const service = {
+    fetch: () => assert.fail('must not forward production account traffic to staging'),
+  };
+  const production = await worker.fetch(
+    new Request(`${deployment.production.siteOrigin}/api/account`),
+    { ...env, STAGING_ACCOUNT_SERVICE: service },
+  );
+  assert.equal(await production.text(), 'retained HTML guide');
+  const failed = await worker.fetch(new Request(`${deployment.staging.siteOrigin}/api/account`), {
+    ...env,
+    STAGING_ACCOUNT_SERVICE: {
+      fetch: async () => {
+        throw new Error('offline');
+      },
+    },
+  });
+  assert.equal(failed.status, 503);
+  assert.equal(failed.headers.get('cache-control'), 'no-store');
+});
+
+test('old staging purchase links redirect to the canonical host while authenticated writes stay retired', async () => {
+  const configuration = {
+    ...env,
+    STAGING_ACCOUNT_SERVICE: { fetch: () => assert.fail('old host must not reach accounts') },
+  };
+  for (const path of ['/restore', '/success?session_id=cs_test_fixture', '/#plus']) {
+    const response = await worker.fetch(
+      new Request(`https://curfew-site-staging.hypertext.studio${path}`),
+      configuration,
+    );
+    assert.equal(response.status, 302);
+    const destination = new URL(response.headers.get('location'));
+    assert.equal(destination.origin, deployment.staging.siteOrigin);
+    assert.equal(
+      destination.pathname,
+      new URL(`https://curfew-site-staging.hypertext.studio${path}`).pathname,
+    );
+    assert.equal(response.headers.get('cache-control'), 'no-store');
+  }
+  for (const request of [
+    new Request('https://curfew-site-staging.hypertext.studio/account?code=fixture'),
+    new Request('https://curfew-site-staging.hypertext.studio/api/account', {
+      method: 'POST',
+      body: 'private',
+    }),
+    new Request('https://curfew-site-staging.hypertext.studio/restore', {
+      headers: { authorization: 'Bearer fixture' },
+    }),
+  ]) {
+    const response = await worker.fetch(request, configuration);
+    assert.equal(response.status, 410);
+    assert.equal(response.headers.get('location'), null);
+  }
+});
+
 test('account entry cannot redirect to itself if site and portal routes overlap', async () => {
   const portal = deployment.staging.accountPortal;
   const response = await worker.fetch(new Request(portal), {
@@ -188,4 +331,10 @@ test('purchase preview stays in the staging Worker without acquiring production 
   assert.equal(staging.workersDev, false);
   assert.equal(staging.previewUrls, false);
   assert.equal(production.domains, undefined);
+  assert.equal(staging.env.STAGING_ACCOUNT_SERVICE?.worker, 'curfew-account-platform-staging');
+  assert.deepEqual(staging.triggers, [
+    { type: 'fetch', pattern: 'curfew-staging.hypertext.studio/*', zone: 'hypertext.studio' },
+  ]);
+  assert.equal(production.env.STAGING_ACCOUNT_SERVICE, undefined);
+  assert.equal(production.triggers, undefined);
 });
