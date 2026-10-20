@@ -76,6 +76,7 @@ struct DeviceStatusWiringHarness {
         reporting: DeviceStatusReportingPolicy = .default,
         schedule: WeeklySchedule? = nil,
         automaticScheduleConsent: Bool? = nil,
+        flavor: CurfewFlavor = .production,
         outcome: DeviceStatusPublishOutcome = .accepted,
         idleSeconds: TimeInterval = 600,
         secret: String = DeviceStatusWiringHarness.secret
@@ -102,7 +103,7 @@ struct DeviceStatusWiringHarness {
         let model = CurfewAppModel(
             settingsStore: store,
             appRouter: AppRouterSpy(),
-            flavor: .production,
+            flavor: flavor,
             activityRecorder: NullActivityRecording(),
             idleWatcher: IdleWatcher(
                 source: MutableIdleSource(seconds: idleSeconds),

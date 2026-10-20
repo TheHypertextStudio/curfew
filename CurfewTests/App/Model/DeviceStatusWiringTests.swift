@@ -120,7 +120,8 @@ struct DeviceStatusWiringTests {
     func remoteOnlyStatusUsesInactiveSchedule() async throws {
         let harness = DeviceStatusWiringHarness(
             reporting: DeviceStatusWiringHarness.configured(),
-            schedule: DeviceStatusWiringHarness.allDayLocked
+            schedule: DeviceStatusWiringHarness.allDayLocked,
+            flavor: .development
         )
         let model = harness.model
         #expect(!model.automaticScheduleEnabled)
