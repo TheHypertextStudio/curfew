@@ -6,7 +6,6 @@ Curfew uses the Studio first-party app namespace for signed bundle identities:
 | --- | --- | --- |
 | Production | `studio.hypertext.apps.curfew` | `studio.hypertext.apps.curfew.widget` |
 | Development | `studio.hypertext.apps.curfew.dev` | `studio.hypertext.apps.curfew.dev.widget` |
-| Studio development | `studio.hypertext.apps.curfew.studio.dev` | `studio.hypertext.apps.curfew.studio.dev.widget` |
 
 Developer ID production profiles must match the production app and widget IDs
 under the Studio team. Existing license-signing and Sparkle keys remain valid
@@ -19,9 +18,10 @@ the established `studio.hypertext.curfew` preferences domains, including their
 isolated flavor suffixes. The app and helpers explicitly open the same
 preferences domain. Production widget snapshots use the Studio-owned
 `group.studio.hypertext.apps.curfew` App Group because the previous production
-group is unavailable to the Studio team. Development groups remain
-`group.studio.hypertext.curfew.dev` and
-`group.studio.hypertext.curfew.studio.dev`. Both production profiles must authorize
+group is unavailable to the Studio team. Curfew Dev retains the
+`group.studio.hypertext.curfew.studio.dev` storage group from existing internal
+installations; that identifier does not define a third supported app. The former
+personal-development store remains untouched. Both production profiles must authorize
 the new snapshot group. On launch, the app regenerates widget settings from its
 existing preferences; enforcement snapshots refresh as the app reconciles state.
 Canonical activity and reflection databases stay in Application Support. The
@@ -29,8 +29,10 @@ one-time historical activity migration still reads the old production
 `group.studio.hypertext.curfew` filesystem path, so moving widget snapshots does
 not redirect the history migration source or require copying the old container.
 Application Support directories, databases, lockout records, account enrollment,
-Keychain service names, local browser-host names and helper launchd labels remain
-unchanged. Each app flavor explicitly retains its same-team legacy default Keychain access
+and Keychain service names remain stable. Curfew Dev's helper registration is
+`studio.hypertext.apps.curfew.dev.daemon`; follow the authenticated replacement
+procedure in [development builds](development-builds.md) before replacing an old
+helper. Each app flavor explicitly retains its same-team legacy default Keychain access
 group as its first group. Production profiles must authorize that same-team group;
 the release gate rejects profiles that would isolate existing credentials. Existing URL callback schemes also remain registered, preserving
 pending integrations without changing their server-side redirect configuration.

@@ -1,5 +1,13 @@
 # Todo Test Matrix
 
+## Worktree preparation
+
+`./bootstrap worktree plan --json` validates workspace discovery and rejects
+conflicting nested lockfiles. `./bootstrap worktree prepare --json` exercises
+the pinned dependency setup for the root shortcuts, frontend, backend and native
+targets. `./bootstrap worktree check --json` verifies the resulting local state.
+These checks establish checkout readiness, not signed-release acceptance.
+
 ## Studio app namespace
 
 `AppNamespaceTests` covers signed-client identity, inherited flavor isolation,
