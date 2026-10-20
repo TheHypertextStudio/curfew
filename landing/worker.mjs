@@ -34,10 +34,13 @@ function retiredStagingResponse(request) {
       headers: { 'cache-control': 'no-store' },
     });
   }
+  const destination = new URL(deployment.staging.siteOrigin);
+  destination.pathname = url.pathname;
+  destination.search = url.search;
   return new Response(null, {
     status: 302,
     headers: {
-      location: new URL(url.pathname + url.search, deployment.staging.siteOrigin).href,
+      location: destination.href,
       'cache-control': 'no-store',
     },
   });
@@ -87,13 +90,6 @@ const site = {
           });
         }
       }
-    }
-    if (url.pathname.startsWith('/site-assets/design/')) {
-      if (!['GET', 'HEAD'].includes(request.method))
-        return new Response('Method not allowed', { status: 405, headers: { allow: 'GET, HEAD' } });
-      const asset = new URL(url);
-      asset.pathname = asset.pathname.slice('/site-assets'.length);
-      return env.ASSETS.fetch(new Request(asset, request));
     }
     // The marketing Worker owns navigation, not the account application.
     // Hand off only a plain account-entry navigation, never a request body,
