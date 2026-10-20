@@ -1678,3 +1678,7 @@ asserts its own screen and state before attaching an image.
   webfont loading in every supported browser.
 - [-] Pair staging purchase activation with the canonical Curfew Dev URL scheme
   and maintain its purchase-page configuration in checked TypeScript.
+
+### Public Plus help
+
+- [x] Explain one-click checkout activation, receipt-email restoration and manual-key recovery in the licensing guide. Keep planned features and purchase availability explicit, and use the product support address.

@@ -2050,3 +2050,11 @@ Do not run lockout/shutdown acceptance or UI suites on the operator desktop.
 | Consolidated staging keeps website and account navigation on its canonical host; old emailed links retain their fragments | Hosted modern homepage, account security-check navigation, actual restore email and compatibility redirect review; native signed-upgrade activation check |
 
 | Incremental signed builds refresh embedded helpers/plists; Dev uses its canonical service | `scripts/dev-consolidation.test.mjs`; `DaemonPlistTests`; `AppNamespaceTests`; signed helper reconnect |
+
+### Public Plus help
+
+| Behavior | Coverage |
+| --- | --- |
+| Licensing help covers app activation, email restoration, manual fallback and offline access without advertising planned features as available | `scripts/user-docs.test.mjs`; Mintlify validation and hosted licensing-page review |
+
+Docs publish independently of app and payment-service rollout. Revert this docs-only change to restore the prior instructions; no account or purchase data changes.
