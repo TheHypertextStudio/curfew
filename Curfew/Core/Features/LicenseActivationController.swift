@@ -23,7 +23,6 @@ final class LicenseActivationController {
         let scheme = switch flavor {
         case .production: "curfew"
         case .development: "curfew-dev"
-        case .studioDevelopment: "curfew-studio-dev"
         }
         guard url.scheme == scheme, url.host == "activate", url.path.isEmpty,
               url.user == nil, url.password == nil, url.port == nil, url.fragment == nil,

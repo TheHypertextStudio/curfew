@@ -46,9 +46,9 @@ private func liveEnforcementOwner() -> EnforcementOwner? {
     return owner
 }
 
-private func studioDevMayApplyCommand() -> Bool {
+private func developmentMayApplyCommand() -> Bool {
     let owner = liveEnforcementOwner()
-    return !StudioDevDaemonSafety.shouldStandDown(
+    return !DevelopmentDaemonSafety.shouldStandDown(
         flavor: .current,
         owner: owner,
         ownerIsLive: owner != nil
@@ -72,7 +72,7 @@ private let remoteBackend = DaemonRemoteMCPBackend(
         ),
         stateStore: remoteCommandStateStore,
         jwksProvider: HTTPRemoteCommandJWKSProvider(endpoint: remoteCommandJWKSURL),
-        enforcementAllowed: { studioDevMayApplyCommand() }
+        enforcementAllowed: { developmentMayApplyCommand() }
     ),
     stateStore: remoteCommandStateStore,
     resultExchange: RemoteCommandResultExchangeStore(
@@ -256,8 +256,8 @@ private let breakGlassStore = BreakGlassStore()
 private let remoteOverrideReleaseStore = BreakGlassStore(
     recordURL: SharedPaths.remoteOverrideRelease
 )
-private let effects: any DaemonEnforcementEffects = CurfewFlavor.current == .studioDevelopment
-    ? StudioDevDaemonEffects(underlying: SystemDaemonEffects())
+private let effects: any DaemonEnforcementEffects = CurfewFlavor.current == .development
+    ? DevelopmentDaemonEffects(underlying: SystemDaemonEffects())
     : SystemDaemonEffects()
 private let observer = DaemonAuditObserver(auditLog: .shared)
 var runtime = DaemonEnforcementRuntime(auditLog: .shared)
@@ -322,7 +322,7 @@ private func evaluatePolicy(
     )
 
     let owner = liveEnforcementOwner()
-    let outcome = StudioDevDaemonSafety.evaluate(
+    let outcome = DevelopmentDaemonSafety.evaluate(
         DaemonEnforcementDecision.Input(
             now: now,
             deadline: record,

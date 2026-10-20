@@ -37,7 +37,7 @@ struct PrivilegedHelperManagerTests {
         #expect(!manager.isDaemonResponding)
     }
 
-    @Test("Studio Dev does not claim remote-lock readiness while personal Curfew owns enforcement")
+    @Test("Curfew Dev does not claim remote-lock readiness while personal Curfew owns enforcement")
     func studioRemoteReadinessRespectsHigherPriorityOwner() throws {
         let now = Date(timeIntervalSince1970: 1_800_000_000)
         let root = FileManager.default.temporaryDirectory
@@ -62,7 +62,7 @@ struct PrivilegedHelperManagerTests {
             loginItemService: StubAppService(status: .notRegistered),
             daemonHeartbeatURL: heartbeat,
             now: { now },
-            flavor: .studioDevelopment,
+            flavor: .development,
             liveEnforcementOwner: { personalOwner }
         )
         manager.refreshStatus()

@@ -49,7 +49,7 @@ struct ScheduleConsentReadSurfaceTests {
         let inactive = CurfewIntentSupport.currentEvaluation(
             at: lockTime,
             settingsStore: store,
-            flavor: .studioDevelopment
+            flavor: .development
         )
         #expect(inactive.phase == .dayOff)
 
@@ -57,7 +57,7 @@ struct ScheduleConsentReadSurfaceTests {
         let active = CurfewIntentSupport.currentEvaluation(
             at: lockTime,
             settingsStore: store,
-            flavor: .studioDevelopment
+            flavor: .development
         )
         #expect(active.phase == .locked)
     }

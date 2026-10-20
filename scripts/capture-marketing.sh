@@ -16,7 +16,7 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 ROOT="$(pwd)"
-APP="$ROOT/build/Build/Products/Debug/Curfew.app"
+APP="$ROOT/build/capture/Build/Products/Debug/Curfew Dev.app"
 BIN="$APP/Contents/MacOS/Curfew"
 OUT="$ROOT/build/screenshots"
 SETTLE="${CURFEW_CAPTURE_SETTLE:-3}"
@@ -33,8 +33,15 @@ xcodebuild build \
     -scheme Curfew \
     -configuration Debug \
     -destination 'platform=macOS' \
-    -derivedDataPath build \
+    -derivedDataPath build/capture \
+    CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
     >/dev/null
+
+# Fail closed if an unexpected signing override produced an installed-app identity.
+if /usr/bin/codesign -dv --verbose=4 "$APP" 2>&1 | /usr/bin/grep -Eq '^TeamIdentifier=[A-Z0-9]{10}$'; then
+    echo "Capture requires an unsigned fixture build; refusing to launch a signed app." >&2
+    exit 1
+fi
 
 mkdir -p "$OUT"
 

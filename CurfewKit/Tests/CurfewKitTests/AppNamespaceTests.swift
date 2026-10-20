@@ -6,6 +6,7 @@ struct AppNamespaceTests {
     @Test("Studio app identity cannot be overridden by an inherited flavor")
     func studioIdentityWins() {
         for identifier in [
+            "studio.hypertext.apps.curfew.dev",
             "studio.hypertext.apps.curfew.studio.dev",
             "studio.hypertext.apps.curfew.studio.dev.widget"
         ] {
@@ -13,7 +14,7 @@ struct AppNamespaceTests {
                 #expect(CurfewFlavor.resolve(
                     environment: ["CURFEW_FLAVOR": inherited],
                     bundleIdentifier: identifier
-                ) == .studioDevelopment)
+                ) == .development)
             }
         }
     }
@@ -28,7 +29,8 @@ struct AppNamespaceTests {
                 "identifier \"studio.hypertext.apps.curfew\(flavor.identifierSuffix)\""
             ))
             #expect(identity
-                .machServiceName == "studio.hypertext.curfew\(flavor.identifierSuffix).daemon")
+                .machServiceName ==
+                "studio.hypertext.curfew\(flavor.storageIdentifierSuffix).daemon")
         }
     }
 
@@ -36,10 +38,10 @@ struct AppNamespaceTests {
     func storageIdentityStaysStable() {
         for flavor in CurfewFlavor.allCases {
             #expect(SharedPaths.defaultsSuiteName(for: flavor)
-                == "studio.hypertext.curfew\(flavor.identifierSuffix)")
+                == "studio.hypertext.curfew\(flavor.storageIdentifierSuffix)")
             let expectedWidgetGroup = flavor == .production
                 ? "group.studio.hypertext.apps.curfew"
-                : "group.studio.hypertext.curfew\(flavor.identifierSuffix)"
+                : "group.studio.hypertext.curfew\(flavor.storageIdentifierSuffix)"
             #expect(SharedPaths.widgetAppGroupIdentifier(for: flavor) == expectedWidgetGroup)
         }
     }
@@ -48,7 +50,7 @@ struct AppNamespaceTests {
         "Activity history migration reads the historical group rather than the widget destination"
     )
     func activityMigrationKeepsHistoricalSource() {
-        let suffix = CurfewFlavor.current.identifierSuffix
+        let suffix = CurfewFlavor.current.storageIdentifierSuffix
         #expect(SharedPaths.sharedContainerActivityDatabase.path.hasSuffix(
             "/Library/Group Containers/group.studio.hypertext.curfew\(suffix)/Curfew/activity.sqlite3"
         ))
@@ -65,10 +67,13 @@ struct AppNamespaceTests {
     @Test("Old and new owner records retain only their own flavor's priority")
     func ownershipSurvivesTheRename() {
         for flavor in CurfewFlavor.allCases {
-            for prefix in ["studio.hypertext.curfew", "studio.hypertext.apps.curfew"] {
+            for identifier in [
+                flavor.bundleIdentifier,
+                SharedPaths.defaultsSuiteName(for: flavor)
+            ] {
                 let owner = EnforcementOwner(
                     flavor: flavor.rawValue,
-                    bundleIdentifier: prefix + flavor.identifierSuffix,
+                    bundleIdentifier: identifier,
                     displayName: "Curfew", processIdentifier: 1, acquiredAt: Date()
                 )
                 #expect(owner.hasRecognizedIdentity)

@@ -200,7 +200,7 @@ struct AccountOAuthEnrollmentTests {
 
     @Test("Studio development shares staging origins but not its account secret")
     func studioDevelopmentAccountEndpoints() {
-        let studio = CurfewServiceEndpoints.forFlavor(.studioDevelopment)
+        let studio = CurfewServiceEndpoints.forFlavor(.development)
         #expect(studio.accountOrigin
             .absoluteString == "https://curfew-account-staging.hypertext.studio")
         #expect(studio.mcpResource

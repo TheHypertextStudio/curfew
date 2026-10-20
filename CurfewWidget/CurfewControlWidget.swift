@@ -29,7 +29,7 @@ struct CurfewControlWidget: ControlWidget {
 /// stays distinct from production, mirroring ``CurfewWidgetIdentity``.
 enum CurfewControlIdentity {
     static let kind =
-        "studio.hypertext.curfew\(CurfewFlavor.current.identifierSuffix).control"
+        "studio.hypertext.curfew\(CurfewFlavor.current.storageIdentifierSuffix).control"
 }
 
 /// Supplies the control's display value, recomputed each time Control Center
