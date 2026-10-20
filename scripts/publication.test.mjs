@@ -426,9 +426,6 @@ test("manual activation writes only the independently approved private acceptanc
 test("activation can read source records on a clean runner before loading its receipt", async (t) => {
   const input = await fixture(t);
   const root = join(input.destination, "..");
-  await writeFile(join(root, "gh"), '#!/bin/sh\nprintf "{}\\n"\n', {
-    mode: 0o700,
-  });
   const workflow = JSON.parse(
     execFileSync(
       "ruby",
@@ -445,11 +442,13 @@ test("activation can read source records on a clean runner before loading its re
   const script = workflow.jobs.activate.steps.find(
     (step) => step.name === "Read source workflow records",
   ).run;
-  const result = spawnSync("bash", ["-e", "-c", script], {
+  const testScript = `gh() { printf '{}\\n'; }\n${script}`;
+  const result = spawnSync("bash", ["-e", "-c", testScript], {
     cwd: root,
     encoding: "utf8",
     env: {
-      PATH: `${root}:${process.env.PATH}`,
+      PATH: "/usr/bin:/bin",
+      GH_CONFIG_DIR: join(root, ".isolated-gh-config"),
       GITHUB_REPOSITORY: "TheHypertextStudio/curfew",
       CANDIDATE_RUN_ID: "123",
       WEBSITE_RUN_ID: "456",
@@ -466,19 +465,6 @@ test("activation can read source records on a clean runner before loading its re
 test("native publication builds and deploys the retained static directory with its signed feed", async (t) => {
   const input = await fixture(t);
   const root = join(input.destination, "..");
-  await writeFile(
-    join(root, "gh"),
-    '#!/bin/sh\nprintf "%s\\n" "$GITHUB_SHA"\n',
-    { mode: 0o700 },
-  );
-  await writeFile(
-    join(root, "pnpm"),
-    `#!/usr/bin/env node
-import {appendFileSync} from 'node:fs';
-appendFileSync(process.env.GITHUB_WORKSPACE+'/uploaded-arguments.jsonl',JSON.stringify({args:process.argv.slice(2),assets:process.env.CURFEW_WEBSITE_ASSETS_DIRECTORY})+'\\n');
-`,
-    { mode: 0o700 },
-  );
   const workflow = JSON.parse(
     execFileSync(
       "ruby",
@@ -496,11 +482,19 @@ appendFileSync(process.env.GITHUB_WORKSPACE+'/uploaded-arguments.jsonl',JSON.str
     (step) =>
       step.name === "Publish the same Worker assets and signed update feed",
   ).run;
-  const result = spawnSync("bash", ["-e", "-c", script], {
+  const testCommands = `gh() { printf '%s\\n' "$GITHUB_SHA"; }
+pnpm() {
+  "$CURFEW_TEST_NODE" -e 'const {appendFileSync}=require("node:fs");appendFileSync(process.env.GITHUB_WORKSPACE+"/uploaded-arguments.jsonl",JSON.stringify({args:process.argv.slice(1),assets:process.env.CURFEW_WEBSITE_ASSETS_DIRECTORY})+"\\n")' -- "$@"
+}
+`;
+  const testScript = `${testCommands}\n${script}`;
+  const result = spawnSync("bash", ["-e", "-c", testScript], {
     cwd: root,
     encoding: "utf8",
     env: {
-      PATH: `${root}:${process.env.PATH}`,
+      PATH: "/usr/bin:/bin",
+      GH_CONFIG_DIR: join(root, ".isolated-gh-config"),
+      CURFEW_TEST_NODE: process.execPath,
       GITHUB_WORKSPACE: root,
       GITHUB_SHA: "a".repeat(40),
       GITHUB_REPOSITORY: "TheHypertextStudio/curfew",

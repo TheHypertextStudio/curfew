@@ -48,6 +48,10 @@ acceptance freshness, successful source workflows, changed main/tag protection,
 release asset reuse/conflicts, website TLS/maintenance admission, live feed and
 redirect verification, private receipt permissions/hash binding, draft asset
 readback, and native build/prebuilt publication using the exact prepared assets.
+The workflow-step tests define test-only shell functions for GitHub CLI and
+hosting commands, with a restricted executable path and isolated CLI config;
+they assert the workflow outputs and deployment arguments without executing
+real provider commands or relying on temporary-file executability.
 These checks do not replace actual signed Mac, provider, assistant, billing,
 licensing, mail, update, or production browser acceptance.
 
