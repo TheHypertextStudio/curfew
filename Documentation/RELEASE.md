@@ -37,12 +37,14 @@ values through stdin. Existing Studio credentials remain active. Successful
 
 Use `scripts/release-checklist.md` for the full business/infrastructure setup
 (Stripe, Cloudflare Worker, Sparkle, landing page, Homebrew), and
-`Documentation/license-worker-bootstrap.md` for the sole reproducible issuer
-path: `scripts/license-worker.mjs` renders a caller-owned config from
-`web/worker/wrangler.toml.example`. Prove a separate
-`curfew-license-staging.hypertext.studio` Worker with Stripe test mode before
-configuring the production KV binding, secrets, or checkout. The Apple release
-identifiers that must stay aligned are:
+`Documentation/license-worker-bootstrap.md` for the artifact-based native `cf`
+issuer path. The selected staging profile points the retained issuer at
+`license-staging.thecurfew.app`, using its separate KV, signer, and Stripe Sandbox
+credentials. Verify that path before
+production activation; do not create replacement production resources or copy
+staging credentials. The shared artifact binds native, website, backend, and
+license endpoints. Follow [production promotion](production-domain-promotion.md)
+for the held activation gates.
 
 ## Automated gate
 
@@ -117,7 +119,7 @@ daemon command JWKS together; the bundle phase forwards the same setting to
 every embedded SwiftPM executable.
 Staging also uses a separate account-encryption Keychain service, so acceptance
 testing cannot read or overwrite production account keys. The Debug app installs
-`studio.hypertext.curfew.dev.daemon`, and its root-owned state lives under
+`studio.hypertext.apps.curfew.dev.daemon`, and its root-owned state lives under
 `/Library/Application Support/Curfew (Dev)`.
 
 ```bash
@@ -355,8 +357,8 @@ ls "$WIDGET" "$HELPER" "$HELPER_PLIST"
 ### Authenticated helper
 
 1. Install and approve the helper in Settings; verify the UI reports a ready
-   authenticated channel and `launchctl print
-   system/studio.hypertext.curfew.daemon` succeeds.
+   authenticated channel. Check its registration with
+   `launchctl print system/studio.hypertext.curfew.daemon`.
 2. Arm a short lockout and confirm the daemon-owned state file exists at
    `/Library/Application Support/Curfew/lockout-state.json`, with a root-owned
    `0755` parent directory and `0600` file.
@@ -531,7 +533,7 @@ while the production billing stop remains.
 Run the read-only gate:
 
 ```bash
-node scripts/release-candidate.mjs inspect <downloaded-candidate-directory> <owner-receipt.json>
+node scripts/release-candidate.mjs inspect /private/downloaded-candidate /private/owner-receipt.json
 ```
 
 It fails closed on changed bytes, signature, configuration, team, version or

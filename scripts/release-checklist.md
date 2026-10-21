@@ -22,8 +22,9 @@ Prerequisites it can't do for you (do these first):
 
 - [ ] Enable Stripe **Managed Payments** on the Hypertext Studio account
       (account-level eligibility — no API).
-- [ ] `(cd web/worker && pnpm exec wrangler login)` as **willie@hypertext.studio**
-      (the script refuses any other account).
+- [ ] Verify the existing approved `cf` profile or protected runner credential,
+      explicit Cloudflare account/zone, and permissions for the intended operation.
+      Do not assume Wrangler authentication carries over to `cf`.
 
 For an initial production setup, review the plan first. Execution requires
 separate release-owner authorization. Test credentials are rejected before
@@ -124,35 +125,37 @@ fraud — no separate tax-filing service is needed.
 
 ### 6. Cloudflare Worker for license issuance
 
-- [ ] Install from the locked workspace and validate only non-secret settings:
-      `(cd web && pnpm install --frozen-lockfile)`, then set
-      `CURFEW_LICENSE_WORKER_NAME`, `CURFEW_LICENSE_KV_NAMESPACE_ID`,
-      `CURFEW_LICENSE_HOSTNAME`, and `CURFEW_LICENSE_STRIPE_MODE` and run
-      `node scripts/license-worker.mjs validate-config`.
-- [ ] Verify the issuer expects the correct Stripe environment: `test` for the
-      dedicated staging sandbox, `live` only for the production license hostname.
-      Confirm a signed opposite-mode event is rejected before purchase-store
-      access. Keep sandbox keys, products, links, webhook secrets and KV separate.
-- [ ] Render an untracked deployment config from
-      `web/worker/wrangler.toml.example` with
-      `node scripts/license-worker.mjs render-config --output
-      /secure/user-owned/wrangler.toml`.
-- [ ] Bundle before deployment with
-      `node scripts/license-worker.mjs dry-run --config
-      /secure/user-owned/wrangler.toml`.
-- [ ] In an authorized Hypertext Studio Cloudflare session, deploy only the
-      rendered config using `cd web/worker && pnpm exec wrangler deploy
-      --config /secure/user-owned/wrangler.toml`.
-- [ ] Bind the production `LICENSE_KV`, configure the production custom
-      hostname, then upload `STRIPE_WEBHOOK_SECRET` and `LICENSE_PRIVATE_KEY`
-      as encrypted Worker secrets. Do not put either value in Git, a rendered
-      config, or command-line arguments.
-- [ ] Verify `node scripts/license-worker.mjs verify-endpoint --base-url
-      https://curfew-license.hypertext.studio`; only then point the production
-      Stripe webhook at that hostname.
-- [ ] Prove checkout, renewal, cancellation, and license refresh first with
-      a distinct Stripe test-mode Worker/KV/secrets configuration; do not use
-      a real card for that proof.
+- [ ] Install from the locked workspace and select the reviewed shared endpoint
+      artifact with independently pinned `CURFEW_DEPLOYMENT_ARTIFACT`,
+      `CURFEW_CONFIGURATION_COMMIT`, and `CURFEW_CONFIGURATION_SHA256`.
+      Follow `Documentation/license-worker-bootstrap.md` for the native `cf` path.
+- [ ] Select the existing staging Worker and KV from inventory through
+      `CURFEW_LICENSE_WORKER_NAME` and `CURFEW_LICENSE_KV_NAMESPACE_ID`.
+      Keep its namespace, signer, provider credentials, and purchase data separate
+      from production; a domain change does not create replacement resources.
+- [ ] Verify the artifact-derived Stripe mode: `test` for the dedicated staging
+      Sandbox and `live` for production. Confirm a signed opposite-mode event is
+      rejected before purchase-store access. Keep test products, links and webhook
+      secrets separate from live billing.
+- [ ] Build the staging artifact with
+      `pnpm --dir web/worker exec cf build --mode staging`, then inspect
+      `pnpm --dir web/worker exec cf deploy --prebuilt --mode staging --dry-run --provision=false`.
+      Verify bindings, sender allowlist, canonical portal, and resource identities.
+      A rendered Wrangler file does not configure these native `cf` commands.
+- [ ] During the authorized staging cutover, deploy the same prebuilt output with
+      provisioning disabled. Production uses the controlled sequence in
+      `Documentation/production-domain-promotion.md`; changing a mode flag does not
+      waive production backup, provider, signing, recovery, or acceptance gates.
+- [ ] Read back the retained KV, encrypted secrets and selected custom domains.
+      Keep `STRIPE_WEBHOOK_SECRET` and `LICENSE_PRIVATE_KEY` in approved secret
+      storage; never put their values in source, rendered config, or arguments.
+- [ ] Verify the staging issuer at `https://license-staging.thecurfew.app` with
+      `node scripts/license-worker.mjs verify-endpoint --base-url https://license-staging.thecurfew.app`.
+      Verify production separately at `https://license.thecurfew.app` when its
+      activation is authorized; provider changes remain with that release owner.
+- [ ] Prove Sandbox checkout, webhook delivery, renewal, cancellation, license
+      refresh, and browser-to-app restoration before acceptance. No real-card
+      fixture or production billing change is part of the staging proof.
 
 ### 7. Sparkle EdDSA keypair (candidate prerequisite)
 

@@ -14,8 +14,9 @@ shape without updating the Worker and `LicenseEnvelopeContractTests` together.
 
 The native license configuration derives both `RESTORE_EMAIL_FROM` and the
 email binding's sole allowed sender from the selected deployment artifact's
-`recoveryEmailFrom`. Production uses `accounts@thecurfew.app`; staging uses
-`accounts@curfew.hypertext.studio`. The sender and its allowlist must stay paired
+`recoveryEmailFrom`. Both configured environments use `accounts@thecurfew.app`;
+their portals, resources, credentials, and Stripe modes remain separate. The
+sender and its allowlist must stay paired
 with the environment's portal, resources, and Stripe mode.
 
 This changes the address used for restore email when the reviewed configuration
@@ -32,10 +33,9 @@ the environment boundaries and authorized sender restriction.
 Install only from the committed pnpm lockfile:
 
 ```sh
-cd web
-pnpm install --frozen-lockfile
-pnpm test
-pnpm typecheck
+pnpm --dir web install --frozen-lockfile
+pnpm --dir web test
+pnpm --dir web typecheck
 ```
 
 Generate a pair only when an authorized operator is ready. This command prints
@@ -67,97 +67,78 @@ the next app artifact; do not keep using the exposed signer.
 
 ## Local config and safe verification
 
-The committed `web/worker/wrangler.toml.example` has no account identifiers,
-hostname, or secret. Export these non-secret values only in the operator shell:
+Deploy with the pinned native `cf` CLI and
+`web/worker/cloudflare.config.ts`. It consumes the same immutable endpoint
+artifact as the app, website, and account service. A rendered Wrangler file is
+not an input to `cf build` or `cf deploy`. The legacy renderer remains a local
+configuration utility, not the deployment path for this migration.
+
+Use the reviewed `environment-artifact.json` through
+`CURFEW_DEPLOYMENT_ARTIFACT`, with independently pinned
+`CURFEW_CONFIGURATION_COMMIT` and `CURFEW_CONFIGURATION_SHA256`. Select the
+approved Cloudflare account and existing profile or protected runner credential.
+Keep credentials out of source, command arguments, and build output.
+
+For staging, set `CURFEW_LICENSE_WORKER_NAME` to the existing
+`curfew-issue-license-staging` Worker and `CURFEW_LICENSE_KV_NAMESPACE_ID` to its
+existing namespace from inventory. The selected artifact derives
+`license-staging.thecurfew.app`, `https://staging.thecurfew.app`, and the canonical
+sender. It sets Stripe mode to `test` and restricts the email binding to that
+sender. Production selects its existing Worker and KV, `license.thecurfew.app`,
+`https://thecurfew.app`, and Stripe mode `live`. Never substitute production
+resources or credentials for staging.
+
+From the repository root, build and inspect staging without deploying:
 
 ```sh
-export CURFEW_LICENSE_WORKER_NAME='example-worker-name'
-export CURFEW_LICENSE_KV_NAMESPACE_ID='00000000000000000000000000000000'
-export CURFEW_LICENSE_HOSTNAME='curfew-license.hypertext.studio'
-export CURFEW_LICENSE_STRIPE_MODE='live'
-node scripts/license-worker.mjs validate-config
-node scripts/license-worker.mjs render-config --output /secure/user-owned/wrangler.toml
-node scripts/license-worker.mjs dry-run --config /secure/user-owned/wrangler.toml
+pnpm --dir web/worker exec cf build --mode staging
+pnpm --dir web/worker exec cf deploy --prebuilt --mode staging --dry-run --provision=false
 ```
 
-For an isolated staging Worker, use a separate KV namespace, secrets, and the
-same approved Curfew hostname convention:
+Inspect the resource identities, hostname ownership, sender allowlist, portal,
+mode, and retained secrets before deployment. During the authorized cutover,
+deploy that same accepted output with `cf deploy --prebuilt --mode staging --provision=false`;
+do not rebuild it or provision replacement storage. Production
+uses the controlled backend and release sequence in
+[production promotion](production-domain-promotion.md), with the matching
+production artifact. Keep legacy independent Git-build publication disabled.
+
+For a domain change, retain the existing signers, namespace, purchases, refresh
+records, and webhook idempotency. Change only the approved endpoints and provider
+registrations. Verify sending authority, the exact From allowlist, and Apple relay
+acceptance before email delivery tests. Use the existing Stripe Sandbox's
+separate products, prices, keys, and webhook secrets; do not copy live objects or
+change production billing settings to obtain staging evidence.
+
+After signature verification, the issuer requires each event's boolean `livemode`
+to match its configured mode before any KV access, including replay and historical
+index repair. Missing configuration returns 503; malformed or opposite-mode
+flags return 400. Correct-mode events retain the paid-purchase checks.
+
+`GET /health` reports `stripe_mode` as `test`, `live`, or `unconfigured` without
+purchase-store, email, or rate-limit operations. It may return 503 if the signer
+is unavailable. Configured `x-curfew-configuration` and
+`x-curfew-configuration-commit` headers identify the declared endpoint artifact;
+they do not prove checkout, sender delivery, native restoration, or signed-app
+acceptance. Require `test` on staging and verify its actual deployment identities
+through `cf` before using the health response as payment-boundary evidence.
+
+The existing read-only endpoint check is:
 
 ```sh
-export CURFEW_LICENSE_WORKER_NAME='curfew-issue-license-staging'
-export CURFEW_LICENSE_KV_NAMESPACE_ID='your-staging-kv-namespace-id'
-export CURFEW_LICENSE_HOSTNAME='curfew-license-staging.hypertext.studio'
-export CURFEW_LICENSE_STRIPE_MODE='test'
-node scripts/license-worker.mjs render-config \
-  --output /secure/user-owned/wrangler-staging.toml
+node scripts/license-worker.mjs verify-endpoint --base-url https://license-staging.thecurfew.app
 ```
 
-The existing Stripe Test mode sandbox supports this integration. Use its
-test-only products, prices, payment links and webhook endpoint, and keep that
-webhook's signing secret on the staging Worker. Give the Worker a distinct
-`LICENSE_PRIVATE_KEY` and KV namespace. Do not copy live keys or objects into
-staging or change shared account settings during testing. A separate general
-sandbox adds settings isolation and is optional for this existing integration.
-
-`CURFEW_LICENSE_STRIPE_MODE` is required. The renderer permits `live` only for
-`curfew-license.hypertext.studio` and requires `test` for other license hostnames.
-It writes the runtime `STRIPE_MODE` binding. After signature verification, the
-issuer requires the event's boolean `livemode` to match that binding before any
-KV access, including event replay and historical index repair. Missing or invalid
-configuration returns 503; missing, malformed or opposite-mode event flags return
-400. Correct-mode events continue through the existing paid-purchase checks.
-
-The guard's staging Worker Build succeeded at `e6fc60c9`; runtime mode still
-requires read-back verification. For staging publication, save
-`CURFEW_LICENSE_STRIPE_MODE=test` in that Worker's Build configuration and verify
-the rendered runtime binding. Production configuration
-and deployment require explicit owner direction; its eventual value is `live`.
-Do not merge or push to a production auto-deployment branch while that stop
-remains. Staging Build success does not establish the runtime mode; verify its
-health field and the test-only webhook separately. Revert the code and renderer together
-if rollback is needed; retain the separate KVs, signers and webhook secrets.
-
-`GET /health` reports `stripe_mode` as exactly `test`, `live`, or `unconfigured`.
-Only the first two runtime binding values are disclosed; missing or invalid
-values are never echoed. This read-only response retains `Cache-Control:
-no-store`, performs no purchase-store, email or rate-limit operation, and exposes
-no credentials or purchase data. It includes the mode even when an unavailable
-signer returns 503. The existing 200 status only establishes a configured signer;
-an `unconfigured` mode still blocks webhook processing with 503. Require `test`
-on staging before claiming its payment boundary is configured. Mode read-back
-does not prove a checkout, signer pairing, inbox restoration, or build identity.
-No build identity is reported because no authenticated version binding exists.
-Reverting this diagnostic removes only the additive health field.
-
-`validate-config` fails closed when any required field is absent or malformed.
-`render-config` resolves the Worker entry point from this clone, so the
-caller-selected output path does not change what Wrangler builds. `dry-run`
-performs no deployment. To produce a dashboard-reviewable bundle without a
-Cloudflare token, run from the Worker directory:
-
-```sh
-cd web/worker
-pnpm exec wrangler deploy --dry-run \
-  --config /secure/user-owned/wrangler.toml \
-  --outdir /secure/user-owned/curfew-license-worker-bundle
-```
-
-Wrangler writes the bundled entry point at
-`/secure/user-owned/curfew-license-worker-bundle/index.js`; its source map and
-README are supporting local artifacts. The dashboard still requires separate
-configuration of the `LICENSE_KV` binding, custom hostname, and encrypted
-secrets. After an authorized deployment and secret upload, the read-only
-endpoint check is:
-
-```sh
-node scripts/license-worker.mjs verify-endpoint --base-url https://license.example.com
-```
-
-Before opening checkout, separately verify a Stripe test event, successful
-key delivery, subscription renewal, cancellation, and that the root
-`landing/src/pages/index.astro` sale gate remains closed until this path is proven.
+Separately accept Sandbox checkout, webhook delivery, key delivery, renewal,
+cancellation, refresh, and browser-to-app restoration on the new hosts. Preserve
+the landing sale gate until the separate production acceptance and billing
+authorization are complete. Roll back code/configuration against retained data
+without discarding later writes, purchases, or revoked authority.
 
 ## Recorded staging proof
+
+This historical proof does not establish acceptance of a later configuration,
+new staging hosts, or a new signed application.
 
 On 2026-08-01, the isolated staging configuration was exercised from the
 Hypertext Studio Stripe **Sandbox** only. A dedicated `$1` staging payment link
