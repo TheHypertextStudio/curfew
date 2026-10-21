@@ -1650,6 +1650,8 @@ asserts its own screen and state before attaching an image.
   profile and preserve retired-host denial and deployment health identity.
 - [x] Include the restricted restore sender, matching portal, isolated rate limits,
   and explicit payment mode in the native license deployment configuration.
+- [x] Generate the local license tooling sender, email allowlist and purchase
+  portal from the local deployment manifest, and reject committed drift in CI.
 - [x] Derive the restore-email sender and its restricted allowlist from the
   selected canonical configuration, keeping production on thecurfew.app and
   staging on its isolated sender. Verify both modes without sending email or

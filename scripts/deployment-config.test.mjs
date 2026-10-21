@@ -28,6 +28,30 @@ const fixture = {
   passkeyRPID: "example.net",
   recoveryEmailFrom: "accounts@example.net",
 };
+test("local license tooling uses its canonical sender and purchase portal", async () => {
+  const manifest = JSON.parse(
+    await readFile("deployment/environments.json", "utf8"),
+  );
+  const local = JSON.parse(
+    await readFile("web/worker/wrangler.local.jsonc", "utf8"),
+  );
+  assert.equal(
+    local.vars.RESTORE_EMAIL_FROM,
+    manifest.environments.local.recoveryEmailFrom,
+  );
+  assert.deepEqual(
+    local.send_email.find((binding) => binding.name === "EMAIL")
+      .allowed_sender_addresses,
+    [manifest.environments.local.recoveryEmailFrom],
+  );
+  assert.equal(
+    local.vars.PURCHASE_PORTAL_URL,
+    manifest.environments.local.purchasePortalOrigin ??
+      manifest.environments.local.siteOrigin,
+  );
+  assert.equal(local.vars.STRIPE_MODE, "test");
+  assert.equal(local.workers_dev, false);
+});
 test("Curfew staging uses its product domain while keeping production isolated", async () => {
   const { createArtifact, resolveEnvironment } = await config();
   const manifest = JSON.parse(
@@ -349,6 +373,7 @@ test("deployment generation preserves the retained Keychain group when rewriting
     "Curfew",
     "landing/public",
     "CurfewKit/Sources/CurfewKit/Sync",
+    "web/worker",
   ])
     await mkdir(join(root, folder), { recursive: true });
   const manifest = JSON.parse(
@@ -358,6 +383,10 @@ test("deployment generation preserves the retained Keychain group when rewriting
     "https://account.updated.example.net";
   manifest.environments.staging.accountOrigin =
     "https://account-staging.updated.example.net";
+  manifest.environments.local.siteOrigin = "http://localhost:5432";
+  manifest.environments.local.purchasePortalOrigin = "http://localhost:5433";
+  manifest.environments.local.recoveryEmailFrom =
+    "accounts@updated.example.net";
   await writeFile(
     join(root, "deployment/environments.json"),
     JSON.stringify(manifest),
@@ -367,9 +396,21 @@ test("deployment generation preserves the retained Keychain group when rewriting
     "Curfew/Curfew.entitlements",
     "landing/public/sitemap.xml",
     "landing/public/robots.txt",
+    "web/worker/wrangler.local.jsonc",
   ])
     await copyFile(path, join(root, path));
   await generateDeployment(root);
+  const local = JSON.parse(
+    await readFile(join(root, "web/worker/wrangler.local.jsonc"), "utf8"),
+  );
+  assert.equal(local.vars.RESTORE_EMAIL_FROM, "accounts@updated.example.net");
+  assert.deepEqual(local.send_email[0].allowed_sender_addresses, [
+    "accounts@updated.example.net",
+  ]);
+  assert.equal(local.vars.PURCHASE_PORTAL_URL, "http://localhost:5433");
+  assert.equal(local.vars.STRIPE_MODE, "test");
+  assert.equal(local.name, "curfew-license-local");
+  assert.equal(local.kv_namespaces[0].id, "00000000000000000000000000000000");
   for (const [path, expected] of [
     [
       "Curfew/Curfew-Release.entitlements",

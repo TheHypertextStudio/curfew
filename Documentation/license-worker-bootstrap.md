@@ -67,6 +67,15 @@ the next app artifact; do not keep using the exposed signer.
 
 ## Local config and safe verification
 
+Run `node scripts/deployment-config.mjs generate` after changing the canonical
+manifest. It also refreshes the sender, email binding allowlist and purchase
+portal in `web/worker/wrangler.local.jsonc` from the local environment. The local
+file retains test payment mode, its dummy KV namespace and disabled public
+deployment. CI rejects a stale generated file; alternate-manifest tests verify
+that future endpoint or sender changes need no edits to this local configuration.
+This file supports local tooling only and does not change hosted resources or
+send email. Roll back a manifest change by restoring it and regenerating.
+
 Deploy with the pinned native `cf` CLI and
 `web/worker/cloudflare.config.ts`. It consumes the same immutable endpoint
 artifact as the app, website, and account service. A rendered Wrangler file is
