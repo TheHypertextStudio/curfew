@@ -2,6 +2,28 @@ import XCTest
 
 extension CurfewUITests {
     @MainActor
+    func testIsolatedUnlockLabelHasReadableAccessibleText() throws {
+        let app = launchFixture("lockout", state: "rest-contrast-control")
+        defer { app.terminate() }
+        let label = app.staticTexts.matching(
+            NSPredicate(format: "label BEGINSWITH %@", "Your computer unlocks at ")
+        ).firstMatch
+        XCTAssertTrue(label.waitForExistence(timeout: 5))
+        XCTAssertEqual(
+            app.staticTexts.count,
+            1,
+            "The control must contain only the actual unlock label."
+        )
+        XCTAssertFalse(app.textViews["reflection-answer"].exists)
+        XCTAssertEqual(app.groups["rest-screen"].label, "Curfew rest screen")
+        let capture = XCTAttachment(screenshot: app.screenshot())
+        capture.name = "Isolated formatted unlock label"
+        capture.lifetime = .keepAlways
+        add(capture)
+        try app.performAccessibilityAudit(for: [.contrast, .sufficientElementDescription])
+    }
+
+    @MainActor
     func testReflectionTypingSurvivesClockTicks() {
         let app = launchFixture("lockout", state: "rest-continuity")
         let editor = app.textViews["reflection-answer"].firstMatch

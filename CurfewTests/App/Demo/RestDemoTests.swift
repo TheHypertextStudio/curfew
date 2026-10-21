@@ -5,6 +5,24 @@ import Testing
 
 @MainActor
 struct RestDemoTests {
+    @Test("The exact-label contrast control is named, static, and disarmed")
+    func contrastControlIsStaticAndDisarmed() throws {
+        let review = try #require(DemoReviewState(rawValue: "rest-contrast-control"))
+        let model = CurfewAppModel.demoModel()
+        model.applyDemoReviewState(review)
+        #expect(!model.reflectionState.isEveningReflectionPending)
+        #expect(!model.reflectionState.isDaybreakPresented)
+        #expect(!model.isEnforcementRunning)
+        #expect(!model.settings.autoShutdownEnabled)
+        #expect(model.reassertEnforcementIfNeeded() == .noop)
+        #expect(model.reflectionState.demoRestClock == nil)
+        let time = model.currentTime
+        model.refreshDemoRestClock(at: time.addingTimeInterval(3600))
+        #expect(model.currentTime == time)
+        let interval = try #require(model.reflectionState.scheduledInterval)
+        #expect(model.restRestrictionStatus == .lockedUntil(interval.end))
+    }
+
     @Test("The rest continuity fixture has an editable reflection and never arms enforcement")
     func continuityIsEditableAndDisarmed() {
         let model = CurfewAppModel.demoModel()

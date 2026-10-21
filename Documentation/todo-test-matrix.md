@@ -19,6 +19,8 @@ Morning atmosphere follows scheduled unlock. Sunrise does not imply release auth
 
 Appearance tests set only each isolated window's supplied appearance and never order windows onscreen or mutate application-wide appearance. Native appearance consistency is an independently meaningful requirement; the current contrast audit's cause remains unproven. Preserve the unchanged actual audit and its evidence.
 
+Prepared exact-label diagnostic coverage: `RestDemoTests/contrastControlIsStaticAndDisarmed` and `CurfewUITests/testIsolatedUnlockLabelHasReadableAccessibleText` specify a named disarmed control containing only the actual formatted status and the same contrast/description audit. The control is not implemented yet; execute the failing guards before adding its Debug-only fixture. Keep the original real-scene test unchanged and remove diagnostic scaffolding before shipping.
+
 ## Worktree preparation
 
 `./bootstrap worktree plan --json` validates workspace discovery and rejects
