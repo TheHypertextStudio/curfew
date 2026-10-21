@@ -323,8 +323,9 @@ final class OverlayCoordinator {
     }
 
     func apply(configuration: OverlayWindowConfiguration, to window: NSWindow) {
-        window.isOpaque = false
-        window.backgroundColor = .clear
+        let coversScreen = configuration.level == .screenSaver
+        window.isOpaque = coversScreen
+        window.backgroundColor = coversScreen ? .black : .clear
         window.hasShadow = false
         window.level = configuration.level
         window.ignoresMouseEvents = configuration.ignoresMouseEvents
