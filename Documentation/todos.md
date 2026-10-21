@@ -62,6 +62,9 @@
   requires revalidation of system accessibility before relying on its results.
 - [ ] Confirm the full app-host and graphical suites complete on their images;
   local compilation and headless targeted tests do not replace these checks.
+- [x] Run each website policy-navigation viewport as an independent browser
+  case. Preserve desktop, mobile, keyboard, policy-history and three-browser
+  coverage without accumulating three journeys under one test timeout.
 
 - [x] Bind every browser completion to the sign-in attempt that opened it so
   delayed cancellation cannot close a replacement sign-in. Keep existing

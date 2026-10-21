@@ -70,6 +70,13 @@ DerivedData key and restore prefix include `runner.arch` so Intel and ARM64
 artifacts cannot share a cache. `actionlint` validates the workflow; actual
 hosted completion, rather than successful queueing, establishes acceptance.
 
+The website acceptance cases `home leads with the product and keeps policies
+in the footer at 1920px`, `390px`, and `320px` independently check layout,
+keyboard navigation to Terms, and the link to policy history in all three
+browsers. Each viewport has its own ordinary test deadline and failure report;
+slow navigation in one viewport cannot consume the next viewport's budget.
+The assertions, browser coverage and per-case timeout remain unchanged.
+
 `NativeAccountSyncTransportTests.testReconnectIgnoresFailureFromThePreviousPollingSession`
 waits for the new-session health callback with a deadlock guard, then checks the
 inverted old-session failure expectation. That expectation remains active
