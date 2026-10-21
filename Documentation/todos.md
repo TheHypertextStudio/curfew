@@ -53,12 +53,14 @@
 
 ## Native reconnect regression timing
 
-- [x] Use the supported hosted Intel macOS 26 image for native checks and
-  graphical acceptance when ARM64 capacity prevents jobs from starting. Keep
-  all existing tests and separate DerivedData caches by runner architecture.
-  Signing and release architecture selection remain unchanged; reverting the
-  runner label restores the prior queue without a product migration.
-- [ ] Confirm the full app-host and graphical suites complete on that image;
+- [x] Keep native quality checks on hosted Intel macOS 26 and graphical
+  acceptance on hosted ARM64 macOS 26. Avoid the Intel image's IconServices
+  crash during system accessibility snapshots; retain every UI assertion and
+  separate DerivedData caches by runner architecture. Signing and release
+  architecture selection remain unchanged. Reverting the graphical runner
+  label restores the prior lane without a product or data migration, but
+  requires revalidation of system accessibility before relying on its results.
+- [ ] Confirm the full app-host and graphical suites complete on their images;
   local compilation and headless targeted tests do not replace these checks.
 
 - [x] Bind every browser completion to the sign-in attempt that opened it so

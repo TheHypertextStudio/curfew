@@ -59,9 +59,13 @@ network fixture is removed; installed sync behavior is unchanged.
 
 ## Native reconnect regression timing
 
-The ordinary `CI` workflow runs the full app-host suite, Debug/Release builds,
-and existing UI/screenshot acceptance on `macos-26-intel`. This is a supported
-macOS 26 host, not a reduced test lane or an owner-desktop workaround. The
+The ordinary `CI` workflow runs the full app-host suite and Debug/Release builds
+on `macos-26-intel`, and all existing UI/screenshot acceptance on the isolated
+ARM64 `macos-26` image. The graphical lane avoids the Intel image's IconServices
+crash, which stalls system Apple-menu accessibility snapshots before app-window
+inspection. `scripts/xcode-package-layout.test.mjs` guards the separate graphical
+lane, complete UI selectors, capture command and architecture-specific cache.
+Both images support the macOS 26 deployment target. The
 DerivedData key and restore prefix include `runner.arch` so Intel and ARM64
 artifacts cannot share a cache. `actionlint` validates the workflow; actual
 hosted completion, rather than successful queueing, establishes acceptance.
