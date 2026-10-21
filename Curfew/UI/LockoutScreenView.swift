@@ -51,9 +51,11 @@ struct LockoutScreenView: View {
     /// The user-facing message body — varies by trigger (wall time vs.
     /// hours exhausted vs. combined). Formatted by the app model.
     let message: String
+    var contentDelay = 0.0
 
     /// Tracks hold-gesture progress (0 → 1) for the confirm-override button.
     @State private var holdProgress: Double = 0
+    @GestureState private var isHoldingOverride = false
 
     private var visualConfiguration: LockoutVisualConfiguration {
         LockoutVisualConfiguration.resolve(
@@ -67,10 +69,16 @@ struct LockoutScreenView: View {
     /// no `unlockDate` falls back to a reassuring line rather than showing
     /// nothing (the VoiceOver copy carries the same fallback).
     private var unlockLine: String {
-        guard let unlockDate = model.state.unlockDate else {
-            return "Your computer stays locked until the schedule lifts."
+        switch model.restRestrictionStatus {
+        case .lockedUntil(let date):
+            "Your computer unlocks at \(date.formatted(date: .omitted, time: .shortened))"
+        case .stillLocked:
+            "Your scheduled unlock time has passed. Your computer is still locked."
+        case .unknown:
+            "Your computer stays locked until the schedule lifts."
+        case .released:
+            "Your scheduled rest has ended."
         }
-        return "Your computer unlocks at \(unlockDate.formatted(date: .omitted, time: .shortened))"
     }
 
     private var accessibilitySummary: String {
@@ -81,22 +89,15 @@ struct LockoutScreenView: View {
     /// time, message, unlock info, optional calendar pill, and the
     /// Convince Me flow stacked centrally.
     var body: some View {
-        ZStack {
-            SundownSky(moment: model.skyMoment)
-                .overlay(SundownPalette.textScrim)
-                .ignoresSafeArea()
-
-            VStack(spacing: 0) {
-                Spacer(minLength: 24)
-                centralBeat
-                Spacer(minLength: 24)
+        VStack(spacing: 28) {
+            centralBeat
+            if model.isEnforcingLockout {
                 overrideSection
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .padding(40)
         }
+        .frame(maxWidth: 720)
         .accessibilityElement(children: .contain)
-        .accessibilityLabel(accessibilitySummary)
+        .accessibilityLabel(model.isEnforcingLockout ? accessibilitySummary : "Evening reflection")
         .accessibilityIdentifier("lockout-screen")
     }
 
@@ -106,12 +107,6 @@ struct LockoutScreenView: View {
     private var centralBeat: some View {
         VStack(spacing: 22) {
             VStack(spacing: 12) {
-                Text(model.currentTime, style: .time)
-                    .font(.system(size: 110, weight: .semibold, design: .rounded))
-                    .monospacedDigit()
-                    .foregroundStyle(SundownPalette.warmWhite)
-                    .shadow(color: .black.opacity(0.35), radius: 30, y: 12)
-
                 Text(message)
                     .font(.system(size: 26, weight: .medium, design: .rounded))
                     .foregroundStyle(SundownPalette.warmWhite.opacity(0.9))
@@ -144,8 +139,15 @@ struct LockoutScreenView: View {
                 EveningReflectionCard(usesSolidPanels: visualConfiguration.usesSolidPanels)
                     .environment(model)
                     .padding(.top, 4)
+                    .transition(.opacity.combined(with: .offset(
+                        y: visualConfiguration.animateBackground ? 8 : 0
+                    )))
             }
         }
+        .animation(
+            .easeOut(duration: visualConfiguration.animateBackground ? 0.35 : 0.15)
+                .delay(contentDelay), value: model.reflectionState.isEveningReflectionPending
+        )
     }
 
     /// The "Convince Me" override flow, anchored at the bottom and held at low
@@ -207,22 +209,26 @@ struct LockoutScreenView: View {
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("override-hold-confirm")
                 .disabled(!model.canConfirmOverride)
-                .onLongPressGesture(
-                    minimumDuration: holdDuration,
-                    pressing: { isPressing in
-                        if isPressing, model.canConfirmOverride {
-                            holdProgress = 1
-                        } else {
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                                holdProgress = 0
-                            }
+                .simultaneousGesture(
+                    LongPressGesture(minimumDuration: holdDuration)
+                        .updating($isHoldingOverride) { pressing, state, _ in
+                            state = pressing
                         }
-                    },
-                    perform: {
-                        model.confirmOverride()
-                        holdProgress = 0
-                    }
+                        .onEnded { completed in
+                            guard completed else { return }
+                            model.confirmOverride()
+                            holdProgress = 0
+                        }
                 )
+                .onChange(of: isHoldingOverride) { _, isPressing in
+                    if isPressing, model.canConfirmOverride {
+                        holdProgress = 1
+                    } else {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                            holdProgress = 0
+                        }
+                    }
+                }
                 // If the budget is exhausted on a tick mid-hold, hit-testing is
                 // revoked before the gesture's release fires — reset the fill
                 // reactively so it can't strand full.
@@ -326,7 +332,7 @@ struct EveningReflectionCard: View {
             }
 
             ReflectionFormView(
-                prompts: model.reflectionConfiguration.prompts(for: .evening),
+                draft: model.reflectionDraft(for: .evening),
                 submitLabel: "Save & settle in",
                 usesSolidPanels: usesSolidPanels,
                 onSubmit: { answers in

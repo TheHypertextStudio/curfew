@@ -147,6 +147,7 @@ extension CurfewAppModel {
             warningIntervals: settings.warningIntervals,
             workedMinutesToday: workedMinutesToday(at: currentTime)
         )
+        retainScheduledRestInterval(from: newState)
         if state != newState {
             state = newState
         }
