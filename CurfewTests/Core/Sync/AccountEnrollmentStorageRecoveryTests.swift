@@ -90,6 +90,7 @@ private final class FailingReadEnrollmentSecretStore: AccountSecretStoring {
 
     init(failsReads: Bool = true) {
         self.failsReads = failsReads
+        values["oauth-deployment-identity"] = accountDeploymentIdentity()
     }
 
     func data(for account: String) throws -> Data? {

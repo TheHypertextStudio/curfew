@@ -2138,6 +2138,8 @@ does not modify native files, enable sales or remove owner/staging gates.
 | Public redirects preserve paths; credential-bearing requests stop without forwarding                          | `landing/tests/unit/domain-routing.test.mjs` for both environments  |
 | Staging routes use the product zone and keep the old public redirect route                                    | `landing/tests/unit/site-worker.test.mjs`                           |
 | License recovery sender and portal match the selected environment | `scripts/license-worker.test.mjs` |
+| Current-domain reconnect, recovery and storage failures retain their existing authorization safeguards | `AccountEnrollmentReauthorizationTests`; `AccountEnrollmentRecoveryTests`; `AccountEnrollmentStorageRecoveryTests`; `AccountEnrollmentCompletionTests`; `NativeAccountSyncTransportTests` |
+| Old-domain or unmarked grants require fresh authorization while retaining the same Mac, owner and encryption keys | `AccountEnrollmentReauthorizationTests.domainMigrationRetainsSavedMac` |
 | Retained account/device data, new-host passkeys, provider callbacks, native reconnection, and Sandbox restore | Actual protected staging walkthrough and private release acceptance |
 
 Production promotion uses the protected resume phase and retained accepted artifacts; see [production-domain-promotion.md](production-domain-promotion.md). Source checks and a configuration flag do not replace its runtime acceptance gates.

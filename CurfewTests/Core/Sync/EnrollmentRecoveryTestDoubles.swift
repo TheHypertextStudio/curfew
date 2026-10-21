@@ -3,6 +3,14 @@ import AppKit
 @testable import CurfewKit
 import Foundation
 
+/// Credentials in current-domain fixtures must not impersonate pre-migration grants.
+func accountDeploymentIdentity(
+    endpoints: CurfewServiceEndpoints = .current
+) -> Data {
+    Data((endpoints.accountOrigin.absoluteString + "|" + endpoints.syncResource
+            .absoluteString).utf8)
+}
+
 @MainActor
 struct PostBrowserFailingAccountOAuthEnrollment: AccountOAuthEnrolling {
     func signIn(
