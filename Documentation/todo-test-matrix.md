@@ -1876,6 +1876,11 @@ changes; rollback restores the prior landing release and docs commit.
 | Recovery gate, transactional revocation and idempotency | curfew-sync `domain-migration.test.ts`, `service-config.test.ts` | Provider-ready maintenance cutover and drained fences |
 
 - Release endpoint provenance: `scripts/release-configuration.test.mjs` covers configured and alternate domains, changed manifests, source revisions, and signing keys; `scripts/release-candidate.test.mjs` binds native configuration and candidate signatures to the shared deployment identity.
+- Operator documentation follows the existing canonical account fallback tests
+  in `landing/tests/unit/site-worker.test.mjs` and hosted/local admission tests in
+  `scripts/publication.test.mjs` and `scripts/local-release.test.mjs`. These cover
+  fail-closed routing and source/provenance admission; actual deployment,
+  staging/device acceptance and post-cutover monitoring remain separate checks.
 - Provider administration: use approved native CLI access outside PR validation. `scripts/deployment-config.test.mjs` prevents the website workflow from receiving production Cloudflare deployment credentials; provider inventory remains access evidence, not release acceptance.
 
 - Domain migration operator sequence: backend `scripts/production-audit.test.mjs` verifies readiness before production mutations; `scripts/cutover-readiness.test.mjs` covers receipt completeness, identity and freshness. Email sender activation additionally requires Cloudflare DNS verification and live delivery acceptance.
