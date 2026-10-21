@@ -114,10 +114,14 @@ successful push/main Website and docs run for the exact commit, downloads its
 validated `curfew-website-dist` artifact, and installs pinned deployment tools.
 It checks main again immediately before deployment. Deployments are serialized.
 
-The staging website uses `curfew-staging.hypertext.studio` for the modern site,
+The staging profile uses `staging.thecurfew.app` for the modern site,
 checkout confirmation, purchase restoration and account navigation. The existing
 `curfew-site-staging` Worker runs in front of the account service through an exact
-hostname route. Retain the account service's custom domain and passkey identity.
+hostname route. Its account authority is `account-staging.thecurfew.app`; sync
+and licensing use the separate hosts in the shared manifest. Retain the existing
+service resources and apply equivalent internal-access protection before exposing
+new hosts. A changed passkey RP ID requires normal recovery and replacement
+passkeys, plus refreshed Dev associated domains and signed-build acceptance.
 Its service binding targets only `curfew-account-platform-staging`; account
 paths, callbacks, request bodies and response cookies stay with that service.
 Website builds include design assets at `/site-assets/design/` for both Worker
@@ -125,11 +129,12 @@ and static hosting, keeping them separate from the account service's `/design/`
 assets without a runtime alias. Both activation and restoration use the
 same modern page shell as the website.
 
-The former `curfew-site-staging.hypertext.studio` entry redirects public
-navigations to the canonical staging host. Existing restore fragments remain
-browser-side; checkout session queries are retained only on the confirmation
-route. Redirect destinations retain the canonical host even for double-slash
-paths. Authenticated requests and writes on the old host return 410.
+The manifest's legacy staging site redirects public navigations to the canonical
+host with 308, preserving paths and queries. Authenticated requests, callback or
+recovery tokens, checkout session identifiers, and writes stop with 410 rather
+than crossing domains. Any retained older preview redirect keeps its existing
+narrow confirmation-route rules and leaves fragments browser-side. Redirect
+destinations retain the canonical host even for double-slash paths.
 
 Configure the protected staging deployment credential for the existing website
 Worker and its exact hostname route. Verify staff Access protection on the
@@ -192,12 +197,13 @@ package the verified `dist` directory even if a retained-artifact asset override
 is inherited. Retained production publication keeps its separate asset path.
 Keep prior native versions and route/domain baselines available for recovery.
 
-Staging purchase confirmation and restoration use
-`https://curfew-site-staging.hypertext.studio`, the protected frontend host.
-The shared profile's `purchasePortalOrigin` selects this destination independently
-of the account portal at `curfew-staging.hypertext.studio`. Keep that host's
-Access protection enabled during acceptance; sign in normally to inspect the
-purchase pages.
+Staging purchase confirmation, restoration, and account entry use the protected
+`https://staging.thecurfew.app` frontend. The shared profile's
+`purchasePortalOrigin` selects purchase destinations and currently matches its
+`siteOrigin`; the account portal is the same origin's `/account` path. Verify the
+actual Access application and policies before acceptance. A configured OAuth
+client or Google testing audience does not replace internal-access protection.
+Use normal authorized sign-in to inspect the purchase pages.
 
 ## Production and rollback
 
