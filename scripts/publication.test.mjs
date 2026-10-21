@@ -25,7 +25,16 @@ async function fixture(t) {
   t.after(() => rm(directory, { recursive: true, force: true }));
   const site = join(directory, "website");
   await mkdir(site, { recursive: true });
-  await writeFile(join(site, "index.html"), "verified site");
+  await writeFile(
+    join(site, "index.html"),
+    readFileSync(new URL("../landing/src/content/home.html", import.meta.url)),
+  );
+  await writeFile(
+    join(site, "download.html"),
+    readFileSync(
+      new URL("../landing/src/content/download.html", import.meta.url),
+    ),
+  );
   for (const [page, mode] of [
     ["success", "checkout"],
     ["restore", "restore"],
@@ -261,7 +270,7 @@ test("local release keeps the candidate tag pinned while checking the reviewed p
     /hosted|source/i,
   );
 });
-test("publication stages the exact signed feed beside the verified site without changing retained bytes", async (t) => {
+test("publication stages the exact signed feed beside the verified site without changing retained inputs", async (t) => {
   const input = await fixture(t);
   const { preparePublication } = await api();
   const result = await preparePublication(input);
@@ -270,9 +279,10 @@ test("publication stages the exact signed feed beside the verified site without 
     await readFile(join(input.destination, "appcast.xml")),
     input.native.appcast,
   );
-  assert.equal(
-    await readFile(join(input.destination, "index.html"), "utf8"),
-    "verified site",
+  assert.ok(
+    (await readFile(join(input.destination, "index.html"), "utf8")).includes(
+      "Call it a day.",
+    ),
   );
   await assert.rejects(() =>
     access(join(input.website.directory, "appcast.xml")),
@@ -312,6 +322,60 @@ test("publication refuses unaccepted, stale, mismatched, or failed inputs before
     const input = await fixture(t);
     mutate(input);
     await assert.rejects(() => preparePublication(input));
+    await assert.rejects(() => access(input.destination));
+  }
+});
+test("accepted publication exposes the exact installer while keeping Plus closed and retained input untouched", async (t) => {
+  const input = await fixture(t);
+  const original = await readFile(
+    join(input.website.directory, "download.html"),
+    "utf8",
+  );
+  await (await api()).preparePublication(input);
+  const html = await readFile(join(input.destination, "download.html"), "utf8");
+  assert.ok(
+    html.includes(
+      'href="https://github.com/TheHypertextStudio/curfew/releases/download/v0.0.2/Curfew-v0.0.2.dmg"',
+    ),
+  );
+  assert.ok(html.includes("Download Curfew 0.0.2"));
+  assert.ok(!html.includes("The public Mac download is coming soon."));
+  assert.ok(html.includes("It is not available for purchase yet."));
+  assert.equal(
+    await readFile(join(input.website.directory, "download.html"), "utf8"),
+    original,
+  );
+  const home = await readFile(join(input.destination, "index.html"), "utf8");
+  assert.ok(!home.includes("Coming soon · Free"));
+  assert.ok(!home.includes("The public Mac download is coming soon."));
+  assert.ok(home.includes("Cross-platform sync is coming soon"));
+  assert.equal(
+    await readFile(join(input.website.directory, "index.html"), "utf8"),
+    readFileSync(
+      new URL("../landing/src/content/home.html", import.meta.url),
+      "utf8",
+    ),
+  );
+});
+test("publication refuses an unknown or ambiguous download state before creating output", async (t) => {
+  for (const [page, html] of [
+    ["download.html", "unknown download page"],
+    ["index.html", "unknown homepage"],
+    [
+      "download.html",
+      `${readFileSync(new URL("../landing/src/content/download.html", import.meta.url), "utf8")}<p>The public Mac download is coming soon. The installer will be available here when it is ready.</p>`,
+    ],
+  ]) {
+    const input = await fixture(t);
+    await writeFile(join(input.website.directory, page), html);
+    input.website.stamp = await sealWebsite(
+      input.website.directory,
+      input.website.deployment,
+    );
+    await assert.rejects(
+      async () => (await api()).preparePublication(input),
+      /download/i,
+    );
     await assert.rejects(() => access(input.destination));
   }
 });
@@ -480,7 +544,7 @@ test("publication readiness requires live website TLS and the reviewed backend i
     ),
   );
 });
-test("live publication verification checks actual feed bytes, public redirects, and callback retirement", async (t) => {
+test("live publication verification checks the customer installer path, exact feed bytes, public redirects, and callback retirement", async (t) => {
   const input = await fixture(t);
   const { verifyLivePublication } = await api();
   assert.equal(typeof verifyLivePublication, "function");
@@ -488,7 +552,12 @@ test("live publication verification checks actual feed bytes, public redirects, 
     siteOrigin: "https://alternate.example",
     legacySiteOrigin: "https://old.example",
   };
+  const downloadURL =
+    "https://github.com/TheHypertextStudio/curfew/releases/download/v0.0.2/Curfew-v0.0.2.dmg";
   const fetcher = async (url) => {
+    if (url === "https://alternate.example/download")
+      return new Response(`<a href="${downloadURL}">Download Curfew 0.0.2</a>`);
+    if (url === downloadURL) return new Response(input.native.dmg);
     if (url === "https://alternate.example/appcast.xml")
       return new Response(input.native.appcast);
     if (url.startsWith("https://old.example/api/"))
@@ -501,7 +570,7 @@ test("live publication verification checks actual feed bytes, public redirects, 
             "https://alternate.example/download?curfew_migration_check=1",
         },
       });
-    return new Response("site");
+    return new Response('<a href="/download">Get Curfew</a>');
   };
   await verifyLivePublication(config, input.native.candidate, fetcher);
   await assert.rejects(() =>
@@ -511,6 +580,22 @@ test("live publication verification checks actual feed bytes, public redirects, 
       async () => new Response("different feed"),
     ),
   );
+  for (const [target, response] of [
+    [
+      config.siteOrigin,
+      new Response(
+        '<a href="/download">Get Curfew</a><p>Coming soon · Free &amp; open source · macOS 26+</p>',
+      ),
+    ],
+    ["https://alternate.example/download", new Response("coming soon")],
+    [downloadURL, new Response("not found", { status: 404 })],
+    [downloadURL, new Response("substituted installer")],
+  ])
+    await assert.rejects(() =>
+      verifyLivePublication(config, input.native.candidate, (url, options) =>
+        url === target ? response : fetcher(url, options),
+      ),
+    );
 });
 
 test("manual activation writes only the independently approved private acceptance receipt", async (t) => {

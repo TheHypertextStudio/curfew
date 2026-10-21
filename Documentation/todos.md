@@ -1559,6 +1559,9 @@ asserts its own screen and state before attaching an image.
 - [x] Support explicit local-build publication with retained test logs, exact
   signed/notarized bytes, unchanged native source and actual staging acceptance;
   keep local provenance separate from hosted runs and preserve all owner gates.
+- [x] Activate installer availability across the homepage and download page
+  only with an accepted release, preserve the Plus hold, and verify actual
+  customer download bytes against the signed candidate.
 - [x] Align migration and release instructions with canonical account entry,
   Worker-only website publication, hosted/local provenance and retained-data
   rollback; keep website fixes separate from app, service and purchase activation.
