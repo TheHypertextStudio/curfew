@@ -2,6 +2,11 @@
     import CurfewKit
     import Foundation
 
+    struct DemoRestClock {
+        let wallStart: Date
+        let sceneStart: Date
+    }
+
     @MainActor
     extension CurfewAppModel {
         /// Isolated rest scenes. This never runs the enforcement tick, requests
@@ -15,6 +20,10 @@
             let isMorning = review == .restMorning
             currentTime = isMorning ? unlock.addingTimeInterval(60)
                 : midnight.addingTimeInterval(24 * 3600 - 2)
+            reflectionState.demoRestClock = DemoRestClock(
+                wallStart: Date(),
+                sceneStart: currentTime
+            )
             reflectionState.eveningLockDate = lock
             reflectionState.scheduledInterval = DateInterval(start: lock, end: unlock)
             state = CurfewEvaluation(
@@ -32,6 +41,26 @@
             ])
         }
 
+        /// Samples real elapsed time after physical wake, while retaining the
+        /// synthetic occurrence and draft. This never polls or starts enforcement.
+        func refreshDemoRestClock(at now: Date = Date()) {
+            guard isDemoSession, let clock = reflectionState.demoRestClock else { return }
+            let previous = currentTime
+            currentTime = clock.sceneStart.addingTimeInterval(max(
+                0,
+                now.timeIntervalSince(clock.wallStart)
+            ))
+            if !Calendar.current.isDate(previous, inSameDayAs: currentTime) {
+                resetReflectionGatesForNewDay()
+            }
+            overlayCoordinator.updateOverlays(
+                for: state,
+                model: self,
+                lockoutMessage: lockoutMessage
+            )
+            overlayCoordinator.reassertLockoutFrontmost()
+        }
+
         /// A finite synthetic clock for typing-through-midnight acceptance.
         /// It is enabled only by this named unsigned Debug fixture.
         func playDemoRestClock() {
@@ -40,14 +69,7 @@
                 for _ in 0 ..< 20 {
                     do { try await Task.sleep(for: .seconds(1)) } catch { return }
                     guard let self else { return }
-                    let previous = currentTime
-                    currentTime = currentTime.addingTimeInterval(1)
-                    if !Calendar.current.isDate(previous, inSameDayAs: currentTime) {
-                        resetReflectionGatesForNewDay()
-                    }
-                    overlayCoordinator.updateOverlays(
-                        for: state, model: self, lockoutMessage: lockoutMessage
-                    )
+                    refreshDemoRestClock()
                 }
             }
         }

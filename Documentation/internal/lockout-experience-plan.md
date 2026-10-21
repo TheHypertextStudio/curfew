@@ -139,3 +139,7 @@ xcodebuild build -project Curfew.xcodeproj -scheme Curfew -configuration Debug -
 ## Execution and review status
 
 Implementation is underway in an isolated checkout based on current origin/main. The retained hosts, shared drafts, scheduled atmosphere, composition and resume policy are implemented, with safe unsigned review fixtures. The full native unit suite passes. Rendered accessibility/interruption review and physical lifecycle acceptance remain required before the whole experience is treated as finished. The grouped checklist steps above stay open where they also require recordings, hardware checks, or integration acceptance. Active power wake remains an assessment and follow-on design, with no power experiments or new helper authority in this change.
+
+## Physical verification procedure
+
+Use the unsigned `rest-continuity` fixture, whose private scene clock advances by elapsed wall time on wake. The fixture registers the real workspace sleep/wake notifications but never arms enforcement, starts the keyboard shield, requests shutdown, or changes real schedules/history. Compare the same entered draft before and after screensaver dismissal, display sleep, full Mac sleep/authentication and monitor reconnect. Record the notification-driven resume separately from what the operator actually saw. A single attached monitor establishes reconnect behavior only; unequal wake across multiple displays requires a second monitor.

@@ -4,7 +4,7 @@
 
 Design: [lockout experience](lockout-experience-design.md). Execution: [implementation plan](internal/lockout-experience-plan.md). Source implementation and native acceptance are tracked separately. The full native unit suite passes; the experience remains in progress until rendered interaction and physical lifecycle checks pass.
 
-- [-] Retain per-display native hosts and shared reflection drafts across ordinary updates and monitor changes; native hold/focus acceptance remains required.
+- [-] Retain per-display native hosts and shared reflection drafts across ordinary updates and monitor changes; native hold/focus acceptance remains required. Physical review scenes observe OS sleep/wake with a disarmed, elapsed-time demo clock and never reassert the real shield.
 - [-] Keep active evening reflection content through midnight and suppress repeat prompts in the same scheduled night; native model regressions cover temporary release, delayed holds, original-night resolution and day-off handoff.
 - [-] Compose schedule-anchored overnight/morning atmosphere and sequenced clock/content transitions; finish rendered accessibility and interruption acceptance.
 - [-] Resolve the current scene on wake with a per-display internal reveal cover; interrupted wake cancels the previous reveal arm. System wake refreshes authority while waiting for a screen-wake notification before revealing. Physical sleep/authentication and unequal-monitor wake remain acceptance gaps.

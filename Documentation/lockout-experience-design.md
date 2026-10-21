@@ -99,6 +99,14 @@ Assess AC and battery operation, closed lid, external displays and docks, manual
 
 This plan includes a capability assessment and a concrete opt-in design. Shipping power-management behavior, new helper operations, or full-system wake is a separately reviewed implementation change after capability verification. The core visual refactor must remain useful if automatic wake is unavailable.
 
+## Optional companion screensaver
+
+An optional Curfew screensaver can share the app's atmosphere renderer, absolute-time scene inputs, palette and clock geometry. The purpose is a coherent visual handoff in both directions: the app settles interactive content into the shared ambient composition; the screensaver begins at the matching scene; the returning app starts at that composition and restores its permitted controls.
+
+Apple's public `ScreenSaverView.performGammaFade()` hook requests a gradual system fade at screensaver entry/exit. Evaluate it on the supported macOS versions alongside the app's own motion. Matching composition can hide the ownership boundary, but does not establish a synchronized cross-process compositor animation or control over authentication. An arbitrary user-selected screensaver cannot participate in the same contract.
+
+Keep the screensaver a read-only presentation companion. It must not own enforcement, collect reflection input, authorize release, or receive private draft contents. A follow-on design must settle the supported screensaver target, preview/full-screen lifecycle, read-only appearance/time exchange, multi-display geometry, installation, signing and notarization. No companion target or screensaver setting is added by the current refactor, and choosing another screensaver preserves the normal Curfew experience.
+
 ## Customization boundary
 
 Keep a small internal appearance value and semantic content regions: atmosphere, clock, status, contextual content, and actions. The same rendering inputs should support a safe preview using the existing demo fixtures. This allows future palette, clock treatment, content-density, and layout choices without coupling preferences to timers or permissions.

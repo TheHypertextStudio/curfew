@@ -74,6 +74,9 @@ import CurfewKit
             lockoutMessage = DemoFixture.lockoutMessage
             applyDemoReviewState(DemoReviewState.current)
             playDemoRestClock()
+            if reflectionState.demoRestClock != nil {
+                startEnforcementReassertionObservers()
+            }
 
             switch scenario {
             case .settings:

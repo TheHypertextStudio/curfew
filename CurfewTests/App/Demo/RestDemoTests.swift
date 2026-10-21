@@ -15,6 +15,30 @@ struct RestDemoTests {
         #expect(!model.settings.autoShutdownEnabled)
     }
 
+    @Test("A rest demo never reasserts the real enforcement shield")
+    func restDemoDoesNotReassertEnforcement() {
+        let model = CurfewAppModel.demoModel()
+        model.applyDemoReviewState(.restContinuity)
+        #expect(model.reassertEnforcementIfNeeded() == .noop)
+        #expect(!model.isEnforcementRunning)
+    }
+
+    @Test("Physical demo resume advances the current scene without discarding its draft")
+    func demoResumeUsesElapsedWallTime() throws {
+        let model = CurfewAppModel.demoModel()
+        model.applyDemoReviewState(.restContinuity)
+        let clock = try #require(model.reflectionState.demoRestClock)
+        let draft = model.reflectionState.eveningDraft
+        let prompt = try #require(draft.prompts.first)
+        draft.values[prompt.id] = .text("Keep this through sleep")
+        model.refreshDemoRestClock(at: clock.wallStart.addingTimeInterval(3600))
+        #expect(model.currentTime == clock.sceneStart.addingTimeInterval(3600))
+        #expect(model.reflectionState.eveningDraft === draft)
+        #expect(model.reflectionState.isEveningReflectionPending)
+        #expect(draft.values[prompt.id] == .text("Keep this through sleep"))
+        #expect(!model.isEnforcementRunning)
+    }
+
     @Test("The morning fixture follows its retained scheduled interval")
     func morningIsScheduledAndDisarmed() throws {
         let model = CurfewAppModel.demoModel()

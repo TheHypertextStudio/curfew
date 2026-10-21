@@ -34,6 +34,11 @@ extension CurfewAppModel {
     ///   re-asserted, otherwise ``EnforcementReassertion/noop``.
     @discardableResult
     func reassertEnforcementIfNeeded() -> EnforcementReassertion {
+        guard !isDemoSession else {
+            overlayCoordinator.reconcileRestVisibility()
+            overlayCoordinator.reassertLockoutFrontmost()
+            return .noop
+        }
         guard !privilegedHelperManager.maintenancePaused else { return .noop }
         pollAndUpdateEnforcementHealth()
         overlayCoordinator.reconcileRestVisibility()
@@ -115,6 +120,15 @@ extension CurfewAppModel {
     /// Resolve current schedule/authority before choosing the scene to reveal.
     /// Disarmed models remain disarmed; drawing policy never starts enforcement.
     func handleRestWake(displayDidWake: Bool = false) {
+        #if DEBUG
+            if isDemoSession {
+                refreshDemoRestClock()
+                if displayDidWake {
+                    overlayCoordinator.restDisplaysWoke()
+                }
+                return
+            }
+        #endif
         if isEnforcementRunning {
             tick()
         } else {

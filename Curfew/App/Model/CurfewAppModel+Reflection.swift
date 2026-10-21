@@ -24,6 +24,9 @@ struct ReflectionRuntimeState {
     var gatesResolvedToday: Set<ReflectionGate> = []
     var eveningLockDate: Date?
     var scheduledInterval: DateInterval?
+    #if DEBUG
+        var demoRestClock: DemoRestClock?
+    #endif
     var morningDraft = ReflectionDraft(prompts: ReflectionConfiguration.default.morningPrompts)
     var eveningDraft = ReflectionDraft(prompts: ReflectionConfiguration.default.eveningPrompts)
 }
