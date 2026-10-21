@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, writeFile, rm } from "node:fs/promises";
+import { mkdtemp, writeFile, rm, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createArtifact } from "../../../scripts/deployment-config.mjs";
@@ -81,11 +81,11 @@ test("license cf configuration uses the shared artifact and retains resource ide
   );
   assert.equal(config.worker.env.STRIPE_MODE?.value, "live");
   assert.deepEqual(config.worker.env.EMAIL?.allowedSenderAddresses, [
-    "purchases@curfew.hypertext.studio",
+    "accounts@other.example",
   ]);
   assert.equal(
     config.worker.env.RESTORE_EMAIL_FROM?.value,
-    "purchases@curfew.hypertext.studio",
+    "accounts@other.example",
   );
   assert.equal(
     config.worker.env.PURCHASE_PORTAL_URL?.value,
@@ -106,6 +106,13 @@ test("license cf configuration uses the shared artifact and retains resource ide
   process.env.CURFEW_LICENSE_WORKER_NAME = "curfew-issue-license-staging";
   const staging = await licenseConfig({ mode: "staging" });
   assert.equal(staging.worker.env.STRIPE_MODE?.value, "test");
+  assert.equal(
+    staging.worker.env.RESTORE_EMAIL_FROM?.value,
+    "accounts@staging.other.example",
+  );
+  assert.deepEqual(staging.worker.env.EMAIL?.allowedSenderAddresses, [
+    "accounts@staging.other.example",
+  ]);
   assert.equal(
     staging.worker.env.PURCHASE_PORTAL_URL?.value,
     "https://website.staging.other.example",
@@ -136,3 +143,46 @@ test("license cf configuration uses the shared artifact and retains resource ide
   process.env.CURFEW_CONFIGURATION_SHA256 = "b".repeat(64);
   await assert.rejects(() => licenseConfig({ mode: "production" }));
 });
+
+for (const [mode, sender, stripeMode] of [
+  ["production", "accounts@thecurfew.app", "live"],
+  ["staging", "accounts@curfew.hypertext.studio", "test"],
+]) {
+  test(`${mode} restore mail permits only its canonical environment sender`, async (t) => {
+    const directory = await mkdtemp(join(tmpdir(), "curfew-restore-sender-"));
+    const saved = Object.fromEntries(
+      keys.map((key) => [key, process.env[key]]),
+    );
+    t.after(async () => {
+      for (const key of keys)
+        saved[key] === undefined
+          ? delete process.env[key]
+          : (process.env[key] = saved[key]);
+      await rm(directory, { recursive: true, force: true });
+    });
+    const manifest = JSON.parse(
+      await readFile(
+        new URL("../../../deployment/environments.json", import.meta.url),
+        "utf8",
+      ),
+    );
+    const artifact = createArtifact(manifest, "a".repeat(40));
+    process.env.CURFEW_DEPLOYMENT_ARTIFACT = join(
+      directory,
+      "environment.json",
+    );
+    process.env.CURFEW_CONFIGURATION_SHA256 = artifact.sha256;
+    process.env.CURFEW_CONFIGURATION_COMMIT = artifact.sourceCommit;
+    process.env.CURFEW_LICENSE_KV_NAMESPACE_ID =
+      "f533e31c946f4960898e09ef285bd743";
+    process.env.CURFEW_LICENSE_WORKER_NAME = "curfew-issue-license-staging";
+    await writeFile(
+      process.env.CURFEW_DEPLOYMENT_ARTIFACT,
+      JSON.stringify(artifact),
+    );
+    const { worker } = await licenseConfig({ mode });
+    assert.equal(worker.env.RESTORE_EMAIL_FROM.value, sender);
+    assert.deepEqual(worker.env.EMAIL.allowedSenderAddresses, [sender]);
+    assert.equal(worker.env.STRIPE_MODE.value, stripeMode);
+  });
+}

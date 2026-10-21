@@ -48,9 +48,7 @@ export default defineConfig((ctx) => {
             runWorkerFirst: true,
           },
           env: {
-            ACCOUNT_PORTAL: bindings.text(
-              new URL('/account', deployment.production.legacySiteOrigin).href,
-            ),
+            ACCOUNT_PORTAL: bindings.text(deployment.production.accountPortal),
             DOCS_MODE: bindings.text('mintlify'),
             DOCS_UPSTREAM: bindings.text('https://curfew.mintlify.site'),
             ASSETS: bindings.assets(),

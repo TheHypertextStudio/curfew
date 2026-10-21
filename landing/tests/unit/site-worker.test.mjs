@@ -176,6 +176,67 @@ test('account entry cannot redirect to itself if site and portal routes overlap'
   assert.equal(response.headers.get('cache-control'), 'no-store');
 });
 
+test('production account fallback uses the canonical portal and fails closed on route overlap', async () => {
+  const configure = (await import('../../hosting/cloudflare.config.ts')).default;
+  const portal = deployment.production.accountPortal;
+  const configured = configure({ mode: 'production' }).worker.env.ACCOUNT_PORTAL.value;
+  assert.equal(configured, portal);
+  for (const method of ['GET', 'HEAD']) {
+    const navigation = await worker.fetch(
+      new Request('https://preview.invalid/account', { method }),
+      {
+        ...env,
+        ACCOUNT_PORTAL: configured,
+      },
+    );
+    assert.equal(navigation.status, 302);
+    assert.equal(navigation.headers.get('location'), portal);
+    assert.equal(navigation.headers.get('cache-control'), 'no-store');
+    const overlap = await worker.fetch(new Request(portal, { method }), {
+      ...env,
+      ACCOUNT_PORTAL: configured,
+    });
+    assert.equal(overlap.status, 503);
+    assert.equal(overlap.headers.get('location'), null);
+    assert.equal(overlap.headers.get('cache-control'), 'no-store');
+  }
+});
+
+test('a retired production account destination is never a navigation fallback', async () => {
+  const response = await worker.fetch(new Request(`${deployment.production.siteOrigin}/account`), {
+    ...env,
+    ACCOUNT_PORTAL: new URL('/account', deployment.production.legacySiteOrigin).href,
+  });
+  assert.equal(response.status, 503);
+  assert.equal(response.headers.get('location'), null);
+  assert.equal(response.headers.get('cache-control'), 'no-store');
+});
+
+test('account fallback does not redirect auth queries, authorization headers or writes', async () => {
+  for (const request of [
+    new Request('https://preview.invalid/account?code=private'),
+    new Request('https://preview.invalid/account', {
+      headers: { authorization: 'Bearer private' },
+    }),
+    new Request('https://preview.invalid/account', { method: 'POST', body: 'private' }),
+  ]) {
+    let observed;
+    const response = await worker.fetch(request, {
+      ...env,
+      ACCOUNT_PORTAL: deployment.production.accountPortal,
+      ASSETS: {
+        fetch: async (incoming) => {
+          observed = incoming;
+          return new Response('local account response');
+        },
+      },
+    });
+    assert.equal(observed, request);
+    assert.equal(response.headers.get('location'), null);
+    assert.equal(await response.text(), 'local account response');
+  }
+});
+
 test('unconnected Mintlify retains the HTML guide and never calls an upstream', async () => {
   const response = await worker.fetch(new Request('https://preview.invalid/docs?query=one'), env);
   assert.equal(await response.text(), 'retained HTML guide');

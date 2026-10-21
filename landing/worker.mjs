@@ -101,10 +101,7 @@ const site = {
       !url.search &&
       !request.headers.has('authorization')
     ) {
-      const allowed = [
-        deployment.staging.accountPortal,
-        new URL('/account', deployment.production.legacySiteOrigin).href,
-      ];
+      const allowed = [deployment.staging.accountPortal, deployment.production.accountPortal];
       if (!allowed.includes(env.ACCOUNT_PORTAL)) {
         return new Response('Account portal is not configured safely', {
           status: 503,

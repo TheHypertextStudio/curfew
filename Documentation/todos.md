@@ -53,13 +53,19 @@
 
 ## Native reconnect regression timing
 
-- [x] Use the supported hosted Intel macOS 26 image for native checks and
-  graphical acceptance when ARM64 capacity prevents jobs from starting. Keep
-  all existing tests and separate DerivedData caches by runner architecture.
-  Signing and release architecture selection remain unchanged; reverting the
-  runner label restores the prior queue without a product migration.
-- [ ] Confirm the full app-host and graphical suites complete on that image;
+- [x] Run native quality checks and graphical acceptance on hosted ARM64
+  macOS 26, matching the signed-candidate lane. Avoid Intel test-host preparation
+  failures and IconServices crashes during accessibility snapshots; retain
+  every native and UI assertion. Keep DerivedData caches separate by runner
+  architecture. Signing and release architecture selection remain unchanged.
+  Reverting the runner labels restores the prior lanes without a product or
+  data migration, but
+  requires revalidation of system accessibility before relying on its results.
+- [ ] Confirm the full app-host and graphical suites complete on their images;
   local compilation and headless targeted tests do not replace these checks.
+- [x] Run each website policy-navigation viewport as an independent browser
+  case. Preserve desktop, mobile, keyboard, policy-history and three-browser
+  coverage without accumulating three journeys under one test timeout.
 
 - [x] Bind every browser completion to the sign-in attempt that opened it so
   delayed cancellation cannot close a replacement sign-in. Keep existing
@@ -1505,6 +1511,9 @@ asserts its own screen and state before attaching an image.
   interaction is available and reviewed.
 - [ ] Confirm account route ownership and the full hosted sign-in/recovery flow
   before presenting the account UI as a production-ready entry point.
+- [x] Use the configured canonical production account portal in the marketing
+  fallback and its trusted destinations; reject the retired portal and preserve
+  same-origin failure, request protections, and staging account delegation.
 - [-] Replace broken marketing guide links with published Mintlify destinations
   and add the missing installation, schedule, exception, and account guides.
   Accept hosted Mintlify publication and landing links through the selected
@@ -1547,6 +1556,12 @@ asserts its own screen and state before attaching an image.
 - [ ] Complete authenticated provider preflight, account recovery audit, signed release, backups, coordinated production cutover and live acceptance. Local changes do not establish deployment.
 
 - [x] Bind signed candidate provenance to the shared endpoint manifest and retain the newer release credential cleanup and unsigned quality checks.
+- [x] Support explicit local-build publication with retained test logs, exact
+  signed/notarized bytes, unchanged native source and actual staging acceptance;
+  keep local provenance separate from hosted runs and preserve all owner gates.
+- [x] Align migration and release instructions with canonical account entry,
+  Worker-only website publication, hosted/local provenance and retained-data
+  rollback; keep website fixes separate from app, service and purchase activation.
 - [x] Inventory Cloudflare access through the pinned CLI using existing CI credentials without changing infrastructure or printing secret values.
 
 - [x] Document the Email Sending CLI exception, readiness validation before production mutations, and the cf Durable Object rollback constraint in the domain migration runbook.
@@ -1632,6 +1647,10 @@ asserts its own screen and state before attaching an image.
   profile and preserve retired-host denial and deployment health identity.
 - [x] Include the restricted restore sender, matching portal, isolated rate limits,
   and explicit payment mode in the native license deployment configuration.
+- [x] Derive the restore-email sender and its restricted allowlist from the
+  selected canonical configuration, keeping production on thecurfew.app and
+  staging on its isolated sender. Verify both modes without sending email or
+  changing live billing.
 - [-] Validate the integrated app and website candidate, then complete signed
   distribution and hosted purchase/restore acceptance before advertising the flow.
 
@@ -1690,6 +1709,11 @@ asserts its own screen and state before attaching an image.
 ### Public Plus help
 
 - [x] Explain one-click checkout activation, receipt-email restoration and manual-key recovery in the licensing guide. Keep planned features and purchase availability explicit, and use the product support address.
+- [x] Align activation and restore help with the release controls and link to the
+  public download and restore entry points. Keep installer and Plus availability
+  notices until the cutover owner verifies publication; exclude draft release
+  assets and private checkout links from public help.
+
 
 ## Continuous lockout and morning experience
 
@@ -1701,3 +1725,4 @@ Design: [lockout experience](lockout-experience-design.md). Execution: [implemen
 - [-] Resolve the current scene on wake with a per-display internal reveal cover; physical sleep/authentication and unequal-monitor wake remain acceptance gaps.
 - [x] Document the Sunrise display-wake assessment separately from system wake and release authority, including a proposed five-minute maximum hold and cancellation boundaries. No power-management implementation is included.
 - [ ] Verify rendered motion, input, accessibility and physical sleep/wake journeys; retain a small composition boundary for future customization.
+

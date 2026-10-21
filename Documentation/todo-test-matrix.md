@@ -59,12 +59,23 @@ network fixture is removed; installed sync behavior is unchanged.
 
 ## Native reconnect regression timing
 
-The ordinary `CI` workflow runs the full app-host suite, Debug/Release builds,
-and existing UI/screenshot acceptance on `macos-26-intel`. This is a supported
-macOS 26 host, not a reduced test lane or an owner-desktop workaround. The
-DerivedData key and restore prefix include `runner.arch` so Intel and ARM64
+The ordinary `CI` workflow runs the full app-host suite, Debug/Release builds
+and all existing UI/screenshot acceptance on isolated ARM64 `macos-26` images,
+matching the signed-candidate lane. This avoids Intel test-host preparation
+failures and an IconServices crash that stalls system Apple-menu accessibility
+snapshots before app-window inspection. `scripts/xcode-package-layout.test.mjs`
+guards both native lanes, complete test selectors, build/capture commands and
+architecture-specific cache. The images support the macOS 26 deployment target.
+The DerivedData key and restore prefix include `runner.arch` so Intel and ARM64
 artifacts cannot share a cache. `actionlint` validates the workflow; actual
 hosted completion, rather than successful queueing, establishes acceptance.
+
+The website acceptance cases `home leads with the product and keeps policies
+in the footer at 1920px`, `390px`, and `320px` independently check layout,
+keyboard navigation to Terms, and the link to policy history in all three
+browsers. Each viewport has its own ordinary test deadline and failure report;
+slow navigation in one viewport cannot consume the next viewport's budget.
+The assertions, browser coverage and per-case timeout remain unchanged.
 
 `NativeAccountSyncTransportTests.testReconnectIgnoresFailureFromThePreviousPollingSession`
 waits for the new-session health callback with a deadlock guard, then checks the
@@ -80,6 +91,13 @@ Worker regressions cover docs proxy behavior, credential isolation, account
 handoff and public domain routing. Production provider, canonical URL, account
 entry and real signed-feed acceptance remain required after cutover; local
 fixtures do not establish those outcomes.
+
+`landing/tests/unit/site-worker.test.mjs` verifies the production account fallback
+uses the configured canonical portal, permits plain preview navigation, rejects
+the retired portal, and returns a noncached 503 on same-origin route overlap.
+Query-bearing navigation, Authorization headers, and write bodies stay outside
+the redirect path. Existing staging delegation and legacy-domain tests retain
+service, credential, and retirement isolation coverage.
 
 `scripts/release-profiles.test.mjs` covers exact production profile identity,
 expiry/distribution/capability rejection, target-specific archive/export mapping,
@@ -1858,6 +1876,11 @@ changes; rollback restores the prior landing release and docs commit.
 | Recovery gate, transactional revocation and idempotency | curfew-sync `domain-migration.test.ts`, `service-config.test.ts` | Provider-ready maintenance cutover and drained fences |
 
 - Release endpoint provenance: `scripts/release-configuration.test.mjs` covers configured and alternate domains, changed manifests, source revisions, and signing keys; `scripts/release-candidate.test.mjs` binds native configuration and candidate signatures to the shared deployment identity.
+- Operator documentation follows the existing canonical account fallback tests
+  in `landing/tests/unit/site-worker.test.mjs` and hosted/local admission tests in
+  `scripts/publication.test.mjs` and `scripts/local-release.test.mjs`. These cover
+  fail-closed routing and source/provenance admission; actual deployment,
+  staging/device acceptance and post-cutover monitoring remain separate checks.
 - Provider administration: use approved native CLI access outside PR validation. `scripts/deployment-config.test.mjs` prevents the website workflow from receiving production Cloudflare deployment credentials; provider inventory remains access evidence, not release acceptance.
 
 - Domain migration operator sequence: backend `scripts/production-audit.test.mjs` verifies readiness before production mutations; `scripts/cutover-readiness.test.mjs` covers receipt completeness, identity and freshness. Email sender activation additionally requires Cloudflare DNS verification and live delivery acceptance.
@@ -2068,8 +2091,30 @@ Do not run lockout/shutdown acceptance or UI suites on the operator desktop.
 | Behavior | Coverage |
 | --- | --- |
 | Licensing help covers app activation, email restoration, manual fallback and offline access without advertising planned features as available | `scripts/user-docs.test.mjs`; Mintlify validation and hosted licensing-page review |
+| Release help requires the official app, links to canonical download and restore pages, and excludes draft assets and private checkout links | `scripts/user-docs.test.mjs`; Mintlify validation and external/anchor checks; read-only hosted link verification |
+
+`web/worker/test/deployment.node.mjs` verifies that native recovery-email bindings
+derive the sender and sole allowed address from the selected artifact. It covers
+changed artifact addresses and the exact canonical production/staging senders,
+while retaining Stripe-mode, portal, resource, and rate-limit separation checks.
+Local issuer tests and both-mode cf build/prebuilt dry-runs cover configuration
+packaging; delivery and provider authorization remain deployment acceptance.
 
 Docs publish independently of app and payment-service rollout. Revert this docs-only change to restore the prior instructions; no account or purchase data changes.
+
+### Explicit local-build publication
+
+| Requirement | Evidence |
+| --- | --- |
+| Local candidates identify their evidence and never borrow a hosted workflow run | `scripts/release-candidate.test.mjs` |
+| Missing, failed, skipped, substituted, stale or mismatched test/signing evidence prevents admission | `scripts/local-release.test.mjs`; retained log digest verification |
+| A later publication commit must be clean, descend from the signed source and preserve native source and dependencies; the mounted-app verifier must run from the exact clean original checkout | `scripts/local-release.test.mjs` with disposable real Git history, dirty-checkout and committed entitlement-policy mutation rejection |
+| Exact DMG bytes pass ticket verification and the full mounted-app verifier; rejection still unmounts the image | `scripts/local-release.test.mjs` tests the OS adapter; actual macOS execution on retained release bytes remains required |
+| Local publication preserves all existing acceptance and staging gates, checks the current publication head and retains the original signed-source tag | `scripts/publication.test.mjs`; actual private owner/staging acceptance |
+
+The regular release-policy gate runs these script tests. Local evidence and
+owner receipts remain private. Neither unit fixtures nor a local candidate
+record establishes interactive device, staging, or production acceptance.
 
 ## Continuous lockout and morning experience
 
@@ -2085,3 +2130,4 @@ The regression tests below are implemented. Isolated native tests exercise the a
 | Optional Sunrise display wake | Capability/design assessment before a separate implementation | Distinguish API request, hardware wake and visible app; verify cleanup |
 
 Morning atmosphere follows scheduled unlock. Sunrise does not imply release authority. Screenshots and injected notifications cannot prove physical power wake or authentication handoff.
+
