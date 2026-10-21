@@ -11,6 +11,8 @@ Design: [lockout experience](lockout-experience-design.md). Execution: [implemen
 - [x] Document the Sunrise display-wake assessment separately from system wake and release authority, including a proposed five-minute maximum hold and cancellation boundaries. No power-management implementation is included.
 - [ ] Verify rendered motion, input, accessibility and physical sleep/wake journeys; retain a small composition boundary for future customization.
 
+Diagnostic only: the unlock-time label temporarily has a local black background to isolate native contrast-audit background attribution. This patch is non-shippable until removed or replaced by a separately reviewed permanent design correction. Keep the actual audit and interaction assertions unchanged.
+
 ## Worktree preparation
 
 - [x] Keep root command shortcuts separate from the independent frontend and

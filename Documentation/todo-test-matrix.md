@@ -16,6 +16,8 @@ The regression tests below are implemented. Isolated native tests exercise the a
 
 Morning atmosphere follows scheduled unlock. Sunrise does not imply release authority. Screenshots and injected notifications cannot prove physical power wake or authentication handoff.
 
+Contrast diagnostic: only the unlock-time label's background is temporarily black; its text, font, foreground, geometry and accessibility hierarchy remain unchanged. Run the existing native contrast audit without filtering. Preserve the original and diagnostic issue/crop evidence. A passing diagnostic supports further investigation of background attribution, not product acceptance; remove or separately review a permanent correction before integration.
+
 ## Worktree preparation
 
 `./bootstrap worktree plan --json` validates workspace discovery and rejects
