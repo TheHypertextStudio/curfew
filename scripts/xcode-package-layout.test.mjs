@@ -36,6 +36,18 @@ test('Remote CI covers the shared package and interactive UI separately from cap
   assert.ok(workflow.includes('just build-release'));
 });
 
+test('Graphical acceptance uses the isolated ARM64 macOS 26 lane', () => {
+  const workflow = readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8');
+  const graphicalJob = workflow.split('\n  screenshots:\n')[1];
+  assert.ok(graphicalJob, 'Graphical acceptance must remain a separate hosted job');
+  assert.match(graphicalJob, /runs-on: macos-26\s*\n/,
+    'Avoid the Intel image whose IconServices crash blocks accessibility snapshots');
+  assert.ok(graphicalJob.includes('-only-testing:CurfewUITests/CurfewUITests'));
+  assert.ok(graphicalJob.includes('-only-testing:CurfewUITests/CurfewUITestsLaunchTests'));
+  assert.ok(graphicalJob.includes('run: just capture'));
+  assert.ok(graphicalJob.includes('${{ runner.arch }}-derived-'));
+});
+
 test('Remote captures hide the runner Dock so app controls remain unobstructed', () => {
   const workflow = readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8');
   assert.ok(workflow.includes('defaults write com.apple.dock autohide -bool true'));
