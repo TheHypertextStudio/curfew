@@ -151,6 +151,20 @@ export async function generateDeployment(
     encoding: "utf8",
   }).trim();
   const artifact = createArtifact(manifest, sourceCommit);
+  const local = resolveEnvironment(manifest.environments.local, "local");
+  const localLicensePath = resolve(root, "web/worker/wrangler.local.jsonc");
+  const localLicense = JSON.parse(await readFile(localLicensePath, "utf8"));
+  const localEmail = localLicense.send_email.find(
+    (binding) => binding.name === "EMAIL",
+  );
+  if (!localEmail) throw new Error("Local license email binding is missing");
+  localEmail.allowed_sender_addresses = [local.recoveryEmailFrom];
+  localLicense.vars.RESTORE_EMAIL_FROM = local.recoveryEmailFrom;
+  localLicense.vars.PURCHASE_PORTAL_URL = local.purchasePortalOrigin;
+  await writeFile(
+    localLicensePath,
+    JSON.stringify(localLicense, null, 2) + "\n",
+  );
   await mkdir(resolve(root, "deployment/generated"), { recursive: true });
   await writeFile(
     resolve(root, "deployment/generated/environment-artifact.json"),

@@ -17,7 +17,7 @@ jobs:
           version: 11.9.0
       - uses: actions/setup-node@v7.1.0
         with:
-          node-version: '24'
+          node-version: "24"
       - name: Install issuer dependencies from the reviewed lock
         run: pnpm --dir web --filter @curfew/license-worker install --frozen-lockfile
       - name: Verify signed payment, activation, and recovery boundaries
@@ -66,7 +66,7 @@ jobs:
         run: |
           node scripts/deployment-config.mjs generate
           node scripts/check-deployment-hosts.mjs
-          git diff --exit-code -- CurfewKit/Sources/CurfewKit/Sync/DeploymentProfile.generated.swift deployment/generated Curfew/Curfew.entitlements Curfew/Curfew-Release.entitlements landing/public
+          git diff --exit-code -- CurfewKit/Sources/CurfewKit/Sync/DeploymentProfile.generated.swift deployment/generated Curfew/Curfew.entitlements Curfew/Curfew-Release.entitlements landing/public web/worker/wrangler.local.jsonc
       - name: Verify integrated package layout
         run: node --test scripts/*.test.mjs
 
