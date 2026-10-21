@@ -146,7 +146,7 @@ test("license cf configuration uses the shared artifact and retains resource ide
 
 for (const [mode, sender, stripeMode] of [
   ["production", "accounts@thecurfew.app", "live"],
-  ["staging", "accounts@curfew.hypertext.studio", "test"],
+  ["staging", "accounts@thecurfew.app", "test"],
 ]) {
   test(`${mode} restore mail permits only its canonical environment sender`, async (t) => {
     const directory = await mkdtemp(join(tmpdir(), "curfew-restore-sender-"));
