@@ -35,10 +35,10 @@ export default defineConfig(async (ctx) => {
         LICENSE_KV: bindings.kv({ id }),
         LICENSE_ORIGIN: bindings.text(config.licenseOrigin),
         STRIPE_MODE: bindings.text(production ? "live" : "test"),
-        RESTORE_EMAIL_FROM: bindings.text("purchases@curfew.hypertext.studio"),
+        RESTORE_EMAIL_FROM: bindings.text(config.recoveryEmailFrom),
         PURCHASE_PORTAL_URL: bindings.text(config.purchasePortalOrigin),
         EMAIL: bindings.sendEmail({
-          allowedSenderAddresses: ["purchases@curfew.hypertext.studio"],
+          allowedSenderAddresses: [config.recoveryEmailFrom],
         }),
         RESTORE_IP_LIMIT: bindings.rateLimit({
           namespace: production ? "1781921001" : "1781921101",

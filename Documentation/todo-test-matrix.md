@@ -2081,4 +2081,11 @@ Do not run lockout/shutdown acceptance or UI suites on the operator desktop.
 | Licensing help covers app activation, email restoration, manual fallback and offline access without advertising planned features as available | `scripts/user-docs.test.mjs`; Mintlify validation and hosted licensing-page review |
 | Release help requires the official app, links to canonical download and restore pages, and excludes draft assets and private checkout links | `scripts/user-docs.test.mjs`; Mintlify validation and external/anchor checks; read-only hosted link verification |
 
+`web/worker/test/deployment.node.mjs` verifies that native recovery-email bindings
+derive the sender and sole allowed address from the selected artifact. It covers
+changed artifact addresses and the exact canonical production/staging senders,
+while retaining Stripe-mode, portal, resource, and rate-limit separation checks.
+Local issuer tests and both-mode cf build/prebuilt dry-runs cover configuration
+packaging; delivery and provider authorization remain deployment acceptance.
+
 Docs publish independently of app and payment-service rollout. Revert this docs-only change to restore the prior instructions; no account or purchase data changes.
