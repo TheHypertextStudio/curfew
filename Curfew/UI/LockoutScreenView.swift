@@ -120,7 +120,6 @@ struct LockoutScreenView: View {
                     Text(unlockLine)
                         .font(.system(size: 18, weight: .regular, design: .rounded))
                         .foregroundStyle(SundownPalette.warmWhite)
-                        .background(.black)
                 }
                 .padding(.top, 4)
 
