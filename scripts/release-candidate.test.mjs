@@ -356,6 +356,49 @@ async function fixture() {
   return { api, dmg, appcast, configuration, candidate };
 }
 
+test("a local candidate records explicit evidence identities without claiming a hosted run", async () => {
+  const f = await fixture();
+  const provenance = {
+    kind: "local",
+    executionID: "fe840ac6-2162-47dc-83c1-b8e55e46a4e3",
+    qualitySHA256: "c".repeat(64),
+    signingSHA256: "d".repeat(64),
+  };
+  const input = { ...f, ...f.candidate, runID: undefined, provenance };
+  const candidate = f.api.createCandidate(input);
+  assert.equal(candidate.schemaVersion, 2);
+  assert.deepEqual(candidate.provenance, provenance);
+  assert.equal(Object.hasOwn(candidate, "runID"), false);
+  assert.deepEqual(f.api.verifyCandidate({ ...input, candidate }), candidate);
+  for (const mutate of [
+    (x) => {
+      x.runID = "123";
+    },
+    (x) => {
+      x.provenance.kind = "github";
+    },
+    (x) => {
+      x.provenance.qualitySHA256 = "missing";
+    },
+    (x) => {
+      x.provenance.signingSHA256 = "missing";
+    },
+    (x) => {
+      x.provenance.executionID = "123";
+    },
+    (x) => {
+      x.provenance.hostedRunClaimed = true;
+    },
+    (x) => {
+      x.dmg = Buffer.from("substituted bytes");
+    },
+  ]) {
+    const changed = { ...input, provenance: { ...provenance } };
+    mutate(changed);
+    assert.throws(() => f.api.createCandidate(changed));
+  }
+});
+
 test("candidate packaging refuses an absent or non-executable browser native host", async () => {
   const api = await import("./release-candidate.mjs");
   assert.equal(
