@@ -109,8 +109,9 @@ test("published help follows current Settings labels", async () => {
 
 test("installation help uses the released Mac download without a stale availability hold", async () => {
   const content = await read("web/docs/install.mdx");
+  const deployment = JSON.parse(await read("deployment/environments.json"));
   assert.match(content, /\*\*macOS 26 or later\*\*/);
-  assert.match(content, /\[download page\]\(https:\/\/thecurfew\.app\/download\)/);
+  assert.ok(content.includes(`[download page](${deployment.environments.production.siteOrigin}/download)`));
   assert.doesNotMatch(content, /has not been released yet|When an installer is available/i);
 });
 
