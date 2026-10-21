@@ -92,6 +92,13 @@ handoff and public domain routing. Production provider, canonical URL, account
 entry and real signed-feed acceptance remain required after cutover; local
 fixtures do not establish those outcomes.
 
+`landing/tests/unit/site-worker.test.mjs` verifies the production account fallback
+uses the configured canonical portal, permits plain preview navigation, rejects
+the retired portal, and returns a noncached 503 on same-origin route overlap.
+Query-bearing navigation, Authorization headers, and write bodies stay outside
+the redirect path. Existing staging delegation and legacy-domain tests retain
+service, credential, and retirement isolation coverage.
+
 `scripts/release-profiles.test.mjs` covers exact production profile identity,
 expiry/distribution/capability rejection, target-specific archive/export mapping,
 private installation, existing-file preservation, and digest-checked cleanup.

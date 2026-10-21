@@ -144,16 +144,23 @@ Disable obsolete branch publishers that deploy a pinned preview archive before
 cutover; use the reviewed staging artifact and the main-only publication path.
 
 Outside the staging account-service binding, `ACCOUNT_PORTAL` points plain
-`/account` navigation to the existing account application. Production retains
-the legacy portal until the separate service-domain cutover. The marketing
-Worker accepts only these configured destinations and sends a noncached 302.
-If a route accidentally gives the marketing Worker the portal's own host,
-`/account` instead returns a noncached 503; redirecting to itself would trap
-people in another sign-in loop. On the consolidated staging host, the service
-binding handles account entry before this redirect path.
+`/account` navigation to the selected environment's configured `accountPortal`.
+Production uses `https://thecurfew.app/account`; the retired production hostname
+is never an account fallback. The account Worker owns that production route.
+The marketing Worker accepts only the configured production and staging
+destinations and sends a noncached 302 when the destination has a different
+origin. If the account route reaches the marketing Worker on the portal's own
+host, it returns a noncached 503 to prevent a redirect loop. On the consolidated
+staging host, the service binding handles account entry before this redirect path.
 It does not redirect POST bodies, Authorization-bearing requests, account
 subpaths or query-bearing auth callbacks. Account APIs, sessions and provider
 registrations remain with their existing owner.
+
+`landing/tests/unit/site-worker.test.mjs` checks the actual production binding,
+canonical navigation, rejection of the retired destination, same-origin failure,
+and request protections. Hosted account-route and sign-in acceptance remain with
+the cutover owner. Rollback must preserve the canonical destination and account
+route ownership; restoring the retired account fallback can reintroduce a loop.
 
 For rollback, remove the staging website's exact-hostname route first so the
 existing account custom domain serves requests directly. Restore the preceding
@@ -232,6 +239,6 @@ the signed feed. Final verification compares the live feed hash to the candidate
 A first signed app release is not a prerequisite for frontend migration. Until a
 genuine candidate is accepted, `/appcast.xml` remains absent. Do not fabricate a
 feed or use whole-product setup to preview the frontend. Keep signing, backend,
-Stripe and account setup with their existing owners. The legacy account portal
-is an active dependency; removing marketing publication tooling does not retire
-its host, sessions, licensing or sync resources.
+Stripe and account setup with their existing owners. Retiring the legacy account
+navigation fallback does not authorize deleting sessions, licensing, sync
+resources, or provider registrations.

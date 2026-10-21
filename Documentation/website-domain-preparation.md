@@ -37,8 +37,9 @@ Verify public DNS, HTTPS and the actual serving deployment after recovery.
 No fixed observation or recovery delay is required.
 
 Pages is not a frontend publication, preview or recovery dependency.
-The legacy account portal remains an active dependency of production `/account`;
-retain its serving host and resources until an independently approved service
-migration replaces them. Preserve licensing, sync, callbacks, sessions and
-provider registrations. Do not attach the production frontend to Pages as
-normal setup or recovery.
+Production `/account` belongs to the canonical account Worker route. The marketing
+fallback must use the configured production `accountPortal` and fail closed if
+that same-origin route reaches it; never restore a redirect to the retired portal.
+Legacy public-domain redirects remain separate from account entry. Preserve
+licensing, sync, callbacks, sessions and provider registrations during recovery.
+Do not attach the production frontend to Pages as normal setup or recovery.
