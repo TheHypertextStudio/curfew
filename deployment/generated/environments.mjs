@@ -24,19 +24,28 @@ export default {
     "pricing": "https://thecurfew.app/#plus"
   },
   "staging": {
-    "siteOrigin": "https://curfew-staging.hypertext.studio",
-    "purchasePortalOrigin": "https://curfew-staging.hypertext.studio",
-    "accountOrigin": "https://curfew-account-staging.hypertext.studio",
-    "syncOrigin": "https://curfew-sync-staging.hypertext.studio",
-    "licenseOrigin": "https://curfew-license-staging.hypertext.studio",
-    "passkeyRPID": "curfew-staging.hypertext.studio",
-    "recoveryEmailFrom": "accounts@curfew.hypertext.studio",
-    "accountPortal": "https://curfew-staging.hypertext.studio/account",
-    "mcpResource": "https://curfew-sync-staging.hypertext.studio/mcp",
-    "remoteCommandJWKS": "https://curfew-sync-staging.hypertext.studio/.well-known/curfew-command-jwks.json",
-    "nativeCallback": "https://curfew-account-staging.hypertext.studio/oauth/callback/native/macos",
-    "appcast": "https://curfew-staging.hypertext.studio/appcast.xml",
-    "pricing": "https://curfew-staging.hypertext.studio/#plus"
+    "siteOrigin": "https://staging.thecurfew.app",
+    "purchasePortalOrigin": "https://staging.thecurfew.app",
+    "accountOrigin": "https://account-staging.thecurfew.app",
+    "syncOrigin": "https://sync-staging.thecurfew.app",
+    "licenseOrigin": "https://license-staging.thecurfew.app",
+    "passkeyRPID": "staging.thecurfew.app",
+    "recoveryEmailFrom": "accounts@thecurfew.app",
+    "legacySiteOrigin": "https://curfew-staging.hypertext.studio",
+    "retiredServiceOrigins": [
+      "https://curfew-account-staging.hypertext.studio",
+      "https://curfew-sync-staging.hypertext.studio",
+      "https://curfew-staging.hypertext.studio"
+    ],
+    "retiredLicenseOrigins": [
+      "https://curfew-license-staging.hypertext.studio"
+    ],
+    "accountPortal": "https://staging.thecurfew.app/account",
+    "mcpResource": "https://sync-staging.thecurfew.app/mcp",
+    "remoteCommandJWKS": "https://sync-staging.thecurfew.app/.well-known/curfew-command-jwks.json",
+    "nativeCallback": "https://account-staging.thecurfew.app/oauth/callback/native/macos",
+    "appcast": "https://staging.thecurfew.app/appcast.xml",
+    "pricing": "https://staging.thecurfew.app/#plus"
   },
   "local": {
     "siteOrigin": "http://localhost:4321",

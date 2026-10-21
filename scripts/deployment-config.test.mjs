@@ -1,6 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFile, mkdtemp, writeFile, rm, mkdir, copyFile } from "node:fs/promises";
+import {
+  readFile,
+  mkdtemp,
+  writeFile,
+  rm,
+  mkdir,
+  copyFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
@@ -21,6 +28,53 @@ const fixture = {
   passkeyRPID: "example.net",
   recoveryEmailFrom: "accounts@example.net",
 };
+test("Curfew staging uses its product domain while keeping production isolated", async () => {
+  const { createArtifact, resolveEnvironment } = await config();
+  const manifest = JSON.parse(
+    await readFile("deployment/environments.json", "utf8"),
+  );
+  const production = resolveEnvironment(
+    manifest.environments.production,
+    "production",
+  );
+  const staging = resolveEnvironment(manifest.environments.staging, "staging");
+  assert.deepEqual(
+    [
+      staging.siteOrigin,
+      staging.accountOrigin,
+      staging.syncOrigin,
+      staging.licenseOrigin,
+    ],
+    [
+      "https://staging.thecurfew.app",
+      "https://account-staging.thecurfew.app",
+      "https://sync-staging.thecurfew.app",
+      "https://license-staging.thecurfew.app",
+    ],
+  );
+  assert.equal(staging.passkeyRPID, "staging.thecurfew.app");
+  assert.ok(
+    staging.retiredServiceOrigins.includes(staging.legacySiteOrigin),
+    "The old portal also served authenticated requests and must remain attached only as a retired authority",
+  );
+  assert.equal(staging.purchasePortalOrigin, staging.siteOrigin);
+  assert.equal(staging.recoveryEmailFrom, "accounts@thecurfew.app");
+  assert.deepEqual(
+    [
+      production.siteOrigin,
+      production.accountOrigin,
+      production.syncOrigin,
+      production.licenseOrigin,
+    ],
+    [
+      "https://thecurfew.app",
+      "https://account.thecurfew.app",
+      "https://sync.thecurfew.app",
+      "https://license.thecurfew.app",
+    ],
+  );
+  assert.doesNotThrow(() => createArtifact(manifest, "a".repeat(40)));
+});
 test("derives all endpoint consumers from a different approved deployment", async () => {
   const { resolveEnvironment } = await config();
   const result = resolveEnvironment(fixture, "production");
@@ -302,6 +356,8 @@ test("deployment generation preserves the retained Keychain group when rewriting
   );
   manifest.environments.production.accountOrigin =
     "https://account.updated.example.net";
+  manifest.environments.staging.accountOrigin =
+    "https://account-staging.updated.example.net";
   await writeFile(
     join(root, "deployment/environments.json"),
     JSON.stringify(manifest),
@@ -325,14 +381,20 @@ test("deployment generation preserves the retained Keychain group when rewriting
     ],
   ]) {
     const entitlements = JSON.parse(
-      execFileSync("plutil", ["-convert", "json", "-o", "-", join(root, path)], {
-        encoding: "utf8",
-      }),
+      execFileSync(
+        "plutil",
+        ["-convert", "json", "-o", "-", join(root, path)],
+        {
+          encoding: "utf8",
+        },
+      ),
     );
     assert.deepEqual(entitlements["keychain-access-groups"], [expected]);
     assert.ok(
       entitlements["com.apple.developer.associated-domains"].includes(
-        path.includes("Release") ? "applinks:account.updated.example.net" : "applinks:curfew-account-staging.hypertext.studio",
+        path.includes("Release")
+          ? "applinks:account.updated.example.net"
+          : "applinks:account-staging.updated.example.net",
       ),
     );
   }

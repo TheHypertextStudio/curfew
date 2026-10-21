@@ -9,7 +9,7 @@ struct AccountOAuthUniversalLinkActivityTests {
     func alternatePortIsNotTheClaimedOrigin() throws {
         let expected = AccountOAuthClaimedCallback.redirectURI(for: .staging)
         let callback = try #require(URL(
-            string: "https://curfew-account-staging.hypertext.studio:444/oauth/callback/native/macos?code=code&state=expected-state"
+            string: "https://account-staging.thecurfew.app:444/oauth/callback/native/macos?code=code&state=expected-state"
         ))
 
         #expect(!AccountOAuthCallback.matchesPendingRequest(

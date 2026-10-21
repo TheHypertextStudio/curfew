@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 
 const purchase =
   process.env.CURFEW_PURCHASE_TEST_MODE === 'staging'
-    ? { issuer: 'https://curfew-license-staging.hypertext.studio', scheme: 'curfew-dev' }
+    ? { issuer: 'https://license-staging.thecurfew.app', scheme: 'curfew-dev' }
     : { issuer: 'https://license.thecurfew.app', scheme: 'curfew' };
 test.beforeEach(async ({ page }) => {
   await page.route('**/license/**', (route) => route.abort());

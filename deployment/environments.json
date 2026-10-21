@@ -13,16 +13,27 @@
         "https://curfew-account.hypertext.studio",
         "https://curfew-sync.hypertext.studio"
       ],
-      "retiredLicenseOrigins": ["https://curfew-license.hypertext.studio"]
+      "retiredLicenseOrigins": [
+        "https://curfew-license.hypertext.studio"
+      ]
     },
     "staging": {
-      "siteOrigin": "https://curfew-staging.hypertext.studio",
-      "purchasePortalOrigin": "https://curfew-staging.hypertext.studio",
-      "accountOrigin": "https://curfew-account-staging.hypertext.studio",
-      "syncOrigin": "https://curfew-sync-staging.hypertext.studio",
-      "licenseOrigin": "https://curfew-license-staging.hypertext.studio",
-      "passkeyRPID": "curfew-staging.hypertext.studio",
-      "recoveryEmailFrom": "accounts@curfew.hypertext.studio"
+      "siteOrigin": "https://staging.thecurfew.app",
+      "purchasePortalOrigin": "https://staging.thecurfew.app",
+      "accountOrigin": "https://account-staging.thecurfew.app",
+      "syncOrigin": "https://sync-staging.thecurfew.app",
+      "licenseOrigin": "https://license-staging.thecurfew.app",
+      "passkeyRPID": "staging.thecurfew.app",
+      "recoveryEmailFrom": "accounts@thecurfew.app",
+      "legacySiteOrigin": "https://curfew-staging.hypertext.studio",
+      "retiredServiceOrigins": [
+        "https://curfew-account-staging.hypertext.studio",
+        "https://curfew-sync-staging.hypertext.studio",
+        "https://curfew-staging.hypertext.studio"
+      ],
+      "retiredLicenseOrigins": [
+        "https://curfew-license-staging.hypertext.studio"
+      ]
     },
     "local": {
       "siteOrigin": "http://localhost:4321",

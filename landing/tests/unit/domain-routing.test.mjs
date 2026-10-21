@@ -46,37 +46,43 @@ test('recovery links and session cookies never cross domains in a redirect', asy
   }
 });
 
-test('the marketing Worker never proxies legacy credentials while public redirects preserve queries', async () => {
-  const { default: worker } = await import('../../worker.mjs');
-  const { default: deployment } = await import('../../../deployment/generated/environments.mjs');
-  const old = deployment.production.legacySiteOrigin;
-  const env = {
-    DOCS_MODE: 'mintlify',
-    DOCS_UPSTREAM: 'https://curfew.mintlify.site',
-    ASSETS: {
-      fetch: () => {
-        throw new Error('Legacy credentials must not reach assets');
+for (const mode of ['production', 'staging'])
+  test(`the ${mode} marketing routes retire credentials while preserving public redirects`, async () => {
+    const { default: worker } = await import('../../worker.mjs');
+    const { default: deployment } = await import('../../../deployment/generated/environments.mjs');
+    const old = deployment[mode].legacySiteOrigin;
+    const env = {
+      DOCS_MODE: 'mintlify',
+      DOCS_UPSTREAM: 'https://curfew.mintlify.site',
+      ASSETS: {
+        fetch: () => {
+          throw new Error('Legacy credentials must not reach assets');
+        },
       },
-    },
-  };
-  const fetcher = async () => {
-    throw new Error('Legacy credentials must not reach a docs upstream');
-  };
-  for (const request of [
-    new Request(`${old}/success?session_id=existing`),
-    new Request(`${old}/api/auth/callback?code=existing`),
-    new Request(`${old}/docs?access_token=existing`),
-    new Request(`${old}/account`, { headers: { authorization: 'Bearer existing' } }),
-  ]) {
-    const response = await worker.fetch(request, env, {}, fetcher);
-    assert.equal(response.status, 410);
-    assert.equal(response.headers.get('location'), null);
-    assert.equal(response.headers.get('cache-control'), 'no-store');
-  }
-  const response = await worker.fetch(new Request(`${old}/download?from=guide`), env, {}, fetcher);
-  assert.equal(response.status, 308);
-  assert.equal(
-    response.headers.get('location'),
-    `${deployment.production.siteOrigin}/download?from=guide`,
-  );
-});
+    };
+    const fetcher = async () => {
+      throw new Error('Legacy credentials must not reach a docs upstream');
+    };
+    for (const request of [
+      new Request(`${old}/success?session_id=existing`),
+      new Request(`${old}/api/auth/callback?code=existing`),
+      new Request(`${old}/docs?access_token=existing`),
+      new Request(`${old}/account`, { headers: { authorization: 'Bearer existing' } }),
+    ]) {
+      const response = await worker.fetch(request, env, {}, fetcher);
+      assert.equal(response.status, 410);
+      assert.equal(response.headers.get('location'), null);
+      assert.equal(response.headers.get('cache-control'), 'no-store');
+    }
+    const response = await worker.fetch(
+      new Request(`${old}/download?from=guide`),
+      env,
+      {},
+      fetcher,
+    );
+    assert.equal(response.status, 308);
+    assert.equal(
+      response.headers.get('location'),
+      `${deployment[mode].siteOrigin}/download?from=guide`,
+    );
+  });

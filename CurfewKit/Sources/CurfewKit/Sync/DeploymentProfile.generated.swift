@@ -15,10 +15,10 @@ struct DeploymentProfile {
         licenseOrigin: "https://license.thecurfew.app"
     )
     static let staging = DeploymentProfile(
-        siteOrigin: "https://curfew-staging.hypertext.studio",
-        purchasePortalOrigin: "https://curfew-staging.hypertext.studio",
-        accountOrigin: "https://curfew-account-staging.hypertext.studio",
-        syncOrigin: "https://curfew-sync-staging.hypertext.studio",
-        licenseOrigin: "https://curfew-license-staging.hypertext.studio"
+        siteOrigin: "https://staging.thecurfew.app",
+        purchasePortalOrigin: "https://staging.thecurfew.app",
+        accountOrigin: "https://account-staging.thecurfew.app",
+        syncOrigin: "https://sync-staging.thecurfew.app",
+        licenseOrigin: "https://license-staging.thecurfew.app"
     )
 }

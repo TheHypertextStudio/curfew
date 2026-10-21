@@ -1665,12 +1665,12 @@ asserts its own screen and state before attaching an image.
 - [x] Pin the purchase environment in local website deployment commands and reject
   mismatched checkout or restore pages before invoking provider build/deploy. Pin
   the provider asset directory to the same verified output.
-- [-] Consolidate the modern staging website, purchase activation, restoration
-  and account entry at `curfew-staging.hypertext.studio`. Retain the existing
-  passkey identity and account service, preserve authenticated request/response
-  semantics, package isolated website assets for static and Worker hosting, and
-  keep old purchase redirects on the canonical host. Accept
-  hosted sign-in and purchase recovery before retiring the extra entry point.
+- [-] Consolidate staging website, account access, sync, and licensing under
+  `staging.thecurfew.app` and its separate account, sync, and license hosts.
+  Retain staging data and internal-access restrictions, enroll passkeys for the
+  new portal through normal recovery, reconnect the same Mac and assistants,
+  and accept Sandbox purchase recovery before retiring old authenticated hosts.
+  Refresh native signing provenance after the shared endpoint manifest changes.
 - [x] Serve the modern staging site and purchase pages from the canonical host,
   redirect old purchase links with their fragments intact, keep account home
   navigation in staging, and disable obsolete pinned-preview publishers.

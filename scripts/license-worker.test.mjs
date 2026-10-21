@@ -64,7 +64,7 @@ test("rendered config resolves the Worker entry point from a caller-selected pat
   }
 });
 
-test("staging also uses an approved curfew-prefixed Hypertext Studio hostname", async () => {
+test("staging uses the product license hostname selected by its manifest", async () => {
   const directory = await mkdtemp(join(tmpdir(), "curfew-license-staging-test-"));
   const configFile = join(directory, "wrangler.toml");
 
@@ -77,7 +77,7 @@ test("staging also uses an approved curfew-prefixed Hypertext Studio hostname", 
         env: {
           CURFEW_LICENSE_WORKER_NAME: "curfew-license-staging",
           CURFEW_LICENSE_KV_NAMESPACE_ID: "00000000000000000000000000000000",
-          CURFEW_LICENSE_HOSTNAME: "curfew-license-staging.hypertext.studio",
+          CURFEW_LICENSE_HOSTNAME: "license-staging.thecurfew.app",
           CURFEW_LICENSE_STRIPE_MODE: "test",
         },
       }
@@ -86,7 +86,7 @@ test("staging also uses an approved curfew-prefixed Hypertext Studio hostname", 
     assert.equal(result.status, 0, result.stderr);
     const config = await readFile(configFile, "utf8");
     assert.match(config, /STRIPE_MODE = "test"/);
-    assert.match(config, /^routes = \[\{ pattern = "curfew-license-staging\.hypertext\.studio", custom_domain = true \}\]$/m);
+    assert.match(config, /^routes = \[\{ pattern = "license-staging\.thecurfew\.app", custom_domain = true \}\]$/m);
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
@@ -119,7 +119,7 @@ test("the retired workers.dev rendering mode is rejected", async () => {
         env: {
           CURFEW_LICENSE_WORKER_NAME: "curfew-license-staging",
           CURFEW_LICENSE_KV_NAMESPACE_ID: "00000000000000000000000000000000",
-          CURFEW_LICENSE_HOSTNAME: "curfew-license-staging.hypertext.studio",
+          CURFEW_LICENSE_HOSTNAME: "license-staging.thecurfew.app",
           CURFEW_LICENSE_STRIPE_MODE: "test",
         },
       },
@@ -199,7 +199,7 @@ for (const [mode, host] of [
   [undefined, "curfew-license.hypertext.studio"],
   ["production", "curfew-license.hypertext.studio"],
   ["test", "curfew-license.hypertext.studio"],
-  ["live", "curfew-license-staging.hypertext.studio"],
+  ["live", "license-staging.thecurfew.app"],
 ]) {
   test(`rendering refuses Stripe mode ${String(mode)} for ${host}`, async () => {
     const directory = await mkdtemp(join(tmpdir(), "curfew-stripe-mode-config-"));
@@ -220,21 +220,25 @@ for (const [mode, host] of [
   });
 }
 
-for (const [host, mode, portal, accepted] of [
+for (const [host, mode, portal, accepted, senderOverride] of [
   ["license.thecurfew.app", "live", "https://thecurfew.app", true],
   ["curfew-license-staging.hypertext.studio", "test", "https://curfew-site-staging.hypertext.studio", false],
-  ["curfew-license-staging.hypertext.studio", "test", "https://curfew-staging.hypertext.studio", true],
+  ["curfew-license-staging.hypertext.studio", "test", "https://curfew-staging.hypertext.studio", false],
+  ["license-staging.thecurfew.app", "test", "https://staging.thecurfew.app", true],
+  ["license-staging.thecurfew.app", "test", "https://staging.thecurfew.app", false, "accounts@example.com"],
+  ["license-staging.thecurfew.app", "test", "https://staging.thecurfew.app", false, "purchases@curfew.hypertext.studio"],
+  ["license.thecurfew.app", "live", "https://staging.thecurfew.app", false],
   ["license.thecurfew.app", "live", "https://curfew-staging.hypertext.studio", false],
   ["curfew-license-staging.hypertext.studio", "test", "https://curfew.hypertext.studio", false],
 ]) {
-  test(`recovery pairs ${host} with portal ${portal}`, () => {
+  test(`recovery pairs ${host} with portal ${portal} and ${senderOverride ?? "its configured sender"}`, () => {
     const result = spawnSync(process.execPath, ["scripts/license-worker.mjs", "validate-config"], { encoding: "utf8", env: {
       CURFEW_LICENSE_WORKER_NAME: "curfew-license-test", CURFEW_LICENSE_KV_NAMESPACE_ID: "00000000000000000000000000000000",
       CURFEW_LICENSE_HOSTNAME: host, CURFEW_LICENSE_STRIPE_MODE: mode, CURFEW_LICENSE_RESTORE_ENABLED: "1",
-      CURFEW_LICENSE_RESTORE_FROM: "purchases@curfew.hypertext.studio", CURFEW_LICENSE_PORTAL_URL: portal,
+      CURFEW_LICENSE_RESTORE_FROM: senderOverride ?? (host.endsWith("thecurfew.app") ? "accounts@thecurfew.app" : "purchases@curfew.hypertext.studio"), CURFEW_LICENSE_PORTAL_URL: portal,
       CURFEW_LICENSE_RESTORE_IP_NAMESPACE_ID: "1781921101", CURFEW_LICENSE_RESTORE_EMAIL_NAMESPACE_ID: "1781921102",
     }});
     if (accepted) assert.equal(result.status, 0, result.stderr);
-    else { assert.notEqual(result.status, 0); assert.match(result.stderr, /Recovery portal/); }
+    else { assert.notEqual(result.status, 0); assert.match(result.stderr, senderOverride ? /Recovery sender/ : /Recovery portal|approved deployment manifest/); }
   });
 }

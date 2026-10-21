@@ -69,7 +69,7 @@ struct AccountOAuthEnrollmentTests {
     @Test("Native OAuth preserves the browser session that owns existing passkeys")
     func browserSessionPreservesPasskeys() throws {
         let authorizationURL = try #require(
-            URL(string: "https://curfew-account-staging.hypertext.studio/api/auth/oauth2/authorize")
+            URL(string: "https://account-staging.thecurfew.app/api/auth/oauth2/authorize")
         )
         let session = ASWebAuthenticationSession(
             url: authorizationURL,
@@ -163,17 +163,17 @@ struct AccountOAuthEnrollmentTests {
         )
         let endpoints = CurfewServiceEndpoints.staging
         #expect(endpoints.accountOrigin
-            .absoluteString == "https://curfew-account-staging.hypertext.studio")
+            .absoluteString == "https://account-staging.thecurfew.app")
         #expect(endpoints.accountPortal
-            .absoluteString == "https://curfew-staging.hypertext.studio/account")
+            .absoluteString == "https://staging.thecurfew.app/account")
         #expect(endpoints.syncResource
-            .absoluteString == "https://curfew-sync-staging.hypertext.studio")
+            .absoluteString == "https://sync-staging.thecurfew.app")
         #expect(endpoints.mcpResource
-            .absoluteString == "https://curfew-sync-staging.hypertext.studio/mcp")
+            .absoluteString == "https://sync-staging.thecurfew.app/mcp")
         #expect(endpoints.keychainService == "studio.hypertext.curfew.account-e2ee.staging")
         #expect(
             endpoints.remoteCommandJWKS.absoluteString
-                == "https://curfew-sync-staging.hypertext.studio/.well-known/curfew-command-jwks.json"
+                == "https://sync-staging.thecurfew.app/.well-known/curfew-command-jwks.json"
         )
 
         let request = try AccountOAuthEnrollmentRequest.create(
@@ -189,22 +189,22 @@ struct AccountOAuthEnrollmentTests {
         let query = try Dictionary(uniqueKeysWithValues: #require(components.queryItems).map {
             try ($0.name, #require($0.value))
         })
-        #expect(components.host == "curfew-account-staging.hypertext.studio")
+        #expect(components.host == "account-staging.thecurfew.app")
         #expect(query["resource"] == endpoints.syncResource.absoluteString)
         #expect(
             query["redirect_uri"]
-                == "https://curfew-account-staging.hypertext.studio/oauth/callback/native/macos"
+                == "https://account-staging.thecurfew.app/oauth/callback/native/macos"
         )
-        #expect(request.tokenURL.host == "curfew-account-staging.hypertext.studio")
+        #expect(request.tokenURL.host == "account-staging.thecurfew.app")
     }
 
     @Test("Studio development shares staging origins but not its account secret")
     func studioDevelopmentAccountEndpoints() {
         let studio = CurfewServiceEndpoints.forFlavor(.development)
         #expect(studio.accountOrigin
-            .absoluteString == "https://curfew-account-staging.hypertext.studio")
+            .absoluteString == "https://account-staging.thecurfew.app")
         #expect(studio.mcpResource
-            .absoluteString == "https://curfew-sync-staging.hypertext.studio/mcp")
+            .absoluteString == "https://sync-staging.thecurfew.app/mcp")
         #expect(studio.keychainService == "studio.hypertext.curfew.account-e2ee.studio.dev")
         #expect(studio.keychainService != CurfewServiceEndpoints.staging.keychainService)
     }
@@ -225,13 +225,13 @@ struct AccountOAuthCallbackTests {
         _ = AccountOAuthCallbackPolicy.callback(for: .staging)
 
         #expect(try AccountOAuthCallbackPolicy.accepts(#require(URL(
-            string: "https://curfew-account-staging.hypertext.studio/oauth/callback/native/macos"
+            string: "https://account-staging.thecurfew.app/oauth/callback/native/macos"
         )), for: .staging))
         #expect(try !AccountOAuthCallbackPolicy.accepts(#require(URL(
             string: "studio.hypertext.curfew://oauth/callback"
         )), for: .staging))
         #expect(try !AccountOAuthCallbackPolicy.accepts(#require(URL(
-            string: "https://curfew-account-staging.hypertext.studio/oauth/callback/native/windows"
+            string: "https://account-staging.thecurfew.app/oauth/callback/native/windows"
         )), for: .staging))
     }
 

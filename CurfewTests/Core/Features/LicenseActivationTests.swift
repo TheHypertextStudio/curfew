@@ -12,7 +12,7 @@ struct LicenseActivationTests {
             .absoluteString == "https://license.thecurfew.app")
         for flavor in [CurfewFlavor.development] {
             #expect(LicenseEndpoint.url(for: flavor)
-                .absoluteString == "https://curfew-license-staging.hypertext.studio")
+                .absoluteString == "https://license-staging.thecurfew.app")
         }
         #expect(LicenseService().baseURL == LicenseEndpoint.url(for: LicenseEndpoint.currentFlavor))
         #expect(LicenseRefresher().baseURL == LicenseEndpoint

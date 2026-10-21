@@ -6,7 +6,7 @@ import Foundation
 @MainActor
 final class SuspendedAccountOAuthEnrollment: AccountOAuthEnrolling {
     let authorizationURL = URL(
-        string: "https://curfew-account-staging.hypertext.studio/api/auth/oauth2/authorize?state=test"
+        string: "https://account-staging.thecurfew.app/api/auth/oauth2/authorize?state=test"
     )!
     private var continuation: CheckedContinuation<AccountOAuthGrant, any Error>?
     private var startWaiters: [CheckedContinuation<Void, Never>] = []
@@ -44,7 +44,7 @@ final class SuspendedAccountOAuthEnrollment: AccountOAuthEnrolling {
 @MainActor
 final class LinkedSuccessfulAccountOAuthEnrollment: AccountOAuthEnrolling {
     let authorizationURL = URL(
-        string: "https://curfew-account-staging.hypertext.studio/api/auth/oauth2/authorize?state=test"
+        string: "https://account-staging.thecurfew.app/api/auth/oauth2/authorize?state=test"
     )!
     private var linkWaiters: [CheckedContinuation<Void, Never>] = []
     private var hasPublishedLink = false

@@ -81,7 +81,7 @@ function validateConfig() {
 async function renderConfig(arguments_) {
   const recovery = validateConfig();
   if (arguments_.includes("--workers-dev")) {
-    throw new Error("workers.dev routing is not supported; use a curfew-*.hypertext.studio custom hostname");
+    throw new Error("workers.dev routing is not supported; use the configured product license hostname");
   }
   const output = option(arguments_, "--output");
   if (!output) throw new Error("render-config requires --output <local-path>");
@@ -107,12 +107,13 @@ function recoveryConfiguration() {
   const missing = names.filter(name => !process.env[name]);
   if (missing.length) throw new Error(`missing recovery configuration: ${missing.join(", ")}`);
   const [sender, portal, ipNamespace, emailNamespace] = names.map(name => process.env[name]);
-  if (!/^[a-z0-9._+-]+@curfew(?:-[a-z0-9-]+)?\.hypertext\.studio$/.test(sender)) {
-    throw new Error("Recovery sender must use an approved Curfew sending domain");
-  }
-  const url = new URL(portal);
   const profile = process.env.CURFEW_LICENSE_STRIPE_MODE === "live" ? deployment.production : deployment.staging;
   const retiredIssuer = (profile.retiredLicenseOrigins || []).some(origin => new URL(origin).host === process.env.CURFEW_LICENSE_HOSTNAME);
+  const allowedSenders = [profile.recoveryEmailFrom, ...(retiredIssuer && profile.legacySiteOrigin ? [`purchases@${new URL(profile.legacySiteOrigin).host}`] : [])];
+  if (!allowedSenders.includes(sender)) {
+    throw new Error("Recovery sender must match the selected deployment profile");
+  }
+  const url = new URL(portal);
   const allowedPortals = [profile.purchasePortalOrigin, ...(retiredIssuer && profile.legacySiteOrigin ? [profile.legacySiteOrigin] : [])];
   if (url.protocol !== "https:" || !allowedPortals.includes(url.origin) ||
       url.username || url.password || url.port || url.pathname !== "/" || url.search || url.hash) {
