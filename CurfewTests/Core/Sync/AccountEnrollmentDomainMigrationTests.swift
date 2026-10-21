@@ -98,6 +98,43 @@ extension AccountEnrollmentReauthorizationTests {
         #expect(devices.enrollCount == 0)
     }
 
+    @Test("A failed ready checkpoint keeps reconnect pending and can be retried")
+    func failedReconnectCheckpointRetainsSignInRequirement() async throws {
+        let fixture = try makeOldDomainFixture(hasPreviousMarker: true)
+        try fixture.pending.markReady(fixture.enrollment)
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("curfew-domain-reauth-storage-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: root) }
+        let remoteEnrollment = RemoteCommandEnrollmentStore(
+            recordURL: root.appendingPathComponent("enrollment.json")
+        )
+        try remoteEnrollment.save(RemoteCommandEnrollment(
+            userID: "original-account",
+            deviceID: fixture.enrollment.deviceID
+        ))
+        let controller = AccountEnrollmentController(
+            secretStore: fixture.secrets,
+            oauth: ReauthorizationOAuthFixture(secretStore: fixture.secrets),
+            devices: ReauthorizationDeviceFixture(enrollment: fixture.enrollment),
+            remoteCommandEnrollmentStore: remoteEnrollment
+        )
+        fixture.secrets.rejectedSaveAccount = "pending-account-enrollment-ready"
+
+        await controller.signIn()
+
+        #expect(controller.state == .storageUnavailable)
+        #expect(controller.requiresReauthorization)
+        #expect(try fixture.pending.load() == .ready(fixture.enrollment))
+        #expect(try remoteEnrollment.load()?.userID == "original-account")
+
+        fixture.secrets.rejectedSaveAccount = nil
+        controller.reloadSavedEnrollment()
+        await controller.signIn()
+
+        #expect(controller.state == .ready(fixture.enrollment))
+        #expect(!controller.requiresReauthorization)
+    }
+
     private func makeOldDomainFixture(hasPreviousMarker: Bool) throws -> ReauthorizationFixture {
         let fixture = try makeFixture(accountUserID: "original-account")
         if hasPreviousMarker {

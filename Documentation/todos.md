@@ -1673,6 +1673,8 @@ asserts its own screen and state before attaching an image.
   Refresh native signing provenance after the shared endpoint manifest changes.
   Keep current-domain credential fixtures distinct from obsolete grants, and
   cover reconnecting the existing Mac with its owner and encryption keys intact.
+  Clear its sign-in requirement only after same-account authentication and the
+  ready checkpoint are saved; keep cancellation and rejection recoverable.
 - [x] Serve the modern staging site and purchase pages from the canonical host,
   redirect old purchase links with their fragments intact, keep account home
   navigation in staging, and disable obsolete pinned-preview publishers.
