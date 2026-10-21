@@ -2096,3 +2096,17 @@ Local issuer tests and both-mode cf build/prebuilt dry-runs cover configuration
 packaging; delivery and provider authorization remain deployment acceptance.
 
 Docs publish independently of app and payment-service rollout. Revert this docs-only change to restore the prior instructions; no account or purchase data changes.
+
+### Explicit local-build publication
+
+| Requirement | Evidence |
+| --- | --- |
+| Local candidates identify their evidence and never borrow a hosted workflow run | `scripts/release-candidate.test.mjs` |
+| Missing, failed, skipped, substituted, stale or mismatched test/signing evidence prevents admission | `scripts/local-release.test.mjs`; retained log digest verification |
+| A later publication commit must be clean, descend from the signed source and preserve native source and dependencies; the mounted-app verifier must run from the exact clean original checkout | `scripts/local-release.test.mjs` with disposable real Git history, dirty-checkout and committed entitlement-policy mutation rejection |
+| Exact DMG bytes pass ticket verification and the full mounted-app verifier; rejection still unmounts the image | `scripts/local-release.test.mjs` tests the OS adapter; actual macOS execution on retained release bytes remains required |
+| Local publication preserves all existing acceptance and staging gates, checks the current publication head and retains the original signed-source tag | `scripts/publication.test.mjs`; actual private owner/staging acceptance |
+
+The regular release-policy gate runs these script tests. Local evidence and
+owner receipts remain private. Neither unit fixtures nor a local candidate
+record establishes interactive device, staging, or production acceptance.

@@ -247,6 +247,75 @@ authorized Mac. Expired artifacts must be rebuilt and revalidated. Do not announ
 or update Homebrew until actual acceptance passes. Historical Studio Dev evidence
 does not close these production gates.
 
+## Explicit local-build publication
+
+An owner-authorized local build can use the same signed-device and operational
+acceptance gates when the signed candidate workflow is unavailable. This is a
+separate provenance path: it never assigns a GitHub run ID to a local archive or
+treats a failed workflow as successful. The hosted candidate path is unchanged.
+
+Keep the exact DMG, feed, `release-configuration.json`, and
+`environment-artifact.json` together in the publication directory's `candidate/`
+folder. Keep execution evidence in a private `local-evidence/` folder:
+
+- `quality.json` records schema version 1, a locally assigned UUID v4
+  `executionID`, the actual `observedAt`, `sourceCommit`,
+  `configurationSHA256`, and `hostedRunClaimed: false`. Its `fullAppTests`
+  records positive passed tests and zero failed or skipped tests. Its `checks`
+  contain the actual zero exit codes for `just check`,
+  `swift test --package-path CurfewKit`, and `just build-release`, with each
+  command's retained log filename and SHA-256 digest. Preserve the execution
+  time when recording existing evidence; a new record does not refresh a test.
+  An operator must review the original test results and timestamps: hashes
+  protect retained records from substitution, not independently attest that
+  a command ran or passed.
+- Each log must be a nonempty regular file in that directory. Logs and signing
+  evidence remain private; do not place them in the public release assets.
+- `signing.json` retains the actual local signing receipt: `verifiedAt`,
+  `sourceCommit`, `deploymentSHA256`, `releaseConfigurationSHA256`, `version`,
+  `developerIDTeam`, `dmgSHA256`, `appcastSHA256`, `hostedRunClaimed: false`,
+  `notarizationAccepted: true`, `ticketStapled: true`, and
+  `gatekeeperAndSourceArtifactVerifierPassed: true`.
+
+On the clean reviewed publication commit, record the candidate without changing
+its retained release bytes:
+
+```sh
+node scripts/local-release.mjs record /private/publication/candidate /private/publication/local-evidence /private/frozen-native-source
+```
+
+This verifies the log digests, source/configuration identities and evidence
+age, rechecks the DMG's stapled ticket, mounts the exact image read-only, and
+runs the existing full app verifier on its embedded app from the exact clean
+native-source checkout. That checkout must still be at the signed app's source
+commit; this also fixes every transitive verifier input to its reviewed version.
+The temporary mount
+is removed even when app verification fails. Schema version 2 `candidate.json`
+contains explicit local provenance and evidence digests, with no hosted run ID.
+Seven days is the maximum evidence age, not permission to reuse evidence after
+relevant behavior or provider changes.
+
+Retain the existing verified website, `website-build/website-build.json`,
+`identity/environment-artifact.json`, and successful matching `website-run.json`.
+Add `local-authority.json` with the reviewed `publicationCommit` and the absolute
+`nativeRepository` path to the frozen native-source checkout. That commit
+must be the clean current checkout and a descendant of the signed app's source;
+native source, dependencies, deployment manifest and native verification inputs
+must be identical. The public release tag continues to name the original signed
+app commit. A later publication, website or issuer change does not relabel the
+app's source or rebuild its bytes.
+
+Use the existing `publication.mjs prepare`, `ready`, `publish`, and `verify`
+commands with this directory. In addition to every existing owner gate, the
+private acceptance receipt needs a `stagingAcceptance` gate with outcome `pass`
+and a reference to actual staging acceptance. The owner receipt must still be
+less than one hour old. Candidate/log substitutions, missing or failed tests,
+source drift, stale evidence, missing staging acceptance, and failed OS trust
+checks stop admission before publication output is written. The local route
+does not enable sales, waive recovery or device checks, or establish production
+behavior from staging results. Revert the publication-source change to remove
+this route; retain published release bytes and the hosted route's guarantees.
+
 ## Signed-device gate
 
 ```bash

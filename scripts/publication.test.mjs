@@ -128,6 +128,139 @@ async function api() {
   );
   return value;
 }
+async function localFixture(t) {
+  const input = await fixture(t);
+  const provenance = {
+    kind: "local",
+    executionID: "fe840ac6-2162-47dc-83c1-b8e55e46a4e3",
+    qualitySHA256: "c".repeat(64),
+    signingSHA256: "d".repeat(64),
+  };
+  input.native.candidate = createCandidate({
+    ...input.native.candidate,
+    ...input.native,
+    runID: undefined,
+    provenance,
+  });
+  input.receipt.candidate = structuredClone(input.native.candidate);
+  input.receipt.gates.stagingAcceptance = {
+    outcome: "pass",
+    evidence: "test-only staging acceptance fixture",
+  };
+  delete input.candidateRun;
+  input.currentMainCommit = "f".repeat(40);
+  input.local = {
+    publicationCommit: input.currentMainCommit,
+    repository: "/fixture-repository",
+    nativeRepository: "/fixture-frozen-native-source",
+    evidenceDirectory: "/missing-fixture-evidence",
+    candidateDirectory: "/fixture-candidate",
+  };
+  return input;
+}
+test("local publication uses its explicit verifier without borrowing a hosted run", async (t) => {
+  const input = await localFixture(t);
+  let verified = false;
+  const result = await (
+    await api()
+  ).preparePublication(input, async (actual) => {
+    assert.equal(actual, input);
+    verified = true;
+  });
+  assert.equal(verified, true);
+  assert.equal(result.publicationCommit, input.local.publicationCommit);
+  assert.deepEqual(
+    await readFile(join(input.destination, "appcast.xml")),
+    input.native.appcast,
+  );
+});
+test("local publication retains staging, source, receipt and evidence gates before writing", async (t) => {
+  const { preparePublication } = await api();
+  for (const mutate of [
+    (x) => {
+      delete x.receipt.gates.stagingAcceptance;
+    },
+    (x) => {
+      x.receipt.gates.stagingAcceptance.outcome = "pending";
+    },
+    (x) => {
+      x.receipt.gates.stagingAcceptance.evidence = "";
+    },
+    (x) => {
+      x.candidateRun = { id: 123, conclusion: "success" };
+    },
+    (x) => {
+      x.local.publicationCommit = "b".repeat(40);
+    },
+  ]) {
+    const input = await localFixture(t);
+    mutate(input);
+    await assert.rejects(() => preparePublication(input, async () => {}));
+    await assert.rejects(() => access(input.destination));
+  }
+  const missing = await localFixture(t);
+  await assert.rejects(() => preparePublication(missing));
+  await assert.rejects(() => access(missing.destination));
+});
+test("local release keeps the candidate tag pinned while checking the reviewed publication head", async (t) => {
+  const input = await localFixture(t);
+  const { publishGithubRelease } = await api();
+  const expected = {
+    "Curfew-v0.0.2.dmg": "a".repeat(64),
+    "appcast.xml": "b".repeat(64),
+    "candidate.json": "c".repeat(64),
+  };
+  const invoke = (args) => {
+    assert.equal(args[0], "api", "matching public bytes must not be rewritten");
+    if (args[1].includes("heads/main"))
+      return { object: { type: "commit", sha: input.currentMainCommit } };
+    if (args[1].includes("git/ref/tags"))
+      return {
+        object: { type: "commit", sha: input.native.candidate.sourceCommit },
+      };
+    return {
+      draft: false,
+      tag_name: "v0.0.2",
+      assets: Object.entries(expected).map(([name, digest]) => ({
+        name,
+        digest: `sha256:${digest}`,
+      })),
+    };
+  };
+  assert.equal(
+    publishGithubRelease(
+      invoke,
+      input.native.candidate,
+      expected,
+      "/fixture",
+      input.local.publicationCommit,
+    ),
+    "reused",
+  );
+  assert.throws(
+    () =>
+      publishGithubRelease(
+        invoke,
+        input.native.candidate,
+        expected,
+        "/fixture",
+        "e".repeat(40),
+      ),
+    /Main changed/,
+  );
+  const hosted = await fixture(t);
+  assert.throws(
+    () =>
+      publishGithubRelease(
+        invoke,
+        hosted.native.candidate,
+        expected,
+        "/fixture",
+        input.local.publicationCommit,
+      ),
+    /hosted|source/i,
+  );
+});
 test("publication stages the exact signed feed beside the verified site without changing retained bytes", async (t) => {
   const input = await fixture(t);
   const { preparePublication } = await api();

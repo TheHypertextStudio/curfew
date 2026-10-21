@@ -7,8 +7,33 @@ import { fileURLToPath } from "node:url";
 import { inspectActivation } from "./release-candidate.mjs";
 import { resolveEnvironment } from "./deployment-config.mjs";
 import { verifyWebsite, sealWebsite } from "./website-artifact.mjs";
+import {
+  verifyLocalEvidence,
+  verifyLocalRepositories,
+  verifyLocalDistribution,
+} from "./local-release.mjs";
 
-async function admit(input) {
+async function verifyLocalPublication(input) {
+  const candidate = input.native.candidate;
+  verifyLocalRepositories(
+    input.local.repository,
+    input.local.nativeRepository,
+    candidate.sourceCommit,
+    input.local.publicationCommit,
+  );
+  await verifyLocalEvidence(
+    input.local.evidenceDirectory,
+    candidate,
+    input.now,
+  );
+  await verifyLocalDistribution(
+    input.local.candidateDirectory,
+    candidate,
+    input.local.nativeRepository,
+  );
+}
+
+async function admit(input, localVerifier = verifyLocalPublication) {
   const { candidate } = inspectActivation(input.native, input.receipt);
   const observed = Date.parse(input.receipt.observedAt);
   const now = input.now ?? Date.now();
@@ -16,19 +41,43 @@ async function admit(input) {
     observed <= now && now - observed <= 3_600_000,
     "Fresh owner acceptance is required",
   );
-  assert.equal(
-    input.currentMainCommit,
-    candidate.sourceCommit,
-    "Main changed after candidate validation",
-  );
-  for (const [run, path, branch] of [
-    [
+  const local = candidate.provenance?.kind === "local";
+  const runs = [[input.websiteRun, ".github/workflows/website.yml", "main"]];
+  if (local) {
+    assert.equal(
+      input.candidateRun,
+      undefined,
+      "A local candidate cannot claim a hosted run",
+    );
+    assert.match(input.local?.publicationCommit ?? "", /^[a-f0-9]{40}$/);
+    assert.equal(
+      input.currentMainCommit,
+      input.local.publicationCommit,
+      "Publication source changed after local validation",
+    );
+    assert.equal(
+      input.receipt.gates?.stagingAcceptance?.outcome,
+      "pass",
+      "Actual staging acceptance is required",
+    );
+    assert.ok(
+      input.receipt.gates.stagingAcceptance.evidence?.trim(),
+      "Staging evidence is required",
+    );
+    await localVerifier(input);
+  } else {
+    assert.equal(
+      input.currentMainCommit,
+      candidate.sourceCommit,
+      "Main changed after candidate validation",
+    );
+    runs.unshift([
       input.candidateRun,
       ".github/workflows/release.yml",
       `v${candidate.version}`,
-    ],
-    [input.websiteRun, ".github/workflows/website.yml", "main"],
-  ]) {
+    ]);
+  }
+  for (const [run, path, branch] of runs) {
     assert.equal(run.repository?.full_name, "TheHypertextStudio/curfew");
     assert.equal(run.status, "completed");
     assert.equal(run.conclusion, "success");
@@ -37,7 +86,7 @@ async function admit(input) {
     assert.equal(run.head_branch, branch);
     assert.equal(run.head_sha, candidate.sourceCommit);
   }
-  assert.equal(String(input.candidateRun.id), candidate.runID);
+  if (!local) assert.equal(String(input.candidateRun.id), candidate.runID);
   await verifyWebsite(
     input.website.directory,
     input.website.stamp,
@@ -48,8 +97,11 @@ async function admit(input) {
   return candidate;
 }
 
-export async function preparePublication(input) {
-  const candidate = await admit(input);
+export async function preparePublication(
+  input,
+  localVerifier = verifyLocalPublication,
+) {
+  const candidate = await admit(input, localVerifier);
   await assert.rejects(
     () => lstat(input.destination),
     { code: "ENOENT" },
@@ -63,6 +115,9 @@ export async function preparePublication(input) {
   await writeFile(join(input.destination, "appcast.xml"), input.native.appcast);
   return {
     candidate,
+    ...(candidate.provenance?.kind === "local"
+      ? { publicationCommit: input.local.publicationCommit }
+      : {}),
     siteStamp: await sealWebsite(input.destination, input.website.deployment),
   };
 }
@@ -149,9 +204,17 @@ export function publishGithubRelease(
   candidate,
   expectedAssets,
   directory,
+  publicationCommit = candidate.sourceCommit,
 ) {
   assert.match(candidate.version, /^0\.0\.(0|[1-9]\d*)$/);
   const tag = `v${candidate.version}`;
+  assert.match(publicationCommit, /^[a-f0-9]{40}$/);
+  if (candidate.provenance?.kind !== "local")
+    assert.equal(
+      publicationCommit,
+      candidate.sourceCommit,
+      "A hosted candidate must retain its exact source head",
+    );
   assert.deepEqual(
     Object.keys(expectedAssets).sort(),
     [`Curfew-${tag}.dmg`, "appcast.xml", "candidate.json"].sort(),
@@ -161,7 +224,7 @@ export function publishGithubRelease(
   const head = invoke(["api", `repos/${repository}/git/ref/heads/main`]);
   assert.equal(
     head.object?.sha,
-    candidate.sourceCommit,
+    publicationCommit,
     "Main changed before publication",
   );
   let reference = invoke([
@@ -271,6 +334,8 @@ async function load(base) {
     JSON.parse(await readFile(join(base, path), "utf8"));
   const candidate = await json("candidate/candidate.json");
   assert.match(candidate.version, /^0\.0\.(0|[1-9]\d*)$/);
+  const local = candidate.provenance?.kind === "local";
+  const authority = local ? await json("local-authority.json") : undefined;
   return {
     native: {
       candidate,
@@ -285,9 +350,26 @@ async function load(base) {
       stamp: await json("website-build/website-build.json"),
       deployment: await json("identity/environment-artifact.json"),
     },
-    candidateRun: await json("candidate-run.json"),
+    candidateRun: local ? undefined : await json("candidate-run.json"),
     websiteRun: await json("website-run.json"),
-    currentMainCommit: process.env.GITHUB_SHA,
+    currentMainCommit:
+      process.env.GITHUB_SHA ??
+      (local
+        ? execFileSync("git", ["rev-parse", "HEAD"], {
+            encoding: "utf8",
+          }).trim()
+        : undefined),
+    ...(local
+      ? {
+          local: {
+            publicationCommit: authority.publicationCommit,
+            nativeRepository: resolve(authority.nativeRepository),
+            repository: fileURLToPath(new URL("../", import.meta.url)),
+            evidenceDirectory: join(base, "local-evidence"),
+            candidateDirectory: join(base, "candidate"),
+          },
+        }
+      : {}),
     receipt: await json("owner-receipt.json"),
     destination: join(base, "site-ready"),
   };
@@ -334,6 +416,12 @@ if (
       await readFile(join(base, "prepared.json"), "utf8"),
     );
     assert.deepEqual(prepared.candidate, candidate);
+    if (candidate.provenance?.kind === "local")
+      assert.equal(
+        prepared.publicationCommit,
+        input.local.publicationCommit,
+        "Prepared publication source changed",
+      );
     assert.deepEqual(
       prepared.siteStamp,
       await sealWebsite(input.destination, input.website.deployment),
@@ -372,7 +460,7 @@ if (
       }
     };
     console.log(
-      `Release ${publishGithubRelease(invoke, candidate, expected, directory)}`,
+      `Release ${publishGithubRelease(invoke, candidate, expected, directory, input.local?.publicationCommit)}`,
     );
   } else
     throw new Error(

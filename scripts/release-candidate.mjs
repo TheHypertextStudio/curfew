@@ -8,6 +8,7 @@ import { readFile, writeFile, lstat } from "node:fs/promises";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { execFileSync, spawnSync } from "node:child_process";
+import { isDeepStrictEqual } from "node:util";
 import { verifyArtifact } from "./release-configuration.mjs";
 
 export const activationGates = Object.freeze([
@@ -105,14 +106,25 @@ export function createCandidate({
   team,
   sparkleKey,
   runID,
+  provenance,
 }) {
+  const local = provenance?.kind === "local";
+  const localKeys = ["executionID", "kind", "qualitySHA256", "signingSHA256"];
   if (
     !/^0\.0\.(0|[1-9]\d*)$/.test(version) ||
     team !== "T95VDD3A4W" ||
-    !/^[1-9]\d*$/.test(runID)
+    (local
+      ? runID !== undefined ||
+        !isDeepStrictEqual(Object.keys(provenance).sort(), localKeys) ||
+        !/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(
+          provenance.executionID,
+        ) ||
+        !/^[a-f0-9]{64}$/.test(provenance.qualitySHA256) ||
+        !/^[a-f0-9]{64}$/.test(provenance.signingSHA256)
+      : provenance !== undefined || !/^[1-9]\d*$/.test(runID))
   )
     throw new Error(
-      "Candidate must use a 0.0.x version, Studio team and workflow run",
+      "Candidate requires a 0.0.x version, Studio team and explicit valid provenance",
     );
   verifyArtifact(
     configuration,
@@ -170,10 +182,10 @@ export function createCandidate({
       "Sparkle update signature does not match candidate bytes and app key",
     );
   return Object.freeze({
-    schemaVersion: 1,
+    schemaVersion: local ? 2 : 1,
     version,
     team,
-    runID,
+    ...(local ? { provenance: Object.freeze({ ...provenance }) } : { runID }),
     sourceCommit: configuration.sourceCommit,
     configurationSHA256: configuration.deployment.sha256,
     releaseConfigurationSHA256: configuration.sha256,
@@ -187,7 +199,9 @@ export function verifyCandidate({ candidate, dmg, appcast, configuration }) {
   const actual = createCandidate({ ...candidate, dmg, appcast, configuration });
   if (
     Object.keys(candidate).length !== Object.keys(actual).length ||
-    Object.entries(actual).some(([key, value]) => candidate[key] !== value)
+    Object.entries(actual).some(
+      ([key, value]) => !isDeepStrictEqual(candidate[key], value),
+    )
   )
     throw new Error("Retained candidate identity mismatch");
   return actual;
@@ -201,7 +215,7 @@ export function inspectActivation(input, receipt) {
     !Number.isFinite(Date.parse(receipt.observedAt)) ||
     !receipt.candidate ||
     Object.entries(candidate).some(
-      ([key, value]) => receipt.candidate[key] !== value,
+      ([key, value]) => !isDeepStrictEqual(receipt.candidate[key], value),
     )
   )
     throw new Error("Missing or mismatched owner acceptance receipt");

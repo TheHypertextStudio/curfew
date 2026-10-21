@@ -1556,6 +1556,9 @@ asserts its own screen and state before attaching an image.
 - [ ] Complete authenticated provider preflight, account recovery audit, signed release, backups, coordinated production cutover and live acceptance. Local changes do not establish deployment.
 
 - [x] Bind signed candidate provenance to the shared endpoint manifest and retain the newer release credential cleanup and unsigned quality checks.
+- [x] Support explicit local-build publication with retained test logs, exact
+  signed/notarized bytes, unchanged native source and actual staging acceptance;
+  keep local provenance separate from hosted runs and preserve all owner gates.
 - [x] Inventory Cloudflare access through the pinned CLI using existing CI credentials without changing infrastructure or printing secret values.
 
 - [x] Document the Email Sending CLI exception, readiness validation before production mutations, and the cf Durable Object rollback constraint in the domain migration runbook.
