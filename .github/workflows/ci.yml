@@ -36,10 +36,9 @@ jobs:
 
   check:
     name: Format · Lint · Test · Build
-    # Curfew's deployment target is macOS 26, so validation must run on a
-    # runner that can actually build and execute its test host. Keep validation
-    # off the capacity-constrained hosted ARM64 queue and the owner's desktop.
-    runs-on: macos-26-intel
+    # Match the signed candidate's supported ARM64 macOS 26 runtime. The Intel
+    # image can fail while preparing a test host even after other tests pass.
+    runs-on: macos-26
 
     steps:
       - uses: actions/checkout@v7.0.1

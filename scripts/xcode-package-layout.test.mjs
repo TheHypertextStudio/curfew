@@ -48,6 +48,17 @@ test('Graphical acceptance uses the isolated ARM64 macOS 26 lane', () => {
   assert.ok(graphicalJob.includes('${{ runner.arch }}-derived-'));
 });
 
+test('Native quality uses the ARM64 lane that supports the signed candidate', () => {
+  const workflow = readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8');
+  const qualityJob = workflow.split('\n  check:\n')[1]?.split('\n  screenshots:\n')[0];
+  assert.ok(qualityJob, 'Native quality must remain a separate hosted job');
+  assert.match(qualityJob, /runs-on: macos-26\s*\n/,
+    'Avoid Intel runner test-host preparation failures');
+  assert.ok(qualityJob.includes('swift test --package-path CurfewKit'));
+  assert.ok(qualityJob.includes('run: just check'));
+  assert.ok(qualityJob.includes('run: just build-release'));
+});
+
 test('Remote captures hide the runner Dock so app controls remain unobstructed', () => {
   const workflow = readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8');
   assert.ok(workflow.includes('defaults write com.apple.dock autohide -bool true'));
