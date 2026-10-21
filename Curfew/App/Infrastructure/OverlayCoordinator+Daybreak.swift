@@ -15,13 +15,15 @@ private final class DaybreakOverlayWindow: NSWindow {
 @MainActor
 extension OverlayCoordinator {
     static func makeDaybreakWindow(frame: NSRect, screen: NSScreen?) -> NSWindow {
-        DaybreakOverlayWindow(
+        let window = DaybreakOverlayWindow(
             contentRect: frame,
             styleMask: daybreakWindowConfiguration.styleMask,
             backing: .buffered,
             defer: false,
             screen: screen
         )
+        window.title = "Curfew rest screen"
+        return window
     }
 
     /// A tick must not replace the hosting view: its reflection form owns

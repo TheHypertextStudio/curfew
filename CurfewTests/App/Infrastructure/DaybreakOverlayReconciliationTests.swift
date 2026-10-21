@@ -4,6 +4,15 @@ import Testing
 
 @MainActor
 struct DaybreakOverlayReconciliationTests {
+    @Test("The rest window has a useful accessibility title")
+    func restWindowHasAccessibleTitle() {
+        let window = OverlayCoordinator.makeDaybreakWindow(
+            frame: NSRect(x: 0, y: 0, width: 800, height: 600), screen: nil
+        )
+        defer { window.orderOut(nil) }
+        #expect(window.title == "Curfew rest screen")
+    }
+
     @Test("The borderless daybreak window can become key for text input")
     func daybreakWindowAcceptsKeyboardFocus() {
         let frame = NSRect(x: 0, y: 0, width: 800, height: 600)
