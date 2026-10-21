@@ -45,6 +45,7 @@ extension CurfewUITests {
             let editor = app.textViews["reflection-answer"].firstMatch
             XCTAssertTrue(editor.waitForExistence(timeout: 5))
             XCTAssertFalse(editor.label.isEmpty)
+            XCTAssertEqual(app.groups["rest-screen"].label, "Curfew rest screen")
             try app.performAccessibilityAudit(for: [.contrast, .sufficientElementDescription])
             app.terminate()
             XCTAssertTrue(app.wait(for: .notRunning, timeout: 5))

@@ -50,6 +50,19 @@ struct RestDemoTests {
         #expect(!model.isEnforcementRunning)
     }
 
+    @Test("The hold fixture's authority accepts a completed confirmation after clock ticks")
+    func holdFixtureCanConfirmAfterTicks() throws {
+        let model = CurfewAppModel.demoModel()
+        model.applyDemoReviewState(.restHold)
+        let clock = try #require(model.reflectionState.demoRestClock)
+        model.refreshDemoRestClock(at: clock.wallStart.addingTimeInterval(4))
+        #expect(model.canConfirmOverride)
+        model.confirmOverride()
+        #expect(!model.isOverrideComposerVisible)
+        #expect(model.overrideReasonDraft.isEmpty)
+        #expect(!model.isEnforcementRunning)
+    }
+
     @Test("The morning fixture follows its retained scheduled interval")
     func morningIsScheduledAndDisarmed() throws {
         let model = CurfewAppModel.demoModel()

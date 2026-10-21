@@ -37,6 +37,7 @@ struct RestScreenView: View {
                 SundownSky(moment: model.restPresentation.sky, isVisible: display.isVisible)
                     .overlay(SundownPalette.textScrim)
                     .ignoresSafeArea()
+                    .accessibilityHidden(true)
                 ScrollView {
                     VStack(spacing: content == .quiet ? 24 : 18) {
                         Spacer(minLength: content == .quiet ? 48 : 0)
@@ -85,6 +86,9 @@ struct RestScreenView: View {
                     .accessibilityHidden(true)
             }
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Curfew rest screen")
+        .accessibilityIdentifier("rest-screen")
         .onChange(of: content) { _, newContent in previousContent = newContent }
         .onChange(of: display.isVisible) { _, visible in
             if !visible {

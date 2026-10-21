@@ -123,6 +123,7 @@ extension CurfewAppModel {
         #if DEBUG
             if isDemoSession {
                 refreshDemoRestClock()
+                _ = reassertEnforcementIfNeeded()
                 if displayDidWake {
                     overlayCoordinator.restDisplaysWoke()
                 }

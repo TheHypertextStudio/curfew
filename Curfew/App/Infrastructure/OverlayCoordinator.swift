@@ -111,6 +111,9 @@ final class OverlayCoordinator {
     private var restLifecycle = RestDisplayLifecycle()
     private var restIsSleeping = false
     private var restSessionIsActive = true
+    private lazy var restVisibilityObserver = RestWindowVisibilityObserver { [weak self] in
+        self?.reconcileRestVisibility()
+    }
 
     var restCanReveal: Bool {
         !restIsSleeping && restSessionIsActive
@@ -246,6 +249,7 @@ final class OverlayCoordinator {
         }
         lockoutWindows.reconcile(displays: displays) { display in
             let window = Self.makeDaybreakWindow(frame: display.frame, screen: nil)
+            window.delegate = restVisibilityObserver
             apply(configuration: Self.lockoutWindowConfiguration, to: window)
             let presentation = restDisplayStates[display.id] ?? RestDisplayPresentation()
             restDisplayStates[display.id] = presentation
@@ -256,12 +260,8 @@ final class OverlayCoordinator {
             )
             return window
         }
-        for window in lockoutWindows.windows.values {
-            if !window.isVisible {
-                window.makeKeyAndOrderFront(nil)
-            } else {
-                window.orderFrontRegardless()
-            }
+        for window in lockoutWindows.windows.values where !window.isVisible {
+            window.makeKeyAndOrderFront(nil)
         }
         reconcileRestVisibility()
     }

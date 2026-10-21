@@ -58,7 +58,6 @@
                 model: self,
                 lockoutMessage: lockoutMessage
             )
-            overlayCoordinator.reassertLockoutFrontmost()
         }
 
         /// A finite synthetic clock for typing-through-midnight acceptance.
