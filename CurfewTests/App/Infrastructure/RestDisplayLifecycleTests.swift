@@ -35,6 +35,18 @@ struct RestDisplayLifecycleTests {
         #expect(lifecycle.handle(.visible, for: 1) == .none)
     }
 
+    @Test("A second sleep cancels a reveal armed by an interrupted wake")
+    func interruptedWakeWaitsForFreshWake() {
+        var lifecycle = RestDisplayLifecycle()
+        _ = lifecycle.handle(.hidden, for: 1)
+        _ = lifecycle.handle(.wakeObserved, for: 1)
+        _ = lifecycle.handle(.hidden, for: 1)
+        #expect(lifecycle.handle(.visible, for: 1) == .none)
+        #expect(!lifecycle.isVisible(for: 1))
+        #expect(lifecycle.handle(.wakeObserved, for: 1) == .arm)
+        #expect(lifecycle.handle(.visible, for: 1) == .begin)
+    }
+
     @Test("Visibility cannot consume a sleeping display before its wake event")
     func visibilityBeforeWakeDoesNotConsumeReveal() {
         var lifecycle = RestDisplayLifecycle()

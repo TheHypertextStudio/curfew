@@ -1722,7 +1722,7 @@ Design: [lockout experience](lockout-experience-design.md). Execution: [implemen
 - [-] Retain per-display native hosts and shared reflection drafts across ordinary updates and monitor changes; native hold/focus acceptance remains required.
 - [-] Keep active evening reflection content through midnight and suppress repeat prompts in the same scheduled night; native model regressions cover temporary release, delayed holds, original-night resolution and day-off handoff.
 - [-] Compose schedule-anchored overnight/morning atmosphere and sequenced clock/content transitions; finish rendered accessibility and interruption acceptance.
-- [-] Resolve the current scene on wake with a per-display internal reveal cover; physical sleep/authentication and unequal-monitor wake remain acceptance gaps.
+- [-] Resolve the current scene on wake with a per-display internal reveal cover; interrupted wake now cancels the previous reveal arm, awaiting a fresh wake. Physical sleep/authentication and unequal-monitor wake remain acceptance gaps.
 - [x] Document the Sunrise display-wake assessment separately from system wake and release authority, including a proposed five-minute maximum hold and cancellation boundaries. No power-management implementation is included.
 - [ ] Verify rendered motion, input, accessibility and physical sleep/wake journeys; retain a small composition boundary for future customization.
 

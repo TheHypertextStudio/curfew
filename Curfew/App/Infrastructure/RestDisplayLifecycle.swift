@@ -32,6 +32,7 @@ struct RestDisplayLifecycle {
         switch event {
         case .hidden:
             state.hidden = true
+            state.armed = false
             decision = .none
         case .wakeObserved:
             if state.hidden, !state.armed {

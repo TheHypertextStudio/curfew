@@ -2125,8 +2125,8 @@ The regression tests below are implemented. Isolated native tests exercise the a
 | Stable display hosts | `OverlayContinuityTests/retainsHostAcrossTicks`, `removesDisconnectedDisplay`, `preservesHostOnRearrangement` | Typing/hold across ticks, monitor attach/remove/rearrange |
 | Midnight/session continuity | `ReflectionGatingTests/pendingEveningSurvivesMidnight`, `overrideDoesNotCreateMorning`, `returnFromOverrideDoesNotRepromptEvening`, `duplicateSaveIsIgnored`; `RestSessionIntegrationTests` covers delayed holds, saves after midnight, day-off handoff and remote temporary release | Active editing across midnight and morning |
 | Sky and intentional motion | `SkyMomentContinuityTests`, `RestTransitionTests` | Motion recording, interruption, long content, small/large displays, VoiceOver and Reduce Motion |
-| Current scene on wake | `RestDisplayLifecycleTests`, `RestVisibilityTests`, `EnforcementReassertionWiringTests/wakeRefreshesCurrentTime` | Physical display/Mac sleep, authentication and unequal monitor wake |
-| Safe native review scenes | `RestDemoTests`, `CurfewUITests/testReflectionTypingSurvivesClockTicks` | Unsigned Debug fixture; authored UI test still requires native runner acceptance |
+| Current scene on wake | `RestDisplayLifecycleTests` (including interrupted-wake rearming), `RestVisibilityTests`, `EnforcementReassertionWiringTests/wakeRefreshesCurrentTime` | Physical display/Mac sleep, authentication and unequal monitor wake |
+| Safe native review scenes | `RestDemoTests`, `CurfewUITests/testReflectionTypingSurvivesClockTicks`, `testResolvingReflectionMakesRoomForTheQuietClock`, `testRestScenesHaveReadableAccessibleControls` | Unsigned Debug fixture; authored UI test still requires native runner acceptance |
 | Optional Sunrise display wake | Capability/design assessment before a separate implementation | Distinguish API request, hardware wake and visible app; verify cleanup |
 
 Morning atmosphere follows scheduled unlock. Sunrise does not imply release authority. Screenshots and injected notifications cannot prove physical power wake or authentication handoff.
