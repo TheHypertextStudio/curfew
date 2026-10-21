@@ -16,21 +16,30 @@ inspect its prebuilt deployment dry-run, then obtain production cutover approval
 before native `cf deploy`. There is no separate website preparation wrapper,
 publication receipt format or Pages-only publishing workflow.
 
-The marketing Worker keeps account entry on the existing portal derived from
-`legacySiteOrigin` until the coordinated service cutover. It delegates public
-documentation to the accepted Mintlify upstream. Preserve existing download
-links, service routes, provider registrations, account sessions and genuine
-signed appcast bytes. A missing update feed stays absent until the native
-release owner publishes a real signed release.
+The marketing Worker's account fallback derives from the selected environment's
+`accountPortal`. Production account entry stays on `thecurfew.app/account`,
+owned by the account Worker. If that route reaches the marketing Worker instead,
+it returns a noncached 503 rather than redirecting back to itself. Never use
+`legacySiteOrigin` as an authentication destination. Staging retains its account
+service binding and separate configured identity.
+
+The marketing Worker delegates public documentation to the accepted Mintlify
+upstream. A website-only deployment preserves service routes, provider
+registrations and genuine signed appcast bytes. Unpublished installers and
+purchases remain unavailable; a missing feed stays absent until the native
+release owner publishes the accepted signed release.
 
 Capture current managed domain associations, DNS, route ownership and native
 deployment versions before cutover. Verify the canonical site, documentation, public redirects, account
 entry and feed state after publication. Use native Worker deployment history
 for code rollback and reverse only approved domain, DNS and route changes. Keep
 recorded associations and DNS/routes available for explicit reversal. No fixed
-recovery or observation delay applies. Retiring provider resources is a separate approved
-operation and must preserve the legacy account portal. Signed native publication and coordinated service activation
-retain their existing release-owner workflows.
+recovery delay applies. Retiring provider resources is a separate authorized
+operation. Keep the old public hostname as a permanent 308 redirect with matching
+paths and query strings; retired service hosts and legacy authenticated endpoints return
+410 without forwarding credentials or callback payloads. Do not retain a second
+production account portal. Signed native publication and coordinated service
+activation retain their existing release-owner workflows.
 
 Managed Custom Domains use separate native API administration under approved
 operator access, as described in [hostname ownership](website-domain-preparation.md).
@@ -104,12 +113,24 @@ The website pipeline validates the ordinary Worker and browser behavior and
 seals static output against the shared configuration. The signed native release
 workflow consumes those retained files without rebuilding Astro or the app.
 
-After the candidate's acceptance gates pass, store the exact owner receipt as
-the production environment secret `CURFEW_RELEASE_ACCEPTANCE_RECEIPT`. Dispatch
+After the candidate's acceptance gates pass, use the publication path matching
+its actual provenance. For a hosted candidate, store the exact owner receipt as
+the production environment secret `CURFEW_RELEASE_ACCEPTANCE_RECEIPT` and dispatch
 `activate-production.yml` on main with its SHA-256, the successful candidate run,
 and the successful main website run. Both runs and the current main/tag must
-identify the same source revision. The receipt remains private, must match the
-candidate, and expires after one hour. It is never published as a release asset.
+identify the same source revision.
+
+For an owner-authorized local candidate, follow
+[explicit local-build publication](RELEASE.md#explicit-local-build-publication).
+Retain the real test logs, signing evidence and exact clean native source; record
+local provenance without a hosted run ID. The reviewed publication source must
+preserve all native inputs and consume the matching retained website and endpoint
+artifact. Actual staging acceptance and every existing owner gate still apply.
+Neither path permits a rebuilt or relabeled app to reuse old acceptance.
+
+The receipt remains private, must match the candidate, and expires after one
+hour. It is never published as a release asset. Readiness checks and signed bytes
+do not establish device, provider or staging acceptance.
 
 Activation requires valid website TLS, configuration-matched account/sync
 services in maintenance, and the configuration-matched license issuer. It
@@ -132,7 +153,14 @@ Acceptance includes real passkey recovery/replacement, Apple/Google sign-in, tra
 
 The cf Durable Object export conversion is one-way: Cloudflare retains the existing namespace, but subsequent rollbacks must use cf exports with the same Worker/export/resource identities. Roll back code and assets through that configuration; do not redeploy the legacy Wrangler migrations array.
 
-Verify these journeys after activation. No fixed observation or recovery delay applies. Keep the public redirect indefinitely and service retirement responses only. Roll back application/configuration versions against retained data if needed; never resurrect revoked grants or overwrite post-cutover writes. Staging retains its existing hosts. Unrelated Studio domains and support email addresses are unchanged.
+Verify these journeys after activation and monitor authentication, recovery,
+reconnection, billing, licensing and updates through the following day. Use
+staging and Stripe Sandbox for synthetic acceptance; production verification must
+respect the owner's current testing and billing limits. Keep the public redirect
+indefinitely and service retirement responses only. Roll back
+application/configuration versions against retained data if needed; never
+resurrect revoked grants or overwrite post-cutover writes. Staging retains its
+existing hosts. Unrelated Studio domains and support email addresses are unchanged.
 
 ## Provider inventory and candidate identity
 

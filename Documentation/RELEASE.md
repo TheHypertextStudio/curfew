@@ -557,9 +557,12 @@ Debug key or generate a replacement to resolve a placeholder. The published
 RFC 8032 test vector and a signature from the pinned Sparkle binary verify the
 derivation independently of the retained production secret.
 
-Production publication still requires the Cloudflare deployment credential and
-an accepted website destination. The source retains the existing Pages publisher;
-the proposed production website Worker has not been provisioned or cut over.
+Production publication requires the Cloudflare deployment credential and the
+accepted production marketing Worker. Publish its matching retained static output
+with the pinned native `cf` build/prebuilt deployment path and provisioning
+disabled. Preserve Mintlify bindings and service route ownership; Pages is not a
+publication or rollback dependency. Independent website fixes do not authorize
+installer, appcast, account-service or purchase activation.
 
 The pull-request CI workflow also runs on `macos-26` so its test host matches
 Curfew's macOS 26 deployment target; running it on an older macOS image cannot

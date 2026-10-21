@@ -1559,6 +1559,9 @@ asserts its own screen and state before attaching an image.
 - [x] Support explicit local-build publication with retained test logs, exact
   signed/notarized bytes, unchanged native source and actual staging acceptance;
   keep local provenance separate from hosted runs and preserve all owner gates.
+- [x] Align migration and release instructions with canonical account entry,
+  Worker-only website publication, hosted/local provenance and retained-data
+  rollback; keep website fixes separate from app, service and purchase activation.
 - [x] Inventory Cloudflare access through the pinned CLI using existing CI credentials without changing infrastructure or printing secret values.
 
 - [x] Document the Email Sending CLI exception, readiness validation before production mutations, and the cf Durable Object rollback constraint in the domain migration runbook.
