@@ -68,6 +68,8 @@ Proposed first-pass tuning, subject to rendered review:
 
 Reduce Motion freezes ambient drift and removes positional/scale movement; necessary content changes use at most a 150 ms opacity transition. Reduce Transparency provides solid readable content surfaces. Preserve native text editing, focus, and accessible action names. Announce meaningful state changes once, not once per animation frame or clock tick.
 
+The dark rest atmosphere uses Dark Aqua on its native covering window so hosted controls inherit an appearance consistent with the sky and light text, regardless of the surrounding application's appearance. Warning and timer windows retain their supplied appearance. This local policy adds no application-wide theme override; future palette customization must keep native controls and the rendered surface consistent. Reverting this window policy restores inherited appearance without changing schedules, drafts, or enforcement.
+
 ## Sleep, visibility, and displays
 
 Keep windows and hosts alive during display sleep. Suspend ambient drawing when the app's content is not visible; do not suspend enforcement as a consequence of rendering policy. On wake, refresh authoritative state before choosing the scene and reassert active lockout coverage immediately.

@@ -11,7 +11,7 @@ Design: [lockout experience](lockout-experience-design.md). Execution: [implemen
 - [x] Document the Sunrise display-wake assessment separately from system wake and release authority, including a proposed five-minute maximum hold and cancellation boundaries. No power-management implementation is included.
 - [ ] Verify rendered motion, input, accessibility and physical sleep/wake journeys; retain a small composition boundary for future customization.
 
-Native appearance regressions are prepared for isolated failing-first execution: dark rest scenes require Dark Aqua for their native window and hosting view under either supplied appearance, while warning/timer windows preserve the supplied appearance. Runtime appearance policy is unchanged pending an executed semantic failure. Keep the actual contrast audit and interaction assertions unchanged.
+Dark rest scenes use Dark Aqua for their native window and inherited hosting-view appearance under either supplied application appearance, while warning/timer windows preserve the supplied appearance. Native appearance regressions cover both Aqua and Dark Aqua without changing application-wide appearance. Keep the actual contrast audit and interaction assertions unchanged; rendered light/dark native fit remains an acceptance requirement.
 
 ## Worktree preparation
 

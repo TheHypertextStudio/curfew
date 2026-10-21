@@ -326,6 +326,9 @@ final class OverlayCoordinator {
         let coversScreen = configuration.level == .screenSaver
         window.isOpaque = coversScreen
         window.backgroundColor = coversScreen ? .black : .clear
+        if coversScreen {
+            window.appearance = NSAppearance(named: .darkAqua)
+        }
         window.hasShadow = false
         window.level = configuration.level
         window.ignoresMouseEvents = configuration.ignoresMouseEvents
