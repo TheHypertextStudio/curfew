@@ -17,7 +17,7 @@ extension AccountEnrollmentReauthorizationTests {
             keyEpoch: fixture.enrollment.keyEpoch,
             createdAt: fixture.enrollment.enrolledAt
         )
-        let originalKeys = try #require(keys.load(deviceID: fixture.enrollment.deviceID))
+        let originalKeys = try #require(try keys.load(deviceID: fixture.enrollment.deviceID))
         let root = FileManager.default.temporaryDirectory
             .appendingPathComponent("curfew-domain-reauth-\(UUID().uuidString)")
         defer { try? FileManager.default.removeItem(at: root) }
@@ -53,6 +53,48 @@ extension AccountEnrollmentReauthorizationTests {
         #expect(try keys.load(deviceID: fixture.enrollment.deviceID) == originalKeys)
         #expect(try fixture.secrets.data(for: "oauth-access-token") == Data("new-access".utf8))
         #expect(oauth.expectedAccountUserID == "original-account")
+        #expect(devices.enrollCount == 0)
+    }
+
+    @Test(
+        "Rejected or cancelled reconnect keeps the migrated Mac awaiting its owning account",
+        arguments: [false, true]
+    )
+    func unsuccessfulDomainReconnectStillRequiresSignIn(cancelAfterPersist: Bool) async throws {
+        let fixture = try makeOldDomainFixture(hasPreviousMarker: true)
+        try fixture.pending.markReady(fixture.enrollment)
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("curfew-domain-reauth-rejected-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: root) }
+        let remoteEnrollment = RemoteCommandEnrollmentStore(
+            recordURL: root.appendingPathComponent("enrollment.json")
+        )
+        try remoteEnrollment.save(RemoteCommandEnrollment(
+            userID: "original-account",
+            deviceID: fixture.enrollment.deviceID
+        ))
+        let oauth = ReauthorizationOAuthFixture(secretStore: fixture.secrets)
+        let devices = ReauthorizationDeviceFixture(enrollment: fixture.enrollment)
+        let controller = AccountEnrollmentController(
+            secretStore: fixture.secrets,
+            oauth: oauth,
+            devices: devices,
+            remoteCommandEnrollmentStore: remoteEnrollment
+        )
+        if cancelAfterPersist {
+            oauth.afterPersist = { controller.cancelSignIn() }
+        } else {
+            oauth.rejectAsDifferentAccount = true
+        }
+
+        await controller.signIn()
+
+        #expect(controller.state == .ready(fixture.enrollment))
+        #expect(controller.requiresReauthorization)
+        #expect(try fixture.secrets.data(for: "oauth-access-token") == nil)
+        #expect(try fixture.secrets.data(for: "oauth-refresh-token") == nil)
+        #expect(try fixture.pending.load() == .ready(fixture.enrollment))
+        #expect(try remoteEnrollment.load()?.userID == "original-account")
         #expect(devices.enrollCount == 0)
     }
 
