@@ -322,7 +322,7 @@ final class OverlayCoordinator {
         return CGRect(x: originX, y: originY, width: width, height: height)
     }
 
-    private func apply(configuration: OverlayWindowConfiguration, to window: NSWindow) {
+    func apply(configuration: OverlayWindowConfiguration, to window: NSWindow) {
         window.isOpaque = false
         window.backgroundColor = .clear
         window.hasShadow = false
