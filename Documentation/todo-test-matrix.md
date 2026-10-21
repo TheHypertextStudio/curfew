@@ -2070,3 +2070,18 @@ Do not run lockout/shutdown acceptance or UI suites on the operator desktop.
 | Licensing help covers app activation, email restoration, manual fallback and offline access without advertising planned features as available | `scripts/user-docs.test.mjs`; Mintlify validation and hosted licensing-page review |
 
 Docs publish independently of app and payment-service rollout. Revert this docs-only change to restore the prior instructions; no account or purchase data changes.
+
+## Continuous lockout and morning experience
+
+The regression tests below are implemented. Isolated native tests exercise the actual host-store, sky, transition, and reveal-policy sources. The full native model/unit suite passes. UI execution and physical lifecycle acceptance remain separate requirements; compilation or isolated policy checks do not establish them. See [the implementation plan](internal/lockout-experience-plan.md).
+
+| Behavior | Automated coverage | Additional acceptance |
+| --- | --- | --- |
+| Stable display hosts | `OverlayContinuityTests/retainsHostAcrossTicks`, `removesDisconnectedDisplay`, `preservesHostOnRearrangement` | Typing/hold across ticks, monitor attach/remove/rearrange |
+| Midnight/session continuity | `ReflectionGatingTests/pendingEveningSurvivesMidnight`, `overrideDoesNotCreateMorning`, `returnFromOverrideDoesNotRepromptEvening`, `duplicateSaveIsIgnored`; `RestSessionIntegrationTests` covers delayed holds, saves after midnight, day-off handoff and remote temporary release | Active editing across midnight and morning |
+| Sky and intentional motion | `SkyMomentContinuityTests`, `RestTransitionTests` | Motion recording, interruption, long content, small/large displays, VoiceOver and Reduce Motion |
+| Current scene on wake | `RestDisplayLifecycleTests`, `RestVisibilityTests`, `EnforcementReassertionWiringTests/wakeRefreshesCurrentTime` | Physical display/Mac sleep, authentication and unequal monitor wake |
+| Safe native review scenes | `RestDemoTests`, `CurfewUITests/testReflectionTypingSurvivesClockTicks` | Unsigned Debug fixture; authored UI test still requires native runner acceptance |
+| Optional Sunrise display wake | Capability/design assessment before a separate implementation | Distinguish API request, hardware wake and visible app; verify cleanup |
+
+Morning atmosphere follows scheduled unlock. Sunrise does not imply release authority. Screenshots and injected notifications cannot prove physical power wake or authentication handoff.

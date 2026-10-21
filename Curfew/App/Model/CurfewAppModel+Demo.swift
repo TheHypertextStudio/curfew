@@ -73,6 +73,7 @@ import CurfewKit
             state = DemoFixture.evaluation(for: scenario, now: currentTime)
             lockoutMessage = DemoFixture.lockoutMessage
             applyDemoReviewState(DemoReviewState.current)
+            playDemoRestClock()
 
             switch scenario {
             case .settings:

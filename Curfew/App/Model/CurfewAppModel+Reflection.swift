@@ -22,6 +22,10 @@ struct ReflectionRuntimeState {
     var isEveningReflectionPending = false
     var isDaybreakPresented = false
     var gatesResolvedToday: Set<ReflectionGate> = []
+    var eveningLockDate: Date?
+    var scheduledInterval: DateInterval?
+    var morningDraft = ReflectionDraft(prompts: ReflectionConfiguration.default.morningPrompts)
+    var eveningDraft = ReflectionDraft(prompts: ReflectionConfiguration.default.eveningPrompts)
 }
 
 /// Reflection-gate behaviour for `CurfewAppModel`: deciding when the morning
@@ -88,13 +92,23 @@ extension CurfewAppModel {
     func evaluateReflectionGates(previousPhase: EnforcementPhase) {
         if reflectionConfiguration.morningEnabled,
            previousPhase != .working, state.phase == .working,
+           !isTemporaryRestRelease,
+           reflectionState.scheduledInterval.map({ currentTime >= $0.end }) ?? true,
            !reflectionState.gatesResolvedToday.contains(.morning) {
+            reflectionState.morningDraft = ReflectionDraft(
+                prompts: reflectionConfiguration.morningPrompts
+            )
             reflectionState.isDaybreakPresented = true
         }
 
         if reflectionConfiguration.eveningEnabled,
            previousPhase != .locked, state.phase == .locked,
-           !reflectionState.gatesResolvedToday.contains(.evening) {
+           !reflectionState.gatesResolvedToday.contains(.evening),
+           state.lockDate == nil || state.lockDate != reflectionState.eveningLockDate {
+            reflectionState.eveningLockDate = state.lockDate
+            reflectionState.eveningDraft = ReflectionDraft(
+                prompts: reflectionConfiguration.eveningPrompts
+            )
             reflectionState.isEveningReflectionPending = true
         }
 
@@ -115,8 +129,10 @@ extension CurfewAppModel {
     /// marker, marks the gate resolved for today, and dismisses its surface.
     /// `answers` come straight from the gate's input controls.
     func saveReflection(gate: ReflectionGate, answers: [ReflectionAnswer]) {
+        guard isReflectionPending(gate) else { return }
         let reflection = Reflection(
-            timestamp: currentTime,
+            timestamp: gate == .evening ? reflectionState
+                .eveningLockDate ?? currentTime : currentTime,
             gate: gate,
             answers: answers
         )
@@ -134,12 +150,32 @@ extension CurfewAppModel {
     /// Marks `gate` handled for today and clears whichever surface presented
     /// it. Shared by the save and skip paths.
     private func resolveReflectionGate(_ gate: ReflectionGate) {
-        reflectionState.gatesResolvedToday.insert(gate)
+        // An evening draft belongs to its lock occurrence, even when resolved
+        // after midnight. Its journal timestamp and suppression share that day.
+        let occurrence = gate == .evening ? reflectionState
+            .eveningLockDate ?? currentTime : currentTime
+        if Calendar.current.isDate(occurrence, inSameDayAs: currentTime) {
+            reflectionState.gatesResolvedToday.insert(gate)
+        }
         switch gate {
         case .morning:
             reflectionState.isDaybreakPresented = false
         case .evening:
             reflectionState.isEveningReflectionPending = false
+        }
+    }
+
+    func isReflectionPending(_ gate: ReflectionGate) -> Bool {
+        switch gate {
+        case .morning: reflectionState.isDaybreakPresented
+        case .evening: reflectionState.isEveningReflectionPending
+        }
+    }
+
+    func reflectionDraft(for gate: ReflectionGate) -> ReflectionDraft {
+        switch gate {
+        case .morning: reflectionState.morningDraft
+        case .evening: reflectionState.eveningDraft
         }
     }
 
@@ -150,13 +186,12 @@ extension CurfewAppModel {
         settingsStore.saveReflectionConfiguration(configuration)
     }
 
-    /// Day-rollover reset: clears the resolved set and dismisses any open
-    /// surfaces so a new day starts fresh, and trims old reflections to the
+    /// Day-rollover reset: refreshes daily suppression without dismissing an
+    /// active session or discarding input, and trims old reflections to the
     /// shared 52-week retention window. Called from `handleDayRollover`.
     func resetReflectionGatesForNewDay() {
         reflectionState.gatesResolvedToday.removeAll()
-        reflectionState.isEveningReflectionPending = false
-        reflectionState.isDaybreakPresented = false
+        // Calendar accounting may reset, but an open form belongs to its session.
         reflectionState.recorder.trim(
             olderThan: Self.activityRetentionSeconds,
             now: currentTime

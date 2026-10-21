@@ -5,6 +5,9 @@
     /// Deterministic visual states; none start real services or enforcement.
     enum DemoReviewState: String, CaseIterable {
         case normal = "default"
+        case restContinuity = "rest-continuity"
+        case restNight = "rest-night"
+        case restMorning = "rest-morning"
         case accountUpdateFailed = "account-update-failed"
         case accountHelperHidden = "account-helper-hidden"
         case accountOffline = "account-offline"
