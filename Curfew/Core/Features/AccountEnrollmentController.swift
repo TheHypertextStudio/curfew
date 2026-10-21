@@ -66,7 +66,7 @@ final class AccountEnrollmentController: ObservableObject {
         }
     }
 
-    func markReconnectedEnrollmentReady(_ enrollment: AccountDeviceEnrollment) throws {
+    func markReconnectedEnrollmentReady(_ enrollment: CurfewKit.AccountDeviceEnrollment) throws {
         try pending.markReady(enrollment)
         requiresReauthorization = false
         enrollmentRetryError = nil
