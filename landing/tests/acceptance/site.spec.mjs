@@ -362,11 +362,11 @@ test('product help and general inquiries use separate mail links', async ({ page
   }
 });
 
-test('home leads with the product and keeps policies in the footer at desktop and mobile sizes', async ({
-  page,
-  browserName,
-}) => {
-  for (const width of [1920, 390, 320]) {
+for (const width of [1920, 390, 320]) {
+  test(`home leads with the product and keeps policies in the footer at ${width}px`, async ({
+    page,
+    browserName,
+  }) => {
     await page.setViewportSize({ width, height: 1080 });
     await page.goto('/');
     const version = createHash('sha256')
@@ -392,5 +392,5 @@ test('home leads with the product and keeps policies in the footer at desktop an
     await expect(page.locator('main .policy-header h1')).toBeVisible();
     await page.locator('main a[href="/legal/history"]').first().click();
     await expect(page.getByRole('heading', { name: 'Policy history', exact: true })).toBeVisible();
-  }
-});
+  });
+}
