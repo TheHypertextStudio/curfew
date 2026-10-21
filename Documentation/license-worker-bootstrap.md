@@ -10,6 +10,23 @@ subscription, `expires_at` and `refresh_token`. The app accepts legacy
 `curfew-pro` lifetime keys only for pre-release continuity. Do not change this
 shape without updating the Worker and `LicenseEnvelopeContractTests` together.
 
+## Native deployment sender
+
+The native license configuration derives both `RESTORE_EMAIL_FROM` and the
+email binding's sole allowed sender from the selected deployment artifact's
+`recoveryEmailFrom`. Production uses `accounts@thecurfew.app`; staging uses
+`accounts@curfew.hypertext.studio`. The sender and its allowlist must stay paired
+with the environment's portal, resources, and Stripe mode.
+
+This changes the address used for restore email when the reviewed configuration
+is deployed. It does not change purchase records, license keys, rate limits, or
+payment configuration. Before deployment, verify the selected sender's existing
+provider authorization; a successful local build or dry-run sends no email and
+does not establish delivery. Regression checks evaluate both the pinned
+production/staging addresses and a changed artifact sender to detect hardcoded
+fallbacks. Roll back the source/configuration together if necessary, preserving
+the environment boundaries and authorized sender restriction.
+
 ## Fresh-clone bootstrap
 
 Install only from the committed pnpm lockfile:
