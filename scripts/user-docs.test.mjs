@@ -100,12 +100,19 @@ test("public help avoids self-narration and unnecessary contrast", async () => {
   }
 });
 
-test("published help follows current Settings labels and installer availability", async () => {
+test("published help follows current Settings labels", async () => {
   for (const page of pages) {
     assert.doesNotMatch(await read(`web/docs/${page}.mdx`), /Settings\s+→\s+Integrations|Settings\s+→\s+Enforcement|Show\s+Getting\s+Started|Enable\s+MCP\s+Control\s+Plane|Paste license key…/);
   }
-  assert.match(await read("web/docs/install.mdx"), /public Mac installer has not been released yet/);
   assert.match(await read("web/docs/mcp-guide.mdx"), /Allow assistants on this Mac/);
+});
+
+test("installation help uses the released Mac download without a stale availability hold", async () => {
+  const content = await read("web/docs/install.mdx");
+  const deployment = JSON.parse(await read("deployment/environments.json"));
+  assert.match(content, /\*\*macOS 26 or later\*\*/);
+  assert.ok(content.includes(`[download page](${deployment.environments.production.siteOrigin}/download)`));
+  assert.doesNotMatch(content, /has not been released yet|When an installer is available/i);
 });
 
 test("setup help explains seven-day consent and the choice to leave automatic lockouts off", async () => {
