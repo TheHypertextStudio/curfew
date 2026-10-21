@@ -1696,3 +1696,7 @@ asserts its own screen and state before attaching an image.
 ### Public Plus help
 
 - [x] Explain one-click checkout activation, receipt-email restoration and manual-key recovery in the licensing guide. Keep planned features and purchase availability explicit, and use the product support address.
+- [x] Align activation and restore help with the release controls and link to the
+  public download and restore entry points. Keep installer and Plus availability
+  notices until the cutover owner verifies publication; exclude draft release
+  assets and private checkout links from public help.

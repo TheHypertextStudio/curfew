@@ -14,12 +14,20 @@ installer has not been released. Feature and purchase-flow launch claims remain
 blocked on the acceptance rows below. This publication does not enable a
 feature, open checkout, or deploy a new app or license service.
 
+The activation instructions use the release candidate's About panel labels.
+Link to the public `/download` and `/restore` pages on `https://thecurfew.app`;
+checkout activation starts from the customer's own confirmation page. Draft
+GitHub asset URLs and private checkout session or restore-token URLs must not
+appear in help. Keep the unavailable-installer and Plus-sale notices until the
+cutover owner confirms the corresponding publication. Docs preparation does
+not authorize a site, appcast, account, license-service, or billing cutover.
+
 Publishing uses the existing Mintlify Git integration. Current published routes
 `install`, `schedules`, `accounts`, `mcp-guide`, `cli`, and `licensing` are retained.
 `docs.site.json` owns navigation; regenerate `docs.json` with `pnpm docs:config`.
-The first-party `/docs/licensing` path currently returns 404; verify the actual
-Mintlify `/docs` host before claiming publication. Repairing the product-site
-proxy is a separate deployment from publishing the Mintlify docs.
+The first-party `/docs/licensing` path proxies the published Mintlify guide.
+Verify both the product-site path and Mintlify host after docs publication;
+the product-site proxy is a separate deployment from publishing Mintlify docs.
 
 Before publishing launch availability claims, complete the rows below against
 the exact signed release and approved purchase environment. Record the artifact,
