@@ -1511,6 +1511,9 @@ asserts its own screen and state before attaching an image.
   interaction is available and reviewed.
 - [ ] Confirm account route ownership and the full hosted sign-in/recovery flow
   before presenting the account UI as a production-ready entry point.
+- [x] Use the configured canonical production account portal in the marketing
+  fallback and its trusted destinations; reject the retired portal and preserve
+  same-origin failure, request protections, and staging account delegation.
 - [-] Replace broken marketing guide links with published Mintlify destinations
   and add the missing installation, schedule, exception, and account guides.
   Accept hosted Mintlify publication and landing links through the selected
