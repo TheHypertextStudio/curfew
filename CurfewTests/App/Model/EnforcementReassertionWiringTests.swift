@@ -80,6 +80,18 @@ struct EnforcementReassertionWiringTests {
         #expect(!model.isEnforcementRunning)
     }
 
+    @Test("System wake cannot consume a reveal before the displays wake")
+    func systemWakeWaitsForDisplayWake() {
+        let model = makeModel(
+            accessibilityAuthorization: FakeAccessibilityAuthorization(trusted: true)
+        )
+        model.overlayCoordinator.restDisplaysHidden()
+        model.handleRestWake()
+        #expect(!model.overlayCoordinator.restCanReveal)
+        model.handleRestWake(displayDidWake: true)
+        #expect(model.overlayCoordinator.restCanReveal)
+    }
+
     // MARK: - Fixtures
 
     private var lockedState: CurfewEvaluation {

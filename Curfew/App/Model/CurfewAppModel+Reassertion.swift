@@ -103,7 +103,9 @@ extension CurfewAppModel {
                 queue: .main
             ) { [weak self] _ in
                 MainActor.assumeIsolated {
-                    self?.handleRestWake()
+                    self?
+                        .handleRestWake(displayDidWake: name == NSWorkspace
+                            .screensDidWakeNotification)
                 }
             }
             reassertionObservers.append(token)
@@ -112,13 +114,17 @@ extension CurfewAppModel {
 
     /// Resolve current schedule/authority before choosing the scene to reveal.
     /// Disarmed models remain disarmed; drawing policy never starts enforcement.
-    func handleRestWake() {
+    func handleRestWake(displayDidWake: Bool = false) {
         if isEnforcementRunning {
             tick()
         } else {
             displayTick()
         }
         _ = reassertEnforcementIfNeeded()
-        overlayCoordinator.restDisplaysWoke()
+        // System wake may precede display wake (including a dark wake).
+        // Refresh authority now, but leave the reveal asleep until screens wake.
+        if displayDidWake {
+            overlayCoordinator.restDisplaysWoke()
+        }
     }
 }

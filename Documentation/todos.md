@@ -1,5 +1,16 @@
 # Curfew Implementation TODOs
 
+## Continuous lockout and morning experience
+
+Design: [lockout experience](lockout-experience-design.md). Execution: [implementation plan](internal/lockout-experience-plan.md). Source implementation and native acceptance are tracked separately. The full native unit suite passes; the experience remains in progress until rendered interaction and physical lifecycle checks pass.
+
+- [-] Retain per-display native hosts and shared reflection drafts across ordinary updates and monitor changes; native hold/focus acceptance remains required.
+- [-] Keep active evening reflection content through midnight and suppress repeat prompts in the same scheduled night; native model regressions cover temporary release, delayed holds, original-night resolution and day-off handoff.
+- [-] Compose schedule-anchored overnight/morning atmosphere and sequenced clock/content transitions; finish rendered accessibility and interruption acceptance.
+- [-] Resolve the current scene on wake with a per-display internal reveal cover; interrupted wake cancels the previous reveal arm. System wake refreshes authority while waiting for a screen-wake notification before revealing. Physical sleep/authentication and unequal-monitor wake remain acceptance gaps.
+- [x] Document the Sunrise display-wake assessment separately from system wake and release authority, including a proposed five-minute maximum hold and cancellation boundaries. No power-management implementation is included.
+- [ ] Verify rendered motion, input, accessibility and physical sleep/wake journeys; retain a small composition boundary for future customization.
+
 ## Worktree preparation
 
 - [x] Keep root command shortcuts separate from the independent frontend and
@@ -1713,16 +1724,3 @@ asserts its own screen and state before attaching an image.
   public download and restore entry points. Keep installer and Plus availability
   notices until the cutover owner verifies publication; exclude draft release
   assets and private checkout links from public help.
-
-
-## Continuous lockout and morning experience
-
-Design: [lockout experience](lockout-experience-design.md). Execution: [implementation plan](internal/lockout-experience-plan.md). Source implementation and native acceptance are tracked separately. The full native unit suite passes; the experience remains in progress until rendered interaction and physical lifecycle checks pass.
-
-- [-] Retain per-display native hosts and shared reflection drafts across ordinary updates and monitor changes; native hold/focus acceptance remains required.
-- [-] Keep active evening reflection content through midnight and suppress repeat prompts in the same scheduled night; native model regressions cover temporary release, delayed holds, original-night resolution and day-off handoff.
-- [-] Compose schedule-anchored overnight/morning atmosphere and sequenced clock/content transitions; finish rendered accessibility and interruption acceptance.
-- [-] Resolve the current scene on wake with a per-display internal reveal cover; interrupted wake now cancels the previous reveal arm, awaiting a fresh wake. Physical sleep/authentication and unequal-monitor wake remain acceptance gaps.
-- [x] Document the Sunrise display-wake assessment separately from system wake and release authority, including a proposed five-minute maximum hold and cancellation boundaries. No power-management implementation is included.
-- [ ] Verify rendered motion, input, accessibility and physical sleep/wake journeys; retain a small composition boundary for future customization.
-
