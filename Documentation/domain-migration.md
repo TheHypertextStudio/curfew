@@ -179,3 +179,11 @@ existing hosts. Unrelated Studio domains and support email addresses are unchang
 Provider inspection uses the pinned native cf CLI under approved operator authentication. PR validation receives no production Cloudflare deployment credentials. Inspect each service and its permissions independently: Pages access does not establish Worker, DNS or database permission. Resolve missing access before an approved mutation and keep credentials and account data private.
 
 The candidate retains both `environment-artifact.json` and `release-configuration.json`. Native `CurfewConfigurationSHA256` and candidate `configurationSHA256` identify the same endpoint artifact consumed by the backend. `releaseConfigurationSHA256` separately seals the resolved Sparkle public key and source file digests. Changing a configured domain requires no candidate code change; the resolved feed must match the approved manifest. Candidate retention does not activate the site, update feed, or service.
+
+After the release owner verifies the public installer and feed, publish the
+installation guide's released-download instructions through the existing
+Mintlify project. Keep its canonical download-page link independent of the
+release version and retain the separate Plus availability hold. Verify both the
+Mintlify upstream and the first-party guide. If the installer is withdrawn,
+restore the guide's unavailable notice with the website hold; documentation
+rollback changes no accounts, credentials or purchases.
