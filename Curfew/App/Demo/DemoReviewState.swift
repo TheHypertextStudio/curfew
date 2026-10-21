@@ -7,6 +7,7 @@
         case normal = "default"
         case restContinuity = "rest-continuity"
         case restNight = "rest-night"
+        case restHold = "rest-hold"
         case restMorning = "rest-morning"
         case accountUpdateFailed = "account-update-failed"
         case accountHelperHidden = "account-helper-hidden"

@@ -14,6 +14,9 @@
             settingsDestination = review.settingsSection
             switch review {
             case .normal: break
+            case .restHold:
+                applyDemoRestState(review)
+                applyDemoReviewState(.overrideReady)
             case .restContinuity, .restNight, .restMorning:
                 applyDemoRestState(review)
             case .accountOffline, .accountSignInRequired, .accountHelperUnavailable,

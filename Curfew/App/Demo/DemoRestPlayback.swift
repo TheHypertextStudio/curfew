@@ -64,9 +64,11 @@
         /// A finite synthetic clock for typing-through-midnight acceptance.
         /// It is enabled only by this named unsigned Debug fixture.
         func playDemoRestClock() {
-            guard isDemoSession, DemoReviewState.current == .restContinuity else { return }
+            guard isDemoSession,
+                  [.restContinuity, .restHold].contains(DemoReviewState.current) else { return }
+            let ticks = DemoReviewState.current == .restHold ? 60 : 20
             Task { @MainActor [weak self] in
-                for _ in 0 ..< 20 {
+                for _ in 0 ..< ticks {
                     do { try await Task.sleep(for: .seconds(1)) } catch { return }
                     guard let self else { return }
                     refreshDemoRestClock()

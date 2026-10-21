@@ -24,6 +24,19 @@ struct RestDisplayLifecycle {
         !(states[id]?.hidden ?? false)
     }
 
+    /// Poll each display independently; a global wake does not imply that
+    /// every attached display is already drawable.
+    mutating func observeVisibleDisplay(
+        isAwake: Bool, for id: CGDirectDisplayID
+    ) -> RestRevealDecision {
+        guard isAwake else {
+            _ = handle(.hidden, for: id)
+            return .none
+        }
+        _ = handle(.wakeObserved, for: id)
+        return handle(.visible, for: id)
+    }
+
     mutating func handle(
         _ event: RestDisplayEvent, for id: CGDirectDisplayID
     ) -> RestRevealDecision {
@@ -59,6 +72,6 @@ struct RestDisplayLifecycle {
 /// cannot be seen; the view consumes each reveal generation exactly once.
 @Observable
 final class RestDisplayPresentation {
-    var isVisible = true
+    var isVisible = false
     var revealGeneration = 0
 }

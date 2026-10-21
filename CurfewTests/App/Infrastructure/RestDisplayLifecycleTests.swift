@@ -2,6 +2,26 @@
 import Testing
 
 struct RestDisplayLifecycleTests {
+    @Test("A newly connected display begins covered until its first visible reveal")
+    @MainActor
+    func newDisplayStartsCovered() {
+        let presentation = RestDisplayPresentation()
+        #expect(!presentation.isVisible)
+        #expect(presentation.revealGeneration == 0)
+    }
+
+    @Test("Each display waits for its own reported power state")
+    func unequalDisplayWakeWaitsIndependently() {
+        var lifecycle = RestDisplayLifecycle()
+        _ = lifecycle.handle(.hidden, for: 1)
+        _ = lifecycle.handle(.hidden, for: 2)
+        #expect(lifecycle.observeVisibleDisplay(isAwake: true, for: 1) == .begin)
+        #expect(lifecycle.observeVisibleDisplay(isAwake: false, for: 2) == .none)
+        #expect(!lifecycle.isVisible(for: 2))
+        #expect(lifecycle.observeVisibleDisplay(isAwake: true, for: 1) == .none)
+        #expect(lifecycle.observeVisibleDisplay(isAwake: true, for: 2) == .begin)
+    }
+
     @Test("A wake behind authentication waits until the scene can be visible")
     func hiddenWakeWaitsForVisibility() {
         var lifecycle = RestDisplayLifecycle()

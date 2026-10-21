@@ -50,4 +50,19 @@ extension CurfewUITests {
             XCTAssertTrue(app.wait(for: .notRunning, timeout: 5))
         }
     }
+
+    @MainActor
+    func testOverrideHoldSurvivesClockTicks() {
+        let app = launchFixture("lockout", state: "rest-hold")
+        let hold = app.buttons["override-hold-confirm"]
+        XCTAssertTrue(hold.waitForExistence(timeout: 5))
+        XCTAssertTrue(hold.isEnabled)
+        hold.press(forDuration: 1)
+        XCTAssertTrue(hold.exists, "A short hold must not authorize release.")
+        hold.press(forDuration: 3.3)
+        XCTAssertTrue(
+            hold.waitForNonExistence(timeout: 5),
+            "A complete hold must survive clock updates."
+        )
+    }
 }

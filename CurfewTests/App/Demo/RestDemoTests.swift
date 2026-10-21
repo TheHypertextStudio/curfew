@@ -39,6 +39,17 @@ struct RestDemoTests {
         #expect(!model.isEnforcementRunning)
     }
 
+    @Test("The hold fixture advances the clock without arming enforcement")
+    func holdFixtureIsDisarmedAndReady() {
+        let model = CurfewAppModel.demoModel()
+        model.applyDemoReviewState(.restHold)
+        #expect(model.reflectionState.demoRestClock != nil)
+        #expect(model.isOverrideComposerVisible)
+        #expect(model.overrideCooldownRemaining == 0)
+        #expect(!model.overrideReasonDraft.isEmpty)
+        #expect(!model.isEnforcementRunning)
+    }
+
     @Test("The morning fixture follows its retained scheduled interval")
     func morningIsScheduledAndDisarmed() throws {
         let model = CurfewAppModel.demoModel()
