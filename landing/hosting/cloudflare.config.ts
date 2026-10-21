@@ -15,6 +15,10 @@ export default defineConfig((ctx) => {
           triggers: [
             triggers.fetch({
               pattern: `${new URL(deployment.staging.siteOrigin).host}/*`,
+              zone: new URL(deployment.production.siteOrigin).host,
+            }),
+            triggers.fetch({
+              pattern: `${new URL(deployment.staging.legacySiteOrigin).host}/*`,
               zone: 'hypertext.studio',
             }),
           ],

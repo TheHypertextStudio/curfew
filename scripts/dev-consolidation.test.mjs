@@ -22,8 +22,8 @@ test('Consolidated Dev retains the installed account access group and widget dat
   assert.deepEqual(app['com.apple.security.application-groups'], ['group.studio.hypertext.curfew.studio.dev']);
   assert.deepEqual(widget['com.apple.security.application-groups'], app['com.apple.security.application-groups']);
   assert.deepEqual(app['com.apple.developer.associated-domains'], [
-    'applinks:curfew-account-staging.hypertext.studio',
-    'webcredentials:curfew-account-staging.hypertext.studio',
+    'applinks:account-staging.thecurfew.app',
+    'webcredentials:account-staging.thecurfew.app',
   ]);
 });
 

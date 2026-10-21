@@ -103,7 +103,7 @@ For owner testing, supply `CURFEW_MAINTENANCE_ACCEPTANCE_POLICY` only as a prote
 
 The policy selects one principal and grants no authentication, assurance, scope, consent, device or recovery authority. Explicit HTTP admission follows transport limiting; all normal guards remain mandatory. Recovery, billing and command writes are owner-scoped and deadline-bound. Hibernatable sockets capture their original private deadline, close when idle at expiry and cannot extend their authority through policy renewal or old handoff reuse. Missing, malformed, mismatched or expired policy closes access automatically. CI writes exclusive mode-0600 inputs, rechecks the policy immediately before deployment and always removes the transient files. Prepare/resume explicitly deploy `disabled` rather than retaining a stale exception.
 
-Staging uses its existing domains, database and provider assignments with a separately protected staging policy. Normal deployment remains the default; maintenance rehearsal is opt-in and requires confirmed isolated test data plus a fresh backup/provider/release receipt. Its workflow supplies only the policy secret and retains existing provider credentials. Stage checkpoint/fence checks select the staging database explicitly through cf. Rehearse before production enablement; source tests and dry-runs cannot stand in for provider callbacks, native reconnection, email, payments or physical-device acceptance.
+Staging uses `staging.thecurfew.app` with `account-staging.thecurfew.app`, `sync-staging.thecurfew.app`, and `license-staging.thecurfew.app`. Its database, Durable Object namespace, license store, provider identities, and access restrictions remain separate from production. The domain move retains those data resources and uses a separately protected staging policy. Normal deployment remains the default; maintenance rehearsal is opt-in and requires confirmed isolated test data plus a fresh backup/provider/release receipt. Its workflow supplies only the policy secret and retains existing provider credentials. Stage checkpoint/fence checks select the staging database explicitly through cf. Rehearse before production enablement; source tests and dry-runs cannot stand in for provider callbacks, native reconnection, email, payments or physical-device acceptance.
 
 Use the native production marketing Worker for the public apex. Verify its route ownership and TLS. Its Worker handles declared public redirects before docs/static handling. Keep account, API, callback and authenticated traffic with their service owner; do not claim legacy-host routing for the marketing Worker while it serves the account portal.
 
@@ -169,13 +169,20 @@ Verify these journeys after activation and monitor authentication, recovery,
 reconnection, billing, licensing and updates through the following day. Use
 staging and Stripe Sandbox for synthetic acceptance; production verification must
 respect the owner's current testing and billing limits. Keep the public redirect
-indefinitely and service retirement responses only. Roll back
+indefinitely and service retirement responses only. For the final controlled sequence, see [production promotion](production-domain-promotion.md). Roll back
 application/configuration versions against retained data if needed; never
-resurrect revoked grants or overwrite post-cutover writes. Staging retains its
-existing hosts. Unrelated Studio domains and support email addresses are unchanged.
+resurrect revoked grants or overwrite post-cutover writes. Staging uses its own product subdomains. Unrelated Studio domains and support email addresses are unchanged.
 
 ## Provider inventory and candidate identity
 
 Provider inspection uses the pinned native cf CLI under approved operator authentication. PR validation receives no production Cloudflare deployment credentials. Inspect each service and its permissions independently: Pages access does not establish Worker, DNS or database permission. Resolve missing access before an approved mutation and keep credentials and account data private.
 
 The candidate retains both `environment-artifact.json` and `release-configuration.json`. Native `CurfewConfigurationSHA256` and candidate `configurationSHA256` identify the same endpoint artifact consumed by the backend. `releaseConfigurationSHA256` separately seals the resolved Sparkle public key and source file digests. Changing a configured domain requires no candidate code change; the resolved feed must match the approved manifest. Candidate retention does not activate the site, update feed, or service.
+
+### Staging domain cutover
+
+Before changing the active staging endpoints, back up its existing database and license records, register the exact staging Apple and Google callbacks, and apply the existing internal-access policy to the new portal. Keep the previous deployment and data intact until the replacement passes TLS and authenticated acceptance. Only public navigations redirect from the old site; requests carrying credentials, recovery tokens, checkout session identifiers, or authenticated service traffic stop without forwarding them. The old account, sync and license origins return a useful retirement response.
+
+Passkeys are bound to the portal hostname and must be enrolled for the new staging identity through normal sign-in or recovery. Reconnect the same Mac and assistants, retaining the existing account, device data and local settings. Do not copy session cookies or weaken identity checks to move them. Keep Stripe Sandbox credentials and the staging signer; no production payment fixture is permitted. The license bootstrap selects the recovery sender from the approved environment; a legacy sender is accepted only for its explicitly retired issuer, not for the canonical staging service.
+
+The shared endpoint manifest is part of native release provenance. Regenerate the Dev associated domains explicitly from staging, retain its Keychain group, and refresh the signed candidate after the manifest changes. An older sealed app or website must not be relabeled with the new configuration. Roll back code and endpoint configuration against retained data without resurrecting revoked authority or overwriting later writes.

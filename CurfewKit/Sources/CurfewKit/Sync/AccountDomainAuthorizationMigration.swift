@@ -7,7 +7,8 @@ public enum AccountDomainAuthorizationMigration {
         store: any AccountSecretStoring,
         endpoints: CurfewServiceEndpoints
     ) throws -> Bool {
-        guard endpoints == .production else { return false }
+        guard [CurfewServiceEndpoints.production, .staging, .development].contains(endpoints)
+        else { return false }
         let identity =
             Data((endpoints.accountOrigin.absoluteString + "|" + endpoints.syncResource
                     .absoluteString).utf8)

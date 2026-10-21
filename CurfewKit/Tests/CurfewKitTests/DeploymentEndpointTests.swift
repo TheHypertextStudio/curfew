@@ -6,9 +6,9 @@ struct DeploymentEndpointTests {
     @Test func stagingPurchasesAndAccountsUseOneWebsite() {
         for endpoints in [CurfewServiceEndpoints.staging, .development] {
             #expect(endpoints.pricingURL
-                .absoluteString == "https://curfew-staging.hypertext.studio/#plus")
+                .absoluteString == "https://staging.thecurfew.app/#plus")
             #expect(endpoints.accountPortal
-                .absoluteString == "https://curfew-staging.hypertext.studio/account")
+                .absoluteString == "https://staging.thecurfew.app/account")
         }
         #expect(CurfewServiceEndpoints.production.pricingURL
             .absoluteString == "https://thecurfew.app/#plus")
@@ -41,24 +41,31 @@ private final class MigrationSecretStore: AccountSecretStoring, @unchecked Senda
 }
 
 extension DeploymentEndpointTests {
-    @Test func obsoleteAuthorizationIsDiscardedWithoutLosingIdentityOrEncryption() throws {
+    @Test(arguments: [CurfewServiceEndpoints.production, .staging, .development])
+    func obsoleteAuthorizationIsDiscardedWithoutLosingIdentityOrEncryption(
+        endpoints: CurfewServiceEndpoints
+    ) throws {
         let store = MigrationSecretStore()
         try store.save(Data("old-token".utf8), for: "oauth-access-token")
         try store.save(Data("old-refresh".utf8), for: "oauth-refresh-token")
+        try store.save(Data("old-client".utf8), for: "oauth-client-id")
+        try store.save(Data("old-connection".utf8), for: "pending-account-authorized-connection")
         try store.save(Data("retained-key".utf8), for: "account-encryption-key")
-        try store.save(Data("retained-device".utf8), for: "device-id")
+        try store.save(Data("retained-device".utf8), for: "account-device-id")
         #expect(try AccountDomainAuthorizationMigration.prepare(
             store: store,
-            endpoints: .production
+            endpoints: endpoints
         ))
         #expect(try store.data(for: "oauth-access-token") == nil)
         #expect(try store.data(for: "oauth-refresh-token") == nil)
+        #expect(try store.data(for: "oauth-client-id") == nil)
+        #expect(try store.data(for: "pending-account-authorized-connection") == nil)
         #expect(try store.data(for: "account-encryption-key") == Data("retained-key".utf8))
-        #expect(try store.data(for: "device-id") == Data("retained-device".utf8))
+        #expect(try store.data(for: "account-device-id") == Data("retained-device".utf8))
         try store.save(Data("new-token".utf8), for: "oauth-access-token")
         #expect(try !AccountDomainAuthorizationMigration.prepare(
             store: store,
-            endpoints: .production
+            endpoints: endpoints
         ))
         #expect(try store.data(for: "oauth-access-token") == Data("new-token".utf8))
     }

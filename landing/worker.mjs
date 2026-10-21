@@ -74,8 +74,10 @@ export function docsTarget(url, env) {
 
 const site = {
   async fetch(request, env, _context, fetcher = fetch) {
-    const legacy = legacyDomainResponse(request, deployment.production);
-    if (legacy) return legacy;
+    for (const profile of [deployment.production, deployment.staging]) {
+      const legacy = legacyDomainResponse(request, profile);
+      if (legacy) return legacy;
+    }
     const url = new URL(request.url);
     if (env.STAGING_ACCOUNT_SERVICE) {
       const retired = retiredStagingResponse(request);

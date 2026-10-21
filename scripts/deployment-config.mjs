@@ -193,10 +193,14 @@ export async function generateDeployment(
     const original = await readFile(path, "utf8");
     const text = original.replace(
       /(applinks|webcredentials):([^<\s]+)/g,
-      (match, kind, host) =>
-        host === new URL(manifest.environments.staging.accountOrigin).host
-          ? match
-          : kind + ":" + new URL(production.accountOrigin).host,
+      (_match, kind) =>
+        kind +
+        ":" +
+        new URL(
+          name.includes("Release")
+            ? production.accountOrigin
+            : manifest.environments.staging.accountOrigin,
+        ).host,
     );
     await writeFile(path, text);
   }

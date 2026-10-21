@@ -5,7 +5,7 @@ import Testing
 struct AccountOAuthHandoffTests {
     @Test("Only the pending Curfew Dev callback becomes the claimed HTTPS callback")
     func studioDevCallbackRequiresExactStateAndRoute() throws {
-        let expected = "https://curfew-account-staging.hypertext.studio/oauth/callback/native/macos"
+        let expected = "https://account-staging.thecurfew.app/oauth/callback/native/macos"
         let incoming = try #require(URL(
             string: "studio.hypertext.curfew.studio.dev://account-oauth/callback?code=short-code&state=pending-state"
         ))
@@ -27,7 +27,7 @@ struct AccountOAuthHandoffTests {
 
     @Test("A scheme hijack cannot impersonate a different route or weaken callback validation")
     func malformedOrUnrelatedCallbacksAreRejected() throws {
-        let expected = "https://curfew-account-staging.hypertext.studio/oauth/callback/native/macos"
+        let expected = "https://account-staging.thecurfew.app/oauth/callback/native/macos"
         for candidate in [
             "studio.hypertext.curfew://account-oauth/callback?code=c&state=s",
             "studio.hypertext.curfew.studio.dev://docket-oauth/callback?code=c&state=s",

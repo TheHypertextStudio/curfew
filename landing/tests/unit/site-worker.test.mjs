@@ -407,6 +407,7 @@ test('purchase preview stays in the staging Worker without acquiring production 
   assert.equal(production.domains, undefined);
   assert.equal(staging.env.STAGING_ACCOUNT_SERVICE?.worker, 'curfew-account-platform-staging');
   assert.deepEqual(staging.triggers, [
+    { type: 'fetch', pattern: 'staging.thecurfew.app/*', zone: 'thecurfew.app' },
     { type: 'fetch', pattern: 'curfew-staging.hypertext.studio/*', zone: 'hypertext.studio' },
   ]);
   assert.equal(production.env.STAGING_ACCOUNT_SERVICE, undefined);
