@@ -33,13 +33,11 @@ extension AccountEnrollmentController {
         do {
             _ = try await authenticate(expectedAccountUserID: owner.userID)
             do {
-                try AccountEnrollmentPendingStore(secretStore: secretStore).markReady(enrollment)
+                try markReconnectedEnrollmentReady(enrollment)
             } catch {
                 state = .storageUnavailable
                 return false
             }
-            enrollmentRetryError = nil
-            state = .ready(enrollment)
             return true
         } catch AccountOAuthEnrollmentError.accountMismatch {
             enrollmentRetryError = AccountEnrollmentFailureCopy.wrongAccount

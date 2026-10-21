@@ -66,6 +66,13 @@ final class AccountEnrollmentController: ObservableObject {
         }
     }
 
+    func markReconnectedEnrollmentReady(_ enrollment: AccountDeviceEnrollment) throws {
+        try pending.markReady(enrollment)
+        requiresReauthorization = false
+        enrollmentRetryError = nil
+        state = .ready(enrollment)
+    }
+
     func signIn() async {
         if case .ready(let enrollment) = state {
             await reconnectEnrolledMac(enrollment)
@@ -94,7 +101,7 @@ final class AccountEnrollmentController: ObservableObject {
         }
         let identifier: UUID
         do {
-            identifier = try deviceID()
+            identifier = try loadOrCreateDeviceID()
             try pending.saveAuthorizedConnection(grant: grant, deviceID: identifier)
         } catch {
             state = .storageUnavailable
@@ -365,20 +372,6 @@ extension AccountEnrollmentController {
             enrollmentRetryError = AccountEnrollmentFailureCopy.retryConnection
             return nil
         }
-    }
-
-    private func deviceID() throws -> UUID {
-        if let data = try secretStore.data(for: "account-device-id"),
-           let text = String(data: data, encoding: .utf8),
-           let identifier = UUID(uuidString: text) {
-            return identifier
-        }
-        let identifier = UUID()
-        try secretStore.save(
-            Data(identifier.uuidString.lowercased().utf8),
-            for: "account-device-id"
-        )
-        return identifier
     }
 }
 

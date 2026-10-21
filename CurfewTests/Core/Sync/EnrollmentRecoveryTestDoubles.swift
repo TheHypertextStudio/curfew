@@ -25,12 +25,16 @@ struct PostBrowserFailingAccountOAuthEnrollment: AccountOAuthEnrolling {
 
 final class EnrollmentRecoveryMemorySecretStore: AccountSecretStoring {
     private var values: [String: Data] = [:]
+    var rejectedSaveAccount: String?
 
     func data(for account: String) throws -> Data? {
         values[account]
     }
 
     func save(_ data: Data, for account: String) throws {
+        if account == rejectedSaveAccount {
+            throw CocoaError(.fileWriteNoPermission)
+        }
         values[account] = data
     }
 
