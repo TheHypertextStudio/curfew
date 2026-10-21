@@ -13,6 +13,53 @@ import {
   verifyLocalDistribution,
 } from "./local-release.mjs";
 
+const pendingDownload =
+  "<p>The public Mac download is coming soon. The installer will be available here when it is ready.</p>";
+const pendingInstallation = "<h2>When the download is available</h2>";
+
+function installerURL(candidate) {
+  assert.match(candidate.version, /^0\.0\.(0|[1-9]\d*)$/);
+  return `https://github.com/TheHypertextStudio/curfew/releases/download/v${candidate.version}/Curfew-v${candidate.version}.dmg`;
+}
+
+function replaceOnce(html, expected, replacement) {
+  assert.equal(
+    html.split(expected).length,
+    2,
+    "Unknown or ambiguous download availability",
+  );
+  return html.replace(expected, replacement);
+}
+
+/** A derived publication page; the sealed website input remains untouched. */
+export function renderPublishedDownload(html, candidate) {
+  return replaceOnce(
+    replaceOnce(
+      html,
+      pendingDownload,
+      `<p><a class="button primary" href="${installerURL(candidate)}">Download Curfew ${candidate.version}</a></p>`,
+    ),
+    pendingInstallation,
+    "<h2>Install Curfew</h2>",
+  );
+}
+
+export function renderPublishedHome(html) {
+  for (const [expected, replacement] of [
+    [
+      "Coming soon · Free &amp; open source · macOS 26+",
+      "Free &amp; open source · macOS 26+",
+    ],
+    [
+      "The public Mac download is coming soon. Check the",
+      "Download Curfew from the",
+    ],
+    ["for availability and installation", "for installation"],
+  ])
+    html = replaceOnce(html, expected, replacement);
+  return html;
+}
+
 async function verifyLocalPublication(input) {
   const candidate = input.native.candidate;
   verifyLocalRepositories(
@@ -102,6 +149,13 @@ export async function preparePublication(
   localVerifier = verifyLocalPublication,
 ) {
   const candidate = await admit(input, localVerifier);
+  const download = renderPublishedDownload(
+    await readFile(join(input.website.directory, "download.html"), "utf8"),
+    candidate,
+  );
+  const home = renderPublishedHome(
+    await readFile(join(input.website.directory, "index.html"), "utf8"),
+  );
   await assert.rejects(
     () => lstat(input.destination),
     { code: "ENOENT" },
@@ -113,6 +167,8 @@ export async function preparePublication(
     errorOnExist: true,
   });
   await writeFile(join(input.destination, "appcast.xml"), input.native.appcast);
+  await writeFile(join(input.destination, "download.html"), download);
+  await writeFile(join(input.destination, "index.html"), home);
   return {
     candidate,
     ...(candidate.provenance?.kind === "local"
@@ -165,9 +221,48 @@ export async function verifyLivePublication(
   candidate,
   fetcher = fetch,
 ) {
+  const homepage = await fetcher(config.siteOrigin, requestOptions());
+  assert.equal(homepage.status, 200);
+  const homeHTML = await homepage.text();
+  assert.ok(
+    homeHTML.includes('href="/download"'),
+    "Homepage does not link the download page",
+  );
+  for (const stale of [
+    "Coming soon · Free",
+    "The public Mac download is coming soon.",
+  ])
+    assert.ok(
+      !homeHTML.includes(stale),
+      "Homepage still reports the installer unavailable",
+    );
+  const url = installerURL(candidate);
+  const page = await fetcher(`${config.siteOrigin}/download`, requestOptions());
+  assert.equal(page.status, 200, "Customer download page is unavailable");
+  const html = await page.text();
+  assert.ok(
+    html.includes(`href="${url}"`),
+    "Customer download page does not link the accepted installer",
+  );
+  assert.ok(
+    !html.includes("The public Mac download is coming soon."),
+    "Customer download page still reports unavailable",
+  );
+  const installer = await fetcher(url, {
+    ...requestOptions(),
+    redirect: "follow",
+  });
   assert.equal(
-    (await fetcher(config.siteOrigin, requestOptions())).status,
+    installer.status,
     200,
+    "Customer installer download is unavailable",
+  );
+  assert.equal(
+    createHash("sha256")
+      .update(Buffer.from(await installer.arrayBuffer()))
+      .digest("hex"),
+    candidate.dmgSHA256,
+    "Customer installer differs from the signed candidate",
   );
   const feed = await fetcher(
     `${config.siteOrigin}/appcast.xml`,

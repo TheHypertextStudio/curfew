@@ -2130,3 +2130,16 @@ Docs publish independently of app and payment-service rollout. Revert this docs-
 The regular release-policy gate runs these script tests. Local evidence and
 owner receipts remain private. Neither unit fixtures nor a local candidate
 record establishes interactive device, staging, or production acceptance.
+
+### Installer availability at publication
+
+`scripts/publication.test.mjs` verifies activation-only homepage and download
+copy, the exact accepted installer URL, unchanged Plus availability, immutable
+retained inputs and rejection of unknown or ambiguous availability copy before
+output creation. Live verification rejects stale homepage/download copy,
+missing installers and downloaded bytes that differ from the signed candidate.
+Rendered review covers the derived pages with the retained styles and assets;
+actual public download verification remains a post-publication requirement.
+
+Rollback restores the previous website assets and feed together; preparation
+does not modify native files, enable sales or remove owner/staging gates.
