@@ -178,6 +178,7 @@ struct AccountEnrollmentRecoveryTests {
     @Test("A wrong Recovery Key keeps the same enrolled Mac ready for another key")
     func wrongRecoveryKeyDoesNotRestartSignIn() async throws {
         let secretStore = EnrollmentRecoveryMemorySecretStore()
+        try secretStore.save(accountDeploymentIdentity(), for: "oauth-deployment-identity")
         let devices = RecoveryKeyAttemptDeviceEnrollment()
         try AccountEnrollmentPendingStore(secretStore: secretStore).save(
             enrollment: devices.enrollment,

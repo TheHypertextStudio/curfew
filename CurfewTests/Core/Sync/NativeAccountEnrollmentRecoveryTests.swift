@@ -351,6 +351,10 @@ extension NativeAccountSyncTransportTests {
         )
         let secrets = RecoverySetupMemorySecretStore()
         try secrets.save(
+            accountDeploymentIdentity(endpoints: .staging),
+            for: "oauth-deployment-identity"
+        )
+        try secrets.save(
             Data("resource-bound-access-token".utf8),
             for: "oauth-access-token"
         )

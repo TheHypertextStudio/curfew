@@ -253,6 +253,7 @@ struct AccountEnrollmentReauthorizationTests {
 
     func makeFixture(accountUserID: String?) throws -> ReauthorizationFixture {
         let secrets = EnrollmentRecoveryMemorySecretStore()
+        try secrets.save(accountDeploymentIdentity(), for: "oauth-deployment-identity")
         try secrets.save(Data("old-access".utf8), for: "oauth-access-token")
         try secrets.save(Data("old-refresh".utf8), for: "oauth-refresh-token")
         let pending = AccountEnrollmentPendingStore(secretStore: secrets)

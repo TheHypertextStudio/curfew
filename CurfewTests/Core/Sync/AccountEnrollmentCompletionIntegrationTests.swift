@@ -9,6 +9,7 @@ import XCTest
 final class AccountEnrollmentCompletionTests: XCTestCase {
     func testBrowserGrantToSavedRecoveryKeyToReadyKeepsTheReceipt() async throws {
         let secrets = EnrollmentRecoveryMemorySecretStore()
+        try secrets.save(accountDeploymentIdentity(), for: "oauth-deployment-identity")
         try secrets.save(Data("access-token".utf8), for: "oauth-access-token")
         try secrets.save(Data("refresh-token".utf8), for: "oauth-refresh-token")
         try secrets.save(Data("curfew-native-client".utf8), for: "oauth-client-id")
@@ -62,6 +63,7 @@ final class AccountEnrollmentCompletionTests: XCTestCase {
 
     func testExistingEnvelopeKeepsAccountBindingForLaterKeyRestoration() async throws {
         let secrets = EnrollmentRecoveryMemorySecretStore()
+        try secrets.save(accountDeploymentIdentity(), for: "oauth-deployment-identity")
         try secrets.save(Data("access-token".utf8), for: "oauth-access-token")
         try secrets.save(Data("refresh-token".utf8), for: "oauth-refresh-token")
         try secrets.save(Data("curfew-native-client".utf8), for: "oauth-client-id")
