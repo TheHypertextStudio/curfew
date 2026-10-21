@@ -135,11 +135,23 @@ do not establish device, provider or staging acceptance.
 Activation requires valid website TLS, configuration-matched account/sync
 services in maintenance, and the configuration-matched license issuer. It
 publishes the exact signed DMG, feed and candidate identity to GitHub, then adds
-the signed feed to a copy of the verified static output. Native `cf build`
+the signed feed to a copy of the verified static output. In that derived copy,
+preparation replaces the known installer availability copy on the homepage and
+download page with the accepted version's canonical GitHub DMG link. Unknown or
+ambiguous copy stops preparation before output is created. Plus availability and
+purchase links stay unchanged. The original sealed website and signed app are
+never edited or rebuilt; the prepared stamp seals the complete derived output.
+Native `cf build`
 packages that directory through the production `assetsDirectory` input, selected
 with the absolute `CURFEW_WEBSITE_ASSETS_DIRECTORY` environment value. A prebuilt
 dry-run and deployment both disable provisioning. The Worker configuration and
 Mintlify bindings remain the ordinary production configuration.
+
+After deployment, verification checks homepage/download availability, follows
+the customer installer link and compares its downloaded bytes to the accepted
+DMG hash, then checks the exact feed and legacy redirects/retirement responses.
+Unit fixtures establish these rejection boundaries; only the actual live
+download establishes customer delivery.
 
 A retry reuses matching public release assets and refuses changed bytes. Draft
 retries use authenticated release discovery and read asset digests back by
