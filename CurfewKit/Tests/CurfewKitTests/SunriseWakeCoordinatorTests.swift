@@ -48,7 +48,7 @@ struct SunriseWakeCoordinatorTests {
                 plan: desired, enabled: true, onExternalPower: true, now: desired.wakeAt
             )
         }
-        #expect(effects.calls == ["replace", "cancel", "activity", "acquire"])
+        #expect(effects.calls == ["replace", "activity", "acquire", "cancel"])
         #expect(effects.deadlines == [desired.holdUntil])
         #expect(effects.delivery.isActive)
         #expect(subject.status == .displayRequested)

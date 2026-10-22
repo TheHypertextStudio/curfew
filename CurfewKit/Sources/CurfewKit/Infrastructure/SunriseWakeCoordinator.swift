@@ -69,26 +69,28 @@ public final class SunriseWakeCoordinator {
             onExternalPower: onExternalPower, now: now
         )
         let futurePlan = desiredStatus == .scheduled ? plan : nil
-        let cleanupFailed = cleanDisplay(for: desiredStatus)
-        status = cleanupFailed ? .requestRejected : pendingStatus(for: desiredStatus)
+        var displayFailed = cleanDisplay(for: desiredStatus)
+        // Display eligibility is evaluated and applied before the first suspension.
+        // Helper latency cannot consume this window or replay stale time after it.
+        if desiredStatus == .displayRequested, !displayFailed {
+            do {
+                _ = try displayDelivery.reconcile(
+                    plan: plan, enabled: enabled, batteryOptIn: batteryOptIn,
+                    onExternalPower: onExternalPower, now: now
+                )
+            } catch {
+                displayFailed = true
+            }
+        }
+        status = displayFailed ? .requestRejected : pendingStatus(for: desiredStatus)
+        let deliveryFailed = displayFailed
         let predecessor = pending
         let task = Task { @MainActor in
             await predecessor?.value
             guard currentRevision == self.revision else { return }
             let helperFailure = await self.updateHelper(plan: futurePlan)
             guard currentRevision == self.revision else { return }
-            var displayFailed = cleanupFailed
-            if desiredStatus == .displayRequested, !cleanupFailed {
-                do {
-                    _ = try self.displayDelivery.reconcile(
-                        plan: plan, enabled: enabled, batteryOptIn: batteryOptIn,
-                        onExternalPower: onExternalPower, now: now
-                    )
-                } catch {
-                    displayFailed = true
-                }
-            }
-            self.status = displayFailed ? .requestRejected : (helperFailure ?? desiredStatus)
+            self.status = deliveryFailed ? .requestRejected : (helperFailure ?? desiredStatus)
         }
         pending = task
         await task.value
@@ -98,7 +100,7 @@ public final class SunriseWakeCoordinator {
     }
 
     private func pendingStatus(for desiredStatus: Status) -> Status {
-        if desiredStatus == .scheduled || desiredStatus == .displayRequested {
+        if desiredStatus == .scheduled {
             return .waitingForSchedule
         }
         return desiredStatus
