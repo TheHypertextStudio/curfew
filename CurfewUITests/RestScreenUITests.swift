@@ -5,9 +5,7 @@ extension CurfewUITests {
     func testIsolatedUnlockLabelHasReadableAccessibleText() throws {
         let app = launchFixture("lockout", state: "rest-contrast-control")
         defer { app.terminate() }
-        let label = app.staticTexts.matching(
-            NSPredicate(format: "label BEGINSWITH %@", "Your computer unlocks at ")
-        ).firstMatch
+        let label = app.staticTexts.firstMatch
         XCTAssertTrue(label.waitForExistence(timeout: 5))
         XCTAssertEqual(
             app.staticTexts.count,
@@ -15,6 +13,8 @@ extension CurfewUITests {
             "The control must contain only the actual unlock label."
         )
         XCTAssertFalse(app.textViews["reflection-answer"].exists)
+        let text = label.value as? String ?? label.label
+        XCTAssertTrue(text.hasPrefix("Your computer unlocks at "))
         XCTAssertEqual(app.groups["rest-screen"].label, "Curfew rest screen")
         let capture = XCTAttachment(screenshot: app.screenshot())
         capture.name = "Isolated formatted unlock label"

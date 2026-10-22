@@ -15,6 +15,8 @@ Dark rest scenes use Dark Aqua for their native window and inherited hosting-vie
 
 Diagnostic only: the Debug-only `rest-contrast-control` scene isolates the actual formatted unlock status on black using the actual rest window and host. It shares the real label's unchanged text, font and foreground, and has no demo clock, sky, form or animation. Keep the product audit unchanged. The diagnostic requires cleanup before shipping and cannot establish product acceptance; isolated control/audit execution remains required.
 
+The control's native UI lookup accepts static text exposed through AX value, preserving its one-text isolation assertion and unchanged contrast/description audit.
+
 ## Worktree preparation
 
 - [x] Keep root command shortcuts separate from the independent frontend and

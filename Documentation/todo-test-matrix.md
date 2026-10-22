@@ -23,6 +23,8 @@ Exact-label diagnostic coverage: `RestDemoTests/contrastControlIsStaticAndDisarm
 
 Only this disarmed named Debug control suppresses the normal workspace's default launch, preventing other app content from entering the application-wide audit. Every other Debug state retains its presented workspace; Release scene launch behavior is unchanged.
 
+The control test reads the sole native static text's accessibility value (falling back to its label) for the status prefix. SwiftUI may expose visible static text through AX value without an AX label. This lookup does not alter the view's accessibility semantics or the actual audit.
+
 ## Worktree preparation
 
 `./bootstrap worktree plan --json` validates workspace discovery and rejects
