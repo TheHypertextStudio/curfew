@@ -50,7 +50,7 @@ struct SunriseWakePlannerTests {
 
     @Test("Wake and display hold use the authorized absolute unlock")
     func absoluteTimingAndFixedEvent() throws {
-        let result = try #require(plan())
+        let result = try #require(try plan())
         #expect(result.occurrenceID == occurrenceID)
         #expect(result.owner == owner)
         #expect(result.wakeAt == now.addingTimeInterval(5400))
@@ -61,7 +61,7 @@ struct SunriseWakePlannerTests {
 
     @Test("Lead-in endpoints are inclusive", arguments: [5, 60])
     func leadBoundsAccepted(minutes: Int) throws {
-        let result = try #require(plan(leadMinutes: minutes))
+        let result = try #require(try plan(leadMinutes: minutes))
         #expect(result.wakeAt == now.addingTimeInterval(7200 - Double(minutes * 60)))
     }
 
@@ -118,7 +118,7 @@ struct SunriseWakePlannerTests {
         #expect(throws: SunriseWakePlanner.ValidationError.batteryExcluded) {
             try plan(onExternalPower: false)
         }
-        let batteryPlan = try #require(plan(allowsBattery: true, onExternalPower: false))
+        let batteryPlan = try #require(try plan(allowsBattery: true, onExternalPower: false))
         #expect(batteryPlan.allowsBattery)
     }
 
@@ -143,7 +143,7 @@ struct SunriseWakePlannerTests {
 
     @Test("Repeated plan does not reschedule an already owned event")
     func identicalPlanDeduplicated() throws {
-        let current = try #require(plan())
+        let current = try #require(try plan())
         let change = planner.reconcile(current: current, desired: current)
         #expect(change.cancel == nil)
         #expect(change.schedule == nil)
@@ -151,8 +151,8 @@ struct SunriseWakePlannerTests {
 
     @Test("Changed timing replaces the owned plan and disable cancels it")
     func replaceAndCancelOwnedPlan() throws {
-        let current = try #require(plan())
-        let desired = try #require(plan(leadMinutes: 15))
+        let current = try #require(try plan())
+        let desired = try #require(try plan(leadMinutes: 15))
         let replacement = planner.reconcile(current: current, desired: desired)
         #expect(replacement.cancel == current)
         #expect(replacement.schedule == desired)
@@ -166,7 +166,7 @@ struct SunriseWakePlannerTests {
 
     @Test("Cancellation never claims another owner or app flavor's event")
     func foreignOwnerIsNeverCancelled() throws {
-        let foreign = try #require(SunriseWakePlanner(owner: "another.product.sunrise").makePlan(
+        let foreign = try #require(try SunriseWakePlanner(owner: "another.product.sunrise").makePlan(
             enabled: true,
             requestedOccurrenceID: occurrenceID,
             authorizedOccurrenceID: occurrenceID,
@@ -184,7 +184,7 @@ struct SunriseWakePlannerTests {
 
     @Test("A foreign desired plan cannot schedule or replace this owner's event")
     func foreignDesiredOwnerCannotSchedule() throws {
-        let foreign = try #require(SunriseWakePlanner(owner: "another.product.sunrise").makePlan(
+        let foreign = try #require(try SunriseWakePlanner(owner: "another.product.sunrise").makePlan(
             enabled: true,
             requestedOccurrenceID: occurrenceID,
             authorizedOccurrenceID: occurrenceID,
@@ -195,7 +195,7 @@ struct SunriseWakePlannerTests {
             onExternalPower: true,
             now: now
         ))
-        let current = try #require(plan())
+        let current = try #require(try plan())
         for existing in [nil, Optional(current)] {
             let change = planner.reconcile(current: existing, desired: foreign)
             #expect(change.cancel == nil)
