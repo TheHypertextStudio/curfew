@@ -16,6 +16,7 @@ included:
   - CurfewKit/Sources/CurfewKit/Infrastructure/SunriseDisplayDelivery.swift
   - CurfewKit/Sources/CurfewKit/Infrastructure/SunrisePowerIO+Live.swift
   - CurfewKit/Sources/CurfewKit/Infrastructure/SunrisePowerIO.swift
+  - CurfewKit/Sources/CurfewKit/Infrastructure/SunriseWakeCoordinator.swift
   - CurfewKit/Sources/CurfewKit/Infrastructure/SunriseWakeJournal.swift
   - CurfewKit/Sources/CurfewKit/Infrastructure/SunriseWakePlan.swift
   - CurfewKit/Sources/CurfewKit/Infrastructure/SunriseWakeScheduler.swift
@@ -28,11 +29,13 @@ included:
   - CurfewKit/Tests/CurfewKitTests/RestAppearanceSyncIsolationTests.swift
   - CurfewKit/Tests/CurfewKitTests/RestCompanionExportTests.swift
   - CurfewKit/Tests/CurfewKitTests/RestCompanionPresentationStoreTests.swift
+  - CurfewKit/Tests/CurfewKitTests/RestCompanionSceneBridgeTests.swift
   - CurfewKit/Tests/CurfewKitTests/RestHandoffPolicyTests.swift
   - CurfewKit/Tests/CurfewKitTests/RestSceneSnapshotTests.swift
   - CurfewKit/Tests/CurfewKitTests/SunriseDaemonServiceTests.swift
   - CurfewKit/Tests/CurfewKitTests/SunriseDisplayDeliveryTests.swift
   - CurfewKit/Tests/CurfewKitTests/SunrisePowerIOTests.swift
+  - CurfewKit/Tests/CurfewKitTests/SunriseWakeCoordinatorTests.swift
   - CurfewKit/Tests/CurfewKitTests/SunriseWakeJournalTests.swift
   - CurfewKit/Tests/CurfewKitTests/SunriseWakePlannerTests.swift
   - CurfewKit/Tests/CurfewKitTests/SunriseWakeSchedulerTests.swift

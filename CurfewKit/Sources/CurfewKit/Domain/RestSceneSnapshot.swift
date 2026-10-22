@@ -22,6 +22,17 @@ public nonisolated struct RestSceneSnapshot: Codable, Equatable, Sendable {
         self.unlockDate = unlockDate
     }
 
+    /// Inert seam for the presentation bridge; visual-copy behavior awaits observed contract RED.
+    public init(presentation _: RestCompanionExport) {
+        self.init(
+            version: 1,
+            expiresAt: Date(timeIntervalSince1970: 0),
+            appearance: RestAppearancePreferences(),
+            lockDate: nil,
+            unlockDate: nil
+        )
+    }
+
     public enum Phase: Equatable, Sendable {
         case allDay, night, sunrise, morning
     }
