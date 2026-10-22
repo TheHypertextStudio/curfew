@@ -122,7 +122,8 @@ public nonisolated struct RestHandoffPolicy: Sendable {
                 recordActivity(monotonicSeconds)
             }
         case .saverReturned:
-            guard phase == .saver else { return [] }
+            guard phase == .saver || (phase == .settling && launchRequested) else { return [] }
+            launchRequested = false
             let refresh = nextGeneration()
             pendingGeneration = refresh
             phase = .refreshing

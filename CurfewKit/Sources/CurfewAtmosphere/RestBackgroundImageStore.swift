@@ -1,4 +1,5 @@
 import CoreGraphics
+import CurfewKit
 import Foundation
 import ImageIO
 import UniformTypeIdentifiers
@@ -81,11 +82,8 @@ public nonisolated struct RestBackgroundImageStore {
         guard let filename else { return nil }
         let url = directory.appendingPathComponent(filename)
         guard (try? validateOwnedURL(url)) != nil,
-              let attributes = try? FileManager.default.attributesOfItem(atPath: url.path),
-              let size = attributes[.size] as? NSNumber,
-              size.intValue > 0, size.intValue <= Self.maximumBytes,
-              let bytes = try? Data(contentsOf: url, options: .mappedIfSafe),
-              bytes.count <= Self.maximumBytes,
+              let bytes = try? BoundedRegularFileReader.read(url, maximumBytes: Self.maximumBytes),
+              !bytes.isEmpty,
               let source = CGImageSourceCreateWithData(
                   bytes as CFData, [kCGImageSourceShouldCache: false] as CFDictionary
               ),
@@ -103,10 +101,10 @@ public nonisolated struct RestBackgroundImageStore {
 
     private func validateOwnedURL(_ url: URL) throws {
         guard url.isFileURL,
-              url.standardizedFileURL.deletingLastPathComponent() == directory,
+              url.standardizedFileURL.deletingLastPathComponent().resolvingSymlinksInPath()
+                  .path == directory.path,
               UUID(uuidString: url.deletingPathExtension().lastPathComponent) != nil,
               ["jpg", "png", "heic"].contains(url.pathExtension.lowercased()),
-              url.resolvingSymlinksInPath().deletingLastPathComponent() == directory,
               (try? FileManager.default.destinationOfSymbolicLink(atPath: url.path)) == nil
         else { throw ImportError.outsideOwnedDirectory }
     }
