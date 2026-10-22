@@ -28,7 +28,6 @@ public final class SunriseDisplayDelivery {
     private let releaseDisplayAssertion: (AssertionToken) throws -> Void
     private var ownedAssertion: (token: AssertionToken, plan: SunriseWakePlan)?
     private var activityOccurrences: Set<UUID> = []
-    private var deliveredOccurrences: Set<UUID> = []
     private var dismissedOccurrences: Set<UUID> = []
 
     /// Presentation eligibility only. False does not prove physical assertion
@@ -72,25 +71,17 @@ public final class SunriseDisplayDelivery {
                ownedAssertion.plan.holdUntil == plan.holdUntil {
                 return .active
             }
-            // Retain whether this is an in-flight deadline replacement before
-            // releasing. A failed release must block every new native effect.
-            let replacingDeadline = ownedAssertion.plan.occurrenceID == plan
-                .occurrenceID && isActive
-            if replacingDeadline {
-                deliveredOccurrences.remove(plan.occurrenceID)
-            }
+            // A failed release retains the token and blocks every new effect.
             try stop()
         }
-        guard !deliveredOccurrences.contains(plan.occurrenceID) else {
-            return .inactive
-        }
+        // Activity is once per occurrence; its bounded hold may resume after
+        // temporary battery exclusion without lighting the display a second time.
         if !activityOccurrences.contains(plan.occurrenceID) {
             try declareUserActivity()
             activityOccurrences.insert(plan.occurrenceID)
         }
         let token = try acquireDisplayAssertion(plan.holdUntil)
         ownedAssertion = (token, plan)
-        deliveredOccurrences.insert(plan.occurrenceID)
         isActive = true
         return .active
     }
