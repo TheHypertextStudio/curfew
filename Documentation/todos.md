@@ -6,7 +6,7 @@ Design: [rest experience features](rest-experience-features.md). Delivery: [impl
 
 - [-] Establish local appearance persistence, safe migration defaults and deterministic shared scene inputs. Preference contracts cover independent wake/battery/message opt-ins, Unicode message limits, image references, color/focal bounds and separate local storage. Persistence and normalization now follow these contracts; runtime GREEN verification remains required before implementation acceptance.
 - [-] Define neutral, read-only shared scene snapshots and deterministic scheduled Sunrise boundaries; temporal contracts require actual behavioral execution before resolver implementation. Presentation contains no restriction authority.
-- [ ] Add the Rest Screen settings destination with live preview, owned JPEG/PNG/HEIC import, adjustable aspect-fill focal point and mandatory readability treatment.
+- [-] Define settings-default and owned-image import contracts before adding the Rest Screen destination, live preview, JPEG/PNG/HEIC import, adjustable aspect-fill focal point and readability treatment. Image imports remain unimplemented until actual failing-first evidence.
 - [ ] Deliver the independently versioned native companion, bounded presentation/image exchange, actual host readback and explicit installation/update/removal actions.
 - [ ] Coordinate idle/explicit screensaver entry and authenticated return without losing drafts, native hosts or restriction authority.
 - [-] Define authenticated owned Sunrise planning contracts for timing, power policy, replacement and cancellation before implementing helper scheduling and bounded display delivery. Native scheduling, durable recovery and physical acceptance remain required.
