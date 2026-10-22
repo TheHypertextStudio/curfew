@@ -3,13 +3,14 @@ import Darwin
 import Foundation
 import Testing
 
-/// Filesystem-only contracts: canonical temporary fixtures, never a privileged path.
-/// The preparation API remains inert pending actual failing-first execution.
+/// Filesystem-only contracts: isolated private fixtures, never a privileged path.
+/// Production preparation retains strict ancestor ownership and permission checks.
 struct SunriseWakeDirectoryTests {
     private let namespace = "studio.hypertext.curfew.test.sunrise"
 
     private func isolated(_ body: (URL) throws -> Void) throws {
-        let root = FileManager.default.temporaryDirectory.resolvingSymlinksInPath()
+        // A trusted directory fixture cannot inherit a shared writable temp ancestor.
+        let root = FileManager.default.homeDirectoryForCurrentUser.resolvingSymlinksInPath()
             .appendingPathComponent("SunriseDirectoryTests-\(UUID().uuidString)", isDirectory: true)
         try directory(root)
         defer { try? FileManager.default.removeItem(at: root) }
@@ -21,6 +22,23 @@ struct SunriseWakeDirectoryTests {
             at: url, withIntermediateDirectories: false, attributes: [.posixPermissions: mode]
         )
         try #require(chmod(url.path, mode_t(mode)) == 0)
+    }
+
+    /// Temporary observation only: classify the earlier fixture rejection without
+    /// weakening the production ancestor-permission contract.
+    private func reportTemporaryAncestry() {
+        var directory = FileManager.default.temporaryDirectory.resolvingSymlinksInPath()
+        while true {
+            var value = stat()
+            if lstat(directory.path, &value) == 0 {
+                print("Sunrise fixture ancestry: \(directory.path) uid=\(value.st_uid) "
+                    + "mode=\(String(value.st_mode & 0o7777, radix: 8))")
+            }
+            if directory.path == "/" {
+                break
+            }
+            directory.deleteLastPathComponent()
+        }
     }
 
     private func metadata(_ url: URL) throws -> stat {
@@ -42,6 +60,7 @@ struct SunriseWakeDirectoryTests {
 
     @Test("Preparing a helper namespace creates only a private owned directory")
     func createsPrivateNamespace() throws {
+        reportTemporaryAncestry()
         try isolated { base in
             let url = try prepare(base)
             let expected = base.appendingPathComponent(namespace, isDirectory: true)
