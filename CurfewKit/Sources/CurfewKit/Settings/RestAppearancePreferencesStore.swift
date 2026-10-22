@@ -1,13 +1,25 @@
 import Foundation
 
-// TEMPORARY TDD scaffold: deliberately does not persist preferences.
+/// Persists local rest preferences separately from account-synchronized settings.
 @MainActor
 public final class RestAppearancePreferencesStore {
-    public init(defaults: UserDefaults) {}
+    private static let key = "curfew.restAppearancePreferences.v1"
+    private let defaults: UserDefaults
 
-    public func load() -> RestAppearancePreferences {
-        RestAppearancePreferences()
+    public init(defaults: UserDefaults) {
+        self.defaults = defaults
     }
 
-    public func save(_ preferences: RestAppearancePreferences) {}
+    /// Missing and corrupt records use the migration defaults.
+    public func load() -> RestAppearancePreferences {
+        guard let data = defaults.data(forKey: Self.key),
+              let preferences = try? JSONDecoder().decode(RestAppearancePreferences.self, from: data)
+        else { return RestAppearancePreferences() }
+        return preferences
+    }
+
+    public func save(_ preferences: RestAppearancePreferences) {
+        guard let data = try? JSONEncoder().encode(preferences) else { return }
+        defaults.set(data, forKey: Self.key)
+    }
 }

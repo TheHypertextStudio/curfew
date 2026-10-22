@@ -2,7 +2,7 @@
 
 ## Rest customization, native screensaver and Sunrise
 
-See [the approved feature design](rest-experience-features.md). Tests prepared for new APIs are not execution evidence; missing symbols and setup/compile errors are not behavioral RED. Final acceptance requires actual native and physical verification.
+See [the approved feature design](rest-experience-features.md). Preference contracts establish behavioral failing-first coverage before normalization/persistence implementation; runtime GREEN verification is still required. Missing symbols and setup/compile errors are not behavioral RED. Final acceptance requires actual native and physical verification.
 
 | Behavior | Contract coverage | Additional acceptance |
 | --- | --- | --- |
