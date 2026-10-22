@@ -29,8 +29,8 @@ extension CurfewAppModel {
         let owner = CurfewFlavor.current.daemonLabel + ".sunrise"
         // Separate ownership prevents activity cleanup from releasing the
         // delivery policy's retained token after a failed native release.
-        let activity = SunrisePowerIO(owner: owner, functions: .liveFunctions)
-        let display = SunrisePowerIO(owner: owner, functions: .liveFunctions)
+        let activity = SunrisePowerIO(owner: owner, functions: SunrisePowerIO.liveFunctions)
+        let display = SunrisePowerIO(owner: owner, functions: SunrisePowerIO.liveFunctions)
         let delivery = SunriseDisplayDelivery(
             declareUserActivity: activity.declareUserActivity,
             acquireDisplayAssertion: { try display.acquireDisplayAssertion(until: $0, now: Date())

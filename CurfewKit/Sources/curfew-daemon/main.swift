@@ -373,7 +373,10 @@ private func evaluatePolicy(
 // This root-owned journal is separate from user-writable restriction state.
 // Failure disables optional wake scheduling without interrupting enforcement.
 private let sunriseOwner = CurfewFlavor.current.daemonLabel + ".sunrise"
-private let sunrisePower = SunrisePowerIO(owner: sunriseOwner, functions: .liveFunctions)
+private let sunrisePower = SunrisePowerIO(
+    owner: sunriseOwner,
+    functions: SunrisePowerIO.liveFunctions
+)
 private let sunriseScheduler: SunriseWakeScheduler? = {
     do {
         return try SunriseDaemonComposition.prepare(owner: sunriseOwner, power: sunrisePower)
