@@ -59,7 +59,7 @@ Curfew solves this by treating your schedule as a binding commitment, not a sugg
 
 - **OS:** macOS 26 (Tahoe) minimum
 - **Architecture:** Universal Binary (Apple Silicon + Intel)
-- **Distribution:** Notarized `.dmg` via GitHub Releases (primary), Homebrew Cask (secondary), landing page at `curfew.hypertext.studio`
+- **Distribution:** Notarized `.dmg` via GitHub Releases (primary), Homebrew Cask (secondary), landing page at `thecurfew.app`
 - **Updates:** Sparkle framework with appcast hosted on GitHub Releases
 - **Signing:** Apple Developer ID (Developer ID Application + Developer ID Installer certificates)
 - **Notarization:** Apple notarytool via automated CI pipeline
@@ -707,7 +707,7 @@ If the user also has calendar, task management (Linear, Todoist), and communicat
 ### Installation Flow
 
 1. **Primary: Direct Download (`.dmg`)**
-   - User downloads `Curfew-x.x.x.dmg` from `curfew.hypertext.studio` or GitHub Releases
+   - User downloads `Curfew-x.x.x.dmg` from `thecurfew.app` or GitHub Releases
    - Opens `.dmg`, drags Curfew.app to `/Applications`
    - On first launch, macOS Gatekeeper verifies the notarization — no "unidentified developer" warning
    - Onboarding flow begins, including privileged helper installation (prompts for admin password once)
@@ -881,7 +881,7 @@ withdrawal procedure.
 - `.dmg` creation with polished installer design
 - Homebrew Cask formula submission
 - GitHub repository setup (README, LICENSE, CONTRIBUTING)
-- Landing page at `curfew.hypertext.studio`
+- Landing page at `thecurfew.app`
 - Hacker News launch post
 
 ---
@@ -1818,7 +1818,7 @@ git tag v1.2.0
   Users receive update via:
   • Sparkle "New version available" dialog (existing users)
   • `brew upgrade --cask curfew` (Homebrew users)
-  • Direct download from curfew.hypertext.studio / GitHub Releases (new users)
+  • Direct download from thecurfew.app / GitHub Releases (new users)
 ```
 
 ---

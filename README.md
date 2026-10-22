@@ -24,7 +24,7 @@ Curfew is the first product from [Hypertext Studio](https://hypertext.studio), a
 - **User-confirmed reflections** — optional morning intentions and evening retrospectives use user-editable prompts, stay on the Mac, and are available to AI only through read-only MCP/CLI access.
 - **WidgetKit widgets** — small, medium, and large schedule/status views backed by the App Group.
 - **Authenticated privileged helper** — a root-owned daemon preserves active deadlines and schedules shutdown if the app heartbeat disappears.
-- **Sparkle updates** — signed updates from `https://curfew.hypertext.studio/appcast.xml`.
+- **Sparkle updates** — signed updates from `https://thecurfew.app/appcast.xml`.
 - **Menu bar quick access** + first-launch onboarding.
 
 CloudKit sync and Calendar integration remain compiled for later releases but
@@ -134,7 +134,7 @@ ln -s /Applications/Curfew.app/Contents/Resources/curfew-ctl /usr/local/bin/curf
 
 ## Curfew Pro
 
-Pro adds features with ongoing infrastructure cost. Upgrade at [curfew.hypertext.studio](https://curfew.hypertext.studio).
+Pro adds features with ongoing infrastructure cost. Upgrade at [thecurfew.app](https://thecurfew.app).
 
 | Feature | Free | Pro |
 |---------|------|-----|

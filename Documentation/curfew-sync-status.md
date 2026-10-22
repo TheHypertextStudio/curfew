@@ -51,12 +51,13 @@ cannot authenticate another Mac, and revocation invalidates the device.
 
 Production uses only:
 
-- `https://curfew-account.hypertext.studio`
-- `https://curfew.hypertext.studio/account`
-- `https://curfew-sync.hypertext.studio`
+- `https://account.thecurfew.app`
+- `https://thecurfew.app/account`
+- `https://sync.thecurfew.app`
 
 The Dev app's Debug configuration selects `CURFEW_STAGING` by default and uses
-the three corresponding `curfew-*-staging.hypertext.studio` hosts, an isolated
+`staging.thecurfew.app`, `account-staging.thecurfew.app`, and
+`sync-staging.thecurfew.app`, an isolated
 Keychain service, the development helper label, and separate user/root state
 paths. Release rejects that flag. Runtime input cannot redirect the daemon to a
 different command signer.
