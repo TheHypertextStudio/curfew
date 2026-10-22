@@ -3,11 +3,14 @@ import CurfewKit
 import Foundation
 import Testing
 
-@available(macOS 26.0, *)
 struct RestAmbientSceneTests {
     @MainActor
     @Test("Missing occurrence keeps the chosen neutral night atmosphere without restriction status")
     func missingOccurrenceUsesNeutralNight() throws {
+        guard #available(macOS 26.0, *) else {
+            Issue.record("The shared renderer requires the supported macOS 26 test host")
+            return
+        }
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = .current
         let midday = try #require(calendar.date(from: DateComponents(

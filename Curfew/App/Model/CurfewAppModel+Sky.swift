@@ -1,3 +1,4 @@
+import CurfewAtmosphere
 import CurfewKit
 import Foundation
 
@@ -55,7 +56,7 @@ extension CurfewAppModel {
     var restPresentation: RestPresentationSnapshot {
         let content: RestContentState = if reflectionState.isEveningReflectionPending,
                                            isEnforcingLockout || !reflectionState.eveningDraft
-                                           .values.isEmpty {
+                                               .values.isEmpty {
             .evening
         } else {
             reflectionState.isDaybreakPresented ? .morning : .quiet

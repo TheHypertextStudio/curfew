@@ -1,14 +1,15 @@
+@testable import Curfew
+import CurfewAtmosphere
+@testable import CurfewKit
+import Foundation
+import Testing
+
 // Behavior tests for the living-sky model (`SkyMoment`).
 //
 // `SkyMoment.resolve` is a pure function (clock + curfew window → sky), so the
 // whole atmosphere mapping is verified here without touching SwiftUI: the
 // time-of-day fallback curve, the pre-lock descent + ember proximity ramp, and
 // the night arc that darkens at the midpoint and lifts toward dawn.
-
-@testable import Curfew
-@testable import CurfewKit
-import Foundation
-import Testing
 
 private func date(hour: Int, minute: Int = 0) -> Date {
     var components = Calendar.current.dateComponents(
