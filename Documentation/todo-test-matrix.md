@@ -2146,3 +2146,11 @@ does not modify native files, enable sales or remove owner/staging gates.
 | Retained account/device data, new-host passkeys, provider callbacks, native reconnection, and Sandbox restore | Actual protected staging walkthrough and private release acceptance |
 
 Production promotion uses the protected resume phase and retained accepted artifacts; see [production-domain-promotion.md](production-domain-promotion.md). Source checks and a configuration flag do not replace its runtime acceptance gates.
+
+### Documentation branding
+
+`scripts/user-docs.test.mjs` requires the homepage body/display font roles,
+matching light/dark color tokens, locally packaged WOFF2 assets, retained OFL
+licenses, and identical product/generated font configuration. Publication
+acceptance separately checks loaded fonts, computed families and rendered
+light/dark layouts on the provider and first-party documentation routes.
