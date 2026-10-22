@@ -37,6 +37,7 @@ struct SunriseScheduleIndependenceTests {
         defer { fixture.remove() }
         let originalState = try Data(contentsOf: fixture.store.stateURL)
         let scheduledUnlock = fixture.plan.holdUntil.addingTimeInterval(-300)
+        #expect(fixture.plan.occurrenceID != restriction.lockoutID)
 
         let result = try await replace(fixture, plan: fixture.plan)
 
@@ -120,7 +121,7 @@ struct SunriseScheduleIndependenceTests {
             sunriseNow: { now }, sunriseOnExternalPower: { true }
         )
         let plan = SunriseWakePlan(
-            owner: owner, occurrenceID: activeRecord?.lockoutID ?? UUID(),
+            owner: owner, occurrenceID: UUID(),
             wakeAt: now.addingTimeInterval(1800), holdUntil: now.addingTimeInterval(3900),
             allowsBattery: false
         )

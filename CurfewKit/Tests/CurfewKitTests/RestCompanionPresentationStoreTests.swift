@@ -137,10 +137,7 @@ extension RestCompanionPresentationStoreTests {
         }
     }
 
-    @Test(
-        "Read requests bounded bytes and independently rejects oversized appearance "
-            + "before inspection"
-    )
+    @Test("Oversized appearance bytes are rejected before inspection")
     func boundedRead() {
         let storage = Storage()
         storage.bytes[.appearance] = Data(
@@ -170,10 +167,7 @@ extension RestCompanionPresentationStoreTests {
         #expect(storage.writes.isEmpty)
     }
 
-    @Test(
-        "Host acknowledgement is versioned, generation matched, "
-            + "and contains no presentation content"
-    )
+    @Test("Acknowledgement matches version and generation without presentation content")
     func acknowledgementHandshake() throws {
         let storage = Storage()
         let store = storage.store()
