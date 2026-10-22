@@ -7,6 +7,55 @@ const deployment = (await import("../deployment/generated/environments.mjs")).de
 const config = JSON.parse(await read("web/docs/docs.json"));
 const pages = config.navigation.groups.flatMap(group => group.pages);
 
+test("documentation uses the homepage typefaces with local licensed font assets", async () => {
+  const styles = await read("landing/public/site-assets/design/tokens.css");
+  const source = JSON.parse(await read("web/docs/docs.site.json"));
+  const family = role => styles.match(new RegExp(`--${role}:\\s*"([^"]+)"`))?.[1];
+  assert.equal(source.fonts?.body?.family, family("body"), "Docs must select the homepage body font instead of the provider default");
+  assert.equal(source.fonts?.heading?.family, family("display"));
+  assert.equal(Object.hasOwn(source.fonts, "family"), false, "A global family makes the provider discard the heading/body overrides");
+  assert.deepEqual(config.fonts, source.fonts, "Generated typography must match the product configuration");
+  for (const face of [source.fonts.body, source.fonts.heading]) {
+    assert.equal(face.format, "woff2");
+    const url = new URL(face.source);
+    assert.equal(url.origin, "https://curfew.mintlify.site", "Font URLs must use the retained documentation host");
+    assert.match(url.pathname, /^\/docs\/fonts\/[A-Za-z]+\.woff2$/, "Local font URLs must retain the documentation mount");
+    const bytes = await readFile(`web${url.pathname}`);
+    assert.equal(bytes.subarray(0, 4).toString(), "wOF2");
+    assert.ok(bytes.length > 1000);
+  }
+  for (const name of ["Calistoga", "HankenGrotesk"]) {
+    assert.equal(await read(`web/docs/fonts/${name}-OFL.txt`), await read(`landing/public/site-assets/design/fonts/${name}-OFL.txt`));
+  }
+});
+
+test("documentation colors follow the homepage light and dark tokens", async () => {
+  const styles = await read("landing/public/site-assets/design/tokens.css");
+  const [light, dark] = styles.split(':root[data-theme="dark"]');
+  const token = (scope, role) => scope.match(new RegExp(`--${role}:\\s*([^;]+);`))?.[1];
+  assert.equal(config.colors.primary, token(light, "primary"));
+  assert.equal(config.colors.dark, token(light, "docs-control"));
+  assert.equal(config.colors.light, token(dark, "primary"));
+  assert.equal(config.background?.color?.light, token(light, "surface"));
+  assert.equal(config.background?.color?.dark, token(dark, "surface"));
+});
+
+test("documentation buttons remain visible in both themes with readable labels", () => {
+  const luminance = hex => {
+    const channels = hex.slice(1).match(/../g).map(value => Number.parseInt(value, 16) / 255)
+      .map(value => value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4);
+    return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
+  };
+  const contrast = (first, second) => {
+    const values = [luminance(first), luminance(second)].sort((a, b) => b - a);
+    return (values[0] + 0.05) / (values[1] + 0.05);
+  };
+  for (const [theme, background] of Object.entries(config.background.color)) {
+    assert.ok(contrast(config.colors.dark, background) >= 3, `Buttons need 3:1 contrast against the ${theme} background`);
+  }
+  assert.ok(contrast(config.colors.dark, "#ffffff") >= 4.5, "Button labels need 4.5:1 contrast");
+});
+
 test("public help covers setup, everyday use, Plus, integrations, and recovery", () => {
   for (const page of ["index", "install", "schedules", "lockout", "exceptions", "reflections",
     "licensing", "sync", "widgets", "calendar", "mcp-guide", "cli", "troubleshooting", "privacy", "uninstall"]) {
@@ -100,12 +149,18 @@ test("public help avoids self-narration and unnecessary contrast", async () => {
   }
 });
 
-test("published help follows current Settings labels and installer availability", async () => {
+test("published help follows current Settings labels", async () => {
   for (const page of pages) {
     assert.doesNotMatch(await read(`web/docs/${page}.mdx`), /Settings\s+→\s+Integrations|Settings\s+→\s+Enforcement|Show\s+Getting\s+Started|Enable\s+MCP\s+Control\s+Plane|Paste license key…/);
   }
-  assert.match(await read("web/docs/install.mdx"), /public Mac installer has not been released yet/);
   assert.match(await read("web/docs/mcp-guide.mdx"), /Allow assistants on this Mac/);
+});
+
+test("installation help retains macOS requirements and the canonical download destination", async () => {
+  const content = await read("web/docs/install.mdx");
+  const deployment = JSON.parse(await read("deployment/environments.json"));
+  assert.match(content, /\*\*macOS 26 or later\*\*/);
+  assert.ok(content.includes(`[download page](${deployment.environments.production.siteOrigin}/download)`));
 });
 
 test("setup help explains seven-day consent and the choice to leave automatic lockouts off", async () => {

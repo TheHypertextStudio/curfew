@@ -2139,6 +2139,7 @@ Do not run lockout/shutdown acceptance or UI suites on the operator desktop.
 | --- | --- |
 | Licensing help covers app activation, email restoration, manual fallback and offline access without advertising planned features as available | `scripts/user-docs.test.mjs`; Mintlify validation and hosted licensing-page review |
 | Release help requires the official app, links to canonical download and restore pages, and excludes draft assets and private checkout links | `scripts/user-docs.test.mjs`; Mintlify validation and external/anchor checks; read-only hosted link verification |
+| Installation help retains macOS requirements and the deployment manifest's canonical download link; the download page owns current installer availability and Plus remains separate | `scripts/user-docs.test.mjs` platform/download and planned-Plus checks; manual availability-copy review; Mintlify validation and approved first-party guide verification |
 
 `web/worker/test/deployment.node.mjs` verifies that native recovery-email bindings
 derive the sender and sole allowed address from the selected artifact. It covers
@@ -2194,3 +2195,13 @@ does not modify native files, enable sales or remove owner/staging gates.
 Production promotion uses the protected resume phase and retained accepted artifacts; see [production-domain-promotion.md](production-domain-promotion.md). Source checks and a configuration flag do not replace its runtime acceptance gates.
 
 `CurfewUITests/testRestScreenSettingsStartWithSafeLocalDefaults` scrolls the real settings form to verify that saver message sharing, Sunrise wake and battery operation each start off. It captures the preview and lower settings separately.
+
+### Documentation branding
+
+`scripts/user-docs.test.mjs` requires the homepage body/display font roles,
+separate provider font roles, hosted mounted asset URLs, matching light/dark color
+tokens, accessible shared button contrast, locally
+packaged WOFF2 assets, retained OFL
+licenses, and identical product/generated font configuration. Publication
+acceptance separately checks loaded fonts, computed families and rendered
+light/dark layouts on the provider and first-party documentation routes.

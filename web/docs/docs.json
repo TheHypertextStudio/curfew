@@ -1,9 +1,28 @@
 {
   "$schema": "https://mintlify.com/docs.json",
+  "background": {
+    "color": {
+      "dark": "#1e1a20",
+      "light": "#fbf7ef"
+    }
+  },
   "colors": {
-    "dark": "#d9733b",
-    "light": "#f58f4f",
-    "primary": "#b25e30"
+    "dark": "#b64b2c",
+    "light": "#ffb58e",
+    "primary": "#a83b1b"
+  },
+  "fonts": {
+    "body": {
+      "family": "Hanken Grotesk",
+      "format": "woff2",
+      "source": "https://curfew.mintlify.site/docs/fonts/HankenGrotesk.woff2"
+    },
+    "heading": {
+      "family": "Calistoga",
+      "format": "woff2",
+      "source": "https://curfew.mintlify.site/docs/fonts/Calistoga.woff2",
+      "weight": 400
+    }
   },
   "name": "Curfew",
   "navigation": {

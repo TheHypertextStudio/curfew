@@ -1763,3 +1763,13 @@ asserts its own screen and state before attaching an image.
   assets and private checkout links from public help.
 
 Rest Screen settings coverage reveals each privacy and power opt-in before checking its exact off value, including controls below the initial viewport. Native captures cover the preview and lower Sunrise controls; complete preset and accessibility acceptance remains required.
+
+- [-] Keep installation help independent of release availability by directing
+  readers to the canonical download page; preserve the separate Plus hold and
+  verify the approved guide on Mintlify and the first-party documentation route.
+- [-] Match documentation typography, accents and surfaces to the homepage
+  tokens using local licensed fonts, separate body/heading configuration, mounted
+  font URLs on the retained documentation host and accessible shared button
+  colors; verify
+  the served fonts and light/dark
+  rendering on the provider and first-party documentation routes.

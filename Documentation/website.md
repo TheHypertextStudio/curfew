@@ -87,6 +87,28 @@ pnpm docs:check
 combines it with the shared base. Follow [website authoring](website-authoring.md)
 when editing either.
 
+Documentation typography and colors follow the homepage roles in
+`landing/public/site-assets/design/tokens.css`: Hanken Grotesk for body text,
+Calistoga for headings, and the same light/dark surfaces and accents. The
+`--docs-control` tone supplies Mintlify's single button color across both themes,
+with at least 3:1 contrast against each surface and 4.5:1 for white labels. The local
+WOFF2 assets in `web/docs/fonts/` are compressed from the homepage's canonical
+TrueType files, with their original OFL licenses alongside them. Regenerate
+them with FontTools' `fontTools.ttLib.woff2.compress`, preserving the complete
+glyph coverage, metrics and variable axes. Keep fonts local to the documentation
+deployment rather than adding an external font service. Configure separate
+`fonts.body` and `fonts.heading` records: the pinned provider schema treats a
+global font and separate roles as alternatives, so mixing them drops the
+override. Font URLs use `https://curfew.mintlify.site/docs/fonts/` on the retained
+documentation host, which serves the bundled files with cross-origin font access.
+Relative font paths are rewritten to the provider asset bucket instead of the
+mounted route; use the explicit hosted URL to preserve the working resource.
+
+The documentation regressions check these roles, local font assets, licenses
+and generated configuration. Before accepting publication, inspect the rendered
+light and dark pages, confirm the font files load and the computed families
+match the configured roles on both the provider and first-party routes.
+
 Staging and production select `DOCS_MODE=mintlify` and the explicit upstream
 `https://curfew.mintlify.site`. Production changes require release-owner
 authorization. Local fixture mode retains `html-guide`; its HTML guide also

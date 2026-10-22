@@ -2,9 +2,9 @@
   "theme": "mint",
   "name": "Curfew",
   "colors": {
-    "primary": "#b25e30",
-    "light": "#f58f4f",
-    "dark": "#d9733b"
+    "primary": "#a83b1b",
+    "light": "#ffb58e",
+    "dark": "#b64b2c"
   },
   "navigation": {
     "groups": [
@@ -50,5 +50,24 @@
         ]
       }
     ]
+  },
+  "fonts": {
+    "body": {
+      "family": "Hanken Grotesk",
+      "source": "https://curfew.mintlify.site/docs/fonts/HankenGrotesk.woff2",
+      "format": "woff2"
+    },
+    "heading": {
+      "family": "Calistoga",
+      "weight": 400,
+      "source": "https://curfew.mintlify.site/docs/fonts/Calistoga.woff2",
+      "format": "woff2"
+    }
+  },
+  "background": {
+    "color": {
+      "light": "#fbf7ef",
+      "dark": "#1e1a20"
+    }
   }
 }
