@@ -7,6 +7,36 @@ const deployment = (await import("../deployment/generated/environments.mjs")).de
 const config = JSON.parse(await read("web/docs/docs.json"));
 const pages = config.navigation.groups.flatMap(group => group.pages);
 
+test("documentation uses the homepage typefaces with local licensed font assets", async () => {
+  const styles = await read("landing/public/site-assets/design/tokens.css");
+  const source = JSON.parse(await read("web/docs/docs.site.json"));
+  const family = role => styles.match(new RegExp(`--${role}:\\s*"([^"]+)"`))?.[1];
+  assert.equal(source.fonts?.family, family("body"), "Docs must select the homepage body font instead of the provider default");
+  assert.equal(source.fonts?.heading?.family, family("display"));
+  assert.deepEqual(config.fonts, source.fonts, "Generated typography must match the product configuration");
+  for (const face of [source.fonts, source.fonts.heading]) {
+    assert.equal(face.format, "woff2");
+    assert.match(face.source, /^\/fonts\/[A-Za-z]+\.woff2$/);
+    const bytes = await readFile(`web/docs${face.source}`);
+    assert.equal(bytes.subarray(0, 4).toString(), "wOF2");
+    assert.ok(bytes.length > 1000);
+  }
+  for (const name of ["Calistoga", "HankenGrotesk"]) {
+    assert.equal(await read(`web/docs/fonts/${name}-OFL.txt`), await read(`landing/public/site-assets/design/fonts/${name}-OFL.txt`));
+  }
+});
+
+test("documentation colors follow the homepage light and dark tokens", async () => {
+  const styles = await read("landing/public/site-assets/design/tokens.css");
+  const [light, dark] = styles.split(':root[data-theme="dark"]');
+  const token = (scope, role) => scope.match(new RegExp(`--${role}:\\s*([^;]+);`))?.[1];
+  assert.equal(config.colors.primary, token(light, "primary"));
+  assert.equal(config.colors.dark, token(light, "primary"));
+  assert.equal(config.colors.light, token(dark, "primary"));
+  assert.equal(config.background?.color?.light, token(light, "surface"));
+  assert.equal(config.background?.color?.dark, token(dark, "surface"));
+});
+
 test("public help covers setup, everyday use, Plus, integrations, and recovery", () => {
   for (const page of ["index", "install", "schedules", "lockout", "exceptions", "reflections",
     "licensing", "sync", "widgets", "calendar", "mcp-guide", "cli", "troubleshooting", "privacy", "uninstall"]) {
