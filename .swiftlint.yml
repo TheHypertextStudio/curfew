@@ -10,6 +10,7 @@ included:
   - CurfewKit/Sources/CurfewKit/Domain/RestCompanionExport.swift
   - CurfewKit/Sources/CurfewKit/Domain/RestHandoffPolicy.swift
   - CurfewKit/Sources/CurfewKit/Domain/RestSceneSnapshot.swift
+  - CurfewKit/Sources/CurfewKit/Domain/ScheduleModels.swift
   - CurfewKit/Sources/CurfewKit/Infrastructure/AuthenticatedDaemonService.swift
   - CurfewKit/Sources/CurfewKit/Infrastructure/CurfewDaemonProtocol.swift
   - CurfewKit/Sources/CurfewKit/Infrastructure/RestCompanionPresentationStore.swift

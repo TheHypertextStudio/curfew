@@ -198,4 +198,68 @@ struct SunrisePresentationPlanTests {
             #expect(plan.holdUntil == window.unlockDate.addingTimeInterval(300))
         }
     }
+
+    @Test("An overnight unlock on the transition day preserves its configured local clock")
+    func overnightTransitionUnlock() throws {
+        var schedule = WeeklySchedule.allDaysOff
+        schedule.rules[.saturday] = DayRule(
+            isDayOff: false, lockMinutes: 22 * 60, unlockMinutes: 6 * 60
+        )
+        for (instant, unlock) in [
+            ("2026-03-07T12:00:00-08:00", "2026-03-08T06:00:00-07:00"),
+            ("2026-10-31T12:00:00-07:00", "2026-11-01T06:00:00-08:00")
+        ] {
+            let window = try #require(schedule.scheduleWindow(
+                for: date(instant), calendar: calendar()
+            ))
+            #expect(window.unlockDate == date(unlock))
+        }
+    }
+
+    @Test("A same-day unlock on the transition day preserves its configured local clock")
+    func sameDayTransitionUnlock() throws {
+        var schedule = WeeklySchedule.allDaysOff
+        schedule.rules[.sunday] = DayRule(
+            isDayOff: false, lockMinutes: 6 * 60, unlockMinutes: 8 * 60
+        )
+        for (instant, lock, unlock) in [
+            ("2026-03-08T00:00:00-08:00", "2026-03-08T06:00:00-07:00", "2026-03-08T08:00:00-07:00"),
+            ("2026-11-01T00:00:00-07:00", "2026-11-01T06:00:00-08:00", "2026-11-01T08:00:00-08:00")
+        ] {
+            let window = try #require(schedule.scheduleWindow(
+                for: date(instant), calendar: calendar()
+            ))
+            #expect(window.lockDate == date(lock))
+            #expect(window.unlockDate == date(unlock))
+        }
+    }
+
+    @Test("An elapsed extension crossing the spring gap rolls past an earlier unlock clock")
+    func springExtensionRollover() throws {
+        var schedule = WeeklySchedule.allDaysOff
+        schedule.rules[.sunday] = DayRule(
+            isDayOff: false, lockMinutes: 90, unlockMinutes: 180
+        )
+        let window = try #require(schedule.scheduleWindow(
+            for: date("2026-03-08T00:00:00-08:00"),
+            extensionMinutesGrantedToday: 60, calendar: calendar()
+        ))
+        #expect(window.lockDate == date("2026-03-08T03:30:00-07:00"))
+        #expect(window.unlockDate == date("2026-03-09T03:00:00-07:00"))
+        #expect(window.unlockDate > window.lockDate)
+    }
+
+    @Test("A fallback daytime window never collapses its lock and unlock to the same instant")
+    func fallDaytimeWindow() throws {
+        var schedule = WeeklySchedule.allDaysOff
+        schedule.rules[.sunday] = DayRule(
+            isDayOff: false, lockMinutes: 360, unlockMinutes: 420
+        )
+        let window = try #require(schedule.scheduleWindow(
+            for: date("2026-11-01T00:00:00-07:00"), calendar: calendar()
+        ))
+        #expect(window.lockDate == date("2026-11-01T06:00:00-08:00"))
+        #expect(window.unlockDate == date("2026-11-01T07:00:00-08:00"))
+        #expect(window.unlockDate > window.lockDate)
+    }
 }

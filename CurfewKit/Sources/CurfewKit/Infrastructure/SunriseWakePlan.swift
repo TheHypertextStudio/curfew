@@ -13,7 +13,7 @@ public struct SunriseWakePlan: Codable, Equatable, Sendable {
 
 /// Pure planning for helper-authorized occurrences; performs no power operations.
 public struct SunriseWakePlanner {
-    private let owner: String
+    let owner: String
 
     public enum ValidationError: Error, Equatable {
         case invalidLeadMinutes
