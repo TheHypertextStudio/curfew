@@ -10,7 +10,7 @@
 # Usage:
 #   VERSION=0.0.1 \
 #   DMG_PATH=./Curfew-v0.0.1.dmg \
-#   RELEASE_NOTES_URL=https://curfew.hypertext.studio/releases/0.0.1.html \
+#   RELEASE_NOTES_URL=https://thecurfew.app/releases/0.0.1.html \
 #   SPARKLE_PRIVATE_KEY="$(cat private.key)" \
 #   bash scripts/generate-appcast.sh > appcast.xml
 #

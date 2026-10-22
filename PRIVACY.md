@@ -1,7 +1,7 @@
 # Curfew privacy reference
 
-The public [Privacy Policy](https://curfew.hypertext.studio/privacy) and
-[Data Retention Policy](https://curfew.hypertext.studio/retention) are authored in
+The public [Privacy Policy](https://thecurfew.app/privacy) and
+[Data Retention Policy](https://thecurfew.app/retention) are authored in
 `landing/src/content/privacy.html` and `landing/src/content/retention.html`.
 Their native Astro routes and `/legal/history` preserve stable policy links and
 prior documents. Maintain these sources together when information flows change;

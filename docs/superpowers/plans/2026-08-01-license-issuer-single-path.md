@@ -212,7 +212,7 @@ Expected: all commands exit 0. Release archive/notarization remains an Apple-cre
 Run:
 
 ```sh
-curl -fsSL https://curfew.hypertext.studio/ | rg "Curfew Pro is not on sale yet"
+curl -fsSL https://thecurfew.app/ | rg "Curfew Pro is not on sale yet"
 curl -fsS https://curfew-license-staging.hypertext.studio/health
 ```
 
