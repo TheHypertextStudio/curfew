@@ -48,7 +48,7 @@ public struct RestAmbientScene: View {
                 // The composite is opaque even for transparent imported pixels.
                 Color.black
                 background(in: proxy.size)
-                Color.black.opacity(0.72)
+                    .overlay(AtmospherePalette.textScrim)
                 if showsClock {
                     VStack(
                         alignment: appearance.clockPosition == .lowerLeft ? .leading : .center,
@@ -65,7 +65,7 @@ public struct RestAmbientScene: View {
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                     }
-                    .foregroundStyle(Color(red: 0.99, green: 0.97, blue: 0.94))
+                    .foregroundStyle(AtmospherePalette.warmWhite)
                     .padding(max(24, min(proxy.size.width, proxy.size.height) * 0.065))
                     .padding(
                         .top,

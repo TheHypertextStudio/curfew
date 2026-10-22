@@ -69,12 +69,12 @@ struct RestScreenSettingsView: View {
                     }
                 }
                 if let imageError {
-                    Text(imageError).foregroundStyle(.secondary)
+                    Text(imageError).foregroundStyle(CurfewTheme.mutedInk)
                 }
                 Toggle("Static background", isOn: $draft.staticBackground)
                     .toggleStyle(.switch)
                 Text("Reduce Motion also keeps the atmosphere still.")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(CurfewTheme.mutedInk)
             }
             Section("Clock and message") {
                 Picker("Clock style", selection: $draft.clockStyle) {
@@ -97,7 +97,7 @@ struct RestScreenSettingsView: View {
                         }
                     }
                 Text("\(draft.message.count)/140 characters")
-                    .font(.caption).foregroundStyle(.secondary)
+                    .font(.caption).foregroundStyle(CurfewTheme.mutedInk)
                 Toggle("Show personal message in screensaver", isOn: $draft.saverMessageEnabled)
                     .toggleStyle(.switch)
                     .accessibilityIdentifier("rest-saver-message")
@@ -120,7 +120,7 @@ struct RestScreenSettingsView: View {
                     unless you allow battery use. Your Mac’s usual authentication still applies.
                     """
                 )
-                .foregroundStyle(.secondary)
+                .foregroundStyle(CurfewTheme.mutedInk)
             }
         }
         .pickerStyle(.menu)
@@ -161,7 +161,11 @@ struct RestScreenSettingsView: View {
 
     private var solidColor: Binding<Color> {
         Binding(
-            get: { Color(red: draft.solidRed, green: draft.solidGreen, blue: draft.solidBlue) },
+            get: {
+                AtmospherePalette.solidBackground(
+                    red: draft.solidRed, green: draft.solidGreen, blue: draft.solidBlue
+                )
+            },
             set: { color in
                 guard let color = NSColor(color).usingColorSpace(.sRGB) else { return }
                 draft.solidRed = Double(color.redComponent)

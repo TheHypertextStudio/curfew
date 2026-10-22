@@ -12,7 +12,7 @@ enum SundownPalette {
     /// The warm page the workspace sanctuary sits on.
     static let paper = CurfewTheme.canvas
     /// Near-white with a warm cast — text over the dark sky.
-    static let warmWhite = Color(red: 0.99, green: 0.97, blue: 0.94)
+    static let warmWhite = AtmospherePalette.warmWhite
     /// Supporting text on opaque night panels and dark reflection inputs.
     static let supportingText = warmWhite.opacity(0.82)
 
@@ -23,7 +23,7 @@ enum SundownPalette {
 
     /// Shields small atmospheric text even when the sky or page fade is white.
     /// Shares the same contrast-tested backing as reflection and override inputs.
-    static let textScrim = inputSurface(usesSolidPanels: false)
+    static let textScrim = AtmospherePalette.textScrim
 
     /// Primary warm near-black ink.
     static let ink = CurfewTheme.ink
