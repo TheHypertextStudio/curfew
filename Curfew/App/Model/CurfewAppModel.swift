@@ -46,11 +46,11 @@ final class CurfewAppModel: NSObject {
 
     /// Appearance and optional Sunrise choices stay outside synchronized settings.
     var restAppearance: RestAppearancePreferences {
-        didSet { restAppearanceStore.save(restAppearance) }
+        didSet { handleRestAppearanceChange(from: oldValue) }
     }
 
     /// Optional Sunrise effects are composed separately from model initialization.
-    let sunriseRuntime = SunriseModelRuntime()
+    let restRuntime = RestExperienceRuntime()
 
     /// Separate local consent keeps a stored schedule editable without
     /// allowing an unconfirmed Curfew Dev schedule to lock the Mac.

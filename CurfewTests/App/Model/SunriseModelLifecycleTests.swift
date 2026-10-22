@@ -222,3 +222,51 @@ struct SunriseModelLifecycleTests {
         )
     }
 }
+
+extension SunriseModelLifecycleTests {
+    @Test("The all-day companion resolves a local night even when automatic wake is off")
+    func companionNightWithoutWake() throws {
+        let model = try model()
+        model.restAppearance = preferences(enabled: false)
+        model.currentTime = date("2026-10-19T23:00:00-07:00")
+        let snapshot = model.restCompanionSnapshot
+        #expect(snapshot.lockDate == date("2026-10-19T22:00:00-07:00"))
+        #expect(snapshot.unlockDate == date("2026-10-20T06:00:00-07:00"))
+        #expect(snapshot.expiresAt == date("2026-10-20T07:00:00-07:00"))
+        #expect(snapshot.appearance == model.restAppearance)
+        #expect(!model.isEnforcementRunning)
+    }
+
+    @Test("Companion occurrence expiry is stable across ticks and retains scheduled morning")
+    func companionStableMorning() throws {
+        let model = try model()
+        model.currentTime = date("2026-10-20T06:10:00-07:00")
+        let morning = model.restCompanionSnapshot
+        model.currentTime = model.currentTime.addingTimeInterval(1)
+        #expect(model.restCompanionSnapshot == morning)
+        #expect(morning.unlockDate == date("2026-10-20T06:00:00-07:00"))
+        #expect(morning.resolve(at: model.currentTime, timeZone: .current).phase == .morning)
+        model.currentTime = date("2026-10-20T07:00:00-07:00")
+        let next = model.restCompanionSnapshot
+        #expect(next.unlockDate == date("2026-10-21T06:00:00-07:00"))
+        #expect(next.resolve(at: model.currentTime, timeZone: .current).phase == .allDay)
+    }
+
+    @Test("A remote restriction cannot invent a companion occurrence on days off")
+    func companionHasNoRemoteAuthority() throws {
+        let model = try model()
+        model.settings.schedule = .allDaysOff
+        model.state = CurfewEvaluation(
+            phase: .locked, warningStage: .none, minutesRemaining: .max,
+            canRequestExtension: false, lockDate: model.currentTime,
+            unlockDate: .distantFuture
+        )
+        let snapshot = model.restCompanionSnapshot
+        #expect(snapshot.lockDate == nil)
+        #expect(snapshot.unlockDate == nil)
+        model.currentTime = model.currentTime.addingTimeInterval(100)
+        #expect(model.restCompanionSnapshot == snapshot)
+        #expect(snapshot.resolve(at: model.currentTime, timeZone: .current).phase == .allDay)
+        #expect(model.state.unlockDate == .distantFuture)
+    }
+}

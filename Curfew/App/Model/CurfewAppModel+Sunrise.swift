@@ -14,6 +14,10 @@ final class SunriseModelRuntime {
 
 @MainActor
 extension CurfewAppModel {
+    var sunriseRuntime: SunriseModelRuntime {
+        restRuntime.sunrise
+    }
+
     var sunriseWakeCoordinator: SunriseWakeCoordinator? {
         get { sunriseRuntime.coordinator }
         set { sunriseRuntime.coordinator = newValue }
@@ -34,8 +38,25 @@ extension CurfewAppModel {
         set { sunriseRuntime.status = newValue }
     }
 
-    /// Inert pending actual native behavioral RED for model lifecycle composition.
-    /// The eventual implementation must use the configured local schedule, never
-    /// restriction authority, and requires an explicitly composed runtime.
-    func reconcileSunriseWake() async {}
+    /// Uses the configured local schedule, never restriction authority. Test/demo
+    /// models have no live runtime unless a test explicitly supplies fake effects.
+    func reconcileSunriseWake() async {
+        guard !isDemoSession, let coordinator = sunriseWakeCoordinator else {
+            sunriseStatus = .disabled
+            return
+        }
+        let preferences = restAppearance
+        let plan = SunriseWakePlanner(owner: CurfewFlavor.current.daemonLabel + ".sunrise")
+            .presentationPlan(
+                schedule: settings.schedule, appearance: preferences,
+                at: currentTime, calendar: sunriseCalendar
+            )
+        await coordinator.reconcile(
+            plan: plan, enabled: preferences.sunriseWakeEnabled,
+            batteryOptIn: preferences.sunriseOnBatteryEnabled,
+            onExternalPower: sunriseOnExternalPower(), now: currentTime
+        )
+        guard sunriseWakeCoordinator === coordinator, !isDemoSession else { return }
+        sunriseStatus = coordinator.status
+    }
 }

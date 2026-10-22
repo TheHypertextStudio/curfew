@@ -35,3 +35,9 @@ Source, automated tests, screensaver-host acceptance, API success, physical mach
 ### Scheduled wall clocks and daylight saving
 
 Configured lock and unlock times are local calendar clock values. Resolve those values before adding elapsed extension minutes; a missing spring-forward clock preserves its smaller components at the next valid time, and a repeated clock uses its first occurrence. If an elapsed extension overtakes the originally resolved unlock, select the next configured unlock clock after the actual lock. Explicit saved day offsets retain their original reference day. The same schedule resolver supplies enforcement and Sunrise, so presentation cannot invent an independent release time. This date correction is independently reversible; reverting it restores the previous transition-day drift and requires repeating schedule and Sunrise regression acceptance.
+
+## Runtime composition and recovery
+
+Normal app launch explicitly creates the optional rest runtime after the demo and loaded-test-runtime guards. Appearance changes and the existing display clock reconcile companion publication and Sunrise independently of enforcement. The companion receives bounded owned image bytes and a fresh readback nonce; a preferences write is not proof that the screensaver process read it. Activity and display assertions have separate owners so cleanup cannot consume another policy’s retained retry token.
+
+The privileged helper composes its authenticated Sunrise operations with a fixed flavor-specific event owner and a private root-owned journal beneath `/private/var/db`. Unsafe or unavailable storage disables optional scheduling while restriction enforcement continues. Disable Sunrise to cancel its owned event and release its display hold; rollback removes the optional runtime composition without changing restriction authority. Installed-helper recovery, actual host exchange and physical power behavior remain separate acceptance requirements.
