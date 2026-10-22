@@ -52,16 +52,67 @@ public final class AuthenticatedDaemonService: NSObject, CurfewDaemonXPCProtocol
         super.init()
     }
 
-    /// Inert boundary until failing-first service contracts are observed.
-    /// No payload decoding, journal access or native operation occurs here.
     public func replaceSunriseWakePlan(
-        _: Data, reply: @escaping (Data?, NSError?) -> Void
+        _ request: Data, reply: @escaping (Data?, NSError?) -> Void
     ) {
-        reply(nil, Self.sunriseUnavailable)
+        queue.async {
+            do {
+                if let error = self.persistenceError {
+                    throw error
+                }
+                guard let scheduler = self.sunriseScheduler else { throw Self.sunriseUnavailable }
+                let now = self.sunriseNow()
+                let plan = try self.authorizedSunrisePlan(request, now: now)
+                _ = try scheduler.reconcile(
+                    desired: plan, authorizedPlan: plan,
+                    onExternalPower: self.sunriseOnExternalPower(), now: now
+                )
+                try reply(Self.encoder.encode(plan), nil)
+            } catch { reply(nil, Self.nsError(error)) }
+        }
     }
 
     public func cancelSunriseWakePlan(reply: @escaping (Data?, NSError?) -> Void) {
-        reply(nil, Self.sunriseUnavailable)
+        queue.async {
+            do {
+                guard let scheduler = self.sunriseScheduler else { throw Self.sunriseUnavailable }
+                try self.cancelSunriseWake(using: scheduler)
+                try reply(Self.encoder.encode(true), nil)
+            } catch { reply(nil, Self.nsError(error)) }
+        }
+    }
+
+    /// The authenticated local occurrence alone anchors Sunrise. Independent
+    /// restrictions still determine enforcement, but cannot move this anchor.
+    private func authorizedSunrisePlan(_ request: Data, now: Date) throws -> SunriseWakePlan {
+        guard request.count <= 4096 else { throw SunriseWakeScheduler.Rejection.unauthorizedPlan }
+        let requested = try Self.decoder.decode(SunriseWakePlan.self, from: request)
+        guard requested.owner == sunriseOwner,
+              let local = control.activeLocalCandidate(control.localStatus.activeRecord, now: now),
+              local.kind == .scheduledTime
+        else { throw SunriseWakeScheduler.Rejection.unauthorizedPlan }
+        let lead = local.scheduledUnlockAt.timeIntervalSince(requested.wakeAt) / 60
+        guard lead.isFinite, (5 ... 60).contains(lead), lead.rounded() == lead else {
+            throw SunriseWakePlanner.ValidationError.invalidLeadMinutes
+        }
+        // Battery eligibility is checked by reconciliation, after authorization,
+        // so changing to battery can cancel an existing AC-only owned event.
+        guard let authorized = try SunriseWakePlanner(owner: sunriseOwner).makePlan(
+            enabled: true, requestedOccurrenceID: requested.occurrenceID,
+            authorizedOccurrenceID: local.lockoutID, lockedAt: local.lockoutStartedAt,
+            unlockAt: local.scheduledUnlockAt, leadMinutes: Int(lead),
+            allowsBattery: requested.allowsBattery, onExternalPower: true, now: now
+        ), authorized == requested else {
+            throw SunriseWakeScheduler.Rejection.unauthorizedPlan
+        }
+        return authorized
+    }
+
+    private func cancelSunriseWake(using scheduler: SunriseWakeScheduler) throws {
+        _ = try scheduler.reconcile(
+            desired: nil, authorizedPlan: nil,
+            onExternalPower: sunriseOnExternalPower(), now: sunriseNow()
+        )
     }
 
     private static var sunriseUnavailable: NSError {
@@ -170,6 +221,9 @@ public final class AuthenticatedDaemonService: NSObject, CurfewDaemonXPCProtocol
                     external: self.readExternal(self.control, now),
                     now: now
                 )
+                if let scheduler = self.sunriseScheduler {
+                    try self.cancelSunriseWake(using: scheduler)
+                }
                 try self.store.clear()
                 try reply(Self.encoder.encode(self.currentStatus(now: now)), nil)
             } catch { reply(nil, Self.nsError(error)) }
