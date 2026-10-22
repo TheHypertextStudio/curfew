@@ -27,6 +27,8 @@ The control test reads the sole native static text's accessibility value (fallin
 
 Observational diagnostics retain the combined control audit and original real-scene audit unchanged. `testIsolatedUnlockLabelContrastDiagnostic` runs contrast alone on the same verified control so its terminal outcome is independent of description findings. The combined control test attaches its current accessibility hierarchy. Each original scene audit attaches observed editor existence, enabled/hittable state and frame without adding waits or readiness assertions. Metadata collection can affect timing; a diagnostic green alone is not a permanent fix. Remove these diagnostics before final integration.
 
+Temporary issue observers attach the audit type, compact/detailed descriptions and the associated element's current debug description (or an explicit absent-element value). Every audit callback unconditionally returns `false`, so issues retain the SDK's normal recording/failure policy. Audit types, assertions and readiness behavior are unchanged; these observations cannot waive product acceptance.
+
 ## Worktree preparation
 
 `./bootstrap worktree plan --json` validates workspace discovery and rejects

@@ -19,6 +19,8 @@ The control's native UI lookup accepts static text exposed through AX value, pre
 
 Temporary observational tests record the control's current accessibility hierarchy, run a separate contrast-only control audit, and capture editor readiness before each unchanged real-scene audit. They add no readiness wait/assertion or product change and require cleanup before integration; their results narrow diagnosis rather than establish product acceptance.
 
+Temporary audit callbacks log issue details and the directly associated element, then always return `false` to preserve every normal audit failure. They neither suppress issues nor change product or fixture behavior.
+
 ## Worktree preparation
 
 - [x] Keep root command shortcuts separate from the independent frontend and

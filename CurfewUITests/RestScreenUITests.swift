@@ -10,7 +10,13 @@ extension CurfewUITests {
         hierarchy.name = "Control accessibility hierarchy before combined audit"
         hierarchy.lifetime = .keepAlways
         add(hierarchy)
-        try app.performAccessibilityAudit(for: [.contrast, .sufficientElementDescription])
+        try app.performAccessibilityAudit(for: [
+            .contrast,
+            .sufficientElementDescription
+        ]) { issue in
+            self.attachRestAuditIssue(issue, context: "combined control")
+            return false
+        }
     }
 
     @MainActor
@@ -18,7 +24,24 @@ extension CurfewUITests {
         let app = launchFixture("lockout", state: "rest-contrast-control")
         defer { app.terminate() }
         assertIsolatedUnlockControl(app)
-        try app.performAccessibilityAudit(for: [.contrast])
+        try app.performAccessibilityAudit(for: [.contrast]) { issue in
+            self.attachRestAuditIssue(issue, context: "contrast-only control")
+            return false
+        }
+    }
+
+    @MainActor
+    private func attachRestAuditIssue(_ issue: XCUIAccessibilityAuditIssue, context: String) {
+        let observation = XCTAttachment(string: """
+        context=\(context)
+        auditType=\(issue.auditType.rawValue)
+        compactDescription=\(issue.compactDescription)
+        detailedDescription=\(issue.detailedDescription)
+        element=\(issue.element?.debugDescription ?? "<none>")
+        """)
+        observation.name = "Native audit issue — \(context)"
+        observation.lifetime = .keepAlways
+        add(observation)
     }
 
     @MainActor
@@ -95,7 +118,13 @@ extension CurfewUITests {
             observation.name = "Observed rest editor readiness — \(state)"
             observation.lifetime = .keepAlways
             add(observation)
-            try app.performAccessibilityAudit(for: [.contrast, .sufficientElementDescription])
+            try app.performAccessibilityAudit(for: [
+                .contrast,
+                .sufficientElementDescription
+            ]) { issue in
+                self.attachRestAuditIssue(issue, context: state)
+                return false
+            }
             app.terminate()
             XCTAssertTrue(app.wait(for: .notRunning, timeout: 5))
         }
