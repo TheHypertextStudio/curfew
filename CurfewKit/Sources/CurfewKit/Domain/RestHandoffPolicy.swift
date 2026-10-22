@@ -1,7 +1,6 @@
 import Foundation
 
-/// Inert API scaffold for behavioral failing-first tests of presentation-only handoff.
-/// No event is processed until the policy's behavior has been verified failing first.
+/// Presentation-only handoff decisions. Effects carry no enforcement authority.
 public nonisolated struct RestHandoffPolicy: Sendable {
     public typealias Generation = UInt64
 
@@ -52,12 +51,130 @@ public nonisolated struct RestHandoffPolicy: Sendable {
     public private(set) var controlsMayReturn = true
     public private(set) var setupStatus: SetupStatus?
 
-    public init(monotonicSeconds _: TimeInterval) {}
+    private var lastActivity: TimeInterval?
+    private var reflectionResolved = false
+    private var blockers: [Blocker] = []
+    private var generation: Generation = 0
+    private var launchRequested = false
+    private var refreshedTime = false
+    private var refreshedAuthority = false
+
+    public init(monotonicSeconds: TimeInterval) {
+        if monotonicSeconds.isFinite, monotonicSeconds >= 0 {
+            self.lastActivity = monotonicSeconds
+        }
+    }
 
     public mutating func handle(
-        _: Event,
-        monotonicSeconds _: TimeInterval
+        _ event: Event,
+        monotonicSeconds: TimeInterval
     ) -> [Effect] {
-        []
+        switch event {
+        case .reflectionResolved:
+            guard phase == .interactive, !reflectionResolved else { return [] }
+            reflectionResolved = true
+            recordActivity(monotonicSeconds)
+        case .input:
+            recordActivity(monotonicSeconds)
+            if phase == .settling {
+                return cancelHandoff()
+            }
+        case .setBlocker(let blocker, let active):
+            if active {
+                if !blockers.contains(blocker) {
+                    blockers.append(blocker)
+                }
+                recordActivity(monotonicSeconds)
+                if phase == .settling {
+                    return cancelHandoff()
+                }
+            } else {
+                blockers.removeAll { $0 == blocker }
+                recordActivity(monotonicSeconds)
+            }
+        case .idleCheck:
+            guard let lastActivity,
+                  monotonicSeconds.isFinite,
+                  monotonicSeconds >= lastActivity,
+                  monotonicSeconds - lastActivity >= 60
+            else { return [] }
+            return beginHandoff()
+        case .restNow:
+            return beginHandoff()
+        case .settled(let callback):
+            guard phase == .settling, pendingGeneration == callback, !launchRequested
+            else { return [] }
+            launchRequested = true
+            return [.launchSaver(callback)]
+        case .launchCompleted(let callback, let result):
+            guard phase == .settling, pendingGeneration == callback, launchRequested
+            else { return [] }
+            launchRequested = false
+            switch result {
+            case .started:
+                phase = .saver
+                controlsMayReturn = false
+            case .unavailable(let status):
+                setupStatus = status
+                pendingGeneration = nil
+                phase = .interactive
+                controlsMayReturn = true
+                recordActivity(monotonicSeconds)
+            }
+        case .saverReturned:
+            guard phase == .saver else { return [] }
+            let refresh = nextGeneration()
+            pendingGeneration = refresh
+            phase = .refreshing
+            controlsMayReturn = false
+            refreshedTime = false
+            refreshedAuthority = false
+            return [.refreshTime(refresh), .refreshAuthority(refresh)]
+        case .timeRefreshed(let callback):
+            guard phase == .refreshing, pendingGeneration == callback else { return [] }
+            refreshedTime = true
+            finishRefresh(monotonicSeconds)
+        case .authorityRefreshed(let callback):
+            guard phase == .refreshing, pendingGeneration == callback else { return [] }
+            refreshedAuthority = true
+            finishRefresh(monotonicSeconds)
+        }
+        return []
+    }
+
+    private mutating func recordActivity(_ sample: TimeInterval) {
+        guard sample.isFinite, sample >= 0 else { return }
+        lastActivity = max(lastActivity ?? sample, sample)
+    }
+
+    private mutating func nextGeneration() -> Generation {
+        generation += 1
+        return generation
+    }
+
+    private mutating func beginHandoff() -> [Effect] {
+        guard phase == .interactive, reflectionResolved, blockers.isEmpty else { return [] }
+        let request = nextGeneration()
+        pendingGeneration = request
+        phase = .settling
+        setupStatus = nil
+        launchRequested = false
+        return [.settle(request)]
+    }
+
+    private mutating func cancelHandoff() -> [Effect] {
+        guard let pendingGeneration else { return [] }
+        self.pendingGeneration = nil
+        phase = .interactive
+        launchRequested = false
+        return [.cancel(pendingGeneration)]
+    }
+
+    private mutating func finishRefresh(_ sample: TimeInterval) {
+        guard refreshedTime, refreshedAuthority else { return }
+        pendingGeneration = nil
+        phase = .interactive
+        controlsMayReturn = true
+        recordActivity(sample)
     }
 }

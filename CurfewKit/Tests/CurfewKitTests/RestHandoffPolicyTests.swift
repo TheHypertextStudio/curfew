@@ -137,6 +137,25 @@ struct RestHandoffPolicyTests {
         }
     }
 
+    @Test("Return before launch completion still refreshes and rejects the delayed callback")
+    func returnBeforeLaunchCompletion() throws {
+        var policy = ready()
+        _ = policy.handle(.restNow, monotonicSeconds: start)
+        let launch = try #require(policy.pendingGeneration)
+        _ = policy.handle(.settled(launch), monotonicSeconds: start)
+        let effects = policy.handle(.saverReturned, monotonicSeconds: start + 1)
+        let refresh = try #require(policy.pendingGeneration)
+        #expect(refresh != launch)
+        #expect(policy.phase == .refreshing)
+        #expect(effects == [.refreshTime(refresh), .refreshAuthority(refresh)])
+        #expect(policy.handle(.launchCompleted(launch, .started), monotonicSeconds: start + 2)
+            .isEmpty)
+        _ = policy.handle(.timeRefreshed(refresh), monotonicSeconds: start + 2)
+        _ = policy.handle(.authorityRefreshed(refresh), monotonicSeconds: start + 2)
+        #expect(policy.phase == .interactive)
+        #expect(policy.controlsMayReturn)
+    }
+
     @Test("Invalid or backwards monotonic samples cannot trigger handoff")
     func invalidElapsedSamples() {
         for sample in [-1.0, Double.nan, .infinity, -.infinity, start - 1] {
