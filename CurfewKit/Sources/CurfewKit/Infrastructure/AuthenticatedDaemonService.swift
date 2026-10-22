@@ -15,12 +15,20 @@ public final class AuthenticatedDaemonService: NSObject, CurfewDaemonXPCProtocol
     private let readExternal: (AuthenticatedDaemonControl, Date) -> LockoutDeadlineRecord?
     private let evaluate: (PrivilegedDaemonStatus, Date, Bool) -> Bool
     private let discover: () -> Void
+    private let sunriseScheduler: SunriseWakeScheduler?
+    private let sunriseOwner: String
+    private let sunriseNow: () -> Date
+    private let sunriseOnExternalPower: () -> Bool
 
     public init(
         store: PrivilegedDaemonStateStore = PrivilegedDaemonStateStore(),
         readExternal: @escaping (AuthenticatedDaemonControl, Date) -> LockoutDeadlineRecord?,
         evaluate: @escaping (PrivilegedDaemonStatus, Date, Bool) -> Bool,
-        discover: @escaping () -> Void
+        discover: @escaping () -> Void,
+        sunriseScheduler: SunriseWakeScheduler? = nil,
+        sunriseOwner: String = CurfewFlavor.current.daemonLabel + ".sunrise",
+        sunriseNow: @escaping () -> Date = Date.init,
+        sunriseOnExternalPower: @escaping () -> Bool = { false }
     ) {
         self.store = store
         do {
@@ -37,7 +45,30 @@ public final class AuthenticatedDaemonService: NSObject, CurfewDaemonXPCProtocol
         self.readExternal = readExternal
         self.evaluate = evaluate
         self.discover = discover
+        self.sunriseScheduler = sunriseScheduler
+        self.sunriseOwner = sunriseOwner
+        self.sunriseNow = sunriseNow
+        self.sunriseOnExternalPower = sunriseOnExternalPower
         super.init()
+    }
+
+    /// Inert boundary until failing-first service contracts are observed.
+    /// No payload decoding, journal access or native operation occurs here.
+    public func replaceSunriseWakePlan(
+        _: Data, reply: @escaping (Data?, NSError?) -> Void
+    ) {
+        reply(nil, Self.sunriseUnavailable)
+    }
+
+    public func cancelSunriseWakePlan(reply: @escaping (Data?, NSError?) -> Void) {
+        reply(nil, Self.sunriseUnavailable)
+    }
+
+    private static var sunriseUnavailable: NSError {
+        NSError(
+            domain: "studio.hypertext.curfew.daemon.sunrise", code: 1,
+            userInfo: [NSLocalizedDescriptionKey: "Sunrise helper scheduling is unavailable."]
+        )
     }
 
     public func evaluateNow() async -> PrivilegedDaemonStatus {
