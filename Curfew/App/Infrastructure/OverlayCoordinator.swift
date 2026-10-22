@@ -322,6 +322,7 @@ final class OverlayCoordinator {
 
     func apply(configuration: OverlayWindowConfiguration, to window: NSWindow) {
         let coversScreen = configuration.level == .screenSaver
+        window.setAccessibilityModal(coversScreen)
         window.isOpaque = coversScreen
         window.backgroundColor = coversScreen ? .black : .clear
         if coversScreen {

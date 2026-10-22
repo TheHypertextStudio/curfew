@@ -70,6 +70,8 @@ Reduce Motion freezes ambient drift and removes positional/scale movement; neces
 
 The dark rest atmosphere uses Dark Aqua on its native covering window so hosted controls inherit an appearance consistent with the sky and light text, regardless of the surrounding application's appearance. Warning and timer windows retain their supplied appearance. This local policy adds no application-wide theme override; future palette customization must keep native controls and the rendered surface consistent. Reverting this window policy restores inherited appearance without changing schedules, drafts, or enforcement.
 
+Screen-covering rest and daybreak windows expose modal accessibility semantics so assistive technology can identify the active interaction context. Click-through warning and timer windows remain nonmodal. This uses the native accessibility property without introducing an application-modal event loop or changing enforcement, display lifecycle, or ordinary workspace presentation.
+
 ## Sleep, visibility, and displays
 
 Keep windows and hosts alive during display sleep. Suspend ambient drawing when the app's content is not visible; do not suspend enforcement as a consequence of rendering policy. On wake, refresh authoritative state before choosing the scene and reassert active lockout coverage immediately.

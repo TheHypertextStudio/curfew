@@ -2,7 +2,7 @@
 
 ## Continuous lockout and morning experience
 
-Design: [lockout experience](lockout-experience-design.md). Execution: [implementation plan](internal/lockout-experience-plan.md). Source implementation and native acceptance are tracked separately. The full native unit suite passes; the experience remains in progress until rendered interaction and physical lifecycle checks pass.
+Design: [lockout experience](lockout-experience-design.md). Execution: [implementation plan](internal/lockout-experience-plan.md). Source implementation and native acceptance are tracked separately. Completion requires the full native unit suite, rendered interaction and physical lifecycle checks to pass.
 
 - [-] Retain per-display native hosts and shared reflection drafts across ordinary updates and monitor changes; ordinary ticks must not reorder visible windows during input. Native hold/focus acceptance remains required. Physical review scenes observe OS sleep/wake with a disarmed, elapsed-time demo clock and never reassert the real shield.
 - [-] Keep active evening reflection content through midnight and suppress repeat prompts in the same scheduled night; native model regressions cover temporary release, delayed holds, original-night resolution and day-off handoff.
@@ -11,7 +11,7 @@ Design: [lockout experience](lockout-experience-design.md). Execution: [implemen
 - [x] Document the Sunrise display-wake assessment separately from system wake and release authority, including a proposed five-minute maximum hold and cancellation boundaries. No power-management implementation is included.
 - [ ] Verify rendered motion, input, accessibility and physical sleep/wake journeys; retain a small composition boundary for future customization.
 
-- [-] Expose the blocking rest/daybreak window presentation through native modal accessibility semantics while preserving nonmodal warning/timer windows. Prepare offscreen native regression coverage first; an executed expected failure is required before implementation. Do not introduce application-modal event loops or alter retained multi-display lifecycle. Workspace navigation and the unchanged combined audit require independent native acceptance.
+- [-] Expose the blocking rest/daybreak window presentation through native modal accessibility semantics while preserving nonmodal warning/timer windows. Cover the actual offscreen window getter for both rest configurations and for click-through warning/timer windows. Do not introduce application-modal event loops or alter retained multi-display lifecycle. Workspace navigation and the unchanged combined audit require independent native acceptance.
 
 Dark rest scenes use Dark Aqua for their native window and inherited hosting-view appearance under either supplied application appearance, while warning/timer windows preserve the supplied appearance. Native appearance regressions cover both Aqua and Dark Aqua without changing application-wide appearance. Keep the actual contrast audit and interaction assertions unchanged; rendered light/dark native fit remains an acceptance requirement.
 
