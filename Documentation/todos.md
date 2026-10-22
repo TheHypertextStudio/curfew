@@ -9,7 +9,7 @@ Design: [rest experience features](rest-experience-features.md). Delivery: [impl
 - [ ] Add the Rest Screen settings destination with live preview, owned JPEG/PNG/HEIC import, adjustable aspect-fill focal point and mandatory readability treatment.
 - [ ] Deliver the independently versioned native companion, bounded presentation/image exchange, actual host readback and explicit installation/update/removal actions.
 - [ ] Coordinate idle/explicit screensaver entry and authenticated return without losing drafts, native hosts or restriction authority.
-- [ ] Add authenticated owned Sunrise system-wake scheduling and bounded display delivery with independent battery consent, cancellation and recovery.
+- [-] Define authenticated owned Sunrise planning contracts for timing, power policy, replacement and cancellation before implementing helper scheduling and bounded display delivery. Native scheduling, durable recovery and physical acceptance remain required.
 - [ ] Verify the combined native experience, actual global accessibility, physical sleep/wake, authentication, multiple displays and app/companion artifacts before shipping acceptance.
 
 Rollback removes optional feature integration and separate local appearance storage without changing synced settings, restriction policy or remote protocols. A returned API success cannot establish host loading, monitor illumination or physical acceptance.
