@@ -89,7 +89,9 @@ when editing either.
 
 Documentation typography and colors follow the homepage roles in
 `landing/public/site-assets/design/tokens.css`: Hanken Grotesk for body text,
-Calistoga for headings, and the same light/dark surfaces and accents. The local
+Calistoga for headings, and the same light/dark surfaces and accents. The
+`--docs-control` tone supplies Mintlify's single button color across both themes,
+with at least 3:1 contrast against each surface and 4.5:1 for white labels. The local
 WOFF2 assets in `web/docs/fonts/` are compressed from the homepage's canonical
 TrueType files, with their original OFL licenses alongside them. Regenerate
 them with FontTools' `fontTools.ttLib.woff2.compress`, preserving the complete
