@@ -1,7 +1,6 @@
 import Foundation
 
-/// Temporary TDD scaffold for the shared presentation contract.
-/// This value contains no restriction authority; no app consumer uses it yet.
+/// Immutable presentation context shared by the app and companion, without restriction authority.
 public nonisolated struct RestSceneSnapshot: Codable, Equatable, Sendable {
     public let version: Int
     public let expiresAt: Date
@@ -32,8 +31,30 @@ public nonisolated struct RestSceneSnapshot: Codable, Equatable, Sendable {
         public let sunriseProgress: Double
     }
 
-    /// Deliberately neutral until the temporal tests establish behavioral RED.
-    public func resolve(at _: Date, timeZone _: TimeZone) -> Frame {
-        Frame(phase: .allDay, sunriseProgress: 0)
+    /// Recomputes presentation from absolute timestamps, independently of local clock formatting.
+    public func resolve(at now: Date, timeZone _: TimeZone) -> Frame {
+        let neutral = Frame(phase: .allDay, sunriseProgress: 0)
+        guard version == 1,
+              now.timeIntervalSinceReferenceDate.isFinite,
+              expiresAt.timeIntervalSinceReferenceDate.isFinite,
+              now < expiresAt,
+              let lockDate,
+              let unlockDate,
+              lockDate.timeIntervalSinceReferenceDate.isFinite,
+              unlockDate.timeIntervalSinceReferenceDate.isFinite,
+              lockDate < unlockDate,
+              now >= lockDate
+        else { return neutral }
+
+        if now >= unlockDate {
+            return Frame(phase: .morning, sunriseProgress: 1)
+        }
+
+        let leadSeconds = Double(appearance.sunriseLeadMinutes) * 60
+        let remaining = unlockDate.timeIntervalSince(now)
+        guard remaining <= leadSeconds else {
+            return Frame(phase: .night, sunriseProgress: 0)
+        }
+        return Frame(phase: .sunrise, sunriseProgress: min(1, max(0, 1 - remaining / leadSeconds)))
     }
 }
