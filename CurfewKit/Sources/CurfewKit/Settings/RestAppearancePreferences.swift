@@ -72,6 +72,27 @@ public nonisolated struct RestAppearancePreferences: Codable, Equatable, Sendabl
         self.sunriseOnBatteryEnabled = sunriseOnBatteryEnabled
     }
 
+    /// Module-internal bridge from the validated export allowlist. Image pixels belong to
+    /// that export, so preserving `.image` must not manufacture a local owned filename.
+    init(presentationAppearance: RestCompanionExport.Appearance) {
+        self.background = presentationAppearance.background
+        self.palette = presentationAppearance.palette
+        self.solidRed = presentationAppearance.solidRed
+        self.solidGreen = presentationAppearance.solidGreen
+        self.solidBlue = presentationAppearance.solidBlue
+        self.clockStyle = presentationAppearance.clockStyle
+        self.clockPosition = presentationAppearance.clockPosition
+        self.staticBackground = presentationAppearance.staticBackground
+        self.message = presentationAppearance.message
+        self.ownedImageFilename = nil
+        self.focalX = presentationAppearance.focalX
+        self.focalY = presentationAppearance.focalY
+        self.saverMessageEnabled = false
+        self.sunriseWakeEnabled = false
+        self.sunriseLeadMinutes = presentationAppearance.sunriseLeadMinutes
+        self.sunriseOnBatteryEnabled = false
+    }
+
     private enum CodingKeys: String, CodingKey {
         case background, palette, solidRed, solidGreen, solidBlue
         case clockStyle, clockPosition, staticBackground, message, ownedImageFilename

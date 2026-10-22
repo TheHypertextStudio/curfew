@@ -22,14 +22,14 @@ public nonisolated struct RestSceneSnapshot: Codable, Equatable, Sendable {
         self.unlockDate = unlockDate
     }
 
-    /// Inert seam for the presentation bridge; visual-copy behavior awaits observed contract RED.
-    public init(presentation _: RestCompanionExport) {
+    /// A validated presentation restores visual inputs without local ownership or wake authority.
+    public init(presentation: RestCompanionExport) {
         self.init(
-            version: 1,
-            expiresAt: Date(timeIntervalSince1970: 0),
-            appearance: RestAppearancePreferences(),
-            lockDate: nil,
-            unlockDate: nil
+            version: presentation.version,
+            expiresAt: presentation.expiresAt,
+            appearance: RestAppearancePreferences(presentationAppearance: presentation.appearance),
+            lockDate: presentation.lockDate,
+            unlockDate: presentation.unlockDate
         )
     }
 
