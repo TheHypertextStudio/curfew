@@ -36,6 +36,7 @@ included:
   - CurfewKit/Tests/CurfewKitTests/SunriseWakeJournalTests.swift
   - CurfewKit/Tests/CurfewKitTests/SunriseWakePlannerTests.swift
   - CurfewKit/Tests/CurfewKitTests/SunriseWakeSchedulerTests.swift
+  - CurfewKit/Tests/CurfewKitTests/SunriseScheduleIndependenceTests.swift
 
 excluded:
   - DerivedData
