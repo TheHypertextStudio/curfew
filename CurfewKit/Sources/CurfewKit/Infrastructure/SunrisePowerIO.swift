@@ -1,8 +1,8 @@
 import Foundation
 import IOKit
 
-/// Inert test-first contract. No operation invokes its injected function yet.
-/// Calls must be serialized by the owner; live bindings are a later increment.
+/// Validates ownership and bounds before invoking injected power functions.
+/// Calls must be serialized by the owner.
 public final class SunrisePowerIO {
     public static let notFound: Int32 = kIOReturnNotFound
 
@@ -59,42 +59,100 @@ public final class SunrisePowerIO {
     }
 
     public enum Failure: Error, Equatable {
-        case unimplemented
         case foreignEvent
         case foreignAssertion
         case invalidTimeout
         case native(operation: String, code: Int32)
     }
 
-    public init(owner: String, functions: Functions) {}
+    private let owner: String
+    private let functions: Functions
+    private var ownedAssertions: Set<UInt32> = []
+
+    public init(owner: String, functions: Functions) {
+        self.owner = owner
+        self.functions = functions
+    }
 
     public func schedule(_ event: Event) throws {
-        throw Failure.unimplemented
+        try validate(event)
+        try check(functions.schedule(event), operation: "schedule")
     }
 
     public func cancel(_ event: Event) throws {
-        throw Failure.unimplemented
+        try validate(event)
+        let (status, events) = functions.copyScheduled()
+        try check(status, operation: "copyScheduled")
+        guard events.contains(event) else { return }
+        let result = functions.cancel(event)
+        guard result != Self.notFound else { return }
+        try check(result, operation: "cancel")
     }
 
     public func declareUserActivity() throws {
-        throw Failure.unimplemented
+        let (status, assertionID) = functions.declareActivity()
+        try check(status, operation: "declareActivity")
+        ownedAssertions.insert(assertionID)
+        try releaseOwned(assertionID)
     }
 
     public func acquireDisplayAssertion(
         until: Date, now: Date
     ) throws -> SunriseDisplayDelivery.AssertionToken {
-        throw Failure.unimplemented
+        let timeout = until.timeIntervalSince(now)
+        guard now.timeIntervalSinceReferenceDate.isFinite,
+              until.timeIntervalSinceReferenceDate.isFinite,
+              timeout.isFinite, timeout > 0, timeout <= 3900
+        else { throw Failure.invalidTimeout }
+        let (status, assertionID) = functions.createDisplay(.init(
+            type: "NoDisplaySleepAssertion", timeout: timeout,
+            timeoutAction: "TimeoutActionRelease"
+        ))
+        try check(status, operation: "createDisplay")
+        ownedAssertions.insert(assertionID)
+        return .init(rawValue: assertionID)
     }
 
     public func releaseDisplayAssertion(_ token: SunriseDisplayDelivery.AssertionToken) throws {
-        throw Failure.unimplemented
+        guard ownedAssertions.contains(token.rawValue) else { throw Failure.foreignAssertion }
+        try releaseOwned(token.rawValue)
     }
 
     public func cleanup() throws {
-        throw Failure.unimplemented
+        var firstFailure: (any Error)?
+        for assertionID in ownedAssertions.sorted() {
+            do {
+                try releaseOwned(assertionID)
+            } catch {
+                if firstFailure == nil {
+                    firstFailure = error
+                }
+            }
+        }
+        if let firstFailure {
+            throw firstFailure
+        }
     }
 
     public func onExternalPower() -> Bool {
-        false
+        functions.powerSource() == "AC Power"
+    }
+
+    private func validate(_ event: Event) throws {
+        guard event.owner == owner, event.type == "wake",
+              event.date.timeIntervalSinceReferenceDate.isFinite
+        else { throw Failure.foreignEvent }
+    }
+
+    private func check(_ status: Int32, operation: String) throws {
+        guard status == 0 else { throw Failure.native(operation: operation, code: status) }
+    }
+
+    private func releaseOwned(_ assertionID: UInt32) throws {
+        let status = functions.release(assertionID)
+        if status != Self.notFound {
+            try check(status, operation: "release")
+        }
+        ownedAssertions.remove(assertionID)
     }
 }
