@@ -89,9 +89,9 @@ struct RestScreenSaverInstallation {
 
     /// Reads the property list only; neither Bundle nor the saver executable is loaded.
     private func validatedVersion(at url: URL) throws -> String {
+        let canonicalPath = url.resolvingSymlinksInPath().standardizedFileURL.path
         guard url.isFileURL, url.lastPathComponent == "Curfew.saver",
-              url.standardizedFileURL.path == url.resolvingSymlinksInPath().standardizedFileURL
-                  .path else {
+              url.standardizedFileURL.path == canonicalPath else {
             throw ValidationError.invalidMetadata
         }
         let contents = url.appendingPathComponent("Contents")
@@ -102,15 +102,15 @@ struct RestScreenSaverInstallation {
             }
         }
         let plist = contents.appendingPathComponent("Info.plist")
-        guard plist.standardizedFileURL.path == plist.resolvingSymlinksInPath().standardizedFileURL
-            .path,
-            let data = try BoundedRegularFileReader.read(plist, maximumBytes: 65536),
-            let metadata = try PropertyListSerialization.propertyList(
-                from: data, options: [], format: nil
-            ) as? [String: Any],
-            metadata["CFBundleIdentifier"] as? String == Self.moduleIdentifier,
-            metadata["CFBundlePackageType"] as? String == "BNDL",
-            let rawVersion = metadata["CFBundleShortVersionString"] as? String else {
+        let canonicalPlistPath = plist.resolvingSymlinksInPath().standardizedFileURL.path
+        guard plist.standardizedFileURL.path == canonicalPlistPath,
+              let data = try BoundedRegularFileReader.read(plist, maximumBytes: 65536),
+              let metadata = try PropertyListSerialization.propertyList(
+                  from: data, options: [], format: nil
+              ) as? [String: Any],
+              metadata["CFBundleIdentifier"] as? String == Self.moduleIdentifier,
+              metadata["CFBundlePackageType"] as? String == "BNDL",
+              let rawVersion = metadata["CFBundleShortVersionString"] as? String else {
             throw ValidationError.invalidMetadata
         }
         let version = rawVersion.trimmingCharacters(in: .whitespacesAndNewlines)

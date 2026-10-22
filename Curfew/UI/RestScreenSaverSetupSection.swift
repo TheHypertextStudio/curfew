@@ -103,10 +103,10 @@ struct RestScreenSaverSetupSection: View {
                     "Curfew.saver",
                     isDirectory: true
                 )
+                let moduleIdentifier = RestScreenSaverInstallation.moduleIdentifier
                 guard url.standardizedFileURL.path == expected.standardizedFileURL.path,
                       url.resolvingSymlinksInPath().path == expected.standardizedFileURL.path,
-                      Bundle(url: url)?.bundleIdentifier == RestScreenSaverInstallation
-                          .moduleIdentifier
+                      Bundle(url: url)?.bundleIdentifier == moduleIdentifier
                 else {
                     throw CocoaError(.fileWriteNoPermission)
                 }
