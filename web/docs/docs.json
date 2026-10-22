@@ -15,12 +15,12 @@
     "body": {
       "family": "Hanken Grotesk",
       "format": "woff2",
-      "source": "/docs/fonts/HankenGrotesk.woff2"
+      "source": "https://curfew.mintlify.site/docs/fonts/HankenGrotesk.woff2"
     },
     "heading": {
       "family": "Calistoga",
       "format": "woff2",
-      "source": "/docs/fonts/Calistoga.woff2",
+      "source": "https://curfew.mintlify.site/docs/fonts/Calistoga.woff2",
       "weight": 400
     }
   },

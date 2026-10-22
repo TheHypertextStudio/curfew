@@ -99,7 +99,10 @@ glyph coverage, metrics and variable axes. Keep fonts local to the documentation
 deployment rather than adding an external font service. Configure separate
 `fonts.body` and `fonts.heading` records: the pinned provider schema treats a
 global font and separate roles as alternatives, so mixing them drops the
-override. Local font URLs start with `/docs/fonts/` to retain the public mount.
+override. Font URLs use `https://curfew.mintlify.site/docs/fonts/` on the retained
+documentation host, which serves the bundled files with cross-origin font access.
+Relative font paths are rewritten to the provider asset bucket instead of the
+mounted route; use the explicit hosted URL to preserve the working resource.
 
 The documentation regressions check these roles, local font assets, licenses
 and generated configuration. Before accepting publication, inspect the rendered
