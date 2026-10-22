@@ -15,58 +15,30 @@ struct DaybreakReflectionView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
-    /// Drives the one-shot "awakening" rise-in when the sunrise gate appears.
-    @State private var awoke = false
-
     private var greeting: String {
         let hour = Calendar.current.component(.hour, from: model.currentTime)
         return hour < 5 ? "Still up?" : "Good morning"
     }
 
     var body: some View {
-        ZStack {
-            SundownSky(moment: model.skyMoment)
-                .ignoresSafeArea()
-
-            ScrollView {
-                VStack(alignment: .leading, spacing: 28) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(greeting)
-                            .font(.system(size: 46, weight: .semibold, design: .rounded))
-                            .foregroundStyle(SundownPalette.warmWhite)
-                            .shadow(color: .black.opacity(0.25), radius: 18, y: 6)
-                        Text("Set your intention before the day takes over.")
-                            .font(.system(size: 18, weight: .regular, design: .rounded))
-                            .foregroundStyle(SundownPalette.warmWhite.opacity(0.78))
-                    }
-
-                    ReflectionFormView(
-                        prompts: model.reflectionConfiguration.prompts(for: .morning),
-                        submitLabel: "Start the day",
-                        usesSolidPanels: reduceTransparency,
-                        onSubmit: { answers in
-                            model.saveReflection(gate: .morning, answers: answers)
-                        },
-                        onSkip: {
-                            model.skipReflection(gate: .morning)
-                        }
-                    )
-                }
-                .padding(48)
-                .frame(maxWidth: 720, alignment: .leading)
-                .frame(maxWidth: .infinity)
-                .opacity(awoke ? 1 : 0)
-                .offset(y: awoke ? 0 : 18)
+        VStack(alignment: .leading, spacing: 28) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(greeting)
+                    .font(.system(size: 38, weight: .semibold, design: .rounded))
+                    .foregroundStyle(SundownPalette.warmWhite)
+                Text("Set your intention before the day takes over.")
+                    .font(.system(size: 18, weight: .regular, design: .rounded))
+                    .foregroundStyle(SundownPalette.warmWhite)
             }
-            .scrollIndicators(.hidden)
+            ReflectionFormView(
+                draft: model.reflectionDraft(for: .morning),
+                submitLabel: "Start the day",
+                usesSolidPanels: reduceTransparency,
+                onSubmit: { model.saveReflection(gate: .morning, answers: $0) },
+                onSkip: { model.skipReflection(gate: .morning) }
+            )
         }
-        .onAppear {
-            guard !reduceMotion else {
-                awoke = true
-                return
-            }
-            withAnimation(.easeOut(duration: 0.9)) { awoke = true }
-        }
+        .frame(maxWidth: 560, alignment: .leading)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("\(greeting). Morning reflection.")
     }

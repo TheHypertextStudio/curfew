@@ -1,4 +1,5 @@
 import AppKit
+import SwiftUI
 
 /// Borderless `NSWindow` instances are not key-eligible by default. The
 /// morning form needs a key window for its text editor and keyboard controls.
@@ -14,14 +15,36 @@ private final class DaybreakOverlayWindow: NSWindow {
 
 @MainActor
 extension OverlayCoordinator {
+    static func makeRestContentView(
+        model: CurfewAppModel, display: RestDisplayPresentation
+    ) -> NSView {
+        #if DEBUG
+            if model.isDemoSession, DemoReviewState.current == .restContrastControl {
+                return makeRestHostingView(
+                    rootView: DemoRestContrastControl(status: model.restRestrictionStatus)
+                )
+            }
+        #endif
+        return makeRestHostingView(rootView: RestScreenView(model: model, display: display))
+    }
+
+    static func makeRestHostingView<Content: View>(rootView: Content) -> NSHostingView<Content> {
+        let host = NSHostingView(rootView: rootView)
+        host.setAccessibilityLabel("Curfew rest screen")
+        host.setAccessibilityIdentifier("rest-screen")
+        return host
+    }
+
     static func makeDaybreakWindow(frame: NSRect, screen: NSScreen?) -> NSWindow {
-        DaybreakOverlayWindow(
+        let window = DaybreakOverlayWindow(
             contentRect: frame,
             styleMask: daybreakWindowConfiguration.styleMask,
             backing: .buffered,
             defer: false,
             screen: screen
         )
+        window.title = "Curfew rest screen"
+        return window
     }
 
     /// A tick must not replace the hosting view: its reflection form owns

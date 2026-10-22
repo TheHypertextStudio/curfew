@@ -1,5 +1,30 @@
 # Curfew Implementation TODOs
 
+## Continuous lockout and morning experience
+
+Design: [lockout experience](lockout-experience-design.md). Execution: [implementation plan](internal/lockout-experience-plan.md). Source implementation and native acceptance are tracked separately. The full native unit suite passes; the experience remains in progress until rendered interaction and physical lifecycle checks pass.
+
+- [-] Retain per-display native hosts and shared reflection drafts across ordinary updates and monitor changes; ordinary ticks must not reorder visible windows during input. Native hold/focus acceptance remains required. Physical review scenes observe OS sleep/wake with a disarmed, elapsed-time demo clock and never reassert the real shield.
+- [-] Keep active evening reflection content through midnight and suppress repeat prompts in the same scheduled night; native model regressions cover temporary release, delayed holds, original-night resolution and day-off handoff.
+- [-] Compose schedule-anchored overnight/morning atmosphere and sequenced clock/content transitions; identify the borderless rest window and native hosting group for assistive technology, hide decorative sky layers, and finish rendered accessibility and interruption acceptance. Keep the unlock-time status opaque for reliable legibility and native contrast auditing. Hold confirmation must coexist with native button tracking while retaining its duration and authorization gates.
+- [-] Resolve the current scene on wake with a per-display internal reveal cover and opaque black native backing for screen-covering rest windows; keep translucent warning windows separate. Interrupted wake cancels the previous reveal arm. System wake refreshes authority while waiting for a screen-wake notification before revealing; each attached display also waits for its own reported awake state, and newly connected displays begin covered. Native visibility callbacks reconcile static scenes without waiting for a clock tick. Native backing regressions exercise the actual window configuration; physical sleep/authentication and unequal-monitor wake remain acceptance gaps.
+- [x] Document the Sunrise display-wake assessment separately from system wake and release authority, including a proposed five-minute maximum hold and cancellation boundaries. No power-management implementation is included.
+- [ ] Verify rendered motion, input, accessibility and physical sleep/wake journeys; retain a small composition boundary for future customization.
+
+Dark rest scenes use Dark Aqua for their native window and inherited hosting-view appearance under either supplied application appearance, while warning/timer windows preserve the supplied appearance. Native appearance regressions cover both Aqua and Dark Aqua without changing application-wide appearance. Keep the actual contrast audit and interaction assertions unchanged; rendered light/dark native fit remains an acceptance requirement.
+
+The evening and morning reflection subtitles use opaque warm white for legibility. Their typography, copy and panels retain their existing hierarchy; actual native contrast acceptance remains required independently of workspace and Touch Bar findings.
+
+Diagnostic only: the Debug-only `rest-contrast-control` scene isolates the actual formatted unlock status on black using the actual rest window and host. It shares the real label's unchanged text, font and foreground, and has no demo clock, sky, form or animation. Keep the product audit unchanged. The diagnostic requires cleanup before shipping and cannot establish product acceptance; isolated control/audit execution remains required.
+
+The control's native UI lookup accepts static text exposed through AX value, preserving its one-text isolation assertion and unchanged contrast/description audit.
+
+Temporary observational tests record the control's current accessibility hierarchy, run a separate contrast-only control audit, and capture editor readiness before each unchanged real-scene audit. They add no readiness wait/assertion or product change and require cleanup before integration; their results narrow diagnosis rather than establish product acceptance.
+
+Temporary audit callbacks log issue details and the directly associated element, then always return `false` to preserve every normal audit failure. They neither suppress issues nor change product or fixture behavior.
+
+Temporary audit-only `continueAfterFailure` collection restores its prior value on every exit. It preserves failures and immediate-stop setup guards while attempting to collect night and morning findings in one run; it does not relax acceptance.
+
 ## Worktree preparation
 
 - [x] Keep root command shortcuts separate from the independent frontend and

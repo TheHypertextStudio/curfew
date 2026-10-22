@@ -1,5 +1,38 @@
 # Todo Test Matrix
 
+## Continuous lockout and morning experience
+
+The regression tests below are implemented. Isolated native tests exercise the actual host-store, sky, transition, and reveal-policy sources. The full native model/unit suite passes. UI execution and physical lifecycle acceptance remain separate requirements; compilation or isolated policy checks do not establish them. See [the implementation plan](internal/lockout-experience-plan.md).
+
+| Behavior | Automated coverage | Additional acceptance |
+| --- | --- | --- |
+| Stable display hosts | `OverlayContinuityTests/retainsHostAcrossTicks`, `removesDisconnectedDisplay`, `preservesHostOnRearrangement`; `DaybreakOverlayReconciliationTests/restWindowHasAccessibleTitle`, `restHostHasAccessibleName` | Typing/hold across ticks, monitor attach/remove/rearrange |
+| Midnight/session continuity | `ReflectionGatingTests/pendingEveningSurvivesMidnight`, `overrideDoesNotCreateMorning`, `returnFromOverrideDoesNotRepromptEvening`, `duplicateSaveIsIgnored`; `RestSessionIntegrationTests` covers delayed holds, saves after midnight, day-off handoff and remote temporary release | Active editing across midnight and morning |
+| Sky and intentional motion | `SkyMomentContinuityTests`, `RestTransitionTests`, `ThemeConsistencyTests/atmosphericContrast`; native contrast audit in `CurfewUITests/testRestScenesHaveReadableAccessibleControls` includes the opaque unlock-time status | Motion recording, interruption, long content, small/large displays, VoiceOver and Reduce Motion |
+| Current scene on wake | `RestDisplayLifecycleTests` (including interrupted-wake rearming, new-display coverage and independently reported display wake), `RestVisibilityTests`, `RestWindowVisibilityObserverTests/nativeVisibilityRequestsReconciliation`, `EnforcementReassertionWiringTests/wakeRefreshesCurrentTime`, `systemWakeWaitsForDisplayWake` | Physical display/Mac sleep, authentication and unequal monitor wake |
+| Native rest-window backing | `RestWindowBackingTests/restWindowsHaveOpaqueBacking`, `warningsRemainTransparent` exercise the actual coordinator configuration for covering scenes and translucent warnings | Native contrast audit and physical display-return acceptance remain required |
+| Native rest appearance | `RestWindowAppearanceTests` exercises offscreen coordinator/window and actual hosting-view Dark Aqua inheritance under supplied Aqua and Dark Aqua, plus warning/timer preservation | Actual light-fixture contrast audit and rendered light/dark native fit remain required |
+| Safe native review scenes | `RestDemoTests` verifies disarmed wake/elapsed-time fixtures; `CurfewUITests/testReflectionTypingSurvivesClockTicks`, `testResolvingReflectionMakesRoomForTheQuietClock`, `testRestScenesHaveReadableAccessibleControls`, `testOverrideHoldSurvivesClockTicks` | Unsigned Debug fixture; authored UI test still requires native runner acceptance |
+| Optional Sunrise display wake | Capability/design assessment before a separate implementation | Distinguish API request, hardware wake and visible app; verify cleanup |
+
+Morning atmosphere follows scheduled unlock. Sunrise does not imply release authority. Screenshots and injected notifications cannot prove physical power wake or authentication handoff.
+
+The native real-scene contrast audit covers both reflection subtitles with opaque warm-white foregrounds. Existing recorded night/morning failures establish the failing baseline; only an actual corrected audit establishes acceptance. Workspace and Touch Bar findings remain separate requirements, with no audit exclusions.
+
+Appearance tests set only each isolated window's supplied appearance and never order windows onscreen or mutate application-wide appearance. Native appearance consistency is an independently meaningful requirement; the current contrast audit's cause remains unproven. Preserve the unchanged actual audit and its evidence.
+
+Exact-label diagnostic coverage: `RestDemoTests/contrastControlIsStaticAndDisarmed` checks the named disarmed control, absent clock and no advancement on refresh; `CurfewUITests/testIsolatedUnlockLabelHasReadableAccessibleText` requires only the actual formatted status and the same contrast/description audit. The Debug-only control shares the real label's formatting/styling and actual rest-window/hosting path. Keep the original real-scene test unchanged and remove diagnostic scaffolding before shipping. A control pass narrows scene/context involvement; a failure narrows the label/native-audit path. Neither establishes product acceptance.
+
+Only this disarmed named Debug control suppresses the normal workspace's default launch, preventing other app content from entering the application-wide audit. Every other Debug state retains its presented workspace; Release scene launch behavior is unchanged.
+
+The control test reads the sole native static text's accessibility value (falling back to its label) for the status prefix. SwiftUI may expose visible static text through AX value without an AX label. This lookup does not alter the view's accessibility semantics or the actual audit.
+
+Observational diagnostics retain the combined control audit and original real-scene audit unchanged. `testIsolatedUnlockLabelContrastDiagnostic` runs contrast alone on the same verified control so its terminal outcome is independent of description findings. The combined control test attaches its current accessibility hierarchy. Each original scene audit attaches observed editor existence, enabled/hittable state and frame without adding waits or readiness assertions. Metadata collection can affect timing; a diagnostic green alone is not a permanent fix. Remove these diagnostics before final integration.
+
+Temporary issue observers attach the audit type, compact/detailed descriptions and the associated element's current debug description (or an explicit absent-element value). Every audit callback unconditionally returns `false`, so issues retain the SDK's normal recording/failure policy. Audit types, assertions and readiness behavior are unchanged; these observations cannot waive product acceptance.
+
+Diagnostic collection saves `continueAfterFailure`, enables it only around each native audit, and restores it with `defer` on exit. Setup/isolation guards retain immediate-stop behavior. Audit issues still record failures; this scope only allows collecting subsequent issues and the morning state after recorded night findings. Execution errors propagate without catching or swallowing. A native abort is reported as such, and final acceptance still requires zero findings on non-diagnostic real scenes.
+
 ## Worktree preparation
 
 `./bootstrap worktree plan --json` validates workspace discovery and rejects

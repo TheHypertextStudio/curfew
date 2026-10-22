@@ -143,4 +143,60 @@ struct ReflectionGatingTests {
         #expect(model.reflectionState.isDaybreakPresented == false)
         #expect(model.reflectionState.gatesResolvedToday.contains(.morning))
     }
+
+    @Test("An active evening reflection survives calendar rollover")
+    func pendingEveningSurvivesMidnight() {
+        let model = makeModel()
+        model.state = evaluation(phase: .locked)
+        model.evaluateReflectionGates(previousPhase: .warning)
+        model.resetReflectionGatesForNewDay()
+        #expect(model.reflectionState.isEveningReflectionPending)
+    }
+
+    @Test("An early override is not the beginning of morning")
+    func overrideDoesNotCreateMorning() {
+        let model = makeModel()
+        model.currentTime = Date(timeIntervalSince1970: 1_700_000_000)
+        model.overrideUntil = model.currentTime.addingTimeInterval(15 * 60)
+        model.state = evaluation(phase: .working)
+        model.evaluateReflectionGates(previousPhase: .locked)
+        #expect(!model.reflectionState.isDaybreakPresented)
+    }
+
+    @Test("A resolved evening does not reappear in the same night after midnight")
+    func returnFromOverrideDoesNotRepromptEvening() {
+        let model = makeModel()
+        let lock = Date(timeIntervalSince1970: 1_700_000_000)
+        let locked = CurfewEvaluation(
+            phase: .locked,
+            warningStage: .none,
+            minutesRemaining: 0,
+            canRequestExtension: false,
+            lockDate: lock,
+            unlockDate: lock.addingTimeInterval(9 * 3600)
+        )
+        model.state = locked
+        model.evaluateReflectionGates(previousPhase: .warning)
+        model.skipReflection(gate: .evening)
+        model.resetReflectionGatesForNewDay()
+        model.state = locked
+        model.evaluateReflectionGates(previousPhase: .working)
+        #expect(!model.reflectionState.isEveningReflectionPending)
+    }
+
+    @Test("Two displays cannot save the same completed reflection twice")
+    func duplicateSaveIsIgnored() throws {
+        let store = try ReflectionTestSupport.makeEphemeralStore(label: "duplicate-save")
+        let model = makeModel()
+        model.reflectionState.recorder = ReflectionRecorder(store: store)
+        model.reflectionState.isEveningReflectionPending = true
+        let answers = [ReflectionAnswer(
+            promptID: UUID(),
+            promptTextSnapshot: "Today?",
+            value: .text("A good day")
+        )]
+        model.saveReflection(gate: .evening, answers: answers)
+        model.saveReflection(gate: .evening, answers: answers)
+        #expect(model.reflectionState.recorder.mutationCount == 1)
+    }
 }
