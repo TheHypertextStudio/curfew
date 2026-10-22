@@ -23,13 +23,14 @@ import SwiftUI
 struct SundownSky: View {
     /// The atmosphere to render.
     var moment: SkyMoment
+    var isVisible = true
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         TimelineView(.animation(
             minimumInterval: 1.0 / 24.0,
-            paused: reduceMotion
+            paused: reduceMotion || !isVisible
         )) { timeline in
             let seconds = timeline.date.timeIntervalSinceReferenceDate
             // Hold the mesh drift still under Reduce Motion for a static lattice.
@@ -86,7 +87,7 @@ struct SundownSky: View {
                     .opacity(glowStrength * breath),
                 .clear
             ],
-            center: moment.rising ? .top : .bottom,
+            center: UnitPoint(x: 0.5, y: moment.glowPosition),
             startRadius: 0,
             endRadius: 620
         )

@@ -18,15 +18,19 @@ struct SkyMoment: Equatable {
     /// the sun glow to the top when rising, the horizon when falling.
     var rising: Bool
 
+    /// Continuous vertical glow anchor, avoiding a top/bottom jump at deep night.
+    var glowPosition: Double
+
     /// Nearness to the lock time, `0` (far) → `1` (at curfew). Kindles and
     /// reddens the ember as the deadline closes. Always `0` once locked, on a
     /// day off, or with no scheduled window.
     var proximity: Double
 
     /// Clamps `light`/`proximity` into 0...1 so callers can pass raw ramps.
-    init(light: Double, rising: Bool, proximity: Double = 0) {
+    init(light: Double, rising: Bool, proximity: Double = 0, glowPosition: Double = 1) {
         self.light = min(max(light, 0), 1)
         self.rising = rising
+        self.glowPosition = min(max(glowPosition, 0), 1)
         self.proximity = min(max(proximity, 0), 1)
     }
 }
@@ -92,6 +96,10 @@ extension SkyMoment {
         unlockDate: Date?,
         phase: EnforcementPhase
     ) -> SkyMoment {
+        if let lockDate, let unlockDate, unlockDate > lockDate,
+           now >= lockDate {
+            return locked(now: now, lockDate: lockDate, unlockDate: unlockDate)
+        }
         switch phase {
         case .locked:
             return locked(now: now, lockDate: lockDate, unlockDate: unlockDate)
@@ -126,10 +134,28 @@ extension SkyMoment {
             return .night
         }
         let span = unlockDate.timeIntervalSince(lockDate)
-        let elapsed = min(max(now.timeIntervalSince(lockDate) / span, 0), 1)
-        let depth = abs(2 * elapsed - 1) // 1 at the edges, 0 at deep night
-        let light = 0.06 + 0.34 * depth // 0.40 … 0.06 … 0.40
-        return SkyMoment(light: light, rising: elapsed > 0.5)
+        let elapsed = max(0, now.timeIntervalSince(lockDate))
+        let approach = min(45 * 60, span / 2)
+        let dawnStart = span - approach
+        let light: Double
+        if elapsed <= span / 2 {
+            light = 0.44 - 0.38 * (elapsed / (span / 2))
+        } else if elapsed < dawnStart {
+            light = 0.06 + 0.06 * ((elapsed - span / 2) / (dawnStart - span / 2))
+        } else if elapsed <= span {
+            // A short night starts its dawn at the midpoint, where light is 0.06.
+            let base = dawnStart > span / 2 ? 0.12 : 0.06
+            light = base + (0.40 - base) * ((elapsed - dawnStart) / approach)
+        } else {
+            light = 0.40 + 0.52 * min((elapsed - span) / (15 * 60), 1)
+        }
+        let rise = min(max((elapsed - dawnStart) / (approach + 15 * 60), 0), 1)
+        return SkyMoment(
+            light: light,
+            rising: elapsed > span / 2,
+            proximity: max(0, 1 - elapsed / min(15 * 60, span / 4)),
+            glowPosition: 1 - 0.7 * rise
+        )
     }
 
     /// No curfew window: map the literal clock to a smooth day/night curve —

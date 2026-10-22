@@ -34,8 +34,14 @@ extension CurfewAppModel {
     ///   re-asserted, otherwise ``EnforcementReassertion/noop``.
     @discardableResult
     func reassertEnforcementIfNeeded() -> EnforcementReassertion {
+        guard !isDemoSession else {
+            overlayCoordinator.reconcileRestVisibility()
+            overlayCoordinator.reassertLockoutFrontmost()
+            return .noop
+        }
         guard !privilegedHelperManager.maintenancePaused else { return .noop }
         pollAndUpdateEnforcementHealth()
+        overlayCoordinator.reconcileRestVisibility()
 
         let tapIsActive = tapLivenessOverride?() ?? lockoutKeyInterceptor.isEnabled
         let decision = EnforcementReassertionPolicy.decide(
@@ -63,6 +69,36 @@ extension CurfewAppModel {
 
         let workspaceCenter = NSWorkspace.shared.notificationCenter
         for name in [
+            NSWorkspace.willSleepNotification,
+            NSWorkspace.screensDidSleepNotification
+        ] {
+            let token = workspaceCenter.addObserver(
+                forName: name, object: nil, queue: .main
+            ) { [weak self] _ in
+                MainActor.assumeIsolated { self?.overlayCoordinator.restDisplaysHidden() }
+            }
+            reassertionObservers.append(token)
+        }
+        for (name, active) in [
+            (NSWorkspace.sessionDidResignActiveNotification, false),
+            (NSWorkspace.sessionDidBecomeActiveNotification, true)
+        ] {
+            let token = workspaceCenter.addObserver(
+                forName: name, object: nil, queue: .main
+            ) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    guard let self else { return }
+                    if active {
+                        self.handleRestWake()
+                        self.overlayCoordinator.restSessionActivated()
+                    } else {
+                        self.overlayCoordinator.restSessionResigned()
+                    }
+                }
+            }
+            reassertionObservers.append(token)
+        }
+        for name in [
             NSWorkspace.didWakeNotification,
             NSWorkspace.screensDidWakeNotification
         ] {
@@ -72,10 +108,38 @@ extension CurfewAppModel {
                 queue: .main
             ) { [weak self] _ in
                 MainActor.assumeIsolated {
-                    _ = self?.reassertEnforcementIfNeeded()
+                    self?
+                        .handleRestWake(displayDidWake: name == NSWorkspace
+                            .screensDidWakeNotification)
                 }
             }
             reassertionObservers.append(token)
+        }
+    }
+
+    /// Resolve current schedule/authority before choosing the scene to reveal.
+    /// Disarmed models remain disarmed; drawing policy never starts enforcement.
+    func handleRestWake(displayDidWake: Bool = false) {
+        #if DEBUG
+            if isDemoSession {
+                refreshDemoRestClock()
+                _ = reassertEnforcementIfNeeded()
+                if displayDidWake {
+                    overlayCoordinator.restDisplaysWoke()
+                }
+                return
+            }
+        #endif
+        if isEnforcementRunning {
+            tick()
+        } else {
+            displayTick()
+        }
+        _ = reassertEnforcementIfNeeded()
+        // System wake may precede display wake (including a dark wake).
+        // Refresh authority now, but leave the reveal asleep until screens wake.
+        if displayDidWake {
+            overlayCoordinator.restDisplaysWoke()
         }
     }
 }
