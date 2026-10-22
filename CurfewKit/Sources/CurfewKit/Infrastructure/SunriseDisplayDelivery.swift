@@ -60,24 +60,10 @@ public final class SunriseDisplayDelivery {
             try stop()
             return .inactive
         }
-        guard plan.wakeAt.timeIntervalSince1970.isFinite,
-              plan.holdUntil.timeIntervalSince1970.isFinite,
-              plan.wakeAt < plan.holdUntil
-        else {
-            try stop()
-            throw Rejection.invalidTimestamp
-        }
-        guard !dismissedOccurrences.contains(plan.occurrenceID) else {
-            try stop()
-            return .dismissed
-        }
-        guard now >= plan.wakeAt, now < plan.holdUntil else {
-            try stop()
-            return .inactive
-        }
-        guard onExternalPower || (plan.allowsBattery && batteryOptIn) else {
-            try stop()
-            return .batteryExcluded
+        if let outcome = try ineligibleOutcome(
+            plan: plan, batteryOptIn: batteryOptIn, onExternalPower: onExternalPower, now: now
+        ) {
+            return outcome
         }
 
         if let ownedAssertion {
@@ -107,6 +93,32 @@ public final class SunriseDisplayDelivery {
         deliveredOccurrences.insert(plan.occurrenceID)
         isActive = true
         return .active
+    }
+
+    private func ineligibleOutcome(
+        plan: SunriseWakePlan, batteryOptIn: Bool, onExternalPower: Bool, now: Date
+    ) throws -> Outcome? {
+        guard plan.wakeAt.timeIntervalSince1970.isFinite,
+              plan.holdUntil.timeIntervalSince1970.isFinite,
+              plan.wakeAt < plan.holdUntil
+        else {
+            try stop()
+            throw Rejection.invalidTimestamp
+        }
+        guard !dismissedOccurrences.contains(plan.occurrenceID) else {
+            try stop()
+            return .dismissed
+        }
+        guard now >= plan.wakeAt, now < plan.holdUntil else {
+            try stop()
+            return .inactive
+        }
+        guard onExternalPower || (plan.allowsBattery && batteryOptIn) else {
+            try stop()
+            return .batteryExcluded
+        }
+
+        return nil
     }
 
     public func dismiss(occurrenceID: UUID) throws {

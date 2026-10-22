@@ -22,11 +22,11 @@ public nonisolated struct RestSceneSnapshot: Codable, Equatable, Sendable {
         self.unlockDate = unlockDate
     }
 
-    public struct Frame: Equatable, Sendable {
-        public enum Phase: Equatable, Sendable {
-            case allDay, night, sunrise, morning
-        }
+    public enum Phase: Equatable, Sendable {
+        case allDay, night, sunrise, morning
+    }
 
+    public struct Frame: Equatable, Sendable {
         public let phase: Phase
         public let sunriseProgress: Double
     }
@@ -57,4 +57,8 @@ public nonisolated struct RestSceneSnapshot: Codable, Equatable, Sendable {
         }
         return Frame(phase: .sunrise, sunriseProgress: min(1, max(0, 1 - remaining / leadSeconds)))
     }
+}
+
+public extension RestSceneSnapshot.Frame {
+    typealias Phase = RestSceneSnapshot.Phase
 }

@@ -80,18 +80,7 @@ public nonisolated struct RestHandoffPolicy: Sendable {
                 return cancelHandoff()
             }
         case .setBlocker(let blocker, let active):
-            if active {
-                if !blockers.contains(blocker) {
-                    blockers.append(blocker)
-                }
-                recordActivity(monotonicSeconds)
-                if phase == .settling {
-                    return cancelHandoff()
-                }
-            } else {
-                blockers.removeAll { $0 == blocker }
-                recordActivity(monotonicSeconds)
-            }
+            return setBlocker(blocker, active: active, monotonicSeconds: monotonicSeconds)
         case .idleCheck:
             guard let lastActivity,
                   monotonicSeconds.isFinite,
@@ -101,26 +90,23 @@ public nonisolated struct RestHandoffPolicy: Sendable {
             return beginHandoff()
         case .restNow:
             return beginHandoff()
+        default:
+            return handleCallback(event, monotonicSeconds: monotonicSeconds)
+        }
+        return []
+    }
+
+    private mutating func handleCallback(
+        _ event: Event, monotonicSeconds: TimeInterval
+    ) -> [Effect] {
+        switch event {
         case .settled(let callback):
             guard phase == .settling, pendingGeneration == callback, !launchRequested
             else { return [] }
             launchRequested = true
             return [.launchSaver(callback)]
         case .launchCompleted(let callback, let result):
-            guard phase == .settling, pendingGeneration == callback, launchRequested
-            else { return [] }
-            launchRequested = false
-            switch result {
-            case .started:
-                phase = .saver
-                controlsMayReturn = false
-            case .unavailable(let status):
-                setupStatus = status
-                pendingGeneration = nil
-                phase = .interactive
-                controlsMayReturn = true
-                recordActivity(monotonicSeconds)
-            }
+            completeLaunch(callback, result: result, monotonicSeconds: monotonicSeconds)
         case .saverReturned:
             guard phase == .saver || (phase == .settling && launchRequested) else { return [] }
             launchRequested = false
@@ -139,8 +125,47 @@ public nonisolated struct RestHandoffPolicy: Sendable {
             guard phase == .refreshing, pendingGeneration == callback else { return [] }
             refreshedAuthority = true
             finishRefresh(monotonicSeconds)
+        default:
+            break
         }
         return []
+    }
+
+    private mutating func setBlocker(
+        _ blocker: Blocker, active: Bool, monotonicSeconds: TimeInterval
+    ) -> [Effect] {
+        if active {
+            if !blockers.contains(blocker) {
+                blockers.append(blocker)
+            }
+            recordActivity(monotonicSeconds)
+            if phase == .settling {
+                return cancelHandoff()
+            }
+        } else {
+            blockers.removeAll { $0 == blocker }
+            recordActivity(monotonicSeconds)
+        }
+        return []
+    }
+
+    private mutating func completeLaunch(
+        _ callback: Generation, result: LaunchResult, monotonicSeconds: TimeInterval
+    ) {
+        guard phase == .settling, pendingGeneration == callback, launchRequested
+        else { return }
+        launchRequested = false
+        switch result {
+        case .started:
+            phase = .saver
+            controlsMayReturn = false
+        case .unavailable(let status):
+            setupStatus = status
+            pendingGeneration = nil
+            phase = .interactive
+            controlsMayReturn = true
+            recordActivity(monotonicSeconds)
+        }
     }
 
     private mutating func recordActivity(_ sample: TimeInterval) {

@@ -40,9 +40,9 @@ public struct SunriseWakePlanner {
         authorizedOccurrenceID: UUID,
         lockedAt: Date,
         unlockAt: Date,
-        leadMinutes: Int,
-        allowsBattery: Bool,
-        onExternalPower: Bool,
+        leadMinutes: Int = 30,
+        allowsBattery: Bool = false,
+        onExternalPower: Bool = false,
         now: Date
     ) throws -> SunriseWakePlan? {
         guard enabled else { return nil }

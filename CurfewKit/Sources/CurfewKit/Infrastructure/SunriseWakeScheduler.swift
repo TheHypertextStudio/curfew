@@ -17,12 +17,12 @@ public final class SunriseWakeScheduler {
         }
     }
 
-    public struct Record: Codable, Equatable, Sendable {
-        public enum Phase: String, Codable, Sendable {
-            case pending
-            case scheduled
-        }
+    public enum RecordPhase: String, Codable, Sendable {
+        case pending
+        case scheduled
+    }
 
+    public struct Record: Codable, Equatable, Sendable {
         public let plan: SunriseWakePlan
         public let phase: Phase
 
@@ -81,21 +81,9 @@ public final class SunriseWakeScheduler {
         onExternalPower: Bool,
         now: Date
     ) throws -> Outcome {
-        // Even cancellation requests must match fresh helper authority before
-        // reading the journal or invoking any injected operation.
-        guard desired == authorizedPlan else { throw Rejection.unauthorizedPlan }
-        if let desired {
-            guard desired.owner == owner else { throw Rejection.foreignOwner }
-            try validateTimestamps(desired)
-            guard now.timeIntervalSince1970.isFinite else { throw Rejection.invalidTimestamp }
-            guard desired.wakeAt > now else { throw Rejection.expired }
-        }
-
+        try validateAuthority(desired: desired, authorizedPlan: authorizedPlan, now: now)
         let record = try load()
-        if let record {
-            guard record.plan.owner == owner else { throw Rejection.foreignOwner }
-            try validateTimestamps(record.plan)
-        }
+        try validateRecord(record)
 
         if let desired, !onExternalPower, !desired.allowsBattery {
             if let record {
@@ -133,6 +121,27 @@ public final class SunriseWakeScheduler {
         return .scheduled
     }
 
+    private func validateAuthority(
+        desired: SunriseWakePlan?, authorizedPlan: SunriseWakePlan?, now: Date
+    ) throws {
+        // Even cancellation requests must match fresh helper authority before
+        // reading the journal or invoking any injected operation.
+        guard desired == authorizedPlan else { throw Rejection.unauthorizedPlan }
+        if let desired {
+            guard desired.owner == owner else { throw Rejection.foreignOwner }
+            try validateTimestamps(desired)
+            guard now.timeIntervalSince1970.isFinite else { throw Rejection.invalidTimestamp }
+            guard desired.wakeAt > now else { throw Rejection.expired }
+        }
+    }
+
+    private func validateRecord(_ record: Record?) throws {
+        if let record {
+            guard record.plan.owner == owner else { throw Rejection.foreignOwner }
+            try validateTimestamps(record.plan)
+        }
+    }
+
     private func validateTimestamps(_ plan: SunriseWakePlan) throws {
         guard plan.wakeAt.timeIntervalSince1970.isFinite,
               plan.holdUntil.timeIntervalSince1970.isFinite,
@@ -141,4 +150,8 @@ public final class SunriseWakeScheduler {
             throw Rejection.invalidTimestamp
         }
     }
+}
+
+public extension SunriseWakeScheduler.Record {
+    typealias Phase = SunriseWakeScheduler.RecordPhase
 }

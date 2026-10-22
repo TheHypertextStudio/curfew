@@ -7,6 +7,20 @@ included:
   - CurfewUITests
   - CurfewScreenSaver
   - CurfewKit/Sources/CurfewAtmosphere
+  - CurfewKit/Sources/CurfewKit/Domain/RestCompanionExport.swift
+  - CurfewKit/Sources/CurfewKit/Domain/RestHandoffPolicy.swift
+  - CurfewKit/Sources/CurfewKit/Domain/RestSceneSnapshot.swift
+  - CurfewKit/Sources/CurfewKit/Infrastructure/AuthenticatedDaemonService.swift
+  - CurfewKit/Sources/CurfewKit/Infrastructure/CurfewDaemonProtocol.swift
+  - CurfewKit/Sources/CurfewKit/Infrastructure/RestCompanionPresentationStore.swift
+  - CurfewKit/Sources/CurfewKit/Infrastructure/SunriseDisplayDelivery.swift
+  - CurfewKit/Sources/CurfewKit/Infrastructure/SunrisePowerIO+Live.swift
+  - CurfewKit/Sources/CurfewKit/Infrastructure/SunrisePowerIO.swift
+  - CurfewKit/Sources/CurfewKit/Infrastructure/SunriseWakeJournal.swift
+  - CurfewKit/Sources/CurfewKit/Infrastructure/SunriseWakePlan.swift
+  - CurfewKit/Sources/CurfewKit/Infrastructure/SunriseWakeScheduler.swift
+  - CurfewKit/Sources/CurfewKit/Settings/RestAppearancePreferences.swift
+  - CurfewKit/Sources/CurfewKit/Settings/RestAppearancePreferencesStore.swift
 
 excluded:
   - DerivedData
