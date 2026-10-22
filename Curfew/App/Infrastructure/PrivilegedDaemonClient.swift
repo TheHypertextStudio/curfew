@@ -96,13 +96,78 @@ final class XPCPrivilegedDaemonClient: PrivilegedDaemonRPCControlling, SunriseDa
         self.sunriseTransport = sunriseTransport
     }
 
-    /// Inert contract seam until native tests observe behavioral failure.
-    func replaceSunriseWakePlan(_: SunriseWakePlan) async throws {
-        throw SunriseDaemonRPCError.unavailable
+    func replaceSunriseWakePlan(_ plan: SunriseWakePlan) async throws {
+        guard plan.owner.utf8.count <= 4096 else { throw SunriseDaemonRPCError.rejected }
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        guard let request = try? encoder.encode(plan), request.count <= 4096 else {
+            throw SunriseDaemonRPCError.rejected
+        }
+        let response = try await performSunrise(.replace, request: request)
+        guard response.count <= 4096 else { throw SunriseDaemonRPCError.invalidResponse }
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        // ISO transport drops fractional seconds; compare at the sent precision.
+        guard let sent = try? decoder.decode(SunriseWakePlan.self, from: request),
+              let echoed = try? decoder.decode(SunriseWakePlan.self, from: response),
+              echoed == sent else { throw SunriseDaemonRPCError.invalidResponse }
     }
 
     func cancelSunriseWakePlan() async throws {
-        throw SunriseDaemonRPCError.unavailable
+        let response = try await performSunrise(.cancel, request: nil)
+        guard response.count <= 4096,
+              (try? JSONDecoder().decode(Bool.self, from: response)) == true else {
+            throw SunriseDaemonRPCError.invalidResponse
+        }
+    }
+
+    private func performSunrise(
+        _ method: SunriseDaemonRPCMethod,
+        request: Data?
+    ) async throws -> Data {
+        if let sunriseTransport {
+            return try await sunriseTransport(method, request)
+        }
+        do {
+            switch method {
+            case .replace:
+                guard let request else { throw SunriseDaemonRPCError.rejected }
+                return try await call(errorMap: Self.mapSunrise) { proxy, reply in
+                    proxy.replaceSunriseWakePlan(request, reply: reply)
+                }
+            case .cancel:
+                return try await call(errorMap: Self.mapSunrise) { proxy, reply in
+                    proxy.cancelSunriseWakePlan(reply: reply)
+                }
+            }
+        } catch let error as SunriseDaemonRPCError {
+            throw error
+        } catch let error as PrivilegedDaemonRPCError {
+            switch error {
+            case .stale, .unavailable: throw SunriseDaemonRPCError.unavailable
+            case .invalidResponse: throw SunriseDaemonRPCError.invalidResponse
+            case .activeLockout, .unauthorized: throw SunriseDaemonRPCError.rejected
+            }
+        } catch {
+            throw SunriseDaemonRPCError.rejected
+        }
+    }
+
+    private static func mapSunrise(_ error: NSError) -> Error {
+        if error.domain == "studio.hypertext.curfew.daemon.sunrise", error.code == 1 {
+            return SunriseDaemonRPCError.unavailable
+        }
+        if error.domain == NSCocoaErrorDomain {
+            switch error.code {
+            case CocoaError.Code.xpcConnectionInterrupted.rawValue,
+                 CocoaError.Code.xpcConnectionInvalid.rawValue:
+                return SunriseDaemonRPCError.unavailable
+            case CocoaError.Code.xpcConnectionReplyInvalid.rawValue:
+                return SunriseDaemonRPCError.invalidResponse
+            default: break
+            }
+        }
+        return SunriseDaemonRPCError.rejected
     }
 
     func armLockout(_ record: LockoutDeadlineRecord) async throws {
@@ -132,6 +197,7 @@ final class XPCPrivilegedDaemonClient: PrivilegedDaemonRPCControlling, SunriseDa
     }
 
     private func call(
+        errorMap: ((NSError) -> Error)? = nil,
         _ operation: @escaping (
             CurfewDaemonXPCProtocol,
             @escaping (Data?, NSError?) -> Void
@@ -151,7 +217,7 @@ final class XPCPrivilegedDaemonClient: PrivilegedDaemonRPCControlling, SunriseDa
         return try await DaemonRPCDeadline.run { completion in
             let finish: (Data?, NSError?) -> Void = { data, error in
                 if let error {
-                    completion(.failure(Self.map(error)))
+                    completion(.failure(errorMap?(error) ?? Self.map(error)))
                 } else if let data {
                     completion(.success(data))
                 } else {
