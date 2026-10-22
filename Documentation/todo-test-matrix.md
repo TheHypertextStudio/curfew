@@ -31,7 +31,7 @@ The regression tests below are implemented. Isolated native tests exercise the a
 | Native rest modal accessibility | `RestWindowModalAccessibilityTests/restWindowsExposeModalAccessibility`, `warningAndTimerRemainNonmodal` exercise the actual rest-window factory/configuration and actual native getter offscreen | Full native unit acceptance, installed VoiceOver navigation, multi-display lifecycle and the unchanged combined audit remain required; AXModal alone does not prove workspace audit exclusion. |
 | Native rest appearance | `RestWindowAppearanceTests` exercises offscreen coordinator/window and actual hosting-view Dark Aqua inheritance under supplied Aqua and Dark Aqua, plus warning/timer preservation | Actual light-fixture contrast audit and rendered light/dark native fit remain required |
 | Safe native review scenes | `RestDemoTests` verifies disarmed wake/elapsed-time fixtures; `CurfewUITests/testReflectionTypingSurvivesClockTicks`, `testResolvingReflectionMakesRoomForTheQuietClock`, `testRestScenesHaveReadableAccessibleControls`, `testOverrideHoldSurvivesClockTicks` | Unsigned Debug fixture; authored UI test still requires native runner acceptance |
-| Optional Sunrise display wake | Capability/design assessment before a separate implementation | Distinguish API request, hardware wake and visible app; verify cleanup |
+| Optional Sunrise display wake | `SunriseWakePlanTests`, `SunriseWakeSchedulerTests`, authenticated helper contracts and `SunriseDisplayDeliveryTests` cover owned scheduling, power policy and bounded cleanup | Native adapters, installed helper, physical machine/display wake and visible rendering remain separate acceptance requirements |
 
 Morning atmosphere follows scheduled unlock. Sunrise does not imply release authority. Screenshots and injected notifications cannot prove physical power wake or authentication handoff.
 
@@ -2192,3 +2192,5 @@ does not modify native files, enable sales or remove owner/staging gates.
 | Retained account/device data, new-host passkeys, provider callbacks, native reconnection, and Sandbox restore | Actual protected staging walkthrough and private release acceptance |
 
 Production promotion uses the protected resume phase and retained accepted artifacts; see [production-domain-promotion.md](production-domain-promotion.md). Source checks and a configuration flag do not replace its runtime acceptance gates.
+
+`CurfewUITests/testRestScreenSettingsStartWithSafeLocalDefaults` scrolls the real settings form to verify that saver message sharing, Sunrise wake and battery operation each start off. It captures the preview and lower settings separately.

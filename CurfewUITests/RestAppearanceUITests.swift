@@ -27,14 +27,33 @@ extension CurfewUITests {
         XCTAssertTrue(app.popUpButtons["rest-clock-style"].exists)
         XCTAssertTrue(app.popUpButtons["rest-clock-position"].exists)
         XCTAssertTrue(app.textFields["rest-personal-message"].exists)
-        let sunrise = app.switches["rest-sunrise-wake"]
-        XCTAssertTrue(sunrise.exists)
-        XCTAssertEqual(sunrise.value as? String, "0")
-        let battery = app.switches["rest-sunrise-battery"]
-        XCTAssertTrue(battery.exists)
-        XCTAssertEqual(battery.value as? String, "0")
+        let detail = app.descendants(matching: .any)["settings-detail"]
         let sharing = app.switches["rest-saver-message"]
-        XCTAssertTrue(sharing.exists)
-        XCTAssertEqual(sharing.value as? String, "0")
+        assertOff(sharing, revealingIn: detail)
+        let sunrise = app.switches["rest-sunrise-wake"]
+        assertOff(sunrise, revealingIn: detail)
+        let battery = app.switches["rest-sunrise-battery"]
+        assertOff(battery, revealingIn: detail)
+        try app.screenshot().pngRepresentation.write(to: output.appendingPathComponent(
+            "curfew-rest-settings-sunrise.png"
+        ))
+    }
+
+    private func assertOff(
+        _ control: XCUIElement, revealingIn detail: XCUIElement,
+        file: StaticString = #filePath, line: UInt = #line
+    ) {
+        XCTAssertTrue(control.exists, file: file, line: line)
+        for _ in 0 ..< 6 where !control.isHittable {
+            detail.scroll(byDeltaX: 0, deltaY: -250)
+        }
+        XCTAssertTrue(control.isHittable, file: file, line: line)
+        let value = control.value
+        let off = (value as? String) == "0" || (value as? NSNumber)?.doubleValue == 0
+        XCTAssertTrue(
+            off,
+            "Expected an off switch, got \(String(reflecting: value)); \(control.debugDescription)",
+            file: file, line: line
+        )
     }
 }

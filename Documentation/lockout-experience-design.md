@@ -127,20 +127,13 @@ Use screenshots for composition and recordings for motion. Inspect the complete 
 
 Keep changes independently reviewable. Retain existing enforcement paths and saved restriction records. Roll back presentation changes without changing schedules or clearing deadlines; if optional power work is later adopted, disabling it must release owned assertions and cancel only owned pending events. The refactor changes native presentation and reflection-session behavior. It adds no permission, helper operation, or power-management call. Restoring the previous presentation must preserve schedules, saved reflections, and active deadlines.
 
-## Sunrise wake assessment and proposed operating limits
+## Sunrise wake operating boundaries
 
-The installed macOS 27 SDK confirms the public display-activity assertion is available without special privileges, whereas scheduled system wake and cancellation require root. These are two different operations; neither proves that an external monitor became visible or that the user session is authenticated.
+The approved [rest experience features](rest-experience-features.md) supersede the initial wake assessment. The presentation refactor alone adds no power operation. The optional feature distinguishes display activity on a running Mac from a privileged scheduled system wake; neither proves monitor illumination or authentication.
 
-For a follow-on implementation, use an explicit Sunrise presentation-request event as the trigger, after the user enables display wake. Do not infer that event from a sky color, the word “Sunrise,” or a restriction's expiry. The event source must identify the current local Sunrise occurrence; wiring any remote occurrence still follows the existing protocol release discipline.
+Sunrise follows the current local scheduled unlock, with a configurable 5–60-minute lead-in and a 30-minute default. When enabled and permitted by power policy, hold the display only for the remaining interval through five minutes after scheduled unlock. Release owned assertions on dismissal, disablement, cancellation or teardown. Battery operation requires a separate opt-in. Reconcile the current occurrence after resume without duplicate activity or renewal from the display clock loop.
 
-Proposed limits for that implementation:
-
-- Wake the display once per authorized presentation request. Hold it awake for at most five minutes; release the owned assertion sooner when the surface is dismissed, the feature is disabled, the request is canceled, or the process exits normally.
-- Do not replay a missed presentation request on startup or reconnect merely to light the display. Resolve the current feature state and await a fresh eligible request.
-- If the Mac is already running, request local display activity and record accepted versus rejected. A short display-idle assertion is optional and must have the same bounded cleanup. Never renew it in the display clock loop.
-- If the Mac itself is asleep, a UI-process timer is insufficient. Evaluate one owned scheduled system-wake event through the authenticated helper. Changes replace only that owned event; helper unavailability leaves an honest unavailable state and preserves normal passive resume.
-- Do not claim support for closed-lid operation, monitors manually switched off, startup from shutdown, or FileVault/login-screen presentation without separate hardware evidence. No request bypasses macOS authentication or an independently active Curfew restriction.
-- Keep synthetic activity separate from human activity in work-time sampling and any wake-proof mechanism. A successful API call cannot satisfy a proof or release condition.
+The authenticated helper schedules one owned wake event and replaces or cancels only Curfew-owned events. Helper unavailability remains an explicit state. No power-on from shutdown, hardware brightness change or authentication bypass is included. Keep synthetic display activity separate from human activity and release proofs. Closed lids, manually powered-off monitors and FileVault retain their platform limitations and require separate hardware evidence.
 
 | Setup | Assessment | Follow-on acceptance |
 | --- | --- | --- |
