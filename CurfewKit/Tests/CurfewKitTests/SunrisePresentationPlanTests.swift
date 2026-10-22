@@ -263,3 +263,18 @@ struct SunrisePresentationPlanTests {
         #expect(window.unlockDate > window.lockDate)
     }
 }
+
+extension SunrisePresentationPlanTests {
+    @Test("Saved explicit next-day offsets retain their original calendar reference")
+    func explicitDayOffsets() throws {
+        var schedule = WeeklySchedule.allDaysOff
+        schedule.rules[.monday] = DayRule(
+            isDayOff: false, lockMinutes: 26 * 60, unlockMinutes: 32 * 60
+        )
+        let window = try #require(schedule.scheduleWindow(
+            for: date("2026-10-19T12:00:00-07:00"), calendar: calendar()
+        ))
+        #expect(window.lockDate == date("2026-10-20T02:00:00-07:00"))
+        #expect(window.unlockDate == date("2026-10-20T08:00:00-07:00"))
+    }
+}
