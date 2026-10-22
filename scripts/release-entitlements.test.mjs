@@ -217,23 +217,36 @@ test("a staging build compiles the app and every embedded tool for the same serv
   assert.match(projectFile, /CURFEW_DAEMON_PLIST_NAME/);
 });
 
-test("every user-facing release version is the same 0.0.x version", () => {
-  const marketingVersions = [
-    ...projectFile.matchAll(/MARKETING_VERSION = (\d+\.\d+\.\d+);/g),
-  ].map((match) => match[1]);
+test("app, widget and tool release versions retain the same 0.0.x version", () => {
+  const project = JSON.parse(execFileSync("plutil", [
+    "-convert", "json", "-o", "-", "Curfew.xcodeproj/project.pbxproj",
+  ], { encoding: "utf8" }));
+  const configurations = Object.values(project.objects).filter((object) =>
+    object.isa === "XCBuildConfiguration" && object.buildSettings?.MARKETING_VERSION,
+  );
+  const companionID = "studio.hypertext.apps.curfew.screensaver";
+  const appConfigurations = configurations.filter((configuration) =>
+    configuration.buildSettings.PRODUCT_BUNDLE_IDENTIFIER !== companionID,
+  );
+  const marketingVersions = appConfigurations.map((configuration) =>
+    configuration.buildSettings.MARKETING_VERSION,
+  );
   const caskVersion = /version "(\d+\.\d+\.\d+)"/.exec(homebrewCask)?.[1];
-
-  assert.ok(
-    marketingVersions.length > 0,
-    "Xcode must declare a marketing version",
-  );
-  assert.equal(
-    new Set(marketingVersions).size,
-    1,
-    "all Xcode targets must agree",
-  );
+  assert.ok(marketingVersions.length >= 8, "retain app, widget and test configurations");
+  assert.equal(new Set(marketingVersions).size, 1, "app release configurations must agree");
   assert.match(marketingVersions[0], /^0\.0\.\d+$/);
   assert.equal(caskVersion, marketingVersions[0]);
+
+  const companionConfigurations = configurations.filter((configuration) =>
+    configuration.buildSettings.PRODUCT_BUNDLE_IDENTIFIER === companionID,
+  );
+  assert.deepEqual(companionConfigurations.map((configuration) => configuration.name).sort(),
+    ["Debug", "Release"]);
+  const companionVersions = companionConfigurations.map((configuration) =>
+    configuration.buildSettings.MARKETING_VERSION,
+  );
+  assert.equal(new Set(companionVersions).size, 1, "companion configurations must agree");
+  assert.match(companionVersions[0], /^\d+\.\d+\.\d+$/);
 });
 
 test("production app and widget share the new snapshot group without changing legacy Keychain access", () => {
