@@ -1,3 +1,4 @@
+import CoreGraphics
 import CurfewKit
 import Foundation
 import ImageIO
@@ -82,6 +83,11 @@ public final class RestScreenSaverPreferences {
             return false
         }
         return store.matchesCurrentPublication(bytes)
+    }
+
+    /// Inert until the pixel-decoding contracts have an observed failing run.
+    public static func boundedImage(_: Data) -> CGImage? {
+        nil
     }
 
     /// Read properties only: no pixel decode occurs before encoded-size and dimension bounds.

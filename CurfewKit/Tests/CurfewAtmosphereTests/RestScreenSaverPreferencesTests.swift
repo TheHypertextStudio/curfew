@@ -174,6 +174,46 @@ struct RestScreenSaverPreferencesTests {
         }
     }
 
+    @Test(
+        "Bounded pixel decoding preserves real JPEG, PNG, and HEIC dimensions",
+        arguments: [UTType.jpeg.identifier, UTType.png.identifier, UTType.heic.identifier]
+    )
+    func boundedPixelDecode(type: String) throws {
+        let bytes = try encodedImage(type: type, width: 64, height: 32)
+        try #require(bytes.count <= RestCompanionExport.maximumImageBytes)
+        let image = try #require(RestScreenSaverPreferences.boundedImage(bytes))
+        #expect(image.width == 64)
+        #expect(image.height == 32)
+    }
+
+    @Test("Bounded pixel decoding rejects empty, corrupt, and oversized input")
+    func invalidPixelDecode() {
+        #expect(RestScreenSaverPreferences.boundedImage(Data()) == nil)
+        #expect(RestScreenSaverPreferences.boundedImage(Data("invalid".utf8)) == nil)
+        #expect(RestScreenSaverPreferences.boundedImage(Data(
+            repeating: 0, count: RestCompanionExport.maximumImageBytes + 1
+        )) == nil)
+    }
+
+    @Test("Bounded pixel decoding rejects a real unsupported GIF")
+    func unsupportedPixelDecode() throws {
+        let bytes = try encodedImage(type: UTType.gif.identifier, width: 64, height: 32)
+        try #require(bytes.count <= RestCompanionExport.maximumImageBytes)
+        #expect(RestScreenSaverPreferences.boundedImage(bytes) == nil)
+    }
+
+    @Test(
+        "Bounded pixel decoding rejects real encoded dimensions above the limit",
+        arguments: [UTType.jpeg.identifier, UTType.png.identifier, UTType.heic.identifier]
+    )
+    func oversizedPixelDecodeDimensions(type: String) throws {
+        let bytes = try encodedImage(
+            type: type, width: RestCompanionExport.maximumImageDimension + 2, height: 64
+        )
+        try #require(bytes.count <= RestCompanionExport.maximumImageBytes)
+        #expect(RestScreenSaverPreferences.boundedImage(bytes) == nil)
+    }
+
     /// Synthetic in-memory ImageIO fixture; no screenshot, native surface, or user image.
     private func encodedImage(type: String, width: Int, height: Int) throws -> Data {
         var pixels = [UInt8](repeating: 127, count: width * height * 4)
@@ -192,7 +232,7 @@ struct RestScreenSaverPreferencesTests {
             bytes, type as CFString, 1, nil
         ))
         CGImageDestinationAddImage(destination, image, nil)
-        #expect(CGImageDestinationFinalize(destination))
+        try #require(CGImageDestinationFinalize(destination))
         return bytes as Data
     }
 }
