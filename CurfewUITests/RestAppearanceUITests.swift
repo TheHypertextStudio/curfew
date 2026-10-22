@@ -39,6 +39,26 @@ extension CurfewUITests {
         ))
     }
 
+    func testRestScreenShowsWakeRequestStatus() {
+        let app = launchFixture("settings", state: "ready")
+        let destination = app.descendants(matching: .any)["settings-restScreen-tab"]
+        XCTAssertTrue(destination.waitForExistence(timeout: 8))
+        destination.click()
+        let detail = app.descendants(matching: .any)["settings-detail"]
+        XCTAssertTrue(detail.waitForExistence(timeout: 5))
+        let status = app.staticTexts["rest-sunrise-status"]
+        XCTAssertTrue(
+            status.waitForExistence(timeout: 3),
+            "Sunrise must report its request status separately from the opt-in control."
+        )
+        for _ in 0 ..< 6 where !status.isHittable {
+            detail.scroll(byDeltaX: 0, deltaY: -250)
+        }
+        XCTAssertTrue(status.isHittable)
+        XCTAssertEqual(status.label, "Sunrise is off.")
+        // Do not enable wake or launch system services in this disarmed UI contract.
+    }
+
     private func assertOff(
         _ control: XCUIElement, revealingIn detail: XCUIElement,
         file: StaticString = #filePath, line: UInt = #line
