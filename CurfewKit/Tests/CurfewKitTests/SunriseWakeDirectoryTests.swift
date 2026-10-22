@@ -29,6 +29,11 @@ struct SunriseWakeDirectoryTests {
         return result
     }
 
+    private func expectEmpty(_ directory: URL) throws {
+        let children = try FileManager.default.contentsOfDirectory(atPath: directory.path)
+        #expect(children.isEmpty)
+    }
+
     private func prepare(_ base: URL, namespace: String? = nil) throws -> URL {
         try SunriseWakeJournal.prepareDirectory(
             in: base, namespace: namespace ?? self.namespace, requiredOwnerUserID: geteuid()
@@ -83,7 +88,7 @@ struct SunriseWakeDirectoryTests {
             #expect(throws: SunriseWakeJournal.Failure.unavailable) {
                 try prepare(base, namespace: name)
             }
-            #expect(try FileManager.default.contentsOfDirectory(atPath: base.path).isEmpty)
+            try expectEmpty(base)
         }
     }
 
@@ -95,7 +100,7 @@ struct SunriseWakeDirectoryTests {
             try directory(real)
             try FileManager.default.createSymbolicLink(at: link, withDestinationURL: real)
             #expect(throws: SunriseWakeJournal.Failure.unavailable) { try prepare(link) }
-            #expect(try FileManager.default.contentsOfDirectory(atPath: real.path).isEmpty)
+            try expectEmpty(real)
             #expect(try metadata(link).st_mode & S_IFMT == S_IFLNK)
         }
     }
@@ -111,7 +116,7 @@ struct SunriseWakeDirectoryTests {
             try FileManager.default.createSymbolicLink(at: link, withDestinationURL: real)
             let indirectBase = link.appendingPathComponent("base", isDirectory: true)
             #expect(throws: SunriseWakeJournal.Failure.unavailable) { try prepare(indirectBase) }
-            #expect(try FileManager.default.contentsOfDirectory(atPath: realBase.path).isEmpty)
+            try expectEmpty(realBase)
             #expect(try metadata(link).st_mode & S_IFMT == S_IFLNK)
         }
     }
@@ -127,7 +132,7 @@ struct SunriseWakeDirectoryTests {
             #expect(throws: SunriseWakeJournal.Failure.unavailable) { try prepare(privateBase) }
             #expect(try metadata(writable).st_mode & 0o777 == 0o777)
             #expect(try metadata(privateBase).st_mode & 0o777 == 0o700)
-            #expect(try FileManager.default.contentsOfDirectory(atPath: privateBase.path).isEmpty)
+            try expectEmpty(privateBase)
         }
     }
 
@@ -140,7 +145,7 @@ struct SunriseWakeDirectoryTests {
                     in: base, namespace: namespace, requiredOwnerUserID: wrongUID
                 )
             }
-            #expect(try FileManager.default.contentsOfDirectory(atPath: base.path).isEmpty)
+            try expectEmpty(base)
         }
     }
 
@@ -155,7 +160,7 @@ struct SunriseWakeDirectoryTests {
             try FileManager.default.createSymbolicLink(at: link, withDestinationURL: target)
             #expect(throws: SunriseWakeJournal.Failure.unavailable) { try prepare(base) }
             #expect(try metadata(link).st_mode & S_IFMT == S_IFLNK)
-            #expect(try FileManager.default.contentsOfDirectory(atPath: target.path).isEmpty)
+            try expectEmpty(target)
         }
     }
 
@@ -177,7 +182,7 @@ struct SunriseWakeDirectoryTests {
             try directory(existing, mode: 0o755)
             #expect(throws: SunriseWakeJournal.Failure.unavailable) { try prepare(base) }
             #expect(try metadata(existing).st_mode & 0o777 == 0o755)
-            #expect(try FileManager.default.contentsOfDirectory(atPath: existing.path).isEmpty)
+            try expectEmpty(existing)
         }
     }
 }

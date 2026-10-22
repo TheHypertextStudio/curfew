@@ -76,6 +76,11 @@ public nonisolated struct RestBackgroundImageStore {
         try FileManager.default.removeItem(at: url)
     }
 
+    /// Inert until raw companion-rendition contracts establish actual failure.
+    public func encodedImage(named _: String?) -> Data? {
+        nil
+    }
+
     /// Missing or damaged assets fall back to the built-in appearance in the host.
     /// Size and header bounds are checked before allocating decoded pixels.
     public func image(named filename: String?) -> CGImage? {

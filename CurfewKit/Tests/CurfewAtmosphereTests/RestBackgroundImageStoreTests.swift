@@ -95,6 +95,56 @@ struct RestBackgroundImageStoreTests {
         #expect(FileManager.default.fileExists(atPath: source.path))
     }
 
+    @Test("Owned encoded renditions survive original removal for companion export", arguments: [
+        UTType.jpeg.identifier, UTType.png.identifier, UTType.heic.identifier
+    ])
+    func encodedRendition(type: String) throws {
+        let fixture = try Fixture()
+        defer { fixture.cleanup() }
+        let source = try fixture.image(type: type, width: 64, height: 32)
+        let store = RestBackgroundImageStore(directory: fixture.owned)
+        let owned = try store.importImage(from: source)
+        try FileManager.default.removeItem(at: source)
+        let bytes = try #require(store.encodedImage(named: owned.lastPathComponent))
+        #expect(try bytes == Data(contentsOf: owned))
+        #expect(bytes.count <= 2 * 1024 * 1024)
+        #expect(try RestScreenSaverPreferences.inspectImageHeader(bytes) == .init(
+            width: 64,
+            height: 32
+        ))
+    }
+
+    @Test("Encoded export rejects absent, corrupt, oversized, redirected and unowned files")
+    func rejectsUnsafeEncodedRenditions() throws {
+        let fixture = try Fixture()
+        defer { fixture.cleanup() }
+        let store = RestBackgroundImageStore(directory: fixture.owned)
+        try FileManager.default.createDirectory(
+            at: fixture.owned,
+            withIntermediateDirectories: true
+        )
+        #expect(store.encodedImage(named: nil) == nil)
+        #expect(store.encodedImage(named: "missing.jpg") == nil)
+        let unsafe = fixture.root.appendingPathComponent(UUID().uuidString + ".jpg")
+        let valid = try fixture.image(type: UTType.jpeg.identifier, width: 64, height: 32)
+        try FileManager.default.copyItem(at: valid, to: unsafe)
+        _ = try RestScreenSaverPreferences.inspectImageHeader(Data(contentsOf: unsafe))
+        #expect(store.encodedImage(named: "../" + unsafe.lastPathComponent) == nil)
+        let linked = fixture.owned.appendingPathComponent(UUID().uuidString + ".jpg")
+        try FileManager.default.createSymbolicLink(at: linked, withDestinationURL: unsafe)
+        #expect(store.encodedImage(named: linked.lastPathComponent) == nil)
+        let bad = fixture.owned.appendingPathComponent(UUID().uuidString + ".jpg")
+        try Data("corrupt".utf8).write(to: bad)
+        #expect(store.encodedImage(named: bad.lastPathComponent) == nil)
+        try Data(repeating: 0, count: 2 * 1024 * 1024 + 1).write(to: bad)
+        #expect(store.encodedImage(named: bad.lastPathComponent) == nil)
+        let oversized = try fixture.image(type: UTType.png.identifier, width: 3842, height: 64)
+        try FileManager.default.removeItem(at: bad)
+        try FileManager.default.copyItem(at: oversized, to: bad)
+        #expect(store.encodedImage(named: bad.lastPathComponent) == nil)
+        #expect(FileManager.default.fileExists(atPath: unsafe.path))
+    }
+
     private struct Fixture {
         let root: URL
         var owned: URL {
