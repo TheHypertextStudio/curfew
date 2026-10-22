@@ -52,13 +52,15 @@
     ]
   },
   "fonts": {
-    "family": "Hanken Grotesk",
-    "source": "/fonts/HankenGrotesk.woff2",
-    "format": "woff2",
+    "body": {
+      "family": "Hanken Grotesk",
+      "source": "/docs/fonts/HankenGrotesk.woff2",
+      "format": "woff2"
+    },
     "heading": {
       "family": "Calistoga",
       "weight": 400,
-      "source": "/fonts/Calistoga.woff2",
+      "source": "/docs/fonts/Calistoga.woff2",
       "format": "woff2"
     }
   },

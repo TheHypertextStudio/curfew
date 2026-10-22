@@ -2150,7 +2150,8 @@ Production promotion uses the protected resume phase and retained accepted artif
 ### Documentation branding
 
 `scripts/user-docs.test.mjs` requires the homepage body/display font roles,
-matching light/dark color tokens, accessible shared button contrast, locally
+separate provider font roles, mounted asset URLs, matching light/dark color
+tokens, accessible shared button contrast, locally
 packaged WOFF2 assets, retained OFL
 licenses, and identical product/generated font configuration. Publication
 acceptance separately checks loaded fonts, computed families and rendered
