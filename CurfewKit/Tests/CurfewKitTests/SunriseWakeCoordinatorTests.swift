@@ -75,6 +75,43 @@ struct SunriseWakeCoordinatorTests {
         #expect(subject.status == .helperUnavailable)
     }
 
+    @Test func externalPowerReturnRestoresActiveDisplayWithinOriginalDeadline() async {
+        let effects = Effects()
+        let subject = effects.subject()
+        let desired = plan(offset: 0)
+        await subject.reconcile(
+            plan: desired, enabled: true, onExternalPower: true, now: now
+        )
+        #expect(effects.delivery.isActive)
+        #expect(effects.calls == ["activity", "acquire", "cancel"])
+
+        await subject.reconcile(
+            plan: desired, enabled: true, onExternalPower: false,
+            now: now.addingTimeInterval(60)
+        )
+        #expect(subject.status == .batteryExcluded)
+        #expect(!effects.delivery.isActive)
+        #expect(effects.calls == ["activity", "acquire", "cancel", "release", "cleanup"])
+
+        await subject.reconcile(
+            plan: desired, enabled: true, onExternalPower: true,
+            now: now.addingTimeInterval(120)
+        )
+        #expect(subject.status == .displayRequested)
+        #expect(effects.delivery.isActive)
+        #expect(effects.calls == [
+            "activity", "acquire", "cancel", "release", "cleanup", "acquire"
+        ])
+        #expect(effects.deadlines == [desired.holdUntil, desired.holdUntil])
+
+        await subject.reconcile(
+            plan: desired, enabled: true, onExternalPower: true, now: desired.holdUntil
+        )
+        #expect(!effects.delivery.isActive)
+        #expect(effects.calls.filter { $0 == "release" }.count == 2)
+        #expect(effects.calls.filter { $0 == "cancel" }.count == 1)
+    }
+
     @Test func cancellationFailureIsRejectedAndRetriedOnlyOnExplicitReconcile() async {
         let effects = Effects()
         let subject = effects.subject()

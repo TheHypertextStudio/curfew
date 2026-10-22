@@ -120,6 +120,31 @@ struct SunriseDisplayDeliveryTests {
         #expect(effects.calls == ["activity", "acquire"])
     }
 
+    @Test("Returning to external power restores the remaining hold without repeating activity")
+    func externalPowerReturnRestoresHold() throws {
+        let effects = Effects()
+        let service = subject(effects)
+        let desired = plan()
+        #expect(try deliver(service, plan: desired) == .active)
+        #expect(try deliver(
+            service, plan: desired, externalPower: false, at: now.addingTimeInterval(60)
+        ) == .batteryExcluded)
+        #expect(!service.isActive)
+        #expect(effects.calls == ["activity", "acquire", "release"])
+        #expect(effects.released == [effects.token])
+
+        #expect(try deliver(
+            service, plan: desired, at: now.addingTimeInterval(120)
+        ) == .active)
+        #expect(service.isActive)
+        #expect(effects.calls == ["activity", "acquire", "release", "acquire"])
+        #expect(effects.deadlines == [desired.holdUntil, desired.holdUntil])
+
+        #expect(try deliver(service, plan: desired, at: desired.holdUntil) == .inactive)
+        #expect(!service.isActive)
+        #expect(effects.released == [effects.token, effects.token])
+    }
+
     @Test("Disable, dismissal, power loss, expiry and teardown release only owned token")
     func lifecycleRelease() throws {
         for stop in 0 ... 4 {
