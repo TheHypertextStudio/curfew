@@ -49,6 +49,8 @@
   --success-container: #b9edbe;
   --on-success-container: #002109;
   --brand-orange: #e98243;
+  /* Mintlify uses one filled-control color across both themes. */
+  --docs-control: #b64b2c;
   --shadow: 0 16px 44px #38251a14, 0 2px 5px #38251a0b;
   --display: "Calistoga", Georgia, serif;
   --body: "Hanken Grotesk", -apple-system, BlinkMacSystemFont, sans-serif;

@@ -1726,5 +1726,6 @@ asserts its own screen and state before attaching an image.
   readers to the canonical download page; preserve the separate Plus hold and
   verify the approved guide on Mintlify and the first-party documentation route.
 - [-] Match documentation typography, accents and surfaces to the homepage
-  tokens using local licensed fonts; verify the served fonts and light/dark
+  tokens using local licensed fonts and accessible shared button colors; verify
+  the served fonts and light/dark
   rendering on the provider and first-party documentation routes.
