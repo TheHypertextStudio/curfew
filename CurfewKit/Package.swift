@@ -32,6 +32,7 @@ let package = Package(
     platforms: [.macOS(.v14)],
     products: [
         .library(name: "CurfewKit", targets: ["CurfewKit"]),
+        .library(name: "CurfewAtmosphere", targets: ["CurfewAtmosphere"]),
         .library(name: "CurfewProtocolBridge", targets: ["CurfewProtocolBridge"]),
         .executable(name: "curfew-ctl", targets: ["curfew-ctl"]),
         .executable(name: "curfew-mcp", targets: ["curfew-mcp"]),
@@ -55,6 +56,8 @@ let package = Package(
         // Add it via Xcode → project → Package Dependencies when ready.
     ],
     targets: [
+        .target(name: "CurfewAtmosphere", dependencies: ["CurfewKit"]),
+        .testTarget(name: "CurfewAtmosphereTests", dependencies: ["CurfewAtmosphere", "CurfewKit"]),
         .executableTarget(
             name: "curfew-browser", dependencies: [.target(name: "CurfewKit")],
             path: "Sources/curfew-browser"

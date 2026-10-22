@@ -58,7 +58,7 @@ public struct SunriseWakePlanner {
         guard unlockAt > lockedAt else {
             throw ValidationError.invalidOccurrence
         }
-        guard (5...60).contains(leadMinutes) else {
+        guard (5 ... 60).contains(leadMinutes) else {
             throw ValidationError.invalidLeadMinutes
         }
 

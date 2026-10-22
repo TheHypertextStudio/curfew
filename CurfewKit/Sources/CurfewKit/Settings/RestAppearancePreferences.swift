@@ -83,22 +83,31 @@ public nonisolated struct RestAppearancePreferences: Codable, Equatable, Sendabl
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.init(
-            background: (try? container.decode(Background.self, forKey: .background)) ?? .atmosphere,
+            background: (try? container.decode(Background.self, forKey: .background)) ??
+                .atmosphere,
             palette: (try? container.decode(Palette.self, forKey: .palette)) ?? .sundown,
             solidRed: (try? container.decode(Double.self, forKey: .solidRed)) ?? 0.06,
             solidGreen: (try? container.decode(Double.self, forKey: .solidGreen)) ?? 0.07,
             solidBlue: (try? container.decode(Double.self, forKey: .solidBlue)) ?? 0.15,
             clockStyle: (try? container.decode(ClockStyle.self, forKey: .clockStyle)) ?? .rounded,
-            clockPosition: (try? container.decode(ClockPosition.self, forKey: .clockPosition)) ?? .center,
-            staticBackground: (try? container.decode(Bool.self, forKey: .staticBackground)) ?? false,
+            clockPosition: (try? container.decode(ClockPosition.self, forKey: .clockPosition)) ??
+                .center,
+            staticBackground: (try? container.decode(Bool.self, forKey: .staticBackground)) ??
+                false,
             message: (try? container.decode(String.self, forKey: .message)) ?? "",
             ownedImageFilename: try? container.decode(String.self, forKey: .ownedImageFilename),
             focalX: (try? container.decode(Double.self, forKey: .focalX)) ?? 0.5,
             focalY: (try? container.decode(Double.self, forKey: .focalY)) ?? 0.5,
-            saverMessageEnabled: (try? container.decode(Bool.self, forKey: .saverMessageEnabled)) ?? false,
-            sunriseWakeEnabled: (try? container.decode(Bool.self, forKey: .sunriseWakeEnabled)) ?? false,
-            sunriseLeadMinutes: (try? container.decode(Int.self, forKey: .sunriseLeadMinutes)) ?? 30,
-            sunriseOnBatteryEnabled: (try? container.decode(Bool.self, forKey: .sunriseOnBatteryEnabled)) ?? false
+            saverMessageEnabled: (try? container.decode(Bool.self, forKey: .saverMessageEnabled)) ??
+                false,
+            sunriseWakeEnabled: (try? container.decode(Bool.self, forKey: .sunriseWakeEnabled)) ??
+                false,
+            sunriseLeadMinutes: (try? container.decode(Int.self, forKey: .sunriseLeadMinutes)) ??
+                30,
+            sunriseOnBatteryEnabled: (try? container.decode(
+                Bool.self,
+                forKey: .sunriseOnBatteryEnabled
+            )) ?? false
         )
     }
 

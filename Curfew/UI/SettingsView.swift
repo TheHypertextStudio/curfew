@@ -51,6 +51,8 @@ struct SettingsView: View {
                         warningPanel
                         shutdownPanel
                         protectedWorkPanel
+                    case .restScreen:
+                        RestScreenSettingsView()
                     case .integrations:
                         integrationsPanel
                     case .advanced:

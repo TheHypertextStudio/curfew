@@ -5,6 +5,7 @@ included:
   - Curfew
   - CurfewTests
   - CurfewUITests
+  - CurfewKit/Sources/CurfewAtmosphere
 
 excluded:
   - DerivedData

@@ -1,17 +1,19 @@
-import Foundation
 @testable import CurfewKit
+import Foundation
 import Testing
 
-// Proposed Foundation-only contract. UNEXECUTED against temporary inert scaffold.
-// Authorization and absolute occurrence times are helper-resolved inputs, never
-// trusted merely because an app encoded them. No power or XPC APIs run here.
+/// Proposed Foundation-only contract. UNEXECUTED against temporary inert scaffold.
+/// Authorization and absolute occurrence times are helper-resolved inputs, never
+/// trusted merely because an app encoded them. No power or XPC APIs run here.
 struct SunriseWakePlannerTests {
     private let now = Date(timeIntervalSince1970: 2_000_000_000)
     private let occurrenceID = UUID(uuidString: "51000000-0000-0000-0000-000000000001")!
     private let otherID = UUID(uuidString: "51000000-0000-0000-0000-000000000002")!
     private let owner = "studio.hypertext.curfew.dev.sunrise"
 
-    private var planner: SunriseWakePlanner { SunriseWakePlanner(owner: owner) }
+    private var planner: SunriseWakePlanner {
+        SunriseWakePlanner(owner: owner)
+    }
 
     private func plan(
         enabled: Bool = true,
@@ -106,7 +108,10 @@ struct SunriseWakePlannerTests {
         }
     }
 
-    @Test("A wake at or before now cannot become a stale scheduled event", arguments: [-1.0, 0.0, 1800.0])
+    @Test(
+        "A wake at or before now cannot become a stale scheduled event",
+        arguments: [-1.0, 0.0, 1800.0]
+    )
     func expiredWakeRejected(unlockOffset: TimeInterval) {
         #expect(throws: SunriseWakePlanner.ValidationError.expired) {
             try plan(unlockOffset: unlockOffset)
@@ -122,16 +127,21 @@ struct SunriseWakePlannerTests {
         #expect(batteryPlan.allowsBattery)
     }
 
-    @Test("Non-finite helper timestamps are rejected", arguments: [Double.nan, .infinity, -.infinity])
+    @Test(
+        "Non-finite helper timestamps are rejected",
+        arguments: [Double.nan, .infinity, -.infinity]
+    )
     func nonFiniteTimestampsRejected(value: Double) {
-        for field in 0..<3 {
+        for field in 0 ..< 3 {
             #expect(throws: SunriseWakePlanner.ValidationError.invalidTimestamp) {
                 try planner.makePlan(
                     enabled: true,
                     requestedOccurrenceID: occurrenceID,
                     authorizedOccurrenceID: occurrenceID,
-                    lockedAt: field == 0 ? Date(timeIntervalSince1970: value) : now.addingTimeInterval(-3600),
-                    unlockAt: field == 1 ? Date(timeIntervalSince1970: value) : now.addingTimeInterval(7200),
+                    lockedAt: field == 0 ? Date(timeIntervalSince1970: value) : now
+                        .addingTimeInterval(-3600),
+                    unlockAt: field == 1 ? Date(timeIntervalSince1970: value) : now
+                        .addingTimeInterval(7200),
                     leadMinutes: 30,
                     allowsBattery: false,
                     onExternalPower: true,
@@ -166,17 +176,18 @@ struct SunriseWakePlannerTests {
 
     @Test("Cancellation never claims another owner or app flavor's event")
     func foreignOwnerIsNeverCancelled() throws {
-        let foreign = try #require(try SunriseWakePlanner(owner: "another.product.sunrise").makePlan(
-            enabled: true,
-            requestedOccurrenceID: occurrenceID,
-            authorizedOccurrenceID: occurrenceID,
-            lockedAt: now.addingTimeInterval(-3600),
-            unlockAt: now.addingTimeInterval(7200),
-            leadMinutes: 30,
-            allowsBattery: false,
-            onExternalPower: true,
-            now: now
-        ))
+        let foreign = try #require(try SunriseWakePlanner(owner: "another.product.sunrise")
+            .makePlan(
+                enabled: true,
+                requestedOccurrenceID: occurrenceID,
+                authorizedOccurrenceID: occurrenceID,
+                lockedAt: now.addingTimeInterval(-3600),
+                unlockAt: now.addingTimeInterval(7200),
+                leadMinutes: 30,
+                allowsBattery: false,
+                onExternalPower: true,
+                now: now
+            ))
         let cancellation = planner.reconcile(current: foreign, desired: nil)
         #expect(cancellation.cancel == nil)
         #expect(cancellation.schedule == nil)
@@ -184,17 +195,18 @@ struct SunriseWakePlannerTests {
 
     @Test("A foreign desired plan cannot schedule or replace this owner's event")
     func foreignDesiredOwnerCannotSchedule() throws {
-        let foreign = try #require(try SunriseWakePlanner(owner: "another.product.sunrise").makePlan(
-            enabled: true,
-            requestedOccurrenceID: occurrenceID,
-            authorizedOccurrenceID: occurrenceID,
-            lockedAt: now.addingTimeInterval(-3600),
-            unlockAt: now.addingTimeInterval(7200),
-            leadMinutes: 30,
-            allowsBattery: false,
-            onExternalPower: true,
-            now: now
-        ))
+        let foreign = try #require(try SunriseWakePlanner(owner: "another.product.sunrise")
+            .makePlan(
+                enabled: true,
+                requestedOccurrenceID: occurrenceID,
+                authorizedOccurrenceID: occurrenceID,
+                lockedAt: now.addingTimeInterval(-3600),
+                unlockAt: now.addingTimeInterval(7200),
+                leadMinutes: 30,
+                allowsBattery: false,
+                onExternalPower: true,
+                now: now
+            ))
         let current = try #require(try plan())
         for existing in [nil, Optional(current)] {
             let change = planner.reconcile(current: existing, desired: foreign)
@@ -202,5 +214,4 @@ struct SunriseWakePlannerTests {
             #expect(change.schedule == nil)
         }
     }
-
 }

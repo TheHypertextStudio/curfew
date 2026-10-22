@@ -44,6 +44,11 @@ final class CurfewAppModel: NSObject {
         didSet { handleSettingsMutation(from: oldValue) }
     }
 
+    /// Appearance and optional Sunrise choices stay outside synchronized settings.
+    var restAppearance: RestAppearancePreferences {
+        didSet { restAppearanceStore.save(restAppearance) }
+    }
+
     /// Separate local consent keeps a stored schedule editable without
     /// allowing an unconfirmed Curfew Dev schedule to lock the Mac.
     var automaticScheduleEnabled: Bool
@@ -352,6 +357,9 @@ final class CurfewAppModel: NSObject {
     ) {
         self.isDemoSession = Self.permitsDemoIsolation(isDemoSession)
         self.settingsStore = settingsStore
+        let restAppearanceStore = RestAppearancePreferencesStore(defaults: settingsStore
+            .storageDefaults)
+        self.restAppearance = restAppearanceStore.load()
         self.policyEngine = SchedulePolicyEngine()
         let enforcementEngine = CurfewEnforcementEngine()
         self.enforcementEngine = enforcementEngine

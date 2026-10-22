@@ -13,7 +13,10 @@ public final class RestAppearancePreferencesStore {
     /// Missing and corrupt records use the migration defaults.
     public func load() -> RestAppearancePreferences {
         guard let data = defaults.data(forKey: Self.key),
-              let preferences = try? JSONDecoder().decode(RestAppearancePreferences.self, from: data)
+              let preferences = try? JSONDecoder().decode(
+                  RestAppearancePreferences.self,
+                  from: data
+              )
         else { return RestAppearancePreferences() }
         return preferences
     }

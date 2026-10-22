@@ -28,12 +28,19 @@ struct RestAppearanceSyncIsolationTests {
         #expect(after == before)
         #expect(settingsStore.load() == beforeSettings)
         let afterObject = try #require(JSONSerialization.jsonObject(with: after) as? NSDictionary)
-        for key in ["restAppearance", "restAppearancePreferences", "message", "saverMessageEnabled", "sunriseWakeEnabled", "sunriseLeadMinutes", "sunriseOnBatteryEnabled"] {
+        for key in [
+            "restAppearance",
+            "restAppearancePreferences",
+            "message",
+            "saverMessageEnabled",
+            "sunriseWakeEnabled",
+            "sunriseLeadMinutes",
+            "sunriseOnBatteryEnabled"
+        ] {
             #expect(afterObject[key] == nil)
         }
         #expect(!String(decoding: after, as: UTF8.self).contains(local.message))
         settingsStore.save(.default)
         #expect(RestAppearancePreferencesStore(defaults: defaults).load() == local)
     }
-
 }

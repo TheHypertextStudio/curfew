@@ -1,3 +1,4 @@
+import CurfewAtmosphere
 import CurfewKit
 import SwiftUI
 
@@ -7,6 +8,7 @@ struct RestScreenView: View {
     let model: CurfewAppModel
     @Bindable var display: RestDisplayPresentation
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @State private var coverOpacity: Double
     @State private var previousContent: RestContentState
 
@@ -31,13 +33,46 @@ struct RestScreenView: View {
         model.restPresentation.layout
     }
 
+    private var clockDesign: Font.Design {
+        switch model.restAppearance.clockStyle {
+        case .rounded: .rounded
+        case .standard: .default
+        case .serif: .serif
+        }
+    }
+
+    private var sceneSnapshot: RestSceneSnapshot {
+        let interval = model.reflectionState.scheduledInterval
+        let candidate = interval?.end ?? model.state.unlockDate
+        let unlock = candidate == .distantFuture ? nil : candidate
+        return RestSceneSnapshot(
+            version: 1,
+            expiresAt: unlock?.addingTimeInterval(3600) ?? model.currentTime
+                .addingTimeInterval(300),
+            appearance: model.restAppearance,
+            lockDate: interval?.start ?? model.state.lockDate,
+            unlockDate: unlock
+        )
+    }
+
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                SundownSky(moment: model.restPresentation.sky, isVisible: display.isVisible)
-                    .overlay(SundownPalette.textScrim)
-                    .ignoresSafeArea()
-                    .accessibilityHidden(true)
+                TimelineView(.animation(
+                    minimumInterval: reduceMotion || model.restAppearance
+                        .staticBackground ? 1 : 1.0 / 24,
+                    paused: !display.isVisible
+                )) { context in
+                    RestAmbientScene(
+                        snapshot: sceneSnapshot,
+                        date: model.isDemoSession ? model.currentTime : context.date,
+                        reduceMotion: reduceMotion,
+                        reduceTransparency: reduceTransparency,
+                        showsClock: false
+                    )
+                }
+                .ignoresSafeArea()
+                .accessibilityHidden(true)
                 ScrollView {
                     VStack(spacing: content == .quiet ? 24 : 18) {
                         Spacer(minLength: content == .quiet ? 48 : 0)
@@ -45,12 +80,19 @@ struct RestScreenView: View {
                             .font(.system(
                                 size: content == .quiet ? 110 : 64,
                                 weight: .semibold,
-                                design: .rounded
+                                design: clockDesign
                             ))
                             .monospacedDigit()
                             .foregroundStyle(SundownPalette.warmWhite)
                             .shadow(color: .black.opacity(0.3), radius: 24, y: 10)
                             .accessibilityIdentifier("rest-clock")
+                        if !model.restAppearance.message.isEmpty {
+                            Text(model.restAppearance.message)
+                                .font(.system(size: 18))
+                                .foregroundStyle(SundownPalette.warmWhite)
+                                .multilineTextAlignment(.center)
+                                .frame(maxWidth: 600)
+                        }
                         Group {
                             if content == .morning, !model.isEnforcingLockout {
                                 DaybreakReflectionView()

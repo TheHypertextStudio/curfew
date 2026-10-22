@@ -1,14 +1,15 @@
 import XCTest
 
+@MainActor
 extension CurfewUITests {
-    @MainActor
     func testRestScreenSettingsStartWithSafeLocalDefaults() {
         let app = launchFixture("settings", state: "ready")
         let destination = app.descendants(matching: .any)["settings-restScreen-tab"]
         XCTAssertTrue(destination.waitForExistence(timeout: 8))
         destination.click()
 
-        XCTAssertTrue(app.descendants(matching: .any)["rest-appearance-preview"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any)["rest-appearance-preview"]
+            .waitForExistence(timeout: 5))
         XCTAssertTrue(app.popUpButtons["rest-background-choice"].exists)
         XCTAssertTrue(app.popUpButtons["rest-palette-choice"].exists)
         XCTAssertTrue(app.popUpButtons["rest-clock-style"].exists)

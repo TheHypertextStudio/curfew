@@ -2,8 +2,8 @@
 import Foundation
 import Testing
 
-// Contract preparation only: intended production types do not exist yet.
-// Compilation failure is not behavioral RED. See the task-1 report.
+/// Contract preparation only: intended production types do not exist yet.
+/// Compilation failure is not behavioral RED. See the task-1 report.
 struct RestAppearancePreferencesTests {
     private func decode(_ json: String) throws -> RestAppearancePreferences {
         try JSONDecoder().decode(RestAppearancePreferences.self, from: Data(json.utf8))
@@ -43,9 +43,15 @@ struct RestAppearancePreferencesTests {
 
     @Test("Unknown choices and malformed fields fall back independently")
     func invalidValuesPreserveOtherFields() throws {
-        let preferences = try decode(#"{"background":"unknown","palette":"unknown","clockStyle":5,"clockPosition":null,"message":false,"focalX":"left","focalY":null,"staticBackground":"yes","sunriseLeadMinutes":"soon","sunriseWakeEnabled":"yes","sunriseOnBatteryEnabled":null,"saverMessageEnabled":1}"#)
+        let preferences =
+            try decode(
+                #"{"background":"unknown","palette":"unknown","clockStyle":5,"clockPosition":null,"message":false,"focalX":"left","focalY":null,"staticBackground":"yes","sunriseLeadMinutes":"soon","sunriseWakeEnabled":"yes","sunriseOnBatteryEnabled":null,"saverMessageEnabled":1}"#
+            )
         #expect(preferences == RestAppearancePreferences())
-        let mixed = try decode(#"{"palette":"coolTwilight","clockStyle":"unknown","message":"Keep this","sunriseWakeEnabled":true}"#)
+        let mixed =
+            try decode(
+                #"{"palette":"coolTwilight","clockStyle":"unknown","message":"Keep this","sunriseWakeEnabled":true}"#
+            )
         #expect(mixed.palette == .coolTwilight)
         #expect(mixed.clockStyle == .rounded)
         #expect(mixed.message == "Keep this")
@@ -74,7 +80,10 @@ struct RestAppearancePreferencesTests {
         )
         let data = try JSONEncoder().encode(preferences)
         #expect(try JSONDecoder().decode(RestAppearancePreferences.self, from: data) == preferences)
-        let alternate = try decode(#"{"clockStyle":"standard","clockPosition":"upperCenter","palette":"warmAmber"}"#)
+        let alternate =
+            try decode(
+                #"{"clockStyle":"standard","clockPosition":"upperCenter","palette":"warmAmber"}"#
+            )
         #expect(alternate.clockStyle == .standard)
         #expect(alternate.clockPosition == .upperCenter)
         #expect(alternate.palette == .warmAmber)
@@ -95,7 +104,11 @@ struct RestAppearancePreferencesTests {
         #expect(malformed.solidGreen == 0.07)
         #expect(malformed.solidBlue == 0.4)
         for value in [Double.nan, .infinity, -.infinity] {
-            let invalid = RestAppearancePreferences(solidRed: value, solidGreen: value, solidBlue: value)
+            let invalid = RestAppearancePreferences(
+                solidRed: value,
+                solidGreen: value,
+                solidBlue: value
+            )
             #expect(invalid.solidRed == 0.06)
             #expect(invalid.solidGreen == 0.07)
             #expect(invalid.solidBlue == 0.15)
@@ -110,7 +123,8 @@ struct RestAppearancePreferencesTests {
         #expect(RestAppearancePreferences(message: input).message == expected)
         #expect(RestAppearancePreferences(message: input).message.count == 140)
         let encoded = try JSONEncoder().encode(["message": input])
-        #expect(try JSONDecoder().decode(RestAppearancePreferences.self, from: encoded).message == expected)
+        #expect(try JSONDecoder().decode(RestAppearancePreferences.self, from: encoded)
+            .message == expected)
         let exactly140 = String(repeating: "e\u{301}", count: 140)
         #expect(RestAppearancePreferences(message: exactly140).message == exactly140)
         #expect(RestAppearancePreferences(message: " \n\t ").message.isEmpty)
@@ -136,16 +150,33 @@ struct RestAppearancePreferencesTests {
         let identifier = "e1bc5ae6-5666-44c4-9cbb-d86105eaef78"
         for suffix in ["jpg", "png", "heic"] {
             let filename = "\(identifier).\(suffix)"
-            let preferences = RestAppearancePreferences(background: .image, ownedImageFilename: filename)
+            let preferences = RestAppearancePreferences(
+                background: .image,
+                ownedImageFilename: filename
+            )
             #expect(preferences.background == .image)
             #expect(preferences.ownedImageFilename == filename)
         }
-        for filename in ["", "../\(identifier).jpg", "/tmp/\(identifier).png", "file:///tmp/a.jpg", "holiday.jpg", "\(identifier).svg"] {
-            let preferences = RestAppearancePreferences(background: .image, ownedImageFilename: filename)
+        for filename in [
+            "",
+            "../\(identifier).jpg",
+            "/tmp/\(identifier).png",
+            "file:///tmp/a.jpg",
+            "holiday.jpg",
+            "\(identifier).svg"
+        ] {
+            let preferences = RestAppearancePreferences(
+                background: .image,
+                ownedImageFilename: filename
+            )
             #expect(preferences.ownedImageFilename == nil)
             #expect(preferences.background == .atmosphere)
-            let data = try JSONEncoder().encode(["background": "image", "ownedImageFilename": filename])
-            #expect(try JSONDecoder().decode(RestAppearancePreferences.self, from: data) == preferences)
+            let data = try JSONEncoder().encode([
+                "background": "image",
+                "ownedImageFilename": filename
+            ])
+            #expect(try JSONDecoder()
+                .decode(RestAppearancePreferences.self, from: data) == preferences)
         }
         #expect(RestAppearancePreferences(background: .image).background == .atmosphere)
     }
@@ -185,8 +216,12 @@ struct RestAppearancePreferencesTests {
         let defaults = try #require(UserDefaults(suiteName: suiteName))
         defer { defaults.removePersistentDomain(forName: suiteName) }
         defaults.set(Data("invalid JSON".utf8), forKey: "curfew.restAppearancePreferences.v1")
-        #expect(RestAppearancePreferencesStore(defaults: defaults).load() == RestAppearancePreferences())
-        defaults.set(Data(#"{"message":"Recovered"}"#.utf8), forKey: "curfew.restAppearancePreferences.v1")
+        #expect(RestAppearancePreferencesStore(defaults: defaults)
+            .load() == RestAppearancePreferences())
+        defaults.set(
+            Data(#"{"message":"Recovered"}"#.utf8),
+            forKey: "curfew.restAppearancePreferences.v1"
+        )
         #expect(RestAppearancePreferencesStore(defaults: defaults).load().message == "Recovered")
     }
 }

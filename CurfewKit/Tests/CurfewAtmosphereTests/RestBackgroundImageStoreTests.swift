@@ -1,13 +1,15 @@
-@testable import Curfew
 import CoreGraphics
+@testable import CurfewAtmosphere
 import Foundation
 import ImageIO
 import Testing
 import UniformTypeIdentifiers
 
 struct RestBackgroundImageStoreTests {
-    @Test("Picker-selected JPEG, PNG and HEIC images become independent owned assets",
-          arguments: [UTType.jpeg.identifier, UTType.png.identifier, UTType.heic.identifier])
+    @Test(
+        "Picker-selected JPEG, PNG and HEIC images become independent owned assets",
+        arguments: [UTType.jpeg.identifier, UTType.png.identifier, UTType.heic.identifier]
+    )
     func ownsImportedImage(type: String) throws {
         let fixture = try Fixture()
         defer { fixture.cleanup() }
@@ -15,7 +17,8 @@ struct RestBackgroundImageStoreTests {
         let store = RestBackgroundImageStore(directory: fixture.owned)
         let first = try store.importImage(from: source)
         let second = try store.importImage(from: source)
-        #expect(first.deletingLastPathComponent().standardizedFileURL == fixture.owned.standardizedFileURL)
+        #expect(first.deletingLastPathComponent().standardizedFileURL == fixture.owned
+            .standardizedFileURL)
         #expect(UUID(uuidString: first.deletingPathExtension().lastPathComponent) != nil)
         #expect(first != second)
         try FileManager.default.removeItem(at: source)
@@ -28,9 +31,15 @@ struct RestBackgroundImageStoreTests {
     func boundsExportImage() throws {
         let fixture = try Fixture()
         defer { fixture.cleanup() }
-        let source = try fixture.image(type: UTType.png.identifier, width: 4000, height: 1000, noisy: true)
+        let source = try fixture.image(
+            type: UTType.png.identifier,
+            width: 4000,
+            height: 1000,
+            noisy: true
+        )
         #expect(try Data(contentsOf: source).count > 2 * 1024 * 1024)
-        let result = try RestBackgroundImageStore(directory: fixture.owned).importImage(from: source)
+        let result = try RestBackgroundImageStore(directory: fixture.owned)
+            .importImage(from: source)
         let data = try Data(contentsOf: result)
         #expect(data.count <= 2 * 1024 * 1024)
         let decoded = try #require(CGImageSourceCreateWithData(data as CFData, nil))
@@ -40,8 +49,10 @@ struct RestBackgroundImageStoreTests {
         #expect(abs(Double(image.width) / Double(image.height) - 4) < 0.02)
     }
 
-    @Test("Corrupt images and unsupported encoded types leave no owned files",
-          arguments: [false, true])
+    @Test(
+        "Corrupt images and unsupported encoded types leave no owned files",
+        arguments: [false, true]
+    )
     func rejectsInvalidImages(unsupported: Bool) throws {
         let fixture = try Fixture()
         defer { fixture.cleanup() }
@@ -86,25 +97,32 @@ struct RestBackgroundImageStoreTests {
 
     private struct Fixture {
         let root: URL
-        var owned: URL { root.appendingPathComponent("owned", isDirectory: true) }
+        var owned: URL {
+            root.appendingPathComponent("owned", isDirectory: true)
+        }
 
         init() throws {
-            root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+            self.root = FileManager.default.temporaryDirectory
+                .appendingPathComponent(UUID().uuidString)
             try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         }
 
-        func cleanup() { try? FileManager.default.removeItem(at: root) }
+        func cleanup() {
+            try? FileManager.default.removeItem(at: root)
+        }
 
         func image(type: String, width: Int, height: Int, noisy: Bool = false) throws -> URL {
             var state: UInt32 = 42
             var pixels = [UInt8](repeating: 127, count: width * height * 4)
             if noisy {
                 for index in pixels.indices {
-                    state = state &* 1664525 &+ 1013904223
+                    state = state &* 1_664_525 &+ 1_013_904_223
                     pixels[index] = UInt8(truncatingIfNeeded: state >> 24)
                 }
             }
-            for index in stride(from: 3, to: pixels.count, by: 4) { pixels[index] = 255 }
+            for index in stride(from: 3, to: pixels.count, by: 4) {
+                pixels[index] = 255
+            }
             let provider = try #require(CGDataProvider(data: Data(pixels) as CFData))
             let image = try #require(CGImage(
                 width: width, height: height, bitsPerComponent: 8, bitsPerPixel: 32,
@@ -113,7 +131,12 @@ struct RestBackgroundImageStoreTests {
                 provider: provider, decode: nil, shouldInterpolate: false, intent: .defaultIntent
             ))
             let url = root.appendingPathComponent(UUID().uuidString)
-            let destination = try #require(CGImageDestinationCreateWithURL(url as CFURL, type as CFString, 1, nil))
+            let destination = try #require(CGImageDestinationCreateWithURL(
+                url as CFURL,
+                type as CFString,
+                1,
+                nil
+            ))
             CGImageDestinationAddImage(destination, image, nil)
             #expect(CGImageDestinationFinalize(destination))
             return url

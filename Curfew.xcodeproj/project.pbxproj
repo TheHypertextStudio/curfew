@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+        C0FE00000000000000000115 /* CurfewAtmosphere in Frameworks */ = {isa = PBXBuildFile; productRef = C0FE00000000000000000106 /* CurfewAtmosphere */; };
 		C0FE00000000000000000001 /* CurfewWidget.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = C0FE00000000000000000004 /* CurfewWidget.appex */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		C0FE00000000000000000002 /* Curfew/App/Infrastructure/WidgetSharedStateStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FE0000000000000000000A /* Curfew/App/Infrastructure/WidgetSharedStateStore.swift */; };
 		C0FE00000000000000000111 /* CurfewKit in Frameworks */ = {isa = PBXBuildFile; productRef = C0FE00000000000000000101 /* CurfewKit */; };
@@ -127,6 +128,7 @@
 			files = (
 				C0FE00000000000000000070 /* CurfewProtocols in Frameworks */,
 				C0FE00000000000000000111 /* CurfewKit in Frameworks */,
+                C0FE00000000000000000115 /* CurfewAtmosphere in Frameworks */,
 				C0FE00000000000000000114 /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -229,6 +231,7 @@
 			packageProductDependencies = (
 				C0FE00000000000000000072 /* CurfewProtocols */,
 				C0FE00000000000000000101 /* CurfewKit */,
+                C0FE00000000000000000106 /* CurfewAtmosphere */,
 				C0FE00000000000000000105 /* Sparkle */,
 			);
 			productName = Curfew;
@@ -943,6 +946,10 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+        C0FE00000000000000000106 /* CurfewAtmosphere */ = {
+            isa = XCSwiftPackageProductDependency;
+            productName = CurfewAtmosphere;
+        };
 		C0FE00000000000000000101 /* CurfewKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = CurfewKit;
