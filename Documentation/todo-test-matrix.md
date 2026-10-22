@@ -25,6 +25,8 @@ Only this disarmed named Debug control suppresses the normal workspace's default
 
 The control test reads the sole native static text's accessibility value (falling back to its label) for the status prefix. SwiftUI may expose visible static text through AX value without an AX label. This lookup does not alter the view's accessibility semantics or the actual audit.
 
+Observational diagnostics retain the combined control audit and original real-scene audit unchanged. `testIsolatedUnlockLabelContrastDiagnostic` runs contrast alone on the same verified control so its terminal outcome is independent of description findings. The combined control test attaches its current accessibility hierarchy. Each original scene audit attaches observed editor existence, enabled/hittable state and frame without adding waits or readiness assertions. Metadata collection can affect timing; a diagnostic green alone is not a permanent fix. Remove these diagnostics before final integration.
+
 ## Worktree preparation
 
 `./bootstrap worktree plan --json` validates workspace discovery and rejects

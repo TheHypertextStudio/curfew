@@ -5,6 +5,24 @@ extension CurfewUITests {
     func testIsolatedUnlockLabelHasReadableAccessibleText() throws {
         let app = launchFixture("lockout", state: "rest-contrast-control")
         defer { app.terminate() }
+        assertIsolatedUnlockControl(app)
+        let hierarchy = XCTAttachment(string: app.debugDescription)
+        hierarchy.name = "Control accessibility hierarchy before combined audit"
+        hierarchy.lifetime = .keepAlways
+        add(hierarchy)
+        try app.performAccessibilityAudit(for: [.contrast, .sufficientElementDescription])
+    }
+
+    @MainActor
+    func testIsolatedUnlockLabelContrastDiagnostic() throws {
+        let app = launchFixture("lockout", state: "rest-contrast-control")
+        defer { app.terminate() }
+        assertIsolatedUnlockControl(app)
+        try app.performAccessibilityAudit(for: [.contrast])
+    }
+
+    @MainActor
+    private func assertIsolatedUnlockControl(_ app: XCUIApplication) {
         let label = app.staticTexts.firstMatch
         XCTAssertTrue(label.waitForExistence(timeout: 5))
         XCTAssertEqual(
@@ -20,7 +38,6 @@ extension CurfewUITests {
         capture.name = "Isolated formatted unlock label"
         capture.lifetime = .keepAlways
         add(capture)
-        try app.performAccessibilityAudit(for: [.contrast, .sufficientElementDescription])
     }
 
     @MainActor
@@ -68,6 +85,16 @@ extension CurfewUITests {
             XCTAssertTrue(editor.waitForExistence(timeout: 5))
             XCTAssertFalse(editor.label.isEmpty)
             XCTAssertEqual(app.groups["rest-screen"].label, "Curfew rest screen")
+            let observation = XCTAttachment(string: """
+            state=\(state)
+            exists=\(editor.exists)
+            isEnabled=\(editor.isEnabled)
+            isHittable=\(editor.isHittable)
+            frame=\(editor.frame)
+            """)
+            observation.name = "Observed rest editor readiness — \(state)"
+            observation.lifetime = .keepAlways
+            add(observation)
             try app.performAccessibilityAudit(for: [.contrast, .sufficientElementDescription])
             app.terminate()
             XCTAssertTrue(app.wait(for: .notRunning, timeout: 5))
