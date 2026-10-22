@@ -29,6 +29,8 @@ Observational diagnostics retain the combined control audit and original real-sc
 
 Temporary issue observers attach the audit type, compact/detailed descriptions and the associated element's current debug description (or an explicit absent-element value). Every audit callback unconditionally returns `false`, so issues retain the SDK's normal recording/failure policy. Audit types, assertions and readiness behavior are unchanged; these observations cannot waive product acceptance.
 
+Diagnostic collection saves `continueAfterFailure`, enables it only around each native audit, and restores it with `defer` on exit. Setup/isolation guards retain immediate-stop behavior. Audit issues still record failures; this scope only allows collecting subsequent issues and the morning state after recorded night findings. Execution errors propagate without catching or swallowing. A native abort is reported as such, and final acceptance still requires zero findings on non-diagnostic real scenes.
+
 ## Worktree preparation
 
 `./bootstrap worktree plan --json` validates workspace discovery and rejects

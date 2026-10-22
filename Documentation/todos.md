@@ -21,6 +21,8 @@ Temporary observational tests record the control's current accessibility hierarc
 
 Temporary audit callbacks log issue details and the directly associated element, then always return `false` to preserve every normal audit failure. They neither suppress issues nor change product or fixture behavior.
 
+Temporary audit-only `continueAfterFailure` collection restores its prior value on every exit. It preserves failures and immediate-stop setup guards while attempting to collect night and morning findings in one run; it does not relax acceptance.
+
 ## Worktree preparation
 
 - [x] Keep root command shortcuts separate from the independent frontend and

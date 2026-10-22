@@ -10,13 +10,9 @@ extension CurfewUITests {
         hierarchy.name = "Control accessibility hierarchy before combined audit"
         hierarchy.lifetime = .keepAlways
         add(hierarchy)
-        try app.performAccessibilityAudit(for: [
-            .contrast,
-            .sufficientElementDescription
-        ]) { issue in
-            self.attachRestAuditIssue(issue, context: "combined control")
-            return false
-        }
+        try performRestAudit(
+            app, types: [.contrast, .sufficientElementDescription], context: "combined control"
+        )
     }
 
     @MainActor
@@ -24,8 +20,18 @@ extension CurfewUITests {
         let app = launchFixture("lockout", state: "rest-contrast-control")
         defer { app.terminate() }
         assertIsolatedUnlockControl(app)
-        try app.performAccessibilityAudit(for: [.contrast]) { issue in
-            self.attachRestAuditIssue(issue, context: "contrast-only control")
+        try performRestAudit(app, types: [.contrast], context: "contrast-only control")
+    }
+
+    @MainActor
+    private func performRestAudit(
+        _ app: XCUIApplication, types: XCUIAccessibilityAuditType, context: String
+    ) throws {
+        let previous = continueAfterFailure
+        continueAfterFailure = true
+        defer { continueAfterFailure = previous }
+        try app.performAccessibilityAudit(for: types) { issue in
+            self.attachRestAuditIssue(issue, context: context)
             return false
         }
     }
@@ -118,13 +124,9 @@ extension CurfewUITests {
             observation.name = "Observed rest editor readiness — \(state)"
             observation.lifetime = .keepAlways
             add(observation)
-            try app.performAccessibilityAudit(for: [
-                .contrast,
-                .sufficientElementDescription
-            ]) { issue in
-                self.attachRestAuditIssue(issue, context: state)
-                return false
-            }
+            try performRestAudit(
+                app, types: [.contrast, .sufficientElementDescription], context: state
+            )
             app.terminate()
             XCTAssertTrue(app.wait(for: .notRunning, timeout: 5))
         }
