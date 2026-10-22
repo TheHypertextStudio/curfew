@@ -1,6 +1,6 @@
 import Foundation
 
-/// Temporary, unconsumed contract scaffold. No scheduling or validation is implemented.
+/// An immutable description of one occurrence's wake event and display hold.
 public struct SunriseWakePlan: Codable, Equatable, Sendable {
     public static let eventType = "wake"
 
@@ -11,8 +11,10 @@ public struct SunriseWakePlan: Codable, Equatable, Sendable {
     public let allowsBattery: Bool
 }
 
-/// Temporary scaffold for establishing behavioral RED before implementation.
+/// Pure planning for helper-authorized occurrences; performs no power operations.
 public struct SunriseWakePlanner {
+    private let owner: String
+
     public enum ValidationError: Error, Equatable {
         case invalidLeadMinutes
         case unauthorizedOccurrence
@@ -27,7 +29,10 @@ public struct SunriseWakePlanner {
         public let schedule: SunriseWakePlan?
     }
 
-    public init(owner: String) {}
+    /// The privileged adapter supplies its fixed app-flavor namespace here.
+    public init(owner: String) {
+        self.owner = owner
+    }
 
     public func makePlan(
         enabled: Bool = false,
@@ -40,10 +45,48 @@ public struct SunriseWakePlanner {
         onExternalPower: Bool,
         now: Date
     ) throws -> SunriseWakePlan? {
-        nil
+        guard enabled else { return nil }
+        guard requestedOccurrenceID == authorizedOccurrenceID else {
+            throw ValidationError.unauthorizedOccurrence
+        }
+        guard now.timeIntervalSince1970.isFinite,
+              lockedAt.timeIntervalSince1970.isFinite,
+              unlockAt.timeIntervalSince1970.isFinite
+        else {
+            throw ValidationError.invalidTimestamp
+        }
+        guard unlockAt > lockedAt else {
+            throw ValidationError.invalidOccurrence
+        }
+        guard (5...60).contains(leadMinutes) else {
+            throw ValidationError.invalidLeadMinutes
+        }
+
+        let wakeAt = unlockAt.addingTimeInterval(-Double(leadMinutes) * 60)
+        guard wakeAt > now else {
+            throw ValidationError.expired
+        }
+        guard allowsBattery || onExternalPower else {
+            throw ValidationError.batteryExcluded
+        }
+
+        return SunriseWakePlan(
+            owner: owner,
+            occurrenceID: authorizedOccurrenceID,
+            wakeAt: wakeAt,
+            holdUntil: unlockAt.addingTimeInterval(300),
+            allowsBattery: allowsBattery
+        )
     }
 
     public func reconcile(current: SunriseWakePlan?, desired: SunriseWakePlan?) -> Change {
-        Change(cancel: nil, schedule: nil)
+        guard desired == nil || desired?.owner == owner else {
+            return Change(cancel: nil, schedule: nil)
+        }
+        let ownedCurrent = current?.owner == owner ? current : nil
+        guard ownedCurrent != desired else {
+            return Change(cancel: nil, schedule: nil)
+        }
+        return Change(cancel: ownedCurrent, schedule: desired)
     }
 }
