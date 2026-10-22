@@ -76,9 +76,16 @@ public nonisolated struct RestBackgroundImageStore {
         try FileManager.default.removeItem(at: url)
     }
 
-    /// Inert until raw companion-rendition contracts establish actual failure.
-    public func encodedImage(named _: String?) -> Data? {
-        nil
+    /// Return only a bounded, header-validated rendition from owned storage.
+    /// Call off the main actor when composing companion publication.
+    public func encodedImage(named filename: String?) -> Data? {
+        guard let filename else { return nil }
+        let url = directory.appendingPathComponent(filename)
+        guard (try? validateOwnedURL(url)) != nil,
+              let bytes = try? BoundedRegularFileReader.read(url, maximumBytes: Self.maximumBytes),
+              (try? RestScreenSaverPreferences.inspectImageHeader(bytes)) != nil
+        else { return nil }
+        return bytes
     }
 
     /// Missing or damaged assets fall back to the built-in appearance in the host.
