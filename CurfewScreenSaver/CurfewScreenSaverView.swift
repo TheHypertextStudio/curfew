@@ -8,6 +8,9 @@ import SwiftUI
 @objc(CurfewScreenSaverView)
 final class CurfewScreenSaverView: ScreenSaverView {
     private var hostedScene: NSHostingView<RestAmbientScene>?
+    private var session: RestScreenSaverSession?
+    private var lastPreferenceRead: Date?
+    private var rendering = false
 
     override init?(frame: NSRect, isPreview: Bool) {
         super.init(frame: frame, isPreview: isPreview)
@@ -21,17 +24,25 @@ final class CurfewScreenSaverView: ScreenSaverView {
 
     override func startAnimation() {
         super.startAnimation()
+        session?.stop()
+        session = nil
+        lastPreferenceRead = nil
+        rendering = true
         refresh(at: Date())
     }
 
     override func stopAnimation() {
+        rendering = false
         super.stopAnimation()
+        session?.stop()
+        session = nil
+        lastPreferenceRead = nil
         hostedScene?.removeFromSuperview()
         hostedScene = nil
     }
 
     override func animateOneFrame() {
-        guard isAnimating else { return }
+        guard rendering, isAnimating else { return }
         refresh(at: Date())
     }
 
@@ -40,9 +51,29 @@ final class CurfewScreenSaverView: ScreenSaverView {
         hostedScene?.frame = bounds
     }
 
+    private func refreshPreferencesIfNeeded(at date: Date) {
+        // The native host supplies cadence. Read potentially large preferences at most
+        // once a second; rendering still resolves every frame from the absolute date.
+        if let lastPreferenceRead, date >= lastPreferenceRead,
+           date.timeIntervalSince(lastPreferenceRead) < 1 {
+            return
+        }
+        lastPreferenceRead = date
+        if let session {
+            _ = session.frame(at: date, timeZone: .current)
+        } else if let preferences = try? RestScreenSaverPreferences.system() {
+            let session = RestScreenSaverSession(
+                preferences: preferences,
+                decodeImage: RestScreenSaverPreferences.boundedImage
+            )
+            self.session = session
+            session.start(at: date)
+        }
+    }
+
     private func refresh(at date: Date) {
-        // No occurrence or message is inferred before the separate export bridge is integrated.
-        let snapshot = RestSceneSnapshot(
+        refreshPreferencesIfNeeded(at: date)
+        let snapshot = session?.snapshot ?? RestSceneSnapshot(
             version: 1,
             expiresAt: date.addingTimeInterval(60),
             appearance: RestAppearancePreferences(),
@@ -52,10 +83,12 @@ final class CurfewScreenSaverView: ScreenSaverView {
         let scene = RestAmbientScene(
             snapshot: snapshot,
             date: date,
+            image: session?.image,
             reduceMotion: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion,
             reduceTransparency: NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency,
             clockSize: max(20, min(bounds.width, bounds.height) * 0.10),
-            showsMessage: false
+            // The export allowlist has already applied separate message consent.
+            showsMessage: true
         )
         if let hostedScene {
             hostedScene.rootView = scene
