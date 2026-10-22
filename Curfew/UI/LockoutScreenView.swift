@@ -69,7 +69,11 @@ struct LockoutScreenView: View {
     /// no `unlockDate` falls back to a reassuring line rather than showing
     /// nothing (the VoiceOver copy carries the same fallback).
     private var unlockLine: String {
-        switch model.restRestrictionStatus {
+        Self.unlockLine(for: model.restRestrictionStatus)
+    }
+
+    static func unlockLine(for status: RestRestrictionStatus) -> String {
+        switch status {
         case .lockedUntil(let date):
             "Your computer unlocks at \(date.formatted(date: .omitted, time: .shortened))"
         case .stillLocked:
@@ -79,6 +83,12 @@ struct LockoutScreenView: View {
         case .released:
             "Your scheduled rest has ended."
         }
+    }
+
+    static func unlockStatusLabel(for status: RestRestrictionStatus) -> some View {
+        Text(unlockLine(for: status))
+            .font(.system(size: 18, weight: .regular, design: .rounded))
+            .foregroundStyle(SundownPalette.warmWhite)
     }
 
     private var accessibilitySummary: String {
@@ -117,9 +127,7 @@ struct LockoutScreenView: View {
                     Capsule()
                         .fill(SundownPalette.warmWhite.opacity(0.22))
                         .frame(width: 64, height: 1)
-                    Text(unlockLine)
-                        .font(.system(size: 18, weight: .regular, design: .rounded))
-                        .foregroundStyle(SundownPalette.warmWhite)
+                    Self.unlockStatusLabel(for: model.restRestrictionStatus)
                 }
                 .padding(.top, 4)
 

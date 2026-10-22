@@ -205,7 +205,10 @@ struct CurfewApp: App {
         .defaultSize(width: 1080, height: 720)
         .windowStyle(.hiddenTitleBar)
         #if DEBUG
-            .defaultLaunchBehavior(.presented)
+            .defaultLaunchBehavior(
+                model.isDemoSession && DemoReviewState.current == .restContrastControl
+                    ? .suppressed : .presented
+            )
         #endif
             .commands {
                 CommandGroup(after: .appInfo) {

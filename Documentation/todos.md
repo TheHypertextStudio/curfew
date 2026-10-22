@@ -13,7 +13,7 @@ Design: [lockout experience](lockout-experience-design.md). Execution: [implemen
 
 Dark rest scenes use Dark Aqua for their native window and inherited hosting-view appearance under either supplied application appearance, while warning/timer windows preserve the supplied appearance. Native appearance regressions cover both Aqua and Dark Aqua without changing application-wide appearance. Keep the actual contrast audit and interaction assertions unchanged; rendered light/dark native fit remains an acceptance requirement.
 
-Diagnostic preparation only: a separate exact-label control will isolate the formatted unlock status on black using the actual rest window and host. Its identity/disarmed-state and isolation/audit tests await failing-first execution before fixture implementation. Keep the product audit unchanged. The diagnostic requires cleanup before shipping and cannot establish product acceptance.
+Diagnostic only: the Debug-only `rest-contrast-control` scene isolates the actual formatted unlock status on black using the actual rest window and host. It shares the real label's unchanged text, font and foreground, and has no demo clock, sky, form or animation. Keep the product audit unchanged. The diagnostic requires cleanup before shipping and cannot establish product acceptance; isolated control/audit execution remains required.
 
 ## Worktree preparation
 

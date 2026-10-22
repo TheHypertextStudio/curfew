@@ -19,7 +19,9 @@ Morning atmosphere follows scheduled unlock. Sunrise does not imply release auth
 
 Appearance tests set only each isolated window's supplied appearance and never order windows onscreen or mutate application-wide appearance. Native appearance consistency is an independently meaningful requirement; the current contrast audit's cause remains unproven. Preserve the unchanged actual audit and its evidence.
 
-Prepared exact-label diagnostic coverage: `RestDemoTests/contrastControlIsStaticAndDisarmed` and `CurfewUITests/testIsolatedUnlockLabelHasReadableAccessibleText` specify a named disarmed control containing only the actual formatted status and the same contrast/description audit. The control is not implemented yet; execute the failing guards before adding its Debug-only fixture. Keep the original real-scene test unchanged and remove diagnostic scaffolding before shipping.
+Exact-label diagnostic coverage: `RestDemoTests/contrastControlIsStaticAndDisarmed` checks the named disarmed control, absent clock and no advancement on refresh; `CurfewUITests/testIsolatedUnlockLabelHasReadableAccessibleText` requires only the actual formatted status and the same contrast/description audit. The Debug-only control shares the real label's formatting/styling and actual rest-window/hosting path. Keep the original real-scene test unchanged and remove diagnostic scaffolding before shipping. A control pass narrows scene/context involvement; a failure narrows the label/native-audit path. Neither establishes product acceptance.
+
+Only this disarmed named Debug control suppresses the normal workspace's default launch, preventing other app content from entering the application-wide audit. Every other Debug state retains its presented workspace; Release scene launch behavior is unchanged.
 
 ## Worktree preparation
 

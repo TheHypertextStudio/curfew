@@ -15,6 +15,19 @@ private final class DaybreakOverlayWindow: NSWindow {
 
 @MainActor
 extension OverlayCoordinator {
+    static func makeRestContentView(
+        model: CurfewAppModel, display: RestDisplayPresentation
+    ) -> NSView {
+        #if DEBUG
+            if model.isDemoSession, DemoReviewState.current == .restContrastControl {
+                return makeRestHostingView(
+                    rootView: DemoRestContrastControl(status: model.restRestrictionStatus)
+                )
+            }
+        #endif
+        return makeRestHostingView(rootView: RestScreenView(model: model, display: display))
+    }
+
     static func makeRestHostingView<Content: View>(rootView: Content) -> NSHostingView<Content> {
         let host = NSHostingView(rootView: rootView)
         host.setAccessibilityLabel("Curfew rest screen")

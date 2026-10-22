@@ -255,9 +255,7 @@ final class OverlayCoordinator {
             restDisplayStates[display.id] = presentation
             _ = restLifecycle.handle(.hidden, for: display.id)
             presentation.isVisible = false
-            window.contentView = Self.makeRestHostingView(
-                rootView: RestScreenView(model: model, display: presentation)
-            )
+            window.contentView = Self.makeRestContentView(model: model, display: presentation)
             return window
         }
         for window in lockoutWindows.windows.values where !window.isVisible {

@@ -9,6 +9,7 @@
         case restNight = "rest-night"
         case restHold = "rest-hold"
         case restMorning = "rest-morning"
+        case restContrastControl = "rest-contrast-control"
         case accountUpdateFailed = "account-update-failed"
         case accountHelperHidden = "account-helper-hidden"
         case accountOffline = "account-offline"

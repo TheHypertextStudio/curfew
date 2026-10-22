@@ -17,7 +17,7 @@
             case .restHold:
                 applyDemoRestState(review)
                 applyDemoReviewState(.overrideReady)
-            case .restContinuity, .restNight, .restMorning:
+            case .restContinuity, .restNight, .restMorning, .restContrastControl:
                 applyDemoRestState(review)
             case .accountOffline, .accountSignInRequired, .accountHelperUnavailable,
                  .accountUpdateFailed, .accountHelperHidden:

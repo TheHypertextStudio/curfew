@@ -1,6 +1,7 @@
 #if DEBUG
     import CurfewKit
     import Foundation
+    import SwiftUI
 
     struct DemoRestClock {
         let wallStart: Date
@@ -20,7 +21,7 @@
             let isMorning = review == .restMorning
             currentTime = isMorning ? unlock.addingTimeInterval(60)
                 : midnight.addingTimeInterval(24 * 3600 - 2)
-            reflectionState.demoRestClock = DemoRestClock(
+            reflectionState.demoRestClock = review == .restContrastControl ? nil : DemoRestClock(
                 wallStart: Date(),
                 sceneStart: currentTime
             )
@@ -72,6 +73,18 @@
                     guard let self else { return }
                     refreshDemoRestClock()
                 }
+            }
+        }
+    }
+
+    /// Temporary control for the isolated native audit; never a shipping scene.
+    struct DemoRestContrastControl: View {
+        let status: RestRestrictionStatus
+
+        var body: some View {
+            ZStack {
+                Color.black.ignoresSafeArea().accessibilityHidden(true)
+                LockoutScreenView.unlockStatusLabel(for: status)
             }
         }
     }
