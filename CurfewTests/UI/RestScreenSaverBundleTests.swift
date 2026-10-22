@@ -16,11 +16,18 @@ struct RestScreenSaverBundleTests {
         try companion.loadAndReturnError()
         let principal = try #require(companion.principalClass as? NSObject.Type)
         #expect(principal.isSubclass(of: ScreenSaverView.self))
+        // Xcode's test destination builds a native slice. Universal distribution
+        // is checked against the actual artifact by verify-release-artifact.sh.
+        #if arch(arm64)
+            let hostArchitecture = NSBundleExecutableArchitectureARM64
+        #elseif arch(x86_64)
+            let hostArchitecture = NSBundleExecutableArchitectureX86_64
+        #else
+            Issue.record("Unsupported native screensaver test architecture")
+            return
+        #endif
         #expect(companion.executableArchitectures?.contains(
-            NSNumber(value: NSBundleExecutableArchitectureARM64)
-        ) == true)
-        #expect(companion.executableArchitectures?.contains(
-            NSNumber(value: NSBundleExecutableArchitectureX86_64)
+            NSNumber(value: hostArchitecture)
         ) == true)
     }
 }
