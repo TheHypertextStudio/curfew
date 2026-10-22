@@ -44,15 +44,15 @@ struct SunriseDaemonServiceTests {
             )),
             encode(SunriseWakePlan(
                 owner: owner,
-                occurrenceID: UUID(),
+                occurrenceID: valid.occurrenceID,
                 wakeAt: valid.wakeAt,
-                holdUntil: valid.holdUntil,
+                holdUntil: valid.wakeAt.addingTimeInterval(3901),
                 allowsBattery: false
             )),
             encode(SunriseWakePlan(
                 owner: owner,
                 occurrenceID: valid.occurrenceID,
-                wakeAt: now.addingTimeInterval(1),
+                wakeAt: now,
                 holdUntil: valid.holdUntil,
                 allowsBattery: false
             )),
@@ -75,13 +75,18 @@ struct SunriseDaemonServiceTests {
         #expect(fixture.effects.cancelled.isEmpty)
     }
 
-    @Test func nonScheduledLocalOccurrenceCannotAuthorizeWake() async throws {
+    @Test func presentationOccurrenceIsIndependentOfNonScheduledRestriction() async throws {
         let fixture = try fixture(kind: .accountWakeCampaign)
         defer { fixture.remove() }
-        let result = await replace(fixture.service, fixture.plan)
-        #expect(result.1 != nil)
-        #expect(fixture.effects.loads == 0)
-        #expect(fixture.effects.scheduled.isEmpty)
+        let originalState = try Data(contentsOf: fixture.store.stateURL)
+        let plan = SunriseWakePlan(
+            owner: owner, occurrenceID: UUID(), wakeAt: fixture.plan.wakeAt,
+            holdUntil: fixture.plan.holdUntil, allowsBattery: false
+        )
+        let result = await replace(fixture.service, plan)
+        #expect(result.1 == nil)
+        #expect(fixture.effects.scheduled == [SunriseWakeScheduler.Event(plan: plan)])
+        #expect(try Data(contentsOf: fixture.store.stateURL) == originalState)
     }
 
     @Test func cancellationCancelsExactOwnedIdentity() async throws {

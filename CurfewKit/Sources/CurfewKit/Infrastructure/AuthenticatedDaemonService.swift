@@ -255,30 +255,26 @@ extension AuthenticatedDaemonService {
         }
     }
 
-    /// The authenticated local occurrence alone anchors Sunrise. Independent
-    /// restrictions still determine enforcement, but cannot move this anchor.
+    /// The signature-pinned local caller supplies a presentation occurrence.
+    /// Validate its bounded wake window without consulting restriction authority.
     private func authorizedSunrisePlan(_ request: Data, now: Date) throws -> SunriseWakePlan {
         guard request.count <= 4096 else { throw SunriseWakeScheduler.Rejection.unauthorizedPlan }
         let requested = try Self.decoder.decode(SunriseWakePlan.self, from: request)
         guard requested.owner == sunriseOwner,
-              let local = control.activeLocalCandidate(control.localStatus.activeRecord, now: now),
-              local.kind == .scheduledTime
+              now.timeIntervalSince1970.isFinite,
+              requested.wakeAt.timeIntervalSince1970.isFinite,
+              requested.holdUntil.timeIntervalSince1970.isFinite,
+              requested.wakeAt > now
         else { throw SunriseWakeScheduler.Rejection.unauthorizedPlan }
-        let lead = local.scheduledUnlockAt.timeIntervalSince(requested.wakeAt) / 60
-        guard lead.isFinite, (5 ... 60).contains(lead), lead.rounded() == lead else {
+        let interval = requested.holdUntil.timeIntervalSince(requested.wakeAt)
+        let lead = (interval - 300) / 60
+        guard (600 ... 3900).contains(interval),
+              lead.isFinite, (5 ... 60).contains(lead), lead.rounded() == lead else {
             throw SunriseWakePlanner.ValidationError.invalidLeadMinutes
         }
-        // Battery eligibility is checked by reconciliation, after authorization,
-        // so changing to battery can cancel an existing AC-only owned event.
-        guard let authorized = try SunriseWakePlanner(owner: sunriseOwner).makePlan(
-            enabled: true, requestedOccurrenceID: requested.occurrenceID,
-            authorizedOccurrenceID: local.lockoutID, lockedAt: local.lockoutStartedAt,
-            unlockAt: local.scheduledUnlockAt, leadMinutes: Int(lead),
-            allowsBattery: requested.allowsBattery, onExternalPower: true, now: now
-        ), authorized == requested else {
-            throw SunriseWakeScheduler.Rejection.unauthorizedPlan
-        }
-        return authorized
+        // Battery eligibility remains in reconciliation so a battery transition
+        // can cancel an existing AC-only owned event before rejecting replacement.
+        return requested
     }
 
     private func cancelSunriseWake(using scheduler: SunriseWakeScheduler) throws {
