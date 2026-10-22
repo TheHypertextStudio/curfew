@@ -32,6 +32,23 @@ protocol PrivilegedDaemonRPCControlling: Sendable {
     func prepareForUninstall() async throws
 }
 
+/// Helper-local Sunrise operations stay separate from restriction enforcement.
+protocol SunriseDaemonRPCControlling: Sendable {
+    func replaceSunriseWakePlan(_ plan: SunriseWakePlan) async throws
+    func cancelSunriseWakePlan() async throws
+}
+
+enum SunriseDaemonRPCError: Error, Equatable {
+    case unavailable
+    case rejected
+    case invalidResponse
+}
+
+enum SunriseDaemonRPCMethod: Sendable, Equatable {
+    case replace
+    case cancel
+}
+
 enum DaemonRPCDeadline {
     static let productionTimeoutNanoseconds: UInt64 = 5_000_000_000
 
@@ -69,7 +86,25 @@ private final class DaemonRPCCompletionGate: @unchecked Sendable {
     }
 }
 
-final class XPCPrivilegedDaemonClient: PrivilegedDaemonRPCControlling, @unchecked Sendable {
+final class XPCPrivilegedDaemonClient: PrivilegedDaemonRPCControlling, SunriseDaemonRPCControlling,
+    @unchecked Sendable {
+    typealias SunriseTransport = @Sendable (SunriseDaemonRPCMethod, Data?) async throws -> Data
+
+    private let sunriseTransport: SunriseTransport?
+
+    init(sunriseTransport: SunriseTransport? = nil) {
+        self.sunriseTransport = sunriseTransport
+    }
+
+    /// Inert contract seam until native tests observe behavioral failure.
+    func replaceSunriseWakePlan(_: SunriseWakePlan) async throws {
+        throw SunriseDaemonRPCError.unavailable
+    }
+
+    func cancelSunriseWakePlan() async throws {
+        throw SunriseDaemonRPCError.unavailable
+    }
+
     func armLockout(_ record: LockoutDeadlineRecord) async throws {
         let request = try Self.encoder.encode(record)
         _ = try await call { proxy, reply in proxy.armLockout(request, reply: reply) }
