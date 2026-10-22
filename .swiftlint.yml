@@ -6,6 +6,7 @@ included:
   - CurfewTests
   - CurfewUITests
   - CurfewScreenSaver
+  - CurfewKit/Sources/curfew-daemon/SunriseDaemonComposition.swift
   - CurfewKit/Sources/CurfewAtmosphere
   - CurfewKit/Sources/CurfewKit/Domain/RestCompanionExport.swift
   - CurfewKit/Sources/CurfewKit/Domain/RestHandoffPolicy.swift
