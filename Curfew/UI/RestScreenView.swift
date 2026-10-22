@@ -45,14 +45,14 @@ struct RestScreenView: View {
 
     var sceneSnapshot: RestSceneSnapshot {
         let interval = model.reflectionState.scheduledInterval
-        let candidate = interval?.end ?? model.state.unlockDate
+        let candidate = interval?.end
         let unlock = candidate == .distantFuture ? nil : candidate
         return RestSceneSnapshot(
             version: 1,
             expiresAt: unlock?.addingTimeInterval(3600) ?? model.currentTime
                 .addingTimeInterval(300),
             appearance: model.restAppearance,
-            lockDate: interval?.start ?? model.state.lockDate,
+            lockDate: interval?.start,
             unlockDate: unlock
         )
     }
