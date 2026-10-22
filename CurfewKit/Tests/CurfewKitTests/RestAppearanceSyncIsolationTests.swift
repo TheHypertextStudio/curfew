@@ -39,7 +39,8 @@ struct RestAppearanceSyncIsolationTests {
         ] {
             #expect(afterObject[key] == nil)
         }
-        #expect(!String(decoding: after, as: UTF8.self).contains(local.message))
+        let encodedSettings = try #require(String(bytes: after, encoding: .utf8))
+        #expect(!encodedSettings.contains(local.message))
         settingsStore.save(.default)
         #expect(RestAppearancePreferencesStore(defaults: defaults).load() == local)
     }

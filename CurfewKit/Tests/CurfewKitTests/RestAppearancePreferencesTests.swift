@@ -45,12 +45,34 @@ struct RestAppearancePreferencesTests {
     func invalidValuesPreserveOtherFields() throws {
         let preferences =
             try decode(
-                #"{"background":"unknown","palette":"unknown","clockStyle":5,"clockPosition":null,"message":false,"focalX":"left","focalY":null,"staticBackground":"yes","sunriseLeadMinutes":"soon","sunriseWakeEnabled":"yes","sunriseOnBatteryEnabled":null,"saverMessageEnabled":1}"#
+                #"""
+                {
+                  "background": "unknown",
+                  "palette": "unknown",
+                  "clockStyle": 5,
+                  "clockPosition": null,
+                  "message": false,
+                  "focalX": "left",
+                  "focalY": null,
+                  "staticBackground": "yes",
+                  "sunriseLeadMinutes": "soon",
+                  "sunriseWakeEnabled": "yes",
+                  "sunriseOnBatteryEnabled": null,
+                  "saverMessageEnabled": 1
+                }
+                """#
             )
         #expect(preferences == RestAppearancePreferences())
         let mixed =
             try decode(
-                #"{"palette":"coolTwilight","clockStyle":"unknown","message":"Keep this","sunriseWakeEnabled":true}"#
+                #"""
+                {
+                  "palette": "coolTwilight",
+                  "clockStyle": "unknown",
+                  "message": "Keep this",
+                  "sunriseWakeEnabled": true
+                }
+                """#
             )
         #expect(mixed.palette == .coolTwilight)
         #expect(mixed.clockStyle == .rounded)

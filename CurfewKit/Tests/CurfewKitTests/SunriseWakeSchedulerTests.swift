@@ -143,7 +143,9 @@ struct SunriseWakeSchedulerTests {
         #expect(effects.record?.plan == old)
         #expect(effects.scheduled.isEmpty)
     }
+}
 
+extension SunriseWakeSchedulerTests {
     @Test("Restart treats even a scheduled journal as unknown native state")
     func recoversUnknownNativeState() throws {
         for phase in [SunriseWakeScheduler.Record.Phase.pending, .scheduled] {

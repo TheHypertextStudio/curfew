@@ -6,13 +6,14 @@ import Testing
 struct RestCompanionPresentationStoreTests {
     private let now = Date(timeIntervalSince1970: 2_000_000_000)
 
+    private enum WriteFailure: Error { case injected }
+
     private final class Storage {
         var bytes: [RestCompanionPresentationStore.Slot: Data] = [:]
         var writes: [(RestCompanionPresentationStore.Slot, Data)] = []
         var limits: [(RestCompanionPresentationStore.Slot, Int)] = []
         var inspections = 0
         var failNextWrite: RestCompanionPresentationStore.Slot?
-        enum WriteFailure: Error { case injected }
 
         func store() -> RestCompanionPresentationStore {
             RestCompanionPresentationStore(read: { slot, maximumBytes in
@@ -114,7 +115,9 @@ struct RestCompanionPresentationStoreTests {
             #expect(result.presentation.resolve(at: readTime, timeZone: .gmt).phase == .allDay)
         }
     }
+}
 
+extension RestCompanionPresentationStoreTests {
     @Test("Stored data allowlists presentation and excludes local ownership and wake policy")
     func storagePrivacyBoundary() throws {
         let storage = Storage()
@@ -135,7 +138,8 @@ struct RestCompanionPresentationStoreTests {
     }
 
     @Test(
-        "Read requests bounded bytes and independently rejects oversized appearance before inspection"
+        "Read requests bounded bytes and independently rejects oversized appearance "
+            + "before inspection"
     )
     func boundedRead() {
         let storage = Storage()
@@ -167,7 +171,8 @@ struct RestCompanionPresentationStoreTests {
     }
 
     @Test(
-        "Host acknowledgement is versioned, generation matched, and contains no presentation content"
+        "Host acknowledgement is versioned, generation matched, "
+            + "and contains no presentation content"
     )
     func acknowledgementHandshake() throws {
         let storage = Storage()
@@ -240,7 +245,7 @@ struct RestCompanionPresentationStoreTests {
         let previous = try #require(store.read(at: now))
         storage.writes.removeAll()
         storage.failNextWrite = .appearance
-        #expect(throws: Storage.WriteFailure.injected) {
+        #expect(throws: WriteFailure.injected) {
             try store.publish(snapshot: snapshot(message: "Updated"), imageData: Data([2]))
         }
         #expect(storage.writes.isEmpty)
@@ -258,7 +263,7 @@ struct RestCompanionPresentationStoreTests {
         try store.publish(snapshot: snapshot(), imageData: Data([1]))
         storage.writes.removeAll()
         storage.failNextWrite = .occurrence
-        #expect(throws: Storage.WriteFailure.injected) {
+        #expect(throws: WriteFailure.injected) {
             try store.publish(snapshot: snapshot(message: "Updated"), imageData: Data([2]))
         }
         #expect(storage.writes.map(\.0) == [.appearance])

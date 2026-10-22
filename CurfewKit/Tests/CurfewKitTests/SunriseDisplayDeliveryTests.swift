@@ -46,14 +46,14 @@ struct SunriseDisplayDeliveryTests {
     private func deliver(
         _ subject: SunriseDisplayDelivery, plan: SunriseWakePlan,
         enabled: Bool = true, batteryOptIn: Bool = false,
-        externalPower: Bool = true, at: Date? = nil
+        externalPower: Bool = true, at timestamp: Date? = nil
     ) throws -> SunriseDisplayDelivery.Outcome {
         try subject.reconcile(
             plan: plan,
             enabled: enabled,
             batteryOptIn: batteryOptIn,
             onExternalPower: externalPower,
-            now: at ?? now
+            now: timestamp ?? now
         )
     }
 
@@ -153,7 +153,9 @@ struct SunriseDisplayDeliveryTests {
         #expect(try deliver(service, plan: plan()) == .dismissed)
         #expect(effects.calls == ["activity", "acquire", "release"])
     }
+}
 
+extension SunriseDisplayDeliveryTests {
     @Test("Nonfinite time and inverted plan cannot activate display")
     func invalidTime() throws {
         let invalidPlans = [

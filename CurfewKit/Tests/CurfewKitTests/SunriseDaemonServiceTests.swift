@@ -176,7 +176,29 @@ struct SunriseDaemonServiceTests {
             allowsBattery: false
         )
         let effects = Effects()
-        let scheduler = SunriseWakeScheduler(
+        let scheduler = scheduler(effects: effects, store: store)
+        let external = strongerExternal ? LockoutDeadlineRecord(
+            lockoutStartedAt: now.addingTimeInterval(-100),
+            scheduledUnlockAt: now.addingTimeInterval(7200), kind: .remoteCommand
+        ) : nil
+        let service = AuthenticatedDaemonService(
+            store: store, readExternal: { _, _ in external }, evaluate: { _, _, _ in false },
+            discover: {}, sunriseScheduler: scheduler, sunriseOwner: owner,
+            sunriseNow: { now }, sunriseOnExternalPower: { effects.onExternalPower }
+        )
+        return Fixture(
+            service: service,
+            effects: effects,
+            plan: plan,
+            store: store,
+            directory: directory
+        )
+    }
+
+    private func scheduler(
+        effects: Effects, store: PrivilegedDaemonStateStore
+    ) -> SunriseWakeScheduler {
+        SunriseWakeScheduler(
             owner: owner,
             load: { effects.loads += 1; return effects.record },
             save: { effects.saves += 1; effects.record = $0 },
@@ -195,22 +217,6 @@ struct SunriseDaemonServiceTests {
                     throw error
                 }
             }
-        )
-        let external = strongerExternal ? LockoutDeadlineRecord(
-            lockoutStartedAt: now.addingTimeInterval(-100),
-            scheduledUnlockAt: now.addingTimeInterval(7200), kind: .remoteCommand
-        ) : nil
-        let service = AuthenticatedDaemonService(
-            store: store, readExternal: { _, _ in external }, evaluate: { _, _, _ in false },
-            discover: {}, sunriseScheduler: scheduler, sunriseOwner: owner,
-            sunriseNow: { now }, sunriseOnExternalPower: { effects.onExternalPower }
-        )
-        return Fixture(
-            service: service,
-            effects: effects,
-            plan: plan,
-            store: store,
-            directory: directory
         )
     }
 

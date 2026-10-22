@@ -2,7 +2,7 @@
 
 ## Rest customization, native screensaver and Sunrise
 
-See [the approved feature design](rest-experience-features.md). Preference contracts establish behavioral failing-first coverage before normalization/persistence implementation; the preference, scene and pure wake-planning package contracts pass; rendered and native integration remain required. Missing symbols and setup/compile errors are not behavioral RED. Final acceptance requires actual native and physical verification. The strict lint gate includes changed shared-core policies; behavior-preserving helper extraction retains the same contract suites and public phase spellings.
+See [the approved feature design](rest-experience-features.md). Preference contracts establish behavioral failing-first coverage before normalization/persistence implementation; the preference, scene and pure wake-planning package contracts pass; rendered and native integration remain required. Missing symbols and setup/compile errors are not behavioral RED. Final acceptance requires actual native and physical verification. The strict lint gate includes changed shared-core policies and package contract tests; behavior-preserving helper extraction retains the same contract suites and public phase spellings.
 
 | Behavior | Contract coverage | Additional acceptance |
 | --- | --- | --- |

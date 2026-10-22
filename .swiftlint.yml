@@ -21,6 +21,21 @@ included:
   - CurfewKit/Sources/CurfewKit/Infrastructure/SunriseWakeScheduler.swift
   - CurfewKit/Sources/CurfewKit/Settings/RestAppearancePreferences.swift
   - CurfewKit/Sources/CurfewKit/Settings/RestAppearancePreferencesStore.swift
+  - CurfewKit/Tests/CurfewAtmosphereTests/RestAmbientSceneTests.swift
+  - CurfewKit/Tests/CurfewAtmosphereTests/RestBackgroundImageStoreTests.swift
+  - CurfewKit/Tests/CurfewAtmosphereTests/RestScreenSaverPreferencesTests.swift
+  - CurfewKit/Tests/CurfewKitTests/RestAppearancePreferencesTests.swift
+  - CurfewKit/Tests/CurfewKitTests/RestAppearanceSyncIsolationTests.swift
+  - CurfewKit/Tests/CurfewKitTests/RestCompanionExportTests.swift
+  - CurfewKit/Tests/CurfewKitTests/RestCompanionPresentationStoreTests.swift
+  - CurfewKit/Tests/CurfewKitTests/RestHandoffPolicyTests.swift
+  - CurfewKit/Tests/CurfewKitTests/RestSceneSnapshotTests.swift
+  - CurfewKit/Tests/CurfewKitTests/SunriseDaemonServiceTests.swift
+  - CurfewKit/Tests/CurfewKitTests/SunriseDisplayDeliveryTests.swift
+  - CurfewKit/Tests/CurfewKitTests/SunrisePowerIOTests.swift
+  - CurfewKit/Tests/CurfewKitTests/SunriseWakeJournalTests.swift
+  - CurfewKit/Tests/CurfewKitTests/SunriseWakePlannerTests.swift
+  - CurfewKit/Tests/CurfewKitTests/SunriseWakeSchedulerTests.swift
 
 excluded:
   - DerivedData
