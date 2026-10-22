@@ -336,7 +336,7 @@ struct EveningReflectionCard: View {
                     .foregroundStyle(SundownPalette.warmWhite)
                 Text("A moment to reflect before you step away.")
                     .font(.system(size: 14, weight: .regular, design: .rounded))
-                    .foregroundStyle(SundownPalette.supportingText)
+                    .foregroundStyle(SundownPalette.warmWhite)
             }
 
             ReflectionFormView(

@@ -28,7 +28,7 @@ struct DaybreakReflectionView: View {
                     .foregroundStyle(SundownPalette.warmWhite)
                 Text("Set your intention before the day takes over.")
                     .font(.system(size: 18, weight: .regular, design: .rounded))
-                    .foregroundStyle(SundownPalette.supportingText)
+                    .foregroundStyle(SundownPalette.warmWhite)
             }
             ReflectionFormView(
                 draft: model.reflectionDraft(for: .morning),
