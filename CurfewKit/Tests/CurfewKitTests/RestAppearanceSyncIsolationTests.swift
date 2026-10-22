@@ -11,8 +11,8 @@ struct RestAppearanceSyncIsolationTests {
         defer { defaults.removePersistentDomain(forName: suiteName) }
         let settingsStore = CurfewSettingsStore(defaults: defaults)
         settingsStore.save(.default)
-        let before = try JSONEncoder().encode(settingsStore.load())
-        let beforeObject = try #require(JSONSerialization.jsonObject(with: before) as? NSDictionary)
+        let beforeSettings = settingsStore.load()
+        let before = try #require(defaults.data(forKey: "curfew.settings.v1"))
         let local = RestAppearancePreferences(
             message: "Local private message",
             saverMessageEnabled: true,
@@ -24,9 +24,10 @@ struct RestAppearanceSyncIsolationTests {
         #expect(store.load() == RestAppearancePreferences())
         store.save(local)
         #expect(RestAppearancePreferencesStore(defaults: defaults).load() == local)
-        let after = try JSONEncoder().encode(settingsStore.load())
+        let after = try #require(defaults.data(forKey: "curfew.settings.v1"))
+        #expect(after == before)
+        #expect(settingsStore.load() == beforeSettings)
         let afterObject = try #require(JSONSerialization.jsonObject(with: after) as? NSDictionary)
-        #expect(beforeObject == afterObject)
         for key in ["restAppearance", "restAppearancePreferences", "message", "saverMessageEnabled", "sunriseWakeEnabled", "sunriseLeadMinutes", "sunriseOnBatteryEnabled"] {
             #expect(afterObject[key] == nil)
         }
