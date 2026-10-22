@@ -186,3 +186,13 @@ Before changing the active staging endpoints, back up its existing database and 
 Passkeys are bound to the portal hostname and must be enrolled for the new staging identity through normal sign-in or recovery. Reconnect the same Mac and assistants, retaining the existing account, device data and local settings. Do not copy session cookies or weaken identity checks to move them. Keep Stripe Sandbox credentials and the staging signer; no production payment fixture is permitted. The license bootstrap selects the recovery sender from the approved environment; a legacy sender is accepted only for its explicitly retired issuer, not for the canonical staging service.
 
 The shared endpoint manifest is part of native release provenance. Regenerate the Dev associated domains explicitly from staging, retain its Keychain group, and refresh the signed candidate after the manifest changes. An older sealed app or website must not be relabeled with the new configuration. Roll back code and endpoint configuration against retained data without resurrecting revoked authority or overwriting later writes.
+### Installation guide availability
+
+The installation guide points to the canonical download page for current
+availability. Keep its setup instructions independent of release availability
+and version, and retain the separate Plus availability hold. Publish through the
+existing Mintlify project only within the approved documentation release scope;
+verify the upstream guide and `/docs/install` on the first-party site. The
+download page remains responsible for announcing or withdrawing the installer.
+Revert the documentation change to restore the prior guide; this changes no
+accounts, credentials, purchases, installer assets or updater feed.

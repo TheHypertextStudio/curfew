@@ -2092,6 +2092,7 @@ Do not run lockout/shutdown acceptance or UI suites on the operator desktop.
 | --- | --- |
 | Licensing help covers app activation, email restoration, manual fallback and offline access without advertising planned features as available | `scripts/user-docs.test.mjs`; Mintlify validation and hosted licensing-page review |
 | Release help requires the official app, links to canonical download and restore pages, and excludes draft assets and private checkout links | `scripts/user-docs.test.mjs`; Mintlify validation and external/anchor checks; read-only hosted link verification |
+| Installation help retains macOS requirements and the deployment manifest's canonical download link; the download page owns current installer availability and Plus remains separate | `scripts/user-docs.test.mjs` platform/download and planned-Plus checks; manual availability-copy review; Mintlify validation and approved first-party guide verification |
 
 `web/worker/test/deployment.node.mjs` verifies that native recovery-email bindings
 derive the sender and sole allowed address from the selected artifact. It covers

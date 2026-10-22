@@ -1722,3 +1722,6 @@ asserts its own screen and state before attaching an image.
   public download and restore entry points. Keep installer and Plus availability
   notices until the cutover owner verifies publication; exclude draft release
   assets and private checkout links from public help.
+- [-] Keep installation help independent of release availability by directing
+  readers to the canonical download page; preserve the separate Plus hold and
+  verify the approved guide on Mintlify and the first-party documentation route.
