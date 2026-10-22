@@ -1,9 +1,10 @@
 import CurfewKit
 import Foundation
+import ImageIO
 import ScreenSaver
+import UniformTypeIdentifiers
 
-/// Module-specific companion exchange. Intentionally inert pending observed RED.
-/// Inject isolated defaults in tests; only the explicit system factory may open the saver domain.
+/// Module-specific presentation exchange. Actual host readback is a separate acceptance gate.
 public final class RestScreenSaverPreferences {
     public static let moduleIdentifier = "studio.hypertext.apps.curfew.screensaver"
 
@@ -15,46 +16,106 @@ public final class RestScreenSaverPreferences {
     }
 
     public enum AdapterError: Error {
-        case awaitingFailingTest
+        case unavailable
+        case persistenceRejected
+        case stalePublication
     }
+
+    private let defaults: UserDefaults
+    private let store: RestCompanionPresentationStore
 
     public init(
         defaults: UserDefaults,
-        inspectImageHeader: @escaping (Data) throws -> RestCompanionExport.ImageDimensions =
-            RestScreenSaverPreferences.inspectImageHeader
-    ) {}
+        inspectImageHeader: @escaping (Data) throws -> RestCompanionExport
+            .ImageDimensions = RestScreenSaverPreferences.inspectImageHeader
+    ) {
+        self.defaults = defaults
+        self.store = RestCompanionPresentationStore(
+            read: { slot, maximum in
+                guard let bytes = defaults.object(forKey: Self.key(for: slot)) as? Data,
+                      bytes.count <= maximum else { return nil }
+                return bytes
+            },
+            write: { slot, bytes in
+                defaults.set(bytes, forKey: Self.key(for: slot))
+                guard defaults.synchronize() else { throw AdapterError.persistenceRejected }
+            },
+            inspectImageHeader: inspectImageHeader
+        )
+    }
 
-    /// SDK ScreenSaverDefaults.h declares +defaultsForModuleWithName: (nullable instancetype).
-    /// Intended Swift call: ScreenSaverDefaults(forModuleWithName: Self.moduleIdentifier).
-    /// No production domain is opened until implementation is authorized after RED.
+    /// The companion's bundle identifier scopes ScreenSaverDefaults; no App Group is assumed.
     public static func system() throws -> RestScreenSaverPreferences {
-        throw AdapterError.awaitingFailingTest
+        guard let defaults = ScreenSaverDefaults(forModuleWithName: moduleIdentifier) else {
+            throw AdapterError.unavailable
+        }
+        return RestScreenSaverPreferences(defaults: defaults)
     }
 
     public func publish(snapshot: RestSceneSnapshot, imageData: Data?) throws {
-        throw AdapterError.awaitingFailingTest
+        defaults.synchronize()
+        try store.publish(snapshot: snapshot, imageData: imageData)
     }
 
     public func read(at date: Date) -> RestCompanionPresentationStore.Publication? {
-        nil
+        defaults.synchronize()
+        return store.read(at: date)
     }
 
     public func requestReadback() throws -> UUID {
-        throw AdapterError.awaitingFailingTest
+        defaults.synchronize()
+        return try store.requestReadback()
     }
 
     public func acknowledge(_ publication: RestCompanionPresentationStore.Publication) throws {
-        throw AdapterError.awaitingFailingTest
+        defaults.synchronize()
+        let bytes = try store.acknowledgement(for: publication)
+        guard store.matchesCurrentPublication(bytes) else { throw AdapterError.stalePublication }
+        defaults.set(bytes, forKey: Keys.acknowledgement)
+        guard defaults.synchronize() else { throw AdapterError.persistenceRejected }
     }
 
     public func hasAcknowledgedCurrentPublication() -> Bool {
-        false
+        defaults.synchronize()
+        guard let bytes = defaults.object(forKey: Keys.acknowledgement) as? Data,
+              bytes.count <= RestCompanionPresentationStore.maximumOccurrenceBytes else {
+            return false
+        }
+        return store.matchesCurrentPublication(bytes)
     }
 
-    /// Implementation must bound encoded bytes and read ImageIO properties without pixel decode.
+    /// Read properties only: no pixel decode occurs before encoded-size and dimension bounds.
     public static func inspectImageHeader(
         _ bytes: Data
     ) throws -> RestCompanionExport.ImageDimensions {
-        throw AdapterError.awaitingFailingTest
+        guard bytes.count <= RestCompanionExport.maximumImageBytes else {
+            throw RestCompanionExport.ValidationError.imageTooLarge
+        }
+        guard let source = CGImageSourceCreateWithData(bytes as CFData, [
+            kCGImageSourceShouldCache: false
+        ] as CFDictionary),
+            let type = CGImageSourceGetType(source) as String?,
+            [UTType.jpeg.identifier, UTType.png.identifier, UTType.heic.identifier].contains(type),
+            let metadata = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+            let width = metadata[kCGImagePropertyPixelWidth] as? NSNumber,
+            let height = metadata[kCGImagePropertyPixelHeight] as? NSNumber else {
+            throw RestCompanionExport.ValidationError.invalidImageHeader
+        }
+        let limit = Double(RestCompanionExport.maximumImageDimension)
+        guard (1 ... limit).contains(width.doubleValue),
+              (1 ... limit).contains(height.doubleValue),
+              width.doubleValue.rounded() == width.doubleValue,
+              height.doubleValue.rounded() == height.doubleValue else {
+            throw RestCompanionExport.ValidationError.invalidImageDimensions
+        }
+        return .init(width: width.intValue, height: height.intValue)
+    }
+
+    private static func key(for slot: RestCompanionPresentationStore.Slot) -> String {
+        switch slot {
+        case .appearance: Keys.appearance
+        case .occurrence: Keys.occurrence
+        case .readbackRequest: Keys.readbackRequest
+        }
     }
 }
