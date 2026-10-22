@@ -54,9 +54,9 @@ extension CurfewAppModel {
     }
 
     var restPresentation: RestPresentationSnapshot {
+        let hasDraft = !reflectionState.eveningDraft.values.isEmpty
         let content: RestContentState = if reflectionState.isEveningReflectionPending,
-                                           isEnforcingLockout || !reflectionState.eveningDraft
-                                               .values.isEmpty {
+                                           isEnforcingLockout || hasDraft {
             .evening
         } else {
             reflectionState.isDaybreakPresented ? .morning : .quiet

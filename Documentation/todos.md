@@ -1773,3 +1773,5 @@ Rest Screen settings coverage reveals each privacy and power opt-in before check
   colors; verify
   the served fonts and light/dark
   rendering on the provider and first-party documentation routes.
+
+Shared presentation source must pass the existing hosted formatter and strict lint, including owned-image path validation and reflection content selection.

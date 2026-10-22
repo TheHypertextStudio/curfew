@@ -2205,3 +2205,5 @@ packaged WOFF2 assets, retained OFL
 licenses, and identical product/generated font configuration. Publication
 acceptance separately checks loaded fonts, computed families and rendered
 light/dark layouts on the provider and first-party documentation routes.
+
+The standard format gate covers the shared atmosphere sources alongside app, unit and UI source; image ownership and retained reflection behavior remain covered by their runtime contracts.

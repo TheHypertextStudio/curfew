@@ -100,9 +100,9 @@ public nonisolated struct RestBackgroundImageStore {
     }
 
     private func validateOwnedURL(_ url: URL) throws {
+        let parent = url.standardizedFileURL.deletingLastPathComponent().resolvingSymlinksInPath()
         guard url.isFileURL,
-              url.standardizedFileURL.deletingLastPathComponent().resolvingSymlinksInPath()
-                  .path == directory.path,
+              parent.path == directory.path,
               UUID(uuidString: url.deletingPathExtension().lastPathComponent) != nil,
               ["jpg", "png", "heic"].contains(url.pathExtension.lowercased()),
               (try? FileManager.default.destinationOfSymbolicLink(atPath: url.path)) == nil
