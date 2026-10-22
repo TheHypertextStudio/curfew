@@ -5,8 +5,8 @@
     <key>CFBundleExecutable</key><string>$(EXECUTABLE_NAME)</string>
     <key>CFBundleName</key><string>Curfew</string>
     <key>CFBundlePackageType</key><string>BNDL</string>
-    <key>CFBundleShortVersionString</key><string>$(MARKETING_VERSION)</string>
-    <key>CFBundleVersion</key><string>$(CURRENT_PROJECT_VERSION)</string>
+    <key>CFBundleShortVersionString</key><string>$(CURFEW_SAVER_MARKETING_VERSION)</string>
+    <key>CFBundleVersion</key><string>$(CURFEW_SAVER_BUILD_VERSION)</string>
     <key>LSMinimumSystemVersion</key><string>$(MACOSX_DEPLOYMENT_TARGET)</string>
     <key>NSPrincipalClass</key><string>CurfewScreenSaverView</string>
 </dict></plist>

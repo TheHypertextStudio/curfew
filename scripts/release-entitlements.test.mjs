@@ -268,3 +268,19 @@ test("production app and widget share the new snapshot group without changing le
       ]);
   }
 });
+
+test("companion metadata survives archive-wide app version overrides", () => {
+  const info = JSON.parse(execFileSync("plutil", [
+    "-convert", "json", "-o", "-", "CurfewScreenSaver/Info.plist",
+  ], { encoding: "utf8" }));
+  assert.equal(info.CFBundleShortVersionString, "$(CURFEW_SAVER_MARKETING_VERSION)");
+  assert.equal(info.CFBundleVersion, "$(CURFEW_SAVER_BUILD_VERSION)");
+  for (const [id, name] of [
+    ["CF5A0000000000000000000D", "Debug"],
+    ["CF5A0000000000000000000E", "Release"],
+  ]) {
+    const block = buildConfigurationBlock(id, name);
+    assert.match(block, /CURFEW_SAVER_MARKETING_VERSION = 1\.0\.0;/);
+    assert.match(block, /CURFEW_SAVER_BUILD_VERSION = 1;/);
+  }
+});
