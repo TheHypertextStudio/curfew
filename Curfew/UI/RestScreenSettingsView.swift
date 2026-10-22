@@ -102,6 +102,7 @@ struct RestScreenSettingsView: View {
                     .toggleStyle(.switch)
                     .accessibilityIdentifier("rest-saver-message")
             }
+            RestScreenSaverSetupSection()
             Section("Sunrise") {
                 Toggle("Automatically wake for Sunrise", isOn: $draft.sunriseWakeEnabled)
                     .toggleStyle(.switch)
