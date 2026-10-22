@@ -5,6 +5,7 @@ included:
   - Curfew
   - CurfewTests
   - CurfewUITests
+  - CurfewScreenSaver
   - CurfewKit/Sources/CurfewAtmosphere
 
 excluded:
