@@ -241,6 +241,39 @@ extension SunriseWakeCoordinatorTests {
         #expect(subject.status == .scheduled)
     }
 
+    @Test func suspendedHelperCannotDelayIndependentDisplayDelivery() async {
+        let effects = Effects()
+        effects.suspendReplace = true
+        let subject = effects.subject()
+        let desired = plan()
+        let first = Task { await subject.reconcile(
+            plan: desired, enabled: true, onExternalPower: true, now: now
+        ) }
+        let started = await effects.waitForSuspendedReplace()
+        #expect(started)
+        guard started else {
+            effects.suspendReplace = false
+            effects.finishReplace()
+            await first.value
+            return
+        }
+        let waking = Task {
+            effects.secondaryReconcileStarted = true
+            await subject.reconcile(
+                plan: desired, enabled: true, onExternalPower: true, now: desired.wakeAt
+            )
+        }
+        let wakeStarted = await effects.waitForSecondaryReconcile()
+        #expect(wakeStarted)
+        #expect(effects.delivery.isActive)
+        #expect(effects.deadlines == [desired.holdUntil])
+        #expect(!effects.calls.contains("cancel"))
+        effects.suspendReplace = false
+        effects.finishReplace()
+        await first.value
+        await waking.value
+    }
+
     @MainActor
     private final class Effects {
         var calls: [String] = []
