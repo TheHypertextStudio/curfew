@@ -85,9 +85,23 @@ public final class RestScreenSaverPreferences {
         return store.matchesCurrentPublication(bytes)
     }
 
-    /// Inert until the pixel-decoding contracts have an observed failing run.
-    public static func boundedImage(_: Data) -> CGImage? {
-        nil
+    /// Validate encoded bytes and metadata before requesting bounded, oriented pixels.
+    public static func boundedImage(_ bytes: Data) -> CGImage? {
+        guard (try? inspectImageHeader(bytes)) != nil,
+              let source = CGImageSourceCreateWithData(bytes as CFData, [
+                  kCGImageSourceShouldCache: false
+              ] as CFDictionary),
+              let image = CGImageSourceCreateThumbnailAtIndex(source, 0, [
+                  kCGImageSourceCreateThumbnailFromImageAlways: true,
+                  kCGImageSourceCreateThumbnailWithTransform: true,
+                  kCGImageSourceThumbnailMaxPixelSize: RestCompanionExport.maximumImageDimension,
+                  kCGImageSourceShouldCacheImmediately: true
+              ] as CFDictionary),
+              image.width > 0, image.height > 0,
+              image.width <= RestCompanionExport.maximumImageDimension,
+              image.height <= RestCompanionExport.maximumImageDimension
+        else { return nil }
+        return image
     }
 
     /// Read properties only: no pixel decode occurs before encoded-size and dimension bounds.
