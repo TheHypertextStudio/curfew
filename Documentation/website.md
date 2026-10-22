@@ -96,7 +96,10 @@ WOFF2 assets in `web/docs/fonts/` are compressed from the homepage's canonical
 TrueType files, with their original OFL licenses alongside them. Regenerate
 them with FontTools' `fontTools.ttLib.woff2.compress`, preserving the complete
 glyph coverage, metrics and variable axes. Keep fonts local to the documentation
-deployment rather than adding an external font service.
+deployment rather than adding an external font service. Configure separate
+`fonts.body` and `fonts.heading` records: the pinned provider schema treats a
+global font and separate roles as alternatives, so mixing them drops the
+override. Local font URLs start with `/docs/fonts/` to retain the public mount.
 
 The documentation regressions check these roles, local font assets, licenses
 and generated configuration. Before accepting publication, inspect the rendered

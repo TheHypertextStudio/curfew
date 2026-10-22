@@ -11,13 +11,14 @@ test("documentation uses the homepage typefaces with local licensed font assets"
   const styles = await read("landing/public/site-assets/design/tokens.css");
   const source = JSON.parse(await read("web/docs/docs.site.json"));
   const family = role => styles.match(new RegExp(`--${role}:\\s*"([^"]+)"`))?.[1];
-  assert.equal(source.fonts?.family, family("body"), "Docs must select the homepage body font instead of the provider default");
+  assert.equal(source.fonts?.body?.family, family("body"), "Docs must select the homepage body font instead of the provider default");
   assert.equal(source.fonts?.heading?.family, family("display"));
+  assert.equal(Object.hasOwn(source.fonts, "family"), false, "A global family makes the provider discard the heading/body overrides");
   assert.deepEqual(config.fonts, source.fonts, "Generated typography must match the product configuration");
-  for (const face of [source.fonts, source.fonts.heading]) {
+  for (const face of [source.fonts.body, source.fonts.heading]) {
     assert.equal(face.format, "woff2");
-    assert.match(face.source, /^\/fonts\/[A-Za-z]+\.woff2$/);
-    const bytes = await readFile(`web/docs${face.source}`);
+    assert.match(face.source, /^\/docs\/fonts\/[A-Za-z]+\.woff2$/, "Local font URLs must retain the documentation mount");
+    const bytes = await readFile(`web${face.source}`);
     assert.equal(bytes.subarray(0, 4).toString(), "wOF2");
     assert.ok(bytes.length > 1000);
   }
