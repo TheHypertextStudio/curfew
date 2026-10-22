@@ -1,5 +1,20 @@
 # Todo Test Matrix
 
+## Rest customization, native screensaver and Sunrise
+
+See [the approved feature design](rest-experience-features.md). Tests prepared for new APIs are not execution evidence; missing symbols and setup/compile errors are not behavioral RED. Final acceptance requires actual native and physical verification.
+
+| Behavior | Contract coverage | Additional acceptance |
+| --- | --- | --- |
+| Local appearance defaults and persistence | `RestAppearancePreferencesTests`: migration, partial/corrupt decoding, Unicode message cap, color/focal limits, owned-image names, independent opt-ins, store recreation | Actual app settings migration and local-only account behavior |
+| No synced appearance or private content | `RestAppearanceSyncIsolationTests/storeIsolationAndRecreation` exercises the actual existing settings payload alongside the separate local store | Companion export must exclude journal/drafts/account/recovery data |
+| Scheduled Sunrise plan | Timing, bounds, explicit power policy, replacement/dedup and scoped cancellation coverage required during implementation | Authenticated helper, durable recovery and actual IOKit scheduling remain separate |
+| Shared scene and customization | Deterministic boundary, image-corruption and accessibility coverage required during implementation | Rendered presets/images, Reduce Motion and Reduce Transparency |
+| Companion and handoff | Preview/fullscreen lifecycle, generation exchange, idle gating and return coverage required during implementation | Actual host readback, authentication, keyboard/VoiceOver and workspace restoration |
+| Display and system wake | Rejection/dedup/cleanup and power-source reconciliation coverage required during implementation | API result, machine wake, illuminated monitor and visible rendering recorded separately on AC/battery |
+
+Keep the actual global combined audit without filtering or temporary diagnostics in the final shipping candidate. Isolated Foundation tests cannot replace app, screensaver-host, physical power or artifact acceptance.
+
 ## Continuous lockout and morning experience
 
 The regression tests below are implemented. Isolated native tests exercise the actual host-store, sky, transition, and reveal-policy sources. Completion requires the full native model/unit suite to pass. UI execution and physical lifecycle acceptance remain separate requirements; compilation or isolated policy checks do not establish them. See [the implementation plan](internal/lockout-experience-plan.md).

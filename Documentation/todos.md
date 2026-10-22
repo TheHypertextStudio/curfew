@@ -1,5 +1,18 @@
 # Curfew Implementation TODOs
 
+## Rest customization, native screensaver and Sunrise
+
+Design: [rest experience features](rest-experience-features.md). Delivery: [implementation plan](internal/rest-experience-features-plan.md). Keep appearance local to this Mac, presentation independent of enforcement, and production activation/public installer publication held.
+
+- [-] Establish local appearance persistence, safe migration defaults and deterministic shared scene inputs. Preference contracts cover independent wake/battery/message opt-ins, Unicode message limits, image references, color/focal bounds and separate local storage. Runtime verification remains required before implementation acceptance.
+- [ ] Add the Rest Screen settings destination with live preview, owned JPEG/PNG/HEIC import, adjustable aspect-fill focal point and mandatory readability treatment.
+- [ ] Deliver the independently versioned native companion, bounded presentation/image exchange, actual host readback and explicit installation/update/removal actions.
+- [ ] Coordinate idle/explicit screensaver entry and authenticated return without losing drafts, native hosts or restriction authority.
+- [ ] Add authenticated owned Sunrise system-wake scheduling and bounded display delivery with independent battery consent, cancellation and recovery.
+- [ ] Verify the combined native experience, actual global accessibility, physical sleep/wake, authentication, multiple displays and app/companion artifacts before shipping acceptance.
+
+Rollback removes optional feature integration and separate local appearance storage without changing synced settings, restriction policy or remote protocols. A returned API success cannot establish host loading, monitor illumination or physical acceptance.
+
 ## Continuous lockout and morning experience
 
 Design: [lockout experience](lockout-experience-design.md). Execution: [implementation plan](internal/lockout-experience-plan.md). Source implementation and native acceptance are tracked separately. Completion requires the full native unit suite, rendered interaction and physical lifecycle checks to pass.
