@@ -17,8 +17,10 @@ test("documentation uses the homepage typefaces with local licensed font assets"
   assert.deepEqual(config.fonts, source.fonts, "Generated typography must match the product configuration");
   for (const face of [source.fonts.body, source.fonts.heading]) {
     assert.equal(face.format, "woff2");
-    assert.match(face.source, /^\/docs\/fonts\/[A-Za-z]+\.woff2$/, "Local font URLs must retain the documentation mount");
-    const bytes = await readFile(`web${face.source}`);
+    const url = new URL(face.source);
+    assert.equal(url.origin, "https://curfew.mintlify.site", "Font URLs must use the retained documentation host");
+    assert.match(url.pathname, /^\/docs\/fonts\/[A-Za-z]+\.woff2$/, "Local font URLs must retain the documentation mount");
+    const bytes = await readFile(`web${url.pathname}`);
     assert.equal(bytes.subarray(0, 4).toString(), "wOF2");
     assert.ok(bytes.length > 1000);
   }
