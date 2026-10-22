@@ -1,3 +1,4 @@
+import CoreGraphics
 import CurfewAtmosphere
 import CurfewKit
 import SwiftUI
@@ -9,6 +10,7 @@ struct RestScreenView: View {
     @Bindable var display: RestDisplayPresentation
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @State private var backgroundImage: CGImage?
     @State private var coverOpacity: Double
     @State private var previousContent: RestContentState
 
@@ -66,6 +68,7 @@ struct RestScreenView: View {
                     RestAmbientScene(
                         snapshot: sceneSnapshot,
                         date: model.isDemoSession ? model.currentTime : context.date,
+                        image: backgroundImage,
                         reduceMotion: reduceMotion,
                         reduceTransparency: reduceTransparency,
                         showsClock: false
@@ -127,6 +130,15 @@ struct RestScreenView: View {
                     .allowsHitTesting(false)
                     .accessibilityHidden(true)
             }
+        }
+        .task(id: model.restAppearance.ownedImageFilename) {
+            let directory = model.restBackgroundDirectory
+            let filename = model.restAppearance.ownedImageFilename
+            let image = await Task.detached(priority: .userInitiated) {
+                RestBackgroundImageStore(directory: directory).image(named: filename)
+            }.value
+            guard !Task.isCancelled else { return }
+            backgroundImage = image
         }
         .onChange(of: content) { _, newContent in previousContent = newContent }
         .onChange(of: display.isVisible) { _, visible in

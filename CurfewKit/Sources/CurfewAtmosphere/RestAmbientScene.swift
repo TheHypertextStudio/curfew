@@ -133,7 +133,8 @@ public struct RestAmbientScene: View {
     }
 
     var resolvedMoment: AtmosphereMoment {
-        let hasOccurrence = frame.phase != .allDay
+        guard frame.phase != .allDay else { return .night }
+        let hasOccurrence = true
         return AtmosphereMoment.resolve(
             now: date,
             lockDate: hasOccurrence ? snapshot.lockDate : nil,

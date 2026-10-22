@@ -2,7 +2,7 @@ import XCTest
 
 @MainActor
 extension CurfewUITests {
-    func testRestScreenSettingsStartWithSafeLocalDefaults() {
+    func testRestScreenSettingsStartWithSafeLocalDefaults() throws {
         let app = launchFixture("settings", state: "ready")
         let destination = app.descendants(matching: .any)["settings-restScreen-tab"]
         XCTAssertTrue(destination.waitForExistence(timeout: 8))
@@ -10,6 +10,18 @@ extension CurfewUITests {
 
         XCTAssertTrue(app.descendants(matching: .any)["rest-appearance-preview"]
             .waitForExistence(timeout: 5))
+        let screenshot = app.screenshot()
+        let attachment = XCTAttachment(screenshot: screenshot)
+        attachment.name = "Rest Screen settings"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+        let repository = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent()
+        let output = repository.appendingPathComponent("build/screenshots", isDirectory: true)
+        try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
+        try screenshot.pngRepresentation.write(to: output.appendingPathComponent(
+            "curfew-rest-settings.png"
+        ))
         XCTAssertTrue(app.popUpButtons["rest-background-choice"].exists)
         XCTAssertTrue(app.popUpButtons["rest-palette-choice"].exists)
         XCTAssertTrue(app.popUpButtons["rest-clock-style"].exists)

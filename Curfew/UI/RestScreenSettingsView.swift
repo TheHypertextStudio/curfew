@@ -1,4 +1,5 @@
 import AppKit
+import CoreGraphics
 import CurfewAtmosphere
 import CurfewKit
 import SwiftUI
@@ -10,9 +11,11 @@ struct RestScreenSettingsView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @State private var draft = RestAppearanceDraft(RestAppearancePreferences())
+    @State private var backgroundImage: CGImage?
     @State private var choosingImage = false
     @State private var imageError: String?
     @State private var imageOperationInProgress = false
+    @State private var imageTask: Task<Void, Never>?
 
     var body: some View {
         Group {
@@ -25,6 +28,7 @@ struct RestScreenSettingsView: View {
                             lockDate: nil, unlockDate: nil
                         ),
                         date: context.date,
+                        image: backgroundImage,
                         reduceMotion: reduceMotion,
                         reduceTransparency: reduceTransparency,
                         clockSize: 52
@@ -57,7 +61,7 @@ struct RestScreenSettingsView: View {
                         .disabled(imageOperationInProgress)
                     if draft.ownedImageFilename != nil {
                         Button("Remove image", role: .destructive) {
-                            Task { await removeImage() }
+                            imageTask = Task { await removeImage() }
                         }
                         .disabled(imageOperationInProgress)
                         Slider(value: $draft.focalX, in: 0 ... 1) { Text("Horizontal focus") }
@@ -120,7 +124,20 @@ struct RestScreenSettingsView: View {
             }
         }
         .pickerStyle(.menu)
+        .task(id: draft.ownedImageFilename) {
+            let directory = model.restBackgroundDirectory
+            let filename = draft.ownedImageFilename
+            let image = await Task.detached(priority: .userInitiated) {
+                RestBackgroundImageStore(directory: directory).image(named: filename)
+            }.value
+            guard !Task.isCancelled else { return }
+            backgroundImage = image
+        }
         .onAppear { draft = RestAppearanceDraft(model.restAppearance) }
+        .onDisappear {
+            imageTask?.cancel()
+            imageTask = nil
+        }
         .onChange(of: draft) { _, value in
             var saved = value
             if saved.background == .image, saved.ownedImageFilename == nil {
@@ -138,7 +155,7 @@ struct RestScreenSettingsView: View {
             .png,
             .heic
         ]) { result in
-            Task { await importImage(result) }
+            imageTask = Task { await importImage(result) }
         }
     }
 
@@ -154,20 +171,13 @@ struct RestScreenSettingsView: View {
         )
     }
 
-    private var imageDirectory: URL {
-        model.isDemoSession
-            ? FileManager.default.temporaryDirectory
-            .appendingPathComponent("curfew-demo-rest-backgrounds")
-            : SharedPaths.applicationSupport.appendingPathComponent("rest-backgrounds")
-    }
-
     @MainActor
     private func importImage(_ result: Result<URL, Error>) async {
         imageOperationInProgress = true
         defer { imageOperationInProgress = false }
         do {
             let source = try result.get()
-            let directory = imageDirectory
+            let directory = model.restBackgroundDirectory
             let imported = try await Task.detached(priority: .userInitiated) {
                 let granted = source.startAccessingSecurityScopedResource()
                 defer {
@@ -177,9 +187,31 @@ struct RestScreenSettingsView: View {
                 }
                 return try RestBackgroundImageStore(directory: directory).importImage(from: source)
             }.value
-            draft.ownedImageFilename = imported.lastPathComponent
-            draft.background = .image
+            guard !Task.isCancelled else {
+                try? await Task.detached(priority: .utility) {
+                    try RestBackgroundImageStore(directory: directory).removeImage(at: imported)
+                }.value
+                return
+            }
+            let previousFilename = model.restAppearance.ownedImageFilename
+            var current = RestAppearanceDraft(model.restAppearance)
+            current.ownedImageFilename = imported.lastPathComponent
+            current.background = .image
+            draft = current
             imageError = nil
+            // Merge into current preferences before retiring the previous owned asset.
+            model.restAppearance = current.preferences
+            if let previousFilename, previousFilename != imported.lastPathComponent {
+                do {
+                    try await Task.detached(priority: .utility) {
+                        try RestBackgroundImageStore(directory: directory).removeImage(
+                            at: directory.appendingPathComponent(previousFilename)
+                        )
+                    }.value
+                } catch {
+                    imageError = "Your new image is saved. The previous copy could not be removed."
+                }
+            }
         } catch {
             draft.background = model.restAppearance.background
             if (error as NSError).code != NSUserCancelledError {
@@ -193,14 +225,22 @@ struct RestScreenSettingsView: View {
         guard let filename = draft.ownedImageFilename else { return }
         imageOperationInProgress = true
         defer { imageOperationInProgress = false }
-        let directory = imageDirectory
+        let directory = model.restBackgroundDirectory
         do {
             try await Task.detached(priority: .userInitiated) {
                 try RestBackgroundImageStore(directory: directory)
                     .removeImage(at: directory.appendingPathComponent(filename))
             }.value
-            draft.ownedImageFilename = nil
-            draft.background = .atmosphere
+            // A newer settings view may have changed unrelated choices meanwhile.
+            if model.restAppearance.ownedImageFilename == filename {
+                var current = RestAppearanceDraft(model.restAppearance)
+                current.ownedImageFilename = nil
+                if current.background == .image {
+                    current.background = .atmosphere
+                }
+                model.restAppearance = current.preferences
+                draft = current
+            }
             imageError = nil
         } catch {
             imageError = "The image could not be removed. Your background has been kept."

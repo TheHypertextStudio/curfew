@@ -1,4 +1,5 @@
 @testable import Curfew
+import CurfewAtmosphere
 import Foundation
 import Testing
 
