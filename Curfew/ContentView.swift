@@ -244,6 +244,7 @@ struct MainWindowView: View {
                     .padding(.vertical, 6)
             }
             .navigationTitle("Curfew")
+            .accessibilityLabel("Workspace navigation")
             .listStyle(.sidebar)
             .scrollContentBackground(.hidden)
             // One consistent adaptive surface so the sidebar harmonises with the
@@ -257,12 +258,16 @@ struct MainWindowView: View {
             // sky behind everything (that was doubling the per-destination sky and
             // distorting to fill the window).
             detailContent
+                .accessibilityElement(children: .contain)
+                .accessibilityLabel("\(selectedSection.title) workspace")
                 .id(selectedSection)
                 .transition(.opacity)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .animation(.easeInOut(duration: 0.28), value: selectedSection)
         }
         .navigationSplitViewStyle(.prominentDetail)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Curfew workspace")
         .tint(CurfewTheme.accent)
         .task {
             #if DEBUG

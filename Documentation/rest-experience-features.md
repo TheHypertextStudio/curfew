@@ -96,3 +96,13 @@ appearance does not authorize wake, lockout, authentication or restriction statu
 These lifecycle corrections are independently reversible. Reverting them restores
 the earlier handoff, hold and cache behavior without changing saved app settings;
 helper acceptance must then be re-established before relying on a scheduled wake.
+
+### Workspace accessibility regions
+
+The main workspace, navigation sidebar and selected destination have explicit
+accessibility names. Their child controls remain individually available; region
+names do not replace control labels or alter restriction authority. This change
+does not remove the covered workspace from accessibility or claim that AXModal
+provides correct assistive-technology focus. Native global audit and workspace
+restoration remain acceptance requirements. Reverting the region modifiers
+restores the previous hierarchy without changing stored settings or enforcement.

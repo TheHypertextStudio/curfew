@@ -1803,3 +1803,9 @@ asserts its own screen and state before attaching an image.
   reacquisition, helper acceptance invalidation and offline companion appearance.
   Full-screen, authentication, physical wake and final accessibility acceptance
   remain required before delivery.
+
+- [-] Name the workspace, navigation and selected destination accessibility regions
+  while retaining their child controls. The native global rest audit exposes
+  unnamed covered workspace containers; explicit region names improve navigation
+  independently of modal focus. Final global audit and focus/restoration
+  verification remain required; do not hide covered content to clear findings.
