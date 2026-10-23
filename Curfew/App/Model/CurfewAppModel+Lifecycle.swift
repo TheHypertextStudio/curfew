@@ -314,7 +314,7 @@ extension CurfewAppModel {
             // Standing-by builds (another flavor owns the lock) must not drive
             // auto-shutdown, so this keys off enforcement, not phase alone.
             isLocked: isEnforcingLockout,
-            isEnabled: settings.autoShutdownEnabled && (availability ?? ShutdownSupport.isAvailable),
+            isEnabled: !isDemoSession && settings.autoShutdownEnabled && (availability ?? ShutdownSupport.isAvailable),
             delayMinutes: settings.autoShutdownDelayMinutes,
             controller: shutdownController,
             isActiveDevice: isActiveDevice,

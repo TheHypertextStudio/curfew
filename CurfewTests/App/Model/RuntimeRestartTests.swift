@@ -71,6 +71,8 @@ struct RuntimeRestartTests {
             canRequestExtension: false, lockDate: nil, unlockDate: nil
         )
         model.overrideReasonDraft = String(repeating: "r", count: 50)
+        model.overrideRequestedAt = model.currentTime.addingTimeInterval(-OverrideRequestPolicy.cooldownSeconds)
+        #expect(model.canConfirmOverride)
         model.confirmOverride()
         let restarted = makeModel(store: EnforcementRuntimeStateStore(recordURL: url))
         #expect(restarted.extensionMinutesGrantedToday == 15)
@@ -166,6 +168,7 @@ struct RuntimeRestartTests {
             )
         }
         settingsStore.save(settings)
+        settingsStore.saveAutomaticScheduleConsent(enforcementEnabled)
         return CurfewAppModel(
             settingsStore: settingsStore,
             appRouter: AppRouterSpy(),
