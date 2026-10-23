@@ -86,7 +86,8 @@ final class MarketingCaptureTests: XCTestCase {
                     }
                     if scenario == "this-week" {
                         app.radioButtons["Prompts"].click()
-                        XCTAssertTrue(app.staticTexts["Your reflections and AI"]
+                        XCTAssertTrue(app
+                            .staticTexts["Prompt yourself at the start and end of each day."]
                             .waitForExistence(timeout: 3))
                         attach(window, name: "prompts-\(appearance)-\(size)")
                         scrollToBottom(window)
@@ -332,7 +333,7 @@ extension MarketingCaptureTests {
     func testCaptureSettingsMatrix() {
         for appearance in ["light", "dark"] {
             for size in ["default", "minimum"] {
-                let app = launch("settings", appearance: appearance, size: size)
+                let app = launch("settings", state: "ready", appearance: appearance, size: size)
                 let window = app.windows["com_apple_SwiftUI_Settings_window"]
                 XCTAssertTrue(window.waitForExistence(timeout: 8))
                 for section in [

@@ -1516,6 +1516,11 @@ asserts its own screen and state before attaching an image.
   Consent explains the weekly limit and disables approval; remote verification
   of the final guard and its four visual captures remains required before merge.
 
+- [x] Keep full marketing captures aligned with current protection, repair,
+  reflection and Calendar states. Seed healthy Settings independently of the
+  host helper and assert zero weekly budgets through native controls. Dedicated
+  degraded-state captures remain required; test-only changes do not alter the app.
+
 ## Website visual identity release
 
 - [x] Group current legal headings and publication/effective metadata, keep the

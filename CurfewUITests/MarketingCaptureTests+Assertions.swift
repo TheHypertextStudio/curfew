@@ -67,22 +67,30 @@ extension MarketingCaptureTests {
             ), "Technical details must be expanded before capture: \(details.debugDescription)")
         }
         let text = [
-            "ready": "Ready to enforce", "accessibility-denied": "without Accessibility",
-            "tap-down": "Keyboard protection interrupted", "helper-approval": "Approval needed",
+            "ready": "Keyboard shortcut blocking is available",
+            "accessibility-denied": "Keyboard shortcut blocking is unavailable",
+            "tap-down": "Keyboard shortcut blocking was interrupted",
+            "helper-approval": "Approval needed",
             "helper-unauthorized": "Can't verify Curfew",
             "helper-stale": "Connection interrupted",
             "helper-registration": "Installation failed",
             "login-approval": "Approve in System Settings",
-            "limits-none": "No extra time allowed", "assistant-pending": "Review Request",
+            "assistant-pending": "Review Request",
             "claude-configured": "Added to Claude Desktop",
             "license-invalid": "That key isn't valid",
             "license-lifetime": "Lifetime", "license-subscription": "active until",
             "license-expired": "subscription has expired", "cloud-idle": "Ready to sync",
             "cloud-syncing": "Syncing", "cloud-synced": "Last synced",
             "cloud-failed": "Couldn't sync",
-            "cloud-unavailable": "Sign in to iCloud", "calendar-denied": "Calendar access is off",
+            "cloud-unavailable": "Sign in to iCloud",
+            "calendar-denied": "Curfew needs full Calendar access to read events.",
             "calendar-empty": "0 events"
         ]
+        if state == "limits-none" {
+            for label in ["Extensions per week", "Overrides per week"] {
+                XCTAssertEqual(app.steppers[label].value as? String, "0", label)
+            }
+        }
         if let expected = text[state] {
             assertText(expected, in: app)
         }
