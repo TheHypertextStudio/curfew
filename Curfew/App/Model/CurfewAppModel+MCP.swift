@@ -92,14 +92,13 @@ extension CurfewAppModel {
         case .requestExtension:
             // Grant an extension if the budget allows and we're in warning phase.
             guard state.canRequestExtension else { return false }
-            guard extensionTracker.requestExtension(at: currentTime) else {
+            guard grantPersistentExtension() else {
                 extensionsRemaining = extensionTracker.remaining
                 recordAuditExtensionDenied(
                     reason: "budget_exhausted", actor: Self.auditActor(for: request)
                 )
                 return false
             }
-            extensionMinutesGrantedToday += settings.extensionDurationMinutes
             extensionsRemaining = extensionTracker.remaining
             activityRecorder.recordExtensionGranted(
                 minutes: settings.extensionDurationMinutes,

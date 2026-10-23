@@ -507,6 +507,24 @@ missing-handler failures remain assertions, reported on the main thread with
 the request path. Already-running callbacks may finish during cancellation.
 No timeout budgets were increased. Full hosted verification remains pending.
 
+The background-enforcement change maps to these regression suites:
+
+| Behavior | Automated evidence | Signed acceptance |
+|---|---|---|
+| Closed ordinary windows retain enforcement and reach lockout | `BackgroundLifecycleTests.closedWindowsReachLockout`, `BackgroundEnforcementTests`, `BackgroundServiceTests.windowClosureDoesNotTerminate` | Closed-window and lockout screenshots |
+| Quiet recovery, one launch in flight, capped retry, healthy reset | `AppSupervisorPolicyTests`, `BackgroundServiceTests` | Quit, Force Quit, concurrent launch, login |
+| Approval and failed registration retain legacy recovery | `BackgroundServiceTests` | Login Items approval and revocation |
+| Grant/usage restoration precedes evaluation, rollover, failed writes | `RuntimeRestartTests`, `EnforcementRuntimeStateStoreTests` | Relaunch with valid grants |
+| Unregister precedes cleanup and development preserves production | `BackgroundServiceUninstallTests` | Signed unregister and no recovery |
+| Wake evaluates elapsed curfew immediately | `BackgroundLifecycleTests` | Wake after deadline |
+| launchd locates its enclosing bundle independently of relative service argv | `SupervisorBundleLocationTests` | Bundled signed helper remains running |
+| Uninstall cannot rearm lockout on activation or wake | `BackgroundLifecycleTests.uninstallStopsEnforcement` | Quit after successful cleanup |
+| Homebrew unregisters before quit/removal and aborts on refusal | `Tests/Packaging/cask_uninstall_test.rb` through `brew ruby` | Cask uninstall and upgrade |
+| Replacement builds register after explicit package unregister | `BackgroundServiceTests.unregisterAllowsUpgradeRegistration` | Cask upgrade/reinstall |
+| Staging fixtures cannot install the real browser host | `BrowserNativeStartupTests.acceptanceFixturesCannotInstallTheBrowserHost` | Fixture recovery leaves host manifests untouched |
+| Development signing cannot authorize the production widget container | `DevelopmentEntitlementsTests.developmentCannotAuthorizeProductionContainer` | Company-team Debug build with declared entitlements |
+| Live fixture keyboard shielding requires staging and explicit opt-in; test hosts stay disarmed | `StagingKeyboardShieldTests.fixturePermissionBoundary` | Accessibility grant, blocked Quit, Force Quit and restored tap |
+
 This file maps completed todo items (`[x]`) in `Documentation/todos.md` to automated behavior tests.
 
 Signed-build/manual validation for shutdown, WidgetKit, the privileged helper,
@@ -2352,4 +2370,10 @@ flows and the public updater path require their own acceptance.
 
 ## Current-main background recovery integration
 
-The October 23 integration restores the closed-window lifecycle and recovery regressions on current main. `BackgroundIntegrationRegressionTests` checks explicit last-window process retention. `BackgroundEnforcementTests` checks real timer-driven lockout with zero ordinary windows. Isolated CI runs the UI test because local macOS killed the unsigned runner before bootstrap. Integration and final verification remain in progress.
+The October 23 integration restores the closed-window lifecycle and recovery regressions on current main. `BackgroundIntegrationRegressionTests` checks explicit last-window process retention. `BackgroundEnforcementTests` checks real timer-driven lockout with zero ordinary windows. Isolated CI runs the UI test because local macOS killed the unsigned runner before bootstrap. The pull request records current-main verification results. Signed background-service acceptance remains a release gate.
+
+| Integration safety behavior | Regression |
+| --- | --- |
+| Development uninstall uses its selected bundle and leaves production and privileged state intact | `scripts/uninstall.test.mjs` executes the script inside an OS sandbox; `BackgroundServiceUninstallTests` verifies refusal preserves state and stops cleanup |
+| Background acceptance never terminates apps or shuts down after settings edits | `DemoFixtureTests.backgroundFixtureCannotShutDown` uses a controller spy and an elapsed shutdown deadline |
+| Ordinary Debug and test processes never register a supervisor | `SupervisorRegistrationPolicyTests` covers release, ordinary Debug, explicit staging, test, and demo combinations |

@@ -123,6 +123,9 @@ final class CurfewAppModel: NSObject {
 
     /// Read/write access to persisted settings + override event log.
     let settingsStore: CurfewSettingsStore
+    let runtimeStateStore: EnforcementRuntimeStateStore
+    let enforcementClock: () -> Date
+    var runtimePersistenceError: String?
 
     /// Classifies proposed schedule changes as stricter / weaker / no-change
     /// to drive the anti-bypass cooldown rules.
@@ -145,7 +148,7 @@ final class CurfewAppModel: NSObject {
 
     /// AppleScript wrapper for auto-shutdown. Abstracted behind a protocol
     /// so tests can assert the sequence without telling the OS to power off.
-    let shutdownController: ShutdownControlling
+    @ObservationIgnored var shutdownController: ShutdownControlling
 
     /// Respawn deterrent installed in `start()`, armed/disarmed on lockout.
     let respawnGuard: any RespawnGuardControlling
@@ -220,6 +223,9 @@ final class CurfewAppModel: NSObject {
     @ObservationIgnored var overrideTracker: ExtensionBudgetTracker
 
     /// The 1 Hz repeating tick/display timer; managed by `+DisplayClock`.
+    @ObservationIgnored var enforcementActivity: NSObjectProtocol?
+    let backgroundServiceManager = BackgroundServiceManager()
+    let isBackgroundAcceptanceSession: Bool
     @ObservationIgnored var timer: Timer?
     @ObservationIgnored var cancellables: Set<AnyCancellable> = []
 
@@ -312,7 +318,7 @@ final class CurfewAppModel: NSObject {
     @ObservationIgnored var lastPrivilegedHeartbeatAt: Date?
     // Whether enforcement is armed (the full `tick()` runs); guards `start()`
 
-    private(set) var started = false
+    var started = false
 
     // The initializer assigns the complete injected runtime graph before
     // subscriptions start. Extracting partial initialization would obscure
@@ -343,13 +349,19 @@ final class CurfewAppModel: NSObject {
         accessibilityAuthorization: AccessibilityAuthorizing? = nil,
         browserNativeRuntime: BrowserNativeRuntime? = nil,
         keyboardShield: (any KeyboardShieldControlling)? = nil,
-        observedStatusPublisher: CurfewObservedStatusPublisher? = nil
+        observedStatusPublisher: CurfewObservedStatusPublisher? = nil,
+        runtimeStateStore: EnforcementRuntimeStateStore = EnforcementRuntimeStateStore(),
+        runtimeNow: Date = Date(),
+        enforcementClock: @escaping () -> Date = Date.init,
+        backgroundAcceptance: Bool = false
     ) {
         self.isDemoSession = Self.permitsDemoIsolation(isDemoSession)
+        self.isBackgroundAcceptanceSession = self.isDemoSession && backgroundAcceptance
         self.settingsStore = settingsStore
+        self.runtimeStateStore = runtimeStateStore
+        self.enforcementClock = enforcementClock
         self.policyEngine = SchedulePolicyEngine()
-        let enforcementEngine = CurfewEnforcementEngine()
-        self.enforcementEngine = enforcementEngine
+        self.enforcementEngine = CurfewEnforcementEngine()
         if let notificationManager {
             self.notificationManager = notificationManager
         } else if RuntimeEnvironment.isUnitTestHost {
@@ -358,10 +370,8 @@ final class CurfewAppModel: NSObject {
             self.notificationManager = WarningNotificationManager()
         }
         self.overlayCoordinator = OverlayCoordinator()
-        self.lockoutKeyInterceptor = keyboardShield
-            ??
-            LockoutKeyInterceptor(authorization: accessibilityAuthorization ??
-                SystemAccessibilityAuthorization())
+        self.lockoutKeyInterceptor = keyboardShield ?? Self
+            .defaultKeyboardShield(accessibilityAuthorization)
         self.shutdownController = SystemShutdownController()
         self.appRouter = appRouter
         self.featureFlags = featureFlags ?? .default
@@ -414,23 +424,38 @@ final class CurfewAppModel: NSObject {
             !settingsStore.wasAutomaticScheduleConsentMigrated()
         self.automaticScheduleEnabled = resolvedScheduleConsent
         self.shouldOpenSettingsOnLaunch = settingsStore.consumeShouldShowInitialSetup()
-        self.overrideEvents = settingsStore.loadOverrideEvents()
+        let loadedEvents = settingsStore.loadOverrideEvents()
+        self.overrideEvents = loadedEvents
 
-        let trackers = Self.makeBudgetTrackers(for: loadedSettings)
+        let runtime = Self.restoreRuntimeState(
+            settings: loadedSettings, store: runtimeStateStore,
+            overrides: loadedEvents, recorder: activityRecorder, now: runtimeNow
+        )
+        self.runtimePersistenceError = runtime.error
+        let trackers = Self.runtimeBudgetTrackers(
+            settings: loadedSettings, state: runtime.state, now: runtimeNow
+        )
         self.extensionTracker = trackers.extension
         self.overrideTracker = trackers.override
 
-        let now = Date()
+        self.currentTime = runtimeNow
+        self.currentDayToken = Self.dayToken(for: runtimeNow)
+        if runtime.state.dayToken == currentDayToken {
+            self.extensionMinutesGrantedToday = runtime.state.extensionMinutes
+            self.snoozeMinutesGrantedToday = runtime.state.snoozeMinutes
+        }
+        self.overrideUntil = runtime.state.overrideUntil
         self.state = Self.initialEvaluation(
             settings: loadedSettings,
             automaticScheduleEnabled: resolvedScheduleConsent,
-            now: now,
-            enforcementEngine: enforcementEngine
+            now: runtimeNow,
+            enforcementEngine: enforcementEngine,
+            extensionMinutes: extensionMinutesGrantedToday + snoozeMinutesGrantedToday,
+            overrideUntil: overrideUntil
         )
         self.extensionsRemaining = extensionTracker.remaining
         self.overridesRemaining = overrideTracker.remaining
         self.lockoutMessage = EncouragementMessageCatalog.next(after: nil)
-        self.currentDayToken = Self.dayToken(for: now)
         self.isUserIdle = self.idleWatcher.isIdle
         let seededTrust = self.accessibilityAuthorization.isTrusted()
         self.isAccessibilityTrusted = seededTrust
@@ -440,42 +465,15 @@ final class CurfewAppModel: NSObject {
         )
         super.init()
         self.lastEnforcedPhase = state.phase
+        persistRuntimeState()
         completeInitialization(with: loadedSettings)
     }
 
     // swiftlint:enable function_body_length
 
-    /// Zero-arg convenience used by `CurfewApp` at production launch; collaborators
-    /// resolve to their `System*` defaults. Release wires the real ``PersistentLockdown``
-    /// (Debug uses `NoOpRespawnGuard`); flags from ``FeatureFlags/resolved``.
+    /// Observation requires the NSObject override on the class itself.
     override convenience init() {
-        #if DEBUG
-            let respawnGuard: any RespawnGuardControlling = NoOpRespawnGuard()
-        #else
-            let respawnGuard: any RespawnGuardControlling = PersistentLockdown.production()
-        #endif
-        self.init(
-            settingsStore: CurfewSettingsStore(),
-            appRouter: SystemAppRouter(),
-            featureFlags: .resolved,
-            respawnGuard: respawnGuard
-        )
-    }
-
-    /// Arms enforcement once setup is complete; isolated demos remain disarmed.
-    func start() {
-        guard !isDemoSession, settings.hasCompletedInitialSetup, !started,
-              !privilegedHelperManager.maintenancePaused,
-              !privilegedHelperManager.repairInProgress else { return }
-        started = true
-        notificationManager.requestPermissionIfNeeded()
-        installRespawnGuardIfNeeded()
-        startEnforcementReassertionObservers()
-        if featureFlags.privilegedHelperEnabled {
-            Task { await reconcilePrivilegedDaemonState() }
-        }
-        tick()
-        beginDisplayClock()
+        self.init(launchSettingsStore: Self.defaultSettingsStore())
     }
 
     /// Overrides the mirrored idle flag for the idle watcher and deterministic tests.
@@ -485,6 +483,9 @@ final class CurfewAppModel: NSObject {
 
     deinit {
         timer?.invalidate()
+        if let enforcementActivity {
+            ProcessInfo.processInfo.endActivity(enforcementActivity)
+        }
         let workspaceCenter = NSWorkspace.shared.notificationCenter
         for observer in reassertionObservers {
             workspaceCenter.removeObserver(observer)

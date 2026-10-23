@@ -53,7 +53,11 @@ extension SettingsView {
                 presentDaemonUninstallFailure()
                 return
             }
-            let outcome = UninstallCoordinator.performUninstall()
+            let outcome = UninstallCoordinator.performUninstall(
+                unregisterServices: { [] },
+                backgroundService: model.backgroundServiceManager,
+                onRecoveryStopped: { model.stopEnforcementForUninstall() }
+            )
             UninstallLifecycle.finish(
                 outcome: outcome, present: presentUninstallResult,
                 terminate: { NSApp.terminate(nil) }

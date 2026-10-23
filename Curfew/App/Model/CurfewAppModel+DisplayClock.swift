@@ -30,13 +30,11 @@ extension CurfewAppModel {
     func beginDisplayClock() {
         guard timer == nil else { return }
         displayTick()
-        timer = Timer.scheduledTimer(
-            timeInterval: 1,
-            target: self,
-            selector: #selector(handleTimerFire(_:)),
-            userInfo: nil,
-            repeats: true
-        )
+        let timer = Timer(timeInterval: 1, repeats: true) { [weak self] timer in
+            MainActor.assumeIsolated { self?.handleTimerFire(timer) }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        self.timer = timer
     }
 
     /// Guarded `isAccessibilityTrusted` setter — the only place that mutates it.
@@ -105,7 +103,7 @@ extension CurfewAppModel {
     /// pre-onboarding it leaves `state` at the seeded `.dayOff` while still
     /// advancing the clock.
     func refreshDisplayState() {
-        currentTime = Date()
+        currentTime = enforcementClock()
         licenseGate.reevaluateEligibility()
 
         // Idle sampling lives at the top so downstream surfaces (and any
@@ -124,8 +122,7 @@ extension CurfewAppModel {
 
         applyPendingScheduleIfNeeded(now: currentTime)
 
-        extensionTracker.resetIfNeeded(at: currentTime)
-        overrideTracker.resetIfNeeded(at: currentTime)
+        resetPersistentWeeklyBudgetsIfNeeded()
         // Guard writes behind equality checks so an unchanged tick does not fire
         // observation — otherwise every SwiftUI surface bound to the model
         // redraws once per second regardless of whether anything moved.

@@ -6,6 +6,29 @@ import OSLog
 /// Split into its own extension so the designated init in the main file
 /// doesn't grow unbounded as new optional collaborators are added.
 extension CurfewAppModel {
+    /// Zero-arg convenience used by `CurfewApp` at production launch; collaborators
+    /// resolve to their `System*` defaults. Release wires the real ``PersistentLockdown``
+    /// (Debug uses `NoOpRespawnGuard`); flags from ``FeatureFlags/resolved``.
+    convenience init(launchSettingsStore: CurfewSettingsStore) {
+        let respawnGuard = Self.defaultRespawnGuard()
+        self.init(
+            settingsStore: launchSettingsStore,
+            appRouter: SystemAppRouter(),
+            featureFlags: .resolved,
+            respawnGuard: respawnGuard,
+            runtimeStateStore: RuntimeEnvironment.isUnitTestHost
+                ? EnforcementRuntimeStateStore() : .production()
+        )
+    }
+
+    static func defaultRespawnGuard() -> any RespawnGuardControlling {
+        #if DEBUG
+            NoOpRespawnGuard()
+        #else
+            PersistentLockdown.production()
+        #endif
+    }
+
     /// Convenience for tests that only need to override the routing /
     /// onboarding presenter; defaults everything else (including the
     /// activity recorder, which falls back to the null recording when the
@@ -20,7 +43,8 @@ extension CurfewAppModel {
         appRouter: AppRouting,
         featureFlags: FeatureFlags? = nil,
         respawnGuard: (any RespawnGuardControlling)? = nil,
-        accessibilityAuthorization: AccessibilityAuthorizing? = nil
+        accessibilityAuthorization: AccessibilityAuthorizing? = nil,
+        runtimeStateStore: EnforcementRuntimeStateStore = EnforcementRuntimeStateStore()
     ) {
         self.init(
             settingsStore: settingsStore,
@@ -32,7 +56,8 @@ extension CurfewAppModel {
             ),
             respawnGuard: respawnGuard ?? NoOpRespawnGuard(),
             accessibilityAuthorization: accessibilityAuthorization
-                ?? SystemAccessibilityAuthorization()
+                ?? SystemAccessibilityAuthorization(),
+            runtimeStateStore: runtimeStateStore
         )
     }
 
@@ -45,6 +70,15 @@ extension CurfewAppModel {
             settingsStore: CurfewSettingsStore(),
             appRouter: appRouter
         )
+    }
+
+    static func defaultSettingsStore() -> CurfewSettingsStore {
+        guard RuntimeEnvironment.isUnitTestHost else { return CurfewSettingsStore() }
+        let suite = "studio.hypertext.curfew.tests.\(UUID().uuidString)"
+        guard let defaults = UserDefaults(suiteName: suite) else {
+            preconditionFailure("Could not create isolated test settings")
+        }
+        return CurfewSettingsStore(defaults: defaults)
     }
 
     /// Builds the extension and override budget trackers from `settings` in one
@@ -76,6 +110,7 @@ extension CurfewAppModel {
     /// failure (disk full, permissions), falls back to a
     /// ``NullActivityRecording`` so the app keeps enforcing without telemetry.
     static func defaultActivityRecording() -> any ActivityRecording {
+        guard !RuntimeEnvironment.isUnitTestHost else { return NullActivityRecording() }
         let canonical = SharedPaths.activityDatabase
         do {
             try FileManager.default.createDirectory(
@@ -98,6 +133,7 @@ extension CurfewAppModel {
     /// ``NullReflectionRecording`` so reflection prompting still works in
     /// memory even though nothing persists. Mirrors ``defaultActivityRecording``.
     static func defaultReflectionRecording() -> any ReflectionRecording {
+        guard !RuntimeEnvironment.isUnitTestHost else { return NullReflectionRecording() }
         let canonical = SharedPaths.reflectionDatabase
         do {
             try FileManager.default.createDirectory(

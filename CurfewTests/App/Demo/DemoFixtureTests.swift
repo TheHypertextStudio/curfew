@@ -8,6 +8,31 @@ import Testing
 /// which is fine because the test bundle always builds Debug.
 @MainActor
 struct DemoFixtureTests {
+    @Test("The background fixture starts the real enforcement loop with isolated stores")
+    func backgroundFixtureArmsEnforcement() {
+        let model = CurfewAppModel.demoModel(backgroundEnforcement: true)
+        model.applyDemoScenario(.backgroundEnforcement)
+        #expect(model.isEnforcementRunning)
+        #expect(!model.settings.autoShutdownEnabled)
+        #expect(model.runtimeStateStore.recordURL == nil)
+        #expect(model.isDemoSession)
+        #expect(model.lockoutDeadlineStore.recordURL.path.hasPrefix(FileManager.default.temporaryDirectory.path))
+    }
+
+    @Test("Background acceptance cannot terminate apps or shut down even after settings edits")
+    func backgroundFixtureCannotShutDown() {
+        let model = CurfewAppModel.demoModel(backgroundEnforcement: true)
+        let controller = ShutdownControllerSpy(results: [true])
+        model.shutdownController = controller
+        model.settings.autoShutdownEnabled = true
+        model.applyDemoScenario(.lockout)
+        model.updateShutdownWorkflow(availability: true)
+        model.currentTime = model.currentTime.addingTimeInterval(8 * 60 * 60)
+        model.updateShutdownWorkflow(availability: true)
+        #expect(controller.callLog.isEmpty)
+        #expect(model.shutdownWorkflow.phase == .idle)
+    }
+
     @Test("Demo settings complete onboarding and disable shutdown + MCP")
     func demoSettingsAreSafe() {
         let settings = DemoFixture.demoSettings()

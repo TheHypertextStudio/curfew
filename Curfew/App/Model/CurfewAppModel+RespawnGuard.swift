@@ -14,7 +14,7 @@ extension CurfewAppModel {
     /// effort, never a crash surface. In Debug `respawnGuard` is the
     /// `NoOpRespawnGuard` and these calls have no effect.
     func toggleRespawnGuardIfPhaseChanged(previousPhase: EnforcementPhase) {
-        guard previousPhase != state.phase else { return }
+        guard !backgroundServiceManager.isEnabled, previousPhase != state.phase else { return }
         let logger = Logger(subsystem: "studio.hypertext.curfew", category: "respawn-guard")
         if state.phase == .locked {
             do {
@@ -44,6 +44,7 @@ extension CurfewAppModel {
     /// agent is a no-op error we swallow. Debug builds inject
     /// `NoOpRespawnGuard` so this is a no-op under Xcode.
     func installRespawnGuardIfNeeded() {
+        guard !backgroundServiceManager.isEnabled else { return }
         do {
             try respawnGuard.install()
         } catch {

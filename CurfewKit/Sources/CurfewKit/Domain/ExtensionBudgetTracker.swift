@@ -25,7 +25,12 @@ public final class ExtensionBudgetTracker: @unchecked Sendable {
     private let calendar: Calendar
     /// Uses remaining this week. Decrements on ``requestExtension(at:)`` and
     /// resets to ``weeklyLimit`` when the reset boundary passes.
-    public private(set) var remaining: Int
+    public var remaining: Int {
+        max(0, weeklyLimit - usedCount)
+    }
+
+    /// Consumption remains exact even when the configured limit falls below prior usage.
+    public private(set) var usedCount: Int
     /// Most recent reset boundary the tracker has observed. Exposed so the
     /// app model can seed a fresh tracker with the previous one's boundary
     /// when settings change mid-week, preventing a surprise reset on the
@@ -42,13 +47,14 @@ public final class ExtensionBudgetTracker: @unchecked Sendable {
         extensionMinutes: Int,
         resetWeekday: Weekday,
         calendar: Calendar = .current,
-        seedLastResetBoundary: Date? = nil
+        seedLastResetBoundary: Date? = nil,
+        seedUsedCount: Int = 0
     ) {
         self.weeklyLimit = max(0, weeklyLimit)
         self.extensionMinutes = max(1, extensionMinutes)
         self.resetWeekday = resetWeekday
         self.calendar = calendar
-        self.remaining = max(0, weeklyLimit)
+        self.usedCount = max(0, seedUsedCount)
         self.lastResetBoundary = seedLastResetBoundary
     }
 
@@ -64,7 +70,7 @@ public final class ExtensionBudgetTracker: @unchecked Sendable {
             return false
         }
 
-        remaining -= 1
+        usedCount += 1
         return true
     }
 
@@ -80,7 +86,7 @@ public final class ExtensionBudgetTracker: @unchecked Sendable {
         }
         if let lastResetBoundary {
             if currentBoundary > lastResetBoundary {
-                remaining = weeklyLimit
+                usedCount = 0
                 self.lastResetBoundary = currentBoundary
             }
         } else {

@@ -32,6 +32,7 @@ import CurfewKit
         case lockout
         /// Walkthrough scenario used by the video harness.
         case reel
+        case backgroundEnforcement = "background-enforcement"
 
         /// The main-window sidebar section this scenario should open on, or
         /// `nil` when the scenario doesn't pin a section.
@@ -41,7 +42,8 @@ import CurfewKit
                 .schedule
             case .thisWeek:
                 .journal
-            case .overview, .gettingStarted, .menuBar, .warning, .lockout, .reel, .settings:
+            case .overview, .gettingStarted, .menuBar, .warning, .lockout, .reel, .settings,
+                 .backgroundEnforcement:
                 .today
             }
         }
@@ -52,7 +54,8 @@ import CurfewKit
             switch self {
             case .warning, .lockout, .reel:
                 true
-            case .overview, .configuration, .settings, .gettingStarted, .thisWeek, .menuBar:
+            case .overview, .configuration, .settings, .gettingStarted, .thisWeek, .menuBar,
+                 .backgroundEnforcement:
                 false
             }
         }
@@ -202,7 +205,8 @@ import CurfewKit
                 (hour, minute) = (22, 47)
             case .warning:
                 (hour, minute) = (17, 58)
-            case .overview, .configuration, .settings, .gettingStarted, .thisWeek, .menuBar:
+            case .overview, .configuration, .settings, .gettingStarted, .thisWeek, .menuBar,
+                 .backgroundEnforcement:
                 (hour, minute) = (14, 30)
             }
             return dateToday(at: hour, minute: minute, now: now, calendar: calendar) ?? now
@@ -239,7 +243,8 @@ import CurfewKit
                     unlockDate: unlock
                 )
 
-            case .overview, .configuration, .settings, .gettingStarted, .thisWeek, .menuBar:
+            case .overview, .configuration, .settings, .gettingStarted, .thisWeek, .menuBar,
+                 .backgroundEnforcement:
                 let lock = dateToday(at: 18, minute: 0, now: now, calendar: calendar)
                     ?? now.addingTimeInterval(3 * 3600)
                 let minutesRemaining = max(1, Int(ceil(lock.timeIntervalSince(now) / 60)))

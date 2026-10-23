@@ -180,11 +180,8 @@ final class LockoutKeyInterceptor: KeyboardShieldControlling {
             stop()
             return
         }
-        // Skip in a unit-test host: creating the CGEvent tap raises the macOS
-        // Accessibility ("control your computer") prompt, and every re-signed
-        // test build re-prompts. No test asserts the live tap; production
-        // launches install it as normal.
-        guard !RuntimeEnvironment.isUnitTestHost else { return }
+        // Only explicit staging acceptance may intercept keys in a capture session.
+        guard RuntimeEnvironment.shouldInstallKeyboardInterceptor else { return }
         if let tap = eventTap {
             if !isEnabled {
                 CGEvent.tapEnable(tap: tap, enable: true)

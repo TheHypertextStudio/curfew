@@ -24,6 +24,13 @@ cask "curfew" do
   binary "#{appdir}/Curfew.app/Contents/Resources/curfew-ctl"
   binary "#{appdir}/Curfew.app/Contents/Resources/curfew-mcp"
 
+  uninstall early_script: {
+              executable:   "#{appdir}/Curfew.app/Contents/MacOS/Curfew",
+              args:         ["--unregister-background-service"],
+              must_succeed: true,
+            },
+            quit:         "studio.hypertext.apps.curfew"
+
   zap trash: [
     "~/Library/Application Support/Curfew",
     "~/Library/Group Containers/group.studio.hypertext.curfew/Curfew",

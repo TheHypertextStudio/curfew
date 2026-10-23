@@ -143,6 +143,14 @@ public nonisolated enum CurfewFlavor: String, Sendable, CaseIterable {
         "\(daemonLabel).plist"
     }
 
+    public var supervisorLabel: String {
+        "\(bundleIdentifier).supervisor"
+    }
+
+    public var supervisorPlistName: String {
+        "\(supervisorLabel).plist"
+    }
+
     /// Precedence for the single-enforcer lock. The production install is the
     /// curfew the user actually depends on, so it always wins: a development
     /// build can never block a real curfew, and it steps aside the moment

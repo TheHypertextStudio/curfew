@@ -73,10 +73,16 @@ extension CurfewAppModel {
                 queue: .main
             ) { [weak self] _ in
                 MainActor.assumeIsolated {
-                    _ = self?.reassertEnforcementIfNeeded()
+                    _ = self?.handleSystemWake()
                 }
             }
             reassertionObservers.append(token)
         }
+    }
+
+    func handleSystemWake() {
+        guard isEnforcementRunning else { return }
+        tick()
+        reassertEnforcementIfNeeded()
     }
 }

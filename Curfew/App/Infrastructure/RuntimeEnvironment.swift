@@ -13,7 +13,53 @@ import Foundation
 ///
 /// Both Curfew and Curfew Dev require a loaded test runtime. Otherwise
 /// a launch environment could silently suppress enforcement side effects.
-enum RuntimeEnvironment {
+nonisolated enum RuntimeEnvironment {
+    static var shouldInstallKeyboardInterceptor: Bool {
+        #if DEBUG && CURFEW_STAGING
+            let staging = true
+            let backgroundAcceptance = ProcessInfo.processInfo.arguments
+                .contains("--supervisor-acceptance")
+                || ProcessInfo.processInfo.environment["CURFEW_DEMO_SCENARIO"]
+                == "background-enforcement"
+        #else
+            let staging = false
+            let backgroundAcceptance = false
+        #endif
+        return permitsKeyboardInterception(
+            testHost: isUnitTestHost, demo: isDemoFixture, staging: staging,
+            acceptanceOptIn: Bundle.main.object(
+                forInfoDictionaryKey: "CurfewAcceptanceKeyboardShield"
+            ) as? Bool == true,
+            backgroundAcceptance: backgroundAcceptance
+        )
+    }
+
+    static func permitsKeyboardInterception(
+        testHost: Bool, demo: Bool, staging: Bool, acceptanceOptIn: Bool,
+        backgroundAcceptance: Bool
+    ) -> Bool {
+        !testHost && (!demo || (staging && acceptanceOptIn && backgroundAcceptance))
+    }
+
+    static var isStagingAcceptanceFixture: Bool {
+        #if DEBUG && CURFEW_STAGING
+            ProcessInfo.processInfo.arguments.contains("--supervisor-acceptance") &&
+                Bundle.main.object(forInfoDictionaryKey: "CurfewAcceptanceFixture") as? Bool == true
+        #else
+            false
+        #endif
+    }
+
+    static var isDemoFixture: Bool {
+        #if DEBUG
+            isStagingAcceptanceFixture ||
+                (DaemonSigningIdentity.current == nil &&
+                    ProcessInfo.processInfo.environment["CURFEW_DEMO_FIXTURE"] == "1")
+        #else
+            false
+        #endif
+    }
+
     /// `true` when running inside an `xcodebuild test` host process.
     static var isUnitTestHost: Bool {
         testHostDecision(

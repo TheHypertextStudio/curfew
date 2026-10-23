@@ -2,6 +2,14 @@
 
 > **Three-repo layout:** this doc describes the **`curfew`** repo (the macOS app + the local `curfew-mcp` binary + the license-issuer Worker). Curfew Sync's coordinator (Hono + Durable Objects + D1 + Better Auth) lives in [`curfew-sync`](https://github.com/TheHypertextStudio/curfew-sync); the shared wire-format contract (MCP tool schemas, pending-request shapes) lives in [`curfew-protocols`](https://github.com/TheHypertextStudio/curfew-protocols) and is consumed here via SPM. See `AGENTS.md` §"Repo topology" and §"Cross-repo changes" for the full layout and change-coordination protocol.
 
+## Background enforcement
+
+Curfew owns schedule evaluation, notifications, keyboard interception, and overlay windows throughout the process lifetime. Its main and Settings windows only present state. A bundled user-session `curfew-supervisor` agent runs under launchd through `SMAppService.agent`. It watches termination and reconciles every 5 seconds, then asks Launch Services to reopen the same bundle with `--background` without activation. The app suppresses ordinary windows and restoration on that launch. Its timer uses common run-loop modes and an activity assertion that permits system sleep. Wake performs a fresh evaluation before reasserting lockout.
+
+The supervisor never computes a schedule. The optional root daemon retains its existing role. Local runtime grants and spent budgets are atomically stored before a grant takes effect, then restored before initial evaluation. Durable lockout and remote-release verification remain separate constraints. Service approval/error status appears in Enforcement settings. Uninstall stops recovery before removing state.
+
+The component diagram and failure/rollback decisions are in [background-enforcement.md](background-enforcement.md). Signed acceptance is required by [RELEASE.md](RELEASE.md).
+
 ## Module map
 
 ```
@@ -89,6 +97,7 @@ CurfewKit/                local Swift package (in its own subfolder, not the rep
     │                     package locally and links the `CurfewKit` library product
     │                     into the app, widget, and CLI tools; every consumer
     │                     `import CurfewKit` (one compiled copy, no dual-compilation).
+    ├── curfew-supervisor/ Background recovery agent; never evaluates schedules.
     ├── curfew-ctl/       ArgumentParser CLI — status, schedule, budget, activity, override.
     │                     Read operations inspect shared storage directly; `override`
     │                     enqueues onto the MCP request queue so the running app
@@ -115,7 +124,7 @@ entitlements are intentionally absent. The deployment floor is macOS 26.
 
 ### `CurfewKit` as the shared library
 
-Everything shares a single SPM library, `CurfewKit`, whose source lives canonically under `CurfewKit/Sources/CurfewKit/` and is auto-discovered by SPM. The package sits in its own `CurfewKit/` subfolder (not the repo root) so opening the repo folder in Xcode resolves to `Curfew.xcodeproj`, not a package-only window. `Curfew.xcodeproj` references the package locally and links the `CurfewKit` library product into the app, the widget, and the three CLI executables — every consumer `import CurfewKit`. There is one compiled copy of CurfewKit (no dual-compilation); a new file dropped into `CurfewKit/Sources/CurfewKit/{Domain,Storage,Settings,MCP}/` is picked up by SPM automatically and is visible to every consumer once it is marked `public`. (An earlier revision compiled these files directly into the app/widget targets via `PBXFileSystemSynchronizedRootGroup`, with no `import` on the app side; that dual-compile was replaced by the conventional library-product dependency.)
+Everything shares a single SPM library, `CurfewKit`, whose source lives canonically under `CurfewKit/Sources/CurfewKit/` and is auto-discovered by SPM. The package sits in its own `CurfewKit/` subfolder (not the repo root) so opening the repo folder in Xcode resolves to `Curfew.xcodeproj`, not a package-only window. `Curfew.xcodeproj` references the package locally and links the `CurfewKit` library product into the app, the widget, and the bundled executables — every consumer `import CurfewKit`. There is one compiled copy of CurfewKit (no dual-compilation); a new file dropped into `CurfewKit/Sources/CurfewKit/{Domain,Storage,Settings,MCP}/` is picked up by SPM automatically and is visible to every consumer once it is marked `public`. (An earlier revision compiled these files directly into the app/widget targets via `PBXFileSystemSynchronizedRootGroup`, with no `import` on the app side; that dual-compile was replaced by the conventional library-product dependency.)
 
 ### Feature flags + license as two separate gates
 

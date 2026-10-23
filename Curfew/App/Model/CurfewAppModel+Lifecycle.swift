@@ -52,7 +52,7 @@ extension CurfewAppModel {
     /// 7. Propagate derived effects: rotate lockout copy, toggle override
     ///    composer, fire warnings, toggle key tap, shutdown, overlays.
     func tick() {
-        guard !isDemoSession else { return }
+        guard !isDemoSession || isBackgroundAcceptanceSession else { return }
         if privilegedHelperManager.maintenancePaused {
             displayTick()
             return
@@ -65,6 +65,10 @@ extension CurfewAppModel {
         // missing a transition that happened while disarmed. Diffing against
         // `lastEnforcedPhase` instead makes the detection immune to that.
         let previousPhase = lastEnforcedPhase
+        backgroundServiceManager.refreshSupervisorHealthIfNeeded()
+        #if DEBUG
+            defer { recordBackgroundAcceptanceState() }
+        #endif
 
         // Advance the clock and re-derive the observed display state. This half
         // is side-effect-free and also runs on its own (``displayTick()``) when
@@ -221,22 +225,10 @@ extension CurfewAppModel {
             || settings.extensionWeeklyLimit != oldValue.extensionWeeklyLimit
             || settings.extensionDurationMinutes != oldValue.extensionDurationMinutes
         if extensionConfigChanged {
-            let usedExtensions = max(0, oldValue.extensionWeeklyLimit - extensionsRemaining)
-            // Preserve the previous tracker's lastResetBoundary so a same-
-            // week settings tweak (limit, duration, or reset weekday) does
-            // not surprise-reset the budget on the next tick. Seeding nil
-            // keeps the v0.1 behavior for first-launch construction.
-            extensionTracker = ExtensionBudgetTracker(
-                weeklyLimit: settings.extensionWeeklyLimit,
-                extensionMinutes: settings.extensionDurationMinutes,
-                resetWeekday: settings.resetWeekday,
-                seedLastResetBoundary: extensionTracker.lastResetBoundary
+            extensionTracker = rebasedRuntimeTracker(
+                extensionTracker, weeklyLimit: settings.extensionWeeklyLimit,
+                minutes: settings.extensionDurationMinutes
             )
-            if usedExtensions > 0 {
-                for _ in 0 ..< usedExtensions where extensionTracker.remaining > 0 {
-                    _ = extensionTracker.requestExtension(at: currentTime)
-                }
-            }
             extensionsRemaining = extensionTracker.remaining
         }
 
@@ -244,19 +236,14 @@ extension CurfewAppModel {
             || settings.overrideWeeklyLimit != oldValue.overrideWeeklyLimit
             || settings.overrideDurationMinutes != oldValue.overrideDurationMinutes
         if overrideConfigChanged {
-            let usedOverrides = max(0, oldValue.overrideWeeklyLimit - overridesRemaining)
-            overrideTracker = ExtensionBudgetTracker(
-                weeklyLimit: settings.overrideWeeklyLimit,
-                extensionMinutes: settings.overrideDurationMinutes,
-                resetWeekday: settings.resetWeekday,
-                seedLastResetBoundary: overrideTracker.lastResetBoundary
+            overrideTracker = rebasedRuntimeTracker(
+                overrideTracker, weeklyLimit: settings.overrideWeeklyLimit,
+                minutes: settings.overrideDurationMinutes
             )
-            if usedOverrides > 0 {
-                for _ in 0 ..< usedOverrides where overrideTracker.remaining > 0 {
-                    _ = overrideTracker.requestExtension(at: currentTime)
-                }
-            }
             overridesRemaining = overrideTracker.remaining
+        }
+        if extensionConfigChanged || overrideConfigChanged {
+            persistRuntimeState()
         }
 
         persistSettings()
@@ -315,7 +302,7 @@ extension CurfewAppModel {
 
     /// Advances `ShutdownWorkflow` and republishes the countdown line.
     /// `isActiveDevice = !isUserIdle` so idle Macs get the short grace.
-    func updateShutdownWorkflow() {
+    func updateShutdownWorkflow(availability: Bool? = nil) {
         // Active-device test: during lockout the user is literally locked
         // out, so `!isUserIdle` is what actually matters — is the user
         // present at this Mac trying to save work? Fall through to
@@ -327,7 +314,7 @@ extension CurfewAppModel {
             // Standing-by builds (another flavor owns the lock) must not drive
             // auto-shutdown, so this keys off enforcement, not phase alone.
             isLocked: isEnforcingLockout,
-            isEnabled: settings.autoShutdownEnabled && ShutdownSupport.isAvailable,
+            isEnabled: settings.autoShutdownEnabled && (availability ?? ShutdownSupport.isAvailable),
             delayMinutes: settings.autoShutdownDelayMinutes,
             controller: shutdownController,
             isActiveDevice: isActiveDevice,
@@ -368,7 +355,9 @@ extension CurfewAppModel {
         settings: CurfewSettings,
         automaticScheduleEnabled: Bool = true,
         now: Date,
-        enforcementEngine: CurfewEnforcementEngine
+        enforcementEngine: CurfewEnforcementEngine,
+        extensionMinutes: Int = 0,
+        overrideUntil: Date? = nil
     ) -> CurfewEvaluation {
         guard settings.hasCompletedInitialSetup else {
             return .dayOff
@@ -377,8 +366,8 @@ extension CurfewAppModel {
         return enforcementEngine.evaluate(
             at: now,
             schedule: automaticScheduleEnabled ? settings.schedule : .allDaysOff,
-            extensionMinutesGrantedToday: 0,
-            overrideUntil: nil,
+            extensionMinutesGrantedToday: extensionMinutes,
+            overrideUntil: overrideUntil,
             warningIntervals: settings.warningIntervals
         )
     }
@@ -391,6 +380,7 @@ extension CurfewAppModel {
         currentDayToken = nextDayToken
         extensionMinutesGrantedToday = 0
         snoozeMinutesGrantedToday = 0
+        persistRuntimeState()
         curfewOverlapPromptFiredForEventID = nil
         warningStagesFiredToday.removeAll()
         warningStagesFiredDayToken = nextDayToken
