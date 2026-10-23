@@ -126,7 +126,7 @@ private struct TaskBrowserEnforcementPanel: View {
                     .font(CurfewTypography.bodyEmphasis(13))
             }
         } else {
-            Text("No active Docket task.")
+            Text("Curfew has no current work session from Docket.")
                 .font(CurfewTypography.body(13))
                 .foregroundStyle(CurfewTheme.mutedInk)
         }
@@ -150,7 +150,7 @@ private struct TaskBrowserEnforcementPanel: View {
         VStack(alignment: .leading, spacing: CurfewSpacing.medium) {
             CurfewSectionTitle(
                 title: "Allowed destinations",
-                subtitle: "Choose which websites a task, project, or label allows."
+                subtitle: "Allow a website or URL path for a Docket task, project, or label."
             )
 
             ForEach(controller.settings.mappings) { mapping in

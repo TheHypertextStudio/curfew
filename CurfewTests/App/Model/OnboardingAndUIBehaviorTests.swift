@@ -127,26 +127,31 @@ struct FirstRunFlowTests {
 }
 
 struct GettingStartedCopyTests {
-    @Test("Getting started copy reinforces commitment and enforcement model")
+    @Test("Getting started copy explains warnings and lockout")
     func warmCommitmentCopy() {
         let message = GettingStartedCopy.commitmentMessage.lowercased()
-        #expect(message.contains("stop"))
-        #expect(message.contains("stick"))
+        #expect(message.contains("warns you before lockout"))
+        #expect(message.contains("blocks access when work ends"))
     }
 
     @Test("Schedule step copy explains when work ends and resumes")
     func scheduleCopyUsesWorkWindowLanguage() {
         let message = FirstRunStep.schedule.message.lowercased()
-        #expect(message.contains("locks"))
-        #expect(message.contains("unlocks"))
+        #expect(message.contains("work ends"))
+        #expect(message.contains("resumes"))
     }
 
     @Test("Local AI setup describes its real authority without implying remote unlock")
     func localAISetupCopyIsTruthfulAndPlain() {
-        #expect(SettingsView.integrationSectionOrder.prefix(2) == [.account, .localAI])
+        #expect(SettingsView.integrationSectionOrder == [
+            .localAI,
+            .requestHandling,
+            .taskBrowser,
+            .helper
+        ])
 
         let title = SettingsView.localAISectionTitle.lowercased()
-        let explanation = SettingsView.localAIExplanation.lowercased()
+        let explanation = SettingsView.localAIAuthorityDetails.lowercased()
         let setup = SettingsView.localAISetupExplanation.lowercased()
 
         #expect(title.contains("on this mac"))

@@ -45,8 +45,8 @@ import Page from "../layouts/Page.astro";
           <li>
             <span class="step-badge">1</span>
             <div>
-              <h3>Turn on MCP in Curfew</h3>
-              <p>Open <strong>Settings → Integrations</strong>, then enable MCP.</p>
+              <h3>Allow local AI assistants</h3>
+              <p>Open <strong>Settings → Integrations</strong>, then turn on <strong>Allow assistants on this Mac</strong>.</p>
             </div>
           </li>
           <li>
@@ -68,7 +68,7 @@ import Page from "../layouts/Page.astro";
         <details class="manual-config">
           <summary>Add it manually instead</summary>
           <div class="manual-config-body">
-            <p>Use <strong>Copy Claude Desktop Config</strong> in Curfew. If the config file is empty, replace it with this complete file. Otherwise, add the <code>curfew</code> entry inside its existing <code>mcpServers</code> object. The file is <code>~/Library/Application Support/Claude/claude_desktop_config.json</code>. Restart Claude Desktop when you’re done.</p>
+            <p>Use <strong>Copy Configuration</strong> in Curfew. If the config file is empty, replace it with this complete file. Otherwise, add the <code>curfew</code> entry inside its existing <code>mcpServers</code> object. The file is <code>~/Library/Application Support/Claude/claude_desktop_config.json</code>. Restart Claude Desktop when you’re done.</p>
             <div class="code-block">
 <pre><code is:raw>{
   "mcpServers": {
@@ -100,13 +100,13 @@ import Page from "../layouts/Page.astro";
           <article class="access-card">
             <p class="card-label">It can request</p>
             <h3>Supported changes</h3>
-            <p>An extension or a schedule change. It cannot write reflections or request an override through MCP.</p>
+            <p>An extension, a schedule change, or a background-work claim. It cannot write reflections or request an override through local MCP.</p>
           </article>
         </div>
 
         <aside class="docs-callout">
-          <h3>Requests ask first by default.</h3>
-          <p>In <strong>Settings → Integrations</strong>, choose whether Curfew asks you, denies requests automatically, or approves supported changes automatically. Automatic approval means a connected assistant can make those changes without another prompt.</p>
+          <h3>Extension and schedule requests ask first by default.</h3>
+          <p>In <strong>Settings → Integrations</strong>, choose whether Curfew asks you, denies requests automatically, or approves supported changes automatically. Automatic approval means a connected assistant can make those changes without another prompt. Background-work claims apply without approval when enabled in <strong>Settings → Protected Work</strong>. They delay application termination and shutdown within your configured limit, without unlocking the display or delaying scheduled lockout.</p>
         </aside>
 
         <p class="docs-note">Curfew’s server runs locally and does not upload what it serves. Your MCP client may send information to its own service, so check that client’s privacy policy before sharing reflections.</p>

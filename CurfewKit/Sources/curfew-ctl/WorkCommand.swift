@@ -100,7 +100,7 @@ struct WorkListCommand: ParsableCommand {
 struct WorkReleaseCommand: ParsableCommand {
     static var configuration = CommandConfiguration(
         commandName: "release",
-        abstract: "Drop a protected-work claim before its lease expires."
+        abstract: "Release a protected-work claim before its lease expires."
     )
 
     @Argument(help: "Claim UUID.")

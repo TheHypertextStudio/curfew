@@ -20,7 +20,12 @@ struct DaybreakReflectionView: View {
 
     private var greeting: String {
         let hour = Calendar.current.component(.hour, from: model.currentTime)
-        return hour < 5 ? "Still up?" : "Good morning"
+        return switch hour {
+        case 5 ..< 12: "Good morning"
+        case 12 ..< 17: "Good afternoon"
+        case 17 ..< 24: "Good evening"
+        default: "Welcome back"
+        }
     }
 
     var body: some View {
@@ -35,14 +40,14 @@ struct DaybreakReflectionView: View {
                             .font(.system(size: 46, weight: .semibold, design: .rounded))
                             .foregroundStyle(SundownPalette.warmWhite)
                             .shadow(color: .black.opacity(0.25), radius: 18, y: 6)
-                        Text("Set your intention before the day takes over.")
+                        Text("What do you plan to work on today?")
                             .font(.system(size: 18, weight: .regular, design: .rounded))
                             .foregroundStyle(SundownPalette.warmWhite.opacity(0.78))
                     }
 
                     ReflectionFormView(
                         prompts: model.reflectionConfiguration.prompts(for: .morning),
-                        submitLabel: "Start the day",
+                        submitLabel: "Save reflection",
                         usesSolidPanels: reduceTransparency,
                         onSubmit: { answers in
                             model.saveReflection(gate: .morning, answers: answers)
@@ -68,6 +73,6 @@ struct DaybreakReflectionView: View {
             withAnimation(.easeOut(duration: 0.9)) { awoke = true }
         }
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("\(greeting). Morning reflection.")
+        .accessibilityLabel("\(greeting). Start-of-work reflection.")
     }
 }

@@ -1,226 +1,204 @@
 import CurfewKit
 import SwiftUI
 
+/// Enforcement-related panels for the Settings window: live enforcement
+/// health, extension / override budgets, warning interval tuning, and
+/// auto-shutdown toggles.
 extension SettingsView {
+    /// Surfaces the live ``EnforcementHealth`` verdict so a silently degraded
+    /// lockout (revoked Accessibility, a downed keyboard-shield tap) is visible
+    /// here, not just in the menu bar. When active it states so plainly in a
+    /// section panel; when degraded it reuses the shared
+    /// ``EnforcementHealthBanner`` (which brings its own panel chrome) so the
+    /// remediation copy and fix-it button match the main window exactly. The
+    /// fix-it action prompts for Accessibility and opens System Settings — both
+    /// guarded against the test host inside the model.
+    @ViewBuilder
     var enforcementHealthPanel: some View {
-        Section("Status") {
-            if model.enforcementHealth.isFullyActive {
-                LabeledContent("Lockout", value: model.enforcementHealth.settingsStatusTitle)
-            } else {
-                VStack(alignment: .leading, spacing: 6) {
-                    Label(
-                        model.enforcementHealth.settingsStatusTitle,
-                        systemImage: "exclamationmark.triangle.fill"
-                    )
-                    .fontWeight(.medium)
-                    Text(model.enforcementHealth.bannerDetail ?? "")
-                        .font(.callout)
-                        .foregroundStyle(CurfewTheme.mutedInk)
-                        .fixedSize(horizontal: false, vertical: true)
-                    if model.enforcementHealth.offersAccessibilityRemediation {
-                        Button("Open Accessibility Settings") { model.requestAccessibilityAccess() }
-                            .buttonStyle(.bordered)
-                            .padding(.top, 4)
-                    }
-                }
-                .padding(.vertical, 4)
+        if model.enforcementHealth.isFullyActive {
+            Section {
+                CurfewSectionTitle(
+                    title: "Accessibility"
+                )
+
+                Label(
+                    model.enforcementHealth.settingsStatusTitle,
+                    systemImage: "checkmark.circle.fill"
+                )
+                .font(CurfewTypography.bodyEmphasis(14))
+                .foregroundStyle(CurfewTheme.accent)
+
+                Text(EnforcementHealth.activeSettingsDetail)
+                    .font(CurfewTypography.body(13))
+                    .foregroundStyle(CurfewTheme.mutedInk)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        } else {
+            EnforcementHealthBanner(health: model.enforcementHealth) {
+                model.requestAccessibilityAccess()
             }
         }
     }
 
+    /// Controls weekly extension and override counts + their durations.
+    /// The ranges bound each stepper to values that don't break downstream
+    /// invariants (e.g. overrides have a 15-minute floor so the "convince
+    /// me" grant is meaningful).
     var extensionsPanel: some View {
         @Bindable var model = model
-        return Group {
-            Section {
-                WeeklyBudgetSteppers(model: model)
-                Picker("Resets on", selection: $model.settings.resetWeekday) {
-                    ForEach(Weekday.allCases) { day in Text(day.shortName).tag(day) }
-                }
-            } header: {
-                Text("Weekly allowance")
-            } footer: {
-                Text(
-                    "Extensions add time before lockout. Overrides let you return after it starts."
-                )
-            }
-            Section("Extra time") {
-                if model.settings.extensionWeeklyLimit > 0 {
-                    Stepper(
-                        value: $model.settings.extensionDurationMinutes,
-                        in: 5 ... 60,
-                        step: 5
-                    ) {
-                        LabeledContent(
-                            "Each extension",
-                            value: "\(model.settings.extensionDurationMinutes) min"
-                        )
-                    }
-                }
-                if model.settings.overrideWeeklyLimit > 0 {
-                    Stepper(
-                        value: $model.settings.overrideDurationMinutes,
-                        in: 15 ... 60,
-                        step: 5
-                    ) {
-                        LabeledContent(
-                            "Each override",
-                            value: "\(model.settings.overrideDurationMinutes) min"
-                        )
-                    }
-                }
-                if model.settings.extensionWeeklyLimit == 0,
-                   model.settings.overrideWeeklyLimit == 0 {
-                    Text("No extra time allowed.").foregroundStyle(CurfewTheme.mutedInk)
+        return Section {
+            CurfewSectionTitle(title: "Extensions and Overrides")
+
+            allowanceControls(
+                title: "Extensions", detail: "Delay scheduled lockout.",
+                weeklyLimit: $model.settings.extensionWeeklyLimit,
+                duration: $model.settings.extensionDurationMinutes,
+                minimumDuration: 5
+            )
+            allowanceControls(
+                title: "Overrides", detail: "Temporarily unlock during lockout.",
+                weeklyLimit: $model.settings.overrideWeeklyLimit,
+                duration: $model.settings.overrideDurationMinutes,
+                minimumDuration: 15
+            )
+
+            Divider()
+
+            Picker("Weekly reset day", selection: $model.settings.resetWeekday) {
+                ForEach(Weekday.allCases) { weekday in
+                    Text(weekday.shortName).tag(weekday)
                 }
             }
+            .pickerStyle(.segmented)
+
+            Text("Extension and override budgets refresh on this day each week.")
+                .font(CurfewTypography.body(13))
+                .foregroundStyle(CurfewTheme.mutedInk)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
+    private func allowanceControls(
+        title: String, detail: String, weeklyLimit: Binding<Int>, duration: Binding<Int>,
+        minimumDuration: Int
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(title)
+                    .font(CurfewTypography.bodyEmphasis(13))
+                Text(detail)
+                    .font(CurfewTypography.body(12))
+                    .foregroundStyle(CurfewTheme.mutedInk)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            HStack(spacing: 24) {
+                SettingsValueRow(
+                    title: "Per week", value: weeklyLimit, range: 0 ... 10,
+                    accessibilityTitle: "\(title) per week"
+                )
+                SettingsValueRow(
+                    title: "Duration", value: duration, range: minimumDuration ... 60,
+                    step: 5, usesMinutes: true, accessibilityTitle: "\(title) duration"
+                )
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    /// Five steppers for the T-30 / T-15 / T-5 / T-2 / T-1 warning stages.
+    ///
+    /// Each stepper's range is constrained so the relative ordering
+    /// (earlier → later) is preserved without the user having to think
+    /// about it. `warningBinding(get:set:)` wraps the model mutation so
+    /// every edit goes through `WarningIntervals.normalized` before
+    /// persisting.
     var warningPanel: some View {
         Section {
-            warningRow(
-                "First reminder",
-                get: { $0.thirtyMinutes },
-                set: { $0.thirtyMinutes = $1 },
-                range: (model.settings.warningIntervals.fifteenMinutes + 1) ... 360
-            )
-            warningRow(
-                "Second reminder",
-                get: { $0.fifteenMinutes },
-                set: { $0.fifteenMinutes = $1 },
-                range: (model.settings.warningIntervals.fiveMinutes + 1) ...
-                    (model.settings.warningIntervals.thirtyMinutes - 1)
-            )
-            warningRow(
-                "Wrap up",
-                get: { $0.fiveMinutes },
-                set: { $0.fiveMinutes = $1 },
-                range: (model.settings.warningIntervals.twoMinutes + 1) ...
-                    (model.settings.warningIntervals.fifteenMinutes - 1)
-            )
-            warningRow(
-                "Final warning",
-                get: { $0.twoMinutes },
-                set: { $0.twoMinutes = $1 },
-                range: (model.settings.warningIntervals.oneMinute + 1) ...
-                    (model.settings.warningIntervals.fiveMinutes - 1)
-            )
-            warningRow(
-                "Last minute",
-                get: { $0.oneMinute },
-                set: { $0.oneMinute = $1 },
-                range: 1 ... (model.settings.warningIntervals.twoMinutes - 1)
-            )
-        } header: {
-            Text("Before lockout")
-        } footer: {
-            Text("Minutes before your Mac locks.")
+            CurfewSectionTitle(title: "Warning Intervals")
+
+            let intervals = model.settings.warningIntervals
+            let minutes = [
+                intervals.thirtyMinutes, intervals.fifteenMinutes, intervals.fiveMinutes,
+                intervals.twoMinutes, intervals.oneMinute
+            ].map(String.init).joined(separator: ", ")
+            Text("Warnings before lockout: \(minutes) min")
+                .font(CurfewTypography.body(13))
+                .foregroundStyle(CurfewTheme.mutedInk)
+                .fixedSize(horizontal: false, vertical: true)
+            DisclosureGroup("Change warning times", isExpanded: $showsWarningTimes) {
+                warningControls
+                    .padding(.top, 8)
+            }
         }
     }
 
-    private func warningRow(
-        _ title: String, get: @escaping (WarningIntervals) -> Int,
-        set: @escaping (inout WarningIntervals, Int) -> Void, range: ClosedRange<Int>
-    ) -> some View {
-        Stepper(value: warningBinding(get: get, set: set), in: range) {
-            LabeledContent(title, value: "\(get(model.settings.warningIntervals)) min")
+    private var warningControls: some View {
+        VStack(alignment: .leading, spacing: CurfewSpacing.medium) {
+            Text("Time before lockout")
+                .font(CurfewTypography.label())
+                .foregroundStyle(CurfewTheme.mutedInk)
+            SettingsValueRow(
+                title: "First warning", value: warningBinding(
+                    get: { $0.thirtyMinutes }, set: { $0.thirtyMinutes = $1 }
+                ), range: (model.settings.warningIntervals.fifteenMinutes + 1) ... 360,
+                usesMinutes: true
+            )
+            SettingsValueRow(
+                title: "Second warning", value: warningBinding(
+                    get: { $0.fifteenMinutes }, set: { $0.fifteenMinutes = $1 }
+                ), range: (model.settings.warningIntervals.fiveMinutes + 1) ...
+                    (model.settings.warningIntervals.thirtyMinutes - 1), usesMinutes: true
+            )
+            SettingsValueRow(
+                title: "Third warning", value: warningBinding(
+                    get: { $0.fiveMinutes }, set: { $0.fiveMinutes = $1 }
+                ), range: (model.settings.warningIntervals.twoMinutes + 1) ...
+                    (model.settings.warningIntervals.fifteenMinutes - 1), usesMinutes: true
+            )
+            SettingsValueRow(
+                title: "Fourth warning", value: warningBinding(
+                    get: { $0.twoMinutes }, set: { $0.twoMinutes = $1 }
+                ), range: (model.settings.warningIntervals.oneMinute + 1) ...
+                    (model.settings.warningIntervals.fiveMinutes - 1), usesMinutes: true
+            )
+            SettingsValueRow(
+                title: "Final warning", value: warningBinding(
+                    get: { $0.oneMinute }, set: { $0.oneMinute = $1 }
+                ), range: 1 ... (model.settings.warningIntervals.twoMinutes - 1), usesMinutes: true
+            )
         }
     }
 
+    /// Toggle + delay stepper controlling whether Curfew tries to shut the
+    /// Mac down after lockout begins.
     var shutdownPanel: some View {
         @Bindable var model = model
-        return Section("After lockout") {
+        return Section {
+            CurfewSectionTitle(title: "Automatic Shutdown")
             switch ShutdownPanelState.resolve(isAvailable: SystemShutdownController.isAvailable) {
             case .available:
-                Toggle("Shut down this Mac", isOn: $model.settings.autoShutdownEnabled)
-                if model.settings.autoShutdownEnabled {
-                    Stepper(value: $model.settings.autoShutdownDelayMinutes, in: 1 ... 60) {
-                        LabeledContent(
-                            "Delay",
-                            value: "\(model.settings.autoShutdownDelayMinutes) min"
-                        )
-                    }
-                    Text(
-                        "Save your work before lockout. macOS will ask for permission to shut down."
-                    )
+                SettingsToggleRow(
+                    title: "Enable auto shutdown",
+                    isOn: $model.settings.autoShutdownEnabled
+                )
+
+                SettingsValueRow(
+                    title: "Shutdown delay", value: $model.settings.autoShutdownDelayMinutes,
+                    range: 1 ... 60, usesMinutes: true
+                )
+                .disabled(!model.settings.autoShutdownEnabled)
+
+                Text(ShutdownPanelState.availableExplanation)
+                    .font(CurfewTypography.body(13))
                     .foregroundStyle(CurfewTheme.mutedInk)
-                    DisclosureGroup("Permission help") {
-                        Text(ShutdownPanelState.availableExplanation)
-                    }
-                }
+                    .fixedSize(horizontal: false, vertical: true)
             case .unavailable(let message):
-                Text(message).foregroundStyle(CurfewTheme.mutedInk)
+                Text(message)
+                    .font(CurfewTypography.body(13))
+                    .foregroundStyle(CurfewTheme.mutedInk)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
-    }
-
-    /// Which applications shutdown must leave alone, and how long a live
-    /// work claim may hold shutdown back.
-    ///
-    /// The list is one identifier per line because that is the shape people
-    /// already paste bundle identifiers in, and a table with add/remove
-    /// buttons would be more chrome than a list edited twice a year deserves.
-    var protectedWorkPanel: some View {
-        @Bindable var model = model
-        return Section("Work during lockout") {
-            Toggle(
-                "Wait for remote sessions",
-                isOn: $model.settings.protectedWork.defersForRemoteSessions
-            )
-            Toggle(
-                "Accept work declared by AI assistants",
-                isOn: $model.settings.protectedWork.acceptsAgentClaims
-            )
-            Stepper(
-                value: $model.settings.protectedWork.maximumDeferralMinutes,
-                in: 1 ... ProtectedWorkPolicy.deferralCeilingMinutes,
-                step: 5
-            ) {
-                LabeledContent(
-                    "Maximum wait",
-                    value: "\(model.settings.protectedWork.maximumDeferralMinutes) min"
-                )
-            }
-            Text("Work can delay shutdown until this limit. The screen stays locked.")
-                .foregroundStyle(CurfewTheme.mutedInk)
-            DisclosureGroup("Applications and commands") {
-                Text(
-                    "These apps are excluded from Curfew's quit requests. "
-                        + "A completed shutdown still stops all work."
-                )
-                .foregroundStyle(CurfewTheme.mutedInk)
-                Text("App bundle identifiers, one per line")
-                TextEditor(text: protectedListBinding(\.protectedBundleIdentifiers))
-                    .font(.system(.body, design: .monospaced)).frame(minHeight: 88)
-                Text("Process names excluded from quit requests, one per line")
-                TextEditor(text: protectedListBinding(\.protectedProcessNames))
-                    .font(.system(.body, design: .monospaced)).frame(minHeight: 88)
-                Text("Wait while these commands run, one per line")
-                TextEditor(text: protectedListBinding(\.deferringProcessNames))
-                    .font(.system(.body, design: .monospaced)).frame(minHeight: 88)
-                Text(
-                    "Use commands that finish on their own; "
-                        + "a terminal or tmux server may run all night."
-                )
-                .foregroundStyle(CurfewTheme.mutedInk)
-            }
-        }
-    }
-
-    /// Bridges a newline-separated text editor to a `[String]` on the policy,
-    /// dropping blank lines and surrounding whitespace on the way in.
-    func protectedListBinding(
-        _ keyPath: WritableKeyPath<ProtectedWorkPolicy, [String]>
-    ) -> Binding<String> {
-        Binding(
-            get: { model.settings.protectedWork[keyPath: keyPath].joined(separator: "\n") },
-            set: { newValue in
-                model.settings.protectedWork[keyPath: keyPath] = newValue
-                    .split(separator: "\n", omittingEmptySubsequences: true)
-                    .map { $0.trimmingCharacters(in: .whitespaces) }
-                    .filter { !$0.isEmpty }
-            }
-        )
     }
 
     /// Builds a `Binding<Int>` that round-trips changes through
@@ -234,10 +212,15 @@ extension SettingsView {
         get: @escaping (WarningIntervals) -> Int,
         set: @escaping (inout WarningIntervals, Int) -> Void
     ) -> Binding<Int> {
-        Binding(get: { get(model.settings.warningIntervals) }, set: { value in
-            var intervals = model.settings.warningIntervals
-            set(&intervals, value)
-            model.settings.warningIntervals = intervals.normalized
-        })
+        Binding(
+            get: {
+                get(model.settings.warningIntervals)
+            },
+            set: { newValue in
+                var intervals = model.settings.warningIntervals
+                set(&intervals, newValue)
+                model.settings.warningIntervals = intervals.normalized
+            }
+        )
     }
 }

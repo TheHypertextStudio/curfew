@@ -141,7 +141,7 @@ final class CurfewAppModel: NSObject {
 
     /// CGEventTap installer that blocks bypass keyboard shortcuts during
     /// lockout (⌘⇥, ⌘Q, ⌘⌥Esc, …).
-    let lockoutKeyInterceptor: LockoutKeyInterceptor
+    let lockoutKeyInterceptor: any KeyboardShieldControlling
 
     /// AppleScript wrapper for auto-shutdown. Abstracted behind a protocol
     /// so tests can assert the sequence without telling the OS to power off.
@@ -342,6 +342,7 @@ final class CurfewAppModel: NSObject {
         accountWakeLedgerStore: AccountWakeLedgerStore = AccountWakeLedgerStore(),
         accessibilityAuthorization: AccessibilityAuthorizing? = nil,
         browserNativeRuntime: BrowserNativeRuntime? = nil,
+        keyboardShield: (any KeyboardShieldControlling)? = nil,
         observedStatusPublisher: CurfewObservedStatusPublisher? = nil
     ) {
         self.isDemoSession = Self.permitsDemoIsolation(isDemoSession)
@@ -357,7 +358,10 @@ final class CurfewAppModel: NSObject {
             self.notificationManager = WarningNotificationManager()
         }
         self.overlayCoordinator = OverlayCoordinator()
-        self.lockoutKeyInterceptor = LockoutKeyInterceptor()
+        self.lockoutKeyInterceptor = keyboardShield
+            ??
+            LockoutKeyInterceptor(authorization: accessibilityAuthorization ??
+                SystemAccessibilityAuthorization())
         self.shutdownController = SystemShutdownController()
         self.appRouter = appRouter
         self.featureFlags = featureFlags ?? .default

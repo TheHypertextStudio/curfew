@@ -39,6 +39,31 @@ current-build fixtures; legacy identity compatibility remains in
 `AppNamespaceTests`. This fallback does not migrate storage, credentials, helper
 registrations or signed artifacts; rollback changes only the absent-metadata path.
 
+## Shared native scheme
+
+`scripts/xcode-package-layout.test.mjs` requires the documented `Curfew` scheme to exist in a clean checkout, include both test targets, and reference target IDs present in the project. The new check and an isolated Debug build failed with the shared scheme absent before the configuration was added. The explicit scheme removes dependence on Xcode automatic scheme generation and local suppression settings. Upstream CI can generate a scheme automatically; this checkout had suppressed that generation.
+
+## Copy, permissions, and Settings
+
+- `Settings shows one category at a time and keeps permission and shutdown consequences visible.`
+  - `SettingsSectionTests/sectionSet()` checks the nine labels and existing route identifiers.
+  - `GettingStartedCopyTests/localAISetupCopyIsTruthfulAndPlain()` checks local AI setup and its order without account controls.
+  - `CurfewUITests/testSettingsShowsOneCategoryAtATime()` checks navigation and collapsed process lists.
+  - `testGeneralHelperFailureFitsMinimumWindow()` and `testGeneralPermissionFailureFitsMinimumWindow()` failed before the setup action moved into the fixed Protection heading. They require it to stay within the minimum 760×520 window.
+  - Existing browser-action regressions remain in `CurfewUITests`; the merged native page retains their identifiers.
+  - `DestinationSnapshotTests/testRenderSettingsCategories()` captures all nine pages at 900×680 and Protected Work at 760×580.
+  - `DestinationSnapshotTests/testRenderPresenceReminderControls()` captures active reminder controls at 760×580 without opening the camera.
+  - `DestinationSnapshotTests/testRenderShippingSettingsIntegrations()` checks the production feature gates at 900×680 without starting integrations.
+  - Live October 20 and October 23 checks reached all nine categories and verified arrow keys, privacy disclosure, control labels, and a reversible stepper change. All five focused Settings UI tests pass after repairing the generated runner’s resource signature. The full UI suite and spoken VoiceOver remain unverified.
+  - `LiteralCopyTests/presenceIntroductionNamesTheCameraLimit()` checks the concise camera explanation.
+  - `LiteralCopyTests/localAssistantSummaryNamesDataAndLimits()` checks readable data and lockout limits before enabling local AI access.
+  - `GettingStartedCopyTests/localAISetupCopyIsTruthfulAndPlain()` also checks the full authority explanation retained in its disclosure.
+  - `DestinationSnapshotTests/testRenderSettingsDetailsAndDarkAppearance()` captures expanded warnings, camera privacy, and process editors, dark appearance, and disabled reminder values.
+  - `settings-ui.md` records the retained bindings, permissions, feature gates, enrollment state, and rollback.
+
+
+The October 23, 2026 rebase preserves upstream app identities, signing configuration, setup routing, account recovery, and the pinned formatter. Post-rebase validation passed 998 Swift Testing cases and 96 XCTest cases, all 134 package tests, 187 repository checks, formatting, strict lint, and all 69 extension tests. Extension typechecking and a production-mode build with the test identity pass; this does not establish Web Store publication identity. Local website validation is blocked by private Studio package authentication after authenticated and offline install attempts. The Settings help regressions failed before replacing removed category names and now bind warning, shutdown, account, and integration routes to their current controls. The unsigned UI runner initially died before bootstrapping. Repairing its generated resource signature allowed five focused Settings tests to execute; all five pass after the minimum-window layout fix. This ad-hoc test artifact does not establish signed app acceptance. `CopyDeckTests/testOverrideInstructionsMatchTheConfirmationPolicy()` failed before the five-minute override wait was restored to shared copy. `PresentationStateTests/canonicalSync()` checks the enrollment gate at its Account-page location.
+
 ## Update retry and first-run instructions
 
 The browser acceptance case `homepage download links use the installer availability
@@ -533,7 +558,7 @@ tests cannot read or mutate a user's App Group lockout record.
   - `blocker-state.test.ts` checks targeted-question restoration, original-justification preservation, one-field challenge submission, and character and byte limits without Chrome.
   - `manifest.test.ts` checks the MV3 permissions, minimum Chrome 120, HTTP and HTTPS host access, service-worker declaration, icons, homepage, a keyless first-upload draft, the public-key-derived development identity, valid RSA production keys, and rejection of malformed or reused development identities.
   - `build.test.ts` checks development, keyless draft, and production flavors, production identity failure, native-host isolation, packaged icon dimensions, and the extension-local blocker prompt.
-  - `icon.test.ts` compiles the shipping Curfew app icon, checks that every Chrome export retains transparency, and rejects committed extension icons that drift from that source.
+  - `icon.test.ts` compiles the shipping Curfew app icon, checks export dimensions, transparency, and the 128-pixel safe margin, then compares decoded raster channels within 1% normalized RMS. The byte-equality regression failed on the macOS 27 SDK with unchanged source; measured raster differences stay below 0.75%. The tolerance covers SDK rasterization differences without replacing the committed artwork.
   - `package.test.ts` checks that the keyless draft can create the first Web Store item and that the production upload ZIP refuses a missing identity, contains only files from a fresh production build, and repeats byte for byte from the same inputs.
   - `DocketBrowserPolicyClientTests/acceptedDestinationReviewsAreAuditedWithoutPrivateInput()` checks the stable event name, one event for each accepted challenge, grant, and denial, and the three-field redacted detail.
   - `DocketBrowserPolicyClientTests/taskSwitchInvalidatesReviewResult(kind:)` checks that stale-session Athena results do not write browser audit records.

@@ -151,8 +151,15 @@ test("public help avoids self-narration and unnecessary contrast", async () => {
 
 test("published help follows current Settings labels", async () => {
   for (const page of pages) {
-    assert.doesNotMatch(await read(`web/docs/${page}.mdx`), /Settings\s+→\s+Integrations|Settings\s+→\s+Enforcement|Show\s+Getting\s+Started|Enable\s+MCP\s+Control\s+Plane|Paste license key…/);
+    assert.doesNotMatch(await read(`web/docs/${page}.mdx`), /Settings\s+→\s+(?:Connections|Limits|Warnings|Enforcement)|Show\s+Getting\s+Started|Enable\s+MCP\s+Control\s+Plane|Paste license key…/);
   }
+  for (const [page, category] of [["mcp-guide", "Integrations"], ["calendar", "Integrations"], ["accounts", "Account"], ["sync", "Account"], ["exceptions", "Lockout"]]) {
+    assert.ok((await read(`web/docs/${page}.mdx`)).includes(`Settings → ${category}`), `${page} must name its Settings category`);
+  }
+  const lockout = await read("web/docs/lockout.mdx");
+  assert.match(lockout, /Settings → Lockout → Change warning times/);
+  assert.match(lockout, /Settings → Shutdown/);
+  assert.match(lockout, /Enable auto shutdown/);
   assert.match(await read("web/docs/mcp-guide.mdx"), /Allow assistants on this Mac/);
 });
 
@@ -168,7 +175,7 @@ test("setup help explains seven-day consent and the choice to leave automatic lo
   assert.match(content, /all seven days/i);
   assert.match(content, /No automatic schedule — remote controls only/);
   assert.match(content, /Enable schedule and finish/);
-  assert.match(content, /Settings → Warnings/);
+  assert.match(content, /Settings → Lockout/);
   assert.doesNotMatch(content, /Curfew starts enforcing your schedule\./);
 });
 

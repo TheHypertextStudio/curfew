@@ -43,12 +43,12 @@ extension CurfewAppModel {
             tapIsActive: tapIsActive
         )
 
-        guard decision == .reassert else { return .noop }
+        guard decision == .reassert, isEnforcingLockout else { return .noop }
 
         // Restart the keyboard shield (idempotent; no-ops if the tap is already
         // live, and skipped entirely under the unit-test host) and bring the
         // lockout overlay back to the front of the z-order.
-        lockoutKeyInterceptor.start()
+        updateLockoutInterception(for: state.phase)
         overlayCoordinator.reassertLockoutFrontmost()
         return .reassert
     }

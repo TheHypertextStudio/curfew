@@ -17,6 +17,101 @@
     /// working directory or any environment plumbing.
     @MainActor
     final class DestinationSnapshotTests: XCTestCase {
+        func testRenderCurrentMarketingScreens() throws {
+            let directory = try Self.snapshotsDirectory()
+            let model = Self.demoModel()
+            try renderHosted(
+                JournalView().environment(model),
+                named: "marketing-journal", width: 1080, height: 720, to: directory
+            )
+            try renderHosted(
+                ScheduleView().environment(model),
+                named: "marketing-schedule", width: 1080, height: 720, to: directory
+            )
+            try render(
+                LockoutSundownView(message: "Rest well."),
+                named: "marketing-lockout", width: 960, height: 600, to: directory
+            )
+        }
+
+        func testRenderPresenceReminderControls() throws {
+            let directory = try Self.snapshotsDirectory()
+            let model = Self.demoModel()
+            // The fixture is never started, so stored intent does not open the camera.
+            model.settings.presence.cameraEnabled = true
+            model.settings.presence.warnsWhenDistracted = true
+            XCTAssertFalse(model.isPresenceCameraLive)
+            try renderHosted(
+                SettingsView(initialSection: .presence).environment(model),
+                named: "copy-presence-reminders", width: 760, height: 580, to: directory
+            )
+            XCTAssertFalse(model.isPresenceCameraLive)
+        }
+
+        /// Native controls need an AppKit host for rasterization.
+        func renderHosted(
+            _ view: some View, named name: String, width: CGFloat, height: CGFloat,
+            settlingTime: TimeInterval = 0.1,
+            appearance: NSAppearance.Name = .aqua,
+            to directory: URL
+        ) throws {
+            let host = NSHostingView(rootView: view.environment(
+                \.colorScheme, appearance == .darkAqua ? .dark : .light
+            ).frame(
+                width: width, height: height, alignment: .topLeading
+            ))
+            let frame = NSRect(x: 0, y: 0, width: width, height: height)
+            let window = NSWindow(
+                contentRect: frame,
+                styleMask: .borderless,
+                backing: .buffered,
+                defer: false
+            )
+            window.isReleasedWhenClosed = false
+            defer { window.close() }
+            window.appearance = NSAppearance(named: appearance)
+            host.appearance = window.appearance
+            window.contentView = host
+            host.frame = frame
+            host.layoutSubtreeIfNeeded()
+            RunLoop.main.run(until: Date().addingTimeInterval(settlingTime))
+            host.displayIfNeeded()
+            let bitmap = try XCTUnwrap(host.bitmapImageRepForCachingDisplay(in: host.bounds))
+            host.cacheDisplay(in: host.bounds, to: bitmap)
+            let png = try XCTUnwrap(bitmap.representation(using: .png, properties: [:]))
+            try png.write(to: directory.appendingPathComponent("curfew-\(name).png"))
+        }
+
+        func testRenderAccessibilityPermissionStates() throws {
+            let directory = try Self.snapshotsDirectory()
+            let suite = "CurfewPermissionSnapshot-\(UUID().uuidString)"
+            let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+            defer { defaults.removePersistentDomain(forName: suite) }
+            let store = CurfewSettingsStore(defaults: defaults)
+            store.save(DemoFixture.demoSettings())
+            let trust = FakeAccessibilityAuthorization(trusted: false)
+            let model = CurfewAppModel(
+                settingsStore: store,
+                appRouter: AppRouterSpy(),
+                activityRecorder: NullActivityRecording(),
+                lockoutDeadlineStore: .ephemeralForTesting(),
+                accessibilityAuthorization: trust
+            )
+            model.state = DemoFixture.evaluation(for: .overview, now: Date())
+            XCTAssertFalse(model.isAccessibilityTrusted)
+            try render(
+                TodayView(selectedSection: .constant(.today)).environment(model),
+                named: "permission-missing", width: 900, height: 680, to: directory
+            )
+            trust.trusted = true
+            model.refreshAccessibilityTrust()
+            XCTAssertTrue(model.isAccessibilityTrusted)
+            try render(
+                TodayView(selectedSection: .constant(.today)).environment(model),
+                named: "permission-granted", width: 900, height: 680, to: directory
+            )
+        }
+
         /// Renders the three spine destinations (Today, Schedule, Journal) with
         /// a mid-workday demo state so the countdown, schedule, and weekly
         /// streak all read as populated.
@@ -77,7 +172,7 @@
         }
 
         /// A demo model pinned to a flattering mid-workday state.
-        private static func demoModel() -> CurfewAppModel {
+        static func demoModel() -> CurfewAppModel {
             let model = CurfewAppModel.demoModel()
             model.currentTime = DemoFixture.referenceTime(for: .overview, now: Date())
             model.state = DemoFixture.evaluation(for: .overview, now: model.currentTime)
@@ -132,12 +227,12 @@
         /// is set to match for any native-adaptive views. Throws rather than
         /// crashes if the platform hands back no bitmap, so a render hiccup can't
         /// take down the suite.
-        private func render(
+        func render(
             _ view: some View,
             named name: String,
             width: CGFloat,
             height: CGFloat? = nil,
-            appearance: NSAppearance.Name,
+            appearance: NSAppearance.Name = .aqua,
             to directory: URL
         ) throws {
             let scheme: ColorScheme = appearance == .darkAqua ? .dark : .light
@@ -170,7 +265,7 @@
 
         /// `<repo>/build/snapshots`, derived from this file's location so the
         /// output path is stable regardless of the test's working directory.
-        private static func snapshotsDirectory() throws -> URL {
+        static func snapshotsDirectory() throws -> URL {
             var url = URL(fileURLWithPath: #filePath)
             url.deleteLastPathComponent() // Snapshots/
             url.deleteLastPathComponent() // CurfewTests/

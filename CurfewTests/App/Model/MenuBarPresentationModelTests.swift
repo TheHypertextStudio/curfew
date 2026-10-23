@@ -23,7 +23,7 @@ struct MenuBarPresentationModelTests {
             unlockDate: nil
         )
         #expect(model.menuBarSymbolName == "clock.badge.checkmark")
-        #expect(model.statusLine == "Working window active")
+        #expect(model.statusLine == "Work hours are active")
 
         model.state = CurfewEvaluation(
             phase: .warning,
@@ -34,7 +34,7 @@ struct MenuBarPresentationModelTests {
             unlockDate: nil
         )
         #expect(model.menuBarSymbolName == "exclamationmark.triangle")
-        #expect(model.statusLine == "Wrap up time")
+        #expect(model.statusLine == "Lockout approaching")
 
         model.state = CurfewEvaluation(
             phase: .locked,

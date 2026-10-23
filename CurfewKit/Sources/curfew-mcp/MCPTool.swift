@@ -260,8 +260,8 @@ private let activityTool = MCPTool(
 private let reflectionsTool = MCPTool(
     name: "curfew_get_reflections",
     description: """
-    Returns the user's recorded reflections (morning intent and evening \
-    retrospective). Pass `{"period": "today"}` for today or \
+    Returns the user's recorded start-of-work and lockout reflections. \
+    Pass `{"period": "today"}` for today or \
     `{"period": "week"}` (default) for the current week, and an optional \
     `{"gate": "morning"|"evening"}` to filter. Each reflection lists its \
     answers as {prompt, type, value}. Read-only.
@@ -409,7 +409,7 @@ extension MCPTool {
 private let weeklySummaryTool = MCPTool(
     name: "curfew_get_weekly_summary",
     description: """
-    Returns this week's activity rollup: lockouts held, extensions and \
+    Returns this week's activity rollup: days with lockout, extensions and \
     overrides used, and a current streak count. The device attribution \
     field echoes the local device name today; multi-device aggregation \
     lands when CloudKit device records ship.
@@ -682,7 +682,7 @@ private let declareWorkTool = MCPTool(
     terminating applications and shutting the Mac down. Pass a short \
     `label` describing the work, an optional `minutes` lease, and an \
     optional `claim_id` to renew an earlier claim (renew before the lease \
-    expires to stay protected). Returns the claim id and its expiry. \
+    expires to renew the delay within the shutdown delay limit). Returns the claim id and its expiry. \
     This does NOT unlock the screen, change the schedule, or extend the \
     curfew — the total postponement is capped by the user's policy.
     """,
@@ -744,7 +744,7 @@ private let declareWorkTool = MCPTool(
                 "label": claim.label,
                 "expires_at": ISO8601DateFormatter().string(from: claim.expiresAt),
                 "max_deferral_minutes": policy.maximumDeferralMinutes,
-                "note": "Renew before expiry to stay protected. This does not change the curfew."
+                "note": "Renew before expiry to keep delaying shutdown within the configured limit. This does not unlock the screen or change the schedule."
             ]
             return [jsonContent(payload)]
         } catch {
@@ -761,8 +761,8 @@ private let releaseWorkTool = MCPTool(
     name: "curfew_release_work",
     description: """
     Releases a protected-work claim filed by `curfew_declare_work`, letting \
-    Curfew resume normal enforcement immediately instead of waiting for the \
-    lease to lapse. Pass the `claim_id` you were given.
+    Curfew resume application termination and shutdown when no other claim or detected work delays them. \
+    It does not unlock the screen. Pass the `claim_id` you were given.
     """,
     inputSchema: [
         "type": "object",

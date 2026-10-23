@@ -317,17 +317,17 @@ struct EveningReflectionCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             VStack(alignment: .leading, spacing: 4) {
-                Text("Close out the day")
+                Text("Reflect on your work")
                     .font(.system(size: 22, weight: .semibold, design: .rounded))
-                    .foregroundStyle(SundownPalette.warmWhite)
-                Text("A moment to reflect before you step away.")
+                    .foregroundStyle(.white)
+                Text("Answer your reflection questions, or skip them.")
                     .font(.system(size: 14, weight: .regular, design: .rounded))
                     .foregroundStyle(SundownPalette.supportingText)
             }
 
             ReflectionFormView(
                 prompts: model.reflectionConfiguration.prompts(for: .evening),
-                submitLabel: "Save & settle in",
+                submitLabel: "Save reflection",
                 usesSolidPanels: usesSolidPanels,
                 onSubmit: { answers in
                     model.saveReflection(gate: .evening, answers: answers)
@@ -342,6 +342,6 @@ struct EveningReflectionCard: View {
         .background(SundownPalette.nightSky)
         .cornerRadius(18)
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("Evening reflection")
+        .accessibilityLabel("End-of-work reflection")
     }
 }

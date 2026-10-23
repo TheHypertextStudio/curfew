@@ -250,7 +250,7 @@ struct CurfewWidgetView: View {
     private var phaseLabel: String {
         switch entry.phase {
         case "working", "warning":
-            entry.warningStage == "none" ? "Working" : "Warning \(entry.warningStage)"
+            entry.warningStage == "none" ? "Work hours" : "Warning \(entry.warningStage)"
         case "locked": "Locked"
         case "day_off": "Day off"
         default: entry.phase

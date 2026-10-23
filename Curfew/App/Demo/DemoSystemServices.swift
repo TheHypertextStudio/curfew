@@ -23,6 +23,8 @@
         func promptForTrust() -> Bool {
             true
         }
+
+        func openSettings() {}
     }
 #endif
 

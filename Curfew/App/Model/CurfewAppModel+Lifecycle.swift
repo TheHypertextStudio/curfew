@@ -129,6 +129,8 @@ extension CurfewAppModel {
         // effect, so the key shield, overlay, and shutdown below all agree on
         // whether this build is the one enforcing.
         reconcileEnforcementOwnership()
+        // Interception refreshes permission before acting, then publishes health
+        // after recovery so the banner describes the resulting tap.
         updateLockoutInterception(for: state.phase)
         // Check the actual tap after starting/stopping it, so health and the
         // observed status mirror do not claim a lockout is healthy on a failed
@@ -302,11 +304,13 @@ extension CurfewAppModel {
     /// Curfew flavor already owns the lock this build is locked but standing by,
     /// so it must not install a competing key tap.
     func updateLockoutInterception(for phase: EnforcementPhase) {
-        if phase == .locked, isEnforcingLockout {
+        setAccessibilityTrusted(accessibilityAuthorization.isTrusted())
+        if phase == .locked, isEnforcingLockout, isAccessibilityTrusted {
             lockoutKeyInterceptor.start()
         } else {
             lockoutKeyInterceptor.stop()
         }
+        pollAndUpdateEnforcementHealth()
     }
 
     /// Advances `ShutdownWorkflow` and republishes the countdown line.

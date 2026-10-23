@@ -14,11 +14,6 @@ import ServiceManagement
 // `private(set)` writes themselves live on the main class (Swift scopes a
 // `private(set)` setter to the declaring file); this extension drives them.
 
-/// Tracks whether `requestAccessibilityAccess()` has been called at least once
-/// this session. File-scoped (following the pattern in
-/// `CurfewAppModel+EnforcementOwnership.swift`) to avoid the model line-count cap.
-private var hasShownAccessibilityPrompt = false
-
 @MainActor
 extension CurfewAppModel {
     /// Refreshes Accessibility trust whenever Curfew becomes active again.
@@ -153,25 +148,22 @@ extension CurfewAppModel {
 
     /// Surfaces the macOS Accessibility-trust prompt, then re-polls trust.
     ///
-    /// `AXIsProcessTrustedWithOptions` with the prompt flag shows the system
-    /// "Accessibility Access" dialog and registers Curfew in TCC. If the call
-    /// returns `false` (not yet trusted), we also open the System Settings
-    /// Accessibility pane directly — this handles the case where the system
-    /// suppresses the dialog because a prior choice was already recorded, so
-    /// the user can still reach the toggle without hunting for it manually.
+    /// The prompt API registers Curfew in TCC but does not report whether macOS
+    /// displayed a dialog. Missing live trust therefore also opens Settings.
+    /// Existing trust instead permits an immediate shield-recovery attempt.
     ///
     /// Recomputes ``enforcementHealth`` alongside trust so both published
     /// enforcement properties move together; otherwise the banner/badge would
     /// stay stale until the next tick.
     func requestAccessibilityAccess() {
-        let trusted = accessibilityAuthorization.promptForTrust()
-        // Only open Settings when TCC has already recorded a prior choice and is
-        // suppressing the native dialog. On the very first call the system shows the
-        // TCC prompt itself; opening Settings simultaneously races that dialog.
-        if !trusted, hasShownAccessibilityPrompt {
-            SystemAccessibilityAuthorization.openAccessibilitySettings()
-        }
-        hasShownAccessibilityPrompt = true
+        accessibilityAuthorization.promptForTrust()
         pollAndUpdateEnforcementHealth()
+        // AX reports current trust, not whether macOS displayed a dialog. An
+        // explicit repair action must reach Settings even if TCC suppresses it.
+        if !isAccessibilityTrusted {
+            accessibilityAuthorization.openSettings()
+        } else {
+            reassertEnforcementIfNeeded()
+        }
     }
 }

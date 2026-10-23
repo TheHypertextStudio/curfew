@@ -106,11 +106,11 @@ struct EnforcementHealthTests {
     @Test("Degraded banner copy names the missing capability and how to fix it")
     func degradedCopyExplainsRemediation() {
         let noAccessibility = EnforcementHealth.degradedNoAccessibility
-        #expect(noAccessibility.bannerTitle == "Accessibility access needed")
+        #expect(noAccessibility.bannerTitle == "Keyboard shortcut blocking is unavailable")
         #expect(noAccessibility.bannerDetail?.contains("Accessibility") == true)
 
         let tapDown = EnforcementHealth.degradedTapDown
-        #expect(tapDown.bannerTitle == "Keyboard protection interrupted")
+        #expect(tapDown.bannerTitle == "Keyboard shortcut blocking was interrupted")
         #expect(tapDown.bannerDetail?.isEmpty == false)
     }
 
@@ -131,7 +131,7 @@ struct EnforcementHealthTests {
         #expect(EnforcementHealth.active.compactPopoverMessage == nil)
 
         let noAccessibility = EnforcementHealth.degradedNoAccessibility.compactPopoverMessage
-        #expect(noAccessibility?.contains("Accessibility access needed") == true)
+        #expect(noAccessibility?.contains("block shortcuts") == true)
 
         let tapDown = EnforcementHealth.degradedTapDown.compactPopoverMessage
         #expect(tapDown?.isEmpty == false)
@@ -139,19 +139,20 @@ struct EnforcementHealthTests {
 
     @Test("Settings status title is defined for every case and reads plainly")
     func settingsStatusTitleDefinedForEveryCase() {
-        #expect(EnforcementHealth.active.settingsStatusTitle == "Ready to enforce")
+        #expect(EnforcementHealth.active
+            .settingsStatusTitle == "Keyboard shortcut blocking is available")
         #expect(
             EnforcementHealth.degradedNoAccessibility.settingsStatusTitle
-                .contains("Accessibility access needed")
+                .contains("Keyboard shortcut blocking is unavailable")
         )
         #expect(EnforcementHealth.degradedTapDown
-            .settingsStatusTitle == "Keyboard protection interrupted")
+            .settingsStatusTitle == "Keyboard shortcut blocking was interrupted")
     }
 
     @Test("Only degraded states offer the fix-it affordance")
     func fixItAffordanceOnlyWhenDegraded() {
         #expect(EnforcementHealth.active.offersAccessibilityRemediation == false)
         #expect(EnforcementHealth.degradedNoAccessibility.offersAccessibilityRemediation)
-        #expect(!EnforcementHealth.degradedTapDown.offersAccessibilityRemediation)
+        #expect(EnforcementHealth.degradedTapDown.offersAccessibilityRemediation)
     }
 }

@@ -135,9 +135,10 @@ documentation change set to restore the prior content; no data migration is need
 
 ## Publication reconciliation
 
-Current main renamed native Settings sections to General, Limits, Warnings, and
-Connections. Public instructions now use those labels and the current license
-field. Preserve the newer account guide and the unavailable-installer notice.
-The docs commit is replayed alone onto current main; no historical native
-changes are included. The landing confirmation copy follows its Astro source
-location. Publishing the docs does not deploy the landing site.
+The October 23 Settings reconciliation puts warning times and exception budgets
+under Lockout, automatic shutdown under Shutdown, local assistants and Calendar
+under Integrations, and Mac/account connections under Account. Permission and
+setup guidance remains under Protection. Public help uses the displayed control
+labels and describes Accessibility as shortcut blocking. Preserve the account
+guide and the unavailable-installer notice. Publishing docs does not establish
+signed app or landing-site deployment acceptance.

@@ -25,14 +25,12 @@ extension SettingsView {
         }
     }
 
+    @ViewBuilder
     var setupPanel: some View {
-        Section("Setup") {
-            if model.settings.hasCompletedInitialSetup {
-                Button("Review Setup…") { model.showGettingStarted() }
-            } else {
+        if !model.settings.hasCompletedInitialSetup {
+            Section("Setup") {
                 Text("Finish setup before Curfew can enforce your schedule.")
                     .foregroundStyle(CurfewTheme.mutedInk)
-                Button("Continue Setup…") { model.showGettingStarted() }
             }
         }
     }

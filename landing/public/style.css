@@ -745,6 +745,18 @@ footer p em { color: var(--ink); font-style: italic; }
   background: var(--surface);
 }
 
+.privacy-table code {
+  overflow-wrap: anywhere;
+}
+
+.privacy-table-container {
+  overflow-x: auto;
+}
+
+.privacy-table-container .privacy-table {
+  min-width: 640px;
+}
+
 .privacy-list {
   color: var(--muted);
   margin-bottom: 40px;

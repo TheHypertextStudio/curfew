@@ -1,14 +1,21 @@
 import CurfewKit
 import Foundation
 
-/// Task-based Settings destinations. Legacy raw values remain stable.
+/// Settings destinations. Existing raw values stay stable for callers.
 enum SettingsSection: String, CaseIterable, Identifiable {
     case general
     case enforcement
-    case warnings
+    case presence
+    case shutdown
+    case protectedWork
+    case account
     case integrations
     case advanced
     case about
+
+    static var warnings: Self {
+        .enforcement
+    }
 
     var id: String {
         rawValue
@@ -17,9 +24,12 @@ enum SettingsSection: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .general: "Protection"
-        case .enforcement: "Limits"
-        case .warnings: "Warnings"
-        case .integrations: "Connections"
+        case .enforcement: "Lockout"
+        case .presence: "Presence"
+        case .shutdown: "Shutdown"
+        case .protectedWork: "Protected Work"
+        case .account: "Account"
+        case .integrations: "Integrations"
         case .advanced: "Advanced"
         case .about: "About"
         }
@@ -28,8 +38,11 @@ enum SettingsSection: String, CaseIterable, Identifiable {
     var icon: String {
         switch self {
         case .general: "shield.lefthalf.filled"
-        case .enforcement: "hourglass"
-        case .warnings: "bell"
+        case .enforcement: "lock"
+        case .presence: "person.crop.rectangle"
+        case .shutdown: "power"
+        case .protectedWork: "terminal"
+        case .account: "person.crop.circle"
         case .integrations: "puzzlepiece.extension"
         case .advanced: "slider.horizontal.3"
         case .about: "info.circle"

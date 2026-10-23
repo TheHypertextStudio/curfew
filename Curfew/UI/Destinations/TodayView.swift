@@ -5,7 +5,7 @@ import SwiftUI
 /// "Today" workspace destination — the live status surface.
 ///
 /// A thin adapter: reads the model's snapshot/state and renders the
-/// presentational ``TodaySundownView``. Tonight's curfew window (countdown +
+/// presentational ``TodaySundownView``. The scheduled curfew window (countdown +
 /// lock/unlock) and the on/off control; the weekly retrospective lives in the
 /// Journal.
 struct TodayView: View {
@@ -79,13 +79,13 @@ struct TodayView: View {
     }
 
     /// The bottom-section copy + action for the current state.
-    private struct Control {
+    struct Control {
         let line: String
         let detail: String
         let action: String
     }
 
-    private static func control(needsSetup: Bool, enforcing: Bool) -> Control {
+    static func control(needsSetup: Bool, enforcing: Bool) -> Control {
         if needsSetup {
             return Control(
                 line: "Finish setting up Curfew",
@@ -96,13 +96,13 @@ struct TodayView: View {
         if enforcing {
             return Control(
                 line: "Curfew is on",
-                detail: "It's holding your schedule tonight.",
+                detail: "Curfew is set to enforce your schedule.",
                 action: ""
             )
         }
         return Control(
             line: "Curfew is off",
-            detail: "Turn Curfew on to follow your schedule.",
+            detail: "Curfew won't block access until you turn it on.",
             action: "Turn on Curfew"
         )
     }
@@ -112,7 +112,7 @@ struct TodayView: View {
         case 5 ..< 12: "Good morning"
         case 12 ..< 17: "Good afternoon"
         case 17 ..< 24: "Good evening"
-        default: "Still up?" // midnight through 4 AM
+        default: "Welcome back"
         }
     }
 

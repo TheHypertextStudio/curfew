@@ -25,6 +25,16 @@
 - [ ] Issue matching Studio production profiles and verify a signed install,
   retained data/key access, helper registration, widgets and update behavior.
 
+## Copy, permissions, and Settings
+
+- [x] Replace the tall Settings page with nine categories. Keep upstream Protection for permission health, background protection, and setup. Keep allowances and warning times on Lockout. Retain native grouped forms and arrow-key sidebar navigation. See `settings-ui.md`.
+- [x] Share the documented Curfew Xcode scheme with app, unit-test, and UI-test targets to keep the native commands independent of Xcode automatic scheme generation and local suppression settings. The missing-scheme build and contract test failed before the shared configuration was added.
+- [x] Compare extension icon rasters within the documented SDK tolerance while retaining dimensions, transparency, and safe-margin checks. Preserve the committed artwork.
+- [x] Keep the setup action in Protection’s fixed heading so permission and helper guidance cannot push it below a 760×520 window. The two minimum-window UI regressions failed before the layout fix.
+- [x] Retain aligned values, paired counts and durations, trailing switches, separate camera/reminder sections, and visible consent summaries. Preserve upstream account recovery, enrollment gates, and review fixtures. Include the upstream five-minute override wait in shared instructions.
+
+The October 23, 2026 rebase resolved ten restore conflicts, then incorporated the upstream architecture fix at `330744e` without further conflicts. It preserves upstream app identities, signing configuration, setup routing, and the pinned formatter. Protection remains the permission/setup destination. All 1,094 macOS unit tests, 134 package tests, 187 repository checks, formatting, strict lint, and 69 extension tests pass. Extension typechecking and the production-mode build with a test identity pass. Local website validation cannot install the private Studio packages: the existing GitHub token lacks package access, and the offline retry also fails. The unsigned Debug build passes, and live fixture checks cover all nine Settings pages, arrow keys, and accessible stepper values. Xcode’s generated UI runner initially had an invalid resource signature. After repairing that test artifact with an ad-hoc signature, all five focused Settings UI tests pass, including both minimum-window regressions. Signed permission acceptance and spoken VoiceOver remain separate release gates.
+
 ## Update retry and first-run instructions
 
 - [x] Route every homepage Mac download link through the installer-availability

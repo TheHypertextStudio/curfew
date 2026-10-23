@@ -5,7 +5,7 @@
 **Description:** A cloud coordinator that lets a single user gate access across all of their devices, with a remote MCP endpoint authorized via OAuth 2.1 so external AI hosts (Claude Desktop, ChatGPT, Cursor, web-based assistants) can reach Curfew's tools without running locally on the user's Mac.
 
 Curfew Sync is optional. An account-free device keeps its local schedule, signed
-offline license, alarm callbacks, and fixed morning release. Once a device
+offline license, alarm callbacks, and fixed scheduled release. Once a device
 enrolls in a Curfew Account, Curfew Sync becomes the only cross-device writer
 and the app disables competing CloudKit writes. The local MCP server remains
 available for tools that run on the Mac. The remote MCP endpoint exposes only
@@ -78,7 +78,7 @@ Three components:
 ```
 
 **Invariant:** Every device evaluates policy locally. An account wake campaign
-can release the morning gate after a signed terminal wake status or an
+can release the session-start gate after a signed terminal wake status or an
 authorized time-bounded override. Every selected device can compute the same
 final deadline, so a partitioned Mac releases at that deadline instead of
 remaining locked forever.
@@ -250,12 +250,12 @@ can work while the user is away from the Mac.
   and are accessed with no-follow, directory-relative filesystem operations.
 - The approval prompt appears on whichever enrolled device the user is currently active on, picked using the same active-device heuristic F15 already uses (most recent input within 120 s). If no device is active, the request waits and surfaces a notification on every enrolled device.
 - The user's existing AI consent policy (`AIConsentPolicy` — auto-approve / ask-each-time / always-deny) is consulted locally. The coordinator never overrides it.
-- **Audit log.** Every server-driven device action — every remote MCP tool call that resulted in a state change, every consent prompt, every approval or denial — is visible in the in-app activity log with the OAuth client name, the originating device (if known), and a timestamp. Surprises are the failure mode here; the audit log is the antidote.
+- **Audit log.** Every server-driven device action — every remote MCP tool call that resulted in a state change, every consent prompt, every approval or denial — is visible in the in-app activity log with the OAuth client name, the originating device (if known), and a timestamp. The audit log identifies the client and action so the user can review remote changes.
 
 ### Failure modes
 
 - **Coordinator unreachable.** The device honors its last decrypted policy.
-  During a wake campaign, it keeps the morning gate until a valid terminal
+  During a wake campaign, it keeps the session-start gate until a valid terminal
   update arrives or the deterministic campaign deadline passes.
 - **Network partition.** Same as coordinator unreachable. Deltas queued upstream from the partitioned device are sent on reconnect; deltas the device missed are applied in `modifiedAt` order on reconnect, subject to the anti-bypass asymmetry.
 - **Clock skew.** All timestamps are coordinator-issued for cross-device ordering. Device-local enforcement (warning escalations, lock windows) continues to use device-local time so clock-skew doesn't open or close lock windows incorrectly.
@@ -263,9 +263,9 @@ can work while the user is away from the Mac.
 
 ### Local emergency release
 
-Every device retains a local *"Release me from Sync"* action that the coordinator cannot block. This is the single most important safety mitigation in this design. It is a direct application of an established principle in this codebase: *uninstall is a user right, not a bypass.* The same logic applies to exiting an account. The mechanism:
+Every device retains a local *"Release me from Sync"* action that operates without coordinator approval. This lets the user remove the account binding even when the coordinator is unavailable or the account is compromised. The action follows these steps:
 
-- The action is reachable in Settings → Curfew Sync without coordinator participation.
+- The action is reachable in Settings → Account without coordinator participation.
 - Invoking it kicks off a local cooldown (24h default; 72h is the longest the user can opt into). The cooldown is enforced device-locally; the coordinator can refuse to *strengthen* during the cooldown but cannot extend it, shorten it, or block release at the end.
 - When the cooldown elapses, the device removes its account binding locally, falls back to the standalone schedule it had before enrollment, and the next coordinator delta is rejected.
 
@@ -273,7 +273,7 @@ This protects against two distinct threats: account compromise leading to indefi
 
 ### UX notes
 
-- **Settings → Curfew Account** is the entry point. It opens browser OAuth,
+- **Settings → Account** is the entry point. It opens browser OAuth,
   completes 2FA, enrolls device keys, and requires the user to save or enter
   the separate Curfew Recovery Key before sync starts. The native authorization
   session is non-ephemeral so the user's existing account and passkey provider

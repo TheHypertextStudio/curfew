@@ -24,7 +24,7 @@ struct TodaySundownView: View {
     var lockTime = "6:00 PM"
     var unlockTime = "7:00 AM"
     var statusLine = "Curfew is off"
-    var statusDetail = "Your Mac won't lock tonight until you turn it on."
+    var statusDetail = TodayView.control(needsSetup: false, enforcing: false).detail
     var isEnforcing = false
     var showAccessibilityWarning = false
     /// True for the brief window after Accessibility trust is granted, to show a
@@ -117,8 +117,8 @@ struct TodaySundownView: View {
                     .shadow(color: .black.opacity(0.18), radius: 22, y: 8)
 
                 HStack(spacing: 5) {
-                    Text(isEnforcing ? "Locks at" : "Scheduled lock")
-                        .foregroundStyle(SundownPalette.warmWhite.opacity(0.9))
+                    Text(ScheduleSurfaceCopy.countdownPrefix)
+                        .foregroundStyle(SundownPalette.warmWhite.opacity(0.72))
                     Text(lockTime)
                         .font(SundownType.strong(16))
                         .foregroundStyle(SundownPalette.warmWhite)
@@ -127,7 +127,7 @@ struct TodaySundownView: View {
                 .shadow(color: .black.opacity(0.35), radius: 8, y: 1)
                 .padding(.top, 10)
 
-                Text(isEnforcing ? "Unlocks \(unlockTime)" : "Scheduled unlock \(unlockTime)")
+                Text("Scheduled unlock: \(unlockTime)")
                     .font(SundownType.body(14))
                     .foregroundStyle(SundownPalette.supportingText)
                     .shadow(color: .black.opacity(0.3), radius: 6, y: 1)
@@ -194,7 +194,7 @@ struct TodaySundownView: View {
                 HStack(spacing: 6) {
                     Image(systemName: "moon.stars.fill")
                         .font(.system(size: 12, weight: .medium))
-                    Text("\(streak) nights in a row")
+                    Text("\(streak) consecutive days with lockout")
                         .font(SundownType.body(13))
                 }
                 .foregroundStyle(CurfewTheme.accent)
@@ -230,7 +230,7 @@ struct TodaySundownView: View {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(CurfewTheme.warning)
-                Text("Curfew needs Accessibility access to enforce your schedule.")
+                Text("Curfew needs Accessibility access to block bypass shortcuts during lockout.")
                     .font(SundownType.body(14))
                     .foregroundStyle(CurfewTheme.ink)
                 Spacer(minLength: 12)

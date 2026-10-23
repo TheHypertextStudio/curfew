@@ -96,8 +96,8 @@ Adding either is a non-breaking change and will not bump `v`. `v` increases
 only when a top-level field is renamed or removed, or when the hash
 construction changes.
 
-Timestamps keep their local offset rather than normalising to UTC because a
-curfew is a wall-clock promise. An auditor reading "lockout started at 22:00"
+Timestamps keep their local offset rather than normalising to UTC because the
+user configures curfew in local time. An auditor reading "lockout started at 22:00"
 needs the hour the user actually experienced, and the offset is the only
 on-disk evidence of a timezone change mid-window.
 
@@ -182,7 +182,7 @@ privileged daemon acts on, so the two streams corroborate each other.
 
 `app.enforcement_health_changed` moving to `degraded_no_accessibility` or
 `degraded_tap_down` while `phase` is `locked` is the highest-value line in the
-file: it says the keyboard shield was down during an enforced lockout.
+file: it says keyboard shortcut blocking was unavailable during lockout.
 
 ### Enforcement — `stream: app`
 
@@ -277,9 +277,9 @@ Read the fused tokens as:
 
 | `to` | Meaning |
 |------|---------|
-| `working` | Input arrived inside the idle threshold. Someone is using the Mac. |
-| `present_idle` | No input, but the camera saw a person. Reading, thinking, on a call. |
-| `absent` | No input and the camera saw nobody. |
+| `working` | Keyboard or pointer input arrived inside the idle threshold. This does not establish whether the user was working. |
+| `present_idle` | No recent input, but the camera detected a human shape. Curfew cannot distinguish reading, a call, or distraction. |
+| `absent` | No recent input and the camera did not detect a human shape. This does not establish that the user left. |
 | `unknown` | No input and no camera signal to say why. |
 
 **`unknown` is not a weaker `absent`.** It is what Curfew writes when it cannot
@@ -519,26 +519,26 @@ drops lines. Combined with the monotonic `seq`, it also detects reordering.
 It does **not** make the app stream tamper-proof. That file is owned by the
 user, the chain head lives inside it, and SHA-256 is unkeyed — anyone willing
 to write thirty lines of Python can rewrite the file and recompute every hash.
-Closing that would take a key the user cannot reach, which on macOS means the
-Secure Enclave or a remote notary, and Curfew's whole promise is that nothing
-leaves the machine. The honest scope is: the app stream is tamper-*evident*
-against casual editing, and that is what it claims.
+Preventing that would require a trusted chain anchor outside the user's control.
+Curfew keeps audit records on the machine and does not verify the chain against
+an external anchor. The app stream is tamper-*evident* against casual editing,
+not against a writer who recomputes the chain.
 
 The **daemon stream is meaningfully stronger**. It is `root:wheel`, mode
 `0644`, in `/Library/Logs/Curfew/`. Rewriting it requires escalating first, and
 it is precisely the stream that records what root did — shutdown decisions,
-stale-heartbeat detections, deadline observations. If you only trust one file
-here, trust that one.
+stale-heartbeat detections, deadline observations. The daemon stream therefore
+provides evidence of privileged actions that the user-owned stream cannot
+provide.
 
 ## Privacy
 
-Curfew stores everything locally and the audit log does not change that. It is
-also the file most likely to be copied into a support thread, so the bar for
-what may appear in it is higher than for the SQLite stores.
+Curfew stores the audit log locally. Users may copy it into a support thread,
+so Curfew omits reflection content and written reasons from it.
 
 **Never written:**
 
-- Reflection content. Morning intents and evening retrospectives are the user's
+- Reflection content. Session-start and lockout reflections are the user's
   private prose; `ReflectionStore` is the only place they exist, and the audit
   log does not even record that a reflection happened.
 - Override justifications. The composer requires 50+ characters of explanation

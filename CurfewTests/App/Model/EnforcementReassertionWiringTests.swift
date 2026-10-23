@@ -14,6 +14,20 @@ import Testing
 /// recovers when the user returns.
 @MainActor
 struct EnforcementReassertionWiringTests {
+    @Test("Reassertion publishes health after recovery rather than before it")
+    func reassertionPublishesRecoveredHealth() {
+        let shield = KeyboardShieldSpy()
+        let model = makeModel(
+            accessibilityAuthorization: FakeAccessibilityAuthorization(trusted: true),
+            keyboardShield: shield
+        )
+        model.state = lockedState
+        #expect(model.reassertEnforcementIfNeeded() == .reassert)
+        #expect(shield.startCount == 1)
+        #expect(shield.isEnabled)
+        #expect(model.enforcementHealth == .active)
+    }
+
     @Test("Activation while locked re-polls health and re-asserts enforcement")
     func lockedReassertsAndRepollsHealth() {
         let trust = FakeAccessibilityAuthorization(trusted: true)
@@ -83,7 +97,8 @@ struct EnforcementReassertionWiringTests {
     }
 
     private func makeModel(
-        accessibilityAuthorization: FakeAccessibilityAuthorization
+        accessibilityAuthorization: FakeAccessibilityAuthorization,
+        keyboardShield: (any KeyboardShieldControlling)? = nil
     ) -> CurfewAppModel {
         let suite = "studio.hypertext.curfew.tests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite) ?? .standard
@@ -94,7 +109,8 @@ struct EnforcementReassertionWiringTests {
             flavor: .production,
             activityRecorder: NullActivityRecording(),
             lockoutDeadlineStore: .ephemeralForTesting(),
-            accessibilityAuthorization: accessibilityAuthorization
+            accessibilityAuthorization: accessibilityAuthorization,
+            keyboardShield: keyboardShield
         )
     }
 }

@@ -196,9 +196,9 @@ final class WarningNotificationManager: NSObject {
     /// a jolt where a banner is a glance. The curfew warnings escalate to
     /// sound because they precede the Mac locking; this one does not.
     static let distractionPayload = WarningNotificationPayload(
-        title: "Still here?",
-        body: "You're at your Mac but haven't touched it in a while. "
-            + "Pick the thread back up when you're ready.",
+        title: "No recent input",
+        body: "Curfew detected a person but no recent keyboard or pointer input. "
+            + "Do you want to continue your task or take a break?",
         categoryIdentifier: distractionCategoryIdentifier,
         playsSound: false
     )
@@ -231,42 +231,42 @@ final class WarningNotificationManager: NSObject {
         case .thirtyMinutes:
             WarningNotificationPayload(
                 title: "Curfew",
-                body: "30 minutes of work time left.",
+                body: "Lockout starts in 30 minutes.",
                 categoryIdentifier: warningSnoozeCategoryIdentifier,
                 playsSound: false
             )
         case .fifteenMinutes:
             WarningNotificationPayload(
                 title: "Curfew",
-                body: "15 minutes left. Start wrapping up.",
+                body: "Lockout starts in 15 minutes. Finish your current task.",
                 categoryIdentifier: warningSnoozeCategoryIdentifier,
                 playsSound: false
             )
         case .fiveMinutes:
             WarningNotificationPayload(
                 title: "Curfew",
-                body: "5 minutes left. Save your work now.",
+                body: "Lockout starts in 5 minutes. Save your work now.",
                 categoryIdentifier: warningCategoryIdentifier,
                 playsSound: true
             )
         case .twoMinutes:
             WarningNotificationPayload(
                 title: "Curfew",
-                body: "2 minutes remaining.",
+                body: "Lockout starts in 2 minutes.",
                 categoryIdentifier: warningCategoryIdentifier,
                 playsSound: true
             )
         case .oneMinute:
             WarningNotificationPayload(
                 title: "Curfew",
-                body: "1 minute left. Final save.",
+                body: "Lockout starts in 1 minute. Save your work now.",
                 categoryIdentifier: warningCategoryIdentifier,
                 playsSound: true
             )
         case .lockout:
             WarningNotificationPayload(
-                title: "Curfew Active",
-                body: "Lockout has started. See you in the morning.",
+                title: "Curfew Lockout",
+                body: "Lockout has started. Rest well.",
                 categoryIdentifier: warningCategoryIdentifier,
                 playsSound: true
             )

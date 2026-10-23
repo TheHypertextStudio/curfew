@@ -13,6 +13,12 @@ import {
 } from "./production-identity";
 
 describe("buildManifest", () => {
+  it("describes the blocked navigation and its work-session condition", () => {
+    expect(buildManifest("development").description).toBe(
+      "Blocks unapproved Chrome destinations during a tracked Docket task.",
+    );
+  });
+
   it("builds a least-privilege MV3 development manifest with its pinned identity", () => {
     const manifest = buildManifest("development");
 

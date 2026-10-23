@@ -149,6 +149,11 @@ struct DocketBrowserPolicyClientTests {
         let secrets = MemoryDocketSecretStore()
         try secrets.save(Data("issued-client".utf8), for: DocketCredentialStore.clientIDAccount)
         try secrets.save(Data("old-refresh".utf8), for: DocketCredentialStore.refreshTokenAccount)
+        try secrets.save(Data("old-access".utf8), for: DocketCredentialStore.accessTokenAccount)
+        try secrets.save(
+            Data(String(now.addingTimeInterval(-3600).timeIntervalSince1970).utf8),
+            for: DocketCredentialStore.expirationAccount
+        )
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [DocketURLProtocol.self]
         DocketURLProtocol.handler = { request in

@@ -65,10 +65,11 @@
             case .limitsNone: .enforcement
             case .accountOffline, .accountSignInRequired, .accountHelperUnavailable,
                  .accountUpdateFailed, .accountHelperHidden,
-                 .assistantOn, .assistantReadOnly, .assistantAutomatic, .assistantPending,
+                 .cloudIdle, .cloudSyncing, .cloudSynced, .cloudFailed, .cloudUnavailable: .account
+            case .assistantOn, .assistantReadOnly, .assistantAutomatic, .assistantPending,
                  .assistantMalformed, .assistantExhausted,
-                 .claudeAbsent, .claudeConfigured, .cloudIdle, .cloudSyncing, .cloudSynced,
-                 .cloudFailed, .cloudUnavailable, .calendarDenied, .calendarEmpty: .integrations
+                 .claudeAbsent, .claudeConfigured,
+                 .calendarDenied, .calendarEmpty: .integrations
             case .licenseInvalid, .licenseLifetime, .licenseSubscription, .licenseExpired: .about
             default: .general
             }

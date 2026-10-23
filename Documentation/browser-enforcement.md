@@ -12,8 +12,7 @@ rule. Curfew validates Athena's proposed scope and sets a maximum lifetime of
 30 minutes or the end of the current session, whichever comes first.
 
 The current implementation covers the domain reducer, direct Docket OAuth/MCP
-client, signed native host, `@curfew/chrome-extension`, and the Task Browser
-Enforcement Settings panel. Curfew also writes a privacy-minimal audit event for
+client, signed native host, `@curfew/chrome-extension`, and the panel under Settings → Integrations → Chrome and Docket. Curfew also writes a privacy-minimal audit event for
 each accepted Athena decision. Signed-app and Web Store verification remain
 deferred. The sequence diagram in
 `Documentation/browser-policy-sequence.mmd` shows the implemented review boundary.

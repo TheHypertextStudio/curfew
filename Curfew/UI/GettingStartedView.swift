@@ -240,46 +240,16 @@ struct GettingStartedView: View {
         .foregroundStyle(CurfewTheme.ink)
     }
 
-    /// Accessibility hard-gate + soft notifications guidance for the
-    /// `.permissions` step.
-    ///
-    /// The accessibility row is a *real* grant check, not a self-attested
-    /// checkbox: "Next" stays disabled (`flow.canAdvance`) until the model's
-    /// polled trust state — synced into the flow on appear / activation / the
-    /// refresh timer — reports granted. The button routes through
-    /// `requestAccessibilityAccess()`, which prompts and opens System Settings →
-    /// Privacy & Security → Accessibility. Notifications remain optional below;
-    /// denial there is non-fatal and never blocks progress.
-    @ViewBuilder
-    private var permissionsExtras: some View {
-        if model.isAccessibilityTrusted {
-            Label("Accessibility access granted", systemImage: "checkmark.circle.fill")
-                .font(CurfewTypography.bodyEmphasis(14))
-                .foregroundStyle(CurfewTheme.accent)
-        } else {
-            Label("Accessibility access required", systemImage: "exclamationmark.triangle.fill")
-                .font(CurfewTypography.bodyEmphasis(14))
-                .foregroundStyle(CurfewTheme.warning)
-
-            Text(
-                "Enable Curfew in System Settings, then return here to continue."
-            )
-            .font(CurfewTypography.body(13))
-            .foregroundStyle(CurfewTheme.mutedInk)
-
-            Button("Open System Settings") {
-                model.requestAccessibilityAccess()
-                flow.updateAccessibilityGranted(model.isAccessibilityTrusted)
-            }
-            .buttonStyle(CurfewSecondaryButtonStyle())
-        }
-
-        Text(
-            "Notifications are optional. Manage them in System Settings."
-        )
-        .font(CurfewTypography.body(13))
-        .foregroundStyle(CurfewTheme.mutedInk)
-    }
+    // Accessibility hard-gate + soft notifications guidance for the
+    // `.permissions` step.
+    //
+    // The accessibility row is a *real* grant check, not a self-attested
+    // checkbox: "Next" stays disabled (`flow.canAdvance`) until the model's
+    // polled trust state — synced into the flow on appear / activation / the
+    // refresh timer — reports granted. The button routes through
+    // `requestAccessibilityAccess()`, which prompts and opens System Settings →
+    // Privacy & Security → Accessibility. Notifications remain optional below;
+    // denial there is non-fatal and never blocks progress.
 
     /// Back / Not now / Next | Finish action row.
     private var actionRow: some View {
@@ -361,5 +331,41 @@ private extension GettingStartedView {
             model.refreshAccessibilityTrust()
         }
         flow.updateAccessibilityGranted(model.isAccessibilityTrusted)
+    }
+}
+
+private extension GettingStartedView {
+    @ViewBuilder
+    var permissionsExtras: some View {
+        if model.isAccessibilityTrusted {
+            Label("Accessibility access granted", systemImage: "checkmark.circle.fill")
+                .font(CurfewTypography.bodyEmphasis(14))
+                .foregroundStyle(CurfewTheme.accent)
+        } else {
+            Label("Accessibility access required", systemImage: "exclamationmark.triangle.fill")
+                .font(CurfewTypography.bodyEmphasis(14))
+                .foregroundStyle(CurfewTheme.warning)
+
+            Text(
+                "Curfew needs Accessibility access to block bypass shortcuts "
+                    + "(⌘⇥, ⌘Q, …) during lockout. Grant it in System Settings, "
+                    + "then return here. Curfew checks for access automatically."
+            )
+            .font(CurfewTypography.body(13))
+            .foregroundStyle(CurfewTheme.mutedInk)
+
+            Button("Open System Settings") {
+                model.requestAccessibilityAccess()
+                flow.updateAccessibilityGranted(model.isAccessibilityTrusted)
+            }
+            .buttonStyle(CurfewSecondaryButtonStyle())
+        }
+
+        Text(
+            "Notifications are optional. They warn you before lockout. "
+                + "You can allow or change them in System Settings anytime."
+        )
+        .font(CurfewTypography.body(13))
+        .foregroundStyle(CurfewTheme.mutedInk)
     }
 }

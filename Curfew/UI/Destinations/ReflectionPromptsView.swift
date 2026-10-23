@@ -28,13 +28,13 @@ struct ReflectionPromptsView: View {
                 gatesPanel
                 promptsPanel(
                     for: .morning,
-                    title: "Morning prompts",
+                    title: "Start-of-work prompts",
                     subtitle: "Shown at the day's first session."
                 )
                 promptsPanel(
                     for: .evening,
-                    title: "Evening prompts",
-                    subtitle: "Shown on the lockout screen at sundown."
+                    title: "End-of-work prompts",
+                    subtitle: "Shown when lockout starts."
                 )
                 readInClaudePanel
                 defaultsPanel
@@ -56,16 +56,14 @@ struct ReflectionPromptsView: View {
                 subtitle: "Prompt yourself at the start and end of each day."
             )
 
-            Text(
-                "Morning prompts appear when you start. Evening prompts appear at lockout. "
-                    + "You can skip either."
-            )
-            .font(CurfewTypography.body(13))
-            .foregroundStyle(CurfewTheme.mutedInk)
-            .fixedSize(horizontal: false, vertical: true)
+            Text("Curfew asks the first set of questions at your first work session each day. "
+                + "It asks the second set during lockout. You can skip either reflection.")
+                .font(CurfewTypography.body(13))
+                .foregroundStyle(CurfewTheme.mutedInk)
+                .fixedSize(horizontal: false, vertical: true)
 
-            Toggle("Morning prompts", isOn: gateEnabledBinding(for: .morning))
-            Toggle("Evening prompts", isOn: gateEnabledBinding(for: .evening))
+            Toggle("Start-of-work reflection", isOn: gateEnabledBinding(for: .morning))
+            Toggle("End-of-work reflection", isOn: gateEnabledBinding(for: .evening))
         }
     }
 
@@ -243,9 +241,10 @@ struct ReflectionPromptsView: View {
         if model.featureFlags.mcpServerEnabled {
             CurfewPanel {
                 CurfewSectionTitle(
-                    title: "Your reflections and AI",
-                    subtitle: "Connected assistants can read your reflections. "
-                        + "Only connect assistants you trust."
+                    title: "Read your reflections in Claude",
+                    subtitle: "Connected AI assistants can read your reflections "
+                        + "but cannot edit them. "
+                        + "Your assistant may send them to its own service."
                 )
                 Button("Manage AI Access…") {
                     model.settingsDestination = .integrations

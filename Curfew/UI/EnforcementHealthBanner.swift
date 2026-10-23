@@ -3,7 +3,7 @@ import SwiftUI
 
 /// Shared degraded-enforcement banner driven by ``EnforcementHealth``.
 ///
-/// Surfaces the same honest "enforcement is not active" signal in every place
+/// Surfaces the same honest "keyboard shortcut blocking is unavailable" signal in every place
 /// it matters — the main-window overview, the Settings enforcement panel, and
 /// (in a compact variant) the menu-bar popover — so a silently broken lockout
 /// (revoked Accessibility, a downed keyboard-shield tap) cannot masquerade as
@@ -36,7 +36,7 @@ struct EnforcementHealthBanner: View {
                         .fixedSize(horizontal: false, vertical: true)
 
                     if health.offersAccessibilityRemediation {
-                        Button("Open Accessibility Settings", action: onFix)
+                        Button("Restore Shortcut Blocking", action: onFix)
                             .buttonStyle(CurfewSecondaryButtonStyle())
                     }
                 }
@@ -67,7 +67,7 @@ struct CompactEnforcementHealthWarning: View {
                         .fixedSize(horizontal: false, vertical: true)
 
                     if health.offersAccessibilityRemediation {
-                        Button("Fix Accessibility", action: onFix)
+                        Button("Restore Blocking", action: onFix)
                             .buttonStyle(CurfewSecondaryButtonStyle())
                     }
                 }

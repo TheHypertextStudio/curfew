@@ -6,8 +6,8 @@ import CurfewKit
 ///
 /// Curfew's keyboard lockout is implemented with a `CGEvent` tap, which macOS
 /// only delivers events to when the app holds Accessibility trust
-/// (`AXIsProcessTrusted`). Without it the tap is installed but never fires, so
-/// the lockout silently does nothing. Routing that check through a protocol lets
+/// (`AXIsProcessTrusted`). Without it keyboard shortcut blocking is unavailable.
+/// Routing that check through a protocol lets
 /// model logic gate on trust (and decide when to prompt) while staying unit
 /// testable: the real `AX*` C symbols cannot be exercised headlessly, so tests
 /// substitute a fake instead of triggering a real system prompt.
@@ -19,11 +19,13 @@ protocol AccessibilityAuthorizing {
     /// Asks macOS to surface the Accessibility-trust prompt if trust is not
     /// already granted, returning the current trust state.
     ///
-    /// - Returns: `true` if the app is already trusted; otherwise `false` while
-    ///   the system prompt is shown. The user must still grant access in System
-    ///   Settings and relaunch, so a `false` here is expected on first run.
+    /// - Returns: Current trust. A `false` result does not establish whether
+    ///   macOS displayed a prompt. The user grants access in System Settings.
     @discardableResult
     func promptForTrust() -> Bool
+
+    /// Opens the pane for the user's explicit permission-repair action.
+    func openSettings()
 }
 
 /// Production `AccessibilityAuthorizing` backed by the live `AX*` C APIs.
@@ -37,8 +39,14 @@ struct SystemAccessibilityAuthorization: AccessibilityAuthorizing {
     /// `AXIsProcessTrustedWithOptions` with the prompt option enabled.
     @discardableResult
     func promptForTrust() -> Bool {
+        guard !RuntimeEnvironment.isUnitTestHost else { return isTrusted() }
         let opts = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true]
         return AXIsProcessTrustedWithOptions(opts as CFDictionary)
+    }
+
+    func openSettings() {
+        guard !RuntimeEnvironment.isUnitTestHost else { return }
+        Self.openAccessibilitySettings()
     }
 
     /// Opens the Accessibility pane of System Settings → Privacy & Security so

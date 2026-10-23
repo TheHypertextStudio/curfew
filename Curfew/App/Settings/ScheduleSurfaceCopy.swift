@@ -2,21 +2,23 @@ import CurfewKit
 import Foundation
 
 enum ScheduleSurfaceCopy {
+    static let countdownPrefix = "until scheduled lockout at"
+
     static let weeklyScheduleSubtitle =
-        "Choose work hours. Your Mac is blocked outside them."
+        "Set when work ends and when access resumes each day."
 
     static let weeklyScheduleExplanation =
-        "Curfew blocks work after Work ends and keeps it blocked until Work resumes."
+        "Curfew blocks access to your Mac from Work ends until Work resumes."
 
     static let workEndsLabel = "Work ends"
     static let workResumesLabel = "Work resumes"
 
     static let onboardingMessage =
-        "Choose when your Mac locks and unlocks."
+        "Choose when work ends and resumes each day."
 
     static let onboardingChecklist = [
         "Set when work ends and resumes",
-        "Mark true days off"
+        "Choose days without lockout"
     ]
 
     static let mainChecklistItem =

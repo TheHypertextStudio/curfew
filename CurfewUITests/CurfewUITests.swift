@@ -8,7 +8,6 @@ final class CurfewUITests: XCTestCase {
     @MainActor
     func testOnboardingStartsAtARealGate() {
         let app = launchFixture("getting-started")
-
         XCTAssertTrue(app.staticTexts["Welcome to Curfew"].waitForExistence(timeout: 8))
         XCTAssertTrue(app.staticTexts["Step 1 of 5"].exists)
         XCTAssertFalse(app.buttons["Back"].isEnabled)
@@ -23,7 +22,6 @@ final class CurfewUITests: XCTestCase {
         XCTAssertEqual(app.staticTexts["warning-countdown"].value as? String, "2 min")
         app.terminate()
         XCTAssertTrue(app.wait(for: .notRunning, timeout: 8))
-
         app = launchFixture("lockout")
         XCTAssertTrue(app.descendants(matching: .any)["lockout-screen"]
             .waitForExistence(timeout: 8))
@@ -36,7 +34,6 @@ final class CurfewUITests: XCTestCase {
         let entry = app.buttons["override-entry"]
         XCTAssertTrue(entry.waitForExistence(timeout: 8))
         entry.tap()
-
         XCTAssertTrue(app.textViews["override-reason"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.staticTexts["override-cooldown"].exists)
         XCTAssertTrue(app.staticTexts["Minimum 50 characters"].exists)
@@ -48,31 +45,30 @@ final class CurfewUITests: XCTestCase {
     @MainActor
     func testShippingIntegrationsAndHelperFailureAreVisible() {
         let app = launchFixture("settings")
-        let integrations = app.descendants(matching: .any)["settings-integrations-tab"]
+        let integrations = app.descendants(matching: .any)["settings-category-integrations"]
         XCTAssertTrue(integrations.waitForExistence(timeout: 8))
         integrations.tap()
-
         XCTAssertTrue(app.staticTexts["Widgets"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.staticTexts["Calendar"].exists)
         XCTAssertFalse(app.staticTexts["iCloud sync"].exists)
-        app.descendants(matching: .any)["settings-general-tab"].click()
-        XCTAssertTrue(app.staticTexts["background-protection-heading"].waitForExistence(timeout: 3))
+        app.descendants(matching: .any)["settings-category-general"].click()
+        XCTAssertTrue(app.staticTexts["Background protection"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.disclosureTriangles["Troubleshooting"].exists)
     }
 
     @MainActor
     func testSettingsUsesSidebarAndShowsOnlyRelevantControls() {
         let app = launchFixture("settings")
-        let general = app.descendants(matching: .any)["settings-general-tab"]
+        let general = app.descendants(matching: .any)["settings-category-general"]
         XCTAssertTrue(general.waitForExistence(timeout: 8))
-        let limits = app.descendants(matching: .any)["settings-enforcement-tab"]
+        let limits = app.descendants(matching: .any)["settings-category-enforcement"]
         limits.click()
-        XCTAssertTrue(app.staticTexts["Weekly allowance"].waitForExistence(timeout: 3))
-        app.descendants(matching: .any)["settings-integrations-tab"].click()
+        XCTAssertTrue(app.staticTexts["Extensions and Overrides"].waitForExistence(timeout: 3))
+        app.descendants(matching: .any)["settings-category-integrations"].click()
         XCTAssertTrue(app.staticTexts["AI assistants"].waitForExistence(timeout: 3))
         XCTAssertFalse(app.staticTexts["MCP Control Plane"].exists)
         XCTAssertFalse(app.staticTexts["Additional Integrations"].exists)
-        app.descendants(matching: .any)["settings-about-tab"].click()
+        app.descendants(matching: .any)["settings-category-about"].click()
         XCTAssertFalse(app.staticTexts["iCloud sync across all your Macs"].exists)
         XCTAssertFalse(app.staticTexts["Calendar-aware schedule exceptions"].exists)
     }
@@ -82,8 +78,10 @@ final class CurfewUITests: XCTestCase {
         let app = launchFixture("settings", state: "ready")
         let window = app.windows["com_apple_SwiftUI_Settings_window"]
         XCTAssertTrue(window.waitForExistence(timeout: 5))
-        let general = app.descendants(matching: .any)["settings-general-tab"]
-        XCTAssertLessThan(general.frame.minY - window.frame.minY, 95)
+        let general = app.descendants(matching: .any)["settings-category-general"]
+        XCTAssertLessThan(general.frame.minY - window.frame.minY, 125)
+        let about = app.descendants(matching: .any)["settings-category-about"]
+        XCTAssertTrue(window.frame.contains(about.frame))
         let review = app.buttons["Review Setup…"]
         XCTAssertTrue(review.exists)
         XCTAssertLessThan(review.frame.maxY, window.frame.maxY - 12)
@@ -106,7 +104,7 @@ final class CurfewUITests: XCTestCase {
         app.typeKey(",", modifierFlags: .command)
         let window = app.windows["com_apple_SwiftUI_Settings_window"]
         XCTAssertTrue(window.waitForExistence(timeout: 5))
-        XCTAssertTrue(app.buttons["Open Accessibility Settings"].exists)
+        XCTAssertTrue(app.buttons["Restore Shortcut Blocking"].exists)
         XCTAssertLessThan(app.buttons["Review Setup…"].frame.maxY, window.frame.maxY - 12)
     }
 
@@ -115,8 +113,8 @@ final class CurfewUITests: XCTestCase {
         let app = launchFixture("overview")
         XCTAssertTrue(app.staticTexts.containing(NSPredicate(
             format: "label CONTAINS %@ OR value CONTAINS %@",
-            "Scheduled lock",
-            "Scheduled lock"
+            "Scheduled unlock",
+            "Scheduled unlock"
         ))
         .firstMatch.waitForExistence(timeout: 5))
         XCTAssertFalse(app.staticTexts.containing(NSPredicate(
@@ -130,7 +128,8 @@ final class CurfewUITests: XCTestCase {
     func testPromptEditorDoesNotAdvertiseFutureFeatures() {
         let app = launchFixture("this-week")
         app.radioButtons["Prompts"].click()
-        XCTAssertTrue(app.staticTexts["Your reflections and AI"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["Read your reflections in Claude"]
+            .waitForExistence(timeout: 3))
         XCTAssertFalse(app.staticTexts.containing(NSPredicate(
             format: "label CONTAINS %@",
             "coming"
@@ -141,7 +140,7 @@ final class CurfewUITests: XCTestCase {
     @MainActor
     func testAssistantSetupShowsCopyFeedback() {
         let app = launchFixture("settings")
-        app.descendants(matching: .any)["settings-integrations-tab"].click()
+        app.descendants(matching: .any)["settings-category-integrations"].click()
         let toggle = app.descendants(matching: .any)["assistant-enabled"]
         XCTAssertTrue(toggle.waitForExistence(timeout: 3))
         toggle.click()
@@ -158,8 +157,8 @@ final class CurfewUITests: XCTestCase {
         let app = launchFixture("settings", state: "ready")
         XCTAssertTrue(app.staticTexts.containing(NSPredicate(
             format: "label CONTAINS %@ OR value CONTAINS %@",
-            "Ready to enforce",
-            "Ready to enforce"
+            "Keyboard shortcut blocking is available",
+            "Keyboard shortcut blocking is available"
         ))
         .firstMatch.waitForExistence(timeout: 3))
         XCTAssertFalse(app.staticTexts.containing(NSPredicate(
@@ -305,7 +304,7 @@ extension CurfewUITests {
     @MainActor
     func testTaskBrowserEnforcementPanelActions() {
         let app = launchFixture("settings")
-        app.descendants(matching: .any)["settings-integrations-tab"].click()
+        app.descendants(matching: .any)["settings-category-integrations"].click()
         let destinations = app.buttons["task-browser-destinations-disclosure"]
         XCTAssertTrue(destinations.waitForExistence(timeout: 5), app.debugDescription)
         destinations.click()
@@ -335,9 +334,10 @@ extension CurfewUITests {
     @MainActor
     func testAssistantReadAccessIsExplainedBeforeEnabling() {
         let app = launchFixture("settings", state: "ready")
-        app.descendants(matching: .any)["settings-integrations-tab"].click()
+        app.descendants(matching: .any)["settings-category-integrations"].click()
         XCTAssertTrue(app.staticTexts[
-            "Connected assistants can read your status, schedule, activity, and reflections."
+            "While enabled, local assistants can read your Curfew status, schedule, activity, "
+                + "and reflection text. They cannot end lockout or turn off Curfew."
         ].waitForExistence(timeout: 3))
         XCTAssertFalse(app.popUpButtons["assistant-policy"].exists)
     }
@@ -355,6 +355,7 @@ extension CurfewUITests {
         app.typeKey(",", modifierFlags: .command)
         let window = app.windows["com_apple_SwiftUI_Settings_window"]
         XCTAssertTrue(window.waitForExistence(timeout: 5))
+        app.descendants(matching: .any)["settings-category-general"].click()
         let review = app.buttons["Review Setup…"]
         XCTAssertTrue(review.exists)
         XCTAssertLessThan(review.frame.maxY, window.frame.maxY - 12)
@@ -365,13 +366,11 @@ extension CurfewUITests {
     @MainActor
     func testSettingsSidebarSupportsArrowKeys() {
         let app = launchFixture("settings", state: "ready")
-        app.descendants(matching: .any)["settings-general-tab"].click()
+        app.descendants(matching: .any)["settings-category-general"].click()
         app.typeKey(.downArrow, modifierFlags: [])
-        XCTAssertTrue(app.staticTexts["Weekly allowance"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["Extensions and Overrides"].waitForExistence(timeout: 3))
         app.typeKey(.upArrow, modifierFlags: [])
-        XCTAssertTrue(app.staticTexts.matching(identifier: "settings-page-title")
-            .matching(NSPredicate(format: "value == %@", "Protection")).element
-            .waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["Accessibility"].waitForExistence(timeout: 3))
     }
 
     @MainActor
@@ -385,10 +384,8 @@ extension CurfewUITests {
         }?.scroll(byDeltaX: 0, deltaY: 10000)
         manage.click()
         XCTAssertTrue(app.staticTexts["AI assistants"].waitForExistence(timeout: 3))
-        app.descendants(matching: .any)["settings-general-tab"].click()
-        XCTAssertTrue(app.staticTexts.matching(identifier: "settings-page-title")
-            .matching(NSPredicate(format: "value == %@", "Protection")).element
-            .waitForExistence(timeout: 3))
+        app.descendants(matching: .any)["settings-category-general"].click()
+        XCTAssertTrue(app.staticTexts["Accessibility"].waitForExistence(timeout: 3))
         app.windows["main-workspace"].click()
         manage.click()
         XCTAssertTrue(app.staticTexts["AI assistants"].waitForExistence(timeout: 3))

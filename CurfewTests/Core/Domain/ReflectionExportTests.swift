@@ -44,8 +44,8 @@ struct ReflectionExportTests {
     func markdown() {
         let document = ReflectionExport.markdown(sample())
         #expect(document.hasPrefix("# Reflections"))
-        #expect(document.contains("### Morning"))
-        #expect(document.contains("### Evening"))
+        #expect(document.contains("### Start of work"))
+        #expect(document.contains("### Lockout"))
         #expect(document.contains("Ship the polish pass."))
         #expect(document.contains("**Readiness?** 4/5"))
         #expect(document.contains("**Energy out of ten?** 7/10"))

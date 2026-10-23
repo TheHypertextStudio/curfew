@@ -1,3 +1,5 @@
+import AppKit
+import Combine
 import CurfewKit
 import EventKit
 import Foundation
@@ -33,19 +35,23 @@ final class CalendarMonitor {
 
     // MARK: - Private
 
-    @ObservationIgnored private lazy var store = EKEventStore()
-    private let authorization: @Sendable () -> EKAuthorizationStatus
+    private let source: CalendarEventSource
+    private let authorization: (@Sendable () -> EKAuthorizationStatus)?
     private var refreshTimer: Timer?
+    private var activationObserver: AnyCancellable?
+    private var permissionRequest: Task<Void, Never>?
+    private var sessionID = UUID()
+    private var isMonitoring = false
 
     /// `nonisolated` so `CurfewAppModel` can store the monitor as a
     /// non-optional default without round-tripping to `MainActor` during
     /// its own synchronous init. All mutation of published state happens
     /// on the main actor via the instance methods.
     nonisolated init(
-        authorization: @escaping @Sendable () -> EKAuthorizationStatus = {
-            EKEventStore.authorizationStatus(for: .event)
-        }
+        source: CalendarEventSource = SystemCalendarEventSource(),
+        authorization: (@Sendable () -> EKAuthorizationStatus)? = nil
     ) {
+        self.source = source
         self.authorization = authorization
     }
 
@@ -55,45 +61,46 @@ final class CalendarMonitor {
     /// initial sync. Safe to call more than once — subsequent calls only
     /// re-sync if access is already granted.
     func requestAccessAndSync() {
-        let current = authorization()
-        authorizationStatus = current
-
-        switch current {
-        case .fullAccess:
-            sync()
+        if !isMonitoring {
+            isMonitoring = true
+            sessionID = UUID()
             scheduleRefresh()
-        case .notDetermined:
-            Task {
-                do {
-                    if #available(macOS 14.0, *) {
-                        try await store.requestFullAccessToEvents()
-                    } else {
-                        try await store.requestAccess(to: .event)
-                    }
-                    await MainActor.run {
-                        authorizationStatus = authorization()
-                        sync()
-                        scheduleRefresh()
-                    }
-                } catch {
-                    await MainActor.run {
-                        authorizationStatus = authorization()
-                    }
-                }
+            activationObserver = NotificationCenter.default.publisher(
+                for: NSApplication.didBecomeActiveNotification
+            ).sink { [weak self] _ in
+                self?.sync()
             }
-        case .denied, .restricted, .writeOnly:
-            break
-        @unknown default:
-            break
+        }
+        sync()
+        guard authorizationStatus == .notDetermined || authorizationStatus == .writeOnly,
+              permissionRequest == nil else { return }
+
+        let requestSession = sessionID
+        permissionRequest = Task { [weak self] in
+            guard let self, !Task.isCancelled else { return }
+            do {
+                try await source.requestFullAccess()
+            } catch {
+                // Permission failures still require a live status refresh, but
+                // must never resume a monitoring session that has stopped.
+            }
+            guard !Task.isCancelled, isMonitoring, sessionID == requestSession else { return }
+            permissionRequest = nil
+            sync()
         }
     }
 
-    /// Cancels the 5-minute refresh timer. Called when the Plus gate closes
-    /// (license deactivated or flag turned off) so an unlicensed install
-    /// stops polling EventKit entirely.
+    /// Stops polling and invalidates any pending permission reply. Cached
+    /// meetings must not remain visible after the feature or license gate closes.
     func stop() {
+        isMonitoring = false
+        sessionID = UUID()
+        permissionRequest?.cancel()
+        permissionRequest = nil
         refreshTimer?.invalidate()
         refreshTimer = nil
+        activationObserver = nil
+        clearEvents()
     }
 
     // MARK: - Sync
@@ -104,28 +111,28 @@ final class CalendarMonitor {
     /// events are filtered out because they don't carry scheduling intent
     /// relevant to curfew.
     func sync() {
-        authorizationStatus = authorization()
-        guard authorizationStatus == .fullAccess else {
-            todayEvents = []
-            hasCurrentEvent = false
-            nextEvent = nil
+        authorizationStatus = authorization?() ?? source.authorizationStatus
+        guard isMonitoring, authorizationStatus == .fullAccess else {
+            clearEvents()
             return
         }
+        let readSession = sessionID
         let cal = Calendar.current
         let now = Date()
         let startOfDay = cal.startOfDay(for: now)
         guard let endOfDay = cal.date(byAdding: .day, value: 1, to: startOfDay) else { return }
 
-        let predicate = store.predicateForEvents(
-            withStart: startOfDay,
-            end: endOfDay,
-            calendars: nil
-        )
-
-        let events = store.events(matching: predicate)
+        let events = source.events(from: startOfDay, to: endOfDay)
             .filter { !$0.isAllDay }
             .sorted { $0.startDate < $1.startDate }
 
+        // A provider can observe revocation while fetching. Discard the result
+        // rather than publish meetings from an obsolete permission or session.
+        authorizationStatus = authorization?() ?? source.authorizationStatus
+        guard isMonitoring, sessionID == readSession, authorizationStatus == .fullAccess else {
+            clearEvents()
+            return
+        }
         todayEvents = events
 
         hasCurrentEvent = events.contains { event in
@@ -155,6 +162,11 @@ final class CalendarMonitor {
         now: Date,
         windowMinutes: Int = 60
     ) -> EKEvent? {
+        guard isMonitoring, source.authorizationStatus == .fullAccess else {
+            authorizationStatus = authorization?() ?? source.authorizationStatus
+            clearEvents()
+            return nil
+        }
         let cal = Calendar.current
         let midnight = cal.startOfDay(for: now)
         let curfewTime = midnight.addingTimeInterval(TimeInterval(scheduleEndMinutes * 60))
@@ -169,6 +181,12 @@ final class CalendarMonitor {
     }
 
     // MARK: - Private
+
+    private func clearEvents() {
+        todayEvents = []
+        hasCurrentEvent = false
+        nextEvent = nil
+    }
 
     private func scheduleRefresh() {
         refreshTimer?.invalidate()

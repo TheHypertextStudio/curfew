@@ -3,6 +3,19 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 const project = readFileSync(new URL('../Curfew.xcodeproj/project.pbxproj', import.meta.url), 'utf8');
+test('A clean checkout shares the documented app scheme and both test targets', () => {
+  const scheme = readFileSync(new URL('../Curfew.xcodeproj/xcshareddata/xcschemes/Curfew.xcscheme', import.meta.url), 'utf8');
+  const build = /<BuildAction[\s\S]*?<\/BuildAction>/.exec(scheme)?.[0];
+  const tests = /<TestAction[\s\S]*?<\/TestAction>/.exec(scheme)?.[0];
+  assert.match(build, /BlueprintName = "Curfew"/);
+  for (const target of ['CurfewTests', 'CurfewUITests']) {
+    assert.match(tests, new RegExp(`BlueprintName = "${target}"`));
+  }
+  for (const [, identifier] of scheme.matchAll(/BlueprintIdentifier = "([A-F0-9]+)"/g)) {
+    assert.ok(project.includes(`${identifier} /*`), `Unknown scheme target ${identifier}`);
+  }
+});
+
 test('Xcode resolves shared library, protocol contract, and updater together', () => {
   const references = [...project.matchAll(/packageReferences = \(([\s\S]*?)\);/g)];
   assert.equal(references.length, 1, 'Duplicate packageReferences hides earlier dependencies');

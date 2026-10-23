@@ -41,7 +41,7 @@ enum AIConsentPolicy: String, Codable, CaseIterable {
     var rationale: String {
         switch self {
         case .queue:
-            "You approve each change in Curfew."
+            "Curfew asks before applying an AI-requested extension or schedule change."
         case .autoApprove:
             "Trusted assistants can change your schedule and request extra time without asking."
         case .deny:

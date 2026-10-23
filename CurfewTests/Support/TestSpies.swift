@@ -168,6 +168,12 @@ final class FakeAccessibilityAuthorization: AccessibilityAuthorizing {
     /// Number of times `promptForTrust()` has been called.
     private(set) var promptForTrustCallCount = 0
 
+    private(set) var openSettingsCallCount = 0
+
+    func openSettings() {
+        openSettingsCallCount += 1
+    }
+
     /// Creates a fake with the given scripted trust and prompt outcomes.
     /// - Parameters:
     ///   - trusted: Value returned by `isTrusted()`.
@@ -186,5 +192,21 @@ final class FakeAccessibilityAuthorization: AccessibilityAuthorizing {
     func promptForTrust() -> Bool {
         promptForTrustCallCount += 1
         return promptResult
+    }
+}
+
+final class KeyboardShieldSpy: KeyboardShieldControlling {
+    var isEnabled = false
+    private(set) var startCount = 0
+    private(set) var stopCount = 0
+
+    func start() {
+        startCount += 1
+        isEnabled = true
+    }
+
+    func stop() {
+        stopCount += 1
+        isEnabled = false
     }
 }

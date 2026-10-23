@@ -6,45 +6,44 @@ at the bottom; if that is why you are here, jump to it.
 
 ## The problem
 
-Curfew's lockout is a display and keyboard shield. `OverlayCoordinator` puts a
+Curfew's lockout combines a full-screen overlay with keyboard shortcut blocking. `OverlayCoordinator` puts a
 borderless window on every `NSScreen` at `.screenSaver` level and
-`LockoutKeyInterceptor` taps `CGEvent` to swallow ⌘⇥ / ⌘Q / ⌘⌥Esc. Neither
+`LockoutKeyInterceptor` uses a `CGEvent` tap to block ⌘⇥ / ⌘Q / ⌘⌥Esc when Accessibility access is granted. Neither
 touches a process, so a `claude` or `codex` run started before curfew keeps
-running through the night.
+running during lockout unless another action stops it.
 
 Two paths do end processes.
 
 1. `ShutdownWorkflow` → `SystemShutdownController.requestGracefulTermination()`
-   sends `terminate()` to every running application except Curfew, then
-   AppleScripts a shut down. Terminating Terminal, iTerm, or VS Code takes every
-   child process in it, so the agent dies with its window.
+   sends `terminate()` to running applications except Curfew and configured
+   protected applications, then requests shutdown through AppleScript. Closing
+   Terminal, iTerm, or VS Code can stop processes launched inside them.
+   Protected apps skip Curfew's termination step, but they still stop at shutdown.
 2. `Sources/curfew-daemon/main.swift` polls every 15 s and, when the app
    heartbeat is more than 90 s stale during an active lockout, runs
    `/sbin/shutdown -h +1` as root.
 
-Before this change, agents survived only because auto-shutdown defaults off and
-the daemon is not installed. That is an accident, not a feature. Turn either
-one on and the night's work is gone.
+Auto-shutdown is off by default. Enabling it or installing the daemon can
+interrupt background work unless a claim or detected work delays shutdown.
 
 ## The model
 
-Three pieces, all in `CurfewKit` so the app, `curfew-ctl`, `curfew-mcp`, and the
-root daemon share one definition.
+The app, `curfew-ctl`, `curfew-mcp`, and the root daemon share three types in
+`CurfewKit`.
 
 **`ProtectedWorkPolicy`** (`Sources/CurfewKit/Settings/ProtectedWorkPolicy.swift`)
 carries the allowlist and the deferral bound. It lives on `CurfewSettings`, so
 it syncs and persists with everything else, and it is editable in Settings →
-Enforcement → Protected Work. Defaults name common terminal emulators
+Protected Work. Defaults name common terminal emulators
 (Terminal, iTerm2, Ghostty, kitty, Alacritty, WezTerm, Warp, Hyper) and common
 agent CLIs (`claude`, `codex`, `aider`, `goose`, `gemini`, plus `ssh`, `mosh`,
 `tmux`, `screen`). Those are defaults, not architecture: no enforcement code
 knows any specific identifier.
 
 **`ProtectedWorkClaim`** (`Sources/CurfewKit/Storage/ProtectedWorkStore.swift`)
-is a lease, not a reservation. A claim carries a label, a source, and an expiry;
-the holder renews to keep it alive. An agent that crashes stops renewing and its
-protection lapses within one lease, so nothing has to notice the death and clean
-up. Claims live at
+has a label, a source, and an expiry. A caller renews the claim to keep it
+active. If a caller stops renewing, the claim expires without a separate cleanup
+operation. Claims live at
 `~/Library/Application Support/Curfew/protected-work.json`, mode 0600, beside
 `mcp-requests.json`. That location — rather than the App Group container where
 `app-heartbeat` and `lockout-deadline.json` sit — avoids the macOS "access data
@@ -52,39 +51,34 @@ from other apps" prompt that a non-sandboxed app triggers when it touches its
 own group container.
 
 **`ProtectedWorkDeferral`** (`Sources/CurfewKit/Domain/ProtectedWorkGate.swift`)
-is the bound. Both kill paths run their decision through it, which is what keeps
-the app's answer and the daemon's answer the same.
+calculates the deferral bound. The app and daemon use the same decision logic.
 
 Three surfaces file claims. `curfew-ctl work claim --label … --minutes N`
 prints a claim id for a shell wrapper to renew and release. The MCP tool
 `curfew_declare_work` does the same for an agent, and `curfew_release_work`
-drops it early. The app reads claims every tick.
+releases it early. The app reads claims every tick.
 
-## The half claims do not cover
+## Work without a claim
 
-Every one of those surfaces requires the work to *announce itself*. That
-covers cooperating callers and nothing else, and the two cases this whole
-carve-out exists for are usually not cooperating:
+Claims require a caller to file and renew them. These two cases may have no claim:
 
 - A `claude` or `codex` run started from a shell before curfew. It files
-  nothing, because nobody wrapped it in `curfew-ctl work claim`.
+  nothing because nobody wrapped it in `curfew-ctl work claim`.
 - An engineer working on the Mac over SSH. There is no claim and no agent —
-  just a person whose machine is about to power off underneath them.
+  a remote session that shutdown would interrupt.
 
-The allowlist did not help either, and it is worth being precise about why.
+The application allowlist does not detect these cases.
 `protectedProcessNames` is read in exactly one place:
 `SystemShutdownController.requestGracefulTermination`, which filters
 `NSWorkspace.runningApplications`. That list holds LaunchServices
 applications; a bare CLI process is never in it. So `claude`, `ssh`, `tmux`,
-and `screen` sat in the default policy matching nothing, and sparing an
-application Curfew was never going to `terminate()` anyway is not a carve-out.
-Meanwhile the daemon's `/sbin/shutdown` does not care what is on any
-allowlist — it powers the machine off and takes everything with it.
+and `screen` do not match LaunchServices applications in that policy.
+The daemon's `/sbin/shutdown` stops the Mac regardless of the application
+allowlist.
 
 **`LiveProtectedWorkMonitor`** (`Sources/CurfewKit/Domain/LiveProtectedWork.swift`)
-closes that half. It reads the machine directly and feeds the answer into the
-same `hasActiveProtectedWork` input both paths already share, so nothing new
-decides anything:
+detects processes and remote sessions. It supplies the same
+`hasActiveProtectedWork` input that the app and daemon use for claims:
 
 - `SysctlProcessEnumerator` walks `sysctl(KERN_PROC_ALL)` and matches `p_comm`
   against `ProtectedWorkPolicy.deferringProcessNames`. `p_comm` rather than
@@ -92,35 +86,29 @@ decides anything:
   user's argv, and the app (user) and the daemon (root) must see one machine.
   The kernel truncates `p_comm` at 16 characters.
 - `UtmpxLoginSessionEnumerator` reads `utmpx` — what `who` reads — and counts
-  a session as remote when `ut_host` is non-empty. That, and not the presence
-  of an `sshd` process, is the honest test: the `sshd` listener runs whenever
-  Remote Login is enabled, so matching on it would hold enforcement off every
-  night on any Mac that merely *accepts* SSH.
+  a session as remote when `ut_host` is non-empty. An `sshd` process alone does not establish a remote session. The listener
+  runs whenever Remote Login is enabled, so matching on it would delay shutdown
+  during each lockout on any Mac that accepts SSH.
 
 `ProtectedWorkStores.hasProtectedWork(now:policy:)` is the single place claims
 and observations are OR-ed together, so root's answer and the user's answer
-cannot drift.
+use the same combination rule.
 
 ### Why `deferringProcessNames` is a second, narrower list
 
-The obvious move is to reuse `protectedProcessNames` and it is wrong. The two
-lists answer different questions and one of them is much more expensive to be
-generous with.
+`protectedProcessNames` skips application termination. `deferringProcessNames`
+delays shutdown. Reusing the application list would delay shutdown even when a
+terminal is open without a running job.
 
-"Do not send this `terminate()`" costs nothing when over-applied: if the Mac
-powers off anyway, sparing a terminal changed nothing. "Hold the shutdown
-while this is alive" costs the full deferral window. `tmux`, `screen`, a
-parked `ssh`, and every terminal emulator are alive on a working machine
-essentially always — so reusing that list would spend thirty minutes of
-enforcement every single night for most users, whether or not any work was
-actually in flight. That is not a carve-out for delegated work; that is
-enforcement quietly becoming thirty minutes weaker.
+A terminal can remain open after its job finishes. `tmux`, `screen`, and `ssh`
+can also remain running without active work. Including them in the shutdown
+delay list would consume the full deferral window even when no job needs it.
 
-So `deferringProcessNames` names only commands that exist *because a job is
-running* and exit when it finishes: `claude`, `codex`, `aider`, `goose`,
+`deferringProcessNames` defaults to agent command names: `claude`, `codex`,
+`aider`, `goose`,
 `gemini`. Emptying the list turns liveness-based deferral off entirely, and
 `defersForRemoteSessions` does the same for SSH. Both are in Settings →
-Enforcement → Protected Work.
+Protected Work.
 
 Everything downstream is unchanged: the observation only sets the same boolean
 a claim sets, so the 30-minute bound, the break-glass precedence, and the
@@ -128,18 +116,18 @@ marker invariants below all apply to it exactly as written.
 
 ## Why `curfew_declare_work` is not on the consent queue
 
-`curfew_request_extension` and `curfew_set_schedule` weaken the curfew: they
-move when the user gets locked out, so a human approves each one through
-`MCPRequestMonitor` and the consent sheet. `curfew_declare_work` does not. It
+`curfew_request_extension` and `curfew_set_schedule` can move the lock time.
+They pass through `MCPRequestMonitor` and follow the user's consent policy.
+`curfew_declare_work` does not use that queue. It
 cannot unlock the display, cannot move the lock time, and cannot extend the
-window. It postpones the destructive half of enforcement so unfinished work is
-not thrown away, and nothing else.
+window. It delays application termination and shutdown within the configured
+limit. Work can still be interrupted when that limit expires.
 
-Queueing it would also be useless exactly when it matters. The daemon's shutdown
-fires because the Curfew app has stopped responding — which is precisely when
-nobody can approve a consent sheet.
+Queueing a claim would prevent approval while the app is unresponsive. The
+daemon schedules shutdown when the app heartbeat becomes stale. During that
+failure, the user may be unable to approve a consent sheet.
 
-Three things keep it honest instead:
+Three limits apply to claims:
 
 - `ProtectedWorkPolicy.acceptsAgentClaims` lets the user refuse agent claims
   outright, and the tool returns a policy error rather than filing one.
@@ -153,26 +141,25 @@ Three things keep it honest instead:
 `1 ... 120` on construction *and* on decode, so neither the Settings UI nor a
 hand-edited JSON file can widen it further.
 
-Thirty minutes comfortably outlasts a single agent turn and is a rounding error
-against a lockout window measured in hours. A claim that never gets released
-therefore costs half an hour of curfew, not the whole night.
+The default permits at most 30 minutes of delay. It does not guarantee that a
+job finishes before shutdown.
 
 The bound is measured **from the moment the destructive action first came due**,
 not from the most recent claim. Measuring from the latest claim would let an
-agent that keeps renewing hold enforcement off forever, which is the failure the
+agent that keeps renewing delay shutdown indefinitely, which is the failure the
 type exists to prevent. Once the window is spent, the gate returns `proceed` no
 matter how fresh the claim is, and a claim filed one second later cannot reopen
 it.
 
 The daemon persists the window's start to
 `/Library/Application Support/Curfew/deferral-started`, root-owned. `launchd`
-will happily respawn the daemon, so an in-memory clock would make the bound
+can restart the daemon, so an in-memory clock would make the bound
 meaningless — restart the process, get a fresh 30 minutes.
 
 ### The marker invariant
 
-A persisted window is dangerous in the other direction too, and the first cut
-of this branch got it wrong. Two rules now govern the marker, both enforced in
+A stale persisted window can cause shutdown before the current deferral limit.
+Two rules govern the marker, both enforced in
 `DaemonEnforcementDecision`:
 
 1. **The marker mirrors the in-memory window after every tick, `nil`
@@ -182,18 +169,18 @@ of this branch got it wrong. Two rules now govern the marker, both enforced in
    closes the window as a consequence of the invariant rather than as a special
    case, and the caller writes that `nil` straight through.
 
-   Without it: the app blips out (crash and relaunch, or sleep/wake) while an
+   Without it: the app stops responding (crash and relaunch, or sleep/wake) while an
    agent is working, a window opens, the app recovers, and the marker is left
    behind. Later in the *same* lockout the app goes stale again for real. The
-   daemon reads the old start, sees a budget spent an hour ago, and fires
+   daemon reads the old start, sees a deferral limit reached an hour ago, and fires
    `/sbin/shutdown -h +1` on the first tick with no grace at all — killing the
    live agent work this whole branch exists to protect.
 
 2. **A marker that predates the current `lockoutStartedAt` is ignored**, as is
    one dated in the future. The marker is root-owned and outlives the daemon:
-   `launchctl bootout`, a panic, or a power cut all leave it on disk. Tuesday's
-   marker would otherwise hand Wednesday's first genuine incident a budget that
-   expired a day ago. This is the same scoping rule break-glass records already
+   `launchctl bootout`, a panic, or a power cut all leave it on disk. A previous lockout's
+   marker would otherwise make the current incident use an expired deferral
+   window. This is the same scoping rule break-glass records already
    follow.
 
 The daemon's whole decision now lives in
@@ -208,11 +195,11 @@ be missing.
 ### Why it has to exist
 
 `/sbin/shutdown -h +1` was chosen for the daemon *because* user space cannot
-cancel it. That is a reasonable anti-bypass property and an unreasonable trap:
+cancel it. That prevents a normal user process from cancelling the countdown:
 every ordinary recovery move — killing a wedged app, rebooting a crash loop,
 debugging enforcement — becomes a forced power-off a minute later, and the only
-surface offering to help is behind a locked display. An escape that depends on
-the thing that is broken is not an escape.
+app control for recovery is behind a locked display. The CLI release provides
+recovery when the app cannot accept input.
 
 The daemon must not be installed until this exists. It now does.
 
@@ -220,12 +207,11 @@ The daemon must not be installed until this exists. It now does.
 
 `curfew-ctl break-glass --reason "…"` writes a signed `BreakGlassRelease` to
 `~/Library/Application Support/Curfew/break-glass.json`. The app and the daemon
-both check for one every tick and stand their destructive paths down when they
-find a valid one. Run under `sudo`, the command also kills a `/sbin/shutdown`
+both check for one every tick and suspend application termination and shutdown
+when they find a valid one. Run under `sudo`, the command also kills a `/sbin/shutdown`
 that is already counting down.
 
-It does not unlock the display and it does not shorten the curfew. Standing the
-consequences down is not the same as ending enforcement.
+The display stays locked and the scheduled unlock time remains unchanged.
 
 Four rules decide whether a record counts:
 
@@ -233,17 +219,16 @@ Four rules decide whether a record counts:
   `~/Library/Application Support/Curfew/.break-glass-secret` (mode 0600).
 - It must not be dated in the future.
 - It must have been issued after the current lockout window started — the
-  daemon passes `lockoutStartedAt` from the deadline record, so last night's
-  release cannot disarm tonight.
+  daemon passes `lockoutStartedAt` from the deadline record, so a release from
+  an earlier lockout cannot suspend shutdown in the current lockout.
 - Failing that, it ages out after 12 hours.
 
-The signature is not a security boundary and is not meant to be. The key sits in
-the user's own directory, and anyone who can read it can already run `sudo`.
-What it buys is that a stray write, a stale file from a previous install, or a
-buggy script cannot disable root-level enforcement by accident. Releasing has to
-be something a person meant to do. The 20-character minimum reason and the
-recorded `user@host` are the same idea: a commitment device whose escape hatch
-costs nothing is not a commitment device.
+The signature is not a security boundary. The key sits in the user's own
+directory, and anyone who can read it can sign a release record.
+The signature prevents a stray write, a stale file from a previous install, or a
+buggy script from disabling root-level shutdown without a valid record.
+The command requires a 20-character reason and records `user@host` so the audit
+log identifies who issued the release and why.
 
 ### Runbook
 
@@ -254,7 +239,7 @@ covering.
 # The Mac is counting down to a forced shutdown. Stop it.
 sudo curfew-ctl break-glass --reason "daemon fired during an agent run; investigating"
 
-# No countdown yet, just stand the daemon down for tonight.
+# Suspend application termination and shutdown for the current lockout.
 curfew-ctl break-glass --reason "debugging enforcement on this machine"
 
 # See what would happen first.
@@ -272,17 +257,18 @@ than failing quietly, and the countdown keeps running.
 The release is cleared automatically when the lockout window ends naturally, in
 `clearDurableDeadlineIfNaturalUnlock()`.
 
-A release is a *hold*, never an ending. Both paths re-read it on every pass, so
+A release suspends application termination and shutdown while it remains valid.
+Both paths re-read it on every pass, so
 revoking one re-arms both: the app's `ShutdownWorkflow` leaves
 `.releasedByBreakGlass` and attempts the shutdown again, and the daemon resets
 `shutdownIssued` and fires on its next stale-heartbeat tick. Revoking also hands
-protected work a full grace window rather than a spent one, because standing
-down clears the deferral window on the way in.
+protected work a new grace window because the release clears the deferral
+window when it takes effect.
 
 ## One gate, both paths
 
 `DestructiveActionGate` in `Sources/CurfewKit/Domain/DestructiveActionGate.swift`
-owns the entire "may I destroy the user's work right now?" question —
+decides whether application termination or shutdown may proceed —
 break-glass, protected work, and the bounded window together. The app's
 `ShutdownWorkflow.attemptOrHold` and the daemon's
 `DaemonEnforcementDecision.evaluate` both call it and neither decides anything
@@ -292,7 +278,7 @@ Sharing a *helper* was not enough. An earlier cut had both paths consulting
 `ProtectedWorkDeferral` and they still drifted, because the app treated a
 break-glass release as terminal for the rest of the window while the daemon
 re-read it every tick: revoking re-armed the daemon and left the app stood down
-for the night. The answers matched until the question changed, so the whole
+for the lockout window. The answers matched until the question changed, so the whole
 question moved into one type.
 
 `CurfewTests/App/Infrastructure/EnforcementParityTests.swift` runs the same
@@ -304,33 +290,30 @@ the next divergence fails there rather than at 22:00 on someone's Mac.
 `/sbin/shutdown -h +1` executes about a minute after it is issued, so
 "the daemon decided not to shut down" and "the machine will not shut down" are
 different statements for sixty seconds. A protected-work claim arriving on a
-tick inside that minute has to *call the countdown off*, not merely be noted.
+tick inside that minute must cancel the countdown before it expires.
 
 Which actions cancel is carried on the decision's outcome
 (`cancelsPendingShutdown`) rather than inferred by the code that acts on it,
 because inferring it is exactly where this went wrong — `.hold` decided to wait
 and then only logged, and the machine powered off with the work anyway.
 
-- `.hold` and `.standDown` cancel. Something is telling the daemon not to
-  destroy the user's work, and a countdown already running would destroy it.
+- `.hold` and `.standDown` cancel. A valid claim or release delays shutdown, so a pending countdown must stop.
 - `.exit` cancels. The lockout window is over, so powering the Mac off after a
-  legitimate unlock is pure harm, and the bypass it buys is the seconds the
-  countdown had left.
+  scheduled unlock would contradict the resolved lockout state.
 - `.wait` does **not**. Its main cause is the app heartbeat recovering, and
-  cancelling there would price the bypass at nothing: kill Curfew, enjoy an
+  cancelling there would allow this bypass: kill Curfew, enjoy an
   unlocked screen, relaunch inside the minute, walk away without consequence.
-  The daemon's whole deterrent is that going missing during lockout costs you
-  the machine.
+  The daemon retains a scheduled shutdown after a stale heartbeat even if the
+  app starts responding again.
 
-Cancelling also resets `shutdownIssued`, so the reprieve is genuinely a
-reprieve: if the work never finishes, the bound expires and the daemon fires
-again.
+Cancelling also resets `shutdownIssued`. If the work never finishes, the bound
+expires and the daemon schedules shutdown again.
 
 ## Where the bugs were, and what changed about that
 
 All three findings across three review rounds were in imperative shell code
 that no test could reach, while the pure decision beside it was well covered.
-The daemon now has two testable halves and no third place to hide:
+The daemon now separates the decision from the effects:
 
 - `DaemonEnforcementDecision.evaluate` — what to do, as a pure function.
 - `DaemonEnforcementRuntime.apply` — carrying it out, against a
@@ -358,9 +341,9 @@ about, because "no protected work" means "go ahead and shut down".
 owner of `/dev/console`) when the effective uid is 0, and returns the process
 home unchanged for everyone else. Non-root behaviour is byte-identical.
 
-**This is a behaviour change with teeth.** It is the first time the daemon can
-actually find the files it polls, which means the first time its shutdown path
-can fire at all. Review it before installing the daemon.
+**This enables the daemon's shutdown path.** The daemon can now find the files
+it polls and schedule shutdown when their state requires it. Review this
+behavior before installing the daemon.
 
 ## What is not done
 
@@ -374,10 +357,11 @@ can fire at all. Review it before installing the daemon.
   sentinel, the daemon may never start. Pre-existing, untouched here, and worth
   fixing before install day.
 - Claims are not surfaced on the lockout screen or in the activity log. The
-  shutdown status line mentions a hold; there is no list of what is holding.
+  shutdown status line reports a delay; it does not list the work causing it.
 - `ProtectedWorkPolicy` matches an application exactly and case-insensitively.
   There is no pattern matching, deliberately — a prefix rule on reverse-DNS
-  identifiers would let `com.apple.Terminal` shield everything Apple ships.
+  identifiers would let `com.apple.Terminal` skip termination for every Apple
+  application.
   `deferringProcessNames` follows the same rule for the same reason.
 - No inbound SSH session has been exercised end to end. Creating one from a
   test needs Remote Login enabled on the host and credentials to log in with,

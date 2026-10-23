@@ -7,7 +7,7 @@ import Foundation
 struct ReflectionCommand: ParsableCommand {
     static var configuration = CommandConfiguration(
         commandName: "reflections",
-        abstract: "Show recorded morning and evening reflections."
+        abstract: "Show recorded start-of-work and lockout reflections."
     )
 
     /// How many days back to include (counting from the start of that day).
@@ -15,7 +15,7 @@ struct ReflectionCommand: ParsableCommand {
     var days: Int = 7
 
     /// Restrict output to a single gate.
-    @Option(name: .long, help: "Filter by gate: morning or evening.")
+    @Option(name: .long, help: "Filter by gate: morning (start of work) or evening (lockout).")
     var gate: String?
 
     /// Emit JSON rather than the default human-readable format.
@@ -73,7 +73,7 @@ struct ReflectionCommand: ParsableCommand {
         formatter.timeStyle = .short
         for reflection in reflections.reversed() {
             let when = formatter.string(from: reflection.timestamp)
-            let gateLabel = reflection.gate == .morning ? "Morning" : "Evening"
+            let gateLabel = reflection.gate == .morning ? "Start of work" : "Lockout"
             print("\(when) — \(gateLabel)")
             for answer in reflection.answers {
                 print("  • \(answer.promptTextSnapshot)")

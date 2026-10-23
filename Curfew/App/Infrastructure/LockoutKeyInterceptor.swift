@@ -70,13 +70,18 @@ private final class TapPortBox {
     var tap: CFMachPort?
 }
 
+/// Lets model tests observe shield recovery without installing a system event tap.
+protocol KeyboardShieldControlling: AnyObject {
+    var isEnabled: Bool { get }
+    func start()
+    func stop()
+}
+
 /// Installs a `CGEventTap` at the session level that consults
 /// `LockoutShortcutPolicy` for every keydown while lockout is active.
 ///
-/// Requires the host app to hold the Accessibility entitlement; without it
-/// `CGEvent.tapCreate` will succeed at install time but the tap will be
-/// disabled by the OS at first event. The getting-started flow walks the
-/// user through granting this permission in System Settings.
+/// Requires live Accessibility trust. Installation and recovery recheck this
+/// permission; the getting-started flow guides the user to System Settings.
 ///
 /// The tap is kept resilient: the OS can disable a tap that is too slow to
 /// respond (`tapDisabledByTimeout`) or after certain user input
@@ -88,7 +93,13 @@ private final class TapPortBox {
 /// This is a best-effort input deterrent — a determined user with root access
 /// can still bypass it. The privileged helper adds a separate higher-privilege
 /// deadline and shutdown layer rather than pretending to be a keyboard driver.
-final class LockoutKeyInterceptor {
+final class LockoutKeyInterceptor: KeyboardShieldControlling {
+    private let authorization: AccessibilityAuthorizing
+
+    init(authorization: AccessibilityAuthorizing = SystemAccessibilityAuthorization()) {
+        self.authorization = authorization
+    }
+
     /// Remediation the watchdog should take for a tap given its observable
     /// state. Pure and `Equatable` so the decision is unit-testable without a
     /// live tap or run loop.
@@ -153,8 +164,8 @@ final class LockoutKeyInterceptor {
         eventTap.map { CGEvent.tapIsEnabled(tap: $0) } ?? false
     }
 
-    /// Installs the event tap and starts the watchdog. Safe to call
-    /// repeatedly; no-ops when already running. If the tap fails to create
+    /// Installs the event tap and starts the watchdog, or re-enables an
+    /// installed but disabled tap. Missing live trust stops both. If creation fails
     /// (e.g. accessibility not granted), this silently returns without setting
     /// `eventTap` — callers should check ``isActive`` if they need to know
     /// whether interception took.
@@ -165,12 +176,19 @@ final class LockoutKeyInterceptor {
     /// scheduled; an existing watchdog's ``TapWatchdogDecision/recreate`` path
     /// already retries the install on its own cadence.
     func start() {
+        guard authorization.isTrusted() else {
+            stop()
+            return
+        }
         // Skip in a unit-test host: creating the CGEvent tap raises the macOS
         // Accessibility ("control your computer") prompt, and every re-signed
         // test build re-prompts. No test asserts the live tap; production
         // launches install it as normal.
         guard !RuntimeEnvironment.isUnitTestHost else { return }
-        guard eventTap == nil else {
+        if let tap = eventTap {
+            if !isEnabled {
+                CGEvent.tapEnable(tap: tap, enable: true)
+            }
             return
         }
 
@@ -200,6 +218,7 @@ final class LockoutKeyInterceptor {
     /// Creates the session tap, adds it to the main run loop, enables it, and
     /// wires up the callback's port box. No-ops if creation fails.
     private func installTap() {
+        guard authorization.isTrusted() else { return }
         let mask = (1 << CGEventType.keyDown.rawValue) | (1 << CGEventType.flagsChanged.rawValue)
         let box = TapPortBox()
         let boxPointer = Unmanaged.passRetained(box)
@@ -248,7 +267,7 @@ final class LockoutKeyInterceptor {
     /// it reaches the tap port through the boxed `userInfo` pointer.
     private static let eventCallback: CGEventTapCallBack = { _, type, event, userInfo in
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
-            if let userInfo {
+            if AXIsProcessTrusted(), let userInfo {
                 let box = Unmanaged<TapPortBox>.fromOpaque(userInfo).takeUnretainedValue()
                 if let tap = box.tap {
                     CGEvent.tapEnable(tap: tap, enable: true)
@@ -287,9 +306,13 @@ final class LockoutKeyInterceptor {
         watchdog = timer
     }
 
-    /// Consults ``TapWatchdogDecision`` and acts: re-enables a disabled tap or
-    /// reinstalls a vanished one.
+    /// Rechecks permission before recovering the tap. Revocation stops the
+    /// watchdog; a later enforcement tick can retry after a grant.
     private func runWatchdog() {
+        guard authorization.isTrusted() else {
+            stop()
+            return
+        }
         switch TapWatchdogDecision.decide(installed: isActive, enabled: isEnabled) {
         case .healthy:
             break

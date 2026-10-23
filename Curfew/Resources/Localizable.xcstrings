@@ -3,7 +3,630 @@
   "strings" : {
     "" : {
       "comment" : "Seed catalog for future localization. Swift strings used in SwiftUI Text and NSLocalizedString calls are auto-extracted by Xcode via STRING_CATALOG_GENERATE_SYMBOLS = YES (set in the Xcode project). This empty seed lets translators see the file exists; entries populate on next build."
-    }
+    },
+    "%@. Start-of-work reflection." : {},
+    "%lld consecutive days with lockout" : {},
+    "A declared task delays application termination and shutdown. It does not unlock the screen or change the schedule. Curfew resumes shutdown after this limit even if the task is still running." : {},
+    "About" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "About"
+          }
+        }
+      }
+    },
+    "Accessibility" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accessibility"
+          }
+        }
+      }
+    },
+    "Account" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Account"
+          }
+        }
+      }
+    },
+    "Additional delay" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Additional delay"
+          }
+        }
+      }
+    },
+    "Additional delay: %lld min" : {},
+    "Advanced" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Advanced"
+          }
+        }
+      }
+    },
+    "Allow running work to finish within a time limit." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow running work to finish within a time limit."
+          }
+        }
+      }
+    },
+    "Answer your reflection questions, or skip them." : {},
+    "Application bundle identifiers" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Application bundle identifiers"
+          }
+        }
+      }
+    },
+    "Applications Curfew skips before shutdown" : {},
+    "Applications and processes" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Applications and processes"
+          }
+        }
+      }
+    },
+    "Automatic Shutdown" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatic Shutdown"
+          }
+        }
+      }
+    },
+    "Calendar access granted. Events today: %lld." : {},
+    "Camera data and privacy" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Camera data and privacy"
+          }
+        }
+      }
+    },
+    "Camera frames stay on this Mac. Curfew does not save images or identify people." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Camera frames stay on this Mac. Curfew does not save images or identify people."
+          }
+        }
+      }
+    },
+    "Change warning times" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Change warning times"
+          }
+        }
+      }
+    },
+    "Chrome and Docket" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chrome and Docket"
+          }
+        }
+      }
+    },
+    "Command names, one per line" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Command names, one per line"
+          }
+        }
+      }
+    },
+    "Commands that delay shutdown" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Commands that delay shutdown"
+          }
+        }
+      }
+    },
+    "Commands that delay shutdown while running, one per line" : {},
+    "Configure Chrome blocking for active work in Docket." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configure Chrome blocking for active work in Docket."
+          }
+        }
+      }
+    },
+    "Curfew delays shutdown while a listed command is running, up to the limit below. List commands that exit when their task finishes. A terminal or tmux server can keep running after a task ends, so listing either may delay every shutdown until the limit expires." : {},
+    "Curfew is set to enforce your schedule." : {},
+    "Curfew needs Accessibility access to block bypass shortcuts during lockout." : {},
+    "Curfew needs full Calendar access to read events. Open System Settings → Privacy & Security → Calendars." : {},
+    "Curfew skips the listed applications and processes when it requests termination before shutdown. A system shutdown still stops them." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Curfew skips the listed applications and processes when it requests termination before shutdown. A system shutdown still stops them."
+          }
+        }
+      }
+    },
+    "Curfew skips these applications and processes when it requests application termination before shutdown. A system shutdown still stops them. To delay shutdown while work runs, use the settings below." : {},
+    "Curfew uses the camera to estimate whether someone is at your Mac. It cannot tell whether you're working." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Curfew uses the camera to estimate whether someone is at your Mac. It cannot tell whether you're working."
+          }
+        }
+      }
+    },
+    "Curfew won't block access until you turn it on." : {},
+    "Data access and shutdown requests" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Data access and shutdown requests"
+          }
+        }
+      }
+    },
+    "Delay scheduled lockout." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delay scheduled lockout."
+          }
+        }
+      }
+    },
+    "Delay shutdown" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delay shutdown"
+          }
+        }
+      }
+    },
+    "Delay shutdown for at most: %lld min" : {},
+    "Delay shutdown for remote sessions" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delay shutdown for remote sessions"
+          }
+        }
+      }
+    },
+    "Delay shutdown while someone is logged in over the network" : {},
+    "Detect whether you're at your Mac." : {},
+    "Duration" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Duration"
+          }
+        }
+      }
+    },
+    "Encryption and account recovery" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Encryption and account recovery"
+          }
+        }
+      }
+    },
+    "End of work" : {},
+    "End-of-work prompts" : {},
+    "End-of-work reflection" : {},
+    "Extensions duration" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Extensions duration"
+          }
+        }
+      }
+    },
+    "Extensions per week" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Extensions per week"
+          }
+        }
+      }
+    },
+    "Final warning" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Final warning"
+          }
+        }
+      }
+    },
+    "First warning" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "First warning"
+          }
+        }
+      }
+    },
+    "Fourth warning" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fourth warning"
+          }
+        }
+      }
+    },
+    "Integrations" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Integrations"
+          }
+        }
+      }
+    },
+    "Keyboard shortcut blocking is available" : {},
+    "Keyboard shortcut blocking is unavailable" : {},
+    "Keyboard shortcut blocking was interrupted" : {},
+    "List commands that exit when their task finishes. A terminal or tmux server may keep running and delay every shutdown until the limit expires." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "List commands that exit when their task finishes. A terminal or tmux server may keep running and delay every shutdown until the limit expires."
+          }
+        }
+      }
+    },
+    "Lockout" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lockout"
+          }
+        }
+      }
+    },
+    "Lockout recorded" : {},
+    "Maximum delay" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maximum delay"
+          }
+        }
+      }
+    },
+    "Maximum delay: %lld min" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maximum delay: %lld min"
+          }
+        }
+      }
+    },
+    "No lockout recorded" : {},
+    "Other integrations" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Other integrations"
+          }
+        }
+      }
+    },
+    "Overrides duration" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Overrides duration"
+          }
+        }
+      }
+    },
+    "Overrides per week" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Overrides per week"
+          }
+        }
+      }
+    },
+    "Per week" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Per week"
+          }
+        }
+      }
+    },
+    "Presence" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Presence"
+          }
+        }
+      }
+    },
+    "Protected Work" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Protected Work"
+          }
+        }
+      }
+    },
+    "Reflect on your work" : {},
+    "Remind me when I'm at my Mac but inactive." : {},
+    "Reminders" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reminders"
+          }
+        }
+      }
+    },
+    "Repeat at most every" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Repeat at most every"
+          }
+        }
+      }
+    },
+    "Repeat at most every: %lld min" : {},
+    "Restore Blocking" : {},
+    "Restore Shortcut Blocking" : {},
+    "Save reflection" : {},
+    "Schedule when Curfew blocks access to your Mac." : {},
+    "Scheduled unlock: %@" : {},
+    "Second warning" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Second warning"
+          }
+        }
+      }
+    },
+    "Settings" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Settings"
+          }
+        }
+      }
+    },
+    "Shown when lockout starts." : {},
+    "Shutdown" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shutdown"
+          }
+        }
+      }
+    },
+    "Shutdown delay" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shutdown delay"
+          }
+        }
+      }
+    },
+    "Skip application termination" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skip application termination"
+          }
+        }
+      }
+    },
+    "Start of work" : {},
+    "Start-of-work prompts" : {},
+    "Start-of-work reflection" : {},
+    "Temporarily unlock during lockout." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Temporarily unlock during lockout."
+          }
+        }
+      }
+    },
+    "Third warning" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Third warning"
+          }
+        }
+      }
+    },
+    "Time before lockout" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Time before lockout"
+          }
+        }
+      }
+    },
+    "Waiting for sign-in and 2FA…" : {},
+    "Warnings before lockout: %@ min" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Warnings before lockout: %@ min"
+          }
+        }
+      }
+    },
+    "What do you plan to work on today?" : {},
+    "While enabled, local assistants can read your Curfew status, schedule, activity, and reflection text. They cannot end lockout or turn off Curfew." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "While enabled, local assistants can read your Curfew status, schedule, activity, and reflection text. They cannot end lockout or turn off Curfew."
+          }
+        }
+      }
+    },
+    "Work can delay application termination and shutdown. It does not unlock the screen or change the schedule. Curfew resumes shutdown after the limit even if work is still running." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Work can delay application termination and shutdown. It does not unlock the screen or change the schedule. Curfew resumes shutdown after the limit even if work is still running."
+          }
+        }
+      }
+    },
+    "until scheduled lockout at" : {}
   },
   "version" : "1.0"
 }

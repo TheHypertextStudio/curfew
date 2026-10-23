@@ -111,8 +111,8 @@ struct JournalReflectionsView: View {
 
             if groupedDays.isEmpty {
                 VStack(alignment: .leading, spacing: 14) {
-                    Text("No reflections yet this week. They'll appear here as you "
-                        + "set intentions in the morning and close out the day.")
+                    Text("No reflections yet this week. Save a reflection at the start of work "
+                        + "or during lockout to see it here.")
                         .font(SundownType.body(15))
                         .foregroundStyle(Palette.inkSoft)
                     Button(action: onConfigurePrompts) {
@@ -156,7 +156,7 @@ struct JournalReflectionsView: View {
                 Image(systemName: reflection.gate == .morning ? "sunrise" : "sunset")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(Palette.ember)
-                Text(reflection.gate == .morning ? "Morning intent" : "Evening reflection")
+                Text(reflection.gate == .morning ? "Start of work" : "End of work")
                     .font(SundownType.title(15))
                     .foregroundStyle(Palette.ink)
                 Spacer()

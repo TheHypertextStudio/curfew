@@ -291,12 +291,12 @@ struct ShutdownWorkflow: Equatable {
         case .deferred(let until):
             let remaining = max(0, Int(until.timeIntervalSince(now)))
             return """
-            Protected work is running. Shutdown is held for up to \
+            Protected work is running. Shutdown is delayed for up to \
             \(ShutdownWorkflow.format(seconds: remaining)) more. Lockout remains active.
             """
         case .releasedByBreakGlass:
             return """
-            Emergency release in effect. Auto shutdown is standing down; \
+            Emergency release in effect. Auto shutdown is suspended; \
             lockout remains active.
             """
         case .completed, .idle:

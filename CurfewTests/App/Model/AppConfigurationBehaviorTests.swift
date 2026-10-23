@@ -332,7 +332,7 @@ struct EnforcementSnapshotTests {
 
         #expect(snapshot.phase == .warning)
         #expect(snapshot.symbolName == "exclamationmark.triangle")
-        #expect(snapshot.statusLine == "Wrap up time")
+        #expect(snapshot.statusLine == "Lockout approaching")
         #expect(snapshot.timeRemainingText == "0:15")
         #expect(snapshot.canRequestExtension)
         #expect(snapshot.extensionsRemaining == 2)
@@ -374,7 +374,8 @@ struct SettingsSectionTests {
     @Test("Settings uses task-based navigation while retaining stored identifiers")
     func sectionSet() {
         #expect(SettingsSection.allCases.map(\.title) == [
-            "Protection", "Limits", "Warnings", "Connections", "Advanced", "About"
+            "Protection", "Lockout", "Presence", "Shutdown", "Protected Work",
+            "Account", "Integrations", "Advanced", "About"
         ])
         #expect(SettingsSection.enforcement.rawValue == "enforcement")
         #expect(SettingsSection.integrations.rawValue == "integrations")

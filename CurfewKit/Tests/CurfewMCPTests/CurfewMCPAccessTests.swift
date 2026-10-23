@@ -4,6 +4,29 @@ import Foundation
 import Testing
 
 struct CurfewMCPAccessTests {
+    @Test("Work tool descriptions distinguish shutdown delays from lockout")
+    func workDescriptionsExplainTheirLimits() throws {
+        let server = MCPServer(isAccessEnabled: { true })
+        let list = try response(from: server
+            .handle(line: #"{"jsonrpc":"2.0","id":1,"method":"tools/list"}"#))
+        let result = try #require(list["result"] as? [String: Any])
+        let tools = try #require(result["tools"] as? [[String: Any]])
+        let declare = try #require(tools.first { $0["name"] as? String == "curfew_declare_work" })
+        let release = try #require(tools.first { $0["name"] as? String == "curfew_release_work" })
+        #expect((declare["description"] as? String)?
+            .contains("within the shutdown delay limit") == true)
+        #expect((release["description"] as? String)?
+            .contains("no other claim or detected work delays them") == true)
+        let countdown = try #require(tools
+            .first { $0["name"] as? String == "curfew_get_time_remaining" })
+        #expect((countdown["description"] as? String)?
+            .contains("app-observed countdown") == true)
+        let reflections = try #require(tools
+            .first { $0["name"] as? String == "curfew_get_reflections" })
+        #expect((reflections["description"] as? String)?
+            .contains("start-of-work and lockout reflections") == true)
+    }
+
     @Test("Local schedule tool labels saved rules inactive when weekly consent is off")
     func inactiveScheduleIsLabeled() throws {
         let suiteName = "CurfewSettingsStoreTests.MCPScheduleConsent.\(UUID().uuidString)"

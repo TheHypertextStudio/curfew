@@ -15,11 +15,11 @@ public enum EncouragementMessageCatalog {
     /// Pool of lockout screen messages. Order matters: `next(after:)` walks
     /// the list circularly, so edits should preserve the tone progression.
     public static let messages = [
-        "That's the day.",
-        "Your workday's done.",
-        "See you in the morning.",
+        "Curfew is blocking access.",
+        "Lockout has started.",
+        "Take time to rest.",
         "Rest well.",
-        "Done for today."
+        "Lockout is active."
     ]
 
     /// Message shown after the user successfully confirms an override and
@@ -39,7 +39,7 @@ public enum EncouragementMessageCatalog {
     ///   `messages` is non-empty (see fallback).
     public static func next(after previous: String?) -> String {
         guard let previous, let index = messages.firstIndex(of: previous), !messages.isEmpty else {
-            return messages.first ?? "That's the day."
+            return messages.first ?? "Curfew is blocking access."
         }
         let nextIndex = (index + 1) % messages.count
         return messages[nextIndex]

@@ -21,21 +21,21 @@ import Foundation
 struct BreakGlassCommand: ParsableCommand {
     static var configuration = CommandConfiguration(
         commandName: "break-glass",
-        abstract: "Emergency release: stand root-level enforcement down for this lockout.",
+        abstract: "Emergency release: suspend application termination and shutdown for this lockout.",
         discussion: """
         Writes a signed release record that the Curfew app and the privileged \
         daemon both honor until the current lockout window ends. Run it under \
         sudo to also cancel a /sbin/shutdown the daemon has already issued — \
         that countdown cannot be stopped from user space.
 
-        The display stays locked and the curfew still ends when it was always \
-        going to end. Every release is recorded with its reason.
+        The display stays locked and the scheduled unlock time stays unchanged. \
+        Curfew records every release with its reason.
         """
     )
 
     @Option(
         name: .shortAndLong,
-        help: "Why you are releasing. At least \(BreakGlassStore.minimumReasonCharacters) characters."
+        help: "Why you need an emergency release. At least \(BreakGlassStore.minimumReasonCharacters) characters."
     )
     var reason: String
 
@@ -89,7 +89,7 @@ struct BreakGlassCommand: ParsableCommand {
             )
         } else {
             print(
-                "break-glass: not running as root, so a /sbin/shutdown already in flight was NOT cancelled."
+                "break-glass: not running as root, so a pending /sbin/shutdown was NOT cancelled."
             )
             print("break-glass: re-run as `sudo curfew-ctl break-glass --reason \"…\"` to stop it.")
         }

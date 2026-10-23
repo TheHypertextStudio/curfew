@@ -8,7 +8,7 @@ extension SettingsView {
     var coordinatorSyncPanel: some View {
         Section {
             accountEnrollmentControls
-            DisclosureGroup("Privacy and recovery") {
+            DisclosureGroup("Encryption and account recovery") {
                 Text(Self.accountSecurityNote).foregroundStyle(CurfewTheme.mutedInk)
             }
         } header: {

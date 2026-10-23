@@ -72,7 +72,7 @@ export function buildManifest(flavor, identity = {}) {
     manifest_version: 3,
     minimum_chrome_version: "120",
     name: flavor === "development" ? "Curfew Browser (Development)" : "Curfew Browser",
-    description: "Keeps Chrome destinations bound to the current Curfew task.",
+    description: "Blocks unapproved Chrome destinations during a tracked Docket task.",
     version: "0.1.0",
     ...(publicKey ? { key: publicKey } : {}),
     homepage_url: deployment.production.siteOrigin,

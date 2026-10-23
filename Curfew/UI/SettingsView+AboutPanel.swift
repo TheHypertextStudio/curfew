@@ -14,7 +14,8 @@ extension SettingsView {
                         Text(Self.versionString).foregroundStyle(CurfewTheme.mutedInk)
                     }
                 }
-                Text("Make time to stop.").foregroundStyle(CurfewTheme.mutedInk)
+                Text("Schedule when Curfew blocks access to your Mac.")
+                    .foregroundStyle(CurfewTheme.mutedInk)
             }
             licensePanel
         }

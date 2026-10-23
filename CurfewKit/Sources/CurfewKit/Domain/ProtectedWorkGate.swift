@@ -74,6 +74,6 @@ public struct ProtectedWorkDeferral: Equatable, Sendable {
             return nil
         }
         let remaining = max(0, Int(until.timeIntervalSince(now)) / 60)
-        return "Protected work in progress — shutdown held for up to \(remaining) more min."
+        return "Protected work is running. Shutdown is delayed for up to \(remaining) more min."
     }
 }

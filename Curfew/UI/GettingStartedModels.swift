@@ -17,10 +17,10 @@ enum GettingStartedCopy {
     /// made this decision when clear-headed" argument rather than pitching
     /// productivity benefits.
     static let commitmentMessage =
-        "Choose a time to stop. Curfew helps you stick to it."
+        "Choose your work hours. Curfew warns you before lockout and blocks access when work ends."
 
     /// Secondary heading introducing the numbered configuration steps.
-    static let setupFocusTitle = "What to Configure First"
+    static let setupFocusTitle = "Set up Curfew"
 }
 
 /// One pane of the first-run onboarding flow.
@@ -70,13 +70,14 @@ enum FirstRunStep: Int, CaseIterable, Identifiable {
     var message: String {
         switch self {
         case .welcome:
-            "Set a schedule, choose your limits, and allow lockout access."
+            "Curfew warns you before your work hours end, then shows a full-screen lockout."
         case .schedule:
             ScheduleSurfaceCopy.onboardingMessage
         case .extensionBudget:
-            "Set weekly extension and override limits to keep exceptions deliberate."
+            "Choose how many extensions and overrides you can use each week."
         case .permissions:
-            "Allow Accessibility access so Curfew can block shortcuts during lockout."
+            "Curfew uses optional notifications for warnings and Accessibility access "
+                + "to block bypass shortcuts during lockout."
         case .confirmation:
             "Review your setup, then enable Curfew when you are ready."
         }
@@ -87,7 +88,7 @@ enum FirstRunStep: Int, CaseIterable, Identifiable {
     var checklist: [String] {
         switch self {
         case .welcome:
-            ["Understand how Curfew enforces commitments"]
+            ["Review how warnings and lockout work"]
         case .schedule:
             ScheduleSurfaceCopy.onboardingChecklist
         case .extensionBudget:
@@ -95,7 +96,7 @@ enum FirstRunStep: Int, CaseIterable, Identifiable {
         case .permissions:
             ["Grant accessibility access", "Allow notifications (optional)"]
         case .confirmation:
-            ["Enable Curfew", "Start with confidence"]
+            ["Review your schedule", "Enable Curfew"]
         }
     }
 }

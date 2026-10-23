@@ -92,13 +92,13 @@ struct JournalSundownView: View {
 
     private var legend: some View {
         HStack(spacing: 22) {
-            legendItem(label: "Kept") {
+            legendItem(label: "Lockout recorded") {
                 RoundedRectangle(cornerRadius: 4).fill(Palette.ember)
             }
             legendItem(label: "Override") {
                 RoundedRectangle(cornerRadius: 4).stroke(Palette.ember, lineWidth: 2)
             }
-            legendItem(label: "Day off") {
+            legendItem(label: "No lockout recorded") {
                 RoundedRectangle(cornerRadius: 4).fill(Palette.faint)
             }
         }

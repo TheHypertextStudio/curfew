@@ -71,7 +71,7 @@ import CurfewKit
 
         /// Encouragement line shown on the demo lockout overlay. Fixed (rather
         /// than rotated) so captures are reproducible.
-        static let lockoutMessage = "That's the day."
+        static let lockoutMessage = "Your scheduled work hours have ended."
 
         /// Curated settings for a demo launch: a clean 9-to-5 schedule with
         /// onboarding marked complete, auto-shutdown off (defence-in-depth

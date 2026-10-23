@@ -5,9 +5,15 @@ import SwiftUI
 extension SettingsView {
     var integrationsPanel: some View {
         Group {
-            coordinatorSyncPanel
             if CurfewFlavor.current != .development || model.isDemoSession {
-                taskBrowserEnforcementPanel
+                DisclosureGroup(isExpanded: $showsBrowserIntegration) {
+                    taskBrowserEnforcementPanel
+                } label: {
+                    CurfewSectionTitle(
+                        title: "Chrome and Docket",
+                        subtitle: "Configure Chrome blocking for active work in Docket."
+                    )
+                }
             }
             if model.featureFlags.mcpServerEnabled {
                 mcpConfigPanel
@@ -28,19 +34,23 @@ extension SettingsView {
                     Section("Calendar") { calendarAuthRow }
                 }
             }
-            if model.featureFlags.cloudSyncEnabled, !model.settings.accountSync.isEnrolled {
-                devicesPanel
-            }
         }
     }
 
     private var mcpConfigPanel: some View {
         @Bindable var model = model
         return Section {
-            Toggle("Allow assistants on this Mac", isOn: $model.settings.mcpEnabled)
-                .accessibilityIdentifier("assistant-enabled")
-            Text("Connected assistants can read your status, schedule, activity, and reflections.")
+            Text(Self.localAIExplanation)
                 .foregroundStyle(CurfewTheme.mutedInk)
+            SettingsToggleRow(
+                title: "Allow assistants on this Mac",
+                isOn: $model.settings.mcpEnabled
+            )
+            .accessibilityIdentifier("assistant-enabled")
+            DisclosureGroup("Data access and shutdown requests", isExpanded: $showsAIPermissions) {
+                Text(Self.localAIAuthorityDetails)
+                    .foregroundStyle(CurfewTheme.mutedInk)
+            }
             if model.settings.mcpEnabled {
                 Picker("Changes", selection: $model.aiConsentPolicy) {
                     ForEach(AIConsentPolicy.allCases, id: \.self) { policy in
@@ -108,7 +118,8 @@ extension SettingsView {
                 }
             }
         default:
-            Text("Calendar access is off.").foregroundStyle(CurfewTheme.mutedInk)
+            Text("Curfew needs full Calendar access to read events.")
+                .foregroundStyle(CurfewTheme.mutedInk)
             Button("Open Calendar Settings") {
                 if !model.isDemoSession,
                    let url =

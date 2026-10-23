@@ -90,7 +90,7 @@ struct PresentationStateTests {
 
     @Test("Account sync enrollment hides the stopped legacy iCloud service")
     func canonicalSync() throws {
-        let panel = try source("Curfew/UI/SettingsView+InfoPanels.swift")
+        let panel = try source("Curfew/UI/SettingsView.swift")
         #expect(panel
             .contains(
                 "model.featureFlags.cloudSyncEnabled, !model.settings.accountSync.isEnrolled"

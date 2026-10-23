@@ -16,6 +16,47 @@ import Testing
 /// ``EnforcementHealth/active`` and shows the ordinary phase glyph.
 @MainActor
 struct EnforcementHealthWiringTests {
+    @Test("The repair action recovers an interrupted shield when access is already granted")
+    func trustedRepairRecoversShield() {
+        let shield = KeyboardShieldSpy()
+        let model = makeModel(
+            authorization: FakeAccessibilityAuthorization(trusted: true),
+            keyboardShield: shield
+        )
+        model.state = .locked(lockDate: Date(), unlockDate: Date().addingTimeInterval(3600))
+        model.requestAccessibilityAccess()
+        #expect(shield.startCount == 1)
+        #expect(shield.isEnabled)
+        #expect(model.enforcementHealth == .active)
+    }
+
+    @Test("Open Settings reaches the pane on the first click even without a native prompt")
+    func firstAccessibilityRequestOpensSettings() {
+        let fake = FakeAccessibilityAuthorization(trusted: false)
+        let model = makeModel(authorization: fake)
+        model.requestAccessibilityAccess()
+        #expect(fake.openSettingsCallCount == 1)
+        #expect(fake.promptForTrustCallCount == 1)
+    }
+
+    @Test("Interception rechecks revoked trust at the action boundary")
+    func interceptionRefreshesRevokedTrust() {
+        let fake = FakeAccessibilityAuthorization(trusted: true)
+        let shield = KeyboardShieldSpy()
+        shield.start()
+        let model = makeModel(authorization: fake, keyboardShield: shield)
+        model.state = .locked(lockDate: Date(), unlockDate: Date().addingTimeInterval(3600))
+        fake.trusted = false
+        let checks = fake.isTrustedCallCount
+        model.updateLockoutInterception(for: .locked)
+        #expect(fake.isTrustedCallCount > checks)
+        #expect(!model.isAccessibilityTrusted)
+        #expect(model.enforcementHealth == .degradedNoAccessibility)
+        #expect(shield.startCount == 1)
+        #expect(shield.stopCount == 1)
+        #expect(!shield.isEnabled)
+    }
+
     @Test("Untrusted Accessibility degrades health and badges the menu bar")
     func untrustedDegradesAndBadgesMenuBar() {
         let model = makeModel(accessibilityTrusted: false)
@@ -196,7 +237,8 @@ struct EnforcementHealthWiringTests {
     /// Builds a `CurfewAppModel` wired to the supplied trust fake, so a test
     /// can keep a reference to assert prompt-call counts after construction.
     private func makeModel(
-        authorization: FakeAccessibilityAuthorization
+        authorization: FakeAccessibilityAuthorization,
+        keyboardShield: (any KeyboardShieldControlling)? = nil
     ) -> CurfewAppModel {
         let suite = "studio.hypertext.curfew.tests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite) ?? .standard
@@ -207,7 +249,8 @@ struct EnforcementHealthWiringTests {
             flavor: .production,
             activityRecorder: NullActivityRecording(),
             lockoutDeadlineStore: .ephemeralForTesting(),
-            accessibilityAuthorization: authorization
+            accessibilityAuthorization: authorization,
+            keyboardShield: keyboardShield
         )
     }
 }

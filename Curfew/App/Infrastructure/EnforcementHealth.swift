@@ -141,7 +141,7 @@ enum EnforcementHealth: Equatable {
         case .degradedNoAccessibility:
             "Accessibility access needed to block shortcuts during lockout."
         case .degradedTapDown:
-            "Keyboard protection interrupted. Reopen Curfew to restore it."
+            "Keyboard shortcut blocking was interrupted. Choose Restore Shortcut Blocking to retry."
         case .degradedHelperUnavailable:
             "Background protection isn't connected. Review setup in Settings → Protection."
         case .degradedHelperUnauthorized:
@@ -159,7 +159,7 @@ enum EnforcementHealth: Equatable {
     var settingsStatusTitle: String {
         switch self {
         case .active:
-            "Ready to enforce"
+            "Keyboard shortcut blocking is available"
         case .degradedNoAccessibility:
             Self.noAccessibilityBannerTitle
         case .degradedTapDown:
@@ -180,26 +180,28 @@ enum EnforcementHealth: Equatable {
     /// fix-it affordance. An interrupted keyboard shield with permission already
     /// granted needs reconnection, not another permission prompt.
     var offersAccessibilityRemediation: Bool {
-        self == .degradedNoAccessibility
+        self == .degradedNoAccessibility || self == .degradedTapDown
     }
 
     /// Headline shown when Accessibility trust is missing.
     static let noAccessibilityBannerTitle =
-        "Accessibility access needed"
+        "Keyboard shortcut blocking is unavailable"
 
     /// Remediation body shown when Accessibility trust is missing.
     static let noAccessibilityBannerDetail =
-        "Curfew can't block your keyboard without Accessibility access. "
+        "Curfew needs Accessibility access to block bypass shortcuts during lockout. "
             + "Grant Accessibility to Curfew in System Settings → Privacy & "
-            + "Security → Accessibility, then relaunch."
+            + "Security → Accessibility, then return to Curfew."
 
     /// Headline shown when the expected keyboard shield tap is down.
     static let tapDownBannerTitle =
-        "Keyboard protection interrupted"
+        "Keyboard shortcut blocking was interrupted"
 
     /// Remediation body shown when the expected keyboard shield tap is down.
     static let tapDownBannerDetail =
-        "Keyboard shortcuts are no longer blocked. Reopen Curfew to restore protection."
+        "Curfew is no longer blocking bypass shortcuts. Choose Restore Shortcut Blocking "
+            + "to retry. If access was revoked, grant Accessibility access in System Settings "
+            + "and return to Curfew."
 
     static let helperBannerTitle = "Background protection needs attention"
 

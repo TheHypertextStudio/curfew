@@ -34,7 +34,7 @@ struct ThisWeekView: View {
             HStack {
                 CurfewSectionTitle(
                     title: "This Week",
-                    subtitle: "A glance at how your curfew has held up."
+                    subtitle: "Your recorded lockouts, extensions, and overrides this week."
                 )
                 Spacer()
                 Button("Export CSV") {
@@ -91,11 +91,13 @@ struct ThisWeekView: View {
         HStack(alignment: .top, spacing: 16) {
             metricTile(
                 headline: "\(rollup.streak)",
-                supporting: rollup.streak == 1 ? "day streak" : "days streak"
+                supporting: rollup.streak == 1
+                    ? "consecutive day with lockout"
+                    : "consecutive days with lockout"
             )
             metricTile(
                 headline: "\(rollup.daysWithLockout)/7",
-                supporting: "days held"
+                supporting: "days with lockout"
             )
             metricTile(
                 headline: "\(rollup.totalExtensionCount)",

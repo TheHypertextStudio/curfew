@@ -121,7 +121,7 @@ struct ScheduleSurfaceCopyTests {
     @Test("Schedule editor copy frames the schedule as work time versus blackout")
     func scheduleLabelsExplainWorkWindow() {
         #expect(ScheduleSurfaceCopy.weeklyScheduleSubtitle.contains("work"))
-        #expect(ScheduleSurfaceCopy.weeklyScheduleSubtitle.contains("blocked"))
+        #expect(ScheduleSurfaceCopy.weeklyScheduleSubtitle.contains("access resumes"))
         #expect(ScheduleSurfaceCopy.workEndsLabel == "Work ends")
         #expect(ScheduleSurfaceCopy.workResumesLabel == "Work resumes")
     }

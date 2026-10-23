@@ -298,7 +298,7 @@ public enum ReflectionDefaults {
             ),
             ReflectionPrompt(
                 id: UUID(uuidString: "A0000000-0000-0000-0000-000000000002")!,
-                text: "How set up for the day do you feel?",
+                text: "How prepared do you feel to start work?",
                 kind: .rating
             )
         ]
@@ -310,12 +310,12 @@ public enum ReflectionDefaults {
         [
             ReflectionPrompt(
                 id: UUID(uuidString: "B0000000-0000-0000-0000-000000000001")!,
-                text: "What did you actually get done today?",
+                text: "What did you finish today?",
                 kind: .text
             ),
             ReflectionPrompt(
                 id: UUID(uuidString: "B0000000-0000-0000-0000-000000000002")!,
-                text: "What's unfinished or on your mind for tomorrow?",
+                text: "What would you like to continue next time?",
                 kind: .text
             ),
             ReflectionPrompt(
@@ -341,7 +341,7 @@ public enum ReflectionDefaults {
 /// formats are unit-testable.
 public enum ReflectionExport {
     /// A human-readable Markdown journal: an `# Reflections` title, one `##`
-    /// section per day (ascending), and `### Morning / ### Evening` blocks whose
+    /// section per day (ascending), and `### Start of work / ### Lockout` blocks whose
     /// answers render as `**prompt**` with the value beneath (text) or inline
     /// (rating `n/max`, mood label). Empty input yields a title-only document so
     /// callers always get well-formed output.
@@ -363,7 +363,7 @@ public enum ReflectionExport {
             lines.append("## \(dayFormatter.string(from: day))")
             lines.append("")
             for reflection in byDay[day] ?? [] {
-                let gateName = reflection.gate == .morning ? "Morning" : "Evening"
+                let gateName = reflection.gate == .morning ? "Start of work" : "Lockout"
                 lines
                     .append("### \(gateName) · \(timeFormatter.string(from: reflection.timestamp))")
                 for answer in reflection.answers {

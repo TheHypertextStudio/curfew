@@ -8,45 +8,6 @@ final class MarketingCaptureTests: XCTestCase {
     }
 
     @MainActor
-    func testCaptureSettingsMatrix() {
-        for appearance in ["light", "dark"] {
-            for size in ["default", "minimum"] {
-                let app = launch("settings", appearance: appearance, size: size)
-                let window = app.windows["com_apple_SwiftUI_Settings_window"]
-                XCTAssertTrue(window.waitForExistence(timeout: 8))
-                for section in [
-                    "general",
-                    "enforcement",
-                    "warnings",
-                    "integrations",
-                    "advanced",
-                    "about"
-                ] {
-                    app.descendants(matching: .any)["settings-\(section)-tab"].click()
-                    XCTAssertTrue(app.scrollViews["settings-detail"].waitForExistence(timeout: 3))
-                    let titles = [
-                        "general": "Protection",
-                        "enforcement": "Weekly allowance",
-                        "warnings": "Before lockout",
-                        "integrations": "AI assistants",
-                        "advanced": "Remove Curfew",
-                        "about": "Curfew Plus"
-                    ]
-                    assertText(titles[section] ?? section, in: app)
-                    if section == "integrations" {
-                        assertText("Curfew Account", in: app)
-                        XCTAssertTrue(window.staticTexts["Curfew Account"].exists)
-                    }
-                    attach(window, name: "settings-\(section)-\(appearance)-\(size)")
-                    scrollToBottom(window)
-                    attach(window, name: "settings-\(section)-bottom-\(appearance)-\(size)")
-                }
-                app.terminate()
-            }
-        }
-    }
-
-    @MainActor
     func testCaptureCriticalStateMatrix() {
         for appearance in ["light", "dark"] {
             for size in ["default", "minimum"] {
@@ -69,7 +30,7 @@ final class MarketingCaptureTests: XCTestCase {
                     app.terminate()
                 }
                 let app = launch("settings", appearance: appearance, size: size)
-                app.descendants(matching: .any)["settings-advanced-tab"].click()
+                app.descendants(matching: .any)["settings-category-advanced"].click()
                 app.buttons["Uninstall Curfew…"].click()
                 let alert = app.dialogs.firstMatch
                 XCTAssertTrue(alert.waitForExistence(timeout: 5))
@@ -298,7 +259,7 @@ extension MarketingCaptureTests {
     }
 
     @MainActor
-    private func scrollToBottom(_ window: XCUIElement) {
+    func scrollToBottom(_ window: XCUIElement) {
         let detail = window.scrollViews["settings-detail"]
         guard let pane = detail.exists ? detail : window.scrollViews.allElementsBoundByIndex
             .max(by: {
@@ -363,5 +324,53 @@ extension MarketingCaptureTests {
         attachment.name = "curfew-\(name)"
         attachment.lifetime = .keepAlways
         add(attachment)
+    }
+}
+
+extension MarketingCaptureTests {
+    @MainActor
+    func testCaptureSettingsMatrix() {
+        for appearance in ["light", "dark"] {
+            for size in ["default", "minimum"] {
+                let app = launch("settings", appearance: appearance, size: size)
+                let window = app.windows["com_apple_SwiftUI_Settings_window"]
+                XCTAssertTrue(window.waitForExistence(timeout: 8))
+                for section in [
+                    "general",
+                    "enforcement",
+                    "presence",
+                    "shutdown",
+                    "protectedWork",
+                    "account",
+                    "integrations",
+                    "advanced",
+                    "about"
+                ] {
+                    app.descendants(matching: .any)["settings-category-\(section)"].click()
+                    XCTAssertTrue(app.scrollViews["settings-page-\(section)"]
+                        .waitForExistence(timeout: 3))
+                    let titles = [
+                        "general": "Accessibility",
+                        "enforcement": "Extensions and Overrides",
+                        "presence": "Presence",
+                        "shutdown": "Automatic Shutdown",
+                        "protectedWork": "Protected Work",
+                        "account": "Curfew Account",
+                        "integrations": "AI assistants",
+                        "advanced": "Remove Curfew",
+                        "about": "Curfew Plus"
+                    ]
+                    assertText(titles[section] ?? section, in: app)
+                    if section == "account" {
+                        assertText("Curfew Account", in: app)
+                        XCTAssertTrue(window.staticTexts["Curfew Account"].exists)
+                    }
+                    attach(window, name: "settings-\(section)-\(appearance)-\(size)")
+                    scrollToBottom(window)
+                    attach(window, name: "settings-\(section)-bottom-\(appearance)-\(size)")
+                }
+                app.terminate()
+            }
+        }
     }
 }

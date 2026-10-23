@@ -65,8 +65,8 @@ public enum CopyDeck {
     /// verbatim in the onboarding flow and referenced by the MCP tool
     /// description so AI assistants echo the same framing.
     public static let overrideFrictionRationale =
-        "Overrides exist but cost something deliberate — typing a reason, " +
-        "a cooldown, and a hold-to-confirm — so the easy path is finishing tomorrow."
+        "To request an override, wait 5 minutes, type a reason of at least 50 characters, " +
+        "then hold the confirmation button for 3 seconds."
 
     // MARK: - Onboarding
 
@@ -76,11 +76,10 @@ public enum CopyDeck {
     public enum Onboarding {
         /// Primary heading on the first-launch Getting Started window.
         public static let welcomeTitle = "Welcome to Curfew"
-        /// One-sentence framing below the welcome title — the
-        /// "you already made this decision when clear-headed" argument.
+        /// Schedule and lockout behavior below the welcome title.
         public static let welcomeSubtitle =
-            "Set your schedule while you're thinking clearly, " +
-            "then let Curfew enforce it later."
+            "Choose your work hours. Curfew warns you before lockout " +
+            "and blocks access when work ends."
     }
 
     // MARK: - Schedule summary
@@ -101,6 +100,8 @@ public enum CopyDeck {
         extensionsUsed: Int,
         overridesUsed: Int
     ) -> String {
-        "\(daysHeld)/7 days held, \(extensionsUsed) extensions, \(overridesUsed) overrides this week."
+        "\(daysHeld)/7 days with lockout, "
+            + "\(extensionsUsed) extension\(extensionsUsed == 1 ? "" : "s"), "
+            + "\(overridesUsed) override\(overridesUsed == 1 ? "" : "s") this week."
     }
 }

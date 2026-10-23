@@ -185,9 +185,9 @@ extension CurfewAppModel {
     func statusLine(for phase: EnforcementPhase) -> String {
         switch phase {
         case .working:
-            "Working window active"
+            "Work hours are active"
         case .warning:
-            "Wrap up time"
+            "Lockout approaching"
         case .locked:
             "Curfew lockout active"
         case .dayOff:
