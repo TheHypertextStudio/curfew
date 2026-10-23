@@ -84,16 +84,16 @@ jobs:
         run: node --test scripts/*.test.mjs
 
       - name: Test shared package and executable contracts
-        run: swift test --package-path CurfewKit
+        run: swift test --package-path CurfewKit --jobs 2
 
       - name: Check (format + lint + test + build)
         env:
-          CURFEW_XCODEBUILD_SETTINGS: "CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO"
+          CURFEW_XCODEBUILD_SETTINGS: "CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO -jobs 2 -parallel-testing-enabled NO"
         run: just check
 
       - name: Compile Release
         env:
-          CURFEW_XCODEBUILD_SETTINGS: "CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO"
+          CURFEW_XCODEBUILD_SETTINGS: "CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO -jobs 2 -parallel-testing-enabled NO"
         run: just build-release
 
       - name: Upload unit-test diagnostics
@@ -199,17 +199,18 @@ jobs:
         if: github.event_name != 'workflow_dispatch' || inputs.capture_scope == 'full'
         run: >-
           xcodebuild test -project Curfew.xcodeproj -scheme Curfew
-          -destination 'platform=macOS'
+          -destination 'platform=macOS' -jobs 2
           -resultBundlePath build/interactions.xcresult
           -only-testing:CurfewUITests/CurfewUITests
           -only-testing:CurfewUITests/CurfewUITestsLaunchTests
+          -only-testing:CurfewUITests/BackgroundEnforcementTests
           CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
 
       - name: Verify state fixtures before the full capture sweep
         if: github.event_name != 'workflow_dispatch' || inputs.capture_scope == 'full'
         run: >-
           xcodebuild test -project Curfew.xcodeproj -scheme Curfew
-          -destination 'platform=macOS' -derivedDataPath build
+          -destination 'platform=macOS' -jobs 2 -derivedDataPath build
           -resultBundlePath build/state-consistency.xcresult
           -only-testing:CurfewUITests/MarketingCaptureTests/testCaptureAStateConsistencyOffLocked
           -only-testing:CurfewUITests/MarketingCaptureTests/testCaptureAStateConsistencySetupReview
@@ -226,7 +227,7 @@ jobs:
 
       - name: Capture demo screenshots
         env:
-          CURFEW_XCODEBUILD_SETTINGS: "CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO"
+          CURFEW_XCODEBUILD_SETTINGS: "CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO -jobs 2 -parallel-testing-enabled NO"
         run: just capture
 
       - name: Upload screenshots
