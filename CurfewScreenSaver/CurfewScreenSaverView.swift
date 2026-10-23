@@ -61,7 +61,7 @@ final class CurfewScreenSaverView: ScreenSaverView {
         lastPreferenceRead = date
         if let session {
             _ = session.frame(at: date, timeZone: .current)
-        } else if let preferences = try? RestScreenSaverPreferences.system() {
+        } else if let preferences = try? RestScreenSaverPreferences.companionSystem() {
             let session = RestScreenSaverSession(
                 preferences: preferences,
                 decodeImage: RestScreenSaverPreferences.boundedImage

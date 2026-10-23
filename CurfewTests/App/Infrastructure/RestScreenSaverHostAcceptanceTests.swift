@@ -1,6 +1,7 @@
 @testable import Curfew
-import CurfewAtmosphere
+@testable import CurfewAtmosphere
 import CurfewKit
+import Darwin
 import ScreenSaver
 import XCTest
 
@@ -13,26 +14,9 @@ final class RestScreenSaverHostAcceptanceTests: XCTestCase {
             ProcessInfo.processInfo.environment["CURFEW_SAVER_HOST_ACCEPTANCE"] == "1",
             "Requires the reserved native session and Curfew selected in Screen Saver Settings."
         )
-        let defaults = try XCTUnwrap(ScreenSaverDefaults(
-            forModuleWithName: RestScreenSaverPreferences.moduleIdentifier
-        ))
-        let keys = ["appearance", "occurrence", "readbackRequest", "acknowledgement"]
-            .map { "rest.presentation.v1.\($0)" }
-        let original = keys.map { ($0, defaults.object(forKey: $0)) }
-        defer {
-            for (key, value) in original {
-                if let value {
-                    defaults.set(value, forKey: key)
-                } else {
-                    defaults.removeObject(forKey: key)
-                }
-            }
-            XCTAssertTrue(
-                defaults.synchronize(),
-                "Original presentation preferences must be restored."
-            )
-        }
-        let preferences = RestScreenSaverPreferences(defaults: defaults)
+        let restore = try preservePresentation()
+        defer { restore() }
+        let preferences = try RestScreenSaverPreferences.system()
         let publisher = RestCompanionPublisher(
             readOwnedImage: { _ in nil },
             publish: { try preferences.publish(snapshot: $0, imageData: $1) }
@@ -54,6 +38,52 @@ final class RestScreenSaverHostAcceptanceTests: XCTestCase {
             receipt.name = "Companion process readback"
             receipt.lifetime = .keepAlways
             add(receipt)
+        }
+    }
+
+    private func preservePresentation() throws -> () -> Void {
+        let files = try RestPresentationFiles(directory: RestPresentationFiles.systemDirectory())
+        let slots: [RestCompanionPresentationStore.Slot] = [
+            .appearance,
+            .occurrence,
+            .readbackRequest
+        ]
+        let originalFiles = try slots.map {
+            try ($0, files.read($0, maximum: RestCompanionPresentationStore.maximumAppearanceBytes))
+        }
+        let directoryExisted = FileManager.default.fileExists(atPath: files.directory.path)
+        let defaults = try XCTUnwrap(ScreenSaverDefaults(
+            forModuleWithName: RestScreenSaverPreferences.moduleIdentifier
+        ))
+        let keys = ["appearance", "occurrence", "readbackRequest", "acknowledgement"]
+            .map { "rest.presentation.v1.\($0)" }
+        let original = keys.map { ($0, defaults.object(forKey: $0)) }
+        return {
+            for (slot, bytes) in originalFiles {
+                do {
+                    if let bytes {
+                        try files.write(slot, bytes: bytes)
+                    } else {
+                        try files.remove(slot)
+                    }
+                } catch {
+                    XCTFail("Original presentation file could not be restored: \(error)")
+                }
+            }
+            if !directoryExisted {
+                _ = rmdir(files.directory.path)
+            }
+            for (key, value) in original {
+                if let value {
+                    defaults.set(value, forKey: key)
+                } else {
+                    defaults.removeObject(forKey: key)
+                }
+            }
+            XCTAssertTrue(
+                defaults.synchronize(),
+                "Original presentation preferences must be restored."
+            )
         }
     }
 

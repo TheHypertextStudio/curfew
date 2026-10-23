@@ -46,7 +46,7 @@ extension CurfewUITests {
         destination.click()
         let detail = app.descendants(matching: .any)["settings-detail"]
         XCTAssertTrue(detail.waitForExistence(timeout: 5))
-        let status = app.staticTexts["rest-sunrise-status"]
+        let status = app.descendants(matching: .any)["rest-sunrise-status"]
         XCTAssertTrue(
             status.waitForExistence(timeout: 3),
             "Sunrise must report its request status separately from the opt-in control."

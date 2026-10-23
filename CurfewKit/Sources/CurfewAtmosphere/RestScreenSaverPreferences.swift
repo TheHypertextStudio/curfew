@@ -24,20 +24,47 @@ public final class RestScreenSaverPreferences {
 
     private let defaults: UserDefaults
     private let store: RestCompanionPresentationStore
+    private let cachedPreferences: RestScreenSaverPreferences?
+    private let postReceipt: (Data) -> Void
+    private var receiptObserver: NSObjectProtocol?
+    private static let receiptName = Notification
+        .Name(moduleIdentifier + ".presentation-readback.v1")
 
-    public init(
+    public convenience init(
         defaults: UserDefaults,
-        inspectImageHeader: @escaping (Data) throws -> RestCompanionExport
-            .ImageDimensions = RestScreenSaverPreferences.inspectImageHeader
+        inspectImageHeader: @escaping (Data) throws -> RestCompanionExport.ImageDimensions =
+            RestScreenSaverPreferences.inspectImageHeader
+    ) {
+        self.init(
+            defaults: defaults,
+            files: nil,
+            host: false,
+            inspectImageHeader: inspectImageHeader
+        )
+    }
+
+    init(
+        defaults: UserDefaults, files: RestPresentationFiles?, host: Bool,
+        postReceipt: @escaping (Data) -> Void = { _ in },
+        inspectImageHeader: @escaping (Data) throws -> RestCompanionExport.ImageDimensions =
+            RestScreenSaverPreferences.inspectImageHeader
     ) {
         self.defaults = defaults
+        self.postReceipt = postReceipt
+        self.cachedPreferences = host ? RestScreenSaverPreferences(defaults: defaults) : nil
         self.store = RestCompanionPresentationStore(
             read: { slot, maximum in
+                if host, let bytes = try files?.read(slot, maximum: maximum) {
+                    return bytes
+                }
                 guard let bytes = defaults.object(forKey: Self.key(for: slot)) as? Data,
                       bytes.count <= maximum else { return nil }
                 return bytes
             },
             write: { slot, bytes in
+                if !host {
+                    try files?.write(slot, bytes: bytes)
+                }
                 defaults.set(bytes, forKey: Self.key(for: slot))
                 guard defaults.synchronize() else { throw AdapterError.persistenceRejected }
             },
@@ -45,12 +72,52 @@ public final class RestScreenSaverPreferences {
         )
     }
 
-    /// The companion's bundle identifier scopes ScreenSaverDefaults; no App Group is assumed.
+    deinit {
+        if let receiptObserver {
+            DistributedNotificationCenter.default().removeObserver(receiptObserver)
+        }
+    }
+
+    /// The app publishes only validated presentation slots, not its preference container.
     public static func system() throws -> RestScreenSaverPreferences {
+        let preferences = try nativePreferences(host: false)
+        preferences.receiptObserver = DistributedNotificationCenter.default().addObserver(
+            forName: receiptName, object: nil, queue: .main
+        ) { [weak preferences] notification in
+            guard let value = notification.object as? String, value.utf8.count <= 8192,
+                  let bytes = Data(base64Encoded: value) else { return }
+            preferences?.acceptHostAcknowledgement(bytes)
+        }
+        return preferences
+    }
+
+    /// The actual sandboxed host keeps its own ScreenSaverDefaults configuration.
+    public static func companionSystem() throws -> RestScreenSaverPreferences {
+        try nativePreferences(host: true)
+    }
+
+    private static func nativePreferences(host: Bool) throws -> RestScreenSaverPreferences {
         guard let defaults = ScreenSaverDefaults(forModuleWithName: moduleIdentifier) else {
             throw AdapterError.unavailable
         }
-        return RestScreenSaverPreferences(defaults: defaults)
+        return try RestScreenSaverPreferences(
+            defaults: defaults,
+            files: RestPresentationFiles(directory: RestPresentationFiles.systemDirectory()),
+            host: host,
+            postReceipt: { bytes in
+                DistributedNotificationCenter.default().postNotificationName(
+                    receiptName, object: bytes.base64EncodedString(), userInfo: nil,
+                    deliverImmediately: true
+                )
+            }
+        )
+    }
+
+    @discardableResult
+    func acceptHostAcknowledgement(_ bytes: Data) -> Bool {
+        guard store.matchesCurrentPublication(bytes) else { return false }
+        defaults.set(bytes, forKey: Keys.acknowledgement)
+        return defaults.synchronize()
     }
 
     public func publish(snapshot: RestSceneSnapshot, imageData: Data?) throws {
@@ -60,7 +127,16 @@ public final class RestScreenSaverPreferences {
 
     public func read(at date: Date) -> RestCompanionPresentationStore.Publication? {
         defaults.synchronize()
-        return store.read(at: date)
+        let publication = store.read(at: date)
+        if let publication, let cachedPreferences {
+            // Persist only the decoded allowlist. Never copy unvalidated file bytes
+            // into the host's module preferences or copy application-private data.
+            try? cachedPreferences.publish(
+                snapshot: RestSceneSnapshot(presentation: publication.presentation),
+                imageData: publication.presentation.imageData
+            )
+        }
+        return publication
     }
 
     public func requestReadback() throws -> UUID {
@@ -74,6 +150,7 @@ public final class RestScreenSaverPreferences {
         guard store.matchesCurrentPublication(bytes) else { throw AdapterError.stalePublication }
         defaults.set(bytes, forKey: Keys.acknowledgement)
         guard defaults.synchronize() else { throw AdapterError.persistenceRejected }
+        postReceipt(bytes)
     }
 
     public func hasAcknowledgedCurrentPublication() -> Bool {

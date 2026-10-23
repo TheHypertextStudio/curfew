@@ -1788,4 +1788,6 @@ asserts its own screen and state before attaching an image.
   rendering on the provider and first-party documentation routes.
 
 - [-] Preserve configured minutes inside spring-forward gaps. Resolve wall clocks with explicit calendar matching so a nonexistent 02:30 becomes 03:30, while ordinary clocks, saved day offsets, repeated-hour policy and elapsed extensions keep their existing semantics. The existing native schedule-gap regression reproduces the discarded minute before the correction.
-- [-] Expose the Sunrise request status as its own accessibility element with an explicit label, separate from the adjacent explanation. Native UI verification must read the exact state without enabling wake.
+- [-] Expose the Sunrise request status as its own accessibility element with an explicit label, separate from the adjacent explanation. Native UI verification finds the identified element without assuming a StaticText role, then requires the exact state and hittability without enabling wake.
+
+- [-] Bridge sandboxed companion preference containers using bounded private presentation slots, validated host-side ScreenSaverDefaults caching and nonce-only distributed receipts. Keep exported images stable across occurrence/readback updates, reject symlinks and oversized data, preserve retry after a rejected file write, and verify actual host readback before handoff integration.

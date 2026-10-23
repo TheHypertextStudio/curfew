@@ -2225,4 +2225,6 @@ acceptance separately checks loaded fonts, computed families and rendered
 light/dark layouts on the provider and first-party documentation routes.
 
 | Spring-forward missing clock minute | `ScheduleResolutionTests/scheduleWindowResolvesSpringForwardGap` checks 02:30 resolves to 03:30; shared Sunrise schedule tests retain ordinary, repeated-clock, explicit-day-offset and elapsed-extension coverage | Full unit and package regression suites |
-| Independent Sunrise status accessibility | `testRestScreenShowsWakeRequestStatus` requires the exact off-state label on its own hittable element; the status does not merge with adjacent help text | Real native UI without enabling wake |
+| Independent Sunrise status accessibility | `testRestScreenShowsWakeRequestStatus` finds the identified accessibility element across native element types and requires the exact off-state label on its own hittable element; the status does not merge with adjacent help text | Real native UI without enabling wake |
+
+| Sandboxed app/companion exchange | `RestPresentationFilesTests` covers independent instances, bounded slots, private modes, scoped removal, missing exports and symlink rejection; `RestSandboxExchangeTests` uses separate defaults domains for host import, receipt validation, stale/forged rejection and recovery after a rejected file write | Actual native host must acknowledge two fresh publications; normal unit/CI skips are not acceptance |

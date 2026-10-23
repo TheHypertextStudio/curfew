@@ -30,6 +30,8 @@ included:
   - CurfewKit/Tests/CurfewAtmosphereTests/RestBackgroundImageStoreTests.swift
   - CurfewKit/Tests/CurfewAtmosphereTests/RestScreenSaverPreferencesTests.swift
   - CurfewKit/Tests/CurfewAtmosphereTests/RestScreenSaverSessionTests.swift
+  - CurfewKit/Tests/CurfewAtmosphereTests/RestPresentationFilesTests.swift
+  - CurfewKit/Tests/CurfewAtmosphereTests/RestSandboxExchangeTests.swift
   - CurfewKit/Tests/CurfewKitTests/RestAppearancePreferencesTests.swift
   - CurfewKit/Tests/CurfewKitTests/RestAppearanceSyncIsolationTests.swift
   - CurfewKit/Tests/CurfewKitTests/RestCompanionExportTests.swift
