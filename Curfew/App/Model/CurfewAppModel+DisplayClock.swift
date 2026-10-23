@@ -106,6 +106,7 @@ extension CurfewAppModel {
     /// advancing the clock.
     func refreshDisplayState() {
         currentTime = Date()
+        licenseGate.reevaluateEligibility()
 
         // Idle sampling lives at the top so downstream surfaces (and any
         // consumers observing `isUserIdle`) see today's true state before the

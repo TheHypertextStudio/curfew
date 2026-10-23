@@ -1,5 +1,6 @@
 @testable import Curfew
 @testable import CurfewKit
+import EventKit
 import Foundation
 import Testing
 
@@ -75,6 +76,44 @@ struct LifecycleWiringTests {
         // future Pro-gated module.
         model.reconcilePlusGatedModules()
         #expect(model.licenseGate.isPlusUnlocked)
+    }
+
+    @Test(
+        "Display, armed and wake boundaries stop expired Plus modules",
+        arguments: ["display", "armed", "wake"]
+    )
+    func expiryBoundaryStopsModules(boundary: String) async throws {
+        let fixture = try LicenseExpiryFixture()
+        let source = ExpiryCalendarSource()
+        let calendar = CalendarMonitor(source: source)
+        var flags = FeatureFlags.default
+        flags.calendarEnabled = true
+        let model = makeModel(
+            featureFlags: flags, activityRecorder: NullActivityRecording(),
+            idleSource: StubIdleSource(seconds: 0),
+            licenseGate: fixture.gate, calendarMonitor: calendar
+        )
+        try fixture.gate
+            .activate(fixture.signedKey(expiresAt: fixture.clock.date.addingTimeInterval(60)))
+        for _ in 0 ..< 50 {
+            await Task.yield()
+        }
+        calendar.sync()
+        #expect(source.reads > 0)
+
+        fixture.clock.date += 60
+        switch boundary {
+        case "armed": model.tick()
+        case "wake": model.reassertEnforcementIfNeeded()
+        default: model.displayTick()
+        }
+        #expect(!fixture.gate.isPlusUnlocked)
+        for _ in 0 ..< 50 {
+            await Task.yield()
+        }
+        let reads = source.reads
+        calendar.sync()
+        #expect(source.reads == reads)
     }
 
     @Test("Tick refreshes isAccessibilityTrusted from the injected checker")
@@ -247,7 +286,9 @@ struct LifecycleWiringTests {
         setupComplete: Bool = false,
         accountSync: AccountSyncConfiguration = .accountFree,
         accountSyncEngine: AccountSyncEngine? = nil,
-        cloudKitSyncEngine: CloudKitSyncEngine? = nil
+        cloudKitSyncEngine: CloudKitSyncEngine? = nil,
+        licenseGate: LicenseGate? = nil,
+        calendarMonitor: CalendarMonitor? = nil
     ) -> CurfewAppModel {
         let suite = "studio.hypertext.curfew.tests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite) ?? .standard
@@ -269,9 +310,10 @@ struct LifecycleWiringTests {
             flavor: .production,
             featureFlags: featureFlags,
             activityRecorder: activityRecorder,
-            licenseGate: LicenseGate(defaults: defaults),
+            licenseGate: licenseGate ?? LicenseGate(defaults: defaults),
             cloudKitSyncEngine: cloudKitSyncEngine,
             accountSyncEngine: accountSyncEngine,
+            calendarMonitor: calendarMonitor,
             privilegedHelperManager: privilegedHelperManager,
             idleWatcher: watcher,
             respawnGuard: respawnGuard,
@@ -328,5 +370,19 @@ private final class StubIdleSource: IdleTimeSource {
 
     func secondsSinceLastInput() -> TimeInterval {
         seconds
+    }
+}
+
+@MainActor
+private final class ExpiryCalendarSource: CalendarEventSource {
+    let authorizationStatus: EKAuthorizationStatus = .fullAccess
+    private(set) var reads = 0
+    func requestFullAccess() async throws -> Bool {
+        true
+    }
+
+    func events(from _: Date, to _: Date) -> [EKEvent] {
+        reads += 1
+        return []
     }
 }

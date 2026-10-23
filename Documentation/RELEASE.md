@@ -402,6 +402,17 @@ leave lockout active, avoid retry churn, and point the user to System Settings.
 5. Confirm CloudKit and Calendar UI never appears and neither engine emits
    activity in the shipping build.
 
+For a subscription, also observe the actual signed expiry with unchanged system
+time. Plus status and activation success must update on the next display-clock
+cycle, including while enforcement is off or windows are closed. App-return and
+wake entrypoints also reevaluate when invoked; the existing wake observers run
+while enforcement is armed. A disarmed app resumes reevaluation on its display
+clock or app activation. Keep the verified key and free schedule
+available. Confirm a replacement lifetime/new subscription ignores the former
+deadline, while restore progress, its result and errors survive expiry. Only
+explicitly enabled Plus modules should stop; retained key/signature fixtures do
+not establish this final signed-app behavior.
+
 ### Sparkle staging upgrade
 
 1. Produce an older signed `0.0.x` validation build with an isolated staging feed.

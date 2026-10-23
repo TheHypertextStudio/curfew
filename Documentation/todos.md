@@ -1594,6 +1594,16 @@ asserts its own screen and state before attaching an image.
 
 ## 20. Plus activation and purchase restoration
 
+- [x] Publish live subscription eligibility when its signed deadline passes,
+      including display-clock, app-activation and wake reevaluation. Retain the
+      verified key for restoration, reconcile Plus modules once per transition,
+      and keep free scheduling independent of licensing.
+- [x] Bind activation success to the eligible purchase without cancelling restore
+      work or hiding its result/errors. Reevaluate same-key load and activation
+      immediately, and preserve renewal purchase-identity checks.
+- [ ] Observe paid expiry, accurate status and restoration on the final signed
+      candidate, with unchanged system time and preserved local app data.
+
 - [-] End checkout with **Activate in Curfew**, verify and save the signed key,
       and show the result in Settings → About. Keep manual key entry available.
 - [-] Offer **Restore Purchase…** using proof at the purchase inbox, bounded

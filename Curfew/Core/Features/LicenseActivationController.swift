@@ -6,7 +6,25 @@ import Observation
 @Observable
 final class LicenseActivationController {
     private(set) var isBusy = false
-    private(set) var message: String?
+    private enum Notice {
+        case activating
+        case active(LicenseKey)
+        case restoring
+        case restoreSent(String)
+    }
+
+    private var notice: Notice?
+    var message: String? {
+        switch notice {
+        case .activating: "Activating Curfew Plus…"
+        case .active(let purchase):
+            gate.isPlusUnlocked && gate.activatedKey == purchase ? "Curfew Plus is active." : nil
+        case .restoring: "Sending restore link…"
+        case .restoreSent(let email): "Check \(email) for your restore link."
+        case nil: nil
+        }
+    }
+
     private(set) var error: String?
     private let gate: LicenseGate
     private let service: any LicenseServicing
@@ -50,14 +68,13 @@ final class LicenseActivationController {
         guard !Task.isCancelled else { return }
         let operation = begin()
         currentTicket = ticket
-        message = "Activating Curfew Plus…"
+        notice = .activating
         defer { finish(operation) }
         do {
             let key = try await service.redeem(ticket: ticket)
             guard generation == operation, !Task.isCancelled else { return }
             gate.activate(key)
-            error = gate.activationError
-            message = error == nil && gate.isPlusUnlocked ? "Curfew Plus is active." : nil
+            recordActivationResult()
         } catch {
             fail(error, operation: operation)
         }
@@ -68,12 +85,12 @@ final class LicenseActivationController {
         guard !Task.isCancelled else { return false }
         let email = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         let operation = begin()
-        message = "Sending restore link…"
+        notice = .restoring
         defer { finish(operation) }
         do {
             try await service.restore(email: email)
             guard generation == operation, !Task.isCancelled else { return false }
-            message = "Check \(email) for your restore link."
+            notice = .restoreSent(email)
             return true
         } catch {
             fail(error, operation: operation)
@@ -84,8 +101,7 @@ final class LicenseActivationController {
     func activateManually(_ key: String) {
         cancel()
         gate.activate(key)
-        error = gate.activationError
-        message = error == nil && gate.isPlusUnlocked ? "Curfew Plus is active." : nil
+        recordActivationResult()
     }
 
     func cancel() {
@@ -93,14 +109,23 @@ final class LicenseActivationController {
         task?.cancel()
         currentTicket = nil
         isBusy = false
-        message = nil
+        notice = nil
         error = nil
+    }
+
+    private func recordActivationResult() {
+        error = gate.activationError
+        if error == nil, gate.isPlusUnlocked, let purchase = gate.activatedKey {
+            notice = .active(purchase)
+        } else {
+            notice = nil
+        }
     }
 
     private func begin() -> UUID {
         generation = UUID()
         isBusy = true
-        message = nil
+        notice = nil
         error = nil
         return generation
     }
@@ -113,7 +138,7 @@ final class LicenseActivationController {
 
     private func fail(_ failure: Error, operation: UUID) {
         guard generation == operation, !Task.isCancelled else { return }
-        message = nil
+        notice = nil
         error = (failure as? LocalizedError)?.errorDescription ??
             "Couldn't reach the purchase service. Check your connection and try again."
     }
