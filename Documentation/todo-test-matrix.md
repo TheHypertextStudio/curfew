@@ -2147,6 +2147,13 @@ does not modify native files, enable sales or remove owner/staging gates.
 
 Production promotion uses the protected resume phase and retained accepted artifacts; see [production-domain-promotion.md](production-domain-promotion.md). Source checks and a configuration flag do not replace its runtime acceptance gates.
 
+### Account help
+
+Account-management help is checked against the account panel's control labels
+and deletion, recovery and export behavior. `scripts/user-docs.test.mjs` checks
+the guide's metadata and links. A published-guide review and the authenticated
+account walkthrough remain separate acceptance checks.
+
 ### Documentation branding
 
 `scripts/user-docs.test.mjs` requires the homepage body/display font roles,

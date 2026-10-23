@@ -1715,7 +1715,11 @@ asserts its own screen and state before attaching an image.
 - [-] Pair staging purchase activation with the canonical Curfew Dev URL scheme
   and maintain its purchase-page configuration in checked TypeScript.
 
-### Public Plus help
+### Public help
+
+- [x] Explain account sign-in methods, recovery-code replacement, connected
+  assistants, account downloads and deletion using the account panel's controls.
+  Distinguish hosted deletion from local data and subscription cancellation.
 
 - [x] Explain one-click checkout activation, receipt-email restoration and manual-key recovery in the licensing guide. Keep planned features and purchase availability explicit, and use the product support address.
 - [x] Align activation and restore help with the release controls and link to the
