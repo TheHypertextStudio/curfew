@@ -1521,6 +1521,10 @@ asserts its own screen and state before attaching an image.
   host helper and assert zero weekly budgets through native controls. Dedicated
   degraded-state captures remain required; test-only changes do not alter the app.
 
+- [x] Support an explicitly selected, isolated Settings capture without repeating
+  unrelated app checks. Keep focused output distinct from full CI acceptance and
+  reject unknown test selectors before a build starts.
+
 ## Website visual identity release
 
 - [x] Group current legal headings and publication/effective metadata, keep the

@@ -87,9 +87,7 @@ extension MarketingCaptureTests {
             "calendar-empty": "0 events"
         ]
         if state == "limits-none" {
-            for label in ["Extensions per week", "Overrides per week"] {
-                XCTAssertEqual(app.steppers[label].value as? String, "0", label)
-            }
+            assertZeroBudgets(in: app)
         }
         if let expected = text[state] {
             assertText(expected, in: app)
@@ -102,6 +100,18 @@ extension MarketingCaptureTests {
                 (state == "assistant-automatic" ? "Allow changes automatically" :
                     "Ask before making changes")
             assertText(policy, in: app)
+        }
+    }
+
+    @MainActor
+    private func assertZeroBudgets(in app: XCUIApplication) {
+        for label in ["Extensions per week", "Overrides per week"] {
+            let value = app.steppers[label].value
+            XCTAssertEqual(
+                Double(String(describing: value ?? "")),
+                0,
+                "\(label): \(String(reflecting: value))"
+            )
         }
     }
 }
