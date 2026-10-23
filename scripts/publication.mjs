@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { readFile, writeFile, cp, lstat } from "node:fs/promises";
+import { readFile, writeFile, cp, lstat, mkdir } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
 import { resolve, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -57,6 +57,50 @@ export function renderPublishedHome(html) {
     ["for availability and installation", "for installation"],
   ])
     html = replaceOnce(html, expected, replacement);
+  return html;
+}
+
+/** Reuse the sealed site's typography, navigation and assets for update notes. */
+export function renderPublishedReleaseNotes(
+  html,
+  candidate,
+  siteOrigin,
+  content,
+) {
+  const heading = `<h1>Curfew ${candidate.version}</h1>`;
+  assert.ok(
+    typeof content === "string" && content.includes(heading),
+    "Release notes must match the candidate version",
+  );
+  const replaceUnique = (pattern, replacement) => {
+    const matches = html.match(pattern);
+    assert.equal(
+      matches?.length,
+      1,
+      "Unknown or ambiguous release-notes shell",
+    );
+    html = html.replace(pattern, () => replacement);
+  };
+  replaceUnique(
+    /<title>[^<]*<\/title>/g,
+    `<title>Curfew ${candidate.version} — Curfew</title>`,
+  );
+  replaceUnique(
+    /<meta name="description"[^>]*>/g,
+    `<meta name="description" content="What’s new in Curfew ${candidate.version}, and how to update.">`,
+  );
+  replaceUnique(
+    /<meta property="og:title"[^>]*>/g,
+    `<meta property="og:title" content="Curfew ${candidate.version} — Curfew">`,
+  );
+  replaceUnique(
+    /<link rel="canonical"[^>]*>/g,
+    `<link rel="canonical" href="${new URL(`/releases/${candidate.version}`, siteOrigin).href}">`,
+  );
+  replaceUnique(
+    /<main id="main" class="reading wrap">[\s\S]*?<\/main>/g,
+    `<main id="main" class="reading wrap">${content}</main>`,
+  );
   return html;
 }
 
@@ -149,9 +193,16 @@ export async function preparePublication(
   localVerifier = verifyLocalPublication,
 ) {
   const candidate = await admit(input, localVerifier);
-  const download = renderPublishedDownload(
-    await readFile(join(input.website.directory, "download.html"), "utf8"),
+  const downloadShell = await readFile(
+    join(input.website.directory, "download.html"),
+    "utf8",
+  );
+  const download = renderPublishedDownload(downloadShell, candidate);
+  const releaseNotes = renderPublishedReleaseNotes(
+    downloadShell,
     candidate,
+    input.website.deployment.manifest.environments.production.siteOrigin,
+    input.releaseNotes,
   );
   const home = renderPublishedHome(
     await readFile(join(input.website.directory, "index.html"), "utf8"),
@@ -169,6 +220,11 @@ export async function preparePublication(
   await writeFile(join(input.destination, "appcast.xml"), input.native.appcast);
   await writeFile(join(input.destination, "download.html"), download);
   await writeFile(join(input.destination, "index.html"), home);
+  await mkdir(join(input.destination, "releases"), { recursive: true });
+  await writeFile(
+    join(input.destination, "releases", `${candidate.version}.html`),
+    releaseNotes,
+  );
   return {
     candidate,
     ...(candidate.provenance?.kind === "local"
@@ -247,6 +303,27 @@ export async function verifyLivePublication(
   assert.ok(
     !html.includes("The public Mac download is coming soon."),
     "Customer download page still reports unavailable",
+  );
+  const notesURL = `${config.siteOrigin}/releases/${candidate.version}.html`;
+  let notes = await fetcher(notesURL, requestOptions());
+  if (notes.status === 307) {
+    const location = notes.headers.get("location");
+    assert.ok(
+      location,
+      "Updater release notes redirect is missing its destination",
+    );
+    const destination = new URL(location, notesURL).href;
+    assert.equal(
+      destination,
+      `${config.siteOrigin}/releases/${candidate.version}`,
+      "Unexpected updater release notes redirect",
+    );
+    notes = await fetcher(destination, requestOptions());
+  }
+  assert.equal(notes.status, 200, "Updater release notes are unavailable");
+  assert.ok(
+    (await notes.text()).includes(`<h1>Curfew ${candidate.version}</h1>`),
+    "Updater release notes do not match the candidate",
   );
   const installer = await fetcher(url, {
     ...requestOptions(),
@@ -432,6 +509,10 @@ async function load(base) {
   const local = candidate.provenance?.kind === "local";
   const authority = local ? await json("local-authority.json") : undefined;
   return {
+    releaseNotes: await readFile(
+      new URL(`../landing/releases/${candidate.version}.html`, import.meta.url),
+      "utf8",
+    ),
     native: {
       candidate,
       configuration: await json("candidate/release-configuration.json"),
@@ -535,7 +616,7 @@ if (
       input.website.deployment.manifest.environments.production.siteOrigin;
     await writeFile(
       join(directory, "public-release-notes.md"),
-      `Curfew now connects through ${new URL(origin).hostname}. Sign in again and reconnect your Mac and assistants. Local settings, history, licenses, and encryption keys are preserved.\n`,
+      `Read the [Curfew ${candidate.version} release notes](${origin}/releases/${candidate.version}) for changes and installation guidance.\n`,
     );
     const invoke = (args) => {
       try {
