@@ -1801,6 +1801,12 @@ asserts its own screen and state before attaching an image.
   without notes for the candidate version; verify the actual notes page after
   deployment alongside the installer and feed.
 
+## Current-main background recovery integration
+
+The October 23 integration includes main through `35b7587` and restores the closed-window lifecycle and recovery regressions. `BackgroundIntegrationRegressionTests` checks explicit last-window process retention. `BackgroundEnforcementTests` checks real timer-driven lockout with zero ordinary windows. Isolated CI runs the UI test because local macOS killed the unsigned runner before bootstrap. The pull request records current-main verification results. Signed background-service acceptance remains a release gate.
+
+The integration also isolates command-line development uninstall from production and privileged state. A sandboxed regression exercises the actual script. Background acceptance sessions suppress app termination and shutdown even if settings enable shutdown. Ordinary Debug builds require explicit signed-fixture opt-in before supervisor registration.
+
 
 ## Universal embedded executables
 
@@ -1812,12 +1818,18 @@ asserts its own screen and state before attaching an image.
   before tagging a candidate. Keep ordinary full CI's unsigned universal-tool
   packaging distinct from the final signed archive and installed acceptance.
 
-- [x] Build all four embedded tools for the app's resolved Xcode architectures,
+- [x] Build all five embedded tools for the app's resolved Xcode architectures,
   preserve Debug staging and signing behavior, and reject Release artifacts
   missing Apple silicon or Intel slices. See `Documentation/RELEASE.md`.
   Packaging regressions exercise the real Xcode shell phase with synthetic
   Mach-O fixtures; a real universal package build verifies toolchain output.
   Signed candidate, installation, and update acceptance remain release gates.
+
+The integrated graphical run exposed four stale setup and assistant-access tests. Their repair retains schedule-consent and navigation assertions, queries the native checkbox directly, matches long explanatory text through a predicate, and checks the selected Settings page independently of its permission health.
+
+The full marketing sweep also verifies current shortcut-blocking status and remediation copy, native zero-budget values, and the current reflection editor. The healthy Settings matrix uses an explicit ready fixture rather than the capture host's helper state. Denied-access, interrupted-tap, and helper-failure states remain separate asserted captures. The five observed capture failures in CI run 40026791620 provide the regression evidence.
+
+Ordinary visual captures preserve synthetic permission and interrupted-keyboard health across app activation. Background acceptance still refreshes live permission and recovery state. The native activation regression failed before the guard. The capture preflight now exercises the complete distinct-Settings and menu matrices before the full layout sweep, including numeric native stepper values.
 
 ## Disposable signed updater acceptance
 
@@ -1842,9 +1854,3 @@ asserts its own screen and state before attaching an image.
 - [ ] Retain passing fresh-install and older-to-newer Sparkle UI/bytes receipts
   for the same final candidate. Version-neutral harness tests do not replace
   those signed outcomes.
-
-## Current-main background recovery integration
-
-The October 23 integration restores the closed-window lifecycle and recovery regressions on current main. `BackgroundIntegrationRegressionTests` checks explicit last-window process retention. `BackgroundEnforcementTests` checks real timer-driven lockout with zero ordinary windows. Isolated CI runs the UI test because local macOS killed the unsigned runner before bootstrap. The pull request records current-main verification results. Signed background-service acceptance remains a release gate.
-
-The integration also isolates command-line development uninstall from production and privileged state. A sandboxed regression exercises the actual script. Background acceptance sessions suppress app termination and shutdown even if settings enable shutdown. Ordinary Debug builds require explicit signed-fixture opt-in before supervisor registration.

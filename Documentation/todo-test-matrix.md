@@ -2288,6 +2288,16 @@ flows and the public updater path require their own acceptance.
 | Missing or wrong-version notes prevent output creation | `scripts/publication.test.mjs` rejects incomplete notes before publication writes |
 | Live acceptance accepts the expected same-origin hosting redirect and rejects unexpected destinations, missing or wrong-version updater notes | `scripts/publication.test.mjs` exercises customer-facing responses; actual deployed-page inspection remains required |
 
+## Current-main background recovery integration
+
+The October 23 integration includes main through `35b7587` and restores the closed-window lifecycle and recovery regressions. `BackgroundIntegrationRegressionTests` checks explicit last-window process retention. `BackgroundEnforcementTests` checks real timer-driven lockout with zero ordinary windows. Isolated CI runs the UI test because local macOS killed the unsigned runner before bootstrap. The pull request records current-main verification results. Signed background-service acceptance remains a release gate.
+
+| Integration safety behavior | Regression |
+| --- | --- |
+| Development uninstall uses its selected bundle and leaves production and privileged state intact | `scripts/uninstall.test.mjs` executes the script inside an OS sandbox; `BackgroundServiceUninstallTests` verifies refusal preserves state and stops cleanup |
+| Background acceptance never terminates apps or shuts down after settings edits | `DemoFixtureTests.backgroundFixtureCannotShutDown` uses a controller spy and an elapsed shutdown deadline |
+| Ordinary Debug and test processes never register a supervisor | `SupervisorRegistrationPolicyTests` covers release, ordinary Debug, explicit staging, test, and demo combinations |
+
 
 ## Universal embedded executables
 
@@ -2311,9 +2321,26 @@ flows and the public updater path require their own acceptance.
   narrowed main executable through the final artifact packaging verifier.
 - `scripts/release-entitlements.test.mjs` retains configuration, helper label,
   staging boundary, and signing assertions after extracting the bundle script.
-- Real universal output for all four tools and final signed/notarized artifact
+- Real universal output for all five tools and final signed/notarized artifact
   checks remain distinct from synthetic fixtures. Installed app, permissions,
   license, updater, and populated upgrade acceptance are separate release gates.
+
+`CurfewUITests` retains full setup-gate and assistant-access checks after current-main integration. Its four observed CI failures identify the current schedule instruction, use the native assistant checkbox, match the complete read-access explanation without XCTest's 128-character identifier limit, and verify Settings destination identifiers across repeated navigation. Permission-dependent content is tested separately by the minimum-window permission/helper cases.
+
+| Current capture behavior | Graphical regression |
+| --- | --- |
+| Healthy Protection captures use an explicit ready fixture; degraded states retain their own assertions | `MarketingCaptureTests.testCaptureSettingsMatrix`, `testCaptureCriticalStateMatrix`, and `testCaptureDistinctSettingsStates` |
+| Zero weekly budgets remain visible as zero in both native steppers | `MarketingCaptureTests.testCaptureDistinctSettingsStates` |
+| Denied access and interrupted keyboard blocking show the current repair action | `MarketingCaptureTests.testCaptureMenuBar` |
+| Journal prompt captures show the current reflection editor | `MarketingCaptureTests.testCaptureWorkspaceMatrix` |
+
+| Fixture lifecycle behavior | Regression |
+| --- | --- |
+| Ordinary visual activation preserves seeded permission and interrupted-tap health | `DemoFixtureTests.activationPreservesVisualHealth` |
+| Background acceptance activation still refreshes permission | `DemoFixtureTests.backgroundActivationRefreshesHealth` |
+| Budget and menu capture failures stop CI before the full layout sweep | `scripts/xcode-package-layout.test.mjs` verifies both existing matrices are in the preflight selection |
+
+The zero-budget Settings capture normalizes native stepper values to numbers before asserting zero. It accepts numeric and string representations and rejects missing, nonnumeric, and nonzero values.
 
 ## Disposable signed updater acceptance
 
@@ -2364,16 +2391,8 @@ flows and the public updater path require their own acceptance.
   its result establishes only Settings capture acceptance. Normal full CI and
   independent signed installer/upgrade checks retain their existing scope.
 
+Current-main integration preserves license-expiry reevaluation beside the injected enforcement clock. Capture-workflow checks retain unsigned Xcode settings while allowing the independently selected capture scope. Existing lifecycle, expiry, clock, and packaging regressions cover these merge boundaries.
+
 - `release-entitlements.test.mjs` verifies that the capture command forwards
   unsigned Xcode settings; the focused selector is inherited from its job without
   changing that command's signing boundary.
-
-## Current-main background recovery integration
-
-The October 23 integration restores the closed-window lifecycle and recovery regressions on current main. `BackgroundIntegrationRegressionTests` checks explicit last-window process retention. `BackgroundEnforcementTests` checks real timer-driven lockout with zero ordinary windows. Isolated CI runs the UI test because local macOS killed the unsigned runner before bootstrap. The pull request records current-main verification results. Signed background-service acceptance remains a release gate.
-
-| Integration safety behavior | Regression |
-| --- | --- |
-| Development uninstall uses its selected bundle and leaves production and privileged state intact | `scripts/uninstall.test.mjs` executes the script inside an OS sandbox; `BackgroundServiceUninstallTests` verifies refusal preserves state and stops cleanup |
-| Background acceptance never terminates apps or shuts down after settings edits | `DemoFixtureTests.backgroundFixtureCannotShutDown` uses a controller spy and an elapsed shutdown deadline |
-| Ordinary Debug and test processes never register a supervisor | `SupervisorRegistrationPolicyTests` covers release, ordinary Debug, explicit staging, test, and demo combinations |
