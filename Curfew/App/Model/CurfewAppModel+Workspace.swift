@@ -9,11 +9,11 @@ import Foundation
 @MainActor
 extension CurfewAppModel {
     /// Activates the app, ensures the main workspace window exists/is
-    /// frontmost, and requests it switch to `section`. `MainWindowView`
-    /// observes ``requestedWorkspaceSection`` to actually perform the
-    /// `openWindow` + sidebar-selection change, then clears the request.
+    /// frontmost, and retains its destination until `MainWindowView` consumes
+    /// it, including when that window is being constructed for the first time.
     func requestWorkspaceNavigation(to section: MainWorkspaceSection) {
         appRouter.activate()
         requestedWorkspaceSection = section
+        appRouter.openWindow(id: MainWorkspaceSection.windowID)
     }
 }

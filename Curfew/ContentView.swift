@@ -222,10 +222,8 @@ struct ContentView: View {
 struct MainWindowView: View {
     /// Live app state shared across detail panes.
     @Environment(CurfewAppModel.self) private var model
-    /// Opens the Getting Started `WindowGroup` when the model requests it.
+    /// Presents the initial surface for unsigned demo captures.
     @Environment(\.openWindow) private var openWindow
-    /// Dismisses the Getting Started window when the model requests it.
-    @Environment(\.dismissWindow) private var dismissWindow
     @Environment(\.openSettings) private var openSettings
     /// Currently-selected sidebar section. Defaults to `.today` (a Debug
     /// demo-capture launch can pin a different pane via `demoLaunchSelection`);
@@ -311,21 +309,10 @@ struct MainWindowView: View {
         .onAppear {
             model.appRouter.registerSettingsOpener { openSettings() }
         }
-        // Bridge the model's onboarding triggers to the SwiftUI scene graph.
-        // `showGettingStarted()` / `dismissGettingStarted()` bump these
-        // monotonic counters; opening / dismissing the window is a scene
-        // concern, so it lives here rather than in the model.
-        .onChange(of: model.gettingStartedRequestID) {
-            openWindow(id: CurfewAppModel.gettingStartedWindowID)
-        }
-        .onChange(of: model.gettingStartedDismissID) {
-            dismissWindow(id: CurfewAppModel.gettingStartedWindowID)
-        }
         // Bridges `requestWorkspaceNavigation(to:)` (e.g. Getting Started's
         // "Open Schedule" step) into this window's own sidebar selection.
-        .onChange(of: model.requestedWorkspaceSection) { _, requested in
+        .onChange(of: model.requestedWorkspaceSection, initial: true) { _, requested in
             guard let requested else { return }
-            openWindow(id: MainWorkspaceSection.windowID)
             selectedSection = requested
             model.requestedWorkspaceSection = nil
         }
