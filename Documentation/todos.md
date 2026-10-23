@@ -1237,14 +1237,16 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
 
 ## 19. UI simplification and visual acceptance
 
-- [x] Replace Settings toolbar tabs with General, Limits, Warnings, Connections,
-  Advanced, and About; retain legacy section raw identifiers.
+- [x] Replace Settings toolbar tabs with a task-based sidebar; retain stable
+  accessibility destinations when category titles change.
 - [x] Use native grouped forms, conditional durations, and disclosed technical
   setup. Show only build-enabled Plus benefits and connections.
 - [x] Clarify readiness versus active enforcement; simplify setup, schedule,
   assistant consent, purchase, and shutdown copy.
 - [x] Make assistant configuration copy feedback visible and registration status
   refresh immediately; route pending-request review to the main consent sheet.
+  Interaction checks target the native checkbox and exact explanation text,
+  and verify the selected Settings destination across repeated opens.
 - [x] Isolate Debug review models from enforcement, shared queues, widgets,
   helper services, assistant configuration, and real settings/history.
 - [x] Make disabled shared buttons visibly subdued and suppress press animation

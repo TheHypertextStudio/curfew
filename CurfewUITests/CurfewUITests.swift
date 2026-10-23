@@ -141,7 +141,7 @@ final class CurfewUITests: XCTestCase {
     func testAssistantSetupShowsCopyFeedback() {
         let app = launchFixture("settings")
         app.descendants(matching: .any)["settings-category-integrations"].click()
-        let toggle = app.descendants(matching: .any)["assistant-enabled"]
+        let toggle = app.checkBoxes["assistant-enabled"]
         XCTAssertTrue(toggle.waitForExistence(timeout: 3))
         toggle.click()
         XCTAssertTrue(app.popUpButtons["assistant-policy"].waitForExistence(timeout: 3))
@@ -264,7 +264,7 @@ extension CurfewUITests {
         let app = launchFixture("getting-started", size: "minimum")
         XCTAssertTrue(app.buttons["Next"].waitForExistence(timeout: 5))
         app.buttons["Next"].click()
-        XCTAssertTrue(app.staticTexts["Choose when your Mac locks and unlocks."]
+        XCTAssertTrue(app.staticTexts["Choose when work ends and resumes each day."]
             .waitForExistence(timeout: 3))
         XCTAssertFalse(app.buttons["Next"].isEnabled)
         XCTAssertTrue(app.buttons["Edit weekly schedule"].isHittable)
@@ -335,10 +335,12 @@ extension CurfewUITests {
     func testAssistantReadAccessIsExplainedBeforeEnabling() {
         let app = launchFixture("settings", state: "ready")
         app.descendants(matching: .any)["settings-category-integrations"].click()
-        XCTAssertTrue(app.staticTexts[
-            "While enabled, local assistants can read your Curfew status, schedule, activity, "
-                + "and reflection text. They cannot end lockout or turn off Curfew."
-        ].waitForExistence(timeout: 3))
+        let explanation = "While enabled, local assistants can read your Curfew status, "
+            + "schedule, activity, and reflection text. They cannot end lockout or turn off Curfew."
+        let readAccess = app.staticTexts.matching(NSPredicate(
+            format: "label == %@ OR value == %@", explanation, explanation
+        )).firstMatch
+        XCTAssertTrue(readAccess.waitForExistence(timeout: 3))
         XCTAssertFalse(app.popUpButtons["assistant-policy"].exists)
     }
 
@@ -383,11 +385,11 @@ extension CurfewUITests {
             $0.frame.width < $1.frame.width
         }?.scroll(byDeltaX: 0, deltaY: 10000)
         manage.click()
-        XCTAssertTrue(app.staticTexts["AI assistants"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.scrollViews["settings-page-integrations"].waitForExistence(timeout: 3))
         app.descendants(matching: .any)["settings-category-general"].click()
-        XCTAssertTrue(app.staticTexts["Accessibility"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.scrollViews["settings-page-general"].waitForExistence(timeout: 3))
         app.windows["main-workspace"].click()
         manage.click()
-        XCTAssertTrue(app.staticTexts["AI assistants"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.scrollViews["settings-page-integrations"].waitForExistence(timeout: 3))
     }
 }
