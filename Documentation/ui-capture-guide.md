@@ -14,7 +14,9 @@ surface, state, appearance, and size where applicable.
 When repairing only the Settings state capture assertion, run the existing CI
 workflow with `capture_scope=settings` against the reviewed branch. It runs
 `testCaptureDistinctSettingsStates` on the isolated macOS runner and retains its
-screenshots and diagnostics under a separate Settings capture name. Normal push,
+screenshots and diagnostics under a separate Settings capture name. The selector
+is inherited from the capture job; the capture command retains its explicit
+unsigned-build settings and existing release-policy check. Normal push,
 pull request, and manual `full` runs retain the complete checks.
 
 The equivalent dedicated-runner command is:

@@ -2331,3 +2331,7 @@ flows and the public updater path require their own acceptance.
 - CI's manual `settings` scope runs that method on an isolated macOS runner;
   its result establishes only Settings capture acceptance. Normal full CI and
   independent signed installer/upgrade checks retain their existing scope.
+
+- `release-entitlements.test.mjs` verifies that the capture command forwards
+  unsigned Xcode settings; the focused selector is inherited from its job without
+  changing that command's signing boundary.

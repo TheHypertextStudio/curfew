@@ -106,6 +106,8 @@ jobs:
 
   screenshots:
     name: ${{ inputs.capture_scope == 'settings' && 'Settings capture only' || 'Capture screenshots' }}
+    env:
+      CURFEW_CAPTURE_TEST: ${{ inputs.capture_scope == 'settings' && 'testCaptureDistinctSettingsStates' || '' }}
     # Graphical queries need a working system accessibility hierarchy. Use the
     # ARM64 image: IconServices crashes on the Intel image stall Apple-menu
     # snapshots before XCTest can inspect the app's windows.
@@ -181,7 +183,6 @@ jobs:
 
       - name: Capture demo screenshots
         env:
-          CURFEW_CAPTURE_TEST: ${{ inputs.capture_scope == 'settings' && 'testCaptureDistinctSettingsStates' || '' }}
           CURFEW_XCODEBUILD_SETTINGS: "CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO"
         run: just capture
 
