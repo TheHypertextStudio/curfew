@@ -1962,6 +1962,23 @@ changes; rollback restores the prior landing release and docs commit.
 
 ## 20. Plus activation and purchase restoration
 
+- `Subscription expiry publishes eligibility and reconciles Plus modules without a key mutation.`
+  - `LicenseExpiryTests`: real signed keys with an injected local clock verify
+    the exact deadline, observable state, one callback, unchanged persisted
+    purchase, lifetime/new-subscription replacement, cancellation, matching
+    renewal, same-key API reevaluation and failed incoming-key boundaries.
+  - `LifecycleWiringTests/expiryBoundaryStopsModules`: display, armed and wake
+    entrypoints close eligibility and stop an injected Calendar source. These
+    model integration cases run in the isolated native suite.
+  - Typed activation notices lose success when that purchase expires or is
+    replaced; expiry preserves in-flight restore work, sent confirmation and
+    user errors. `LicenseExpiryTests` exercises those transitions.
+  - Existing cryptographic, stale-renewal and free-schedule tests remain required.
+    Signed installation must separately observe real paid expiry, background
+    status, return from sleep and restoration without changing system time.
+    Reverting this change restores delayed eligibility updates; it does not
+    migrate persisted licenses or change their signature/issuer contract.
+
 - `A paid checkout opens Curfew in one click and persists a verified license.`
   - `web/worker/test/purchase-flow.test.ts`: paid/unpaid webhook boundary,
     activation ticket exchange/redemption, expiration, no-store responses.

@@ -72,13 +72,13 @@ final class LicenseGate {
     /// users. Setting surfaces Plus features across the app through the
     /// `isPlusUnlocked` derived boolean.
     ///
-    /// `didSet` fires ``onActivationChange`` only on a real value change so
-    /// Plus-gated modules reconcile without an `@Observable` publisher (which
-    /// the macro does not provide). Equivalent to the old Combine
-    /// `removeDuplicates()` chain.
+    /// `didSet` settles eligibility before notifying Plus-gated modules once.
+    /// Assigning an equal key still reevaluates time, but does not emit a
+    /// duplicate notification when both the purchase and eligibility are unchanged.
     private(set) var activatedKey: LicenseKey? {
         didSet {
-            if activatedKey != oldValue {
+            let eligibilityChanged = updateEligibility()
+            if activatedKey != oldValue || eligibilityChanged {
                 onActivationChange?()
             }
         }
@@ -88,7 +88,7 @@ final class LicenseGate {
     /// call, or `nil` after a successful activation / fresh launch.
     private(set) var activationError: String?
 
-    /// Invoked on the main actor whenever ``activatedKey`` changes value.
+    /// Invoked once when the purchase changes or its live eligibility transitions.
     /// `CurfewAppModel` wires this to reconcile Plus-gated engines, replacing
     /// the former `licenseGate.$activatedKey` Combine subscription.
     @ObservationIgnored var onActivationChange: (() -> Void)?
@@ -100,14 +100,12 @@ final class LicenseGate {
         isPlusUnlocked
     }
 
-    /// Plus is active for lifetime keys and only until expiry for subscriptions.
-    var isPlusUnlocked: Bool {
-        guard let key = activatedKey else { return false }
-        return key.plan == .lifetime || (key.expiresAt ?? .distantPast) > Date()
-    }
+    /// Observable eligibility, refreshed when the purchase or current time changes.
+    private(set) var isPlusUnlocked = false
 
     private let defaults: UserDefaults
     private let publicKeyBase64: String
+    private let now: () -> Date
     /// Kept as the original `"pro.licenseKey"` across the Plus rename: it is an
     /// internal UserDefaults key, never shown to users, and renaming it would
     /// need a migration to avoid dropping already-activated keys for no gain.
@@ -116,12 +114,14 @@ final class LicenseGate {
     /// Creates a gate backed by `defaults` on the main actor.
     init(
         defaults: UserDefaults? = nil,
-        publicKeyBase64: String = LicenseGate.publicKeyBase64(for: LicenseEndpoint.currentFlavor)
+        publicKeyBase64: String = LicenseGate.publicKeyBase64(for: LicenseEndpoint.currentFlavor),
+        now: @escaping () -> Date = Date.init
     ) {
         self.defaults = defaults
             ?? UserDefaults(suiteName: SharedPaths.defaultsSuiteName)
             ?? .standard
         self.publicKeyBase64 = publicKeyBase64
+        self.now = now
     }
 
     #if DEBUG
@@ -141,8 +141,8 @@ final class LicenseGate {
 
     /// Re-runs verification against the persisted licence so a UserDefaults
     /// tamper or a clock-rollback can't keep Pro alive indefinitely. Called
-    /// from the model tick loop on a daily cadence (see
-    /// ``CurfewAppModel.reverifyLicenseIfDue``). Safe to call at any time;
+    /// from day-rollover bookkeeping. Live expiry reevaluation runs separately
+    /// on the display clock and return from sleep. Safe to call at any time;
     /// flips `activatedKey` to `nil` when re-verification fails. License
     /// verification is purely offline (Ed25519 signature against the
     /// embedded public key), so this is cheap and fail-closed.
@@ -156,7 +156,27 @@ final class LicenseGate {
         let next = try? verified(stored)
         if next != activatedKey {
             activatedKey = next
+        } else {
+            reevaluateEligibility()
         }
+    }
+
+    /// Reevaluate on the display clock and when returning from sleep or another app.
+    /// Retain the signed key so offline expiry does not discard restoration metadata.
+    func reevaluateEligibility() {
+        if updateEligibility() {
+            onActivationChange?()
+        }
+    }
+
+    @discardableResult
+    private func updateEligibility() -> Bool {
+        let next = activatedKey.map {
+            $0.plan == .lifetime || ($0.expiresAt ?? .distantPast) > now()
+        } ?? false
+        guard next != isPlusUnlocked else { return false }
+        isPlusUnlocked = next
+        return true
     }
 
     /// Verifies and (on success) persists the given licence string.
@@ -165,6 +185,7 @@ final class LicenseGate {
     /// User-facing entry point — called from the Activate button, where a
     /// failure is something the user just did and should see explained.
     func activate(_ keyString: String) {
+        defer { reevaluateEligibility() }
         activationError = nil
         do {
             activatedKey = try verifyAndPersist(keyString)
@@ -184,12 +205,13 @@ final class LicenseGate {
     /// to silently wipe an error the user is actively looking at from
     /// something they *did* just type into that field.
     func activateSilently(_ keyString: String, replacing original: LicenseKey) {
+        defer { reevaluateEligibility() }
         let trimmed = keyString.trimmingCharacters(in: .whitespacesAndNewlines)
         guard activatedKey == original, original.plan == .subscription,
               let token = original.refreshToken,
               let renewed = try? verified(trimmed), renewed.plan == .subscription,
               renewed.refreshToken == token,
-              let expiry = renewed.expiresAt, expiry > Date(),
+              let expiry = renewed.expiresAt, expiry > now(),
               expiry >= (original.expiresAt ?? .distantPast)
         else { return }
         defaults.set(trimmed, forKey: Self.storageKey)
@@ -203,7 +225,7 @@ final class LicenseGate {
     private func verifyAndPersist(_ keyString: String) throws -> LicenseKey {
         let trimmed = keyString.trimmingCharacters(in: .whitespacesAndNewlines)
         let key = try verified(trimmed)
-        if key.plan == .subscription, (key.expiresAt ?? .distantPast) <= Date() {
+        if key.plan == .subscription, (key.expiresAt ?? .distantPast) <= now() {
             throw LicenseActivationError.expired
         }
         defaults.set(trimmed, forKey: Self.storageKey)
