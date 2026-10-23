@@ -45,6 +45,7 @@ included:
   - CurfewKit/Tests/CurfewKitTests/SunriseDisplayDeliveryTests.swift
   - CurfewKit/Tests/CurfewKitTests/SunrisePowerIOTests.swift
   - CurfewKit/Tests/CurfewKitTests/SunriseWakeCoordinatorTests.swift
+  - CurfewKit/Tests/CurfewKitTests/SunriseWakeLifecycleTests.swift
   - CurfewKit/Tests/CurfewKitTests/SunriseWakeDirectoryTests.swift
   - CurfewKit/Tests/CurfewKitTests/SunriseWakeJournalTests.swift
   - CurfewKit/Tests/CurfewKitTests/SunrisePresentationPlanTests.swift

@@ -129,6 +129,20 @@ public final class RestCompanionPresentationStore {
         )
     }
 
+    /// A Publication can only originate from this store's validated read path.
+    /// Cache its already consent-filtered appearance without exporting it again.
+    public func cacheAppearance(from publication: Publication) throws {
+        let record = AppearanceRecord(
+            version: RestCompanionExport.currentVersion, generation: publication.generation,
+            expiresAt: Self.neutralExpiry, appearance: publication.presentation.appearance,
+            imageData: publication.presentation.imageData
+        )
+        let bytes = try encode(record, maximum: Self.maximumAppearanceBytes)
+        if try boundedRead(.appearance, maximum: Self.maximumAppearanceBytes) != bytes {
+            try writeSlot(.appearance, bytes)
+        }
+    }
+
     public func acknowledgement(for publication: Publication) throws -> Data {
         try encode(Readback(
             version: RestCompanionExport.currentVersion,

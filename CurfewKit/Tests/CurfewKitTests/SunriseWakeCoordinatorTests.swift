@@ -5,9 +5,9 @@ import Testing
 /// Contracts awaiting behavioral RED on the allocated test host.
 @MainActor
 struct SunriseWakeCoordinatorTests {
-    private let now = Date(timeIntervalSince1970: 2_000_000_000)
+    let now = Date(timeIntervalSince1970: 2_000_000_000)
 
-    private func plan(offset: TimeInterval = 600, battery: Bool = false) -> SunriseWakePlan {
+    func plan(offset: TimeInterval = 600, battery: Bool = false) -> SunriseWakePlan {
         SunriseWakePlan(
             owner: "curfew.test", occurrenceID: UUID(),
             wakeAt: now.addingTimeInterval(offset),
@@ -312,7 +312,7 @@ extension SunriseWakeCoordinatorTests {
     }
 
     @MainActor
-    private final class Effects {
+    final class Effects {
         var calls: [String] = []
         var plans: [SunriseWakePlan] = []
         var deadlines: [Date] = []

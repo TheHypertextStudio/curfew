@@ -15,7 +15,7 @@ struct RestSaverLauncherTests {
         lazy var launcher = RestSaverLauncher(operations: .init(
             resolve: { [self] in calls.append("resolve"); return url },
             requestReadback: { [self] in calls.append("request") },
-            open: { [self] _ in calls.append("open"); return 1234 },
+            open: { [self] _ in calls.append("open"); running = true; return 1234 },
             hasFullScreenReceipt: { [self] in receipt },
             isRunning: { [self] _ in running },
             stopOwned: { [self] pid in calls.append("stop-\(pid)") },
@@ -26,6 +26,37 @@ struct RestSaverLauncherTests {
                 }
             }
         ))
+    }
+
+    @Test("Natural return is consumed once so the same coordinator can hand off again")
+    func repeatWithRetainedLauncher() async {
+        let fixture = Fixture()
+        let runtime = RestHandoffRuntime()
+        runtime.launcher = fixture.launcher
+        let coordinator = RestHandoffCoordinator(operations: .init(
+            settle: {},
+            launch: {
+                runtime.observeReturn()
+                return await fixture.launcher.launch()
+            },
+            refreshTime: {}, refreshAuthority: {}
+        ), uptime: { 1000 })
+        runtime.coordinator = coordinator
+        coordinator.handle(.reflectionResolved(.skipped))
+        for _ in 0 ..< 2 {
+            await coordinator.handle(.restNow)?.value
+            #expect(coordinator.policy.phase == .saver)
+            fixture.running = false
+            runtime.sessionIsActive = false
+            await runtime.observeReturn()?.value
+            #expect(coordinator.policy.phase == .saver)
+            runtime.sessionIsActive = true
+            await runtime.observeReturn()?.value
+            #expect(coordinator.policy.phase == .interactive)
+            #expect(fixture.launcher.ownedProcess == nil)
+            #expect(!fixture.launcher.hasReturned)
+        }
+        #expect(fixture.calls.filter { $0 == "open" }.count == 2)
     }
 
     @Test("Public launch requires a fresh full-screen companion receipt")

@@ -162,6 +162,7 @@ extension CurfewAppModel {
         }
         switch gate {
         case .morning:
+            dismissSunrisePresentation()
             reflectionState.isDaybreakPresented = false
         case .evening:
             reflectionState.isEveningReflectionPending = false

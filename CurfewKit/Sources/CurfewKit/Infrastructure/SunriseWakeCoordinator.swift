@@ -9,6 +9,7 @@ public final class SunriseWakeCoordinator {
         case waitingForSchedule
         case scheduled
         case displayRequested
+        case dismissed
         case helperUnavailable
         case requestRejected
         case batteryExcluded
@@ -39,6 +40,10 @@ public final class SunriseWakeCoordinator {
     private let displayDelivery: SunriseDisplayDelivery
     private let cleanupNativeAssertions: @MainActor () throws -> Void
     private var helperPlan: SunriseWakePlan?
+    private var helperEpoch: UInt64 = 0
+    private var currentPlan: SunriseWakePlan?
+    private var lastReconciledAt: Date?
+    private var dismissedOccurrences: Set<UUID> = []
     private var cancellationAccepted = false
     private var cleanupPending = false
     private var revision: UInt64 = 0
@@ -62,6 +67,8 @@ public final class SunriseWakeCoordinator {
         onExternalPower: Bool,
         now: Date
     ) async {
+        currentPlan = plan
+        lastReconciledAt = now
         revision &+= 1
         let currentRevision = revision
         let desiredStatus = eligibility(
@@ -99,6 +106,41 @@ public final class SunriseWakeCoordinator {
         }
     }
 
+    public func dismissCurrentOccurrence(at time: Date? = nil) throws {
+        guard let plan = currentPlan, let now = time ?? lastReconciledAt,
+              now.timeIntervalSince1970.isFinite, now >= plan.wakeAt,
+              now < plan.holdUntil else { return }
+        dismissedOccurrences.insert(plan.occurrenceID)
+        var failure: (any Error)?
+        do {
+            try displayDelivery.dismiss(occurrenceID: plan.occurrenceID)
+        } catch {
+            failure = error
+        }
+        do { try cleanupNativeAssertions() } catch { failure = failure ?? error }
+        cleanupPending = failure != nil
+        if let failure {
+            status = .requestRejected
+            throw failure
+        }
+        status = .dismissed
+    }
+
+    /// A cancelled/removed helper must not retain an earlier acceptance receipt.
+    /// In-flight old replies cannot repopulate this new ownership epoch.
+    public func invalidateHelperAcceptance() {
+        revision &+= 1
+        helperEpoch &+= 1
+        helperPlan = nil
+        cancellationAccepted = false
+        do {
+            try dismissCurrentOccurrence()
+            status = .helperUnavailable
+        } catch {
+            status = .requestRejected
+        }
+    }
+
     private func pendingStatus(for desiredStatus: Status) -> Status {
         if desiredStatus == .scheduled {
             return .waitingForSchedule
@@ -117,6 +159,7 @@ public final class SunriseWakeCoordinator {
               plan.holdUntil.timeIntervalSince1970.isFinite,
               plan.wakeAt < plan.holdUntil
         else { return .requestRejected }
+        guard !dismissedOccurrences.contains(plan.occurrenceID) else { return .dismissed }
         guard onExternalPower || (batteryOptIn && plan.allowsBattery) else {
             return .batteryExcluded
         }
@@ -148,15 +191,18 @@ public final class SunriseWakeCoordinator {
     /// Only this serialized lane mutates helper ownership, including stale results.
     /// Failure is retried by the next explicit reconcile, never a background loop.
     private func updateHelper(plan: SunriseWakePlan?) async -> Status? {
+        let epoch = helperEpoch
         do {
             if let plan {
                 guard helperPlan != plan else { return nil }
                 cancellationAccepted = false
                 helperPlan = nil
                 try await operations.replace(plan)
+                guard epoch == helperEpoch else { return .helperUnavailable }
                 helperPlan = plan
             } else if !cancellationAccepted {
                 try await operations.cancel()
+                guard epoch == helperEpoch else { return .helperUnavailable }
                 helperPlan = nil
                 cancellationAccepted = true
             }

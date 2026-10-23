@@ -1,3 +1,4 @@
+import AppKit
 @testable import Curfew
 @testable import CurfewAtmosphere
 import CurfewKit
@@ -38,6 +39,38 @@ final class RestScreenSaverHostAcceptanceTests: XCTestCase {
             receipt.name = "Companion process readback"
             receipt.lifetime = .keepAlways
             add(receipt)
+        }
+    }
+
+    func testSelectedCompanionEntersFullScreenAndReturnsRepeatedly() async throws {
+        try XCTSkipUnless(
+            ProcessInfo.processInfo.environment["CURFEW_SAVER_FULL_SCREEN_ACCEPTANCE"] == "1",
+            "Requires an exclusive native session and Curfew selected in Screen Saver Settings."
+        )
+        let restore = try preservePresentation()
+        defer { restore() }
+        let preferences = try RestScreenSaverPreferences.system()
+        for palette in [RestAppearancePreferences.Palette.warmAmber, .coolTwilight] {
+            try preferences.publish(snapshot: scene(palette: palette, now: Date()), imageData: nil)
+            let launcher = RestSaverLauncher.live(preferences: preferences)
+            let result = await launcher.launch()
+            XCTAssertEqual(result, .started, "Actual full-screen companion launch must succeed.")
+            guard result == .started else { return }
+            let pid = try XCTUnwrap(launcher.ownedProcess)
+            defer { launcher.stopOwned() }
+            XCTAssertTrue(preferences.hasFullScreenAcknowledgement())
+            XCTAssertFalse(launcher.hasReturned)
+            let screenshot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+            screenshot.name = "Actual full-screen companion — \(palette.rawValue)"
+            screenshot.lifetime = .keepAlways
+            add(screenshot)
+            launcher.stopOwned()
+            let deadline = ContinuousClock.now.advanced(by: .seconds(5))
+            while NSRunningApplication(processIdentifier: pid)?.isTerminated == false,
+                  ContinuousClock.now < deadline {
+                try await Task.sleep(for: .milliseconds(100))
+            }
+            XCTAssertNotEqual(NSRunningApplication(processIdentifier: pid)?.isTerminated, false)
         }
     }
 

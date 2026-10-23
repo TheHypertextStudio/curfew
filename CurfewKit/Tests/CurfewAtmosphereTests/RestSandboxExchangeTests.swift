@@ -112,6 +112,50 @@ struct RestSandboxExchangeTests {
         }
     }
 
+    @Test("A restarted host retains validated appearance when exported files are unusable")
+    func corruptFilesKeepNeutralCachedAppearance() throws {
+        for inaccessible in [false, true] {
+            try withStores { app, host, files in
+                let publisher = RestScreenSaverPreferences(defaults: app, files: files, host: false)
+                try publisher.publish(snapshot: scene, imageData: nil)
+                let receiver = RestScreenSaverPreferences(defaults: host, files: files, host: true)
+                _ = try #require(receiver.read(at: now))
+                if inaccessible {
+                    try FileManager.default.setAttributes(
+                        [.posixPermissions: 0o755], ofItemAtPath: files.directory.path
+                    )
+                } else {
+                    try files.write(.appearance, bytes: Data("corrupt".utf8))
+                }
+                let restarted = RestScreenSaverPreferences(defaults: host, files: files, host: true)
+                let cached = restarted.read(at: now)
+                #expect(cached?.presentation.appearance.palette == .warmAmber)
+                #expect(cached?.presentation.lockDate == nil)
+                #expect(cached?.presentation.unlockDate == nil)
+                #expect(cached?.readbackNonce == nil)
+            }
+        }
+    }
+
+    @Test("Host caching keeps an explicitly shared message without inventing sharing consent")
+    func sharedMessageSurvivesHostRestart() throws {
+        try withStores { app, host, files in
+            let publisher = RestScreenSaverPreferences(defaults: app, files: files, host: false)
+            try publisher.publish(snapshot: scene, imageData: nil)
+            let receiver = RestScreenSaverPreferences(defaults: host, files: files, host: true)
+            #expect(receiver.read(at: now)?.presentation.appearance.message == "Local only")
+            for slot in [
+                RestCompanionPresentationStore.Slot.appearance,
+                .occurrence,
+                .readbackRequest
+            ] {
+                try files.remove(slot)
+            }
+            let restarted = RestScreenSaverPreferences(defaults: host, files: files, host: true)
+            #expect(restarted.read(at: now)?.presentation.appearance.message == "Local only")
+        }
+    }
+
     @Test("A rejected file publication retries without stranding a defaults generation")
     func retryAfterFileFailure() throws {
         try withStores { app, host, files in

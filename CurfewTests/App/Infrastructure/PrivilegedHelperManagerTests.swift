@@ -177,6 +177,27 @@ struct PrivilegedHelperManagerTests {
         #expect(manager.enforcementAvailability == .ready)
     }
 
+    @Test("Helper removal and repair invalidate previously accepted Sunrise plans")
+    func sunriseOwnershipChangesWithHelperLifecycle() async {
+        let daemon = StubAppService(status: .enabled, registerResult: .success(.enabled))
+        let rpc = StubDaemonRPC(statusResult: .success(PrivilegedDaemonStatus(
+            activeRecord: nil, lastHeartbeatAt: nil, shutdownIssued: false
+        )), prepareResult: .success(()))
+        let manager = PrivilegedHelperManager(
+            daemonService: daemon, loginItemService: StubAppService(status: .notRegistered),
+            daemonRPC: rpc
+        )
+        let original = manager.sunriseOwnershipRevision
+        await manager.uninstallDaemon()
+        #expect(manager.sunriseOwnershipRevision > original)
+        let removed = manager.sunriseOwnershipRevision
+        manager.installDaemon()
+        #expect(manager.sunriseOwnershipRevision > removed)
+        let installed = manager.sunriseOwnershipRevision
+        manager.maintenancePaused = true
+        #expect(manager.sunriseOwnershipRevision > installed)
+    }
+
     @Test("uninstall does not unregister the daemon during an active lockout")
     func uninstallRejectedDuringActiveLockout() async {
         let daemon = StubAppService(status: .enabled)

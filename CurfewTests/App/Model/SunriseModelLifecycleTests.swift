@@ -98,6 +98,29 @@ struct SunriseModelLifecycleTests {
         #expect(model.state == previous)
     }
 
+    @Test("Starting or skipping the morning reflection releases this Sunrise hold")
+    func morningDismissalReleasesHold() async throws {
+        for skipped in [false, true] {
+            let model = try model()
+            let effects = Effects()
+            let plan = try scheduledPlan(for: model)
+            inject(effects, into: model)
+            model.currentTime = plan.wakeAt
+            model.reflectionState.isDaybreakPresented = true
+            await model.reconcileSunriseWake()
+            try #require(effects.delivery.isActive)
+            if skipped {
+                model.skipReflection(gate: .morning)
+            } else {
+                model.saveReflection(gate: .morning, answers: [])
+            }
+            #expect(!effects.delivery.isActive)
+            await model.reconcileSunriseWake()
+            #expect(!effects.delivery.isActive)
+            #expect(effects.calls.filter { $0 == "acquire" }.count == 1)
+        }
+    }
+
     @Test("Disabling Sunrise cancels the owned future plan through the injected coordinator")
     func disablingCancelsFuturePlan() async throws {
         let model = try model()

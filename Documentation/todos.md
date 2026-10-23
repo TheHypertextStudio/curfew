@@ -1797,3 +1797,9 @@ asserts its own screen and state before attaching an image.
   and refresh time plus restriction authority before returning. Cancellable effect
   and receipt contracts cover the source path; actual transitions, authentication,
   assistive technology and final global accessibility acceptance remain open.
+
+- [-] Verify repeated handoff and Sunrise teardown across actual lifecycle changes.
+  Source regressions cover consumed engine returns, morning dismissal without
+  reacquisition, helper acceptance invalidation and offline companion appearance.
+  Full-screen, authentication, physical wake and final accessibility acceptance
+  remain required before delivery.

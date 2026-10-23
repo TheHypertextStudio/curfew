@@ -45,6 +45,12 @@ final class RestSaverLauncher {
         }
     }
 
+    func consumeReturn() -> Bool {
+        guard hasReturned else { return false }
+        ownedProcess = nil
+        return true
+    }
+
     func stopOwned() {
         if let ownedProcess {
             operations.stopOwned(ownedProcess)

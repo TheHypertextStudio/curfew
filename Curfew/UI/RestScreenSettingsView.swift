@@ -267,6 +267,8 @@ private extension RestScreenSettingsView {
             return "Waiting for a scheduled unlock."
         case .scheduled:
             return "Wake scheduled for Sunrise."
+        case .dismissed:
+            return "Sunrise was dismissed for this morning."
         case .displayRequested:
             return "Sunrise display wake requested."
         case .helperUnavailable:

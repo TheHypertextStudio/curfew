@@ -9,6 +9,7 @@ final class SunriseModelRuntime {
     @ObservationIgnored var coordinator: SunriseWakeCoordinator?
     @ObservationIgnored var onExternalPower: () -> Bool = { false }
     @ObservationIgnored var calendar: Calendar = .current
+    @ObservationIgnored var helperRevision: UInt64?
     var status: SunriseWakeCoordinator.Status = .disabled
 }
 
@@ -38,6 +39,17 @@ extension CurfewAppModel {
         set { sunriseRuntime.status = newValue }
     }
 
+    func dismissSunrisePresentation() {
+        guard let coordinator = sunriseWakeCoordinator else { return }
+        do {
+            try coordinator.dismissCurrentOccurrence(at: currentTime)
+            sunriseStatus = coordinator.status
+        } catch {
+            sunriseStatus = .requestRejected
+            NSLog("Curfew Sunrise dismissal cleanup failed: %@", error.localizedDescription)
+        }
+    }
+
     /// Uses the configured local schedule, never restriction authority. Test/demo
     /// models have no live runtime unless a test explicitly supplies fake effects.
     func reconcileSunriseWake() async {
@@ -45,6 +57,11 @@ extension CurfewAppModel {
             sunriseStatus = .disabled
             return
         }
+        let helperRevision = privilegedHelperManager.sunriseOwnershipRevision
+        if let previous = sunriseRuntime.helperRevision, previous != helperRevision {
+            coordinator.invalidateHelperAcceptance()
+        }
+        sunriseRuntime.helperRevision = helperRevision
         let preferences = restAppearance
         let plan = SunriseWakePlanner(owner: CurfewFlavor.current.daemonLabel + ".sunrise")
             .presentationPlan(

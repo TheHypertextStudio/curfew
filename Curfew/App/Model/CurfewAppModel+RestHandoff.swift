@@ -13,6 +13,12 @@ final class RestHandoffRuntime {
     @ObservationIgnored var blockers: [RestHandoffPolicy.Blocker] = []
     @ObservationIgnored var lastInput: TimeInterval = 0
     var sessionIsActive = true
+
+    @discardableResult
+    func observeReturn() -> Task<Void, Never>? {
+        guard sessionIsActive, launcher?.consumeReturn() == true else { return nil }
+        return coordinator?.handle(.saverReturned)
+    }
 }
 
 @MainActor
@@ -77,9 +83,7 @@ extension CurfewAppModel {
         guard restRuntime.configured, !isDemoSession,
               !RuntimeEnvironment.hasLoadedTestRuntime,
               let coordinator = runtime.coordinator else { return }
-        if runtime.launcher?.hasReturned == true, runtime.sessionIsActive {
-            coordinator.handle(.saverReturned)
-        }
+        runtime.observeReturn()
         guard !runtime.visibleHosts.isEmpty else {
             if coordinator.policy.phase == .interactive {
                 coordinator.reset()

@@ -24,6 +24,7 @@ public final class RestScreenSaverPreferences {
 
     private let defaults: UserDefaults
     private let store: RestCompanionPresentationStore
+    private let fallbackStore: RestCompanionPresentationStore
     private let cachedPreferences: RestScreenSaverPreferences?
     private let postReceipt: (Data) -> Void
     private let fullScreenHost: Bool
@@ -56,10 +57,20 @@ public final class RestScreenSaverPreferences {
         self.postReceipt = postReceipt
         self.fullScreenHost = fullScreenHost
         self.cachedPreferences = host ? RestScreenSaverPreferences(defaults: defaults) : nil
+        self.fallbackStore = RestCompanionPresentationStore(
+            read: { slot, maximum in
+                guard slot == .appearance,
+                      let bytes = defaults.object(forKey: Self.Keys.appearance) as? Data,
+                      bytes.count <= maximum else { return nil }
+                return bytes
+            },
+            write: { _, _ in throw AdapterError.unavailable },
+            inspectImageHeader: inspectImageHeader
+        )
         self.store = RestCompanionPresentationStore(
             read: { slot, maximum in
-                if host, let bytes = try files?.read(slot, maximum: maximum) {
-                    return bytes
+                if host, let files {
+                    return try files.read(slot, maximum: maximum)
                 }
                 guard let bytes = defaults.object(forKey: Self.key(for: slot)) as? Data,
                       bytes.count <= maximum else { return nil }
@@ -142,13 +153,11 @@ public final class RestScreenSaverPreferences {
     public func read(at date: Date) -> RestCompanionPresentationStore.Publication? {
         defaults.synchronize()
         let publication = store.read(at: date)
+            ?? (cachedPreferences == nil ? nil : fallbackStore.read(at: date))
         if let publication, let cachedPreferences {
             // Persist only the decoded allowlist. Never copy unvalidated file bytes
             // into the host's module preferences or copy application-private data.
-            try? cachedPreferences.publish(
-                snapshot: RestSceneSnapshot(presentation: publication.presentation),
-                imageData: publication.presentation.imageData
-            )
+            try? cachedPreferences.store.cacheAppearance(from: publication)
         }
         return publication
     }

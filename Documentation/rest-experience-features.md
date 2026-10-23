@@ -72,3 +72,27 @@ receipt alone are not those results.
 The handoff can be rolled back independently of appearance and Sunrise by removing
 its live runtime composition. Presentation receipts contain only the version,
 generation, nonce and host mode; they never authorize unlock or carry private text.
+
+### Dismissal, helper maintenance and cached appearance
+
+Starting or skipping the morning reflection, or returning from the screensaver
+during Sunrise, releases that occurrence's display hold. Later clock ticks cannot
+reacquire it; the next occurrence remains eligible. Return uses the freshly
+resolved time, including a resume before the first ordinary clock tick. Release
+failures retain ownership and retry through the existing reconciliation path.
+
+Helper registration changes, removal and maintenance invalidate prior scheduling
+acceptance. A reply from the previous helper generation cannot restore that
+acceptance. Reconnecting requires a new accepted replacement even when the next
+occurrence has not changed. Removal also dismisses an active presentation hold.
+These operations do not change enforcement or cancel another application's events.
+
+The companion caches only validated, consent-filtered appearance in its own
+ScreenSaverDefaults. Missing, corrupt or inaccessible exported files use that
+appearance with a neutral occurrence and no readback receipt. An explicitly shared
+message stays shared in that cache; an unshared message never reaches it. Cached
+appearance does not authorize wake, lockout, authentication or restriction status.
+
+These lifecycle corrections are independently reversible. Reverting them restores
+the earlier handoff, hold and cache behavior without changing saved app settings;
+helper acceptance must then be re-established before relying on a scheduled wake.
