@@ -2349,3 +2349,7 @@ flows and the public updater path require their own acceptance.
 - `release-entitlements.test.mjs` verifies that the capture command forwards
   unsigned Xcode settings; the focused selector is inherited from its job without
   changing that command's signing boundary.
+
+## Current-main background recovery integration
+
+The October 23 integration restores the closed-window lifecycle and recovery regressions on current main. `BackgroundIntegrationRegressionTests` checks explicit last-window process retention. `BackgroundEnforcementTests` checks real timer-driven lockout with zero ordinary windows. Isolated CI runs the UI test because local macOS killed the unsigned runner before bootstrap. Integration and final verification remain in progress.

@@ -1834,3 +1834,7 @@ asserts its own screen and state before attaching an image.
 - [ ] Retain passing fresh-install and older-to-newer Sparkle UI/bytes receipts
   for the same final candidate. Version-neutral harness tests do not replace
   those signed outcomes.
+
+## Current-main background recovery integration
+
+The October 23 integration restores the closed-window lifecycle and recovery regressions on current main. `BackgroundIntegrationRegressionTests` checks explicit last-window process retention. `BackgroundEnforcementTests` checks real timer-driven lockout with zero ordinary windows. Isolated CI runs the UI test because local macOS killed the unsigned runner before bootstrap. Integration and final verification remain in progress.
