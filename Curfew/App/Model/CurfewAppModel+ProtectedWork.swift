@@ -43,7 +43,7 @@ extension CurfewAppModel {
     /// Opt-in rather than the default so the unit-test host keeps a
     /// deterministic view of the world; see ``ProtectedWorkStores/live``.
     func enableLiveProtectedWorkDetection() {
-        guard !RuntimeEnvironment.isUnitTestHost else { return }
+        guard !RuntimeEnvironment.isUnitTestHost, !RuntimeEnvironment.isDemoFixture else { return }
         protectedWork.live = .system
     }
 
@@ -65,7 +65,7 @@ extension CurfewAppModel {
     /// `UserDefaults` domain, so without this mirror it would fall back to
     /// ``ProtectedWorkPolicy/default`` and quietly ignore the user's edits.
     func mirrorProtectedWorkPolicy() {
-        guard !RuntimeEnvironment.isUnitTestHost else { return }
+        guard !RuntimeEnvironment.isUnitTestHost, !RuntimeEnvironment.isDemoFixture else { return }
         do {
             try settings.protectedWork.writeMirror()
         } catch {

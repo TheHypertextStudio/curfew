@@ -24,7 +24,7 @@ case "${CURFEW_CAPTURE_TEST:-}" in
 esac
 
 echo "==> Pre-building bundled CLI tools"
-swift build --package-path CurfewKit -c release --product curfew-ctl --product curfew-mcp --product curfew-daemon
+swift build --package-path CurfewKit -c release --jobs 2 --product curfew-ctl --product curfew-mcp --product curfew-daemon
 
 rm -rf "$BUNDLE" "$RAW"
 mkdir -p "$OUT"
@@ -41,6 +41,7 @@ xcodebuild_arguments=(
     -derivedDataPath build
     "-only-testing:$capture_target"
     -parallel-testing-enabled NO
+    -jobs 2
     -resultBundlePath "$BUNDLE"
 )
 if [[ -n "${CURFEW_XCODEBUILD_SETTINGS:-}" ]]; then

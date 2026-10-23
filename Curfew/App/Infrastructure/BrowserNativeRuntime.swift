@@ -30,8 +30,10 @@ final class BrowserNativeRuntime {
         self.flavor = flavor
         self.coordinator = coordinator ?? DocketBrowserPolicyCoordinator()
         self.startupIsAllowed = startupIsAllowed ?? {
-            !RuntimeEnvironment.isUnitTestHost &&
-                ProcessInfo.processInfo.environment["CURFEW_DEMO_FIXTURE"] != "1"
+            Self.allowsStartup(
+                isUnitTestHost: RuntimeEnvironment.isUnitTestHost,
+                isDemoFixture: RuntimeEnvironment.isDemoFixture
+            )
         }
         self.installForStartup = installForStartup
         if let record = try? store.readPolicy(),
@@ -56,6 +58,10 @@ final class BrowserNativeRuntime {
     deinit {
         source?.cancel()
         maintenance?.cancel()
+    }
+
+    static func allowsStartup(isUnitTestHost: Bool, isDemoFixture: Bool) -> Bool {
+        !isUnitTestHost && !isDemoFixture
     }
 
     func start() {

@@ -8,29 +8,31 @@ import CurfewKit
     /// throwaway stores seeded with curated state (see ``DemoFixture``) and
     /// drives it into a chosen surface for marketing / debug capture.
     ///
-    /// Compiled only into Debug builds. The model is deliberately never armed
-    /// (`start()` is not called) so the 1 Hz tick loop — and therefore the
-    /// auto-shutdown workflow, which only advances inside a tick — never runs.
-    /// Combined with `autoShutdownEnabled = false` in the seeded settings,
-    /// this guarantees a capture run can never power off the machine.
-    ///
-    /// Demo launches are also hermetic with respect to shared storage: the
-    /// activity log is a throwaway temp database, and `featureFlags.default`
-    /// keeps `widgetKitEnabled` off so nothing writes the App Group container.
+    /// Release cannot select a fixture. Ordinary captures stay disarmed;
+    /// the background-enforcement fixture runs the real timer with a controlled
+    /// clock, temporary stores, and shutdown disabled. Keyboard interception
+    /// requires an explicit opt-in in a signed staging bundle.
     @MainActor
     extension CurfewAppModel {
         /// Constructs a demo model backed by an ephemeral `UserDefaults` suite
         /// and a temporary on-disk activity log so the user's real settings and
         /// history are never touched. The scenario is applied separately via
         /// ``applyDemoScenario(_:)`` once the scene is on screen.
-        static func demoModel() -> CurfewAppModel {
+        static func demoModel(backgroundEnforcement: Bool = false) -> CurfewAppModel {
             let now = Date()
             let settingsStore = makeDemoSettingsStore()
+            configureBackgroundDemo(settingsStore, enabled: backgroundEnforcement)
+            let workingTime = DemoFixture.referenceTime(for: .overview, now: now)
+            let lockedTime = DemoFixture.referenceTime(for: .lockout, now: now)
+            let deadline = Bundle.main
+                .object(forInfoDictionaryKey: "CurfewAcceptanceDeadline") as? Date
+                ?? now.addingTimeInterval(5)
             return CurfewAppModel(
                 settingsStore: settingsStore,
                 appRouter: SystemAppRouter(),
                 isDemoSession: true,
-                featureFlags: DemoReviewState.current == .accountHelperHidden ? .default
+                featureFlags: backgroundEnforcement ? .default
+                    : DemoReviewState.current == .accountHelperHidden ? .default
                     : DemoReviewState.current.enablesPreviewConnections
                     ? FeatureFlags(
                         widgetKitEnabled: true,
@@ -40,7 +42,8 @@ import CurfewKit
                         calendarEnabled: true
                     )
                     : .shippingV1,
-                activityRecorder: makeDemoActivityRecorder(now: Date()),
+                activityRecorder: makeDemoActivityRecorder(now: now),
+                notificationManager: NoOpWarningNotificationManager(),
                 licenseGate: LicenseGate(defaults: UserDefaults(suiteName: "CurfewDemoLicense")),
                 accountSyncEngine: AccountSyncEngine(transport: NoOpAccountSyncTransport()),
                 privilegedHelperManager: PrivilegedHelperManager(
@@ -50,11 +53,17 @@ import CurfewKit
                 lockoutDeadlineStore: LockoutDeadlineStore(recordURL: FileManager.default
                     .temporaryDirectory
                     .appendingPathComponent("CurfewDemo-\(UUID().uuidString).json")),
-                accessibilityAuthorization: DemoAccessibilityAuthorization(),
+                accessibilityAuthorization: backgroundEnforcement &&
+                    RuntimeEnvironment.shouldInstallKeyboardInterceptor
+                    ? SystemAccessibilityAuthorization() : DemoAccessibilityAuthorization(),
                 browserNativeRuntime: makeDemoBrowserRuntime(
                     defaults: settingsStore.storageDefaults,
                     now: now
-                )
+                ),
+                runtimeNow: backgroundEnforcement ? workingTime : now,
+                enforcementClock: backgroundEnforcement
+                    ? { Date() >= deadline ? lockedTime : workingTime } : Date.init,
+                backgroundAcceptance: backgroundEnforcement
             )
         }
 
@@ -63,6 +72,11 @@ import CurfewKit
         /// from `CurfewApp` once the run loop has spun so windows and screens
         /// are ready.
         func applyDemoScenario(_ scenario: DemoScenario) {
+            if scenario == .backgroundEnforcement {
+                start()
+                recordBackgroundAcceptanceState()
+                return
+            }
             // Force the app to the foreground. Demo launches (especially the
             // first one under XCUITest) otherwise sometimes settle in
             // "Running Background", which both spoils captures and trips the
@@ -86,7 +100,7 @@ import CurfewKit
                     settings.hasCompletedInitialSetup = false
                 }
                 showGettingStarted()
-            case .overview, .configuration, .thisWeek, .menuBar:
+            case .overview, .configuration, .thisWeek, .menuBar, .backgroundEnforcement:
                 break
             case .warning, .lockout, .reel:
                 // Defer one more run-loop turn so the overlay windows land
@@ -100,6 +114,20 @@ import CurfewKit
                     )
                 }
             }
+        }
+
+        private static func configureBackgroundDemo(
+            _ store: CurfewSettingsStore, enabled: Bool
+        ) {
+            guard enabled else { return }
+            var settings = store.load()
+            for day in Weekday.allCases {
+                settings.schedule.rules[day] = DayRule(
+                    isDayOff: false, lockMinutes: 18 * 60, unlockMinutes: 7 * 60
+                )
+            }
+            store.save(settings)
+            store.saveAutomaticScheduleConsent(true)
         }
 
         private static func makeDemoSettingsStore() -> CurfewSettingsStore {
@@ -173,7 +201,11 @@ import CurfewKit
                 credentials: credentials,
                 oauth: DemoDocketOAuth()
             )
-            let runtime = BrowserNativeRuntime(store: nativeStore, coordinator: coordinator)
+            let runtime = BrowserNativeRuntime(
+                store: nativeStore,
+                coordinator: coordinator,
+                startupIsAllowed: { false }
+            )
             coordinator.seedDemo(DemoFixture.browserActiveWork(at: now), at: now)
             BrowserIntegrationSettingsStore(defaults: defaults)
                 .save(DemoFixture.browserIntegrationSettings())

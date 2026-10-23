@@ -15,7 +15,13 @@ test("screenshot capture fails when its UI test fails", async () => {
     await copyFile("scripts/extract-screenshots.sh", join(scripts, "extract-screenshots.sh"));
     for (const [name, exitCode] of [["swift", 0], ["xcodebuild", 65], ["xcrun", 0]]) {
       const path = join(binaries, name);
-      await writeFile(path, `#!/bin/sh\nexit ${exitCode}\n`);
+      await writeFile(path, `#!/bin/sh
+case " $* " in
+  *" ${name === "swift" ? "--jobs" : "-jobs"} 2 "*) ;;
+  *) echo "Missing bounded concurrency for ${name}" >&2; exit 97 ;;
+esac
+exit ${exitCode}
+`);
       await chmod(path, 0o755);
     }
 

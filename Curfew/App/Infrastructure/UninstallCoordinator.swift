@@ -48,7 +48,9 @@ enum UninstallCoordinator {
         flavor: CurfewFlavor = .current,
         defaultsSuiteName: String? = nil,
         unregisterServices: (() -> [String])? = nil,
-        eraseKeychainService: (String) throws -> Void = KeychainAccountSecretStore.deleteAll
+        eraseKeychainService: (String) throws -> Void = KeychainAccountSecretStore.deleteAll,
+        backgroundService: BackgroundServiceManager? = nil,
+        onRecoveryStopped: () -> Void = {}
     ) -> Outcome {
         if let blocked = registrationPreflight(
             flavor: flavor,
@@ -58,6 +60,15 @@ enum UninstallCoordinator {
         }
         var removed: [String] = []
         var failed: [(path: String, reason: String)] = []
+        do {
+            try (backgroundService ?? BackgroundServiceManager()).unregister()
+        } catch {
+            return Outcome(
+                removed: [], failed: [("Background recovery service", error.localizedDescription)],
+                blockedBeforeCleanup: true
+            )
+        }
+        onRecoveryStopped()
 
         guard prepareBrowserRemoval(home: home, flavor: flavor, failed: &failed) else {
             return Outcome(removed: removed, failed: failed)

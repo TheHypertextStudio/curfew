@@ -36,6 +36,7 @@ let package = Package(
         .executable(name: "curfew-ctl", targets: ["curfew-ctl"]),
         .executable(name: "curfew-mcp", targets: ["curfew-mcp"]),
         .executable(name: "curfew-daemon", targets: ["curfew-daemon"]),
+        .executable(name: "curfew-supervisor", targets: ["curfew-supervisor"]),
         .executable(name: "studio.hypertext.curfew.browser", targets: ["curfew-browser"])
     ],
     dependencies: [
@@ -101,6 +102,11 @@ let package = Package(
                 .product(name: "CurfewProtocols", package: "curfew-protocols")
             ],
             path: "Sources/curfew-mcp"
+        ),
+        .executableTarget(
+            name: "curfew-supervisor",
+            dependencies: [.target(name: "CurfewKit")],
+            path: "Sources/curfew-supervisor"
         ),
         .executableTarget(
             name: "curfew-daemon",

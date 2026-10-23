@@ -46,7 +46,7 @@ extension CurfewAppModel {
         // Skip under the unit-test host so ticking the model neither writes the
         // real lock file nor probes the machine's running apps. Tests exercise
         // `EnforcementOwnership` directly with injected collaborators.
-        guard !RuntimeEnvironment.isUnitTestHost else { return }
+        guard !RuntimeEnvironment.isUnitTestHost, !RuntimeEnvironment.isDemoFixture else { return }
 
         guard state.phase == .locked else {
             EnforcementOwnership.release()

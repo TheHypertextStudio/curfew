@@ -325,7 +325,7 @@ struct EnforcementSnapshotTests {
             lockDate: Date(timeIntervalSince1970: 1_700_000_000),
             unlockDate: Date(timeIntervalSince1970: 1_700_003_600)
         )
-        model.extensionsRemaining = 2
+        _ = model.extensionTracker.requestExtension(at: model.currentTime)
         model.settings.extensionDurationMinutes = 20
 
         let snapshot = model.snapshot

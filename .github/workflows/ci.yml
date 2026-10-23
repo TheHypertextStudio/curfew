@@ -83,6 +83,9 @@ jobs:
       - name: Verify integrated package layout
         run: node --test scripts/*.test.mjs
 
+      - name: Verify Homebrew stops recovery before removal
+        run: HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_INSTALL_FROM_API=1 brew ruby Tests/Packaging/cask_uninstall_test.rb
+
       - name: Test shared package and executable contracts
         run: swift test --package-path CurfewKit --jobs 2
 
@@ -199,7 +202,7 @@ jobs:
         if: github.event_name != 'workflow_dispatch' || inputs.capture_scope == 'full'
         run: >-
           xcodebuild test -project Curfew.xcodeproj -scheme Curfew
-          -destination 'platform=macOS' -jobs 2
+          -destination 'platform=macOS' -jobs 2 -parallel-testing-enabled NO
           -resultBundlePath build/interactions.xcresult
           -only-testing:CurfewUITests/CurfewUITests
           -only-testing:CurfewUITests/CurfewUITestsLaunchTests
@@ -227,7 +230,7 @@ jobs:
 
       - name: Capture demo screenshots
         env:
-          CURFEW_XCODEBUILD_SETTINGS: "CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO -jobs 2 -parallel-testing-enabled NO"
+          CURFEW_XCODEBUILD_SETTINGS: "CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO"
         run: just capture
 
       - name: Upload screenshots
@@ -239,7 +242,7 @@ jobs:
           if-no-files-found: warn
 
       - name: Upload screenshot-test diagnostics
-        if: failure()
+        if: always()
         uses: actions/upload-artifact@v7.0.2
         with:
           name: curfew-screenshot-test-results

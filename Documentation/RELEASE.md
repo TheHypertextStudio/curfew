@@ -712,3 +712,25 @@ state as rollback during active enforcement.
 Use the shared endpoint artifact and the pinned cf build/deployment commands in `domain-migration.md`. Protocol 0.0.13 is the domain-independent contract. A signed native release, verified callback associations, provider registrations, account recovery audit and production acceptance remain required; local unsigned builds do not satisfy them.
 
 The domain migration uses the shared endpoint artifact for native and backend configuration identity. The retained release snapshot additionally binds the resolved Sparkle public key and source digests; it does not substitute its own hash for the endpoint identity. See `domain-migration.md` for preparation, activation and rollback requirements.
+
+- Yank the GitHub release asset and replace it with the previous DMG.
+- There is no active in-app updater in the default build today; rollback is a
+  manual re-download.
+
+
+## Background supervisor release gate
+
+The release maintainer must validate a signed staging candidate before shipping background recovery. Merging the source does not close this gate. The October 23 integration retains current main's Studio signing identities, development App Group, explicit schedule consent, authenticated helper maintenance, and isolated demo services.
+
+Build Debug with `CURFEW_SERVICE_SWIFT_FLAG=CURFEW_STAGING` under company team `T95VDD3A4W`. The Xcode phase passes that flag to both the app and supervisor. Use the development app and `studio.hypertext.apps.curfew.dev.supervisor`; production uses `studio.hypertext.apps.curfew.supervisor`. Ordinary Debug launches and test hosts never register recovery automatically. The signed acceptance fixture additionally requires `CurfewAcceptanceFixture=true` in its bundle and the `--supervisor-acceptance` argument. Its stores are temporary, its service collaborators are inert, and shutdown stays disabled.
+
+1. Register through `SMAppService.agent`. Record its status and `launchctl print gui/$(id -u)/studio.hypertext.apps.curfew.dev.supervisor`. Verify approval-required and failed-registration states in General settings.
+2. Start before the fixture deadline with `--background`. Capture zero ordinary windows and then the lockout overlay. Quit before curfew and Force Quit during lockout. Record replacement PIDs, recovery delay, overlay restoration, and quiet startup. Concurrent opens must reuse one process; a deliberate foreground open must present the workspace.
+3. After explicit staging Accessibility approval, opt in with the bundle Boolean `CurfewAcceptanceKeyboardShield` and re-sign. Verify a blocked Quit shortcut and an enabled tap after process recovery. Ordinary captures and unit hosts cannot install the tap. Inspect actual Accessibility trust and `enforcementHealth` in the local report instead of trusting a Settings checkbox.
+4. Log in during lockout and physically sleep/wake across curfew on an isolated host. Verify quiet login and immediate wake evaluation. Timer or process-list mocks do not prove either event.
+5. Use isolated durable stores to verify extension, snooze, override, and spent weekly-budget restoration. The temporary capture fixture does not prove persistence across native processes. Revoke Accessibility and background-service approval to verify each degraded state and recovery. Confirm the legacy agent is removed only after supervisor registration succeeds.
+6. Unregister before removing state. Stop the app, wait at least 10 seconds, and verify neither app nor supervisor returns. Confirm production state and service identities remain intact. Homebrew uninstall and upgrade must unregister before quitting; refusal must abort removal.
+
+Retain signatures, service status, state reports, PIDs, CI results, and screenshots with the candidate. The October 4 branch recorded native quiet Quit/Force Quit recovery and concurrent-launch reuse under the older development identity. That evidence does not validate the current signed identity or replace the checks above. Local unsigned UI execution on October 23 failed before runner bootstrap; isolated CI provides graphical regression evidence for the integrated source.
+
+Roll back by unregistering the supervisor before installing the prior app. Preserve user settings and runtime JSON. A brief recovery gap remains after process termination. Deliberate service disabling and repeated process killing remain outside this version's guarantee. The optional root helper retains its existing signed deadline and release rules.

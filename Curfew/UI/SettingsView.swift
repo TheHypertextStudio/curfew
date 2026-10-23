@@ -185,6 +185,7 @@ struct SettingsView: View {
         switch selection {
         case .general:
             enforcementHealthPanel
+            backgroundServicePanel
             if model.featureFlags.privilegedHelperEnabled {
                 privilegedHelperPanel
             }

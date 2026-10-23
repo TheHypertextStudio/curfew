@@ -414,6 +414,14 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 
 ---
 
+## Background enforcement
+
+- [x] Keep Curfew enforcing with every ordinary window closed. The user-session supervisor restarts the app after termination, while the app retains schedule and overlay ownership. Signed staging verified Quit, Force Quit, lockout with zero ordinary windows, reused launches, deliberate foreground reopen, and unregister cleanup on October 4, 2026. Login, wake, approval/revocation, and keyboard-shield acceptance remain release gates below.
+- [x] Persist local extension, snooze, override expiry, weekly uses, and reset boundaries before applying grants. Preserve spent uses when weekly limits change. Corrupt state denies new local grants and surfaces a storage error.
+- [x] Remove the unused production App Group permission from Debug. WidgetKit remains disabled in development. The company-team Debug build now signs with its declared entitlements without a production-container provisioning profile.
+- [x] Add explicit keyboard-shield acceptance to signed staging fixtures. Only Debug compiled with `CURFEW_STAGING` honors `CurfewAcceptanceKeyboardShield`; ordinary captures and test hosts remain disarmed. Shutdown and shared enforcement ownership remain disabled in the fixture.
+- [ ] Pass the signed supervisor acceptance gate in [RELEASE.md](RELEASE.md): registration, approval, Quit, Force Quit, login, wake, concurrent launch, degraded permissions, and unregister cleanup. See [background-enforcement.md](background-enforcement.md) for the recovery gap and rollback.
+
 ## 0. Foundation and Project Structure
 
 - [-] Adopt the Studio Mintlify configuration, setup, and authoring standard while retaining Mintlify and product branding. Use the accessible docs primary orange `#b25e30` and preserve the approved light/dark themes. Publish reviewed `main/web/docs` source through the existing Git connection and retain `/docs/mcp` through the nonreserved `mcp-guide` alias. Use shared packages and frozen registry locks with repository Actions Read access. Accept navigation, anchors, assets, search and discovery on the protected marketing Worker preview before production cutover. See `Documentation/website.md`.
@@ -1837,4 +1845,6 @@ asserts its own screen and state before attaching an image.
 
 ## Current-main background recovery integration
 
-The October 23 integration restores the closed-window lifecycle and recovery regressions on current main. `BackgroundIntegrationRegressionTests` checks explicit last-window process retention. `BackgroundEnforcementTests` checks real timer-driven lockout with zero ordinary windows. Isolated CI runs the UI test because local macOS killed the unsigned runner before bootstrap. Integration and final verification remain in progress.
+The October 23 integration restores the closed-window lifecycle and recovery regressions on current main. `BackgroundIntegrationRegressionTests` checks explicit last-window process retention. `BackgroundEnforcementTests` checks real timer-driven lockout with zero ordinary windows. Isolated CI runs the UI test because local macOS killed the unsigned runner before bootstrap. The pull request records current-main verification results. Signed background-service acceptance remains a release gate.
+
+The integration also isolates command-line development uninstall from production and privileged state. A sandboxed regression exercises the actual script. Background acceptance sessions suppress app termination and shutdown even if settings enable shutdown. Ordinary Debug builds require explicit signed-fixture opt-in before supervisor registration.

@@ -196,14 +196,12 @@ extension CurfewAppModel {
             recordAuditExtensionDenied(reason: "not_offered", actor: .user)
             return
         }
-        guard extensionTracker.requestExtension(at: currentTime) else {
+        guard grantPersistentExtension() else {
             extensionsRemaining = extensionTracker.remaining
             recordAuditExtensionDenied(reason: "budget_exhausted", actor: .user)
             return
         }
 
-        extensionsRemaining = extensionTracker.remaining
-        extensionMinutesGrantedToday += settings.extensionDurationMinutes
         activityRecorder.recordExtensionGranted(
             minutes: settings.extensionDurationMinutes,
             at: currentTime
@@ -221,7 +219,7 @@ extension CurfewAppModel {
         guard state.warningStage.supportsSnooze else {
             return
         }
-        snoozeMinutesGrantedToday += 1
+        guard grantPersistentSnooze() else { return }
         refreshAfterUserAction()
     }
 
@@ -252,8 +250,7 @@ extension CurfewAppModel {
             return
         }
         recordAuditOverrideRequested(reason: trimmedOverrideReason)
-        guard overrideTracker.requestExtension(at: currentTime) else {
-            overridesRemaining = overrideTracker.remaining
+        guard grantPersistentOverride() else {
             recordAuditOverrideDenied(reason: "budget_exhausted", actor: .user)
             return
         }
@@ -265,9 +262,6 @@ extension CurfewAppModel {
     }
 
     private func grantOverride(reason: String) {
-        overrideUntil = currentTime
-            .addingTimeInterval(TimeInterval(settings.overrideDurationMinutes * 60))
-        overridesRemaining = overrideTracker.remaining
         lockoutMessage = EncouragementMessageCatalog.postOverride
         let event = OverrideEvent(
             timestamp: currentTime,

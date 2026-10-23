@@ -1,5 +1,6 @@
 import AppKit
 import CurfewKit
+import ServiceManagement
 import SwiftUI
 
 /// Narrow seam exercised by `CurfewApp.init` on first launch. Separated
@@ -50,7 +51,8 @@ struct AppCoordinator: AppCoordinating {
             model.start()
         }
 
-        if model.shouldOpenSettingsOnLaunch {
+        if model.shouldOpenSettingsOnLaunch,
+           !CurfewLaunchBehavior.isBackgroundLaunch(arguments: ProcessInfo.processInfo.arguments) {
             model.showGettingStarted()
         }
     }
@@ -62,6 +64,10 @@ struct AppCoordinator: AppCoordinating {
 /// an authenticated remote lock cannot be accepted by its helper while the
 /// app remains in display-only mode. Only loaded test runtimes are excluded.
 enum CurfewLaunchBehavior {
+    static func isBackgroundLaunch(arguments: [String]) -> Bool {
+        arguments.contains("--background")
+    }
+
     static let developmentBundleIdentifier = CurfewFlavor.development.bundleIdentifier
 
     /// Returns `true` when enforcement should arm at launch given the
@@ -90,6 +96,9 @@ enum CurfewLaunchBehavior {
             bundleIdentifier: String? = Bundle.main.bundleIdentifier,
             isSignedBuild: Bool = DaemonSigningIdentity.current != nil
         ) -> DemoScenario? {
+            if RuntimeEnvironment.isStagingAcceptanceFixture {
+                return .backgroundEnforcement
+            }
             guard !isSignedBuild else { return nil }
             guard environment["CURFEW_DEMO_FIXTURE"] == "1" else {
                 return nil
@@ -113,6 +122,10 @@ struct CurfewApp: App {
     /// activation / wake re-assertion of the keyboard shield off it so a
     /// degraded lockout can recover when the user returns to the Mac.
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
+
+    private static let backgroundLaunch = CurfewLaunchBehavior.isBackgroundLaunch(
+        arguments: ProcessInfo.processInfo.arguments
+    )
 
     private static let shouldStartEnforcementOnLaunch = CurfewLaunchBehavior.shouldStartEnforcement(
         environment: ProcessInfo.processInfo.environment,
@@ -159,21 +172,30 @@ struct CurfewApp: App {
         #endif
     }
 
+    private static var suppressesOrdinaryWindows: Bool {
+        backgroundLaunch || demoStartsWithoutMainWindow
+    }
+
     /// Constructs the app model, wires the `@State`-owned model, and defers
     /// the launch coordinator to the next run-loop spin so SwiftUI's
     /// first body evaluation completes before enforcement arms.
     init() {
+        Self.handleBackgroundServiceCommand()
         #if DEBUG
             if let scenario = CurfewLaunchBehavior.demoScenario(
-                environment: ProcessInfo.processInfo.environment
+                environment: Self.demoEnvironment
             ) {
-                let model = CurfewAppModel.demoModel()
+                let model = CurfewAppModel.demoModel(
+                    backgroundEnforcement: scenario == .backgroundEnforcement
+                )
                 _model = State(wrappedValue: model)
+                let delegate = appDelegate
                 let demoAppearance: NSAppearance.Name =
                     ProcessInfo.processInfo.environment["CURFEW_DEMO_APPEARANCE"] == "dark"
                         ? .darkAqua
                         : .aqua
                 DispatchQueue.main.async {
+                    delegate.model = model
                     // Demo/capture builds only: pin a deterministic appearance so
                     // marketing screenshots don't depend on the capture machine's
                     // mode. Defaults to light; `CURFEW_DEMO_APPEARANCE=dark` pins
@@ -203,6 +225,19 @@ struct CurfewApp: App {
         }
     }
 
+    #if DEBUG
+        private static var demoEnvironment: [String: String] {
+            var environment = ProcessInfo.processInfo.environment
+            #if CURFEW_STAGING
+                if ProcessInfo.processInfo.arguments.contains("--supervisor-acceptance") {
+                    environment["CURFEW_DEMO_FIXTURE"] = "1"
+                    environment["CURFEW_DEMO_SCENARIO"] = "background-enforcement"
+                }
+            #endif
+            return environment
+        }
+    #endif
+
     /// Scene composition: main window + menu bar + Settings pane.
     var body: some Scene {
         Window("Curfew", id: MainWorkspaceSection.windowID) {
@@ -217,17 +252,17 @@ struct CurfewApp: App {
         }
         .defaultSize(width: 1080, height: 720)
         .windowStyle(.hiddenTitleBar)
-        #if DEBUG
-            .defaultLaunchBehavior(Self.demoStartsWithoutMainWindow ? .suppressed : .presented)
-        #endif
-            .commands {
-                CommandGroup(after: .appInfo) {
-                    Button("Check for Updates…") {
-                        updater.checkForUpdates()
-                    }
-                    .disabled(!updater.canCheckForUpdates)
+        .defaultLaunchBehavior(Self.suppressesOrdinaryWindows ? .suppressed : .presented)
+        .restorationBehavior(Self.backgroundLaunch ? .disabled : .automatic)
+        .commands {
+            MainWorkspaceCommands(delegate: appDelegate)
+            CommandGroup(after: .appInfo) {
+                Button("Check for Updates…") {
+                    updater.checkForUpdates()
                 }
+                .disabled(!updater.canCheckForUpdates)
             }
+        }
 
         MenuBarExtra {
             ContentView()
@@ -259,6 +294,8 @@ struct CurfewApp: App {
                 .demoWindowSize(width: 860, height: 620, minimumWidth: 760, minimumHeight: 520)
         }
 
+        .restorationBehavior(Self.backgroundLaunch ? .disabled : .automatic)
+
         // Suppressed at launch; setup is opened on request through any available
         // scene, and can dismiss itself without a main workspace window.
         Window("Set Up Curfew", id: CurfewAppModel.gettingStartedWindowID) {
@@ -270,81 +307,18 @@ struct CurfewApp: App {
         .defaultSize(width: 620, height: 430)
         .windowResizability(.contentSize)
         .defaultLaunchBehavior(.suppressed)
+        .restorationBehavior(Self.backgroundLaunch ? .disabled : .automatic)
     }
 }
 
-/// AppKit application delegate for Curfew.
-///
-/// SwiftUI's `App` lifecycle owns launch and scene composition; the delegate's
-/// one job is to re-assert enforcement when the user returns to the Mac. On app
-/// activation it re-polls Accessibility trust + tap liveness and, when locked,
-/// restarts the keyboard shield and re-fronts the lockout overlay so a degraded
-/// lockout recovers. System wake is handled by the model's own
-/// `NSWorkspace` observers (see `CurfewAppModel.startEnforcementReassertionObservers`).
-///
-/// The shared model is injected by `CurfewApp.init` after the scene graph is
-/// constructed; it is `weak` so the delegate never keeps the model alive past
-/// the app's own lifetime.
-final class AppDelegate: NSObject, NSApplicationDelegate {
-    /// The live app model, injected by `CurfewApp`. `weak` so the delegate
-    /// observes rather than owns the model.
-    weak var model: CurfewAppModel?
-    private let callbackRouter: any AccountOAuthCallbackRouting
+private struct MainWorkspaceCommands: Commands {
+    @Environment(\.openWindow) private var openWindow
+    let delegate: AppDelegate
 
-    override convenience init() {
-        self.init(callbackRouter: AccountOAuthCallbackRouter.shared)
-    }
-
-    init(callbackRouter: any AccountOAuthCallbackRouting) {
-        self.callbackRouter = callbackRouter
-        super.init()
-    }
-
-    /// Universal-link callbacks from another browser profile are accepted only
-    /// for the exact pending claimed-HTTPS OAuth transaction.
-    func application(_: NSApplication, open urls: [URL]) {
-        for url in urls {
-            if callbackRouter.route(url) || model?.handleLicenseActivationURL(url) == true {
-                break
-            }
+    var body: some Commands {
+        delegate.openMainWindow = { openWindow(id: MainWorkspaceSection.windowID) }
+        return CommandGroup(after: .windowArrangement) {
+            Button("Open Curfew") { openWindow(id: MainWorkspaceSection.windowID) }
         }
-    }
-
-    /// Claimed HTTPS links opened from another browser arrive as web-browsing
-    /// activities, not as document or custom-scheme URLs.
-    func application(
-        _: NSApplication,
-        continue userActivity: NSUserActivity,
-        restorationHandler _: @escaping ([any NSUserActivityRestoring]) -> Void
-    ) -> Bool {
-        guard userActivity.activityType == NSUserActivityTypeBrowsingWeb,
-              let callback = userActivity.webpageURL
-        else { return false }
-        return callbackRouter.route(callback)
-    }
-
-    /// AppKit calls this whenever Curfew becomes the active app — including the
-    /// user clicking back into a Curfew window after being away. Re-assert
-    /// enforcement so a lockout that degraded while we were in the background
-    /// recovers. No-ops when not locked.
-    func applicationDidBecomeActive(_ notification: Notification) {
-        model?.reassertEnforcementIfNeeded()
-        // Re-poll Accessibility trust immediately on return, so granting access
-        // in System Settings and switching back clears the warning banner at
-        // once rather than waiting up to a second for the display clock's tick.
-        model?.refreshAccessibilityTrust()
-    }
-
-    /// Closes the audit trail on a normal quit. A launch with no preceding
-    /// `app.terminating` is how a reader — and the privileged daemon — tells
-    /// a crash or a force-quit from an ordinary exit.
-    ///
-    /// Takes the presence camera down first. The process exiting would release
-    /// the device anyway, but doing it explicitly closes the
-    /// `presence.camera_started` record with a matching stop, so the log
-    /// always bounds the window the camera was on.
-    func applicationWillTerminate(_ notification: Notification) {
-        model?.shutDownPresence()
-        model?.recordAuditAppTerminating()
     }
 }
