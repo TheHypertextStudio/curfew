@@ -47,7 +47,9 @@ jobs:
           xcodebuild -version
 
       - name: Install tools
-        run: brew install create-dmg swiftlint swiftformat just
+        run: |
+          brew install create-dmg swiftlint just
+          ./scripts/swiftformat.sh --version
 
       - name: Generate shared deployment configuration
         run: node scripts/deployment-config.mjs generate

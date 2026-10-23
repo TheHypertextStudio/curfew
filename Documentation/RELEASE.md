@@ -144,8 +144,8 @@ locally is the fastest way to validate shutdown/widget/helper/CloudKit behavior
 before pushing a tag.
 
 ```bash
-swiftformat Curfew CurfewTests CurfewUITests
-swiftformat Curfew CurfewTests CurfewUITests --lint
+./scripts/swiftformat.sh Curfew CurfewTests CurfewUITests
+./scripts/swiftformat.sh Curfew CurfewTests CurfewUITests --lint
 swiftlint lint --strict
 just check
 just test-ui
