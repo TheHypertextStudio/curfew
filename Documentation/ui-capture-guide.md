@@ -9,6 +9,28 @@ screenshots are in `build/baseline/screenshots/`. Do not overwrite that director
 New screenshots are extracted to `build/screenshots/` with stable names containing
 surface, state, appearance, and size where applicable.
 
+## Focused Settings capture
+
+When repairing only the Settings state capture assertion, run the existing CI
+workflow with `capture_scope=settings` against the reviewed branch. It runs
+`testCaptureDistinctSettingsStates` on the isolated macOS runner and retains its
+screenshots and diagnostics under a separate Settings capture name. Normal push,
+pull request, and manual `full` runs retain the complete checks.
+
+The equivalent dedicated-runner command is:
+
+```sh
+CURFEW_CAPTURE_TEST=testCaptureDistinctSettingsStates just capture
+```
+
+Native stepper values may be numeric rather than strings. Zero-budget assertions
+compare their numeric value and report the original value on failure.
+
+This is evidence for that state family only. Reuse prior passing checks only
+when the source and configuration they cover remain unchanged; a focused run is
+not full CI acceptance. Invalid selectors fail before compilation. Do not run it
+on the operator's desktop or use it to replace checks affected by product changes.
+
 ## Isolated launches
 
 Keep the shell command running while inspecting the app (do not background it in

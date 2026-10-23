@@ -14,6 +14,15 @@ BUNDLE="$ROOT/build/screenshots.xcresult"
 RAW="$ROOT/build/screenshots-raw"
 OUT="$ROOT/build/screenshots"
 
+# A focused run deliberately covers only the named Settings state family.
+# Keep the accepted selector explicit so a typo cannot produce a zero-test pass.
+case "${CURFEW_CAPTURE_TEST:-}" in
+    "") capture_target="CurfewUITests/MarketingCaptureTests" ;;
+    testCaptureDistinctSettingsStates)
+        capture_target="CurfewUITests/MarketingCaptureTests/$CURFEW_CAPTURE_TEST" ;;
+    *) echo "Invalid capture test: ${CURFEW_CAPTURE_TEST}" >&2; exit 2 ;;
+esac
+
 echo "==> Pre-building bundled CLI tools"
 swift build --package-path CurfewKit -c release --product curfew-ctl --product curfew-mcp --product curfew-daemon
 
@@ -21,7 +30,7 @@ rm -rf "$BUNDLE" "$RAW"
 mkdir -p "$OUT"
 rm -f "$OUT"/curfew-*.png
 
-echo "==> Running MarketingCaptureTests"
+echo "==> Running $capture_target"
 status=0
 xcodebuild_arguments=(
     test
@@ -30,7 +39,7 @@ xcodebuild_arguments=(
     -configuration Debug
     -destination 'platform=macOS'
     -derivedDataPath build
-    -only-testing:CurfewUITests/MarketingCaptureTests
+    "-only-testing:$capture_target"
     -parallel-testing-enabled NO
     -resultBundlePath "$BUNDLE"
 )

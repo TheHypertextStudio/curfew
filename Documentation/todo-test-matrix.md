@@ -2322,3 +2322,12 @@ flows and the public updater path require their own acceptance.
 - Release acceptance requires separate fresh-install and pinned-baseline Sparkle
   receipts for the same final subject. Reverting harness changes leaves those
   outcomes unverified and does not alter any owner app or preference.
+
+## Focused Settings capture
+
+- `scripts/extract-screenshots.test.mjs` verifies default full selection, exact
+  Settings method selection, rejection before build for an invalid selector,
+  and preservation of Xcode's failure exit status.
+- CI's manual `settings` scope runs that method on an isolated macOS runner;
+  its result establishes only Settings capture acceptance. Normal full CI and
+  independent signed installer/upgrade checks retain their existing scope.
