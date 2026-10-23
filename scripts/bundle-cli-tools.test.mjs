@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
 import {
-  mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, copyFileSync,
+  mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, copyFileSync, readdirSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -158,6 +158,27 @@ test('the bundle phase rejects absent architectures and staging in Release befor
       assert.notEqual(result.status, 0);
       assert.match(result.stderr, expected);
       assert.doesNotMatch(result.stderr, /UNEXPECTED_BUILD/);
+    }
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test('the browser @main filename compiles in a library context for both targets', () => {
+  const directory = 'CurfewKit/Sources/curfew-browser';
+  const entrypoints = readdirSync(directory).filter(name => name.endsWith('.swift') &&
+    /@main\s+enum/.test(readFileSync(join(directory, name), 'utf8')));
+  assert.equal(entrypoints.length, 1);
+  const root = mkdtempSync(join(tmpdir(), 'curfew-browser-entry-'));
+  try {
+    // An explicit library context isolates the reserved main.swift filename rule.
+    // Bare single-file swiftc defaults to script mode regardless of its filename.
+    // Real browser body, SwiftPM inference and linking remain separate build checks.
+    const source = join(root, entrypoints[0]);
+    writeFileSync(source, '@main enum BrowserEntryFixture { static func main() {} }\n');
+    const context = join(root, 'LibraryContext.swift');
+    writeFileSync(context, '// Library module context.\n');
+    for (const arch of ['arm64', 'x86_64']) {
+      const result = spawnSync('xcrun', ['swiftc', '-typecheck', '-target', `${arch}-apple-macos14.0`, source, context], { encoding: 'utf8' });
+      assert.equal(result.status, 0, `${arch} @main entrypoint parsing failed: ${result.stderr}`);
     }
   } finally { rmSync(root, { recursive: true, force: true }); }
 });

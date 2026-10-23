@@ -1796,6 +1796,14 @@ asserts its own screen and state before attaching an image.
 
 ## Universal embedded executables
 
+- [x] Keep the browser host's `@main` declaration in a named Swift source file
+  rather than reserved `main.swift`, so universal SwiftPM builds select library
+  parsing without product-specific compiler flags. Preserve entrypoint bytes,
+  architecture verification, staging isolation and signing behavior.
+- [ ] Verify entrypoint repairs with the focused hosted `browser-bridge` scope
+  before tagging a candidate. Keep ordinary full CI's unsigned universal-tool
+  packaging distinct from the final signed archive and installed acceptance.
+
 - [x] Build all four embedded tools for the app's resolved Xcode architectures,
   preserve Debug staging and signing behavior, and reject Release artifacts
   missing Apple silicon or Intel slices. See `Documentation/RELEASE.md`.

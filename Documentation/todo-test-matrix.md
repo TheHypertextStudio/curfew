@@ -2273,6 +2273,20 @@ flows and the public updater path require their own acceptance.
 
 ## Universal embedded executables
 
+- The browser entrypoint filename regression runs the installed Swift compiler
+  for Apple silicon and Intel in an explicit library context using the actual
+  target entry filename. Reserved `main.swift` fails with `@main`; a named
+  declaration file succeeds without a parser override. This isolates filename
+  semantics from direct single-file `swiftc` script defaults.
+- Real universal SwiftPM builds must separately compile and link the actual
+  browser body, supply the appropriate library parse mode and produce both
+  executable slices. Local toolchain success does not replace the hosted signed
+  archive, final artifact verification or installed browser acceptance.
+- The `browser-bridge` CI scope compiles only the real universal browser product
+  on the hosted release toolchain. Normal full CI runs unsigned universal-tool
+  packaging against actual `ARCHS`. These compiler/linking checks precede the
+  separate signed archive, final artifact verifier and installed acceptance.
+
 - `scripts/bundle-cli-tools.test.mjs` executes the Xcode bundle phase for
   universal and active-architecture builds, verifies every copied tool with
   `lipo`, preserves staging flags, and rejects each missing tool slice and a

@@ -8,15 +8,15 @@ on:
   workflow_dispatch:
     inputs:
       capture_scope:
-        description: Full CI or only the Settings state capture (not full CI acceptance)
+        description: Full CI, Settings capture, or browser compilation (partial scopes are not full CI acceptance)
         type: choice
-        options: [full, settings]
+        options: [full, settings, browser-bridge]
         default: full
         required: true
 
 jobs:
   purchases:
-    if: github.event_name != 'workflow_dispatch' || inputs.capture_scope != 'settings'
+    if: github.event_name != 'workflow_dispatch' || inputs.capture_scope == 'full'
     name: License activation and restoration
     runs-on: ubuntu-latest
     steps:
@@ -33,7 +33,7 @@ jobs:
         run: pnpm --dir web/worker test && pnpm --dir web/worker typecheck
 
   docs:
-    if: github.event_name != 'workflow_dispatch' || inputs.capture_scope != 'settings'
+    if: github.event_name != 'workflow_dispatch' || inputs.capture_scope == 'full'
     name: User documentation regressions
     runs-on: ubuntu-latest
     steps:
@@ -45,7 +45,7 @@ jobs:
         run: node --test scripts/user-docs.test.mjs
 
   check:
-    if: github.event_name != 'workflow_dispatch' || inputs.capture_scope != 'settings'
+    if: github.event_name != 'workflow_dispatch' || inputs.capture_scope == 'full'
     name: Format · Lint · Test · Build
     # Match the signed candidate's supported ARM64 macOS 26 runtime. The Intel
     # image can fail while preparing a test host even after other tests pass.
@@ -104,7 +104,50 @@ jobs:
           path: build/CurfewTests.xcresult
           if-no-files-found: warn
 
+  universal-tools:
+    if: github.event_name != 'workflow_dispatch' || inputs.capture_scope != 'settings'
+    name: ${{ inputs.capture_scope == 'browser-bridge' && 'Universal browser bridge only' || 'Universal CLI tools' }}
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - name: Select release Xcode
+        run: |
+          if [ -d /Applications/Xcode_26.app ]; then
+            sudo xcode-select -s /Applications/Xcode_26.app
+          else
+            sudo xcode-select -s "$(find /Applications -maxdepth 1 -name 'Xcode_*.app' -type d | sort -V | tail -1)"
+          fi
+          xcodebuild -version
+          swift --version
+      # Compile the exact failing production product without installing or
+      # launching an app. This scope proves compilation, not signed acceptance.
+      - name: Compile universal browser bridge
+        if: github.event_name == 'workflow_dispatch' && inputs.capture_scope == 'browser-bridge'
+        run: |
+          swift build --package-path CurfewKit -c release --jobs 2 --arch arm64 --arch x86_64 --product studio.hypertext.curfew.browser
+          bin_path=$(swift build --package-path CurfewKit -c release --jobs 2 --arch arm64 --arch x86_64 --product studio.hypertext.curfew.browser --show-bin-path)
+          /usr/bin/lipo "$bin_path/studio.hypertext.curfew.browser" -verify_arch arm64
+          /usr/bin/lipo "$bin_path/studio.hypertext.curfew.browser" -verify_arch x86_64
+          /usr/bin/lipo -archs "$bin_path/studio.hypertext.curfew.browser"
+      # Full CI exercises the archive's existing packaging script against a
+      # temporary app directory. Signing remains the release producer's job.
+      - name: Package unsigned universal CLI tools
+        if: github.event_name != 'workflow_dispatch' || inputs.capture_scope == 'full'
+        env:
+          SRCROOT: ${{ github.workspace }}
+          CONFIGURATION: Release
+          ARCHS: arm64 x86_64
+          CURFEW_DAEMON_PLIST_NAME: studio.hypertext.curfew.daemon.plist
+          CURFEW_SERVICE_SWIFT_FLAG: ""
+          CODE_SIGNING_ALLOWED: "NO"
+          BUILT_PRODUCTS_DIR: ${{ runner.temp }}/universal-tools
+          CONTENTS_FOLDER_PATH: Curfew.app/Contents
+        run: bash scripts/bundle-cli-tools.sh
+
   screenshots:
+    if: github.event_name != 'workflow_dispatch' || inputs.capture_scope != 'browser-bridge'
     name: ${{ inputs.capture_scope == 'settings' && 'Settings capture only' || 'Capture screenshots' }}
     env:
       CURFEW_CAPTURE_TEST: ${{ inputs.capture_scope == 'settings' && 'testCaptureDistinctSettingsStates' || '' }}
@@ -153,7 +196,7 @@ jobs:
         run: node --test scripts/extract-screenshots.test.mjs scripts/configure-ci-display.test.mjs
 
       - name: Verify UI interactions on the isolated runner
-        if: github.event_name != 'workflow_dispatch' || inputs.capture_scope != 'settings'
+        if: github.event_name != 'workflow_dispatch' || inputs.capture_scope == 'full'
         run: >-
           xcodebuild test -project Curfew.xcodeproj -scheme Curfew
           -destination 'platform=macOS'
@@ -163,7 +206,7 @@ jobs:
           CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
 
       - name: Verify state fixtures before the full capture sweep
-        if: github.event_name != 'workflow_dispatch' || inputs.capture_scope != 'settings'
+        if: github.event_name != 'workflow_dispatch' || inputs.capture_scope == 'full'
         run: >-
           xcodebuild test -project Curfew.xcodeproj -scheme Curfew
           -destination 'platform=macOS' -derivedDataPath build

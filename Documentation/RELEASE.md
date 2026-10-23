@@ -216,6 +216,19 @@ in process memory, passes it explicitly as `INFOPLIST_KEY_SUPublicEDKey`, and
 checks resolved Release settings before archive. The source placeholder remains
 fail-closed for local archives without that explicit verified override. Never
 assume a Debug key matches, print the private seed, or rotate it to get a pass.
+The browser host uses `@main` in `CurfewBrowserMain.swift`; do not rename it to
+reserved `main.swift`. SwiftPM must select library parsing for this entrypoint
+on both architectures without a bundle-script compiler exception. Keep universal
+linking and final signed-artifact verification as separate checks when changing
+entrypoint packaging.
+
+The CI `browser-bridge` manual scope isolates the universal browser product on
+the hosted macOS/Xcode release toolchain. Normal full CI also packages unsigned
+universal tools using the app's resolved `ARCHS`. Use the focused hosted result
+to verify an entrypoint repair before tagging another candidate. A newer local
+compiler's success is supporting evidence; it does not establish that the
+release toolchain or signed archive passed.
+
 The verifier checks Sparkle, the existing production feed, public key, Widget, all
 four embedded executables, nested signatures, Developer ID Application authority, Studio team,
 exact 0.0.x version, embedded configuration hash/commit, Gatekeeper, stapling and
