@@ -183,13 +183,14 @@ struct SetupUXTests {
         #expect(router.showSettingsCallCount == 1)
     }
 
-    @Test("Getting Started action bumps the onboarding window request trigger")
-    func gettingStartedActionBumpsRequestTrigger() {
+    @Test("Getting Started action routes through the available scene")
+    func gettingStartedActionRoutesThroughScene() {
+        let router = AppRouterSpy()
         let model = CurfewAppModel(
             settingsStore: CurfewSettingsStore(
                 defaults: UserDefaults(suiteName: UUID().uuidString) ?? .standard
             ),
-            appRouter: AppRouterSpy(),
+            appRouter: router,
             flavor: .production,
             activityRecorder: NullActivityRecording(),
             lockoutDeadlineStore: .ephemeralForTesting()
@@ -197,11 +198,12 @@ struct SetupUXTests {
 
         model.showGettingStarted()
 
-        #expect(model.gettingStartedRequestID == 1)
+        #expect(router.openedWindows == [CurfewAppModel.gettingStartedWindowID])
     }
 
     @Test("Completing onboarding marks setup complete and dismisses onboarding")
     func completeOnboardingFlowUpdatesState() {
+        let router = AppRouterSpy()
         let suiteName = "CurfewSettingsStoreTests.OnboardingComplete.\(UUID().uuidString)"
         guard let defaults = UserDefaults(suiteName: suiteName) else {
             Issue.record("Unable to create isolated UserDefaults suite.")
@@ -213,7 +215,7 @@ struct SetupUXTests {
 
         let model = CurfewAppModel(
             settingsStore: CurfewSettingsStore(defaults: defaults),
-            appRouter: AppRouterSpy(),
+            appRouter: router,
             flavor: .production,
             activityRecorder: NullActivityRecording(),
             lockoutDeadlineStore: .ephemeralForTesting(),
@@ -223,7 +225,7 @@ struct SetupUXTests {
         #expect(!model.settings.hasCompletedInitialSetup)
         model.completeOnboardingFlow(choice: .remoteControlsOnly)
         #expect(model.settings.hasCompletedInitialSetup)
-        #expect(model.gettingStartedDismissID == 1)
+        #expect(router.dismissedWindows == [CurfewAppModel.gettingStartedWindowID])
     }
 
     @Test("Completing setup without Accessibility trust does not arm enforcement")

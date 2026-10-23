@@ -2,12 +2,11 @@ import AppKit
 import CurfewKit
 import SwiftUI
 
-/// Abstraction over "bring the app to focus and show settings" so tests can
-/// verify that menu bar and in-app affordances route through the expected
-/// navigation path without touching real `NSApp` APIs.
+/// Routes app navigation through actions supplied by available SwiftUI scenes,
+/// retaining early requests until a scene can handle them.
 ///
 /// Production builds use `SystemAppRouter`; tests substitute a spy implementing
-/// this protocol to assert activation + settings-window calls in isolation.
+/// this protocol to assert activation and navigation in isolation.
 @MainActor
 protocol AppRouting: AnyObject {
     /// Brings Curfew to the foreground, activating it regardless of whether
@@ -21,17 +20,33 @@ protocol AppRouting: AnyObject {
 
     /// Invokes the Settings action registered by the visible scene.
     func showSettings()
+
+    /// Supplies named-window actions without requiring the main workspace.
+    func registerWindowActions(
+        open: @escaping @MainActor (String) -> Void,
+        dismiss: @escaping @MainActor (String) -> Void
+    )
+
+    /// Opens or focuses a named window, retaining an early request.
+    func openWindow(id: String)
+    /// Dismisses a named window, superseding any pending opening request.
+    func dismissWindow(id: String)
 }
 
-/// Default `AppRouting` implementation that delegates to `NSApp`.
-///
-/// Kept as a tiny concrete type (rather than folding the two lines into the
-/// caller) so tests can swap it out, and so the two routing actions live
-/// together when we eventually add deep-link or URL-scheme handling.
+/// Activates through AppKit and performs navigation through SwiftUI scene
+/// actions. Repeated early requests coalesce to the last intent per window.
 @MainActor
 final class SystemAppRouter: AppRouting {
+    private enum WindowAction {
+        case open
+        case dismiss
+    }
+
     private var settingsOpener: (@MainActor () -> Void)?
     private var settingsOpenPending = false
+    private var windowOpener: (@MainActor (String) -> Void)?
+    private var windowDismisser: (@MainActor (String) -> Void)?
+    private var pendingWindowActions: [String: WindowAction] = [:]
 
     /// Activates the Curfew process, ignoring which app currently holds focus.
     func activate() {
@@ -55,5 +70,37 @@ final class SystemAppRouter: AppRouting {
             return
         }
         settingsOpener()
+    }
+
+    func registerWindowActions(
+        open: @escaping @MainActor (String) -> Void,
+        dismiss: @escaping @MainActor (String) -> Void
+    ) {
+        windowOpener = open
+        windowDismisser = dismiss
+        let pending = pendingWindowActions
+        pendingWindowActions.removeAll()
+        for (id, action) in pending {
+            route(action, to: id)
+        }
+    }
+
+    func openWindow(id: String) {
+        route(.open, to: id)
+    }
+
+    func dismissWindow(id: String) {
+        route(.dismiss, to: id)
+    }
+
+    private func route(_ action: WindowAction, to id: String) {
+        guard let windowOpener, let windowDismisser else {
+            pendingWindowActions[id] = action
+            return
+        }
+        switch action {
+        case .open: windowOpener(id)
+        case .dismiss: windowDismisser(id)
+        }
     }
 }

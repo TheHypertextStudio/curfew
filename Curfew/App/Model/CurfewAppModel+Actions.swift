@@ -54,19 +54,15 @@ extension CurfewAppModel {
         return true
     }
 
-    /// Brings the app to the foreground and requests the Getting Started window.
-    /// Bumps ``gettingStartedRequestID``; the SwiftUI scene graph observes it
-    /// and opens the `WindowGroup(id: "getting-started")` via `openWindow`.
+    /// Brings setup forward, retaining requests made before any window exists.
     func showGettingStarted() {
         appRouter.activate()
-        gettingStartedRequestID += 1
+        appRouter.openWindow(id: Self.gettingStartedWindowID)
     }
 
-    /// Requests dismissal of the Getting Started window by bumping
-    /// ``gettingStartedDismissID``; the scene graph observes it and calls
-    /// `dismissWindow`.
+    /// Dismisses setup through an available scene, including setup itself.
     func dismissGettingStarted() {
-        gettingStartedDismissID += 1
+        appRouter.dismissWindow(id: Self.gettingStartedWindowID)
     }
 
     /// Marks initial setup complete and dismisses the Getting Started window.

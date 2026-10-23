@@ -644,6 +644,10 @@ mid-lockout, and every action the root daemon takes. Format specification:
 - [x] Onboarding completion now requires opening live schedule settings and acknowledging permissions guidance before finish.
 - [x] Anti-bypass: onboarding mutations route through `queueScheduleUpdate`.
 - [x] Onboarding relaunch from Settings.
+- [-] Setup navigation must work before the main workspace has opened. Queue
+  early window requests, dismiss setup through its own scene, and retain the
+  Schedule destination when its editor first opens. Router behavior is covered
+  locally; installed graphical acceptance remains required.
 
 ## 17. Distribution and Operations
 

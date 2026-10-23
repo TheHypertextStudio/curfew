@@ -273,7 +273,8 @@ struct AppCoordinatorTests {
         )
 
         #expect(model.isEnforcementRunning)
-        #expect(model.gettingStartedRequestID == 1)
+        #expect((model.appRouter as? AppRouterSpy)?
+            .openedWindows == [CurfewAppModel.gettingStartedWindowID])
     }
 
     @Test("Coordinator keeps enforcement disarmed when launch policy disables start")

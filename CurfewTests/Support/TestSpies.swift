@@ -12,13 +12,13 @@ extension LockoutDeadlineStore {
 }
 
 @MainActor
-func makeTestAppModel() -> CurfewAppModel {
+func makeTestAppModel(appRouter: AppRouting? = nil) -> CurfewAppModel {
     let suite = "studio.hypertext.curfew.tests.\(UUID().uuidString)"
     let defaults = UserDefaults(suiteName: suite) ?? .standard
     defaults.removePersistentDomain(forName: suite)
     return CurfewAppModel(
         settingsStore: CurfewSettingsStore(defaults: defaults),
-        appRouter: AppRouterSpy(),
+        appRouter: appRouter ?? AppRouterSpy(),
         flavor: .production,
         activityRecorder: NullActivityRecording(),
         lockoutDeadlineStore: .ephemeralForTesting()
@@ -39,6 +39,8 @@ final class AppRouterSpy: AppRouting {
 
     /// Number of times `showSettings()` has been called.
     private(set) var showSettingsCallCount = 0
+    private(set) var openedWindows: [String] = []
+    private(set) var dismissedWindows: [String] = []
 
     func activate() {
         activateCallCount += 1
@@ -48,6 +50,19 @@ final class AppRouterSpy: AppRouting {
 
     func showSettings() {
         showSettingsCallCount += 1
+    }
+
+    func registerWindowActions(
+        open _: @escaping @MainActor (String) -> Void,
+        dismiss _: @escaping @MainActor (String) -> Void
+    ) {}
+
+    func openWindow(id: String) {
+        openedWindows.append(id)
+    }
+
+    func dismissWindow(id: String) {
+        dismissedWindows.append(id)
     }
 }
 

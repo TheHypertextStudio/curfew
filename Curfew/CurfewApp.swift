@@ -147,6 +147,18 @@ struct CurfewApp: App {
         #endif
     }
 
+    /// Exercises menu-bar-only launch in the unsigned UI fixture, matching a
+    /// release launch where the main workspace has never been constructed.
+    private static var demoStartsWithoutMainWindow: Bool {
+        #if DEBUG
+            let environment = ProcessInfo.processInfo.environment
+            return CurfewLaunchBehavior.demoScenario(environment: environment) != nil &&
+                environment["CURFEW_DEMO_WITHOUT_MAIN_WINDOW"] == "1"
+        #else
+            false
+        #endif
+    }
+
     /// Constructs the app model, wires the `@State`-owned model, and defers
     /// the launch coordinator to the next run-loop spin so SwiftUI's
     /// first body evaluation completes before enforcement arms.
@@ -196,6 +208,7 @@ struct CurfewApp: App {
         Window("Curfew", id: MainWorkspaceSection.windowID) {
             MainWindowView()
                 .environment(model)
+                .appWindowRouting(using: model.appRouter)
                 .disabled(model.privilegedHelperManager.repairInProgress)
                 .frame(minWidth: 980, minHeight: 660)
                 .onOpenURL { _ = model.handleIncomingURL($0) }
@@ -205,7 +218,7 @@ struct CurfewApp: App {
         .defaultSize(width: 1080, height: 720)
         .windowStyle(.hiddenTitleBar)
         #if DEBUG
-            .defaultLaunchBehavior(.presented)
+            .defaultLaunchBehavior(Self.demoStartsWithoutMainWindow ? .suppressed : .presented)
         #endif
             .commands {
                 CommandGroup(after: .appInfo) {
@@ -232,6 +245,7 @@ struct CurfewApp: App {
                 .accessibilityLabel("Curfew\(CurfewFlavor.current.displaySuffix) status")
                 .accessibilityIdentifier("curfew-status-item")
                 .accessibilityValue(model.menuBarHeaderLine)
+                .appWindowRouting(using: model.appRouter)
         }
         .menuBarExtraStyle(.window)
 
@@ -239,19 +253,18 @@ struct CurfewApp: App {
             SettingsView()
                 .preferredColorScheme(Self.demoColorScheme)
                 .environment(model)
+                .appWindowRouting(using: model.appRouter)
                 .frame(minWidth: 760, minHeight: 520)
                 .onOpenURL { _ = model.handleIncomingURL($0) }
                 .demoWindowSize(width: 860, height: 620, minimumWidth: 760, minimumHeight: 520)
         }
 
-        // First-launch onboarding window. Replaces the hand-rolled
-        // `NSWindowController` presenter: `MainWindowView` observes the model's
-        // `gettingStartedRequestID` / `gettingStartedDismissID` triggers and
-        // drives `openWindow` / `dismissWindow` for this group. Suppressed at
-        // launch so it only appears when the model requests it.
+        // Suppressed at launch; setup is opened on request through any available
+        // scene, and can dismiss itself without a main workspace window.
         Window("Set Up Curfew", id: CurfewAppModel.gettingStartedWindowID) {
             GettingStartedView()
                 .environment(model)
+                .appWindowRouting(using: model.appRouter)
                 .preferredColorScheme(Self.demoColorScheme)
         }
         .defaultSize(width: 620, height: 430)

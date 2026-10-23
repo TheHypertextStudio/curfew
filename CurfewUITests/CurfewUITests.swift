@@ -232,13 +232,20 @@ final class CurfewUITests: XCTestCase {
     func launchFixture(
         _ scenario: String,
         state: String = "default",
-        size: String = "default"
+        size: String = "default",
+        withoutMainWindow: Bool = false
     ) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchEnvironment["CURFEW_DEMO_FIXTURE"] = "1"
         app.launchEnvironment["CURFEW_DEMO_SCENARIO"] = scenario
         app.launchEnvironment["CURFEW_DEMO_STATE"] = state
         app.launchEnvironment["CURFEW_DEMO_SIZE"] = size
+        if let home = ProcessInfo.processInfo.environment["CURFEW_UI_FIXTURE_HOME"] {
+            app.launchEnvironment["CFFIXED_USER_HOME"] = home
+        }
+        if withoutMainWindow {
+            app.launchEnvironment["CURFEW_DEMO_WITHOUT_MAIN_WINDOW"] = "1"
+        }
         app.launchArguments += ["-SUEnableAutomaticChecks", "NO", "-SUHasLaunchedBefore", "YES"]
         app.launch()
         if app.state != .runningForeground {

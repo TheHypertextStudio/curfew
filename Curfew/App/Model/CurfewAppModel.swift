@@ -110,12 +110,6 @@ final class CurfewAppModel: NSObject {
 
     var reflectionState: ReflectionRuntimeState
 
-    /// Bumped by ``showGettingStarted()`` / ``dismissGettingStarted()``; the
-    /// scene graph observes them to drive `openWindow` / `dismissWindow` for the
-    /// Getting Started `WindowGroup` (replacing the old presenter).
-    var gettingStartedRequestID = 0
-    var gettingStartedDismissID = 0
-
     /// Set by ``requestWorkspaceNavigation(to:)``; lets Getting Started drive
     /// the main window's sidebar selection. Cleared back to `nil` once handled.
     var requestedWorkspaceSection: MainWorkspaceSection?

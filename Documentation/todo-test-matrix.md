@@ -986,7 +986,21 @@ tests cannot read or mutate a user's App Group lockout record.
   - `FirstRunFlowTests/permissionsStepRequiresAcknowledgement()`
   - `OnboardingConfirmationRequirementTests/confirmationRequirementsTrackOutstandingSteps()`
 - `Allow onboarding relaunch from Settings.`
-  - `SetupUXTests/gettingStartedActionRoutesThroughPresenter()`
+  - `SetupUXTests/gettingStartedActionRoutesThroughScene()`
+- `Setup navigation works before the main workspace has opened.`
+  - `AppSettingsRoutingTests/earlySetupRequestWaitsForScene()` retains and
+    coalesces requests until a scene supplies its actions.
+  - `AppSettingsRoutingTests/setupDismissalDoesNotNeedMainWindow()` and
+    `earlyDismissalSupersedesPendingOpen()` verify dismissal without the main
+    window and prevent deferred setup from reopening after cancellation.
+  - `AppSettingsRoutingTests/setupModelActionsRouteWithoutMainWindow()` and
+    `earlyWorkspaceNavigationRetainsScheduleIntent()` cover the model routing
+    boundary and the pending Schedule destination.
+  - `CurfewUITests/testSetupReviewOpensAndDismissesWithoutMainWindow()`,
+    `testMenuOpenedSetupDismissesWithoutMainWindow()`, and
+    `testFirstRunScheduleOpensNewMainWindow()` exercise the unsigned fixture with
+    main-window launch suppressed. These require a working graphical test lane;
+    router tests alone do not establish installed-app acceptance.
 - `Add warm explanatory copy for commitment model and enforcement behavior.`
   - `GettingStartedCopyTests/warmCommitmentCopy()`
   - `GettingStartedCopyTests/scheduleCopyUsesWorkWindowLanguage()`
