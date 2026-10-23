@@ -5,6 +5,53 @@ included:
   - Curfew
   - CurfewTests
   - CurfewUITests
+  - CurfewScreenSaver
+  - CurfewKit/Sources/curfew-daemon/SunriseDaemonComposition.swift
+  - CurfewKit/Sources/CurfewAtmosphere
+  - CurfewKit/Sources/CurfewKit/Domain/RestCompanionExport.swift
+  - CurfewKit/Sources/CurfewKit/Domain/RestHandoffPolicy.swift
+  - CurfewKit/Sources/CurfewKit/Domain/RestHandoffCoordinator.swift
+  - CurfewKit/Sources/CurfewKit/Domain/RestSceneSnapshot.swift
+  - CurfewKit/Sources/CurfewKit/Domain/ScheduleModels.swift
+  - CurfewKit/Sources/CurfewKit/Infrastructure/AuthenticatedDaemonService.swift
+  - CurfewKit/Sources/CurfewKit/Infrastructure/CurfewDaemonProtocol.swift
+  - CurfewKit/Sources/CurfewKit/Infrastructure/RestCompanionPresentationStore.swift
+  - CurfewKit/Sources/CurfewKit/Infrastructure/SunriseDisplayDelivery.swift
+  - CurfewKit/Sources/CurfewKit/Infrastructure/SunrisePowerIO+Live.swift
+  - CurfewKit/Sources/CurfewKit/Infrastructure/SunrisePowerIO.swift
+  - CurfewKit/Sources/CurfewKit/Infrastructure/SunriseWakeCoordinator.swift
+  - CurfewKit/Sources/CurfewKit/Infrastructure/SunriseWakeJournal+Directory.swift
+  - CurfewKit/Sources/CurfewKit/Infrastructure/SunriseWakeJournal.swift
+  - CurfewKit/Sources/CurfewKit/Infrastructure/SunriseWakePlanner+Presentation.swift
+  - CurfewKit/Sources/CurfewKit/Infrastructure/SunriseWakePlan.swift
+  - CurfewKit/Sources/CurfewKit/Infrastructure/SunriseWakeScheduler.swift
+  - CurfewKit/Sources/CurfewKit/Settings/RestAppearancePreferences.swift
+  - CurfewKit/Sources/CurfewKit/Settings/RestAppearancePreferencesStore.swift
+  - CurfewKit/Tests/CurfewAtmosphereTests/RestAmbientSceneTests.swift
+  - CurfewKit/Tests/CurfewAtmosphereTests/RestBackgroundImageStoreTests.swift
+  - CurfewKit/Tests/CurfewAtmosphereTests/RestScreenSaverPreferencesTests.swift
+  - CurfewKit/Tests/CurfewAtmosphereTests/RestScreenSaverSessionTests.swift
+  - CurfewKit/Tests/CurfewAtmosphereTests/RestPresentationFilesTests.swift
+  - CurfewKit/Tests/CurfewAtmosphereTests/RestSandboxExchangeTests.swift
+  - CurfewKit/Tests/CurfewKitTests/RestAppearancePreferencesTests.swift
+  - CurfewKit/Tests/CurfewKitTests/RestAppearanceSyncIsolationTests.swift
+  - CurfewKit/Tests/CurfewKitTests/RestCompanionExportTests.swift
+  - CurfewKit/Tests/CurfewKitTests/RestCompanionPresentationStoreTests.swift
+  - CurfewKit/Tests/CurfewKitTests/RestCompanionSceneBridgeTests.swift
+  - CurfewKit/Tests/CurfewKitTests/RestHandoffPolicyTests.swift
+  - CurfewKit/Tests/CurfewKitTests/RestHandoffCoordinatorTests.swift
+  - CurfewKit/Tests/CurfewKitTests/RestSceneSnapshotTests.swift
+  - CurfewKit/Tests/CurfewKitTests/SunriseDaemonServiceTests.swift
+  - CurfewKit/Tests/CurfewKitTests/SunriseDisplayDeliveryTests.swift
+  - CurfewKit/Tests/CurfewKitTests/SunrisePowerIOTests.swift
+  - CurfewKit/Tests/CurfewKitTests/SunriseWakeCoordinatorTests.swift
+  - CurfewKit/Tests/CurfewKitTests/SunriseWakeLifecycleTests.swift
+  - CurfewKit/Tests/CurfewKitTests/SunriseWakeDirectoryTests.swift
+  - CurfewKit/Tests/CurfewKitTests/SunriseWakeJournalTests.swift
+  - CurfewKit/Tests/CurfewKitTests/SunrisePresentationPlanTests.swift
+  - CurfewKit/Tests/CurfewKitTests/SunriseWakePlannerTests.swift
+  - CurfewKit/Tests/CurfewKitTests/SunriseWakeSchedulerTests.swift
+  - CurfewKit/Tests/CurfewKitTests/SunriseScheduleIndependenceTests.swift
 
 excluded:
   - DerivedData

@@ -7,12 +7,17 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+        C0FE00000000000000000115 /* CurfewAtmosphere in Frameworks */ = {isa = PBXBuildFile; productRef = C0FE00000000000000000106 /* CurfewAtmosphere */; };
 		C0FE00000000000000000001 /* CurfewWidget.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = C0FE00000000000000000004 /* CurfewWidget.appex */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		C0FE00000000000000000002 /* Curfew/App/Infrastructure/WidgetSharedStateStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FE0000000000000000000A /* Curfew/App/Infrastructure/WidgetSharedStateStore.swift */; };
 		C0FE00000000000000000111 /* CurfewKit in Frameworks */ = {isa = PBXBuildFile; productRef = C0FE00000000000000000101 /* CurfewKit */; };
 		C0FE00000000000000000112 /* CurfewKit in Frameworks */ = {isa = PBXBuildFile; productRef = C0FE00000000000000000102 /* CurfewKit */; };
 		C0FE00000000000000000113 /* CurfewKit in Frameworks */ = {isa = PBXBuildFile; productRef = C0FE00000000000000000103 /* CurfewKit */; };
 		C0FE00000000000000000114 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = C0FE00000000000000000105 /* Sparkle */; };
+		CF5A00000000000000000006 = { isa = PBXBuildFile; fileRef = CF5A00000000000000000003; };
+		CF5A00000000000000000007 = { isa = PBXBuildFile; fileRef = CF5A00000000000000000002; };
+		CF5A00000000000000000008 = { isa = PBXBuildFile; productRef = CF5A00000000000000000012; };
+		CF5A00000000000000000009 = { isa = PBXBuildFile; productRef = CF5A00000000000000000013; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -37,6 +42,7 @@
 			remoteGlobalIDString = C0FE0000000000000000000C;
 			remoteInfo = CurfewWidget;
 		};
+		CF5A00000000000000000010 = { isa = PBXContainerItemProxy; containerPortal = 9BD3FB7A2F4D4584007B2E95; proxyType = 1; remoteGlobalIDString = CF5A00000000000000000001; remoteInfo = CurfewScreenSaver; };
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -67,6 +73,9 @@
 		C0FE00000000000000000018 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		C0FE00000000000000000019 /* CurfewWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CurfewWidget.entitlements; sourceTree = "<group>"; };
 		C0FE0000000000000000001E /* CurfewWidget-Debug.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "CurfewWidget-Debug.entitlements"; sourceTree = "<group>"; };
+		CF5A00000000000000000002 = { isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = Curfew.saver; sourceTree = BUILT_PRODUCTS_DIR; };
+		CF5A00000000000000000003 = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurfewScreenSaverView.swift; sourceTree = "<group>"; };
+		CF5A00000000000000000004 = { isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -127,6 +136,7 @@
 			files = (
 				C0FE00000000000000000070 /* CurfewProtocols in Frameworks */,
 				C0FE00000000000000000111 /* CurfewKit in Frameworks */,
+                C0FE00000000000000000115 /* CurfewAtmosphere in Frameworks */,
 				C0FE00000000000000000114 /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -154,12 +164,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		CF5A0000000000000000000B = { isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (CF5A00000000000000000008, CF5A00000000000000000009, ); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		9BD3FB792F4D4584007B2E95 = {
 			isa = PBXGroup;
 			children = (
+				CF5A00000000000000000005 /* CurfewScreenSaver */,
 				9BD3FB842F4D4584007B2E95 /* Curfew */,
 				9BD3FB942F4D4587007B2E95 /* CurfewTests */,
 				9BD3FB9E2F4D4587007B2E95 /* CurfewUITests */,
@@ -173,6 +185,7 @@
 		9BD3FB832F4D4584007B2E95 /* Products */ = {
 			isa = PBXGroup;
 			children = (
+				CF5A00000000000000000002 /* Curfew.saver */,
 				9BD3FB822F4D4584007B2E95 /* Curfew.app */,
 				C0FE00000000000000000004 /* CurfewWidget.appex */,
 				9BD3FB912F4D4587007B2E95 /* CurfewTests.xctest */,
@@ -203,6 +216,7 @@
 			name = CurfewWidgetSupport;
 			sourceTree = "<group>";
 		};
+		CF5A00000000000000000005 = { isa = PBXGroup; children = (CF5A00000000000000000003, CF5A00000000000000000004, ); path = CurfewScreenSaver; sourceTree = "<group>"; };
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -221,6 +235,7 @@
 			);
 			dependencies = (
 				C0FE00000000000000000010 /* PBXTargetDependency */,
+                CF5A00000000000000000011 /* CurfewScreenSaver */,
 			);
 			fileSystemSynchronizedGroups = (
 				9BD3FB842F4D4584007B2E95 /* Curfew */,
@@ -229,6 +244,7 @@
 			packageProductDependencies = (
 				C0FE00000000000000000072 /* CurfewProtocols */,
 				C0FE00000000000000000101 /* CurfewKit */,
+                C0FE00000000000000000106 /* CurfewAtmosphere */,
 				C0FE00000000000000000105 /* Sparkle */,
 			);
 			productName = Curfew;
@@ -303,6 +319,7 @@
 			productReference = C0FE00000000000000000004 /* CurfewWidget.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		CF5A00000000000000000001 = { isa = PBXNativeTarget; buildConfigurationList = CF5A0000000000000000000F; buildPhases = (CF5A0000000000000000000A, CF5A0000000000000000000B, CF5A0000000000000000000C, ); buildRules = (); dependencies = (); name = CurfewScreenSaver; packageProductDependencies = (CF5A00000000000000000012, CF5A00000000000000000013, ); productName = Curfew; productReference = CF5A00000000000000000002; productType = "com.apple.product-type.bundle"; };
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -348,6 +365,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
+                CF5A00000000000000000001 /* CurfewScreenSaver */,
 				9BD3FB812F4D4584007B2E95 /* Curfew */,
 				C0FE0000000000000000000C /* CurfewWidget */,
 				9BD3FB902F4D4587007B2E95 /* CurfewTests */,
@@ -373,6 +391,8 @@
 			package = C0FE00000000000000000071 /* XCRemoteSwiftPackageReference "curfew-protocols" */;
 			productName = CurfewProtocols;
 		};
+		CF5A00000000000000000012 = { isa = XCSwiftPackageProductDependency; productName = CurfewAtmosphere; };
+		CF5A00000000000000000013 = { isa = XCSwiftPackageProductDependency; productName = CurfewKit; };
 /* End XCSwiftPackageProductDependency section */
 
 /* Begin PBXResourcesBuildPhase section */
@@ -380,6 +400,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+                CF5A00000000000000000007 /* Curfew.saver in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -404,6 +425,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		CF5A0000000000000000000C = { isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
@@ -482,6 +504,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		CF5A0000000000000000000A = { isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (CF5A00000000000000000006, ); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -500,6 +523,7 @@
 			target = C0FE0000000000000000000C /* CurfewWidget */;
 			targetProxy = C0FE0000000000000000000E /* PBXContainerItemProxy */;
 		};
+		CF5A00000000000000000011 = { isa = PBXTargetDependency; target = CF5A00000000000000000001; targetProxy = CF5A00000000000000000010; };
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
@@ -874,6 +898,58 @@
 			};
 			name = Release;
 		};
+		CF5A0000000000000000000D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = "arm64 x86_64";
+				ONLY_ACTIVE_ARCH = NO;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				SDKROOT = macosx;
+				PRODUCT_NAME = Curfew;
+				PRODUCT_MODULE_NAME = CurfewScreenSaver;
+				PRODUCT_BUNDLE_IDENTIFIER = studio.hypertext.apps.curfew.screensaver;
+				WRAPPER_EXTENSION = saver;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = CurfewScreenSaver/Info.plist;
+				MARKETING_VERSION = 1.0.0;
+				CURFEW_SAVER_MARKETING_VERSION = 1.0.0;
+				CURFEW_SAVER_BUILD_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 1;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				ENABLE_DEBUG_DYLIB = NO;
+				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@loader_path/../Frameworks", );
+			};
+			name = Debug;
+		};
+		CF5A0000000000000000000E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = "arm64 x86_64";
+				ONLY_ACTIVE_ARCH = NO;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				SDKROOT = macosx;
+				PRODUCT_NAME = Curfew;
+				PRODUCT_MODULE_NAME = CurfewScreenSaver;
+				PRODUCT_BUNDLE_IDENTIFIER = studio.hypertext.apps.curfew.screensaver;
+				WRAPPER_EXTENSION = saver;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = CurfewScreenSaver/Info.plist;
+				MARKETING_VERSION = 1.0.0;
+				CURFEW_SAVER_MARKETING_VERSION = 1.0.0;
+				CURFEW_SAVER_BUILD_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 1;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				ENABLE_DEBUG_DYLIB = NO;
+				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@loader_path/../Frameworks", );
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -922,6 +998,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		CF5A0000000000000000000F = { isa = XCConfigurationList; buildConfigurations = (CF5A0000000000000000000D, CF5A0000000000000000000E, ); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
@@ -943,6 +1020,10 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+        C0FE00000000000000000106 /* CurfewAtmosphere */ = {
+            isa = XCSwiftPackageProductDependency;
+            productName = CurfewAtmosphere;
+        };
 		C0FE00000000000000000101 /* CurfewKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = CurfewKit;

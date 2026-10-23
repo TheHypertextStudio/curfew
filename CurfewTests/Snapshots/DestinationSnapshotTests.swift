@@ -17,6 +17,14 @@
     /// working directory or any environment plumbing.
     @MainActor
     final class DestinationSnapshotTests: XCTestCase {
+        func testRenderTodayFooterAtWorkspaceHeight() throws {
+            try renderBoth(
+                TodaySundownView(streak: 3),
+                named: "today-footer", width: 832, height: 720,
+                to: Self.snapshotsDirectory()
+            )
+        }
+
         /// Renders the three spine destinations (Today, Schedule, Journal) with
         /// a mid-workday demo state so the countdown, schedule, and weekly
         /// streak all read as populated.

@@ -263,6 +263,8 @@ struct MainWindowView: View {
                 .animation(.easeInOut(duration: 0.28), value: selectedSection)
         }
         .navigationSplitViewStyle(.prominentDetail)
+        .background(WorkspaceNativeRegionReader(selectedTitle: selectedSection.title)
+            .frame(width: 0, height: 0))
         .tint(CurfewTheme.accent)
         .task {
             #if DEBUG

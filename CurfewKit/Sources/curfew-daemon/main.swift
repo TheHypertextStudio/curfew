@@ -370,10 +370,30 @@ private func evaluatePolicy(
     return runtime.shutdownIssued
 }
 
+// This root-owned journal is separate from user-writable restriction state.
+// Failure disables optional wake scheduling without interrupting enforcement.
+private let sunriseOwner = CurfewFlavor.current.daemonLabel + ".sunrise"
+private let sunrisePower = SunrisePowerIO(
+    owner: sunriseOwner,
+    functions: SunrisePowerIO.liveFunctions
+)
+private let sunriseScheduler: SunriseWakeScheduler? = {
+    do {
+        return try SunriseDaemonComposition.prepare(owner: sunriseOwner, power: sunrisePower)
+    } catch {
+        daemonLogger
+            .error("Sunrise journal unavailable: \(error.localizedDescription, privacy: .public)")
+        return nil
+    }
+}()
+
 let service = AuthenticatedDaemonService(
     readExternal: externalDeadline,
     evaluate: evaluatePolicy,
-    discover: discoverRemoteCommands
+    discover: discoverRemoteCommands,
+    sunriseScheduler: sunriseScheduler,
+    sunriseOwner: sunriseOwner,
+    sunriseOnExternalPower: sunrisePower.onExternalPower
 )
 let listener = NSXPCListener(machServiceName: CurfewFlavor.current.daemonLabel)
 listener.delegate = service

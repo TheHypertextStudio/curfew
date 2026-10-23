@@ -53,7 +53,14 @@ jobs:
           xcodebuild -version
 
       - name: Install tools
-        run: brew install swiftlint swiftformat just
+        run: |
+          brew install swiftlint just
+          # Use the same formatter as the source baseline, independently of Homebrew upgrades.
+          curl --fail --location --retry 3 --output "$RUNNER_TEMP/swiftformat.zip" https://github.com/nicklockwood/SwiftFormat/releases/download/0.63.1/swiftformat.zip
+          echo "385ef1a263ba28685157b98c5536b9c9105e124518f28b7ef8a2bee4b167eaeb  $RUNNER_TEMP/swiftformat.zip" | shasum -a 256 --check
+          unzip -q "$RUNNER_TEMP/swiftformat.zip" -d "$RUNNER_TEMP/swiftformat-0.63.1"
+          echo "$RUNNER_TEMP/swiftformat-0.63.1" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/swiftformat-0.63.1/swiftformat" --version
 
       - name: Cache derived data
         uses: actions/cache@v6.1.0

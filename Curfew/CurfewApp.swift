@@ -184,6 +184,7 @@ struct CurfewApp: App {
         let delegate = appDelegate
         DispatchQueue.main.async {
             delegate.model = model
+            model.configureRestExperience()
             AppCoordinator().handleInitialLaunch(
                 model: model,
                 shouldStartEnforcement: Self.shouldStartEnforcementOnLaunch
@@ -331,6 +332,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// `presence.camera_started` record with a matching stop, so the log
     /// always bounds the window the camera was on.
     func applicationWillTerminate(_ notification: Notification) {
+        model?.stopRestExperienceDisplay()
         model?.shutDownPresence()
         model?.recordAuditAppTerminating()
     }

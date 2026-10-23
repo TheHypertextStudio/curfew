@@ -335,29 +335,59 @@ public struct WeeklySchedule: Equatable, Codable {
             return nil
         }
 
-        let adjustedLockMinutes = dayRule.lockMinutes + max(0, extensionMinutes)
-        guard let lockDate = calendar.date(
-            byAdding: .minute,
-            value: adjustedLockMinutes,
-            to: startOfDay
-        ) else {
-            return nil
-        }
-
-        let unlockBaseDay: Date = if dayRule.unlockMinutes <= adjustedLockMinutes {
-            calendar.date(byAdding: .day, value: 1, to: startOfDay) ?? startOfDay
-        } else {
-            startOfDay
-        }
-
-        guard let unlockDate = calendar.date(
-            byAdding: .minute,
-            value: dayRule.unlockMinutes,
-            to: unlockBaseDay
-        ) else {
-            return nil
-        }
+        let extensionMinutes = max(0, extensionMinutes)
+        guard !dayRule.lockMinutes.addingReportingOverflow(extensionMinutes).overflow,
+              let configuredLock = configuredClock(
+                  minutes: dayRule.lockMinutes, on: startOfDay, calendar: calendar
+              ),
+              let lockDate = calendar.date(
+                  byAdding: .minute, value: extensionMinutes, to: configuredLock
+              ), let unlockDate = nextUnlockClock(
+                  minutes: dayRule.unlockMinutes, on: startOfDay,
+                  after: lockDate, calendar: calendar
+              ) else { return nil }
 
         return ScheduleWindow(lockDate: lockDate, unlockDate: unlockDate)
+    }
+
+    /// Preserve explicit saved day offsets, then select a later configured clock
+    /// when elapsed extensions have overtaken that original unlock instant.
+    private func nextUnlockClock(
+        minutes: Int, on originalDay: Date, after lockDate: Date, calendar: Calendar
+    ) -> Date? {
+        guard let original = configuredClock(minutes: minutes, on: originalDay, calendar: calendar)
+        else { return nil }
+        if original > lockDate {
+            return original
+        }
+        let offset = minutes / 1440 - (minutes % 1440 < 0 ? 1 : 0)
+        let lockDay = calendar.startOfDay(for: lockDate)
+        guard let base = calendar.date(byAdding: .day, value: -offset, to: lockDay),
+              var candidate = configuredClock(minutes: minutes, on: base, calendar: calendar)
+        else { return nil }
+        if candidate <= lockDate {
+            guard let nextDay = calendar.date(byAdding: .day, value: 1, to: base),
+                  let next = configuredClock(minutes: minutes, on: nextDay, calendar: calendar)
+            else { return nil }
+            candidate = next
+        }
+        return candidate > lockDate ? candidate : nil
+    }
+
+    /// Resolve wall-clock settings before adding elapsed extension time. Midnight
+    /// plus elapsed minutes shifts post-transition clocks away from their settings.
+    private func configuredClock(minutes: Int, on day: Date, calendar: Calendar) -> Date? {
+        let remainder = minutes % 1440
+        let dayOffset = minutes / 1440 - (remainder < 0 ? 1 : 0)
+        let minuteOfDay = remainder < 0 ? remainder + 1440 : remainder
+        guard let targetDay = calendar.date(byAdding: .day, value: dayOffset, to: day) else {
+            return nil
+        }
+        return calendar.nextDate(
+            after: targetDay.addingTimeInterval(-1),
+            matching: DateComponents(hour: minuteOfDay / 60, minute: minuteOfDay % 60, second: 0),
+            matchingPolicy: .nextTimePreservingSmallerComponents,
+            repeatedTimePolicy: .first, direction: .forward
+        )
     }
 }
