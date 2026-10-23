@@ -1,3 +1,4 @@
+import AppKit
 @testable import Curfew
 @testable import CurfewKit
 import Foundation
@@ -8,6 +9,37 @@ import Testing
 /// which is fine because the test bundle always builds Debug.
 @MainActor
 struct DemoFixtureTests {
+    @Test("Activation preserves synthetic permission and keyboard failure captures", arguments: [
+        DemoReviewState.accessibilityDenied, .tapDown
+    ])
+    func activationPreservesVisualHealth(review: DemoReviewState) {
+        let model = CurfewAppModel.demoModel()
+        model.applyDemoReviewState(review)
+        let health = model.enforcementHealth
+        let trusted = model.isAccessibilityTrusted
+        let delegate = AppDelegate()
+        delegate.model = model
+        delegate.applicationDidBecomeActive(Notification(
+            name: NSApplication.didBecomeActiveNotification
+        ))
+        #expect(model.enforcementHealth == health)
+        #expect(model.isAccessibilityTrusted == trusted)
+    }
+
+    @Test("Background acceptance still refreshes permission on activation")
+    func backgroundActivationRefreshesHealth() {
+        let model = CurfewAppModel.demoModel(backgroundEnforcement: true)
+        model.isAccessibilityTrusted = false
+        model.enforcementHealth = .degradedNoAccessibility
+        let delegate = AppDelegate()
+        delegate.model = model
+        delegate.applicationDidBecomeActive(Notification(
+            name: NSApplication.didBecomeActiveNotification
+        ))
+        #expect(model.isAccessibilityTrusted)
+        #expect(model.enforcementHealth != .degradedNoAccessibility)
+    }
+
     @Test("The background fixture starts the real enforcement loop with isolated stores")
     func backgroundFixtureArmsEnforcement() {
         let model = CurfewAppModel.demoModel(backgroundEnforcement: true)

@@ -96,3 +96,13 @@ test('State preflight independently exercises all ten state families', () => {
   const tests = readFileSync(new URL('../CurfewUITests/StateConsistencyCaptureTests.swift', import.meta.url), 'utf8');
   for (const selection of selected) assert.ok(tests.includes('func ' + selection.split('/').at(-1) + '()'));
 });
+
+
+test('Capture preflight covers native budgets and activation health before the full sweep', () => {
+  const workflow = readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8');
+  const preflight = workflow.split('Verify state fixtures before the full capture sweep')[1]
+    .split('- name: Capture demo screenshots')[0];
+  for (const testName of ['testCaptureDistinctSettingsStates', 'testCaptureMenuBar']) {
+    assert.ok(preflight.includes('-only-testing:CurfewUITests/MarketingCaptureTests/' + testName));
+  }
+});
