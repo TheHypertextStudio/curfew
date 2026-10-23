@@ -8,15 +8,22 @@ on:
         options: [fresh-install, staging-upgrade]
         default: fresh-install
         required: true
+      candidate_version:
+        description: Exact newer candidate version, for example 0.0.12 (both signed modes)
+        type: string
+        required: true
       candidate_run_id:
-        description: Successful 0.0.11 release.yml run (upgrade mode only)
+        description: Successful selected release.yml run (both signed modes)
         type: string
+        required: true
       candidate_source_commit:
-        description: Exact 0.0.11 source commit (upgrade mode only)
+        description: Exact selected candidate source commit (both signed modes)
         type: string
+        required: true
       candidate_dmg_sha256:
-        description: Exact retained 0.0.11 DMG SHA256 (upgrade mode only)
+        description: Exact retained candidate DMG SHA256 (both signed modes)
         type: string
+        required: true
   pull_request:
     branches: [main]
     paths:
@@ -30,8 +37,20 @@ permissions:
   actions: read
 
 jobs:
+  boundaries:
+    if: github.repository == 'TheHypertextStudio/curfew'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: "24"
+      - run: node --test scripts/signed-installer-acceptance.test.mjs
+
   installed-candidate:
-    if: github.repository == 'TheHypertextStudio/curfew' && ((github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) || (github.event_name == 'workflow_dispatch' && inputs.mode == 'fresh-install'))
+    if: github.repository == 'TheHypertextStudio/curfew' && github.event_name == 'workflow_dispatch' && inputs.mode == 'fresh-install'
     runs-on: macos-26
     timeout-minutes: 30
     steps:
@@ -47,6 +66,10 @@ jobs:
         id: subject
         env:
           GH_TOKEN: ${{ github.token }}
+          CURFEW_UPGRADE_VERSION: ${{ inputs.candidate_version }}
+          CURFEW_UPGRADE_RUN_ID: ${{ inputs.candidate_run_id }}
+          CURFEW_UPGRADE_SOURCE_COMMIT: ${{ inputs.candidate_source_commit }}
+          CURFEW_UPGRADE_DMG_SHA256: ${{ inputs.candidate_dmg_sha256 }}
         run: node scripts/signed-installer-acceptance.mjs prepare "$RUNNER_TEMP/signed-candidate"
       - name: Retain the selected installer's immutable source verifier
         uses: actions/checkout@v7.0.1
@@ -54,11 +77,13 @@ jobs:
           ref: ${{ steps.subject.outputs.source_commit }}
           path: installer-source
           persist-credentials: false
+      - name: Require the immutable producer's signed fresh walkthrough
+        run: node scripts/signed-installer-acceptance.mjs verify-fresh-source "$RUNNER_TEMP/signed-candidate" "$GITHUB_WORKSPACE/installer-source"
       - name: Verify and install retained bytes on the fresh Mac
         shell: bash
         run: |
           set -euo pipefail
-          [[ "$GITHUB_ACTIONS" == true ]]
+          [[ "$GITHUB_ACTIONS" == true && "$(id -un)" == runner && "$HOME" == /Users/runner && "$RUNNER_TEMP" == /Users/runner/work/_temp ]]
           [[ ! -e /Applications/Curfew.app ]]
           version=$(node -p "JSON.parse(require('fs').readFileSync(process.env.RUNNER_TEMP+'/signed-candidate/candidate.json')).version")
           image="$RUNNER_TEMP/signed-candidate/Curfew-v$version.dmg"
@@ -83,14 +108,16 @@ jobs:
           node scripts/configure-ci-display.mjs
       - name: Exercise the installed signed app without demo fixtures
         env:
+          TEST_RUNNER_GITHUB_ACTIONS: "true"
+          TEST_RUNNER_RUNNER_TEMP: ${{ runner.temp }}
           TEST_RUNNER_CURFEW_SIGNED_INSTALLER_ACCEPTANCE: "1"
           TEST_RUNNER_CURFEW_SIGNED_INSTALLER_VERSION: ${{ env.CURFEW_SIGNED_INSTALLER_VERSION }}
           TEST_RUNNER_CURFEW_SIGNED_INSTALLER_RECEIPT: ${{ runner.temp }}/signed-installer-ui.json
         run: >-
-          xcodebuild test -project Curfew.xcodeproj -scheme Curfew
+          cd installer-source && xcodebuild test -project Curfew.xcodeproj -scheme Curfew
           -destination 'platform=macOS'
           -resultBundlePath "$RUNNER_TEMP/signed-installer.xcresult"
-          -only-testing:CurfewUITests/SignedInstallerAcceptanceTests
+          -only-testing:CurfewUITests/SignedInstallerAcceptanceTests/testFreshSignedInstallerOpensRealSetup
           -parallel-testing-enabled NO
           CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
       - name: Require the installed-app walkthrough to have executed
@@ -122,6 +149,7 @@ jobs:
       - name: Retain the pinned older build and exact new subject
         env:
           GH_TOKEN: ${{ github.token }}
+          CURFEW_UPGRADE_VERSION: ${{ inputs.candidate_version }}
           CURFEW_UPGRADE_RUN_ID: ${{ inputs.candidate_run_id }}
           CURFEW_UPGRADE_SOURCE_COMMIT: ${{ inputs.candidate_source_commit }}
           CURFEW_UPGRADE_DMG_SHA256: ${{ inputs.candidate_dmg_sha256 }}
@@ -136,13 +164,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          image="$RUNNER_TEMP/sparkle-upgrade/candidate/Curfew-v0.0.11.dmg"
+          version=$(node -p "JSON.parse(require('fs').readFileSync(process.env.RUNNER_TEMP+'/sparkle-upgrade/upgrade-plan.json')).candidate.version")
+          image="$RUNNER_TEMP/sparkle-upgrade/candidate/Curfew-v$version.dmg"
           xcrun stapler validate "$image"
           spctl --assess --type open --context context:primary-signature --verbose=2 "$image"
           volume=$(mktemp -d "$RUNNER_TEMP/candidate-preflight.XXXXXX")
           trap 'hdiutil detach "$volume"' EXIT
           hdiutil attach -readonly -nobrowse -mountpoint "$volume" "$image"
-          bash scripts/verify-release-artifact.sh "$volume/Curfew.app" "$RUNNER_TEMP/sparkle-upgrade/candidate/release-configuration.json" 0.0.11
+          bash scripts/verify-release-artifact.sh "$volume/Curfew.app" "$RUNNER_TEMP/sparkle-upgrade/candidate/release-configuration.json" "$version"
       - name: Verify and install the original signed baseline
         shell: bash
         run: |
@@ -174,7 +203,7 @@ jobs:
           TEST_RUNNER_CURFEW_SIGNED_UPGRADE_ACCEPTANCE: "1"
           TEST_RUNNER_GITHUB_ACTIONS: "true"
           TEST_RUNNER_RUNNER_TEMP: ${{ runner.temp }}
-          TEST_RUNNER_CURFEW_SIGNED_UPGRADE_VERSION: "0.0.11"
+          TEST_RUNNER_CURFEW_SIGNED_UPGRADE_VERSION: ${{ inputs.candidate_version }}
           TEST_RUNNER_CURFEW_SIGNED_UPGRADE_RECEIPT: ${{ runner.temp }}/sparkle-upgrade/upgrade-ui.json
         run: |
           set -euo pipefail
@@ -210,7 +239,7 @@ jobs:
           test -s "$RUNNER_TEMP/sparkle-upgrade/upgrade-ui.json"
           mkdir "$RUNNER_TEMP/sparkle-upgrade/candidate-mount"
           volume="$RUNNER_TEMP/sparkle-upgrade/candidate-mount"
-          hdiutil attach -readonly -nobrowse -mountpoint "$volume" "$RUNNER_TEMP/sparkle-upgrade/candidate/Curfew-v0.0.11.dmg"
+          hdiutil attach -readonly -nobrowse -mountpoint "$volume" "$RUNNER_TEMP/sparkle-upgrade/candidate/Curfew-v${TEST_RUNNER_CURFEW_SIGNED_UPGRADE_VERSION}.dmg"
           if node scripts/signed-installer-acceptance.mjs verify-upgrade "$RUNNER_TEMP/sparkle-upgrade" "$volume/Curfew.app"; then
             hdiutil detach "$volume"
           else

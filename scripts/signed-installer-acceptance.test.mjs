@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createServer, request } from "node:http";
-import { readFileSync, mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { readFileSync, mkdtempSync, mkdirSync, writeFileSync, rmSync, realpathSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execFileSync, spawnSync } from "node:child_process";
@@ -10,7 +10,7 @@ import {
   requireDisposableRunner, validateLoopbackURL, defaultsRemovalAllowed,
   createUpgradeAppcast,
   validateUpgradePair, upgradeBaseline, createUpgradeHandler,
-  verifierSourceOutput,
+  verifierSourceOutput, upgradeRequest, requireFreshWalkthrough,
 } from "./signed-installer-acceptance.mjs";
 
 function fixture() {
@@ -26,8 +26,8 @@ test("verifier checkout output contains only the validated immutable source SHA"
   const preparation = readFileSync("scripts/signed-installer-acceptance.mjs", "utf8")
     .split("async function prepare(directory) {")[1].split("async function readCandidate")[0];
   const output = preparation.indexOf("appendFile(process.env.GITHUB_OUTPUT");
-  assert.ok(output > preparation.indexOf("verifyCandidateOrigin({"));
-  assert.ok(output > preparation.indexOf("verifyCandidate({"),
+  assert.ok(output > preparation.indexOf("await downloadExactCandidate("));
+  assert.ok(output > preparation.indexOf("upgradeRequest(process.env)"),
     "Checkout authority must not be exported before cryptographic verification");
 });
 
@@ -77,15 +77,11 @@ for (const [name, change] of [
   const value = fixture(); change(value);
   assert.throws(() => verifyCandidateOrigin(value));
 });
-test("release selection uses retained signed tags instead of the project development version", () => {
-  const result = selectCandidateRun([
-    { databaseId: 10, headBranch: "v0.0.7", headSha: "a".repeat(40) },
+test("release selection requires an explicit subject and never chooses the latest tag", () => {
+  assert.throws(() => selectCandidateRun([
     { databaseId: 20, headBranch: "v0.0.8", headSha: "b".repeat(40) },
-    { databaseId: 30, headBranch: "main", headSha: "c".repeat(40) },
-  ]);
-  assert.equal(result.version, "0.0.8");
-  assert.equal(result.run.databaseId, 20);
-  assert.throws(() => selectCandidateRun([]));
+    { databaseId: 30, headBranch: "v0.0.12", headSha: "c".repeat(40) },
+  ]), /Explicit candidate subject required/);
 });
 
 test("explicit upgrade selection never substitutes a newer successful candidate", () => {
@@ -125,11 +121,13 @@ test("production owner identities cannot authorize installer or defaults writes"
 
 test("direct XCTest entry verifies the real disposable user before touching the installed app", () => {
   const source = readFileSync("CurfewUITests/SignedInstallerAcceptanceTests.swift", "utf8");
-  const method = /func testSignedStagingUpgrade\(\) throws \{([\s\S]*?)\n    \}/.exec(source)?.[1];
-  assert.ok(method);
-  const guard = method.indexOf("try requireDisposableUpgradeRunner(environment)");
-  assert.ok(guard >= 0 && guard < method.indexOf("app.launch()"),
-    "The UI entrypoint must reject owner users before launching the signed app");
+  for (const name of ["testSignedStagingUpgrade", "testFreshSignedInstallerOpensRealSetup"]) {
+    const method = new RegExp(`func ${name}\\(\\) throws \\{([\\s\\S]*?)\\n    \\}`).exec(source)?.[1];
+    assert.ok(method);
+    const guard = method.indexOf("try requireDisposableUpgradeRunner(environment)");
+    assert.ok(guard >= 0 && guard < method.indexOf("app.launch()"),
+      "The UI entrypoint must reject owner users before launching the signed app");
+  }
   const helper = /private func requireDisposableUpgradeRunner[\s\S]*?\n    \}/.exec(source)?.[0];
   assert.ok(helper);
   for (const expression of [/getpwuid\(geteuid\(\)\)/, /pw_name/, /pw_dir/,
@@ -158,8 +156,8 @@ test("the derived local feed preserves the exact signed enclosure bytes and sign
     '<sparkle:releaseNotesLink>https://thecurfew.app/releases/0.0.11.html</sparkle:releaseNotesLink>' +
     '<enclosure url="https://github.com/example/Curfew-v0.0.11.dmg" length="123" sparkle:edSignature="UNCHANGED" />' +
     '</item></channel></rss>';
-  const projected = createUpgradeAppcast(original, { version: "0.0.11" }, "http://localhost:12345/");
-  assert.match(projected, /url="http:\/\/localhost:12345\/Curfew-v0.0.11.dmg"/);
+  const projected = createUpgradeAppcast(original, { version: "0.0.12" }, "http://localhost:12345/");
+  assert.match(projected, /url="http:\/\/localhost:12345\/Curfew-v0.0.12.dmg"/);
   assert.match(projected, /length="123" sparkle:edSignature="UNCHANGED"/);
   assert.match(projected, /http:\/\/localhost:12345\/release-notes.html/);
   assert.match(original, /url="https:\/\/github.com/);
@@ -204,4 +202,65 @@ test("loopback HTTP serves only exact read-only assets and records actual transf
   } finally {
     await new Promise(resolve => server.close(resolve));
   }
+});
+
+test("upgrade accepts an explicitly selected newer patch without per-version harness edits", () => {
+  const baseline = { ...upgradeBaseline, sparkleKey: "original-key" };
+  for (const version of ["0.0.9", "0.0.12", "0.0.123"])
+    assert.doesNotThrow(() => validateUpgradePair(baseline, { version, sparkleKey: "original-key" }));
+  for (const version of ["0.0.0", "0.0.7", "0.0.8", "0.0.012", "0.0.-1", "0.1.12", "v0.0.12", "0.0.12-beta", "0.0.12\n", "", undefined]) {
+    assert.throws(() => validateUpgradePair(baseline, { version, sparkleKey: "original-key" }));
+    assert.throws(() => createUpgradeAppcast("", { version }, "http://localhost:12345/"));
+  }
+});
+
+test("explicit upgrade input rejects invalid authority before any artifact request", () => {
+  const environment = { CURFEW_UPGRADE_VERSION: "0.0.12", CURFEW_UPGRADE_RUN_ID: "123",
+    CURFEW_UPGRADE_SOURCE_COMMIT: "a".repeat(40), CURFEW_UPGRADE_DMG_SHA256: "d".repeat(64) };
+  assert.deepEqual(upgradeRequest(environment), { version: "0.0.12", runID: "123",
+    sourceCommit: "a".repeat(40), dmgSHA256: "d".repeat(64) });
+  for (const change of [{ CURFEW_UPGRADE_VERSION: "0.0.8" }, { CURFEW_UPGRADE_VERSION: "0.0.012" },
+    { CURFEW_UPGRADE_VERSION: undefined }, { CURFEW_UPGRADE_RUN_ID: "latest" },
+    { CURFEW_UPGRADE_SOURCE_COMMIT: "main" }, { CURFEW_UPGRADE_DMG_SHA256: "" }])
+    assert.throws(() => upgradeRequest({ ...environment, ...change }));
+});
+
+test("PRs check boundaries without choosing or installing a historical signed subject", () => {
+  const workflow = JSON.parse(execFileSync("ruby", ["-rjson", "-ryaml", "-e",
+    "puts JSON.generate(YAML.load_file(ARGV[0]))", ".github/workflows/signed-installer-acceptance.yml"], { encoding: "utf8" }));
+  assert.ok(workflow.jobs.boundaries);
+  assert.ok(workflow.jobs.boundaries.steps.some(step => step.run === "node --test scripts/signed-installer-acceptance.test.mjs"));
+  for (const name of ["installed-candidate", "staging-upgrade"])
+    assert.match(workflow.jobs[name].if, /github.event_name == 'workflow_dispatch'/);
+  assert.doesNotMatch(workflow.jobs["installed-candidate"].if, /pull_request/);
+  const prepare = workflow.jobs["installed-candidate"].steps.find(step => step.id === "subject");
+  assert.equal(prepare.env.CURFEW_UPGRADE_VERSION, "${{ inputs.candidate_version }}");
+  assert.equal(prepare.env.CURFEW_UPGRADE_RUN_ID, "${{ inputs.candidate_run_id }}");
+  assert.equal(prepare.env.CURFEW_UPGRADE_SOURCE_COMMIT, "${{ inputs.candidate_source_commit }}");
+  assert.equal(prepare.env.CURFEW_UPGRADE_DMG_SHA256, "${{ inputs.candidate_dmg_sha256 }}");
+});
+
+test("fresh UI runs only the immutable producer's own required walkthrough", () => {
+  const workflow = JSON.parse(execFileSync("ruby", ["-rjson", "-ryaml", "-e",
+    "puts JSON.generate(YAML.load_file(ARGV[0]))", ".github/workflows/signed-installer-acceptance.yml"], { encoding: "utf8" }));
+  const command = workflow.jobs["installed-candidate"].steps.find(step => step.name === "Exercise the installed signed app without demo fixtures").run;
+  const root = mkdtempSync(join(tmpdir(), "curfew-producer-ui-"));
+  try {
+    mkdirSync(join(root, "installer-source")); mkdirSync(join(root, "bin"));
+    writeFileSync(join(root, "bin/xcodebuild"), '#!/bin/bash\npwd > "$UI_TRACE"\nprintf "%s\\n" "$@" >> "$UI_TRACE"\n', { mode: 0o755 });
+    const result = spawnSync("bash", ["-c", command], { cwd: root, encoding: "utf8",
+      env: { ...process.env, PATH: join(root, "bin") + ":" + process.env.PATH, RUNNER_TEMP: root, UI_TRACE: join(root, "trace") } });
+    assert.equal(result.status, 0, result.stderr);
+    const trace = readFileSync(join(root, "trace"), "utf8");
+    assert.ok(trace.startsWith(realpathSync(join(root, "installer-source")) + "\n"));
+    assert.match(trace, /-only-testing:CurfewUITests\/SignedInstallerAcceptanceTests\/testFreshSignedInstallerOpensRealSetup/);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("a producer without a signed fresh walkthrough fails instead of substituting current UI tests", () => {
+  const legacy = spawnSync("git", ["show", `${upgradeBaseline.sourceCommit}:CurfewUITests/SignedInstallerAcceptanceTests.swift`], { encoding: "utf8" });
+  assert.notEqual(legacy.status, 0, "The retained008 producer unexpectedly gained a walkthrough");
+  assert.throws(() => requireFreshWalkthrough(legacy.stdout), /Producer has no signed fresh-installer walkthrough/);
+  assert.throws(() => requireFreshWalkthrough("func testDemoFixture() {}"));
+  assert.doesNotThrow(() => requireFreshWalkthrough(readFileSync("CurfewUITests/SignedInstallerAcceptanceTests.swift", "utf8")));
 });

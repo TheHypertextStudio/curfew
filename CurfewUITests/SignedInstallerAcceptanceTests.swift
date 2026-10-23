@@ -6,9 +6,10 @@ import XCTest
 final class SignedInstallerAcceptanceTests: XCTestCase {
     @MainActor
     func testFreshSignedInstallerOpensRealSetup() throws {
-        try XCTSkipUnless(ProcessInfo.processInfo
-            .environment["CURFEW_SIGNED_INSTALLER_ACCEPTANCE"] == "1")
+        let environment = ProcessInfo.processInfo.environment
+        try XCTSkipUnless(environment["CURFEW_SIGNED_INSTALLER_ACCEPTANCE"] == "1")
         continueAfterFailure = false
+        try requireDisposableUpgradeRunner(environment)
         let bundle = try XCTUnwrap(Bundle(path: "/Applications/Curfew.app"))
         XCTAssertEqual(bundle.bundleIdentifier, "studio.hypertext.apps.curfew")
         XCTAssertEqual(
@@ -23,19 +24,27 @@ final class SignedInstallerAcceptanceTests: XCTestCase {
         XCTAssertTrue(app.buttons["Not now"].exists)
         attachScreenshot(of: app, named: "signed-installer-first-launch")
         app.buttons["Next"].click()
-        XCTAssertTrue(app.buttons["Edit weekly schedule"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.staticTexts["Schedule"]
+            .waitForExistence(timeout: 8))
+        XCTAssertTrue(app.buttons["Edit weekly schedule"].isHittable)
+        XCTAssertTrue(app.buttons["No automatic schedule — remote controls only"].isHittable)
         attachScreenshot(of: app, named: "signed-installer-schedule-setup")
         XCTAssertFalse(app.buttons["Next"].isEnabled)
         app.buttons["I've reviewed these seven days — use this weekly schedule"].click()
         XCTAssertTrue(app.buttons["Next"].isEnabled)
         app.buttons["Next"].click()
-        XCTAssertTrue(app.staticTexts["Step 3 of 5"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Extra time"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Step 3 of 5"].exists)
         app.buttons["Next"].click()
         XCTAssertTrue(app.staticTexts["Accessibility access required"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.buttons["Next"].isEnabled)
         XCTAssertTrue(app.buttons["Open System Settings"].exists)
         XCTAssertTrue(app.buttons["Not now"].isEnabled)
         attachScreenshot(of: app, named: "signed-installer-permission-gate")
+        try writeFreshReceipt(bundle: bundle)
+    }
+
+    private func writeFreshReceipt(bundle: Bundle) throws {
         let receiptPath = try XCTUnwrap(
             ProcessInfo.processInfo.environment["CURFEW_SIGNED_INSTALLER_RECEIPT"]
         )
@@ -58,8 +67,7 @@ final class SignedInstallerAcceptanceTests: XCTestCase {
         try XCTSkipUnless(environment["CURFEW_SIGNED_UPGRADE_ACCEPTANCE"] == "1")
         continueAfterFailure = false
         try requireDisposableUpgradeRunner(environment)
-        let expectedVersion = try XCTUnwrap(environment["CURFEW_SIGNED_UPGRADE_VERSION"])
-        XCTAssertEqual(expectedVersion, "0.0.11")
+        let expectedVersion = try expectedUpgradeVersion(environment)
         XCTAssertEqual(installedVersion(), "0.0.8")
         let app = XCUIApplication(bundleIdentifier: "studio.hypertext.apps.curfew")
         app.launch()
@@ -106,6 +114,17 @@ final class SignedInstallerAcceptanceTests: XCTestCase {
             baselinePID: baselinePID,
             relaunchedPID: relaunchedPID
         )
+    }
+
+    private func expectedUpgradeVersion(_ environment: [String: String]) throws -> String {
+        let version = try XCTUnwrap(environment["CURFEW_SIGNED_UPGRADE_VERSION"])
+        XCTAssertNotNil(version.range(
+            of: #"^0\.0\.(0|[1-9]\d*)$"#,
+            options: .regularExpression
+        ))
+        let expectedPatch = try XCTUnwrap(Int(version.dropFirst(4)))
+        XCTAssertGreaterThan(expectedPatch, 8)
+        return version
     }
 
     private func requireDisposableUpgradeRunner(_ environment: [String: String]) throws {
