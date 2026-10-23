@@ -2171,3 +2171,24 @@ packaged WOFF2 assets, retained OFL
 licenses, and identical product/generated font configuration. Publication
 acceptance separately checks loaded fonts, computed families and rendered
 light/dark layouts on the provider and first-party documentation routes.
+
+### Retained signed installer
+
+| Behavior | Verification |
+| --- | --- |
+| Only the exact retained release-tag artifact enters installation checks | `scripts/signed-installer-acceptance.test.mjs` rejects changed origin, run, version and expired artifacts; existing candidate verification checks bytes and update signature |
+| Fresh installation exercises the Developer ID app rather than rebuilt demo fixtures | Isolated `Signed installer acceptance` workflow registers the installed app with Launch Services before `SignedInstallerAcceptanceTests`; retained subject, receipt and screenshots |
+| First-run setup requires a schedule choice and actual Accessibility permission | The signed-app walkthrough cannot advance without a choice, reaches the permission screen and verifies its blocked Next action with a usable defer option |
+| Missing or skipped graphical execution cannot pass installation acceptance | The workflow requires the receipt written after the real setup assertions |
+
+This lane establishes installer trust, first-launch presentation and setup gates. Background
+permission approval, schedule enforcement, populated upgrades, account/provider
+flows and the public updater path require their own acceptance.
+
+### Updater release notes
+
+| Behavior | Verification |
+| --- | --- |
+| Publication includes notes for the candidate version with the retained site’s navigation, fonts, and styles | `scripts/publication.test.mjs` exercises the prepared output and unchanged retained input |
+| Missing or wrong-version notes prevent output creation | `scripts/publication.test.mjs` rejects incomplete notes before publication writes |
+| Live acceptance accepts the expected same-origin hosting redirect and rejects unexpected destinations, missing or wrong-version updater notes | `scripts/publication.test.mjs` exercises customer-facing responses; actual deployed-page inspection remains required |

@@ -1738,3 +1738,19 @@ asserts its own screen and state before attaching an image.
   colors; verify
   the served fonts and light/dark
   rendering on the provider and first-party documentation routes.
+
+### Signed installer acceptance
+
+- [-] Exercise the retained signed candidate on an isolated macOS 26 host. Verify
+  its release-tag and artifact origin, signatures and configuration before a
+  fresh installation; inspect real setup screens, explicit schedule choice and
+  the Accessibility gate without demo fixtures. Keep
+  first-launch evidence separate from permissions, enforcement and update checks.
+
+### Updater release notes
+
+- [-] Publish versioned release notes at the address embedded in the signed
+  updater feed. Reuse the retained website’s branded shell, preserve the signed
+  candidate and source website, and keep Plus unavailable. Refuse publication
+  without notes for the candidate version; verify the actual notes page after
+  deployment alongside the installer and feed.

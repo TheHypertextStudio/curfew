@@ -1,0 +1,84 @@
+name: Signed installer acceptance
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - .github/workflows/signed-installer-acceptance.yml
+      - scripts/signed-installer-acceptance.mjs
+      - scripts/signed-installer-acceptance.test.mjs
+      - CurfewUITests/SignedInstallerAcceptanceTests.swift
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  installed-candidate:
+    if: github.repository == 'TheHypertextStudio/curfew' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: "24"
+      - name: Verify acceptance boundary tests
+        run: node --test scripts/signed-installer-acceptance.test.mjs
+      - name: Retain the exact signed release subject
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/signed-installer-acceptance.mjs prepare "$RUNNER_TEMP/signed-candidate"
+      - name: Verify and install retained bytes on the fresh Mac
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_ACTIONS" == true ]]
+          [[ ! -e /Applications/Curfew.app ]]
+          version=$(node -p "JSON.parse(require('fs').readFileSync(process.env.RUNNER_TEMP+'/signed-candidate/candidate.json')).version")
+          image="$RUNNER_TEMP/signed-candidate/Curfew-v$version.dmg"
+          xcrun stapler validate "$image"
+          spctl --assess --type open --context context:primary-signature --verbose=2 "$image"
+          volume=$(mktemp -d)
+          trap 'hdiutil detach "$volume"' EXIT
+          hdiutil attach -readonly -nobrowse -mountpoint "$volume" "$image"
+          bash scripts/verify-release-artifact.sh "$volume/Curfew.app" "$RUNNER_TEMP/signed-candidate/release-configuration.json" "$version"
+          ditto "$volume/Curfew.app" /Applications/Curfew.app
+          codesign --verify --strict --deep /Applications/Curfew.app
+          /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister /Applications/Curfew.app
+          printf 'CURFEW_SIGNED_INSTALLER_VERSION=%s\n' "$version" >> "$GITHUB_ENV"
+      - name: Select Xcode and configure the isolated display
+        run: |
+          if [ -d /Applications/Xcode_26.app ]; then
+            sudo xcode-select -s /Applications/Xcode_26.app
+          else
+            sudo xcode-select -s "$(printf '%s\n' /Applications/Xcode_*.app | sort -V | tail -1)"
+          fi
+          brew install displayplacer
+          node scripts/configure-ci-display.mjs
+      - name: Exercise the installed signed app without demo fixtures
+        env:
+          TEST_RUNNER_CURFEW_SIGNED_INSTALLER_ACCEPTANCE: "1"
+          TEST_RUNNER_CURFEW_SIGNED_INSTALLER_VERSION: ${{ env.CURFEW_SIGNED_INSTALLER_VERSION }}
+          TEST_RUNNER_CURFEW_SIGNED_INSTALLER_RECEIPT: ${{ runner.temp }}/signed-installer-ui.json
+        run: >-
+          xcodebuild test -project Curfew.xcodeproj -scheme Curfew
+          -destination 'platform=macOS'
+          -resultBundlePath "$RUNNER_TEMP/signed-installer.xcresult"
+          -only-testing:CurfewUITests/SignedInstallerAcceptanceTests
+          -parallel-testing-enabled NO
+          CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
+      - name: Require the installed-app walkthrough to have executed
+        run: test -s "$RUNNER_TEMP/signed-installer-ui.json"
+      - name: Retain exact subject and graphical results
+        if: always()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: signed-installer-acceptance
+          path: |
+            ${{ runner.temp }}/signed-candidate/acceptance-subject.json
+            ${{ runner.temp }}/signed-installer.xcresult
+            ${{ runner.temp }}/signed-installer-ui.json
+          if-no-files-found: warn

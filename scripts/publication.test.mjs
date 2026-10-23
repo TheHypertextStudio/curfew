@@ -31,9 +31,7 @@ async function fixture(t) {
   );
   await writeFile(
     join(site, "download.html"),
-    readFileSync(
-      new URL("../landing/src/content/download.html", import.meta.url),
-    ),
+    `<!doctype html><html lang="en"><head><title>Download Curfew — Curfew</title><meta name="description" content="Download Curfew"><link rel="canonical" href="https://alternate.example/download.html"><meta property="og:title" content="Download Curfew — Curfew"><link rel="stylesheet" href="/site-assets/design/tokens.css"></head><body><header>Curfew</header><main id="main" class="reading wrap">${readFileSync(new URL("../landing/src/content/download.html", import.meta.url), "utf8")}</main><footer>Product support</footer></body></html>`,
   );
   for (const [page, mode] of [
     ["success", "checkout"],
@@ -95,6 +93,8 @@ async function fixture(t) {
   const now = Date.now();
   return {
     native: { candidate, dmg, appcast, configuration },
+    releaseNotes:
+      '<h1>Curfew 0.0.2</h1><p>Account connections now use the product domain.</p><p><a href="/download">Download Curfew</a></p>',
     website: {
       directory: site,
       deployment,
@@ -288,6 +288,49 @@ test("publication stages the exact signed feed beside the verified site without 
     access(join(input.website.directory, "appcast.xml")),
   );
 });
+test("publication includes the updater's release-notes page in the existing branded shell", async (t) => {
+  const input = await fixture(t);
+  const original = await readFile(
+    join(input.website.directory, "download.html"),
+  );
+  await (await api()).preparePublication(input);
+  const html = await readFile(
+    join(input.destination, "releases/0.0.2.html"),
+    "utf8",
+  );
+  assert.ok(html.includes("<h1>Curfew 0.0.2</h1>"));
+  assert.ok(html.includes("Account connections now use the product domain."));
+  assert.ok(html.includes("<title>Curfew 0.0.2 — Curfew</title>"));
+  assert.ok(html.includes('href="https://alternate.example/releases/0.0.2"'));
+  assert.ok(html.includes('href="/site-assets/design/tokens.css"'));
+  assert.ok(html.includes("<header>Curfew</header>"));
+  assert.ok(html.includes("<footer>Product support</footer>"));
+  assert.ok(!html.includes("<h1>Download Curfew</h1>"));
+  assert.deepEqual(
+    await readFile(join(input.website.directory, "download.html")),
+    original,
+  );
+  await assert.rejects(() =>
+    access(join(input.website.directory, "releases/0.0.2.html")),
+  );
+});
+
+test("publication refuses missing or wrong-version notes before writing output", async (t) => {
+  for (const notes of [
+    undefined,
+    "",
+    "<h1>Curfew 0.0.1</h1><p>Old release</p>",
+  ]) {
+    const input = await fixture(t);
+    input.releaseNotes = notes;
+    await assert.rejects(
+      () => api().then(({ preparePublication }) => preparePublication(input)),
+      /release notes/i,
+    );
+    await assert.rejects(() => access(input.destination));
+  }
+});
+
 test("publication refuses unaccepted, stale, mismatched, or failed inputs before writing output", async (t) => {
   const { preparePublication } = await api();
   for (const mutate of [
@@ -557,6 +600,13 @@ test("live publication verification checks the customer installer path, exact fe
   const fetcher = async (url) => {
     if (url === "https://alternate.example/download")
       return new Response(`<a href="${downloadURL}">Download Curfew 0.0.2</a>`);
+    if (
+      [
+        "https://alternate.example/releases/0.0.2.html",
+        "https://alternate.example/releases/0.0.2",
+      ].includes(url)
+    )
+      return new Response(input.releaseNotes);
     if (url === downloadURL) return new Response(input.native.dmg);
     if (url === "https://alternate.example/appcast.xml")
       return new Response(input.native.appcast);
@@ -573,6 +623,53 @@ test("live publication verification checks the customer installer path, exact fe
     return new Response('<a href="/download">Get Curfew</a>');
   };
   await verifyLivePublication(config, input.native.candidate, fetcher);
+  for (const location of [
+    "/releases/0.0.2",
+    "https://alternate.example/releases/0.0.2",
+  ]) {
+    const requests = [];
+    await verifyLivePublication(
+      config,
+      input.native.candidate,
+      (url, options) => {
+        requests.push(url);
+        assert.equal(
+          options.redirect,
+          url === downloadURL ? "follow" : "manual",
+        );
+        return url === "https://alternate.example/releases/0.0.2.html"
+          ? new Response(null, { status: 307, headers: { location } })
+          : fetcher(url, options);
+      },
+    );
+    assert.ok(requests.includes("https://alternate.example/releases/0.0.2"));
+  }
+  for (const location of [
+    "https://unexpected.example/releases/0.0.2",
+    "/releases/0.0.1",
+    "/sign-in",
+  ]) {
+    const requests = [];
+    await assert.rejects(
+      () =>
+        verifyLivePublication(
+          config,
+          input.native.candidate,
+          (url, options) => {
+            requests.push(url);
+            return url === "https://alternate.example/releases/0.0.2.html"
+              ? new Response(null, { status: 307, headers: { location } })
+              : fetcher(url, options);
+          },
+        ),
+      /release notes/i,
+    );
+    assert.equal(
+      requests.at(-1),
+      "https://alternate.example/releases/0.0.2.html",
+    );
+  }
+
   await assert.rejects(() =>
     verifyLivePublication(
       config,
@@ -588,6 +685,14 @@ test("live publication verification checks the customer installer path, exact fe
       ),
     ],
     ["https://alternate.example/download", new Response("coming soon")],
+    [
+      "https://alternate.example/releases/0.0.2.html",
+      new Response("not found", { status: 404 }),
+    ],
+    [
+      "https://alternate.example/releases/0.0.2.html",
+      new Response("<h1>Curfew 0.0.1</h1>"),
+    ],
     [downloadURL, new Response("not found", { status: 404 })],
     [downloadURL, new Response("substituted installer")],
   ])

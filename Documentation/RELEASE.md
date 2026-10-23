@@ -560,6 +560,21 @@ Debug key or generate a replacement to resolve a placeholder. The published
 RFC 8032 test vector and a signature from the pinned Sparkle binary verify the
 derivation independently of the retained production secret.
 
+Before preparing publication, review the version-specific notes in
+`landing/releases/<version>.html`. The publisher requires notes for the candidate
+version and wraps them in the retained website’s existing page shell. The derived
+site includes `/releases/<version>.html`, matching the signed updater feed, and
+GitHub release notes link to that page. The retained website, DMG and appcast stay
+unchanged. Inspect the prepared page on desktop and mobile; live publication
+verification also requires the notes page to respond with the correct version.
+The retained hosting configuration redirects the signed `.html` notes address to
+its clean URL; verification follows only that exact same-origin redirect and
+rejects unexpected destinations or further redirects. The page’s canonical link
+and GitHub release notes use the clean URL.
+Missing notes do not waive any owner-acceptance or source-identity gate. When
+using an operator worktree to run publication tooling, review its exact diff and
+keep remote main pinned to the candidate until the hosted publication completes.
+
 Production publication requires the Cloudflare deployment credential and the
 accepted production marketing Worker. Publish its matching retained static output
 with the pinned native `cf` build/prebuilt deployment path and provisioning
