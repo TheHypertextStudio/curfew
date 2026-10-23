@@ -521,7 +521,7 @@ The background-enforcement change maps to these regression suites:
 | Uninstall cannot rearm lockout on activation or wake | `BackgroundLifecycleTests.uninstallStopsEnforcement` | Quit after successful cleanup |
 | Homebrew unregisters before quit/removal and aborts on refusal | `Tests/Packaging/cask_uninstall_test.rb` through `brew ruby` | Cask uninstall and upgrade |
 | Replacement builds register after explicit package unregister | `BackgroundServiceTests.unregisterAllowsUpgradeRegistration` | Cask upgrade/reinstall |
-| Staging fixtures cannot install the real browser host | `BrowserNativeStartupTests.acceptanceFixturesCannotInstallTheBrowserHost` | Fixture recovery leaves host manifests untouched |
+| Development builds and their acceptance fixtures cannot claim the real browser host | `BrowserNativeStartupTests.studioDevelopmentNeverClaimsChromeNativeHost` | Fixture recovery leaves host manifests untouched |
 | Development signing cannot authorize the production widget container | `DevelopmentEntitlementsTests.developmentCannotAuthorizeProductionContainer` | Company-team Debug build with declared entitlements |
 | Live fixture keyboard shielding requires staging and explicit opt-in; test hosts stay disarmed | `StagingKeyboardShieldTests.fixturePermissionBoundary` | Accessibility grant, blocked Quit, Force Quit and restored tap |
 
