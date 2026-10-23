@@ -1780,3 +1780,17 @@ asserts its own screen and state before attaching an image.
   Packaging regressions exercise the real Xcode shell phase with synthetic
   Mach-O fixtures; a real universal package build verifies toolchain output.
   Signed candidate, installation, and update acceptance remain release gates.
+
+## Disposable signed updater acceptance
+
+- [x] Extend the existing signed-installer lane with an opt-in real Sparkle
+  upgrade from the pinned older signed build to the explicitly selected newer
+  candidate. Keep original fresh installation available; preserve exact origin,
+  DMG, key, configuration, source verifier, and installed-file checks.
+  Localhost transport and the testing feed override stay in the disposable
+  hosted user's context, with cleanup on success and failure.
+- [ ] Complete and retain the actual signed updater UI/bytes result for the
+  release candidate. Source and boundary tests do not establish this outcome.
+  Populated owner data, helper/permission continuity, and recovery remain
+  separate installed-device acceptance; no public feed or owner settings change
+  is required to run the disposable updater check. See `RELEASE.md`.

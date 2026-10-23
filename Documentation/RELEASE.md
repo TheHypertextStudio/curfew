@@ -411,6 +411,49 @@ leave lockout active, avoid retry churn, and point the user to System Settings.
 4. Verify the relaunched app is the exact signed candidate and Gatekeeper
    accepts it.
 
+The existing **Signed installer acceptance** workflow has an opt-in
+`staging-upgrade` mode for this gate. It uses the retained signed `0.0.8`
+artifact as its older validation build and requires the exact `0.0.11` release
+run, source commit, and DMG SHA-256. Dispatch it from that same frozen source
+after both packaging and acceptance tooling are integrated:
+
+```bash
+gh workflow run signed-installer-acceptance.yml --repo TheHypertextStudio/curfew \
+  --ref "$CANDIDATE_SOURCE_COMMIT" \
+  -f mode=staging-upgrade \
+  -f candidate_run_id="$CANDIDATE_RUN_ID" \
+  -f candidate_source_commit="$CANDIDATE_SOURCE_COMMIT" \
+  -f candidate_dmg_sha256="$CANDIDATE_DMG_SHA256"
+```
+
+The baseline's original verifier checks its retained bytes; the new candidate
+uses the final source's artifact verifier, including universal executable
+checks. Origin, hashes, configuration, and the unchanged EdDSA key are verified
+before either artifact is used. The mode never substitutes a newer candidate.
+
+On the disposable hosted Mac only, the driver applies Sparkle's documented
+testing `SUFeedURL` defaults override. It serves a derived appcast and the exact
+candidate DMG from `http://localhost:<ephemeral-port>/`, bound only to loopback.
+Sparkle's pinned downloader supports HTTP/HTTPS and rejects `file:` URLs. Its
+local-network testing warning is distinct from a browser security interstitial;
+never bypass a browser warning. No ATS exception, TLS setting, signature gate,
+public feed, Access policy, or installed owner preference changes are needed.
+
+The actual UI must offer the selected version and complete **Install Update →
+Install and Relaunch**. A changed process ID establishes relaunch; the final
+verifier compares every installed bundle file and symlink against the mounted
+candidate. Retain both subjects, the derived feed, transfer log, screenshots,
+UI results, and installed verification. Always remove only the disposable
+user's owned feed override and stop its loopback server, including on failure.
+The updated bundle retains the canonical feed; cleanup verifies the override
+is absent. Withholding or failing this test is not a successful upgrade.
+
+This fresh older-build upgrade establishes Sparkle trust and installation only.
+It does not establish the owner's populated `0.0.9` upgrade, saved credentials,
+licenses, schedules, permissions, helper approval, or active enforcement
+continuity. Keep those installed-device journeys separate. The original
+fresh-installer workflow mode also remains available.
+
 ## CI boundary
 
 `SMAppService` install/status behavior only becomes trustworthy on a signed app
