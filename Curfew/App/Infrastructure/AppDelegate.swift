@@ -84,6 +84,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// enforcement so a lockout that degraded while we were in the background
     /// recovers. No-ops when not locked.
     func applicationDidBecomeActive(_ notification: Notification) {
+        #if DEBUG
+            // Visual captures retain synthetic health; background acceptance uses live recovery.
+            if let model, model.isDemoSession, !model.isBackgroundAcceptanceSession {
+                return
+            }
+        #endif
         model?.backgroundServiceManager.refreshStatus()
         model?.reassertEnforcementIfNeeded()
         // Re-poll Accessibility trust immediately on return, so granting access

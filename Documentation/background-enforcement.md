@@ -41,3 +41,5 @@ The background fixture retains the current demo-session isolation while allowing
 Only the background acceptance scenario in Debug compiled with `CURFEW_STAGING` honors the bundle's `CurfewAcceptanceKeyboardShield` Boolean. This explicit opt-in lets the isolated fixture install the real keyboard shield after Accessibility approval. Ordinary captures and test hosts cannot intercept keys. The fixture still blocks shutdown, browser-host installation, and shared enforcement ownership. Its local report includes Accessibility trust, OS-enabled keyboard-shield state, and the same enforcement-health verdict shown to users. These fields are local acceptance evidence and do not change a remote protocol.
 
 Rollback unregisters the new supervisor before installing an older version. Preserve schedules and runtime state. Do not delete user data to undo service registration.
+
+Ordinary visual captures retain their seeded health across activation. The real background acceptance session still receives activation and wake recovery. Native fixture regressions verify that distinction so a marketing failure state cannot replace live acceptance behavior.

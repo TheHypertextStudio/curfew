@@ -225,6 +225,8 @@ jobs:
           -only-testing:CurfewUITests/MarketingCaptureTests/testCaptureAStateConsistencyAccountHelper
           -only-testing:CurfewUITests/MarketingCaptureTests/testCaptureAStateConsistencyAccountUpdate
           -only-testing:CurfewUITests/MarketingCaptureTests/testCaptureAStateConsistencyAccountUnavailable
+          -only-testing:CurfewUITests/MarketingCaptureTests/testCaptureDistinctSettingsStates
+          -only-testing:CurfewUITests/MarketingCaptureTests/testCaptureMenuBar
           -parallel-testing-enabled NO
           CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
 
