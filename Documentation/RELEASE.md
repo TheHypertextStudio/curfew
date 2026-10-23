@@ -713,10 +713,6 @@ Use the shared endpoint artifact and the pinned cf build/deployment commands in 
 
 The domain migration uses the shared endpoint artifact for native and backend configuration identity. The retained release snapshot additionally binds the resolved Sparkle public key and source digests; it does not substitute its own hash for the endpoint identity. See `domain-migration.md` for preparation, activation and rollback requirements.
 
-- Yank the GitHub release asset and replace it with the previous DMG.
-- There is no active in-app updater in the default build today; rollback is a
-  manual re-download.
-
 
 ## Background supervisor release gate
 
