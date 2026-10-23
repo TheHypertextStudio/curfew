@@ -652,6 +652,8 @@ mid-lockout, and every action the root daemon takes. Format specification:
 ## 17. Distribution and Operations
 
 - [x] `.github/workflows/ci.yml` — format + lint + test + build on push/PR.
+- [x] Local and release checks use the same verified SwiftFormat release,
+  with a shared user cache and explicit archive/executable integrity checks.
 - [x] `.github/workflows/release.yml` — archive + sign + notarize + DMG on tag push.
 - [x] `scripts/build-dmg.sh` — `create-dmg` wrapper.
 - [x] MIT `LICENSE` file.

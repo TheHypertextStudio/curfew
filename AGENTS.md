@@ -64,11 +64,16 @@ Project defaults:
 Tool installation and version checks:
 
 ```bash
-brew install swiftlint swiftformat
+brew install swiftlint
 command -v xcodebuild && xcodebuild -version
-command -v swiftformat && swiftformat --version
+./scripts/swiftformat.sh --version
 command -v swiftlint && swiftlint version
 ```
+
+Use the repository wrapper for SwiftFormat 0.63.1. It verifies the official
+archive and executable SHA-256 digests, then reuses a shared user cache across
+checkouts. The first invocation needs network access; verified cached runs work
+offline. `just format` and `just format-check` use this same wrapper in CI.
 
 Common test commands:
 
@@ -116,10 +121,10 @@ Lint and format commands:
 
 ```bash
 # apply formatting
-swiftformat Curfew CurfewTests CurfewUITests Sources Tests
+./scripts/swiftformat.sh Curfew CurfewTests CurfewUITests CurfewKit/Sources CurfewKit/Tests
 
 # formatting check (must pass before completion claim)
-swiftformat Curfew CurfewTests CurfewUITests Sources Tests --lint
+./scripts/swiftformat.sh Curfew CurfewTests CurfewUITests CurfewKit/Sources CurfewKit/Tests --lint
 
 # lint check (must pass before completion claim)
 swiftlint lint --strict
@@ -210,8 +215,8 @@ Execution expectations:
 Required execution order:
 
 ```bash
-swiftformat Curfew CurfewTests CurfewUITests Sources Tests
-swiftformat Curfew CurfewTests CurfewUITests Sources Tests --lint
+./scripts/swiftformat.sh Curfew CurfewTests CurfewUITests CurfewKit/Sources CurfewKit/Tests
+./scripts/swiftformat.sh Curfew CurfewTests CurfewUITests CurfewKit/Sources CurfewKit/Tests --lint
 swiftlint lint --strict
 xcodebuild test -project Curfew.xcodeproj -scheme Curfew -destination 'platform=macOS' -only-testing:CurfewTests
 ```
@@ -271,7 +276,7 @@ xcodebuild test -project Curfew.xcodeproj -scheme Curfew -destination 'platform=
 - Lint command outcome
 - Minimum commands to report:
 ```bash
-swiftformat Curfew CurfewTests CurfewUITests Sources Tests --lint
+./scripts/swiftformat.sh Curfew CurfewTests CurfewUITests CurfewKit/Sources CurfewKit/Tests --lint
 swiftlint lint --strict
 ```
 

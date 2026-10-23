@@ -178,7 +178,8 @@ Sparkle, signing, and notarization is documented in
 This repo uses [`just`](https://github.com/casey/just) as a command runner — a simpler `make` that lets you run every common task without invoking `xcodebuild` directly.
 
 ```bash
-brew install just swiftlint swiftformat
+brew install just swiftlint
+./scripts/swiftformat.sh --version  # verified SwiftFormat 0.63.1, shared user cache
 just --list       # show all recipes
 just check        # format + lint + tests + Debug build (CI gate)
 just test         # unit suite only

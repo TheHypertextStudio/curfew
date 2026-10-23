@@ -26,11 +26,11 @@ default: check
 
 # Apply SwiftFormat fixes in place.
 format:
-    swiftformat {{ source_dirs }}
+    ./scripts/swiftformat.sh {{ source_dirs }}
 
 # Verify formatting without rewriting files. Non-zero exit on drift.
 format-check:
-    swiftformat {{ source_dirs }} --lint
+    ./scripts/swiftformat.sh {{ source_dirs }} --lint
 
 # SwiftLint in strict mode — warnings become errors.
 lint:

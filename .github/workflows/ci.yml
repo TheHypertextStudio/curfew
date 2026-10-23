@@ -53,7 +53,9 @@ jobs:
           xcodebuild -version
 
       - name: Install tools
-        run: brew install swiftlint swiftformat just
+        run: |
+          brew install swiftlint just
+          ./scripts/swiftformat.sh --version
 
       - name: Cache derived data
         uses: actions/cache@v6.1.0

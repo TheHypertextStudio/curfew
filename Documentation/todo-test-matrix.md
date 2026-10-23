@@ -8,6 +8,14 @@ the pinned dependency setup for the root shortcuts, frontend, backend and native
 targets. `./bootstrap worktree check --json` verifies the resulting local state.
 These checks establish checkout readiness, not signed-release acceptance.
 
+## Formatting toolchain
+
+`scripts/swiftformat.test.mjs` verifies that the format gate ignores unpinned
+global executables, rejects mismatched download and cache bytes before
+execution, and forwards CLI arguments and failure codes through a verified
+official executable. CI and release checks use the same wrapper as local
+formatting.
+
 ## Studio app namespace
 
 `AppNamespaceTests` covers signed-client identity, inherited flavor isolation,

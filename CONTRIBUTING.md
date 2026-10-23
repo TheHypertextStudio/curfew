@@ -5,9 +5,10 @@ Bug reports, design critique, and pull requests are welcome.
 ## Development setup
 
 ```bash
-brew install just swiftlint swiftformat
+brew install just swiftlint
 git clone https://github.com/TheHypertextStudio/curfew
 cd curfew
+./scripts/swiftformat.sh --version
 just install-hooks   # symlinks scripts/hooks/commit-msg into .git/hooks/
 open Curfew.xcodeproj
 ```
@@ -24,6 +25,12 @@ The full ship-gate is `just check`: SwiftFormat lint → SwiftLint → unit test
 ## Code style
 
 SwiftFormat and SwiftLint configs live at `.swiftformat` and `.swiftlint.yml`. Run `just format` before committing — CI will fail if the formatter would change any file.
+
+Local commands and CI use SwiftFormat 0.63.1 through `scripts/swiftformat.sh`.
+The wrapper verifies the official release archive and extracted executable by
+SHA-256, then reuses one user cache across checkouts. The first invocation
+requires network access; a verified cached executable works offline. Updating
+the formatter requires reviewing its version and both digests together.
 
 Key conventions:
 - `@MainActor` on all types that read/write UI or AppKit state.
