@@ -1809,3 +1809,9 @@ asserts its own screen and state before attaching an image.
   unnamed covered workspace containers; explicit region names improve navigation
   independently of modal focus. Final global audit and focus/restoration
   verification remain required; do not hide covered content to clear findings.
+
+- [-] Verify the unobscured workspace separately from the global rest audit,
+  and exercise keyboard navigation after dismissing the actual morning form.
+  Distinguish background pixel sampling from independent workspace defects
+  before choosing a modal accessibility correction. These native checks retain
+  the original audit types and failure handling.

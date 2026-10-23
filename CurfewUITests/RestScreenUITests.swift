@@ -80,6 +80,39 @@ extension CurfewUITests {
     }
 
     @MainActor
+    func testWorkspaceHasReadableAccessibleControlsWithoutRestCoveringIt() throws {
+        let app = launchFixture("overview")
+        let workspace = app.windows["main-workspace"]
+        XCTAssertTrue(workspace.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["Turn on Curfew"].isHittable)
+        XCTAssertFalse(app.groups["rest-screen"].exists)
+        try performRestAudit(
+            app, types: [.contrast, .sufficientElementDescription], context: "uncovered-workspace"
+        )
+    }
+
+    @MainActor
+    func testMorningDismissalRestoresWorkspaceKeyboardNavigation() {
+        let app = launchFixture("lockout", state: "rest-morning")
+        let editor = app.textViews["reflection-answer"].firstMatch
+        XCTAssertTrue(editor.waitForExistence(timeout: 5))
+        editor.click()
+        editor.typeText("Keep the morning intentional.")
+        XCTAssertEqual(editor.value as? String, "Keep the morning intentional.")
+        app.buttons["Skip"].click()
+        let restClosed = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "exists == false"), object: app.groups["rest-screen"]
+        )
+        XCTAssertEqual(XCTWaiter.wait(for: [restClosed], timeout: 5), .completed)
+        let workspace = app.windows["main-workspace"]
+        XCTAssertTrue(workspace.exists)
+        XCTAssertTrue(app.buttons["Turn on Curfew"].isHittable)
+        workspace.staticTexts["Today"].click()
+        app.typeKey(.downArrow, modifierFlags: [])
+        XCTAssertTrue(app.staticTexts["Presets"].waitForExistence(timeout: 5))
+    }
+
+    @MainActor
     func testRestScenesHaveReadableAccessibleControls() throws {
         for state in ["rest-continuity", "rest-morning"] {
             let app = launchFixture("lockout", state: state)
