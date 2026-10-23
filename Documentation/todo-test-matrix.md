@@ -2271,3 +2271,10 @@ flows and the public updater path require their own acceptance.
 - Rollback removes only the disposable user's owned override and loopback
   process. No application source, ATS/TLS policy, signing key, Access policy, production feed,
   or owner preference changes are part of this gate.
+
+- Fresh producer-source coverage: `scripts/signed-installer-acceptance.test.mjs`
+  executes the workflow's actual verifier command against historical and modern
+  fixtures, preserving rejection of a newer missing-architecture artifact. It
+  also rejects non-SHA or output-injection values for the verifier checkout.
+  Full artifact verification against real retained bytes remains separate from
+  these source-routing fixtures; a historical pass does not waive a newer gate.

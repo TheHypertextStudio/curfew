@@ -1,12 +1,16 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createServer, request } from "node:http";
-import { readFileSync } from "node:fs";
+import { readFileSync, mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { execFileSync, spawnSync } from "node:child_process";
 import { verifyCandidateOrigin, selectCandidateRun } from "./signed-installer-acceptance.mjs";
 import {
   requireDisposableRunner, validateLoopbackURL, defaultsRemovalAllowed,
   createUpgradeAppcast,
   validateUpgradePair, upgradeBaseline, createUpgradeHandler,
+  verifierSourceOutput,
 } from "./signed-installer-acceptance.mjs";
 
 function fixture() {
@@ -15,6 +19,49 @@ function fixture() {
       workflow_run: { id: 123, head_branch: "v0.0.8", head_sha: "a".repeat(40), repository_id: 1165282307 } },
     tagCommit: "a".repeat(40), version: "0.0.8" };
 }
+test("verifier checkout output contains only the validated immutable source SHA", () => {
+  assert.equal(verifierSourceOutput({ sourceCommit: "a".repeat(40) }), `source_commit=${"a".repeat(40)}\n`);
+  for (const sourceCommit of ["main", "a".repeat(40) + "\nother=main", "a".repeat(39), undefined])
+    assert.throws(() => verifierSourceOutput({ sourceCommit }));
+  const preparation = readFileSync("scripts/signed-installer-acceptance.mjs", "utf8")
+    .split("async function prepare(directory) {")[1].split("async function readCandidate")[0];
+  const output = preparation.indexOf("appendFile(process.env.GITHUB_OUTPUT");
+  assert.ok(output > preparation.indexOf("verifyCandidateOrigin({"));
+  assert.ok(output > preparation.indexOf("verifyCandidate({"),
+    "Checkout authority must not be exported before cryptographic verification");
+});
+
+test("fresh install runs the selected producer verifier and keeps newer architecture enforcement", () => {
+  const workflow = JSON.parse(execFileSync("ruby", ["-rjson", "-ryaml", "-e",
+    "puts JSON.generate(YAML.load_file(ARGV[0]))", ".github/workflows/signed-installer-acceptance.yml"], { encoding: "utf8" }));
+  const steps = workflow.jobs["installed-candidate"].steps;
+  const install = steps.find(step => step.name === "Verify and install retained bytes on the fresh Mac");
+  const command = install.run.split("\n").find(line => line.includes("bash scripts/verify-release-artifact.sh"));
+  const root = mkdtempSync(join(tmpdir(), "curfew-producer-verifier-"));
+  const strict = '#!/bin/bash\n[[ "$(cat "$1/architectures")" == "arm64 x86_64" ]] || exit 19\nprintf strict > "$VERIFIER_TRACE"\n';
+  try {
+    for (const dir of ["scripts", "installer-source/scripts", "volume/Curfew.app", "signed-candidate"])
+      mkdirSync(join(root, dir), { recursive: true });
+    writeFileSync(join(root, "scripts/verify-release-artifact.sh"), strict);
+    for (const [version, architectures, producer, expectedStatus] of [
+      ["0.0.8", "arm64", '#!/bin/bash\nprintf historical > "$VERIFIER_TRACE"\n', 0],
+      ["0.0.11", "arm64", strict, 19],
+      ["0.0.11", "arm64 x86_64", strict, 0],
+    ]) {
+      writeFileSync(join(root, "installer-source/scripts/verify-release-artifact.sh"), producer);
+      writeFileSync(join(root, "volume/Curfew.app/architectures"), architectures);
+      const result = spawnSync("/bin/bash", ["-c", command], { cwd: root, encoding: "utf8",
+        env: { ...process.env, volume: join(root, "volume"), RUNNER_TEMP: root, version,
+          VERIFIER_TRACE: join(root, "trace") } });
+      assert.equal(result.status, expectedStatus, `Wrong verifier selected for ${version}: ${result.stderr}`);
+      if (expectedStatus === 0)
+        assert.equal(readFileSync(join(root, "trace"), "utf8"), version === "0.0.8" ? "historical" : "strict");
+    }
+    const checkout = steps.find(step => step.with?.path === "installer-source");
+    assert.equal(checkout.with.ref, "${{ steps.subject.outputs.source_commit }}");
+    assert.equal(steps.find(step => step.id === "subject").name, "Retain the exact signed release subject");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
 test("signed install accepts only the retained artifact from its actual release tag", () => {
   assert.equal(verifyCandidateOrigin(fixture()).version, "0.0.8");
 });

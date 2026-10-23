@@ -454,6 +454,15 @@ licenses, schedules, permissions, helper approval, or active enforcement
 continuity. Keep those installed-device journeys separate. The original
 fresh-installer workflow mode also remains available.
 
+Fresh-installer acceptance likewise checks each retained candidate using the
+verifier from its own immutable source. Only after validating the tagged run,
+artifact origin, configuration, DMG hash, and EdDSA signature does preparation
+export the candidate's full source SHA for a separate checkout. Historical
+signed builds therefore retain their original checks; a new candidate uses its
+own newer checks, including universal executables. The current harness still
+drives the full fresh-install UI walkthrough. Do not select an arbitrary source
+checkout or use a historical verifier for a newer candidate.
+
 ## CI boundary
 
 `SMAppService` install/status behavior only becomes trustworthy on a signed app

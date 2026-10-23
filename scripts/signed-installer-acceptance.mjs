@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { readFile, mkdir, writeFile, lstat, rm, readdir, readlink } from "node:fs/promises";
+import { readFile, mkdir, writeFile, appendFile, lstat, rm, readdir, readlink } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { userInfo } from "node:os";
@@ -17,6 +17,10 @@ export const upgradeBaseline = Object.freeze({
 });
 const bundleID = "studio.hypertext.apps.curfew";
 const digest = bytes => createHash("sha256").update(bytes).digest("hex");
+export function verifierSourceOutput(candidate) {
+  assert.match(candidate.sourceCommit, /^[a-f0-9]{40}$/);
+  return `source_commit=${candidate.sourceCommit}\n`;
+}
 export function validateUpgradePair(baseline, candidate) {
   for (const key of ["version", "sourceCommit", "dmgSHA256"])
     assert.equal(baseline[key], upgradeBaseline[key], `Unapproved baseline ${key}`);
@@ -139,6 +143,9 @@ async function prepare(directory) {
     configurationSHA256: candidate.configurationSHA256, artifactID: artifact.id,
     runID: run.databaseId, scope: "Exact signed installer; installation and UI outcomes recorded separately",
   }, null, 2) + "\n");
+  // Export only after origin and cryptographic checks have accepted this subject.
+  if (process.env.GITHUB_OUTPUT)
+    await appendFile(process.env.GITHUB_OUTPUT, verifierSourceOutput(candidate));
 }
 
 async function readCandidate(directory) {
