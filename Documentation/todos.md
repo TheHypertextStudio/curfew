@@ -1820,3 +1820,17 @@ asserts its own screen and state before attaching an image.
   version and a verified official release archive. Preserve the full formatting
   check instead of disabling rules or reformatting unrelated enforcement code
   when Homebrew advances independently.
+
+- [-] Reconcile native rest hosts immediately when a reflection is saved or
+  skipped, including while enforcement is disarmed. Retain the rest host when
+  another restriction or unfinished evening still requires it; do not wait for
+  an enforcement tick to restore the workspace.
+
+- [-] Review the streak footer in light and dark workspace renders at the native
+  window dimensions, retaining the unobscured native contrast gate. The renderer
+  is offscreen and never presents a desktop window.
+
+- [-] Name the actual native hosting and split-column containers, not additional
+  nested SwiftUI groups. Preserve native controls and use primary text ink for
+  the small streak caption identified by the unobscured native contrast audit.
+  Keep the separate global rest and uncovered-workspace audits unchanged.

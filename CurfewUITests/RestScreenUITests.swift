@@ -16,13 +16,15 @@ extension CurfewUITests {
 
     @MainActor
     private func attachRestAuditIssue(_ issue: XCUIAccessibilityAuditIssue, context: String) {
-        let observation = XCTAttachment(string: """
+        let details = """
         context=\(context)
         auditType=\(issue.auditType.rawValue)
         compactDescription=\(issue.compactDescription)
         detailedDescription=\(issue.detailedDescription)
         element=\(issue.element?.debugDescription ?? "<none>")
-        """)
+        """
+        let observation = XCTAttachment(string: details)
+        print("CURFEW_NATIVE_ACCESSIBILITY_ISSUE\n\(details)")
         observation.name = "Native audit issue — \(context)"
         observation.lifetime = .keepAlways
         add(observation)

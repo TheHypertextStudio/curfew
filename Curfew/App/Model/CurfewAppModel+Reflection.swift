@@ -167,6 +167,9 @@ extension CurfewAppModel {
         case .evening:
             reflectionState.isEveningReflectionPending = false
         }
+        // Closing a form must reconcile its native host immediately, including
+        // while enforcement is disarmed and no enforcement tick will run.
+        overlayCoordinator.syncDaybreakOverlay(presented: shouldPresentRestScreen, model: self)
     }
 
     func isReflectionPending(_ gate: ReflectionGate) -> Bool {

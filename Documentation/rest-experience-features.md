@@ -99,10 +99,28 @@ helper acceptance must then be re-established before relying on a scheduled wake
 
 ### Workspace accessibility regions
 
-The main workspace, navigation sidebar and selected destination have explicit
-accessibility names. Their child controls remain individually available; region
-names do not replace control labels or alter restriction authority. This change
+The native hosting container, navigation split column and selected destination
+column have explicit accessibility names. The AppKit bridge names the existing
+containers instead of adding nested SwiftUI groups. It preserves native child
+controls, roles, visibility and restriction authority. This change
 does not remove the covered workspace from accessibility or claim that AXModal
 provides correct assistive-technology focus. Native global audit and workspace
 restoration remain acceptance requirements. Reverting the region modifiers
 restores the previous hierarchy without changing stored settings or enforcement.
+
+### Returning from a completed reflection
+
+Saving or skipping a reflection reconciles the native rest hosts immediately.
+It does not depend on the next enforcement tick, which may not run while
+enforcement is disarmed. The existing rest-presentation predicate keeps the
+host when a stronger restriction or unfinished evening still requires it. This
+changes presentation timing only, without granting unlock authority, changing
+saved schedules or modifying authentication. The native morning-return test
+checks form input, dismissal and subsequent workspace keyboard navigation.
+Reverting the reconciliation call restores the previous tick-dependent return.
+
+The small streak caption uses primary text ink on the adaptive workspace canvas,
+while its moon icon retains the accent. This targets the actual unobscured native
+contrast finding without changing the palette, copy, font or layout. Offscreen
+light/dark renders support visual review; the unchanged native audit determines
+acceptance. Reverting the caption color is independent of host reconciliation.

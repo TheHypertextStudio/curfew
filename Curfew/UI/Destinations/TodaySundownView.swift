@@ -195,10 +195,11 @@ struct TodaySundownView: View {
                 HStack(spacing: 6) {
                     Image(systemName: "moon.stars.fill")
                         .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(CurfewTheme.accent)
                     Text("\(streak) nights in a row")
                         .font(SundownType.body(13))
                 }
-                .foregroundStyle(CurfewTheme.accent)
+                .foregroundStyle(CurfewTheme.ink)
                 .padding(.top, isEnforcing ? 0 : 2)
                 .transition(.opacity)
             }
