@@ -1794,3 +1794,8 @@ asserts its own screen and state before attaching an image.
   Populated owner data, helper/permission continuity, and recovery remain
   separate installed-device acceptance; no public feed or owner settings change
   is required to run the disposable updater check. See `RELEASE.md`.
+
+- [x] Bind fresh-installer artifact verification to the selected candidate's
+  validated immutable producer source, while retaining the current UI checks.
+  Historical signed subjects use their original verifier; newer candidates keep
+  their newer architecture and trust gates without exceptions.

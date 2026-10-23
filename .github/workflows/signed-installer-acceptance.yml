@@ -44,9 +44,16 @@ jobs:
       - name: Verify acceptance boundary tests
         run: node --test scripts/signed-installer-acceptance.test.mjs
       - name: Retain the exact signed release subject
+        id: subject
         env:
           GH_TOKEN: ${{ github.token }}
         run: node scripts/signed-installer-acceptance.mjs prepare "$RUNNER_TEMP/signed-candidate"
+      - name: Retain the selected installer's immutable source verifier
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ steps.subject.outputs.source_commit }}
+          path: installer-source
+          persist-credentials: false
       - name: Verify and install retained bytes on the fresh Mac
         shell: bash
         run: |
@@ -60,7 +67,7 @@ jobs:
           volume=$(mktemp -d)
           trap 'hdiutil detach "$volume"' EXIT
           hdiutil attach -readonly -nobrowse -mountpoint "$volume" "$image"
-          bash scripts/verify-release-artifact.sh "$volume/Curfew.app" "$RUNNER_TEMP/signed-candidate/release-configuration.json" "$version"
+          (cd installer-source && bash scripts/verify-release-artifact.sh "$volume/Curfew.app" "$RUNNER_TEMP/signed-candidate/release-configuration.json" "$version")
           ditto "$volume/Curfew.app" /Applications/Curfew.app
           codesign --verify --strict --deep /Applications/Curfew.app
           /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister /Applications/Curfew.app
