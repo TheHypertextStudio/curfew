@@ -347,8 +347,9 @@ ls "$WIDGET" "$HELPER" "$HELPER_PLIST"
 2. Add each supported Curfew widget from the gallery.
 3. Change the schedule and verify the widget refreshes from the App Group.
 4. Verify both signed production targets and profiles authorize
-   `group.studio.hypertext.apps.curfew`. Dev and StudioDev retain their existing
-   flavor groups.
+   `group.studio.hypertext.apps.curfew`. Curfew Dev retains the
+   `group.studio.hypertext.curfew.studio.dev` group from former Studio Dev installs;
+   Studio Dev is not a separate supported build.
 5. Verify existing settings regenerate widget snapshots in the new group while
    canonical databases stay in Application Support. An older activity database
    still migrates from the legacy `group.studio.hypertext.curfew` path; do not

@@ -47,7 +47,8 @@ enum EnforcementOwnership {
     static func acquire(
         flavor: CurfewFlavor = .current,
         pid: Int32 = ProcessInfo.processInfo.processIdentifier,
-        bundleIdentifier: String = Bundle.main.bundleIdentifier ?? "studio.hypertext.curfew",
+        bundleIdentifier: String = Bundle.main.bundleIdentifier ?? CurfewFlavor.current
+            .bundleIdentifier,
         displayName: String = resolvedDisplayName(),
         now: Date = Date(),
         lockURL: URL = SharedPaths.enforcementOwnerLock,
@@ -93,7 +94,8 @@ enum EnforcementOwnership {
     /// so a non-owning flavor calling this never deletes someone else's lock.
     static func release(
         pid: Int32 = ProcessInfo.processInfo.processIdentifier,
-        bundleIdentifier: String = Bundle.main.bundleIdentifier ?? "studio.hypertext.curfew",
+        bundleIdentifier: String = Bundle.main.bundleIdentifier ?? CurfewFlavor.current
+            .bundleIdentifier,
         lockURL: URL = SharedPaths.enforcementOwnerLock,
         fileManager: FileManager = .default
     ) {

@@ -11,6 +11,9 @@
 - [x] Move signed app, widget, and test bundle identities beneath
   `studio.hypertext.apps.curfew`, with isolated development variants and exact
   helper-client trust for the new app IDs.
+- [x] Use the canonical flavor identity for ownership when bundle metadata is
+  absent, with matching acquisition and release defaults. Keep historical
+  ownership records and retained storage identities compatible.
 - [x] Preserve existing settings, licenses, account-key services, canonical
   filesystem storage. Migrate the development helper registration after
   authenticated removal, and recognize old and new ownership records without
