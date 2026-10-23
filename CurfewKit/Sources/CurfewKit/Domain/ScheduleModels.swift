@@ -383,9 +383,10 @@ public struct WeeklySchedule: Equatable, Codable {
         guard let targetDay = calendar.date(byAdding: .day, value: dayOffset, to: day) else {
             return nil
         }
-        return calendar.date(
-            bySettingHour: minuteOfDay / 60, minute: minuteOfDay % 60, second: 0,
-            of: targetDay, matchingPolicy: .nextTimePreservingSmallerComponents,
+        return calendar.nextDate(
+            after: targetDay.addingTimeInterval(-1),
+            matching: DateComponents(hour: minuteOfDay / 60, minute: minuteOfDay % 60, second: 0),
+            matchingPolicy: .nextTimePreservingSmallerComponents,
             repeatedTimePolicy: .first, direction: .forward
         )
     }

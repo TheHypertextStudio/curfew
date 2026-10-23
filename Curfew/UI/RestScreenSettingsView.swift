@@ -116,6 +116,8 @@ struct RestScreenSettingsView: View {
                     .toggleStyle(.switch)
                     .accessibilityIdentifier("rest-sunrise-battery")
                 Text(sunriseStatusText)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(sunriseStatusText)
                     .accessibilityIdentifier("rest-sunrise-status")
                 Text(
                     """
