@@ -1,6 +1,22 @@
 name: Signed installer acceptance
 
 on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        type: choice
+        options: [fresh-install, staging-upgrade]
+        default: fresh-install
+        required: true
+      candidate_run_id:
+        description: Successful 0.0.11 release.yml run (upgrade mode only)
+        type: string
+      candidate_source_commit:
+        description: Exact 0.0.11 source commit (upgrade mode only)
+        type: string
+      candidate_dmg_sha256:
+        description: Exact retained 0.0.11 DMG SHA256 (upgrade mode only)
+        type: string
   pull_request:
     branches: [main]
     paths:
@@ -15,7 +31,7 @@ permissions:
 
 jobs:
   installed-candidate:
-    if: github.repository == 'TheHypertextStudio/curfew' && github.event.pull_request.head.repo.full_name == github.repository
+    if: github.repository == 'TheHypertextStudio/curfew' && ((github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) || (github.event_name == 'workflow_dispatch' && inputs.mode == 'fresh-install'))
     runs-on: macos-26
     timeout-minutes: 30
     steps:
@@ -81,4 +97,137 @@ jobs:
             ${{ runner.temp }}/signed-candidate/acceptance-subject.json
             ${{ runner.temp }}/signed-installer.xcresult
             ${{ runner.temp }}/signed-installer-ui.json
+          if-no-files-found: warn
+
+  staging-upgrade:
+    if: github.repository == 'TheHypertextStudio/curfew' && github.event_name == 'workflow_dispatch' && inputs.mode == 'staging-upgrade'
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: "24"
+      - name: Check the acceptance boundaries
+        run: node --test scripts/signed-installer-acceptance.test.mjs
+      - name: Retain the pinned older build and exact new subject
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CURFEW_UPGRADE_RUN_ID: ${{ inputs.candidate_run_id }}
+          CURFEW_UPGRADE_SOURCE_COMMIT: ${{ inputs.candidate_source_commit }}
+          CURFEW_UPGRADE_DMG_SHA256: ${{ inputs.candidate_dmg_sha256 }}
+        run: node scripts/signed-installer-acceptance.mjs prepare-upgrade "$RUNNER_TEMP/sparkle-upgrade"
+      - name: Retain the baseline's original artifact verifier
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: be209d487d554cc4a2bbe5dd89211e258280bf3b
+          path: baseline-source
+          persist-credentials: false
+      - name: Verify the exact new candidate before the update
+        shell: bash
+        run: |
+          set -euo pipefail
+          image="$RUNNER_TEMP/sparkle-upgrade/candidate/Curfew-v0.0.11.dmg"
+          xcrun stapler validate "$image"
+          spctl --assess --type open --context context:primary-signature --verbose=2 "$image"
+          volume=$(mktemp -d "$RUNNER_TEMP/candidate-preflight.XXXXXX")
+          trap 'hdiutil detach "$volume"' EXIT
+          hdiutil attach -readonly -nobrowse -mountpoint "$volume" "$image"
+          bash scripts/verify-release-artifact.sh "$volume/Curfew.app" "$RUNNER_TEMP/sparkle-upgrade/candidate/release-configuration.json" 0.0.11
+      - name: Verify and install the original signed baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_ACTIONS" == true && "$(id -un)" == runner ]]
+          [[ ! -e /Applications/Curfew.app ]]
+          image="$RUNNER_TEMP/sparkle-upgrade/baseline/Curfew-v0.0.8.dmg"
+          xcrun stapler validate "$image"
+          spctl --assess --type open --context context:primary-signature --verbose=2 "$image"
+          volume=$(mktemp -d "$RUNNER_TEMP/baseline-mount.XXXXXX")
+          trap 'hdiutil detach "$volume"' EXIT
+          hdiutil attach -readonly -nobrowse -mountpoint "$volume" "$image"
+          (cd baseline-source && bash scripts/verify-release-artifact.sh "$volume/Curfew.app" "$RUNNER_TEMP/sparkle-upgrade/baseline/release-configuration.json" 0.0.8)
+          ditto "$volume/Curfew.app" /Applications/Curfew.app
+          codesign --verify --strict --deep /Applications/Curfew.app
+          /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister /Applications/Curfew.app
+      - name: Select Xcode and configure the disposable display
+        run: |
+          if [ -d /Applications/Xcode_26.app ]; then
+            sudo xcode-select -s /Applications/Xcode_26.app
+          else
+            sudo xcode-select -s "$(printf '%s\n' /Applications/Xcode_*.app | sort -V | tail -1)"
+          fi
+          brew install displayplacer
+          node scripts/configure-ci-display.mjs
+      - name: Perform the real Sparkle update and verify installed bytes
+        shell: bash
+        env:
+          TEST_RUNNER_CURFEW_SIGNED_UPGRADE_ACCEPTANCE: "1"
+          TEST_RUNNER_GITHUB_ACTIONS: "true"
+          TEST_RUNNER_RUNNER_TEMP: ${{ runner.temp }}
+          TEST_RUNNER_CURFEW_SIGNED_UPGRADE_VERSION: "0.0.11"
+          TEST_RUNNER_CURFEW_SIGNED_UPGRADE_RECEIPT: ${{ runner.temp }}/sparkle-upgrade/upgrade-ui.json
+        run: |
+          set -euo pipefail
+          node scripts/signed-installer-acceptance.mjs serve-upgrade "$RUNNER_TEMP/sparkle-upgrade" > "$RUNNER_TEMP/sparkle-upgrade/server.log" 2>&1 &
+          server_pid=$!
+          cleanup() {
+            result=$?
+            trap - EXIT
+            set +e
+            node scripts/signed-installer-acceptance.mjs cleanup-upgrade "$RUNNER_TEMP/sparkle-upgrade"
+            cleanup_result=$?
+            kill "$server_pid" 2>/dev/null
+            wait "$server_pid" 2>/dev/null
+            if [[ "$result" == 0 && "$cleanup_result" != 0 ]]; then result=$cleanup_result; fi
+            exit "$result"
+          }
+          trap cleanup EXIT
+          trap 'exit 130' INT
+          trap 'exit 143' TERM
+          for _attempt in {1..50}; do
+            [[ -s "$RUNNER_TEMP/sparkle-upgrade/server.json" ]] && break
+            kill -0 "$server_pid"
+            sleep 0.2
+          done
+          test -s "$RUNNER_TEMP/sparkle-upgrade/server.json"
+          node scripts/signed-installer-acceptance.mjs configure-upgrade "$RUNNER_TEMP/sparkle-upgrade"
+          xcodebuild test -project Curfew.xcodeproj -scheme Curfew \
+            -destination 'platform=macOS' \
+            -resultBundlePath "$RUNNER_TEMP/sparkle-upgrade/upgrade.xcresult" \
+            -only-testing:CurfewUITests/SignedInstallerAcceptanceTests/testSignedStagingUpgrade \
+            -parallel-testing-enabled NO \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
+          test -s "$RUNNER_TEMP/sparkle-upgrade/upgrade-ui.json"
+          mkdir "$RUNNER_TEMP/sparkle-upgrade/candidate-mount"
+          volume="$RUNNER_TEMP/sparkle-upgrade/candidate-mount"
+          hdiutil attach -readonly -nobrowse -mountpoint "$volume" "$RUNNER_TEMP/sparkle-upgrade/candidate/Curfew-v0.0.11.dmg"
+          if node scripts/signed-installer-acceptance.mjs verify-upgrade "$RUNNER_TEMP/sparkle-upgrade" "$volume/Curfew.app"; then
+            hdiutil detach "$volume"
+          else
+            hdiutil detach "$volume"
+            exit 1
+          fi
+      - name: Confirm disposable defaults cleanup even after failure
+        if: always()
+        run: node scripts/signed-installer-acceptance.mjs cleanup-upgrade "$RUNNER_TEMP/sparkle-upgrade"
+      - name: Retain exact subjects and actual update results
+        if: always()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: signed-staging-upgrade-acceptance
+          path: |
+            ${{ runner.temp }}/sparkle-upgrade/baseline/acceptance-subject.json
+            ${{ runner.temp }}/sparkle-upgrade/candidate/acceptance-subject.json
+            ${{ runner.temp }}/sparkle-upgrade/upgrade-plan.json
+            ${{ runner.temp }}/sparkle-upgrade/staging-appcast.xml
+            ${{ runner.temp }}/sparkle-upgrade/server.json
+            ${{ runner.temp }}/sparkle-upgrade/server.log
+            ${{ runner.temp }}/sparkle-upgrade/transfers.jsonl
+            ${{ runner.temp }}/sparkle-upgrade/upgrade-ui.json
+            ${{ runner.temp }}/sparkle-upgrade/installed-verification.json
+            ${{ runner.temp }}/sparkle-upgrade/cleanup.json
+            ${{ runner.temp }}/sparkle-upgrade/upgrade.xcresult
           if-no-files-found: warn

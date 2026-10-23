@@ -2252,3 +2252,22 @@ flows and the public updater path require their own acceptance.
 - Real universal output for all four tools and final signed/notarized artifact
   checks remain distinct from synthetic fixtures. Installed app, permissions,
   license, updater, and populated upgrade acceptance are separate release gates.
+
+## Disposable signed updater acceptance
+
+- `scripts/signed-installer-acceptance.test.mjs` covers exact-run selection,
+  immutable candidate origin/digest/artifact binding, the pinned baseline and
+  existing EdDSA key, real runner identity guards, localhost-only feed URLs,
+  preservation of signed enclosure fields, foreign-override cleanup refusal,
+  and actual loopback HTTP allowlisting, transfer recording, and traversal denial.
+- `SignedInstallerAcceptanceTests.testSignedStagingUpgrade` is opt-in and uses
+  the real signed app without demo fixtures. It requires the expected update
+  offer, Install Update, Install and Relaunch, and a new running process ID.
+  The existing fresh-installer walkthrough remains separate.
+- The workflow must retain actual UI results, both exact subjects, server
+  transfers, cleanup, and final installed-file verification against the mounted
+  candidate with its source's artifact verifier. Unit fixtures cannot satisfy
+  that runtime result or the owner's populated upgrade/helper acceptance.
+- Rollback removes only the disposable user's owned override and loopback
+  process. No application source, ATS/TLS policy, signing key, Access policy, production feed,
+  or owner preference changes are part of this gate.
