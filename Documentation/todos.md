@@ -1796,6 +1796,11 @@ asserts its own screen and state before attaching an image.
   is required to run the disposable updater check. See `RELEASE.md`.
 
 - [x] Bind fresh-installer artifact verification to the selected candidate's
-  validated immutable producer source, while retaining the current UI checks.
-  Historical signed subjects use their original verifier; newer candidates keep
-  their newer architecture and trust gates without exceptions.
+  validated immutable producer source and its own fresh signed UI walkthrough.
+  Both dispatched signed modes require the explicit version, run, source and
+  DMG hash; PRs run boundary checks without selecting/installing a candidate.
+  Unsupported producers fail clearly; the pinned older build is an upgrade
+  baseline only. Newer candidates keep their architecture and trust gates.
+- [ ] Retain passing fresh-install and older-to-newer Sparkle UI/bytes receipts
+  for the same final candidate. Version-neutral harness tests do not replace
+  those signed outcomes.

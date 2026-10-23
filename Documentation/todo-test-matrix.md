@@ -2278,3 +2278,17 @@ flows and the public updater path require their own acceptance.
   also rejects non-SHA or output-injection values for the verifier checkout.
   Full artifact verification against real retained bytes remains separate from
   these source-routing fixtures; a historical pass does not waive a newer gate.
+
+
+- Explicit signed-subject routing: boundary tests accept a newer patch version,
+  reject old/same/malformed or missing versions and authority, and reject silent
+  latest-candidate selection. Both signed modes bind run, tag, source, digest,
+  configuration and EdDSA signature before installation.
+- PR checks do not install a retained app. Workflow routing tests require
+  explicit dispatched subjects; an executed command fixture confirms fresh UI
+  runs only the producer checkout's single signed walkthrough. Unsupported
+  producer source fails clearly. The current walkthrough follows the Schedule,
+  Extra time and Accessibility steps; only a real signed UI run proves them.
+- Release acceptance requires separate fresh-install and pinned-baseline Sparkle
+  receipts for the same final subject. Reverting harness changes leaves those
+  outcomes unverified and does not alter any owner app or preference.

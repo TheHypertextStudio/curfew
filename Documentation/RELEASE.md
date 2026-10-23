@@ -413,14 +413,16 @@ leave lockout active, avoid retry churn, and point the user to System Settings.
 
 The existing **Signed installer acceptance** workflow has an opt-in
 `staging-upgrade` mode for this gate. It uses the retained signed `0.0.8`
-artifact as its older validation build and requires the exact `0.0.11` release
-run, source commit, and DMG SHA-256. Dispatch it from that same frozen source
-after both packaging and acceptance tooling are integrated:
+artifact as its older validation build and requires an explicit newer `0.0.N`
+version (strictly greater than `0.0.8`), release run, source commit, and DMG
+SHA-256. Dispatch it from that same frozen source after both packaging and
+acceptance tooling are integrated:
 
 ```bash
 gh workflow run signed-installer-acceptance.yml --repo TheHypertextStudio/curfew \
   --ref "$CANDIDATE_SOURCE_COMMIT" \
   -f mode=staging-upgrade \
+  -f candidate_version="$CANDIDATE_VERSION" \
   -f candidate_run_id="$CANDIDATE_RUN_ID" \
   -f candidate_source_commit="$CANDIDATE_SOURCE_COMMIT" \
   -f candidate_dmg_sha256="$CANDIDATE_DMG_SHA256"
@@ -459,9 +461,19 @@ verifier from its own immutable source. Only after validating the tagged run,
 artifact origin, configuration, DMG hash, and EdDSA signature does preparation
 export the candidate's full source SHA for a separate checkout. Historical
 signed builds therefore retain their original checks; a new candidate uses its
-own newer checks, including universal executables. The current harness still
-drives the full fresh-install UI walkthrough. Do not select an arbitrary source
-checkout or use a historical verifier for a newer candidate.
+own newer checks, including universal executables. It also runs that immutable
+producer's own `testFreshSignedInstallerOpensRealSetup` against the installed
+signed app. A producer without this walkthrough fails clearly; the retained
+`0.0.8` build is an upgrade baseline only. Do not substitute current UI tests or
+a historical verifier for another candidate.
+
+Pull requests run fast harness boundary tests; normal native CI compiles the
+current UI tests. Actual signed installation runs only after a candidate exists,
+by dispatching `fresh-install` with the same four explicit candidate inputs as
+above. Both fresh installation and the real older-to-newer Sparkle upgrade must
+pass against the same exact release subject. A passing PR check establishes
+neither installed outcome. Missing or failed receipts keep release acceptance
+open; these changes do not waive any installer or updater gate.
 
 ## CI boundary
 

@@ -17,14 +17,34 @@ export const upgradeBaseline = Object.freeze({
 });
 const bundleID = "studio.hypertext.apps.curfew";
 const digest = bytes => createHash("sha256").update(bytes).digest("hex");
+export function requireFreshWalkthrough(source) {
+  assert.match(source, /func testFreshSignedInstallerOpensRealSetup\(\) throws/,
+    "Producer has no signed fresh-installer walkthrough; select a supported candidate");
+}
 export function verifierSourceOutput(candidate) {
   assert.match(candidate.sourceCommit, /^[a-f0-9]{40}$/);
   return `source_commit=${candidate.sourceCommit}\n`;
 }
+export function validateUpgradeVersion(version) {
+  assert.equal(typeof version, "string", "An explicit candidate version is required");
+  assert.match(version, /^0\.0\.(0|[1-9]\d*)$/);
+  const patch = Number(version.slice(4));
+  assert.ok(Number.isSafeInteger(patch) && patch > 8, "Candidate must be newer than the pinned baseline");
+  return version;
+}
+export function upgradeRequest(environment) {
+  const expected = { version: environment.CURFEW_UPGRADE_VERSION, runID: environment.CURFEW_UPGRADE_RUN_ID,
+    sourceCommit: environment.CURFEW_UPGRADE_SOURCE_COMMIT, dmgSHA256: environment.CURFEW_UPGRADE_DMG_SHA256 };
+  validateUpgradeVersion(expected.version);
+  assert.match(expected.runID, /^[1-9]\d*$/);
+  assert.match(expected.sourceCommit, /^[a-f0-9]{40}$/);
+  assert.match(expected.dmgSHA256, /^[a-f0-9]{64}$/);
+  return expected;
+}
 export function validateUpgradePair(baseline, candidate) {
   for (const key of ["version", "sourceCommit", "dmgSHA256"])
     assert.equal(baseline[key], upgradeBaseline[key], `Unapproved baseline ${key}`);
-  assert.equal(candidate.version, "0.0.11");
+  validateUpgradeVersion(candidate.version);
   assert.equal(candidate.sparkleKey, baseline.sparkleKey, "The existing Sparkle key must be retained");
 }
 export function createUpgradeHandler({ origin, assets, log }) {
@@ -73,7 +93,7 @@ export function defaultsRemovalAllowed(current, owned) {
 }
 export function createUpgradeAppcast(appcast, candidate, baseURL) {
   const base = validateLoopbackURL(baseURL);
-  assert.equal(candidate.version, "0.0.11");
+  validateUpgradeVersion(candidate.version);
   const replaceOne = (pattern, replacement) => {
     assert.equal([...appcast.matchAll(pattern)].length, 1, "Ambiguous staging feed");
     appcast = appcast.replace(pattern, replacement);
@@ -87,18 +107,14 @@ export function createUpgradeAppcast(appcast, candidate, baseURL) {
   return appcast;
 }
 export function selectCandidateRun(runs, expected) {
-  if (expected) {
-    const matches = runs.filter(run => String(run.databaseId) === expected.runID);
-    assert.equal(matches.length, 1, "The explicitly selected candidate run is missing");
-    assert.equal(matches[0].headBranch, `v${expected.version}`);
-    assert.equal(matches[0].headSha, expected.sourceCommit);
-    return { run: matches[0], version: expected.version };
-  }
-  const candidates = runs.filter(value => /^v0\.0\.(0|[1-9]\d*)$/.test(value.headBranch))
-    .sort((left, right) => Number(right.headBranch.slice(5)) - Number(left.headBranch.slice(5)));
-  assert.ok(candidates.length, "No successful tagged signed candidate is retained");
-  return { run: candidates[0], version: candidates[0].headBranch.slice(1) };
+  assert.ok(expected, "Explicit candidate subject required");
+  const matches = runs.filter(run => String(run.databaseId) === expected.runID);
+  assert.equal(matches.length, 1, "The explicitly selected candidate run is missing");
+  assert.equal(matches[0].headBranch, `v${expected.version}`);
+  assert.equal(matches[0].headSha, expected.sourceCommit);
+  return { run: matches[0], version: expected.version };
 }
+
 export function verifyCandidateOrigin({ candidate, artifact, tagCommit, version, expected }) {
   assert.match(tagCommit, /^[a-f0-9]{40}$/);
   assert.equal(candidate.version, version);
@@ -118,34 +134,20 @@ export function verifyCandidateOrigin({ candidate, artifact, tagCommit, version,
 }
 const gh = args => JSON.parse(execFileSync("gh", args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }));
 async function prepare(directory) {
-  const runs = gh(["run", "list", "--repo", repository, "--workflow", "release.yml",
-    "--status", "success", "--limit", "20", "--json", "databaseId,headSha,headBranch"]);
-  const { run, version } = selectCandidateRun(runs);
-  const tag = `v${version}`;
-  let ref = gh(["api", `repos/${repository}/git/ref/tags/${tag}`]).object;
-  if (ref.type === "tag") ref = gh(["api", `repos/${repository}/git/tags/${ref.sha}`]).object;
-  assert.equal(ref.type, "commit");
-  assert.equal(run.headSha, ref.sha, "Release tag and candidate run differ");
-  const artifacts = gh(["api", `repos/${repository}/actions/runs/${run.databaseId}/artifacts`]).artifacts
-    .filter(value => value.name === "curfew-signed-candidate" && !value.expired);
-  assert.equal(artifacts.length, 1, "One retained candidate artifact is required");
-  const artifact = gh(["api", `repos/${repository}/actions/artifacts/${artifacts[0].id}`]);
-  await mkdir(directory);
-  execFileSync("gh", ["run", "download", String(run.databaseId), "--repo", repository,
-    "--name", "curfew-signed-candidate", "--dir", directory], { stdio: "inherit" });
-  const candidate = JSON.parse(await readFile(join(directory, "candidate.json"), "utf8"));
-  verifyCandidateOrigin({ candidate, artifact, tagCommit: ref.sha, version });
-  verifyCandidate({ candidate, dmg: await readFile(join(directory, `Curfew-v${version}.dmg`)),
-    appcast: await readFile(join(directory, "appcast.xml")),
-    configuration: JSON.parse(await readFile(join(directory, "release-configuration.json"), "utf8")) });
-  await writeFile(join(directory, "acceptance-subject.json"), JSON.stringify({
-    version, sourceCommit: candidate.sourceCommit, dmgSHA256: candidate.dmgSHA256,
-    configurationSHA256: candidate.configurationSHA256, artifactID: artifact.id,
-    runID: run.databaseId, scope: "Exact signed installer; installation and UI outcomes recorded separately",
-  }, null, 2) + "\n");
+  const input = await downloadExactCandidate(directory, upgradeRequest(process.env));
   // Export only after origin and cryptographic checks have accepted this subject.
   if (process.env.GITHUB_OUTPUT)
-    await appendFile(process.env.GITHUB_OUTPUT, verifierSourceOutput(candidate));
+    await appendFile(process.env.GITHUB_OUTPUT, verifierSourceOutput(input.candidate));
+}
+
+async function verifyFreshSource(directory, source) {
+  const { candidate } = await readCandidate(directory);
+  assert.equal(execFileSync("git", ["-C", source, "rev-parse", "HEAD"], { encoding: "utf8" }).trim(), candidate.sourceCommit);
+  execFileSync("git", ["-C", source, "diff", "--quiet", "HEAD", "--"]);
+  let walkthrough = "";
+  try { walkthrough = await readFile(join(source, "CurfewUITests/SignedInstallerAcceptanceTests.swift"), "utf8"); }
+  catch (error) { if (error.code !== "ENOENT") throw error; }
+  requireFreshWalkthrough(walkthrough);
 }
 
 async function readCandidate(directory) {
@@ -201,8 +203,7 @@ async function prepareUpgrade(directory) {
   guardUpgradeDirectory(directory);
   await assert.rejects(() => lstat("/Applications/Curfew.app"), { code: "ENOENT" });
   await mkdir(directory);
-  const expected = { version: "0.0.11", runID: process.env.CURFEW_UPGRADE_RUN_ID,
-    sourceCommit: process.env.CURFEW_UPGRADE_SOURCE_COMMIT, dmgSHA256: process.env.CURFEW_UPGRADE_DMG_SHA256 };
+  const expected = upgradeRequest(process.env);
   assert.equal(execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim(), expected.sourceCommit,
     "Run acceptance from the exact candidate source, including its final artifact verifier");
   execFileSync("git", ["diff", "--quiet", "HEAD", "--"]);
@@ -310,7 +311,7 @@ async function verifyInstalledUpgrade(directory, reference) {
   assert.notEqual(ui.baselinePID, ui.relaunchedPID);
   const transfers = (await readFile(join(directory, "transfers.jsonl"), "utf8")).trim().split("\n").map(JSON.parse);
   assert.ok(transfers.some(entry => entry.method === "GET" && entry.status === 200
-    && entry.path === "/Curfew-v0.0.11.dmg" && entry.bytes === candidate.dmg.length),
+    && entry.path === `/Curfew-v${candidate.candidate.version}.dmg` && entry.bytes === candidate.dmg.length),
   "No completed exact-DMG response was recorded");
   await writeFile(join(directory, "installed-verification.json"), JSON.stringify({
     sourceCommit: candidate.candidate.sourceCommit, dmgSHA256: candidate.candidate.dmgSHA256,
@@ -319,10 +320,11 @@ async function verifyInstalledUpgrade(directory, reference) {
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   const command = process.argv[2];
-  assert.ok(["prepare", "prepare-upgrade", "serve-upgrade", "configure-upgrade", "cleanup-upgrade", "verify-upgrade"].includes(command));
+  assert.ok(["prepare", "verify-fresh-source", "prepare-upgrade", "serve-upgrade", "configure-upgrade", "cleanup-upgrade", "verify-upgrade"].includes(command));
   assert.ok(process.argv[3], "A new candidate directory is required");
   const directory = resolve(process.argv[3]);
   if (command === "prepare") await prepare(directory);
+  if (command === "verify-fresh-source") await verifyFreshSource(directory, process.argv[4]);
   if (command === "prepare-upgrade") await prepareUpgrade(directory);
   if (command === "serve-upgrade") await serveUpgrade(directory);
   if (command === "configure-upgrade") await configureUpgrade(directory);
