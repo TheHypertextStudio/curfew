@@ -1523,7 +1523,8 @@ asserts its own screen and state before attaching an image.
 
 - [x] Support an explicitly selected, isolated Settings capture without repeating
   unrelated app checks. Keep focused output distinct from full CI acceptance and
-  reject unknown test selectors before a build starts.
+  reject unknown test selectors before a build starts. Keep the existing
+  unsigned capture-step contract unchanged.
 
 ## Website visual identity release
 
