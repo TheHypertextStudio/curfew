@@ -17,6 +17,7 @@ const screenshotExtractor = await readFile(
   "utf8",
 );
 const projectFile = await readFile("Curfew.xcodeproj/project.pbxproj", "utf8");
+const toolBundler = await readFile("scripts/bundle-cli-tools.sh", "utf8");
 const packageManifest = await readFile("CurfewKit/Package.swift", "utf8");
 const homebrewCask = await readFile("Casks/curfew.rb", "utf8");
 const artifactVerifier = await readFile(
@@ -158,8 +159,8 @@ test("CI preserves the unit-test result bundle when the check fails", () => {
 });
 
 test("unsigned CI builds skip embedded tool signing", () => {
-  assert.match(projectFile, /CODE_SIGNING_ALLOWED.*NO/);
-  assert.match(projectFile, /EXPANDED_CODE_SIGN_IDENTITY/);
+  assert.match(toolBundler, /CODE_SIGNING_ALLOWED.*NO/);
+  assert.match(toolBundler, /EXPANDED_CODE_SIGN_IDENTITY/);
 });
 
 test("interactive builds reject an unresolved signing identity before TCC can mislead", () => {
@@ -204,17 +205,11 @@ test("a staging build compiles the app and every embedded tool for the same serv
   assert.match(projectDebug, /CURFEW_SERVICE_SWIFT_FLAG = CURFEW_STAGING;/);
   assert.doesNotMatch(projectRelease, /CURFEW_SERVICE_SWIFT_FLAG/);
   assert.doesNotMatch(appRelease, /CURFEW_SERVICE_SWIFT_FLAG/);
-  assert.match(projectFile, /SWIFT_SERVICE_FLAGS=.*-Xswiftc -DCURFEW_STAGING/);
-  assert.match(
-    projectFile,
-    /swift build --package-path CurfewKit -c release --jobs 2 --product curfew-daemon \$SWIFT_SERVICE_FLAGS/,
-  );
-  assert.match(projectFile, /if \[ \\"\$CONFIGURATION\\" != \\"Debug\\" \]/);
-  assert.match(
-    projectFile,
-    /CURFEW_STAGING requires an isolated Debug app and helper identity/,
-  );
-  assert.match(projectFile, /CURFEW_DAEMON_PLIST_NAME/);
+  assert.match(projectFile, /scripts\/bundle-cli-tools\.sh/);
+  assert.match(toolBundler, /build_args\+=\(-Xswiftc -DCURFEW_STAGING\)/);
+  assert.match(toolBundler, /if \[\[ "\$CONFIGURATION" != Debug \]\]/);
+  assert.match(toolBundler, /CURFEW_STAGING requires an isolated Debug app and helper identity/);
+  assert.match(toolBundler, /CURFEW_DAEMON_PLIST_NAME/);
 });
 
 test("every user-facing release version is the same 0.0.x version", () => {

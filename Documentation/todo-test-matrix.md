@@ -2214,3 +2214,16 @@ flows and the public updater path require their own acceptance.
 | Publication includes notes for the candidate version with the retained site’s navigation, fonts, and styles | `scripts/publication.test.mjs` exercises the prepared output and unchanged retained input |
 | Missing or wrong-version notes prevent output creation | `scripts/publication.test.mjs` rejects incomplete notes before publication writes |
 | Live acceptance accepts the expected same-origin hosting redirect and rejects unexpected destinations, missing or wrong-version updater notes | `scripts/publication.test.mjs` exercises customer-facing responses; actual deployed-page inspection remains required |
+
+
+## Universal embedded executables
+
+- `scripts/bundle-cli-tools.test.mjs` executes the Xcode bundle phase for
+  universal and active-architecture builds, verifies every copied tool with
+  `lipo`, preserves staging flags, and rejects each missing tool slice and a
+  narrowed main executable through the final artifact packaging verifier.
+- `scripts/release-entitlements.test.mjs` retains configuration, helper label,
+  staging boundary, and signing assertions after extracting the bundle script.
+- Real universal output for all four tools and final signed/notarized artifact
+  checks remain distinct from synthetic fixtures. Installed app, permissions,
+  license, updater, and populated upgrade acceptance are separate release gates.
