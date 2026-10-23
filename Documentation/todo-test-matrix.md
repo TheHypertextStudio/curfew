@@ -1556,8 +1556,11 @@ tests cannot read or mutate a user's App Group lockout record.
   - `CurfewUITests/testReadyFixtureDoesNotImplyCurfewIsOn`
 - Setup gating, conditional schedule controls, assistant feedback:
   - `CurfewUITests/testSetupUsesOneInstructionAndPreservesScheduleGate`
+    follows the current schedule instruction and retains all seven-day review,
+    explicit-choice, and disabled-Next assertions.
   - `CurfewUITests/testScheduleHidesTimeControlsForDaysOff`
   - `CurfewUITests/testAssistantSetupShowsCopyFeedback`
+    targets the native checkbox before checking policy and copy feedback.
   - `CurfewUITests/testPromptEditorDoesNotAdvertiseFutureFeatures`
 - Capture safety and visual evidence:
   - `DemoFixtureTests/demoModelCannotArmEnforcement()`
@@ -1583,6 +1586,8 @@ tests cannot read or mutate a user's App Group lockout record.
 - Native Settings navigation and reliable lower-position captures:
   - `CurfewUITests/testSettingsSidebarSupportsArrowKeys`
   - `CurfewUITests/testManageAIAccessAlwaysOpensConnections`
+    checks stable page destinations across repeated opens, independently of
+    permission-dependent status content.
   - `MarketingCaptureTests/scrollToBottom` targets the detail pane, asserts its
     vertical position is at the bottom, or proves lower content fits without a bar.
 
@@ -1590,6 +1595,8 @@ tests cannot read or mutate a user's App Group lockout record.
   - `CurfewUITests/testGeneralHelperFailureFitsMinimumWindow`
 - Explain assistant read access before its toggle is enabled:
   - `CurfewUITests/testAssistantReadAccessIsExplainedBeforeEnabling`
+    matches the complete explanation through an exact predicate, avoiding
+    XCTest's identifier-length limit without shortening the consent check.
 
 - Capture the actual warning timer instead of the desktop:
   - `MarketingCaptureTests/testCaptureOverlays` asserts `warning-timer` and
@@ -1598,9 +1605,8 @@ tests cannot read or mutate a user's App Group lockout record.
 
 - Capture state assertions use a frozen accessibility tree; native disclosure
   expansion and destructive-dialog cancellation are asserted before capture.
-  Final critical-state and overlay suites pass in
-  `build/ui-capture-snapshot-final.xcresult`; the gallery retains 160 current images.
-  Outstanding state and assistive-technology coverage is listed in
+  Critical-state and overlay suites must retain their results with the image
+  gallery. State and assistive-technology coverage is defined in
   `Documentation/ui-state-review.md`.
 
 - Unified app theme:
