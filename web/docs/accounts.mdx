@@ -9,14 +9,29 @@ you want to manage connected devices or assistant permissions.
 ## Sign in
 
 Open [your Curfew account](https://thecurfew.app/account). Use the
-passkey saved on your device or in your password manager. If Continue with
-Apple is offered, you can use it to sign in.
+passkey saved on your device or in your password manager, or a connected Apple
+or Google account when that option is offered.
 
 ## Create an account
 
 Enter your email address, then create a passkey. During security setup, save
 your recovery codes somewhere you can reach if you lose access to that passkey.
 Curfew shows each set once.
+
+## Manage sign-in methods
+
+Open **Account & security** in your Curfew account. Curfew may ask you to
+confirm your identity before changing a sign-in method.
+
+| Action | What to do |
+| --- | --- |
+| Add a passkey | Under **Passkeys**, choose **Add passkey** and finish your browser or password manager's prompt. |
+| Name a passkey | Choose **Rename** beside it, enter a name you recognize, then choose **Save name**. |
+| Connect Apple or Google | Choose **Link Apple** or **Link Google** when offered, then follow the sign-in and security setup. |
+| Remove a sign-in method | Choose **Remove** beside it and confirm which method to remove. Add another method first if it is your only way to sign in. |
+
+Removing a method from Curfew does not delete the passkey saved in your password
+manager or delete your Apple or Google account.
 
 ## Recover access
 
@@ -28,10 +43,52 @@ replacement passkey and save new recovery codes.
 
 Never send a recovery code to support or an assistant.
 
+## Replace recovery codes
+
+In **Account & security → Recovery codes**, choose **Replace recovery codes**.
+Save the new set, then choose **I saved these recovery codes**. Each code can
+be used once.
+
+Earlier codes stop working. Replacing the set also removes earlier permissions
+to control Curfew remotely; reconnect devices and assistants when prompted.
+
 ## Connect an assistant
 
 Review the requested permissions before approving a connection. Each Mac must
-opt in before an assistant can request a lock. You can revoke connections in
+opt in before an assistant can request a lock. You can disconnect assistants in
 your account.
 
 An offline Mac must reconnect and apply a queued lock request before it locks.
+
+Open **Integrations → Connected assistants** to review or **Disconnect** a
+connection. For a locally configured assistant, also follow the
+[assistant removal instructions](/mcp-guide); its local configuration is separate.
+
+Open **Devices** to review your connected Macs. Add a Mac from Curfew's
+**Settings → Connections** on that Mac.
+
+## Download account data
+
+In **Account & security → Account data**, choose **Download account data**.
+Save the downloaded JSON file somewhere private. It includes hosted account
+records and encrypted sync data; it does not decrypt your settings or copy
+local-only Mac data.
+
+## Delete an account
+
+Deleting an account permanently removes its hosted account and synced settings,
+signs out its sessions, and disconnects its devices and assistants. Your Macs
+keep their local data.
+
+**Deleting an account does not cancel subscription billing.** For cancellation
+or purchase help, contact [support@thecurfew.app](mailto:support@thecurfew.app)
+from your purchase email before deleting the account. See
+[license recovery and billing help](/licensing) and the
+[refund policy](https://thecurfew.app/refund).
+
+1. Open **Account & security → Delete account**.
+2. Choose **Delete account…** and read the confirmation.
+3. Type **DELETE**, then choose **Permanently delete account**.
+
+You return to sign-in after deletion succeeds. If Curfew cannot confirm the
+result, choose **Check account status** before trying again.
