@@ -1815,3 +1815,8 @@ asserts its own screen and state before attaching an image.
   Distinguish background pixel sampling from independent workspace defects
   before choosing a modal accessibility correction. These native checks retain
   the original audit types and failure handling.
+
+- [-] Keep CI formatting deterministic with the source-baseline SwiftFormat
+  version and a verified official release archive. Preserve the full formatting
+  check instead of disabling rules or reformatting unrelated enforcement code
+  when Homebrew advances independently.
