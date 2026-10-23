@@ -6,7 +6,7 @@
 
 Curfew owns schedule evaluation, notifications, keyboard interception, and overlay windows throughout the process lifetime. Its main and Settings windows only present state. A bundled user-session `curfew-supervisor` agent runs under launchd through `SMAppService.agent`. It watches termination and reconciles every 5 seconds, then asks Launch Services to reopen the same bundle with `--background` without activation. The app suppresses ordinary windows and restoration on that launch. Its timer uses common run-loop modes and an activity assertion that permits system sleep. Wake performs a fresh evaluation before reasserting lockout.
 
-The supervisor never computes a schedule. The optional root daemon retains its existing role. Local runtime grants and spent budgets are atomically stored before a grant takes effect, then restored before initial evaluation. Durable lockout and remote-release verification remain separate constraints. Service approval/error status appears in Enforcement settings. Uninstall stops recovery before removing state.
+The supervisor never computes a schedule. The optional root daemon retains its existing role. Local runtime grants and spent budgets are atomically stored before a grant takes effect, then restored before initial evaluation. Durable lockout and remote-release verification remain separate constraints. Service approval/error status appears in Protection settings. Uninstall stops recovery before removing state.
 
 The component diagram and failure/rollback decisions are in [background-enforcement.md](background-enforcement.md). Signed acceptance is required by [RELEASE.md](RELEASE.md).
 
