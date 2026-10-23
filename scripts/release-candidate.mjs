@@ -39,6 +39,24 @@ export async function verifyEmbeddedToolPackaging(app) {
     if (!entry.isFile() || !(entry.mode & 0o111))
       throw new Error(`Invalid embedded executable: ${tool}`);
   }
+  // Distribution supports both Apple silicon and Intel. Do not let a narrowed
+  // app or host-only SwiftPM product pass the signed artifact gate.
+  const executablePaths = [
+    resolve(app, "Contents/MacOS/Curfew"),
+    ...tools.map((tool) => resolve(app, "Contents/Resources", tool)),
+  ];
+  let appArchitectures;
+  for (const executable of executablePaths) {
+    const architectures = execFileSync("/usr/bin/lipo", ["-archs", executable], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    }).trim().split(/\s+/);
+    appArchitectures ??= architectures;
+    for (const required of new Set(["arm64", "x86_64", ...appArchitectures])) {
+      if (!architectures.includes(required))
+        throw new Error(`Missing architecture in ${executable}: ${required}`);
+    }
+  }
   return tools;
 }
 

@@ -433,12 +433,8 @@ test("candidate packaging refuses an absent or non-executable browser native hos
       "test executable",
       { mode: 0o700 },
     );
-    assert.deepEqual(await api.verifyEmbeddedToolPackaging(root), [
-      "curfew-ctl",
-      "curfew-mcp",
-      "curfew-daemon",
-      "studio.hypertext.curfew.browser",
-    ]);
+    // File presence alone cannot establish a valid universal executable.
+    await assert.rejects(() => api.verifyEmbeddedToolPackaging(root));
   } finally {
     await rm(root, { recursive: true, force: true });
   }

@@ -102,9 +102,22 @@ or authorize widening an internal build's distribution.
      - `Curfew.app/Contents/Resources/curfew-daemon`
      - `Curfew.app/Contents/Library/LaunchDaemons/studio.hypertext.curfew.daemon.plist`
    - The plist must keep `BundleProgram = Contents/Resources/curfew-daemon`.
-   - The Xcode bundle phase must sign `curfew-ctl`, `curfew-mcp`, and
-     `curfew-daemon` with `EXPANDED_CODE_SIGN_IDENTITY`; copying SwiftPM's
-     ad-hoc linker signature into `Contents/Resources` is not sufficient.
+   - The Xcode bundle phase must sign `curfew-ctl`, `curfew-mcp`,
+     `studio.hypertext.curfew.browser`, and `curfew-daemon` with
+     `EXPANDED_CODE_SIGN_IDENTITY`; copying SwiftPM's ad-hoc linker signature
+     into `Contents/Resources` is not sufficient.
+   - `scripts/bundle-cli-tools.sh` forwards every resolved Xcode `ARCHS` entry
+     to SwiftPM with `--arch`, then uses the same arguments with
+     `--show-bin-path` instead of assuming a host-default output directory.
+     Debug builds retain their active architecture and staging service flags.
+   - The signed Release app and all four tools must contain both `arm64` and
+     `x86_64` slices. `verify-release-artifact.sh` invokes the shared packaging
+     verifier before signature checks and rejects any missing slice. Verify the
+     final exported app; a universal main executable alone is insufficient.
+     This changes packaging only, with no settings migration, helper identity,
+     permission, or signing changes. Rollback must retain this architecture gate
+     and use a previously accepted universal artifact; do not publish a thin
+     helper as a workaround.
 
 Profile identity validation reads Apple’s `ApplicationIdentifierPrefix` field.
 Apple may encode Associated Domains authorization as the literal `*` string or

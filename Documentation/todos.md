@@ -1760,3 +1760,13 @@ asserts its own screen and state before attaching an image.
   candidate and source website, and keep Plus unavailable. Refuse publication
   without notes for the candidate version; verify the actual notes page after
   deployment alongside the installer and feed.
+
+
+## Universal embedded executables
+
+- [x] Build all four embedded tools for the app's resolved Xcode architectures,
+  preserve Debug staging and signing behavior, and reject Release artifacts
+  missing Apple silicon or Intel slices. See `Documentation/RELEASE.md`.
+  Packaging regressions exercise the real Xcode shell phase with synthetic
+  Mach-O fixtures; a real universal package build verifies toolchain output.
+  Signed candidate, installation, and update acceptance remain release gates.
