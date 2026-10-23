@@ -18,7 +18,6 @@ import CurfewKit
                 lockoutWindows: NSApp.windows.filter { $0.isVisible && $0.level == .screenSaver }
                     .count,
                 accessibilityGranted: isAccessibilityTrusted,
-                keyboardShieldActive: lockoutKeyInterceptor.isActive,
                 keyboardShieldEnabled: lockoutKeyInterceptor.isEnabled,
                 enforcementHealth: String(describing: enforcementHealth)
             )
@@ -35,7 +34,6 @@ import CurfewKit
         let ordinaryWindows: Int
         let lockoutWindows: Int
         let accessibilityGranted: Bool
-        let keyboardShieldActive: Bool
         let keyboardShieldEnabled: Bool
         let enforcementHealth: String
     }
