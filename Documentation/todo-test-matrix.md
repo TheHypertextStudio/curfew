@@ -1569,6 +1569,13 @@ tests cannot read or mutate a user's App Group lockout record.
   - `CurfewUITests/testReviewOpensPendingRequestAndDenyDismissesIt`
   - `CurfewUITests/testExhaustedOverridesExplainWhyEntryIsUnavailable`
   - `MarketingCaptureTests` asserts fixture window/overlay identity before capture.
+  - `testCaptureSettingsMatrix` selects the explicit healthy `ready` fixture;
+    `testCaptureCriticalStateMatrix`, `testCaptureDistinctSettingsStates`, and
+    `testCaptureMenuBar` retain separate degraded-health and repair-action checks.
+    Zero budgets are asserted on both native weekly-limit steppers. Calendar and
+    reflection captures assert the current permission guidance and prompt editor.
+    These test-only corrections preserve app behavior; a passing full graphical
+    sweep and inspection of its rendered captures remain required.
   - Existing policy, MCP signing/consent, schedule, budget, override, and license
     tests remain the behavior regression gate; screenshots do not replace them.
 
