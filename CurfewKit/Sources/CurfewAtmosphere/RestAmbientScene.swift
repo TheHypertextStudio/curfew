@@ -13,6 +13,8 @@ public struct RestAmbientScene: View {
     public let showsClock: Bool
     public let clockSize: CGFloat
     public let showsMessage: Bool
+    private let clockNamespace: Namespace.ID?
+    @Namespace private var localClockNamespace
 
     public init(
         snapshot: RestSceneSnapshot,
@@ -22,7 +24,8 @@ public struct RestAmbientScene: View {
         reduceTransparency: Bool = false,
         showsClock: Bool = true,
         clockSize: CGFloat = 110,
-        showsMessage: Bool = true
+        showsMessage: Bool = true,
+        clockNamespace: Namespace.ID? = nil
     ) {
         self.snapshot = snapshot
         self.date = date
@@ -32,6 +35,7 @@ public struct RestAmbientScene: View {
         self.showsClock = showsClock
         self.clockSize = clockSize
         self.showsMessage = showsMessage
+        self.clockNamespace = clockNamespace
     }
 
     private var appearance: RestAppearancePreferences {
@@ -57,6 +61,9 @@ public struct RestAmbientScene: View {
                         Text(date, style: .time)
                             .font(.system(size: clockSize, weight: .semibold, design: clockDesign))
                             .monospacedDigit()
+                            .matchedGeometryEffect(
+                                id: "rest-clock", in: clockNamespace ?? localClockNamespace
+                            )
                         if showsMessage, !appearance.message.isEmpty {
                             Text(appearance.message)
                                 .font(.system(size: max(16, clockSize * 0.19)))

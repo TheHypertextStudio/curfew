@@ -86,6 +86,32 @@ struct RestSandboxExchangeTests {
         }
     }
 
+    @Test("Preview readback cannot claim the matching companion appeared full screen")
+    func fullScreenReceipt() throws {
+        try withStores { app, host, files in
+            let publisher = RestScreenSaverPreferences(defaults: app, files: files, host: false)
+            try publisher.publish(snapshot: scene, imageData: nil)
+            _ = try publisher.requestReadback()
+            var emitted: Data?
+            let preview = RestScreenSaverPreferences(
+                defaults: host, files: files, host: true, postReceipt: { emitted = $0 }
+            )
+            try preview.acknowledge(#require(preview.read(at: now)))
+            #expect(try publisher.acceptHostAcknowledgement(#require(emitted)))
+            #expect(!publisher.hasFullScreenAcknowledgement())
+            let fullScreen = RestScreenSaverPreferences(
+                defaults: host, files: files, host: true, postReceipt: { emitted = $0 },
+                fullScreenHost: true
+            )
+            try fullScreen.acknowledge(#require(fullScreen.read(at: now)))
+            #expect(try publisher.acceptHostAcknowledgement(#require(emitted)))
+            #expect(publisher.hasFullScreenAcknowledgement())
+            _ = try publisher.requestReadback()
+            #expect(!publisher.hasFullScreenAcknowledgement())
+            #expect(try !publisher.acceptHostAcknowledgement(#require(emitted)))
+        }
+    }
+
     @Test("A rejected file publication retries without stranding a defaults generation")
     func retryAfterFileFailure() throws {
         try withStores { app, host, files in

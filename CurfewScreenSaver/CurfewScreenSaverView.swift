@@ -22,6 +22,10 @@ final class CurfewScreenSaverView: ScreenSaverView {
         animationTimeInterval = 1.0 / 30.0
     }
 
+    override static func performGammaFade() -> Bool {
+        true
+    }
+
     override func startAnimation() {
         super.startAnimation()
         session?.stop()
@@ -61,7 +65,8 @@ final class CurfewScreenSaverView: ScreenSaverView {
         lastPreferenceRead = date
         if let session {
             _ = session.frame(at: date, timeZone: .current)
-        } else if let preferences = try? RestScreenSaverPreferences.companionSystem() {
+        } else if let preferences = try? RestScreenSaverPreferences
+            .companionSystem(isPreview: isPreview) {
             let session = RestScreenSaverSession(
                 preferences: preferences,
                 decodeImage: RestScreenSaverPreferences.boundedImage

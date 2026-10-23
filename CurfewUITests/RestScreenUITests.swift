@@ -66,6 +66,20 @@ extension CurfewUITests {
     }
 
     @MainActor
+    func testRestNowAppearsAfterReflectionAndYieldsToConfirmation() {
+        let app = launchFixture("lockout", state: "rest-continuity")
+        let editor = app.textViews["reflection-answer"].firstMatch
+        XCTAssertTrue(editor.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["rest-now"].exists)
+        app.buttons["Skip"].click()
+        let restNow = app.buttons["rest-now"]
+        XCTAssertTrue(restNow.waitForExistence(timeout: 5))
+        XCTAssertTrue(restNow.isHittable)
+        app.buttons["override-entry"].click()
+        XCTAssertFalse(restNow.exists, "Confirmation must keep the interactive form in control.")
+    }
+
+    @MainActor
     func testRestScenesHaveReadableAccessibleControls() throws {
         for state in ["rest-continuity", "rest-morning"] {
             let app = launchFixture("lockout", state: state)

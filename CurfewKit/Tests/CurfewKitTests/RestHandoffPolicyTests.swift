@@ -168,6 +168,21 @@ struct RestHandoffPolicyTests {
         }
     }
 
+    @Test("Setup failure waits for an explicit retry instead of interrupting each idle minute")
+    func unavailableDoesNotLoop() throws {
+        var policy = ready()
+        _ = policy.handle(.restNow, monotonicSeconds: start)
+        let generation = try #require(policy.pendingGeneration)
+        _ = policy.handle(.settled(generation), monotonicSeconds: start)
+        _ = policy.handle(
+            .launchCompleted(generation, .unavailable(.companionUnavailable)),
+            monotonicSeconds: start
+        )
+        #expect(policy.handle(.idleCheck, monotonicSeconds: start + 600).isEmpty)
+        #expect(policy.phase == .interactive)
+        #expect(!policy.handle(.restNow, monotonicSeconds: start + 600).isEmpty)
+    }
+
     @Test("Unavailable launch keeps the interactive composition with a useful setup status")
     func unavailableLaunch() throws {
         for status in [RestHandoffPolicy.SetupStatus.companionUnavailable, .launchUnavailable] {

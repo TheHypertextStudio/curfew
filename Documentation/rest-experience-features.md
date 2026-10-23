@@ -43,3 +43,32 @@ Configured lock and unlock times are local calendar clock values. Resolve those 
 Normal app launch explicitly creates the optional rest runtime after the demo and loaded-test-runtime guards. Appearance changes and the existing display clock reconcile companion publication and Sunrise independently of enforcement. The companion receives bounded owned image bytes and a fresh readback nonce; a preferences write is not proof that the screensaver process read it. Activity and display assertions have separate owners so cleanup cannot consume another policy’s retained retry token.
 
 The privileged helper composes its authenticated Sunrise operations with a fixed flavor-specific event owner and a private root-owned journal beneath `/private/var/db`. Unsafe or unavailable storage disables optional scheduling while restriction enforcement continues. Disable Sunrise to cancel its owned event and release its display hold; rollback removes the optional runtime composition without changing restriction authority. Installed-helper recovery, actual host exchange and physical power behavior remain separate acceptance requirements.
+
+### Presentation handoff
+
+The existing display clock samples native idle time after the reflection form is
+resolved. Sixty seconds without input starts a cancellable transition; Rest now
+requests it immediately. Editing, override confirmation and modal recovery sheets
+keep the interactive screen in control. The retained window moves its clock into
+the configured ambient position without discarding drafts or replacing display
+hosts. Reduce Motion removes the clock movement.
+
+Curfew resolves the system ScreenSaverEngine using NSWorkspace. It does not
+select a screensaver or change authentication policy. A fresh, generation-bound
+full-screen companion receipt is required within eight seconds; preview readback
+cannot satisfy it. If another saver appears or launch fails, only the engine
+started by this request is stopped and setup remains available. No existing
+screensaver process is claimed or terminated. The companion opts into the native
+system gamma fade, without changing global display gamma or brightness.
+
+Return waits for the owned engine to exit and the macOS session to become active.
+Current time and the existing enforcement path are refreshed before content can
+return. A disarmed model stays disarmed and stronger durable restrictions remain
+in force. This coordinates presentation across processes; authentication remains
+under macOS control. Actual full-screen transitions, authentication return and
+assistive-technology acceptance remain required; effect contracts and a preview
+receipt alone are not those results.
+
+The handoff can be rolled back independently of appearance and Sunrise by removing
+its live runtime composition. Presentation receipts contain only the version,
+generation, nonce and host mode; they never authorize unlock or carry private text.

@@ -88,12 +88,7 @@ extension CurfewAppModel {
             ) { [weak self] _ in
                 MainActor.assumeIsolated {
                     guard let self else { return }
-                    if active {
-                        self.handleRestWake()
-                        self.overlayCoordinator.restSessionActivated()
-                    } else {
-                        self.overlayCoordinator.restSessionResigned()
-                    }
+                    self.handleRestSessionActivation(active)
                 }
             }
             reassertionObservers.append(token)
@@ -114,6 +109,17 @@ extension CurfewAppModel {
                 }
             }
             reassertionObservers.append(token)
+        }
+    }
+
+    private func handleRestSessionActivation(_ active: Bool) {
+        restRuntime.handoff.sessionIsActive = active
+        if active {
+            handleRestWake()
+            updateRestHandoff()
+            overlayCoordinator.restSessionActivated()
+        } else {
+            overlayCoordinator.restSessionResigned()
         }
     }
 

@@ -11,6 +11,8 @@ struct RestScreenView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @State private var backgroundImage: CGImage?
+    @State private var hostID = UUID()
+    @Namespace private var clockTransition
     @State private var coverOpacity: Double
     @State private var previousContent: RestContentState
 
@@ -57,6 +59,18 @@ struct RestScreenView: View {
         )
     }
 
+    private var interactiveClock: some View {
+        Text(model.currentTime, style: .time)
+            .font(.system(
+                size: content == .quiet ? 110 : 64, weight: .semibold, design: clockDesign
+            ))
+            .monospacedDigit()
+            .foregroundStyle(SundownPalette.warmWhite)
+            .shadow(color: .black.opacity(0.3), radius: 24, y: 10)
+            .matchedGeometryEffect(id: "rest-clock", in: clockTransition)
+            .accessibilityIdentifier("rest-clock")
+    }
+
     var body: some View {
         GeometryReader { geometry in
             ZStack {
@@ -71,7 +85,9 @@ struct RestScreenView: View {
                         image: backgroundImage,
                         reduceMotion: reduceMotion,
                         reduceTransparency: reduceTransparency,
-                        showsClock: false
+                        showsClock: model.restHandoffIsAmbient,
+                        clockSize: max(20, min(geometry.size.width, geometry.size.height) * 0.10),
+                        clockNamespace: clockTransition
                     )
                 }
                 .ignoresSafeArea()
@@ -79,16 +95,9 @@ struct RestScreenView: View {
                 ScrollView {
                     VStack(spacing: content == .quiet ? 24 : 18) {
                         Spacer(minLength: content == .quiet ? 48 : 0)
-                        Text(model.currentTime, style: .time)
-                            .font(.system(
-                                size: content == .quiet ? 110 : 64,
-                                weight: .semibold,
-                                design: clockDesign
-                            ))
-                            .monospacedDigit()
-                            .foregroundStyle(SundownPalette.warmWhite)
-                            .shadow(color: .black.opacity(0.3), radius: 24, y: 10)
-                            .accessibilityIdentifier("rest-clock")
+                        if !model.restHandoffIsAmbient {
+                            interactiveClock
+                        }
                         if !model.restAppearance.message.isEmpty {
                             Text(model.restAppearance.message)
                                 .font(.system(size: 18))
@@ -111,6 +120,21 @@ struct RestScreenView: View {
                             .easeOut(duration: motion.contentDuration)
                                 .delay(choreography.contentDelay), value: content
                         )
+                        if model.canRestNow {
+                            Button("Rest now") { model.restNow() }
+                                .buttonStyle(.plain)
+                                .font(.system(size: 16, weight: .medium, design: .rounded))
+                                .foregroundStyle(SundownPalette.warmWhite)
+                                .padding(.horizontal, 20)
+                                .padding(.vertical, 10)
+                                .background(.white.opacity(0.12), in: Capsule())
+                                .accessibilityIdentifier("rest-now")
+                        }
+                        if model.restRuntime.handoff.coordinator?.policy.setupStatus != nil {
+                            Button("Set up Curfew screensaver…") { model.openRestScreenSetup() }
+                                .foregroundStyle(SundownPalette.warmWhite)
+                                .accessibilityIdentifier("rest-saver-setup")
+                        }
                         Spacer(minLength: 0)
                     }
                     .padding(.horizontal, 32)
@@ -123,7 +147,10 @@ struct RestScreenView: View {
                 }
                 .scrollIndicators(.hidden)
                 .environment(model)
-                .allowsHitTesting(display.isVisible && coverOpacity == 0)
+                .opacity(model.restHandoffIsAmbient ? 0 : 1)
+                .accessibilityHidden(model.restHandoffIsAmbient)
+                .allowsHitTesting(display.isVisible && coverOpacity == 0 && !model
+                    .restHandoffIsAmbient)
 
                 Color.black.opacity(display.isVisible ? coverOpacity : 1)
                     .ignoresSafeArea()
@@ -131,6 +158,9 @@ struct RestScreenView: View {
                     .accessibilityHidden(true)
             }
         }
+        .animation(.easeInOut(duration: motion.layoutDuration), value: model.restHandoffIsAmbient)
+        .onAppear { model.restRuntime.handoff.visibleHosts.insert(hostID) }
+        .onDisappear { model.restRuntime.handoff.visibleHosts.remove(hostID) }
         .task(id: model.restAppearance.ownedImageFilename) {
             let directory = model.restBackgroundDirectory
             let filename = model.restAppearance.ownedImageFilename

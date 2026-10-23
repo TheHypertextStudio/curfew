@@ -82,7 +82,7 @@ public nonisolated struct RestHandoffPolicy: Sendable {
         case .setBlocker(let blocker, let active):
             return setBlocker(blocker, active: active, monotonicSeconds: monotonicSeconds)
         case .idleCheck:
-            guard let lastActivity,
+            guard setupStatus == nil, let lastActivity,
                   monotonicSeconds.isFinite,
                   monotonicSeconds >= lastActivity,
                   monotonicSeconds - lastActivity >= 60

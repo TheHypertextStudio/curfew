@@ -26,6 +26,8 @@ public final class RestScreenSaverPreferences {
     private let store: RestCompanionPresentationStore
     private let cachedPreferences: RestScreenSaverPreferences?
     private let postReceipt: (Data) -> Void
+    private let fullScreenHost: Bool
+    private var fullScreenReceipt: Data?
     private var receiptObserver: NSObjectProtocol?
     private static let receiptName = Notification
         .Name(moduleIdentifier + ".presentation-readback.v1")
@@ -46,11 +48,13 @@ public final class RestScreenSaverPreferences {
     init(
         defaults: UserDefaults, files: RestPresentationFiles?, host: Bool,
         postReceipt: @escaping (Data) -> Void = { _ in },
+        fullScreenHost: Bool = false,
         inspectImageHeader: @escaping (Data) throws -> RestCompanionExport.ImageDimensions =
             RestScreenSaverPreferences.inspectImageHeader
     ) {
         self.defaults = defaults
         self.postReceipt = postReceipt
+        self.fullScreenHost = fullScreenHost
         self.cachedPreferences = host ? RestScreenSaverPreferences(defaults: defaults) : nil
         self.store = RestCompanionPresentationStore(
             read: { slot, maximum in
@@ -92,11 +96,15 @@ public final class RestScreenSaverPreferences {
     }
 
     /// The actual sandboxed host keeps its own ScreenSaverDefaults configuration.
-    public static func companionSystem() throws -> RestScreenSaverPreferences {
-        try nativePreferences(host: true)
+    public static func companionSystem(isPreview: Bool = true) throws
+        -> RestScreenSaverPreferences {
+        try nativePreferences(host: true, fullScreenHost: !isPreview)
     }
 
-    private static func nativePreferences(host: Bool) throws -> RestScreenSaverPreferences {
+    private static func nativePreferences(
+        host: Bool,
+        fullScreenHost: Bool = false
+    ) throws -> RestScreenSaverPreferences {
         guard let defaults = ScreenSaverDefaults(forModuleWithName: moduleIdentifier) else {
             throw AdapterError.unavailable
         }
@@ -109,13 +117,19 @@ public final class RestScreenSaverPreferences {
                     receiptName, object: bytes.base64EncodedString(), userInfo: nil,
                     deliverImmediately: true
                 )
-            }
+            },
+            fullScreenHost: fullScreenHost
         )
     }
 
     @discardableResult
     func acceptHostAcknowledgement(_ bytes: Data) -> Bool {
-        guard store.matchesCurrentPublication(bytes) else { return false }
+        guard bytes.count <= RestCompanionPresentationStore.maximumOccurrenceBytes,
+              store.matchesCurrentPublication(bytes) else { return false }
+        if let record = try? JSONSerialization.jsonObject(with: bytes) as? [String: Any],
+           record["fullScreen"] as? Bool == true {
+            fullScreenReceipt = bytes
+        }
         defaults.set(bytes, forKey: Keys.acknowledgement)
         return defaults.synchronize()
     }
@@ -150,7 +164,14 @@ public final class RestScreenSaverPreferences {
         guard store.matchesCurrentPublication(bytes) else { throw AdapterError.stalePublication }
         defaults.set(bytes, forKey: Keys.acknowledgement)
         guard defaults.synchronize() else { throw AdapterError.persistenceRejected }
-        postReceipt(bytes)
+        var receipt = try JSONSerialization.jsonObject(with: bytes) as? [String: Any] ?? [:]
+        receipt["fullScreen"] = fullScreenHost
+        try postReceipt(JSONSerialization.data(withJSONObject: receipt))
+    }
+
+    public func hasFullScreenAcknowledgement() -> Bool {
+        guard let fullScreenReceipt else { return false }
+        return store.matchesCurrentPublication(fullScreenReceipt)
     }
 
     public func hasAcknowledgedCurrentPublication() -> Bool {

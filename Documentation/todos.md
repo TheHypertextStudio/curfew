@@ -1791,3 +1791,9 @@ asserts its own screen and state before attaching an image.
 - [-] Expose the Sunrise request status as its own accessibility element with an explicit label, separate from the adjacent explanation. Native UI verification finds the identified element without assuming a StaticText role, then requires the exact state and hittability without enabling wake.
 
 - [-] Bridge sandboxed companion preference containers using bounded private presentation slots, validated host-side ScreenSaverDefaults caching and nonce-only distributed receipts. Keep exported images stable across occurrence/readback updates, reject symlinks and oversized data, preserve retry after a rejected file write, and verify actual host readback before handoff integration.
+
+- [-] Integrate the native rest-to-screensaver handoff: preserve forms and retained
+  display hosts, cancel on input, require a fresh full-screen companion receipt,
+  and refresh time plus restriction authority before returning. Cancellable effect
+  and receipt contracts cover the source path; actual transitions, authentication,
+  assistive technology and final global accessibility acceptance remain open.

@@ -8,6 +8,7 @@ import Observation
 @MainActor
 final class RestExperienceRuntime {
     let sunrise = SunriseModelRuntime()
+    let handoff = RestHandoffRuntime()
     @ObservationIgnored var publisher: RestCompanionPublisher?
     @ObservationIgnored var readback: () -> Bool = { false }
     @ObservationIgnored var stopDisplay: () throws -> Void = {}
@@ -83,9 +84,12 @@ extension CurfewAppModel {
         }
         restRuntime.companionReadbackVerified = restRuntime.readback()
         Task { await reconcileSunriseWake() }
+        updateRestHandoff()
     }
 
     func stopRestExperienceDisplay() {
+        restRuntime.handoff.coordinator?.reset()
+        restRuntime.handoff.launcher?.stopOwned()
         restRuntime.configured = false
         do {
             try restRuntime.stopDisplay()
@@ -113,6 +117,7 @@ extension CurfewAppModel {
                 }
             )
             restRuntime.readback = preferences.hasAcknowledgedCurrentPublication
+            configureRestHandoff(preferences: preferences)
         } catch {
             NSLog("Curfew screensaver preferences unavailable: %@", error.localizedDescription)
         }
