@@ -30,7 +30,7 @@ struct EnforcementOwnershipTests {
         EnforcementOwnership.acquire(
             flavor: flavor,
             pid: pid,
-            bundleIdentifier: "studio.hypertext.curfew\(flavor.identifierSuffix)",
+            bundleIdentifier: flavor.bundleIdentifier,
             displayName: "Curfew\(flavor.displaySuffix)",
             now: now,
             lockURL: url,
@@ -46,6 +46,7 @@ struct EnforcementOwnershipTests {
         let owner = EnforcementOwnership.currentOwner(lockURL: url, isAlive: alive)
         #expect(owner?.processIdentifier == 42)
         #expect(owner?.flavor == "production")
+        #expect(owner?.bundleIdentifier == CurfewFlavor.production.bundleIdentifier)
     }
 
     @Test("A development build stands aside for a live production owner")
@@ -93,7 +94,7 @@ struct EnforcementOwnershipTests {
         // A non-owning pid cannot release it.
         EnforcementOwnership.release(
             pid: 999,
-            bundleIdentifier: "studio.hypertext.curfew",
+            bundleIdentifier: CurfewFlavor.production.bundleIdentifier,
             lockURL: url
         )
         #expect(
@@ -103,7 +104,7 @@ struct EnforcementOwnershipTests {
         // The owner can.
         EnforcementOwnership.release(
             pid: 100,
-            bundleIdentifier: "studio.hypertext.curfew",
+            bundleIdentifier: CurfewFlavor.production.bundleIdentifier,
             lockURL: url
         )
         #expect(EnforcementOwnership.currentOwner(lockURL: url, isAlive: alive) == nil)

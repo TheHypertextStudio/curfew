@@ -46,6 +46,9 @@ Do not treat a bundle rename as proof of migration between signing teams.
 Both the old and new bundle IDs are recognized in existing enforcement-owner
 records only for their matching flavor. Helper XPC client trust pins the new app
 ID and the same signing team; it does not broaden access to other Studio apps.
+When an unbundled process has no bundle metadata, new ownership records use the
+canonical identity for its resolved flavor. Acquiring and releasing ownership
+use the same fallback; retained preferences domains are not new app identities.
 
 ## Install and verify
 

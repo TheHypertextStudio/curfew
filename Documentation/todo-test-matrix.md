@@ -23,6 +23,14 @@ preserve updater trust. Full native CI and an actual signed installation
 must still prove platform permissions, Keychain access, helper replacement,
 widget access, saved data and update behavior.
 
+`scripts/enforcement-ownership-identity.test.mjs` compiles the real ownership and
+filesystem implementations on macOS into an unbundled executable, then verifies
+canonical production and development identities and release of their temporary
+ownership records. `EnforcementOwnershipTests` uses canonical identities for
+current-build fixtures; legacy identity compatibility remains in
+`AppNamespaceTests`. This fallback does not migrate storage, credentials, helper
+registrations or signed artifacts; rollback changes only the absent-metadata path.
+
 ## Update retry and first-run instructions
 
 The browser acceptance case `homepage download links use the installer availability
