@@ -69,6 +69,29 @@ struct EnforcementReassertionWiringTests {
         #expect(model.enforcementHealth == .degradedTapDown)
     }
 
+    @Test("Wake refreshes stale display time before choosing the resumed scene")
+    func wakeRefreshesCurrentTime() {
+        let model = makeModel(
+            accessibilityAuthorization: FakeAccessibilityAuthorization(trusted: true)
+        )
+        model.currentTime = Date(timeIntervalSince1970: 0)
+        model.handleRestWake()
+        #expect(model.currentTime.timeIntervalSince1970 > 1_700_000_000)
+        #expect(!model.isEnforcementRunning)
+    }
+
+    @Test("System wake cannot consume a reveal before the displays wake")
+    func systemWakeWaitsForDisplayWake() {
+        let model = makeModel(
+            accessibilityAuthorization: FakeAccessibilityAuthorization(trusted: true)
+        )
+        model.overlayCoordinator.restDisplaysHidden()
+        model.handleRestWake()
+        #expect(!model.overlayCoordinator.restCanReveal)
+        model.handleRestWake(displayDidWake: true)
+        #expect(model.overlayCoordinator.restCanReveal)
+    }
+
     // MARK: - Fixtures
 
     private var lockedState: CurfewEvaluation {
