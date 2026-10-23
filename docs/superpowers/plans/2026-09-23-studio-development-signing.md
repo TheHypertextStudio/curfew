@@ -32,7 +32,7 @@
 
 ### Task 1: Closed-world StudioDev identities
 
-**Files:** Modify `Sources/CurfewKit/Settings/CurfewFlavor.swift`, `Sources/CurfewKit/Sync/CurfewServiceEndpoints.swift`, `Sources/CurfewKit/Sync/DocketServiceEndpoints.swift`, `Curfew/Core/Features/DeviceAssertionSecretStore.swift`, `Curfew/Core/Features/DocketBrowserPolicyClient.swift`, `Curfew/Info.plist`, `Curfew/App/MCP/ClaudeDesktopRegistration.swift`, `Curfew/App/Infrastructure/BrowserNativeRuntime.swift`, `Sources/curfew-browser/main.swift`. Test `CurfewTests/Core/CurfewFlavorTests.swift`, `CurfewTests/Core/Sync/DocketBrowserPolicyClientTests.swift`, `CurfewTests/Core/Sync/AccountOAuthEnrollmentTests.swift`, and `Tests/BrowserNativeHostTests/BrowserNativeInstallationTests.swift`.
+**Files:** Modify `Sources/CurfewKit/Settings/CurfewFlavor.swift`, `Sources/CurfewKit/Sync/CurfewServiceEndpoints.swift`, `Sources/CurfewKit/Sync/DocketServiceEndpoints.swift`, `Curfew/Core/Features/DeviceAssertionSecretStore.swift`, `Curfew/Core/Features/DocketBrowserPolicyClient.swift`, `Curfew/Info.plist`, `Curfew/App/MCP/ClaudeDesktopRegistration.swift`, `Curfew/App/Infrastructure/BrowserNativeRuntime.swift`, `CurfewKit/Sources/curfew-browser/CurfewBrowserMain.swift`. Test `CurfewTests/Core/CurfewFlavorTests.swift`, `CurfewTests/Core/Sync/DocketBrowserPolicyClientTests.swift`, `CurfewTests/Core/Sync/AccountOAuthEnrollmentTests.swift`, and `Tests/BrowserNativeHostTests/BrowserNativeInstallationTests.swift`.
 
 **Interfaces:** `CurfewFlavor.studioDevelopment`, `.identifierSuffix == ".studio.dev"`, `.displaySuffix == " (Studio Dev)"`, `.enforcementPriority == -100`; `DocketOAuthAuthorizationRequest.callbackScheme(for:)`; flavor-specific account and Docket Keychain services. Existing flavor values stay unchanged.
 
