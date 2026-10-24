@@ -2344,6 +2344,9 @@ The zero-budget Settings capture normalizes native stepper values to numbers bef
 
 ## Disposable signed updater acceptance
 
+- The real updater case scopes installation to Sparkle's update window and
+  stable control identifier, excluding the same-title Touch Bar representation.
+  Relaunch uses the vendor's action identifier rather than a duplicated title.
 - The offered-version regression executes the UI driver's actual Foundation
   predicate against label-backed, AppKit value-backed, wrong-version, and empty
   text fixtures. Only the real signed updater run establishes displayed content
