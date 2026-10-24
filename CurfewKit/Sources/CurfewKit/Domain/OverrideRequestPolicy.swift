@@ -38,10 +38,8 @@ public enum OverrideRequestPolicy {
         now: Date
     ) -> Bool {
         let trimmed = reason.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard trimmed.count >= minimumJustificationCharacters else {
-            return false
-        }
-        guard overridesRemaining > 0, let requestedAt else { return false }
+        guard trimmed.count >= minimumJustificationCharacters, overridesRemaining > 0,
+              let requestedAt else { return false }
         return now.timeIntervalSince(requestedAt) >= cooldownSeconds
     }
 

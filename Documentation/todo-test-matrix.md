@@ -14,7 +14,9 @@ These checks establish checkout readiness, not signed-release acceptance.
 global executables, rejects mismatched download and cache bytes before
 execution, and forwards CLI arguments and failure codes through a verified
 official executable. CI and release checks use the same wrapper as local
-formatting.
+formatting. `.hypertext/formatter-tools/test_swift.py` verifies stdin formatting,
+invalid Swift rejection, offline missing-cache failure, and existing style config
+without changing working source files.
 
 ## Formatting on commit
 

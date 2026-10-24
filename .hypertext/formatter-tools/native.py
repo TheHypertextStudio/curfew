@@ -16,12 +16,11 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[2]
 CACHE = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache"))
-RUST_VERSION = "1.98.1"
-SWIFT_VERSION = "0.64.0"
-SWIFT_ARCHIVE = "95ea62625d0b898a7af870293311ae6f09e4a3147ecd900593687e4b9ab2fd98"
-SWIFT_BINARY = "c2b098cc3ae30ff9fdd1acf7342f9b6efac4c403cf0b4e2d473690c92ac41210"
-CURFEW_BINARY = "136d4a990a7c63f313baa9081ffa451cb1988eacac3128e810564ca1efbf3083"
-MESON_VERSION = "1.10.2"
+RUST_VERSION = "1.99.1"
+SWIFT_VERSION = "0.64.1"
+SWIFT_ARCHIVE = "0e5762a848d738602c7a983b26812031e634d85e357db070968b9c805f253eff"
+SWIFT_BINARY = "8814dbe3f89c833e990948f692b3c063bc67fdd6dc5db49f7b205e7c541c8620"
+MESON_VERSION = "1.12.1"
 BLUEPRINT_COMMIT = "ed35ac74de0c1bb1f5e852410b97edd1f08904c9"  # upstream v0.22.2
 BLUEPRINT_SHA256 = "710b73a994fb63f6a2c75749ff8794a3b7bafce8f38a7a858184920017d68cc8"
 BLUEPRINT_ARCHIVE = CACHE / f"hypertext-formatters/blueprint/{BLUEPRINT_COMMIT}.tar.gz"
@@ -37,7 +36,7 @@ def checked_bytes(data, digest):
 
 def swift_path():
     if (ROOT / "scripts/swiftformat.sh").exists():
-        return CACHE / "curfew/swiftformat/0.63.1/swiftformat", CURFEW_BINARY
+        return CACHE / f"curfew/swiftformat/{SWIFT_VERSION}/swiftformat", SWIFT_BINARY
     return (
         CACHE / f"hypertext-formatters/swiftformat/{SWIFT_VERSION}/swiftformat",
         SWIFT_BINARY,

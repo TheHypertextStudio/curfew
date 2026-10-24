@@ -11,7 +11,7 @@ public struct DaemonSigningIdentity: Equatable, Sendable {
     public init?(flavor: CurfewFlavor, teamIdentifier: String?) {
         guard let teamIdentifier, teamIdentifier.utf8.count == 10,
               teamIdentifier.utf8
-              .allSatisfy({ (65 ... 90).contains($0) || (48 ... 57).contains($0) })
+                  .allSatisfy({ (65 ... 90).contains($0) || (48 ... 57).contains($0) })
         else { return nil }
         self.machServiceName = flavor.daemonLabel
         let anchor = "anchor apple generic and certificate leaf[subject.OU] = \"\(teamIdentifier)\" and identifier "
@@ -27,11 +27,11 @@ public struct DaemonSigningIdentity: Equatable, Sendable {
               let staticCode else { return nil }
         var info: CFDictionary?
         guard SecCodeCopySigningInformation(
-            staticCode,
-            SecCSFlags(rawValue: kSecCSSigningInformation),
-            &info
-        ) == errSecSuccess,
-            let dictionary = info as? [String: Any]
+                  staticCode,
+                  SecCSFlags(rawValue: kSecCSSigningInformation),
+                  &info
+              ) == errSecSuccess,
+              let dictionary = info as? [String: Any]
         else { return nil }
         return Self(
             flavor: .current,

@@ -233,8 +233,8 @@ extension CurfewAppModel {
         // unset device identifier means this device signs nothing and therefore
         // sends nothing. Checked before the version counter is advanced, so a
         // half-configured install does not silently consume `statusVersion`s.
-        guard let credential = deviceStatusCredential(at: currentTime) else { return }
-        guard let runtime = liveStatusRuntimeEnsuringExists() else { return }
+        guard let credential = deviceStatusCredential(at: currentTime),
+              let runtime = liveStatusRuntimeEnsuringExists() else { return }
         let report = currentDeviceStatusReport(
             deviceID: policy.deviceID,
             version: runtime.versions.next()
@@ -289,9 +289,8 @@ extension CurfewAppModel {
         // Deliberately the cheap half of the gate. This runs once a second;
         // `publishDeviceStatus` makes the credential check, which touches the
         // keychain, and it only runs when the cadence has actually come round.
-        guard settings.accountSync.isEnrolled || settings.statusReporting.resolvedEndpoint != nil
-        else { return }
-        guard let runtime = liveStatusRuntimeEnsuringExists() else { return }
+        guard settings.accountSync.isEnrolled || settings.statusReporting.resolvedEndpoint != nil,
+              let runtime = liveStatusRuntimeEnsuringExists() else { return }
         let elapsed = currentTime.timeIntervalSince(runtime.lastReportedAt)
         let cadence = settings.accountSync.isEnrolled
             ? DeviceStatusReportingPolicy.heartbeatFloorSeconds

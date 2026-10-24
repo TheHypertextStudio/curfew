@@ -41,11 +41,8 @@ extension CurfewAppModel {
     /// Sends the active lockout identifier over the authenticated XPC channel.
     func touchAppHeartbeat() {
         touchLegacyAppHeartbeat()
-        guard featureFlags.privilegedHelperEnabled else {
-            lastPrivilegedHeartbeatAt = nil
-            return
-        }
-        guard let record = lockoutDeadlineStore.load(),
+        guard featureFlags.privilegedHelperEnabled,
+              let record = lockoutDeadlineStore.load(),
               currentTime < record.scheduledUnlockAt
         else {
             lastPrivilegedHeartbeatAt = nil
@@ -244,7 +241,7 @@ extension CurfewAppModel {
         guard !wakeReleaseInFlight else { return }
         if let lastWakeReleaseAttemptAt,
            (0 ..< Self.privilegedHeartbeatInterval)
-           .contains(currentTime.timeIntervalSince(lastWakeReleaseAttemptAt)) {
+               .contains(currentTime.timeIntervalSince(lastWakeReleaseAttemptAt)) {
             return
         }
         wakeReleaseInFlight = true
@@ -297,9 +294,8 @@ extension CurfewAppModel {
     /// moment `Date() >= scheduledUnlockAt`.
     func clearDurableDeadlineIfNaturalUnlock() {
         guard let record = lockoutDeadlineStore.load(),
-              record.kind != .accountWakeCampaign
-        else { return }
-        guard currentTime >= record.scheduledUnlockAt else { return }
+              record.kind != .accountWakeCampaign,
+              currentTime >= record.scheduledUnlockAt else { return }
         lockoutDeadlineStore.clear()
         // A break-glass release covers one window only. Clearing it here — at
         // the same moment the deadline goes away — is what stops tonight's
@@ -319,8 +315,8 @@ extension CurfewAppModel {
 
     /// Reconciles app-owned presentation state from the daemon's authoritative record.
     func reconcilePrivilegedDaemonState() async {
-        guard featureFlags.privilegedHelperEnabled else { return }
-        guard let daemonStatus = await privilegedHelperManager.reconcileDaemonStatus() else {
+        guard featureFlags.privilegedHelperEnabled,
+              let daemonStatus = await privilegedHelperManager.reconcileDaemonStatus() else {
             return
         }
         if let authoritative = daemonStatus.activeRecord,
@@ -347,8 +343,8 @@ extension CurfewAppModel {
     /// suspends enforcement until it expires; once the override ends and
     /// the deadline hasn't passed, lockout resumes.
     func enforceDurableDeadlineIfActive() {
-        guard let record = lockoutDeadlineStore.load() else { return }
-        guard currentTime < record.scheduledUnlockAt else { return }
+        guard let record = lockoutDeadlineStore.load(),
+              currentTime < record.scheduledUnlockAt else { return }
         if activeAccountRemoteOverrideUntil() != nil {
             return
         }

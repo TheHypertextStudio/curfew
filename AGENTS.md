@@ -7,7 +7,7 @@ This file defines how coding agents must operate in this repository.
 Curfew lives across three repositories. Boundaries here matter — most edits stay in **this** repo, but anything touching the cross-device wire format or the Cloudflare coordinator goes elsewhere.
 
 - **`curfew`** (this repo) — the macOS app, the local `curfew-mcp` and `curfew-ctl` and `curfew-daemon` binaries, the license-issuer Cloudflare Worker (`web/worker/src/` + `web/worker/wrangler.toml`), the landing site (`landing/`, with native hosting configuration in `landing/hosting/`), the Homebrew cask (`Casks/`), and the product-level Curfew Sync design (`Documentation/curfew-sync.md`).
-- **`curfew-sync`** ([github.com/TheHypertextStudio/curfew-sync](https://github.com/TheHypertextStudio/curfew-sync)) — the Cloudflare-deployed Curfew Sync coordinator: Hono Worker, Durable Objects, D1, Better Auth, OAuth 2.1 MCP endpoint. Backend architecture lives in *that* repo's `Documentation/ARCHITECTURE.md`.
+- **`curfew-sync`** ([github.com/TheHypertextStudio/curfew-sync](https://github.com/TheHypertextStudio/curfew-sync)) — the Cloudflare-deployed Curfew Sync coordinator: Hono Worker, Durable Objects, D1, Better Auth, OAuth 2.1 MCP endpoint. Backend architecture lives in _that_ repo's `Documentation/ARCHITECTURE.md`.
 - **`curfew-protocols`** ([github.com/TheHypertextStudio/curfew-protocols](https://github.com/TheHypertextStudio/curfew-protocols), GitHub Packages `@thehypertextstudio/curfew-protocols`) — versioned JSON Schemas for MCP tools, pending-request shapes, sync delta envelopes, and OAuth payloads. Consumed by both `curfew` (via SPM) and `curfew-sync` (via pnpm with GitHub Packages credentials). Tagged `0.0.x` releases only — no floating `main` references.
 
 ## Cross-repo changes
@@ -70,7 +70,7 @@ command -v xcodebuild && xcodebuild -version
 command -v swiftlint && swiftlint version
 ```
 
-Use the repository wrapper for SwiftFormat 0.63.1. It verifies the official
+Use the repository wrapper for SwiftFormat 0.64.1. It verifies the official
 archive and executable SHA-256 digests, then reuses a shared user cache across
 checkouts. The first invocation needs network access; verified cached runs work
 offline. `just format` and `just format-check` use this same wrapper in CI.
@@ -135,25 +135,31 @@ swiftlint lint --strict
 Use red-green-refactor for all feature, bugfix, refactor, and behavior changes.
 
 1. Red
+
 - Add or update the smallest test that expresses the desired behavior.
 - Run targeted tests and confirm the new/changed test fails for the expected reason.
 - Command pattern:
+
 ```bash
 xcodebuild test -project Curfew.xcodeproj -scheme Curfew -destination 'platform=macOS' -only-testing:CurfewTests/<TestCase>/<testMethod>
 ```
 
 2. Green
+
 - Implement the minimum code required to pass the failing test.
 - Re-run the same targeted tests until they pass.
 - Command pattern:
+
 ```bash
 xcodebuild test -project Curfew.xcodeproj -scheme Curfew -destination 'platform=macOS' -only-testing:CurfewTests/<TestCase>/<testMethod>
 ```
 
 3. Refactor
+
 - Improve clarity/structure while preserving behavior.
 - Keep all tests green throughout refactor work.
 - After refactor, run at minimum:
+
 ```bash
 xcodebuild test -project Curfew.xcodeproj -scheme Curfew -destination 'platform=macOS' -only-testing:CurfewTests
 ```
@@ -171,12 +177,15 @@ Every substantive change must update docs in the same change set.
 Required updates:
 
 1. `Documentation/todos.md`
+
 - Update item status (`[ ]`, `[-]`, `[x]`) and relevant notes.
 
 2. `Documentation/todo-test-matrix.md`
+
 - Add or adjust mappings from changed behavior/todo items to automated tests.
 
 3. Additional docs under `Documentation/` when needed
+
 - Add or update behavior notes, architecture notes, operational guidance, or release notes content when the change affects those areas.
 
 Doc verification commands:
@@ -233,26 +242,31 @@ If lint/format tooling or config is missing:
 Agents must preserve production readiness in all changes.
 
 1. Reliability and State Safety
+
 - Prefer deterministic state transitions and explicit edge-case handling.
 - Preserve lockout/recovery correctness across app relaunches and system lifecycle events.
 - Avoid hidden side effects in schedule/enforcement decisions.
 
 2. Security and Privacy
+
 - Respect least-privilege principles for entitlements and system capabilities.
 - Avoid broad permissions unless required.
 - Document any new permission, helper, or privileged behavior clearly.
 
 3. Accessibility and UX Integrity
+
 - Preserve VoiceOver compatibility where applicable.
 - Respect Reduce Motion/Reduce Transparency behavior.
 - Keep error states clear and actionable.
 
 4. Performance and Responsiveness
+
 - Avoid blocking main-thread work.
 - Keep overlays/lockout UI responsive during warning and enforcement windows.
 - Prevent unnecessary background churn.
 
 5. Release and Distribution Quality
+
 - Keep changes compatible with signed/notarized distribution goals.
 - Highlight any change that can impact packaging, entitlement validation, startup behavior, or update paths.
 
@@ -263,31 +277,38 @@ A task is not complete until verification evidence is provided.
 Minimum evidence to report:
 
 1. Tests run
+
 - Targeted tests for changed behavior
 - Additional relevant suites (unit/UI as appropriate)
 - Minimum commands to report:
+
 ```bash
 xcodebuild test -project Curfew.xcodeproj -scheme Curfew -destination 'platform=macOS' -only-testing:CurfewTests/<TestCase>/<testMethod>
 xcodebuild test -project Curfew.xcodeproj -scheme Curfew -destination 'platform=macOS' -only-testing:CurfewTests
 ```
 
 2. Lint and formatting
+
 - Formatter command outcome
 - Lint command outcome
 - Minimum commands to report:
+
 ```bash
 ./scripts/swiftformat.sh Curfew CurfewTests CurfewUITests CurfewKit/Sources CurfewKit/Tests --lint
 swiftlint lint --strict
 ```
 
 3. Build status
+
 - Build result for impacted target(s)
 - Minimum command to report:
+
 ```bash
 xcodebuild build -project Curfew.xcodeproj -scheme Curfew -configuration Debug -destination 'platform=macOS'
 ```
 
 4. Gaps
+
 - Explicit list of checks not run and why
 
 ## Change Classification Matrix

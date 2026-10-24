@@ -12,13 +12,13 @@ importers:
     devDependencies:
       '@astrojs/check':
         specifier: 0.9.10
-        version: 0.9.10(@emnapi/runtime@1.11.3)(prettier-plugin-astro@0.14.1)(prettier@3.9.6)(typescript@6.0.3)
+        version: 0.9.10(@emnapi/runtime@1.11.3)(prettier-plugin-astro@1.1.1(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(prettier@3.9.10))(prettier@3.9.10)(typescript@6.0.3)
       '@playwright/test':
         specifier: 1.62.1
         version: 1.62.1
       '@thehypertextstudio/web-config':
-        specifier: 0.0.1
-        version: 0.0.1(@playwright/test@1.62.1)(eslint@10.9.1(jiti@1.21.7))(prettier@3.9.6)(typescript@6.0.3)
+        specifier: 0.0.3
+        version: 0.0.3(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@playwright/test@1.62.1)(eslint@10.9.1(jiti@1.21.7))(prettier@3.9.10)(typescript@6.0.3)
       '@thehypertextstudio/web-docs':
         specifier: 0.0.1
         version: 0.0.1(mint@4.2.854(@base-ui/react@1.9.0(@types/react@19.3.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(@types/node@26.6.5)(@types/react@19.3.0)(typescript@6.0.3))
@@ -41,8 +41,8 @@ importers:
         specifier: runtime:24.20.0
         version: runtime:24.20.0
       prettier:
-        specifier: 3.9.6
-        version: 3.9.6
+        specifier: 3.9.10
+        version: 3.9.10
       typescript:
         specifier: 6.0.3
         version: 6.0.3
@@ -216,9 +216,6 @@ packages:
   '@astrojs/compiler-rs@0.4.1':
     resolution: {integrity: sha512-//NmAuRhy7eU9iP0ceI5Pymy55M+nUZ//kS6XeOyhBWdDib2KbJOyFaVJ52k7sDkJwTKVox7oPu3SpYiVnGm5A==}
     engines: {node: '>=22.12.0'}
-
-  '@astrojs/compiler@2.13.1':
-    resolution: {integrity: sha512-f3FN83d2G/v32ipNClRKgYv30onQlMZX1vCeZMjPsMMPl1mDpmbl0+N5BYo4S/ofzqJyS5hvwacEo0CCVDn/Qg==}
 
   '@astrojs/internal-helpers@0.10.4':
     resolution: {integrity: sha512-nozZSy/mKYLqe4YrqbKtdOszedAfXYCtw3wZ0d+CAjz4GqQ4L9rl1ltIL5BlgwmYVinJg/RZ0MgGuWOdlyRZlA==}
@@ -1638,6 +1635,9 @@ packages:
   '@posthog/core@1.7.1':
     resolution: {integrity: sha512-kjK0eFMIpKo9GXIbts8VtAknsoZ18oZorANdtuTj1CbgS28t4ZVq//HAWhnxEuXRTrtkd+SUJ6Ux3j2Af8NCuA==}
 
+  '@prettier/parse-srcset@3.1.0':
+    resolution: {integrity: sha512-FIRv2rZotO9NP/r66taYqD1zICpPiBbrECqjKV/xqNotqDxF7fLzzUeK+1RSRx9Tenk0DajR/GcRmTJ2qtHaKQ==}
+
   '@puppeteer/browsers@2.7.1':
     resolution: {integrity: sha512-MK7rtm8JjaxPN7Mf1JdZIZKPD2Z+W7osvrC1vjpvfOX1K0awDIHYbNi89f7eotp7eMUn2shWnt03HwVbriXtKQ==}
     engines: {node: '>=18'}
@@ -1900,13 +1900,18 @@ packages:
     resolution: {integrity: sha512-+PmQX0PiAYPMeVYe237LJAYvOMYW1j2rH5YROyS3b4CTVJum34HfRvKvAzozHAQG0TnHNdUfY9nCeUyRAs//cw==}
     engines: {node: '>=14.16'}
 
-  '@thehypertextstudio/web-config@0.0.1':
-    resolution: {integrity: sha512-VikzsW5sn/AqhLFZpqExcYUCxTg7+cwRVUgDWjXsiTTgCvjfByAZkwpiwu8/blLg9RnBKITkrfZFTkMV3Y1N7w==, tarball: https://npm.pkg.github.com/download/@thehypertextstudio/web-config/0.0.1/b84cdd49de138c5c590b36bf7f9e363c8ead7b10}
+  '@thehypertextstudio/format-config@0.0.1':
+    resolution: {integrity: sha512-lQ+NHFee/pVNP7/3NZ+XZ5NuRyzp8AvQZkMh5xyBI9N44Jbv3AsTHPHyJi2LAuGmW0+y8REeIK+M9y70oC/5Ug==, tarball: https://npm.pkg.github.com/download/@thehypertextstudio/format-config/0.0.1/6edd7d867aa0dd577d6249dedbf3d91229a5c2c2}
+    peerDependencies:
+      prettier: 3.9.10
+
+  '@thehypertextstudio/web-config@0.0.3':
+    resolution: {integrity: sha512-Q3/zKPU1OSnodREpWm9q4JwBixVp/5nRpA/ib5Hh97bWhaZJn1yVSthhoQyrpLCSuSLqzh4SWTvnqIA6tF1qIA==, tarball: https://npm.pkg.github.com/download/@thehypertextstudio/web-config/0.0.3/8d7ec2a07c2cb83ffc870a5d3ace55d8b47a17fa}
     engines: {node: '>=24 <25'}
     peerDependencies:
       '@playwright/test': 1.62.1
       eslint: 10.9.1
-      prettier: 3.9.6
+      prettier: 3.9.10
       typescript: 6.0.3
 
   '@thehypertextstudio/web-docs@0.0.1':
@@ -4777,12 +4782,14 @@ packages:
     resolution: {integrity: sha512-vkcDPrRZo1QZLbn5RLGPpg/WmIQ65qoWWhcGKf/b5eplkkarX0m9z8ppCat4mlOqUsWpyNuYgO3VRyrYHSzX5g==}
     engines: {node: '>= 0.8.0'}
 
-  prettier-plugin-astro@0.14.1:
-    resolution: {integrity: sha512-RiBETaaP9veVstE4vUwSIcdATj6dKmXljouXc/DDNwBSPTp8FRkLGDSGFClKsAFeeg+13SB0Z1JZvbD76bigJw==}
-    engines: {node: ^14.15.0 || >=16.0.0}
+  prettier-plugin-astro@1.1.1:
+    resolution: {integrity: sha512-ykymNFOinCFXY4z4yF0978GgAvg6GRtrzCYg3+R1Nv/dndACwuEsSrUpHkJohER9FiwYMPKuYT38FbjCLmwu9A==}
+    engines: {node: '>=22.12.0'}
+    peerDependencies:
+      prettier: ^3.5.3
 
-  prettier@3.9.6:
-    resolution: {integrity: sha512-OpN0zzVdiaiAhxpuuj5efpIS4sY9j7bY6uR5mnj5yPzGkdkjNKSJeUThPb60Jw29QuAZgA4o+/iB49kFiaBX6g==}
+  prettier@3.9.10:
+    resolution: {integrity: sha512-skGHTH1Yb9QvaTC4hWnRTzEYtCpApF0UMBPz+t/0ZPzP8ihefo/btKd+QA7pUE0fEwA1SbS/NmhyEcstdXOIdA==}
     engines: {node: '>=14'}
     hasBin: true
 
@@ -5102,8 +5109,9 @@ packages:
   safer-buffer@2.1.2:
     resolution: {integrity: sha512-YZo3K82SD7Riyi0E1EQPojLz7kpepnSQI9IyPbHHg1XXXevb5dJI7tpyN2ADxGcQbHG7vcyRHk0cbwqcQriUtg==}
 
-  sass-formatter@0.7.9:
-    resolution: {integrity: sha512-CWZ8XiSim+fJVG0cFLStwDvft1VI7uvXdCNJYXhDvowiv+DsbD1nXLiQ4zrE5UBvj5DWZJ93cwN0NX5PMsr1Pw==}
+  sass-formatter@0.8.0:
+    resolution: {integrity: sha512-Nf4eMGE2O5vnJG7KPCRyksWS9gVKSYoUWtPeMXRRxwZSPVQhSGtL602xVYS65LvMkHmkvKa7xpauF0+/5pPwrg==}
+    hasBin: true
 
   satteri@0.10.5:
     resolution: {integrity: sha512-Ao1LKpAEa9Wdg0otgbVKViZHEq9ebdXe4DMrp3s9vQAU0HNIuHnFEuMuOcm0ZIXyV0Yzxj91NvhLpvXZJO/5ZQ==}
@@ -6188,9 +6196,9 @@ snapshots:
     transitivePeerDependencies:
       - '@emnapi/runtime'
 
-  '@astrojs/check@0.9.10(@emnapi/runtime@1.11.3)(prettier-plugin-astro@0.14.1)(prettier@3.9.6)(typescript@6.0.3)':
+  '@astrojs/check@0.9.10(@emnapi/runtime@1.11.3)(prettier-plugin-astro@1.1.1(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(prettier@3.9.10))(prettier@3.9.10)(typescript@6.0.3)':
     dependencies:
-      '@astrojs/language-server': 2.17.2(@emnapi/runtime@1.11.3)(prettier-plugin-astro@0.14.1)(prettier@3.9.6)(typescript@6.0.3)
+      '@astrojs/language-server': 2.17.2(@emnapi/runtime@1.11.3)(prettier-plugin-astro@1.1.1(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(prettier@3.9.10))(prettier@3.9.10)(typescript@6.0.3)
       chokidar: 4.0.3
       kleur: 4.1.5
       typescript: 6.0.3
@@ -6258,8 +6266,6 @@ snapshots:
       - '@emnapi/core'
       - '@emnapi/runtime'
 
-  '@astrojs/compiler@2.13.1': {}
-
   '@astrojs/internal-helpers@0.10.4':
     dependencies:
       '@types/hast': 3.0.5
@@ -6271,7 +6277,7 @@ snapshots:
       smol-toml: 1.9.1
       unified: 11.0.5
 
-  '@astrojs/language-server@2.17.2(@emnapi/runtime@1.11.3)(prettier-plugin-astro@0.14.1)(prettier@3.9.6)(typescript@6.0.3)':
+  '@astrojs/language-server@2.17.2(@emnapi/runtime@1.11.3)(prettier-plugin-astro@1.1.1(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(prettier@3.9.10))(prettier@3.9.10)(typescript@6.0.3)':
     dependencies:
       '@astrojs/astro2tsx': 0.1.2(@emnapi/runtime@1.11.3)
       '@astrojs/yaml2ts': 0.2.4
@@ -6284,15 +6290,15 @@ snapshots:
       volar-service-css: 0.0.71(@volar/language-service@2.4.28)
       volar-service-emmet: 0.0.71(@volar/language-service@2.4.28)
       volar-service-html: 0.0.71(@volar/language-service@2.4.28)
-      volar-service-prettier: 0.0.71(@volar/language-service@2.4.28)(prettier@3.9.6)
+      volar-service-prettier: 0.0.71(@volar/language-service@2.4.28)(prettier@3.9.10)
       volar-service-typescript: 0.0.71(@volar/language-service@2.4.28)
       volar-service-typescript-twoslash-queries: 0.0.71(@volar/language-service@2.4.28)
       volar-service-yaml: 0.0.71(@volar/language-service@2.4.28)
       vscode-html-languageservice: 5.6.2
       vscode-uri: 3.2.0
     optionalDependencies:
-      prettier: 3.9.6
-      prettier-plugin-astro: 0.14.1
+      prettier: 3.9.10
+      prettier-plugin-astro: 1.1.1(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(prettier@3.9.10)
     transitivePeerDependencies:
       - '@emnapi/runtime'
       - typescript
@@ -7689,6 +7695,8 @@ snapshots:
     dependencies:
       cross-spawn: 7.0.6
 
+  '@prettier/parse-srcset@3.1.0': {}
+
   '@puppeteer/browsers@2.7.1':
     dependencies:
       debug: 4.4.3
@@ -8007,17 +8015,24 @@ snapshots:
     dependencies:
       defer-to-connect: 2.0.1
 
-  '@thehypertextstudio/web-config@0.0.1(@playwright/test@1.62.1)(eslint@10.9.1(jiti@1.21.7))(prettier@3.9.6)(typescript@6.0.3)':
+  '@thehypertextstudio/format-config@0.0.1(prettier@3.9.10)':
+    dependencies:
+      prettier: 3.9.10
+
+  '@thehypertextstudio/web-config@0.0.3(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@playwright/test@1.62.1)(eslint@10.9.1(jiti@1.21.7))(prettier@3.9.10)(typescript@6.0.3)':
     dependencies:
       '@eslint/js': 10.0.1(eslint@10.9.1(jiti@1.21.7))
       '@playwright/test': 1.62.1
+      '@thehypertextstudio/format-config': 0.0.1(prettier@3.9.10)
       eslint: 10.9.1(jiti@1.21.7)
       globals: 17.4.0
-      prettier: 3.9.6
-      prettier-plugin-astro: 0.14.1
+      prettier: 3.9.10
+      prettier-plugin-astro: 1.1.1(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(prettier@3.9.10)
       typescript: 6.0.3
       typescript-eslint: 8.68.0(eslint@10.9.1(jiti@1.21.7))(typescript@6.0.3)
     transitivePeerDependencies:
+      - '@emnapi/core'
+      - '@emnapi/runtime'
       - supports-color
 
   '@thehypertextstudio/web-docs@0.0.1(mint@4.2.854(@base-ui/react@1.9.0(@types/react@19.3.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(@types/node@26.6.5)(@types/react@19.3.0)(typescript@6.0.3))':
@@ -11535,13 +11550,17 @@ snapshots:
 
   prelude-ls@1.2.1: {}
 
-  prettier-plugin-astro@0.14.1:
+  prettier-plugin-astro@1.1.1(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(prettier@3.9.10):
     dependencies:
-      '@astrojs/compiler': 2.13.1
-      prettier: 3.9.6
-      sass-formatter: 0.7.9
+      '@astrojs/compiler-rs': 0.4.1(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)
+      '@prettier/parse-srcset': 3.1.0
+      prettier: 3.9.10
+      sass-formatter: 0.8.0
+    transitivePeerDependencies:
+      - '@emnapi/core'
+      - '@emnapi/runtime'
 
-  prettier@3.9.6: {}
+  prettier@3.9.10: {}
 
   prismjs@1.30.0: {}
 
@@ -12025,7 +12044,7 @@ snapshots:
 
   safer-buffer@2.1.2: {}
 
-  sass-formatter@0.7.9:
+  sass-formatter@0.8.0:
     dependencies:
       suf-log: 2.5.3
 
@@ -12976,12 +12995,12 @@ snapshots:
     optionalDependencies:
       '@volar/language-service': 2.4.28
 
-  volar-service-prettier@0.0.71(@volar/language-service@2.4.28)(prettier@3.9.6):
+  volar-service-prettier@0.0.71(@volar/language-service@2.4.28)(prettier@3.9.10):
     dependencies:
       vscode-uri: 3.2.0
     optionalDependencies:
       '@volar/language-service': 2.4.28
-      prettier: 3.9.6
+      prettier: 3.9.10
 
   volar-service-typescript-twoslash-queries@0.0.71(@volar/language-service@2.4.28):
     dependencies:
@@ -13194,7 +13213,7 @@ snapshots:
       ajv: 8.20.0
       ajv-draft-04: 1.0.0(ajv@8.20.0)
       ajv-i18n: 4.2.0(ajv@8.20.0)
-      prettier: 3.9.6
+      prettier: 3.9.10
       request-light: 0.5.8
       vscode-json-languageservice: 4.1.8
       vscode-languageserver: 9.0.1

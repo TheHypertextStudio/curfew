@@ -225,7 +225,7 @@ final class AccountEnrollmentController: ObservableObject {
                 enrollment: enrollment
             ))
         } catch AccountOAuthTokenRefreshError.rejected,
-            AccountOAuthTokenRefreshError.missingCredentials {
+              AccountOAuthTokenRefreshError.missingCredentials {
             requireSavedEnrollmentReauthorization()
         } catch {
             enrollmentRetryError = AccountEnrollmentFailureCopy.retryConnection
@@ -244,7 +244,7 @@ final class AccountEnrollmentController: ObservableObject {
                 enrollment: enrollment
             ))
         } catch AccountOAuthTokenRefreshError.rejected,
-            AccountOAuthTokenRefreshError.missingCredentials {
+              AccountOAuthTokenRefreshError.missingCredentials {
             requireSavedEnrollmentReauthorization()
         } catch {
             enrollmentRetryError = AccountEnrollmentFailureCopy.retryConnection
@@ -339,7 +339,7 @@ extension AccountEnrollmentController {
             try pending.markReady(restored)
             state = .ready(restored)
         } catch AccountOAuthTokenRefreshError.rejected,
-            AccountOAuthTokenRefreshError.missingCredentials {
+              AccountOAuthTokenRefreshError.missingCredentials {
             state = .enterRecoveryKey(enrollment)
             requireSavedEnrollmentReauthorization()
         } catch {
@@ -363,7 +363,7 @@ extension AccountEnrollmentController {
             guard case .ready(let completed) = state else { return nil }
             return completed
         } catch AccountOAuthTokenRefreshError.rejected,
-            AccountOAuthTokenRefreshError.missingCredentials {
+              AccountOAuthTokenRefreshError.missingCredentials {
             state = .finishRecoverySetup(key, enrollment)
             requireSavedEnrollmentReauthorization()
             return nil

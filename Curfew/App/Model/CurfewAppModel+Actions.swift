@@ -216,10 +216,7 @@ extension CurfewAppModel {
     /// Grants a 1-minute snooze by adding to `snoozeMinutesGrantedToday`.
     /// Only effective during stages that `supportsSnooze` (T-30, T-15).
     func requestNotificationSnooze() {
-        guard state.warningStage.supportsSnooze else {
-            return
-        }
-        guard grantPersistentSnooze() else { return }
+        guard state.warningStage.supportsSnooze, grantPersistentSnooze() else { return }
         refreshAfterUserAction()
     }
 

@@ -252,8 +252,7 @@ extension CurfewAppModel {
     /// ask again. Guarded against the unit-test host so a suite never opens
     /// System Settings on the developer's desktop.
     func openCameraPrivacySettings() {
-        guard !isDemoSession, !RuntimeEnvironment.isUnitTestHost else { return }
-        guard let url = URL(
+        guard !isDemoSession, !RuntimeEnvironment.isUnitTestHost, let url = URL(
             string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Camera"
         ) else { return }
         NSWorkspace.shared.open(url)

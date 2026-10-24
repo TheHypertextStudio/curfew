@@ -164,12 +164,12 @@ public struct ProtectedWorkPolicy: Codable, Equatable, Sendable {
     ) -> Bool {
         if let bundleIdentifier,
            protectedBundleIdentifiers
-           .contains(where: { $0.caseInsensitiveCompare(bundleIdentifier) == .orderedSame }) {
+               .contains(where: { $0.caseInsensitiveCompare(bundleIdentifier) == .orderedSame }) {
             return true
         }
         if let executableName,
            protectedProcessNames
-           .contains(where: { $0.caseInsensitiveCompare(executableName) == .orderedSame }) {
+               .contains(where: { $0.caseInsensitiveCompare(executableName) == .orderedSame }) {
             return true
         }
         return false
@@ -298,10 +298,10 @@ public extension ProtectedWorkPolicy {
         from url: URL = SharedPaths.protectedWorkPolicySnapshot
     ) -> ProtectedWorkPolicy {
         guard let data = try? BoundedRegularFileReader.read(
-            url,
-            maximumBytes: 65536
-        ),
-            let policy = try? JSONDecoder().decode(ProtectedWorkPolicy.self, from: data)
+                  url,
+                  maximumBytes: 65536
+              ),
+              let policy = try? JSONDecoder().decode(ProtectedWorkPolicy.self, from: data)
         else {
             return .default
         }

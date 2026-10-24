@@ -16,13 +16,11 @@ extension CurfewAppModel {
     /// No-ops when calendar is off, Pro isn't unlocked, no event is
     /// in the window, or we've already prompted for this event today.
     func checkCalendarCurfewOverlap() {
-        guard featureFlags.calendarEnabled, licenseGate.isPlusUnlocked else { return }
-        guard state.phase == .working || state.phase == .warning else { return }
+        guard featureFlags.calendarEnabled, licenseGate.isPlusUnlocked,
+              state.phase == .working || state.phase == .warning else { return }
 
         let todayRule = effectiveSchedule.rule(for: Weekday(from: currentTime))
-        guard !todayRule.isDayOff else { return }
-
-        guard let event = calendarMonitor.eventNearingCurfew(
+        guard !todayRule.isDayOff, let event = calendarMonitor.eventNearingCurfew(
             scheduleEndMinutes: todayRule.lockMinutes,
             now: currentTime
         ) else { return }

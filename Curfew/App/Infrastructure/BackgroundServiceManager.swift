@@ -68,8 +68,8 @@ final class BackgroundServiceManager: ObservableObject {
     func ensureRegistered() {
         guard isAvailable else { return }
         refreshStatus()
-        guard status == .notRegistered || status == .notFound else { return }
-        guard !registrationAttempted,
+        guard status == .notRegistered || status == .notFound,
+              !registrationAttempted,
               preferences?.bool(forKey: Self.attemptedKey) != true else { return }
         register()
     }
@@ -103,8 +103,8 @@ final class BackgroundServiceManager: ObservableObject {
 
     /// Failure stops uninstall before any schedule or runtime state is removed.
     func unregister() throws {
-        guard canUnregister else { return }
-        guard service.status != .notRegistered, service.status != .notFound else { return }
+        guard canUnregister, service.status != .notRegistered,
+              service.status != .notFound else { return }
         do {
             try service.unregister()
             status = service.status

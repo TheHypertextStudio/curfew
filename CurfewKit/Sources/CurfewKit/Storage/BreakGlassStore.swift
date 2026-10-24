@@ -262,10 +262,10 @@ public struct BreakGlassStore {
     /// Reads the record without checking it.
     public func load() -> BreakGlassRelease? {
         guard let data = try? BoundedRegularFileReader.read(
-            recordURL,
-            maximumBytes: 65536
-        ),
-            let release = try? decoder.decode(BreakGlassRelease.self, from: data)
+                  recordURL,
+                  maximumBytes: 65536
+              ),
+              let release = try? decoder.decode(BreakGlassRelease.self, from: data)
         else {
             return nil
         }

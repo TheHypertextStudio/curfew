@@ -20,7 +20,7 @@
       ]
     },
     {
-      "name": "SwiftFormat 0.63.1",
+      "name": "SwiftFormat",
       "patterns": ["**/*.swift", "*.swift"],
       "argv": [
         "python3",
@@ -38,20 +38,12 @@
     {
       "name": "pbxproj",
       "patterns": ["**/*.pbxproj"],
-      "argv": [
-        "python3",
-        "{root}/.hypertext/formatter-tools/extras.py",
-        "pbxproj"
-      ]
+      "argv": ["python3", "{root}/.hypertext/formatter-tools/extras.py", "pbxproj"]
     },
     {
       "name": "mermaid",
       "patterns": ["**/*.mmd", "*.mmd"],
-      "argv": [
-        "python3",
-        "{root}/.hypertext/formatter-tools/extras.py",
-        "mermaid"
-      ]
+      "argv": ["python3", "{root}/.hypertext/formatter-tools/extras.py", "mermaid"]
     },
     {
       "name": "just",
@@ -61,11 +53,7 @@
     {
       "name": "SwiftFormat options configuration",
       "patterns": [".swiftformat", "**/.swiftformat"],
-      "argv": [
-        "python3",
-        "{root}/.hypertext/formatter-tools/native.py",
-        "swift-options"
-      ]
+      "argv": ["python3", "{root}/.hypertext/formatter-tools/native.py", "swift-options"]
     }
   ]
 }

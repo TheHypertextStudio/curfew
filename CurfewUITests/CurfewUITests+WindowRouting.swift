@@ -1,7 +1,7 @@
 import XCTest
 
+@MainActor
 extension CurfewUITests {
-    @MainActor
     func testSetupReviewOpensAndDismissesWithoutMainWindow() {
         let app = launchFixture("settings", state: "ready", withoutMainWindow: true)
         XCTAssertFalse(app.windows["Curfew"].exists)
@@ -23,7 +23,6 @@ extension CurfewUITests {
         XCTAssertTrue(setup.waitForNonExistence(timeout: 5))
     }
 
-    @MainActor
     func testMenuOpenedSetupDismissesWithoutMainWindow() {
         let app = launchFixture("settings", state: "ready", withoutMainWindow: true)
         XCTAssertFalse(app.windows["Curfew"].exists)
@@ -36,7 +35,6 @@ extension CurfewUITests {
         XCTAssertFalse(app.windows["Curfew"].exists)
     }
 
-    @MainActor
     func testFirstRunScheduleOpensNewMainWindow() {
         let app = launchFixture("getting-started", withoutMainWindow: true)
         XCTAssertFalse(app.windows["Curfew"].exists)

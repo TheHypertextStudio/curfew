@@ -266,8 +266,7 @@ extension NativeAccountSyncTransport {
             deviceID: deviceID,
             accessToken: accessToken,
             signingPrivateKey: keys.signingPrivateKey
-        ) else { return }
-        guard isCurrentConnection(generation) else { return }
+        ), isCurrentConnection(generation) else { return }
         let devices = try JSONDecoder().decode(
             [CurfewProtocols.AccountDeviceEnrollment].self,
             from: data

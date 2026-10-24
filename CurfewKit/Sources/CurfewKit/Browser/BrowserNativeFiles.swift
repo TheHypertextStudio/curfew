@@ -12,9 +12,8 @@ public nonisolated enum BrowserNativeFiles {
         )
         var metadata = stat()
         guard lstat(url.path, &metadata) == 0,
-              metadata.st_mode & S_IFMT == S_IFDIR, metadata.st_uid == geteuid()
-        else { throw BrowserNativeError.unsafeFile }
-        guard chmod(url.path, 0o700) == 0 else { throw BrowserNativeError.unsafeFile }
+              metadata.st_mode & S_IFMT == S_IFDIR, metadata.st_uid == geteuid(),
+              chmod(url.path, 0o700) == 0 else { throw BrowserNativeError.unsafeFile }
     }
 
     public static func write(_ data: Data, to url: URL) throws {

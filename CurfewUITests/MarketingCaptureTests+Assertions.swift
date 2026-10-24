@@ -1,7 +1,7 @@
 import XCTest
 
+@MainActor
 extension MarketingCaptureTests {
-    @MainActor
     // Exhaustive visual assertions correspond to distinct fixture states.
     // swiftlint:disable:next cyclomatic_complexity
     func assertWorkspaceState(_ state: String, in app: XCUIApplication) {
@@ -37,7 +37,6 @@ extension MarketingCaptureTests {
         }
     }
 
-    @MainActor
     func assertText(_ text: String, in app: XCUIApplication) {
         do {
             var nodes = try [app.snapshot()]
@@ -55,7 +54,6 @@ extension MarketingCaptureTests {
         }
     }
 
-    @MainActor
     func assertSettingsState(_ state: String, in app: XCUIApplication) {
         if ["helper-approval", "helper-unauthorized", "helper-stale", "helper-registration"]
             .contains(state), app.disclosureTriangles["Details"].exists {
@@ -103,7 +101,6 @@ extension MarketingCaptureTests {
         }
     }
 
-    @MainActor
     private func assertZeroBudgets(in app: XCUIApplication) {
         for label in ["Extensions per week", "Overrides per week"] {
             let value = app.steppers[label].value

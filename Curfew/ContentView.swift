@@ -266,7 +266,7 @@ struct MainWindowView: View {
             #if DEBUG
                 if model.isDemoSession,
                    let scenario = CurfewLaunchBehavior
-                   .demoScenario(environment: ProcessInfo.processInfo.environment) {
+                       .demoScenario(environment: ProcessInfo.processInfo.environment) {
                     if scenario == .settings {
                         openSettings()
                     }

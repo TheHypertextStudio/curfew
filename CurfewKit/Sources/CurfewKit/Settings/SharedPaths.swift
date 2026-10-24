@@ -72,10 +72,7 @@ public nonisolated enum SharedPaths {
         effectiveUserID: uid_t,
         consoleUserHome: String?
     ) -> String {
-        guard effectiveUserID == 0 else {
-            return processHome
-        }
-        guard let consoleUserHome, !consoleUserHome.isEmpty else {
+        guard effectiveUserID == 0, let consoleUserHome, !consoleUserHome.isEmpty else {
             return processHome
         }
         return consoleUserHome
@@ -87,10 +84,8 @@ public nonisolated enum SharedPaths {
     /// there is no user state to read anyway.
     private static func consoleUserHomeDirectory() -> String? {
         var info = stat()
-        guard stat("/dev/console", &info) == 0, info.st_uid != 0 else {
-            return nil
-        }
-        guard let entry = getpwuid(info.st_uid), let directory = entry.pointee.pw_dir else {
+        guard stat("/dev/console", &info) == 0, info.st_uid != 0, let entry = getpwuid(info.st_uid),
+              let directory = entry.pointee.pw_dir else {
             return nil
         }
         return String(cString: directory)
