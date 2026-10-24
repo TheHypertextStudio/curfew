@@ -3,6 +3,7 @@ import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const landing = path.join(root, 'landing');
@@ -15,10 +16,31 @@ function compact(source) {
   return source.replace(/\s+/g, ' ');
 }
 
+test('landing and staged commits use the same Astro formatter release', async () => {
+  const require = createRequire(path.join(landing, 'package.json'));
+  const entry = require.resolve('@thehypertextstudio/web-config/prettier/astro');
+  const preset = JSON.parse(
+    await readFile(path.resolve(path.dirname(entry), '../package.json'), 'utf8'),
+  );
+  const tools = JSON.parse(
+    await readFile(path.join(root, '.hypertext/formatter-tools/tools.json'), 'utf8'),
+  );
+  assert.equal(
+    tools.npm['prettier-plugin-astro'],
+    preset.dependencies['prettier-plugin-astro'],
+    'the staged formatter must use the installed shared Astro preset release',
+  );
+});
+
 test('every public page header offers the same account entry point', async () => {
-  const sharedHeader = await readFile(path.join(landing, 'public/site-assets/design/components.mjs'), 'utf8');
+  const sharedHeader = await readFile(
+    path.join(landing, 'public/site-assets/design/components.mjs'),
+    'utf8',
+  );
   assert.ok(sharedHeader.includes('href="/account"'));
-  const names = (await readdir(path.join(landing, 'src/pages'))).filter((name) => name.endsWith('.astro')).map((name) => name.replace(/\.astro$/, '.html'));
+  const names = (await readdir(path.join(landing, 'src/pages')))
+    .filter((name) => name.endsWith('.astro'))
+    .map((name) => name.replace(/\.astro$/, '.html'));
   for (const name of names) {
     const source = await html(name);
     if (!source.includes('<header class="site-header">')) continue;
@@ -38,7 +60,8 @@ test('the product story describes current Mac support and future cross-platform 
 });
 
 test('account-era legal pages state the privacy, security, recovery, and purchase boundaries', async () => {
-  const policy = async (name) => compact(await readFile(path.join(landing, 'src/content', name + '.html'), 'utf8'));
+  const policy = async (name) =>
+    compact(await readFile(path.join(landing, 'src/content', name + '.html'), 'utf8'));
   const privacy = await policy('privacy');
   const terms = await policy('terms');
   const security = await policy('security');
@@ -46,7 +69,10 @@ test('account-era legal pages state the privacy, security, recovery, and purchas
 
   assert.match(privacy, /Accounts are optional\./);
   assert.match(privacy, /end-to-end encrypted/i);
-  assert.match(privacy, /account identity, purchase records, device connections, and security activity/i);
+  assert.match(
+    privacy,
+    /account identity, purchase records, device connections, and security activity/i,
+  );
   assert.match(privacy, /Cloudflare forwards support email to Google Workspace/i);
   assert.match(privacy, /remote unlock/i);
   assert.match(terms, /lifetime license or subscription/i);

@@ -10,6 +10,9 @@
 
 - [x] Use one reviewed SwiftFormat release for native commands, CI, and commit
       formatting while preserving `.swiftformat` as the style authority.
+- [x] Keep the landing site's shared Astro preset and staged formatter on the
+      same exact parser release. Regenerate the formatter cache integrity lock
+      with that dependency change while preserving native tool pins.
 
 ## Formatting on commit
 

@@ -7,7 +7,7 @@
     "prettier-plugin-toml": "4.1.0",
     "prettier-plugin-sh": "0.20.2",
     "@prettier/plugin-xml": "3.4.2",
-    "prettier-plugin-astro": "1.1.2",
+    "prettier-plugin-astro": "1.1.1",
     "@thehypertextstudio/format-config": "0.0.1"
   },
   "ruff": "0.17.2",
