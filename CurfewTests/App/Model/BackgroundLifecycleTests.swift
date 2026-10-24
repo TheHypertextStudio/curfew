@@ -9,15 +9,18 @@ struct BackgroundLifecycleTests {
     @Test("Enforcement reaches lockout with no ordinary windows")
     func closedWindowsReachLockout() async throws {
         var now = date(hour: 17, minute: 0)
-        let model = makeModel(now: now, clock: { now })
-        let windowsBefore = NSApplication.shared.windows.count
+        let router = AppRouterSpy()
+        let model = makeModel(now: now, clock: { now }, router: router)
+        defer { model.stopEnforcementForUninstall() }
         model.start()
         #expect(model.state.phase == .working)
         now = date(hour: 19, minute: 0)
         try await Task.sleep(for: .seconds(1.3))
         #expect(model.state.phase == .locked)
         #expect(model.isEnforcementRunning)
-        #expect(NSApplication.shared.windows.count == windowsBefore)
+        #expect(router.openedWindows.isEmpty)
+        #expect(router.activateCallCount == 0)
+        #expect(router.showSettingsCallCount == 0)
     }
 
     @Test("Uninstall stops the enforcement loop and wake cannot rearm it")
@@ -73,7 +76,9 @@ struct BackgroundLifecycleTests {
         #expect(!delegate.applicationShouldOpenUntitledFile(NSApplication.shared))
     }
 
-    private func makeModel(now: Date, clock: @escaping () -> Date) -> CurfewAppModel {
+    private func makeModel(
+        now: Date, clock: @escaping () -> Date, router: AppRouterSpy? = nil
+    ) -> CurfewAppModel {
         let defaults = UserDefaults(suiteName: "CurfewBackgroundTests.\(UUID().uuidString)")!
         let store = CurfewSettingsStore(defaults: defaults)
         var settings = store.load()
@@ -89,7 +94,7 @@ struct BackgroundLifecycleTests {
         store.save(settings)
         store.saveAutomaticScheduleConsent(true)
         return CurfewAppModel(
-            settingsStore: store, appRouter: AppRouterSpy(),
+            settingsStore: store, appRouter: router ?? AppRouterSpy(),
             activityRecorder: NullActivityRecording(),
             lockoutDeadlineStore: ModelTestSupport.lockoutDeadlineStore(),
             runtimeNow: now, enforcementClock: clock
