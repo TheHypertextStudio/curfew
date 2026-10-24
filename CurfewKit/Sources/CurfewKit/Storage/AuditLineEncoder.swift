@@ -133,8 +133,10 @@ public enum AuditLineEncoder {
     /// the line claims.
     private static func split(line: String) -> (body: String, claimed: String)? {
         let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard trimmed.hasSuffix("\"}") else { return nil }
-        guard let marker = trimmed.range(of: ",\"hash\":\"", options: .backwards) else {
+        guard trimmed.hasSuffix("\"}"), let marker = trimmed.range(
+            of: ",\"hash\":\"",
+            options: .backwards
+        ) else {
             return nil
         }
         let claimed = String(trimmed[marker.upperBound...].dropLast(2))

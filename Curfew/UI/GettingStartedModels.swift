@@ -202,10 +202,7 @@ struct FirstRunFlow {
 
     /// Moves forward one step, unless already on the last step (no-op).
     mutating func advance() {
-        guard canAdvance else {
-            return
-        }
-        guard let nextStep = FirstRunStep(rawValue: currentStep.rawValue + 1) else {
+        guard canAdvance, let nextStep = FirstRunStep(rawValue: currentStep.rawValue + 1) else {
             return
         }
         currentStep = nextStep

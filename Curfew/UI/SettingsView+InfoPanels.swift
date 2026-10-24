@@ -139,10 +139,10 @@ extension SettingsView {
             "command": path, "args": [String]()
         ]]]
         guard let data = try? JSONSerialization.data(
-            withJSONObject: object,
-            options: .prettyPrinted
-        ),
-            let config = String(data: data, encoding: .utf8) else { return }
+                  withJSONObject: object,
+                  options: .prettyPrinted
+              ),
+              let config = String(data: data, encoding: .utf8) else { return }
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(config, forType: .string)
     }

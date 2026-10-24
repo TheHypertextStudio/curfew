@@ -25,11 +25,11 @@ enum AccountOAuthCallback {
         expectedRedirectURI: String
     ) throws -> String {
         guard matchesPendingRequest(
-            callback,
-            expectedState: expectedState,
-            expectedRedirectURI: expectedRedirectURI
-        ),
-            let components = URLComponents(url: callback, resolvingAgainstBaseURL: false)
+                  callback,
+                  expectedState: expectedState,
+                  expectedRedirectURI: expectedRedirectURI
+              ),
+              let components = URLComponents(url: callback, resolvingAgainstBaseURL: false)
         else { throw AccountOAuthEnrollmentError.invalidCallback }
         guard queryValues(named: "error", in: components).isEmpty,
               let code = uniqueQueryValue(named: "code", in: components),

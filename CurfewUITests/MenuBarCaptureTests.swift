@@ -22,8 +22,8 @@ private enum MenuBarCapture {
     }
 }
 
+@MainActor
 extension CurfewUITests {
-    @MainActor
     func testMenuBarPopoverOpensActualView() {
         let app = launchFixture("menu-bar", state: "ready")
         let popover = MenuBarCapture.open(app)
@@ -31,7 +31,6 @@ extension CurfewUITests {
         XCTAssertFalse(popover.buttons["Finish Setup"].exists)
     }
 
-    @MainActor
     func testOffMenuDoesNotOfferAnExtensionDuringScheduledWarning() {
         let app = launchFixture("menu-bar", state: "menu-off-warning")
         let popover = MenuBarCapture.open(app)
@@ -42,8 +41,8 @@ extension CurfewUITests {
     }
 }
 
+@MainActor
 extension MarketingCaptureTests {
-    @MainActor
     func testCaptureMenuBar() {
         for appearance in ["light", "dark"] {
             for state in [

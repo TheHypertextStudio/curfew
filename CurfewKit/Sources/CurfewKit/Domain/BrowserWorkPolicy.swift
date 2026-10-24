@@ -11,10 +11,8 @@ public nonisolated struct NormalizedHTTPDestination: Codable, Equatable, Hashabl
     public let path: String
 
     public init(_ rawValue: String) throws {
-        guard var components = URLComponents(string: rawValue) else {
-            throw Error.invalidURL
-        }
-        guard let rawScheme = components.scheme else {
+        guard var components = URLComponents(string: rawValue),
+              let rawScheme = components.scheme else {
             throw Error.invalidURL
         }
         let scheme = rawScheme.lowercased()

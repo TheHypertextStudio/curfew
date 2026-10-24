@@ -328,8 +328,8 @@ extension MarketingCaptureTests {
     }
 }
 
+@MainActor
 extension MarketingCaptureTests {
-    @MainActor
     func testCaptureSettingsMatrix() {
         for appearance in ["light", "dark"] {
             for size in ["default", "minimum"] {

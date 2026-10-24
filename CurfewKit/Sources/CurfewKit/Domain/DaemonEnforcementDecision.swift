@@ -117,10 +117,7 @@ public enum DaemonEnforcementDecision {
 
     /// Decides this tick.
     public static func evaluate(_ input: Input) -> Outcome {
-        guard let deadline = input.deadline else {
-            return finish(.exit, startedAt: nil, input: input)
-        }
-        guard input.now < deadline.scheduledUnlockAt else {
+        guard let deadline = input.deadline, input.now < deadline.scheduledUnlockAt else {
             return finish(.exit, startedAt: nil, input: input)
         }
 
@@ -213,10 +210,8 @@ public enum DaemonEnforcementDecision {
         _ input: Input,
         lockoutStartedAt: Date
     ) -> Date? {
-        guard let persisted = input.persistedDeferralStart else {
-            return nil
-        }
-        guard persisted >= lockoutStartedAt, persisted <= input.now else {
+        guard let persisted = input.persistedDeferralStart, persisted >= lockoutStartedAt,
+              persisted <= input.now else {
             return nil
         }
         return persisted

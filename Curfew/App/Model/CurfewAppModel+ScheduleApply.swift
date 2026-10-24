@@ -80,10 +80,7 @@ extension CurfewAppModel {
     /// swap until the next non-locked tick preserves the spirit of the
     /// cooldown ("can't escape this lockout via Settings").
     func applyPendingScheduleIfNeeded(now: Date) {
-        guard let pending = settings.pendingScheduleChange else {
-            return
-        }
-        guard now >= pending.effectiveAt else {
+        guard let pending = settings.pendingScheduleChange, now >= pending.effectiveAt else {
             return
         }
         if state.phase == .locked, pending.classification == .weaker {

@@ -137,10 +137,10 @@ public struct LockoutDeadlineStore {
     /// past their unlock time.
     public func load() -> LockoutDeadlineRecord? {
         guard let data = try? BoundedRegularFileReader.read(
-            recordURL,
-            maximumBytes: 65536
-        ),
-            let record = try? decoder.decode(LockoutDeadlineRecord.self, from: data)
+                  recordURL,
+                  maximumBytes: 65536
+              ),
+              let record = try? decoder.decode(LockoutDeadlineRecord.self, from: data)
         else {
             return nil
         }

@@ -4,7 +4,7 @@
 
 It's a commitment device, not a kernel-level lock: a determined user with a terminal can still get around it. The point is to make stopping the easy default, not to make it impossible.
 
-Curfew is the first product from [Hypertext Studio](https://hypertext.studio), a product design lab working under the motto *mens et manus* — mind and hand.
+Curfew is the first product from [Hypertext Studio](https://hypertext.studio), a product design lab working under the motto _mens et manus_ — mind and hand.
 
 ---
 
@@ -31,10 +31,12 @@ CloudKit sync and Calendar integration remain compiled for later releases but
 are hidden, dormant, and absent from the v0.1 Release entitlements.
 
 ### Near term (v0.2)
+
 - CloudKit multi-device sync and Calendar context, after provisioning and signed-device validation.
 - Localization and additional enforcement hardening.
 
 ### Near term — reflection depth
+
 Morning intent and evening retrospective are available now. Midday check-ins and on-device AI-generated prompt suggestions remain future work; agents will never write a user's reflections.
 
 ---
@@ -45,20 +47,20 @@ Morning intent and evening retrospective are available now. Midday check-ins and
 
 **Available tools:**
 
-| Tool | Type | What it does |
-|------|------|------|
-| `curfew_status` | read | Current phase, time remaining, override state |
-| `curfew_schedule` | read | Full weekly schedule |
-| `curfew_budget` | read | Extensions and overrides remaining this week |
-| `curfew_activity` | read | Recent activity log entries |
-| `curfew_get_time_remaining` | read | Compact `{ minutes, phase, mode, trigger }` payload |
-| `curfew_get_weekly_summary` | read | Device-attributed weekly rollup |
-| `curfew_get_reflections` | read | User-authored reflections only; agents cannot write them |
-| `curfew_request_extension` | write* | Ask for a time extension |
-| `curfew_set_schedule` | write* | Update a single weekday (cannot weaken today without cooldown) |
-| `curfew_request_status` | read | Poll a queued write request for approval/denial |
-| `curfew_declare_work` | write | Declare background work so shutdown waits (bounded; never moves the curfew) |
-| `curfew_release_work` | write | Drop a work claim early |
+| Tool                        | Type   | What it does                                                                |
+| --------------------------- | ------ | --------------------------------------------------------------------------- |
+| `curfew_status`             | read   | Current phase, time remaining, override state                               |
+| `curfew_schedule`           | read   | Full weekly schedule                                                        |
+| `curfew_budget`             | read   | Extensions and overrides remaining this week                                |
+| `curfew_activity`           | read   | Recent activity log entries                                                 |
+| `curfew_get_time_remaining` | read   | Compact `{ minutes, phase, mode, trigger }` payload                         |
+| `curfew_get_weekly_summary` | read   | Device-attributed weekly rollup                                             |
+| `curfew_get_reflections`    | read   | User-authored reflections only; agents cannot write them                    |
+| `curfew_request_extension`  | write* | Ask for a time extension                                                    |
+| `curfew_set_schedule`       | write* | Update a single weekday (cannot weaken today without cooldown)              |
+| `curfew_request_status`     | read   | Poll a queued write request for approval/denial                             |
+| `curfew_declare_work`       | write  | Declare background work so shutdown waits (bounded; never moves the curfew) |
+| `curfew_release_work`       | write  | Drop a work claim early                                                     |
 
 Two transports: stdio (default, used by Claude Desktop) and loopback-only Streamable HTTP on `127.0.0.1:9847` (opt-in, Settings → Advanced).
 
@@ -136,16 +138,16 @@ ln -s /Applications/Curfew.app/Contents/Resources/curfew-ctl /usr/local/bin/curf
 
 Pro adds features with ongoing infrastructure cost. Upgrade at [thecurfew.app](https://thecurfew.app).
 
-| Feature | Free | Pro |
-|---------|------|-----|
-| Schedule, warnings, lockout | ✓ | ✓ |
-| Extension / override budgets | ✓ | ✓ |
-| This Week retrospective | ✓ | ✓ |
-| `curfew-ctl` CLI | ✓ | ✓ |
-| `curfew-mcp` MCP server | ✓ | ✓ |
-| **WidgetKit widgets** | — | ✓ |
-| **CloudKit multi-device sync** | — | Not in v0.1 |
-| **Calendar integration** | — | Not in v0.1 |
+| Feature                        | Free | Pro         |
+| ------------------------------ | ---- | ----------- |
+| Schedule, warnings, lockout    | ✓    | ✓           |
+| Extension / override budgets   | ✓    | ✓           |
+| This Week retrospective        | ✓    | ✓           |
+| `curfew-ctl` CLI               | ✓    | ✓           |
+| `curfew-mcp` MCP server        | ✓    | ✓           |
+| **WidgetKit widgets**          | —    | ✓           |
+| **CloudKit multi-device sync** | —    | Not in v0.1 |
+| **Calendar integration**       | —    | Not in v0.1 |
 
 Pricing: **$20 flat**. License key is verified offline via Ed25519 — no account required after purchase.
 
@@ -179,7 +181,7 @@ This repo uses [`just`](https://github.com/casey/just) as a command runner — a
 
 ```bash
 brew install just swiftlint
-./scripts/swiftformat.sh --version  # verified SwiftFormat 0.63.1, shared user cache
+./scripts/swiftformat.sh --version  # verified SwiftFormat 0.64.1, shared user cache
 just --list       # show all recipes
 just check        # format + lint + tests + Debug build (CI gate)
 just test         # unit suite only

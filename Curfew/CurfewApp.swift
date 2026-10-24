@@ -99,8 +99,7 @@ enum CurfewLaunchBehavior {
             if RuntimeEnvironment.isStagingAcceptanceFixture {
                 return .backgroundEnforcement
             }
-            guard !isSignedBuild else { return nil }
-            guard environment["CURFEW_DEMO_FIXTURE"] == "1" else {
+            guard !isSignedBuild, environment["CURFEW_DEMO_FIXTURE"] == "1" else {
                 return nil
             }
             let token = environment["CURFEW_DEMO_SCENARIO"] ?? ""

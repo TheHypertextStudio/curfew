@@ -2,7 +2,8 @@ packages:
   - hosting
 # Reviewed immutable internal release only; retain pnpm's default age for every other version.
 minimumReleaseAgeExclude:
-  - '@thehypertextstudio/web-config@0.0.1'
+  - '@thehypertextstudio/web-config@0.0.3'
+  - '@thehypertextstudio/format-config@0.0.1'
   - '@thehypertextstudio/web-docs@0.0.1'
   - '@thehypertextstudio/web-tokens@0.0.1'
   - '@cloudflare/build-output-utils@0.9.1'

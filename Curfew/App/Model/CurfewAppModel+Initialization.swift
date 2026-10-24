@@ -61,8 +61,8 @@ extension CurfewAppModel {
         licenseGate.loadStoredKey()
 
         cloudKitSyncEngine.onSettingsReceived = { [weak self] remoteSettings in
-            guard let self else { return }
-            guard SyncAuthorityResolver.allowsCloudKit(account: settings.accountSync) else {
+            guard let self,
+                  SyncAuthorityResolver.allowsCloudKit(account: settings.accountSync) else {
                 return
             }
             settings = mergedSettingsApplyingRemote(remoteSettings)

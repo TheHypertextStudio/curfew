@@ -48,7 +48,9 @@ const content = rawContent
     <slot name="head" />
   </head>
   <body class={home ? 'home-page' : undefined}>
-    <a class="skip-link" href="#main">Skip to content</a>
+    <a class="skip-link" href="#main">
+      Skip to content
+    </a>
     <Fragment set:html={symbols} />
     <Fragment set:html={header()} />
     <main id="main" class={home ? undefined : 'reading wrap'}>

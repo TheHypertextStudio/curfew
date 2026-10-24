@@ -6,6 +6,11 @@
       backend pnpm workspaces. Resolve frozen dependency locks through the pinned
       setup command without a conflicting ancestor workspace.
 
+## Formatting toolchain
+
+- [x] Use one reviewed SwiftFormat release for native commands, CI, and commit
+      formatting while preserving `.swiftformat` as the style authority.
+
 ## Formatting on commit
 
 - [x] Prepare the pinned formatter tools during repository setup and install the

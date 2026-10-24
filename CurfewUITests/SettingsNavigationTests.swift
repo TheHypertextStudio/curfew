@@ -1,7 +1,7 @@
 import XCTest
 
+@MainActor
 extension CurfewUITests {
-    @MainActor
     func testSettingsShowsOneCategoryAtATime() {
         let app = launchFixture("settings")
         defer { app.terminate() }

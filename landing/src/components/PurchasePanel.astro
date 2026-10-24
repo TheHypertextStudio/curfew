@@ -8,22 +8,26 @@ const { issuer, scheme } = purchaseProfile(process.env.CURFEW_DEPLOYMENT_MODE ||
 ---
 
 <div class="purchase-panel" data-purchase-mode={mode} data-issuer={issuer} data-scheme={scheme}>
-  <h1>
-    {mode === 'checkout' ? 'Activate Curfew Plus' : 'Restore Curfew Plus'}
-  </h1>
+  <h1>{mode === 'checkout' ? 'Activate Curfew Plus' : 'Restore Curfew Plus'}</h1>
   <p id="purchase-status" role="status" aria-live="polite"></p>
-  <div id="state-loading" hidden><p>Preparing your purchase…</p></div>
+  <div id="state-loading" hidden>
+    <p>Preparing your purchase…</p>
+  </div>
   <div id="state-success" hidden>
     <p class="lede">Open Curfew to activate Plus on this Mac.</p>
-    <a id="activate-link" class="button primary"
-      >{mode === 'checkout' ? 'Activate in Curfew' : 'Restore in Curfew'}</a
-    >
-    <p class="purchase-help">Need the app? <a href="/download">Download Curfew for Mac</a>.</p>
+    <a id="activate-link" class="button primary">
+      {mode === 'checkout' ? 'Activate in Curfew' : 'Restore in Curfew'}
+    </a>
+    <p class="purchase-help">
+      Need the app? <a href="/download">Download Curfew for Mac</a>.
+    </p>
     <details id="manual-entry">
       <summary>Enter a license key</summary>
       <div id="manual-key" hidden>
         <pre><code id="license-key" /></pre>
-        <button type="button" class="button secondary" id="copy-btn">Copy License Key</button>
+        <button type="button" class="button secondary" id="copy-btn">
+          Copy License Key
+        </button>
         <p>
           In Curfew, open <strong>Settings → About → Curfew Plus</strong>, enter your key, and
           choose <strong>Activate</strong>.
@@ -31,9 +35,8 @@ const { issuer, scheme } = purchaseProfile(process.env.CURFEW_DEPLOYMENT_MODE ||
       </div>
     </details>
     <p class="purchase-help">
-      Stripe emails your payment receipt. <a href="/restore">Restore a purchase</a> · <a
-        href="https://curfew.mintlify.site/docs/licensing">Activation help</a
-      >
+      Stripe emails your payment receipt. <a href="/restore">Restore a purchase</a> ·{' '}
+      <a href="https://curfew.mintlify.site/docs/licensing">Activation help</a>
     </p>
   </div>
   <form id="restore-form" hidden>
@@ -47,15 +50,18 @@ const { issuer, scheme } = purchaseProfile(process.env.CURFEW_DEPLOYMENT_MODE ||
       required
       maxlength="254"
     />
-    <button type="submit" class="button primary">Send Restore Link</button>
+    <button type="submit" class="button primary">
+      Send Restore Link
+    </button>
   </form>
   <div id="state-error" hidden>
     <p id="error-detail" role="alert"></p>
-    <button type="button" class="button secondary" id="retry-btn">Try Again</button>
+    <button type="button" class="button secondary" id="retry-btn">
+      Try Again
+    </button>
     <p>
-      <a href="/restore">Restore a purchase</a> or <a href="mailto:support@thecurfew.app"
-        >contact support</a
-      >.
+      <a href="/restore">Restore a purchase</a> or{' '}
+      <a href="mailto:support@thecurfew.app">contact support</a>.
     </p>
   </div>
 </div>

@@ -104,10 +104,10 @@ public struct ProtectedWorkStore {
     /// Every claim on disk, expired ones included.
     public func load() -> [ProtectedWorkClaim] {
         guard let data = try? BoundedRegularFileReader.read(
-            recordURL,
-            maximumBytes: 1_048_576
-        ),
-            let claims = try? decoder.decode([ProtectedWorkClaim].self, from: data)
+                  recordURL,
+                  maximumBytes: 1_048_576
+              ),
+              let claims = try? decoder.decode([ProtectedWorkClaim].self, from: data)
         else {
             return []
         }

@@ -104,8 +104,7 @@ final class VisionCameraPresenceSensor: PersonPresenceSensing {
     /// run, so a capture attempt would re-prompt the developer for camera
     /// access each time — and would turn their camera on to do it.
     func start() {
-        guard !RuntimeEnvironment.isUnitTestHost else { return }
-        guard authorization.permitsCapture else { return }
+        guard !RuntimeEnvironment.isUnitTestHost, authorization.permitsCapture else { return }
         engine.start()
     }
 
@@ -366,9 +365,8 @@ final nonisolated class CameraPresenceEngine: NSObject,
             lastAnalysis = now
         }
         lock.unlock()
-        guard due, live else { return }
-
-        guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
+        guard due, live,
+              let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
         let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, options: [:])
         do {
             try handler.perform([request])

@@ -1,7 +1,7 @@
 import XCTest
 
+@MainActor
 extension CurfewUITests {
-    @MainActor
     func testPurchaseRestoreAndManualActivationAreReachable() {
         let app = XCUIApplication()
         app.launchEnvironment = [

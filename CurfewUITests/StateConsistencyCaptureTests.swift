@@ -1,57 +1,47 @@
 import XCTest
 
+@MainActor
 extension MarketingCaptureTests {
-    @MainActor
     func testCaptureAStateConsistencyOffLocked() {
         captureStateConsistency("overview", state: "today-off-locked")
     }
 
-    @MainActor
     func testCaptureAStateConsistencySetupReview() {
         captureStateConsistency("getting-started", state: "setup-review")
     }
 
-    @MainActor
     func testCaptureAStateConsistencySetupPermission() {
         captureStateConsistency("getting-started", state: "setup-review-denied")
     }
 
-    @MainActor
     func testCaptureAStateConsistencyExhaustedRequest() {
         captureStateConsistency("settings", state: "assistant-exhausted")
     }
 
-    @MainActor
     func testCaptureAStateConsistencyMalformedRequest() {
         captureStateConsistency("settings", state: "assistant-malformed")
     }
 
-    @MainActor
     func testCaptureAStateConsistencyAccountOffline() {
         captureStateConsistency("settings", state: "account-offline")
     }
 
-    @MainActor
     func testCaptureAStateConsistencyAccountSignIn() {
         captureStateConsistency("settings", state: "account-sign-in-required")
     }
 
-    @MainActor
     func testCaptureAStateConsistencyAccountHelper() {
         captureStateConsistency("settings", state: "account-helper-unavailable")
     }
 
-    @MainActor
     func testCaptureAStateConsistencyAccountUpdate() {
         captureStateConsistency("settings", state: "account-update-failed")
     }
 
-    @MainActor
     func testCaptureAStateConsistencyAccountUnavailable() {
         captureStateConsistency("settings", state: "account-helper-hidden")
     }
 
-    @MainActor
     private func captureStateConsistency(_ scenario: String, state: String) {
         for appearance in ["light", "dark"] {
             for size in ["default", "minimum"] {
@@ -84,7 +74,6 @@ extension MarketingCaptureTests {
         }
     }
 
-    @MainActor
     private func captureAccountState(
         _ app: XCUIApplication, state: String, appearance: String, size: String
     ) {
@@ -122,7 +111,6 @@ extension MarketingCaptureTests {
         attach(window, name: "\(state)-\(appearance)-\(size)")
     }
 
-    @MainActor
     private func captureSetupState(
         _ app: XCUIApplication, scenario: String, state: String, appearance: String, size: String
     ) {

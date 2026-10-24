@@ -258,8 +258,8 @@ final class CurfewUITests: XCTestCase {
     }
 }
 
+@MainActor
 extension CurfewUITests {
-    @MainActor
     func testSetupUsesOneInstructionAndPreservesScheduleGate() {
         let app = launchFixture("getting-started", size: "minimum")
         XCTAssertTrue(app.buttons["Next"].waitForExistence(timeout: 5))
@@ -301,7 +301,6 @@ extension CurfewUITests {
         XCTAssertTrue(app.staticTexts["Step 3 of 5"].waitForExistence(timeout: 3))
     }
 
-    @MainActor
     func testTaskBrowserEnforcementPanelActions() {
         let app = launchFixture("settings")
         app.descendants(matching: .any)["settings-category-integrations"].click()
@@ -331,7 +330,6 @@ extension CurfewUITests {
         XCTAssertFalse(app.staticTexts["instagram.com"].exists)
     }
 
-    @MainActor
     func testAssistantReadAccessIsExplainedBeforeEnabling() {
         let app = launchFixture("settings", state: "ready")
         app.descendants(matching: .any)["settings-category-integrations"].click()
@@ -344,7 +342,6 @@ extension CurfewUITests {
         XCTAssertFalse(app.popUpButtons["assistant-policy"].exists)
     }
 
-    @MainActor
     func testGeneralHelperFailureFitsMinimumWindow() {
         let app = XCUIApplication()
         app.launchEnvironment = [
@@ -365,7 +362,6 @@ extension CurfewUITests {
         XCTAssertTrue(app.disclosureTriangles["Troubleshooting"].exists)
     }
 
-    @MainActor
     func testSettingsSidebarSupportsArrowKeys() {
         let app = launchFixture("settings", state: "ready")
         app.descendants(matching: .any)["settings-category-general"].click()
@@ -375,7 +371,6 @@ extension CurfewUITests {
         XCTAssertTrue(app.staticTexts["Accessibility"].waitForExistence(timeout: 3))
     }
 
-    @MainActor
     func testManageAIAccessAlwaysOpensConnections() {
         let app = launchFixture("this-week")
         app.radioButtons["Prompts"].click()

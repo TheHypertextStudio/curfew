@@ -192,8 +192,7 @@ public struct DeviceIdentityAssertion: Equatable {
     /// been given a credential talks to nobody, exactly like a Curfew that has
     /// not been given an address.
     public func compactJWS(signedWith secret: String) -> String? {
-        guard !secret.isEmpty, isWellFormed else { return nil }
-        guard let headerData = try? JSONSerialization.data(
+        guard !secret.isEmpty, isWellFormed, let headerData = try? JSONSerialization.data(
             withJSONObject: ["alg": Self.algorithm],
             options: [.sortedKeys]
         ), let claimsData = try? encodedClaims() else { return nil }

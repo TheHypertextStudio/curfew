@@ -28,5 +28,7 @@ const {
     {stylesheet && <link rel="stylesheet" href={stylesheet} />}
     <slot name="head" />
   </head>
-  <body class={bodyClass}><slot /></body>
+  <body class={bodyClass}>
+    <slot />
+  </body>
 </html>

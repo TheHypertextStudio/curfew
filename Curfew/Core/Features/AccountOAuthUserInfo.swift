@@ -16,13 +16,13 @@ enum AccountOAuthTokenSubject {
             .replacingOccurrences(of: "-", with: "+")
             .replacingOccurrences(of: "_", with: "/")
         guard let data = Data(base64Encoded: payload + String(
-            repeating: "=",
-            count: (4 - payload.count % 4) % 4
-        )),
-            data.count <= 32 * 1024,
-            let claims = try? JSONDecoder().decode(Claims.self, from: data),
-            !claims.sub.isEmpty,
-            claims.sub.utf8.count <= 256
+                  repeating: "=",
+                  count: (4 - payload.count % 4) % 4
+              )),
+              data.count <= 32 * 1024,
+              let claims = try? JSONDecoder().decode(Claims.self, from: data),
+              !claims.sub.isEmpty,
+              claims.sub.utf8.count <= 256
         else { return nil }
         return claims.sub
     }

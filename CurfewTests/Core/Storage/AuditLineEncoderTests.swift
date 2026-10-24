@@ -67,10 +67,10 @@ struct AuditLineEncoderTests {
 
     @Test("The timestamp carries an explicit offset rather than normalising to UTC")
     func timestampKeepsOffset() throws {
-        let encoded = AuditLineEncoder.encode(
+        let encoded = try AuditLineEncoder.encode(
             record(),
             previousHash: auditGenesisHash,
-            timeZone: TimeZone(secondsFromGMT: -5 * 3600)!
+            timeZone: #require(TimeZone(secondsFromGMT: -5 * 3600))
         )
         let parsed = try #require(AuditTestSupport.parse(encoded.line))
         #expect(parsed["ts"] as? String == "2025-11-24T11:00:00.000-05:00")

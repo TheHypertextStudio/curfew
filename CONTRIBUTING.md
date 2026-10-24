@@ -31,7 +31,7 @@ The full ship-gate is `just check`: SwiftFormat lint → SwiftLint → unit test
 
 SwiftFormat and SwiftLint configs live at `.swiftformat` and `.swiftlint.yml`. Run `just format` before committing — CI will fail if the formatter would change any file.
 
-Local commands and CI use SwiftFormat 0.63.1 through `scripts/swiftformat.sh`.
+Local commands and CI use SwiftFormat 0.64.1 through `scripts/swiftformat.sh`.
 The wrapper verifies the official release archive and extracted executable by
 SHA-256, then reuses one user cache across checkouts. The first invocation
 requires network access; a verified cached executable works offline. Updating

@@ -44,8 +44,7 @@ extension SettingsView {
         alert.addButton(withTitle: "Uninstall")
         alert.addButton(withTitle: "Cancel")
 
-        guard alert.runModal() == .alertFirstButtonReturn else { return }
-        guard !model.isDemoSession else { return }
+        guard alert.runModal() == .alertFirstButtonReturn, !model.isDemoSession else { return }
 
         model.browserNativeRuntime.stop()
         Task {

@@ -298,8 +298,8 @@ public final class AuditLogWriter: AuditLogWriting, @unchecked Sendable {
             rotatedFileURL(index: $0 + 1)
         }
         for url in candidates {
-            guard let line = Self.lastLine(of: url) else { continue }
-            guard let hash = AuditLineEncoder.hash(inLine: line) else { continue }
+            guard let line = Self.lastLine(of: url),
+                  let hash = AuditLineEncoder.hash(inLine: line) else { continue }
             lastHash = hash
             nextSequence = (Self.sequence(inLine: line) ?? 0) + 1
             chainRecovered = true
