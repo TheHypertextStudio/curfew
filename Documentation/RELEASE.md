@@ -439,12 +439,13 @@ The existing **Signed installer acceptance** workflow has an opt-in
 `staging-upgrade` mode for this gate. It uses the retained signed `0.0.8`
 artifact as its older validation build and requires an explicit newer `0.0.N`
 version (strictly greater than `0.0.8`), release run, source commit, and DMG
-SHA-256. Dispatch it from that same frozen source after both packaging and
-acceptance tooling are integrated:
+SHA-256. Dispatch from a reviewed acceptance branch or tag (`ACCEPTANCE_REF`).
+The signed product source remains frozen when only its UI acceptance driver
+needs repair:
 
 ```bash
 gh workflow run signed-installer-acceptance.yml --repo TheHypertextStudio/curfew \
-  --ref "$CANDIDATE_SOURCE_COMMIT" \
+  --ref "$ACCEPTANCE_REF" \
   -f mode=staging-upgrade \
   -f candidate_version="$CANDIDATE_VERSION" \
   -f candidate_run_id="$CANDIDATE_RUN_ID" \
@@ -457,6 +458,14 @@ uses the final source's artifact verifier, including universal executable
 checks. Origin, hashes, configuration, and the unchanged EdDSA key are verified
 before either artifact is used. The mode never substitutes a newer candidate.
 
+The workflow validates the candidate cryptographically before selecting its
+`candidate-source` checkout. Preparation, loopback feed, defaults cleanup, and
+final artifact verification run from that immutable producer checkout, retaining
+its exact-source guards. Only the UI driver comes from the reviewed harness
+checkout; a separate receipt records both commits. A repaired UI selector does
+not require rebuilding or renumbering an unchanged signed product. Fresh-install
+mode still uses the immutable producer's own required walkthrough.
+
 On the disposable hosted Mac only, the driver applies Sparkle's documented
 testing `SUFeedURL` defaults override. It serves a derived appcast and the exact
 candidate DMG from `http://localhost:<ephemeral-port>/`, bound only to loopback.
@@ -466,7 +475,13 @@ never bypass a browser warning. No ATS exception, TLS setting, signature gate,
 public feed, Access policy, or installed owner preference changes are needed.
 
 The actual UI must offer the selected version and complete **Install Update →
-Install and Relaunch**. A changed process ID establishes relaunch; the final
+Install and Relaunch**. Match the displayed version in either an accessibility
+label or value: Sparkle's AppKit description field binds its text as a value.
+Capture the offered update before asserting its text so failed checks retain
+visual evidence. Resolve Install Update in Sparkle's `SUUpdateAlert` window by
+its `SPUUserUpdateChoiceInstall` identifier; a global title query also finds the
+Touch Bar button. Install and Relaunch uses its `SUStatusInstallAndRelaunch`
+identifier. A changed process ID establishes relaunch; the final
 verifier compares every installed bundle file and symlink against the mounted
 candidate. Retain both subjects, the derived feed, transfer log, screenshots,
 UI results, and installed verification. Always remove only the disposable
