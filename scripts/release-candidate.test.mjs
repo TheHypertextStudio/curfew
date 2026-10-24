@@ -410,7 +410,7 @@ test("candidate packaging refuses an absent or non-executable browser native hos
   try {
     const resources = join(root, "Contents/Resources");
     await mkdir(resources, { recursive: true });
-    for (const name of ["curfew-ctl", "curfew-mcp", "curfew-daemon"])
+    for (const name of ["curfew-ctl", "curfew-mcp", "curfew-daemon", "curfew-supervisor"])
       await writeFile(join(resources, name), "test executable", {
         mode: 0o700,
       });

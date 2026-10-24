@@ -28,6 +28,7 @@ export async function verifyEmbeddedToolPackaging(app) {
     "curfew-mcp",
     "curfew-daemon",
     "studio.hypertext.curfew.browser",
+    "curfew-supervisor",
   ];
   for (const tool of tools) {
     let entry;

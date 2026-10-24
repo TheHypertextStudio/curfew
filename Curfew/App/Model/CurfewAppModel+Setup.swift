@@ -21,6 +21,11 @@ extension CurfewAppModel {
         )
     }
 
+    static func defaultKeyboardShield(_ authorization: AccessibilityAuthorizing?)
+        -> any KeyboardShieldControlling {
+        LockoutKeyInterceptor(authorization: authorization ?? SystemAccessibilityAuthorization())
+    }
+
     static func defaultRespawnGuard() -> any RespawnGuardControlling {
         #if DEBUG
             NoOpRespawnGuard()

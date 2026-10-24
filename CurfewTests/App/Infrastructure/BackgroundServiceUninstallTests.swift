@@ -79,7 +79,8 @@ struct BackgroundServiceUninstallTests {
         let status = try fixture.run()
         #expect(status != 0)
         let operation = try String(contentsOf: fixture.home.appendingPathComponent("operation"))
-        #expect(operation.trimmingCharacters(in: .whitespacesAndNewlines) == "--unregister-background-service")
+        #expect(operation
+            .trimmingCharacters(in: .whitespacesAndNewlines) == "--unregister-background-service")
         #expect(FileManager.default.fileExists(atPath: fixture.state.path))
     }
 

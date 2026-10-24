@@ -48,7 +48,8 @@ struct DemoFixtureTests {
         #expect(!model.settings.autoShutdownEnabled)
         #expect(model.runtimeStateStore.recordURL == nil)
         #expect(model.isDemoSession)
-        #expect(model.lockoutDeadlineStore.recordURL.path.hasPrefix(FileManager.default.temporaryDirectory.path))
+        #expect(model.lockoutDeadlineStore.recordURL.path
+            .hasPrefix(FileManager.default.temporaryDirectory.path))
     }
 
     @Test("Background acceptance cannot terminate apps or shut down even after settings edits")

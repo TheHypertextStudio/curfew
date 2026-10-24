@@ -3,8 +3,8 @@ set -euo pipefail
 cd "${SRCROOT:?Xcode SRCROOT is required}"
 
 case "$CONFIGURATION" in
-    Debug) EXPECTED_DAEMON_PLIST="studio.hypertext.apps.curfew.dev.daemon.plist" ;;
-    Release) EXPECTED_DAEMON_PLIST="studio.hypertext.curfew.daemon.plist" ;;
+    Debug) EXPECTED_DAEMON_PLIST="studio.hypertext.apps.curfew.dev.daemon.plist"; SUPERVISOR_PLIST="studio.hypertext.apps.curfew.dev.supervisor.plist" ;;
+    Release) EXPECTED_DAEMON_PLIST="studio.hypertext.curfew.daemon.plist"; SUPERVISOR_PLIST="studio.hypertext.apps.curfew.supervisor.plist" ;;
     *) echo "Unsupported Curfew build configuration: $CONFIGURATION" >&2; exit 1 ;;
 esac
 if [[ "$CURFEW_DAEMON_PLIST_NAME" != "$EXPECTED_DAEMON_PLIST" ]]; then
@@ -36,8 +36,8 @@ if [[ -n "${CURFEW_SERVICE_SWIFT_FLAG:-}" ]]; then
 fi
 
 contents="$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH"
-mkdir -p "$contents/Resources" "$contents/Library/LaunchDaemons"
-for tool in curfew-ctl curfew-mcp curfew-daemon studio.hypertext.curfew.browser; do
+mkdir -p "$contents/Resources" "$contents/Library/LaunchDaemons" "$contents/Library/LaunchAgents"
+for tool in curfew-ctl curfew-mcp curfew-daemon studio.hypertext.curfew.browser curfew-supervisor; do
     swift "${build_args[@]}" --product "$tool"
     bin_path=$(swift "${build_args[@]}" --product "$tool" --show-bin-path)
     for arch in "${architectures[@]}"; do
@@ -50,3 +50,5 @@ for tool in curfew-ctl curfew-mcp curfew-daemon studio.hypertext.curfew.browser;
     fi
 done
 cp "Curfew/Resources/LaunchDaemons/$CURFEW_DAEMON_PLIST_NAME" "$contents/Library/LaunchDaemons/$CURFEW_DAEMON_PLIST_NAME"
+
+cp "Curfew/Resources/LaunchAgents/$SUPERVISOR_PLIST" "$contents/Library/LaunchAgents/$SUPERVISOR_PLIST"

@@ -71,7 +71,8 @@ struct RuntimeRestartTests {
             canRequestExtension: false, lockDate: nil, unlockDate: nil
         )
         model.overrideReasonDraft = String(repeating: "r", count: 50)
-        model.overrideRequestedAt = model.currentTime.addingTimeInterval(-OverrideRequestPolicy.cooldownSeconds)
+        model.overrideRequestedAt = model.currentTime
+            .addingTimeInterval(-OverrideRequestPolicy.cooldownSeconds)
         #expect(model.canConfirmOverride)
         model.confirmOverride()
         let restarted = makeModel(store: EnforcementRuntimeStateStore(recordURL: url))

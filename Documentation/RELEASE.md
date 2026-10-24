@@ -110,7 +110,7 @@ or authorize widening an internal build's distribution.
      to SwiftPM with `--arch`, then uses the same arguments with
      `--show-bin-path` instead of assuming a host-default output directory.
      Debug builds retain their active architecture and staging service flags.
-   - The signed Release app and all four tools must contain both `arm64` and
+   - The signed Release app and all five tools must contain both `arm64` and
      `x86_64` slices. `verify-release-artifact.sh` invokes the shared packaging
      verifier before signature checks and rejects any missing slice. Verify the
      final exported app; a universal main executable alone is insufficient.
@@ -230,7 +230,7 @@ compiler's success is supporting evidence; it does not establish that the
 release toolchain or signed archive passed.
 
 The verifier checks Sparkle, the existing production feed, public key, Widget, all
-four embedded executables, nested signatures, Developer ID Application authority, Studio team,
+five embedded executables, nested signatures, Developer ID Application authority, Studio team,
 exact 0.0.x version, embedded configuration hash/commit, Gatekeeper, stapling and
 exact app entitlements.
 
