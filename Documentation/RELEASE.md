@@ -478,7 +478,10 @@ The actual UI must offer the selected version and complete **Install Update →
 Install and Relaunch**. Match the displayed version in either an accessibility
 label or value: Sparkle's AppKit description field binds its text as a value.
 Capture the offered update before asserting its text so failed checks retain
-visual evidence. A changed process ID establishes relaunch; the final
+visual evidence. Resolve Install Update in Sparkle's `SUUpdateAlert` window by
+its `SPUUserUpdateChoiceInstall` identifier; a global title query also finds the
+Touch Bar button. Install and Relaunch uses its `SUStatusInstallAndRelaunch`
+identifier. A changed process ID establishes relaunch; the final
 verifier compares every installed bundle file and symlink against the mounted
 candidate. Retain both subjects, the derived feed, transfer log, screenshots,
 UI results, and installed verification. Always remove only the disposable
