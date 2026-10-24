@@ -8,10 +8,15 @@ Bug reports, design critique, and pull requests are welcome.
 brew install just swiftlint
 git clone https://github.com/TheHypertextStudio/curfew
 cd curfew
-./scripts/swiftformat.sh --version
-just install-hooks   # symlinks scripts/hooks/commit-msg into .git/hooks/
+./bootstrap worktree prepare
 open Curfew.xcodeproj
 ```
+
+Worktree preparation installs the pinned formatting tools and composes the local
+commit hooks, including the existing commit-message wrapping. To reinstall only
+formatting tools and hooks, run `just install-hooks`. Commits format the staged
+source and configuration while retaining unstaged edits; the hook does not
+install dependencies or download tools.
 
 The full ship-gate is `just check`: SwiftFormat lint → SwiftLint → unit tests → Debug build. CI runs the same command on every push. PRs must pass `just check` before review.
 
@@ -33,9 +38,10 @@ requires network access; a verified cached executable works offline. Updating
 the formatter requires reviewing its version and both digests together.
 
 Key conventions:
+
 - `@MainActor` on all types that read/write UI or AppKit state.
 - `nonisolated init()` when the designated init needs no actor-isolated state.
-- No comments on *what* the code does — only *why*, when non-obvious.
+- No comments on _what_ the code does — only _why_, when non-obvious.
 - No `T?` for "collaborator might be absent" — use null-object pattern or sentinels.
 
 ## Commit messages

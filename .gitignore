@@ -87,3 +87,6 @@ landing/.pages-output/
 .cloudflare/
 deployment/generated/environment-artifact.json
 deployment/generated/CurfewBuildIdentity.xcconfig
+/.hypertext/formatter-tools/runtime.json
+/.hypertext/formatter-tools/bin/
+/.hypertext/formatter-tools/__pycache__/
