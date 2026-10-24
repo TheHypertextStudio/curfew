@@ -2421,3 +2421,8 @@ Current-main integration preserves license-expiry reevaluation beside the inject
 - `release-entitlements.test.mjs` verifies that the capture command forwards
   unsigned Xcode settings; the focused selector is inherited from its job without
   changing that command's signing boundary.
+
+| Release check                                                    | Coverage                                                                                                          |
+| ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Shared Astro formatter matches staged formatting                 | `landing/tests/unit/formatter-contract.test.mjs`, included by `landing` site checks after dependency installation |
+| Native source/package contracts run without website dependencies | `scripts/landing-contract.test.mjs`, included by native CI script checks                                          |
