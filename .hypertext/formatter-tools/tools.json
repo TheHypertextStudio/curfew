@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "prettier": {
+    "manifest": "landing/package.json"
+  },
+  "npm": {
+    "prettier-plugin-toml": "4.1.0",
+    "prettier-plugin-sh": "0.20.2",
+    "@prettier/plugin-xml": "3.4.2",
+    "prettier-plugin-astro": "1.1.2"
+  },
+  "ruff": "0.15.9",
+  "native_setup": [
+    ["python3", "{root}/.hypertext/formatter-tools/native.py", "setup-swift"],
+    ["python3", "{root}/.hypertext/formatter-tools/extras.py", "setup-ruby"],
+    ["python3", "{root}/.hypertext/formatter-tools/extras.py", "setup-pbxproj"],
+    ["python3", "{root}/.hypertext/formatter-tools/extras.py", "setup-mermaid"],
+    ["python3", "{root}/.hypertext/formatter-tools/extras.py", "setup-just"]
+  ],
+  "sql_dialect": "postgresql"
+}

@@ -1,0 +1,71 @@
+{
+  "setup": [
+    ["python3", "{root}/.hypertext/formatter-tools/native.py", "setup-swift"],
+    ["python3", "{root}/.hypertext/formatter-tools/extras.py", "setup-ruby"],
+    ["python3", "{root}/.hypertext/formatter-tools/extras.py", "setup-pbxproj"],
+    ["python3", "{root}/.hypertext/formatter-tools/extras.py", "setup-mermaid"],
+    ["python3", "{root}/.hypertext/formatter-tools/extras.py", "setup-just"]
+  ],
+  "rules": [
+    {
+      "name": "Worker TOML template",
+      "patterns": ["web/worker/wrangler.toml.example"],
+      "argv": [
+        "python3",
+        "{root}/.hypertext/formatter-tools/toml-template.py",
+        "node",
+        "{root}/.hypertext/formatter-tools/prettier.mjs",
+        "{path}",
+        "toml"
+      ]
+    },
+    {
+      "name": "SwiftFormat 0.63.1",
+      "patterns": ["**/*.swift", "*.swift"],
+      "argv": [
+        "python3",
+        "{root}/.hypertext/formatter-tools/native.py",
+        "swift",
+        "--path",
+        "{path}"
+      ]
+    },
+    {
+      "name": "ruby",
+      "patterns": ["**/*.rb", "*.rb"],
+      "argv": ["python3", "{root}/.hypertext/formatter-tools/extras.py", "ruby"]
+    },
+    {
+      "name": "pbxproj",
+      "patterns": ["**/*.pbxproj"],
+      "argv": [
+        "python3",
+        "{root}/.hypertext/formatter-tools/extras.py",
+        "pbxproj"
+      ]
+    },
+    {
+      "name": "mermaid",
+      "patterns": ["**/*.mmd", "*.mmd"],
+      "argv": [
+        "python3",
+        "{root}/.hypertext/formatter-tools/extras.py",
+        "mermaid"
+      ]
+    },
+    {
+      "name": "just",
+      "patterns": ["justfile"],
+      "argv": ["python3", "{root}/.hypertext/formatter-tools/extras.py", "just"]
+    },
+    {
+      "name": "SwiftFormat options configuration",
+      "patterns": [".swiftformat", "**/.swiftformat"],
+      "argv": [
+        "python3",
+        "{root}/.hypertext/formatter-tools/native.py",
+        "swift-options"
+      ]
+    }
+  ]
+}

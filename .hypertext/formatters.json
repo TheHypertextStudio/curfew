@@ -1,0 +1,491 @@
+{
+  "schema_version": 1,
+  "formatters": [
+    {
+      "include": ["web/worker/wrangler.toml.example"],
+      "argv": [
+        "python3",
+        "{repo}/.hypertext/formatter-tools/toml-template.py",
+        "node",
+        "{repo}/.hypertext/formatter-tools/prettier.mjs",
+        "{path}",
+        "toml"
+      ]
+    },
+    {
+      "include": ["**/*.swift", "*.swift"],
+      "argv": [
+        "python3",
+        "{repo}/.hypertext/formatter-tools/native.py",
+        "swift",
+        "--path",
+        "{path}"
+      ]
+    },
+    {
+      "include": ["**/*.rb", "*.rb"],
+      "argv": ["python3", "{repo}/.hypertext/formatter-tools/extras.py", "ruby"]
+    },
+    {
+      "include": ["**/*.pbxproj"],
+      "argv": [
+        "python3",
+        "{repo}/.hypertext/formatter-tools/extras.py",
+        "pbxproj"
+      ]
+    },
+    {
+      "include": ["**/*.mmd", "*.mmd"],
+      "argv": [
+        "python3",
+        "{repo}/.hypertext/formatter-tools/extras.py",
+        "mermaid"
+      ]
+    },
+    {
+      "include": ["justfile"],
+      "argv": ["python3", "{repo}/.hypertext/formatter-tools/extras.py", "just"]
+    },
+    {
+      "include": [".swiftformat", "**/.swiftformat"],
+      "argv": [
+        "python3",
+        "{repo}/.hypertext/formatter-tools/native.py",
+        "swift-options"
+      ]
+    },
+    {
+      "include": ["*.toml"],
+      "argv": [
+        "node",
+        ".hypertext/formatter-tools/prettier.mjs",
+        "{path}",
+        "toml"
+      ]
+    },
+    {
+      "include": [
+        ".githooks/commit-msg",
+        "bootstrap",
+        "scripts/bootstrap-worktree",
+        "*.sh",
+        "*.bash",
+        "*.zsh"
+      ],
+      "argv": [
+        "node",
+        ".hypertext/formatter-tools/prettier.mjs",
+        "{path}",
+        "sh"
+      ]
+    },
+    {
+      "include": ["*.yml", "*.yaml"],
+      "argv": [
+        "node",
+        ".hypertext/formatter-tools/prettier.mjs",
+        "{path}",
+        "yaml"
+      ]
+    },
+    {
+      "include": ["*.md", "*.markdown", "*.mdc"],
+      "argv": [
+        "node",
+        ".hypertext/formatter-tools/prettier.mjs",
+        "{path}",
+        "markdown"
+      ]
+    },
+    {
+      "include": ["scripts/hooks/commit-msg", "*.py", "*.pyi"],
+      "argv": ["python3", ".hypertext/formatter-tools/run.py", "{path}"]
+    },
+    {
+      "include": ["Curfew/Resources/Localizable.xcstrings", "*.json"],
+      "argv": [
+        "node",
+        ".hypertext/formatter-tools/prettier.mjs",
+        "{path}",
+        "json"
+      ]
+    },
+    {
+      "include": [
+        "scripts/appcast.xml.template",
+        "*.xml",
+        "*.svg",
+        "*.plist",
+        "*.entitlements",
+        "*.xcprivacy",
+        "*.xcworkspacedata",
+        "*.xcsettings",
+        "*.xcscheme",
+        "*.xcbkptlist",
+        "*.csproj"
+      ],
+      "argv": [
+        "node",
+        ".hypertext/formatter-tools/prettier.mjs",
+        "{path}",
+        "xml"
+      ]
+    },
+    {
+      "include": ["*.js", "*.jsx", "*.mjs", "*.cjs"],
+      "argv": [
+        "node",
+        ".hypertext/formatter-tools/prettier.mjs",
+        "{path}",
+        "babel"
+      ]
+    },
+    {
+      "include": ["*.ts", "*.tsx", "*.mts"],
+      "argv": [
+        "node",
+        ".hypertext/formatter-tools/prettier.mjs",
+        "{path}",
+        "typescript"
+      ]
+    },
+    {
+      "include": ["*.html"],
+      "argv": [
+        "node",
+        ".hypertext/formatter-tools/prettier.mjs",
+        "{path}",
+        "html"
+      ]
+    },
+    {
+      "include": ["*.css"],
+      "argv": [
+        "node",
+        ".hypertext/formatter-tools/prettier.mjs",
+        "{path}",
+        "css"
+      ]
+    },
+    {
+      "include": ["*.astro"],
+      "argv": [
+        "node",
+        ".hypertext/formatter-tools/prettier.mjs",
+        "{path}",
+        "astro"
+      ]
+    },
+    {
+      "include": ["*.mdx"],
+      "argv": [
+        "node",
+        ".hypertext/formatter-tools/prettier.mjs",
+        "{path}",
+        "mdx"
+      ]
+    }
+  ],
+  "exclude": [
+    {
+      "include": [
+        ".hypertext/formatting/*",
+        ".hypertext/formatter-tools/setup.py",
+        ".hypertext/formatter-tools/run.py",
+        ".hypertext/formatter-tools/prettier.mjs",
+        ".hypertext/formatter-tools/text.py"
+      ],
+      "kind": "vendored",
+      "reason": "Locked shared formatter engine; maintained and formatted in product-standards."
+    },
+    {
+      "include": [
+        "Curfew.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved"
+      ],
+      "kind": "generated",
+      "reason": "Package-manager generated lock/resolution data; retain canonical tool serialization."
+    },
+    {
+      "include": ["CurfewKit/Package.resolved"],
+      "kind": "generated",
+      "reason": "Package-manager generated lock/resolution data; retain canonical tool serialization."
+    },
+    {
+      "include": [
+        "CurfewKit/Sources/CurfewKit/Sync/DeploymentProfile.generated.swift"
+      ],
+      "kind": "generated",
+      "reason": "scripts/deployment-config.mjs generates canonical output from deployment/environments.json; preserve generator consistency."
+    },
+    {
+      "include": ["Package.resolved"],
+      "kind": "generated",
+      "reason": "Package-manager generated lock/resolution data; retain canonical tool serialization."
+    },
+    {
+      "include": ["deployment/generated/CurfewEndpoints.xcconfig"],
+      "kind": "generated",
+      "reason": "scripts/deployment-config.mjs generates canonical output from deployment/environments.json; preserve generator consistency."
+    },
+    {
+      "include": ["deployment/generated/environments.mjs"],
+      "kind": "generated",
+      "reason": "scripts/deployment-config.mjs generates canonical output from deployment/environments.json; preserve generator consistency."
+    },
+    {
+      "include": ["landing/pnpm-lock.yaml"],
+      "kind": "generated",
+      "reason": "Package-manager generated lock/resolution data; retain canonical tool serialization."
+    },
+    {
+      "include": ["pnpm-lock.yaml"],
+      "kind": "generated",
+      "reason": "Package-manager generated lock/resolution data; retain canonical tool serialization."
+    },
+    {
+      "include": ["scripts/bootstrap-worktree-engine"],
+      "kind": "generated",
+      "reason": "Generated pinned launcher; maintained by bootstrap render-launcher.py rather than consumer edits."
+    },
+    {
+      "include": ["web/pnpm-lock.yaml"],
+      "kind": "generated",
+      "reason": "Package-manager generated lock/resolution data; retain canonical tool serialization."
+    },
+    {
+      "include": ["web/worker/wrangler.local.jsonc"],
+      "kind": "generated",
+      "reason": "scripts/deployment-config.mjs generates canonical output from deployment/environments.json; preserve generator consistency."
+    },
+    {
+      "include": ["Curfew/AppIcon.icon/Assets/sun.png"],
+      "kind": "binary",
+      "reason": "Binary resource; no text formatter applies."
+    },
+    {
+      "include": ["landing/public/images/apple-touch-icon.png"],
+      "kind": "binary",
+      "reason": "Binary resource; no text formatter applies."
+    },
+    {
+      "include": ["landing/public/images/curfew-journal.png"],
+      "kind": "binary",
+      "reason": "Binary resource; no text formatter applies."
+    },
+    {
+      "include": ["landing/public/images/curfew-lockout.png"],
+      "kind": "binary",
+      "reason": "Binary resource; no text formatter applies."
+    },
+    {
+      "include": ["landing/public/images/curfew-schedule.png"],
+      "kind": "binary",
+      "reason": "Binary resource; no text formatter applies."
+    },
+    {
+      "include": ["landing/public/images/favicon.png"],
+      "kind": "binary",
+      "reason": "Binary resource; no text formatter applies."
+    },
+    {
+      "include": ["landing/public/images/lockout-overlay.png"],
+      "kind": "binary",
+      "reason": "Binary resource; no text formatter applies."
+    },
+    {
+      "include": ["landing/public/images/og.png"],
+      "kind": "binary",
+      "reason": "Binary resource; no text formatter applies."
+    },
+    {
+      "include": ["landing/public/site-assets/design/assets/lockout-dark.png"],
+      "kind": "binary",
+      "reason": "Binary resource; no text formatter applies."
+    },
+    {
+      "include": ["landing/public/site-assets/design/assets/schedule-dark.png"],
+      "kind": "binary",
+      "reason": "Binary resource; no text formatter applies."
+    },
+    {
+      "include": [
+        "landing/public/site-assets/design/assets/schedule-light.png"
+      ],
+      "kind": "binary",
+      "reason": "Binary resource; no text formatter applies."
+    },
+    {
+      "include": [
+        "landing/public/site-assets/design/fonts/Calistoga-Regular.ttf"
+      ],
+      "kind": "binary",
+      "reason": "Binary resource; no text formatter applies."
+    },
+    {
+      "include": ["landing/public/site-assets/design/fonts/HankenGrotesk.ttf"],
+      "kind": "binary",
+      "reason": "Binary resource; no text formatter applies."
+    },
+    {
+      "include": [
+        "landing/public/site-assets/design/fonts/IBMPlexMono-Regular.woff2"
+      ],
+      "kind": "binary",
+      "reason": "Binary resource; no text formatter applies."
+    },
+    {
+      "include": ["scripts/dmg-assets/background.png"],
+      "kind": "binary",
+      "reason": "Binary resource; no text formatter applies."
+    },
+    {
+      "include": ["scripts/icon-assets/curfew-icon-dawn.png"],
+      "kind": "binary",
+      "reason": "Binary resource; no text formatter applies."
+    },
+    {
+      "include": ["scripts/icon-assets/curfew-icon-day.png"],
+      "kind": "binary",
+      "reason": "Binary resource; no text formatter applies."
+    },
+    {
+      "include": ["scripts/icon-assets/curfew-icon-dusk.png"],
+      "kind": "binary",
+      "reason": "Binary resource; no text formatter applies."
+    },
+    {
+      "include": ["scripts/icon-assets/curfew-icon-night.png"],
+      "kind": "binary",
+      "reason": "Binary resource; no text formatter applies."
+    },
+    {
+      "include": ["web/docs/fonts/Calistoga.woff2"],
+      "kind": "binary",
+      "reason": "Binary resource; no text formatter applies."
+    },
+    {
+      "include": ["web/docs/fonts/HankenGrotesk.woff2"],
+      "kind": "binary",
+      "reason": "Binary resource; no text formatter applies."
+    },
+    {
+      "include": ["web/docs/images/schedule.png"],
+      "kind": "binary",
+      "reason": "Binary resource; no text formatter applies."
+    },
+    {
+      "include": ["web/docs/images/setup.png"],
+      "kind": "binary",
+      "reason": "Binary resource; no text formatter applies."
+    },
+    {
+      "include": ["web/extension/icons/icon-128.png"],
+      "kind": "binary",
+      "reason": "Binary resource; no text formatter applies."
+    },
+    {
+      "include": ["web/extension/icons/icon-16.png"],
+      "kind": "binary",
+      "reason": "Binary resource; no text formatter applies."
+    },
+    {
+      "include": ["web/extension/icons/icon-32.png"],
+      "kind": "binary",
+      "reason": "Binary resource; no text formatter applies."
+    },
+    {
+      "include": ["web/extension/icons/icon-48.png"],
+      "kind": "binary",
+      "reason": "Binary resource; no text formatter applies."
+    },
+    {
+      "include": [".gitignore"],
+      "kind": "non-formattable",
+      "reason": "Line-oriented configuration, legal text or plain list; no general code formatter applies. Preserve meaningful ordering and data."
+    },
+    {
+      "include": [".prettierignore"],
+      "kind": "non-formattable",
+      "reason": "Line-oriented configuration, legal text or plain list; no general code formatter applies. Preserve meaningful ordering and data."
+    },
+    {
+      "include": [".swift-version"],
+      "kind": "non-formattable",
+      "reason": "Line-oriented configuration, legal text or plain list; no general code formatter applies. Preserve meaningful ordering and data."
+    },
+    {
+      "include": ["LICENSE"],
+      "kind": "non-formattable",
+      "reason": "Line-oriented configuration, legal text or plain list; no general code formatter applies. Preserve meaningful ordering and data."
+    },
+    {
+      "include": ["landing/.npmrc"],
+      "kind": "non-formattable",
+      "reason": "Line-oriented configuration, legal text or plain list; no general code formatter applies. Preserve meaningful ordering and data."
+    },
+    {
+      "include": ["landing/public/.assetsignore"],
+      "kind": "non-formattable",
+      "reason": "Line-oriented configuration, legal text or plain list; no general code formatter applies. Preserve meaningful ordering and data."
+    },
+    {
+      "include": ["landing/public/robots.txt"],
+      "kind": "non-formattable",
+      "reason": "Line-oriented configuration, legal text or plain list; no general code formatter applies. Preserve meaningful ordering and data."
+    },
+    {
+      "include": ["landing/public/site-assets/design/fonts/Calistoga-OFL.txt"],
+      "kind": "non-formattable",
+      "reason": "Line-oriented configuration, legal text or plain list; no general code formatter applies. Preserve meaningful ordering and data."
+    },
+    {
+      "include": [
+        "landing/public/site-assets/design/fonts/HankenGrotesk-OFL.txt"
+      ],
+      "kind": "non-formattable",
+      "reason": "Line-oriented configuration, legal text or plain list; no general code formatter applies. Preserve meaningful ordering and data."
+    },
+    {
+      "include": [
+        "landing/public/site-assets/design/fonts/IBMPlexMono-OFL.txt"
+      ],
+      "kind": "non-formattable",
+      "reason": "Line-oriented configuration, legal text or plain list; no general code formatter applies. Preserve meaningful ordering and data."
+    },
+    {
+      "include": ["web/.gitignore"],
+      "kind": "non-formattable",
+      "reason": "Line-oriented configuration, legal text or plain list; no general code formatter applies. Preserve meaningful ordering and data."
+    },
+    {
+      "include": ["web/docs/fonts/Calistoga-OFL.txt"],
+      "kind": "non-formattable",
+      "reason": "Line-oriented configuration, legal text or plain list; no general code formatter applies. Preserve meaningful ordering and data."
+    },
+    {
+      "include": ["web/docs/fonts/HankenGrotesk-OFL.txt"],
+      "kind": "non-formattable",
+      "reason": "Line-oriented configuration, legal text or plain list; no general code formatter applies. Preserve meaningful ordering and data."
+    },
+    {
+      "include": ["web/extension/.gitignore"],
+      "kind": "non-formattable",
+      "reason": "Line-oriented configuration, legal text or plain list; no general code formatter applies. Preserve meaningful ordering and data."
+    },
+    {
+      "include": ["web/worker/.gitignore"],
+      "kind": "non-formattable",
+      "reason": "Line-oriented configuration, legal text or plain list; no general code formatter applies. Preserve meaningful ordering and data."
+    },
+    {
+      "include": ["landing/public/_headers"],
+      "kind": "non-formattable",
+      "reason": "Authored Cloudflare headers rules: indentation groups header lines under URL patterns; no canonical formatter selected. Preserve significant structure and validate separately."
+    },
+    {
+      "include": ["Curfew/Resources/Credits.rtf"],
+      "kind": "non-formattable",
+      "reason": "Legal text, frozen observation, exact dependency/registration list, or opaque document data; preserve its consumer representation."
+    }
+  ]
+}

@@ -16,6 +16,17 @@ execution, and forwards CLI arguments and failure codes through a verified
 official executable. CI and release checks use the same wrapper as local
 formatting.
 
+## Formatting on commit
+
+The native adapter tests exercise pinned-tool stdin formatting and reject tool
+failures without returning replacement source for the index. Commit-hook acceptance must
+use a real isolated commit with both staged and unstaged edits to the same file,
+then verify the committed formatting, retained working changes, and existing
+commit-message wrapping. Failure cases must leave the original index intact.
+Repository setup must prepare tools before the first commit; commit hooks must
+never download or install dependencies. Generated deployment outputs remain
+covered by their generator consistency checks.
+
 ## Studio app namespace
 
 `AppNamespaceTests` covers signed-client identity, inherited flavor isolation,
@@ -60,7 +71,6 @@ registrations or signed artifacts; rollback changes only the absent-metadata pat
   - `GettingStartedCopyTests/localAISetupCopyIsTruthfulAndPlain()` also checks the full authority explanation retained in its disclosure.
   - `DestinationSnapshotTests/testRenderSettingsDetailsAndDarkAppearance()` captures expanded warnings, camera privacy, and process editors, dark appearance, and disabled reminder values.
   - `settings-ui.md` records the retained bindings, permissions, feature gates, enrollment state, and rollback.
-
 
 The October 23, 2026 rebase preserves upstream app identities, signing configuration, setup routing, account recovery, and the pinned formatter. Post-rebase validation passed 998 Swift Testing cases and 96 XCTest cases, all 134 package tests, 187 repository checks, formatting, strict lint, and all 69 extension tests. Extension typechecking and a production-mode build with the test identity pass; this does not establish Web Store publication identity. Local website validation is blocked by private Studio package authentication after authenticated and offline install attempts. The Settings help regressions failed before replacing removed category names and now bind warning, shutdown, account, and integration routes to their current controls. The unsigned UI runner initially died before bootstrapping. Repairing its generated resource signature allowed five focused Settings tests to execute; all five pass after the minimum-window layout fix. This ad-hoc test artifact does not establish signed app acceptance. `CopyDeckTests/testOverrideInstructionsMatchTheConfirmationPolicy()` failed before the five-minute override wait was restored to shared copy. `PresentationStateTests/canonicalSync()` checks the enrollment gate at its Account-page location.
 
@@ -509,21 +519,21 @@ No timeout budgets were increased. Full hosted verification remains pending.
 
 The background-enforcement change maps to these regression suites:
 
-| Behavior | Automated evidence | Signed acceptance |
-|---|---|---|
-| Closed ordinary windows retain enforcement and reach lockout | `BackgroundLifecycleTests.closedWindowsReachLockout`, `BackgroundEnforcementTests`, `BackgroundServiceTests.windowClosureDoesNotTerminate` | Closed-window and lockout screenshots |
-| Quiet recovery, one launch in flight, capped retry, healthy reset | `AppSupervisorPolicyTests`, `BackgroundServiceTests` | Quit, Force Quit, concurrent launch, login |
-| Approval and failed registration retain legacy recovery | `BackgroundServiceTests` | Login Items approval and revocation |
-| Grant/usage restoration precedes evaluation, rollover, failed writes | `RuntimeRestartTests`, `EnforcementRuntimeStateStoreTests` | Relaunch with valid grants |
-| Unregister precedes cleanup and development preserves production | `BackgroundServiceUninstallTests` | Signed unregister and no recovery |
-| Wake evaluates elapsed curfew immediately | `BackgroundLifecycleTests` | Wake after deadline |
-| launchd locates its enclosing bundle independently of relative service argv | `SupervisorBundleLocationTests` | Bundled signed helper remains running |
-| Uninstall cannot rearm lockout on activation or wake | `BackgroundLifecycleTests.uninstallStopsEnforcement` | Quit after successful cleanup |
-| Homebrew unregisters before quit/removal and aborts on refusal | `Tests/Packaging/cask_uninstall_test.rb` through `brew ruby` | Cask uninstall and upgrade |
-| Replacement builds register after explicit package unregister | `BackgroundServiceTests.unregisterAllowsUpgradeRegistration` | Cask upgrade/reinstall |
-| Development builds and their acceptance fixtures cannot claim the real browser host | `BrowserNativeStartupTests.studioDevelopmentNeverClaimsChromeNativeHost` | Fixture recovery leaves host manifests untouched |
-| Development signing cannot authorize the production widget container | `DevelopmentEntitlementsTests.developmentCannotAuthorizeProductionContainer` | Company-team Debug build with declared entitlements |
-| Live fixture keyboard shielding requires staging and explicit opt-in; test hosts stay disarmed | `StagingKeyboardShieldTests.fixturePermissionBoundary` | Accessibility grant, blocked Quit, Force Quit and restored tap |
+| Behavior                                                                                       | Automated evidence                                                                                                                         | Signed acceptance                                              |
+| ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------- |
+| Closed ordinary windows retain enforcement and reach lockout                                   | `BackgroundLifecycleTests.closedWindowsReachLockout`, `BackgroundEnforcementTests`, `BackgroundServiceTests.windowClosureDoesNotTerminate` | Closed-window and lockout screenshots                          |
+| Quiet recovery, one launch in flight, capped retry, healthy reset                              | `AppSupervisorPolicyTests`, `BackgroundServiceTests`                                                                                       | Quit, Force Quit, concurrent launch, login                     |
+| Approval and failed registration retain legacy recovery                                        | `BackgroundServiceTests`                                                                                                                   | Login Items approval and revocation                            |
+| Grant/usage restoration precedes evaluation, rollover, failed writes                           | `RuntimeRestartTests`, `EnforcementRuntimeStateStoreTests`                                                                                 | Relaunch with valid grants                                     |
+| Unregister precedes cleanup and development preserves production                               | `BackgroundServiceUninstallTests`                                                                                                          | Signed unregister and no recovery                              |
+| Wake evaluates elapsed curfew immediately                                                      | `BackgroundLifecycleTests`                                                                                                                 | Wake after deadline                                            |
+| launchd locates its enclosing bundle independently of relative service argv                    | `SupervisorBundleLocationTests`                                                                                                            | Bundled signed helper remains running                          |
+| Uninstall cannot rearm lockout on activation or wake                                           | `BackgroundLifecycleTests.uninstallStopsEnforcement`                                                                                       | Quit after successful cleanup                                  |
+| Homebrew unregisters before quit/removal and aborts on refusal                                 | `Tests/Packaging/cask_uninstall_test.rb` through `brew ruby`                                                                               | Cask uninstall and upgrade                                     |
+| Replacement builds register after explicit package unregister                                  | `BackgroundServiceTests.unregisterAllowsUpgradeRegistration`                                                                               | Cask upgrade/reinstall                                         |
+| Development builds and their acceptance fixtures cannot claim the real browser host            | `BrowserNativeStartupTests.studioDevelopmentNeverClaimsChromeNativeHost`                                                                   | Fixture recovery leaves host manifests untouched               |
+| Development signing cannot authorize the production widget container                           | `DevelopmentEntitlementsTests.developmentCannotAuthorizeProductionContainer`                                                               | Company-team Debug build with declared entitlements            |
+| Live fixture keyboard shielding requires staging and explicit opt-in; test hosts stay disarmed | `StagingKeyboardShieldTests.fixturePermissionBoundary`                                                                                     | Accessibility grant, blocked Quit, Force Quit and restored tap |
 
 This file maps completed todo items (`[x]`) in `Documentation/todos.md` to automated behavior tests.
 
@@ -1032,7 +1042,7 @@ tests cannot read or mutate a user's App Group lockout record.
     rule and feedback text may be exposed as either an accessibility label or value.
   - `SetupUXTests/completeOnboardingFlowUpdatesState()`
 - `Onboarding completion requires acknowledging all seven effective weekly rules
-  or choosing remote-only mode, plus the existing permissions gate before finish.`
+or choosing remote-only mode, plus the existing permissions gate before finish.`
   - `FirstRunFlowTests/scheduleStepRequiresReview()`
   - `FirstRunFlowTests/permissionsStepRequiresAcknowledgement()`
   - `OnboardingConfirmationRequirementTests/confirmationRequirementsTrackOutstandingSteps()`
@@ -1077,11 +1087,11 @@ tests cannot read or mutate a user's App Group lockout record.
 ## 17. Build Gating and Distribution Accuracy
 
 - `The company-signed Studio development vehicle is identity-isolated from
-  personal Debug and Release, resolves bundled helpers without trusting a
-  conflicting environment, cannot perform machine-wide shutdown effects or
-  accept a remote lock while a live higher-priority app owns enforcement,
-  and uninstalls only its own state. Artifact and live signed-device proof
-  remain separate release gates.`
+personal Debug and Release, resolves bundled helpers without trusting a
+conflicting environment, cannot perform machine-wide shutdown effects or
+accept a remote lock while a live higher-priority app owns enforcement,
+and uninstalls only its own state. Artifact and live signed-device proof
+remain separate release gates.`
   - `CurfewFlavorTests/studioDevelopmentResolution()`
   - `CurfewFlavorTests/bundledHelperUsesContainingAppIdentity()`
   - `CurfewFlavorTests/studioMutableIdentitiesAreDisjoint()`
@@ -1095,14 +1105,14 @@ tests cannot read or mutate a user's App Group lockout record.
   - `BrowserNativeStartupTests/studioDevelopmentNeverClaimsChromeNativeHost()`
   - `TaskBrowserEnforcementPanelTests/studioDevelopmentExplainsChromeIsUnavailableOnlyHere()`
 - `macOS account enrollment binds PKCE to the Curfew sync resource, stores
-  private material in Keychain, sends privacy-minimal generated enrollment,
-  preserves the user's normal browser session for existing passkeys, and
-  owns a claimed HTTPS OAuth callback through Associated Domains so the
-  authorization session can return without trusting a forgeable custom scheme,
-  and cannot mark sync ready before Recovery
-  Key acknowledgement or restore. First-device setup displays the Recovery Key
-  before uploading its envelope and resumes the exact acknowledged step after
-  a failure or relaunch.`
+private material in Keychain, sends privacy-minimal generated enrollment,
+preserves the user's normal browser session for existing passkeys, and
+owns a claimed HTTPS OAuth callback through Associated Domains so the
+authorization session can return without trusting a forgeable custom scheme,
+and cannot mark sync ready before Recovery
+Key acknowledgement or restore. First-device setup displays the Recovery Key
+before uploading its envelope and resumes the exact acknowledged step after
+a failure or relaunch.`
   - `AccountOAuthEnrollmentTests`
   - `AccountOAuthEnrollmentTests/browserSessionPreservesPasskeys()`
   - `AccountOAuthEnrollmentTests/settingsReportsAttachedWindow()`
@@ -1179,16 +1189,16 @@ tests cannot read or mutate a user's App Group lockout record.
   - `NativeAccountSyncTransportTests`
   - `AccountEncryptionTests`
 - `Settings presents phone-based account enrollment before local desktop AI
-  setup, and local AI copy describes its real read/write and reflection-sharing
-  boundary without promising remote unlock or bypass authority.`
+setup, and local AI copy describes its real read/write and reflection-sharing
+boundary without promising remote unlock or bypass authority.`
   - `GettingStartedCopyTests/localAISetupCopyIsTruthfulAndPlain()`
   - `AIConsentPolicyTests/policyCopyMatchesLocalToolAuthority()`
   - `MCPGatingTests/standaloneServerUsesPersistedAccessSetting()`
   - `CurfewMCPAccessTests/disabledAccessClosesBothDispatcherPaths()`
 - `An enrolled Mac reports the live remote connection state without claiming
-  that enrollment alone means remote control is working or enabled. A rejected
-  account connection offers same-account sign-in without replacing the enrolled
-  device, and a missing privileged helper is shown as a remote-lock blocker.`
+that enrollment alone means remote control is working or enabled. A rejected
+account connection offers same-account sign-in without replacing the enrolled
+device, and a missing privileged helper is shown as a remote-lock blocker.`
   - `AccountConnectionPresentationTests/statesStayPlainAndAccurate()`
   - `AccountConnectionPresentationTests/rejectedAccountStatusOffersRepair()`
   - `PrivilegedHelperManagerTests/daemonReadinessRequiresFreshHeartbeat()`
@@ -1212,12 +1222,12 @@ tests cannot read or mutate a user's App Group lockout record.
   - `NativeAccountSyncTransportTests/testReconnectIgnoresFailureFromThePreviousPollingSession()`
   - `NativeAccountSyncTransportTests/testRejectedRefreshTokenRequiresSignInInsteadOfReportingOffline()`
 - `Returning from System Settings refreshes live Accessibility trust even when
-  Curfew's enforcement timer is off.`
+Curfew's enforcement timer is off.`
   - `EnforcementHealthWiringTests/appActivationRefreshesAccessibilityTrustWithoutEnforcementTimer()`
 - `The Dev app's Debug configuration selects one closed-world staging endpoint
-  set for account UI, OAuth, sync, MCP, daemon command-key trust, and account-key
-  Keychain storage without a manual build override; Release selects production,
-  and account copy explains that phone locking is a per-device opt-in.`
+set for account UI, OAuth, sync, MCP, daemon command-key trust, and account-key
+Keychain storage without a manual build override; Release selects production,
+and account copy explains that phone locking is a per-device opt-in.`
   - `AccountOAuthEnrollmentTests/stagingEndpointsStayIsolated()`
   - `AccountOAuthEnrollmentTests/currentEndpointsFollowBuildFlag()`
   - `AccountEnrollmentCopyTests/remoteControlIsPlainAndOptIn()`
@@ -1226,7 +1236,7 @@ tests cannot read or mutate a user's App Group lockout record.
   - `DaemonPlistTests/helperPlistsAreFlavorSpecific()`
   - `scripts/release-entitlements.test.mjs` (`a staging build compiles the app and every embedded tool for the same service boundary`)
 - `Both the app project and command-line package consume the same immutable
-  pre-1.0 Curfew protocol release.`
+pre-1.0 Curfew protocol release.`
   - `swift package resolve`
   - `xcodebuild -resolvePackageDependencies -project Curfew.xcodeproj -scheme Curfew`
   - `CurfewProtocolBridgeTests/testReleasedUnlockTargetScopesRemainDistinct()`
@@ -1235,13 +1245,13 @@ tests cannot read or mutate a user's App Group lockout record.
 - `Every user-facing Curfew release surface uses the same version in the 0.0.x line.`
   - `scripts/release-entitlements.test.mjs` (`every user-facing release version is the same 0.0.x version`)
 - `Signed app builds sign every embedded CLI/helper with the host identity,
-  while explicitly unsigned CI builds remain buildable.`
+while explicitly unsigned CI builds remain buildable.`
   - `AppConfigurationBehaviorTests/bundledDaemonUsesHostSigningIdentity()`
   - `scripts/release-entitlements.test.mjs` (`unsigned CI builds skip embedded tool signing`)
   - `scripts/release-entitlements.test.mjs` (`interactive builds reject an unresolved signing identity before TCC can mislead`)
 - `An unlocked enrolled Mac periodically wakes its privileged daemon, accepts
-  only a coordinator-signed command for the enrolled account/device, and makes
-  the authenticated remote deadline visible to the existing enforcement loop.`
+only a coordinator-signed command for the enrolled account/device, and makes
+the authenticated remote deadline visible to the existing enforcement loop.`
   - `DaemonPlistTests`
   - `RemoteCommandVerifierTests`
   - `RemoteCommandInboxStoreTests`
@@ -1259,9 +1269,9 @@ tests cannot read or mutate a user's App Group lockout record.
   - `swift build --product curfew-daemon`
   - `AppConfigurationTests/bundledDaemonUsesHostSigningIdentity()`
 - `A coordinator-authorized remote override temporarily releases scheduled and
-  daemon-issued Curfew lockouts for its exact enrolled device, preserves both
-  ordinary and wake-campaign durable deadlines for re-lock, and clears locally
-  when the authenticated coordinator reports that no override remains active.`
+daemon-issued Curfew lockouts for its exact enrolled device, preserves both
+ordinary and wake-campaign durable deadlines for re-lock, and clears locally
+when the authenticated coordinator reports that no override remains active.`
   - `AccountLifecycleWiringTests/authenticatedAccountOverrideReleasesRemoteDeadline()`
   - `AccountLifecycleWiringTests/authenticatedAccountOverrideMirrorsDaemonRelease()`
   - `AccountLifecycleWiringTests/directOverrideExpiryPreservesRemoteCommandDeadline()`
@@ -1277,16 +1287,16 @@ tests cannot read or mutate a user's App Group lockout record.
   - `NativeAccountSyncOverrideCadenceTests/testStaggeredStaleTokenResponsesShareOneRefreshGeneration()`
   - `AccountWakeReleaseTests/testOnlyCurrentAuthorizedOverrideCanReleaseThisDevice()`
 - `A remote command must use the released lock-device wire kind and exactly
-  match the status version and schedule digest most recently published by this
-  Mac; missing or stale eligibility cannot create a deadline.`
+match the status version and schedule digest most recently published by this
+Mac; missing or stale eligibility cannot create a deadline.`
   - `RemoteCommandVerifierTests/acceptsValidES256Command()`
   - `DaemonRemoteCommandControllerTests/rejectsCommandWithoutEligibilitySnapshot()`
   - `DaemonRemoteCommandControllerTests/rejectsStaleStatusVersion()`
   - `DaemonRemoteCommandControllerTests/rejectsStaleScheduleDigest()`
   - `NativeAccountSyncTransportTests/testStatusPublicationRecordsTheExactLocalEligibilitySnapshot()`
 - `A daemon terminal result maps exactly to the released 0.0.9 result shape,
-  is acknowledged and published before another command fetch, and stays in the
-  durable outbox until the daemon consumes an exact publication acknowledgement.`
+is acknowledged and published before another command fetch, and stays in the
+durable outbox until the daemon consumes an exact publication acknowledgement.`
   - `NativeAccountSyncMappingTests/testDaemonResultMapsExactlyToReleasedProtocol()`
   - `NativeAccountSyncTransportTests/testPollPublishesDaemonResultBeforeFetchingMoreCommands()`
   - `RemoteCommandInboxStoreTests/resultExchangeRoundTripsDurably()`
@@ -1294,27 +1304,27 @@ tests cannot read or mutate a user's App Group lockout record.
   - `DaemonRemoteCommandControllerTests/backendReconcilesResultExchange()`
   - `DaemonRemoteCommandControllerTests/rejectsMismatchedResultAcknowledgement()`
 - `The root daemon never follows a user-replaceable inbox/result/acknowledgement
-  symlink and rejects exchange directories not owned by root in production.`
+symlink and rejects exchange directories not owned by root in production.`
   - `RemoteCommandInboxStoreTests`
   - `RemoteCommandInboxStoreTests/rejectsNonRootOwnedResultExchangeDirectory()`
   - `SharedPathsTests`
 - `Durable deadlines are replaced atomically with private permissions, and
-  model tests never write synthetic lockouts into the developer's protected
-  Application Support directory.`
+model tests never write synthetic lockouts into the developer's protected
+Application Support directory.`
   - `LockoutDeadlineStoreTests/saveReplacesTheRecordWithPrivatePermissions()`
   - `AuditGrantWiringTests`
   - `AuditWiringTests`
   - `CurfewTests/enforcementArmsOnlyAfterSetupCompletion()`
   - `SetupUXTests/completeOnboardingFlowUpdatesState()`
 - `The public static MCP guide and the repository-owned Mintlify source give
-  the same correct Claude Desktop configuration and permissions boundary until
-  Mintlify is intentionally published.`
+the same correct Claude Desktop configuration and permissions boundary until
+Mintlify is intentionally published.`
   - Manual review of `landing/src/pages/docs.astro` and `web/docs/mcp-guide.mdx`
   - Browser review of the deployed static MCP guide (external launch proof)
   - Verify the static guide retains its documentation navigation and readable
     article layout at desktop and mobile widths
 - `Marketing capture targets only the fixture process and never captures the
-  desktop as a fallback.`
+desktop as a fallback.`
   - Review `scripts/capture-marketing.sh` and `scripts/window-id.swift` before
     running a local marketing capture
 - `Hide deferred integration panels in default builds until their feature flags are enabled.`
@@ -1327,18 +1337,18 @@ tests cannot read or mutate a user's App Group lockout record.
 - `Sparkle is required and its update command is available in the shipping app.`
   - `CurfewUpdaterTests/updateAvailabilityMatchesLinkedFramework()`
 - `A conservative v0.1 tag release uploads only its notarized DMG; it cannot
-  reference an appcast that Sparkle intentionally did not generate.`
+reference an appcast that Sparkle intentionally did not generate.`
   - `scripts/release-entitlements.test.mjs`
 - `The forward-looking PRD and release checklist distinguish the core-only
-  v0.1 scope from deferred CloudKit, WidgetKit, Calendar, privileged-helper,
-  and Sparkle work.`
+v0.1 scope from deferred CloudKit, WidgetKit, Calendar, privileged-helper,
+and Sparkle work.`
   - `scripts/release-entitlements.test.mjs`
 - `CI screenshot capture uses unsigned Xcode settings so hosted macOS runners
-  produce and upload the MarketingCapture PNG artifacts, and a failed UI test
-  fails the job instead of silently exporting misleading images. On a Settings
-  scene failure, the test logs the demo app accessibility tree and CI retains
-  the result bundle for diagnosis; only synthetic fixture account state is
-  present.`
+produce and upload the MarketingCapture PNG artifacts, and a failed UI test
+fails the job instead of silently exporting misleading images. On a Settings
+scene failure, the test logs the demo app accessibility tree and CI retains
+the result bundle for diagnosis; only synthetic fixture account state is
+present.`
   - `scripts/release-entitlements.test.mjs`
   - `scripts/extract-screenshots.test.mjs`
   - `AppSettingsRoutingTests/settingsRouteUsesSceneAction()`
@@ -1346,35 +1356,35 @@ tests cannot read or mutate a user's App Group lockout record.
   - `MarketingCaptureTests/testCaptureSettings()`
   - `scripts/extract-screenshots.sh` (local and hosted runtime coverage)
 - `Stripe test-mode staging uses an isolated curfew-prefixed Hypertext Studio
-  hostname and rejects alternate Worker hostname conventions.`
+hostname and rejects alternate Worker hostname conventions.`
   - `scripts/license-worker.test.mjs`
 - `A Stripe Sandbox checkout can exercise the isolated issuer without a real
-  card or production endpoint; webhook delivery and subsequent session-license
-  retrieval are recorded as an operator-run staging proof.`
+card or production endpoint; webhook delivery and subsequent session-license
+retrieval are recorded as an operator-run staging proof.`
   - `Documentation/license-worker-bootstrap.md` (operator procedure)
   - Stripe Sandbox + isolated staging Worker runtime evidence (external)
 - `Operator documentation names only the envelope-v2 Worker bootstrap and
-  cannot reintroduce a legacy deployment path.`
+cannot reintroduce a legacy deployment path.`
   - `scripts/license-worker-documentation.test.mjs`
 - `Initial-release app surfaces do not offer a hosted checkout until a release
-  explicitly provides one.`
+explicitly provides one.`
   - `PurchaseAvailabilityTests/checkoutIsUnavailable()`
 - `Every public Curfew page exposes the same optional account entry point and
-  the macOS download surface describes Android as coming soon.`
+the macOS download surface describes Android as coming soon.`
   - `scripts/landing-contract.test.mjs`
 - `Published legal copy distinguishes local data, end-to-end encrypted account
-  content, unavoidable metadata, sign-in backup codes, the Curfew Recovery Key,
-  Stripe payment processing, retention, export/deletion, and audited remote unlocks.`
+content, unavoidable metadata, sign-in backup codes, the Curfew Recovery Key,
+Stripe payment processing, retention, export/deletion, and audited remote unlocks.`
   - `scripts/landing-contract.test.mjs`
 - `Curfew source, configuration, and documentation cannot reintroduce the
-  retired apex or a service hostname outside the curfew-*.hypertext.studio convention.`
+retired apex or a service hostname outside the curfew-*.hypertext.studio convention.`
   - `scripts/landing-contract.test.mjs`
 
 ## 18. License issuer envelope v2
 
 - `Embed the provisioned Ed25519 public key for the external Worker signing
-  seed, including a recovery rotation whenever no retained signer can be
-  matched or a signer is exposed and must be discarded before deployment.`
+seed, including a recovery rotation whenever no retained signer can be
+matched or a signer is exposed and must be discarded before deployment.`
   - `LicenseEnvelopeContractTests/embedsProvisionedPublicKey()`
 - `Decode and enforce Curfew Plus subscription claims while retaining legacy lifetime continuity.`
   - `LicenseEnvelopeContractTests/decodesCurfewPlusSubscriptionEnvelope()`
@@ -1383,13 +1393,13 @@ tests cannot read or mutate a user's App Group lockout record.
 - `Generate private signing material only into a caller-selected mode-600 path.`
   - `scripts/license-worker.test.mjs`
 - `Render a caller-owned Worker config whose entry point still resolves from
-  the fresh clone.`
+the fresh clone.`
   - `scripts/license-worker.test.mjs`
 
 ## 19. On-device presence detection
 
 - `Cross HID idleness with a camera person signal into working / present-but-idle
-  / absent, and an honest unknown when there is no camera signal.`
+/ absent, and an honest unknown when there is no camera signal.`
   - `PresenceFusionTests/hidActivityWinsOutright()`
   - `PresenceFusionTests/idleWithPersonIsPresentButIdle()`
   - `PresenceFusionTests/idleWithoutPersonIsAbsent()`
@@ -1399,13 +1409,13 @@ tests cannot read or mutate a user's App Group lockout record.
   - `PresenceMonitorTests/absentIsReported()`
   - `PresenceMonitorTests/inputBeatsAnEmptyFrame()`
 - `A stale camera reading decays to "no signal" rather than pinning a verdict,
-  and a future-dated reading is never treated as fresh.`
+and a future-dated reading is never treated as fresh.`
   - `PresenceFusionTests/staleObservationDecaysToUnavailable()`
   - `PresenceFusionTests/neverObservedIsNeverFresh()`
   - `PresenceFusionTests/futureObservationIsNotFresh()`
   - `PresenceMonitorTests/staleReadingFallsBackToUnknown()`
 - `The camera runs only when the user's setting is on and macOS reports access
-  granted, and stops immediately when either stops being true.`
+granted, and stops immediately when either stops being true.`
   - `PresenceMonitorTests/disabledCameraNeverStarts()`
   - `PresenceMonitorTests/unauthorizedCameraNeverStarts()`
   - `PresenceMonitorTests/enabledCameraStartsOnce()`
@@ -1416,7 +1426,7 @@ tests cannot read or mutate a user's App Group lockout record.
   - `PresenceAuditWiringTests/settingDrivesTheCamera()`
   - `PresenceAuditWiringTests/disablingIsImmediate()`
 - `Presence detection ships off and cannot be turned on by an upgrade, a partial
-  settings payload, or a refused camera prompt.`
+settings payload, or a refused camera prompt.`
   - `PresenceDetectionPolicyTests/cameraIsOffByDefault()`
   - `PresenceDetectionPolicyTests/legacySettingsDecodeWithCameraOff()`
   - `PresenceDetectionPolicyTests/partialPayloadDecodesWithCameraOff()`
@@ -1426,8 +1436,8 @@ tests cannot read or mutate a user's App Group lockout record.
 - `A camera that will not open is reported as stalled rather than as running.`
   - `PresenceMonitorTests/failedOpenIsReportedHonestly()`
 - `Warn a sustained present-but-idle user during working hours only — never at
-  an empty chair, never during lockout or a day off, and never more than once
-  per repeat window.`
+an empty chair, never during lockout or a day off, and never more than once
+per repeat window.`
   - `DistractionWarningPolicyTests/sustainedDistractionWarns()`
   - `DistractionWarningPolicyTests/otherStatesHold()`
   - `DistractionWarningPolicyTests/ineligiblePhasesHold()`
@@ -1444,7 +1454,7 @@ tests cannot read or mutate a user's App Group lockout record.
   - `PresenceAuditWiringTests/nudgeSwitchIsIndependent()`
   - `PresenceAuditWiringTests/noNudgeWithoutTheCamera()`
 - `Record presence transitions, camera windows, and consent changes in the audit
-  log — and never an image.`
+log — and never an image.`
   - `PresenceAuditWiringTests/fusedPresenceIsRecorded()`
   - `PresenceAuditWiringTests/legacyPresenceRecordSurvives()`
   - `PresenceAuditWiringTests/authorizationChangesAreRecorded()`
@@ -1455,7 +1465,7 @@ tests cannot read or mutate a user's App Group lockout record.
 ## 20. Task-scoped browser policy and Docket client
 
 - `URL review never receives credentials, queries, fragments, default ports,
-  unsupported schemes, or unresolved dot segments.`
+unsupported schemes, or unresolved dot segments.`
   - `BrowserWorkPolicyTests/destinationNormalizationRemovesPrivateParts()`
   - `BrowserWorkPolicyTests/destinationNormalizationResolvesDotSegments()`
   - `BrowserWorkPolicyTests/destinationNormalizationRejectsOtherSchemes()`
@@ -1464,29 +1474,29 @@ tests cannot read or mutate a user's App Group lockout record.
   - `BrowserWorkPolicyTests/rootPathPrefixHasOriginWideSemantics()`
   - `BrowserWorkPolicyTests/crossOriginGrantIsRejected()`
 - `A session allowlist is the union of the Docket origin, task references, and
-  exact task, project, or label mappings.`
+exact task, project, or label mappings.`
   - `BrowserWorkPolicyTests/initialPolicyUsesEveryTaskOwnedSource()`
 - `Idle timer state retains enforcement, while a task switch or terminal task
-  state revokes the old session and its grants.`
+state revokes the old session and its grants.`
   - `BrowserWorkPolicyTests/idleTrackingRetainsTask()`
   - `BrowserWorkPolicyTests/switchingTaskRevokesGrants()`
   - `BrowserWorkPolicyTests/terminalTaskEndsSession(stateType:)`
   - `BrowserWorkPolicyTests/differentTerminalTaskEndsSession()`
   - `BrowserWorkPolicyTests/archiveTimestampEndsSession()`
 - `A grant expires after 30 minutes, including after a cached policy is restored.
-  A denial blocks review for five minutes.`
+A denial blocks review for five minutes.`
   - `BrowserWorkPolicyTests/grantExpiresAfterThirtyMinutes()`
   - `BrowserWorkPolicyTests/cachedPolicyExpiresTemporaryAccess()`
   - `BrowserWorkPolicyTests/denialCreatesFiveMinuteCooldown()`
 - `One 15-minute break is available for each paused or idle transition. It
-  cannot renew until tracking resumes, and resume cancels an active break.`
+cannot renew until tracking resumes, and resume cancels an active break.`
   - `BrowserWorkPolicyTests/breakEligibilityAndExpiry()`
   - `BrowserWorkPolicyTests/breakCannotRenewWithoutResuming()`
   - `BrowserWorkPolicyTests/resumeCancelsBreak()`
   - `BrowserWorkPolicyTests/pausedToIdleCreatesOneBreakEligibility()`
   - `BrowserWorkPolicyTests/idleToPausedCreatesOneBreakEligibility()`
 - `Unknown destinations fail closed during Docket or Athena failure, and stale
-  Docket observations cannot restore old work.`
+Docket observations cannot restore old work.`
   - `BrowserWorkPolicyTests/unavailableDocketFailsClosed()`
   - `BrowserWorkPolicyTests/staleResponseIsIgnored()`
   - `DocketBrowserPolicyClientTests/reviewFailureFailsClosed()`
@@ -1496,9 +1506,9 @@ tests cannot read or mutate a user's App Group lockout record.
   - `DocketBrowserPolicyClientTests/missingTaskResourceFailsClosed()`
   - `DocketBrowserPolicyClientTests/unauthorizedTaskResourceFailsClosed()`
 - `Curfew registers and reuses a Docket OAuth client, stores tokens separately,
-  refreshes rotating credentials, and can recover from a stored refresh token
-  when the access-token record is incomplete. AuthenticationServices matches
-  the exact flavor-specific custom callback scheme.`
+refreshes rotating credentials, and can recover from a stored refresh token
+when the access-token record is incomplete. AuthenticationServices matches
+the exact flavor-specific custom callback scheme.`
   - `DocketCredentialStoreTests/loadsRefreshTokenIndependently()`
   - `DocketBrowserPolicyClientTests/oauthRequestUsesSeparateDocketScopes()`
   - `DocketBrowserPolicyClientTests/oauthRegistrationIsPersistedAndReused()`
@@ -1507,7 +1517,7 @@ tests cannot read or mutate a user's App Group lockout record.
   - `DocketBrowserPolicyClientTests/coordinatorRefreshesAfterUnauthorized()`
   - `DocketBrowserPolicyClientTests/coordinatorDoesNotLoopOnSecondUnauthorized()`
 - `The production transport sends MCP initialize, initialized notification,
-  resource-read, and destination-review JSON-RPC messages.`
+resource-read, and destination-review JSON-RPC messages.`
   - `DocketBrowserPolicyClientTests/httpTransportUsesDocketMCPShapes()`
   - `DocketBrowserPolicyClientTests/activeWorkDecodingUsesPublicContract()`
   - `DocketBrowserPolicyClientTests/mcpRejectsInvalidSSEDataCardinality(frame:)`
@@ -1524,7 +1534,7 @@ tests cannot read or mutate a user's App Group lockout record.
   - `DocketBrowserPolicyClientTests/oauthTokenExchangeRejectsOversizedResponse()`
   - `DocketBrowserPolicyClientTests/mcpRejectsOversizedResponse()`
 - `The coordinator polls at 30 seconds while idle and five seconds while it
-  retains work. It reads the retained task after Docket reports idle.`
+retains work. It reads the retained task after Docket reports idle.`
   - `DocketBrowserPolicyClientTests/pollCadenceTracksRetainedSession()`
   - `DocketBrowserPolicyClientTests/idleObservationChecksTerminalTask()`
   - `DocketBrowserPolicyClientTests/idleObservationChecksArchivedTask()`
@@ -1537,7 +1547,7 @@ tests cannot read or mutate a user's App Group lockout record.
   - `BrowserNativeLifecycleTests/oldSignedPolicyWithoutSessionIdentityRemainsFailClosed()`
   - `DocketBrowserPolicyClientTests/destinationReviewUsesNormalizedPayload()`
 - `Settings records setup once, reports current health, and gates enforcement
-  until both Docket and Chrome have connected.`
+until both Docket and Chrome have connected.`
   - `BrowserIntegrationSettingsStoreTests/setupFactsAndMappingsPersist()`
   - `BrowserIntegrationSettingsStoreTests/setupGateRequiresBothConnections()`
   - `TaskBrowserEnforcementViewModelTests/freshSetupIsReady()`
@@ -1546,7 +1556,7 @@ tests cannot read or mutate a user's App Group lockout record.
   - `TaskBrowserEnforcementViewModelTests/missingSetupDisablesToggle()`
   - `DocketBrowserPolicyClientTests/authenticatedIdlePollRecordsSetupSuccess()`
 - `The panel drives policy disable and restore, local mapping changes, one
-  paused-session break, and Docket connect and disconnect.`
+paused-session break, and Docket connect and disconnect.`
   - `BrowserNativeLifecycleTests/disablingEnforcementClearsAndReenablingRestoresTheRetainedPolicy()`
   - `TaskBrowserEnforcementControllerTests/controllerDrivesPanelActions()`
   - `TaskBrowserEnforcementPanelTests/panelCopyStaysTaskScoped()`
@@ -1556,10 +1566,11 @@ tests cannot read or mutate a user's App Group lockout record.
   - `blocker-state.test.ts` checks the explicit development fixture state.
   - `build.test.ts` checks that production output omits the fixture task.
 - `Browser policy snapshots expose only the current task ID and title. They keep
-  expiring grants separate from base scopes and evaluate temporary access at the
-  caller's current time.`
+expiring grants separate from base scopes and evaluate temporary access at the
+caller's current time.`
   - `BrowserWorkPolicyTests/snapshotSerializationOmitsDocketTaskContext()`
   - `BrowserWorkPolicyTests/cachedPolicyExpiresTemporaryAccess()`
+
 ## 19. UI simplification and visual acceptance
 
 - Task-based Settings and compatible identifiers:
@@ -1852,7 +1863,6 @@ of “0:00.” The state-consistency capture runs first to expose fixture failur
 early. `PresentationStateTests.lockedCountdown` and the remote capture both cover
 this presentation-only correction; enforcement and stored schedules are unchanged.
 
-
 Returning setup review now derives its content from the saved setup state instead
 of the walkthrough cursor. A revoked Accessibility grant immediately shows its
 repair action; completed review hides the first-run checklist and never arms
@@ -1954,12 +1964,12 @@ changes; rollback restores the prior landing release and docs commit.
 
 - Owner-only maintenance: backend policy/owner/auth/admission/recovery/passkey/billing/socket suites cover strict deployment binding, normal Apple/authenticator/recovery/Google onboarding, credential isolation, single-use DPoP, bounded bodies, private commit deadlines and actual Durable Object hibernation/alarms. Backend operator tests cover exclusive private input files, phase/environment mismatch, checkpoint/fence ordering, no repeated revocation, audit isolation, staging credential retention and cf database identity/schema/migration checks. Actual provider, signed native and physical-device journeys remain live gates.
 
-| Behavior | Automated coverage | Live acceptance |
-| --- | --- | --- |
-| Derived URLs, invalid origin rejection, immutable artifact identity | `scripts/deployment-config.test.mjs` | Same artifact/hash in native and backend release |
-| New native endpoints and authorization-only migration | `DeploymentEndpointTests`; `AccountOAuthEnrollmentTests` | Same Mac reconnects and reads retained encrypted data |
-| Safe public redirect and API retirement | `landing/tests/unit/domain-routing.test.mjs`; license domain tests | DNS/TLS and old/new host requests |
-| Recovery gate, transactional revocation and idempotency | curfew-sync `domain-migration.test.ts`, `service-config.test.ts` | Provider-ready maintenance cutover and drained fences |
+| Behavior                                                            | Automated coverage                                                 | Live acceptance                                       |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------ | ----------------------------------------------------- |
+| Derived URLs, invalid origin rejection, immutable artifact identity | `scripts/deployment-config.test.mjs`                               | Same artifact/hash in native and backend release      |
+| New native endpoints and authorization-only migration               | `DeploymentEndpointTests`; `AccountOAuthEnrollmentTests`           | Same Mac reconnects and reads retained encrypted data |
+| Safe public redirect and API retirement                             | `landing/tests/unit/domain-routing.test.mjs`; license domain tests | DNS/TLS and old/new host requests                     |
+| Recovery gate, transactional revocation and idempotency             | curfew-sync `domain-migration.test.ts`, `service-config.test.ts`   | Provider-ready maintenance cutover and drained fences |
 
 - Release endpoint provenance: `scripts/release-configuration.test.mjs` covers configured and alternate domains, changed manifests, source revisions, and signing keys; `scripts/release-candidate.test.mjs` binds native configuration and candidate signatures to the shared deployment identity.
 - Operator documentation follows the existing canonical account fallback tests
@@ -2164,17 +2174,16 @@ changes; rollback restores the prior landing release and docs commit.
   or changed capabilities. Read-only file selection remains explicitly declared;
   the comparison does not discard unexpected permissions to accept an artifact.
 
-
 ### Development app consolidation
 
-| Behavior | Coverage |
-| --- | --- |
-| Only Curfew and Curfew Dev are built; app/widget IDs and install paths stay distinct | `scripts/dev-consolidation.test.mjs`; signed Debug/Release builds |
-| Development preferences, shared history, account and Docket credential services stay in the installed store | `CurfewFlavorTests.derivedValues`; `AppNamespaceTests`; `scripts/dev-consolidation.test.mjs` |
-| Canonical and predecessor development identities resolve consistently for embedded helpers | `CurfewFlavorTests`; `AppNamespaceTests.studioIdentityWins` |
-| A development app cannot inherit production enforcement priority | `AppNamespaceTests.ownershipSurvivesTheRename`; `DevelopmentDaemonSafetyTests` |
-| Signed Dev arms normally, cannot enter demo fixtures, and disarms only in a real test host | `DevelopmentLaunchBehaviorTests`; isolated CI captures exercise unsigned demo fixtures |
-| Uninstall targets Curfew Dev and its retained store without removing production or dormant personal-development state | `UninstallCoordinatorTests` |
+| Behavior                                                                                                              | Coverage                                                                                     |
+| --------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Only Curfew and Curfew Dev are built; app/widget IDs and install paths stay distinct                                  | `scripts/dev-consolidation.test.mjs`; signed Debug/Release builds                            |
+| Development preferences, shared history, account and Docket credential services stay in the installed store           | `CurfewFlavorTests.derivedValues`; `AppNamespaceTests`; `scripts/dev-consolidation.test.mjs` |
+| Canonical and predecessor development identities resolve consistently for embedded helpers                            | `CurfewFlavorTests`; `AppNamespaceTests.studioIdentityWins`                                  |
+| A development app cannot inherit production enforcement priority                                                      | `AppNamespaceTests.ownershipSurvivesTheRename`; `DevelopmentDaemonSafetyTests`               |
+| Signed Dev arms normally, cannot enter demo fixtures, and disarms only in a real test host                            | `DevelopmentLaunchBehaviorTests`; isolated CI captures exercise unsigned demo fixtures       |
+| Uninstall targets Curfew Dev and its retained store without removing production or dormant personal-development state | `UninstallCoordinatorTests`                                                                  |
 
 The installed upgrade additionally requires readback of schedule, history,
 account connectivity, authenticated helper readiness, and ordinary update trust.
@@ -2191,10 +2200,10 @@ Do not run lockout/shutdown acceptance or UI suites on the operator desktop.
 
 ### Public Plus help
 
-| Behavior | Coverage |
-| --- | --- |
-| Licensing help covers app activation, email restoration, manual fallback and offline access without advertising planned features as available | `scripts/user-docs.test.mjs`; Mintlify validation and hosted licensing-page review |
-| Release help requires the official app, links to canonical download and restore pages, and excludes draft assets and private checkout links | `scripts/user-docs.test.mjs`; Mintlify validation and external/anchor checks; read-only hosted link verification |
+| Behavior                                                                                                                                                                            | Coverage                                                                                                                                                                 |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Licensing help covers app activation, email restoration, manual fallback and offline access without advertising planned features as available                                       | `scripts/user-docs.test.mjs`; Mintlify validation and hosted licensing-page review                                                                                       |
+| Release help requires the official app, links to canonical download and restore pages, and excludes draft assets and private checkout links                                         | `scripts/user-docs.test.mjs`; Mintlify validation and external/anchor checks; read-only hosted link verification                                                         |
 | Installation help retains macOS requirements and the deployment manifest's canonical download link; the download page owns current installer availability and Plus remains separate | `scripts/user-docs.test.mjs` platform/download and planned-Plus checks; manual availability-copy review; Mintlify validation and approved first-party guide verification |
 
 `web/worker/test/deployment.node.mjs` verifies that native recovery-email bindings
@@ -2208,13 +2217,13 @@ Docs publish independently of app and payment-service rollout. Revert this docs-
 
 ### Explicit local-build publication
 
-| Requirement | Evidence |
-| --- | --- |
-| Local candidates identify their evidence and never borrow a hosted workflow run | `scripts/release-candidate.test.mjs` |
-| Missing, failed, skipped, substituted, stale or mismatched test/signing evidence prevents admission | `scripts/local-release.test.mjs`; retained log digest verification |
+| Requirement                                                                                                                                                                                    | Evidence                                                                                                                              |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Local candidates identify their evidence and never borrow a hosted workflow run                                                                                                                | `scripts/release-candidate.test.mjs`                                                                                                  |
+| Missing, failed, skipped, substituted, stale or mismatched test/signing evidence prevents admission                                                                                            | `scripts/local-release.test.mjs`; retained log digest verification                                                                    |
 | A later publication commit must be clean, descend from the signed source and preserve native source and dependencies; the mounted-app verifier must run from the exact clean original checkout | `scripts/local-release.test.mjs` with disposable real Git history, dirty-checkout and committed entitlement-policy mutation rejection |
-| Exact DMG bytes pass ticket verification and the full mounted-app verifier; rejection still unmounts the image | `scripts/local-release.test.mjs` tests the OS adapter; actual macOS execution on retained release bytes remains required |
-| Local publication preserves all existing acceptance and staging gates, checks the current publication head and retains the original signed-source tag | `scripts/publication.test.mjs`; actual private owner/staging acceptance |
+| Exact DMG bytes pass ticket verification and the full mounted-app verifier; rejection still unmounts the image                                                                                 | `scripts/local-release.test.mjs` tests the OS adapter; actual macOS execution on retained release bytes remains required              |
+| Local publication preserves all existing acceptance and staging gates, checks the current publication head and retains the original signed-source tag                                          | `scripts/publication.test.mjs`; actual private owner/staging acceptance                                                               |
 
 The regular release-policy gate runs these script tests. Local evidence and
 owner receipts remain private. Neither unit fixtures nor a local candidate
@@ -2235,18 +2244,18 @@ does not modify native files, enable sales or remove owner/staging gates.
 
 ### Staging product domain
 
-| Behavior                                                                                                      | Verification                                                        |
-| ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| Product staging hosts remain distinct from production                                                         | `scripts/deployment-config.test.mjs`                                |
-| Dev associations use staging while retaining the existing Keychain group                                      | `scripts/deployment-config.test.mjs` generation fixture             |
-| Public redirects preserve paths; credential-bearing requests stop without forwarding                          | `landing/tests/unit/domain-routing.test.mjs` for both environments  |
-| Staging routes use the product zone and keep the old public redirect route                                    | `landing/tests/unit/site-worker.test.mjs`                           |
-| License recovery sender and portal match the selected environment | `scripts/license-worker.test.mjs` |
-| Local license tooling follows manifest sender and purchase-origin changes while retaining test mode and local storage | `scripts/deployment-config.test.mjs` local parity and alternate-manifest generation fixture; generated-file CI check |
-| Current-domain reconnect, recovery and storage failures retain their existing authorization safeguards | `AccountEnrollmentReauthorizationTests`; `AccountEnrollmentRecoveryTests`; `AccountEnrollmentStorageRecoveryTests`; `AccountEnrollmentCompletionTests`; `NativeAccountSyncTransportTests` |
-| Old-domain or unmarked grants require fresh authorization while retaining the same Mac, owner and encryption keys; rejection or cancellation keeps sign-in required | `AccountEnrollmentReauthorizationTests.domainMigrationRetainsSavedMac`; `unsuccessfulDomainReconnectStillRequiresSignIn` |
-| Reconnect does not report readiness if saving its checkpoint fails, and permits retry after storage recovers | `AccountEnrollmentReauthorizationTests.failedReconnectCheckpointRetainsSignInRequirement` |
-| Retained account/device data, new-host passkeys, provider callbacks, native reconnection, and Sandbox restore | Actual protected staging walkthrough and private release acceptance |
+| Behavior                                                                                                                                                            | Verification                                                                                                                                                                              |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Product staging hosts remain distinct from production                                                                                                               | `scripts/deployment-config.test.mjs`                                                                                                                                                      |
+| Dev associations use staging while retaining the existing Keychain group                                                                                            | `scripts/deployment-config.test.mjs` generation fixture                                                                                                                                   |
+| Public redirects preserve paths; credential-bearing requests stop without forwarding                                                                                | `landing/tests/unit/domain-routing.test.mjs` for both environments                                                                                                                        |
+| Staging routes use the product zone and keep the old public redirect route                                                                                          | `landing/tests/unit/site-worker.test.mjs`                                                                                                                                                 |
+| License recovery sender and portal match the selected environment                                                                                                   | `scripts/license-worker.test.mjs`                                                                                                                                                         |
+| Local license tooling follows manifest sender and purchase-origin changes while retaining test mode and local storage                                               | `scripts/deployment-config.test.mjs` local parity and alternate-manifest generation fixture; generated-file CI check                                                                      |
+| Current-domain reconnect, recovery and storage failures retain their existing authorization safeguards                                                              | `AccountEnrollmentReauthorizationTests`; `AccountEnrollmentRecoveryTests`; `AccountEnrollmentStorageRecoveryTests`; `AccountEnrollmentCompletionTests`; `NativeAccountSyncTransportTests` |
+| Old-domain or unmarked grants require fresh authorization while retaining the same Mac, owner and encryption keys; rejection or cancellation keeps sign-in required | `AccountEnrollmentReauthorizationTests.domainMigrationRetainsSavedMac`; `unsuccessfulDomainReconnectStillRequiresSignIn`                                                                  |
+| Reconnect does not report readiness if saving its checkpoint fails, and permits retry after storage recovers                                                        | `AccountEnrollmentReauthorizationTests.failedReconnectCheckpointRetainsSignInRequirement`                                                                                                 |
+| Retained account/device data, new-host passkeys, provider callbacks, native reconnection, and Sandbox restore                                                       | Actual protected staging walkthrough and private release acceptance                                                                                                                       |
 
 Production promotion uses the protected resume phase and retained accepted artifacts; see [production-domain-promotion.md](production-domain-promotion.md). Source checks and a configuration flag do not replace its runtime acceptance gates.
 
@@ -2269,12 +2278,12 @@ light/dark layouts on the provider and first-party documentation routes.
 
 ### Retained signed installer
 
-| Behavior | Verification |
-| --- | --- |
-| Only the exact retained release-tag artifact enters installation checks | `scripts/signed-installer-acceptance.test.mjs` rejects changed origin, run, version and expired artifacts; existing candidate verification checks bytes and update signature |
+| Behavior                                                                            | Verification                                                                                                                                                                        |
+| ----------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Only the exact retained release-tag artifact enters installation checks             | `scripts/signed-installer-acceptance.test.mjs` rejects changed origin, run, version and expired artifacts; existing candidate verification checks bytes and update signature        |
 | Fresh installation exercises the Developer ID app rather than rebuilt demo fixtures | Isolated `Signed installer acceptance` workflow registers the installed app with Launch Services before `SignedInstallerAcceptanceTests`; retained subject, receipt and screenshots |
-| First-run setup requires a schedule choice and actual Accessibility permission | The signed-app walkthrough cannot advance without a choice, reaches the permission screen and verifies its blocked Next action with a usable defer option |
-| Missing or skipped graphical execution cannot pass installation acceptance | The workflow requires the receipt written after the real setup assertions |
+| First-run setup requires a schedule choice and actual Accessibility permission      | The signed-app walkthrough cannot advance without a choice, reaches the permission screen and verifies its blocked Next action with a usable defer option                           |
+| Missing or skipped graphical execution cannot pass installation acceptance          | The workflow requires the receipt written after the real setup assertions                                                                                                           |
 
 This lane establishes installer trust, first-launch presentation and setup gates. Background
 permission approval, schedule enforcement, populated upgrades, account/provider
@@ -2282,22 +2291,21 @@ flows and the public updater path require their own acceptance.
 
 ### Updater release notes
 
-| Behavior | Verification |
-| --- | --- |
-| Publication includes notes for the candidate version with the retained site’s navigation, fonts, and styles | `scripts/publication.test.mjs` exercises the prepared output and unchanged retained input |
-| Missing or wrong-version notes prevent output creation | `scripts/publication.test.mjs` rejects incomplete notes before publication writes |
+| Behavior                                                                                                                                      | Verification                                                                                                         |
+| --------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Publication includes notes for the candidate version with the retained site’s navigation, fonts, and styles                                   | `scripts/publication.test.mjs` exercises the prepared output and unchanged retained input                            |
+| Missing or wrong-version notes prevent output creation                                                                                        | `scripts/publication.test.mjs` rejects incomplete notes before publication writes                                    |
 | Live acceptance accepts the expected same-origin hosting redirect and rejects unexpected destinations, missing or wrong-version updater notes | `scripts/publication.test.mjs` exercises customer-facing responses; actual deployed-page inspection remains required |
 
 ## Current-main background recovery integration
 
 The October 23 integration includes main through `35b7587` and restores the closed-window lifecycle and recovery regressions. `BackgroundIntegrationRegressionTests` checks explicit last-window process retention. `BackgroundEnforcementTests` checks real timer-driven lockout with zero ordinary windows. Isolated CI runs the UI test because local macOS killed the unsigned runner before bootstrap. The pull request records current-main verification results. Signed background-service acceptance remains a release gate.
 
-| Integration safety behavior | Regression |
-| --- | --- |
+| Integration safety behavior                                                                      | Regression                                                                                                                                                  |
+| ------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Development uninstall uses its selected bundle and leaves production and privileged state intact | `scripts/uninstall.test.mjs` executes the script inside an OS sandbox; `BackgroundServiceUninstallTests` verifies refusal preserves state and stops cleanup |
-| Background acceptance never terminates apps or shuts down after settings edits | `DemoFixtureTests.backgroundFixtureCannotShutDown` uses a controller spy and an elapsed shutdown deadline |
-| Ordinary Debug and test processes never register a supervisor | `SupervisorRegistrationPolicyTests` covers release, ordinary Debug, explicit staging, test, and demo combinations |
-
+| Background acceptance never terminates apps or shuts down after settings edits                   | `DemoFixtureTests.backgroundFixtureCannotShutDown` uses a controller spy and an elapsed shutdown deadline                                                   |
+| Ordinary Debug and test processes never register a supervisor                                    | `SupervisorRegistrationPolicyTests` covers release, ordinary Debug, explicit staging, test, and demo combinations                                           |
 
 ## Universal embedded executables
 
@@ -2327,18 +2335,18 @@ The October 23 integration includes main through `35b7587` and restores the clos
 
 `CurfewUITests` retains full setup-gate and assistant-access checks after current-main integration. Its four observed CI failures identify the current schedule instruction, use the native assistant checkbox, match the complete read-access explanation without XCTest's 128-character identifier limit, and verify Settings destination identifiers across repeated navigation. Permission-dependent content is tested separately by the minimum-window permission/helper cases.
 
-| Current capture behavior | Graphical regression |
-| --- | --- |
+| Current capture behavior                                                                               | Graphical regression                                                                                                         |
+| ------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
 | Healthy Protection captures use an explicit ready fixture; degraded states retain their own assertions | `MarketingCaptureTests.testCaptureSettingsMatrix`, `testCaptureCriticalStateMatrix`, and `testCaptureDistinctSettingsStates` |
-| Zero weekly budgets remain visible as zero in both native steppers | `MarketingCaptureTests.testCaptureDistinctSettingsStates` |
-| Denied access and interrupted keyboard blocking show the current repair action | `MarketingCaptureTests.testCaptureMenuBar` |
-| Journal prompt captures show the current reflection editor | `MarketingCaptureTests.testCaptureWorkspaceMatrix` |
+| Zero weekly budgets remain visible as zero in both native steppers                                     | `MarketingCaptureTests.testCaptureDistinctSettingsStates`                                                                    |
+| Denied access and interrupted keyboard blocking show the current repair action                         | `MarketingCaptureTests.testCaptureMenuBar`                                                                                   |
+| Journal prompt captures show the current reflection editor                                             | `MarketingCaptureTests.testCaptureWorkspaceMatrix`                                                                           |
 
-| Fixture lifecycle behavior | Regression |
-| --- | --- |
-| Ordinary visual activation preserves seeded permission and interrupted-tap health | `DemoFixtureTests.activationPreservesVisualHealth` |
-| Background acceptance activation still refreshes permission | `DemoFixtureTests.backgroundActivationRefreshesHealth` |
-| Budget and menu capture failures stop CI before the full layout sweep | `scripts/xcode-package-layout.test.mjs` verifies both existing matrices are in the preflight selection |
+| Fixture lifecycle behavior                                                        | Regression                                                                                             |
+| --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Ordinary visual activation preserves seeded permission and interrupted-tap health | `DemoFixtureTests.activationPreservesVisualHealth`                                                     |
+| Background acceptance activation still refreshes permission                       | `DemoFixtureTests.backgroundActivationRefreshesHealth`                                                 |
+| Budget and menu capture failures stop CI before the full layout sweep             | `scripts/xcode-package-layout.test.mjs` verifies both existing matrices are in the preflight selection |
 
 The zero-budget Settings capture normalizes native stepper values to numbers before asserting zero. It accepts numeric and string representations and rejects missing, nonnumeric, and nonzero values.
 
@@ -2367,7 +2375,6 @@ The zero-budget Settings capture normalizes native stepper values to numbers bef
   also rejects non-SHA or output-injection values for the verifier checkout.
   Full artifact verification against real retained bytes remains separate from
   these source-routing fixtures; a historical pass does not waive a newer gate.
-
 
 - Explicit signed-subject routing: boundary tests accept a newer patch version,
   reject old/same/malformed or missing versions and authority, and reject silent

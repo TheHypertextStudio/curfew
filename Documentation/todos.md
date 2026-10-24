@@ -3,27 +3,37 @@
 ## Worktree preparation
 
 - [x] Keep root command shortcuts separate from the independent frontend and
-  backend pnpm workspaces. Resolve frozen dependency locks through the pinned
-  setup command without a conflicting ancestor workspace.
+      backend pnpm workspaces. Resolve frozen dependency locks through the pinned
+      setup command without a conflicting ancestor workspace.
+
+## Formatting on commit
+
+- [x] Prepare the pinned formatter tools during repository setup and install the
+      managed commit hooks without replacing the existing commit-message wrapping.
+- [x] Format the source and configuration content selected for a commit while
+      retaining unstaged edits, file modes, and unrelated index entries. A missing
+      tool or formatting failure must stop the commit without partially updating it.
+- [x] Keep generated deployment files and package-manager output under their
+      existing generators rather than formatting those files independently.
 
 ## Studio app namespace
 
 - [x] Move signed app, widget, and test bundle identities beneath
-  `studio.hypertext.apps.curfew`, with isolated development variants and exact
-  helper-client trust for the new app IDs.
+      `studio.hypertext.apps.curfew`, with isolated development variants and exact
+      helper-client trust for the new app IDs.
 - [x] Use the canonical flavor identity for ownership when bundle metadata is
-  absent, with matching acquisition and release defaults. Keep historical
-  ownership records and retained storage identities compatible.
+      absent, with matching acquisition and release defaults. Keep historical
+      ownership records and retained storage identities compatible.
 - [x] Preserve existing settings, licenses, account-key services, canonical
-  filesystem storage. Migrate the development helper registration after
-  authenticated removal, and recognize old and new ownership records without
-  allowing one flavor to impersonate another.
+      filesystem storage. Migrate the development helper registration after
+      authenticated removal, and recognize old and new ownership records without
+      allowing one flavor to impersonate another.
 - [x] Use the Studio-owned production widget snapshot group
-  `group.studio.hypertext.apps.curfew`; retain development flavor groups and the
-  historical legacy-group activity migration source. Regenerate widget snapshots
-  from canonical settings instead of relocating user databases.
+      `group.studio.hypertext.apps.curfew`; retain development flavor groups and the
+      historical legacy-group activity migration source. Regenerate widget snapshots
+      from canonical settings instead of relocating user databases.
 - [ ] Issue matching Studio production profiles and verify a signed install,
-  retained data/key access, helper registration, widgets and update behavior.
+      retained data/key access, helper registration, widgets and update behavior.
 
 ## Copy, permissions, and Settings
 
@@ -38,24 +48,24 @@ The October 23, 2026 rebase resolved ten restore conflicts, then incorporated th
 ## Update retry and first-run instructions
 
 - [x] Route every homepage Mac download link through the installer-availability
-  page, including the closing footer invitation.
+      page, including the closing footer invitation.
 - [x] Observe Sparkle availability throughout an update check so the command
-  becomes available again after a failure or cancellation, and reject duplicate
-  requests while a check is in progress.
+      becomes available again after a failure or cancellation, and reject duplicate
+      requests while a check is in progress.
 - [x] Explain seven-day schedule consent and the remote-controls-only choice in
-  installation help; use the current Warnings and Limits settings destinations.
+      installation help; use the current Warnings and Limits settings destinations.
 - [x] Route the homepage download entry through the download page and describe
-  installer availability honestly until the first public Mac release exists.
+      installer availability honestly until the first public Mac release exists.
 - [x] Give the app's Plus link a visible availability destination on the homepage.
 - [ ] Verify update failure and retry in the signed release candidate, alongside
-  first-run schedule consent and a successful signed update on an isolated Mac.
+      first-run schedule consent and a successful signed update on an isolated Mac.
 
 ## Purchase restoration entry
 
 - [x] Start a new restoration form without errors from an earlier manual-key
-  activation. Keep existing licenses intact and invalidate earlier operations.
+      activation. Keep existing licenses intact and invalidate earlier operations.
 - [x] Explain app activation, inbox restoration, manual-key fallback, and offline
-  license verification in purchase help, with current product support contact.
+      license verification in purchase help, with current product support contact.
 
 ## Native wake-failure regression timing
 
@@ -67,36 +77,36 @@ The October 23, 2026 rebase resolved ten restore conflicts, then incorporated th
 ## Native reconnect regression timing
 
 - [x] Run native quality checks and graphical acceptance on hosted ARM64
-  macOS 26, matching the signed-candidate lane. Avoid Intel test-host preparation
-  failures and IconServices crashes during accessibility snapshots; retain
-  every native and UI assertion. Keep DerivedData caches separate by runner
-  architecture. Signing and release architecture selection remain unchanged.
-  Reverting the runner labels restores the prior lanes without a product or
-  data migration, but
-  requires revalidation of system accessibility before relying on its results.
+      macOS 26, matching the signed-candidate lane. Avoid Intel test-host preparation
+      failures and IconServices crashes during accessibility snapshots; retain
+      every native and UI assertion. Keep DerivedData caches separate by runner
+      architecture. Signing and release architecture selection remain unchanged.
+      Reverting the runner labels restores the prior lanes without a product or
+      data migration, but
+      requires revalidation of system accessibility before relying on its results.
 - [ ] Confirm the full app-host and graphical suites complete on their images;
-  local compilation and headless targeted tests do not replace these checks.
+      local compilation and headless targeted tests do not replace these checks.
 - [x] Run each website policy-navigation viewport as an independent browser
-  case. Preserve desktop, mobile, keyboard, policy-history and three-browser
-  coverage without accumulating three journeys under one test timeout.
+      case. Preserve desktop, mobile, keyboard, policy-history and three-browser
+      coverage without accumulating three journeys under one test timeout.
 
 - [x] Bind every browser completion to the sign-in attempt that opened it so
-  delayed cancellation cannot close a replacement sign-in. Keep existing
-  enrollment and credentials untouched when an old completion is ignored.
+      delayed cancellation cannot close a replacement sign-in. Keep existing
+      enrollment and credentials untouched when an old completion is ignored.
 - [x] Verify override removal and partial-poll health by awaiting a completed
-  reconciliation instead of requiring network callbacks within 200 ms. Keep
-  independent polling coverage for a wake request that never returns.
+      reconciliation instead of requiring network callbacks within 200 ms. Keep
+      independent polling coverage for a wake request that never returns.
 - [x] Record native sign-in presentation, browser-start, and browser-completion
-  failures in the existing OAuth diagnostic category. Include only the error
-  domain and numeric code, never the sign-in URL, credentials, or response body.
-  This changes diagnostics only; reconnect, consent, and enforcement rules stay
-  unchanged. Reverting these logs does not require a data migration.
+      failures in the existing OAuth diagnostic category. Include only the error
+      domain and numeric code, never the sign-in URL, credentials, or response body.
+      This changes diagnostics only; reconnect, consent, and enforcement rules stay
+      unchanged. Reverting these logs does not require a data migration.
 
 - [x] Wait for the new polling session's health event independently of the
-  inverted old-session failure expectation. Preserve the reconnect isolation
-  assertion under hosted runner load without treating a 200 ms wait as a
-  transport latency requirement. Production transport and installed behavior
-  are unchanged; verify the full native suite before release.
+      inverted old-session failure expectation. Preserve the reconnect isolation
+      assertion under hosted runner load without treating a 200 ms wait as a
+      transport latency requirement. Production transport and installed behavior
+      are unchanged; verify the full native suite before release.
 
 ## Production publication
 
@@ -105,15 +115,15 @@ The October 23, 2026 rebase resolved ten restore conflicts, then incorporated th
   entry, service routes, documentation, downloads and genuine update-feed bytes;
   accept the actual public site after separately approved cutover.
 - [x] Remove the standalone Pages-only website publication workflow and its
-  custom preparation/verification wrapper. Use native deployment history and
-  retain recorded native versions and routing baselines for explicit recovery.
+      custom preparation/verification wrapper. Use native deployment history and
+      retain recorded native versions and routing baselines for explicit recovery.
 - [x] Remove website-only domain and provider-inventory wrappers. Keep production
-  Cloudflare credentials out of PR validation and use native operator commands
-  for approved domain administration.
+      Cloudflare credentials out of PR validation and use native operator commands
+      for approved domain administration.
 - [x] Install approved Developer ID app/widget provisioning profiles for signed
-  candidates, bind archive/export to their UUIDs, and remove job-owned files.
+      candidates, bind archive/export to their UUIDs, and remove job-owned files.
 - [ ] Resolve Apple identifier ownership and supply the issued production
-  profiles; verify archive, signing, notarization, and native acceptance.
+      profiles; verify archive, signing, notarization, and native acceptance.
 - [x] Retain the browser-validated static website with a content/configuration
       identity; reject obsolete Pages runtime files.
 - [x] Provide manual activation of matching signed candidate and website bytes,
@@ -129,16 +139,16 @@ The October 23, 2026 rebase resolved ten restore conflicts, then incorporated th
 ## Signed emergency-release timestamp persistence
 
 - [x] Sign emergency releases using the timestamp precision stored in their existing
-  JSON record, so a release remains verifiable after saving and loading at a second
-  boundary. Preserve the signing contract, record format and grant expiry bound.
+      JSON record, so a release remains verifiable after saving and loading at a second
+      boundary. Preserve the signing contract, record format and grant expiry bound.
 - [x] Cover deterministic boundary timestamps and validate the native checks before
-  integrating the website and documentation changes.
+      integrating the website and documentation changes.
 
 ## Website domain preparation
 
 - [x] Activate the public website on the new main domain and permanently redirect
-  public old-domain paths and queries, retaining existing account access and
-  native update-feed state independently of the signed app release.
+      public old-domain paths and queries, retaining existing account access and
+      native update-feed state independently of the signed app release.
 
 - [x] Document Worker hostname setup through the shared hosting configuration and
       native deployment and explicit route/DNS reversal for approved recovery.
@@ -150,45 +160,45 @@ The October 23, 2026 rebase resolved ten restore conflicts, then incorporated th
 ## License deployment configuration
 
 - [x] Require a verified shared deployment artifact for license cf builds,
-  retain the existing Worker/account/KV identities, and expose configuration
-  provenance on health responses without changing the health payload.
+      retain the existing Worker/account/KV identities, and expose configuration
+      provenance on health responses without changing the health payload.
 - [x] Validate license Worker behavior, types, artifact identity, and the same
-  cf build/prebuilt dry-run in CI before deployment.
+      cf build/prebuilt dry-run in CI before deployment.
 - [x] Isolate license test configuration and discovery when CI checks out the
-  app beneath the backend repository; never inherit the enclosing test runner.
+      app beneath the backend repository; never inherit the enclosing test runner.
 - [ ] Disable the independent license Git build before coordinated activation;
-  deploy the approved artifact with retained signing secrets and verify its
-  health identity, licensing, and Stripe delivery on the new hostname.
+      deploy the approved artifact with retained signing secrets and verify its
+      health identity, licensing, and Stripe delivery on the new hostname.
 
 ## Public legal policies
 
 - [x] Standardize operator, official contact, eligibility, authorized content use,
-  adult purchases with organization authority where relevant, consumer rights,
-  and source-backed privacy/retention disclosures including local MCP activity
-  and device-attributed summaries. Current public contact links distinguish
-  product help and general inquiries from official Studio legal/privacy notices.
-  Retention describes scheduled batch cleanup without assuming a cron interval.
-  Preserve previous policies in native `/legal/history` routes and retain HTML
-  aliases. Terms changes use a 30-day existing-user notice; lifetime/MIT/refund
-  rights remain intact.
+      adult purchases with organization authority where relevant, consumer rights,
+      and source-backed privacy/retention disclosures including local MCP activity
+      and device-attributed summaries. Current public contact links distinguish
+      product help and general inquiries from official Studio legal/privacy notices.
+      Retention describes scheduled batch cleanup without assuming a cron interval.
+      Preserve previous policies in native `/legal/history` routes and retain HTML
+      aliases. Terms changes use a 30-day existing-user notice; lifetime/MIT/refund
+      rights remain intact.
 - [ ] Publish policies and deliver the material-change notice through account
-  communications before relying on revised Terms for existing users. Verify
-  the legal mailbox and deployed routes separately from local site checks.
+      communications before relying on revised Terms for existing users. Verify
+      the legal mailbox and deployed routes separately from local site checks.
 
 ## Cross-browser account callback (2026-10-13)
 
 - [x] Accept a user-clicked `account-oauth/callback` continuation using the
-  already registered, environment-specific scheme only for an exact pending
-  state. Convert it to the claimed HTTPS callback before the existing native
-  exchange; leave the PKCE verifier in memory and Docket routing separate.
-  Headless CurfewKit tests cover malformed and cross-environment URLs; an
-  app-host regression covers pending-state consumption and Docket isolation.
-  No wire format, entitlement, account data, or app version changed.
+      already registered, environment-specific scheme only for an exact pending
+      state. Convert it to the claimed HTTPS callback before the existing native
+      exchange; leave the PKCE verifier in memory and Docket routing separate.
+      Headless CurfewKit tests cover malformed and cross-environment URLs; an
+      app-host regression covers pending-state consumption and Docket isolation.
+      No wire format, entitlement, account data, or app version changed.
 - [ ] Run the app-host regression on hosted CI, install a signed update, and
-  prove one cross-browser Studio Dev sign-in reaches the same enrolled Mac and
-  reports online through the staging connector. Local headless tests/builds
-  cannot establish that live callback. Rollback is the prior signed app; do
-  not erase the enrollment or repeat authenticator/recovery setup.
+      prove one cross-browser Studio Dev sign-in reaches the same enrolled Mac and
+      reports online through the staging connector. Local headless tests/builds
+      cannot establish that live callback. Rollback is the prior signed app; do
+      not erase the enrollment or repeat authenticator/recovery setup.
 
 ## Native reconnect after browser sign-in (2026-10-13)
 
@@ -211,10 +221,10 @@ The October 23, 2026 rebase resolved ten restore conflicts, then incorporated th
   approval, run during maintenance, or make the one-second UI clock block.
   This lets a transient helper interruption recover without opening Settings.
 - [ ] Prove the signed installed Studio Dev app completes one same-account
-  reconnect and publishes fresh online status to the authenticated staging
-  connector. Do not repeat authenticator or recovery setup, erase enrollment,
-  or issue a lock/unlock during this check. Rollback is the prior signed Dev
-  app; preserve stored credentials, device keys, and lockout state.
+      reconnect and publishes fresh online status to the authenticated staging
+      connector. Do not repeat authenticator or recovery setup, erase enrollment,
+      or issue a lock/unlock during this check. Rollback is the prior signed Dev
+      app; preserve stored credentials, device keys, and lockout state.
 
 ## Safe release candidate boundary
 
@@ -236,30 +246,30 @@ The October 23, 2026 rebase resolved ten restore conflicts, then incorporated th
 ## Daybreak test-window lifecycle (2026-10-13)
 
 - [x] Match the production daybreak-window cleanup in the native regressions.
-  Two hosted parallel test attempts ended in a SIGSEGV and left hundreds of
-  tests unrun. A diagnostic serial attempt completed 1,004 of 1,006 tests and
-  isolated both failures to the new daybreak window tests; its crash report
-  faults in `objc_release` while the test host drains an autorelease pool.
-  Those tests called `close()` on their windows, unlike production, which uses
-  `orderOut(nil)` and releases its strong references. The tests now use that
-  same lifecycle. The temporary serial CI setting was removed because it did
-  not resolve the crash. This is test-only: installed behavior, signing,
-  permissions, and remote-command handling do not change. Hosted full-suite
-  and UI-capture CI must pass before release acceptance.
+      Two hosted parallel test attempts ended in a SIGSEGV and left hundreds of
+      tests unrun. A diagnostic serial attempt completed 1,004 of 1,006 tests and
+      isolated both failures to the new daybreak window tests; its crash report
+      faults in `objc_release` while the test host drains an autorelease pool.
+      Those tests called `close()` on their windows, unlike production, which uses
+      `orderOut(nil)` and releases its strong references. The tests now use that
+      same lifecycle. The temporary serial CI setting was removed because it did
+      not resolve the crash. This is test-only: installed behavior, signing,
+      permissions, and remote-command handling do not change. Hosted full-suite
+      and UI-capture CI must pass before release acceptance.
 
 - [x] Make the override-vs-wake cadence regression event-driven. After the
-  daybreak tests passed, hosted CI 38469181460 completed 1,005 of 1,006 native
-  tests; the lone failure was a 150 ms wall-clock expectation under runner
-  load. The test now waits for the wake request to begin, holds its response
-  pending, and counts two override polls that occur afterward. Its five-second
-  expectation is only a deadlock guard, not a cadence or latency requirement;
-  the production transport and its 20 ms fixture interval are unchanged.
+      daybreak tests passed, hosted CI 38469181460 completed 1,005 of 1,006 native
+      tests; the lone failure was a 150 ms wall-clock expectation under runner
+      load. The test now waits for the wake request to begin, holds its response
+      pending, and counts two override polls that occur afterward. Its five-second
+      expectation is only a deadlock guard, not a cadence or latency requirement;
+      the production transport and its 20 ms fixture interval are unchanged.
 
 - [x] Keep the override-failure health regression event-bound under parallel
-  test-host scheduling. The account-poll and offline callbacks must both occur,
-  and a healthy callback must remain absent throughout the bounded wait. The
-  wait is a test deadlock guard, not a product latency target; transport behavior
-  and release configuration are unchanged.
+      test-host scheduling. The account-poll and offline callbacks must both occur,
+      and a healthy callback must remain absent throughout the bounded wait. The
+      wait is a test deadlock guard, not a product latency target; transport behavior
+      and release configuration are unchanged.
 
 ## Renewed account connection handoff (2026-10-12)
 
@@ -278,39 +288,39 @@ The October 23, 2026 rebase resolved ten restore conflicts, then incorporated th
   but restores the prior false sign-in-required behavior on local write errors.
 
 - [x] Keep revoked refresh credentials distinct from temporary offline status.
-  The native transport regression waits for the terminal sign-in-required
-  callback before checking that no offline callback follows; its bounded wait
-  is a deadlock guard, not an OAuth latency requirement. This changes only test
-  synchronization, not credential handling or installed-app behavior.
+      The native transport regression waits for the terminal sign-in-required
+      callback before checking that no offline callback follows; its bounded wait
+      is a deadlock guard, not an OAuth latency requirement. This changes only test
+      synchronization, not credential handling or installed-app behavior.
 
 - [x] Resume the native transport after successful same-account reauthentication.
-  The previous flow persisted credentials but left the rejected transport stopped
-  and the engine active, so another ordinary start was ignored. Reauthentication
-  now returns explicit success; Connections checks the enrollment is unchanged
-  and drains/restarts transport. Cancellation and failure do not restart it.
-  Pending encrypted changes survive; maintenance and intervening lifecycle
-  changes prevent a stale restart. The actual engine regression failed first
-  with one connection instead of two and a still-rejected status, then passed
-  in the existing background harness. At 06:13:31Z the signed installed update
-  reports online with fresh disarmed status through the actual Codex connector.
-  A second interactive reauthentication is not claimed. No wire, version,
-  enrollment, permission, or enforcement change is introduced. Rollback is the
-  prior signed app with stored credentials and all device state preserved.
-  CI also exposed two enforcement fixtures that never enabled enforcement and
-  an overlong helper explanation; the fixtures now explicitly enable their
-  isolated models, and the permission explanation uses the existing footer.
-  The authorization prompt key now has explicit C-string lifetime through the
-  system call, resolving a compiler pointer-lifetime warning without adding
-  rights or another prompt.
+      The previous flow persisted credentials but left the rejected transport stopped
+      and the engine active, so another ordinary start was ignored. Reauthentication
+      now returns explicit success; Connections checks the enrollment is unchanged
+      and drains/restarts transport. Cancellation and failure do not restart it.
+      Pending encrypted changes survive; maintenance and intervening lifecycle
+      changes prevent a stale restart. The actual engine regression failed first
+      with one connection instead of two and a still-rejected status, then passed
+      in the existing background harness. At 06:13:31Z the signed installed update
+      reports online with fresh disarmed status through the actual Codex connector.
+      A second interactive reauthentication is not claimed. No wire, version,
+      enrollment, permission, or enforcement change is introduced. Rollback is the
+      prior signed app with stored credentials and all device state preserved.
+      CI also exposed two enforcement fixtures that never enabled enforcement and
+      an overlong helper explanation; the fixtures now explicitly enable their
+      isolated models, and the permission explanation uses the existing footer.
+      The authorization prompt key now has explicit C-string lifetime through the
+      system call, resolving a compiler pointer-lifetime warning without adding
+      rights or another prompt.
 
 ## CI action version assertions (2026-10-12)
 
 - [x] Accept numeric major, minor, and patch action tags in the unit-test
-  diagnostics assertion. The pinned `actions/upload-artifact@v7.0.2` remains;
-  failure-only upload, artifact name, and result-bundle path are still required.
-  Focused Node script tests verify this correction; native build/lint checks are
-  outside this fix's authorized validation scope. No app behavior changes.
-  Rollback is the assertion change alone; action upgrades need not be reverted.
+      diagnostics assertion. The pinned `actions/upload-artifact@v7.0.2` remains;
+      failure-only upload, artifact name, and result-bundle path are still required.
+      Focused Node script tests verify this correction; native build/lint checks are
+      outside this fix's authorized validation scope. No app behavior changes.
+      Rollback is the assertion change alone; action upgrades need not be reverted.
 
 ## Idle account-sync write budget (2026-10-12)
 
@@ -347,43 +357,43 @@ The October 23, 2026 rebase resolved ten restore conflicts, then incorporated th
   CI 38307160113 exposed fixture teardown traffic and failed status refresh/cadence;
   CI 38308319780/38308503697 reproduced one stale operation instead of zero.
   - [x] Allow the hosted ordering test three seconds for its simulated result
-    callback under scheduler load while retaining the exact expired-result,
-    fresh-result, then command-fetch assertion. This adjusts test timing only;
-    native result publication and device behavior are unchanged.
-  The pre-operation generation/cancellation guard and fixture cancellation are
-  fixed; full native CI is still required. No runtime timeout budgets were increased.
-  CI 38309791533 exposed duplicate successful result uploads while the daemon
-  awaits receipt verification. Connection-local acknowledged-result deduplication
-  now preserves retryability and clears on reconnect. Authorized HTTP checks
-  cancellation across challenge suspension; cadence fixtures await session
-  invalidation before releasing handlers. Final hosted verification remains open.
-  CI 38310819506 reproduced suppressed replacement delivery after receipt removal;
-  suppression now requires the exact still-present candidate and never represents
-  daemon acceptance. Protocol fixtures snapshot request handlers at construction
-  as invalidation alone did not prevent a delayed startLoading handler race.
-  CI 38311757940 passed those regressions and exposed the equivalent deferred
-  handler race in the general transport fixture; its snapshot is now aligned.
-  CI 38312352269 still failed both missing-handler cases, so snapshots alone
-  were insufficient. CI 38313551603 traces now prove Foundation constructed
-  cadence requests after session invalidation; cadence mock behavior is bound
-  per session, with canceled tombstones instead of a next-test global lookup.
-  CI 38314500184 passed all cadence cases but found the same cleared-handler
-  defect in the general fixture. Both fixtures now bind per-session behavior;
-  the reconnect regression explicitly replaces its own active mock behavior.
-  Hosted green verification remains outstanding. Async fixture teardown cancels
-  and joins currently owned operations, with a suspended-operation regression and request/session
-  lifecycle diagnostics. The intentional reconnect race keeps immediate
-  disconnect. Hosted GREEN remains open; normal
-  interactive disconnect is unchanged.
-  Native integration verification is still in progress;
-  app-hosted tests are not run on this Mac because they can steal focus.
-  Keep a 60-second independent command fallback inside the five-minute delivery
-  TTL, coalesced event reconciliation and slower peer/wake polling. Failed sends,
-  cancellation and reconnect cannot be mistaken for acknowledged synchronization.
-  No wire/schema/version change. Do not ship deduplication without socket liveness:
-  it would otherwise make an unchanged Mac appear offline. Installed acceptance
-  and a measured indexed-write budget remain open. Rollback is the previous app
-  build with enrollment preserved; no new remote lock is authorized.
+        callback under scheduler load while retaining the exact expired-result,
+        fresh-result, then command-fetch assertion. This adjusts test timing only;
+        native result publication and device behavior are unchanged.
+        The pre-operation generation/cancellation guard and fixture cancellation are
+        fixed; full native CI is still required. No runtime timeout budgets were increased.
+        CI 38309791533 exposed duplicate successful result uploads while the daemon
+        awaits receipt verification. Connection-local acknowledged-result deduplication
+        now preserves retryability and clears on reconnect. Authorized HTTP checks
+        cancellation across challenge suspension; cadence fixtures await session
+        invalidation before releasing handlers. Final hosted verification remains open.
+        CI 38310819506 reproduced suppressed replacement delivery after receipt removal;
+        suppression now requires the exact still-present candidate and never represents
+        daemon acceptance. Protocol fixtures snapshot request handlers at construction
+        as invalidation alone did not prevent a delayed startLoading handler race.
+        CI 38311757940 passed those regressions and exposed the equivalent deferred
+        handler race in the general transport fixture; its snapshot is now aligned.
+        CI 38312352269 still failed both missing-handler cases, so snapshots alone
+        were insufficient. CI 38313551603 traces now prove Foundation constructed
+        cadence requests after session invalidation; cadence mock behavior is bound
+        per session, with canceled tombstones instead of a next-test global lookup.
+        CI 38314500184 passed all cadence cases but found the same cleared-handler
+        defect in the general fixture. Both fixtures now bind per-session behavior;
+        the reconnect regression explicitly replaces its own active mock behavior.
+        Hosted green verification remains outstanding. Async fixture teardown cancels
+        and joins currently owned operations, with a suspended-operation regression and request/session
+        lifecycle diagnostics. The intentional reconnect race keeps immediate
+        disconnect. Hosted GREEN remains open; normal
+        interactive disconnect is unchanged.
+        Native integration verification is still in progress;
+        app-hosted tests are not run on this Mac because they can steal focus.
+        Keep a 60-second independent command fallback inside the five-minute delivery
+        TTL, coalesced event reconciliation and slower peer/wake polling. Failed sends,
+        cancellation and reconnect cannot be mistaken for acknowledged synchronization.
+        No wire/schema/version change. Do not ship deduplication without socket liveness:
+        it would otherwise make an unchanged Mac appear offline. Installed acceptance
+        and a measured indexed-write budget remain open. Rollback is the previous app
+        build with enrollment preserved; no new remote lock is authorized.
 
 Source: [`Documentation/plan.md`](./plan.md)
 Test Matrix: [`Documentation/todo-test-matrix.md`](./todo-test-matrix.md)
@@ -566,7 +576,7 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 
 Distinct from §11: the activity store is a queryable rollup that feeds the
 retrospective, so it records the dozen event kinds the UI aggregates. The audit
-log is a low-level, append-only, human-readable record of what Curfew *did* —
+log is a low-level, append-only, human-readable record of what Curfew _did_ —
 including the decisions that never surface in the UI, such as a deferred
 schedule change, a consent verdict on an MCP request, Accessibility trust lost
 mid-lockout, and every action the root daemon takes. Format specification:
@@ -574,15 +584,15 @@ mid-lockout, and every action the root daemon takes. Format specification:
 
 - [x] JSON Lines records with schema version, ISO-8601 timestamp with offset, per-stream sequence, writing stream, actor, event type, and before→after state.
 - [x] Separate file per writer — app under `~/Library/Logs/Curfew/`, root daemon under `/Library/Logs/Curfew/` — so the two never interleave and no cross-privilege lock protocol is needed.
-- [x] SHA-256 hash chain per stream, spanning rotations, recovered from the file on restart. Tamper-*evident*, not tamper-proof; the daemon stream is root-owned and therefore the stronger of the two.
+- [x] SHA-256 hash chain per stream, spanning rotations, recovered from the file on restart. Tamper-_evident_, not tamper-proof; the daemon stream is root-owned and therefore the stronger of the two.
 - [x] Size + age rotation with a 25 MiB per-stream ceiling (5 MiB × 5 segments) and 90-day retention on rotated segments.
 - [x] Redaction: reflection prose and override justifications are never written; a length and a truncated digest go in their place. MCP tool arguments are digested for the same reason.
 - [x] Wired to enforcement phase transitions, lockout start/end with an end reason, schedule requested/deferred/applied/cancelled, extension and override grants and refusals with budget, MCP consent verdicts with the calling origin, app launch/quit/permission/respawn-guard state, presence, and the app-side auto-shutdown workflow.
-- [x] Daemon wiring, split by layer: `main.swift` records what it *read* (deadline, heartbeat, live claims, break-glass release) and `DaemonEnforcementRuntime.apply` records what was *done* (shutdown issued, cancelled with a reason, held, stand-down, deferral window opening and closing). The same branch that calls an effect writes its record, so the log cannot report a cancellation that never happened.
+- [x] Daemon wiring, split by layer: `main.swift` records what it _read_ (deadline, heartbeat, live claims, break-glass release) and `DaemonEnforcementRuntime.apply` records what was _done_ (shutdown issued, cancelled with a reason, held, stand-down, deferral window opening and closing). The same branch that calls an effect writes its record, so the log cannot report a cancellation that never happened.
 - [x] Observation records extracted from `main.swift` into `DaemonAuditObserver` so they are reachable by tests. They were a private function in a top-level script and shipped one-directional: break-glass recorded its start and never its end. Every dimension is now asserted in both directions.
 - [x] `daemon.shutdown_issued` is written from the launch result rather than before it, so a `/sbin/shutdown` that fails to start records only `daemon.shutdown_failed`. The log cannot assert a root shutdown that never happened.
 - [x] Protected-work carve-out events: `protected_work.active` / `.cleared`, `break_glass.observed`, `daemon.shutdown_cancelled`, `daemon.shutdown_held`, `daemon.stand_down`, `daemon.deferral_opened` / `.closed`, plus the app-side `shutdown.deferred` and `shutdown.released_by_break_glass`.
-- [x] MCP consent resolution is split by *who decided* (`approveMCPRequest`/`denyMCPRequest` for the consent sheet, `autoApproveMCPRequest`/`denyMCPRequestByPolicy` for the policy engine) so the actor is structural. The first shape shared one function between human clicks and automatic policy and recorded every policy refusal as a user decision, and every auto-approval twice.
+- [x] MCP consent resolution is split by _who decided_ (`approveMCPRequest`/`denyMCPRequest` for the consent sheet, `autoApproveMCPRequest`/`denyMCPRequestByPolicy` for the policy engine) so the actor is structural. The first shape shared one function between human clicks and automatic policy and recorded every policy refusal as a user decision, and every auto-approval twice.
 - [ ] Attribute `curfew-ctl` separately from `curfew-mcp`. Needs a `client` field on `MCPPendingRequest`, which is a `curfew-protocols` change and therefore a three-repo ceremony.
 - [ ] Surface the log from the app UI or `curfew-ctl` (e.g. `curfew-ctl audit --since`). Reading it today means `jq` on the file.
 
@@ -671,7 +681,7 @@ mid-lockout, and every action the root daemon takes. Format specification:
 
 - [x] `.github/workflows/ci.yml` — format + lint + test + build on push/PR.
 - [x] Local and release checks use the same verified SwiftFormat release,
-  with a shared user cache and explicit archive/executable integrity checks.
+      with a shared user cache and explicit archive/executable integrity checks.
 - [x] `.github/workflows/release.yml` — archive + sign + notarize + DMG on tag push.
 - [x] `scripts/build-dmg.sh` — `create-dmg` wrapper.
 - [x] MIT `LICENSE` file.
@@ -718,6 +728,7 @@ in this branch. The audit's M1 (uninstall during lockout) was reclassified
 as an opt-in feature per the user's product direction and is not blocking.
 
 ### Phase 1 — trivial bypasses (v0.1.x)
+
 - [x] **C1** — `CURFEW_SKIP_ENFORCEMENT` is honored only in Debug; Release always arms.
 - [x] **C2** — `PersistentLockdown` auto-installs in Release via the new `RespawnGuardControlling` seam; Debug uses `NoOpRespawnGuard`.
 - [x] **C5** — `SchedulePolicyEngine.classifyChange` covers `mode` and `hoursLimitMinutes`; mode flips and hours-budget bumps trigger the 24-hour cooldown.
@@ -729,6 +740,7 @@ as an opt-in feature per the user's product direction and is not blocking.
       whose changing code hash makes an enabled TCC row misleading.
 
 ### Phase 2 — v0.2 hardening
+
 - [x] **C3** — Privileged daemon now enforces: detects stale app heartbeat during lockout and invokes `/sbin/shutdown -h +1` as root.
 - [x] **C4** — Daemon shadow-copies the durable record to `/Library/Application Support/Curfew/lockout-deadline.json` so a user delete of the user-side file can't end-run the deadline.
 - [x] **C6** — `request_override` removed from the MCP tool surface; the friction model (cooldown + reason + hold) stays in-app where it belongs.
@@ -740,6 +752,7 @@ as an opt-in feature per the user's product direction and is not blocking.
 - [x] **M8** — `ExtensionBudgetTracker` reconstruction preserves `lastResetBoundary` via the new `seedLastResetBoundary` init param.
 
 ### Phase 3 — minor + arch
+
 - [x] **m1** — T-30/T-15 docstring matches the actual notification-only behavior (overlay starts at T-5).
 - [x] **m2** — `ActivityStore` opens with WAL + NORMAL synchronous; mid-write power loss rolls back instead of corrupting rows.
 - [x] **m3** — `mostRecentResetBoundary` returns `nil` on pathological calendar arithmetic instead of falling back to today.
@@ -757,35 +770,35 @@ specification — captured / derived / retained, consent, limitations — is in
 `Documentation/presence-detection.md`.
 
 - [x] **P1** — `PresenceFusion` crosses `IdleWatcher`'s verdict with a camera
-  person signal into four states: `working`, `present_idle`, `absent`,
-  `unknown`. HID activity wins outright; `unknown` is the honest answer when
-  there is no camera signal and is never collapsed into `absent`.
+      person signal into four states: `working`, `present_idle`, `absent`,
+      `unknown`. HID activity wins outright; `unknown` is the honest answer when
+      there is no camera signal and is never collapsed into `absent`.
 - [x] **P2** — `VisionCameraPresenceSensor` detects a human shape on-device with
-  `VNDetectHumanRectanglesRequest`. No identification, no face print, no image
-  written or transmitted; frames exist for one Vision call and only a boolean
-  survives.
+      `VNDetectHumanRectanglesRequest`. No identification, no face print, no image
+      written or transmitted; frames exist for one Vision call and only a boolean
+      survives.
 - [x] **P3** — `PresenceMonitor` is the sole caller of `start()`, gated on the
-  user's setting **and** live TCC authorization, rechecked every tick so a
-  revocation in System Settings takes the camera down within a second.
+      user's setting **and** live TCC authorization, rechecked every tick so a
+      revocation in System Settings takes the camera down within a second.
 - [x] **P4** — `PresenceDetectionPolicy` defaults to `cameraEnabled: false`, and
-  every decode path (including a settings blob predating the feature) falls back
-  to that default. No migration turns the camera on.
+      every decode path (including a settings blob predating the feature) falls back
+      to that default. No migration turns the camera on.
 - [x] **P5** — `NSCameraUsageDescription` set on both Debug and Release app
-  configurations; `enablePresenceDetection()` prompts before persisting intent,
-  so a refused grant never leaves a stored intent to run a camera.
+      configurations; `enablePresenceDetection()` prompts before persisting intent,
+      so a refused grant never leaves a stored intent to run a camera.
 - [x] **P6** — `CameraLiveIndicator` renders in Settings and the menu-bar
-  popover only while a session is live, alongside the system's own green light.
+      popover only while a session is live, alongside the system's own green light.
 - [x] **P7** — `DistractionWarningPolicy` nudges a sustained present-but-idle
-  user during `working` / `warning` only, never at an empty chair, never during
-  lockout or a day off, and at most once per repeat window.
+      user during `working` / `warning` only, never at an empty chair, never during
+      lockout or a day off, and at most once per repeat window.
 - [x] **P8** — Five audit events (`presence.state_changed`,
-  `presence.camera_started` / `_stopped`,
-  `presence.camera_authorization_changed`, `presence.distraction_warned`) follow
-  the existing envelope. `presence.changed` is unchanged so existing parsers keep
-  working. No record can carry image data.
+      `presence.camera_started` / `_stopped`,
+      `presence.camera_authorization_changed`, `presence.distraction_warned`) follow
+      the existing envelope. `presence.changed` is unchanged so existing parsers keep
+      working. No record can carry image data.
 - [x] **P9** — Observation staleness (20 s) decays a wedged capture session to
-  `unavailable` rather than pinning a verdict; a future-dated reading is
-  rejected so a backwards clock step cannot extend a reading's life.
+      `unavailable` rather than pinning a verdict; a future-dated reading is
+      rejected so a backwards clock step cannot extend a reading's life.
 
 Risk and rollback: the feature is inert until switched on, so the rollback is
 the shipped default. Reverting the commit removes the camera code entirely; a
@@ -871,93 +884,93 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
 - [x] Add Debug-only Settings and blocker fixtures that use temporary or
       in-memory state. Remove blocker fixture data from production output.
 - [-] Ship and verify the Chrome extension and native messaging host with a
-      signed app. The Web Store draft, production extension identity, Settings
-      acceptance, uninstall cleanup, and release rollback drill remain open.
+  signed app. The Web Store draft, production extension identity, Settings
+  acceptance, uninstall cleanup, and release rollback drill remain open.
 
 ## 18. Verification (v0.1 release candidate)
 
 - [-] Prove remote account enrollment and signed phone-to-Mac lock/unlock with
-      an isolated Hypertext Studio development app. The additive `StudioDev`
-      configuration builds `Curfew Studio Dev.app` with distinct app/widget IDs,
-      App Group, daemon label, local state, Keychain services, and callback
-      scheme; Debug and Release identities are unchanged. A Studio-bundled
-      helper recovers its flavor from the app even if launch environment is
-      missing or conflicting. Studio Dev does not claim the personal Chrome
-      native host, cannot issue or cancel root shutdown, yields remote lock
-      acceptance and daemon effects to a live higher-priority Curfew, and
-      uninstalls only its own state. Studio uninstall unregisters its daemon
-      and login item before erasing state; if either unregister fails, it
-      leaves the app and saved state in place with an actionable error.
-      Focused tests and an unsigned artifact build cover these boundaries.
-      The release-contract test also checks that both Debug and StudioDev
-      compile embedded tools for staging while Release does not.
-      The Studio App ID and App Group are registered in Apple Developer;
-      provisioned company signing and installation of the isolated Studio Dev
-      app have been observed. Its account enrollment reached the Recovery Key
-      acknowledgement. As of 2026-10-12, launchd reports the Studio helper
-      registered with a 15-second interval and last exit code zero. Codex's
-      authenticated MCP connection previously reported the Mac online with fresh native
-      status after curfew-sync PR #42. The previously authorized command
-      `d5c310ce-7bcf-4ce8-9cd0-87c98ba3a50a` has an applied receipt at
-      `07:00:55Z`, with deadline `07:05:55Z`; the app audit stream records
-      leaving the locked phase at that deadline. This does not establish
-      visible blocking, Claude phone execution, or remote unlock. Those
-      remain unverified; do not send another lock to repeat this check
-      without renewed user direction. An unsigned build alone is not a
-      release or runtime proof. Operationally, install only the correctly
-      provisioned Studio app after comparing the built team, entitlements,
-      destination, and personal install. Rollback removes only the Studio
-      bundle and its flavor-scoped state; do not run the production uninstall
-      script or change the existing personal App IDs. The protocol consumer
-      now pins the separately released 0.0.11 contract; this is not signed
-      installation or phone-to-Mac proof.
-      Latest signed-update verification supersedes the earlier readiness result:
-      the installed app is offline, the existing helper registration lacks its
-      authenticated XPC endpoint, and Codex requires fresh OAuth authorization.
-      Reconnect navigation fails in both Chrome and the hidden in-app browser,
-      while ordinary sign-in loads. Staging logs identify D1 daily write quota
-      exhaustion in authorization and token refresh; retry saved credentials
-      after the quota reset before requiring another sign-in.
-      Preserve the running helper and protected state until trusted maintenance
-      is available; see the current findings in
-      `Documentation/remote-mcp-acceptance.md`. No new control command was sent.
-      Superseding acceptance on 2026-10-13: after the signed Studio Dev app
-      launched armed and healthy, a separately authorized five-minute Codex
-      Staging command had an applied daemon receipt, a live locked report, an
-      installed-app `lockout.started` event, and an opaque full-screen Curfew
-      window. At the deadline, the report returned to working, the app logged
-      `lockout.ended`, and that window disappeared. This proves physical
-      enforcement and natural release for the signed dev app and Codex staging
-      connector; it does not prove Claude-phone execution, remote unlock, or a
-      downloadable production release. Do not repeat device-control commands
-      without new authorization. See `Documentation/remote-mcp-acceptance.md`.
+  an isolated Hypertext Studio development app. The additive `StudioDev`
+  configuration builds `Curfew Studio Dev.app` with distinct app/widget IDs,
+  App Group, daemon label, local state, Keychain services, and callback
+  scheme; Debug and Release identities are unchanged. A Studio-bundled
+  helper recovers its flavor from the app even if launch environment is
+  missing or conflicting. Studio Dev does not claim the personal Chrome
+  native host, cannot issue or cancel root shutdown, yields remote lock
+  acceptance and daemon effects to a live higher-priority Curfew, and
+  uninstalls only its own state. Studio uninstall unregisters its daemon
+  and login item before erasing state; if either unregister fails, it
+  leaves the app and saved state in place with an actionable error.
+  Focused tests and an unsigned artifact build cover these boundaries.
+  The release-contract test also checks that both Debug and StudioDev
+  compile embedded tools for staging while Release does not.
+  The Studio App ID and App Group are registered in Apple Developer;
+  provisioned company signing and installation of the isolated Studio Dev
+  app have been observed. Its account enrollment reached the Recovery Key
+  acknowledgement. As of 2026-10-12, launchd reports the Studio helper
+  registered with a 15-second interval and last exit code zero. Codex's
+  authenticated MCP connection previously reported the Mac online with fresh native
+  status after curfew-sync PR #42. The previously authorized command
+  `d5c310ce-7bcf-4ce8-9cd0-87c98ba3a50a` has an applied receipt at
+  `07:00:55Z`, with deadline `07:05:55Z`; the app audit stream records
+  leaving the locked phase at that deadline. This does not establish
+  visible blocking, Claude phone execution, or remote unlock. Those
+  remain unverified; do not send another lock to repeat this check
+  without renewed user direction. An unsigned build alone is not a
+  release or runtime proof. Operationally, install only the correctly
+  provisioned Studio app after comparing the built team, entitlements,
+  destination, and personal install. Rollback removes only the Studio
+  bundle and its flavor-scoped state; do not run the production uninstall
+  script or change the existing personal App IDs. The protocol consumer
+  now pins the separately released 0.0.11 contract; this is not signed
+  installation or phone-to-Mac proof.
+  Latest signed-update verification supersedes the earlier readiness result:
+  the installed app is offline, the existing helper registration lacks its
+  authenticated XPC endpoint, and Codex requires fresh OAuth authorization.
+  Reconnect navigation fails in both Chrome and the hidden in-app browser,
+  while ordinary sign-in loads. Staging logs identify D1 daily write quota
+  exhaustion in authorization and token refresh; retry saved credentials
+  after the quota reset before requiring another sign-in.
+  Preserve the running helper and protected state until trusted maintenance
+  is available; see the current findings in
+  `Documentation/remote-mcp-acceptance.md`. No new control command was sent.
+  Superseding acceptance on 2026-10-13: after the signed Studio Dev app
+  launched armed and healthy, a separately authorized five-minute Codex
+  Staging command had an applied daemon receipt, a live locked report, an
+  installed-app `lockout.started` event, and an opaque full-screen Curfew
+  window. At the deadline, the report returned to working, the app logged
+  `lockout.ended`, and that window disappeared. This proves physical
+  enforcement and natural release for the signed dev app and Codex staging
+  connector; it does not prove Claude-phone execution, remote unlock, or a
+  downloadable production release. Do not repeat device-control commands
+  without new authorization. See `Documentation/remote-mcp-acceptance.md`.
 - [-] Make local status readers report observed enforcement rather than a
-      schedule-only prediction. During the verified remote lock,
-      `curfew-ctl status` said `working`; local MCP's `curfew_status` and
-      `curfew_get_time_remaining` use the same independent engine evaluation.
-      A shared, freshness-bounded app/daemon status source must account for
-      remote deadlines, active releases, Curfew-off state, and cross-flavor
-      enforcement ownership. When observation is unavailable, report that
-      limitation instead of claiming the schedule prediction is live status.
-      Test the actual CLI/MCP outputs against controlled persisted observations,
-      then verify a signed installed build without another control command.
-      No existing remote command or account schema needs to change; preserve
-      current command state and the separate coordinator status path on rollback.
-      The app now publishes a freshness-bounded, flavor-isolated, user-owned
-      observation after its enforcement tick settles. The CLI and local MCP
-      read that observation and say `unknown` when Curfew is off, another flavor
-      owns lockout, or the observation is stale. The publisher coalesces stable
-      one-second ticks and refreshes every 15 seconds; readers expire at 60
-      seconds. Package regressions failed first for the missing reader APIs,
-      then passed for the CLI JSON formatter, MCP handlers, and disarmed status.
-      Adversarial review added failing-first coverage for a standby process
-      clobbering the lock owner, degraded protection, and hours-based mode;
-      maintenance pause now publishes unavailable status instead of leaving
-      the prior snapshot fresh. A hosted app test was compiled headlessly;
-      hosted CI and a signed installed read-only check
-      remain before this item can be marked complete. Rollback removes only
-      the advisory status mirror and readers; daemon enforcement and remote
-      command state do not depend on it.
+  schedule-only prediction. During the verified remote lock,
+  `curfew-ctl status` said `working`; local MCP's `curfew_status` and
+  `curfew_get_time_remaining` use the same independent engine evaluation.
+  A shared, freshness-bounded app/daemon status source must account for
+  remote deadlines, active releases, Curfew-off state, and cross-flavor
+  enforcement ownership. When observation is unavailable, report that
+  limitation instead of claiming the schedule prediction is live status.
+  Test the actual CLI/MCP outputs against controlled persisted observations,
+  then verify a signed installed build without another control command.
+  No existing remote command or account schema needs to change; preserve
+  current command state and the separate coordinator status path on rollback.
+  The app now publishes a freshness-bounded, flavor-isolated, user-owned
+  observation after its enforcement tick settles. The CLI and local MCP
+  read that observation and say `unknown` when Curfew is off, another flavor
+  owns lockout, or the observation is stale. The publisher coalesces stable
+  one-second ticks and refreshes every 15 seconds; readers expire at 60
+  seconds. Package regressions failed first for the missing reader APIs,
+  then passed for the CLI JSON formatter, MCP handlers, and disarmed status.
+  Adversarial review added failing-first coverage for a standby process
+  clobbering the lock owner, degraded protection, and hours-based mode;
+  maintenance pause now publishes unavailable status instead of leaving
+  the prior snapshot fresh. A hosted app test was compiled headlessly;
+  hosted CI and a signed installed read-only check
+  remain before this item can be marked complete. Rollback removes only
+  the advisory status mirror and readers; daemon enforcement and remote
+  command state do not depend on it.
 - [x] Pin both SwiftPM entry points to the immutable pre-1.0
       `curfew-protocols` 0.0.11 release. A Swift bridge test exercises the new
       one/all-device unlock scopes and a release-contract check rejects
@@ -967,234 +980,234 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
       targets and Homebrew cask now agree on `0.0.1`, with a release-contract
       regression preventing an accidental `1.x` or minor-version jump.
 - [-] Enroll macOS devices through browser OAuth, mandatory server-side AAL2,
-      generated first-party scopes, ES256 device proof, and separate Recovery
-      Key acknowledgement or restore. Passkey-first and configurable Apple
-      account behavior are reflected in the product copy. A single compile-time
-      endpoint set now keeps the app, OAuth exchange, sync transport, account
-      portal, MCP resource, daemon JWKS trust, and account-key Keychain namespace
-      together for staging or production. The Dev app's Debug configuration
-      selects staging by default, including every embedded tool, so an installed
-      development build cannot silently target the unresolved production hosts.
-      Staging remains restricted to the Debug app and its own helper label plus
-      user/root state paths; Release rejects the staging flag. Native
-      authorization now preserves the user's normal browser session instead of
-      forcing an ephemeral one, so an existing account and its passkey provider
-      remain available during enrollment. The app now owns a claimed HTTPS OAuth
-      callback through Associated Domains. The account service publishes both
-      the `webcredentials` association required by AuthenticationServices and
-      the narrow universal link used when the user finishes a copied
-      authorization URL in another browser profile; a public client ID and
-      private-use scheme are not treated as proof that the caller is Curfew.
-      Native authorization also uses the concrete Settings window that
-      initiated enrollment, retains it for the authorization lifetime, and
-      fails immediately when no attached window exists instead of fabricating
-      an invalid presentation anchor and leaving a spinner running. It uses the
-      current callback-based AuthenticationServices initializer rather than the
-      deprecated callback-scheme initializer. Controller and service
-      single-flight guards prevent repeated activation from replacing an active
-      system session or orphaning its completion. While that session is live,
-      Settings exposes its exact PKCE- and state-protected authorization URL so a user can copy it
-      into the browser profile that actually stores their passkey instead of
-      being trapped in macOS's default profile. The URL disappears as soon as
-      browser authorization ends, before device enrollment begins, and its temporary pasteboard value is removed
-      unless the user has since copied something else. Claimed HTTPS callbacks
-      from an ordinary browser tab are routed into only the active transaction
-      after exact origin, callback-path, and one-time-state validation; the former
-      custom scheme is rejected. AppKit delivers a claimed HTTPS link from an
-      external browser as a web-browsing user activity, so the delegate now
-      forwards that activity's URL into the same one-time router. SwiftUI may
-      instead deliver the link to a scene's URL handler, so each app scene also
-      forwards URLs to that router. The older URL-open delegate remains for
-      URL-open delivery. The router checks the effective HTTPS port as well as
-      host, path, and state. This fixes a copied-link sign-in that could finish
-      in the browser while Settings waited forever. A signed Studio build passes
-      local build checks; the real browser callback and device enrollment still
-      need runtime verification.
-      If the activity path regresses, the copied-link option can be disabled
-      without weakening callback validation or the system sign-in session.
-      If the browser reaches the HTTPS callback
-      instead of returning to Curfew, Settings offers Cancel sign-in so the
-      user can start a fresh authorization without quitting the app. Cancelling
-      stops the active browser session, rejects any in-flight token result,
-      clears the temporary sign-in link, and re-enables sign-in. The enrollment
-      UI now keeps
-      browser authorization and device enrollment as separate states: once the
-      browser callback succeeds, Settings reports that it is connecting the Mac;
-      token exchange or local credential failure is
-      reported as a native connection failure, never as a failed passkey or
-      unfinished browser sign-in. If the first device connection fails before
-      registration, Curfew keeps a small authorized-connection checkpoint and
-      offers a retry after relaunch without repeating browser sign-in. It reads
-      the current OAuth credentials from Keychain rather than copying tokens
-      into that checkpoint; an unreadable credential stops enrollment.
-      Expired access tokens are refreshed even on this first registration path.
-      If the saved OAuth credential is missing or the server rejects its
-      refresh, Curfew clears only that pre-registration authorization marker
-      and offers a fresh sign-in instead of trapping the user in retries.
-      A later device-registration or recovery checkpoint takes precedence and
-      is never discarded by that escape path. Actual Keychain read failures
-      still leave the saved connection unavailable rather than inventing an
-      empty account.
-      For these later checkpoints, a rejected or missing refresh credential
-      offers a separate same-account sign-in. The new token is staged until
-      UserInfo confirms the original account from the coordinator-accepted
-      token or registration receipt. A different account leaves saved keys,
-      Recovery Key, checkpoint, and old credentials untouched. A legacy
-      pre-receipt checkpoint without an account identity fails closed and
-      asks for support. This avoids registering an old device under a new
-      account while still making recoverable sign-in failures actionable.
-      Cancellation after a same-account OAuth grant is written now restores
-      the checkpoint's prior client ID and token pair before another attempt.
-      This prevents the UI from requiring reauthorization while Keychain
-      silently holds the cancelled grant. No wire format or release identity
-      changes. A failed intermediate Keychain write restores the original token
-      pair; if rollback itself fails, the access token is cleared and Settings
-      reports storage unavailable instead of suggesting another sign-in.
-      On relaunch, an unfinished device registration with either OAuth token
-      missing explicitly requires same-account sign-in instead of presenting
-      a normal retry. The storage warning now avoids claiming the saved account
-      is unchanged when a Keychain rollback could have failed; local schedule
-      and enforcement remain independent of that account credential state.
-      An enrolled Mac now publishes signed device status from confirmed account
-      polls while the first local schedule is still unset. This keeps the
-      account's online indicator and remote-command eligibility aligned with
-      the running app without starting local enforcement early. Once setup is
-      complete, the existing 1 Hz enforcement tick owns status heartbeats.
-      A running enrolled Mac must also keep the bounded account heartbeat when
-      Curfew is disarmed: its display clock continues without local lockout
-      effects, and the outbound report marks enforcement state unknown rather
-      than claiming that a scheduled lock is active. Without this path the
-      coordinator marks a still-running Mac offline after two minutes. The
-      status report does not arm Curfew or prove a remote lock can be enforced.
-      Rollback is the previous signed app; the coordinator will again age out
-      a disarmed Mac until it resumes authenticated status publication.
-      A Mac that has already completed enrollment can now renew rejected OAuth
-      credentials against its saved account identity without registering a new
-      device or rotating its Recovery Key. Settings offers this same-account
-      sign-in only when saved credentials need renewal, even if the old ready
-      marker disappeared; a revoked device instead directs the user to check
-      account access. Settings warns when the privileged helper is absent or
-      its root-owned heartbeat is stale, or Studio Dev must yield to a live
-      higher-priority Curfew app, so sign-in alone is not presented as remote
-      lock readiness. Reconnect is single-flight, leaving an in-progress
-      browser session cancellable after rapid taps. The signed Studio
-      Dev installation previously produced live authenticated status, helper
-      registration, and an applied coordinator receipt. The latest signed
-      update is installed but its authenticated helper connection and current
-      Codex OAuth session are not working; see the acceptance ledger above.
-      A witnessed physical lockout was completed through Codex staging on
-      2026-10-13; phone-side assistant execution and remote unlock remain open.
-      Unit tests, launchd state, and a receipt alone cannot establish those
-      outcomes. See
-      `Documentation/remote-mcp-acceptance.md`. Rollback is
-      the previous app build while preserving the existing device enrollment;
-      do not delete its Recovery Key or device record to force another sign-in.
-      Roll back this polling-triggered heartbeat if it causes unexpected status
-      traffic; the account page would again show an unscheduled Mac offline.
-      Rollback is the previous app build, but damaged Keychain state still needs
-      repair before retrying enrollment.
-      New pre-receipt checkpoints with opaque access tokens now obtain the
-      coordinator-verified UserInfo subject before saving the registration
-      request, so a failed registration can still offer identity-bound
-      reauthorization. If UserInfo is unavailable, the authorized-connection
-      marker remains retryable rather than saving an unanchored device
-      checkpoint. The extra request affects only tokens without a usable
-      subject hint; rollback must not discard an already saved checkpoint.
-      When the coordinator already holds a different recovery envelope,
-      Curfew retains the registered-device receipt and account identity in a
-      separate existing-key checkpoint, without retaining the newly generated
-      Recovery Key. An expired credential during existing-key restoration
-      offers the same identity-bound sign-in, then returns to the Recovery Key
-      form; an incorrect key still stays at that form. This checkpoint must
-      survive relaunch and must not be replaced by the display-only record.
-      Before device registration, Curfew persists
-      the exact OAuth-bound request inputs, Recovery Key, and encrypted envelope;
-      it adds the authenticated receipt before finalization. Ambiguous registration,
-      expired-token, upload-failure, and relaunch paths resume that checkpoint
-      once at a time without another OAuth or passkey ceremony while the saved
-      credential remains valid; an unrecoverable credential requires the
-      same-account sign-in above. The app keeps
-      the receipt-backed checkpoint while it shows the generated Recovery Key,
-      rather than replacing it with the older display-only record (which lost
-      the receipt and blocked confirmation),
-      offers Copy and Save-to-File actions so the user need not transcribe it,
-      and uploads the encrypted envelope only after the user selects “I saved
-      the Recovery Key.” The clipboard is cleared after one minute if its
-      contents have not changed; an exported plaintext file is created with
-      owner-only permissions. Neither action is proof that the user retained
-      the key. Curfew cannot report ready before the coordinator accepts the
-      envelope. An incorrect Curfew Recovery Key leaves the Mac at the same
-      recovery-entry step with a retry message instead of starting sign-in
-      again. These local state-transition tests do not replace signed-device
-      staging proof; rollback should preserve saved checkpoints and Keychain
-      credentials so a completed browser grant is not discarded. Reverting
-      the same-account retry UI without preserving these checkpoints would
-      leave registered Macs at a dead-end if their refresh credential expires;
-      release verification must exercise an expired grant and a wrong-account
-      attempt on a signed Studio build before claiming remote enrollment works.
-      It must also exercise an opaque-token registration failure and same-account
-      recovery, because local tests cannot prove coordinator availability.
-      Coordinator acceptance is checkpointed as a durable completed-enrollment
-      mirror before the recovery setup is removed. That marker remains until an
-      explicit account reset, and a newer marker takes precedence over stale
-      settings, so a process exit or settings-write failure cannot silently
-      return the Mac to an unenrolled or older enrollment state.
-      A Keychain read error or corrupt local enrollment checkpoint now leaves
-      Settings in a distinct saved-connection warning state instead of
-      pretending the account is empty. New sign-in is refused while that state
-      is unreadable, preventing replacement of an unfinished enrollment. The
-      user can retry a read without deleting keys or changing saved settings;
-      a successful read resumes the exact saved step. This does not stop an
-      independently running sync connection or claim remote control is off.
-      Persistent corruption needs support-led recovery; rollback must preserve
-      the fail-closed sign-in policy rather than restoring the old `try?`
-      fallback.
-      A destructive uninstall erases the entire flavor-specific account and
-      Docket OAuth Keychain services, including this durable marker, OAuth
-      credentials, device identity, and dynamically named private keys, so
-      enrollment cannot resurrect after reinstall and the development app
-      cannot clear production. Curfew terminates after presenting the cleanup
-      result so its live settings model cannot recreate deleted enrollment.
-      Production uninstall also removes the older flavor-neutral coordinator
-      assertion credential; Dev deliberately preserves that production-owned
-      item until it can be retired or migrated to a flavor-specific service.
-      After enrollment, Settings observes the live account-sync engine instead
-      of treating saved enrollment as proof of a working connection. It explains
-      connecting, encrypted-waiting, synchronized, offline, and rejected states in
-      plain language, keeps local-schedule protection explicit during failures,
-      and directs assistant/device permission changes to the web account.
-      A read-only remote-command poll cannot claim queued encrypted changes were
-      saved, including after an offline or rejected connection recovers. The
-      connection is healthy only after account-state, direct-unlock, and any
-      attempted status-publication work succeed. Network failures are shown as
-      reconnecting; missing, revoked, or rejected credentials remain an
-      account-access error that requires sign-in. Out-of-order status responses
-      cannot overwrite the health of the newest published status, and an old
-      polling session cannot report into a newly reconnected account session.
-      Accessibility trust is also re-polled whenever Curfew becomes active,
-      so the Today warning clears after the user grants access in System
-      Settings even when Curfew's enforcement timer is off.
-      Settings now leads with the account path used for phone-based remote
-      control and labels the separate desktop-only assistant integration in
-      plain language. Its copy matches the shipped local tool boundary: an
-      assistant may read explicitly listed data and request changes, but cannot
-      grant an override, end an active lockout, or disable enforcement. It also
-      states that reflection text is shared with the assistant when requested
-      instead of incorrectly promising that it never leaves the Mac. Turning
-      local AI access off now makes the standalone MCP server return no tools
-      and refuse cached tool calls, so an existing Claude Desktop entry cannot
-      keep reading data. The page also discloses that the separately controlled
-      protected-work tool may postpone shutdown without approval while leaving
-      the lockout itself intact.
-      In-repo tests pass; live account recovery and staging proof remain
-      external release gates.
-      If Copy or Save fails, the Recovery Key remains visible and Curfew does
-      not acknowledge it automatically. Rolling back the export controls must
-      retain the existing saved-key acknowledgement and envelope checkpoint.
-      Rolling back cancellation would restore the missed-callback spinner dead
-      end; cancellation is safe only before device enrollment begins.
-      Rollback may disable native enrollment, but must not restore the
-      unregistered callback, guessed-window behavior, or concurrent sessions.
+  generated first-party scopes, ES256 device proof, and separate Recovery
+  Key acknowledgement or restore. Passkey-first and configurable Apple
+  account behavior are reflected in the product copy. A single compile-time
+  endpoint set now keeps the app, OAuth exchange, sync transport, account
+  portal, MCP resource, daemon JWKS trust, and account-key Keychain namespace
+  together for staging or production. The Dev app's Debug configuration
+  selects staging by default, including every embedded tool, so an installed
+  development build cannot silently target the unresolved production hosts.
+  Staging remains restricted to the Debug app and its own helper label plus
+  user/root state paths; Release rejects the staging flag. Native
+  authorization now preserves the user's normal browser session instead of
+  forcing an ephemeral one, so an existing account and its passkey provider
+  remain available during enrollment. The app now owns a claimed HTTPS OAuth
+  callback through Associated Domains. The account service publishes both
+  the `webcredentials` association required by AuthenticationServices and
+  the narrow universal link used when the user finishes a copied
+  authorization URL in another browser profile; a public client ID and
+  private-use scheme are not treated as proof that the caller is Curfew.
+  Native authorization also uses the concrete Settings window that
+  initiated enrollment, retains it for the authorization lifetime, and
+  fails immediately when no attached window exists instead of fabricating
+  an invalid presentation anchor and leaving a spinner running. It uses the
+  current callback-based AuthenticationServices initializer rather than the
+  deprecated callback-scheme initializer. Controller and service
+  single-flight guards prevent repeated activation from replacing an active
+  system session or orphaning its completion. While that session is live,
+  Settings exposes its exact PKCE- and state-protected authorization URL so a user can copy it
+  into the browser profile that actually stores their passkey instead of
+  being trapped in macOS's default profile. The URL disappears as soon as
+  browser authorization ends, before device enrollment begins, and its temporary pasteboard value is removed
+  unless the user has since copied something else. Claimed HTTPS callbacks
+  from an ordinary browser tab are routed into only the active transaction
+  after exact origin, callback-path, and one-time-state validation; the former
+  custom scheme is rejected. AppKit delivers a claimed HTTPS link from an
+  external browser as a web-browsing user activity, so the delegate now
+  forwards that activity's URL into the same one-time router. SwiftUI may
+  instead deliver the link to a scene's URL handler, so each app scene also
+  forwards URLs to that router. The older URL-open delegate remains for
+  URL-open delivery. The router checks the effective HTTPS port as well as
+  host, path, and state. This fixes a copied-link sign-in that could finish
+  in the browser while Settings waited forever. A signed Studio build passes
+  local build checks; the real browser callback and device enrollment still
+  need runtime verification.
+  If the activity path regresses, the copied-link option can be disabled
+  without weakening callback validation or the system sign-in session.
+  If the browser reaches the HTTPS callback
+  instead of returning to Curfew, Settings offers Cancel sign-in so the
+  user can start a fresh authorization without quitting the app. Cancelling
+  stops the active browser session, rejects any in-flight token result,
+  clears the temporary sign-in link, and re-enables sign-in. The enrollment
+  UI now keeps
+  browser authorization and device enrollment as separate states: once the
+  browser callback succeeds, Settings reports that it is connecting the Mac;
+  token exchange or local credential failure is
+  reported as a native connection failure, never as a failed passkey or
+  unfinished browser sign-in. If the first device connection fails before
+  registration, Curfew keeps a small authorized-connection checkpoint and
+  offers a retry after relaunch without repeating browser sign-in. It reads
+  the current OAuth credentials from Keychain rather than copying tokens
+  into that checkpoint; an unreadable credential stops enrollment.
+  Expired access tokens are refreshed even on this first registration path.
+  If the saved OAuth credential is missing or the server rejects its
+  refresh, Curfew clears only that pre-registration authorization marker
+  and offers a fresh sign-in instead of trapping the user in retries.
+  A later device-registration or recovery checkpoint takes precedence and
+  is never discarded by that escape path. Actual Keychain read failures
+  still leave the saved connection unavailable rather than inventing an
+  empty account.
+  For these later checkpoints, a rejected or missing refresh credential
+  offers a separate same-account sign-in. The new token is staged until
+  UserInfo confirms the original account from the coordinator-accepted
+  token or registration receipt. A different account leaves saved keys,
+  Recovery Key, checkpoint, and old credentials untouched. A legacy
+  pre-receipt checkpoint without an account identity fails closed and
+  asks for support. This avoids registering an old device under a new
+  account while still making recoverable sign-in failures actionable.
+  Cancellation after a same-account OAuth grant is written now restores
+  the checkpoint's prior client ID and token pair before another attempt.
+  This prevents the UI from requiring reauthorization while Keychain
+  silently holds the cancelled grant. No wire format or release identity
+  changes. A failed intermediate Keychain write restores the original token
+  pair; if rollback itself fails, the access token is cleared and Settings
+  reports storage unavailable instead of suggesting another sign-in.
+  On relaunch, an unfinished device registration with either OAuth token
+  missing explicitly requires same-account sign-in instead of presenting
+  a normal retry. The storage warning now avoids claiming the saved account
+  is unchanged when a Keychain rollback could have failed; local schedule
+  and enforcement remain independent of that account credential state.
+  An enrolled Mac now publishes signed device status from confirmed account
+  polls while the first local schedule is still unset. This keeps the
+  account's online indicator and remote-command eligibility aligned with
+  the running app without starting local enforcement early. Once setup is
+  complete, the existing 1 Hz enforcement tick owns status heartbeats.
+  A running enrolled Mac must also keep the bounded account heartbeat when
+  Curfew is disarmed: its display clock continues without local lockout
+  effects, and the outbound report marks enforcement state unknown rather
+  than claiming that a scheduled lock is active. Without this path the
+  coordinator marks a still-running Mac offline after two minutes. The
+  status report does not arm Curfew or prove a remote lock can be enforced.
+  Rollback is the previous signed app; the coordinator will again age out
+  a disarmed Mac until it resumes authenticated status publication.
+  A Mac that has already completed enrollment can now renew rejected OAuth
+  credentials against its saved account identity without registering a new
+  device or rotating its Recovery Key. Settings offers this same-account
+  sign-in only when saved credentials need renewal, even if the old ready
+  marker disappeared; a revoked device instead directs the user to check
+  account access. Settings warns when the privileged helper is absent or
+  its root-owned heartbeat is stale, or Studio Dev must yield to a live
+  higher-priority Curfew app, so sign-in alone is not presented as remote
+  lock readiness. Reconnect is single-flight, leaving an in-progress
+  browser session cancellable after rapid taps. The signed Studio
+  Dev installation previously produced live authenticated status, helper
+  registration, and an applied coordinator receipt. The latest signed
+  update is installed but its authenticated helper connection and current
+  Codex OAuth session are not working; see the acceptance ledger above.
+  A witnessed physical lockout was completed through Codex staging on
+  2026-10-13; phone-side assistant execution and remote unlock remain open.
+  Unit tests, launchd state, and a receipt alone cannot establish those
+  outcomes. See
+  `Documentation/remote-mcp-acceptance.md`. Rollback is
+  the previous app build while preserving the existing device enrollment;
+  do not delete its Recovery Key or device record to force another sign-in.
+  Roll back this polling-triggered heartbeat if it causes unexpected status
+  traffic; the account page would again show an unscheduled Mac offline.
+  Rollback is the previous app build, but damaged Keychain state still needs
+  repair before retrying enrollment.
+  New pre-receipt checkpoints with opaque access tokens now obtain the
+  coordinator-verified UserInfo subject before saving the registration
+  request, so a failed registration can still offer identity-bound
+  reauthorization. If UserInfo is unavailable, the authorized-connection
+  marker remains retryable rather than saving an unanchored device
+  checkpoint. The extra request affects only tokens without a usable
+  subject hint; rollback must not discard an already saved checkpoint.
+  When the coordinator already holds a different recovery envelope,
+  Curfew retains the registered-device receipt and account identity in a
+  separate existing-key checkpoint, without retaining the newly generated
+  Recovery Key. An expired credential during existing-key restoration
+  offers the same identity-bound sign-in, then returns to the Recovery Key
+  form; an incorrect key still stays at that form. This checkpoint must
+  survive relaunch and must not be replaced by the display-only record.
+  Before device registration, Curfew persists
+  the exact OAuth-bound request inputs, Recovery Key, and encrypted envelope;
+  it adds the authenticated receipt before finalization. Ambiguous registration,
+  expired-token, upload-failure, and relaunch paths resume that checkpoint
+  once at a time without another OAuth or passkey ceremony while the saved
+  credential remains valid; an unrecoverable credential requires the
+  same-account sign-in above. The app keeps
+  the receipt-backed checkpoint while it shows the generated Recovery Key,
+  rather than replacing it with the older display-only record (which lost
+  the receipt and blocked confirmation),
+  offers Copy and Save-to-File actions so the user need not transcribe it,
+  and uploads the encrypted envelope only after the user selects “I saved
+  the Recovery Key.” The clipboard is cleared after one minute if its
+  contents have not changed; an exported plaintext file is created with
+  owner-only permissions. Neither action is proof that the user retained
+  the key. Curfew cannot report ready before the coordinator accepts the
+  envelope. An incorrect Curfew Recovery Key leaves the Mac at the same
+  recovery-entry step with a retry message instead of starting sign-in
+  again. These local state-transition tests do not replace signed-device
+  staging proof; rollback should preserve saved checkpoints and Keychain
+  credentials so a completed browser grant is not discarded. Reverting
+  the same-account retry UI without preserving these checkpoints would
+  leave registered Macs at a dead-end if their refresh credential expires;
+  release verification must exercise an expired grant and a wrong-account
+  attempt on a signed Studio build before claiming remote enrollment works.
+  It must also exercise an opaque-token registration failure and same-account
+  recovery, because local tests cannot prove coordinator availability.
+  Coordinator acceptance is checkpointed as a durable completed-enrollment
+  mirror before the recovery setup is removed. That marker remains until an
+  explicit account reset, and a newer marker takes precedence over stale
+  settings, so a process exit or settings-write failure cannot silently
+  return the Mac to an unenrolled or older enrollment state.
+  A Keychain read error or corrupt local enrollment checkpoint now leaves
+  Settings in a distinct saved-connection warning state instead of
+  pretending the account is empty. New sign-in is refused while that state
+  is unreadable, preventing replacement of an unfinished enrollment. The
+  user can retry a read without deleting keys or changing saved settings;
+  a successful read resumes the exact saved step. This does not stop an
+  independently running sync connection or claim remote control is off.
+  Persistent corruption needs support-led recovery; rollback must preserve
+  the fail-closed sign-in policy rather than restoring the old `try?`
+  fallback.
+  A destructive uninstall erases the entire flavor-specific account and
+  Docket OAuth Keychain services, including this durable marker, OAuth
+  credentials, device identity, and dynamically named private keys, so
+  enrollment cannot resurrect after reinstall and the development app
+  cannot clear production. Curfew terminates after presenting the cleanup
+  result so its live settings model cannot recreate deleted enrollment.
+  Production uninstall also removes the older flavor-neutral coordinator
+  assertion credential; Dev deliberately preserves that production-owned
+  item until it can be retired or migrated to a flavor-specific service.
+  After enrollment, Settings observes the live account-sync engine instead
+  of treating saved enrollment as proof of a working connection. It explains
+  connecting, encrypted-waiting, synchronized, offline, and rejected states in
+  plain language, keeps local-schedule protection explicit during failures,
+  and directs assistant/device permission changes to the web account.
+  A read-only remote-command poll cannot claim queued encrypted changes were
+  saved, including after an offline or rejected connection recovers. The
+  connection is healthy only after account-state, direct-unlock, and any
+  attempted status-publication work succeed. Network failures are shown as
+  reconnecting; missing, revoked, or rejected credentials remain an
+  account-access error that requires sign-in. Out-of-order status responses
+  cannot overwrite the health of the newest published status, and an old
+  polling session cannot report into a newly reconnected account session.
+  Accessibility trust is also re-polled whenever Curfew becomes active,
+  so the Today warning clears after the user grants access in System
+  Settings even when Curfew's enforcement timer is off.
+  Settings now leads with the account path used for phone-based remote
+  control and labels the separate desktop-only assistant integration in
+  plain language. Its copy matches the shipped local tool boundary: an
+  assistant may read explicitly listed data and request changes, but cannot
+  grant an override, end an active lockout, or disable enforcement. It also
+  states that reflection text is shared with the assistant when requested
+  instead of incorrectly promising that it never leaves the Mac. Turning
+  local AI access off now makes the standalone MCP server return no tools
+  and refuse cached tool calls, so an existing Claude Desktop entry cannot
+  keep reading data. The page also discloses that the separately controlled
+  protected-work tool may postpone shutdown without approval while leaving
+  the lockout itself intact.
+  In-repo tests pass; live account recovery and staging proof remain
+  external release gates.
+  If Copy or Save fails, the Recovery Key remains visible and Curfew does
+  not acknowledge it automatically. Rolling back the export controls must
+  retain the existing saved-key acknowledgement and envelope checkpoint.
+  Rolling back cancellation would restore the missed-callback spinner dead
+  end; cancellation is safe only before device enrollment begins.
+  Rollback may disable native enrollment, but must not restore the
+  unregistered callback, guessed-window behavior, or concurrent sessions.
 - [x] `just check` passes (format + lint + tests + Debug build).
 - [x] `xcodebuild archive` succeeds unsigned locally.
 - [x] `./curfew-ctl status` prints live state.
@@ -1204,33 +1217,33 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
 - [ ] MCP smoke test: paste Claude Desktop config, run `curfew_status` from Claude.
 - [x] Landing page links all resolve. Fixed `hypertext-studio/curfew` → `TheHypertextStudio/curfew` across README, Cask, landing, CONTRIBUTING, generate-appcast.
 - [x] Marked the forward-looking PRD and Sparkle/appcast checklist steps so v0.1
-  cannot be mistaken for a released sync/updater product; regression coverage
-  lives in `scripts/release-entitlements.test.mjs`.
+      cannot be mistaken for a released sync/updater product; regression coverage
+      lives in `scripts/release-entitlements.test.mjs`.
 - [x] Make CI demo captures prove the named screen. The screenshot job now
-  forwards unsigned build settings and propagates UI-test failures instead of
-  uploading a green artifact after a failed test. A regression assertion
-  requires the Settings image to contain the account panel. The existing
-  `curfew-settings.png` artifact showed Today, and the first targeted hosted
-  rerun found no window containing the account panel. Its accessibility tree
-  confirmed that Today was the only Curfew window: the old AppKit responder
-  selector did not open the SwiftUI Settings scene. Curfew now registers the
-  active scene's `openSettings` action for Settings links. Requests made before
-  scene appearance are coalesced and delivered when the action registers,
-  including account setup and fixture launch, rather than silently dropped.
-  Focused routing tests pass;
-  hosted CI run `35947559952` passed after the deferred-opening change, and
-  its exported `curfew-settings.png` visibly shows Integrations and the Curfew
-  Account panel. This is unsigned fixture proof, not signed account-enrollment
-  proof. Failure bundles contain
-  only synthetic demo-fixture account state; the failure-only artifact can be
-  removed if it adds unnecessary CI storage.
-  Rollback must not restore the failure-masking `xcodebuild || true` path.
+      forwards unsigned build settings and propagates UI-test failures instead of
+      uploading a green artifact after a failed test. A regression assertion
+      requires the Settings image to contain the account panel. The existing
+      `curfew-settings.png` artifact showed Today, and the first targeted hosted
+      rerun found no window containing the account panel. Its accessibility tree
+      confirmed that Today was the only Curfew window: the old AppKit responder
+      selector did not open the SwiftUI Settings scene. Curfew now registers the
+      active scene's `openSettings` action for Settings links. Requests made before
+      scene appearance are coalesced and delivered when the action registers,
+      including account setup and fixture launch, rather than silently dropped.
+      Focused routing tests pass;
+      hosted CI run `35947559952` passed after the deferred-opening change, and
+      its exported `curfew-settings.png` visibly shows Integrations and the Curfew
+      Account panel. This is unsigned fixture proof, not signed account-enrollment
+      proof. Failure bundles contain
+      only synthetic demo-fixture account state; the failure-only artifact can be
+      removed if it adds unnecessary CI storage.
+      Rollback must not restore the failure-masking `xcodebuild || true` path.
 - [x] Corrected the signed-build guard to validate Xcode's resolved certificate
-  identity. The prior guard inspected only the requested `CODE_SIGN_IDENTITY`
-  label, allowing an ad-hoc `Curfew (Dev)` binary when the local development
-  certificate was revoked. Unsigned CI/demo builds remain explicitly supported;
-  interactive builds now fail with the recovery action before producing a TCC-
-  unstable app. Rollback is the single build-phase predicate change.
+      identity. The prior guard inspected only the requested `CODE_SIGN_IDENTITY`
+      label, allowing an ad-hoc `Curfew (Dev)` binary when the local development
+      certificate was revoked. Unsigned CI/demo builds remain explicitly supported;
+      interactive builds now fail with the recovery action before producing a TCC-
+      unstable app. Rollback is the single build-phase predicate change.
 - [x] Retire Node 20 GitHub Actions runtimes from Curfew CI and release workflows.
       Checkout, cache, artifact upload, and release actions now use their
       current Node 24-compatible release generations. Hosted CI verifies the
@@ -1239,81 +1252,81 @@ architecture and privacy limits are in `Documentation/browser-enforcement.md`.
       actions; reverting to the previous generations restores a runtime that
       GitHub has removed.
 - [x] Updated the forward-looking PRD and release checklist to distinguish the
-  shipping v0.1 WidgetKit, MCP, helper, and Sparkle scope from deferred CloudKit
-  and Calendar work; regression coverage lives in `scripts/release-entitlements.test.mjs`.
+      shipping v0.1 WidgetKit, MCP, helper, and Sparkle scope from deferred CloudKit
+      and Calendar work; regression coverage lives in `scripts/release-entitlements.test.mjs`.
 - [ ] Complete every pending row in `Documentation/release-evidence/v0.1.0.md` against the published DMG.
 
 ## 19. UI simplification and visual acceptance
 
 - [x] Replace Settings toolbar tabs with a task-based sidebar; retain stable
-  accessibility destinations when category titles change.
+      accessibility destinations when category titles change.
 - [x] Use native grouped forms, conditional durations, and disclosed technical
-  setup. Show only build-enabled Plus benefits and connections.
+      setup. Show only build-enabled Plus benefits and connections.
 - [x] Clarify readiness versus active enforcement; simplify setup, schedule,
-  assistant consent, purchase, and shutdown copy.
+      assistant consent, purchase, and shutdown copy.
 - [x] Make assistant configuration copy feedback visible and registration status
-  refresh immediately; route pending-request review to the main consent sheet.
-  Interaction checks target the native checkbox and exact explanation text,
-  and verify the selected Settings destination across repeated opens.
+      refresh immediately; route pending-request review to the main consent sheet.
+      Interaction checks target the native checkbox and exact explanation text,
+      and verify the selected Settings destination across repeated opens.
 - [x] Isolate Debug review models from enforcement, shared queues, widgets,
-  helper services, assistant configuration, and real settings/history.
+      helper services, assistant configuration, and real settings/history.
 - [x] Make disabled shared buttons visibly subdued and suppress press animation
-  and scaling under Reduce Motion; preserve existing enabled/disabled rules.
+      and scaling under Reduce Motion; preserve existing enabled/disabled rules.
 - [x] Remove forced uppercase and letterspaced overlines from Settings, Journal,
-  weekly activity, and calendar labels. Use ordinary case throughout.
+      weekly activity, and calendar labels. Use ordinary case throughout.
 - [x] Refine Settings with neutral surfaces, a compact aligned sidebar, and
-  collapsed connection details; keep General actions visible at minimum size.
+      collapsed connection details; keep General actions visible at minimum size.
 - [x] Remove duplicate helper attention copy so Setup remains visible in a
-  minimum-size degraded General window; retain diagnostics behind disclosure.
+      minimum-size degraded General window; retain diagnostics behind disclosure.
 - [x] Show assistant read access before enabling its connection.
 - [x] Preserve native arrow-key Settings navigation and synchronize sidebar
-  selection so repeated Manage AI Access actions return to Connections.
+      selection so repeated Manage AI Access actions return to Connections.
 - [x] Replace the exhausted override entry button with an explicit allowance message.
 - [x] Expose the warning timer container for direct, asserted captures without
-  including unrelated desktop content. Preserve its countdown and behavior.
+      including unrelated desktop content. Preserve its countdown and behavior.
 - [-] Verify the complete state inventory and capture actual windows in both
   appearances and sizes. See `ui-state-review.md`; user visual acceptance and
   signed-build/system checks remain independent gates.
 
 - [x] Unify Settings and workspace color roles: warm gray surfaces, readable clay
-  links, and coordinated filled controls. Keep sky controls on the shared palette.
-  Appearance-resolved contrast and palette integration tests fail first and pass.
+      links, and coordinated filled controls. Keep sky controls on the shared palette.
+      Appearance-resolved contrast and palette integration tests fail first and pass.
 
 - [x] Correct selected-row contrast by preserving native selection foregrounds;
-  use shared supporting-text colors in Settings. Consolidate remaining warning
-  and static lockout palettes; prevent desktop bleed through the warning timer.
+      use shared supporting-text colors in Settings. Consolidate remaining warning
+      and static lockout palettes; prevent desktop bleed through the warning timer.
 - [x] Add hostless background theme verification; twelve tests pass without an app
-  host, window manipulation, or UI automation. Keep native accent assets aligned
-  with filled-control tokens through a numerical integration check.
+      host, window manipulation, or UI automation. Keep native accent assets aligned
+      with filled-control tokens through a numerical integration check.
 - [-] Visually accept the final unified palette and accessibility behavior.
   UI tests/captures and the full app-hosted suite remain deferred at the user's
   request to keep the desktop untouched; background Debug, lint, format and
   targeted tests pass. Release remains blocked by signing configuration.
 
 - [x] Use shared contrast roles in setup and reflection forms; keep selected
-  rating/mood labels and hold-progress text readable. Check input contrast over
-  a worst-case white backdrop and preserve opaque fills under Reduce Transparency.
+      rating/mood labels and hold-progress text readable. Check input contrast over
+      a worst-case white backdrop and preserve opaque fills under Reduce Transparency.
 
 ## Integration with current main (2026-10-10)
 
 - [x] Include the 25 earlier commits as requested, preserving main's account,
-  recovery, browser, protected-work, remote-command, and Studio Dev features.
-  Shared source and package tests now live under `CurfewKit/`; protocol remains
-  pinned to main's 0.0.11 contract. No cross-repository wire changes.
+      recovery, browser, protected-work, remote-command, and Studio Dev features.
+      Shared source and package tests now live under `CurfewKit/`; protocol remains
+      pinned to main's 0.0.11 contract. No cross-repository wire changes.
 - [x] Bring account, presence, protected-work and browser Settings into the same
-  grouped-form hierarchy. Keep camera privacy visible and technical controls in
-  disclosures. Healthy and failure indicators consume shared semantic colors.
+      grouped-form hierarchy. Keep camera privacy visible and technical controls in
+      disclosures. Healthy and failure indicators consume shared semantic colors.
 - [x] Connect authenticated daemon transport to the existing single policy/effects
-  pipeline. Preserve protected-work holds, cancellation, independent signed remote
-  authority, and Studio Dev shutdown suppression. Keep network discovery off the
-  serial local-control queue. Derive peer identity from signed team and exact role;
-  isolate Mach services and root persistence by build flavor.
+      pipeline. Preserve protected-work holds, cancellation, independent signed remote
+      authority, and Studio Dev shutdown suppression. Keep network discovery off the
+      serial local-control queue. Derive peer identity from signed team and exact role;
+      isolate Mach services and root persistence by build flavor.
 - [x] Persist local wake-release tombstones; make completion retries idempotent.
-  Retain the app's durable wake identity until acknowledgement, allowing terminal
-  wake state to unlock presentation while failed completion retries. Keep the
-  compatibility file heartbeat during helper upgrades. Local overrides retain
-  durable authority. Corrupt local transport storage degrades that transport while
-  independent enforcement continues and the damaged file remains intact.
+      Retain the app's durable wake identity until acknowledgement, allowing terminal
+      wake state to unlock presentation while failed completion retries. Keep the
+      compatibility file heartbeat during helper upgrades. Local overrides retain
+      durable authority. Corrupt local transport storage degrades that transport while
+      independent enforcement continues and the damaged file remains intact.
 - [-] Complete integrated background build, format and lint checks; run hosted
   unit/interaction/capture suites only on remote CI. Local launches and UI tests
   remain prohibited by the user's request. Remote CI UI checks are authorized.
@@ -1362,34 +1375,34 @@ The remote AX lookup demonstrated section-level identifier propagation overridin
 ### UI state consistency and meaningful consent
 
 - [x] Today distinguishes a scheduled lock period from running protection. The
-  first-run action opens setup instead of enabling an unreviewed schedule.
+      first-run action opens setup instead of enabling an unreviewed schedule.
 - [x] Completed setup opens a review with live on/off status and Done; missing
-  Accessibility access has its actual repair action. Closing review never arms
-  enforcement or resets settings.
+      Accessibility access has its actual repair action. Closing review never arms
+      enforcement or resets settings.
 - [x] Assistant consent previews configured extension duration or the requested
-  weekday, lock/unlock times, day off, and existing schedule delay. Unavailable
-  extensions, malformed proposals, resolved requests, and legacy overrides cannot
-  be approved from the sheet. Existing application and approval rules remain.
+      weekday, lock/unlock times, day off, and existing schedule delay. Unavailable
+      extensions, malformed proposals, resolved requests, and legacy overrides cannot
+      be approved from the sheet. Existing application and approval rules remain.
 - [x] Replace build-rejection jargon with an explanation of the failed verified
-  connection. Protection warnings name the missing capability instead of claiming
-  a scheduled lockout is currently running. An interrupted keyboard connection
-  no longer offers an unrelated permission action when permission is present.
+      connection. Protection warnings name the missing capability instead of claiming
+      a scheduled lockout is currently running. An interrupted keyboard connection
+      no longer offers an unrelated permission action when permission is present.
 - [-] Recapture these revised states on the isolated runner and inspect them.
   Local UI tests and launches remain prohibited by the user. No new permissions,
   stored identifiers, wire formats, licensing, or enforcement deadlines change.
   Rollback is presentation-only; retain the existing state/application policies.
 - [x] Browser settings separate the enabled preference from connection readiness,
-  breaks, and active work. Default copy is plain language; diagnostic timestamps
-  and component health move under Connection details. Existing setup, policy,
-  break budgets, and browser controls remain unchanged.
+      breaks, and active work. Default copy is plain language; diagnostic timestamps
+      and component health move under Connection details. Existing setup, policy,
+      break budgets, and browser controls remain unchanged.
 - [x] Consent discloses pending schedule edits that approval cancels or replaces,
-  including discarded weekdays and the restarted waiting period. A weaker change
-  can wait beyond 24 hours while a lockout is active.
+      including discarded weekdays and the restarted waiting period. A weaker change
+      can wait beyond 24 hours while a lockout is active.
 - [x] Hide stopped legacy iCloud/device status when account sync is enrolled.
 - [x] Calendar refresh rechecks read access and clears inaccessible events;
-  calendar overlap advice only suggests an extension when eligible. Read-only
-  authorization checks do not request permission. The injected test provider and
-  lazy event store let revoked-access checks run without real calendar access.
+      calendar overlap advice only suggests an extension when eligible. Read-only
+      authorization checks do not request permission. The injected test provider and
+      lazy event store let revoked-access checks run without real calendar access.
 - [-] Remote captures now include off-during-scheduled-lock, completed setup review,
   revoked permission in setup review, and malformed assistant requests, across both
   appearances and sizes. Assertions must confirm each state before capture. Automatic
@@ -1470,17 +1483,17 @@ The remote AX lookup demonstrated section-level identifier propagation overridin
   is the launch-policy change; do not replay the expired command.
 
 - [x] Keep the morning reflection interactive while enforcement ticks. The
-  signed Studio Dev app exposed a one-second full-screen refresh that reset
-  typing and made buttons difficult to click: its overlay coordinator replaced
-  the `NSHostingView` and raised the window on every tick. The first installed
-  correction stopped remounting, but typing still failed because a plain
-  borderless `NSWindow` cannot become key. Existing windows now retain SwiftUI
-  state, and the daybreak window is key-eligible; only a changed display frame
-  or hidden window needs AppKit work. Both `DaybreakOverlayReconciliationTests`
-  regressions were added failing-first. The signed update was installed on
-  Studio Dev Mac, and the owner confirmed that typing and both form buttons
-  work without resetting. No reflection answers, schedule, remote command,
-  or wire data are migrated; rollback is the daybreak-window change.
+      signed Studio Dev app exposed a one-second full-screen refresh that reset
+      typing and made buttons difficult to click: its overlay coordinator replaced
+      the `NSHostingView` and raised the window on every tick. The first installed
+      correction stopped remounting, but typing still failed because a plain
+      borderless `NSWindow` cannot become key. Existing windows now retain SwiftUI
+      state, and the daybreak window is key-eligible; only a changed display frame
+      or hidden window needs AppKit work. Both `DaybreakOverlayReconciliationTests`
+      regressions were added failing-first. The signed update was installed on
+      Studio Dev Mac, and the owner confirmed that typing and both form buttons
+      work without resetting. No reflection answers, schedule, remote command,
+      or wire data are migrated; rollback is the daybreak-window change.
 
 Hostless coverage: `PrivilegedHelperManagerTests.remoteReadinessRequiresAuthenticatedConnection` rejects unavailable, unauthorized, stale, and failed registration despite a fresh heartbeat file. `PresentationStateTests` checks recovery routing and copy. The new assertions failed before the fix; CI retains full app behavior and screenshot checks. No local UI execution or app launch. This changes readiness presentation and recovery routing, not enforcement rules, persisted identifiers, or the wire format. Rollback is the readiness/copy change; signed helper and real macOS approval verification remain separate.
 
@@ -1493,7 +1506,7 @@ Final recovery-copy review: Today’s off state describes following the local sc
   popover captures in both appearances. Visual feedback remains pending.
 
 - [x] Hide the menu extension action when Curfew is off, including scheduled
-  warning states; regression observed failing first and isolated UI fixture added.
+      warning states; regression observed failing first and isolated UI fixture added.
 
 Remote capture regression: locked evaluations retain a zero-minute display value.
 Today now checks the phase explicitly before showing a countdown, so an off Mac
@@ -1501,7 +1514,6 @@ with a past scheduled lock shows “Curfew is off. Review your schedule.” inst
 of “0:00.” The state-consistency capture runs first to expose fixture failures
 early. `PresentationStateTests.lockedCountdown` and the remote capture both cover
 this presentation-only correction; enforcement and stored schedules are unchanged.
-
 
 Returning setup review now derives its content from the saved setup state instead
 of the walkthrough cursor. A revoked Accessibility grant immediately shows its
@@ -1518,41 +1530,41 @@ in one state does not prevent the other families from being exercised; each stil
 asserts its own screen and state before attaching an image.
 
 - [x] Reject exhausted AI extension grants in both manual and automatic approval.
-  Both actual-model regression cases failed on remote run 38114876113 before
-  implementation. Granting minutes now requires successful tracker consumption;
-  rejection refreshes the displayed allowance and records a denied extension.
-  Consent explains the weekly limit and disables approval; remote verification
-  of the final guard and its four visual captures remains required before merge.
+      Both actual-model regression cases failed on remote run 38114876113 before
+      implementation. Granting minutes now requires successful tracker consumption;
+      rejection refreshes the displayed allowance and records a denied extension.
+      Consent explains the weekly limit and disables approval; remote verification
+      of the final guard and its four visual captures remains required before merge.
 
 - [x] Keep full marketing captures aligned with current protection, repair,
-  reflection and Calendar states. Seed healthy Settings independently of the
-  host helper and assert zero weekly budgets through native controls. Dedicated
-  degraded-state captures remain required; test-only changes do not alter the app.
+      reflection and Calendar states. Seed healthy Settings independently of the
+      host helper and assert zero weekly budgets through native controls. Dedicated
+      degraded-state captures remain required; test-only changes do not alter the app.
 
 - [x] Support an explicitly selected, isolated Settings capture without repeating
-  unrelated app checks. Keep focused output distinct from full CI acceptance and
-  reject unknown test selectors before a build starts. Keep the existing
-  unsigned capture-step contract unchanged.
+      unrelated app checks. Keep focused output distinct from full CI acceptance and
+      reject unknown test selectors before a build starts. Keep the existing
+      unsigned capture-step contract unchanged.
 
 ## Website visual identity release
 
 - [x] Group current legal headings and publication/effective metadata, keep the
-  update notice concise, and label archived privacy-table values on narrow
-  screens without changing archived policy prose.
+      update notice concise, and label archived privacy-table values on narrow
+      screens without changing archived policy prose.
 
 - [x] Bring the Curfew landing, legal pages, Download, and Support onto one
-  token-based, responsive light/dark design shell in the current Astro site.
-  Preserve the existing policy text and Mintlify integration.
+      token-based, responsive light/dark design shell in the current Astro site.
+      Preserve the existing policy text and Mintlify integration.
 - [x] Remove the standalone MCP fixture from marketing. The connection diagram
-  and copy identify Claude, ChatGPT, and Codex without claiming a captured
-  conversation.
+      and copy identify Claude, ChatGPT, and Codex without claiming a captured
+      conversation.
 - [ ] Add a real assistant-host conversation capture after an actual Curfew tool
-  interaction is available and reviewed.
+      interaction is available and reviewed.
 - [ ] Confirm account route ownership and the full hosted sign-in/recovery flow
-  before presenting the account UI as a production-ready entry point.
+      before presenting the account UI as a production-ready entry point.
 - [x] Use the configured canonical production account portal in the marketing
-  fallback and its trusted destinations; reject the retired portal and preserve
-  same-origin failure, request protections, and staging account delegation.
+      fallback and its trusted destinations; reject the retired portal and preserve
+      same-origin failure, request protections, and staging account delegation.
 - [-] Replace broken marketing guide links with published Mintlify destinations
   and add the missing installation, schedule, exception, and account guides.
   Accept hosted Mintlify publication and landing links through the selected
@@ -1560,11 +1572,11 @@ asserts its own screen and state before attaching an image.
   Mintlify subpath proxy is accepted.
 
 - [x] Use the same native hosting configuration for local website preview and
-  Workers deployment, with Mintlify enabled in staging and an explicit local HTML
-  guide mode for the existing browser fixture.
+      Workers deployment, with Mintlify enabled in staging and an explicit local HTML
+      guide mode for the existing browser fixture.
 - [x] Retire Pages publication, preview and middleware compilation. Retain ordinary
-  static artifacts and package genuine signed feeds through native Workers builds;
-  preserve account, licensing, sync and native release ownership.
+      static artifacts and package genuine signed feeds through native Workers builds;
+      preserve account, licensing, sync and native release ownership.
 
 ## 19. User-facing documentation and Plus launch
 
@@ -1596,14 +1608,14 @@ asserts its own screen and state before attaching an image.
 
 - [x] Bind signed candidate provenance to the shared endpoint manifest and retain the newer release credential cleanup and unsigned quality checks.
 - [x] Support explicit local-build publication with retained test logs, exact
-  signed/notarized bytes, unchanged native source and actual staging acceptance;
-  keep local provenance separate from hosted runs and preserve all owner gates.
+      signed/notarized bytes, unchanged native source and actual staging acceptance;
+      keep local provenance separate from hosted runs and preserve all owner gates.
 - [x] Activate installer availability across the homepage and download page
-  only with an accepted release, preserve the Plus hold, and verify actual
-  customer download bytes against the signed candidate.
+      only with an accepted release, preserve the Plus hold, and verify actual
+      customer download bytes against the signed candidate.
 - [x] Align migration and release instructions with canonical account entry,
-  Worker-only website publication, hosted/local provenance and retained-data
-  rollback; keep website fixes separate from app, service and purchase activation.
+      Worker-only website publication, hosted/local provenance and retained-data
+      rollback; keep website fixes separate from app, service and purchase activation.
 - [x] Inventory Cloudflare access through the pinned CLI using existing CI credentials without changing infrastructure or printing secret values.
 
 - [x] Document the Email Sending CLI exception, readiness validation before production mutations, and the cf Durable Object rollback constraint in the domain migration runbook.
@@ -1623,9 +1635,9 @@ asserts its own screen and state before attaching an image.
       candidate, with unchanged system time and preserved local app data.
 
 - [-] End checkout with **Activate in Curfew**, verify and save the signed key,
-      and show the result in Settings → About. Keep manual key entry available.
+  and show the result in Settings → About. Keep manual key entry available.
 - [-] Offer **Restore Purchase…** using proof at the purchase inbox, bounded
-      requests, short-lived links, current subscription keys, and safe retries.
+  requests, short-lived links, current subscription keys, and safe retries.
 - [x] Reject unpaid completed checkouts. Backfill old paid purchases by resending
       their already processed, signed Stripe event without replacing the key.
 - [x] Reject other product payments; restore renewed/canceled subscriptions and
@@ -1658,10 +1670,10 @@ asserts its own screen and state before attaching an image.
 - [x] Verify signed native restoration from its real inbox link. The owner-clicked
       handoff shows active, verified lifetime access in the exact candidate.
 - [-] Configure the GitHub production release path. Known team/account IDs are
-      saved; the authenticated Studio notarization issuer is now configured.
-      Approved dedicated Apple signing/notarization credentials are configured;
-      Release app/widget/verifier now use the verified Studio team. Deployment-token
-      setup, Sparkle pair verification and the Workers appcast path remain.
+  saved; the authenticated Studio notarization issuer is now configured.
+  Approved dedicated Apple signing/notarization credentials are configured;
+  Release app/widget/verifier now use the verified Studio team. Deployment-token
+  setup, Sparkle pair verification and the Workers appcast path remain.
 - [x] Derive the Release updater public key from its retained signing seed,
       verify the exported app embeds it, and sign the appcast before publishing
       the DMG. Production-secret execution and website publication remain pending.
@@ -1691,31 +1703,31 @@ asserts its own screen and state before attaching an image.
 ## Plus activation deployment integration
 
 - [x] Enable Hardened Runtime for both Release executables, including the widget,
-  and guard the configuration before submitting a notarized candidate.
+      and guard the configuration before submitting a notarized candidate.
 - [x] Compare signed capabilities with resolved Studio Keychain identifiers and
-  explicitly declare existing read-only file selection, rejecting capability drift.
+      explicitly declare existing read-only file selection, rejecting capability drift.
 
 - [x] Derive activation and renewal origins from the installed build's deployment
-  profile and preserve retired-host denial and deployment health identity.
+      profile and preserve retired-host denial and deployment health identity.
 - [x] Include the restricted restore sender, matching portal, isolated rate limits,
-  and explicit payment mode in the native license deployment configuration.
+      and explicit payment mode in the native license deployment configuration.
 - [x] Generate the local license tooling sender, email allowlist and purchase
-  portal from the local deployment manifest, and reject committed drift in CI.
+      portal from the local deployment manifest, and reject committed drift in CI.
 - [x] Derive the restore-email sender and its restricted allowlist from the
-  selected canonical configuration, keeping production on thecurfew.app and
-  staging on its isolated sender. Verify both modes without sending email or
-  changing live billing.
+      selected canonical configuration, keeping production on thecurfew.app and
+      staging on its isolated sender. Verify both modes without sending email or
+      changing live billing.
 - [-] Validate the integrated app and website candidate, then complete signed
   distribution and hosted purchase/restore acceptance before advertising the flow.
 
 - [x] Retain separate production/staging website artifacts and verify purchase
-  issuer/scheme pairing before staging deployment and production publication,
-  rejecting retired callbacks on checkout, restoration, or both pages.
+      issuer/scheme pairing before staging deployment and production publication,
+      rejecting retired callbacks on checkout, restoration, or both pages.
 - [x] Validate restore portals against the issuer's deployment profile and pair
-  local purchase pages with the native development app's retained staging issuer.
+      local purchase pages with the native development app's retained staging issuer.
 - [x] Pin the purchase environment in local website deployment commands and reject
-  mismatched checkout or restore pages before invoking provider build/deploy. Pin
-  the provider asset directory to the same verified output.
+      mismatched checkout or restore pages before invoking provider build/deploy. Pin
+      the provider asset directory to the same verified output.
 - [-] Consolidate staging website, account access, sync, and licensing under
   `staging.thecurfew.app` and its separate account, sync, and license hosts.
   Retain staging data and internal-access restrictions, enroll passkeys for the
@@ -1727,18 +1739,17 @@ asserts its own screen and state before attaching an image.
   Clear its sign-in requirement only after same-account authentication and the
   ready checkpoint are saved; keep cancellation and rejection recoverable.
 - [x] Serve the modern staging site and purchase pages from the canonical host,
-  redirect old purchase links with their fragments intact, keep account home
-  navigation in staging, and disable obsolete pinned-preview publishers.
+      redirect old purchase links with their fragments intact, keep account home
+      navigation in staging, and disable obsolete pinned-preview publishers.
 - [x] Use the purchase website for native purchase entry and checkout
-  confirmation. Reject test credentials in the legacy production bootstrap
-  before any provider access.
-
+      confirmation. Reject test credentials in the legacy production bootstrap
+      before any provider access.
 
 ### Consolidated development app
 
 - [x] Install the current canonical Curfew Dev with one authenticated helper,
-  retaining settings, account connectivity, assistant consent, purchase and
-  existing history. Verify the native activation route on the signed upgrade.
+      retaining settings, account connectivity, assistant consent, purchase and
+      existing history. Verify the native activation route on the signed upgrade.
 
 - [-] Ship one Studio-signed Curfew Dev alongside production Curfew. Use the
   canonical `.dev` app/widget IDs and only Debug/Release configurations. Preserve
@@ -1767,14 +1778,14 @@ asserts its own screen and state before attaching an image.
 ### Public help
 
 - [x] Explain account sign-in methods, recovery-code replacement, connected
-  assistants, account downloads and deletion using the account panel's controls.
-  Distinguish hosted deletion from local data and subscription cancellation.
+      assistants, account downloads and deletion using the account panel's controls.
+      Distinguish hosted deletion from local data and subscription cancellation.
 
 - [x] Explain one-click checkout activation, receipt-email restoration and manual-key recovery in the licensing guide. Keep planned features and purchase availability explicit, and use the product support address.
 - [x] Align activation and restore help with the release controls and link to the
-  public download and restore entry points. Keep installer and Plus availability
-  notices until the cutover owner verifies publication; exclude draft release
-  assets and private checkout links from public help.
+      public download and restore entry points. Keep installer and Plus availability
+      notices until the cutover owner verifies publication; exclude draft release
+      assets and private checkout links from public help.
 - [-] Keep installation help independent of release availability by directing
   readers to the canonical download page; preserve the separate Plus hold and
   verify the approved guide on Mintlify and the first-party documentation route.
@@ -1807,23 +1818,22 @@ The October 23 integration includes main through `35b7587` and restores the clos
 
 The integration also isolates command-line development uninstall from production and privileged state. A sandboxed regression exercises the actual script. Background acceptance sessions suppress app termination and shutdown even if settings enable shutdown. Ordinary Debug builds require explicit signed-fixture opt-in before supervisor registration.
 
-
 ## Universal embedded executables
 
 - [x] Keep the browser host's `@main` declaration in a named Swift source file
-  rather than reserved `main.swift`, so universal SwiftPM builds select library
-  parsing without product-specific compiler flags. Preserve entrypoint bytes,
-  architecture verification, staging isolation and signing behavior.
+      rather than reserved `main.swift`, so universal SwiftPM builds select library
+      parsing without product-specific compiler flags. Preserve entrypoint bytes,
+      architecture verification, staging isolation and signing behavior.
 - [ ] Verify entrypoint repairs with the focused hosted `browser-bridge` scope
-  before tagging a candidate. Keep ordinary full CI's unsigned universal-tool
-  packaging distinct from the final signed archive and installed acceptance.
+      before tagging a candidate. Keep ordinary full CI's unsigned universal-tool
+      packaging distinct from the final signed archive and installed acceptance.
 
 - [x] Build all five embedded tools for the app's resolved Xcode architectures,
-  preserve Debug staging and signing behavior, and reject Release artifacts
-  missing Apple silicon or Intel slices. See `Documentation/RELEASE.md`.
-  Packaging regressions exercise the real Xcode shell phase with synthetic
-  Mach-O fixtures; a real universal package build verifies toolchain output.
-  Signed candidate, installation, and update acceptance remain release gates.
+      preserve Debug staging and signing behavior, and reject Release artifacts
+      missing Apple silicon or Intel slices. See `Documentation/RELEASE.md`.
+      Packaging regressions exercise the real Xcode shell phase with synthetic
+      Mach-O fixtures; a real universal package build verifies toolchain output.
+      Signed candidate, installation, and update acceptance remain release gates.
 
 The integrated graphical run exposed four stale setup and assistant-access tests. Their repair retains schedule-consent and navigation assertions, queries the native checkbox directly, matches long explanatory text through a predicate, and checks the selected Settings page independently of its permission health.
 
@@ -1834,23 +1844,23 @@ Ordinary visual captures preserve synthetic permission and interrupted-keyboard 
 ## Disposable signed updater acceptance
 
 - [x] Extend the existing signed-installer lane with an opt-in real Sparkle
-  upgrade from the pinned older signed build to the explicitly selected newer
-  candidate. Keep original fresh installation available; preserve exact origin,
-  DMG, key, configuration, source verifier, and installed-file checks.
-  Localhost transport and the testing feed override stay in the disposable
-  hosted user's context, with cleanup on success and failure.
+      upgrade from the pinned older signed build to the explicitly selected newer
+      candidate. Keep original fresh installation available; preserve exact origin,
+      DMG, key, configuration, source verifier, and installed-file checks.
+      Localhost transport and the testing feed override stay in the disposable
+      hosted user's context, with cleanup on success and failure.
 - [ ] Complete and retain the actual signed updater UI/bytes result for the
-  release candidate. Source and boundary tests do not establish this outcome.
-  Populated owner data, helper/permission continuity, and recovery remain
-  separate installed-device acceptance; no public feed or owner settings change
-  is required to run the disposable updater check. See `RELEASE.md`.
+      release candidate. Source and boundary tests do not establish this outcome.
+      Populated owner data, helper/permission continuity, and recovery remain
+      separate installed-device acceptance; no public feed or owner settings change
+      is required to run the disposable updater check. See `RELEASE.md`.
 
 - [x] Bind fresh-installer artifact verification to the selected candidate's
-  validated immutable producer source and its own fresh signed UI walkthrough.
-  Both dispatched signed modes require the explicit version, run, source and
-  DMG hash; PRs run boundary checks without selecting/installing a candidate.
-  Unsupported producers fail clearly; the pinned older build is an upgrade
-  baseline only. Newer candidates keep their architecture and trust gates.
+      validated immutable producer source and its own fresh signed UI walkthrough.
+      Both dispatched signed modes require the explicit version, run, source and
+      DMG hash; PRs run boundary checks without selecting/installing a candidate.
+      Unsupported producers fail clearly; the pinned older build is an upgrade
+      baseline only. Newer candidates keep their architecture and trust gates.
 - [ ] Retain passing fresh-install and older-to-newer Sparkle UI/bytes receipts
-  for the same final candidate. Version-neutral harness tests do not replace
-  those signed outcomes.
+      for the same final candidate. Version-neutral harness tests do not replace
+      those signed outcomes.

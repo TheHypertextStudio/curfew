@@ -272,10 +272,9 @@ xliff:
 # Git hooks
 # -----------------------------------------------------------------------
 
-# Symlink repo-managed hooks into .git/hooks so they fire on commit.
+# Install staged formatting and retain the repository commit-message hook.
 install-hooks:
-    ln -sf ../../scripts/hooks/commit-msg .git/hooks/commit-msg
-    chmod +x .git/hooks/commit-msg
+    python3 .hypertext/formatting/install.py
 
 # -----------------------------------------------------------------------
 # Composite gates
