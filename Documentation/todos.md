@@ -1852,13 +1852,13 @@ Ordinary visual captures preserve synthetic permission and interrupted-keyboard 
 ## Disposable signed updater acceptance
 
 - [x] Resolve updater controls by their window and stable accessibility
-  identifiers so Touch Bar copies cannot make an installation click ambiguous.
+      identifiers so Touch Bar copies cannot make an installation click ambiguous.
 - [x] Read the offered version from AppKit accessibility values as well as
-  labels and capture the offer before checking it. Reject absent or different
-  version text; keep actual installation/relaunch and exact-byte acceptance.
+      labels and capture the offer before checking it. Reject absent or different
+      version text; keep actual installation/relaunch and exact-byte acceptance.
 - [x] Separate a reviewed updater UI harness from the candidate's immutable
-  producer commands. Validate source authority before checkout and retain both
-  provenance commits without changing the signed product or fresh-install mode.
+      producer commands. Validate source authority before checkout and retain both
+      provenance commits without changing the signed product or fresh-install mode.
 - [x] Extend the existing signed-installer lane with an opt-in real Sparkle
       upgrade from the pinned older signed build to the explicitly selected newer
       candidate. Keep original fresh installation available; preserve exact origin,
@@ -1880,3 +1880,7 @@ Ordinary visual captures preserve synthetic permission and interrupted-keyboard 
 - [ ] Retain passing fresh-install and older-to-newer Sparkle UI/bytes receipts
       for the same final candidate. Version-neutral harness tests do not replace
       those signed outcomes.
+
+## Release check dependency isolation
+
+- [x] Run the installed shared Astro formatter comparison in the website unit lane, where its dependencies are installed. Keep native packaging/source checks dependency-free so release CI reaches the native checks. This changes test placement only; product behavior and release acceptance requirements are unchanged.
