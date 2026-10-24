@@ -1884,3 +1884,5 @@ Ordinary visual captures preserve synthetic permission and interrupted-keyboard 
 ## Release check dependency isolation
 
 - [x] Run the installed shared Astro formatter comparison in the website unit lane, where its dependencies are installed. Keep native packaging/source checks dependency-free so release CI reaches the native checks. This changes test placement only; product behavior and release acceptance requirements are unchanged.
+
+- [x] Keep the background lifecycle window assertion scoped to its injected router, so concurrent account and snapshot tests cannot contaminate its result. Retain the timer-driven lockout, running-enforcement, no-activation, and no-Settings assertions; stop the test model during cleanup. Production behavior is unchanged.

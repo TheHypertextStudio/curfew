@@ -2426,3 +2426,5 @@ Current-main integration preserves license-expiry reevaluation beside the inject
 | ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | Shared Astro formatter matches staged formatting                 | `landing/tests/unit/formatter-contract.test.mjs`, included by `landing` site checks after dependency installation |
 | Native source/package contracts run without website dependencies | `scripts/landing-contract.test.mjs`, included by native CI script checks                                          |
+
+`BackgroundLifecycleTests.closedWindowsReachLockout` checks its own `AppRouterSpy` for window, activation, and Settings requests instead of the process-wide AppKit window count. Other test suites may create AppKit windows concurrently. Timer-driven lockout and enforcement assertions remain intact.
