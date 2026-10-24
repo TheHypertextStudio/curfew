@@ -18,6 +18,11 @@ formatting. `.hypertext/formatter-tools/test_swift.py` verifies stdin formatting
 invalid Swift rejection, offline missing-cache failure, and existing style config
 without changing working source files.
 
+`scripts/landing-contract.test.mjs` compares the staged formatter's Astro pin
+with the installed shared preset's own dependency. This keeps normal landing
+formatting and commit formatting on the same parser release without introducing
+another independently maintained version constant.
+
 ## Formatting on commit
 
 The native adapter tests exercise pinned-tool stdin formatting and reject tool
