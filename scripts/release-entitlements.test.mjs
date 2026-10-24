@@ -144,10 +144,14 @@ test("v0.1 release docs match the shipping feature contract", () => {
 });
 
 test("CI screenshot capture forwards its unsigned build settings to Xcode", () => {
+  const captureStep = ciWorkflow.split("- name: Capture demo screenshots\n")[1]
+    .split("\n      - name:")[0];
+  assert.match(captureStep, /^        env:$/m);
   assert.match(
-    ciWorkflow,
-    /- name: Capture demo screenshots\n\s+env:\n\s+CURFEW_XCODEBUILD_SETTINGS: "CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO"\n\s+run: just capture/,
+    captureStep,
+    /^          CURFEW_XCODEBUILD_SETTINGS: "CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO"$/m,
   );
+  assert.match(captureStep, /^        run: just capture$/m);
   assert.match(screenshotExtractor, /\$\{CURFEW_XCODEBUILD_SETTINGS:-\}/);
 });
 

@@ -9,7 +9,7 @@ import test from 'node:test';
 import { verifyEmbeddedToolPackaging } from './release-candidate.mjs';
 
 const tools = [
-  'curfew-ctl', 'curfew-mcp', 'curfew-daemon', 'studio.hypertext.curfew.browser',
+  'curfew-ctl', 'curfew-mcp', 'curfew-daemon', 'studio.hypertext.curfew.browser', 'curfew-supervisor',
 ];
 // Minimal Mach-O headers are architecture fixtures, never launched or signed.
 function slice(arch) {
@@ -70,6 +70,9 @@ else if (args.includes('--product')) fs.copyFileSync(p.join(root, source), p.joi
       mkdirSync(join(root, 'Curfew/Resources/LaunchDaemons'), { recursive: true });
       const plist = 'studio.hypertext.apps.curfew.dev.daemon.plist';
       copyFileSync(join('Curfew/Resources/LaunchDaemons', plist), join(root, 'Curfew/Resources/LaunchDaemons', plist));
+      mkdirSync(join(root, 'Curfew/Resources/LaunchAgents'), { recursive: true });
+      const supervisor = 'studio.hypertext.apps.curfew.dev.supervisor.plist';
+      copyFileSync(join('Curfew/Resources/LaunchAgents', supervisor), join(root, 'Curfew/Resources/LaunchAgents', supervisor));
       const result = spawnSync('/bin/sh', ['-c', phase.shellScript], {
         encoding: 'utf8',
         env: {
@@ -93,6 +96,7 @@ else if (args.includes('--product')) fs.copyFileSync(p.join(root, source), p.joi
         ], { encoding: 'utf8' }).trim().split(/\s+/).sort();
         assert.deepEqual(actual, archs.split(' ').sort(), `${tool} must match the app's requested slices`);
       }
+      assert.equal(readFileSync(join(root, 'Fixture.app/Contents/Library/LaunchAgents', supervisor), 'utf8'), readFileSync(join('Curfew/Resources/LaunchAgents', supervisor), 'utf8'));
       const calls = readFileSync(join(root, 'calls.jsonl'), 'utf8').trim().split('\n').map(JSON.parse);
       for (const tool of tools) {
         const build = calls.find(args => args.includes(tool) && !args.includes('--show-bin-path'));
