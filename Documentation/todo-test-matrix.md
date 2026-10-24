@@ -2344,6 +2344,14 @@ The zero-budget Settings capture normalizes native stepper values to numbers bef
 
 ## Disposable signed updater acceptance
 
+- The offered-version regression executes the UI driver's actual Foundation
+  predicate against label-backed, AppKit value-backed, wrong-version, and empty
+  text fixtures. Only the real signed updater run establishes displayed content
+  and an installed/relaunched candidate.
+- Workflow boundary checks keep every upgrade producer command in its validated
+  immutable checkout while the UI driver builds from the reviewed harness.
+  Retained provenance distinguishes the harness commit from the signed product;
+  existing candidate source guards and exact installed-file checks remain active.
 - `scripts/signed-installer-acceptance.test.mjs` covers exact-run selection,
   immutable candidate origin/digest/artifact binding, the pinned baseline and
   existing EdDSA key, real runner identity guards, localhost-only feed URLs,

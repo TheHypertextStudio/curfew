@@ -264,3 +264,51 @@ test("a producer without a signed fresh walkthrough fails instead of substitutin
   assert.throws(() => requireFreshWalkthrough("func testDemoFixture() {}"));
   assert.doesNotThrow(() => requireFreshWalkthrough(readFileSync("CurfewUITests/SignedInstallerAcceptanceTests.swift", "utf8")));
 });
+
+
+test("offered version matches AppKit values as well as labels", { skip: process.platform !== "darwin" }, () => {
+  const source = readFileSync("CurfewUITests/SignedInstallerAcceptanceTests.swift", "utf8");
+  const format = /format: "(label CONTAINS %@[^"]*)"/.exec(source)?.[1];
+  assert.ok(format, "The actual updater version predicate must be available");
+  const root = mkdtempSync(join(tmpdir(), "curfew-sparkle-version-"));
+  try {
+    const fixture = join(root, "VersionPredicate.swift");
+    writeFileSync(fixture, `import Foundation
+let predicate = NSPredicate(format: CommandLine.arguments[1], argumentArray: ["0.0.14", "0.0.14"])
+let examples: [([String: String], Bool)] = [
+  (["label": "Curfew 0.0.14 is now available", "value": ""], true),
+  (["label": "", "value": "Curfew 0.0.14 is now available—you have 0.0.8."], true),
+  (["label": "Question", "value": "Curfew 0.0.8 is now available"], false),
+  (["label": "", "value": ""], false)
+]
+for (attributes, expected) in examples {
+  guard predicate.evaluate(with: attributes) == expected else {
+    fputs("Updater version predicate did not match the text field attributes correctly", stderr)
+    exit(1)
+  }
+}
+`);
+    const result = spawnSync("xcrun", ["swift", fixture, format], { encoding: "utf8" });
+    assert.equal(result.status, 0, result.stderr);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("upgrade harness keeps producer commands on validated immutable source", () => {
+  const workflow = JSON.parse(execFileSync("ruby", ["-rjson", "-ryaml", "-e",
+    "puts JSON.generate(YAML.load_file(ARGV[0]))", ".github/workflows/signed-installer-acceptance.yml"], { encoding: "utf8" }));
+  const steps = workflow.jobs["staging-upgrade"].steps;
+  const checkout = steps.find(step => step.with?.path === "candidate-source");
+  assert.ok(checkout, "Upgrade needs a separate immutable producer checkout");
+  assert.equal(checkout.with.ref, "${{ steps.subject.outputs.source_commit }}");
+  const authority = steps.find(step => step.id === "subject");
+  assert.match(authority.run, /node scripts\/signed-installer-acceptance\.mjs prepare /);
+  assert.ok(steps.indexOf(authority) < steps.indexOf(checkout));
+  for (const name of ["Retain the pinned older build and exact new subject", "Verify the exact new candidate before the update",
+    "Perform the real Sparkle update and verify installed bytes", "Confirm disposable defaults cleanup even after failure"]) {
+    assert.equal(steps.find(step => step.name === name)["working-directory"], "candidate-source", name);
+  }
+  const update = steps.find(step => step.name === "Perform the real Sparkle update and verify installed bytes");
+  assert.match(update.run, /xcodebuild test -project \.\.\/Curfew\.xcodeproj/);
+  const retain = steps.find(step => step.name === "Retain exact subjects and actual update results");
+  assert.match(retain.with.path, /sparkle-harness-source\.json/);
+});

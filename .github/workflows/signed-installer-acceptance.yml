@@ -146,7 +146,46 @@ jobs:
           node-version: "24"
       - name: Check the acceptance boundaries
         run: node --test scripts/signed-installer-acceptance.test.mjs
+      # Validate the retained subject before selecting its immutable source.
+      # The root checkout may contain a repaired UI driver; it never replaces
+      # the selected producer's verifier, feed driver, or exact-byte checks.
+      - name: Validate the exact candidate before selecting its producer source
+        id: subject
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CURFEW_UPGRADE_VERSION: ${{ inputs.candidate_version }}
+          CURFEW_UPGRADE_RUN_ID: ${{ inputs.candidate_run_id }}
+          CURFEW_UPGRADE_SOURCE_COMMIT: ${{ inputs.candidate_source_commit }}
+          CURFEW_UPGRADE_DMG_SHA256: ${{ inputs.candidate_dmg_sha256 }}
+        run: node scripts/signed-installer-acceptance.mjs prepare "$RUNNER_TEMP/upgrade-source-authority"
+      - name: Retain the selected producer's immutable upgrade verifier
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ steps.subject.outputs.source_commit }}
+          path: candidate-source
+          persist-credentials: false
+      - name: Record distinct UI harness and producer sources
+        env:
+          VERIFIED_PRODUCER_SOURCE: ${{ steps.subject.outputs.source_commit }}
+        run: |
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import {execFileSync} from 'node:child_process';
+          import {writeFileSync} from 'node:fs';
+          const git = args => execFileSync('git', args, {encoding: 'utf8'}).trim();
+          const uiHarnessSourceCommit = git(['rev-parse', 'HEAD']);
+          const producerSourceCommit = git(['-C', 'candidate-source', 'rev-parse', 'HEAD']);
+          assert.equal(uiHarnessSourceCommit, process.env.GITHUB_SHA);
+          assert.equal(producerSourceCommit, process.env.VERIFIED_PRODUCER_SOURCE);
+          git(['-C', 'candidate-source', 'diff', '--quiet', 'HEAD', '--']);
+          writeFileSync(`${process.env.RUNNER_TEMP}/sparkle-harness-source.json`, JSON.stringify({
+            schemaVersion: 1, uiHarnessSourceCommit, producerSourceCommit,
+            workflowRef: process.env.GITHUB_WORKFLOW_REF,
+            scope: 'UI harness provenance; producer verification remains immutable',
+          }, null, 2) + '\n');
+          JS
       - name: Retain the pinned older build and exact new subject
+        working-directory: candidate-source
         env:
           GH_TOKEN: ${{ github.token }}
           CURFEW_UPGRADE_VERSION: ${{ inputs.candidate_version }}
@@ -161,6 +200,7 @@ jobs:
           path: baseline-source
           persist-credentials: false
       - name: Verify the exact new candidate before the update
+        working-directory: candidate-source
         shell: bash
         run: |
           set -euo pipefail
@@ -198,6 +238,7 @@ jobs:
           brew install displayplacer
           node scripts/configure-ci-display.mjs
       - name: Perform the real Sparkle update and verify installed bytes
+        working-directory: candidate-source
         shell: bash
         env:
           TEST_RUNNER_CURFEW_SIGNED_UPGRADE_ACCEPTANCE: "1"
@@ -230,7 +271,7 @@ jobs:
           done
           test -s "$RUNNER_TEMP/sparkle-upgrade/server.json"
           node scripts/signed-installer-acceptance.mjs configure-upgrade "$RUNNER_TEMP/sparkle-upgrade"
-          xcodebuild test -project Curfew.xcodeproj -scheme Curfew \
+          xcodebuild test -project ../Curfew.xcodeproj -scheme Curfew \
             -destination 'platform=macOS' \
             -resultBundlePath "$RUNNER_TEMP/sparkle-upgrade/upgrade.xcresult" \
             -only-testing:CurfewUITests/SignedInstallerAcceptanceTests/testSignedStagingUpgrade \
@@ -247,6 +288,7 @@ jobs:
             exit 1
           fi
       - name: Confirm disposable defaults cleanup even after failure
+        working-directory: candidate-source
         if: always()
         run: node scripts/signed-installer-acceptance.mjs cleanup-upgrade "$RUNNER_TEMP/sparkle-upgrade"
       - name: Retain exact subjects and actual update results
@@ -255,6 +297,7 @@ jobs:
         with:
           name: signed-staging-upgrade-acceptance
           path: |
+            ${{ runner.temp }}/sparkle-harness-source.json
             ${{ runner.temp }}/sparkle-upgrade/baseline/acceptance-subject.json
             ${{ runner.temp }}/sparkle-upgrade/candidate/acceptance-subject.json
             ${{ runner.temp }}/sparkle-upgrade/upgrade-plan.json
