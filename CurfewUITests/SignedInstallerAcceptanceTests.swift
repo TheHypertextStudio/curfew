@@ -82,10 +82,10 @@ final class SignedInstallerAcceptanceTests: XCTestCase {
         check.click()
         let install = app.buttons["Install Update"]
         XCTAssertTrue(install.waitForExistence(timeout: 20))
-        XCTAssertTrue(app.staticTexts.matching(NSPredicate(
-            format: "label CONTAINS %@", expectedVersion
-        )).firstMatch.exists)
         attachScreenshot(of: app, named: "signed-staging-update-offered")
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(
+            format: "label CONTAINS %@ OR value CONTAINS %@", expectedVersion, expectedVersion
+        )).firstMatch.waitForExistence(timeout: 5))
         install.click()
         let relaunch = app.buttons["SUStatusInstallAndRelaunch"]
         XCTAssertTrue(relaunch.waitForExistence(timeout: 60))

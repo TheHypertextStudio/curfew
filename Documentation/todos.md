@@ -1851,6 +1851,12 @@ Ordinary visual captures preserve synthetic permission and interrupted-keyboard 
 
 ## Disposable signed updater acceptance
 
+- [x] Read the offered version from AppKit accessibility values as well as
+  labels and capture the offer before checking it. Reject absent or different
+  version text; keep actual installation/relaunch and exact-byte acceptance.
+- [x] Separate a reviewed updater UI harness from the candidate's immutable
+  producer commands. Validate source authority before checkout and retain both
+  provenance commits without changing the signed product or fresh-install mode.
 - [x] Extend the existing signed-installer lane with an opt-in real Sparkle
       upgrade from the pinned older signed build to the explicitly selected newer
       candidate. Keep original fresh installation available; preserve exact origin,
