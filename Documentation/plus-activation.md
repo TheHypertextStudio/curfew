@@ -64,7 +64,7 @@ to the successful request that opened it; canceled requests cannot dismiss a
 later sheet.
 
 Tickets are retryable until expiry so an email scanner or repeated OS callback
-does not consume them. They are bearer capabilities; never log them. The
+does not consume them. They are bearer capabilities; never log them. Queued restore mail retains the same short-lived link only until delivery or scheduled expiry cleanup. The
 license signature remains authoritative. Recovery cannot unlock account data,
 enroll devices, change enforcement, or authenticate a Curfew account.
 
@@ -73,24 +73,81 @@ format. No `curfew-protocols` or coordinator change is required.
 
 ## Execution and acceptance
 
+### Paid launch checklist — 2026-10-29 audit
+
+This is the current checklist for enabling sales. Older verification records
+below are historical and do not close these acceptance items. The free public
+Mac download is already available; Plus remains unavailable for purchase.
+
+Payment acceptance uses the existing authorized Stripe sandbox end to end:
+checkout, confirmation/license delivery, download and activation in the matching
+signed test build, plus restoration, refunds and cancellation. This is sufficient
+payment acceptance; no production test charge, real purchase or production
+license activation is required. Production payment readiness uses read-only
+configuration checks. Sandbox acceptance does not authorize provider activation,
+new credentials, grants or production changes. Other product/release gates remain.
+
+| Customer step                    | Evidence and remaining gate                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Understand the offer             | Live homepage/download identify macOS 26+, free/open-source Mac use, and Plus cross-platform sync as coming soon. Do not sell Android distraction blocking or browser enforcement without the product owner's device acceptance.                                                                                                                                                                                                                                                                                                                                                                                        |
+| Know the price                   | Existing Stripe live links retain USD 20 lifetime and USD 20/year subscription. Both links are inactive. Lifetime is tax-inclusive; the yearly price has unspecified tax behavior. Both links enable automatic tax. Reconcile the paid feature scope, tax display, and renewal terms before exposing either link; do not run bootstrap defaults or create replacement prices.                                                                                                                                                                                                                                           |
+| Pay                              | The existing live license webhook is enabled for checkout completion, paid invoices and subscription deletion. It does not subscribe to asynchronous payment success. The issuer now handles that event in source, subject to the same signed-event, paid-SKU and expected-mode checks. The requested launch includes enabling the existing offer once functional-product and fulfillment acceptance pass. Do not activate links before that acceptance, create credentials, expand access or change commercial terms.                                                                                                  |
+| Receive confirmation and license | Both retained links redirect to the production confirmation page with the Checkout Session ID. The deployed production issuer reports envelope v2/live mode and its public key matches the app source. Fresh sandbox confirmation, receipt delivery and license issuance remain pending provider acceptance; production verification is read-only configuration inspection. Never include a session ID or recovery ticket in public proof.                                                                                                                                                                              |
+| Download and activate            | Live `/download` links the published signed 0.0.16 DMG. The product launch owner must confirm its exact bytes, notarization, install/upgrade, offline relaunch and advertised device behavior. Verify payment activation through the full sandbox journey in the matching signed test build; inspect production signer and endpoint pairing read-only. A healthy signer endpoint does not establish installed-app acceptance.                                                                                                                                                                                           |
+| Recover or cancel                | Restore bindings are present on both deployed issuers: restricted `accounts@thecurfew.app` sender, matching portal and separate rate-limit namespaces. Sandbox inbox delivery and native restore on the matching accepted test build remain pending. Cancellation preserves the last paid period; failed invoices do not extend it. Distinct checkout event IDs must not replace renewal state or reopen a canceled token.                                                                                                                                                                                              |
+| Refund                           | The published policy offers full refunds within 14 days of purchase or the most recent renewal, through support. Lifetime keys are offline and not remotely revocable; subscription keys expire. The prepared transactional issuer reconciles full refunds for every online key-delivery path; its migration and provider acceptance remain pending. The account entitlement webhook is disabled in the inspected live provider state. Verify the sandbox refund/cancellation path and its effect on restoration, refresh and hosted access before selling; do not claim immediate revocation of an already issued key. |
+| Go live                          | Complete sandbox end-to-end purchase/license/download/activation and read-only production configuration checks. Preserve the remaining release gates and the authorized promotion sequence in `production-domain-promotion.md`. Provider activation, deployment, new credentials, grants and production changes remain held for their applicable authorization; sandbox verification does not perform or authorize them. Never make a production test charge or require a real purchase for acceptance.                                                                                                                 |
+
+Provider inventory on this audit identified separate retained license KVs and
+signers, matching recovery portals, and explicit live/test runtime modes. The
+production configuration commit matches `07a13227`; staging declares
+`be209d48` with the same endpoint-configuration hash. The current Stripe CLI
+authorization exposes the Studio live account and no authorized sandbox. The
+absence of a CLI-authorized sandbox does not mean the existing Test mode was
+deleted and does not authorize creating a replacement. Resume test checkout
+only after the existing Test-mode access is available. Provider settings,
+credentials and live links were inspected without alteration.
+
+The live account entitlement webhook is disabled, and its source expects
+`curfew_product_id`/`curfew_entitlement_kind` metadata rather than the existing
+links' `curfew_sku`. The coordinator also has an authenticated signed-license
+claim route. Verify that an actual buyer can claim hosted Plus through the
+intended public/native path; do not assume an offline Mac key automatically
+activates cross-device service access. This is a capability gate, not a reason
+to invent a new billing architecture.
+
+Checkout completion and delayed success retain order-level replay protection.
+The prepared public issuer now uses atomic D1 transactions for concurrent first
+delivery, paid-period changes, refund tombstones and read-only key resolution.
+It has no live KV fallback. Missing or unaccepted D1 migration fails closed;
+existing KV remains retained for private import/recovery. See
+[the controlled ledger cutover](license-ledger-cutover.md) before deploying this
+source. No production storage was provisioned or migrated by this change.
+
+Local regressions exercise the real issuer handler with signed test events and
+double only storage, email and rate limits. These are source verification, not
+a Stripe checkout. Reverting this change restores the previous event handling
+without deleting licenses or changing provider settings. Keep the sale gate
+closed throughout any rollback or acceptance failure.
+
 - [x] Worker regressions observed failing for missing activation/recovery and
-  unpaid checkouts; implement ticket redemption and inbox recovery.
+      unpaid checkouts; implement ticket redemption and inbox recovery.
 - [x] Native tests: exact link routing, cryptographic verification, offline
-  relaunch, preserving active purchases, restoration, cancellation/races.
+      relaunch, preserving active purchases, restoration, cancellation/races.
 - [x] Browser tests: checkout action, delayed delivery, fallback, restore form,
-  fragment privacy, keyboard access, failure and retry.
+      fragment privacy, keyboard access, failure and retry.
 - [ ] Update user help, backlog and test mapping for the finished flow.
 - [x] Full unit tests, format/lint, app build, issuer typecheck/tests, website
-  build and browser acceptance; inspect rendered app and website.
+      build and browser acceptance; inspect rendered app and website.
 - [x] Provision staging email and rate limits; verify real sandbox checkout and
-  inbox restoration against a signed app with the matching signer.
+      inbox restoration against a signed app with the matching signer.
 - [ ] Apply the approved production restore-email binding and rate limits
-  before the coordinated issuer/site/client rollout.
+      before the coordinated issuer/site/client rollout.
 - [ ] Backfill historical paid purchase indexes in the matching Stripe
-  environment and verify an old purchase restores through the hosted page.
+      environment and verify an old purchase restores through the hosted page.
 - [ ] Deploy the verified issuer and website, distribute the app, and verify
-  actual checkout → activation plus restoration. Keep the public sale gate
-  closed until production acceptance; do not call local fixtures purchase proof.
+      actual checkout → activation plus restoration. Keep the public sale gate
+      closed until production acceptance; do not call local fixtures purchase proof.
 
 ## Operational boundary
 

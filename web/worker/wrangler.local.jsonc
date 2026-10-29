@@ -40,5 +40,18 @@
     "STRIPE_MODE": "test",
     "RESTORE_EMAIL_FROM": "accounts@thecurfew.app",
     "PURCHASE_PORTAL_URL": "http://localhost:4321"
+  },
+  "d1_databases": [
+    {
+      "binding": "LICENSE_DB",
+      "database_name": "curfew-license-local",
+      "database_id": "00000000-0000-4000-8000-000000000001",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "triggers": {
+    "crons": [
+      "*/5 * * * *"
+    ]
   }
 }
