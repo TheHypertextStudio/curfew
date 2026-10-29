@@ -7,6 +7,10 @@
       preserve synthetic history, preferences and runtime budgets through
       actual signed-app launches, bundle rollback and backup restoration.
 - [ ] Inspect the actual hosted `signed-data-continuity-acceptance` result.
+      Initial run `40900457471` passed all four graphical launches, then failed
+      receipt validation because Swift emitted weekday dictionary pairs in
+      varying order. Canonicalize that dictionary without ignoring values and
+      retain before/after snapshots; a fresh hosted result is still required.
       This job does not validate an onboarded user's credentials, helper
       approval, enforcement, account acceptance or live deployment rollback.
 

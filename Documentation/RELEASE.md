@@ -553,6 +553,11 @@ helper approval, enforcement, provider acceptance or production Worker/feed
 rollback. Those release gates remain independent. Remove this optional mode to
 roll back the verification change; it changes no product or retained bytes.
 
+Snapshot digests compare every retained value while sorting the unordered
+weekday dictionary pairs emitted by Swift's Codable representation. Ordering of
+other arrays stays significant. Before/after snapshots remain in the artifact
+so a changed digest can be diagnosed without treating failed acceptance as pass.
+
 `SMAppService` install/status behavior only becomes trustworthy on a signed app
 running on a real machine.
 

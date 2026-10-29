@@ -40,6 +40,33 @@ const hash = (bytes) => createHash('sha256').update(bytes).digest('hex');
 const json = async (path) => JSON.parse(await readFile(path, 'utf8'));
 const run = (command, args, options = {}) =>
   execFileSync(command, args, { encoding: 'utf8', ...options });
+export function snapshotDigest(snapshot) {
+  const value = structuredClone(snapshot);
+  // Swift encodes [Weekday: DayRule] as unordered alternating key/value pairs.
+  // Preserve every entry and value; ordering of all other arrays stays significant.
+  const rules = value.settings.schedule.rules;
+  assert.ok(Array.isArray(rules) && rules.length % 2 === 0);
+  const pairs = [];
+  const days = new Set();
+  for (let i = 0; i < rules.length; i += 2) {
+    const day = rules[i];
+    assert.ok(Number.isInteger(day) && day >= 1 && day <= 7 && !days.has(day));
+    days.add(day);
+    pairs.push([day, rules[i + 1]]);
+  }
+  value.settings.schedule.rules = pairs.sort((a, b) => a[0] - b[0]).flat();
+  const canonical = (item) =>
+    Array.isArray(item)
+      ? item.map(canonical)
+      : item !== null && typeof item === 'object'
+        ? Object.fromEntries(
+            Object.keys(item)
+              .sort()
+              .map((key) => [key, canonical(item[key])]),
+          )
+        : item;
+  return hash(JSON.stringify(canonical(value)));
+}
 export function requireContinuityHost(context) {
   requireDisposableRunner(context);
   assert.equal(context.runnerEnvironment, 'github-hosted', 'A GitHub-hosted VM is required');
@@ -291,7 +318,7 @@ async function execute(directory) {
     { stdio: 'inherit' },
   );
   const snapshot = () => JSON.parse(run(helper, ['snapshot']));
-  const digest = (value) => hash(JSON.stringify(value));
+  const digest = snapshotDigest;
   let currentManifest;
   const stages = [];
   let postWriteSHA256;
@@ -315,6 +342,9 @@ async function execute(directory) {
     assert.equal(before.reflections.length, count);
     assert.equal(before.settings.hasCompletedInitialSetup, false);
     assert.equal(before.settings.autoShutdownEnabled, false);
+    await writeFile(join(directory, `${name}-before-data.json`), JSON.stringify(before, null, 2), {
+      flag: 'wx',
+    });
     const uiPath = join(directory, `${name}-ui.json`);
     run(
       'xcodebuild',

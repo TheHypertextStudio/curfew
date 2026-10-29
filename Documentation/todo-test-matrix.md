@@ -6,6 +6,9 @@
 identities, preexisting files and symlinks, ambiguous service lookup failures,
 wrong subjects, missing graphical outcomes and changed retained content. The
 compiled fixture refuses forged CI environment values on the real owner account.
+Snapshot-digest regression coverage admits reordered Swift weekday dictionary
+pairs while rejecting duplicate/invalid days and detecting changed schedule
+values, missing days, runtime budgets, ordered events and reflection content.
 The missing isolation/receipt behavior failed before implementation.
 `SignedInstallerAcceptanceTests.testSignedDataContinuityLaunch` launches only the
 actual installed signed bundle on a disposable hosted Mac. The workflow checks

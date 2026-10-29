@@ -6,6 +6,40 @@ import { join } from 'node:path';
 import { execFileSync, spawnSync } from 'node:child_process';
 
 const module = await import('./signed-data-continuity.mjs').catch(() => ({}));
+test('snapshot digests compare weekday dictionary contents without losing real changes', () => {
+  assert.equal(typeof module.snapshotDigest, 'function', 'Missing semantic snapshot digest');
+  const snapshot = {
+    settings: { schedule: { rules: [2, { lockMinutes: 1320 }, 1, { lockMinutes: 1080 }] } },
+    runtime: { extensionUses: 2 },
+    events: [{ id: 'first' }, { id: 'second' }],
+    reflections: [{ answers: ['synthetic'] }],
+  };
+  const reordered = structuredClone(snapshot);
+  reordered.settings.schedule.rules = [1, { lockMinutes: 1080 }, 2, { lockMinutes: 1320 }];
+  assert.equal(module.snapshotDigest(snapshot), module.snapshotDigest(reordered));
+  assert.deepEqual(snapshot.settings.schedule.rules, [
+    2,
+    { lockMinutes: 1320 },
+    1,
+    { lockMinutes: 1080 },
+  ]);
+  for (const mutate of [
+    (x) => (x.settings.schedule.rules[1].lockMinutes = 1200),
+    (x) => x.settings.schedule.rules.splice(0, 2),
+    (x) => (x.runtime.extensionUses = 0),
+    (x) => x.events.reverse(),
+    (x) => (x.reflections[0].answers[0] = 'changed'),
+  ]) {
+    const changed = structuredClone(snapshot);
+    mutate(changed);
+    assert.notEqual(module.snapshotDigest(snapshot), module.snapshotDigest(changed));
+  }
+  for (const rules of [[1], [1, {}, 1, {}], [8, {}], ['1', {}]]) {
+    const invalid = structuredClone(snapshot);
+    invalid.settings.schedule.rules = rules;
+    assert.throws(() => module.snapshotDigest(invalid));
+  }
+});
 test('service lookup errors cannot be misreported as an absent production service', () => {
   assert.equal(
     typeof module.requireMissingService,
