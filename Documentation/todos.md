@@ -1,5 +1,15 @@
 # Curfew Implementation TODOs
 
+## Signed data continuity and rollback
+
+- [x] Add a narrowly pinned disposable acceptance mode for signed 0.0.16 and
+      0.0.17. Keep setup incomplete and shutdown/assistant writes disabled;
+      preserve synthetic history, preferences and runtime budgets through
+      actual signed-app launches, bundle rollback and backup restoration.
+- [ ] Inspect the actual hosted `signed-data-continuity-acceptance` result.
+      This job does not validate an onboarded user's credentials, helper
+      approval, enforcement, account acceptance or live deployment rollback.
+
 ## Signed upgrade release-note input
 
 - [x] Supply missing version-matched public release notes from the reviewed
