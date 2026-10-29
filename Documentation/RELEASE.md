@@ -461,8 +461,15 @@ before either artifact is used. The mode never substitutes a newer candidate.
 The workflow validates the candidate cryptographically before selecting its
 `candidate-source` checkout. Preparation, loopback feed, defaults cleanup, and
 final artifact verification run from that immutable producer checkout, retaining
-its exact-source guards. Only the UI driver comes from the reviewed harness
-checkout; a separate receipt records both commits. A repaired UI selector does
+its exact-source guards. The UI driver comes from the reviewed harness
+checkout; a separate receipt records both commits. When the immutable producer
+lacks that version's public release notes, the harness may supply only the
+missing HTML response data after producer preparation. The staging helper rejects
+tracked or existing destinations, symlinks, dirty producer source, and notes that
+do not match the committed harness version. `release-note-input.json` attributes
+the exact HTML bytes and SHA-256 to the harness commit, not the producer; both
+files are retained with acceptance results. No producer verifier, feed driver,
+signed installer, or signature is substituted. A repaired UI selector does
 not require rebuilding or renumbering an unchanged signed product. Fresh-install
 mode still uses the immutable producer's own required walkthrough.
 
@@ -727,7 +734,6 @@ state as rollback during active enforcement.
 Use the shared endpoint artifact and the pinned cf build/deployment commands in `domain-migration.md`. Protocol 0.0.13 is the domain-independent contract. A signed native release, verified callback associations, provider registrations, account recovery audit and production acceptance remain required; local unsigned builds do not satisfy them.
 
 The domain migration uses the shared endpoint artifact for native and backend configuration identity. The retained release snapshot additionally binds the resolved Sparkle public key and source digests; it does not substitute its own hash for the endpoint identity. See `domain-migration.md` for preparation, activation and rollback requirements.
-
 
 ## Background supervisor release gate
 

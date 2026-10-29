@@ -1,5 +1,15 @@
 # Todo Test Matrix
 
+## Signed upgrade release-note input
+
+`scripts/upgrade-notes.test.mjs` exercises real Git fixtures: supplies only a
+missing version-matched HTML file, retains separate source/hash/bytes, and refuses
+overwrites, symlinked paths, uncommitted notes, dirty producer source, mismatched
+subjects and unsafe versions. Workflow checks keep staging after immutable
+preparation and retain provenance. The missing behavior failed before the fix.
+Original producer verification/feed-driver code remains unchanged; actual
+staging-upgrade acceptance is still a separate hosted test.
+
 ## Background recovery after clock corrections
 
 `AppSupervisorPolicyTests.backwardClockDoesNotStrandRecovery` proves that a

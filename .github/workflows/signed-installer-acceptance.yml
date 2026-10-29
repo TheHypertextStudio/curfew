@@ -30,6 +30,8 @@ on:
       - .github/workflows/signed-installer-acceptance.yml
       - scripts/signed-installer-acceptance.mjs
       - scripts/signed-installer-acceptance.test.mjs
+      - scripts/upgrade-notes.mjs
+      - scripts/upgrade-notes.test.mjs
       - CurfewUITests/SignedInstallerAcceptanceTests.swift
 
 permissions:
@@ -46,8 +48,8 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@v7.1.0
         with:
-          node-version: "24"
-      - run: node --test scripts/signed-installer-acceptance.test.mjs
+          node-version: '24'
+      - run: node --test scripts/signed-installer-acceptance.test.mjs scripts/upgrade-notes.test.mjs
 
   installed-candidate:
     if: github.repository == 'TheHypertextStudio/curfew' && github.event_name == 'workflow_dispatch' && inputs.mode == 'fresh-install'
@@ -59,9 +61,9 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@v7.1.0
         with:
-          node-version: "24"
+          node-version: '24'
       - name: Verify acceptance boundary tests
-        run: node --test scripts/signed-installer-acceptance.test.mjs
+        run: node --test scripts/signed-installer-acceptance.test.mjs scripts/upgrade-notes.test.mjs
       - name: Retain the exact signed release subject
         id: subject
         env:
@@ -108,9 +110,9 @@ jobs:
           node scripts/configure-ci-display.mjs
       - name: Exercise the installed signed app without demo fixtures
         env:
-          TEST_RUNNER_GITHUB_ACTIONS: "true"
+          TEST_RUNNER_GITHUB_ACTIONS: 'true'
           TEST_RUNNER_RUNNER_TEMP: ${{ runner.temp }}
-          TEST_RUNNER_CURFEW_SIGNED_INSTALLER_ACCEPTANCE: "1"
+          TEST_RUNNER_CURFEW_SIGNED_INSTALLER_ACCEPTANCE: '1'
           TEST_RUNNER_CURFEW_SIGNED_INSTALLER_VERSION: ${{ env.CURFEW_SIGNED_INSTALLER_VERSION }}
           TEST_RUNNER_CURFEW_SIGNED_INSTALLER_RECEIPT: ${{ runner.temp }}/signed-installer-ui.json
         run: >-
@@ -143,9 +145,9 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@v7.1.0
         with:
-          node-version: "24"
+          node-version: '24'
       - name: Check the acceptance boundaries
-        run: node --test scripts/signed-installer-acceptance.test.mjs
+        run: node --test scripts/signed-installer-acceptance.test.mjs scripts/upgrade-notes.test.mjs
       # Validate the retained subject before selecting its immutable source.
       # The root checkout may contain a repaired UI driver; it never replaces
       # the selected producer's verifier, feed driver, or exact-byte checks.
@@ -199,6 +201,8 @@ jobs:
           ref: be209d487d554cc4a2bbe5dd89211e258280bf3b
           path: baseline-source
           persist-credentials: false
+      - name: Supply reviewed release-note data without changing producer code
+        run: node scripts/upgrade-notes.mjs candidate-source "$RUNNER_TEMP/sparkle-upgrade"
       - name: Verify the exact new candidate before the update
         working-directory: candidate-source
         shell: bash
@@ -241,8 +245,8 @@ jobs:
         working-directory: candidate-source
         shell: bash
         env:
-          TEST_RUNNER_CURFEW_SIGNED_UPGRADE_ACCEPTANCE: "1"
-          TEST_RUNNER_GITHUB_ACTIONS: "true"
+          TEST_RUNNER_CURFEW_SIGNED_UPGRADE_ACCEPTANCE: '1'
+          TEST_RUNNER_GITHUB_ACTIONS: 'true'
           TEST_RUNNER_RUNNER_TEMP: ${{ runner.temp }}
           TEST_RUNNER_CURFEW_SIGNED_UPGRADE_VERSION: ${{ inputs.candidate_version }}
           TEST_RUNNER_CURFEW_SIGNED_UPGRADE_RECEIPT: ${{ runner.temp }}/sparkle-upgrade/upgrade-ui.json
@@ -301,6 +305,8 @@ jobs:
             ${{ runner.temp }}/sparkle-upgrade/baseline/acceptance-subject.json
             ${{ runner.temp }}/sparkle-upgrade/candidate/acceptance-subject.json
             ${{ runner.temp }}/sparkle-upgrade/upgrade-plan.json
+            ${{ runner.temp }}/sparkle-upgrade/release-note-input.json
+            ${{ runner.temp }}/sparkle-upgrade/release-note-input.html
             ${{ runner.temp }}/sparkle-upgrade/staging-appcast.xml
             ${{ runner.temp }}/sparkle-upgrade/server.json
             ${{ runner.temp }}/sparkle-upgrade/server.log

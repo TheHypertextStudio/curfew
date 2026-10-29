@@ -1,5 +1,15 @@
 # Curfew Implementation TODOs
 
+## Signed upgrade release-note input
+
+- [x] Supply missing version-matched public release notes from the reviewed
+      acceptance harness, retaining their distinct source and digest. Keep
+      immutable producer code and signed candidate bytes unchanged.
+- [ ] Complete the actual staging Sparkle update for 0.0.17. The first attempt
+      stopped before starting Sparkle because producer notes were absent; the
+      separate fresh-install walkthrough passed. This input fix is not updater
+      acceptance or publication.
+
 ## Background recovery after clock corrections
 
 - [x] Keep only the remaining restart backoff when the wall clock moves backward,
