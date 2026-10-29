@@ -1,19 +1,36 @@
 import { describe, expect, it } from 'vitest';
 import worker from '../src/index.js';
+import { SQLiteD1 } from './support/sqlite-d1.js';
 import type { Env } from '../src/types.js';
 
 describe('license service deployment identity', () => {
   it('reports deployment identity alongside signer and payment mode', async () => {
-    const env = { CONFIGURATION_SHA256: 'a'.repeat(64), CONFIGURATION_COMMIT: 'b'.repeat(40), LICENSE_PRIVATE_KEY: Buffer.alloc(32, 1).toString('base64url'), STRIPE_MODE: 'test' } as unknown as Env;
+    const env = {
+      LICENSE_DB: new SQLiteD1(),
+      CONFIGURATION_SHA256: 'a'.repeat(64),
+      CONFIGURATION_COMMIT: 'b'.repeat(40),
+      LICENSE_PRIVATE_KEY: Buffer.alloc(32, 1).toString('base64url'),
+      STRIPE_MODE: 'test',
+    } as unknown as Env;
     const response = await worker.fetch(new Request('https://license.example.net/health'), env);
     expect(response.headers.get('x-curfew-configuration')).toBe(env.CONFIGURATION_SHA256);
     expect(response.headers.get('x-curfew-configuration-commit')).toBe(env.CONFIGURATION_COMMIT);
     expect(response.status).toBe(200);
-    expect(await response.json()).toMatchObject({ status: 'ok', envelope_version: 2, stripe_mode: 'test' });
+    expect(await response.json()).toMatchObject({
+      status: 'ok',
+      envelope_version: 2,
+      stripe_mode: 'test',
+    });
   });
   it('retires legacy license requests without redirecting refresh tokens', async () => {
-    const env = { LICENSE_ORIGIN: 'https://license.example.net', RETIRED_LICENSE_HOSTS: '["old-license.example.net"]' } as unknown as Env;
-    const response = await worker.fetch(new Request('https://old-license.example.net/license/refresh?token=secret'), env);
+    const env = {
+      LICENSE_ORIGIN: 'https://license.example.net',
+      RETIRED_LICENSE_HOSTS: '["old-license.example.net"]',
+    } as unknown as Env;
+    const response = await worker.fetch(
+      new Request('https://old-license.example.net/license/refresh?token=secret'),
+      env,
+    );
     expect(response.status).toBe(410);
     expect(response.headers.get('location')).toBeNull();
   });

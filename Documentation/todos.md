@@ -1,5 +1,30 @@
 # Curfew Implementation TODOs
 
+## Paid launch readiness — 2026-10-29
+
+- [x] Handle signed, paid asynchronous checkout success with the existing SKU
+      and expected-mode guards. Preserve renewed licenses and canceled tokens
+      when the same checkout arrives under a different event ID.
+- [x] Add issuer regressions for delayed payment delivery, distinct-event
+      renewal/cancellation replay and failed renewal preserving the paid expiry.
+- [-] Complete the consolidated paid-launch checklist in `plus-activation.md`.
+  Live download 0.0.16, issuer modes/public signers, retained payment prices,
+  inactive links and webhook subscriptions were inspected. Existing Test-mode
+  authorization, sandbox purchase/license/download/activation and refund
+  acceptance, transactional ledger cutover, signed-app acceptance and billing
+  activation remain open. Production payment verification is read-only; no
+  production test charge or real purchase is an acceptance requirement.
+
+- [x] Require an atomic D1 authority for concurrent delivery and all key reads;
+      retain KV for a reviewed private import, fail closed until readiness is
+      accepted, and deliver restore mail through a durable leased outbox.
+- [x] Reconcile confirmed full refunds across activation, restore, refresh and
+      legacy GET delivery. Require actual funded invoice periods; preserve
+      cancellation and non-refunded history. Review found partial-invoice replay
+      and legacy allocation fallback; both regressions failed first and pass.
+- [x] Prepare an offline signer-verified, environment-bound private import with
+      no automatic readiness switch, remote mutation or resource provisioning.
+
 ## Background recovery after clock corrections
 
 - [x] Keep only the remaining restart backoff when the wall clock moves backward,

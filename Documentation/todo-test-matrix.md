@@ -1,5 +1,34 @@
 # Todo Test Matrix
 
+## Paid launch readiness — 2026-10-29
+
+`web/worker/test/purchase-flow.test.ts` sends signed webhook requests through
+the real HTTP handler. New regressions cover delayed payment success after
+an unpaid checkout, distinct-event checkout delivery preserving a renewed key,
+late checkout delivery preserving canceled refresh-token state, and failed
+renewal retaining the previous expiry. The first three failed before the
+issuer fix; the failed-renewal case verifies existing behavior. Existing tests
+continue to cover wrong-mode rejection before storage, unpaid/unrelated SKUs,
+signature verification, invoice ordering, cancellation and inbox recovery.
+
+`web/worker/test/transactional-flow.test.ts` exercises the public issuer and
+real SQLite transactions for concurrent first delivery, rollback, read-only
+conflicts, ABA/phantoms, refund ordering, invoice allocation, cancellation and
+durable outbox retries and physical expiry of recovery secrets. The pinned SQL
+formatter check executes the formatted migration and verifies exact record
+column names. `scripts/license-ledger-import.test.mjs` executes the
+prepared SQL and checks signatures, provenance, readiness, private output and
+closed-ledger retry safety. `storage-deployment.node.mjs` checks separate
+explicit D1 identities and the scheduled outbox retry.
+
+Actual sandbox checkout, receipt/inbox delivery, download, matching signed-app
+activation, restoration and provider refunds remain separate from synthetic
+fixtures. Sandbox end-to-end verification is sufficient payment acceptance;
+production payment checks are read-only configuration review, with no production
+test charge or real-purchase requirement. Ledger migration and release gates
+remain separate in `Documentation/plus-activation.md`; verification does not
+authorize provider activation, credentials, grants or production changes.
+
 ## Background recovery after clock corrections
 
 `AppSupervisorPolicyTests.backwardClockDoesNotStrandRecovery` proves that a
