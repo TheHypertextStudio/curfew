@@ -112,6 +112,10 @@
     {
       "include": ["*.mdx"],
       "argv": ["node", ".hypertext/formatter-tools/prettier.mjs", "{path}", "mdx"]
+    },
+    {
+      "include": ["web/worker/migrations/*.sql"],
+      "argv": ["node", "scripts/license-sql-format.mjs"]
     }
   ],
   "exclude": [
