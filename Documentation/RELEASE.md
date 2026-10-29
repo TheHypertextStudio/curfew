@@ -523,6 +523,41 @@ open; these changes do not waive any installer or updater gate.
 
 ## CI boundary
 
+### Narrow signed data continuity check
+
+The signed-installer workflow's `data-continuity` mode pins the retained signed
+0.0.16 run `40113971717` and 0.0.17 run `40872194413`. Supply the same four exact
+0.0.17 inputs shown above and select the reviewed acceptance branch. This mode
+does not discover a latest candidate or rebuild/re-sign either app.
+
+Before any writes it requires a real unprivileged GitHub-hosted `runner` account,
+the canonical runner home/temp paths, and absent Curfew apps, data, preferences
+and services. Lookup failures cannot establish service absence. No permission
+grants, root helper installation, account access or publication are performed.
+The synthetic fixture is compiled beside immutable producer library sources;
+it is not injected into or substituted for the signed application.
+
+On this disposable VM only, setup remains incomplete, automatic schedule consent
+is false, and shutdown and assistant writes are disabled. Actual signed 0.0.16,
+0.0.17, rolled-back 0.0.16 and restored-data 0.0.16 launches must execute, preserve
+synthetic history/settings/runtime budgets, and retain readable signed CLI
+exports. Bundle replacement requires absent processes/services and matches every
+installed file and symlink against the verified retained DMG. Restoration uses
+the post-upgrade backup so new synthetic writes are preserved.
+
+The `signed-data-continuity-acceptance` artifact retains exact subjects, actual
+UI results/screenshots, exports and `continuity.json`. Failures cannot emit the
+completion receipt. Its scope is unonboarded signed data continuity and local
+app rollback: it does not establish an onboarded owner's permissions, Keychain,
+helper approval, enforcement, provider acceptance or production Worker/feed
+rollback. Those release gates remain independent. Remove this optional mode to
+roll back the verification change; it changes no product or retained bytes.
+
+Snapshot digests compare every retained value while sorting the unordered
+weekday dictionary pairs emitted by Swift's Codable representation. Ordering of
+other arrays stays significant. Before/after snapshots remain in the artifact
+so a changed digest can be diagnosed without treating failed acceptance as pass.
+
 `SMAppService` install/status behavior only becomes trustworthy on a signed app
 running on a real machine.
 

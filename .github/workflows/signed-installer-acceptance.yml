@@ -5,7 +5,7 @@ on:
     inputs:
       mode:
         type: choice
-        options: [fresh-install, staging-upgrade]
+        options: [fresh-install, staging-upgrade, data-continuity]
         default: fresh-install
         required: true
       candidate_version:
@@ -32,6 +32,9 @@ on:
       - scripts/signed-installer-acceptance.test.mjs
       - scripts/upgrade-notes.mjs
       - scripts/upgrade-notes.test.mjs
+      - scripts/signed-data-continuity.mjs
+      - scripts/signed-data-continuity.test.mjs
+      - scripts/SignedContinuityData.swift
       - CurfewUITests/SignedInstallerAcceptanceTests.swift
 
 permissions:
@@ -50,6 +53,7 @@ jobs:
         with:
           node-version: '24'
       - run: node --test scripts/signed-installer-acceptance.test.mjs scripts/upgrade-notes.test.mjs
+      - run: node --test scripts/signed-data-continuity.test.mjs
 
   installed-candidate:
     if: github.repository == 'TheHypertextStudio/curfew' && github.event_name == 'workflow_dispatch' && inputs.mode == 'fresh-install'
@@ -315,4 +319,65 @@ jobs:
             ${{ runner.temp }}/sparkle-upgrade/installed-verification.json
             ${{ runner.temp }}/sparkle-upgrade/cleanup.json
             ${{ runner.temp }}/sparkle-upgrade/upgrade.xcresult
+          if-no-files-found: warn
+
+  data-continuity:
+    if: github.repository == 'TheHypertextStudio/curfew' && github.event_name == 'workflow_dispatch' && inputs.mode == 'data-continuity'
+    runs-on: macos-26
+    timeout-minutes: 40
+    concurrency:
+      group: signed-data-continuity-${{ github.ref }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '24'
+      - name: Verify continuity rejection boundaries
+        run: node --test scripts/signed-data-continuity.test.mjs
+      - name: Require a fresh hosted identity and retain both exact signed subjects
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CURFEW_UPGRADE_VERSION: ${{ inputs.candidate_version }}
+          CURFEW_UPGRADE_RUN_ID: ${{ inputs.candidate_run_id }}
+          CURFEW_UPGRADE_SOURCE_COMMIT: ${{ inputs.candidate_source_commit }}
+          CURFEW_UPGRADE_DMG_SHA256: ${{ inputs.candidate_dmg_sha256 }}
+        run: node scripts/signed-data-continuity.mjs prepare "$RUNNER_TEMP/signed-continuity"
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: 07a1322780a8428d63486748eb94396985693cf8
+          path: baseline-source
+          persist-credentials: false
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: 8eefbc723397e3fa05657b89b2aff95bdad83fb3
+          path: candidate-source
+          persist-credentials: false
+      - name: Configure the disposable display
+        run: |
+          if [ -d /Applications/Xcode_26.app ]; then
+            sudo xcode-select -s /Applications/Xcode_26.app
+          else
+            sudo xcode-select -s "$(printf '%s\n' /Applications/Xcode_*.app | sort -V | tail -1)"
+          fi
+          brew install displayplacer
+          node scripts/configure-ci-display.mjs
+      - name: Exercise signed launches, retained synthetic data, rollback and restore
+        run: node scripts/signed-data-continuity.mjs run "$RUNNER_TEMP/signed-continuity"
+      - name: Retain actual continuity outcomes and graphical evidence
+        if: always()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: signed-data-continuity-acceptance
+          path: |
+            ${{ runner.temp }}/signed-continuity/owner.json
+            ${{ runner.temp }}/signed-continuity/baseline/acceptance-subject.json
+            ${{ runner.temp }}/signed-continuity/candidate/acceptance-subject.json
+            ${{ runner.temp }}/signed-continuity/continuity.json
+            ${{ runner.temp }}/signed-continuity/*-ui.json
+            ${{ runner.temp }}/signed-continuity/*-data.json
+            ${{ runner.temp }}/signed-continuity/*-signed-exports.json
+            ${{ runner.temp }}/signed-continuity/*.xcresult
           if-no-files-found: warn

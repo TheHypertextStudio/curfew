@@ -1,5 +1,21 @@
 # Todo Test Matrix
 
+## Signed data continuity and rollback
+
+`scripts/signed-data-continuity.test.mjs` rejects personal/root/self-hosted
+identities, preexisting files and symlinks, ambiguous service lookup failures,
+wrong subjects, missing graphical outcomes and changed retained content. The
+compiled fixture refuses forged CI environment values on the real owner account.
+Snapshot-digest regression coverage admits reordered Swift weekday dictionary
+pairs while rejecting duplicate/invalid days and detecting changed schedule
+values, missing days, runtime budgets, ordered events and reflection content.
+The missing isolation/receipt behavior failed before implementation.
+`SignedInstallerAcceptanceTests.testSignedDataContinuityLaunch` launches only the
+actual installed signed bundle on a disposable hosted Mac. The workflow checks
+signed CLI readability, exact installed files, synthetic content and budgets,
+older-reader rollback and a restored backup. A receipt explicitly excludes
+credentials, helper approval, enforcement and account/provider acceptance.
+
 ## Signed upgrade release-note input
 
 `scripts/upgrade-notes.test.mjs` exercises real Git fixtures: supplies only a

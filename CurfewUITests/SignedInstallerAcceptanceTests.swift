@@ -5,6 +5,37 @@ import XCTest
 /// Runs only in the isolated signed-installer lane, against the installed Developer ID app.
 final class SignedInstallerAcceptanceTests: XCTestCase {
     @MainActor
+    func testSignedDataContinuityLaunch() throws {
+        let environment = ProcessInfo.processInfo.environment
+        try XCTSkipUnless(environment["CURFEW_SIGNED_CONTINUITY"] == "1")
+        try requireDisposableUpgradeRunner(environment)
+        continueAfterFailure = false
+        let bundle = try XCTUnwrap(Bundle(path: "/Applications/Curfew.app"))
+        XCTAssertEqual(bundle.bundleIdentifier, "studio.hypertext.apps.curfew")
+        let version = try XCTUnwrap(bundle
+            .object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String)
+        XCTAssertEqual(version, environment["CURFEW_SIGNED_CONTINUITY_VERSION"])
+        let settings = try XCTUnwrap(UserDefaults(suiteName: "studio.hypertext.curfew")?
+            .data(forKey: "curfew.settings.v1"))
+        let decoded = try XCTUnwrap(JSONSerialization.jsonObject(with: settings) as? [String: Any])
+        XCTAssertEqual(decoded["hasCompletedInitialSetup"] as? Bool, false)
+        XCTAssertEqual(decoded["autoShutdownEnabled"] as? Bool, false)
+        let app = XCUIApplication(bundleIdentifier: "studio.hypertext.apps.curfew")
+        app.launch()
+        defer { app.terminate() }
+        XCTAssertTrue(app.menuBars.menuBarItems["Curfew"].waitForExistence(timeout: 15))
+        let pid = try XCTUnwrap(runningPID())
+        attachScreenshot(of: app, named: "signed-continuity-\(version)")
+        let receipt: [String: Any] = [
+            "version": version, "bundleIdentifier": "studio.hypertext.apps.curfew",
+            "appMenuVisible": true, "pid": pid, "onboardingComplete": false
+        ]
+        let path = try XCTUnwrap(environment["CURFEW_SIGNED_CONTINUITY_RECEIPT"])
+        try JSONSerialization.data(withJSONObject: receipt, options: [.prettyPrinted, .sortedKeys])
+            .write(to: URL(fileURLWithPath: path), options: .atomic)
+    }
+
+    @MainActor
     func testFreshSignedInstallerOpensRealSetup() throws {
         let environment = ProcessInfo.processInfo.environment
         try XCTSkipUnless(environment["CURFEW_SIGNED_INSTALLER_ACCEPTANCE"] == "1")
