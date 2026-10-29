@@ -1,5 +1,17 @@
 # Todo Test Matrix
 
+## Background recovery after clock corrections
+
+`AppSupervisorPolicyTests.backwardClockDoesNotStrandRecovery` proves that a
+backward wall-clock correction retains only the remaining retry delay, rather
+than postponing recovery until the previous wall time returns.
+`backwardClockKeepsLaunchCoalescing` proves that a correction cannot launch a
+second app while the first launch callback remains outstanding. Existing tests
+retain the bounded crash backoff and stable-operation reset coverage. These
+package tests neither launch the app nor alter the host clock. Physical clock,
+startup, restart and permission acceptance remain in the signed background
+supervisor gate in `Documentation/RELEASE.md`.
+
 ## Worktree preparation
 
 `./bootstrap worktree plan --json` validates workspace discovery and rejects

@@ -6,10 +6,18 @@ public struct AppSupervisorPolicy {
     private var retryDelay: TimeInterval = 5
     private var nextLaunchAt: Date?
     private var healthySince: Date?
+    private var lastEvaluatedAt: Date?
 
     public init() {}
 
     public mutating func shouldLaunch(at now: Date, appIsRunning: Bool) -> Bool {
+        if let lastEvaluatedAt, now < lastEvaluatedAt {
+            // Preserve remaining delays when a clock correction moves time backward.
+            let correction = now.timeIntervalSince(lastEvaluatedAt)
+            nextLaunchAt = nextLaunchAt?.addingTimeInterval(correction)
+            healthySince = healthySince?.addingTimeInterval(correction)
+        }
+        lastEvaluatedAt = now
         if appIsRunning {
             if healthySince == nil {
                 healthySince = now

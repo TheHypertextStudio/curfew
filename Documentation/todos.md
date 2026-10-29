@@ -1,5 +1,17 @@
 # Curfew Implementation TODOs
 
+## Background recovery after clock corrections
+
+- [x] Keep only the remaining restart backoff when the wall clock moves backward,
+      preserving in-flight launch coalescing and the existing crash-loop limit.
+      Regression tests failed before the fix. This does not change schedules,
+      permissions, stored deadlines, or installed services.
+- [ ] Accept the fix in the next signed candidate on an isolated Mac with a real
+      clock correction and process restart; the published 0.0.16 installer does
+      not contain this source change. Rollback restores the previous supervisor
+      policy without deleting user state. See the existing background supervisor
+      gate in `Documentation/RELEASE.md`.
+
 ## Worktree preparation
 
 - [x] Keep root command shortcuts separate from the independent frontend and
