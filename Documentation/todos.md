@@ -24,6 +24,7 @@
       and legacy allocation fallback; both regressions failed first and pass.
 - [x] Install the reviewed issuer dependencies in the macOS package-check job
       before its SQL formatter regression; keep the frozen lock and test intact.
+      Keep capture signing checks strict while accepting canonical YAML quoting.
 - [x] Prepare an offline signer-verified, environment-bound private import with
       no automatic readiness switch, remote mutation or resource provisioning.
 

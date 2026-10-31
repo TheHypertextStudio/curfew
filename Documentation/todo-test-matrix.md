@@ -18,6 +18,8 @@ durable outbox retries and physical expiry of recovery secrets. The pinned SQL
 formatter check executes the formatted migration and verifies exact record
 column names. The macOS package-check job installs the same frozen issuer
 dependencies as the dedicated payment job before running this SQL regression.
+The capture regression still requires both exact unsigned Xcode flags while
+accepting either YAML quote style emitted by the mandatory formatter.
 `scripts/license-ledger-import.test.mjs` executes the
 prepared SQL and checks signatures, provenance, readiness, private output and
 closed-ledger retry safety. `storage-deployment.node.mjs` checks separate
