@@ -49,7 +49,8 @@ jobs:
       - uses: actions/setup-node@v7.1.0
         with:
           node-version: '24'
-      - run: node --test scripts/signed-installer-acceptance.test.mjs scripts/signed-enforcement-evidence.test.mjs
+      - run: node --test scripts/signed-installer-acceptance.test.mjs
+      - run: node --test scripts/signed-enforcement-evidence.test.mjs
 
   enforcement-driver-build:
     # Compile only: no signed app install, fixture setup, permissions or lockout.
@@ -80,7 +81,7 @@ jobs:
         with:
           node-version: '24'
       - name: Verify acceptance boundary tests
-        run: node --test scripts/signed-installer-acceptance.test.mjs scripts/signed-enforcement-evidence.test.mjs
+        run: node --test scripts/signed-installer-acceptance.test.mjs
       - name: Retain the exact signed release subject
         id: subject
         env:
@@ -164,7 +165,7 @@ jobs:
         with:
           node-version: '24'
       - name: Check the acceptance boundaries
-        run: node --test scripts/signed-installer-acceptance.test.mjs scripts/signed-enforcement-evidence.test.mjs
+        run: node --test scripts/signed-installer-acceptance.test.mjs
       # Validate the retained subject before selecting its immutable source.
       # The root checkout may contain a repaired UI driver; it never replaces
       # the selected producer's verifier, feed driver, or exact-byte checks.
