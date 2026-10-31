@@ -1898,3 +1898,21 @@ Ordinary visual captures preserve synthetic permission and interrupted-keyboard 
 - [x] Run the installed shared Astro formatter comparison in the website unit lane, where its dependencies are installed. Keep native packaging/source checks dependency-free so release CI reaches the native checks. This changes test placement only; product behavior and release acceptance requirements are unchanged.
 
 - [x] Keep the background lifecycle window assertion scoped to its injected router, so concurrent account and snapshot tests cannot contaminate its result. Retain the timer-driven lockout, running-enforcement, no-activation, and no-Settings assertions; stop the test model during cleanup. Production behavior is unchanged.
+
+## Signed warning, lockout and override driver
+
+The opt-in `testSignedWarningLockoutAndOverride` observes the exact installed signed
+app on a real disposable hosted account. It reads existing setup consent, refuses
+a shutdown-enabled or unbounded schedule, observes the real warning and healthy
+lockout, waits the five-minute cooldown, rejects a short hold and checks the
+three-second confirmation restores working status. It never seeds preferences,
+grants Accessibility, changes time or substitutes a demo fixture.
+
+The receipt validator's 12 synthetic cases passed independently after an observed
+missing-export RED. This is validator evidence only. The signed-installer workflow
+runs those boundaries and compiles the new driver on PRs without executing it.
+Actual execution still requires a separately prepared disposable account through
+real setup and existing permission consent. No such fixture was provisioned or
+permission granted in this change. Do not dispatch a pretend fresh-host lockout
+run or count compilation as `signedDevice` acceptance. Clock correction, sleep,
+login, populated-data recovery and active-service rollback remain separate gates.

@@ -30,7 +30,9 @@ on:
       - .github/workflows/signed-installer-acceptance.yml
       - scripts/signed-installer-acceptance.mjs
       - scripts/signed-installer-acceptance.test.mjs
+      - scripts/signed-enforcement-evidence.test.mjs
       - CurfewUITests/SignedInstallerAcceptanceTests.swift
+      - CurfewUITests/SignedEnforcementAcceptanceTests.swift
 
 permissions:
   contents: read
@@ -46,8 +48,26 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@v7.1.0
         with:
-          node-version: "24"
+          node-version: '24'
       - run: node --test scripts/signed-installer-acceptance.test.mjs
+      - run: node --test scripts/signed-enforcement-evidence.test.mjs
+
+  enforcement-driver-build:
+    # Compile only: no signed app install, fixture setup, permissions or lockout.
+    if: github.repository == 'TheHypertextStudio/curfew' && github.event_name == 'pull_request'
+    runs-on: macos-26
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - name: Compile the opt-in signed enforcement driver without executing it
+        run: >-
+          xcodebuild build-for-testing -project Curfew.xcodeproj -scheme Curfew
+          -destination 'platform=macOS'
+          -derivedDataPath "$RUNNER_TEMP/signed-enforcement-driver"
+          -only-testing:CurfewUITests/SignedEnforcementAcceptanceTests/testSignedWarningLockoutAndOverride
+          CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
 
   installed-candidate:
     if: github.repository == 'TheHypertextStudio/curfew' && github.event_name == 'workflow_dispatch' && inputs.mode == 'fresh-install'
@@ -59,7 +79,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@v7.1.0
         with:
-          node-version: "24"
+          node-version: '24'
       - name: Verify acceptance boundary tests
         run: node --test scripts/signed-installer-acceptance.test.mjs
       - name: Retain the exact signed release subject
@@ -108,9 +128,9 @@ jobs:
           node scripts/configure-ci-display.mjs
       - name: Exercise the installed signed app without demo fixtures
         env:
-          TEST_RUNNER_GITHUB_ACTIONS: "true"
+          TEST_RUNNER_GITHUB_ACTIONS: 'true'
           TEST_RUNNER_RUNNER_TEMP: ${{ runner.temp }}
-          TEST_RUNNER_CURFEW_SIGNED_INSTALLER_ACCEPTANCE: "1"
+          TEST_RUNNER_CURFEW_SIGNED_INSTALLER_ACCEPTANCE: '1'
           TEST_RUNNER_CURFEW_SIGNED_INSTALLER_VERSION: ${{ env.CURFEW_SIGNED_INSTALLER_VERSION }}
           TEST_RUNNER_CURFEW_SIGNED_INSTALLER_RECEIPT: ${{ runner.temp }}/signed-installer-ui.json
         run: >-
@@ -143,7 +163,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@v7.1.0
         with:
-          node-version: "24"
+          node-version: '24'
       - name: Check the acceptance boundaries
         run: node --test scripts/signed-installer-acceptance.test.mjs
       # Validate the retained subject before selecting its immutable source.
@@ -241,8 +261,8 @@ jobs:
         working-directory: candidate-source
         shell: bash
         env:
-          TEST_RUNNER_CURFEW_SIGNED_UPGRADE_ACCEPTANCE: "1"
-          TEST_RUNNER_GITHUB_ACTIONS: "true"
+          TEST_RUNNER_CURFEW_SIGNED_UPGRADE_ACCEPTANCE: '1'
+          TEST_RUNNER_GITHUB_ACTIONS: 'true'
           TEST_RUNNER_RUNNER_TEMP: ${{ runner.temp }}
           TEST_RUNNER_CURFEW_SIGNED_UPGRADE_VERSION: ${{ inputs.candidate_version }}
           TEST_RUNNER_CURFEW_SIGNED_UPGRADE_RECEIPT: ${{ runner.temp }}/sparkle-upgrade/upgrade-ui.json
