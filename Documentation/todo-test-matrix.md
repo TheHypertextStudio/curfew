@@ -2440,3 +2440,19 @@ Current-main integration preserves license-expiry reevaluation beside the inject
 | Native source/package contracts run without website dependencies | `scripts/landing-contract.test.mjs`, included by native CI script checks                                          |
 
 `BackgroundLifecycleTests.closedWindowsReachLockout` checks its own `AppRouterSpy` for window, activation, and Settings requests instead of the process-wide AppKit window count. Other test suites may create AppKit windows concurrently. Timer-driven lockout and enforcement assertions remain intact.
+
+## Signed enforcement observation and receipt boundaries
+
+- `scripts/signed-enforcement-evidence.test.mjs`: exact artifact binding, disposable
+  identity, healthy warning/locked/working observations, monotonic real cooldown
+  and hold durations, short-hold rejection and forbidden driver side effects.
+  Independent Node 24.22.1 execution: 12 expected missing-export RED assertions,
+  followed by 12/12 GREEN with unchanged tests. This does not attest a signed run.
+- `SignedEnforcementAcceptanceTests.testSignedWarningLockoutAndOverride`: opt-in
+  production-bundle UI driver with actual CLI readback and screenshot attachments.
+  It requires existing onboarding/automatic-schedule consent, disables no policy,
+  and writes a scoped receipt only after all assertions pass. No execution yet.
+- `.github/workflows/signed-installer-acceptance.yml`: PR-only build-for-testing
+  compiles the driver without installing/launching the signed app or granting
+  permissions; the pure receipt tests run beside existing installer boundaries.
+  A prepared disposable enforcement fixture and actual signed run remain open.
