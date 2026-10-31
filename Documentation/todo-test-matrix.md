@@ -16,7 +16,9 @@ real SQLite transactions for concurrent first delivery, rollback, read-only
 conflicts, ABA/phantoms, refund ordering, invoice allocation, cancellation and
 durable outbox retries and physical expiry of recovery secrets. The pinned SQL
 formatter check executes the formatted migration and verifies exact record
-column names. `scripts/license-ledger-import.test.mjs` executes the
+column names. The macOS package-check job installs the same frozen issuer
+dependencies as the dedicated payment job before running this SQL regression.
+`scripts/license-ledger-import.test.mjs` executes the
 prepared SQL and checks signatures, provenance, readiness, private output and
 closed-ledger retry safety. `storage-deployment.node.mjs` checks separate
 explicit D1 identities and the scheduled outbox retry.

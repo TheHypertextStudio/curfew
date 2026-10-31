@@ -22,6 +22,8 @@
       legacy GET delivery. Require actual funded invoice periods; preserve
       cancellation and non-refunded history. Review found partial-invoice replay
       and legacy allocation fallback; both regressions failed first and pass.
+- [x] Install the reviewed issuer dependencies in the macOS package-check job
+      before its SQL formatter regression; keep the frozen lock and test intact.
 - [x] Prepare an offline signer-verified, environment-bound private import with
       no automatic readiness switch, remote mutation or resource provisioning.
 
