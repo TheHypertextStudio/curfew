@@ -34,6 +34,7 @@ jobs:
       - name: Validate shared configuration and Worker behavior
         run: |
           node --test scripts/turbo-cache.test.mjs web/worker/test/*.node.mjs
+          node --test scripts/license-ledger-import.test.mjs scripts/license-sql-format.test.mjs
           pnpm --dir web/worker test
       - name: Authenticate the private Studio Turbo cache
         id: turbo-cache
@@ -56,7 +57,8 @@ jobs:
           CURFEW_DEPLOYMENT_ARTIFACT: ${{ github.workspace }}/deployment/generated/environment-artifact.json
         run: |
           pnpm --dir web/worker exec cf build --mode production
-          pnpm --dir web/worker exec cf deploy --prebuilt --mode production --dry-run
+          node scripts/license-worker-runtime.mjs
+          pnpm --dir web/worker exec cf deploy --prebuilt --mode production --dry-run --provision=false
 
   website:
     name: Website validation
@@ -70,7 +72,7 @@ jobs:
         with:
           node-version: 24.20.0
           registry-url: https://npm.pkg.github.com
-          scope: "@thehypertextstudio"
+          scope: '@thehypertextstudio'
       - name: Install reviewed registry lock
         run: pnpm --dir landing install --frozen-lockfile
         env:
@@ -159,7 +161,7 @@ jobs:
         with:
           node-version: 24.20.0
           registry-url: https://npm.pkg.github.com
-          scope: "@thehypertextstudio"
+          scope: '@thehypertextstudio'
       - name: Install pinned docs tooling
         run: pnpm --dir landing install --frozen-lockfile
         env:
