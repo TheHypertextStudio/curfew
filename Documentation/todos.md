@@ -1,5 +1,22 @@
 # Curfew Implementation TODOs
 
+## Browser navigation ownership
+
+- [x] Prevent delayed blocker work from replacing a newer work/authentication
+      navigation, reviving a closed tab's request, or removing a newer request.
+      Independent cloud RED observed six exact failures after a 46-test passing
+      baseline. The original 54-test expanded suite remains frozen.
+- [x] Close the fresh review's stale policy-delivery finding with three separate
+      synthetic cases, preserving the original tests and dependency lock.
+      Parent cloud verified the initial fix at 54/54, then observed the three
+      exact review failures out of 57 with typecheck passing. The generation
+      guard then passed the same 57 tests and typecheck in the preserved cloud
+      tree, with no skips, test/lock changes or reinstall. Installed-browser
+      acceptance remains pending.
+- [ ] Complete normal formatting/hooks and actual packaged Chrome acceptance
+      before release. Production extension identity remains unresolved; this
+      change does not ship or enable browser enforcement.
+
 ## Background recovery after clock corrections
 
 - [x] Keep only the remaining restart backoff when the wall clock moves backward,

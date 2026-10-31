@@ -1,21 +1,21 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from 'vitest';
 
 import {
   BrowserPolicyController,
   type BrowserControllerDependencies,
   type BrowserReviewOutcome,
-} from "../src/controller";
-import type { BrowserPolicySnapshot, NativeResponse } from "../src/protocol";
+} from '../src/controller';
+import type { BrowserPolicySnapshot, NativeResponse } from '../src/protocol';
 
-const now = new Date("2026-09-08T18:00:00.000Z");
+const now = new Date('2026-09-08T18:00:00.000Z');
 
 function policy(overrides: Partial<BrowserPolicySnapshot> = {}): BrowserPolicySnapshot {
   return {
-    schemaVersion: "browser-policy/1",
-    sessionID: "334838bd-3160-4a2f-bb28-8b2d61a32f37",
-    task: { id: "task-1", title: "Ship the Chrome gate" },
-    tracking: "running",
-    scopes: [{ kind: "origin", origin: "https://docket.example" }],
+    schemaVersion: 'browser-policy/1',
+    sessionID: '334838bd-3160-4a2f-bb28-8b2d61a32f37',
+    task: { id: 'task-1', title: 'Ship the Chrome gate' },
+    tracking: 'running',
+    scopes: [{ kind: 'origin', origin: 'https://docket.example' }],
     grants: [],
     breakEndsAt: null,
     connectionIsHealthy: true,
@@ -29,25 +29,28 @@ function response(
   fields: Partial<NativeResponse>,
 ): NativeResponse {
   return {
-    schemaVersion: "browser-host/1",
+    schemaVersion: 'browser-host/1',
     requestId: request.requestId as string,
-    type: request.type as NativeResponse["type"],
+    type: request.type as NativeResponse['type'],
     generatedAt: now.toISOString(),
     ...fields,
   };
 }
 
-function harness(options: {
-  stored?: Record<string, unknown>;
-  native?: (request: Record<string, unknown>) => Promise<NativeResponse>;
-  dynamicRulesGet?: () => Promise<Array<{ id: number }>>;
-  dynamicRulesReplace?: (
-    update: { removeRuleIds: number[]; addRules: unknown[] },
-    call: number,
-  ) => Promise<void>;
-  regexSupport?: (regex: string) => Promise<boolean>;
-  storageSet?: (items: Record<string, unknown>, call: number) => Promise<void>;
-} = {}) {
+function harness(
+  options: {
+    stored?: Record<string, unknown>;
+    storageGet?: (keys: string | string[] | null) => Promise<void>;
+    native?: (request: Record<string, unknown>) => Promise<NativeResponse>;
+    dynamicRulesGet?: () => Promise<Array<{ id: number }>>;
+    dynamicRulesReplace?: (
+      update: { removeRuleIds: number[]; addRules: unknown[] },
+      call: number,
+    ) => Promise<void>;
+    regexSupport?: (regex: string) => Promise<boolean>;
+    storageSet?: (items: Record<string, unknown>, call: number) => Promise<void>;
+  } = {},
+) {
   const data: Record<string, unknown> = { ...options.stored };
   const calls: string[] = [];
   const storageWrites: Record<string, unknown>[] = [];
@@ -64,25 +67,28 @@ function harness(options: {
   const dependencies: BrowserControllerDependencies = {
     storage: {
       async get(keys) {
+        if (options.storageGet) await options.storageGet(keys);
         if (keys === null) {
           return { ...data };
         }
-        const names = typeof keys === "string" ? [keys] : keys;
-        return Object.fromEntries(names.filter((name) => name in data).map((name) => [name, data[name]]));
+        const names = typeof keys === 'string' ? [keys] : keys;
+        return Object.fromEntries(
+          names.filter((name) => name in data).map((name) => [name, data[name]]),
+        );
       },
       async set(items) {
         storageWrites.push(structuredClone(items));
         storageSetCount += 1;
         await options.storageSet?.(items, storageSetCount);
-        if ("browserPolicy" in items || "browserPolicyRevision" in items) {
-          policyEvents.push("storage");
+        if ('browserPolicy' in items || 'browserPolicyRevision' in items) {
+          policyEvents.push('storage');
         }
         Object.assign(data, items);
       },
       async remove(keys) {
-        for (const key of typeof keys === "string" ? [keys] : keys) {
-          if (key === "browserPolicy" || key === "browserPolicyRevision") {
-            policyEvents.push("storage");
+        for (const key of typeof keys === 'string' ? [keys] : keys) {
+          if (key === 'browserPolicy' || key === 'browserPolicyRevision') {
+            policyEvents.push('storage');
           }
           delete data[key];
         }
@@ -96,35 +102,35 @@ function harness(options: {
         return [{ id: 1 }, { id: 1_000 }];
       },
       async replace(update) {
-        calls.push("rules");
-        policyEvents.push("rules");
+        calls.push('rules');
+        policyEvents.push('rules');
         ruleUpdates.push(structuredClone(update));
         ruleEvents.push(`replace:${update.addRules.length}`);
         await options.dynamicRulesReplace?.(update, ruleUpdates.length);
       },
       async isRegexSupported({ regex }) {
         regexChecks.push(regex);
-        ruleEvents.push("validate");
+        ruleEvents.push('validate');
         return { isSupported: await (options.regexSupport?.(regex) ?? true) };
       },
     },
     tabs: {
       async update(tabId, update) {
-        calls.push("tab");
+        calls.push('tab');
         tabUpdates.push({ tabId, url: update.url });
       },
     },
     native: {
       async send(hostName, request) {
-        expect(hostName).toBe("studio.hypertext.curfew.dev.browser");
+        expect(hostName).toBe('studio.hypertext.curfew.dev.browser');
         nativeRequests.push(structuredClone(request));
-        if (request.type === "heartbeat") {
-          calls.push("heartbeat");
+        if (request.type === 'heartbeat') {
+          calls.push('heartbeat');
         }
         if (options.native) {
           return options.native(request);
         }
-        throw new Error("native host unavailable");
+        throw new Error('native host unavailable');
       },
     },
     expiry: {
@@ -140,7 +146,7 @@ function harness(options: {
     extensionURL: (path) => `chrome-extension://extension-id/${path}`,
     now: () => new Date(now),
     randomID: () => `request-${++nextID}`,
-    nativeHostName: "studio.hypertext.curfew.dev.browser",
+    nativeHostName: 'studio.hypertext.curfew.dev.browser',
   };
   return {
     controller: new BrowserPolicyController(dependencies),
@@ -160,7 +166,7 @@ function harness(options: {
 
 async function routeBlockedPage(
   testHarness: ReturnType<typeof harness>,
-  url = "https://alice:secret@Research.Example:443/private/../notes?q=secret#fragment",
+  url = 'https://alice:secret@Research.Example:443/private/../notes?q=secret#fragment',
 ) {
   await testHarness.controller.cachePolicy(policy());
   testHarness.calls.length = 0;
@@ -168,27 +174,167 @@ async function routeBlockedPage(
   await testHarness.controller.handleNavigationError({
     tabId: 14,
     frameId: 0,
-    error: "net::ERR_BLOCKED_BY_CLIENT",
+    error: 'net::ERR_BLOCKED_BY_CLIENT',
     url,
   });
 }
 
-describe("BrowserPolicyController", () => {
-  it("installs the base block before validating a first active policy", async () => {
+function pauseStorage() {
+  let entered!: () => void;
+  let resume!: () => void;
+  const started = new Promise<void>((resolve) => {
+    entered = resolve;
+  });
+  const pending = new Promise<void>((resolve) => {
+    resume = resolve;
+  });
+  return {
+    started,
+    resume,
+    hold: async () => {
+      entered();
+      await pending;
+    },
+  };
+}
+
+const blockedResearch = {
+  tabId: 14,
+  frameId: 0,
+  error: 'net::ERR_BLOCKED_BY_CLIENT',
+  url: 'https://research.example/notes',
+};
+
+describe('BrowserPolicyController', () => {
+  it('does not replace a newer work navigation after an old request write resumes', async () => {
+    const pause = pauseStorage();
+    const testHarness = harness({
+      storageSet: async (items) => {
+        if ('browserRequest:request-1' in items) await pause.hold();
+      },
+    });
+    await testHarness.controller.cachePolicy(policy());
+    const routing = testHarness.controller.handleNavigationError(blockedResearch);
+    await pause.started;
+    await testHarness.controller.handleTabURLChanged(14, 'https://docket.example/tasks/2');
+    pause.resume();
+    await routing;
+    expect(testHarness.tabUpdates).toEqual([]);
+    expect(testHarness.data['browserRequest:request-1']).toBeUndefined();
+  });
+
+  it("does not recreate a closed tab's request after a pending write resumes", async () => {
+    const pause = pauseStorage();
+    const testHarness = harness({
+      storageSet: async (items) => {
+        if ('browserRequest:request-1' in items) await pause.hold();
+      },
+    });
+    await testHarness.controller.cachePolicy(policy());
+    const routing = testHarness.controller.handleNavigationError(blockedResearch);
+    await pause.started;
+    await testHarness.controller.handleTabClosed(14);
+    pause.resume();
+    await routing;
+    expect(testHarness.tabUpdates).toEqual([]);
+    expect(testHarness.data['browserRequest:request-1']).toBeUndefined();
+  });
+
+  it.each(['policy', 'request-scan'])(
+    'keeps the newer blocker when an older %s read resumes',
+    async (boundary) => {
+      const pause = pauseStorage();
+      let armed = false;
+      const testHarness = harness({
+        storageGet: async (keys) => {
+          if (armed && (boundary === 'policy' ? keys === 'browserPolicy' : keys === null)) {
+            armed = false;
+            await pause.hold();
+          }
+        },
+      });
+      await testHarness.controller.cachePolicy(policy());
+      armed = true;
+      const oldRouting = testHarness.controller.handleNavigationError(blockedResearch);
+      await pause.started;
+      const newerURL = 'https://newer.example/work';
+      await testHarness.controller.handleNavigationError({ ...blockedResearch, url: newerURL });
+      pause.resume();
+      await oldRouting;
+      expect(testHarness.tabUpdates).toEqual([
+        { tabId: 14, url: 'chrome-extension://extension-id/blocker.html?request=request-1' },
+      ]);
+      expect(testHarness.data['browserRequest:request-1']).toMatchObject({ originalURL: newerURL });
+      expect(testHarness.data['browserRequest:request-2']).toBeUndefined();
+    },
+  );
+
+  it.each(['same-navigation', 'other-tab'])(
+    'keeps a legitimate pending blocker after a %s URL event',
+    async (event) => {
+      const pause = pauseStorage();
+      const testHarness = harness({
+        storageSet: async (items) => {
+          if ('browserRequest:request-1' in items) await pause.hold();
+        },
+      });
+      await testHarness.controller.cachePolicy(policy());
+      const routing = testHarness.controller.handleNavigationError(blockedResearch);
+      await pause.started;
+      await testHarness.controller.handleTabURLChanged(
+        event === 'same-navigation' ? 14 : 15,
+        event === 'same-navigation' ? blockedResearch.url : 'https://docket.example/tasks/2',
+      );
+      pause.resume();
+      await routing;
+      expect(testHarness.tabUpdates).toHaveLength(1);
+      expect(testHarness.data['browserRequest:request-1']).toMatchObject({
+        originalURL: blockedResearch.url,
+      });
+    },
+  );
+
+  it.each(['session-ended', 'destination-now-allowed'])(
+    'does not route a pending blocker after its %s',
+    async (change) => {
+      const pause = pauseStorage();
+      const testHarness = harness({
+        storageSet: async (items) => {
+          if ('browserRequest:request-1' in items) await pause.hold();
+        },
+      });
+      await testHarness.controller.cachePolicy(policy());
+      const routing = testHarness.controller.handleNavigationError(blockedResearch);
+      await pause.started;
+      await testHarness.controller.cachePolicy(
+        change === 'session-ended'
+          ? null
+          : policy({
+              scopes: [{ kind: 'origin', origin: 'https://research.example' }],
+            }),
+      );
+      pause.resume();
+      await routing;
+      expect(testHarness.tabUpdates).toEqual([]);
+      expect(testHarness.data['browserRequest:request-1']).toBeUndefined();
+    },
+  );
+
+  it('installs the base block before validating a first active policy', async () => {
     const testHarness = harness({ dynamicRulesGet: async () => [] });
 
     await testHarness.controller.cachePolicy(policy());
 
-    expect(testHarness.ruleEvents.slice(0, 2)).toEqual(["replace:1", "validate"]);
+    expect(testHarness.ruleEvents.slice(0, 2)).toEqual(['replace:1', 'validate']);
     expect(testHarness.ruleUpdates[0].addRules).toEqual([
-      expect.objectContaining({ id: 1, action: { type: "block" } }),
+      expect.objectContaining({ id: 1, action: { type: 'block' } }),
     ]);
     expect(testHarness.ruleUpdates.at(-1)?.addRules.length).toBeGreaterThan(1);
   });
 
   it("falls back to block-only when policy exceeds Chrome's regex-rule limit", async () => {
     const scopes = Array.from({ length: 1_000 }, (_, index) => ({
-      kind: "origin" as const,
+      kind: 'origin' as const,
       origin: `https://scope-${index}.example`,
     }));
     const oversizedPolicy = policy({ scopes });
@@ -198,49 +344,49 @@ describe("BrowserPolicyController", () => {
 
     expect(testHarness.ruleUpdates).toHaveLength(1);
     expect(testHarness.ruleUpdates[0].addRules).toEqual([
-      expect.objectContaining({ id: 1, action: { type: "block" } }),
+      expect.objectContaining({ id: 1, action: { type: 'block' } }),
     ]);
     expect(testHarness.regexChecks).toHaveLength(0);
     expect(testHarness.data.browserPolicy).toEqual(oversizedPolicy);
   });
 
-  it("falls back to block-only when Chrome rejects one allow regex", async () => {
+  it('falls back to block-only when Chrome rejects one allow regex', async () => {
     const testHarness = harness({
-      regexSupport: async (regex) => !regex.includes("docket"),
+      regexSupport: async (regex) => !regex.includes('docket'),
     });
 
     await testHarness.controller.cachePolicy(policy());
 
     expect(testHarness.ruleUpdates).toHaveLength(1);
     expect(testHarness.ruleUpdates[0].addRules).toEqual([
-      expect.objectContaining({ id: 1, action: { type: "block" } }),
+      expect.objectContaining({ id: 1, action: { type: 'block' } }),
     ]);
-    expect(testHarness.regexChecks.some((regex) => regex.includes("docket"))).toBe(true);
-    expect(testHarness.ruleEvents.slice(0, 2)).toEqual(["validate", "replace:1"]);
+    expect(testHarness.regexChecks.some((regex) => regex.includes('docket'))).toBe(true);
+    expect(testHarness.ruleEvents.slice(0, 2)).toEqual(['validate', 'replace:1']);
     expect(testHarness.data.browserPolicy).toEqual(policy());
   });
 
   it("falls back to block-only when Chrome's regex validation rejects", async () => {
     const testHarness = harness({
       regexSupport: async () => {
-        throw new Error("Chrome regex validation failed");
+        throw new Error('Chrome regex validation failed');
       },
     });
 
     await expect(testHarness.controller.cachePolicy(policy())).resolves.toBeUndefined();
 
-    expect(testHarness.ruleEvents).toEqual(["validate", "replace:1"]);
+    expect(testHarness.ruleEvents).toEqual(['validate', 'replace:1']);
     expect(testHarness.ruleUpdates).toHaveLength(1);
     expect(testHarness.ruleUpdates[0].addRules).toEqual([
-      expect.objectContaining({ id: 1, action: { type: "block" } }),
+      expect.objectContaining({ id: 1, action: { type: 'block' } }),
     ]);
   });
 
-  it("keeps block-only when Chrome rejects the validated allow update", async () => {
+  it('keeps block-only when Chrome rejects the validated allow update', async () => {
     const testHarness = harness({
       dynamicRulesReplace: async (_update, call) => {
         if (call === 1) {
-          throw new Error("Chrome rejected the complete allow ruleset");
+          throw new Error('Chrome rejected the complete allow ruleset');
         }
       },
     });
@@ -249,7 +395,7 @@ describe("BrowserPolicyController", () => {
 
     expect(testHarness.ruleUpdates).toHaveLength(2);
     expect(testHarness.ruleUpdates.at(-1)?.addRules).toEqual([
-      expect.objectContaining({ id: 1, action: { type: "block" } }),
+      expect.objectContaining({ id: 1, action: { type: 'block' } }),
     ]);
     expect(testHarness.data.browserPolicy).toEqual(policy());
   });
@@ -262,11 +408,11 @@ describe("BrowserPolicyController", () => {
     expect(testHarness.scheduledRefreshes).toEqual([0.5]);
   });
 
-  it("recovers when cached-rule restoration fails during worker startup", async () => {
+  it('recovers when cached-rule restoration fails during worker startup', async () => {
     const refreshed = policy({
-      sessionID: "39f9fbe2-3c34-487d-ad75-c954237c3184",
-      task: { id: "task-2", title: "Write the release runbook" },
-      scopes: [{ kind: "origin", origin: "https://release.example" }],
+      sessionID: '39f9fbe2-3c34-487d-ad75-c954237c3184',
+      task: { id: 'task-2', title: 'Write the release runbook' },
+      scopes: [{ kind: 'origin', origin: 'https://release.example' }],
     });
     let ruleReadCount = 0;
     const testHarness = harness({
@@ -274,33 +420,34 @@ describe("BrowserPolicyController", () => {
       dynamicRulesGet: async () => {
         ruleReadCount += 1;
         if (ruleReadCount === 1) {
-          throw new Error("Chrome could not read cached dynamic rules");
+          throw new Error('Chrome could not read cached dynamic rules');
         }
         return [{ id: 1 }, { id: 1_000 }];
       },
-      native: async (request) => response(request, {
-        ...(request.type === "get_policy"
-          ? { policy: refreshed, policyRevision: "revision-fresh" }
-          : {}),
-      }),
+      native: async (request) =>
+        response(request, {
+          ...(request.type === 'get_policy'
+            ? { policy: refreshed, policyRevision: 'revision-fresh' }
+            : {}),
+        }),
     });
 
     await expect(testHarness.controller.initialize()).resolves.toBeUndefined();
 
     expect(testHarness.scheduledRefreshes).toEqual([0.5]);
     expect(testHarness.ruleUpdates[0].addRules).toEqual([
-      expect.objectContaining({ id: 1, action: { type: "block" } }),
+      expect.objectContaining({ id: 1, action: { type: 'block' } }),
     ]);
     expect(testHarness.nativeRequests.map((request) => request.type)).toEqual([
-      "get_policy",
-      "heartbeat",
+      'get_policy',
+      'heartbeat',
     ]);
     expect(testHarness.data.browserPolicy).toEqual(refreshed);
-    expect(testHarness.data.browserPolicyRevision).toBe("revision-fresh");
-    expect(JSON.stringify(testHarness.ruleUpdates.at(-1))).toContain("release");
+    expect(testHarness.data.browserPolicyRevision).toBe('revision-fresh');
+    expect(JSON.stringify(testHarness.ruleUpdates.at(-1))).toContain('release');
   });
 
-  it("restores cached policy with one complete update when the base block persists", async () => {
+  it('restores cached policy with one complete update when the base block persists', async () => {
     const testHarness = harness({ stored: { browserPolicy: policy() } });
 
     await testHarness.controller.initialize();
@@ -308,113 +455,119 @@ describe("BrowserPolicyController", () => {
     expect(testHarness.ruleUpdates).toHaveLength(1);
     expect(testHarness.ruleUpdates[0].removeRuleIds).toEqual([1, 1_000]);
     expect(testHarness.ruleUpdates[0].addRules).toEqual(
-      expect.arrayContaining([expect.objectContaining({ action: { type: "block" } })]),
+      expect.arrayContaining([expect.objectContaining({ action: { type: 'block' } })]),
     );
     expect(testHarness.ruleUpdates[0].addRules).toHaveLength(2);
     expect(testHarness.data.browserPolicy).toEqual(policy());
   });
 
-  it("removes expired grants and breaks when the one expiry alarm rebuilds policy", async () => {
+  it('removes expired grants and breaks when the one expiry alarm rebuilds policy', async () => {
     const expiringPolicy = policy({
       grants: [
         {
-          scope: { kind: "origin", origin: "https://temporary.example" },
-          expiresAt: "2026-09-08T18:00:01.000Z",
+          scope: { kind: 'origin', origin: 'https://temporary.example' },
+          expiresAt: '2026-09-08T18:00:01.000Z',
         },
       ],
-      breakEndsAt: "2026-09-08T18:00:02.000Z",
+      breakEndsAt: '2026-09-08T18:00:02.000Z',
     });
     const testHarness = harness({ stored: { browserPolicy: expiringPolicy } });
 
-    await testHarness.controller.rebuildForExpiry(new Date("2026-09-08T18:00:03.000Z"));
+    await testHarness.controller.rebuildForExpiry(new Date('2026-09-08T18:00:03.000Z'));
 
     expect(testHarness.ruleUpdates).toHaveLength(1);
-    expect(JSON.stringify(testHarness.ruleUpdates.at(-1)?.addRules)).not.toContain("temporary");
+    expect(JSON.stringify(testHarness.ruleUpdates.at(-1)?.addRules)).not.toContain('temporary');
     expect(testHarness.ruleUpdates.at(-1)?.addRules).toHaveLength(2);
     expect(testHarness.scheduledExpirations.at(-1)).toBeNull();
   });
 
-  it("replaces prior-task allows before heartbeat after a recurring refresh", async () => {
+  it('replaces prior-task allows before heartbeat after a recurring refresh', async () => {
     const previous = policy({
       grants: [
         {
-          scope: { kind: "origin", origin: "https://previous.example" },
-          expiresAt: "2026-09-08T18:30:00.000Z",
+          scope: { kind: 'origin', origin: 'https://previous.example' },
+          expiresAt: '2026-09-08T18:30:00.000Z',
         },
       ],
     });
     const switched = policy({
-      sessionID: "39f9fbe2-3c34-487d-ad75-c954237c3184",
-      task: { id: "task-2", title: "Write the release runbook" },
-      scopes: [{ kind: "origin", origin: "https://release.example" }],
+      sessionID: '39f9fbe2-3c34-487d-ad75-c954237c3184',
+      task: { id: 'task-2', title: 'Write the release runbook' },
+      scopes: [{ kind: 'origin', origin: 'https://release.example' }],
     });
     const testHarness = harness({
       stored: { browserPolicy: previous },
-      native: async (request) => response(request, {
-        ...(request.type === "get_policy" ? { policy: switched } : {}),
-      }),
+      native: async (request) =>
+        response(request, {
+          ...(request.type === 'get_policy' ? { policy: switched } : {}),
+        }),
     });
 
     await testHarness.controller.refreshPolicy();
 
-    expect(testHarness.calls).toEqual(["rules", "heartbeat"]);
+    expect(testHarness.calls).toEqual(['rules', 'heartbeat']);
     expect(testHarness.data.browserPolicy).toEqual(switched);
-    expect(JSON.stringify(testHarness.ruleUpdates.at(-1))).not.toContain("previous");
-    expect(JSON.stringify(testHarness.ruleUpdates.at(-1))).toContain("release");
+    expect(JSON.stringify(testHarness.ruleUpdates.at(-1))).not.toContain('previous');
+    expect(JSON.stringify(testHarness.ruleUpdates.at(-1))).toContain('release');
   });
 
   it.each([
     {
-      name: "task switch",
+      name: 'task switch',
       nextPolicy: policy({
-        sessionID: "39f9fbe2-3c34-487d-ad75-c954237c3184",
-        task: { id: "task-2", title: "Write the release runbook" },
-        scopes: [{ kind: "origin" as const, origin: "https://release.example" }],
+        sessionID: '39f9fbe2-3c34-487d-ad75-c954237c3184',
+        task: { id: 'task-2', title: 'Write the release runbook' },
+        scopes: [{ kind: 'origin' as const, origin: 'https://release.example' }],
       }),
     },
-    { name: "task completion", nextPolicy: undefined },
-  ])("revokes an old grant from a $name long poll without an alarm", async ({ nextPolicy }) => {
+    { name: 'task completion', nextPolicy: undefined },
+  ])('revokes an old grant from a $name long poll without an alarm', async ({ nextPolicy }) => {
     const previous = policy({
-      grants: [{
-        scope: { kind: "origin", origin: "https://previous.example" },
-        expiresAt: "2026-09-08T18:30:00.000Z",
-      }],
+      grants: [
+        {
+          scope: { kind: 'origin', origin: 'https://previous.example' },
+          expiresAt: '2026-09-08T18:30:00.000Z',
+        },
+      ],
     });
     const testHarness = harness({
       stored: {
         browserPolicy: previous,
-        browserPolicyRevision: "revision-old",
+        browserPolicyRevision: 'revision-old',
       },
-      native: async (request) => response(request, {
-        policyRevision: "revision-new",
-        ...(nextPolicy === undefined ? {} : { policy: nextPolicy }),
-      }),
+      native: async (request) =>
+        response(request, {
+          policyRevision: 'revision-new',
+          ...(nextPolicy === undefined ? {} : { policy: nextPolicy }),
+        }),
     });
 
     await testHarness.controller.waitForPolicyChange();
 
     expect(testHarness.nativeRequests[0]).toMatchObject({
-      type: "get_policy",
-      knownPolicyRevision: "revision-old",
+      type: 'get_policy',
+      knownPolicyRevision: 'revision-old',
     });
-    expect(JSON.stringify(testHarness.ruleUpdates.at(-1))).not.toContain("previous");
-    expect(testHarness.policyEvents[0]).toBe("rules");
+    expect(JSON.stringify(testHarness.ruleUpdates.at(-1))).not.toContain('previous');
+    expect(testHarness.policyEvents[0]).toBe('rules');
     expect(testHarness.data.browserPolicy).toEqual(nextPolicy);
-    expect(testHarness.data.browserPolicyRevision).toBe("revision-new");
+    expect(testHarness.data.browserPolicyRevision).toBe('revision-new');
     expect(testHarness.scheduledRefreshes).toHaveLength(0);
   });
 
-  it("keeps cached rules when the native host drops a policy long poll", async () => {
+  it('keeps cached rules when the native host drops a policy long poll', async () => {
     const previous = policy({
-      grants: [{
-        scope: { kind: "origin", origin: "https://previous.example" },
-        expiresAt: "2026-09-08T18:30:00.000Z",
-      }],
+      grants: [
+        {
+          scope: { kind: 'origin', origin: 'https://previous.example' },
+          expiresAt: '2026-09-08T18:30:00.000Z',
+        },
+      ],
     });
     const testHarness = harness({
       stored: {
         browserPolicy: previous,
-        browserPolicyRevision: "revision-old",
+        browserPolicyRevision: 'revision-old',
       },
     });
 
@@ -422,50 +575,51 @@ describe("BrowserPolicyController", () => {
 
     expect(testHarness.ruleUpdates).toHaveLength(0);
     expect(testHarness.data.browserPolicy).toEqual(previous);
-    expect(testHarness.data.browserPolicyRevision).toBe("revision-old");
+    expect(testHarness.data.browserPolicyRevision).toBe('revision-old');
   });
 
-  it("sends one heartbeat after each successful policy refresh", async () => {
+  it('sends one heartbeat after each successful policy refresh', async () => {
     const testHarness = harness({
-      native: async (request) => response(request, {
-        ...(request.type === "get_policy" ? { policy: policy() } : {}),
-      }),
+      native: async (request) =>
+        response(request, {
+          ...(request.type === 'get_policy' ? { policy: policy() } : {}),
+        }),
     });
 
     await testHarness.controller.refreshPolicy();
 
     expect(testHarness.nativeRequests.map((request) => request.type)).toEqual([
-      "get_policy",
-      "heartbeat",
+      'get_policy',
+      'heartbeat',
     ]);
   });
 
-  it("retains cached block rules when the recurring host refresh fails", async () => {
+  it('retains cached block rules when the recurring host refresh fails', async () => {
     const testHarness = harness({ stored: { browserPolicy: policy() } });
 
     await testHarness.controller.initialize();
 
     expect(testHarness.ruleUpdates).toHaveLength(1);
     expect(testHarness.ruleUpdates[0].addRules).toEqual(
-      expect.arrayContaining([expect.objectContaining({ action: { type: "block" } })]),
+      expect.arrayContaining([expect.objectContaining({ action: { type: 'block' } })]),
     );
     expect(testHarness.data.browserPolicy).toEqual(policy());
-    expect(testHarness.nativeRequests.map((request) => request.type)).toEqual(["get_policy"]);
+    expect(testHarness.nativeRequests.map((request) => request.type)).toEqual(['get_policy']);
   });
 
-  it("cannot restore an old startup snapshot over a switched-session review", async () => {
+  it('cannot restore an old startup snapshot over a switched-session review', async () => {
     const previous = policy({
       grants: [
         {
-          scope: { kind: "origin", origin: "https://previous.example" },
-          expiresAt: "2026-09-08T18:30:00.000Z",
+          scope: { kind: 'origin', origin: 'https://previous.example' },
+          expiresAt: '2026-09-08T18:30:00.000Z',
         },
       ],
     });
     const switched = policy({
-      sessionID: "39f9fbe2-3c34-487d-ad75-c954237c3184",
-      task: { id: "task-2", title: "Write the release runbook" },
-      scopes: [{ kind: "origin", origin: "https://release.example" }],
+      sessionID: '39f9fbe2-3c34-487d-ad75-c954237c3184',
+      task: { id: 'task-2', title: 'Write the release runbook' },
+      scopes: [{ kind: 'origin', origin: 'https://release.example' }],
     });
     let releaseFirstRuleRead!: () => void;
     let signalFirstRuleRead!: () => void;
@@ -477,18 +631,18 @@ describe("BrowserPolicyController", () => {
     });
     let ruleReadCount = 0;
     const pending = {
-      id: "pending",
+      id: 'pending',
       tabId: 14,
-      originalURL: "https://previous.example/notes",
-      destination: { origin: "https://previous.example", path: "/notes" },
+      originalURL: 'https://previous.example/notes',
+      destination: { origin: 'https://previous.example', path: '/notes' },
       sessionID: previous.sessionID,
       task: previous.task,
       challengeIssued: false,
       createdAt: now.toISOString(),
-      expiresAt: "2026-09-08T18:02:00.000Z",
+      expiresAt: '2026-09-08T18:02:00.000Z',
     };
     const testHarness = harness({
-      stored: { browserPolicy: previous, "browserRequest:pending": pending },
+      stored: { browserPolicy: previous, 'browserRequest:pending': pending },
       dynamicRulesGet: async () => {
         ruleReadCount += 1;
         if (ruleReadCount === 1) {
@@ -498,15 +652,15 @@ describe("BrowserPolicyController", () => {
         return [{ id: 76 }, { id: 77 }];
       },
       native: async (request) => {
-        if (request.type === "get_policy") {
-          throw new Error("host unavailable after startup");
+        if (request.type === 'get_policy') {
+          throw new Error('host unavailable after startup');
         }
         return response(request, {
           policy: switched,
           result: {
-            decision: "grant",
-            reason: "The old review is stale.",
-            scope: { kind: "origin", origin: "https://previous.example" },
+            decision: 'grant',
+            reason: 'The old review is stale.',
+            scope: { kind: 'origin', origin: 'https://previous.example' },
           },
         });
       },
@@ -515,8 +669,8 @@ describe("BrowserPolicyController", () => {
     const initialization = testHarness.controller.initialize();
     await firstRuleRead;
     const review = testHarness.controller.reviewDestination({
-      requestID: "pending",
-      justification: "This belongs to the prior task.",
+      requestID: 'pending',
+      justification: 'This belongs to the prior task.',
     });
     for (let step = 0; step < 10; step += 1) {
       await Promise.resolve();
@@ -527,14 +681,14 @@ describe("BrowserPolicyController", () => {
 
     expect(reviewStartedBeforeRestore).toBe(false);
     expect(testHarness.data.browserPolicy).toEqual(switched);
-    expect(JSON.stringify(testHarness.ruleUpdates.at(-1))).not.toContain("previous");
+    expect(JSON.stringify(testHarness.ruleUpdates.at(-1))).not.toContain('previous');
   });
 
-  it("lets a task-switch refresh run while a native review is waiting", async () => {
+  it('lets a task-switch refresh run while a native review is waiting', async () => {
     const switched = policy({
-      sessionID: "39f9fbe2-3c34-487d-ad75-c954237c3184",
-      task: { id: "task-2", title: "Write the release runbook" },
-      scopes: [{ kind: "origin", origin: "https://release.example" }],
+      sessionID: '39f9fbe2-3c34-487d-ad75-c954237c3184',
+      task: { id: 'task-2', title: 'Write the release runbook' },
+      scopes: [{ kind: 'origin', origin: 'https://release.example' }],
     });
     let signalReviewStarted!: () => void;
     let releaseReview!: () => void;
@@ -546,33 +700,35 @@ describe("BrowserPolicyController", () => {
     });
     const testHarness = harness({
       native: async (request) => {
-        if (request.type === "review_destination") {
+        if (request.type === 'review_destination') {
           signalReviewStarted();
           await reviewRelease;
           return response(request, {
             policy: policy({
-              grants: [{
-                scope: { kind: "origin", origin: "https://research.example" },
-                expiresAt: "2026-09-08T18:30:00.000Z",
-              }],
+              grants: [
+                {
+                  scope: { kind: 'origin', origin: 'https://research.example' },
+                  expiresAt: '2026-09-08T18:30:00.000Z',
+                },
+              ],
             }),
             result: {
-              decision: "grant",
-              reason: "This response belongs to the prior task.",
-              scope: { kind: "origin", origin: "https://research.example" },
+              decision: 'grant',
+              reason: 'This response belongs to the prior task.',
+              scope: { kind: 'origin', origin: 'https://research.example' },
             },
           });
         }
         return response(request, {
-          ...(request.type === "get_policy" ? { policy: switched } : {}),
+          ...(request.type === 'get_policy' ? { policy: switched } : {}),
         });
       },
     });
-    await routeBlockedPage(testHarness, "https://research.example/notes");
+    await routeBlockedPage(testHarness, 'https://research.example/notes');
 
     const review = testHarness.controller.reviewDestination({
-      requestID: "request-1",
-      justification: "This request is waiting on Athena.",
+      requestID: 'request-1',
+      justification: 'This request is waiting on Athena.',
     });
     await reviewStarted;
     const refresh = testHarness.controller.refreshPolicy();
@@ -580,83 +736,82 @@ describe("BrowserPolicyController", () => {
       await Promise.resolve();
     }
     const refreshStartedBeforeReviewReturned = testHarness.nativeRequests.some(
-      (request) => request.type === "get_policy",
+      (request) => request.type === 'get_policy',
     );
     releaseReview();
     const [reviewOutcome] = await Promise.all([review, refresh]);
 
     expect(refreshStartedBeforeReviewReturned).toBe(true);
-    expect(reviewOutcome).toEqual({ status: "stale_session" });
+    expect(reviewOutcome).toEqual({ status: 'stale_session' });
     expect(testHarness.data.browserPolicy).toEqual(switched);
     expect(testHarness.tabUpdates).toHaveLength(1);
   });
 
-  it("routes only blocked top-level HTTP navigation through an opaque request ID", async () => {
+  it('routes only blocked top-level HTTP navigation through an opaque request ID', async () => {
     const testHarness = harness();
     await routeBlockedPage(testHarness);
     await testHarness.controller.handleNavigationError({
       tabId: 15,
       frameId: 2,
-      error: "net::ERR_BLOCKED_BY_CLIENT",
-      url: "https://ignored.example/private",
+      error: 'net::ERR_BLOCKED_BY_CLIENT',
+      url: 'https://ignored.example/private',
     });
 
     expect(testHarness.tabUpdates).toEqual([
       {
         tabId: 14,
-        url: "chrome-extension://extension-id/blocker.html?request=request-1",
+        url: 'chrome-extension://extension-id/blocker.html?request=request-1',
       },
     ]);
-    expect(testHarness.tabUpdates[0].url).not.toContain("Research.Example");
-    expect(testHarness.data["browserRequest:request-1"]).toEqual({
-      id: "request-1",
+    expect(testHarness.tabUpdates[0].url).not.toContain('Research.Example');
+    expect(testHarness.data['browserRequest:request-1']).toEqual({
+      id: 'request-1',
       tabId: 14,
-      originalURL:
-        "https://alice:secret@Research.Example:443/private/../notes?q=secret#fragment",
-      destination: { origin: "https://research.example", path: "/notes" },
+      originalURL: 'https://alice:secret@Research.Example:443/private/../notes?q=secret#fragment',
+      destination: { origin: 'https://research.example', path: '/notes' },
       sessionID: policy().sessionID,
       task: policy().task,
       challengeIssued: false,
       createdAt: now.toISOString(),
-      expiresAt: "2026-09-08T18:02:00.000Z",
+      expiresAt: '2026-09-08T18:02:00.000Z',
     });
-    expect(testHarness.scheduledExpirations.at(-1)?.toISOString()).toBe(
-      "2026-09-08T18:02:00.000Z",
-    );
+    expect(testHarness.scheduledExpirations.at(-1)?.toISOString()).toBe('2026-09-08T18:02:00.000Z');
   });
 
-  it("restarts block-only after rules change but matching policy storage fails", async () => {
+  it('restarts block-only after rules change but matching policy storage fails', async () => {
     const previous = policy({
-      grants: [{
-        scope: { kind: "origin", origin: "https://previous.example" },
-        expiresAt: "2026-09-08T18:30:00.000Z",
-      }],
+      grants: [
+        {
+          scope: { kind: 'origin', origin: 'https://previous.example' },
+          expiresAt: '2026-09-08T18:30:00.000Z',
+        },
+      ],
     });
     const switched = policy({
-      sessionID: "39f9fbe2-3c34-487d-ad75-c954237c3184",
-      task: { id: "task-2", title: "Write the release runbook" },
-      scopes: [{ kind: "origin", origin: "https://release.example" }],
+      sessionID: '39f9fbe2-3c34-487d-ad75-c954237c3184',
+      task: { id: 'task-2', title: 'Write the release runbook' },
+      scopes: [{ kind: 'origin', origin: 'https://release.example' }],
     });
     const interrupted = harness({
       stored: {
         browserPolicy: previous,
-        browserPolicyRevision: "revision-a",
+        browserPolicyRevision: 'revision-a',
       },
       storageSet: async (items) => {
-        if ("browserPolicy" in items) {
-          throw new Error("Chrome failed to store the switched policy");
+        if ('browserPolicy' in items) {
+          throw new Error('Chrome failed to store the switched policy');
         }
       },
     });
 
-    await expect(
-      interrupted.controller.cachePolicy(switched, now, "revision-b"),
-    ).rejects.toThrow("Chrome failed to store the switched policy");
+    await expect(interrupted.controller.cachePolicy(switched, now, 'revision-b')).rejects.toThrow(
+      'Chrome failed to store the switched policy',
+    );
     expect(interrupted.data.browserPolicy).toEqual(previous);
     expect(interrupted.data.browserPolicyTransition).toBe(true);
     const interruptedRuleText = JSON.stringify(interrupted.ruleUpdates.at(-1)?.addRules);
-    expect(interruptedRuleText).toContain("release");
-    expect(interruptedRuleText).not.toContain("previous");
+    expect(interruptedRuleText).toContain('release');
+    expect(interruptedRuleText).not.toContain('previous');
 
     const restarted = harness({
       stored: structuredClone(interrupted.data),
@@ -665,38 +820,44 @@ describe("BrowserPolicyController", () => {
     await restarted.controller.initialize();
 
     expect(restarted.ruleUpdates[0].addRules).toEqual([
-      expect.objectContaining({ id: 1, action: { type: "block" } }),
+      expect.objectContaining({ id: 1, action: { type: 'block' } }),
     ]);
-    expect(JSON.stringify(restarted.ruleUpdates)).not.toContain("previous");
+    expect(JSON.stringify(restarted.ruleUpdates)).not.toContain('previous');
     expect(restarted.data.browserPolicy).toBeUndefined();
     expect(restarted.data.browserPolicyRevision).toBeUndefined();
     expect(restarted.data.browserPolicyTransition).toBeUndefined();
   });
 
-  it("routes a slashless parent through the blocker for a trailing-slash scope", async () => {
+  it('routes a slashless parent through the blocker for a trailing-slash scope', async () => {
     const testHarness = harness();
-    await testHarness.controller.cachePolicy(policy({
-      scopes: [{
-        kind: "path_prefix",
-        origin: "https://research.example",
-        path: "/notes/",
-      }],
-    }));
+    await testHarness.controller.cachePolicy(
+      policy({
+        scopes: [
+          {
+            kind: 'path_prefix',
+            origin: 'https://research.example',
+            path: '/notes/',
+          },
+        ],
+      }),
+    );
     testHarness.tabUpdates.length = 0;
 
     await testHarness.controller.handleNavigationError({
       tabId: 14,
       frameId: 0,
-      error: "net::ERR_BLOCKED_BY_CLIENT",
-      url: "https://research.example/notes",
+      error: 'net::ERR_BLOCKED_BY_CLIENT',
+      url: 'https://research.example/notes',
     });
 
-    expect(testHarness.tabUpdates).toEqual([{
-      tabId: 14,
-      url: "chrome-extension://extension-id/blocker.html?request=request-1",
-    }]);
-    expect(testHarness.data["browserRequest:request-1"]).toMatchObject({
-      destination: { origin: "https://research.example", path: "/notes" },
+    expect(testHarness.tabUpdates).toEqual([
+      {
+        tabId: 14,
+        url: 'chrome-extension://extension-id/blocker.html?request=request-1',
+      },
+    ]);
+    expect(testHarness.data['browserRequest:request-1']).toMatchObject({
+      destination: { origin: 'https://research.example', path: '/notes' },
     });
   });
 
@@ -723,60 +884,61 @@ describe("BrowserPolicyController", () => {
     await testHarness.controller.handleNavigationError({
       tabId: 14,
       frameId: 0,
-      error: "net::ERR_BLOCKED_BY_CLIENT",
-      url: "https://docket.example/allowed",
+      error: 'net::ERR_BLOCKED_BY_CLIENT',
+      url: 'https://docket.example/allowed',
     });
     releaseValidation();
     await activation;
 
     expect(testHarness.tabUpdates).toHaveLength(0);
-    expect(Object.keys(testHarness.data).filter((key) => key.startsWith("browserRequest:")))
-      .toHaveLength(0);
+    expect(
+      Object.keys(testHarness.data).filter((key) => key.startsWith('browserRequest:')),
+    ).toHaveLength(0);
   });
 
-  it("preserves an unexpired blocker request for the cached session across restart", async () => {
+  it('preserves an unexpired blocker request for the cached session across restart', async () => {
     const pending = {
-      id: "pending",
+      id: 'pending',
       tabId: 14,
-      originalURL: "https://research.example/notes?q=private",
-      destination: { origin: "https://research.example", path: "/notes" },
+      originalURL: 'https://research.example/notes?q=private',
+      destination: { origin: 'https://research.example', path: '/notes' },
       sessionID: policy().sessionID,
       task: policy().task,
       challengeIssued: false,
       createdAt: now.toISOString(),
-      expiresAt: "2026-09-08T18:02:00.000Z",
+      expiresAt: '2026-09-08T18:02:00.000Z',
     };
     const testHarness = harness({
-      stored: { browserPolicy: policy(), "browserRequest:pending": pending },
+      stored: { browserPolicy: policy(), 'browserRequest:pending': pending },
     });
 
     await testHarness.controller.initialize();
 
-    expect(testHarness.data["browserRequest:pending"]).toEqual(pending);
+    expect(testHarness.data['browserRequest:pending']).toEqual(pending);
   });
 
-  it("shows only the task, host, and required justification question", async () => {
+  it('shows only the task, host, and required justification question', async () => {
     const testHarness = harness();
     await routeBlockedPage(testHarness);
 
-    await expect(testHarness.controller.getBlockerContext("request-1")).resolves.toEqual({
-      taskTitle: "Ship the Chrome gate",
-      hostname: "research.example",
+    await expect(testHarness.controller.getBlockerContext('request-1')).resolves.toEqual({
+      taskTitle: 'Ship the Chrome gate',
+      hostname: 'research.example',
       question:
-        "What will you do on research.example, and what will you produce for Ship the Chrome gate?",
+        'What will you do on research.example, and what will you produce for Ship the Chrome gate?',
     });
   });
 
-  it("installs a bounded grant before reopening the exact original URL", async () => {
+  it('installs a bounded grant before reopening the exact original URL', async () => {
     const grantedPolicy = policy({
       grants: [
         {
           scope: {
-            kind: "path_prefix",
-            origin: "https://research.example",
-            path: "/notes",
+            kind: 'path_prefix',
+            origin: 'https://research.example',
+            path: '/notes',
           },
-          expiresAt: "2026-09-08T18:30:00.000Z",
+          expiresAt: '2026-09-08T18:30:00.000Z',
         },
       ],
     });
@@ -785,8 +947,8 @@ describe("BrowserPolicyController", () => {
         response(request, {
           policy: grantedPolicy,
           result: {
-            decision: "grant",
-            reason: "The destination is bounded to the task.",
+            decision: 'grant',
+            reason: 'The destination is bounded to the task.',
             scope: grantedPolicy.grants[0].scope,
           },
         }),
@@ -796,215 +958,218 @@ describe("BrowserPolicyController", () => {
     testHarness.ruleUpdates.length = 0;
 
     const outcome = await testHarness.controller.reviewDestination({
-      requestID: "request-1",
-      justification: "I need the release notes for the implementation.",
+      requestID: 'request-1',
+      justification: 'I need the release notes for the implementation.',
     });
 
-    expect(outcome).toEqual({ status: "grant" });
-    expect(testHarness.calls).toEqual(["rules", "tab"]);
+    expect(outcome).toEqual({ status: 'grant' });
+    expect(testHarness.calls).toEqual(['rules', 'tab']);
     expect(testHarness.tabUpdates.at(-1)?.url).toBe(
-      "https://alice:secret@Research.Example:443/private/../notes?q=secret#fragment",
+      'https://alice:secret@Research.Example:443/private/../notes?q=secret#fragment',
     );
-    expect(testHarness.data["browserRequest:request-1"]).toBeUndefined();
+    expect(testHarness.data['browserRequest:request-1']).toBeUndefined();
     expect(testHarness.nativeRequests.at(-1)).toMatchObject({
-      schemaVersion: "browser-host/1",
-      type: "review_destination",
+      schemaVersion: 'browser-host/1',
+      type: 'review_destination',
       sessionId: policy().sessionID,
-      destination: { origin: "https://research.example", path: "/notes" },
-      justification: "I need the release notes for the implementation.",
+      destination: { origin: 'https://research.example', path: '/notes' },
+      justification: 'I need the release notes for the implementation.',
     });
   });
 
-  it("rejects a trailing-slash grant for its slashless parent", async () => {
+  it('rejects a trailing-slash grant for its slashless parent', async () => {
     const mismatchedPolicy = policy({
-      grants: [{
-        scope: {
-          kind: "path_prefix",
-          origin: "https://research.example",
-          path: "/notes/",
+      grants: [
+        {
+          scope: {
+            kind: 'path_prefix',
+            origin: 'https://research.example',
+            path: '/notes/',
+          },
+          expiresAt: '2026-09-08T18:30:00.000Z',
         },
-        expiresAt: "2026-09-08T18:30:00.000Z",
-      }],
+      ],
     });
     const testHarness = harness({
-      native: async (request) => response(request, {
-        policy: mismatchedPolicy,
-        result: {
-          decision: "grant",
-          reason: "The scope does not contain the requested path.",
-          scope: mismatchedPolicy.grants[0].scope,
-        },
-      }),
+      native: async (request) =>
+        response(request, {
+          policy: mismatchedPolicy,
+          result: {
+            decision: 'grant',
+            reason: 'The scope does not contain the requested path.',
+            scope: mismatchedPolicy.grants[0].scope,
+          },
+        }),
     });
-    await routeBlockedPage(testHarness, "https://research.example/notes");
+    await routeBlockedPage(testHarness, 'https://research.example/notes');
 
     const outcome = await testHarness.controller.reviewDestination({
-      requestID: "request-1",
-      justification: "I will compare the release notes for the task.",
+      requestID: 'request-1',
+      justification: 'I will compare the release notes for the task.',
     });
 
-    expect(outcome).toEqual({ status: "host_failure" });
-    expect(testHarness.data["browserRequest:request-1"]).toBeDefined();
+    expect(outcome).toEqual({ status: 'host_failure' });
+    expect(testHarness.data['browserRequest:request-1']).toBeDefined();
     expect(testHarness.tabUpdates).toHaveLength(1);
   });
 
-  it("retains the original justification only until one targeted challenge resolves", async () => {
-    const question = "Which release section do you need?";
+  it('retains the original justification only until one targeted challenge resolves', async () => {
+    const question = 'Which release section do you need?';
     const testHarness = harness({
       native: async (request) =>
         response(request, {
           policy: policy(),
-          result: { decision: "challenge", reason: "Narrow the request.", question },
+          result: { decision: 'challenge', reason: 'Narrow the request.', question },
         }),
     });
     await routeBlockedPage(testHarness);
 
     const outcome = await testHarness.controller.reviewDestination({
-      requestID: "request-1",
-      justification: "I need this for work.",
+      requestID: 'request-1',
+      justification: 'I need this for work.',
     });
 
-    expect(outcome).toEqual({ status: "challenge", question });
+    expect(outcome).toEqual({ status: 'challenge', question });
     expect(testHarness.tabUpdates).toHaveLength(1);
-    expect(testHarness.data["browserRequest:request-1"]).toMatchObject({
+    expect(testHarness.data['browserRequest:request-1']).toMatchObject({
       challengeIssued: true,
       challengeQuestion: question,
     });
-    expect(testHarness.data["browserRequest:request-1"]).toMatchObject({
-      originalJustification: "I need this for work.",
+    expect(testHarness.data['browserRequest:request-1']).toMatchObject({
+      originalJustification: 'I need this for work.',
     });
     const reloadedHarness = harness({
       stored: structuredClone(testHarness.data),
       native: async (request) =>
         response(request, {
           policy: policy(),
-          result: { decision: "deny", reason: "Narrow the request." },
+          result: { decision: 'deny', reason: 'Narrow the request.' },
         }),
     });
-    await expect(reloadedHarness.controller.getBlockerContext("request-1")).resolves.toEqual({
-      taskTitle: "Ship the Chrome gate",
-      hostname: "research.example",
+    await expect(reloadedHarness.controller.getBlockerContext('request-1')).resolves.toEqual({
+      taskTitle: 'Ship the Chrome gate',
+      hostname: 'research.example',
       question:
-        "What will you do on research.example, and what will you produce for Ship the Chrome gate?",
+        'What will you do on research.example, and what will you produce for Ship the Chrome gate?',
       challengeQuestion: question,
     });
 
     const missingChallengeAnswer = await reloadedHarness.controller.reviewDestination({
-      requestID: "request-1",
+      requestID: 'request-1',
     });
     expect(missingChallengeAnswer).toEqual({
-      status: "invalid_answer",
-      reason: "Challenge answer must contain 1 to 1,000 characters.",
+      status: 'invalid_answer',
+      reason: 'Challenge answer must contain 1 to 1,000 characters.',
     });
     expect(reloadedHarness.nativeRequests).toHaveLength(0);
 
     const secondOutcome = await reloadedHarness.controller.reviewDestination({
-      requestID: "request-1",
-      challengeAnswer: "The packaging section.",
+      requestID: 'request-1',
+      challengeAnswer: 'The packaging section.',
     });
-    expect(secondOutcome).toEqual({ status: "deny", reason: "Narrow the request." });
+    expect(secondOutcome).toEqual({ status: 'deny', reason: 'Narrow the request.' });
     expect(reloadedHarness.nativeRequests.at(-1)).toMatchObject({
-      type: "review_destination",
-      justification: "I need this for work.",
-      challengeAnswer: "The packaging section.",
+      type: 'review_destination',
+      justification: 'I need this for work.',
+      challengeAnswer: 'The packaging section.',
     });
-    expect(reloadedHarness.data["browserRequest:request-1"]).toBeUndefined();
-    expect(JSON.stringify(reloadedHarness.storageWrites)).not.toContain("The packaging section.");
+    expect(reloadedHarness.data['browserRequest:request-1']).toBeUndefined();
+    expect(JSON.stringify(reloadedHarness.storageWrites)).not.toContain('The packaging section.');
   });
 
-  it("discards a challenged request when the tab moves to another destination", async () => {
-    const question = "Which release section do you need?";
+  it('discards a challenged request when the tab moves to another destination', async () => {
+    const question = 'Which release section do you need?';
     const testHarness = harness({
       native: async (request) =>
         response(request, {
           policy: policy(),
-          result: { decision: "challenge", reason: "Narrow the request.", question },
+          result: { decision: 'challenge', reason: 'Narrow the request.', question },
         }),
     });
-    await routeBlockedPage(testHarness, "https://research.example/notes");
+    await routeBlockedPage(testHarness, 'https://research.example/notes');
     await testHarness.controller.reviewDestination({
-      requestID: "request-1",
-      justification: "I need the packaging release notes.",
+      requestID: 'request-1',
+      justification: 'I need the packaging release notes.',
     });
 
     await testHarness.controller.handleNavigationError({
       tabId: 14,
       frameId: 0,
-      error: "net::ERR_BLOCKED_BY_CLIENT",
-      url: "https://another.example/reference",
+      error: 'net::ERR_BLOCKED_BY_CLIENT',
+      url: 'https://another.example/reference',
     });
 
-    expect(testHarness.data["browserRequest:request-1"]).toBeUndefined();
-    expect(testHarness.data["browserRequest:request-3"]).toMatchObject({
-      destination: { origin: "https://another.example", path: "/reference" },
+    expect(testHarness.data['browserRequest:request-1']).toBeUndefined();
+    expect(testHarness.data['browserRequest:request-3']).toMatchObject({
+      destination: { origin: 'https://another.example', path: '/reference' },
       challengeIssued: false,
     });
-    expect(JSON.stringify(testHarness.data)).not.toContain("I need the packaging release notes.");
+    expect(JSON.stringify(testHarness.data)).not.toContain('I need the packaging release notes.');
   });
 
-  it("discards a challenged request when its tab closes", async () => {
+  it('discards a challenged request when its tab closes', async () => {
     const testHarness = harness({
       native: async (request) =>
         response(request, {
           policy: policy(),
           result: {
-            decision: "challenge",
-            reason: "Narrow the request.",
-            question: "Which release section do you need?",
+            decision: 'challenge',
+            reason: 'Narrow the request.',
+            question: 'Which release section do you need?',
           },
         }),
     });
-    await routeBlockedPage(testHarness, "https://research.example/notes");
+    await routeBlockedPage(testHarness, 'https://research.example/notes');
     await testHarness.controller.reviewDestination({
-      requestID: "request-1",
-      justification: "I need the packaging release notes.",
+      requestID: 'request-1',
+      justification: 'I need the packaging release notes.',
     });
 
     await testHarness.controller.handleTabClosed(14);
 
-    expect(testHarness.data["browserRequest:request-1"]).toBeUndefined();
-    expect(JSON.stringify(testHarness.data)).not.toContain("I need the packaging release notes.");
+    expect(testHarness.data['browserRequest:request-1']).toBeUndefined();
+    expect(JSON.stringify(testHarness.data)).not.toContain('I need the packaging release notes.');
   });
 
-  it("discards a challenged request when its tab leaves the blocker page", async () => {
+  it('discards a challenged request when its tab leaves the blocker page', async () => {
     const testHarness = harness({
       native: async (request) =>
         response(request, {
           policy: policy(),
           result: {
-            decision: "challenge",
-            reason: "Narrow the request.",
-            question: "Which release section do you need?",
+            decision: 'challenge',
+            reason: 'Narrow the request.',
+            question: 'Which release section do you need?',
           },
         }),
     });
-    await routeBlockedPage(testHarness, "https://research.example/notes");
+    await routeBlockedPage(testHarness, 'https://research.example/notes');
     await testHarness.controller.reviewDestination({
-      requestID: "request-1",
-      justification: "I need the packaging release notes.",
+      requestID: 'request-1',
+      justification: 'I need the packaging release notes.',
     });
 
-    await testHarness.controller.handleTabURLChanged(14, "https://docket.example/tasks/1");
+    await testHarness.controller.handleTabURLChanged(14, 'https://docket.example/tasks/1');
 
-    expect(testHarness.data["browserRequest:request-1"]).toBeUndefined();
-    expect(JSON.stringify(testHarness.data)).not.toContain("I need the packaging release notes.");
+    expect(testHarness.data['browserRequest:request-1']).toBeUndefined();
+    expect(JSON.stringify(testHarness.data)).not.toContain('I need the packaging release notes.');
   });
 
-  it("rejects a short initial justification with a specific client error", async () => {
+  it('rejects a short initial justification with a specific client error', async () => {
     const testHarness = harness();
     await routeBlockedPage(testHarness);
 
     const outcome = await testHarness.controller.reviewDestination({
-      requestID: "request-1",
-      justification: "Too short",
+      requestID: 'request-1',
+      justification: 'Too short',
     });
 
     expect(outcome).toEqual({
-      status: "invalid_answer",
-      reason: "Justification must contain 20 to 1,000 characters.",
+      status: 'invalid_answer',
+      reason: 'Justification must contain 20 to 1,000 characters.',
     });
     expect(testHarness.nativeRequests).toHaveLength(0);
-    expect(testHarness.data["browserRequest:request-1"]).toBeDefined();
+    expect(testHarness.data['browserRequest:request-1']).toBeDefined();
   });
 
   it("uses Docket's UTF-16 character ceiling before native messaging", async () => {
@@ -1012,54 +1177,54 @@ describe("BrowserPolicyController", () => {
     await routeBlockedPage(testHarness);
 
     const outcome = await testHarness.controller.reviewDestination({
-      requestID: "request-1",
-      justification: "😀".repeat(501),
+      requestID: 'request-1',
+      justification: '😀'.repeat(501),
     });
 
     expect(outcome).toEqual({
-      status: "invalid_answer",
-      reason: "Justification must contain 20 to 1,000 characters.",
+      status: 'invalid_answer',
+      reason: 'Justification must contain 20 to 1,000 characters.',
     });
     expect(testHarness.nativeRequests).toHaveLength(0);
   });
 
-  it("keeps a denied destination blocked and removes its resolved request", async () => {
+  it('keeps a denied destination blocked and removes its resolved request', async () => {
     const testHarness = harness({
       native: async (request) =>
         response(request, {
           policy: policy(),
-          result: { decision: "deny", reason: "The destination is in cooldown." },
+          result: { decision: 'deny', reason: 'The destination is in cooldown.' },
         }),
     });
     await routeBlockedPage(testHarness);
 
     const outcome = await testHarness.controller.reviewDestination({
-      requestID: "request-1",
-      justification: "I will check this source for the task.",
+      requestID: 'request-1',
+      justification: 'I will check this source for the task.',
     });
 
     expect(outcome).toEqual({
-      status: "deny",
-      reason: "The destination is in cooldown.",
+      status: 'deny',
+      reason: 'The destination is in cooldown.',
     } satisfies BrowserReviewOutcome);
     expect(testHarness.tabUpdates).toHaveLength(1);
-    expect(testHarness.data["browserRequest:request-1"]).toBeUndefined();
+    expect(testHarness.data['browserRequest:request-1']).toBeUndefined();
   });
 
-  it("applies a switched task policy before rejecting a stale review", async () => {
+  it('applies a switched task policy before rejecting a stale review', async () => {
     const switched = policy({
-      sessionID: "39f9fbe2-3c34-487d-ad75-c954237c3184",
-      task: { id: "task-2", title: "Write the release runbook" },
-      scopes: [{ kind: "origin", origin: "https://release.example" }],
+      sessionID: '39f9fbe2-3c34-487d-ad75-c954237c3184',
+      task: { id: 'task-2', title: 'Write the release runbook' },
+      scopes: [{ kind: 'origin', origin: 'https://release.example' }],
     });
     const testHarness = harness({
       native: async (request) =>
         response(request, {
           policy: switched,
           result: {
-            decision: "grant",
-            reason: "Late result.",
-            scope: { kind: "origin", origin: "https://research.example" },
+            decision: 'grant',
+            reason: 'Late result.',
+            scope: { kind: 'origin', origin: 'https://research.example' },
           },
         }),
     });
@@ -1067,74 +1232,74 @@ describe("BrowserPolicyController", () => {
     testHarness.calls.length = 0;
 
     const outcome = await testHarness.controller.reviewDestination({
-      requestID: "request-1",
-      justification: "This result belongs to the old task.",
+      requestID: 'request-1',
+      justification: 'This result belongs to the old task.',
     });
 
-    expect(outcome).toEqual({ status: "stale_session" });
-    expect(testHarness.calls).toEqual(["rules"]);
+    expect(outcome).toEqual({ status: 'stale_session' });
+    expect(testHarness.calls).toEqual(['rules']);
     expect(testHarness.data.browserPolicy).toEqual(switched);
-    expect(JSON.stringify(testHarness.ruleUpdates.at(-1))).not.toContain("research\\.example");
+    expect(JSON.stringify(testHarness.ruleUpdates.at(-1))).not.toContain('research\\.example');
   });
 
-  it("keeps the cached policy and pending destination blocked after host failure", async () => {
+  it('keeps the cached policy and pending destination blocked after host failure', async () => {
     const testHarness = harness();
     await routeBlockedPage(testHarness);
     const beforePolicy = structuredClone(testHarness.data.browserPolicy);
 
     const outcome = await testHarness.controller.reviewDestination({
-      requestID: "request-1",
-      justification: "I will use this source for the task.",
+      requestID: 'request-1',
+      justification: 'I will use this source for the task.',
     });
 
-    expect(outcome).toEqual({ status: "host_failure" });
+    expect(outcome).toEqual({ status: 'host_failure' });
     expect(testHarness.data.browserPolicy).toEqual(beforePolicy);
-    expect(testHarness.data["browserRequest:request-1"]).toBeDefined();
+    expect(testHarness.data['browserRequest:request-1']).toBeDefined();
     expect(testHarness.tabUpdates).toHaveLength(1);
   });
 
-  it("expires an original URL before returning blocker context", async () => {
+  it('expires an original URL before returning blocker context', async () => {
     const testHarness = harness({
       stored: {
-        "browserRequest:expired": {
-          id: "expired",
+        'browserRequest:expired': {
+          id: 'expired',
           tabId: 14,
-          originalURL: "https://private.example/?secret=one",
-          destination: { origin: "https://private.example", path: "/" },
+          originalURL: 'https://private.example/?secret=one',
+          destination: { origin: 'https://private.example', path: '/' },
           sessionID: policy().sessionID,
           task: policy().task,
           challengeIssued: false,
-          createdAt: "2026-09-08T17:57:00.000Z",
-          expiresAt: "2026-09-08T17:59:00.000Z",
+          createdAt: '2026-09-08T17:57:00.000Z',
+          expiresAt: '2026-09-08T17:59:00.000Z',
         },
       },
     });
 
-    await expect(testHarness.controller.getBlockerContext("expired")).resolves.toBeNull();
-    expect(testHarness.data["browserRequest:expired"]).toBeUndefined();
+    await expect(testHarness.controller.getBlockerContext('expired')).resolves.toBeNull();
+    expect(testHarness.data['browserRequest:expired']).toBeUndefined();
   });
 
-  it("deletes an expired original URL when the shared expiry alarm fires", async () => {
+  it('deletes an expired original URL when the shared expiry alarm fires', async () => {
     const testHarness = harness({
       stored: {
         browserPolicy: policy(),
-        "browserRequest:expired": {
-          id: "expired",
+        'browserRequest:expired': {
+          id: 'expired',
           tabId: 14,
-          originalURL: "https://private.example/?secret=one",
-          destination: { origin: "https://private.example", path: "/" },
+          originalURL: 'https://private.example/?secret=one',
+          destination: { origin: 'https://private.example', path: '/' },
           sessionID: policy().sessionID,
           task: policy().task,
           challengeIssued: false,
-          createdAt: "2026-09-08T17:58:00.000Z",
-          expiresAt: "2026-09-08T18:00:02.000Z",
+          createdAt: '2026-09-08T17:58:00.000Z',
+          expiresAt: '2026-09-08T18:00:02.000Z',
         },
       },
     });
 
-    await testHarness.controller.rebuildForExpiry(new Date("2026-09-08T18:00:03.000Z"));
+    await testHarness.controller.rebuildForExpiry(new Date('2026-09-08T18:00:03.000Z'));
 
-    expect(testHarness.data["browserRequest:expired"]).toBeUndefined();
+    expect(testHarness.data['browserRequest:expired']).toBeUndefined();
     expect(testHarness.scheduledExpirations.at(-1)).toBeNull();
   });
 });
