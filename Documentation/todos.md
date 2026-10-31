@@ -1985,3 +1985,21 @@ Budget inspection now uses persisted grant counters and preserves consumed uses 
 - [x] Give users a preview-first way to free space in a full approval queue. Keep pending requests and unacknowledged grant recovery records.
 
 - [x] Reject candidate tags without matching Sparkle release notes before signing. The 0.0.17 staging run stopped before opening Sparkle because its tagged source lacked the notes.
+
+## Signed warning, lockout and override driver
+
+The opt-in `testSignedWarningLockoutAndOverride` observes the exact installed signed
+app on a real disposable hosted account. It reads existing setup consent, refuses
+a shutdown-enabled or unbounded schedule, observes the real warning and healthy
+lockout, waits the five-minute cooldown, rejects a short hold and checks the
+three-second confirmation restores working status. It never seeds preferences,
+grants Accessibility, changes time or substitutes a demo fixture.
+
+The receipt validator's 12 synthetic cases passed independently after an observed
+missing-export RED. This is validator evidence only. The signed-installer workflow
+runs those boundaries and compiles the new driver on PRs without executing it.
+Actual execution still requires a separately prepared disposable account through
+real setup and existing permission consent. No such fixture was provisioned or
+permission granted in this change. Do not dispatch a pretend fresh-host lockout
+run or count compilation as `signedDevice` acceptance. Clock correction, sleep,
+login, populated-data recovery and active-service rollback remain separate gates.
