@@ -1,5 +1,26 @@
 # Todo Test Matrix
 
+## Browser navigation ownership
+
+The controller suite adds controlled asynchronous storage boundaries for newer
+navigation, tab closure, superseded policy/request scans, session completion and
+newly allowed destinations. Same-navigation and other-tab events are positive
+controls. Parent cloud observed 46/46 baseline passes, then 48 passes and six
+specific failures out of 54, with typecheck passing and no skips.
+
+`web/extension/test/policy-delivery.test.ts` separately captures a policy response
+before delaying delivery. Fresh review identified that this can expose a stale
+session after a completed or started policy change. Parent cloud verified the
+initial fix at 54/54, then 57 total with 54 passes and those three exact failures,
+typecheck passing and no skips. The synchronous generation/in-flight guard was
+added after that RED. Parent cloud then observed 57/57 GREEN, zero failures or
+skips, and typecheck exit 0 on Node 24.20.0/pnpm 11.9.0 without reinstalling.
+Final controller SHA-256 is
+`a83493e59a0162ec9afb7528870b9c56bd59f4f14a0691a8e27daddcb527c790`.
+Original tests and frozen dependency resolutions are
+unchanged. No real Chrome, DNR installation, lock, grant or native acceptance is
+established by these synthetic cases.
+
 ## Background recovery after clock corrections
 
 `AppSupervisorPolicyTests.backwardClockDoesNotStrandRecovery` proves that a

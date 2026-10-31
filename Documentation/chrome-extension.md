@@ -116,6 +116,19 @@ it, keeps the recurring refresh alarm, and requests fresh policy immediately.
 ## Blocker privacy and review
 
 Chrome reports a blocked top-level request as `ERR_BLOCKED_BY_CLIENT`. The worker
+ties asynchronous routing to that tab's current navigation. A newer navigation
+or tab closure cancels the old operation; delayed storage reads must not remove
+a newer request, and a delayed write must not bring back an abandoned request.
+A same-navigation URL notification preserves the pending request. Before opening
+the blocker, the worker checks that its session is still current and the
+destination is still blocked. This is controller behavior under synthetic
+tests; installed Chrome event ordering remains a separate acceptance check.
+The final policy read must also belong to the current policy-install generation,
+with no installation still in flight. A delayed old storage response cannot
+reopen review after a session ends or its destination becomes allowed. The
+policy-install body, DNR block/allow rules and native authority stay unchanged.
+
+The worker
 stores the original URL under a random request ID for at most two minutes. The
 worker ignores that event when its current policy already allows the target,
 because another extension can produce the same Chrome error. The blocker URL
