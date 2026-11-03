@@ -213,3 +213,9 @@ test("release help uses public download and restore entry points without private
     assert.doesNotMatch(content, /\]\(https:\/\/thecurfew\.app\/success(?:[)#])/);
   }
 });
+
+test("CLI beta status is explicit in public and internal guidance", async () => {
+  for (const path of ["README.md", "web/docs/cli.mdx", "landing/src/pages/docs.astro", "Documentation/todos.md"]) {
+    assert.match(await read(path), /CLI[^\n]*[Bb]eta|[Bb]eta[^\n]*CLI|curfew-ctl[^\n]*[Bb]eta/, `${path} must label the CLI beta`);
+  }
+});

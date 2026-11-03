@@ -640,7 +640,12 @@ mid-lockout, and every action the root daemon takes. Format specification:
 - [x] `MCPConsentSheet` for user approval of queued write requests.
 - [x] Settings → Integrations: MCP toggle, Claude Desktop config copy, consent policy picker.
 
-## 14. CLI (`curfew-ctl`)
+## 14. CLI (`curfew-ctl`, beta)
+
+The CLI remains in beta until launch blockers and installed-artifact acceptance pass. Commands and output may change.
+
+- [x] Label the CLI beta in the README, website, and user guide.
+- [-] Resolve CLI override rejection, budget reset accuracy, inactive schedule reporting, JSON/error handling, documented arguments, audit export, and recovery verification before general availability.
 
 - [x] `status` — enforcement phase, time remaining, override state (plain + JSON).
 - [x] `schedule show` — today's and full weekly schedule.

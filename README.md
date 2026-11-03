@@ -19,7 +19,7 @@ Curfew is the first product from [Hypertext Studio](https://hypertext.studio), a
 - **"Convince me" overrides** — 2 × 30 min per week, 5-min cooldown, 50-char minimum justification, persistent log.
 - **Optional auto-shutdown** after lockout with retry-once semantics.
 - **This Week retrospective** — lockouts held, extensions/overrides used, current streak.
-- **`curfew-ctl` CLI** — scriptable access to every status/override/budget operation. See [`curfew-ctl` usage](#curfew-ctl) below.
+- **`curfew-ctl` CLI (beta)** — inspect local status, schedules, budgets, and recorded activity. See [`curfew-ctl` usage](#curfew-ctl) below.
 - **`curfew-mcp` MCP server** — AI assistants can negotiate with your focus rules from within a coding session. See [MCP setup](#mcp-setup) below.
 - **User-confirmed reflections** — optional morning intentions and evening retrospectives use user-editable prompts, stay on the Mac, and are available to AI only through read-only MCP/CLI access.
 - **WidgetKit widgets** — small, medium, and large schedule/status views backed by the App Group.
@@ -89,7 +89,7 @@ Restart Claude Desktop. Run `curfew_status` to verify.
 
 ## `curfew-ctl`
 
-Command-line interface for scripting and power users.
+The `curfew-ctl` CLI is in beta. Commands and output may change while we fix launch blockers. Check the app for authoritative enforcement and budget information.
 
 ```bash
 # Current enforcement phase, time remaining, active override
