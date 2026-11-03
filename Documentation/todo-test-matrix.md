@@ -2440,3 +2440,7 @@ Current-main integration preserves license-expiry reevaluation beside the inject
 | Native source/package contracts run without website dependencies | `scripts/landing-contract.test.mjs`, included by native CI script checks                                          |
 
 `BackgroundLifecycleTests.closedWindowsReachLockout` checks its own `AppRouterSpy` for window, activation, and Settings requests instead of the process-wide AppKit window count. Other test suites may create AppKit windows concurrently. Timer-driven lockout and enforcement assertions remain intact.
+
+## CLI beta disclosure
+
+`scripts/user-docs.test.mjs` requires the README, website command-line section, user guide, and internal backlog to identify the CLI as beta. The regression failed before the labels were added. This is a source documentation change; publishing follows the existing website and documentation release workflows. The beta label does not establish launch readiness.
