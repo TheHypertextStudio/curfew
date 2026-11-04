@@ -194,7 +194,7 @@ extension NativeAccountSyncTransportTests {
         }
         XCTAssertFalse(recoveryKey.isEmpty)
         XCTAssertEqual(enrollment.deviceID, fixture.deviceID)
-        XCTAssertEqual(events.values, ["challenge", "registered"])
+        XCTAssertEqual(events.values, ["challenge", "registered", "challenge", "recovery-lookup"])
         XCTAssertEqual(try enrollmentStore.load()?.deviceID, fixture.deviceID)
         let pending = AccountEnrollmentPendingStore(secretStore: fixture.secrets)
         let checkpoint = try XCTUnwrap(pending.loadRecoverySetup())
@@ -208,6 +208,45 @@ extension NativeAccountSyncTransportTests {
         XCTAssertEqual(resumed, .ready(enrollment))
         XCTAssertNil(try pending.loadRecoverySetup())
         XCTAssertEqual(try pending.load(), .ready(enrollment))
+    }
+
+    func testRecoveryLookupFailureKeepsRegistrationCheckpointForRetry() async throws {
+        let fixture = try makeRecoveryFixture()
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let enrollmentStore = RemoteCommandEnrollmentStore(
+            recordURL: root.appendingPathComponent("enrollment.json")
+        )
+        RecoverySetupURLProtocol.handler = { request in
+            let path = try XCTUnwrap(request.url?.path)
+            switch (request.httpMethod, path) {
+            case ("POST", "/sync/device-proof/challenge"):
+                return Self.recoveryChallengeResponse()
+            case ("POST", "/sync/devices/enroll"):
+                return try (200, NativeDeviceEnrollmentReceipt(
+                    deviceID: fixture.deviceID.uuidString.lowercased(),
+                    enrolledAt: "2026-09-05T08:30:00.000Z",
+                    protocolVersion: "0.0",
+                    userID: "account_018f4f45cafe7f009a82e47805fb4d34"
+                ).jsonData())
+            case ("GET", "/sync/e2ee/recovery-envelope"):
+                return (503, Data())
+            default:
+                return (500, Data())
+            }
+        }
+        defer { RecoverySetupURLProtocol.handler = nil }
+
+        let service = makeEnrollmentService(fixture: fixture, enrollmentStore: enrollmentStore)
+        do {
+            _ = try await service.enroll(grant: recoveryTestGrant, deviceID: fixture.deviceID)
+            XCTFail("A failed lookup cannot present a provisional key")
+        } catch {}
+        let pending = AccountEnrollmentPendingStore(secretStore: fixture.secrets)
+        guard case .finishDeviceRegistration = try pending.load() else {
+            return XCTFail("Registration must remain available to retry")
+        }
     }
 
     private var recoveryTestGrant: AccountOAuthGrant {
@@ -257,6 +296,9 @@ extension NativeAccountSyncTransportTests {
             case ("PUT", "/sync/e2ee/recovery-envelope"):
                 events.append("recovery-upload")
                 return (503, Data())
+            case ("GET", "/sync/e2ee/recovery-envelope"):
+                events.append("recovery-lookup")
+                return (404, Data())
             default:
                 XCTFail("unexpected request: \(request.httpMethod ?? "nil") \(path)")
                 return (500, Data())
@@ -337,6 +379,8 @@ extension NativeAccountSyncTransportTests {
                 ).jsonData())
             case ("PUT", "/sync/e2ee/recovery-envelope"):
                 return (200, Data())
+            case ("GET", "/sync/e2ee/recovery-envelope"):
+                return (404, Data())
             default:
                 XCTFail("unexpected registration resume: \(request.httpMethod ?? "nil") \(path)")
                 return (500, Data())
