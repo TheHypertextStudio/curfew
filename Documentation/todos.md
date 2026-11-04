@@ -75,7 +75,8 @@
 ## Copy, permissions, and Settings
 
 - [x] Explain the macOS Device Control and Data Access label, administrator
-  authentication, and background-service checks in setup and troubleshooting.
+  authentication, and background-service checks in setup, troubleshooting, and
+  privacy help.
   The MacBook walkthrough on November 3, 2026 verified these prompts and the
   resulting Protection states. Other macOS versions and signed-release setup
   still need their own acceptance. Revert the help edits to roll back the copy;
