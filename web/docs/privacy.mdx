@@ -15,8 +15,16 @@ your Mac. Core features work without an account or purchase.
 | Calendar | Reads today's events for display | Optional Plus feature at launch |
 | Background items and helper approval | Starts and maintains the enforcement helper | Needed for the corresponding enforcement components |
 
-Review permissions in macOS System Settings and enforcement health in
-**Curfew → Settings → Protection** (**General** in earlier versions).
+macOS may call Accessibility **Device Control and Data Access**. The system
+explains that this permission can allow broad control of apps and access to
+data. Curfew uses it to block dismissal shortcuts during lockout. Turning it
+on may require Touch ID or an administrator password.
+
+**Background recovery** restarts Curfew if it stops. **Background protection**
+uses a helper to maintain enforcement. macOS may ask an administrator to allow
+background activity for all users. Check both states in **Curfew → Settings →
+Protection** (**General** in earlier versions). See [setup](/install) for the
+approval steps.
 
 ## When information leaves this Mac
 
