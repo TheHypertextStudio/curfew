@@ -21,6 +21,14 @@ Original tests and frozen dependency resolutions are
 unchanged. No real Chrome, DNR installation, lock, grant or native acceptance is
 established by these synthetic cases.
 
+## Setup permission guidance
+
+`scripts/user-docs.test.mjs` checks that setup and troubleshooting name Device
+Control and Data Access, administrator authentication, background recovery,
+and background protection. The November 3, 2026 MacBook walkthrough verified
+the macOS prompts and Curfew status after approval. This test does not grant
+permissions or establish behavior on other macOS versions.
+
 ## Background recovery after clock corrections
 
 `AppSupervisorPolicyTests.backwardClockDoesNotStrandRecovery` proves that a
