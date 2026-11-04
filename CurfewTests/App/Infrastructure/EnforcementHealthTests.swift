@@ -149,6 +149,13 @@ struct EnforcementHealthTests {
             .settingsStatusTitle == "Keyboard shortcut blocking was interrupted")
     }
 
+    @Test("Missing device control guidance names current and older macOS settings")
+    func accessibilityGuidanceNamesCurrentAndOlderSettings() {
+        let detail = EnforcementHealth.degradedNoAccessibility.bannerDetail
+        #expect(detail?.contains("Device Control and Data Access") == true)
+        #expect(detail?.contains("Accessibility") == true)
+    }
+
     @Test("Only degraded states offer the fix-it affordance")
     func fixItAffordanceOnlyWhenDegraded() {
         #expect(EnforcementHealth.active.offersAccessibilityRemediation == false)
