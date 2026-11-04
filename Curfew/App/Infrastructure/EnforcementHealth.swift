@@ -190,8 +190,8 @@ enum EnforcementHealth: Equatable {
     /// Remediation body shown when Accessibility trust is missing.
     static let noAccessibilityBannerDetail =
         "Curfew needs Accessibility access to block bypass shortcuts during lockout. "
-            + "Grant Accessibility to Curfew in System Settings → Privacy & "
-            + "Security → Accessibility, then return to Curfew."
+            + "In System Settings → Privacy & Security, open Device Control and Data Access "
+            + "or Accessibility, then turn on Curfew and return to the app."
 
     /// Headline shown when the expected keyboard shield tap is down.
     static let tapDownBannerTitle =
