@@ -194,9 +194,7 @@ extension NativeAccountSyncTransport {
             guard let writer = peers.first(where: {
                 $0.deviceID == record.writerDeviceID && $0.keyEpoch == record.keyEpoch
             }) else { throw NativeAccountSyncError.invalidResponse }
-            let decoder = JSONDecoder()
-            decoder.dateDecodingStrategy = .iso8601
-            let decoded = try decoder.decode(AccountEncryptedRecord.self, from: record.jsonData())
+            let decoded = try AccountEncryptedRecord.fromWire(record)
             let publicKey = AccountPublicKeyJWK(
                 xCoordinate: writer.signingPublicKeyJwk.x,
                 yCoordinate: writer.signingPublicKeyJwk.y

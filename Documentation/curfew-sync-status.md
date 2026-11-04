@@ -32,6 +32,9 @@ Before accepting an account settings record, the reader checks the enrolled
 writer's public key and verifies the record signature. An unknown or revoked
 writer cannot supply settings. An authenticated poll alone still does not
 confirm that the app decrypted or applied a record.
+The reader preserves the timestamp text from the signed record for signature
+and authenticated-data verification. It does not round a fractional timestamp
+before checking either value.
 
 | Concern                          | Implementation                                                  |
 | -------------------------------- | --------------------------------------------------------------- |

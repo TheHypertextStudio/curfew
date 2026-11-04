@@ -294,6 +294,7 @@ struct AccountEncryptedRecord: Codable, Equatable, Sendable {
     let signatureAlgorithm: String
     let signature: String
     let updatedAt: Date
+    var signedUpdatedAt: String? = nil
 
     private enum CodingKeys: String, CodingKey {
         case namespace, version, writerCounter, keyEpoch, cipherSuite, nonce
@@ -316,7 +317,21 @@ struct AccountEncryptedRecord: Codable, Equatable, Sendable {
         try container.encode(ciphertext, forKey: .ciphertext)
         try container.encode(signatureAlgorithm, forKey: .signatureAlgorithm)
         try container.encode(signature, forKey: .signature)
-        try container.encode(wireDate(updatedAt), forKey: .updatedAt)
+        try container.encode(signedUpdatedAt ?? wireDate(updatedAt), forKey: .updatedAt)
+    }
+
+    static func fromWire(_ wire: CurfewProtocols.EncryptedRecord) throws -> Self {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .custom { decoder in
+            let text = try decoder.singleValueContainer().decode(String.self)
+            guard let date = ISO8601DateFormatter.curfewFractional.date(from: text)
+                ?? ISO8601DateFormatter.curfew.date(from: text)
+            else { throw AccountEncryptionError.invalidKeyMaterial }
+            return date
+        }
+        var record = try decoder.decode(Self.self, from: wire.jsonData())
+        record.signedUpdatedAt = wire.updatedAt
+        return record
     }
 
     func replacing(ciphertext: String) -> AccountEncryptedRecord {
@@ -333,7 +348,8 @@ struct AccountEncryptedRecord: Codable, Equatable, Sendable {
             ciphertext: ciphertext,
             signatureAlgorithm: signatureAlgorithm,
             signature: signature,
-            updatedAt: updatedAt
+            updatedAt: updatedAt,
+            signedUpdatedAt: signedUpdatedAt
         )
     }
 }
@@ -454,7 +470,8 @@ struct AccountRecordCrypto {
             writerCounter: record.writerCounter,
             writerDeviceID: record.writerDeviceID,
             keyEpoch: record.keyEpoch,
-            updatedAt: record.updatedAt
+            updatedAt: record.updatedAt,
+            signedUpdatedAt: record.signedUpdatedAt
         ))
         guard AccountPublicKeyJWK.base64URL(Data(SHA256.hash(data: aad))) == record.aadDigest else {
             throw AccountEncryptionError.authenticationFailed
@@ -482,7 +499,7 @@ struct AccountRecordCrypto {
             "nonce": record.nonce,
             "recordId": record.recordID.uuidString.lowercased(),
             "signatureAlgorithm": record.signatureAlgorithm,
-            "updatedAt": wireDate(record.updatedAt),
+            "updatedAt": record.signedUpdatedAt ?? wireDate(record.updatedAt),
             "version": record.version,
             "writerCounter": record.writerCounter,
             "writerDeviceId": record.writerDeviceID.uuidString.lowercased()
@@ -537,14 +554,15 @@ private func headerObject(
     writerCounter: Int,
     writerDeviceID: UUID,
     keyEpoch: Int,
-    updatedAt: Date
+    updatedAt: Date,
+    signedUpdatedAt: String? = nil
 ) -> [String: Any] {
     [
         "cipherSuite": "AES-256-GCM",
         "keyEpoch": keyEpoch,
         "namespace": namespace.rawValue,
         "recordId": recordID.uuidString.lowercased(),
-        "updatedAt": wireDate(updatedAt),
+        "updatedAt": signedUpdatedAt ?? wireDate(updatedAt),
         "version": version,
         "writerCounter": writerCounter,
         "writerDeviceId": writerDeviceID.uuidString.lowercased()
@@ -559,7 +577,11 @@ private func canonicalJSON(_ object: [String: Any]) throws -> Data {
 }
 
 private func wireDate(_ date: Date) -> String {
-    ISO8601DateFormatter.curfew.string(from: date)
+    let seconds = date.timeIntervalSince1970
+    let formatter = seconds == seconds.rounded(.down)
+        ? ISO8601DateFormatter.curfew
+        : ISO8601DateFormatter.curfewFractional
+    return formatter.string(from: date)
 }
 
 private func randomData(count: Int) -> Data {
@@ -589,6 +611,12 @@ private extension JSONDecoder {
 }
 
 private extension ISO8601DateFormatter {
+    static let curfewFractional: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
+
     static let curfew: ISO8601DateFormatter = {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime]
