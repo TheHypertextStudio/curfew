@@ -57,6 +57,13 @@
 
 ## Copy, permissions, and Settings
 
+- [x] Explain the macOS Device Control and Data Access label, administrator
+  authentication, and background-service checks in setup and troubleshooting.
+  The MacBook walkthrough on November 3, 2026 verified these prompts and the
+  resulting Protection states. Other macOS versions and signed-release setup
+  still need their own acceptance. Revert the help edits to roll back the copy;
+  no permission or enforcement behavior changed.
+
 - [x] Replace the tall Settings page with nine categories. Keep upstream Protection for permission health, background protection, and setup. Keep allowances and warning times on Lockout. Retain native grouped forms and arrow-key sidebar navigation. See `settings-ui.md`.
 - [x] Share the documented Curfew Xcode scheme with app, unit-test, and UI-test targets to keep the native commands independent of Xcode automatic scheme generation and local suppression settings. The missing-scheme build and contract test failed before the shared configuration was added.
 - [x] Compare extension icon rasters within the documented SDK tolerance while retaining dimensions, transparency, and safe-margin checks. Preserve the committed artwork.

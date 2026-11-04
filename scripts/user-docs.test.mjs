@@ -213,3 +213,15 @@ test("release help uses public download and restore entry points without private
     assert.doesNotMatch(content, /\]\(https:\/\/thecurfew\.app\/success(?:[)#])/);
   }
 });
+
+test("setup help explains macOS permission prompts and verifies protection", async () => {
+  const install = await read("web/docs/install.mdx");
+  const troubleshooting = await read("web/docs/troubleshooting.mdx");
+  for (const content of [install, troubleshooting]) {
+    const prose = content.replace(/\s+/g, " ");
+    assert.match(prose, /Device Control and Data Access/);
+    assert.match(prose, /Touch ID or an administrator password/);
+    assert.match(prose, /Background recovery/);
+    assert.match(prose, /Background protection/);
+  }
+});
