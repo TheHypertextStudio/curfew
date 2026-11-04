@@ -6,6 +6,11 @@ import XCTest
 @MainActor
 final class AccountOAuthProcessLockTests: XCTestCase {
     func testSeparateAuthenticationSessionsAreSingleFlight() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        setenv("CURFEW_TEST_OAUTH_LOCK_PATH", root.appendingPathComponent("oauth.lock").path, 1)
+        defer { unsetenv("CURFEW_TEST_OAUTH_LOCK_PATH") }
         let first = AccountOAuthAuthenticationGate()
         let second = AccountOAuthAuthenticationGate()
         try first.begin()
@@ -65,6 +70,15 @@ final class AccountOAuthProcessLockTests: XCTestCase {
         setenv("CURFEW_TEST_OAUTH_LOCK_PATH", lock.path, 1)
         defer { unsetenv("CURFEW_TEST_OAUTH_LOCK_PATH") }
         let gate = AccountOAuthAuthenticationGate()
+        XCTAssertThrowsError(try gate.begin())
+        gate.finish()
+    }
+
+    func testLockRefusesDirectoryOwnedByAnotherUser() throws {
+        setenv("CURFEW_TEST_OAUTH_LOCK_PATH", "/private/etc/hosts", 1)
+        defer { unsetenv("CURFEW_TEST_OAUTH_LOCK_PATH") }
+        let gate = AccountOAuthAuthenticationGate()
+
         XCTAssertThrowsError(try gate.begin())
         gate.finish()
     }
