@@ -7,11 +7,19 @@ import XCTest
 @MainActor
 extension NativeAccountSyncTransportTests {
     func testSignedRecordWithInvalidScheduleIsRejected() async throws {
+        try await assertScheduleRejected(["unexpected": "value"])
+    }
+
+    func testSignedScheduleWithUnknownPropertyIsRejected() async throws {
+        try await assertScheduleRejected(ScheduleWithUnknownProperty())
+    }
+
+    private func assertScheduleRejected(_ payload: some Encodable) async throws {
         let fixture = try makeFixture(accessToken: "resource-bound-access-token")
         let keys = try XCTUnwrap(AccountDeviceKeyStore(secretStore: fixture.secrets)
             .load(deviceID: fixture.deviceID))
         let record = try AccountRecordCrypto().seal(
-            ["unexpected": "value"], namespace: .accountSettings,
+            payload, namespace: .accountSettings,
             recordID: XCTUnwrap(UUID(uuidString: "018f4f45-cafe-7f00-9a82-e47805fb4d36")),
             version: 1, writerCounter: 1, writerDeviceID: fixture.deviceID, keyEpoch: 1,
             updatedAt: Date(timeIntervalSince1970: 1_800_000_000), keys: keys
@@ -48,4 +56,19 @@ extension NativeAccountSyncTransportTests {
     ) -> CurfewProtocols.AccountPublicKeyJWK {
         CurfewProtocols.AccountPublicKeyJWK(crv: .p256, kty: .ec, x: key.x, y: key.y)
     }
+}
+
+private struct ScheduleWithUnknownProperty: Encodable {
+    private struct Day: Encodable {
+        let isDayOff = false
+        let lockTime = "22:00"
+        let mode = "time"
+        let unlockTime = "05:00"
+    }
+
+    private let schemaVersion = 1
+    private let unexpected = true
+    private let days = Dictionary(uniqueKeysWithValues: [
+        "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"
+    ].map { ($0, Day()) })
 }

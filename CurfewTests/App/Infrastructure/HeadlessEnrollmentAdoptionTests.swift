@@ -77,6 +77,7 @@ final class HeadlessEnrollmentAdoptionTests: XCTestCase {
                 calendarEnabled: false
             ),
             activityRecorder: NullActivityRecording(),
+            licenseGate: LicenseGate(defaults: defaults),
             accountSyncEngine: AccountSyncEngine(transport: NoOpAccountSyncTransport()),
             lockoutDeadlineStore: LockoutDeadlineStore(
                 recordURL: root.appendingPathComponent("deadline")
