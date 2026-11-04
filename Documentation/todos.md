@@ -1903,3 +1903,17 @@ Ordinary visual captures preserve synthetic permission and interrupted-keyboard 
 - [x] Run the installed shared Astro formatter comparison in the website unit lane, where its dependencies are installed. Keep native packaging/source checks dependency-free so release CI reaches the native checks. This changes test placement only; product behavior and release acceptance requirements are unchanged.
 
 - [x] Keep the background lifecycle window assertion scoped to its injected router, so concurrent account and snapshot tests cannot contaminate its result. Retain the timer-driven lockout, running-enforcement, no-activation, and no-Settings assertions; stop the test model during cleanup. Production behavior is unchanged.
+
+# SSH enrollment and account settings
+
+- [-] Add an SSH enrollment path that keeps OAuth and device keys on the Mac
+  being enrolled, accepts the existing Recovery Key without echo, and resumes
+  safely after interruption. Verify the signed app and live app adoption.
+- [-] Exchange authenticated encrypted schedule records between enrolled Macs.
+  Pull before publishing, preserve device-local settings, and apply remote
+  schedule changes through the local cooldown policy. Verify a real two-Mac
+  exchange rather than treating an account status poll as synchronization.
+- [ ] Define and implement account-wide budget accounting. Per-device counters
+      and eventual synchronization alone cannot prevent two offline Macs from
+      spending the same remaining grant. The account needs an explicit reservation
+      or offline allocation policy before it can enforce a shared budget.

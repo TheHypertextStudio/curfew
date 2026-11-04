@@ -2444,3 +2444,20 @@ Current-main integration preserves license-expiry reevaluation beside the inject
 ## CLI beta disclosure
 
 `scripts/user-docs.test.mjs` requires the README, website command-line section, user guide, and internal backlog to identify the CLI as beta. The regression failed before the labels were added. This is a source documentation change; publishing follows the existing website and documentation release workflows. The beta label does not establish launch readiness.
+
+# SSH enrollment and encrypted schedule sync
+
+The SSH enrollment work tracks a headless OAuth session, the existing-account
+Recovery Key path, and encrypted settings records separately. A successful
+account status poll must not count as a settings-sync acknowledgement.
+
+- `HeadlessAccountOAuthTests/testSignInWithoutWindowProvidesAuthorizationURL`
+  exercises authorization without a presentation window.
+- `AccountEnrollmentCompletionTests` exercises recovery of an existing account.
+- `AccountStatusSyncTests/testCoordinatorPollDoesNotConfirmEncryptedSettingsSync`
+  distinguishes a coordinator poll from synchronized settings.
+- `AccountEncryptedRecordWireTests` covers protocol encoding and canonical
+  signatures, and `NativeAccountSyncTransportTests` covers record retrieval.
+
+These tests describe work in progress. They do not establish a signed release,
+successful account enrollment, or convergence on either Mac.

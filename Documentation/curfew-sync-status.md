@@ -20,14 +20,23 @@ are accepted only when the privileged daemon verifies the enrolled account,
 device, command signature, replay state, and the status snapshot described
 below.
 
-| Concern | Implementation |
-|---|---|
-| Environment selection | `Sources/CurfewKit/Sync/CurfewServiceEndpoints.swift` |
-| Status construction | `Curfew/App/Model/CurfewAppModel+StatusReporting.swift` |
-| OAuth and device-proof transport | `Curfew/Core/Features/NativeAccountSyncTransport.swift` |
-| Wire mapping | `Curfew/Core/Features/NativeAccountSyncTransport+Mapping.swift` |
-| Local command eligibility | `Sources/CurfewKit/Sync/DaemonRemoteCommandController.swift` |
-| Root-owned command exchange | `Sources/CurfewKit/Storage/RemoteCommandInboxStore.swift` |
+Curfew 0.0.17 can report account connectivity without exchanging encrypted
+settings records. Its successful status poll does not establish that schedules
+match. When rolling back to 0.0.17, verify each Mac's schedule locally and do
+not treat the account connection indicator as settings-sync evidence.
+
+The record encoder uses the published field names, UTC timestamps, and low-S
+P-256 signatures. `AccountEncryptedRecordWireTests` covers this wire contract.
+An encoder fix alone does not start record exchange or establish device sync.
+
+| Concern                          | Implementation                                                  |
+| -------------------------------- | --------------------------------------------------------------- |
+| Environment selection            | `Sources/CurfewKit/Sync/CurfewServiceEndpoints.swift`           |
+| Status construction              | `Curfew/App/Model/CurfewAppModel+StatusReporting.swift`         |
+| OAuth and device-proof transport | `Curfew/Core/Features/NativeAccountSyncTransport.swift`         |
+| Wire mapping                     | `Curfew/Core/Features/NativeAccountSyncTransport+Mapping.swift` |
+| Local command eligibility        | `Sources/CurfewKit/Sync/DaemonRemoteCommandController.swift`    |
+| Root-owned command exchange      | `Sources/CurfewKit/Storage/RemoteCommandInboxStore.swift`       |
 
 ## Authentication and environment boundary
 

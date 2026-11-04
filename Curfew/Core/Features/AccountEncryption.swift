@@ -290,6 +290,30 @@ struct AccountEncryptedRecord: Codable, Equatable, Sendable {
     let signature: String
     let updatedAt: Date
 
+    private enum CodingKeys: String, CodingKey {
+        case namespace, version, writerCounter, keyEpoch, cipherSuite, nonce
+        case aadDigest, ciphertext, signatureAlgorithm, signature, updatedAt
+        case recordID = "recordId"
+        case writerDeviceID = "writerDeviceId"
+    }
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(namespace, forKey: .namespace)
+        try container.encode(recordID.uuidString.lowercased(), forKey: .recordID)
+        try container.encode(version, forKey: .version)
+        try container.encode(writerDeviceID.uuidString.lowercased(), forKey: .writerDeviceID)
+        try container.encode(writerCounter, forKey: .writerCounter)
+        try container.encode(keyEpoch, forKey: .keyEpoch)
+        try container.encode(cipherSuite, forKey: .cipherSuite)
+        try container.encode(nonce, forKey: .nonce)
+        try container.encode(aadDigest, forKey: .aadDigest)
+        try container.encode(ciphertext, forKey: .ciphertext)
+        try container.encode(signatureAlgorithm, forKey: .signatureAlgorithm)
+        try container.encode(signature, forKey: .signature)
+        try container.encode(wireDate(updatedAt), forKey: .updatedAt)
+    }
+
     func replacing(ciphertext: String) -> AccountEncryptedRecord {
         AccountEncryptedRecord(
             namespace: namespace,
@@ -362,7 +386,9 @@ struct AccountRecordCrypto {
             updatedAt: updatedAt
         )
         let signingKey = try P256.Signing.PrivateKey(rawRepresentation: keys.signingPrivateKey)
-        let signature = try signingKey.signature(for: signatureInput(unsigned)).rawRepresentation
+        let signature = try canonicalP256Signature(
+            signingKey.signature(for: signatureInput(unsigned)).rawRepresentation
+        )
         return AccountEncryptedRecord(
             namespace: unsigned.namespace,
             recordID: unsigned.recordID,
@@ -441,6 +467,31 @@ struct AccountRecordCrypto {
             "writerDeviceId": record.writerDeviceID.uuidString.lowercased()
         ])
     }
+}
+
+private func canonicalP256Signature(_ signature: Data) -> Data {
+    let order: [UInt8] = [
+        0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00,
+        0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+        0xBC, 0xE6, 0xFA, 0xAD, 0xA7, 0x17, 0x9E, 0x84,
+        0xF3, 0xB9, 0xCA, 0xC2, 0xFC, 0x63, 0x25, 0x51
+    ]
+    let halfOrder: [UInt8] = [
+        0x7F, 0xFF, 0xFF, 0xFF, 0x80, 0x00, 0x00, 0x00,
+        0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+        0xDE, 0x73, 0x7D, 0x56, 0xD3, 0x8B, 0xCF, 0x42,
+        0x79, 0xDC, 0xE5, 0x61, 0x7E, 0x31, 0x92, 0xA8
+    ]
+    let value = Array(signature.suffix(32))
+    guard halfOrder.lexicographicallyPrecedes(value) else { return signature }
+    var normalized = [UInt8](repeating: 0, count: 32)
+    var borrow = 0
+    for index in (0 ..< 32).reversed() {
+        let difference = Int(order[index]) - Int(value[index]) - borrow
+        normalized[index] = UInt8(difference < 0 ? difference + 256 : difference)
+        borrow = difference < 0 ? 1 : 0
+    }
+    return Data(signature.prefix(32)) + Data(normalized)
 }
 
 private func namespaceKey(
