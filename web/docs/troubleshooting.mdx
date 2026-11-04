@@ -10,8 +10,9 @@ Check your app version in **Settings → About** and status in **Today**.
 In the schedule step, review all seven days and select either weekly lockouts
 or remote controls only to continue.
 The permissions step requires Accessibility access. Open **System Settings →
-Privacy & Security → Accessibility**, enable Curfew, and return to Getting
-Started. Notifications are optional.
+Privacy & Security → Device Control and Data Access**, or **Accessibility** on
+macOS versions that use that name. Enable **Curfew.app**. Curfew Dev is a separate build. macOS may ask for Touch ID or an administrator password. Return to
+Curfew and check that shortcut blocking is available. Notifications are optional.
 
 Resume setup through **Settings → Protection → Continue Setup…**.
 Use **General** in earlier versions.
@@ -19,9 +20,13 @@ Read the final schedule summary before enabling.
 
 ## Lockout or keyboard blocking is not working
 
-Open **Settings → Protection**. Use the repair action
-for missing Accessibility access. If the helper is unavailable, check
-**Settings → Protection → Background protection** and its error.
+Open **Settings → Protection**. Use the repair action for missing Accessibility
+access. If **Background recovery** needs approval, open **System Settings →
+General → Login Items & Extensions** and allow Curfew. macOS may ask for Touch ID
+or an administrator password to allow background activity for all users.
+Check that background recovery is enabled. If **Background protection** is not
+connected, use its connection action and complete the macOS approval. Read any
+error shown before trying again.
 
 If enforcement remains degraded after updating, send support the status text
 and app version.
