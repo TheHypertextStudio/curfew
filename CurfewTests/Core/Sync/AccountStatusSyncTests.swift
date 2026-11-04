@@ -5,6 +5,18 @@ import XCTest
 
 @MainActor
 final class AccountStatusSyncTests: XCTestCase {
+    func testCoordinatorPollDoesNotConfirmEncryptedSettingsSync() {
+        let transport = RecordingAccountSyncTransport()
+        let engine = AccountSyncEngine(transport: transport)
+        let enrollment = AccountDeviceEnrollment(deviceID: UUID(), keyEpoch: 1, enrolledAt: Date())
+        let polledAt = Date(timeIntervalSince1970: 1_800_000_000)
+
+        engine.start(enrollment: enrollment)
+        transport.sendSuccessfulPoll(at: polledAt)
+
+        XCTAssertNotEqual(engine.syncStatus, .synchronized(polledAt))
+    }
+
     func testRenewedCredentialsDoNotResumeMaintenancePausedConnection() async {
         let transport = RecordingAccountSyncTransport()
         let engine = AccountSyncEngine(transport: transport)
