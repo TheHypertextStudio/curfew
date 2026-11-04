@@ -8,6 +8,24 @@ import XCTest
 final class NativeAccountSyncTransportTests: XCTestCase {
     var fixtureConfigurations: [URLSessionConfiguration] = []
 
+    func testAccountPollReadsEncryptedSettingsRecords() async throws {
+        let fixture = try makeFixture(accessToken: "resource-bound-access-token")
+        let events = NativeTransportEventRecorder()
+        NativeTransportURLProtocol.handler = { request in
+            if request.httpMethod == "GET", request.url?.path == "/sync/records" {
+                events.append("settings")
+                return (200, Data("[]".utf8))
+            }
+            return try Self.pollingResponse(for: request)
+        }
+        defer { NativeTransportURLProtocol.handler = nil }
+        let transport = makeTransport(secrets: fixture.secrets)
+
+        await transport.pollOnce(deviceID: fixture.deviceID)
+
+        XCTAssertTrue(events.values.contains("settings"))
+    }
+
     func testUnchangedInFlightHeartbeatKeepsEligibleStatusVersion() throws {
         let fixture = try makeFixture(accessToken: "resource-bound-access-token")
         let root = temporaryDirectory()
