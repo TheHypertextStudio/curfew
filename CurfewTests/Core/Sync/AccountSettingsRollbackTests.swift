@@ -13,12 +13,12 @@ extension NativeAccountSyncTransportTests {
         let recordID = try XCTUnwrap(UUID(uuidString: "018f4f45-cafe-7f00-9a82-e47805fb4d36"))
         let crypto = AccountRecordCrypto()
         let newer = try crypto.seal(
-            ["fixture": "newer"], namespace: .accountSettings, recordID: recordID,
+            ScheduleFixture(lockTime: "22:00"), namespace: .accountSettings, recordID: recordID,
             version: 2, writerCounter: 2, writerDeviceID: fixture.deviceID, keyEpoch: 1,
             updatedAt: Date(timeIntervalSince1970: 1_800_000_000), keys: keys
         )
         let older = try crypto.seal(
-            ["fixture": "older"], namespace: .accountSettings, recordID: recordID,
+            ScheduleFixture(lockTime: "23:00"), namespace: .accountSettings, recordID: recordID,
             version: 1, writerCounter: 1, writerDeviceID: fixture.deviceID, keyEpoch: 1,
             updatedAt: Date(timeIntervalSince1970: 1_799_999_999), keys: keys
         )
@@ -56,5 +56,24 @@ extension NativeAccountSyncTransportTests {
 
     private func generatedKey(_ key: AccountPublicKeyJWK) -> CurfewProtocols.AccountPublicKeyJWK {
         CurfewProtocols.AccountPublicKeyJWK(crv: .p256, kty: .ec, x: key.x, y: key.y)
+    }
+}
+
+private struct ScheduleFixture: Encodable {
+    private struct Day: Encodable {
+        let isDayOff = false
+        let lockTime: String
+        let mode = "time"
+        let unlockTime = "05:00"
+    }
+
+    private let schemaVersion = 1
+    private let days: [String: Day]
+
+    init(lockTime: String) {
+        let day = Day(lockTime: lockTime)
+        self.days = Dictionary(uniqueKeysWithValues: [
+            "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"
+        ].map { ($0, day) })
     }
 }

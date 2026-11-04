@@ -60,22 +60,33 @@ final class AccountEncryptedRecordFractionalTests: XCTestCase {
 
     func testSharedVectorDecryptsWithExactZeroFraction() throws {
         let ciphertext =
-            "o1bmF3GMXado1OovG5rM-DVgENlQ3gxf5KnONv3_9xmQs2xRbDUvf1ZF_wOKBv19VGGhZnaXeiezfU6LuyR0tD1qKhdl-vfS" +
-            "P002O6VabKu5Q61XX0sn4lUl-qT1xDkMuaDkOKuzolkE2hPZ6CiXeGOZJKT69c3_McZdrDnpIsF2uj0fSmPSoyT2-rcutb4x" +
-            "m8wQefQmsQ3doXJy8hgeFAxIbpqZHoXHZDFouo25gWI8Y0X95D3qgBOrMLUIV2Xzc1jkhdhCnYitrWFpcAKHs4PTgtJOYAaQ" +
-            "S3dBgfz8hPZwc5BoZg1TiZKUXWlLUYR31AVnHWqm_DzNb21wLQjqaxjbBrtBv80N5DyF1iJu55nLjOJCrFMf9JRPTNMenk1o" +
-            "pm6ARxu2N6vlUkUdUJcMbS2emWHGCd-b-T93zDc07JUmIhFIeXbesBNwtk7bXgRfQLoK8_CfHjwKJJYsX-M_-EI1ilHec6Ne" +
-            "ewJX1QZo6gMMKUvA39cUn8Pclgr43E_38gZ5h1yB1gwN_pmciEq3C04S8bR-_8xjYOMS9ZfnkT5kKOUxeG7WnY_mPM1LaoDq" +
-            "aa_9RvrBKYHpb1Km7ATcsJMnK3HpeyK2USbzNhhcbU8klldZLNE9-Jp20PNz6I7CgyM3fGhLsOy4cFui2BYms8X4gWpGWgMC" +
-            "dPMpHhs45U_YDOYsTF2O_iI75DwOMArwrm5yNa-MC4LVd1wfPQlrKOnfZE44AWu5rNuf7ngWTdv7xHlpOoMyRaj6QcpkLcZs" +
-            "H_W3ToFE1b2_AOjTi0kd5lK7xsxNvLlyf-_j8GqvTfdEBw-M5f2E9UcnSXs_bK_Ps6wAfJNJkFfosFqtXM4kJnm3XLM7b9BU" +
-            "wMQlQTPRyrtEGhy92_jxL4KNHVp5riPMKINgIenGiOLqApe2i86sBv3DgoSBgjoBFS18cACQJCjiNbTGES48ItY0QaRaMA"
+            "o1bmF3GMXado1OovG5rM-DVgENlQ3gxf5KnONv3_9xmQs2xRbDUvf1ZF_wOKBv19VGGhZn" +
+            "aXeiezfU6LuyR0tD1qKhdl-vfS" +
+            "P002O6VabKu5Q61XX0sn4lUl-qT1xDkMuaDkOKuzolkE2hPZ6CiXeGOZJKT69c3_McZdrD" +
+            "npIsF2uj0fSmPSoyT2-rcutb4x" +
+            "m8wQefQmsQ3doXJy8hgeFAxIbpqZHoXHZDFouo25gWI8Y0X95D3qgBOrMLUIV2Xzc1jkhd" +
+            "hCnYitrWFpcAKHs4PTgtJOYAaQ" +
+            "S3dBgfz8hPZwc5BoZg1TiZKUXWlLUYR31AVnHWqm_DzNb21wLQjqaxjbBrtBv80N5DyF1i" +
+            "Ju55nLjOJCrFMf9JRPTNMenk1o" +
+            "pm6ARxu2N6vlUkUdUJcMbS2emWHGCd-b-T93zDc07JUmIhFIeXbesBNwtk7bXgRfQLoK8_" +
+            "CfHjwKJJYsX-M_-EI1ilHec6Ne" +
+            "ewJX1QZo6gMMKUvA39cUn8Pclgr43E_38gZ5h1yB1gwN_pmciEq3C04S8bR-_8xjYOMS9Z" +
+            "fnkT5kKOUxeG7WnY_mPM1LaoDq" +
+            "aa_9RvrBKYHpb1Km7ATcsJMnK3HpeyK2USbzNhhcbU8klldZLNE9-Jp20PNz6I7CgyM3fG" +
+            "hLsOy4cFui2BYms8X4gWpGWgMC" +
+            "dPMpHhs45U_YDOYsTF2O_iI75DwOMArwrm5yNa-MC4LVd1wfPQlrKOnfZE44AWu5rNuf7n" +
+            "gWTdv7xHlpOoMyRaj6QcpkLcZs" +
+            "H_W3ToFE1b2_AOjTi0kd5lK7xsxNvLlyf-_j8GqvTfdEBw-M5f2E9UcnSXs_bK_Ps6wAfJ" +
+            "NJkFfosFqtXM4kJnm3XLM7b9BU" +
+            "wMQlQTPRyrtEGhy92_jxL4KNHVp5riPMKINgIenGiOLqApe2i86sBv3DgoSBgjoBFS18cA" +
+            "CQJCjiNbTGES48ItY0QaRaMA"
         let wire = CurfewProtocols.EncryptedRecord(
             aadDigest: "T1l_CkVGoYWg_wRfCABoxIApqridBZMH27kxSdj1puo", cipherSuite: .aes256Gcm,
             ciphertext: ciphertext, keyEpoch: 1, namespace: .accountSettings,
             nonce: "oKGio6Slpqeoqaqr",
             recordID: "018f4f45-4d34-7d98-a6c5-4de1bd63a21c",
-            signature: "HyHYoc-ta97BlmOlksJreh1LLlbIpElJaKGDK2oa9FFpzeWcv7nkbiRxSuvpOseMkuceWZF2weFj7ir8Qwr4kw",
+            signature: "HyHYoc-ta97BlmOlksJreh1LLlbIpElJaKGDK2oa9FFpzeWcv7nkbiRxSuvpOseMkuceWZ" +
+                "F2weFj7ir8Qwr4kw",
             signatureAlgorithm: .es256P1363Sha256,
             updatedAt: "2026-08-10T14:00:00.000Z", version: 1, writerCounter: 1,
             writerDeviceID: "018f4f45-a055-7502-8b0c-7276bfe16c8f"

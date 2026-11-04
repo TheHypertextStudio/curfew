@@ -294,7 +294,7 @@ struct AccountEncryptedRecord: Codable, Equatable, Sendable {
     let signatureAlgorithm: String
     let signature: String
     let updatedAt: Date
-    var signedUpdatedAt: String? = nil
+    var signedUpdatedAt: String?
 
     private enum CodingKeys: String, CodingKey {
         case namespace, version, writerCounter, keyEpoch, cipherSuite, nonce
