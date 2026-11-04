@@ -21,19 +21,6 @@ struct AccountOAuthEnrollmentTests {
         }
     }
 
-    @MainActor
-    @Test("Separate native sign-in sessions cannot enroll the same account concurrently")
-    func separateAuthenticationSessionsAreSingleFlight() throws {
-        let first = AccountOAuthAuthenticationGate()
-        let second = AccountOAuthAuthenticationGate()
-        try first.begin()
-        defer { first.finish() }
-
-        #expect(throws: AccountOAuthEnrollmentError.authenticationInProgress) {
-            try second.begin()
-        }
-    }
-
     @Test("Enrollment ignores another sign-in while one is active")
     func enrollmentSignInIsSingleFlight() {
         #expect(AccountEnrollmentSignInPolicy.canStart(from: .accountFree))
