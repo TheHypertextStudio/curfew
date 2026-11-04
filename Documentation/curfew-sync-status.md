@@ -35,6 +35,8 @@ confirm that the app decrypted or applied a record.
 The reader preserves the timestamp text from the signed record for signature
 and authenticated-data verification. It does not round a fractional timestamp
 before checking either value.
+An identical schedule request keeps its existing cooldown deadline. A repeated
+poll must not restart the waiting period for a change already queued locally.
 
 | Concern                          | Implementation                                                  |
 | -------------------------------- | --------------------------------------------------------------- |

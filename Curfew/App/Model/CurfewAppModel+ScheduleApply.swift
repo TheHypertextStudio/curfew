@@ -24,6 +24,10 @@ extension CurfewAppModel {
             refreshAfterScheduleEdit()
             return
         }
+        if settings.schedule != proposedSchedule,
+           settings.pendingScheduleChange?.proposedSchedule == proposedSchedule {
+            return
+        }
         let classification = policyEngine.classifyChange(
             from: settings.schedule,
             to: proposedSchedule
