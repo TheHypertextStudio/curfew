@@ -7,6 +7,17 @@ import XCTest
 @MainActor
 final class AccountCheckpointIdentityTests: XCTestCase {
     private let deviceID = UUID(uuidString: "018f4f45-cafe-7f00-9a82-e47805fb4d35")!
+
+    func testClearingEnrollmentAlsoClearsPendingHeadlessActivation() throws {
+        let secrets = EnrollmentRecoveryMemorySecretStore()
+        try secrets.save(Data("pending".utf8), for: "headless-account-activation")
+        let pending = AccountEnrollmentPendingStore(secretStore: secrets)
+
+        try pending.clear()
+
+        XCTAssertNil(try secrets.data(for: "headless-account-activation"))
+    }
+
     private let createdAt = Date(timeIntervalSince1970: 1_800_000_000)
 
     func testPendingRegistrationKeepsTheOriginalAccountForSafeReauthorization() throws {
