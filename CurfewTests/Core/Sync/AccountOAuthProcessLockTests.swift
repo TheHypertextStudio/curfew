@@ -82,4 +82,17 @@ final class AccountOAuthProcessLockTests: XCTestCase {
         XCTAssertThrowsError(try gate.begin())
         gate.finish()
     }
+
+    func testLockRefusesWorldWritableDirectory() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        try FileManager.default.setAttributes([.posixPermissions: 0o777], ofItemAtPath: root.path)
+        setenv("CURFEW_TEST_OAUTH_LOCK_PATH", root.appendingPathComponent("oauth.lock").path, 1)
+        defer { unsetenv("CURFEW_TEST_OAUTH_LOCK_PATH") }
+        let gate = AccountOAuthAuthenticationGate()
+
+        XCTAssertThrowsError(try gate.begin())
+        gate.finish()
+    }
 }
