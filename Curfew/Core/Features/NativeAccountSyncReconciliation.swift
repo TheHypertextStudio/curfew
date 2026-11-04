@@ -177,7 +177,32 @@ extension NativeAccountSyncTransport {
             accessToken: credentials.accessToken,
             signingPrivateKey: credentials.keys.signingPrivateKey
         ), isCurrentConnection(generation) else { throw NativeAccountSyncError.invalidResponse }
-        _ = try JSONDecoder().decode([CurfewProtocols.EncryptedRecord].self, from: data)
+        let records = try JSONDecoder().decode([CurfewProtocols.EncryptedRecord].self, from: data)
+            .filter { $0.namespace == .accountSettings }
+        guard !records.isEmpty else { return }
+        guard let peerData = try await authorizedHTTP.get(
+            path: "/sync/devices",
+            deviceID: deviceID,
+            accessToken: credentials.accessToken,
+            signingPrivateKey: credentials.keys.signingPrivateKey
+        ), isCurrentConnection(generation) else { throw NativeAccountSyncError.invalidResponse }
+        let peers = try JSONDecoder().decode(
+            [CurfewProtocols.AccountDeviceEnrollment].self,
+            from: peerData
+        )
+        for record in records {
+            guard let writer = peers.first(where: {
+                $0.deviceID == record.writerDeviceID && $0.keyEpoch == record.keyEpoch
+            }) else { throw NativeAccountSyncError.invalidResponse }
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+            let decoded = try decoder.decode(AccountEncryptedRecord.self, from: record.jsonData())
+            let publicKey = AccountPublicKeyJWK(
+                xCoordinate: writer.signingPublicKeyJwk.x,
+                yCoordinate: writer.signingPublicKeyJwk.y
+            )
+            try AccountRecordCrypto().verifySignature(decoded, signingPublicKey: publicKey)
+        }
     }
 
     private func reconcilePendingResults(deviceID: UUID, generation: Int) async throws {

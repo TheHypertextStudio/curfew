@@ -19,6 +19,11 @@ struct AccountPublicKeyJWK: Codable, Equatable, Sendable {
     private enum CodingKeys: String, CodingKey { case kty, crv, x, y }
     // swiftlint:enable identifier_name
 
+    init(xCoordinate: String, yCoordinate: String) {
+        self.x = xCoordinate
+        self.y = yCoordinate
+    }
+
     init(publicKey: P256.Signing.PublicKey) {
         let point = publicKey.x963Representation
         self.x = Self.base64URL(point[1 ..< 33])
@@ -334,6 +339,22 @@ struct AccountEncryptedRecord: Codable, Equatable, Sendable {
 }
 
 struct AccountRecordCrypto {
+    func verifySignature(
+        _ record: AccountEncryptedRecord,
+        signingPublicKey: AccountPublicKeyJWK
+    ) throws {
+        guard record.cipherSuite == "AES-256-GCM",
+              record.signatureAlgorithm == "ES256-P1363-SHA256",
+              let publicKey = signingPublicKey.signingPublicKey,
+              let signatureData = AccountPublicKeyJWK.decodeBase64URL(record.signature),
+              signatureData.count == 64
+        else { throw AccountEncryptionError.invalidKeyMaterial }
+        let signature = try P256.Signing.ECDSASignature(rawRepresentation: signatureData)
+        guard try publicKey.isValidSignature(signature, for: signatureInput(record)) else {
+            throw AccountEncryptionError.authenticationFailed
+        }
+    }
+
     // These fields form the signed record header. Keeping them explicit at the
     // call site prevents a caller from signing a header it did not construct.
     // swiftlint:disable:next function_parameter_count function_body_length

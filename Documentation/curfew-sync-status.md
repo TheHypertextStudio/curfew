@@ -28,6 +28,10 @@ not treat the account connection indicator as settings-sync evidence.
 The record encoder uses the published field names, UTC timestamps, and low-S
 P-256 signatures. `AccountEncryptedRecordWireTests` covers this wire contract.
 An encoder fix alone does not start record exchange or establish device sync.
+Before accepting an account settings record, the reader checks the enrolled
+writer's public key and verifies the record signature. An unknown or revoked
+writer cannot supply settings. An authenticated poll alone still does not
+confirm that the app decrypted or applied a record.
 
 | Concern                          | Implementation                                                  |
 | -------------------------------- | --------------------------------------------------------------- |
