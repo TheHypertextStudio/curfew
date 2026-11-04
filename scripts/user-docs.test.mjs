@@ -219,3 +219,22 @@ test("CLI beta status is explicit in public and internal guidance", async () => 
     assert.match(await read(path), /CLI[^\n]*[Bb]eta|[Bb]eta[^\n]*CLI|curfew-ctl[^\n]*[Bb]eta/, `${path} must label the CLI beta`);
   }
 });
+
+test("setup help explains macOS permission prompts and verifies protection", async () => {
+  const install = await read("web/docs/install.mdx");
+  const troubleshooting = await read("web/docs/troubleshooting.mdx");
+  const privacy = await read("web/docs/privacy.mdx");
+  for (const content of [install, troubleshooting, privacy]) {
+    const prose = content.replace(/\s+/g, " ");
+    assert.match(prose, /Device Control and Data Access/);
+    assert.match(prose, /Touch ID or an administrator password/);
+    assert.match(prose, /Background recovery/);
+    assert.match(prose, /Background protection/);
+  }
+});
+
+test("account help distinguishes the encryption recovery key from sign-in codes", async () => {
+  const content = (await read("web/docs/accounts.mdx")).replace(/\s+/g, " ");
+  assert.match(content, /Recovery Key/);
+  assert.match(content, /recovery codes cannot restore encrypted/);
+});
