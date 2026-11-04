@@ -331,7 +331,8 @@ test('CLI install and upgrade use the public Homebrew tap and retain beta schedu
 test('setup help explains macOS permission prompts and verifies protection', async () => {
   const install = await read('web/docs/install.mdx');
   const troubleshooting = await read('web/docs/troubleshooting.mdx');
-  for (const content of [install, troubleshooting]) {
+  const privacy = await read('web/docs/privacy.mdx');
+  for (const content of [install, troubleshooting, privacy]) {
     const prose = content.replace(/\s+/g, ' ');
     assert.match(prose, /Device Control and Data Access/);
     assert.match(prose, /Touch ID or an administrator password/);
