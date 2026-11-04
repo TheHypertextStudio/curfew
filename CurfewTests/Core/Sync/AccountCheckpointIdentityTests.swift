@@ -20,6 +20,39 @@ final class AccountCheckpointIdentityTests: XCTestCase {
 
     private let createdAt = Date(timeIntervalSince1970: 1_800_000_000)
 
+    func testReadyEnrollmentDiscardsActivationForAnotherIdentity() throws {
+        let secrets = EnrollmentRecoveryMemorySecretStore()
+        let pending = AccountEnrollmentPendingStore(secretStore: secrets)
+        let other = CurfewKit.AccountDeviceEnrollment(
+            deviceID: UUID(), keyEpoch: 1, enrolledAt: createdAt
+        )
+        let ready = CurfewKit.AccountDeviceEnrollment(
+            deviceID: deviceID, keyEpoch: 1, enrolledAt: createdAt
+        )
+        try secrets.save(JSONEncoder().encode(other), for: "headless-account-activation")
+
+        try pending.markReady(ready)
+
+        XCTAssertEqual(try pending.load(), .ready(ready))
+        XCTAssertNil(try secrets.data(for: "headless-account-activation"))
+    }
+
+    func testInterruptedActivationIsRetainedUntilEnrollmentIsCleared() throws {
+        let secrets = EnrollmentRecoveryMemorySecretStore()
+        let pending = AccountEnrollmentPendingStore(secretStore: secrets)
+        let ready = CurfewKit.AccountDeviceEnrollment(
+            deviceID: deviceID, keyEpoch: 1, enrolledAt: createdAt
+        )
+        try pending.markReady(ready)
+        try secrets.save(JSONEncoder().encode(ready), for: "headless-account-activation")
+
+        let relaunched = AccountEnrollmentPendingStore(secretStore: secrets)
+        XCTAssertEqual(try relaunched.load(), .ready(ready))
+        XCTAssertNotNil(try secrets.data(for: "headless-account-activation"))
+        try relaunched.clear()
+        XCTAssertNil(try secrets.data(for: "headless-account-activation"))
+    }
+
     func testPendingRegistrationKeepsTheOriginalAccountForSafeReauthorization() throws {
         let checkpoint = AccountRecoverySetupCheckpoint(
             enrollment: CurfewKit.AccountDeviceEnrollment(
