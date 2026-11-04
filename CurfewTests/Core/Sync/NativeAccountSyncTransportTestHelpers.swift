@@ -87,6 +87,8 @@ extension NativeAccountSyncTransportTests {
                 return Self.challengeResponse()
             case ("GET", "/sync/devices"):
                 return (200, Data("[]".utf8))
+            case ("GET", "/sync/records"):
+                return (200, Data("[]".utf8))
             case ("GET", "/sync/wake/status"),
                  ("GET", "/sync/remote-overrides/active"):
                 return (404, Data())
@@ -178,6 +180,8 @@ extension NativeAccountSyncTransportTests {
         case ("POST", "/sync/device-proof/challenge"):
             return challengeResponse()
         case ("GET", "/sync/devices"):
+            return (200, Data("[]".utf8))
+        case ("GET", "/sync/records"):
             return (200, Data("[]".utf8))
         case ("GET", "/sync/wake/status"),
              ("GET", "/sync/remote-overrides/active"):

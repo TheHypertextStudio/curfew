@@ -35,7 +35,8 @@ extension NativeAccountSyncTransport {
             .results,
             .peers,
             .wake,
-            .commands
+            .commands,
+            .settings
         ] {
             guard isCurrentConnection(generation) else { return }
             await pollWithRefresh(
@@ -142,13 +143,11 @@ extension NativeAccountSyncTransport {
         if channel == .results, try resultExchangeStore.pendingResults().isEmpty {
             return
         }
-        if channel == .overrides {
+        switch channel {
+        case .overrides:
             let remoteOverride = try await fetchRemoteOverride(deviceID: deviceID)
             guard isCurrentConnection(generation) else { return }
             onRemoteOverride?(remoteOverride)
-            return
-        }
-        switch channel {
         case .results:
             try await reconcilePendingResults(deviceID: deviceID, generation: generation)
         case .peers:
@@ -165,8 +164,20 @@ extension NativeAccountSyncTransport {
             try await reconcileStateRead(channel, deviceID: deviceID, generation: generation)
         case .wake:
             try await reconcileStateRead(channel, deviceID: deviceID, generation: generation)
-        case .overrides: break
+        case .settings:
+            try await readSettingsRecords(deviceID: deviceID, generation: generation)
         }
+    }
+
+    private func readSettingsRecords(deviceID: UUID, generation: Int) async throws {
+        let credentials = try currentCredentials(deviceID: deviceID)
+        guard let data = try await authorizedHTTP.get(
+            path: "/sync/records",
+            deviceID: deviceID,
+            accessToken: credentials.accessToken,
+            signingPrivateKey: credentials.keys.signingPrivateKey
+        ), isCurrentConnection(generation) else { throw NativeAccountSyncError.invalidResponse }
+        _ = try JSONDecoder().decode([CurfewProtocols.EncryptedRecord].self, from: data)
     }
 
     private func reconcilePendingResults(deviceID: UUID, generation: Int) async throws {

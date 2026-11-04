@@ -2,7 +2,7 @@
 /// never authority or acknowledgements of HTTP reconciliation.
 public struct AccountSyncReconciliationSchedule {
     public enum Channel: CaseIterable, Hashable, Sendable {
-        case commands, overrides, wake, peers, results
+        case commands, overrides, wake, peers, results, settings
     }
 
     private struct State {
@@ -89,7 +89,7 @@ public struct AccountSyncReconciliationSchedule {
             return intervalOverride
         }
         switch channel {
-        case .commands: return .seconds(60)
+        case .commands, .settings: return .seconds(60)
         case .results: return .seconds(15)
         case .overrides, .wake, .peers: return .seconds(300)
         }

@@ -21,6 +21,7 @@ enum AccountHealthChannel: Hashable {
     case remoteCommands
     case peerDevices
     case commandResults
+    case encryptedSettings
 }
 
 struct NativeDeviceProofChallenge: Decodable {
@@ -71,7 +72,8 @@ final class NativeAccountSyncTransport: AccountSyncTransporting {
         .accountState,
         .remoteOverride,
         .remoteCommands,
-        .peerDevices
+        .peerDevices,
+        .encryptedSettings
     ]
     var connectionGeneration = 0
     private var deviceStatusGeneration = 0
@@ -193,7 +195,13 @@ extension NativeAccountSyncTransport {
         onFailure = nil
         healthyChannels.removeAll()
         distributedPeerEpochs.removeAll()
-        requiredChannels = [.accountState, .remoteOverride, .remoteCommands, .peerDevices]
+        requiredChannels = [
+            .accountState,
+            .remoteOverride,
+            .remoteCommands,
+            .peerDevices,
+            .encryptedSettings
+        ]
         deviceStatusGeneration += 1
     }
 
@@ -310,6 +318,7 @@ extension NativeAccountSyncTransport {
         case .wake: .accountState
         case .peers: .peerDevices
         case .results: .commandResults
+        case .settings: .encryptedSettings
         }
     }
 
