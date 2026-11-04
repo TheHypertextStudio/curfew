@@ -181,7 +181,7 @@ final class AccountStatusSyncTests: XCTestCase {
         XCTAssertEqual(received, result)
     }
 
-    func testSuccessfulAuthenticatedPollMarksTheAccountConnectionSynchronized() throws {
+    func testSuccessfulAuthenticatedPollStillWaitsForEncryptedSettings() throws {
         let deviceID = try XCTUnwrap(
             UUID(uuidString: "018f4f45-cafe-7f00-9a82-e47805fb4d35")
         )
@@ -198,7 +198,7 @@ final class AccountStatusSyncTests: XCTestCase {
 
         transport.sendSuccessfulPoll(at: confirmedAt)
 
-        XCTAssertEqual(engine.syncStatus, .synchronized(confirmedAt))
+        XCTAssertEqual(engine.syncStatus, .pendingEncryption)
     }
 
     func testReadOnlyPollDoesNotClaimPendingEncryptedChangesWereSaved() throws {

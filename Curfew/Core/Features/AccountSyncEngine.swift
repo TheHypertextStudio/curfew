@@ -177,7 +177,7 @@ final class AccountSyncEngine: ObservableObject {
 
     func markSynchronized(at date: Date) {
         guard isActive else { return }
-        syncStatus = hasPendingEncryptedChanges ? .pendingEncryption : .synchronized(date)
+        syncStatus = .pendingEncryption
         onSynchronizedReceived?(date)
     }
 
