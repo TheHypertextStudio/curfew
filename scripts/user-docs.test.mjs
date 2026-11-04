@@ -340,4 +340,9 @@ test('setup help explains macOS permission prompts and verifies protection', asy
     assert.match(prose, /Background protection/);
   }
 });
+
+test('account help distinguishes the encryption recovery key from sign-in codes', async () => {
+  const content = (await read('web/docs/accounts.mdx')).replace(/\s+/g, ' ');
+  assert.match(content, /Recovery Key/);
+  assert.match(content, /recovery codes cannot restore encrypted/);
 });
