@@ -93,7 +93,7 @@ final class AccountEncryptedRecordFractionalTests: XCTestCase {
         )
         let record = try AccountEncryptedRecord.fromWire(wire)
         let rootKey = try XCTUnwrap(decodeBase64URL("ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8"))
-        let publicKey = AccountPublicKeyJWK(
+        let publicKey = Curfew.AccountPublicKeyJWK(
             xCoordinate: "axfR8uEsQkf4vOblY6RA8ncDfYEt6zOg9KE5RdiYwpY",
             yCoordinate: "T-NC4v4af5uO5-tKfA-eFivOM1drMV7Oy7ZAaDe_UfU"
         )

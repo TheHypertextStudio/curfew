@@ -54,7 +54,9 @@ extension NativeAccountSyncTransportTests {
         XCTAssertTrue(failed, "A signed older record must not roll settings back")
     }
 
-    private func generatedKey(_ key: AccountPublicKeyJWK) -> CurfewProtocols.AccountPublicKeyJWK {
+    private func generatedKey(
+        _ key: Curfew.AccountPublicKeyJWK
+    ) -> CurfewProtocols.AccountPublicKeyJWK {
         CurfewProtocols.AccountPublicKeyJWK(crv: .p256, kty: .ec, x: key.x, y: key.y)
     }
 }

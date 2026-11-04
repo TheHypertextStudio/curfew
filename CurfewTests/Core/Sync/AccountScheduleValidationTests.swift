@@ -43,7 +43,9 @@ extension NativeAccountSyncTransportTests {
         XCTAssertTrue(failed, "Malformed encrypted schedules must fail closed")
     }
 
-    private func validationKey(_ key: AccountPublicKeyJWK) -> CurfewProtocols.AccountPublicKeyJWK {
+    private func validationKey(
+        _ key: Curfew.AccountPublicKeyJWK
+    ) -> CurfewProtocols.AccountPublicKeyJWK {
         CurfewProtocols.AccountPublicKeyJWK(crv: .p256, kty: .ec, x: key.x, y: key.y)
     }
 }
