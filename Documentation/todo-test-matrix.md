@@ -8,7 +8,8 @@ background recovery,
 and background protection. The November 3, 2026 MacBook walkthrough verified
 the macOS prompts and Curfew status after approval.
 `EnforcementHealthTests.accessibilityGuidanceNamesCurrentAndOlderSettings`
-checks the in-app repair message. These tests do not grant permissions or
+checks the in-app repair message. Account-help tests distinguish the encryption
+Recovery Key from sign-in recovery codes. These tests do not grant permissions or
 establish behavior on other macOS versions.
 
 ## Background recovery after clock corrections
