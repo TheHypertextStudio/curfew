@@ -97,13 +97,8 @@ final class AccountEnrollmentCompletionTests: XCTestCase {
         )
 
         await controller.signIn()
-        guard case .saveRecoveryKey = controller.state else {
-            return XCTFail("registration should display its Recovery Key")
-        }
-        _ = await controller.acknowledgeSavedRecoveryKey()
-
         guard case .enterRecoveryKey(let enrollment) = controller.state else {
-            return XCTFail("existing envelope should require the account's older key")
+            return XCTFail("an existing account must request its saved Recovery Key immediately")
         }
         let pending = AccountEnrollmentPendingStore(secretStore: secrets)
         XCTAssertEqual(try pending.load(), .enterRecoveryKey(enrollment))
@@ -134,6 +129,9 @@ final class AccountEnrollmentCompletionTests: XCTestCase {
             return EnrollmentCompletionURLProtocol.conflictingEnvelope
                 ? (409, Data()) : (200, Data())
         case ("GET", "/sync/e2ee/recovery-envelope"):
+            guard EnrollmentCompletionURLProtocol.conflictingEnvelope else {
+                return (404, Data())
+            }
             return try (200, RecoveryKeyEnvelope(
                 aead: .aes256Gcm,
                 ciphertext: "different-envelope",
