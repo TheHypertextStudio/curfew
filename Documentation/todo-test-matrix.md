@@ -2,11 +2,14 @@
 
 ## Setup permission guidance
 
-`scripts/user-docs.test.mjs` checks that setup, troubleshooting, and privacy help name Device
-Control and Data Access, administrator authentication, background recovery,
+`scripts/user-docs.test.mjs` checks that setup, troubleshooting, and privacy
+help name Device Control and Data Access, administrator authentication,
+background recovery,
 and background protection. The November 3, 2026 MacBook walkthrough verified
-the macOS prompts and Curfew status after approval. This test does not grant
-permissions or establish behavior on other macOS versions.
+the macOS prompts and Curfew status after approval.
+`EnforcementHealthTests.accessibilityGuidanceNamesCurrentAndOlderSettings`
+checks the in-app repair message. These tests do not grant permissions or
+establish behavior on other macOS versions.
 
 ## Background recovery after clock corrections
 
