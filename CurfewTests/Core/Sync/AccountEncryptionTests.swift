@@ -127,6 +127,30 @@ final class AccountEncryptionTests: XCTestCase {
         XCTAssertEqual(noncanonical, 0, "Every record must use a low-S signature")
     }
 
+    func testSettingsRecordEncodesAsTheSharedWireContract() throws {
+        let store = AccountDeviceKeyStore(secretStore: MemoryAccountSecretStore())
+        _ = try store.createEnrollment(deviceID: deviceID, keyEpoch: 1, createdAt: createdAt)
+        let keys = try XCTUnwrap(store.load(deviceID: deviceID))
+        let recordID = UUID()
+        let record = try AccountRecordCrypto().seal(
+            CurfewSettings.default,
+            namespace: .accountSettings,
+            recordID: recordID,
+            version: 1,
+            writerCounter: 1,
+            writerDeviceID: deviceID,
+            keyEpoch: 1,
+            updatedAt: createdAt,
+            keys: keys
+        )
+
+        let wire = try CurfewProtocols.EncryptedRecord(data: JSONEncoder().encode(record))
+
+        XCTAssertEqual(wire.recordID, recordID.uuidString.lowercased())
+        XCTAssertEqual(wire.writerDeviceID, deviceID.uuidString.lowercased())
+        XCTAssertEqual(wire.namespace, .accountSettings)
+    }
+
     func testRecoveryReplacesOnlyTheProvisionalRootKey() throws {
         let secrets = MemoryAccountSecretStore()
         let store = AccountDeviceKeyStore(secretStore: secrets)
