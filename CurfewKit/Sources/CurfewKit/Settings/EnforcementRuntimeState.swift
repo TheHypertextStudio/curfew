@@ -2,7 +2,7 @@ import Foundation
 
 /// Local grants and consumed budgets survive process loss independently of settings sync.
 public struct EnforcementRuntimeState: Codable, Equatable, Sendable {
-    public var version: Int = 1
+    public var version: Int = 2
     public var dayToken: String
     public var extensionMinutes: Int
     public var snoozeMinutes: Int
@@ -11,6 +11,9 @@ public struct EnforcementRuntimeState: Codable, Equatable, Sendable {
     public var extensionResetBoundary: Date?
     public var overrideResetBoundary: Date?
     public var overrideUntil: Date?
+    public var mcpGrantReceipts: [MCPGrantReceipt]?
+    public var mcpReceiptTrackingStartedAt: Date?
+    public var legacyMCPGrantRequestIDs: [UUID]?
 
     public init(
         dayToken: String,
@@ -20,7 +23,10 @@ public struct EnforcementRuntimeState: Codable, Equatable, Sendable {
         overrideUses: Int = 0,
         extensionResetBoundary: Date? = nil,
         overrideResetBoundary: Date? = nil,
-        overrideUntil: Date? = nil
+        overrideUntil: Date? = nil,
+        mcpGrantReceipts: [MCPGrantReceipt]? = nil,
+        mcpReceiptTrackingStartedAt: Date? = nil,
+        legacyMCPGrantRequestIDs: [UUID]? = nil
     ) {
         self.dayToken = dayToken
         self.extensionMinutes = extensionMinutes
@@ -30,5 +36,8 @@ public struct EnforcementRuntimeState: Codable, Equatable, Sendable {
         self.extensionResetBoundary = extensionResetBoundary
         self.overrideResetBoundary = overrideResetBoundary
         self.overrideUntil = overrideUntil
+        self.mcpGrantReceipts = mcpGrantReceipts
+        self.mcpReceiptTrackingStartedAt = mcpReceiptTrackingStartedAt
+        self.legacyMCPGrantRequestIDs = legacyMCPGrantRequestIDs
     }
 }

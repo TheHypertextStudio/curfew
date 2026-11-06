@@ -43,13 +43,13 @@ Morning intent and evening retrospective are available now. Midday check-ins and
 
 ## MCP setup
 
-`curfew-mcp` is a stdio MCP server bundled with Curfew. It lets AI assistants read your enforcement state and, with your approval, request extensions or overrides.
+`curfew-mcp` is a stdio MCP server bundled with Curfew. It lets AI assistants read your enforcement state and, with your approval, request extensions or time-based schedule changes.
 
 **Available tools:**
 
 | Tool                        | Type   | What it does                                                                |
 | --------------------------- | ------ | --------------------------------------------------------------------------- |
-| `curfew_status`             | read   | Current phase, time remaining, override state                               |
+| `curfew_status`             | read   | App-observed phase and time remaining                                       |
 | `curfew_schedule`           | read   | Full weekly schedule                                                        |
 | `curfew_budget`             | read   | Extensions and overrides remaining this week                                |
 | `curfew_activity`           | read   | Recent activity log entries                                                 |
@@ -91,8 +91,26 @@ Restart Claude Desktop. Run `curfew_status` to verify.
 
 The `curfew-ctl` CLI is in beta. Commands and output may change while we fix launch blockers. Check the app for authoritative enforcement and budget information.
 
+Install the released app and its bundled commands with Homebrew.
+
 ```bash
-# Current enforcement phase, time remaining, active override
+brew install --cask thehypertextstudio/tap/curfew
+curfew-ctl --help
+```
+
+Run this command to upgrade a Homebrew installation.
+
+```bash
+brew upgrade --cask thehypertextstudio/tap/curfew
+```
+
+The commands in the examples below ship in the next Curfew release. Use
+`curfew-ctl --help` to see which commands your installed version includes.
+
+The next Curfew release also provides **Settings → Integrations → Install command line tool** for direct-download installations. It installs the bundled command in `~/.local/bin` and configures PATH for zsh, bash, or fish. It preserves other commands and shell settings. Repeated installation keeps existing links and settings unchanged. Open a new Terminal after installation. A source checkout and Swift are unnecessary.
+
+```bash
+# Current app-observed enforcement phase and time remaining
 curfew-ctl status
 curfew-ctl status --json
 
@@ -106,8 +124,19 @@ curfew-ctl budget
 curfew-ctl activity
 curfew-ctl activity --days 7
 
-# Request an override (prompts for confirmation)
-curfew-ctl override --reason "shipping a fix, need 30 more minutes"
+# Overrides require confirmation in the app
+# Use "Need to get back in?" on the lockout screen.
+
+# Request an extension and inspect its approval result
+request_id=$(uuidgen)
+curfew-ctl extension --reason "Finish saving my work" --id "$request_id" --json
+curfew-ctl request status "$request_id" --json
+
+# Preview a schedule change (beta)
+curfew-ctl schedule set monday --lock 22:00 --dry-run
+
+# Read recent audit events
+curfew-ctl audit --days 7 --json
 
 # Tell Curfew a long-running job is in flight so shutdown waits for it
 curfew-ctl work claim --label "nightly build" --minutes 15
@@ -125,12 +154,6 @@ it for a bounded window. `break-glass` is the way out when the privileged daemon
 has already started a shutdown you cannot cancel from user space — read
 [`Documentation/protected-work.md`](Documentation/protected-work.md) before
 installing that daemon.
-
-`curfew-ctl` is bundled at `Curfew.app/Contents/Resources/curfew-ctl`. Add it to your `$PATH`:
-
-```bash
-ln -s /Applications/Curfew.app/Contents/Resources/curfew-ctl /usr/local/bin/curfew-ctl
-```
 
 ---
 
@@ -153,7 +176,7 @@ Pricing: **$20 flat**. License key is verified offline via Ed25519 — no accoun
 
 ---
 
-## Install & run
+## Build from source
 
 Requires **macOS 26+** and **Xcode 26+** (Swift 6). The first release is
 Tahoe-only; supporting earlier macOS versions is a deliberate future product
@@ -206,7 +229,7 @@ CurfewKit/           Local Swift package (its own subfolder, so opening the repo
   Sources/CurfewKit/   Pure domain logic, storage, settings, and MCP queue types —
                        schedule engine, budget tracker, warning stages, override
                        policy, activity store. No UI; fully unit-tested.
-  Sources/curfew-ctl/    ArgumentParser CLI — reads shared storage; enqueues overrides.
+  Sources/curfew-ctl/    ArgumentParser CLI — inspects state and queues approved extension requests.
   Sources/curfew-mcp/    MCP server (stdio transport, JSON-RPC 2.0).
   Sources/curfew-daemon/ Root-enforced shutdown when the app dies mid-lockout.
 

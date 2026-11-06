@@ -26,7 +26,7 @@ jobs:
           version: 11.9.0
       - uses: actions/setup-node@v7.1.0
         with:
-          node-version: "24"
+          node-version: '24'
       - name: Install issuer dependencies from the reviewed lock
         run: pnpm --dir web --filter @curfew/license-worker install --frozen-lockfile
       - name: Verify signed payment, activation, and recovery boundaries
@@ -40,7 +40,7 @@ jobs:
       - uses: actions/checkout@v7.0.1
       - uses: actions/setup-node@v7.1.0
         with:
-          node-version: "24"
+          node-version: '24'
       - name: Check user help and purchase recovery
         run: node --test scripts/user-docs.test.mjs
 
@@ -65,7 +65,7 @@ jobs:
 
       - name: Install tools
         run: |
-          brew install swiftlint just
+          brew install swiftlint just fish
           ./scripts/swiftformat.sh --version
 
       - name: Cache derived data
@@ -86,17 +86,23 @@ jobs:
       - name: Verify Homebrew stops recovery before removal
         run: HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_INSTALL_FROM_API=1 brew ruby Tests/Packaging/cask_uninstall_test.rb
 
+      - name: Verify Homebrew installs bundled commands repeatedly
+        run: HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_INSTALL_FROM_API=1 brew ruby Tests/Packaging/cask_cli_test.rb
+
       - name: Test shared package and executable contracts
-        run: swift test --package-path CurfewKit --jobs 2
+        run: swift test --package-path CurfewKit --jobs 2 -Xswiftc -j2 --no-parallel
+
+      - name: Verify isolated privileged recovery ownership
+        run: bash scripts/test-break-glass-ownership.sh
 
       - name: Check (format + lint + test + build)
         env:
-          CURFEW_XCODEBUILD_SETTINGS: "CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO -jobs 2 -parallel-testing-enabled NO"
+          CURFEW_XCODEBUILD_SETTINGS: 'CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO -jobs 2 -parallel-testing-enabled NO'
         run: just check
 
       - name: Compile Release
         env:
-          CURFEW_XCODEBUILD_SETTINGS: "CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO -jobs 2 -parallel-testing-enabled NO"
+          CURFEW_XCODEBUILD_SETTINGS: 'CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO -jobs 2 -parallel-testing-enabled NO'
         run: just build-release
 
       - name: Upload unit-test diagnostics
@@ -143,8 +149,8 @@ jobs:
           CONFIGURATION: Release
           ARCHS: arm64 x86_64
           CURFEW_DAEMON_PLIST_NAME: studio.hypertext.curfew.daemon.plist
-          CURFEW_SERVICE_SWIFT_FLAG: ""
-          CODE_SIGNING_ALLOWED: "NO"
+          CURFEW_SERVICE_SWIFT_FLAG: ''
+          CODE_SIGNING_ALLOWED: 'NO'
           BUILT_PRODUCTS_DIR: ${{ runner.temp }}/universal-tools
           CONTENTS_FOLDER_PATH: Curfew.app/Contents
         run: bash scripts/bundle-cli-tools.sh
@@ -232,7 +238,7 @@ jobs:
 
       - name: Capture demo screenshots
         env:
-          CURFEW_XCODEBUILD_SETTINGS: "CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO"
+          CURFEW_XCODEBUILD_SETTINGS: 'CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO'
         run: just capture
 
       - name: Upload screenshots

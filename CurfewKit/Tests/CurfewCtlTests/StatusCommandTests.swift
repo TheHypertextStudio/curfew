@@ -5,7 +5,7 @@ import Testing
 
 struct StatusCommandTests {
     @Test("Disarmed observed state cannot be printed as a scheduled lock")
-    func disarmedStatusIsUnknown() {
+    func disarmedStatusIsUnknown() throws {
         let now = Date(timeIntervalSince1970: 1_780_000_000)
         let observation = CurfewObservedStatus(
             evaluation: .locked(
@@ -17,11 +17,11 @@ struct StatusCommandTests {
             ownsLockout: false
         )
 
-        let payload = StatusCommand.jsonObject(from: observation)
+        let payload = try StatusCommand.jsonObject(from: observation)
 
         #expect(payload["phase"] as? String == "unknown")
         #expect(payload["lock_date"] == nil)
         #expect(payload["unlock_date"] == nil)
-        #expect(payload["minutes_remaining"] == nil)
+        #expect(payload["remaining_seconds"] == nil)
     }
 }

@@ -5,6 +5,7 @@ import SwiftUI
 extension SettingsView {
     var integrationsPanel: some View {
         Group {
+            commandLinePanel
             if CurfewFlavor.current != .development || model.isDemoSession {
                 DisclosureGroup(isExpanded: $showsBrowserIntegration) {
                     taskBrowserEnforcementPanel

@@ -4,30 +4,29 @@ description: Read your schedule, inspect recorded activity, or export reflection
 ---
 
 <Note>
-The `curfew-ctl` CLI is in beta. Commands and output may change. Check the app for current enforcement and budget information.
+  The `curfew-ctl` CLI is in beta. Commands and output may change. The updated CLI beta ships with
+  the next Curfew release. Run `curfew-ctl --help` to check the commands supported by your installed
+  build.
 </Note>
 
-Use the bundled `curfew-ctl` tool in Terminal.
+## Install the command
 
-## Run the bundled tool
-
-With Curfew in Applications, open Terminal and run:
+Homebrew installs Curfew and puts its bundled commands on PATH.
 
 ```bash
-"/Applications/Curfew.app/Contents/Resources/curfew-ctl" --help
+brew install --cask thehypertextstudio/tap/curfew
+curfew-ctl --help
 ```
 
-If Curfew is elsewhere, use that app's path.
+For a direct download, the next Curfew release provides **Settings → Integrations → Install command line tool**. Review the installation changes and choose **Install**. Open a new Terminal and run `curfew-ctl --help`.
 
-For shorter commands in the current Terminal session:
+The installer links the bundled command into `~/.local/bin` and adds that directory to PATH for zsh, bash, or fish when needed. Repeating installation preserves existing settings and creates no duplicate PATH entries. The command follows app updates at the same installation path. No source checkout or Swift installation is needed.
+
+Run this command to upgrade a Homebrew installation.
 
 ```bash
-alias curfew-ctl='/Applications/Curfew.app/Contents/Resources/curfew-ctl'
-curfew-ctl schedule
+brew upgrade --cask thehypertextstudio/tap/curfew
 ```
-
-The alias lasts for this shell session. Add it to your shell configuration to
-make it available in future sessions.
 
 ## Read information
 
@@ -35,7 +34,7 @@ make it available in future sessions.
 curfew-ctl status
 curfew-ctl schedule
 curfew-ctl budget
-curfew-ctl activity --help
+curfew-ctl activity --days 7
 curfew-ctl reflections --days 7
 ```
 
@@ -46,16 +45,20 @@ curfew-ctl schedule --json
 curfew-ctl reflections --days 7 --gate evening --json
 ```
 
-The schedule command shows the active rule, and its plain-text output identifies
-a pending change. Each time pair is **work ends → work resumes**. Reflection
+Every JSON result has `schema_version: 1` and a `status` such as `ok` or `error`.
+Collections appear under named fields, including `events`, `reflections`, and `claims`.
+Request decisions appear in `request_status`. A JSON error still has a nonzero exit status.
+Keep stderr separate when piping results into another program.
+
+The schedule command shows your saved rules and whether automatic scheduling
+is on. It includes pending changes in plain text and JSON. Each time pair is **work ends → work resumes**. Reflection
 output contains your answers; take care when saving it to files or
 sending it to another program.
 
 <Note>
-`status` uses the saved schedule, excluding temporary extensions and active
-overrides. Check **Today** and **Protection** in the app for current
-enforcement. CLI budgets use the calendar week's start; check the app for
-budgets with a custom reset day.
+  `status` reports the app's most recent enforcement observation. It reports unknown when that
+  observation is missing or stale. Budgets use Curfew's persisted grant counters and reset rules.
+  Missing or unreadable runtime state produces an error instead of a remaining budget.
 </Note>
 
 Read commands can work while the app is closed, but Curfew must have been
@@ -64,7 +67,7 @@ launched and set up for them to find your saved information.
 ## Export older reflections
 
 The Journal interface exports only the current calendar week. The CLI can
-save older entries still stored on this Mac. After setting the alias above:
+save older entries still stored on this Mac. Run this command after installing the CLI.
 
 ```bash
 curfew-ctl reflections --days 365 --json > "$HOME/Desktop/curfew-reflections.json"
@@ -75,11 +78,115 @@ the command replaces an existing file at that path. Open the file afterward
 and check that it contains the expected answers before uninstalling Curfew.
 The file contains private reflection content, so store and share it deliberately.
 
-## Requests that change access
+## Request an extension
 
-The legacy `override` command queues requests that Curfew rejects. Use
+Curfew processes these requests through its existing approval policy. Check the
+request status to see whether Curfew granted it. Complete setup and turn on **Allow assistants on this Mac** in
+**Settings → Integrations** first. Curfew must be running to process
+the request.
+
+```bash
+request_id=$(uuidgen)
+curfew-ctl extension --reason "Finish saving my work" --id "$request_id" --json
+curfew-ctl request status "$request_id" --json
+```
+
+Reuse the same `--id` when retrying the same request. Curfew keeps one request
+for that ID and rejects a retry with different content. Result lookup reports
+`pending`, `approved`, `denied`, or `not_found`. Add `--dry-run` to preview an
+extension request without submitting it.
+
+If the request queue fills up, run `curfew-ctl request prune` to preview cleanup
+of outcomes older than 30 days. Use `--all-resolved` to consider newer outcomes
+too. Add `--apply` and confirm to remove the selected records. For scripts,
+use `--apply --yes`. Pending requests and records Curfew needs for recovery
+stay in the queue. Save any outcomes you need before removing them.
+
+## Request a schedule change (beta)
+
+This example previews a change to a weekday with a time-based rule.
+
+```bash
+curfew-ctl schedule set monday --lock 22:00 --dry-run
+```
+
+Drop `--dry-run` to submit it through the same approval policy. Schedule changes
+follow Curfew's cooldowns. Use Curfew Settings to edit rules with hours limits.
+If Curfew crashes while applying a schedule request, check `curfew-ctl schedule show`
+and `curfew-ctl request status REQUEST_UUID` before submitting again.
+
+## Protect background work
+
+```bash
+curfew-ctl work claim --label "nightly build" --minutes 15 --json
+curfew-ctl work list --json
+curfew-ctl work claim --id CLAIM_UUID --label "nightly build" --minutes 15 --json
+curfew-ctl work release CLAIM_UUID --json
+```
+
+Keep the claim ID and renew its lease while the job runs. Release it when the
+job ends. A claim postpones destructive enforcement within the configured
+maximum deferral. It does not unlock the display or move the curfew.
+Claim and release commands also support `--dry-run`.
+
+## Read the audit log
+
+```bash
+curfew-ctl audit --days 7 --json
+curfew-ctl audit --since 2026-11-01T00:00:00Z --limit 10000 --json
+sudo curfew-ctl audit --stream daemon --days 7 --json
+```
+
+The command includes retained rotated segments. JSON output identifies whether
+`--limit` omitted older matching records. Use the original log segments to
+verify the audit hash chain. Audit exports can contain private details.
+
+## Request an override
+
+The legacy `override` command returns an error. Use
 **Need to get back in?** on the lockout screen for an
 [emergency override](/exceptions).
 
+## Stop an emergency shutdown
+
+Use `break-glass` when a pending shutdown would interrupt urgent work. It preserves
+the lockout and its scheduled end. It does not grant an override or unlock the display.
+
+```bash
+curfew-ctl break-glass --reason "Protect an urgent recovery operation" --dry-run
+sudo curfew-ctl break-glass --reason "Protect an urgent recovery operation"
+```
+
+The reason must contain at least 20 characters. Administrator access lets the command
+cancel a pending system shutdown. A normal account can save the release but cannot cancel
+that countdown. A cancellation failure returns an error even when the release was saved.
+
+The administrator command requires a signed-in user at the Mac. SSH works while that
+user's display is locked. With no signed-in console user, the command refuses to change
+recovery files. Repeating `curfew-ctl break-glass --revoke` safely removes the release;
+add `--dry-run` to preview removal.
+
 If Terminal reports “no such file,” check the installation path. If reflections
 or activity are empty, check the app under the same macOS user account.
+
+## Update scripts for schema 1
+
+The next CLI beta returns a JSON object with `schema_version: 1` and `status` on
+both success and failure. Collections remain under names such as `events`,
+`reflections`, and `claims`. Request decisions use `request_status`; the outer
+`status: "ok"` means the command completed, even when a request is still pending.
+Failures also return a nonzero exit code and print their error code to stderr.
+
+Duration values now use seconds. Update scripts that read these earlier beta
+fields:
+
+| Earlier field              | Schema 1 field             |
+| -------------------------- | -------------------------- |
+| `minutes_remaining`        | `remaining_seconds`        |
+| Activity `minutes`         | Activity `seconds`         |
+| Budget `duration_minutes`  | Budget `duration_seconds`  |
+| `maximum_deferral_minutes` | `maximum_deferral_seconds` |
+| `hours_limit_minutes`      | `hours_limit_seconds`      |
+
+Human commands still accept minutes. Your saved settings, activity, and audit
+records keep their existing formats.

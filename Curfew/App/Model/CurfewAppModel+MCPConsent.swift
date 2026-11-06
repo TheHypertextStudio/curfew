@@ -88,6 +88,15 @@ extension CurfewAppModel {
         decidedBy source: MCPConsentSource,
         reason: String
     ) {
+        guard !isResolvingMCPRequest else { return }
+        isResolvingMCPRequest = true
+        defer { isResolvingMCPRequest = false }
+        if recoverMCPGrantIfNeeded(request) {
+            return
+        }
+        if request.tool == .requestExtension, runtimePersistenceError != nil {
+            return
+        }
         recordAuditMCPDecision(
             approved ? source.approvalEvent : .mcpRequestDenied,
             request: request,
@@ -96,6 +105,10 @@ extension CurfewAppModel {
         )
 
         let applied = approved && applyMCPAction(request)
+        // A failed save may already have committed. Keep the queue pending until a reload decides.
+        if approved, request.tool == .requestExtension, runtimePersistenceError != nil {
+            return
+        }
         let outcomeReason = approved && !applied
             ? "Approved, but no longer eligible when applied." : reason
 
@@ -103,7 +116,9 @@ extension CurfewAppModel {
         updated.status = applied ? .approved : .denied
         updated.resolvedAt = Date()
         updated.denialReason = applied || outcomeReason.isEmpty ? nil : outcomeReason
-        writeMCPQueueUpdate(updated)
+        if writeMCPQueueUpdate(updated) {
+            acknowledgeMCPGrantReceipt(updated)
+        }
         pendingMCPRequests.removeAll { $0.id == request.id }
     }
 }

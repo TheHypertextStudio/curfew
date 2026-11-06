@@ -21,7 +21,7 @@ import Foundation
 struct BreakGlassCommand: ParsableCommand {
     static var configuration = CommandConfiguration(
         commandName: "break-glass",
-        abstract: "Emergency release: suspend application termination and shutdown for this lockout.",
+        abstract: "Emergency release: suspend app termination and shutdown for this lockout.",
         discussion: """
         Writes a signed release record that the Curfew app and the privileged \
         daemon both honor until the current lockout window ends. Run it under \
@@ -37,66 +37,131 @@ struct BreakGlassCommand: ParsableCommand {
         name: .shortAndLong,
         help: "Why you need an emergency release. At least \(BreakGlassStore.minimumReasonCharacters) characters."
     )
-    var reason: String
+    var reason: String?
 
-    @Flag(name: .long, help: "Print what would happen without writing anything.")
+    @Flag(
+        name: [.long, .customShort("n")],
+        help: "Print what would happen without writing anything."
+    )
     var dryRun: Bool = false
 
     @Flag(name: .long, help: "Remove an existing release instead of issuing one.")
     var revoke: Bool = false
 
-    func run() throws {
-        let store = BreakGlassStore()
+    @OptionGroup var options: CLIOptions
 
-        if revoke {
-            store.clear()
-            print("break-glass: release revoked. Enforcement resumes on the next daemon tick.")
-            return
+    func run() throws {
+        if !revoke {
+            _ = try validatedReason()
+        }
+        let isRoot = geteuid() == 0
+        let store: BreakGlassStore
+        let storage: BreakGlassUserStorage
+        if isRoot {
+            let user = try BreakGlassRecoveryUser.consoleUser()
+            if !dryRun {
+                try BreakGlassOwnershipRepair.repair(user: user, flavor: .current)
+            }
+            store = user.store()
+            storage = BreakGlassUserStorage(user: user, credentials: SystemBreakGlassCredentials())
+        } else {
+            store = BreakGlassStore()
+            storage = .currentUser
+        }
+        let result = try output(
+            store: store,
+            canceller: SystemShutdownCanceller(),
+            isRoot: isRoot,
+            now: Date(),
+            issuedBy: Self.issuerIdentity(),
+            storageAccess: storage
+        )
+        if options.json {
+            try CLIOutput.printJSON(["message": result, "dry_run": dryRun, "revoked": revoke])
+        } else {
+            try CLIText.print(result, title: "Emergency recovery", options: options)
+        }
+    }
+
+    func output(
+        store: BreakGlassStore,
+        canceller: any PendingShutdownCanceling,
+        isRoot: Bool,
+        now: Date,
+        issuedBy: String,
+        storageAccess: BreakGlassUserStorage = .currentUser
+    ) throws -> String {
+        var lines: [String] = []
+
+        if dryRun, revoke {
+            return "break-glass: would remove \(store.recordURL.path). Enforcement would resume on the next daemon tick."
         }
 
-        let trimmed = reason.trimmingCharacters(in: .whitespacesAndNewlines)
+        if revoke {
+            try storageAccess.perform { try store.revoke() }
+            return "break-glass: release revoked. Enforcement resumes on the next daemon tick."
+        }
+
+        let trimmed = try validatedReason()
+
+        if dryRun {
+            lines.append("break-glass: would write \(store.recordURL.path)")
+            lines.append("break-glass: reason — \(trimmed)")
+            lines.append(
+                "break-glass: would \(isRoot ? "cancel" : "NOT cancel") a pending /sbin/shutdown (running as \(isRoot ? "root" : "a normal user"))"
+            )
+            return lines.joined(separator: "\n")
+        }
+
+        let release = try storageAccess.perform {
+            try store.issue(reason: trimmed, issuedBy: issuedBy, now: now)
+        }
+        lines
+            .append(
+                "break-glass: release \(release.id.uuidString) written to \(store.recordURL.path)"
+            )
+
+        do {
+            lines += try shutdownCancellationLines(canceller: canceller, isRoot: isRoot)
+        } catch {
+            throw EmergencyShutdownCancellationFailure(message:
+                "Emergency release \(release.id.uuidString) was saved to \(store.recordURL.path). " +
+                    "Shutdown cancellation failed: \(error.localizedDescription) " +
+                    "A pending shutdown may still be running."
+            )
+        }
+
+        lines.append(
+            "break-glass: the display stays locked and the curfew still ends at its scheduled time."
+        )
+        return lines.joined(separator: "\n")
+    }
+
+    private func validatedReason() throws -> String {
+        let trimmed = (reason ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed.count >= BreakGlassStore.minimumReasonCharacters else {
             throw ValidationError(
                 "Reason must be at least \(BreakGlassStore.minimumReasonCharacters) characters; got \(trimmed.count)."
             )
         }
+        return trimmed
+    }
 
-        if dryRun {
-            print("break-glass: would write \(store.recordURL.path)")
-            print("break-glass: reason — \(trimmed)")
-            print(
-                "break-glass: would \(geteuid() == 0 ? "cancel" : "NOT cancel") a pending /sbin/shutdown (running as \(geteuid() == 0 ? "root" : "a normal user"))"
-            )
-            return
+    private func shutdownCancellationLines(
+        canceller: any PendingShutdownCanceling,
+        isRoot: Bool
+    ) throws -> [String] {
+        // Only root can signal shutdown. A user needs to know that their
+        // release cannot stop a countdown the daemon already started.
+        guard isRoot else {
+            return [
+                "break-glass: not running as root, so a pending /sbin/shutdown was NOT cancelled.",
+                "break-glass: run `sudo curfew-ctl break-glass --reason \"…\"` to stop it."
+            ]
         }
-
-        let release = try store.issue(
-            reason: trimmed,
-            issuedBy: Self.issuerIdentity(),
-            now: Date()
-        )
-        print("break-glass: release \(release.id.uuidString) written to \(store.recordURL.path)")
-
-        // Only root can signal the shutdown process. Say so plainly rather
-        // than failing quietly — a user who runs this without sudo during an
-        // active countdown needs to know the countdown is still running.
-        if geteuid() == 0 {
-            let cancelled = SystemShutdownCanceller().cancelPendingShutdown()
-            print(
-                cancelled
-                    ? "break-glass: cancelled a pending /sbin/shutdown."
-                    : "break-glass: no pending /sbin/shutdown to cancel."
-            )
-        } else {
-            print(
-                "break-glass: not running as root, so a pending /sbin/shutdown was NOT cancelled."
-            )
-            print("break-glass: re-run as `sudo curfew-ctl break-glass --reason \"…\"` to stop it.")
-        }
-
-        print(
-            "break-glass: the display stays locked and the curfew still ends at its scheduled time."
-        )
+        return try [canceller.cancelPendingShutdown()
+            ? "break-glass: cancelled a pending /sbin/shutdown."
+            : "break-glass: no pending /sbin/shutdown to cancel."]
     }
 
     /// `user@host`, recorded on the release for the audit trail.
@@ -105,5 +170,13 @@ struct BreakGlassCommand: ParsableCommand {
             ?? NSUserName()
         let host = ProcessInfo.processInfo.hostName
         return "\(user)@\(host)"
+    }
+}
+
+private struct EmergencyShutdownCancellationFailure: LocalizedError {
+    let message: String
+
+    var errorDescription: String? {
+        message
     }
 }

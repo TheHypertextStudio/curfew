@@ -362,6 +362,10 @@ extension MarketingCaptureTests {
                         "about": "Curfew Plus"
                     ]
                     assertText(titles[section] ?? section, in: app)
+                    if section == "integrations" {
+                        XCTAssertTrue(app.buttons["install-command-line-tool"].exists)
+                        assertText("Command line (beta)", in: app)
+                    }
                     if section == "account" {
                         assertText("Curfew Account", in: app)
                         XCTAssertTrue(window.staticTexts["Curfew Account"].exists)

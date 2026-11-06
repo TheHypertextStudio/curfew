@@ -11,6 +11,9 @@ struct SettingsView: View {
     @State var manualSetupExpanded = false
     @State var registrationStatus = ClaudeDesktopRegistration.currentStatus()
     @State var recoveryKeyExportMessage = ""
+    @State var showsCLIInstallation = false
+    @State var cliInstallationSummary = ""
+    @State var cliInstallationMessage = ""
     private let initialSection: SettingsSection?
 
     /// Retain navigation while the Settings window remains open.

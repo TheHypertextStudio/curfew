@@ -210,10 +210,10 @@ private final class SystemDaemonEffects: DaemonEnforcementEffects {
         writeDeferralStart(start)
     }
 
-    func cancelPendingShutdown() {
+    func cancelPendingShutdown() throws {
         // `/sbin/shutdown -h +1` cannot be called off from user space, which
         // is exactly why the daemon has to do it on the user's behalf.
-        canceller.cancelPendingShutdown()
+        try canceller.cancelPendingShutdown()
     }
 
     func issueShutdown() throws {
@@ -245,17 +245,9 @@ AuditLog.shared.emit(
     ]
 )
 
-// The daemon watches the same two sources the app does — declared claims and
-// the live machine — through the one type that combines them, so root's answer
-// and the user's answer cannot drift. Unlike the app there is no test host to
-// keep deterministic here, so liveness is on unconditionally: this process
-// exists to power the Mac off, and it is the path an unclaimed agent run has no
-// other defence against.
-private let protectedWorkStores = ProtectedWorkStores(live: .system)
-private let breakGlassStore = BreakGlassStore()
-private let remoteOverrideReleaseStore = BreakGlassStore(
-    recordURL: SharedPaths.remoteOverrideRelease
-)
+// File paths are resolved per tick so a daemon launched before login follows
+// the console user after login. The live machine observer remains enabled.
+private let protectionObserver = DaemonProtectionObserver()
 private let effects: any DaemonEnforcementEffects = CurfewFlavor.current == .development
     ? DevelopmentDaemonEffects(underlying: SystemDaemonEffects())
     : SystemDaemonEffects()
@@ -286,23 +278,57 @@ private func externalDeadline(
     }.deadline
 }
 
+private func logEnforcementEvent(
+    _ event: DaemonEnforcementRuntime.LogEvent,
+    breakGlassID: UUID?,
+    workSummary: String
+) {
+    switch event {
+    case .exiting:
+        daemonLogger.info("no lockout left to enforce; daemon exiting")
+    case .standingDown:
+        let id = breakGlassID?.uuidString ?? "unknown"
+        daemonLogger.notice("break-glass release \(id, privacy: .public) honored; standing down")
+    case .holding(let until):
+        // Name what is holding. "Protected work is live" alone sent whoever
+        // was debugging this at 02:00 looking for a claim file that, for an
+        // undeclared agent run, was never going to be there.
+        let because = workSummary.isEmpty ? "declared claim" : workSummary
+        daemonLogger.notice(
+            """
+            shutdown due but protected work is live (\(because, privacy: .public)); \
+            holding until \(until, privacy: .public)
+            """
+        )
+    case .issuedShutdown:
+        daemonLogger.notice("app heartbeat stale during lockout; issued shutdown")
+    case .shutdownFailed(let message):
+        daemonLogger.error("shutdown dispatch failed; will retry: \(message, privacy: .public)")
+    case .cancellationFailed(let message):
+        daemonLogger
+            .error("pending shutdown cancellation failed; will retry: \(message, privacy: .public)")
+    case .idle:
+        break
+    }
+}
+
 private func evaluatePolicy(
     status: PrivilegedDaemonStatus, now: Date, requiresAuthenticatedHeartbeat: Bool
 ) -> Bool {
     touchDaemonHeartbeat(now: now)
     let record = status.activeRecord
-    let breakGlass = record.flatMap { deadline in
-        breakGlassStore.activeRelease(now: now, issuedAfter: deadline.lockoutStartedAt)
-            ?? remoteOverrideReleaseStore.activeCoordinatorRelease(now: now)
-    }
     let authenticatedAge = status.lastHeartbeatAt.map { now.timeIntervalSince($0) } ?? .infinity
     let heartbeatAge = requiresAuthenticatedHeartbeat ? authenticatedAge : appHeartbeatAge(now: now)
     // Read the mirror once: the same policy has to decide both which processes
     // count as live work and how long the resulting hold may last.
     let protectedWorkPolicy = ProtectedWorkPolicy.loadMirror()
-    let liveWork = protectedWorkStores.live.observe(policy: protectedWorkPolicy)
-    let hasProtectedWork = protectedWorkStores.claims.hasActiveWork(now: now)
-        || liveWork.isActive
+    let protection = protectionObserver.observe(
+        now: now,
+        deadline: record,
+        policy: protectedWorkPolicy
+    )
+    let breakGlass = protection.breakGlass
+    let hasProtectedWork = protection.hasProtectedWork
 
     // The loop records what it *read*; `DaemonEnforcementRuntime` records what
     // was *done* about it. Keeping the two apart means no fact is written by a
@@ -339,28 +365,8 @@ private func evaluatePolicy(
         ownerIsLive: owner != nil
     )
 
-    switch runtime.apply(outcome, effects: effects, now: now) {
-    case .exiting:
-        daemonLogger.info("no lockout left to enforce; daemon exiting")
-    case .standingDown:
-        let id = breakGlass?.id.uuidString ?? "unknown"
-        daemonLogger.notice("break-glass release \(id, privacy: .public) honored; standing down")
-    case .holding(let until):
-        // Name what is holding. "Protected work is live" alone sent whoever
-        // was debugging this at 02:00 looking for a claim file that, for an
-        // undeclared agent run, was never going to be there.
-        let because = liveWork.summary.isEmpty ? "declared claim" : liveWork.summary
-        daemonLogger.notice(
-            """
-            shutdown due but protected work is live (\(because, privacy: .public)); \
-            holding until \(until, privacy: .public)
-            """
-        )
-    case .issuedShutdown:
-        daemonLogger.notice("app heartbeat stale during lockout; issued shutdown")
-    case .idle:
-        break
-    }
+    let event = runtime.apply(outcome, effects: effects, now: now)
+    logEnforcementEvent(event, breakGlassID: breakGlass?.id, workSummary: protection.liveSummary)
 
     // The authenticated listener stays alive for subsequent windows. All
     // cancellation and shadow cleanup has already passed through the policy.

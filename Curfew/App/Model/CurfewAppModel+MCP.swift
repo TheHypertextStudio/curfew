@@ -27,6 +27,9 @@ extension CurfewAppModel {
     func handleNewMCPRequests(_ requests: [MCPPendingRequest]) {
         guard !privilegedHelperManager.maintenancePaused else { return }
         for request in requests {
+            if recoverMCPGrantIfNeeded(request) {
+                continue
+            }
             recordAuditMCPRequestReceived(request)
             if request.tool == .requestOverride {
                 denyMCPRequestByPolicy(
@@ -62,23 +65,19 @@ extension CurfewAppModel {
         return MCPRequestSigner.verify(request) ? .autoApprove : .queue
     }
 
-    /// Persists an approve/deny decision to the queue file, logging (rather
-    /// than silently discarding) a write failure. The sheet still dequeues
-    /// the request either way: the action side-effect (e.g. an extension
-    /// grant) already happened by this point, so re-presenting the same
-    /// request would risk the user re-approving it and double-firing that
-    /// side-effect. A failed write instead leaves `curfew-mcp` waiting on a
-    /// stale `.pending` entry until its own timeout — worse than a stuck
-    /// sheet, but not silently invisible the way a bare `try?` was.
-    func writeMCPQueueUpdate(_ request: MCPPendingRequest) {
-        guard !isDemoSession else { return }
+    /// Confirms that a matching outcome reached disk. An extension's runtime receipt
+    /// survives a failed acknowledgement so recovery never grants the request again.
+    @discardableResult
+    func writeMCPQueueUpdate(_ request: MCPPendingRequest) -> Bool {
+        guard !isDemoSession else { return false }
         do {
-            try MCPRequestQueue.update(request)
+            return try mcpRequestQueueStore.acknowledge(request)
         } catch {
             let logger = Logger(subsystem: "studio.hypertext.curfew", category: "mcp-queue")
             logger.error(
                 "failed to persist MCP decision for \(request.id, privacy: .public): \(error.localizedDescription, privacy: .public)"
             )
+            return false
         }
     }
 
@@ -92,11 +91,13 @@ extension CurfewAppModel {
         case .requestExtension:
             // Grant an extension if the budget allows and we're in warning phase.
             guard state.canRequestExtension else { return false }
-            guard grantPersistentExtension() else {
+            guard grantPersistentExtension(request: request) else {
                 extensionsRemaining = extensionTracker.remaining
-                recordAuditExtensionDenied(
-                    reason: "budget_exhausted", actor: Self.auditActor(for: request)
-                )
+                if runtimePersistenceError == nil {
+                    recordAuditExtensionDenied(
+                        reason: "budget_exhausted", actor: Self.auditActor(for: request)
+                    )
+                }
                 return false
             }
             extensionsRemaining = extensionTracker.remaining
@@ -142,26 +143,24 @@ extension CurfewAppModel {
         }
 
         let currentRule = settings.schedule.rule(for: weekday)
-        let unlockMinutes: Int = if let unlockString = args["unlock_time"] as? String,
-                                    let parsed = parseHHMMMinutes(unlockString) {
-            parsed
+        let unlockMinutes: Int? = if let unlockString = args["unlock_time"] as? String {
+            parseHHMMMinutes(unlockString)
         } else {
-            currentRule.unlockMinutes
+            nil
         }
-        let isDayOff: Bool = if let flag = args["is_day_off"] as? Bool {
+        let isDayOff: Bool? = if let flag = args["is_day_off"] as? Bool {
             flag
         } else if let flagString = args["is_day_off"] as? String {
             (flagString as NSString).boolValue
         } else {
-            currentRule.isDayOff
+            nil
         }
 
         var proposedRules = settings.schedule.rules
-        proposedRules[weekday] = DayRule(
-            isDayOff: isDayOff,
+        proposedRules[weekday] = currentRule.applyingClockUpdate(
             lockMinutes: lockMinutes,
             unlockMinutes: unlockMinutes,
-            exception: currentRule.exception
+            isDayOff: isDayOff
         )
         let proposed = WeeklySchedule(rules: proposedRules)
         queueScheduleUpdate(proposed)

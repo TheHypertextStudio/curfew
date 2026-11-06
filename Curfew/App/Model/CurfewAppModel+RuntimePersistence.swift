@@ -2,33 +2,59 @@ import CurfewKit
 import Foundation
 
 @MainActor
+struct RuntimeRestoration {
+    let state: EnforcementRuntimeState
+    let error: String?
+    let extensionTracker: ExtensionBudgetTracker
+    let overrideTracker: ExtensionBudgetTracker
+
+    init(state: EnforcementRuntimeState, settings: CurfewSettings, now: Date, error: String?) {
+        self.state = state
+        self.error = error
+        let trackers = CurfewAppModel.runtimeBudgetTrackers(
+            settings: settings,
+            state: state,
+            now: now
+        )
+        self.extensionTracker = trackers.extension
+        self.overrideTracker = trackers.override
+    }
+}
+
+@MainActor
 extension CurfewAppModel {
     static func restoreRuntimeState(
         settings: CurfewSettings,
         store: EnforcementRuntimeStateStore,
         overrides: [OverrideEvent],
         recorder: any ActivityRecording,
-        now: Date
-    ) -> (state: EnforcementRuntimeState, error: String?) {
+        now: Date,
+        queue: MCPRequestQueueStore? = nil
+    ) -> RuntimeRestoration {
         do {
             if let stored = try store.load() {
-                return (stored, nil)
+                let migrated = try runtimeTrackingState(stored, queue: queue, now: now)
+                if migrated != stored {
+                    try store.save(migrated)
+                }
+                return RuntimeRestoration(state: migrated, settings: settings, now: now, error: nil)
             }
-            let migrated = migrateRuntimeState(
+            let initial = migrateRuntimeState(
                 settings: settings, overrides: overrides, recorder: recorder, now: now
             )
+            let migrated = try runtimeTrackingState(initial, queue: queue, now: now)
             try store.save(migrated)
-            return (migrated, nil)
+            return RuntimeRestoration(state: migrated, settings: settings, now: now, error: nil)
         } catch {
-            return (
-                EnforcementRuntimeState(
+            return RuntimeRestoration(
+                state: EnforcementRuntimeState(
                     dayToken: dayToken(for: now),
                     extensionUses: settings.extensionWeeklyLimit,
                     overrideUses: settings.overrideWeeklyLimit,
                     extensionResetBoundary: now,
                     overrideResetBoundary: now
                 ),
-                runtimeStorageFailure(error)
+                settings: settings, now: now, error: runtimeStorageFailure(error)
             )
         }
     }
@@ -64,7 +90,11 @@ extension CurfewAppModel {
             overrideUses: overrideTracker.usedCount,
             extensionResetBoundary: extensionTracker.lastResetBoundary,
             overrideResetBoundary: overrideTracker.lastResetBoundary,
-            overrideUntil: overrideUntil
+            overrideUntil: overrideUntil,
+            mcpGrantReceipts: mcpGrantReceipts.isEmpty ? nil : mcpGrantReceipts,
+            mcpReceiptTrackingStartedAt: mcpReceiptTrackingStartedAt,
+            legacyMCPGrantRequestIDs: legacyMCPGrantRequestIDs
+                .isEmpty ? nil : legacyMCPGrantRequestIDs
         )
     }
 
@@ -72,7 +102,11 @@ extension CurfewAppModel {
     func persistRuntimeState(_ snapshot: EnforcementRuntimeState? = nil) -> Bool {
         guard runtimePersistenceError == nil else { return false }
         do {
-            try runtimeStateStore.save(snapshot ?? runtimeStateSnapshot())
+            let state = snapshot ?? runtimeStateSnapshot()
+            try runtimeStateStore.save(state)
+            mcpGrantReceipts = state.mcpGrantReceipts ?? []
+            legacyMCPGrantRequestIDs = state.legacyMCPGrantRequestIDs ?? []
+            mcpReceiptTrackingStartedAt = state.mcpReceiptTrackingStartedAt
             return true
         } catch {
             runtimePersistenceError = Self.runtimeStorageFailure(error)
@@ -80,14 +114,36 @@ extension CurfewAppModel {
         }
     }
 
-    func grantPersistentExtension() -> Bool {
+    func grantPersistentExtension(request: MCPPendingRequest? = nil) -> Bool {
         guard runtimePersistenceError == nil else { return false }
         let tracker = copiedTracker(extensionTracker)
         guard tracker.requestExtension(at: currentTime) else { return false }
         var snapshot = runtimeStateSnapshot()
-        snapshot.extensionUses = tracker.usedCount
-        snapshot.extensionResetBoundary = tracker.lastResetBoundary
-        snapshot.extensionMinutes += settings.extensionDurationMinutes
+        if let request {
+            do {
+                let preparation = try MCPGrantJournal.prepareExtension(
+                    request,
+                    state: snapshot,
+                    proposal: MCPGrantProposal(
+                        minutes: settings.extensionDurationMinutes,
+                        usedCount: tracker.usedCount,
+                        resetBoundary: tracker.lastResetBoundary
+                    ),
+                    appliedAt: currentTime
+                )
+                switch preparation {
+                case .replay: return true
+                case .prepared(let state): snapshot = state
+                }
+            } catch {
+                runtimePersistenceError = Self.runtimeStorageFailure(error)
+                return false
+            }
+        } else {
+            snapshot.extensionUses = tracker.usedCount
+            snapshot.extensionResetBoundary = tracker.lastResetBoundary
+            snapshot.extensionMinutes += settings.extensionDurationMinutes
+        }
         guard persistRuntimeState(snapshot) else { return false }
         extensionTracker = tracker
         extensionMinutesGrantedToday = snapshot.extensionMinutes
@@ -166,6 +222,22 @@ extension CurfewAppModel {
     private static func runtimeStorageFailure(_ error: any Error) -> String {
         "Curfew could not read or save grant history. Local grants are unavailable. "
             + error.localizedDescription
+    }
+
+    private static func runtimeTrackingState(
+        _ state: EnforcementRuntimeState, queue: MCPRequestQueueStore?, now: Date
+    ) throws -> EnforcementRuntimeState {
+        guard state.version == 1 || state.mcpReceiptTrackingStartedAt == nil else { return state }
+        var migrated = state
+        let legacy = try queue?.load()
+            .filter { $0.status == .pending && $0.tool == .requestExtension }
+            .map(\.id) ?? []
+        migrated.version = 2
+        migrated.mcpReceiptTrackingStartedAt = now
+        let ids = Set((state.legacyMCPGrantRequestIDs ?? []) + legacy)
+        migrated.legacyMCPGrantRequestIDs = ids.isEmpty ? nil : ids
+            .sorted { $0.uuidString < $1.uuidString }
+        return migrated
     }
 
     private static func migrateRuntimeState(

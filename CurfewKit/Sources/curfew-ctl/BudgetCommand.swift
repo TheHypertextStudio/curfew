@@ -2,64 +2,119 @@ import ArgumentParser
 import CurfewKit
 import Foundation
 
-/// Prints extension and override budget status.
+/// Reads the persisted budget authority used to grant extensions and overrides.
 struct BudgetCommand: ParsableCommand {
-    /// ArgumentParser command metadata.
     static var configuration = CommandConfiguration(
         commandName: "budget",
         abstract: "Show extension and override budget remaining this week."
     )
 
-    /// Emit JSON rather than the default human-readable format.
-    @Flag(name: .shortAndLong, help: "Output as JSON instead of plain text.")
-    var json: Bool = false
+    @OptionGroup var options: CLIOptions
+    var json: Bool {
+        options.json
+    }
 
-    /// Entry point — reads settings + activity, prints remaining budgets.
-    func run() {
+    func run() throws {
         let settings = loadSettings()
-        let now = Date()
-
-        let store = openActivityStore()
-        let weekStart = Calendar.current.startOfWeek(for: now)
-        let events = (try? store?.events(in: weekStart ... now)) ?? []
-
-        let extensionsUsed = events.count(where: { $0.kind == .extensionGranted })
-        let overridesUsed = events.count(where: { $0.kind == .overrideGranted })
-
-        let extensionsRemaining = max(0, settings.extensionWeeklyLimit - extensionsUsed)
-        let overridesRemaining = max(0, settings.overrideWeeklyLimit - overridesUsed)
-
+        let trackers = try Self.trackers(
+            settings: settings,
+            store: .production(),
+            now: Date(),
+            calendar: .current
+        )
         if json {
-            let obj: [String: Any] = [
-                "extensions": [
-                    "used": extensionsUsed,
-                    "remaining": extensionsRemaining,
-                    "weekly_limit": settings.extensionWeeklyLimit,
-                    "duration_minutes": settings.extensionDurationMinutes
-                ],
-                "overrides": [
-                    "used": overridesUsed,
-                    "remaining": overridesRemaining,
-                    "weekly_limit": settings.overrideWeeklyLimit,
-                    "duration_minutes": settings.overrideDurationMinutes
-                ],
-                "reset_weekday": settings.resetWeekday.shortName
-            ]
-            if let data = try? JSONSerialization.data(
-                withJSONObject: obj,
-                options: [.prettyPrinted, .sortedKeys]
-            ) {
-                print(String(data: data, encoding: .utf8) ?? "{}")
+            let object = try Self.jsonObject(
+                settings: settings,
+                extensions: trackers.extensions,
+                overrides: trackers.overrides
+            )
+            let data = try CLIOutput.data(object)
+            guard let output = String(bytes: data, encoding: .utf8) else {
+                throw CocoaError(.fileReadInapplicableStringEncoding)
             }
+            print(output)
         } else {
-            print("Extensions:  \(extensionsRemaining)/\(settings.extensionWeeklyLimit) " +
-                "remaining (\(settings.extensionDurationMinutes) min each)")
-            print("Overrides:   \(overridesRemaining)/\(settings.overrideWeeklyLimit) " +
-                "remaining (\(settings.overrideDurationMinutes) min each)")
-            print("Resets:      \(settings.resetWeekday.shortName)")
+            let lines = [
+                "Extensions: \(trackers.extensions.remaining)/\(settings.extensionWeeklyLimit) remaining (\(settings.extensionDurationMinutes) min each)",
+                "Overrides: \(trackers.overrides.remaining)/\(settings.overrideWeeklyLimit) remaining (\(settings.overrideDurationMinutes) min each)",
+                "Resets: \(settings.resetWeekday.shortName)"
+            ]
+            try CLIText.print(
+                lines.joined(separator: "\n"),
+                title: "Weekly budgets",
+                options: options
+            )
         }
+    }
 
-        // Keep tracker alive to suppress unused warnings — the tracker itself
-        // is the production object; we read from ActivityStore for accurate counts.
+    static func snapshot(
+        settings: CurfewSettings,
+        store: EnforcementRuntimeStateStore,
+        now: Date,
+        calendar: Calendar
+    ) throws -> [String: Any] {
+        let trackers = try trackers(settings: settings, store: store, now: now, calendar: calendar)
+        return try jsonObject(
+            settings: settings,
+            extensions: trackers.extensions,
+            overrides: trackers.overrides
+        )
+    }
+
+    private static func trackers(
+        settings: CurfewSettings,
+        store: EnforcementRuntimeStateStore,
+        now: Date,
+        calendar: Calendar
+    ) throws -> (extensions: ExtensionBudgetTracker, overrides: ExtensionBudgetTracker) {
+        guard let state = try store.load() else {
+            throw CLIError(
+                "state.unavailable",
+                "No grant history is available. " +
+                    "Open Curfew and complete setup before reading budgets.",
+                exitStatus: 69
+            )
+        }
+        let extensions = ExtensionBudgetTracker(
+            weeklyLimit: settings.extensionWeeklyLimit,
+            extensionMinutes: settings.extensionDurationMinutes,
+            resetWeekday: settings.resetWeekday,
+            calendar: calendar,
+            seedLastResetBoundary: state.extensionResetBoundary,
+            seedUsedCount: state.extensionUses
+        )
+        let overrides = ExtensionBudgetTracker(
+            weeklyLimit: settings.overrideWeeklyLimit,
+            extensionMinutes: settings.overrideDurationMinutes,
+            resetWeekday: settings.resetWeekday,
+            calendar: calendar,
+            seedLastResetBoundary: state.overrideResetBoundary,
+            seedUsedCount: state.overrideUses
+        )
+        extensions.resetIfNeeded(at: now)
+        overrides.resetIfNeeded(at: now)
+        return (extensions, overrides)
+    }
+
+    private static func jsonObject(
+        settings: CurfewSettings,
+        extensions: ExtensionBudgetTracker,
+        overrides: ExtensionBudgetTracker
+    ) throws -> [String: Any] {
+        try [
+            "extensions": [
+                "used": extensions.usedCount,
+                "remaining": extensions.remaining,
+                "weekly_limit": extensions.weeklyLimit,
+                "duration_seconds": CLIOutput.durationSeconds(extensions.extensionMinutes)
+            ],
+            "overrides": [
+                "used": overrides.usedCount,
+                "remaining": overrides.remaining,
+                "weekly_limit": overrides.weeklyLimit,
+                "duration_seconds": CLIOutput.durationSeconds(overrides.extensionMinutes)
+            ],
+            "reset_weekday": settings.resetWeekday.shortName
+        ]
     }
 }
