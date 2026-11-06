@@ -116,6 +116,11 @@
   ],
   "exclude": [
     {
+      "include": ["Casks/curfew.rb"],
+      "kind": "vendored",
+      "reason": "Keep the cask identical to the public Homebrew tap. The native brew style check owns its formatting."
+    },
+    {
       "include": [
         ".hypertext/formatting/*",
         ".hypertext/formatter-tools/setup.py",

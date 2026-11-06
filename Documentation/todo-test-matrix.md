@@ -2474,3 +2474,5 @@ Injected shutdown-runner tests cover no-match, failure exit codes, signals and l
 `MCPRequestPruneTests` covers read-only preview, unchanged repeated cleanup, recovery protection inside the queue lock, and records changed since preview. `RequestPruneCommandTests` verifies that the command is available from the root parser.
 
 `CLIStandardsTests` also checks beta help at every command path and requires a usage error for an empty command argument.
+
+The deployment-host check requires CLI and website guide links to use the configured site origin. Website contract tests accept formatter whitespace around the account link. Native `brew style` checks the cask that matches the public tap. The isolated install and upgrade receipts are recorded in `Documentation/cli-installation.md`.

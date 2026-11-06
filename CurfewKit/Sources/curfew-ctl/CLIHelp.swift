@@ -1,3 +1,4 @@
+import CurfewKit
 import Foundation
 
 enum CLIHelp {
@@ -171,9 +172,10 @@ enum CLIHelp {
             "work": "Run work without a subcommand to list active claims.\n\n",
             "schedule": "Run schedule without a subcommand to show saved rules.\n\n"
         ]
+        let guide = CurfewServiceEndpoints.production.siteOrigin.appending(path: "docs/cli")
         return "EXAMPLES\n" + rows.joined(separator: "\n\n") +
             "\n\nCurfew command line (beta).\n\n" + (defaults[path] ?? "") +
             usage.replacingOccurrences(of: "SUBCOMMANDS:", with: "COMMANDS:") +
-            "\nLEARN MORE\n  https://thecurfew.app/docs/cli\n"
+            "\nLEARN MORE\n  \(guide.absoluteString)\n"
     }
 }

@@ -29,7 +29,7 @@ test('every public page header offers the same account entry point', async () =>
     if (!source.includes('<header class="site-header">')) continue;
     assert.match(
       source,
-      /<a class="nav-account" href="\/account">Open Account<\/a>/,
+      /<a class="nav-account" href="\/account">\s*Open Account\s*<\/a>/,
       `${name} must link to the same-origin account portal`,
     );
   }

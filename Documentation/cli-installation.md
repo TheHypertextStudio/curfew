@@ -43,6 +43,14 @@ accepted release and its published checksum.
 
 `CLIInstallationTests` covers read-only planning, conflict preservation, interrupted setup, byte- and timestamp-stable repeat installation, linked profile rejection, and native zsh/bash PATH loading twice without duplication. `cask_cli_test.rb` uses Homebrew's native binary installer with disposable command destinations and checks repeat installation and removal. Its optional mounted-app input exercises real released binaries without launching Curfew. The existing uninstall test retains its injected command sink so tests cannot unregister live recovery.
 
+Two disposable Apple Silicon macOS 26.6.2 runners used Homebrew 7.0.11.
+The [fresh install](https://github.com/TheHypertextStudio/homebrew-tap/actions/runs/42174808166)
+used the public cask from outside the checkout. The
+[upgrade](https://github.com/TheHypertextStudio/curfew/actions/runs/42174996015)
+used Homebrew to move from the signed 0.0.14 candidate to public 0.0.16.
+Both runs verified the signed, notarized app and ran both bundled commands
+from PATH. Repeating install and upgrade preserved both command links.
+
 The release digest and signature must be checked separately from source tests. The November 3, 2026 check downloaded `Curfew-v0.0.16.dmg`, verified SHA-256 `4804f7cdf26ec6aa54fc0877d5cc5f7c12043bb972c10502f346f0924a5f8f34`, verified the app's strict signature and embedded CLI's Studio team `T95VDD3A4W`, and validated the stapled notarization ticket. It did not launch or replace the user's installed app.
 
 To reverse direct installation, remove only the `~/.local/bin/curfew-ctl` symlink and the marked Curfew PATH block from the selected profile. Preserve the profile's other contents. Homebrew removes its command links through its native uninstaller. Neither path removes app settings or activity history. Interactive Settings rendering and signed installation of the changed app remain release acceptance requirements until CI and the signed artifact check complete.
