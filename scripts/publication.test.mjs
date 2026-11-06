@@ -538,7 +538,17 @@ test('live publication verification checks the customer installer path, exact fe
       });
     return new Response('<a href="/download">Get Curfew</a>');
   };
-  await verifyLivePublication(config, input.native.candidate, fetcher);
+  const timeouts = new WeakMap();
+  const timeout = AbortSignal.timeout;
+  t.mock.method(AbortSignal, 'timeout', (milliseconds) => {
+    const signal = timeout(milliseconds);
+    timeouts.set(signal, milliseconds);
+    return signal;
+  });
+  await verifyLivePublication(config, input.native.candidate, (url, options) => {
+    assert.equal(timeouts.get(options.signal), url === downloadURL ? 120_000 : 15_000);
+    return fetcher(url, options);
+  });
   for (const location of ['/releases/0.0.2', 'https://alternate.example/releases/0.0.2']) {
     const requests = [];
     await verifyLivePublication(config, input.native.candidate, (url, options) => {
@@ -722,4 +732,105 @@ pnpm() {
     })),
   );
   assert.doesNotMatch(script, /astro build|pages deploy/);
+});
+
+test('a routine update requires the approved predecessor and live same-configuration services', async (t) => {
+  const input = await fixture(t);
+  const { checkPublicationReadiness } = await api();
+  const config = {
+    ...input.website.deployment.manifest.environments.production,
+    sha256: input.native.candidate.configurationSHA256,
+    sourceCommit: input.native.candidate.sourceCommit,
+  };
+  const previousFeed = Buffer.from('signed previous feed');
+  const baseline = {
+    sourceCommit: 'b'.repeat(40),
+    appcastSHA256: createHash('sha256').update(previousFeed).digest('hex'),
+  };
+  const candidate = input.native.candidate;
+  const fetcher =
+    ({ feed = previousFeed, maintenance = 'false', issuer = baseline.sourceCommit } = {}) =>
+    async (url) => {
+      if (url.endsWith('/appcast.xml')) return new Response(feed);
+      return new Response('healthy', {
+        headers: {
+          'x-curfew-configuration': config.sha256,
+          'x-curfew-configuration-commit': issuer,
+          'x-curfew-maintenance': maintenance,
+        },
+      });
+    };
+  await checkPublicationReadiness(config, fetcher(), {
+    baseline,
+    candidate,
+    issuerSourceCommit: baseline.sourceCommit,
+  });
+  await checkPublicationReadiness(config, fetcher({ feed: input.native.appcast }), {
+    baseline,
+    candidate,
+    issuerSourceCommit: baseline.sourceCommit,
+  });
+  await assert.rejects(
+    checkPublicationReadiness(config, fetcher({ feed: 'unexpected feed' }), {
+      baseline,
+      candidate,
+      issuerSourceCommit: baseline.sourceCommit,
+    }),
+    /Live feed does not match/,
+  );
+  await assert.rejects(
+    checkPublicationReadiness(config, fetcher({ maintenance: 'true' }), {
+      baseline,
+      candidate,
+      issuerSourceCommit: baseline.sourceCommit,
+    }),
+    /must be out of maintenance/,
+  );
+  await assert.rejects(
+    checkPublicationReadiness(config, fetcher({ issuer: config.sourceCommit }), {
+      baseline,
+      candidate,
+      issuerSourceCommit: baseline.sourceCommit,
+    }),
+    /Issuer must match the reviewed source/,
+  );
+});
+
+test('routine publication binds the published predecessor to its manifest, tag, and reviewed deployment', async (t) => {
+  const input = await fixture(t);
+  const { verifyUpdateBaseline } = await api();
+  const candidate = input.native.candidate;
+  const baseline = {
+    ...candidate,
+    version: '0.0.1',
+    sourceCommit: 'b'.repeat(40),
+  };
+  const bytes = Buffer.from(JSON.stringify(baseline));
+  const digest = (body) => `sha256:${createHash('sha256').update(body).digest('hex')}`;
+  const release = {
+    tagName: 'v0.0.1',
+    isDraft: false,
+    isPrerelease: false,
+    assets: [
+      { name: 'candidate.json', digest: digest(bytes) },
+      { name: 'appcast.xml', digest: `sha256:${baseline.appcastSHA256}` },
+      { name: 'Curfew-v0.0.1.dmg', digest: `sha256:${baseline.dmgSHA256}` },
+    ],
+  };
+  const args = {
+    candidate,
+    previousVersion: '0.0.1',
+    release,
+    bytes,
+    tagCommit: baseline.sourceCommit,
+  };
+  assert.deepEqual(verifyUpdateBaseline(args), baseline);
+  for (const change of [
+    { previousVersion: candidate.version },
+    { tagCommit: candidate.sourceCommit },
+    { release: { ...release, isPrerelease: true } },
+    { release: { ...release, assets: release.assets.slice(1) } },
+    { candidate: { ...candidate, configurationSHA256: 'f'.repeat(64) } },
+  ])
+    assert.throws(() => verifyUpdateBaseline({ ...args, ...change }));
 });

@@ -1,0 +1,31 @@
+<h1>Curfew 0.0.21</h1>
+<p class="lede">
+  Curfew’s command line is in beta. This release fixes how Curfew recovers approved schedule changes
+  after a restart.
+</p>
+<h2>Recover schedule requests</h2>
+<p>
+  If Curfew restarts before it reports an approved schedule request, it now reports the original
+  approval without applying the change again or replacing a newer schedule. Run
+  <code>curfew-ctl request status</code> to check the result.
+</p>
+<p>
+  Curfew asks you to review schedule requests that were still pending when you updated from an
+  earlier version. Check your current schedule before submitting a new request.
+</p>
+<h2>Install or update the command line</h2>
+<p>
+  Homebrew installs Curfew and puts <code>curfew-ctl</code> and <code>curfew-mcp</code> on your
+  PATH.
+</p>
+<p><code>brew install --cask thehypertextstudio/tap/curfew</code></p>
+<p>If you installed Curfew with Homebrew, run this command to upgrade.</p>
+<p><code>brew upgrade --cask thehypertextstudio/tap/curfew</code></p>
+<p>
+  If you downloaded Curfew directly, open <strong>Settings → Integrations</strong> and choose
+  <strong>Install command line tool</strong>.
+</p>
+<p>
+  Curfew requires macOS 26 or later. See the <a href="/docs/cli">CLI beta guide</a> for commands and
+  examples.
+</p>

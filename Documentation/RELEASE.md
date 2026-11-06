@@ -647,6 +647,11 @@ and an `evidence` reference to actual observations. Never generate passing
 evidence to satisfy the inspector. Commercial scope must retain disabled sales
 while the production billing stop remains.
 
+For a hosted update with an unchanged deployment, add `previousVersion` to the
+owner receipt. It must name the exact public predecessor that the owner reviewed.
+The update path checks the live feed and the unchanged license and hosting
+inputs before writing. See [routine production updates](production-domain-promotion.md#update-an-existing-production-release).
+
 Run the read-only gate:
 
 ```bash

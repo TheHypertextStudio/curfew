@@ -2480,3 +2480,8 @@ The deployment-host check requires CLI and website guide links to use the config
 `release-candidate.test.mjs` runs the release notes preflight with missing, wrong-version, and matching notes. Signed Sparkle acceptance still requires the exact candidate artifact and its own hosted receipt.
 
 `MCPGrantRecoveryTests.restartAfterUnacknowledgedSchedule` reproduces the overwritten edit after a failed queue acknowledgement and model restart. `LocalScheduleJournalTests` verifies durable schedule and cooldown recovery, legacy request IDs, stale writers, and corrupt-state preservation.
+
+## Routine production updates
+
+`scripts/publication.test.mjs` verifies that a routine update accepts an approved published predecessor and healthy same-configuration services. It rejects a different live feed, an issuer source mismatch, active maintenance, and a mismatched public release manifest. An exact candidate feed supports retries. The default cutover test still requires maintenance.
+The live verifier tests separate deadlines for metadata and the full DMG transfer.
