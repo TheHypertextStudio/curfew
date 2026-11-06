@@ -8,13 +8,28 @@ on:
   workflow_dispatch:
     inputs:
       capture_scope:
-        description: Full CI, Settings capture, or browser compilation (partial scopes are not full CI acceptance)
+        description: Choose the acceptance scope
         type: choice
-        options: [full, settings, browser-bridge]
+        options: [full, settings, browser-bridge, homebrew]
         default: full
         required: true
 
 jobs:
+  homebrew:
+    name: Clean Homebrew install and upgrade
+    if: github.repository == 'TheHypertextStudio/curfew' && github.event_name == 'workflow_dispatch' && inputs.capture_scope == 'homebrew'
+    permissions:
+      actions: read
+      contents: read
+    uses: TheHypertextStudio/homebrew-tap/.github/workflows/homebrew-acceptance.yml@d3f30c8d66b42a50954263ee5fc8a7b9e398c960
+    with:
+      tap-ref: d3f30c8d66b42a50954263ee5fc8a7b9e398c960
+      prior-version: '0.0.14'
+      prior-run-id: '40040002065'
+      prior-source-sha: 35b758785304468253614f34c53f3ecef3c406a9
+      prior-artifact-id: '12539237776'
+      prior-archive-sha256: ab8e57bde6bd22d2ac01b6a40bf09d7cdeb480004711d91d5fedc9eebe326d01
+
   purchases:
     if: github.event_name != 'workflow_dispatch' || inputs.capture_scope == 'full'
     name: License activation and restoration
@@ -26,7 +41,7 @@ jobs:
           version: 11.9.0
       - uses: actions/setup-node@v7.1.0
         with:
-          node-version: "24"
+          node-version: '24'
       - name: Install issuer dependencies from the reviewed lock
         run: pnpm --dir web --filter @curfew/license-worker install --frozen-lockfile
       - name: Verify signed payment, activation, and recovery boundaries
@@ -40,7 +55,7 @@ jobs:
       - uses: actions/checkout@v7.0.1
       - uses: actions/setup-node@v7.1.0
         with:
-          node-version: "24"
+          node-version: '24'
       - name: Check user help and purchase recovery
         run: node --test scripts/user-docs.test.mjs
 
@@ -91,12 +106,12 @@ jobs:
 
       - name: Check (format + lint + test + build)
         env:
-          CURFEW_XCODEBUILD_SETTINGS: "CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO -jobs 2 -parallel-testing-enabled NO"
+          CURFEW_XCODEBUILD_SETTINGS: 'CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO -jobs 2 -parallel-testing-enabled NO'
         run: just check
 
       - name: Compile Release
         env:
-          CURFEW_XCODEBUILD_SETTINGS: "CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO -jobs 2 -parallel-testing-enabled NO"
+          CURFEW_XCODEBUILD_SETTINGS: 'CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO -jobs 2 -parallel-testing-enabled NO'
         run: just build-release
 
       - name: Upload unit-test diagnostics
@@ -108,7 +123,7 @@ jobs:
           if-no-files-found: warn
 
   universal-tools:
-    if: github.event_name != 'workflow_dispatch' || inputs.capture_scope != 'settings'
+    if: github.event_name != 'workflow_dispatch' || inputs.capture_scope == 'full' || inputs.capture_scope == 'browser-bridge'
     name: ${{ inputs.capture_scope == 'browser-bridge' && 'Universal browser bridge only' || 'Universal CLI tools' }}
     runs-on: macos-26
     steps:
@@ -143,14 +158,14 @@ jobs:
           CONFIGURATION: Release
           ARCHS: arm64 x86_64
           CURFEW_DAEMON_PLIST_NAME: studio.hypertext.curfew.daemon.plist
-          CURFEW_SERVICE_SWIFT_FLAG: ""
-          CODE_SIGNING_ALLOWED: "NO"
+          CURFEW_SERVICE_SWIFT_FLAG: ''
+          CODE_SIGNING_ALLOWED: 'NO'
           BUILT_PRODUCTS_DIR: ${{ runner.temp }}/universal-tools
           CONTENTS_FOLDER_PATH: Curfew.app/Contents
         run: bash scripts/bundle-cli-tools.sh
 
   screenshots:
-    if: github.event_name != 'workflow_dispatch' || inputs.capture_scope != 'browser-bridge'
+    if: github.event_name != 'workflow_dispatch' || inputs.capture_scope == 'full' || inputs.capture_scope == 'settings'
     name: ${{ inputs.capture_scope == 'settings' && 'Settings capture only' || 'Capture screenshots' }}
     env:
       CURFEW_CAPTURE_TEST: ${{ inputs.capture_scope == 'settings' && 'testCaptureDistinctSettingsStates' || '' }}
@@ -232,7 +247,7 @@ jobs:
 
       - name: Capture demo screenshots
         env:
-          CURFEW_XCODEBUILD_SETTINGS: "CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO"
+          CURFEW_XCODEBUILD_SETTINGS: 'CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO'
         run: just capture
 
       - name: Upload screenshots
