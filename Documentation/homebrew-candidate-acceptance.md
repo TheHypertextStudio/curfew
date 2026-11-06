@@ -16,7 +16,7 @@ gh workflow run signed-installer-acceptance.yml \
 ```
 
 The workflow verifies the selected candidate before Homebrew uses its DMG.
-One Mac starts without Curfew. The other installs public 0.0.16 first.
+One Mac starts without Curfew. The other installs the version currently in the public tap. The candidate must be newer than that version. The job records the tap commit and the predecessor version.
 Each Mac uses a local cask fixture for the candidate and checks signatures,
 PATH, every beta help path, JSON reads, and an unchanged repeat.
 The fixture stays on the runner. Public activation uses its own approval.

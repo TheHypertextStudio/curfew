@@ -2444,3 +2444,7 @@ Current-main integration preserves license-expiry reevaluation beside the inject
 ## CLI beta disclosure
 
 `scripts/user-docs.test.mjs` requires the README, website command-line section, user guide, and internal backlog to identify the CLI as beta. The regression failed before the labels were added. This is a source documentation change; publishing follows the existing website and documentation release workflows. The beta label does not establish launch readiness.
+
+## Homebrew candidate predecessor
+
+`scripts/homebrew-candidate-cask.test.mjs` checks that the fixture can advance from a later public cask and that repeating the preparation leaves the staged file unchanged. It also requires an older or equal candidate to fail before writing. The `homebrew-candidate` workflow separately exercises both actual Homebrew paths on clean Macs.

@@ -27,34 +27,21 @@ spctl --assess --type open --context context:primary-signature --verbose=2 "$ima
 
 brew --version
 sw_vers
-if [[ "$mode" == upgrade ]]; then
-  brew install --cask "$token"
-  brew list --cask --versions | grep -Fx 'curfew 0.0.16'
-  curfew-ctl --help | grep 'curfew-ctl'
-else
-  brew tap "$tap"
-fi
-
+brew tap "$tap"
 tap_dir=$(brew --repository "$tap")
 cask="$tap_dir/Casks/curfew.rb"
-python3 - "$cask" "$image" "$version" "$digest" << 'PY'
-from pathlib import Path
-import re
-import sys
+recipe=$(mktemp "$RUNNER_TEMP/curfew-candidate-cask.XXXXXX")
+trap 'rm -f "$recipe"' EXIT
+script_dir=$(dirname "$0")
+prior_version=$(python3 "$script_dir/prepare-homebrew-candidate-cask.py" "$cask" "$recipe" "$image" "$version" "$digest")
+printf 'Public Curfew %s at tap commit %s\n' "$prior_version" "$(git -C "$tap_dir" rev-parse HEAD)"
 
-cask, image, version, digest = sys.argv[1:]
-path = Path(cask)
-recipe = path.read_text()
-recipe, version_count = re.subn(r'^  version "0\.0\.16"$', f'  version "{version}"', recipe, flags=re.M)
-recipe, digest_count = re.subn(r'^  sha256 "[a-f0-9]{64}"$', f'  sha256 "{digest}"', recipe, flags=re.M)
-recipe, url_count = re.subn(
-    r'^  url "https://github\.com/TheHypertextStudio/curfew/releases/download/[^"]+"$',
-    f'  url "{Path(image).as_uri()}"', recipe, flags=re.M,
-)
-if (version_count, digest_count, url_count) != (1, 1, 1):
-    sys.exit("Expected the reviewed public Curfew 0.0.16 cask.")
-path.write_text(recipe)
-PY
+if [[ "$mode" == upgrade ]]; then
+  brew install --cask "$token"
+  brew list --cask --versions | grep -Fx "curfew $prior_version"
+  curfew-ctl --help | grep 'curfew-ctl'
+fi
+cp "$recipe" "$cask"
 
 operation=install
 if [[ "$mode" == upgrade ]]; then operation=upgrade; fi
