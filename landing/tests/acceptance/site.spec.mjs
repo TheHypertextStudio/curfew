@@ -58,6 +58,29 @@ test('homepage download links use the installer availability page', async ({ pag
   }
 });
 
+test('release history connects the homepage and download page without scripts', async ({
+  browser,
+}) => {
+  const page = await browser.newPage({
+    javaScriptEnabled: false,
+    viewport: { width: 390, height: 844 },
+  });
+  try {
+    await page.goto('/');
+    await page.getByRole('link', { name: 'Release notes', exact: true }).click();
+    await expect(page).toHaveURL(/\/releases$/);
+    await expect(page.getByRole('heading', { name: 'Release notes' })).toBeVisible();
+    const trail = page.getByRole('navigation', { name: 'Breadcrumb' });
+    await expect(trail.getByRole('link', { name: 'Curfew' })).toHaveAttribute('href', '/');
+    await expect(trail.locator('[aria-current="page"]')).toHaveText('Release notes');
+    await page.getByRole('main').getByRole('link', { name: 'Download Curfew' }).click();
+    await page.locator('#release-notes').getByRole('link', { name: 'Release notes' }).click();
+    await expect(page).toHaveURL(/\/releases$/);
+  } finally {
+    await page.close();
+  }
+});
+
 test('published guides are linked and the retained HTML guide keeps its anchors', async ({
   page,
 }) => {

@@ -27,6 +27,40 @@
 .reading ol {
   padding-left: var(--space-5);
 }
+.reading .release-trail ol,
+.reading .release-list {
+  padding: 0;
+  list-style: none;
+}
+.release-trail ol,
+.release-navigation {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-4);
+}
+.reading .release-trail ol {
+  margin: 0 0 var(--space-5);
+  font-size: 0.875rem;
+}
+.reading .release-trail li {
+  margin: 0;
+}
+.release-trail li + li::before {
+  content: ' / ' / '';
+  margin-right: var(--space-4);
+}
+.release-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2) var(--space-4);
+}
+.release-list span {
+  font-size: 0.875rem;
+}
+.release-navigation {
+  margin-top: var(--space-7);
+}
 .reading code {
   overflow-wrap: anywhere;
   font-family: var(--font-studio-wordmark);

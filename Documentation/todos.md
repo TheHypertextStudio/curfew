@@ -647,6 +647,7 @@ mid-lockout, and every action the root daemon takes. Format specification:
 The CLI remains in beta until launch blockers and installed-artifact acceptance pass. Commands and output may change.
 
 - [x] Label the CLI beta in the README, website, and user guide.
+- [x] Connect release notes to the download page, release archive, and CLI guide. The public links ship with activation.
 - [-] Resolve CLI override rejection, budget reset accuracy, inactive schedule reporting, JSON/error handling, documented arguments, audit export, and recovery verification before general availability.
 
 - [x] `status` — fresh app-observed enforcement phase and time remaining (plain + JSON); unavailable observations remain unknown.

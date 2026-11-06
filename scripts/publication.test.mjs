@@ -25,6 +25,10 @@ async function fixture(t) {
     join(site, 'download.html'),
     `<!doctype html><html lang="en"><head><title>Download Curfew — Curfew</title><meta name="description" content="Download Curfew"><link rel="canonical" href="https://alternate.example/download.html"><meta property="og:title" content="Download Curfew — Curfew"><link rel="stylesheet" href="/site-assets/design/tokens.css"></head><body><header>Curfew</header><main id="main" class="reading wrap">${readFileSync(new URL('../landing/src/content/download.html', import.meta.url), 'utf8')}</main><footer>Product support</footer></body></html>`,
   );
+  await writeFile(
+    join(site, 'releases.html'),
+    '<h1>Release notes</h1><div id="release-history"><p>View releases on GitHub</p></div>',
+  );
   for (const [page, mode] of [
     ['success', 'checkout'],
     ['restore', 'restore'],
@@ -518,14 +522,20 @@ test('live publication verification checks the customer installer path, exact fe
     'https://github.com/TheHypertextStudio/curfew/releases/download/v0.0.2/Curfew-v0.0.2.dmg';
   const fetcher = async (url) => {
     if (url === 'https://alternate.example/download')
-      return new Response(`<a href="${downloadURL}">Download Curfew 0.0.2</a>`);
+      return new Response(
+        `<a href="${downloadURL}">Download Curfew 0.0.2</a><a href="/releases/0.0.2">Release notes</a>`,
+      );
+    if (url === 'https://alternate.example/releases')
+      return new Response('<a href="/releases/0.0.2">Curfew 0.0.2</a>');
     if (
       [
         'https://alternate.example/releases/0.0.2.html',
         'https://alternate.example/releases/0.0.2',
       ].includes(url)
     )
-      return new Response(input.releaseNotes);
+      return new Response(
+        `<nav aria-label="Breadcrumb"><a href="/releases">Release notes</a></nav>${input.releaseNotes}`,
+      );
     if (url === downloadURL) return new Response(input.native.dmg);
     if (url === 'https://alternate.example/appcast.xml') return new Response(input.native.appcast);
     if (url.startsWith('https://old.example/api/')) return new Response('retired', { status: 410 });
@@ -536,7 +546,7 @@ test('live publication verification checks the customer installer path, exact fe
           location: 'https://alternate.example/download?curfew_migration_check=1',
         },
       });
-    return new Response('<a href="/download">Get Curfew</a>');
+    return new Response('<a href="/download">Get Curfew</a><a href="/releases">Release notes</a>');
   };
   const timeouts = new WeakMap();
   const timeout = AbortSignal.timeout;
@@ -590,7 +600,7 @@ test('live publication verification checks the customer installer path, exact fe
     [
       config.siteOrigin,
       new Response(
-        '<a href="/download">Get Curfew</a><p>Coming soon · Free &amp; open source · macOS 26+</p>',
+        '<a href="/download">Get Curfew</a><a href="/releases">Release notes</a><p>Coming soon · Free &amp; open source · macOS 26+</p>',
       ),
     ],
     ['https://alternate.example/download', new Response('coming soon')],
@@ -833,4 +843,41 @@ test('routine publication binds the published predecessor to its manifest, tag, 
     { candidate: { ...candidate, configurationSHA256: 'f'.repeat(64) } },
   ])
     assert.throws(() => verifyUpdateBaseline({ ...args, ...change }));
+});
+
+test('publication connects the download, release archive, and version notes', async (t) => {
+  const input = await fixture(t);
+  const { preparePublication, publishedReleaseVersions } = await api();
+  const stable = { draft: false, prerelease: false, published_at: '2026-10-25T01:16:47Z' };
+  assert.deepEqual(
+    publishedReleaseVersions(
+      [
+        { ...stable, tag_name: 'v0.0.1' },
+        { ...stable, tag_name: 'v0.0.0', prerelease: true },
+        { ...stable, tag_name: 'v0.0.2' },
+        { ...stable, tag_name: 'v0.0.3', draft: true },
+      ],
+      '0.0.2',
+    ),
+    ['0.0.1'],
+  );
+  input.releaseHistory = [
+    { version: '0.0.1', content: '<h1>Curfew 0.0.1</h1><p>Previous release.</p>' },
+  ];
+  await preparePublication(input);
+  const read = (name) => readFile(join(input.destination, name), 'utf8');
+  assert.match(
+    await read('download.html'),
+    /href="\/releases\/0\.0\.2">Release notes for Curfew 0\.0\.2/,
+  );
+  const archive = await read('releases.html');
+  assert.match(archive, /href="\/releases\/0\.0\.2"[\s\S]*href="\/releases\/0\.0\.1"/);
+  for (const version of ['0.0.1', '0.0.2']) {
+    const notes = await read(`releases/${version}.html`);
+    assert.match(notes, /aria-label="Breadcrumb"[\s\S]*href="\/releases">Release notes/);
+    assert.match(notes, /href="\/download">Download Curfew/);
+  }
+  assert.match(await read('releases/0.0.2.html'), /href="\/releases\/0\.0\.1">Previous release/);
+  assert.match(await read('releases/0.0.1.html'), /href="\/releases\/0\.0\.2">Next release/);
+  await assert.rejects(() => access(join(input.destination, 'releases/0.0.3.html')));
 });
