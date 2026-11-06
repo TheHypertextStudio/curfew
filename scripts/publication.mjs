@@ -1,21 +1,21 @@
-import assert from "node:assert/strict";
-import { createHash } from "node:crypto";
-import { readFile, writeFile, cp, lstat, mkdir } from "node:fs/promises";
-import { execFileSync } from "node:child_process";
-import { resolve, join } from "node:path";
-import { fileURLToPath } from "node:url";
-import { inspectActivation } from "./release-candidate.mjs";
-import { resolveEnvironment } from "./deployment-config.mjs";
-import { verifyWebsite, sealWebsite } from "./website-artifact.mjs";
+import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+import { readFile, writeFile, cp, lstat, mkdir } from 'node:fs/promises';
+import { execFileSync } from 'node:child_process';
+import { resolve, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { inspectActivation } from './release-candidate.mjs';
+import { resolveEnvironment } from './deployment-config.mjs';
+import { verifyWebsite, sealWebsite } from './website-artifact.mjs';
 import {
   verifyLocalEvidence,
   verifyLocalRepositories,
   verifyLocalDistribution,
-} from "./local-release.mjs";
+} from './local-release.mjs';
 
 const pendingDownload =
-  "<p>The public Mac download is coming soon. The installer will be available here when it is ready.</p>";
-const pendingInstallation = "<h2>When the download is available</h2>";
+  '<p>The public Mac download is coming soon. The installer will be available here when it is ready.</p>';
+const pendingInstallation = '<h2>When the download is available</h2>';
 
 function installerURL(candidate) {
   assert.match(candidate.version, /^0\.0\.(0|[1-9]\d*)$/);
@@ -23,11 +23,7 @@ function installerURL(candidate) {
 }
 
 function replaceOnce(html, expected, replacement) {
-  assert.equal(
-    html.split(expected).length,
-    2,
-    "Unknown or ambiguous download availability",
-  );
+  assert.equal(html.split(expected).length, 2, 'Unknown or ambiguous download availability');
   return html.replace(expected, replacement);
 }
 
@@ -40,51 +36,33 @@ export function renderPublishedDownload(html, candidate) {
       `<p><a class="button primary" href="${installerURL(candidate)}">Download Curfew ${candidate.version}</a></p>`,
     ),
     pendingInstallation,
-    "<h2>Install Curfew</h2>",
+    '<h2>Install Curfew</h2>',
   );
 }
 
 export function renderPublishedHome(html) {
   for (const [expected, replacement] of [
-    [
-      "Coming soon · Free &amp; open source · macOS 26+",
-      "Free &amp; open source · macOS 26+",
-    ],
-    [
-      "The public Mac download is coming soon. Check the",
-      "Download Curfew from the",
-    ],
-    ["for availability and installation", "for installation"],
+    ['Coming soon · Free &amp; open source · macOS 26+', 'Free &amp; open source · macOS 26+'],
+    ['The public Mac download is coming soon. Check the', 'Download Curfew from the'],
+    ['for availability and installation', 'for installation'],
   ])
     html = replaceOnce(html, expected, replacement);
   return html;
 }
 
 /** Reuse the sealed site's typography, navigation and assets for update notes. */
-export function renderPublishedReleaseNotes(
-  html,
-  candidate,
-  siteOrigin,
-  content,
-) {
+export function renderPublishedReleaseNotes(html, candidate, siteOrigin, content) {
   const heading = `<h1>Curfew ${candidate.version}</h1>`;
   assert.ok(
-    typeof content === "string" && content.includes(heading),
-    "Release notes must match the candidate version",
+    typeof content === 'string' && content.includes(heading),
+    'Release notes must match the candidate version',
   );
   const replaceUnique = (pattern, replacement) => {
     const matches = html.match(pattern);
-    assert.equal(
-      matches?.length,
-      1,
-      "Unknown or ambiguous release-notes shell",
-    );
+    assert.equal(matches?.length, 1, 'Unknown or ambiguous release-notes shell');
     html = html.replace(pattern, () => replacement);
   };
-  replaceUnique(
-    /<title>[^<]*<\/title>/g,
-    `<title>Curfew ${candidate.version} — Curfew</title>`,
-  );
+  replaceUnique(/<title>[^<]*<\/title>/g, `<title>Curfew ${candidate.version} — Curfew</title>`);
   replaceUnique(
     /<meta name="description"[^>]*>/g,
     `<meta name="description" content="What’s new in Curfew ${candidate.version}, and how to update.">`,
@@ -112,11 +90,7 @@ async function verifyLocalPublication(input) {
     candidate.sourceCommit,
     input.local.publicationCommit,
   );
-  await verifyLocalEvidence(
-    input.local.evidenceDirectory,
-    candidate,
-    input.now,
-  );
+  await verifyLocalEvidence(input.local.evidenceDirectory, candidate, input.now);
   await verifyLocalDistribution(
     input.local.candidateDirectory,
     candidate,
@@ -128,51 +102,40 @@ async function admit(input, localVerifier = verifyLocalPublication) {
   const { candidate } = inspectActivation(input.native, input.receipt);
   const observed = Date.parse(input.receipt.observedAt);
   const now = input.now ?? Date.now();
-  assert.ok(
-    observed <= now && now - observed <= 3_600_000,
-    "Fresh owner acceptance is required",
-  );
-  const local = candidate.provenance?.kind === "local";
-  const runs = [[input.websiteRun, ".github/workflows/website.yml", "main"]];
+  assert.ok(observed <= now && now - observed <= 3_600_000, 'Fresh owner acceptance is required');
+  const local = candidate.provenance?.kind === 'local';
+  const runs = [[input.websiteRun, '.github/workflows/website.yml', 'main']];
   if (local) {
-    assert.equal(
-      input.candidateRun,
-      undefined,
-      "A local candidate cannot claim a hosted run",
-    );
-    assert.match(input.local?.publicationCommit ?? "", /^[a-f0-9]{40}$/);
+    assert.equal(input.candidateRun, undefined, 'A local candidate cannot claim a hosted run');
+    assert.match(input.local?.publicationCommit ?? '', /^[a-f0-9]{40}$/);
     assert.equal(
       input.currentMainCommit,
       input.local.publicationCommit,
-      "Publication source changed after local validation",
+      'Publication source changed after local validation',
     );
     assert.equal(
       input.receipt.gates?.stagingAcceptance?.outcome,
-      "pass",
-      "Actual staging acceptance is required",
+      'pass',
+      'Actual staging acceptance is required',
     );
     assert.ok(
       input.receipt.gates.stagingAcceptance.evidence?.trim(),
-      "Staging evidence is required",
+      'Staging evidence is required',
     );
     await localVerifier(input);
   } else {
     assert.equal(
       input.currentMainCommit,
       candidate.sourceCommit,
-      "Main changed after candidate validation",
+      'Main changed after candidate validation',
     );
-    runs.unshift([
-      input.candidateRun,
-      ".github/workflows/release.yml",
-      `v${candidate.version}`,
-    ]);
+    runs.unshift([input.candidateRun, '.github/workflows/release.yml', `v${candidate.version}`]);
   }
   for (const [run, path, branch] of runs) {
-    assert.equal(run.repository?.full_name, "TheHypertextStudio/curfew");
-    assert.equal(run.status, "completed");
-    assert.equal(run.conclusion, "success");
-    assert.equal(run.event, "push");
+    assert.equal(run.repository?.full_name, 'TheHypertextStudio/curfew');
+    assert.equal(run.status, 'completed');
+    assert.equal(run.conclusion, 'success');
+    assert.equal(run.event, 'push');
     assert.equal(run.path, path);
     assert.equal(run.head_branch, branch);
     assert.equal(run.head_sha, candidate.sourceCommit);
@@ -188,15 +151,9 @@ async function admit(input, localVerifier = verifyLocalPublication) {
   return candidate;
 }
 
-export async function preparePublication(
-  input,
-  localVerifier = verifyLocalPublication,
-) {
+export async function preparePublication(input, localVerifier = verifyLocalPublication) {
   const candidate = await admit(input, localVerifier);
-  const downloadShell = await readFile(
-    join(input.website.directory, "download.html"),
-    "utf8",
-  );
+  const downloadShell = await readFile(join(input.website.directory, 'download.html'), 'utf8');
   const download = renderPublishedDownload(downloadShell, candidate);
   const releaseNotes = renderPublishedReleaseNotes(
     downloadShell,
@@ -205,29 +162,26 @@ export async function preparePublication(
     input.releaseNotes,
   );
   const home = renderPublishedHome(
-    await readFile(join(input.website.directory, "index.html"), "utf8"),
+    await readFile(join(input.website.directory, 'index.html'), 'utf8'),
   );
   await assert.rejects(
     () => lstat(input.destination),
-    { code: "ENOENT" },
-    "Publication output must be a fresh directory",
+    { code: 'ENOENT' },
+    'Publication output must be a fresh directory',
   );
   await cp(input.website.directory, input.destination, {
     recursive: true,
     force: false,
     errorOnExist: true,
   });
-  await writeFile(join(input.destination, "appcast.xml"), input.native.appcast);
-  await writeFile(join(input.destination, "download.html"), download);
-  await writeFile(join(input.destination, "index.html"), home);
-  await mkdir(join(input.destination, "releases"), { recursive: true });
-  await writeFile(
-    join(input.destination, "releases", `${candidate.version}.html`),
-    releaseNotes,
-  );
+  await writeFile(join(input.destination, 'appcast.xml'), input.native.appcast);
+  await writeFile(join(input.destination, 'download.html'), download);
+  await writeFile(join(input.destination, 'index.html'), home);
+  await mkdir(join(input.destination, 'releases'), { recursive: true });
+  await writeFile(join(input.destination, 'releases', `${candidate.version}.html`), releaseNotes);
   return {
     candidate,
-    ...(candidate.provenance?.kind === "local"
+    ...(candidate.provenance?.kind === 'local'
       ? { publicationCommit: input.local.publicationCommit }
       : {}),
     siteStamp: await sealWebsite(input.destination, input.website.deployment),
@@ -235,123 +189,92 @@ export async function preparePublication(
 }
 
 const requestOptions = () => ({
-  redirect: "manual",
-  cache: "no-store",
+  redirect: 'manual',
+  cache: 'no-store',
   signal: AbortSignal.timeout(15_000),
 });
 export async function checkPublicationReadiness(config, fetcher = fetch) {
   assert.equal(
-    (await fetcher(config.siteOrigin, { ...requestOptions(), method: "HEAD" }))
-      .status,
+    (await fetcher(config.siteOrigin, { ...requestOptions(), method: 'HEAD' })).status,
     200,
-    "New website TLS and routing must be ready",
+    'New website TLS and routing must be ready',
   );
-  for (const origin of [
-    config.accountOrigin,
-    config.syncOrigin,
-    config.licenseOrigin,
-  ]) {
+  for (const origin of [config.accountOrigin, config.syncOrigin, config.licenseOrigin]) {
     const response = await fetcher(`${origin}/health`, requestOptions());
-    assert.equal(response.status, 200, "Service health must be available");
+    assert.equal(response.status, 200, 'Service health must be available');
     assert.equal(
-      response.headers.get("x-curfew-configuration"),
+      response.headers.get('x-curfew-configuration'),
       config.sha256,
-      "Service configuration mismatch",
+      'Service configuration mismatch',
     );
     if (origin === config.licenseOrigin)
-      assert.equal(
-        response.headers.get("x-curfew-configuration-commit"),
-        config.sourceCommit,
-      );
+      assert.equal(response.headers.get('x-curfew-configuration-commit'), config.sourceCommit);
     else
       assert.equal(
-        response.headers.get("x-curfew-maintenance"),
-        "true",
-        "Account authority must remain in maintenance during publication",
+        response.headers.get('x-curfew-maintenance'),
+        'true',
+        'Account authority must remain in maintenance during publication',
       );
   }
 }
 
-export async function verifyLivePublication(
-  config,
-  candidate,
-  fetcher = fetch,
-) {
+export async function verifyLivePublication(config, candidate, fetcher = fetch) {
   const homepage = await fetcher(config.siteOrigin, requestOptions());
   assert.equal(homepage.status, 200);
   const homeHTML = await homepage.text();
-  assert.ok(
-    homeHTML.includes('href="/download"'),
-    "Homepage does not link the download page",
-  );
-  for (const stale of [
-    "Coming soon · Free",
-    "The public Mac download is coming soon.",
-  ])
-    assert.ok(
-      !homeHTML.includes(stale),
-      "Homepage still reports the installer unavailable",
-    );
+  assert.ok(homeHTML.includes('href="/download"'), 'Homepage does not link the download page');
+  for (const stale of ['Coming soon · Free', 'The public Mac download is coming soon.'])
+    assert.ok(!homeHTML.includes(stale), 'Homepage still reports the installer unavailable');
   const url = installerURL(candidate);
   const page = await fetcher(`${config.siteOrigin}/download`, requestOptions());
-  assert.equal(page.status, 200, "Customer download page is unavailable");
+  assert.equal(page.status, 200, 'Customer download page is unavailable');
   const html = await page.text();
   assert.ok(
     html.includes(`href="${url}"`),
-    "Customer download page does not link the accepted installer",
+    'Customer download page does not link the accepted installer',
   );
   assert.ok(
-    !html.includes("The public Mac download is coming soon."),
-    "Customer download page still reports unavailable",
+    !html.includes('The public Mac download is coming soon.'),
+    'Customer download page still reports unavailable',
   );
   const notesURL = `${config.siteOrigin}/releases/${candidate.version}.html`;
   let notes = await fetcher(notesURL, requestOptions());
   if (notes.status === 307) {
-    const location = notes.headers.get("location");
-    assert.ok(
-      location,
-      "Updater release notes redirect is missing its destination",
-    );
+    const location = notes.headers.get('location');
+    assert.ok(location, 'Updater release notes redirect is missing its destination');
     const destination = new URL(location, notesURL).href;
     assert.equal(
       destination,
       `${config.siteOrigin}/releases/${candidate.version}`,
-      "Unexpected updater release notes redirect",
+      'Unexpected updater release notes redirect',
     );
     notes = await fetcher(destination, requestOptions());
   }
-  assert.equal(notes.status, 200, "Updater release notes are unavailable");
+  assert.equal(notes.status, 200, 'Updater release notes are unavailable');
   assert.ok(
     (await notes.text()).includes(`<h1>Curfew ${candidate.version}</h1>`),
-    "Updater release notes do not match the candidate",
+    'Updater release notes do not match the candidate',
   );
   const installer = await fetcher(url, {
     ...requestOptions(),
-    redirect: "follow",
+    redirect: 'follow',
   });
+  assert.equal(installer.status, 200, 'Customer installer download is unavailable');
   assert.equal(
-    installer.status,
-    200,
-    "Customer installer download is unavailable",
-  );
-  assert.equal(
-    createHash("sha256")
+    createHash('sha256')
       .update(Buffer.from(await installer.arrayBuffer()))
-      .digest("hex"),
+      .digest('hex'),
     candidate.dmgSHA256,
-    "Customer installer differs from the signed candidate",
+    'Customer installer differs from the signed candidate',
   );
-  const feed = await fetcher(
-    `${config.siteOrigin}/appcast.xml`,
-    requestOptions(),
-  );
+  const feed = await fetcher(`${config.siteOrigin}/appcast.xml`, requestOptions());
   assert.equal(feed.status, 200);
   assert.equal(
-    createHash("sha256")
+    createHash('sha256')
       .update(Buffer.from(await feed.arrayBuffer()))
-      .digest("hex"),
+      .digest('hex'),
     candidate.appcastSHA256,
-    "Live update feed differs from the signed candidate",
+    'Live update feed differs from the signed candidate',
   );
   const redirect = await fetcher(
     `${config.legacySiteOrigin}/download?curfew_migration_check=1`,
@@ -359,7 +282,7 @@ export async function verifyLivePublication(
   );
   assert.equal(redirect.status, 308);
   assert.equal(
-    redirect.headers.get("location"),
+    redirect.headers.get('location'),
     `${config.siteOrigin}/download?curfew_migration_check=1`,
   );
   const retired = await fetcher(
@@ -367,10 +290,10 @@ export async function verifyLivePublication(
     requestOptions(),
   );
   assert.equal(retired.status, 410);
-  assert.equal(retired.headers.get("location"), null);
+  assert.equal(retired.headers.get('location'), null);
 }
 
-const repository = "TheHypertextStudio/curfew";
+const repository = 'TheHypertextStudio/curfew';
 export function publishGithubRelease(
   invoke,
   candidate,
@@ -381,107 +304,69 @@ export function publishGithubRelease(
   assert.match(candidate.version, /^0\.0\.(0|[1-9]\d*)$/);
   const tag = `v${candidate.version}`;
   assert.match(publicationCommit, /^[a-f0-9]{40}$/);
-  if (candidate.provenance?.kind !== "local")
+  if (candidate.provenance?.kind !== 'local')
     assert.equal(
       publicationCommit,
       candidate.sourceCommit,
-      "A hosted candidate must retain its exact source head",
+      'A hosted candidate must retain its exact source head',
     );
   assert.deepEqual(
     Object.keys(expectedAssets).sort(),
-    [`Curfew-${tag}.dmg`, "appcast.xml", "candidate.json"].sort(),
+    [`Curfew-${tag}.dmg`, 'appcast.xml', 'candidate.json'].sort(),
   );
-  for (const digest of Object.values(expectedAssets))
-    assert.match(digest, /^[a-f0-9]{64}$/);
-  const head = invoke(["api", `repos/${repository}/git/ref/heads/main`]);
-  assert.equal(
-    head.object?.sha,
-    publicationCommit,
-    "Main changed before publication",
-  );
-  let reference = invoke([
-    "api",
-    `repos/${repository}/git/ref/tags/${tag}`,
-  ]).object;
-  if (reference?.type === "tag") {
+  for (const digest of Object.values(expectedAssets)) assert.match(digest, /^[a-f0-9]{64}$/);
+  const head = invoke(['api', `repos/${repository}/git/ref/heads/main`]);
+  assert.equal(head.object?.sha, publicationCommit, 'Main changed before publication');
+  let reference = invoke(['api', `repos/${repository}/git/ref/tags/${tag}`]).object;
+  if (reference?.type === 'tag') {
     assert.match(reference.sha, /^[a-f0-9]{40}$/);
-    reference = invoke([
-      "api",
-      `repos/${repository}/git/tags/${reference.sha}`,
-    ]).object;
+    reference = invoke(['api', `repos/${repository}/git/tags/${reference.sha}`]).object;
   }
-  assert.equal(reference?.type, "commit");
-  assert.equal(
-    reference.sha,
-    candidate.sourceCommit,
-    "Release tag changed before publication",
-  );
+  assert.equal(reference?.type, 'commit');
+  assert.equal(reference.sha, candidate.sourceCommit, 'Release tag changed before publication');
   const get = () => {
-    const published = invoke([
-      "api",
-      `repos/${repository}/releases/tags/${tag}`,
-    ]);
+    const published = invoke(['api', `repos/${repository}/releases/tags/${tag}`]);
     if (published) return published;
     // The tag endpoint excludes pending drafts. The authenticated list includes
     // them, and pagination keeps retries independent of release-list ordering.
-    const matches = invoke([
-      "api",
-      `repos/${repository}/releases`,
-      "--paginate",
-      "--slurp",
-    ])
+    const matches = invoke(['api', `repos/${repository}/releases`, '--paginate', '--slurp'])
       .flat()
       .filter((value) => value.tag_name === tag);
-    assert.ok(matches.length <= 1, "Multiple releases claim the candidate tag");
+    assert.ok(matches.length <= 1, 'Multiple releases claim the candidate tag');
     return matches[0] ?? null;
   };
   let release = get();
   if (!release) {
     invoke([
-      "release",
-      "create",
+      'release',
+      'create',
       tag,
-      "--repo",
+      '--repo',
       repository,
-      "--verify-tag",
-      "--draft",
-      "--title",
+      '--verify-tag',
+      '--draft',
+      '--title',
       `Curfew ${candidate.version}`,
-      "--notes-file",
-      join(directory, "public-release-notes.md"),
+      '--notes-file',
+      join(directory, 'public-release-notes.md'),
     ]);
     release = get();
   }
-  assert.ok(release, "Created release could not be read back");
+  assert.ok(release, 'Created release could not be read back');
   assert.equal(release.tag_name, tag);
   for (const [name, digest] of Object.entries(expectedAssets)) {
     const asset = release.assets.find((value) => value.name === name);
-    if (asset)
-      assert.equal(
-        asset.digest,
-        `sha256:${digest}`,
-        `Published asset mismatch: ${name}`,
-      );
+    if (asset) assert.equal(asset.digest, `sha256:${digest}`, `Published asset mismatch: ${name}`);
     else {
       assert.ok(release.draft, `Public release is missing asset: ${name}`);
-      invoke([
-        "release",
-        "upload",
-        tag,
-        join(directory, name),
-        "--repo",
-        repository,
-      ]);
+      invoke(['release', 'upload', tag, join(directory, name), '--repo', repository]);
     }
   }
-  if (!release.draft) return "reused";
-  assert.ok(
-    Number.isSafeInteger(release.id) && release.id > 0,
-    "Invalid draft release ID",
-  );
-  release = invoke(["api", `repos/${repository}/releases/${release.id}`]);
+  if (!release.draft) return 'reused';
+  assert.ok(Number.isSafeInteger(release.id) && release.id > 0, 'Invalid draft release ID');
+  release = invoke(['api', `repos/${repository}/releases/${release.id}`]);
   assert.equal(release.tag_name, tag);
-  assert.equal(release.draft, true, "Draft changed during asset upload");
+  assert.equal(release.draft, true, 'Draft changed during asset upload');
   for (const [name, digest] of Object.entries(expectedAssets))
     assert.equal(
       release.assets.find((value) => value.name === name)?.digest,
@@ -489,50 +374,47 @@ export function publishGithubRelease(
       `Uploaded asset mismatch: ${name}`,
     );
   invoke([
-    "release",
-    "edit",
+    'release',
+    'edit',
     tag,
-    "--repo",
+    '--repo',
     repository,
-    "--draft=false",
-    "--prerelease=false",
-    "--latest",
+    '--draft=false',
+    '--prerelease=false',
+    '--latest',
   ]);
-  return "published";
+  return 'published';
 }
 
 async function load(base) {
-  const json = async (path) =>
-    JSON.parse(await readFile(join(base, path), "utf8"));
-  const candidate = await json("candidate/candidate.json");
+  const json = async (path) => JSON.parse(await readFile(join(base, path), 'utf8'));
+  const candidate = await json('candidate/candidate.json');
   assert.match(candidate.version, /^0\.0\.(0|[1-9]\d*)$/);
-  const local = candidate.provenance?.kind === "local";
-  const authority = local ? await json("local-authority.json") : undefined;
+  const local = candidate.provenance?.kind === 'local';
+  const authority = local ? await json('local-authority.json') : undefined;
   return {
     releaseNotes: await readFile(
       new URL(`../landing/releases/${candidate.version}.html`, import.meta.url),
-      "utf8",
+      'utf8',
     ),
     native: {
       candidate,
-      configuration: await json("candidate/release-configuration.json"),
-      dmg: await readFile(
-        join(base, `candidate/Curfew-v${candidate.version}.dmg`),
-      ),
-      appcast: await readFile(join(base, "candidate/appcast.xml")),
+      configuration: await json('candidate/release-configuration.json'),
+      dmg: await readFile(join(base, `candidate/Curfew-v${candidate.version}.dmg`)),
+      appcast: await readFile(join(base, 'candidate/appcast.xml')),
     },
     website: {
-      directory: join(base, "website"),
-      stamp: await json("website-build/website-build.json"),
-      deployment: await json("identity/environment-artifact.json"),
+      directory: join(base, 'website'),
+      stamp: await json('website-build/website-build.json'),
+      deployment: await json('identity/environment-artifact.json'),
     },
-    candidateRun: local ? undefined : await json("candidate-run.json"),
-    websiteRun: await json("website-run.json"),
+    candidateRun: local ? undefined : await json('candidate-run.json'),
+    websiteRun: await json('website-run.json'),
     currentMainCommit:
       process.env.GITHUB_SHA ??
       (local
-        ? execFileSync("git", ["rev-parse", "HEAD"], {
-            encoding: "utf8",
+        ? execFileSync('git', ['rev-parse', 'HEAD'], {
+            encoding: 'utf8',
           }).trim()
         : undefined),
     ...(local
@@ -540,95 +422,76 @@ async function load(base) {
           local: {
             publicationCommit: authority.publicationCommit,
             nativeRepository: resolve(authority.nativeRepository),
-            repository: fileURLToPath(new URL("../", import.meta.url)),
-            evidenceDirectory: join(base, "local-evidence"),
-            candidateDirectory: join(base, "candidate"),
+            repository: fileURLToPath(new URL('../', import.meta.url)),
+            evidenceDirectory: join(base, 'local-evidence'),
+            candidateDirectory: join(base, 'candidate'),
           },
         }
       : {}),
-    receipt: await json("owner-receipt.json"),
-    destination: join(base, "site-ready"),
+    receipt: await json('owner-receipt.json'),
+    destination: join(base, 'site-ready'),
   };
 }
 
-if (
-  process.argv[1] &&
-  resolve(process.argv[1]) === fileURLToPath(import.meta.url)
-) {
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const [command, basePath] = process.argv.slice(2);
   const base = resolve(basePath);
   const input = await load(base);
   const config = {
-    ...resolveEnvironment(
-      input.website.deployment.manifest.environments.production,
-      "production",
-    ),
+    ...resolveEnvironment(input.website.deployment.manifest.environments.production, 'production'),
     sha256: input.website.deployment.sha256,
     sourceCommit: input.website.deployment.sourceCommit,
   };
-  if (command === "prepare") {
+  if (command === 'prepare') {
     const prepared = await preparePublication(input);
-    await writeFile(
-      join(base, "prepared.json"),
-      JSON.stringify(prepared, null, 2) + "\n",
-      { flag: "wx" },
-    );
-    console.log(
-      "Retained candidate and website are ready for owner-approved activation",
-    );
-  } else if (command === "ready") {
+    await writeFile(join(base, 'prepared.json'), JSON.stringify(prepared, null, 2) + '\n', {
+      flag: 'wx',
+    });
+    console.log('Retained candidate and website are ready for owner-approved activation');
+  } else if (command === 'ready') {
     await admit(input);
     await checkPublicationReadiness(config);
-    console.log("Website TLS and maintenance services are ready");
-  } else if (command === "verify") {
+    console.log('Website TLS and maintenance services are ready');
+  } else if (command === 'verify') {
     const candidate = await admit(input);
     await verifyLivePublication(config, candidate);
-    console.log(
-      "Live site, exact update feed, public redirect, and callback retirement verified",
-    );
-  } else if (command === "publish") {
+    console.log('Live site, exact update feed, public redirect, and callback retirement verified');
+  } else if (command === 'publish') {
     const candidate = await admit(input);
-    const prepared = JSON.parse(
-      await readFile(join(base, "prepared.json"), "utf8"),
-    );
+    const prepared = JSON.parse(await readFile(join(base, 'prepared.json'), 'utf8'));
     assert.deepEqual(prepared.candidate, candidate);
-    if (candidate.provenance?.kind === "local")
+    if (candidate.provenance?.kind === 'local')
       assert.equal(
         prepared.publicationCommit,
         input.local.publicationCommit,
-        "Prepared publication source changed",
+        'Prepared publication source changed',
       );
     assert.deepEqual(
       prepared.siteStamp,
       await sealWebsite(input.destination, input.website.deployment),
     );
-    const directory = join(base, "candidate");
+    const directory = join(base, 'candidate');
     const expected = {};
-    for (const name of [
-      `Curfew-v${candidate.version}.dmg`,
-      "appcast.xml",
-      "candidate.json",
-    ])
-      expected[name] = createHash("sha256")
+    for (const name of [`Curfew-v${candidate.version}.dmg`, 'appcast.xml', 'candidate.json'])
+      expected[name] = createHash('sha256')
         .update(await readFile(join(directory, name)))
-        .digest("hex");
-    const origin =
-      input.website.deployment.manifest.environments.production.siteOrigin;
+        .digest('hex');
+    const origin = input.website.deployment.manifest.environments.production.siteOrigin;
     await writeFile(
-      join(directory, "public-release-notes.md"),
+      join(directory, 'public-release-notes.md'),
       `Read the [Curfew ${candidate.version} release notes](${origin}/releases/${candidate.version}) for changes and installation guidance.\n`,
     );
     const invoke = (args) => {
       try {
-        const output = execFileSync("gh", args, {
-          encoding: "utf8",
-          stdio: ["ignore", "pipe", "pipe"],
+        const output = execFileSync('gh', args, {
+          encoding: 'utf8',
+          stdio: ['ignore', 'pipe', 'pipe'],
         });
-        return args[0] === "api" ? JSON.parse(output) : output;
+        return args[0] === 'api' ? JSON.parse(output) : output;
       } catch (error) {
         if (
-          args[0] === "api" &&
-          args[1].includes("/releases/tags/") &&
+          args[0] === 'api' &&
+          args[1].includes('/releases/tags/') &&
           /HTTP 404/.test(String(error.stderr))
         )
           return null;
@@ -640,6 +503,6 @@ if (
     );
   } else
     throw new Error(
-      "Use prepare, ready, publish, or verify with the retained publication directory",
+      'Use prepare, ready, publish, or verify with the retained publication directory',
     );
 }
