@@ -70,12 +70,11 @@ struct LiteralCopyTests {
             .presenceDescription(.unknown) == "Curfew can't determine whether you're at your Mac.")
     }
 
-    @Test("Notifications name lockout without assuming a morning unlock")
+    @Test("Warning copy names the deadline and lockout uses the screen instead of a banner")
     func notificationsDescribeLockout() throws {
         let fifteen = try #require(WarningNotificationManager.payload(for: .fifteenMinutes))
         #expect(fifteen.body == "Lockout starts in 15 minutes. Finish your current task.")
-        let lockout = try #require(WarningNotificationManager.payload(for: .lockout))
-        #expect(lockout.body == "Lockout has started. Rest well.")
+        #expect(WarningNotificationManager.payload(for: .lockout) == nil)
         #expect(WarningNotificationManager.distractionPayload.body
             ==
             "Curfew detected a person but no recent keyboard or pointer input. "

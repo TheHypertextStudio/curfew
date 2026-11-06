@@ -104,6 +104,10 @@ struct LockoutShortcutPolicyTests {
         )) // Ctrl+Right
         #expect(LockoutShortcutPolicy.shouldBlock(keyCode: 125, flags: [.maskControl])) // Ctrl+Down
         #expect(LockoutShortcutPolicy.shouldBlock(keyCode: 126, flags: [.maskControl])) // Ctrl+Up
+        #expect(LockoutShortcutPolicy.shouldBlock(keyCode: 99, flags: [])) // F3 Mission Control
+        #expect(LockoutShortcutPolicy.shouldBlock(keyCode: 118, flags: [])) // F4 Launchpad
+        #expect(LockoutShortcutPolicy.shouldBlock(keyCode: 103, flags: [])) // F11 Show Desktop
+        #expect(LockoutShortcutPolicy.shouldBlock(keyCode: 4, flags: [.maskSecondaryFn])) // Fn+H
     }
 
     @Test("Policy allows unrelated keystrokes")

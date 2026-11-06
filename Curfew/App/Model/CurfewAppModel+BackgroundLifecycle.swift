@@ -52,10 +52,7 @@ extension CurfewAppModel {
             unlockDate: nil
         )
         reconcileEnforcementOwnership()
-        overlayCoordinator.updateOverlays(
-            for: state,
-            model: self, lockoutMessage: lockoutMessage
-        )
+        overlayCoordinator.updateOverlays(for: state, model: self)
         shutDownPresence()
         browserNativeRuntime.stop()
         mcpRequestMonitor.stop()

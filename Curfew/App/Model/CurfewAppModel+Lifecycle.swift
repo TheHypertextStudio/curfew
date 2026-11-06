@@ -122,17 +122,21 @@ extension CurfewAppModel {
     }
 
     /// Settle who owns enforcement this tick, then apply every effect that
-    /// depends on that answer: the health verdict, the keyboard shield, the
-    /// shutdown workflow, and the overlays.
+    /// depends on that answer: the overlays, keyboard shield, health verdict,
+    /// and shutdown workflow.
     ///
     /// Lifted out of `tick()` so the ordering constraint lives in one place.
     /// All four effects below decide what to do based on whether *this* build
     /// is the enforcer, so none of them may run before ownership is resolved.
     private func applyEnforcementEffects() {
         // Resolve who owns the single-enforcer lock before applying any blocking
-        // effect, so the key shield, overlay, and shutdown below all agree on
+        // effect, so the overlay, key shield, and shutdown below all agree on
         // whether this build is the one enforcing.
         reconcileEnforcementOwnership()
+        // The visible, input-capturing screen must be ordered before shortcuts
+        // are swallowed. Otherwise fullscreen work appears to stop responding
+        // while Curfew is still drawing its lockout window.
+        overlayCoordinator.updateOverlays(for: state, model: self)
         // Interception refreshes permission before acting, then publishes health
         // after recovery so the banner describes the resulting tap.
         updateLockoutInterception(for: state.phase)
@@ -141,7 +145,6 @@ extension CurfewAppModel {
         // installation or briefly report degradation before a successful one.
         pollAndUpdateEnforcementHealth()
         updateShutdownWorkflow()
-        overlayCoordinator.updateOverlays(for: state, model: self, lockoutMessage: lockoutMessage)
 
         // Advance last so every use of `previousPhase` above (and any nested
         // call it makes) still sees the phase this tick transitioned *from*.

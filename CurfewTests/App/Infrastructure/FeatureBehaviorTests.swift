@@ -41,6 +41,7 @@ struct WarningNotificationManagerTests {
         #expect(five.playsSound)
         #expect(two.playsSound)
         #expect(one.playsSound)
+        #expect(WarningNotificationManager.payload(for: .lockout) == nil)
     }
 
     @Test("Notification category definitions expose snooze action only in snooze category")
@@ -60,11 +61,22 @@ struct WarningNotificationManagerTests {
 
 @MainActor
 struct OverlayWindowConfigurationTests {
-    @Test("Warning overlay windows are floating and click-through")
+    @Test("Early warning notices accept dismissal above fullscreen apps")
+    func earlyNoticeWindowConfiguration() {
+        let configuration = WarningNoticeCoordinator.windowConfiguration
+        #expect(configuration.level == NSWindow.Level.screenSaver)
+        #expect(!configuration.ignoresMouseEvents)
+        #expect(configuration.collectionBehavior
+            .contains(NSWindow.CollectionBehavior.canJoinAllSpaces))
+        #expect(configuration.collectionBehavior
+            .contains(NSWindow.CollectionBehavior.fullScreenAuxiliary))
+    }
+
+    @Test("Warning overlay windows stay visible above fullscreen apps without capturing input")
     func warningWindowConfiguration() {
         let configuration = OverlayCoordinator.warningWindowConfiguration
         #expect(configuration.styleMask == NSWindow.StyleMask.borderless)
-        #expect(configuration.level == NSWindow.Level.floating)
+        #expect(configuration.level == NSWindow.Level.screenSaver)
         #expect(configuration.ignoresMouseEvents)
         #expect(configuration.collectionBehavior
             .contains(NSWindow.CollectionBehavior.canJoinAllSpaces))
@@ -87,12 +99,39 @@ struct OverlayWindowConfigurationTests {
         #expect(!configuration.isMovable)
     }
 
-    @Test("Floating timer windows stay above standard app content")
+    @Test("Floating timer windows stay visible above fullscreen apps without capturing input")
     func timerWindowConfiguration() {
         let configuration = OverlayCoordinator.timerWindowConfiguration
         #expect(configuration.styleMask == NSWindow.StyleMask.borderless)
-        #expect(configuration.level == NSWindow.Level.statusBar)
+        #expect(configuration.level == NSWindow.Level.screenSaver)
         #expect(configuration.ignoresMouseEvents)
+        #expect(configuration.collectionBehavior
+            .contains(NSWindow.CollectionBehavior.canJoinAllSpaces))
+        #expect(configuration.collectionBehavior
+            .contains(NSWindow.CollectionBehavior.fullScreenAuxiliary))
+        #expect(OverlayCoordinator.timerWindowWidth >= 240)
+    }
+}
+
+struct WarningNoticeVisibilityTests {
+    @Test("Dismissing an early warning leaves the next stage available")
+    func dismissalAppliesOnlyToTheCurrentStage() {
+        var visibility = WarningNoticeVisibility()
+        #expect(visibility.shouldShow(.thirtyMinutes))
+        visibility.dismiss(.thirtyMinutes)
+        #expect(!visibility.shouldShow(.thirtyMinutes))
+        #expect(visibility.shouldShow(.fifteenMinutes))
+        #expect(!visibility.shouldShow(.fiveMinutes))
+        visibility.reset()
+        #expect(visibility.shouldShow(.thirtyMinutes))
+    }
+}
+
+struct LockoutArrivalAnimationTests {
+    @Test("Lockout fades in for three seconds unless Reduce Motion is enabled")
+    func motionPolicy() {
+        #expect(LockoutArrivalAnimation.duration(reduceMotion: false) == 3)
+        #expect(LockoutArrivalAnimation.duration(reduceMotion: true) == 0)
     }
 }
 

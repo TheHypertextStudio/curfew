@@ -28,6 +28,8 @@ import CurfewKit
         case menuBar = "menu-bar"
         /// Pre-lockout warning phase — dim overlay + floating countdown.
         case warning
+        /// First warning, with a dismissible notice and no dimming.
+        case earlyWarning = "early-warning"
         /// Full-screen lockout overlay.
         case lockout
         /// Walkthrough scenario used by the video harness.
@@ -42,7 +44,8 @@ import CurfewKit
                 .schedule
             case .thisWeek:
                 .journal
-            case .overview, .gettingStarted, .menuBar, .warning, .lockout, .reel, .settings,
+            case .overview, .gettingStarted, .menuBar, .warning, .earlyWarning, .lockout, .reel,
+                 .settings,
                  .backgroundEnforcement:
                 .today
             }
@@ -52,7 +55,7 @@ import CurfewKit
         /// (warning dim / lockout) rather than a normal window.
         var showsOverlay: Bool {
             switch self {
-            case .warning, .lockout, .reel:
+            case .warning, .earlyWarning, .lockout, .reel:
                 true
             case .overview, .configuration, .settings, .gettingStarted, .thisWeek, .menuBar,
                  .backgroundEnforcement:
@@ -205,6 +208,8 @@ import CurfewKit
                 (hour, minute) = (22, 47)
             case .warning:
                 (hour, minute) = (17, 58)
+            case .earlyWarning:
+                (hour, minute) = (17, 30)
             case .overview, .configuration, .settings, .gettingStarted, .thisWeek, .menuBar,
                  .backgroundEnforcement:
                 (hour, minute) = (14, 30)
@@ -239,6 +244,18 @@ import CurfewKit
                     warningStage: .twoMinutes,
                     minutesRemaining: min(minutesRemaining, 2),
                     canRequestExtension: false,
+                    lockDate: lock,
+                    unlockDate: unlock
+                )
+
+            case .earlyWarning:
+                let lock = dateToday(at: 18, minute: 0, now: now, calendar: calendar)
+                    ?? now.addingTimeInterval(30 * 60)
+                return CurfewEvaluation(
+                    phase: .warning,
+                    warningStage: .thirtyMinutes,
+                    minutesRemaining: 30,
+                    canRequestExtension: true,
                     lockDate: lock,
                     unlockDate: unlock
                 )

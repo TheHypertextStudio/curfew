@@ -102,15 +102,14 @@ import CurfewKit
                 showGettingStarted()
             case .overview, .configuration, .thisWeek, .menuBar, .backgroundEnforcement:
                 break
-            case .warning, .lockout, .reel:
+            case .warning, .earlyWarning, .lockout, .reel:
                 // Defer one more run-loop turn so the overlay windows land
                 // above the just-created main window.
                 DispatchQueue.main.async { [weak self] in
                     guard let self else { return }
                     overlayCoordinator.updateOverlays(
                         for: state,
-                        model: self,
-                        lockoutMessage: lockoutMessage
+                        model: self
                     )
                 }
             }

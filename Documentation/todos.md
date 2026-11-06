@@ -493,12 +493,14 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 - [x] Build click-through dim overlay windows with stage-specific opacity.
 - [x] Add always-on-top floating timer for last 5 minutes.
 - [x] Add advanced settings to customize warning intervals.
+- [x] Keep warning cues visible over fullscreen apps. Show a dismissible notice at T-30 and T-15, then a persistent, named countdown with dimming in the final five minutes. The next warning stage re-arms the notice. The T-0 lockout screen replaces the notification banner.
 
 ## 3. Lockout Experience
 
 - [x] Build full-screen lockout windows on all displays and spaces.
 - [x] Add `.screenSaver`-level window behavior and input capture.
 - [x] Add keyboard shortcut interception during lockout (⌘⇥, ⌘Q, ⌘⌥Esc, …).
+- [x] Cover every display before starting the keyboard shield. Fade the lockout content in over three seconds inside an opaque, input-capturing window; show it at once for Reduce Motion. Correct the F3 and F4 Mission Control/Launchpad key codes and block Fn+H Show Desktop.
 - [x] Implement rotating encouragement messages.
 - [x] Implement lockout visual design (time, unlock time, optional stats card).
 - [x] Respect accessibility settings: VoiceOver, reduce motion, reduce transparency; warning countdowns, lockout controls, and Settings tabs expose stable semantic accessibility values/identifiers for UI automation and assistive technology.

@@ -201,9 +201,14 @@ final class MarketingCaptureTests: XCTestCase {
     @MainActor
     func testCaptureOverlays() {
         for appearance in ["light", "dark"] {
-            var app = launch("warning", appearance: appearance)
+            var app = launch("early-warning", appearance: appearance)
+            let notice = app.descendants(matching: .any)["early-warning-notice"]
+            XCTAssertTrue(notice.waitForExistence(timeout: 8))
+            attach(notice, name: "early-warning-\(appearance)")
+            app.terminate()
+            app = launch("warning", appearance: appearance)
             XCTAssertTrue(app.staticTexts["warning-countdown"].waitForExistence(timeout: 8))
-            XCTAssertEqual(app.staticTexts["warning-countdown"].value as? String, "2 min")
+            XCTAssertEqual(app.staticTexts["warning-countdown"].value as? String, "Curfew in 2 min")
             let warning = app.descendants(matching: .any)["warning-timer"]
             XCTAssertTrue(warning.waitForExistence(timeout: 3))
             XCTAssertGreaterThan(warning.frame.width, 80)
@@ -213,6 +218,8 @@ final class MarketingCaptureTests: XCTestCase {
             app = launch("lockout", appearance: appearance)
             let overlay = app.descendants(matching: .any)["lockout-screen"]
             XCTAssertTrue(overlay.waitForExistence(timeout: 8))
+            attach(overlay, name: "lockout-transition-\(appearance)")
+            Thread.sleep(forTimeInterval: 3.2)
             attach(overlay, name: "lockout-\(appearance)")
             app.terminate()
         }
@@ -305,17 +312,14 @@ extension MarketingCaptureTests {
         XCTAssertGreaterThan(element.frame.width, 300)
         XCTAssertGreaterThan(element.frame.height, 100)
         let screenshot = element.screenshot()
+        let horizontalScale = screenshot.image.size.width / element.frame.width
+        let verticalScale = screenshot.image.size.height / element.frame.height
+        XCTAssertGreaterThanOrEqual(horizontalScale, 1)
         XCTAssertEqual(
-            screenshot.image.size.width,
-            element.frame.width,
-            accuracy: 2,
-            "Window capture must not crop the right edge"
-        )
-        XCTAssertEqual(
-            screenshot.image.size.height,
-            element.frame.height,
-            accuracy: 2,
-            "Window capture must not crop the bottom edge"
+            horizontalScale,
+            verticalScale,
+            accuracy: 0.03,
+            "Window capture must keep the same scale on both axes"
         )
         attach(screenshot, name: name)
     }
