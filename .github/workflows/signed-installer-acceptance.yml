@@ -5,7 +5,7 @@ on:
     inputs:
       mode:
         type: choice
-        options: [fresh-install, staging-upgrade]
+        options: [fresh-install, staging-upgrade, homebrew-candidate]
         default: fresh-install
         required: true
       candidate_version:
@@ -46,8 +46,45 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@v7.1.0
         with:
-          node-version: "24"
+          node-version: '24'
       - run: node --test scripts/signed-installer-acceptance.test.mjs
+
+  homebrew-candidate:
+    if: github.repository == 'TheHypertextStudio/curfew' && github.event_name == 'workflow_dispatch' && inputs.mode == 'homebrew-candidate'
+    runs-on: macos-26
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        install: [fresh-install, upgrade]
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: '1'
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '24'
+      - name: Verify and retain the exact candidate
+        id: subject
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CURFEW_UPGRADE_VERSION: ${{ inputs.candidate_version }}
+          CURFEW_UPGRADE_RUN_ID: ${{ inputs.candidate_run_id }}
+          CURFEW_UPGRADE_SOURCE_COMMIT: ${{ inputs.candidate_source_commit }}
+          CURFEW_UPGRADE_DMG_SHA256: ${{ inputs.candidate_dmg_sha256 }}
+        run: node scripts/signed-installer-acceptance.mjs prepare "$RUNNER_TEMP/homebrew-candidate"
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ steps.subject.outputs.source_commit }}
+          path: candidate-source
+          persist-credentials: false
+      - name: Exercise the signed beta through native Homebrew
+        working-directory: ${{ runner.temp }}
+        env:
+          INSTALL_MODE: ${{ matrix.install }}
+        run: bash "$GITHUB_WORKSPACE/scripts/test-homebrew-candidate.sh" "$INSTALL_MODE" "$RUNNER_TEMP/homebrew-candidate" "$GITHUB_WORKSPACE/candidate-source"
 
   installed-candidate:
     if: github.repository == 'TheHypertextStudio/curfew' && github.event_name == 'workflow_dispatch' && inputs.mode == 'fresh-install'
@@ -59,7 +96,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@v7.1.0
         with:
-          node-version: "24"
+          node-version: '24'
       - name: Verify acceptance boundary tests
         run: node --test scripts/signed-installer-acceptance.test.mjs
       - name: Retain the exact signed release subject
@@ -108,9 +145,9 @@ jobs:
           node scripts/configure-ci-display.mjs
       - name: Exercise the installed signed app without demo fixtures
         env:
-          TEST_RUNNER_GITHUB_ACTIONS: "true"
+          TEST_RUNNER_GITHUB_ACTIONS: 'true'
           TEST_RUNNER_RUNNER_TEMP: ${{ runner.temp }}
-          TEST_RUNNER_CURFEW_SIGNED_INSTALLER_ACCEPTANCE: "1"
+          TEST_RUNNER_CURFEW_SIGNED_INSTALLER_ACCEPTANCE: '1'
           TEST_RUNNER_CURFEW_SIGNED_INSTALLER_VERSION: ${{ env.CURFEW_SIGNED_INSTALLER_VERSION }}
           TEST_RUNNER_CURFEW_SIGNED_INSTALLER_RECEIPT: ${{ runner.temp }}/signed-installer-ui.json
         run: >-
@@ -143,7 +180,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@v7.1.0
         with:
-          node-version: "24"
+          node-version: '24'
       - name: Check the acceptance boundaries
         run: node --test scripts/signed-installer-acceptance.test.mjs
       # Validate the retained subject before selecting its immutable source.
@@ -241,8 +278,8 @@ jobs:
         working-directory: candidate-source
         shell: bash
         env:
-          TEST_RUNNER_CURFEW_SIGNED_UPGRADE_ACCEPTANCE: "1"
-          TEST_RUNNER_GITHUB_ACTIONS: "true"
+          TEST_RUNNER_CURFEW_SIGNED_UPGRADE_ACCEPTANCE: '1'
+          TEST_RUNNER_GITHUB_ACTIONS: 'true'
           TEST_RUNNER_RUNNER_TEMP: ${{ runner.temp }}
           TEST_RUNNER_CURFEW_SIGNED_UPGRADE_VERSION: ${{ inputs.candidate_version }}
           TEST_RUNNER_CURFEW_SIGNED_UPGRADE_RECEIPT: ${{ runner.temp }}/sparkle-upgrade/upgrade-ui.json
