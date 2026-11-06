@@ -43,7 +43,7 @@ Curfew solves this by treating your schedule as a binding commitment, not a sugg
 
 ### Core Principles
 
-1. **Hard enforcement, humane delivery.** The lockout is non-negotiable, but the experience should feel like a caring friend, not a prison warden. Every screen, notification, and animation should communicate: *"You did great work. Now rest."*
+1. **Hard enforcement, humane delivery.** The lockout is non-negotiable, but the experience should feel like a caring friend, not a prison warden. Every screen, notification, and animation should communicate: _"You did great work. Now rest."_
 
 2. **Commitment over willpower.** Users configure their schedule when they're rational (morning, weekend, setup). The app honors that decision even when the user wants to override it at 11 PM.
 
@@ -88,7 +88,7 @@ Curfew solves this by treating your schedule as a binding commitment, not a sugg
 
 - Settings UI uses a weekly calendar grid, similar to Calendar.app's week view
 - Each day is a row; drag handles adjust start/end times visually
-- A summary sentence below: *"Tomorrow, work ends at 6:00 PM and resumes at 8:00 AM."*
+- A summary sentence below: _"Tomorrow, work ends at 6:00 PM and resumes at 8:00 AM."_
 
 ---
 
@@ -98,14 +98,14 @@ Curfew solves this by treating your schedule as a binding commitment, not a sugg
 
 **Requirements:**
 
-| Time Before Lockout | Behavior |
-|---|---|
-| T-30 min | Standard macOS notification: *"30 minutes of work time left."* |
-| T-15 min | Persistent notification + menu bar icon turns amber. *"15 minutes — start wrapping up."* |
-| T-5 min | Screen overlay at 10% opacity (subtle dimming). Notification with sound: *"5 minutes. Save your work now."* |
-| T-2 min | Screen overlay at 25% opacity. Gentle chime. *"2 minutes remaining."* |
-| T-1 min | Screen overlay at 40% opacity. Audible countdown tone. *"1 minute. Final save."* |
-| T-0 | Full lockout screen transition (animated fade-in over 3 seconds). |
+| Time Before Lockout | Behavior                                                                                                    |
+| ------------------- | ----------------------------------------------------------------------------------------------------------- |
+| T-30 min            | Standard macOS notification: _"30 minutes of work time left."_                                              |
+| T-15 min            | Persistent notification + menu bar icon turns amber. _"15 minutes — start wrapping up."_                    |
+| T-5 min             | Screen overlay at 10% opacity (subtle dimming). Notification with sound: _"5 minutes. Save your work now."_ |
+| T-2 min             | Screen overlay at 25% opacity. Gentle chime. _"2 minutes remaining."_                                       |
+| T-1 min             | Screen overlay at 40% opacity. Audible countdown tone. _"1 minute. Final save."_                            |
+| T-0                 | Full lockout screen transition (animated fade-in over 3 seconds).                                           |
 
 - Warning intervals are user-configurable (advanced settings)
 - Each warning includes a "Snooze 1 min" action (but only at T-15 and T-30; not available in the final 5 minutes)
@@ -134,7 +134,7 @@ Curfew solves this by treating your schedule as a binding commitment, not a sugg
 - Implemented via `CGEvent.tapCreate` at the session level for key interception
 - Displays:
   - Current time (large, elegant typography)
-  - Unlock time: *"Your computer unlocks at 8:00 AM"*
+  - Unlock time: _"Your computer unlocks at 8:00 AM"_
   - A warm, encouraging message (randomly selected from a curated list)
   - Animated background (subtle gradient shift, particle effects, or generative art)
   - If shutdown is enabled: countdown to shutdown
@@ -143,12 +143,12 @@ Curfew solves this by treating your schedule as a binding commitment, not a sugg
 
 **Sample Messages (rotating):**
 
-- *"Great work today. Tomorrow is another day."*
-- *"The best code is written by a rested mind."*
-- *"You've earned this. Go live your life."*
-- *"Nothing in your inbox is more important than your health."*
-- *"Shut the laptop. Open a book."*
-- *"Future you will be grateful."*
+- _"Great work today. Tomorrow is another day."_
+- _"The best code is written by a rested mind."_
+- _"You've earned this. Go live your life."_
+- _"Nothing in your inbox is more important than your health."_
+- _"Shut the laptop. Open a book."_
+- _"Future you will be grateful."_
 
 **UX Notes:**
 
@@ -166,7 +166,7 @@ Curfew solves this by treating your schedule as a binding commitment, not a sugg
 **Requirements:**
 
 - Configurable delay after lockout (default: 10 minutes, range: 1–60 minutes)
-- Lockout screen shows countdown: *"Shutting down in 9:42..."*
+- Lockout screen shows countdown: _"Shutting down in 9:42..."_
 - Shutdown uses `osascript -e 'tell app "System Events" to shut down'` or equivalent AppleScript/NSAppleScript call
 - User can disable auto-shutdown entirely (lockout remains active)
 - Graceful handling: sends `NSWorkspace.shared.requestTermination()` to all apps before shutdown, giving them time to auto-save
@@ -175,7 +175,7 @@ Curfew solves this by treating your schedule as a binding commitment, not a sugg
 **UX Notes:**
 
 - The shutdown countdown should feel like a gentle wind-down, not a threat
-- Display: *"Your Mac is going to sleep in 10 minutes. Sweet dreams."*
+- Display: _"Your Mac is going to sleep in 10 minutes. Sweet dreams."_
 - Use "sleep" language even if performing a full shutdown — it's friendlier
 
 ---
@@ -203,9 +203,10 @@ Curfew solves this by treating your schedule as a binding commitment, not a sugg
 **Emergency Override:**
 
 - A clearly documented escape hatch exists: boot into Recovery Mode, or use a specific Terminal command with `sudo` that requires the user's admin password and writes a cooldown flag
-- The override is logged and shown in the weekly summary: *"Emergency override used on Tuesday at 11:32 PM"*
-- Override command: `sudo curfew-ctl override --reason "emergency"` (installed as a CLI companion)
-- Overrides are limited: maximum 2 per week by default (configurable). After that, the CLI command refuses.
+- The override is logged and shown in the weekly summary: _"Emergency override used on Tuesday at 11:32 PM"_
+- Budgeted overrides require the in-app cooldown, reason, and hold confirmation. The CLI directs users to that flow.
+- Emergency CLI recovery uses `sudo curfew-ctl break-glass --reason "Emergency recovery of stalled enforcement"`. It suspends destructive enforcement and attempts to cancel a pending shutdown; the display stays locked. See [the CLI launch contract](cli-launch.md) and [protected work](protected-work.md).
+- Budgeted in-app overrides are limited to 2 per week by default (configurable). Emergency CLI recovery is a separate signed release, not a budget grant.
 
 **Mac App Store Compatibility:**
 
@@ -234,8 +235,8 @@ Curfew solves this by treating your schedule as a binding commitment, not a sugg
 
 - The countdown should use a custom circular progress ring, not just text
 - Color transitions should be smooth (animated gradient from green to amber to red)
-- When in lockout, widget shows: *"Locked until 8:00 AM 🌅"*
-- When on a day off, widget shows: *"Day off. Enjoy! ☀️"*
+- When in lockout, widget shows: _"Locked until 8:00 AM 🌅"_
+- When on a day off, widget shows: _"Day off. Enjoy! ☀️"_
 
 ---
 
@@ -249,15 +250,15 @@ Curfew solves this by treating your schedule as a binding commitment, not a sugg
 - Each extension: configurable duration (default: 15 minutes)
 - Extensions can only be requested during the warning phase (T-30 to T-0), not after lockout
 - Requesting an extension shifts the lockout time forward by the extension duration
-- UI: a prominent but not intrusive button in the warning overlay: *"Need 15 more minutes? (2 left this week)"*
-- Once the budget is spent, the button is disabled with text: *"No extensions remaining this week."*
+- UI: a prominent but not intrusive button in the warning overlay: _"Need 15 more minutes? (2 left this week)"_
+- Once the budget is spent, the button is disabled with text: _"No extensions remaining this week."_
 - Extensions reset on a configurable day (default: Monday at unlock time)
 - Extension usage is logged and shown in the weekly summary
 
 **UX Notes:**
 
 - The extension button should require a deliberate action (e.g., press and hold for 2 seconds) to prevent accidental activation
-- After using an extension, show: *"Extension activated. New curfew: 6:15 PM. You have 1 extension left this week — use it wisely."*
+- After using an extension, show: _"Extension activated. New curfew: 6:15 PM. You have 1 extension left this week — use it wisely."_
 
 ---
 
@@ -270,7 +271,7 @@ Curfew solves this by treating your schedule as a binding commitment, not a sugg
 - Reads events from the system calendar via EventKit
 - If a meeting is scheduled to end after the configured curfew time, offer to auto-extend (costs 1 extension)
 - Detection runs 1 hour before curfew and checks for events overlapping the lockout boundary
-- User receives a notification: *"You have 'Team Standup' ending at 6:15 PM. Use an extension to cover it?"*
+- User receives a notification: _"You have 'Team Standup' ending at 6:15 PM. Use an extension to cover it?"_
 - Calendar integration is opt-in and requires explicit calendar access permission
 - Only reads event times and titles — does not access attendees, notes, or other fields
 - Supports multiple calendar sources (iCloud, Google, Exchange)
@@ -308,7 +309,7 @@ For remote MCP clients, custom integrations, or multi-process setups, Curfew opt
 
 **Auto-configuration:**
 
-On first launch, Curfew detects whether Claude Desktop is installed (checks for the config file at `~/Library/Application Support/Claude/claude_desktop_config.json`) and offers to register itself automatically: *"Claude Desktop detected. Add Curfew as an MCP server?"* This removes all manual configuration for the most common use case.
+On first launch, Curfew detects whether Claude Desktop is installed (checks for the config file at `~/Library/Application Support/Claude/claude_desktop_config.json`) and offers to register itself automatically: _"Claude Desktop detected. Add Curfew as an MCP server?"_ This removes all manual configuration for the most common use case.
 
 #### F9.2: Technical Implementation
 
@@ -372,19 +373,19 @@ For write operations (`request_extension`, `set_schedule`), the server writes to
 
 #### F9.3: Tools
 
-| Tool | Description | Parameters | Returns |
-|---|---|---|---|
-| `get_status` | Current enforcement state | None | `{ state: "working" \| "warning" \| "locked" \| "day_off", device: string }` |
-| `get_time_remaining` | Minutes until lockout (accounts for hours-based mode and cross-device time) | None | `{ minutes: int, mode: "fixed" \| "hours" \| "combined", trigger: "time" \| "hours" }` |
-| `get_schedule` | Full schedule for a given date | `date?: string` (ISO date, defaults to today) | `{ end_time: string, unlock_time: string, mode: string, hours_limit?: int }` |
-| `get_weekly_summary` | Hours worked, extensions, overrides with device attribution | `week_of?: string` (ISO date, defaults to current week) | `{ days: [DaySummary], total_hours: float, extensions_used: int, overrides_used: int, streak: int }` |
-| `request_extension` | Request a time extension if budget allows | `reason: string` | `{ granted: bool, new_end_time?: string, remaining_budget: int, message: string }` |
-| `set_schedule` | Update schedule for a future date (cannot weaken today) | `date: string, end_time: string, unlock_time?: string, mode?: string` | `{ success: bool, effective_date: string, message: string }` |
-| `get_extension_budget` | Remaining extensions this week (shared across all devices) | None | `{ remaining: int, total: int, resets_on: string }` |
-| `get_devices` | All synced devices with current status | None | `{ devices: [{ name: string, model: string, status: "active" \| "idle" \| "offline", hours_today: float }] }` |
-| `get_total_hours_today` | Cumulative work hours across all devices | `date?: string` (ISO date) | `{ total_hours: float, by_device: [{ name: string, hours: float }] }` |
-| `get_override_log` | Recent overrides with device, time, and reason | `limit?: int` (default 10) | `{ overrides: [{ timestamp: string, device: string, reason?: string, duration_minutes: int }] }` |
-| `get_streak` | Current streak of days without extensions or overrides | None | `{ days: int, since: string, longest_ever: int }` |
+| Tool                    | Description                                                                 | Parameters                                                            | Returns                                                                                                       |
+| ----------------------- | --------------------------------------------------------------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `get_status`            | Current enforcement state                                                   | None                                                                  | `{ state: "working" \| "warning" \| "locked" \| "day_off", device: string }`                                  |
+| `get_time_remaining`    | Minutes until lockout (accounts for hours-based mode and cross-device time) | None                                                                  | `{ minutes: int, mode: "fixed" \| "hours" \| "combined", trigger: "time" \| "hours" }`                        |
+| `get_schedule`          | Full schedule for a given date                                              | `date?: string` (ISO date, defaults to today)                         | `{ end_time: string, unlock_time: string, mode: string, hours_limit?: int }`                                  |
+| `get_weekly_summary`    | Hours worked, extensions, overrides with device attribution                 | `week_of?: string` (ISO date, defaults to current week)               | `{ days: [DaySummary], total_hours: float, extensions_used: int, overrides_used: int, streak: int }`          |
+| `request_extension`     | Request a time extension if budget allows                                   | `reason: string`                                                      | `{ granted: bool, new_end_time?: string, remaining_budget: int, message: string }`                            |
+| `set_schedule`          | Update schedule for a future date (cannot weaken today)                     | `date: string, end_time: string, unlock_time?: string, mode?: string` | `{ success: bool, effective_date: string, message: string }`                                                  |
+| `get_extension_budget`  | Remaining extensions this week (shared across all devices)                  | None                                                                  | `{ remaining: int, total: int, resets_on: string }`                                                           |
+| `get_devices`           | All synced devices with current status                                      | None                                                                  | `{ devices: [{ name: string, model: string, status: "active" \| "idle" \| "offline", hours_today: float }] }` |
+| `get_total_hours_today` | Cumulative work hours across all devices                                    | `date?: string` (ISO date)                                            | `{ total_hours: float, by_device: [{ name: string, hours: float }] }`                                         |
+| `get_override_log`      | Recent overrides with device, time, and reason                              | `limit?: int` (default 10)                                            | `{ overrides: [{ timestamp: string, device: string, reason?: string, duration_minutes: int }] }`              |
+| `get_streak`            | Current streak of days without extensions or overrides                      | None                                                                  | `{ days: int, since: string, longest_ever: int }`                                                             |
 
 The tool set is deliberately read-heavy. The only write operations are `request_extension` and `set_schedule`, both of which respect the same constraints as the UI: you cannot weaken today's schedule, and extensions draw from the shared cross-device budget. The MCP server cannot be used to bypass enforcement — it is a window into the system, not a backdoor.
 
@@ -392,35 +393,35 @@ The tool set is deliberately read-heavy. The only write operations are `request_
 
 **1. Time-aware task prioritization (the core pitch)**
 
-The AI assistant knows how much time the user has left and can help make decisions accordingly. When the user asks *"I have three PRs to review, a bug to fix, and a design doc to write — what should I focus on?"*, the assistant calls `get_time_remaining`, sees 90 minutes remain, and reasons about what's achievable: two PR reviews and the bug fix, deferring the design doc. Without Curfew, the assistant has no concept of the user's time budget. With it, every prioritization response is grounded in reality.
+The AI assistant knows how much time the user has left and can help make decisions accordingly. When the user asks _"I have three PRs to review, a bug to fix, and a design doc to write — what should I focus on?"_, the assistant calls `get_time_remaining`, sees 90 minutes remain, and reasons about what's achievable: two PR reviews and the bug fix, deferring the design doc. Without Curfew, the assistant has no concept of the user's time budget. With it, every prioritization response is grounded in reality.
 
 **2. Proactive time awareness during long sessions**
 
-If the assistant is in a long conversation (debugging, writing, planning), it can periodically check `get_time_remaining` and interject naturally: *"By the way, you have 20 minutes before curfew. Want to wrap up this refactor at a good stopping point, or should I help you request an extension?"* This is contextually aware time management — not a dumb timer notification.
+If the assistant is in a long conversation (debugging, writing, planning), it can periodically check `get_time_remaining` and interject naturally: _"By the way, you have 20 minutes before curfew. Want to wrap up this refactor at a good stopping point, or should I help you request an extension?"_ This is contextually aware time management — not a dumb timer notification.
 
 **3. Extension negotiation**
 
-The `request_extension` tool takes a `reason` parameter. The assistant can act as a mediator between the user and their own commitment: *"You have 1 extension left this week. The deploy failure looks like it's in the staging config — I can draft a rollback PR that your teammate could merge tomorrow. Want to do that instead of burning your last extension?"* The assistant helps find alternatives to overriding the user's commitment.
+The `request_extension` tool takes a `reason` parameter. The assistant can act as a mediator between the user and their own commitment: _"You have 1 extension left this week. The deploy failure looks like it's in the staging config — I can draft a rollback PR that your teammate could merge tomorrow. Want to do that instead of burning your last extension?"_ The assistant helps find alternatives to overriding the user's commitment.
 
 **4. Smart schedule adjustment**
 
-The `set_schedule` tool lets the assistant help plan ahead: *"I have a product launch next Thursday. Can you push my curfew to 9 PM that day?"* The assistant can also surface patterns over time: *"You've extended past 8 PM three times this month. Want me to move your default curfew to 7 PM on weekdays to compensate?"*
+The `set_schedule` tool lets the assistant help plan ahead: _"I have a product launch next Thursday. Can you push my curfew to 9 PM that day?"_ The assistant can also surface patterns over time: _"You've extended past 8 PM three times this month. Want me to move your default curfew to 7 PM on weekdays to compensate?"_
 
 **5. End-of-day ritual automation (MCP composability)**
 
-An MCP client like Claude Code can combine Curfew's time signal with other MCP servers to trigger end-of-day workflows. At T-15, the assistant automatically: creates a WIP commit and pushes the branch (GitHub MCP server), writes a handoff note summarizing where the user left off and what to pick up tomorrow, and posts a status update to Slack (Slack MCP server). Curfew provides the *when*; other MCP servers provide the *what*. This composability is the key architectural insight.
+An MCP client like Claude Code can combine Curfew's time signal with other MCP servers to trigger end-of-day workflows. At T-15, the assistant automatically: creates a WIP commit and pushes the branch (GitHub MCP server), writes a handoff note summarizing where the user left off and what to pick up tomorrow, and posts a status update to Slack (Slack MCP server). Curfew provides the _when_; other MCP servers provide the _what_. This composability is the key architectural insight.
 
 **6. Cross-device context**
 
-The `get_devices` and `get_total_hours_today` tools let the assistant understand the user's work holistically: *"You've worked 6.5 hours today across your Mac Studio and MacBook. You have 1.5 hours left in your hours budget. Your Mac Studio has been idle for 2 hours — looks like you switched to the MacBook after lunch."*
+The `get_devices` and `get_total_hours_today` tools let the assistant understand the user's work holistically: _"You've worked 6.5 hours today across your Mac Studio and MacBook. You have 1.5 hours left in your hours budget. Your Mac Studio has been idle for 2 hours — looks like you switched to the MacBook after lunch."_
 
 **7. Weekly review co-pilot**
 
-The `get_weekly_summary` tool with device attribution feeds a structured reflection conversation: *"Here's your week: 42 hours across 5 days, averaging 8.4 hours. You used 2 extensions — both on Wednesday, both on your MacBook. You had a 9-day streak before that. Want to dig into what happened Wednesday?"* The assistant turns raw data into a conversation about habits.
+The `get_weekly_summary` tool with device attribution feeds a structured reflection conversation: _"Here's your week: 42 hours across 5 days, averaging 8.4 hours. You used 2 extensions — both on Wednesday, both on your MacBook. You had a 9-day streak before that. Want to dig into what happened Wednesday?"_ The assistant turns raw data into a conversation about habits.
 
 **8. Holistic planning with other MCP tools**
 
-If the user also has calendar, task management (Linear, Todoist), and communication (Slack, email) MCP servers connected, the assistant can synthesize across all of them: *"You have 3 meetings tomorrow totaling 2.5 hours, 4 Linear tickets in your sprint, and curfew at 6 PM. That leaves roughly 4.5 hours of focus time. Here's a suggested block schedule..."* Curfew becomes the time constraint that makes all other planning concrete.
+If the user also has calendar, task management (Linear, Todoist), and communication (Slack, email) MCP servers connected, the assistant can synthesize across all of them: _"You have 3 meetings tomorrow totaling 2.5 hours, 4 Linear tickets in your sprint, and curfew at 6 PM. That leaves roughly 4.5 hours of focus time. Here's a suggested block schedule..."_ Curfew becomes the time constraint that makes all other planning concrete.
 
 ---
 
@@ -431,7 +432,7 @@ If the user also has calendar, task management (Linear, Todoist), and communicat
 **Requirements:**
 
 - Multi-step onboarding flow (4–5 screens):
-  1. **Welcome:** *"Curfew helps you stop working on time. Not tomorrow. Today."* Brief explanation of the commitment model.
+  1. **Welcome:** _"Curfew helps you stop working on time. Not tomorrow. Today."_ Brief explanation of the commitment model.
   2. **Schedule Setup:** Interactive weekly schedule picker. Fresh installs propose 22:00 lock and 06:00 unlock on weekdays, with weekends off. Saved schedules are not rewritten. The user explicitly chooses this automatic schedule or no automatic schedule with remote controls only.
   3. **Extension Budget:** Explain the extension system. Let user pick budget (1–5/week) and duration (10, 15, 30 min).
   4. **Permissions:** Request notification permission, calendar access (optional), accessibility access (for event tap — required for full lockout).
@@ -443,7 +444,7 @@ If the user also has calendar, task management (Linear, Todoist), and communicat
 
 - Each screen should have a single focus — no overwhelming the user with options
 - Use animation to demonstrate the warning escalation visually
-- The tone should be warm and slightly humorous: *"We're not your boss. We're the friend who tells you to go home."*
+- The tone should be warm and slightly humorous: _"We're not your boss. We're the friend who tells you to go home."_
 
 ---
 
@@ -453,7 +454,7 @@ If the user also has calendar, task management (Linear, Todoist), and communicat
 
 **Requirements:**
 
-- Accessible from the menu bar app: *"This Week"* section
+- Accessible from the menu bar app: _"This Week"_ section
 - Shows:
   - Daily hours worked (bar chart)
   - Average daily work time
@@ -468,8 +469,8 @@ If the user also has calendar, task management (Linear, Todoist), and communicat
 **UX Notes:**
 
 - The retrospective should feel like a fitness app summary — encouraging, not judgmental
-- Celebrate streaks: *"12 days without an extension. You're building a great habit."*
-- If override usage is high: *"You've used 4 overrides this month. Consider adjusting your schedule to better fit your needs."* (Helpful, not preachy.)
+- Celebrate streaks: _"12 days without an extension. You're building a great habit."_
+- If override usage is high: _"You've used 4 overrides this month. Consider adjusting your schedule to better fit your needs."_ (Helpful, not preachy.)
 
 ---
 
@@ -533,13 +534,13 @@ If the user also has calendar, task management (Linear, Todoist), and communicat
 - CloudKit private database: data is encrypted and accessible only to the user's iCloud account
 - No third-party servers, no account creation, no data leaves iCloud
 - If the user is signed out of iCloud, sync is disabled and each device operates independently
-- Settings UI shows sync status: *"Synced across 2 devices"* or *"Sign in to iCloud to sync across your Macs"*
+- Settings UI shows sync status: _"Synced across 2 devices"_ or _"Sign in to iCloud to sync across your Macs"_
 
 **UX Notes:**
 
 - Settings includes a "Devices" section listing all synced Macs with their last-seen time
 - A device can be removed from sync (stops enforcing the shared schedule and operates independently)
-- First-launch onboarding includes a sync step: *"Curfew found 1 other Mac on your iCloud account. Sync your schedule across both?"*
+- First-launch onboarding includes a sync step: _"Curfew found 1 other Mac on your iCloud account. Sync your schedule across both?"_
 
 ---
 
@@ -558,10 +559,10 @@ If the user also has calendar, task management (Linear, Todoist), and communicat
 
 **Hours-Based Curfew Mode:**
 
-- In addition to the existing fixed-time mode ("lock at 6 PM"), support an hours-based mode: *"Lock after 8 hours of work"*
-- Combination mode: *"Lock at 6 PM OR after 8 hours, whichever comes first"*
+- In addition to the existing fixed-time mode ("lock at 6 PM"), support an hours-based mode: _"Lock after 8 hours of work"_
+- Combination mode: _"Lock at 6 PM OR after 8 hours, whichever comes first"_
 - Hours-based mode uses the unified cross-device work timer as its input
-- When the hours limit is approaching, the same warning escalation system (F2) activates, with messages adjusted: *"7 hours 30 minutes worked today. 30 minutes remaining."*
+- When the hours limit is approaching, the same warning escalation system (F2) activates, with messages adjusted: _"7 hours 30 minutes worked today. 30 minutes remaining."_
 
 **Session Reporting:**
 
@@ -572,7 +573,7 @@ If the user also has calendar, task management (Linear, Todoist), and communicat
 **UX Notes:**
 
 - Schedule configuration UI adds a toggle: "Time-based" vs. "Hours-based" vs. "Combined"
-- The menu bar popover shows: *"5h 23m worked today (across 2 devices) · 2h 37m remaining"*
+- The menu bar popover shows: _"5h 23m worked today (across 2 devices) · 2h 37m remaining"_
 - The widget (Medium/Large) shows a breakdown: which device contributed how many hours
 
 ---
@@ -586,9 +587,9 @@ If the user also has calendar, task management (Linear, Todoist), and communicat
 - Each device writes a heartbeat to CloudKit every 60 seconds while the user is active (shares the `DeviceActivity` record from F14)
 - A device is considered "active" if its last heartbeat is within the past 2 minutes
 - Idle devices show contextual information about the active device:
-  - Menu bar popover: *"Currently working on Mac Studio · 2h 14m today"*
-  - Widget: *"Active on Mac Studio · 47 min remaining"*
-  - Lockout screen (if idle device is locked but active device is still in its work window): *"Your Mac Studio is still active. Curfew in 47 minutes."*
+  - Menu bar popover: _"Currently working on Mac Studio · 2h 14m today"_
+  - Widget: _"Active on Mac Studio · 47 min remaining"_
+  - Lockout screen (if idle device is locked but active device is still in its work window): _"Your Mac Studio is still active. Curfew in 47 minutes."_
 
 **Coordinated Shutdown Sequencing (F4 integration):**
 
@@ -621,9 +622,9 @@ If the user also has calendar, task management (Linear, Todoist), and communicat
   - Device name and model
   - Reason (if provided via the "Convince Me" flow or CLI `--reason` flag)
 - The weekly retrospective (F11) includes device attribution:
-  - *"You used 2 overrides this week — both on MacBook Pro"*
-  - *"Extensions: 1 on Mac Studio (Tuesday), 1 on MacBook Pro (Thursday)"*
-- Over time, the retrospective can surface patterns: *"You override most often on your MacBook Pro in the evenings. Consider leaving it in another room after curfew."*
+  - _"You used 2 overrides this week — both on MacBook Pro"_
+  - _"Extensions: 1 on Mac Studio (Tuesday), 1 on MacBook Pro (Thursday)"_
+- Over time, the retrospective can surface patterns: _"You override most often on your MacBook Pro in the evenings. Consider leaving it in another room after curfew."_
 
 **UX Notes:**
 
@@ -640,16 +641,16 @@ If the user also has calendar, task management (Linear, Todoist), and communicat
 
 **Flow:**
 
-1. **Entry point:** A small, understated link at the bottom of the lockout screen: *"Need to get back in?"* — deliberately low-contrast, not a prominent button.
-2. **Cooldown timer:** Tapping the link starts a 5-minute countdown before the unlock process becomes available. Screen displays: *"Still sure? Unlock available in 4:32..."* The user must wait. Most impulses die in 5 minutes.
-3. **Written justification:** After the cooldown, a text field appears: *"Explain why you need to get back on your computer right now."* Minimum 50 characters required. This activates the reflective/rational part of the brain — the user must articulate a reason, and writing it out often makes them realize it can wait.
-4. **Confirmation with consequences:** After submitting, a final screen: *"This will count as 1 of your 2 weekly overrides. Your weekly summary will log this at 11:47 PM on MacBook Pro. Proceed?"* A press-and-hold button (3 seconds) to confirm — not a tap.
+1. **Entry point:** A small, understated link at the bottom of the lockout screen: _"Need to get back in?"_ — deliberately low-contrast, not a prominent button.
+2. **Cooldown timer:** Tapping the link starts a 5-minute countdown before the unlock process becomes available. Screen displays: _"Still sure? Unlock available in 4:32..."_ The user must wait. Most impulses die in 5 minutes.
+3. **Written justification:** After the cooldown, a text field appears: _"Explain why you need to get back on your computer right now."_ Minimum 50 characters required. This activates the reflective/rational part of the brain — the user must articulate a reason, and writing it out often makes them realize it can wait.
+4. **Confirmation with consequences:** After submitting, a final screen: _"This will count as 1 of your 2 weekly overrides. Your weekly summary will log this at 11:47 PM on MacBook Pro. Proceed?"_ A press-and-hold button (3 seconds) to confirm — not a tap.
 5. **Time-limited unlock:** The override grants 30 minutes (configurable, default 30, range 15–60). After the granted period, lockout resumes automatically. If the user needs more time, they must go through the entire flow again — but are now on their last override for the week.
 
 **Budget Integration:**
 
 - Uses the same weekly override budget as the CLI emergency override (F5) — they are the same pool
-- If no overrides remain, the flow ends at step 1 with: *"No overrides remaining this week. See you in the morning."*
+- If no overrides remain, the flow ends at step 1 with: _"No overrides remaining this week. See you in the morning."_
 - Override count is synced across devices via CloudKit (F13)
 
 **Logging:**
@@ -662,7 +663,7 @@ If the user also has calendar, task management (Linear, Todoist), and communicat
 
 - The 5-minute cooldown is the most important part — it's the gap between impulse and action
 - The text field should feel like journaling, not a form: large, comfortable, no character counter visible until under 50 characters
-- After the override period ends and lockout resumes, the screen says: *"Welcome back. Hope you got what you needed."* — no judgment
+- After the override period ends and lockout resumes, the screen says: _"Welcome back. Hope you got what you needed."_ — no judgment
 
 ---
 
@@ -713,7 +714,7 @@ If the user also has calendar, task management (Linear, Todoist), and communicat
    - Onboarding flow begins, including privileged helper installation (prompts for admin password once)
 
 2. **Secondary: Homebrew Cask**
-   - `brew install --cask curfew`
+   - `brew install --cask thehypertextstudio/tap/curfew`
    - Homebrew handles download, extraction, and placement in `/Applications`
    - First launch still triggers onboarding and privileged helper installation
 
@@ -817,16 +818,16 @@ withdrawal procedure.
 
 ## Data Storage
 
-| Data | Location | Access | Synced |
-|---|---|---|---|
-| User schedule | App Group shared container (`UserDefaults` suite) | App, Widget, MCP Server | ✅ CloudKit (private DB, `Schedule` record) |
-| Lockout state | `/Library/Application Support/Curfew/state.plist` | Daemon (write), App (read) | ✅ CloudKit (private DB, `LockoutState` record) |
-| Device registry | CloudKit private DB (`Device` record) | App | ✅ CloudKit |
-| Device activity heartbeats | CloudKit private DB (`DeviceActivity` record) | App | ✅ CloudKit |
-| Usage history | SQLite database in App Group container | App, Widget, MCP Server | ❌ Local only |
-| User preferences | `UserDefaults` (standard) | App | ❌ Local only |
-| Extension/override budget | SQLite + CloudKit `LockoutState` record | App, MCP Server | ✅ CloudKit (count only) |
-| Override justifications | SQLite database in App Group container | App | ❌ Local only (privacy) |
+| Data                       | Location                                          | Access                     | Synced                                          |
+| -------------------------- | ------------------------------------------------- | -------------------------- | ----------------------------------------------- |
+| User schedule              | App Group shared container (`UserDefaults` suite) | App, Widget, MCP Server    | ✅ CloudKit (private DB, `Schedule` record)     |
+| Lockout state              | `/Library/Application Support/Curfew/state.plist` | Daemon (write), App (read) | ✅ CloudKit (private DB, `LockoutState` record) |
+| Device registry            | CloudKit private DB (`Device` record)             | App                        | ✅ CloudKit                                     |
+| Device activity heartbeats | CloudKit private DB (`DeviceActivity` record)     | App                        | ✅ CloudKit                                     |
+| Usage history              | SQLite database in App Group container            | App, Widget, MCP Server    | ❌ Local only                                   |
+| User preferences           | `UserDefaults` (standard)                         | App                        | ❌ Local only                                   |
+| Extension/override budget  | SQLite + CloudKit `LockoutState` record           | App, MCP Server            | ✅ CloudKit (count only)                        |
+| Override justifications    | SQLite database in App Group container            | App                        | ❌ Local only (privacy)                         |
 
 ---
 
@@ -888,7 +889,7 @@ withdrawal procedure.
 
 ## Open Questions
 
-1. **Should schedule weakening have a cooldown?** Current design says changes take effect next day. Should making the schedule *less* strict (e.g., moving curfew from 6 PM to 9 PM) require a 24–48 hour cooldown to prevent in-the-moment weakening?
+1. **Should schedule weakening have a cooldown?** Current design says changes take effect next day. Should making the schedule _less_ strict (e.g., moving curfew from 6 PM to 9 PM) require a 24–48 hour cooldown to prevent in-the-moment weakening?
 
 2. **Multi-user Mac support?** Should each macOS user account have independent schedules? (Probably yes, but adds complexity to the daemon.)
 
@@ -912,7 +913,7 @@ withdrawal procedure.
 
 ---
 
-*Curfew: Because the best productivity hack is knowing when to stop.*
+_Curfew: Because the best productivity hack is knowing when to stop._
 
 ---
 
@@ -1383,11 +1384,11 @@ T-0 reached
        ├─► Screen Locker activates
        │   (local, immediate)
        │
-       ├─► Writes state.plist           
-       │   isLocked: true               
-       │   lockoutStarted: now          
-       │   unlockTime: 8:00 AM          
-       │                                
+       ├─► Writes state.plist
+       │   isLocked: true
+       │   lockoutStarted: now
+       │   unlockTime: 8:00 AM
+       │
        ├─► CloudKitSync pushes ──────►  LockoutState record
        │   updated record               updated in private DB
        │                                       │
@@ -2109,4 +2110,4 @@ ACCESSIBILITY NOTES:
 
 ---
 
-*Curfew: Because the best productivity hack is knowing when to stop.*
+_Curfew: Because the best productivity hack is knowing when to stop._

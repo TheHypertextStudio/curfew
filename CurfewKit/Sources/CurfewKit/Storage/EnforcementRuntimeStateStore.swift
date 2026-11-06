@@ -1,13 +1,15 @@
-import Darwin
 import Foundation
 
 /// The main actor owns writes. An omitted URL keeps injected tests and demos off user storage.
 public final class EnforcementRuntimeStateStore {
     public let recordURL: URL?
     private var memoryState: EnforcementRuntimeState?
+    private let afterPersist: (() throws -> Void)?
+    private static let maximumBytes = 65536
 
-    public init(recordURL: URL? = nil) {
+    public init(recordURL: URL? = nil, afterPersist: (() throws -> Void)? = nil) {
         self.recordURL = recordURL
+        self.afterPersist = afterPersist
     }
 
     public static func production() -> EnforcementRuntimeStateStore {
@@ -19,19 +21,11 @@ public final class EnforcementRuntimeStateStore {
 
     public func load() throws -> EnforcementRuntimeState? {
         guard let recordURL else { return memoryState }
-        let data: Data
-        do {
-            data = try Data(contentsOf: recordURL)
-        } catch {
-            let cocoaError = error as NSError
-            let underlying = cocoaError.userInfo[NSUnderlyingErrorKey] as? NSError
-            if cocoaError.domain == NSCocoaErrorDomain,
-               cocoaError.code == CocoaError.fileReadNoSuchFile.rawValue,
-               underlying?.domain == NSPOSIXErrorDomain, underlying?.code == Int(ENOENT) {
-                return nil
-            }
-            throw error
-        }
+        guard let data = try BoundedRegularFileReader.read(
+            recordURL,
+            maximumBytes: Self.maximumBytes
+        )
+        else { return nil }
         let state = try JSONDecoder().decode(EnforcementRuntimeState.self, from: data)
         try validate(state)
         return state
@@ -39,27 +33,16 @@ public final class EnforcementRuntimeStateStore {
 
     public func save(_ state: EnforcementRuntimeState) throws {
         try validate(state)
+        let data = try JSONEncoder().encode(state)
+        guard data.count <= Self.maximumBytes else { throw BoundedRegularFileReadError.tooLarge }
         guard let recordURL else {
             memoryState = state
+            try afterPersist?()
             return
         }
-        let directory = recordURL.deletingLastPathComponent()
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        let data = try JSONEncoder().encode(state)
-        try data.write(to: recordURL, options: .atomic)
-        try FileManager.default.setAttributes(
-            [.posixPermissions: 0o600],
-            ofItemAtPath: recordURL.path
-        )
-        let file = try FileHandle(forWritingTo: recordURL)
-        defer { try? file.close() }
-        try file.synchronize()
-        // The rename must reach disk as well as the bytes before a grant takes effect.
-        let descriptor = open(directory.path, O_RDONLY)
-        guard descriptor >= 0 else { throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO) }
-        defer { close(descriptor) }
-        guard fsync(descriptor) == 0
-        else { throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO) }
+        // Private bytes and the rename must reach disk before a grant takes effect.
+        try BreakGlassPrivateFileWriter.write(data, to: recordURL, replaceExisting: true)
+        try afterPersist?()
     }
 
     private func validate(_ state: EnforcementRuntimeState) throws {
@@ -69,10 +52,23 @@ public final class EnforcementRuntimeStateStore {
             state.extensionUses,
             state.overrideUses
         ]
-        let dates = [state.extensionResetBoundary, state.overrideResetBoundary, state.overrideUntil]
-        guard state.version == 1, !state.dayToken.isEmpty,
+        let dates = [
+            state.extensionResetBoundary,
+            state.overrideResetBoundary,
+            state.overrideUntil,
+            state.mcpReceiptTrackingStartedAt
+        ]
+        let receipts = state.mcpGrantReceipts ?? []
+        let legacy = state.legacyMCPGrantRequestIDs ?? []
+        guard [1, 2].contains(state.version), !state.dayToken.isEmpty,
               counters.allSatisfy({ (0 ... 1_000_000).contains($0) }),
-              dates.compactMap(\.self).allSatisfy(\.timeIntervalSince1970.isFinite)
+              dates.compactMap(\.self).allSatisfy(\.timeIntervalSince1970.isFinite),
+              receipts.allSatisfy(\.isValid),
+              Set(receipts.map(\.requestID)).count == receipts.count,
+              Set(legacy).count == legacy.count,
+              Set(legacy).isDisjoint(with: receipts.map(\.requestID)),
+              state.version == 2 || (receipts.isEmpty && legacy.isEmpty &&
+                  state.mcpReceiptTrackingStartedAt == nil)
         else {
             throw CocoaError(.coderReadCorrupt)
         }

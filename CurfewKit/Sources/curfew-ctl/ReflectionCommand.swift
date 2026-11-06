@@ -19,8 +19,16 @@ struct ReflectionCommand: ParsableCommand {
     var gate: String?
 
     /// Emit JSON rather than the default human-readable format.
-    @Flag(name: .shortAndLong, help: "Output as JSON instead of plain text.")
-    var json: Bool = false
+    @OptionGroup var options: CLIOptions
+    var json: Bool {
+        options.json
+    }
+
+    mutating func validate() throws {
+        guard days > 0 else {
+            throw ValidationError("--days must be at least 1.")
+        }
+    }
 
     func run() throws {
         let gateFilter: ReflectionGate?
@@ -33,8 +41,16 @@ struct ReflectionCommand: ParsableCommand {
             gateFilter = nil
         }
 
-        guard let store = openReflectionStore() else {
-            print("No reflections found. Has Curfew been launched yet?")
+        guard let store = try openReflectionStore() else {
+            if json {
+                try print(String(data: Self.jsonData(reflections: []), encoding: .utf8) ?? "{}")
+                return
+            }
+            try CLIText.print(
+                "No reflections are available. Record a reflection in Curfew first.",
+                title: "Reflections",
+                options: options
+            )
             return
         }
 
@@ -44,45 +60,47 @@ struct ReflectionCommand: ParsableCommand {
         let rangeStart = calendar.date(byAdding: .day, value: -max(0, days - 1), to: dayStart)
             ?? dayStart
 
-        let reflections: [Reflection]
-        do {
-            reflections = try store.reflections(in: rangeStart ... now)
-                .filter { gateFilter == nil || $0.gate == gateFilter }
-        } catch {
-            fputs("Error reading reflections: \(error)\n", stderr)
-            return
-        }
-
-        if reflections.isEmpty {
-            print("No reflections in the last \(days) day\(days == 1 ? "" : "s").")
-            return
-        }
-
+        let reflections = try store.reflections(in: rangeStart ... now)
+            .filter { gateFilter == nil || $0.gate == gateFilter }
         if json {
-            printJSON(reflections: reflections)
+            try print(String(data: Self.jsonData(reflections: reflections), encoding: .utf8) ??
+                "{}")
+        } else if reflections.isEmpty {
+            try CLIText.print(
+                "No reflections in the last \(days) day\(days == 1 ? "" : "s").",
+                title: "Reflections",
+                options: options
+            )
         } else {
-            printPlain(reflections: reflections)
+            try printPlain(reflections: reflections)
         }
     }
 
     // MARK: - Output formatters
 
-    private func printPlain(reflections: [Reflection]) {
+    private func printPlain(reflections: [Reflection]) throws {
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
         formatter.timeStyle = .short
+        var lines: [String] = []
         for reflection in reflections.reversed() {
             let when = formatter.string(from: reflection.timestamp)
             let gateLabel = reflection.gate == .morning ? "Start of work" : "Lockout"
-            print("\(when) — \(gateLabel)")
+            lines.append("\(when) — \(gateLabel)")
             for answer in reflection.answers {
-                print("  • \(answer.promptTextSnapshot)")
-                print("      \(valueText(answer.value))")
+                lines.append("  \(answer.promptTextSnapshot)")
+                lines.append("    \(valueText(answer.value))")
             }
         }
+        try CLIText.print(
+            lines.joined(separator: "\n"),
+            title: "Reflections",
+            options: options,
+            page: true
+        )
     }
 
-    private func printJSON(reflections: [Reflection]) {
+    static func jsonData(reflections: [Reflection]) throws -> Data {
         let iso = ISO8601DateFormatter()
         let items: [[String: Any]] = reflections.map { reflection in
             [
@@ -91,12 +109,7 @@ struct ReflectionCommand: ParsableCommand {
                 "answers": reflection.answers.map(reflectionAnswerJSON)
             ]
         }
-        if let data = try? JSONSerialization.data(
-            withJSONObject: ["reflections": items],
-            options: [.prettyPrinted, .sortedKeys]
-        ) {
-            print(String(data: data, encoding: .utf8) ?? "{}")
-        }
+        return try CLIOutput.data(["reflections": items])
     }
 
     private func valueText(_ value: ReflectionValue) -> String {

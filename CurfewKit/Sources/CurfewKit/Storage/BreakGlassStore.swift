@@ -1,4 +1,3 @@
-import CryptoKit
 import Foundation
 import OSLog
 
@@ -64,6 +63,9 @@ public enum BreakGlassError: Error, LocalizedError, Equatable {
     /// The signing key could not be read or created.
     case signingUnavailable
 
+    /// The encoded record exceeds the bound enforced by readers.
+    case recordTooLarge(maximumBytes: Int)
+
     /// The record could not be written.
     case writeFailed(String)
 
@@ -73,93 +75,10 @@ public enum BreakGlassError: Error, LocalizedError, Equatable {
             "Break-glass needs a reason of at least \(minimum) characters."
         case .signingUnavailable:
             "Could not read or create the break-glass signing key."
+        case .recordTooLarge(let maximumBytes):
+            "The break-glass record exceeds \(maximumBytes) encoded bytes. Shorten the reason or issuer."
         case .writeFailed(let message):
             "Could not write the break-glass record: \(message)."
-        }
-    }
-}
-
-/// Signs and verifies ``BreakGlassRelease`` records with a per-install
-/// symmetric key, mirroring ``MCPRequestSigner`` so there is one signing
-/// pattern in the codebase rather than two.
-public enum BreakGlassSigner {
-    /// Hex-encoded HMAC-SHA256 of `{id}|{issuedAt-ISO}|{reason}|{issuedBy}`,
-    /// or `nil` when the key is unavailable.
-    public static func sign(
-        _ release: BreakGlassRelease,
-        secretURL: URL = SharedPaths.breakGlassSecret
-    ) -> String? {
-        guard let key = loadOrCreateSecret(at: secretURL),
-              let data = canonicalString(for: release).data(using: .utf8)
-        else {
-            return nil
-        }
-        return HMAC<SHA256>.authenticationCode(for: data, using: key)
-            .map { String(format: "%02x", $0) }
-            .joined()
-    }
-
-    /// Whether `release.signature` matches the canonical payload. Missing
-    /// signature, missing key, and mismatch all return `false` — the call
-    /// sites treat them identically (do not stand enforcement down).
-    public static func verify(
-        _ release: BreakGlassRelease,
-        secretURL: URL = SharedPaths.breakGlassSecret
-    ) -> Bool {
-        guard let signature = release.signature,
-              let key = loadOrCreateSecret(at: secretURL),
-              let signatureData = Data(breakGlassHex: signature),
-              let payload = canonicalString(for: release).data(using: .utf8)
-        else {
-            return false
-        }
-        return HMAC<SHA256>.isValidAuthenticationCode(
-            signatureData,
-            authenticating: payload,
-            using: key
-        )
-    }
-
-    /// Wire contract for the signature. Order and separators are load-bearing:
-    /// changing either invalidates every record already on disk.
-    private static func canonicalString(for release: BreakGlassRelease) -> String {
-        let timestamp = ISO8601DateFormatter.curfewBreakGlass.string(from: release.issuedAt)
-        var fields = [
-            release.id.uuidString,
-            timestamp,
-            release.reason,
-            release.issuedBy
-        ]
-        if let expiresAt = release.expiresAt {
-            fields.append(ISO8601DateFormatter.curfewBreakGlass.string(from: expiresAt))
-        }
-        return fields.joined(separator: "|")
-    }
-
-    private static func loadOrCreateSecret(at url: URL) -> SymmetricKey? {
-        let fileManager = FileManager.default
-        if let data = try? BoundedRegularFileReader.read(url, maximumBytes: 32),
-           data.count == 32 {
-            return SymmetricKey(data: data)
-        }
-        do {
-            try fileManager.createDirectory(
-                at: url.deletingLastPathComponent(),
-                withIntermediateDirectories: true
-            )
-            let key = SymmetricKey(size: .bits256)
-            try key.withUnsafeBytes { Data($0) }.write(to: url, options: .atomic)
-            try fileManager.setAttributes(
-                [.posixPermissions: NSNumber(value: Int16(0o600))],
-                ofItemAtPath: url.path
-            )
-            breakGlassLogger.info("generated new break-glass secret")
-            return key
-        } catch {
-            breakGlassLogger.error(
-                "failed to provision break-glass secret: \(error.localizedDescription, privacy: .public)"
-            )
-            return nil
         }
     }
 }
@@ -167,6 +86,8 @@ public enum BreakGlassSigner {
 /// Atomic JSON store for the break-glass record at
 /// ``SharedPaths/breakGlassRelease``.
 public struct BreakGlassStore {
+    private static let maximumRecordBytes = 65536
+
     /// Shortest reason the CLI will accept. Long enough that the user has to
     /// articulate what went wrong, short enough to type one-handed at 23:00.
     public static let minimumReasonCharacters = 20
@@ -239,15 +160,17 @@ public struct BreakGlassStore {
         }
         release.signature = signature
 
+        let data = try encoder.encode(release)
+        guard data.count <= Self.maximumRecordBytes else {
+            throw BreakGlassError.recordTooLarge(maximumBytes: Self.maximumRecordBytes)
+        }
         do {
             try fileManager.createDirectory(
                 at: recordURL.deletingLastPathComponent(),
                 withIntermediateDirectories: true
             )
-            try encoder.encode(release).write(to: recordURL, options: .atomic)
-            try? fileManager.setAttributes(
-                [.posixPermissions: NSNumber(value: Int16(0o600))],
-                ofItemAtPath: recordURL.path
+            try BreakGlassPrivateFileWriter.write(
+                data, to: recordURL, replaceExisting: true
             )
         } catch {
             throw BreakGlassError.writeFailed(error.localizedDescription)
@@ -263,7 +186,7 @@ public struct BreakGlassStore {
     public func load() -> BreakGlassRelease? {
         guard let data = try? BoundedRegularFileReader.read(
                   recordURL,
-                  maximumBytes: 65536
+                  maximumBytes: Self.maximumRecordBytes
               ),
               let release = try? decoder.decode(BreakGlassRelease.self, from: data)
         else {
@@ -321,80 +244,20 @@ public struct BreakGlassStore {
         return release
     }
 
+    /// Removes a release at the user's request. A missing record is already
+    /// revoked; every other removal failure must reach the caller.
+    public func revoke() throws {
+        do {
+            try fileManager.removeItem(at: recordURL)
+        } catch let error as CocoaError where error.code == .fileNoSuchFile {
+            return
+        }
+    }
+
     /// Removes the record. Called when a lockout window ends so the next one
     /// is enforced normally.
     public func clear() {
         guard fileManager.fileExists(atPath: recordURL.path) else { return }
         try? fileManager.removeItem(at: recordURL)
-    }
-}
-
-// MARK: - Cancelling a shutdown that is already in flight
-
-/// Stops a `/sbin/shutdown` that the daemon has already issued.
-///
-/// Split behind a protocol so the break-glass path is testable without a
-/// machine that actually powers off.
-public protocol PendingShutdownCanceling: Sendable {
-    /// Terminates any pending `shutdown` process. Returns `true` when at least
-    /// one was signalled.
-    @discardableResult
-    func cancelPendingShutdown() -> Bool
-}
-
-/// Production canceller. `/sbin/shutdown -h +1` has no cancel flag on macOS,
-/// so the only way back is to kill the waiting process — which needs root,
-/// hence the `sudo curfew-ctl break-glass` form in the runbook.
-public struct SystemShutdownCanceller: PendingShutdownCanceling {
-    public init() {}
-
-    @discardableResult
-    public func cancelPendingShutdown() -> Bool {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/pkill")
-        process.arguments = ["-x", "shutdown"]
-        do {
-            try process.run()
-            process.waitUntilExit()
-            // pkill exits 0 when it signalled something, 1 when it matched
-            // nothing. Nothing to kill is a normal outcome, not a failure.
-            return process.terminationStatus == 0
-        } catch {
-            breakGlassLogger.error(
-                "failed to cancel pending shutdown: \(error.localizedDescription, privacy: .public)"
-            )
-            return false
-        }
-    }
-}
-
-// MARK: - Private helpers
-
-private extension ISO8601DateFormatter {
-    /// Single formatter reused across sign and verify so the wire string is
-    /// stable. Fractional seconds are excluded on purpose — they would not
-    /// survive the JSON round-trip identically.
-    static let curfewBreakGlass: ISO8601DateFormatter = {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime]
-        return formatter
-    }()
-}
-
-private extension Data {
-    /// Parses a hex string into bytes, failing closed on any non-hex input.
-    init?(breakGlassHex string: String) {
-        let cleaned = string.unicodeScalars.filter { !$0.properties.isWhitespace }
-        guard cleaned.count.isMultiple(of: 2) else { return nil }
-        var bytes: [UInt8] = []
-        bytes.reserveCapacity(cleaned.count / 2)
-        var index = cleaned.startIndex
-        while index < cleaned.endIndex {
-            let next = cleaned.index(after: index)
-            guard let byte = UInt8(String(cleaned[index ... next]), radix: 16) else { return nil }
-            bytes.append(byte)
-            index = cleaned.index(after: next)
-        }
-        self.init(bytes)
     }
 }

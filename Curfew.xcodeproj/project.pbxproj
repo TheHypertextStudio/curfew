@@ -54,7 +54,6 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		CFD000000000000000000001 /* CurfewEndpoints.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = deployment/generated/CurfewEndpoints.xcconfig; sourceTree = SOURCE_ROOT; };
 		9BD3FB822F4D4584007B2E95 /* Curfew.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Curfew.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9BD3FB912F4D4587007B2E95 /* CurfewTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CurfewTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		9BD3FB9B2F4D4587007B2E95 /* CurfewUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CurfewUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -67,16 +66,10 @@
 		C0FE00000000000000000018 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		C0FE00000000000000000019 /* CurfewWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CurfewWidget.entitlements; sourceTree = "<group>"; };
 		C0FE0000000000000000001E /* CurfewWidget-Debug.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "CurfewWidget-Debug.entitlements"; sourceTree = "<group>"; };
+		CFD000000000000000000001 /* CurfewEndpoints.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = deployment/generated/CurfewEndpoints.xcconfig; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		C0FE00000000000000000201 /* Exceptions for "Curfew" folder in "Curfew" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Info.plist,
-			);
-			target = 9BD3FB812F4D4584007B2E95 /* Curfew */;
-		};
 		C0FE00000000000000000200 /* Exceptions for "CurfewWidget" folder in "CurfewWidget" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -84,14 +77,16 @@
 			);
 			target = C0FE0000000000000000000C /* CurfewWidget */;
 		};
+		C0FE00000000000000000201 /* Exceptions for "Curfew" folder in "Curfew" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 9BD3FB812F4D4584007B2E95 /* Curfew */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-        C0FE00000000000000000062 /* Sources/CurfewKit/Browser */ = {
-            isa = PBXFileSystemSynchronizedRootGroup;
-            path = Sources/CurfewKit/Browser;
-            sourceTree = "<group>";
-        };
 		1F56E9B021971B57F3DE957D /* CurfewWidget */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -116,6 +111,11 @@
 		9BD3FB9E2F4D4587007B2E95 /* CurfewUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = CurfewUITests;
+			sourceTree = "<group>";
+		};
+		C0FE00000000000000000062 /* Sources/CurfewKit/Browser */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Sources/CurfewKit/Browser;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -365,6 +365,14 @@
 				version = 0.0.13;
 			};
 		};
+		C0FE00000000000000000104 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = exactVersion;
+				version = 2.9.4;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -372,6 +380,23 @@
 			isa = XCSwiftPackageProductDependency;
 			package = C0FE00000000000000000071 /* XCRemoteSwiftPackageReference "curfew-protocols" */;
 			productName = CurfewProtocols;
+		};
+		C0FE00000000000000000101 /* CurfewKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = CurfewKit;
+		};
+		C0FE00000000000000000102 /* CurfewKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = CurfewKit;
+		};
+		C0FE00000000000000000103 /* CurfewKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = CurfewKit;
+		};
+		C0FE00000000000000000105 /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C0FE00000000000000000104 /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
 		};
 /* End XCSwiftPackageProductDependency section */
 
@@ -424,8 +449,8 @@
 				"$(BUILT_PRODUCTS_DIR)/$(CONTENTS_FOLDER_PATH)/Resources/curfew-ctl",
 				"$(BUILT_PRODUCTS_DIR)/$(CONTENTS_FOLDER_PATH)/Resources/curfew-mcp",
 				"$(BUILT_PRODUCTS_DIR)/$(CONTENTS_FOLDER_PATH)/Resources/curfew-daemon",
-                "$(BUILT_PRODUCTS_DIR)/$(CONTENTS_FOLDER_PATH)/Resources/curfew-supervisor",
-                "$(BUILT_PRODUCTS_DIR)/$(CONTENTS_FOLDER_PATH)/Resources/studio.hypertext.curfew.browser",
+				"$(BUILT_PRODUCTS_DIR)/$(CONTENTS_FOLDER_PATH)/Resources/curfew-supervisor",
+				"$(BUILT_PRODUCTS_DIR)/$(CONTENTS_FOLDER_PATH)/Resources/studio.hypertext.curfew.browser",
 				"$(BUILT_PRODUCTS_DIR)/$(CONTENTS_FOLDER_PATH)/Library/LaunchDaemons/$(CURFEW_DAEMON_PLIST_NAME)",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -568,7 +593,6 @@
 			};
 			name = Debug;
 		};
-
 		9BD3FBA42F4D4587007B2E95 /* Release */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = CFD000000000000000000001 /* CurfewEndpoints.xcconfig */;
@@ -633,12 +657,12 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = "Curfew/Curfew.entitlements";
 				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
 				CURFEW_DAEMON_PLIST_NAME = studio.hypertext.apps.curfew.dev.daemon.plist;
 				CURFEW_DOCKET_CALLBACK_SCHEME = studio.hypertext.curfew.studio.dev;
 				CURFEW_LICENSE_SCHEME = curfew-dev;
-				DEVELOPMENT_TEAM = T95VDD3A4W;
-				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = T95VDD3A4W;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
@@ -648,8 +672,8 @@
 				INFOPLIST_KEY_CFBundleDisplayName = "Curfew Dev";
 				INFOPLIST_KEY_CurfewBrowserExtensionID = "";
 				INFOPLIST_KEY_LSUIElement = NO;
-				INFOPLIST_KEY_NSAppleEventsUsageDescription = "Curfew uses System Events to shut down your Mac after lockout when you turn on auto shutdown.";
 				INFOPLIST_KEY_NSAccessibilityUsageDescription = "Curfew uses Accessibility access to block bypass shortcuts during lockout.";
+				INFOPLIST_KEY_NSAppleEventsUsageDescription = "Curfew uses System Events to shut down your Mac after lockout when you turn on auto shutdown.";
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "Curfew reads today's calendar events to show meetings on the lockout screen and warn you when a meeting overlaps your scheduled lockout. Curfew never edits your calendar.";
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "Curfew reads today's calendar events to show meetings on the lockout screen and warn you when a meeting overlaps your scheduled lockout. Curfew never edits your calendar.";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Curfew analyses camera frames on this Mac to detect a human shape and estimate your presence. It does not identify people, save images, or send frames elsewhere. You must enable this in Settings.";
@@ -660,7 +684,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.0.1;
+				MARKETING_VERSION = 0.0.16;
 				PRODUCT_BUNDLE_IDENTIFIER = studio.hypertext.apps.curfew.dev;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -674,7 +698,6 @@
 			};
 			name = Debug;
 		};
-
 		9BD3FBA72F4D4587007B2E95 /* Release */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = CFD000000000000000000001 /* CurfewEndpoints.xcconfig */;
@@ -683,23 +706,24 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = "Curfew/Curfew-Release.entitlements";
 				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURFEW_BROWSER_EXTENSION_ID = "";
 				CURFEW_DAEMON_PLIST_NAME = studio.hypertext.curfew.daemon.plist;
 				CURFEW_DOCKET_CALLBACK_SCHEME = studio.hypertext.curfew;
 				CURFEW_LICENSE_SCHEME = curfew;
-                CURFEW_BROWSER_EXTENSION_ID = "";
-                INFOPLIST_KEY_CurfewBrowserExtensionID = "$(CURFEW_BROWSER_EXTENSION_ID)";
-				DEVELOPMENT_TEAM = T95VDD3A4W;
-				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = T95VDD3A4W;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Curfew/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Curfew";
+				INFOPLIST_KEY_CurfewBrowserExtensionID = "$(CURFEW_BROWSER_EXTENSION_ID)";
 				INFOPLIST_KEY_LSUIElement = NO;
-				INFOPLIST_KEY_NSAppleEventsUsageDescription = "Curfew uses System Events to shut down your Mac after lockout when you turn on auto shutdown.";
 				INFOPLIST_KEY_NSAccessibilityUsageDescription = "Curfew uses Accessibility access to block bypass shortcuts during lockout.";
+				INFOPLIST_KEY_NSAppleEventsUsageDescription = "Curfew uses System Events to shut down your Mac after lockout when you turn on auto shutdown.";
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "Curfew reads today's calendar events to show meetings on the lockout screen and warn you when a meeting overlaps your scheduled lockout. Curfew never edits your calendar.";
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "Curfew reads today's calendar events to show meetings on the lockout screen and warn you when a meeting overlaps your scheduled lockout. Curfew never edits your calendar.";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Curfew analyses camera frames on this Mac to detect a human shape and estimate your presence. It does not identify people, save images, or send frames elsewhere. You must enable this in Settings.";
@@ -710,11 +734,10 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.0.1;
-				INFOPLIST_KEY_CFBundleDisplayName = "Curfew";
+				MARKETING_VERSION = 0.0.16;
 				PRODUCT_BUNDLE_IDENTIFIER = studio.hypertext.apps.curfew;
-				PROVISIONING_PROFILE_SPECIFIER = "$(CURFEW_APP_PROFILE)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "$(CURFEW_APP_PROFILE)";
 				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "RELEASE_FEATURES $(inherited)";
@@ -736,7 +759,7 @@
 				DEVELOPMENT_TEAM = T95VDD3A4W;
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.0.1;
+				MARKETING_VERSION = 0.0.16;
 				PRODUCT_BUNDLE_IDENTIFIER = studio.hypertext.apps.curfew.dev.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
@@ -748,7 +771,6 @@
 			};
 			name = Debug;
 		};
-
 		9BD3FBAA2F4D4587007B2E95 /* Release */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = CFD000000000000000000001 /* CurfewEndpoints.xcconfig */;
@@ -758,7 +780,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.0.1;
+				MARKETING_VERSION = 0.0.16;
 				PRODUCT_BUNDLE_IDENTIFIER = studio.hypertext.apps.curfew.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
@@ -778,7 +800,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = T95VDD3A4W;
 				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 0.0.1;
+				MARKETING_VERSION = 0.0.16;
 				PRODUCT_BUNDLE_IDENTIFIER = studio.hypertext.apps.curfew.dev.uitests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
@@ -790,7 +812,6 @@
 			};
 			name = Debug;
 		};
-
 		9BD3FBAD2F4D4587007B2E95 /* Release */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = CFD000000000000000000001 /* CurfewEndpoints.xcconfig */;
@@ -798,7 +819,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 0.0.1;
+				MARKETING_VERSION = 0.0.16;
 				PRODUCT_BUNDLE_IDENTIFIER = studio.hypertext.apps.curfew.uitests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
@@ -828,7 +849,7 @@
 					"@executable_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.0.1;
+				MARKETING_VERSION = 0.0.16;
 				PRODUCT_BUNDLE_IDENTIFIER = studio.hypertext.apps.curfew.dev.widget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -841,7 +862,6 @@
 			};
 			name = Debug;
 		};
-
 		C0FE00000000000000000012 /* Release */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = CFD000000000000000000001 /* CurfewEndpoints.xcconfig */;
@@ -849,8 +869,8 @@
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = CurfewWidget/CurfewWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = T95VDD3A4W;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = T95VDD3A4W;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -861,10 +881,10 @@
 					"@executable_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.0.1;
+				MARKETING_VERSION = 0.0.16;
 				PRODUCT_BUNDLE_IDENTIFIER = studio.hypertext.apps.curfew.widget;
-				PROVISIONING_PROFILE_SPECIFIER = "$(CURFEW_WIDGET_PROFILE)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "$(CURFEW_WIDGET_PROFILE)";
 				REGISTER_APP_GROUPS = YES;
 				SKIP_INSTALL = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -931,37 +951,6 @@
 			relativePath = CurfewKit;
 		};
 /* End XCLocalSwiftPackageReference section */
-
-/* Begin XCRemoteSwiftPackageReference section */
-		C0FE00000000000000000104 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/sparkle-project/Sparkle";
-			requirement = {
-				kind = exactVersion;
-				version = 2.9.4;
-			};
-		};
-/* End XCRemoteSwiftPackageReference section */
-
-/* Begin XCSwiftPackageProductDependency section */
-		C0FE00000000000000000101 /* CurfewKit */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = CurfewKit;
-		};
-		C0FE00000000000000000102 /* CurfewKit */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = CurfewKit;
-		};
-		C0FE00000000000000000103 /* CurfewKit */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = CurfewKit;
-		};
-		C0FE00000000000000000105 /* Sparkle */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = C0FE00000000000000000104 /* XCRemoteSwiftPackageReference "Sparkle" */;
-			productName = Sparkle;
-		};
-/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 9BD3FB7A2F4D4584007B2E95 /* Project object */;
 }

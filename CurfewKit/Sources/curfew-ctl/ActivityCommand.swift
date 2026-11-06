@@ -15,15 +15,37 @@ struct ActivityCommand: ParsableCommand {
     @Flag(name: .long, help: "Show only today's events.")
     var today: Bool = false
 
+    @Option(name: .long, help: "Number of days to include, counting today.")
+    var days: Int?
+
+    mutating func validate() throws {
+        if let days, days < 1 {
+            throw ValidationError("--days must be at least 1.")
+        }
+        if today, days != nil {
+            throw ValidationError("Use either --today or --days.")
+        }
+    }
+
     /// Emit JSON rather than the default human-readable format.
-    @Flag(name: .shortAndLong, help: "Output as JSON instead of plain text.")
-    var json: Bool = false
+    @OptionGroup var options: CLIOptions
+    var json: Bool {
+        options.json
+    }
 
     /// Entry point — opens the activity store, filters to the requested
     /// window, and prints each event.
-    func run() {
-        guard let store = openActivityStore() else {
-            print("No activity log found. Has Curfew been launched yet?")
+    func run() throws {
+        guard let store = try openActivityStore() else {
+            if json {
+                try print(String(data: Self.jsonData(events: []), encoding: .utf8) ?? "{}")
+                return
+            }
+            try CLIText.print(
+                "No activity log is available. Open Curfew to start recording activity.",
+                title: "Activity",
+                options: options
+            )
             return
         }
 
@@ -31,66 +53,64 @@ struct ActivityCommand: ParsableCommand {
         let calendar = Calendar.current
         let rangeStart: Date = if today {
             calendar.startOfDay(for: now)
+        } else if let days {
+            calendar.date(byAdding: .day, value: -(days - 1), to: calendar.startOfDay(for: now))
+                ?? calendar.startOfDay(for: now)
         } else {
             // Week view: events since Monday of the current week.
             calendar.startOfWeek(for: now)
         }
 
-        let events: [ActivityEvent]
-        do {
-            events = try store.events(in: rangeStart ... now)
-        } catch {
-            fputs("Error reading activity log: \(error)\n", stderr)
-            return
-        }
-
-        if events.isEmpty {
-            print(today ? "No events today." : "No events this week.")
-            return
-        }
-
+        let events = try store.events(in: rangeStart ... now)
         if json {
-            printJSON(events: events)
+            try print(String(data: Self.jsonData(events: events), encoding: .utf8) ?? "{}")
+        } else if events.isEmpty {
+            try CLIText.print(
+                "No events in the requested range.",
+                title: "Activity",
+                options: options
+            )
         } else {
-            printPlain(events: events)
+            try printPlain(events: events)
         }
     }
 
     // MARK: - Output formatters
 
-    private func printPlain(events: [ActivityEvent]) {
+    private func printPlain(events: [ActivityEvent]) throws {
         let formatter = DateFormatter()
         formatter.dateStyle = .none
         formatter.timeStyle = .short
-        for event in events.reversed() {
+        let lines = events.reversed().map { event in
             let time = formatter.string(from: event.timestamp)
             let label = eventLabel(event)
-            print("  \(time)  \(label)")
+            return "\(time)  \(label)"
         }
+        try CLIText.print(
+            lines.joined(separator: "\n"),
+            title: "Activity",
+            options: options,
+            page: true
+        )
     }
 
-    private func printJSON(events: [ActivityEvent]) {
+    static func jsonData(events: [ActivityEvent]) throws -> Data {
         let iso = ISO8601DateFormatter()
-        let items: [[String: Any]] = events.map { event in
+        let items: [[String: Any]] = try events.map { event in
             var obj: [String: Any] = [
                 "timestamp": iso.string(from: event.timestamp),
                 "kind": event.kind.rawValue,
                 "gate_kind": event.gateKind
             ]
             if let minutes = event.minutesValue {
-                obj["minutes"] = minutes
+                obj["seconds"] = try CLIOutput.durationSeconds(minutes)
             }
             if let note = event.note {
                 obj["note"] = note
             }
             return obj
         }
-        if let data = try? JSONSerialization.data(
-            withJSONObject: ["events": items],
-            options: [.prettyPrinted, .sortedKeys]
-        ) {
-            print(String(data: data, encoding: .utf8) ?? "{}")
-        }
+        return try CLIOutput.data(["events": items])
     }
 
     // MARK: - Helpers

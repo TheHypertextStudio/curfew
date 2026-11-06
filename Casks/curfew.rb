@@ -1,50 +1,45 @@
-cask "curfew" do
-  version "0.0.1"
-  sha256 "REPLACE_WITH_RELEASE_DMG_SHA256"
+# frozen_string_literal: true
 
-  url "https://github.com/TheHypertextStudio/curfew/releases/download/v#{version}/Curfew-v#{version}.dmg",
-      verified: "github.com/TheHypertextStudio/curfew/"
-  name "Curfew"
-  desc "A hard stop for your Mac"
-  homepage "https://thecurfew.app/"
+cask("curfew") do
+  version("0.0.16")
+  sha256("4804f7cdf26ec6aa54fc0877d5cc5f7c12043bb972c10502f346f0924a5f8f34")
+
+  url("https://github.com/TheHypertextStudio/curfew/releases/download/v#{version}/Curfew-v#{version}.dmg")
+  name("Curfew")
+  desc("Enforced work boundaries and end-of-day shutdown")
+  homepage("https://thecurfew.app/")
 
   livecheck do
-    url :url
-    strategy :github_latest
+    url(:url)
+    strategy(:github_latest)
   end
 
   # `Curfew` depends on macOS 26 — deployment target in the Xcode project.
-  depends_on macos: ">= :tahoe"
+  depends_on(macos: :tahoe)
 
-  app "Curfew.app"
-
+  app("Curfew.app")
   # `curfew-ctl` and `curfew-mcp` ship inside the app bundle's Resources.
   # Exposing them on `$PATH` lets shell scripts and MCP hosts locate them
   # without referencing the bundle path.
-  binary "#{appdir}/Curfew.app/Contents/Resources/curfew-ctl"
-  binary "#{appdir}/Curfew.app/Contents/Resources/curfew-mcp"
+  binary("#{appdir}/Curfew.app/Contents/Resources/curfew-ctl")
+  binary("#{appdir}/Curfew.app/Contents/Resources/curfew-mcp")
 
-  uninstall early_script: {
-              executable:   "#{appdir}/Curfew.app/Contents/MacOS/Curfew",
-              args:         ["--unregister-background-service"],
-              must_succeed: true,
-            },
-            quit:         "studio.hypertext.apps.curfew"
+  uninstall(
+    early_script: {
+      executable: "#{appdir}/Curfew.app/Contents/MacOS/Curfew",
+      args: ["--unregister-background-service"],
+      must_succeed: true
+    },
+    quit: "studio.hypertext.apps.curfew"
+  )
 
-  zap trash: [
-    "~/Library/Application Support/Curfew",
-    "~/Library/Group Containers/group.studio.hypertext.curfew/Curfew",
-    "~/Library/Caches/studio.hypertext.curfew",
-    "~/Library/LaunchAgents/studio.hypertext.curfew.lockdown.plist",
-    "~/Library/Preferences/studio.hypertext.curfew.plist",
-  ]
-
-  # Submission checklist (for our own reference when PR-ing to homebrew-cask):
-  #   1. Bump `version` and regenerate `sha256` with
-  #      `shasum -a 256 Curfew-v<version>.dmg`.
-  #   2. Verify the release is notarized:
-  #      `xcrun stapler validate /Applications/Curfew.app`
-  #   3. `brew style --fix Casks/curfew.rb`
-  #   4. `brew audit --new --cask Casks/curfew.rb`
-  #   5. Open PR against https://github.com/Homebrew/homebrew-cask.
+  zap(
+    trash: [
+      "~/Library/Application Support/Curfew",
+      "~/Library/Caches/studio.hypertext.curfew",
+      "~/Library/Group Containers/group.studio.hypertext.curfew/Curfew",
+      "~/Library/LaunchAgents/studio.hypertext.curfew.lockdown.plist",
+      "~/Library/Preferences/studio.hypertext.curfew.plist"
+    ]
+  )
 end

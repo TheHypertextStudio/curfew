@@ -126,6 +126,7 @@ final class CurfewAppModel: NSObject {
     let runtimeStateStore: EnforcementRuntimeStateStore
     let enforcementClock: () -> Date
     var runtimePersistenceError: String?
+    @ObservationIgnored var mcpGrantRecovery: MCPGrantRecoveryState
 
     /// Classifies proposed schedule changes as stricter / weaker / no-change
     /// to drive the anti-bypass cooldown rules.
@@ -337,6 +338,7 @@ final class CurfewAppModel: NSObject {
         reflectionState: ReflectionRuntimeState? = nil,
         notificationManager: (any WarningNotificationManaging)? = nil,
         mcpRequestMonitor: MCPRequestMonitor? = nil,
+        mcpRequestQueueStore: MCPRequestQueueStore? = nil,
         licenseGate: LicenseGate? = nil,
         cloudKitSyncEngine: CloudKitSyncEngine? = nil,
         accountSyncEngine: AccountSyncEngine? = nil,
@@ -355,10 +357,12 @@ final class CurfewAppModel: NSObject {
         enforcementClock: @escaping () -> Date = Date.init,
         backgroundAcceptance: Bool = false
     ) {
-        self.isDemoSession = Self.permitsDemoIsolation(isDemoSession)
+        let isolatedDemo = Self.permitsDemoIsolation(isDemoSession)
+        self.isDemoSession = isolatedDemo
         self.isBackgroundAcceptanceSession = self.isDemoSession && backgroundAcceptance
         self.settingsStore = settingsStore
         self.runtimeStateStore = runtimeStateStore
+        let queue = mcpRequestQueueStore ?? Self.queueStore(forDemo: isolatedDemo)
         self.enforcementClock = enforcementClock
         self.policyEngine = SchedulePolicyEngine()
         self.enforcementEngine = CurfewEnforcementEngine()
@@ -429,14 +433,13 @@ final class CurfewAppModel: NSObject {
 
         let runtime = Self.restoreRuntimeState(
             settings: loadedSettings, store: runtimeStateStore,
-            overrides: loadedEvents, recorder: activityRecorder, now: runtimeNow
+            overrides: loadedEvents, recorder: activityRecorder, now: runtimeNow,
+            queue: queue
         )
         self.runtimePersistenceError = runtime.error
-        let trackers = Self.runtimeBudgetTrackers(
-            settings: loadedSettings, state: runtime.state, now: runtimeNow
-        )
-        self.extensionTracker = trackers.extension
-        self.overrideTracker = trackers.override
+        self.mcpGrantRecovery = MCPGrantRecoveryState(queue: queue, state: runtime.state)
+        self.extensionTracker = runtime.extensionTracker
+        self.overrideTracker = runtime.overrideTracker
 
         self.currentTime = runtimeNow
         self.currentDayToken = Self.dayToken(for: runtimeNow)
@@ -476,11 +479,6 @@ final class CurfewAppModel: NSObject {
         self.init(launchSettingsStore: Self.defaultSettingsStore())
     }
 
-    /// Overrides the mirrored idle flag for the idle watcher and deterministic tests.
-    func setIdleState(_ idle: Bool) {
-        isUserIdle = idle
-    }
-
     deinit {
         timer?.invalidate()
         if let enforcementActivity {
@@ -490,5 +488,13 @@ final class CurfewAppModel: NSObject {
         for observer in reassertionObservers {
             workspaceCenter.removeObserver(observer)
         }
+    }
+}
+
+@MainActor
+extension CurfewAppModel {
+    /// Overrides the mirrored idle flag for the idle watcher and deterministic tests.
+    func setIdleState(_ idle: Bool) {
+        isUserIdle = idle
     }
 }

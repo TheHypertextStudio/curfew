@@ -1,3 +1,4 @@
+import Darwin
 import Foundation
 import OSLog
 
@@ -66,12 +67,15 @@ public struct ProtectedWorkClaim: Codable, Equatable, Identifiable, Sendable {
 /// Atomic JSON store for ``ProtectedWorkClaim`` leases at
 /// ``SharedPaths/protectedWorkClaims``.
 ///
-/// Follows the same shape as ``LockoutDeadlineStore``: a small file, atomic
-/// writes, and every read failure treated as "no record". The failure
-/// direction is the opposite of the deadline store's, though, and
-/// deliberately so — an unreadable claims file means *no protection*, so a
-/// corrupt or missing file can never be used to hold enforcement off.
+/// Enforcement treats read failures as "no record" so an unreadable file
+/// cannot hold enforcement off. Mutations and CLI inspection use throwing
+/// reads so a corrupt file cannot be silently replaced or reported as empty.
+/// Mutations hold a sidecar lock across the complete read and write so
+/// concurrent callers cannot discard each other's claims. Readers see atomic
+/// snapshots without waiting for a writer.
 public struct ProtectedWorkStore {
+    private static let maximumRecordBytes = 1_048_576
+
     private let fileManager: FileManager
 
     /// Where the claims live. Exposed for tests; production resolves it from
@@ -103,15 +107,19 @@ public struct ProtectedWorkStore {
 
     /// Every claim on disk, expired ones included.
     public func load() -> [ProtectedWorkClaim] {
-        guard let data = try? BoundedRegularFileReader.read(
-                  recordURL,
-                  maximumBytes: 1_048_576
-              ),
-              let claims = try? decoder.decode([ProtectedWorkClaim].self, from: data)
-        else {
+        (try? loadThrowing()) ?? []
+    }
+
+    /// Reads claims for callers that must distinguish an absent file from
+    /// unreadable or corrupt state before reporting success or mutating it.
+    public func loadThrowing() throws -> [ProtectedWorkClaim] {
+        guard let data = try BoundedRegularFileReader.read(
+            recordURL,
+            maximumBytes: Self.maximumRecordBytes
+        ) else {
             return []
         }
-        return claims
+        return try decoder.decode([ProtectedWorkClaim].self, from: data)
     }
 
     /// Claims that have not expired at `now`.
@@ -146,57 +154,100 @@ public struct ProtectedWorkStore {
         now: Date,
         policy: ProtectedWorkPolicy
     ) throws -> ProtectedWorkClaim {
-        let granted = policy.leaseMinutes(requested: leaseMinutes)
-        let expiry = now.addingTimeInterval(TimeInterval(granted * 60))
+        try withExclusiveLock {
+            let granted = policy.leaseMinutes(requested: leaseMinutes)
+            let expiry = now.addingTimeInterval(TimeInterval(granted * 60))
 
-        var claims = load().filter { $0.isActive(at: now) }
-        var stored: ProtectedWorkClaim
+            var claims = try loadThrowing().filter { $0.isActive(at: now) }
+            var stored: ProtectedWorkClaim
 
-        if let id, let index = claims.firstIndex(where: { $0.id == id }) {
-            claims[index].label = label
-            claims[index].source = source
-            claims[index].expiresAt = expiry
-            stored = claims[index]
-        } else {
-            stored = ProtectedWorkClaim(
-                id: id ?? UUID(),
-                label: label,
-                source: source,
-                startedAt: now,
-                expiresAt: expiry
+            if let id, let index = claims.firstIndex(where: { $0.id == id }) {
+                claims[index].label = label
+                claims[index].source = source
+                claims[index].expiresAt = expiry
+                stored = claims[index]
+            } else {
+                stored = ProtectedWorkClaim(
+                    id: id ?? UUID(),
+                    label: label,
+                    source: source,
+                    startedAt: now,
+                    expiresAt: expiry
+                )
+                claims.append(stored)
+            }
+
+            try save(claims)
+            protectedWorkLogger.info(
+                "protected-work claim \(stored.id.uuidString, privacy: .public) held for \(granted, privacy: .public) min"
             )
-            claims.append(stored)
+            return stored
         }
-
-        try save(claims)
-        protectedWorkLogger.info(
-            "protected-work claim \(stored.id.uuidString, privacy: .public) held for \(granted, privacy: .public) min"
-        )
-        return stored
     }
 
     /// Drops one claim. No-ops when the id is unknown.
     public func release(id: UUID) throws {
-        let remaining = load().filter { $0.id != id }
-        try save(remaining)
-        protectedWorkLogger.info("protected-work claim \(id.uuidString, privacy: .public) released")
+        try withExclusiveLock {
+            let remaining = try loadThrowing().filter { $0.id != id }
+            try save(remaining)
+            protectedWorkLogger
+                .info("protected-work claim \(id.uuidString, privacy: .public) released")
+        }
     }
 
     /// Drops every claim. Called when a lockout window ends so the next one
     /// starts from nothing.
     public func clear() throws {
-        guard fileManager.fileExists(atPath: recordURL.path) else { return }
-        try fileManager.removeItem(at: recordURL)
+        try withExclusiveLock {
+            guard fileManager.fileExists(atPath: recordURL.path) else { return }
+            try fileManager.removeItem(at: recordURL)
+        }
     }
 
     // MARK: - Private
 
+    private func withExclusiveLock<T>(_ body: () throws -> T) throws -> T {
+        let lockURL = recordURL.appendingPathExtension("lock")
+        try fileManager.createDirectory(
+            at: lockURL.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        let descriptor = open(
+            lockURL.path,
+            O_CREAT | O_RDWR | O_NONBLOCK | O_NOFOLLOW | O_CLOEXEC,
+            0o600
+        )
+        guard descriptor >= 0 else {
+            if errno == ELOOP {
+                throw ProtectedWorkLockError.unsafeEntry
+            }
+            throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)
+        }
+        defer { close(descriptor) }
+        var metadata = stat()
+        guard fstat(descriptor, &metadata) == 0 else {
+            throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)
+        }
+        guard metadata.st_mode & S_IFMT == S_IFREG, metadata.st_nlink == 1 else {
+            throw ProtectedWorkLockError.unsafeEntry
+        }
+        guard flock(descriptor, LOCK_EX) == 0 else {
+            throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)
+        }
+        defer { flock(descriptor, LOCK_UN) }
+        return try body()
+    }
+
     private func save(_ claims: [ProtectedWorkClaim]) throws {
+        let data = try encoder.encode(claims)
+        guard data.count <= Self.maximumRecordBytes else {
+            throw ProtectedWorkWriteError.recordTooLarge(maximumBytes: Self.maximumRecordBytes)
+        }
         try fileManager.createDirectory(
             at: recordURL.deletingLastPathComponent(),
             withIntermediateDirectories: true
         )
-        try encoder.encode(claims).write(to: recordURL, options: .atomic)
+        try data.write(to: recordURL, options: .atomic)
         // Claim labels quote whatever the agent was doing; on a shared machine
         // that should not be world-readable. `Data.write` lands at 0644, so
         // tighten after the atomic rename completes.
@@ -250,5 +301,24 @@ public struct ProtectedWorkStores {
     /// daemon cannot answer this differently.
     public func hasProtectedWork(now: Date, policy: ProtectedWorkPolicy) -> Bool {
         claims.hasActiveWork(now: now) || live.observe(policy: policy).isActive
+    }
+}
+
+private enum ProtectedWorkLockError: LocalizedError {
+    case unsafeEntry
+
+    var errorDescription: String? {
+        "The protected-work lock must be a regular file with one link."
+    }
+}
+
+private enum ProtectedWorkWriteError: LocalizedError {
+    case recordTooLarge(maximumBytes: Int)
+
+    var errorDescription: String? {
+        switch self {
+        case .recordTooLarge(let maximumBytes):
+            "Protected-work claims exceed \(maximumBytes) encoded bytes. Shorten labels or release existing claims."
+        }
     }
 }

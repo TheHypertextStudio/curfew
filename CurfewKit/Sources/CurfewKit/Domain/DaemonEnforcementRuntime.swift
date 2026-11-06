@@ -11,8 +11,9 @@ public protocol DaemonEnforcementEffects: AnyObject {
     /// Writes (or deletes, for `nil`) the root-owned deferral marker.
     func persistDeferralStart(_ start: Date?)
 
-    /// Kills a `/sbin/shutdown` this daemon already issued.
-    func cancelPendingShutdown()
+    /// Kills a `/sbin/shutdown` this daemon already issued. Throws when
+    /// cancellation fails so the runtime can retain pending state and retry.
+    func cancelPendingShutdown() throws
 
     /// Runs `/sbin/shutdown -h +1` as root.
     ///
@@ -45,6 +46,10 @@ public struct DaemonEnforcementRuntime {
         case holding(until: Date)
         /// The root shutdown was just issued.
         case issuedShutdown
+        /// A shutdown could not be dispatched and remains eligible for retry.
+        case shutdownFailed(message: String)
+        /// A pending shutdown could not be cancelled and must be retried.
+        case cancellationFailed(message: String)
         /// Nothing worth saying.
         case idle
     }
@@ -103,15 +108,9 @@ public struct DaemonEnforcementRuntime {
 
         // One site, driven by the outcome, so no action can be added later
         // that quietly forgets to call off a shutdown it just decided against.
-        if outcome.cancelsPendingShutdown {
-            effects.cancelPendingShutdown()
-            shutdownIssued = false
-            auditLog.emit(
-                .daemonShutdownCancelled,
-                actor: .daemon,
-                detail: ["reason": .string(Self.cancellationReason(outcome.action))],
-                at: now
-            )
+        if outcome.cancelsPendingShutdown,
+           let failure = cancelPendingShutdown(outcome, effects: effects, now: now) {
+            return failure
         }
 
         switch outcome.action {
@@ -147,32 +146,70 @@ public struct DaemonEnforcementRuntime {
             return .holding(until: until)
 
         case .shutDown:
-            isStandingDown = false
-            // Recorded from the outcome, not before it. Emitting `issued`
-            // ahead of the call meant a launch that threw left the log
-            // claiming a shutdown that never happened — the one assertion an
-            // audit trail must never make about a root action.
-            do {
-                try effects.issueShutdown()
-                auditLog.emit(.daemonShutdownIssued, actor: .daemon, at: now)
-            } catch {
-                auditLog.emit(
-                    .daemonShutdownFailed,
-                    actor: .daemon,
-                    detail: ["error": .string(error.localizedDescription)],
-                    at: now
-                )
-            }
-            // Set regardless of the launch result, preserving the enforcement
-            // behaviour this branch inherited: the decision suppresses a
-            // second attempt for this window either way.
-            shutdownIssued = true
-            return .issuedShutdown
+            return issueShutdown(effects: effects, now: now)
 
         case .wait:
             isStandingDown = false
             return .idle
         }
+    }
+
+    private mutating func issueShutdown(
+        effects: any DaemonEnforcementEffects,
+        now: Date
+    ) -> LogEvent {
+        isStandingDown = false
+        do {
+            try effects.issueShutdown()
+        } catch {
+            let message = error.localizedDescription
+            auditLog.emit(
+                .daemonShutdownFailed,
+                actor: .daemon,
+                detail: [
+                    "operation": .string("issue_shutdown"),
+                    "error": .string(message)
+                ],
+                at: now
+            )
+            return .shutdownFailed(message: message)
+        }
+        shutdownIssued = true
+        auditLog.emit(.daemonShutdownIssued, actor: .daemon, at: now)
+        return .issuedShutdown
+    }
+
+    private mutating func cancelPendingShutdown(
+        _ outcome: DaemonEnforcementDecision.Outcome,
+        effects: any DaemonEnforcementEffects,
+        now: Date
+    ) -> LogEvent? {
+        do {
+            try effects.cancelPendingShutdown()
+        } catch {
+            let message = error.localizedDescription
+            // Keep failures in the existing shutdown-failed event, and name
+            // cancellation explicitly so readers can distinguish the action.
+            auditLog.emit(
+                .daemonShutdownFailed,
+                actor: .daemon,
+                detail: [
+                    "operation": .string("cancel_pending_shutdown"),
+                    "reason": .string(Self.cancellationReason(outcome.action)),
+                    "error": .string(message)
+                ],
+                at: now
+            )
+            return .cancellationFailed(message: message)
+        }
+        shutdownIssued = false
+        auditLog.emit(
+            .daemonShutdownCancelled,
+            actor: .daemon,
+            detail: ["reason": .string(Self.cancellationReason(outcome.action))],
+            at: now
+        )
+        return nil
     }
 
     /// Records the bounded deferral window opening and closing.

@@ -2444,3 +2444,33 @@ Current-main integration preserves license-expiry reevaluation beside the inject
 ## CLI beta disclosure
 
 `scripts/user-docs.test.mjs` requires the README, website command-line section, user guide, and internal backlog to identify the CLI as beta. The regression failed before the labels were added. This is a source documentation change; publishing follows the existing website and documentation release workflows. The beta label does not establish launch readiness.
+
+## CLI launch behavior regressions
+
+`CommandParsingTests` checks documented schedule/activity arguments, rejects zero-day export ranges, requires beta help, and prevents legacy override queuing. `BudgetCommandTests` checks persisted grant authority, reset boundaries, preserved consumption after settings edits, exhausted budgets above a new lower limit, and unavailable/corrupt/unsafe runtime files. `CLIReadTests` checks empty JSON arrays, a corrupt SQLite file, and an absent activity store without creating one. CLI read errors now propagate through ArgumentParser to nonzero failure exits. The launch contract and remaining acceptance requirements are in `Documentation/cli-launch.md`.
+
+`ScheduleCommandTests` checks inactive automatic schedules, hours triggers, and pending schedule dates/rules in JSON. Plain schedule output uses the shared weekly review formatter.
+
+`RequestCommandTests` covers extension payloads, empty reasons, pending/denied/missing results, corrupt request files, identical-ID retries, and conflicting-ID rejection using temporary queues. `ScheduleCommandTests` exercises the actual root parser and requires schedule editing to stay available and labeled beta. `AuditCommandTests` covers retained rotations, ISO timestamp filtering, malformed records, and invalid arguments. No test submits live approval requests or mutates the user's enforcement state.
+
+`ProtectedWorkMutationTests` and `ProtectedWorkConcurrencyTests` cover corrupt-state preservation, waiting for the cross-process lock, unsafe lock entries, and retaining all claims from two wrappers. `BreakGlassCommandTests` uses temporary releases and fake shutdown cancellation to cover dry-run precedence and throwing, idempotent revocation. See `Documentation/cli-work-recovery.md` for the dispatch rules and rollback.
+
+`CLIReadTests` also rejects zero-byte databases without initializing schemas and opens valid databases through macOS temporary-directory aliases. Locked database reads must propagate errors. `RequestCommandTests` rejects symlinked sidecar locks and keeps repeated request IDs idempotent.
+
+`scripts/bootstrap-auth.test.mjs` covers Curfew's packages setup/check forwarding. Shared bootstrap v0.1.4 covers local and explicit CI credentials, actual package preflight, token-free installation, and unchanged repeat setup. Its evidence includes 25 Rust tests, 50 Python tests, and 12 native pnpm 10/11 scenarios with 24 real frozen preparations. Consumer acceptance verifies fresh worktrees and does not infer success from the presence of a cache directory.
+
+`DayRuleClockUpdateTests` checks that clock/day-off edits preserve trigger mode, hours limits, exceptions, and omitted values, including a mode changed before queued approval. The app uses the same helper when applying a queued request.
+
+Injected shutdown-runner tests cover no-match, failure exit codes, signals and launch errors without invoking system shutdown commands. CLI recovery failures retain the signed release and return a failing exit. Daemon failure tests prove failed cancellation keeps retry state and failed dispatch never becomes an issued shutdown. These paths reuse existing audit event shapes and preserve development disarm.
+
+`CLIInstallationTests` covers read-only planning, interrupted and repeated installation, conflicting commands, linked profiles, explicit shell directories, busy locks, concurrent profile edits, native zsh/bash PATH loading, and preservation of ACLs, extended attributes, and a non-default supplementary group. `Tests/Packaging/cask_cli_test.rb` exercises Homebrew's native linker in disposable destinations; the existing uninstall test injects its command sink. `scripts/homebrew-cask.test.mjs` checks checksum-bound cask updates.
+
+`CLIStandardsTests`, `CLIQueueErrorTests`, and `CLIProcessTests` cover JSON envelopes, duration units and overflow, stable errors, help parity, completion, global flags, repeat-option rejection, terminal width, paging, interruption, and quiet closed-pipe exits. `Tests/CLI/standards_acceptance.py` uses private terminals and subprocesses. CI installs fish for native shell acceptance.
+
+`ProtectionStoreWriteBoundsTests` requires recovery releases and aggregate protected-work claims to remain within their readers' limits before publication. Oversized writes and renewals preserve prior readable state. `MCPGrantRecoveryTests`, shared receipt/journal tests, and queue acknowledgement tests cover restart recovery, exact identity, multiple unacknowledged grants, uncertain writes, legacy migration, and bounded runtime persistence. The operational contract is in `Documentation/cli-request-recovery.md`.
+
+`CLIDataErrorTests` requires corrupt runtime records to return data error 65. The public documentation test checks the Homebrew install and upgrade commands and the beta schedule preview. The tap's native workflow verifies released-artifact installation separately from the Curfew source checks.
+
+`MCPRequestPruneTests` covers read-only preview, unchanged repeated cleanup, recovery protection inside the queue lock, and records changed since preview. `RequestPruneCommandTests` verifies that the command is available from the root parser.
+
+`CLIStandardsTests` also checks beta help at every command path and requires a usage error for an empty command argument.

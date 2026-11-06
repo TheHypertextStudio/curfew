@@ -15,45 +15,46 @@ struct StatusCommand: ParsableCommand {
 
     /// When true, emit a single JSON object suitable for piping to `jq`
     /// or reading from other tools.
-    @Flag(name: .shortAndLong, help: "Output as JSON instead of plain text.")
-    var json: Bool = false
+    @OptionGroup var options: CLIOptions
+    var json: Bool {
+        options.json
+    }
 
     /// Entry point — prints the last fresh app observation.
-    func run() {
+    func run() throws {
         let status = CurfewObservedStatusStore().loadFresh(at: Date())
 
         if json {
-            printJSON(status: status)
+            try CLIOutput.printJSON(Self.jsonObject(from: status))
         } else {
-            printPlain(status: status)
+            try printPlain(status: status)
         }
     }
 
     // MARK: - Output formatters
 
-    private func printPlain(status: CurfewObservedStatus?) {
-        print("phase:     \(status?.phase ?? "unknown")")
+    private func printPlain(status: CurfewObservedStatus?) throws {
+        var lines = ["Phase: \(status?.phase ?? "unknown")"]
 
         if status == nil || status?.phase == "unknown" {
-            print(
-                "status:    \(status?.availabilityDescription ?? "No recent Curfew status is available.")"
-            )
+            lines.append(status?.availabilityDescription ?? "No recent Curfew status is available.")
         }
         if let minutes = status?.minutesRemaining {
-            print("remaining: \(minutes) min")
+            lines.append("Remaining: \(minutes) min")
         }
         if let lock = status?.lockDate {
-            print("locks at:  \(formatTime(lock))")
+            lines.append("Locks at: \(formatTime(lock))")
         }
         if let unlock = status?.unlockDate {
-            print("unlocks:   \(formatTime(unlock))")
+            lines.append("Unlocks at: \(formatTime(unlock))")
         }
         if let warning = status?.warningStage, warning != "none" {
-            print("warning:   \(warning)")
+            lines.append("Warning: \(warning)")
         }
+        try CLIText.print(lines.joined(separator: "\n"), title: "Curfew status", options: options)
     }
 
-    static func jsonObject(from status: CurfewObservedStatus?) -> [String: Any] {
+    static func jsonObject(from status: CurfewObservedStatus?) throws -> [String: Any] {
         var obj: [String: Any] = [
             "phase": status?.phase ?? "unknown",
             "warning_stage": status?.warningStage ?? "none",
@@ -66,7 +67,7 @@ struct StatusCommand: ParsableCommand {
             obj["mode"] = mode
         }
         if let minutes = status?.minutesRemaining {
-            obj["minutes_remaining"] = minutes
+            obj["remaining_seconds"] = try CLIOutput.durationSeconds(minutes)
         }
         if let lock = status?
             .lockDate {
@@ -79,22 +80,12 @@ struct StatusCommand: ParsableCommand {
         return obj
     }
 
-    private func printJSON(status: CurfewObservedStatus?) {
-        let obj = Self.jsonObject(from: status)
-        if let data = try? JSONSerialization.data(
-            withJSONObject: obj,
-            options: [.prettyPrinted, .sortedKeys]
-        ) {
-            print(String(data: data, encoding: .utf8) ?? "{}")
-        }
-    }
-
     // MARK: - Formatting helpers
 
     private func formatTime(_ date: Date) -> String {
-        let f = DateFormatter()
-        f.timeStyle = .short
-        f.dateStyle = .none
-        return f.string(from: date)
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        formatter.dateStyle = .none
+        return formatter.string(from: date)
     }
 }

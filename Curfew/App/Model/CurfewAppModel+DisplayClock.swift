@@ -171,6 +171,7 @@ extension CurfewAppModel {
     /// never triggers lockout side-effects. Shared by the timer callback and
     /// by user actions that need an immediate re-evaluation.
     private func runTickCycle() {
+        retryMCPGrantAcknowledgementsIfDue()
         if started {
             tick()
         } else {

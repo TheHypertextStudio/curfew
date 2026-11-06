@@ -614,7 +614,7 @@ mid-lockout, and every action the root daemon takes. Format specification:
 - [x] Protected-work carve-out events: `protected_work.active` / `.cleared`, `break_glass.observed`, `daemon.shutdown_cancelled`, `daemon.shutdown_held`, `daemon.stand_down`, `daemon.deferral_opened` / `.closed`, plus the app-side `shutdown.deferred` and `shutdown.released_by_break_glass`.
 - [x] MCP consent resolution is split by _who decided_ (`approveMCPRequest`/`denyMCPRequest` for the consent sheet, `autoApproveMCPRequest`/`denyMCPRequestByPolicy` for the policy engine) so the actor is structural. The first shape shared one function between human clicks and automatic policy and recorded every policy refusal as a user decision, and every auto-approval twice.
 - [ ] Attribute `curfew-ctl` separately from `curfew-mcp`. Needs a `client` field on `MCPPendingRequest`, which is a `curfew-protocols` change and therefore a three-repo ceremony.
-- [ ] Surface the log from the app UI or `curfew-ctl` (e.g. `curfew-ctl audit --since`). Reading it today means `jq` on the file.
+- [x] Read retained app/daemon audit segments with `curfew-ctl audit --since`, date filtering, limits, and JSON. App UI presentation remains separate.
 
 ## 12. WidgetKit (Pro)
 
@@ -647,12 +647,16 @@ The CLI remains in beta until launch blockers and installed-artifact acceptance 
 - [x] Label the CLI beta in the README, website, and user guide.
 - [-] Resolve CLI override rejection, budget reset accuracy, inactive schedule reporting, JSON/error handling, documented arguments, audit export, and recovery verification before general availability.
 
-- [x] `status` — enforcement phase, time remaining, override state (plain + JSON).
+- [x] `status` — fresh app-observed enforcement phase and time remaining (plain + JSON); unavailable observations remain unknown.
 - [x] `schedule show` — today's and full weekly schedule.
 - [x] `budget` — extension and override budgets remaining.
 - [x] `activity` — recent activity log entries.
-- [x] `override` — enqueue an override request for the running app to approve.
+- [x] Reject the legacy `override` command immediately and explain the required in-app confirmation.
 - [x] Bundled at `Curfew.app/Contents/Resources/curfew-ctl`.
+- [x] Provide Homebrew installation and a shared installer for Settings and `setup --apply`; preserve existing commands, shell contents, ACLs, extended attributes, and repeat-install timestamps.
+- [x] Add versioned JSON, documented error codes, seconds for durations, examples-first help, version reporting, shell completion, terminal paging, and safe interruption handling.
+- [x] Provide approved extension requests, request-result lookup, protected-work JSON, and retained audit export.
+- [ ] Add CLI schedule editing only after accepted schedule changes and request outcomes recover together after a crash. This beta keeps schedule editing in the app.
 
 ## 18.1 Distribution scaffolding (you complete externally)
 
@@ -1903,3 +1907,19 @@ Ordinary visual captures preserve synthetic permission and interrupted-keyboard 
 - [x] Run the installed shared Astro formatter comparison in the website unit lane, where its dependencies are installed. Keep native packaging/source checks dependency-free so release CI reaches the native checks. This changes test placement only; product behavior and release acceptance requirements are unchanged.
 
 - [x] Keep the background lifecycle window assertion scoped to its injected router, so concurrent account and snapshot tests cannot contaminate its result. Retain the timer-driven lockout, running-enforcement, no-activation, and no-Settings assertions; stop the test model during cleanup. Production behavior is unchanged.
+
+## CLI launch repair evidence
+
+The first behavior slice repairs the documented `schedule show` and `activity --days` invocations, rejects nonpositive reflection ranges, reads budget counters from persisted runtime authority and applies the app's configured reset policy, preserves JSON arrays for empty exports, and propagates activity/reflection read failures. Legacy overrides fail before queuing and direct the user to in-app confirmation. The root help identifies beta status.
+
+Targeted regressions reproduced parser failures, invalid reflection acceptance, locale-based reset boundaries, and false override acceptance before their fixes. Schedule inspection now identifies inactive rules, hours-based triggers, and pending changes in plain text and JSON. Extension requests with result lookup, protected-work JSON, audit export, and emergency recovery have targeted regression coverage. Final integrated verification and signed acceptance for the updated CLI remain open. No wire shapes or approval policy changed. Local runtime format 2 retains committed extension request receipts until queue acknowledgement; see `Documentation/cli-request-recovery.md` before considering rollback.
+
+The CLI adds approved extension requests, strict request-status lookup, stable request IDs, and retained audit export. Retrying an identical request ID reuses its retained record; conflicting content fails. Queue writes reject corrupt state, overflow, and lock failures instead of overwriting requests or proceeding without the lock. The app retains committed extension receipts across failed acknowledgements and restart. `schedule set` remains available as beta. Its separate settings write leaves crash recovery open. The CLI preserves existing protocol shapes and the app's approval/cooldown policy.
+
+- [x] Standardize GitHub Packages setup through the shared bootstrap engine, preserve explicit CI tokens, and preflight actual package access before pnpm installation. Curfew's launcher forwards setup/check and pins the verified shared release; see `Documentation/github-packages-setup.md` for repeat runs and rollback.
+
+Budget inspection now uses persisted grant counters and preserves consumed uses when the weekly limit or reset weekday changes. It fails when runtime authority is missing, corrupt, oversized, or unsafe. CLI activity/reflection inspection opens SQLite read-only and validates an existing schema instead of creating one. Settings and activity formats remain unchanged; extension request recovery migrates the local runtime record. Runtime files that were symlinked or multiply linked are rejected conservatively by both the CLI and the app's existing restore path.
+
+- [x] Preserve schedule editing in the beta and route its time-based changes through the existing approval policy. Root parser tests cover both schedule inspection entry points and editing. Schedule crash recovery remains a general availability gate.
+- [ ] Verify clean Homebrew install and upgrade using the public tap on an isolated macOS runner. The tap distributes the current release while the next app release carries the expanded beta commands.
+- [x] Give users a preview-first way to free space in a full approval queue. Keep pending requests and unacknowledged grant recovery records.

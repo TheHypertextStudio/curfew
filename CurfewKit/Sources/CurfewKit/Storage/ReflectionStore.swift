@@ -58,13 +58,17 @@ public final class ReflectionStore {
     /// directory must exist; the file itself is created if absent. Throws
     /// ``ReflectionStoreError/couldNotOpenDatabase`` when SQLite refuses to
     /// open the path (missing parent, disk full, permission).
-    public init(databaseURL: URL) throws {
+    /// Read-only inspection validates the existing schema without creating or migrating it.
+    public init(databaseURL: URL, readOnly: Bool = false) throws {
         self.databaseURL = databaseURL
         var handle: OpaquePointer?
+        let openPath = try readOnly ? sqliteInspectionPath(for: databaseURL) : databaseURL.path
         let status = sqlite3_open_v2(
-            databaseURL.path,
+            openPath,
             &handle,
-            SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_FULLMUTEX,
+            readOnly
+                ? SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX | SQLITE_OPEN_NOFOLLOW
+                : SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_FULLMUTEX,
             nil
         )
         guard status == SQLITE_OK, let handle else {
@@ -74,7 +78,13 @@ public final class ReflectionStore {
             throw ReflectionStoreError.couldNotOpenDatabase
         }
         self.handle = handle
-        try installSchema(on: handle)
+        if readOnly {
+            try prepared("SELECT id, timestamp, gate, answers FROM reflections LIMIT 0;") { _ in
+                ()
+            }
+        } else {
+            try installSchema(on: handle)
+        }
     }
 
     deinit {
@@ -195,10 +205,15 @@ public final class ReflectionStore {
             sqlite3_bind_double(stmt, 2, through.timeIntervalSince1970)
 
             var reflections: [Reflection] = []
-            while sqlite3_step(stmt) == SQLITE_ROW {
+            var status = sqlite3_step(stmt)
+            while status == SQLITE_ROW {
                 if let reflection = try decodeRow(stmt) {
                     reflections.append(reflection)
                 }
+                status = sqlite3_step(stmt)
+            }
+            guard status == SQLITE_DONE else {
+                throw ReflectionStoreError.sqliteFailure(message: lastErrorMessage())
             }
             return reflections
         }
