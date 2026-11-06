@@ -703,6 +703,16 @@ tests cannot read or mutate a user's App Group lockout record.
   - `CurfewEnforcementEngineTests/customWarningIntervals()`
   - `CurfewEnforcementEngineTests/extensionAvailabilityForCustomIntervals()`
   - `WarningIntervalsPersistenceTests/warningIntervalsPersistNormalized()`
+- `Show actionable early warnings and persistent late cues over fullscreen apps.`
+  - `OverlayWindowConfigurationTests/earlyNoticeWindowConfiguration()`
+  - `OverlayWindowConfigurationTests/warningWindowConfiguration()`
+  - `OverlayWindowConfigurationTests/timerWindowConfiguration()`
+  - `WarningNoticeVisibilityTests/dismissalAppliesOnlyToTheCurrentStage()`
+  - `CurfewUITests/testEarlyWarningCanBeDismissedWithoutStoppingWork()`
+  - `CurfewUITests/testWarningAndLockoutPresentation()`
+  - `MarketingCaptureTests/testCaptureOverlays()` captures early notices, the late timer, and the lockout during and after its fade in both appearances. Its attachment check accepts Retina scale while rejecting cropped captures.
+  - `PresentationStateTests/uncroppedCapture()` keeps the screenshot scale check in the capture harness.
+  - `WarningNotificationManagerTests/finalWarningPayload()` checks that T-0 has no separate banner.
 
 ## 3. Lockout Experience
 
@@ -713,6 +723,11 @@ tests cannot read or mutate a user's App Group lockout record.
 - `Add keyboard shortcut interception strategy for lockout.`
   - `LockoutShortcutPolicyTests/blocksTargetedShortcuts()`
   - `LockoutShortcutPolicyTests/allowsUnrelatedShortcuts()`
+- `Show the lockout before blocking shortcuts and fade content without exposing the desktop.`
+  - `OverlayWindowConfigurationTests/lockoutWindowConfiguration()`
+  - `LockoutArrivalAnimationTests/motionPolicy()`
+  - `PresentationStateTests/liveLockoutMessage()` keeps the lockout text bound to the model while the arrival view stays mounted.
+  - `CurfewUITests/testWarningAndLockoutPresentation()`
 - `Implement rotating encouragement messages.`
   - `EncouragementMessageRotationTests/messageRotationWraps()`
 - `Implement lockout visual design (time, unlock time, optional stats card).`

@@ -65,7 +65,7 @@ final class NoOpWarningNotificationManager: WarningNotificationManaging {
 /// by `UNUserNotificationCenter` for the delegate callback.
 @MainActor
 final class WarningNotificationManager: NSObject {
-    /// Category for non-snooze warnings (T-5, T-2, T-1, lockout).
+    /// Category for non-snooze warnings (T-5, T-2, T-1).
     static let warningCategoryIdentifier = "CURFEW_WARNING"
 
     /// Category for warnings that offer a snooze action (T-30, T-15).
@@ -223,8 +223,8 @@ final class WarningNotificationManager: NSObject {
         return "\(components.year ?? 0)-\(components.month ?? 0)-\(components.day ?? 0)"
     }
 
-    /// Returns the notification payload for `stage`, or `nil` for `.none`
-    /// (no notification when outside the warning window). Exposed as `static`
+    /// Returns the notification payload for an approaching lockout. The
+    /// lockout window itself replaces a T-0 banner. Exposed as `static`
     /// so tests can verify copy and sound policy without a live center.
     static func payload(for stage: WarningStage) -> WarningNotificationPayload? {
         switch stage {
@@ -263,14 +263,7 @@ final class WarningNotificationManager: NSObject {
                 categoryIdentifier: warningCategoryIdentifier,
                 playsSound: true
             )
-        case .lockout:
-            WarningNotificationPayload(
-                title: "Curfew Lockout",
-                body: "Lockout has started. Rest well.",
-                categoryIdentifier: warningCategoryIdentifier,
-                playsSound: true
-            )
-        case .none:
+        case .lockout, .none:
             nil
         }
     }

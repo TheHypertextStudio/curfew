@@ -98,26 +98,52 @@ Curfew solves this by treating your schedule as a binding commitment, not a sugg
 
 **Requirements:**
 
-| Time Before Lockout | Behavior                                                                                                    |
-| ------------------- | ----------------------------------------------------------------------------------------------------------- |
-| T-30 min            | Standard macOS notification: _"30 minutes of work time left."_                                              |
-| T-15 min            | Persistent notification + menu bar icon turns amber. _"15 minutes — start wrapping up."_                    |
-| T-5 min             | Screen overlay at 10% opacity (subtle dimming). Notification with sound: _"5 minutes. Save your work now."_ |
-| T-2 min             | Screen overlay at 25% opacity. Gentle chime. _"2 minutes remaining."_                                       |
-| T-1 min             | Screen overlay at 40% opacity. Audible countdown tone. _"1 minute. Final save."_                            |
-| T-0                 | Full lockout screen transition (animated fade-in over 3 seconds).                                           |
+| Time Before Lockout | Behavior                                                                                                                                               |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| T-30 min            | Dismissible on-screen notice on every display. A macOS notification is secondary.                                                                      |
+| T-15 min            | The on-screen notice returns even if the first was dismissed. A macOS notification is secondary.                                                       |
+| T-5 min             | Persistent countdown and 10% screen dim. A notification with sound prompts the user to save work.                                                      |
+| T-2 min             | Persistent countdown and 25% screen dim. A notification plays a gentle chime.                                                                          |
+| T-1 min             | Persistent countdown and 40% screen dim. A notification gives the final save cue.                                                                      |
+| T-0                 | The input-capturing lockout window covers every display before shortcut blocking starts. Its content fades in over 3 seconds, with no separate banner. |
 
 - Warning intervals are user-configurable (advanced settings)
 - Each warning includes a "Snooze 1 min" action (but only at T-15 and T-30; not available in the final 5 minutes)
 - Warnings are delivered via `UNUserNotificationCenter` with appropriate categories and actions
-- Screen overlay is a borderless `NSWindow` at `.floating` level (not `.screenSaver` — that's reserved for lockout)
-- Overlay is click-through during warning phase (user can still work, just sees the dim)
+- Warning windows appear over fullscreen apps and every Space. The dim and countdown pass clicks through. The early notice accepts its Dismiss action without activating Curfew.
+- Dismissing an early notice hides that stage only. The next warning stage or a new warning phase brings it back.
 
 **UX Notes:**
 
 - The dimming effect should feel like a sunset — warm amber tint, not harsh darkening
 - A small floating timer appears in the corner during the last 5 minutes, always on top
 - Sound design: soft, warm tones — not alarm-like. Think meditation bell, not fire alarm.
+
+The lockout handoff uses this sequence diagram:
+
+```mermaid
+sequenceDiagram
+    participant Tick as Enforcement tick
+    participant Windows as Overlay windows
+    participant Shield as Keyboard shield
+    Tick->>Windows: Show warning notice or countdown
+    Note over Windows: Work remains interactive before the deadline
+    Tick->>Windows: Cover all displays with opaque lockout window
+    Windows-->>Tick: Lockout window is ordered front
+    Tick->>Shield: Block bypass shortcuts
+    Note over Windows: Lockout content fades in; Reduce Motion shows it at once
+```
+
+The notice stays dismissed while its stage remains active. Hours-based rules
+recompute the projected deadline every tick, so deadline equality cannot
+identify a new warning. The final five-minute countdown cannot be dismissed.
+The lockout view keeps its animation state while it reads the current
+encouragement text from the app model. A later text update does not restart the
+fade.
+This change needs signed-device acceptance in a fullscreen app and in Mission
+Control before release. If the warning panel covers a system prompt, revert the
+warning-window level and panel while retaining the lockout shortcut fix; that
+rollback restores the prior fullscreen-warning gap.
 
 ---
 
@@ -130,7 +156,7 @@ Curfew solves this by treating your schedule as a binding commitment, not a sugg
 - Covers all displays, all Spaces, all fullscreen apps
 - `NSWindow` at `.screenSaver` level with `collectionBehavior: [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]`
 - Window is non-movable, non-resizable, borderless, and captures all mouse/keyboard input
-- Blocks system keyboard shortcuts during lockout: Cmd+Tab, Cmd+Q, Cmd+Space, Cmd+Option+Esc, Ctrl+arrow keys
+- Blocks system keyboard shortcuts during lockout: Cmd+Tab, Cmd+Q, Cmd+Space, Cmd+Option+Esc, Ctrl+arrow keys, F3, F4, F11, F12, and Fn+H
 - Implemented via `CGEvent.tapCreate` at the session level for key interception
 - Displays:
   - Current time (large, elegant typography)
@@ -153,6 +179,7 @@ Curfew solves this by treating your schedule as a binding commitment, not a sugg
 **UX Notes:**
 
 - The transition into lockout should feel like a calm exhale, not a slammed door
+- The fade changes content inside an opaque, input-capturing window. It never fades the window itself or leaves the desktop exposed.
 - Background animation: slow-moving aurora borealis effect or gentle particle field
 - Typography: SF Pro Display, large weight, generous spacing
 - Consider showing a "today's stats" card: hours worked, tasks completed (if integrated)

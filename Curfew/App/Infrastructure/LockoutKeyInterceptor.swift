@@ -22,8 +22,9 @@ enum LockoutShortcutPolicy {
     ///
     /// Key codes are the standard macOS virtual key codes (see `Events.h`):
     /// 48 = tab, 12 = q, 49 = space, 53 = escape, 123–126 = arrow keys,
-    /// 13 = w, 4 = h, 46 = m, 50 = backtick, 131 = F4 (Launchpad), 160 =
-    /// F3 (Mission Control), 103 = F11, 111 = F12.
+    /// 13 = w, 4 = h, 46 = m, 50 = backtick, 99 = F3 (Mission Control),
+    /// 118 = F4 (Launchpad), 103 = F11, 111 = F12. The function-key codes
+    /// match the macOS SDK's HIToolbox Events.h constants.
     static func shouldBlock(keyCode: CGKeyCode, flags: CGEventFlags) -> Bool {
         let command = flags.contains(.maskCommand)
         let option = flags.contains(.maskAlternate)
@@ -43,13 +44,17 @@ enum LockoutShortcutPolicy {
         if command, option, keyCode == 53 {
             return true
         }
+        // macOS also maps Fn+H to Show Desktop on supported keyboards.
+        if flags.contains(.maskSecondaryFn), keyCode == 4 {
+            return true
+        }
         // Ctrl-arrows for Spaces navigation.
         if control, [123, 124, 125, 126].contains(keyCode) {
             return true
         }
         // F3 Mission Control, F4 Launchpad, F11 show desktop, F12 dashboard —
         // all desktop-pivot affordances that surface non-Curfew windows.
-        if [131, 160, 103, 111].contains(keyCode) {
+        if [99, 118, 103, 111].contains(keyCode) {
             return true
         }
         return false

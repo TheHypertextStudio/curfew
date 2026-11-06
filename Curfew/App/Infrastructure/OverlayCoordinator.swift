@@ -10,8 +10,8 @@ struct OverlayWindowConfiguration: Equatable {
     /// Window style flags — overlays use `.borderless` so no title bar appears.
     var styleMask: NSWindow.StyleMask
 
-    /// Drawing priority. `.floating` for warnings, `.screenSaver` for lockout
-    /// (above the dock and full-screen apps), `.statusBar` for the timer pill.
+    /// Drawing priority. Warning and lockout windows must both appear above
+    /// full-screen apps; input policy differs between the two phases.
     var level: NSWindow.Level
 
     /// When `true` the window is transparent to mouse input. Warning and timer
@@ -35,14 +35,14 @@ struct OverlayWindowConfiguration: Equatable {
 /// multi-monitor setups consistent. The coordinator creates windows lazily on
 /// first need, updates them in-place on subsequent ticks, and tears them down
 /// when the phase clears. `CurfewAppModel` calls
-/// ``updateOverlays(for:model:lockoutMessage:)`` once per tick.
+/// ``updateOverlays(for:model:)`` once per tick.
 @MainActor
 final class OverlayCoordinator {
     /// Window configuration for the translucent dim overlay shown during the
     /// warning phase. Mouse events pass through so normal interaction continues.
     static let warningWindowConfiguration = OverlayWindowConfiguration(
         styleMask: [.borderless],
-        level: .floating,
+        level: .screenSaver,
         ignoresMouseEvents: true,
         collectionBehavior: [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary],
         isMovable: false,
@@ -62,11 +62,13 @@ final class OverlayCoordinator {
     )
 
     /// Window configuration for the small floating countdown timer shown at
-    /// T-5 and below. Level `.statusBar` keeps it above normal windows but
-    /// below the lockout overlay. Mouse events pass through.
+    /// T-5 and below. Level `.screenSaver` keeps it above full-screen work.
+    /// Mouse events pass through.
+    static let timerWindowWidth: CGFloat = 240
+
     static let timerWindowConfiguration = OverlayWindowConfiguration(
         styleMask: [.borderless],
-        level: .statusBar,
+        level: .screenSaver,
         ignoresMouseEvents: true,
         collectionBehavior: [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary],
         isMovable: false,
@@ -108,6 +110,7 @@ final class OverlayCoordinator {
     private var lockoutWindows: [ObjectIdentifier: NSWindow] = [:]
     private var timerWindows: [ObjectIdentifier: NSWindow] = [:]
     private var daybreakWindows: [ObjectIdentifier: NSWindow] = [:]
+    private let noticeCoordinator = WarningNoticeCoordinator()
 
     /// Reconciles the visible overlay windows with `state`. Called once per
     /// tick; creates, updates, or removes windows as needed. Hides irrelevant
@@ -121,33 +124,38 @@ final class OverlayCoordinator {
     /// still works while the screen is covered. Tests that need to assert on
     /// overlay behaviour read the static `*WindowConfiguration` values, which
     /// this guard leaves untouched.
-    func updateOverlays(
-        for state: CurfewEvaluation,
-        model: CurfewAppModel,
-        lockoutMessage: String
-    ) {
+    func updateOverlays(for state: CurfewEvaluation, model: CurfewAppModel) {
         guard !Self.suppressesWindows else { return }
         switch state.phase {
         case .locked where model.isEnforcingLockout:
+            // Cover the desktop before removing the warning or arming the key
+            // shield. The lockout window is opaque from its first frame.
+            showLockoutWindows(model: model)
+            noticeCoordinator.reset()
             hideWarningWindows()
             hideTimerWindows()
-            showLockoutWindows(model: model, message: lockoutMessage)
         case .locked:
             // Locked, but another Curfew flavor already owns enforcement on this
             // Mac. Only one Curfew may lock the user out at a time, so this build
             // stands by and shows nothing blocking.
+            noticeCoordinator.reset()
             hideWarningWindows()
             hideTimerWindows()
             hideLockoutWindows()
         case .warning:
             hideLockoutWindows()
             showWarningWindows(opacity: state.warningStage.overlayOpacity)
+            noticeCoordinator.update(
+                stage: state.warningStage,
+                minutesRemaining: state.minutesRemaining
+            )
             if state.warningStage.showsFloatingTimer {
                 showTimerWindows(minutesRemaining: state.minutesRemaining)
             } else {
                 hideTimerWindows()
             }
         case .working, .dayOff:
+            noticeCoordinator.reset()
             hideWarningWindows()
             hideLockoutWindows()
             hideTimerWindows()
@@ -239,13 +247,11 @@ final class OverlayCoordinator {
         }
     }
 
-    private func showLockoutWindows(model: CurfewAppModel, message: String) {
+    private func showLockoutWindows(model: CurfewAppModel) {
         for screen in NSScreen.screens {
             let key = ObjectIdentifier(screen)
             if let window = lockoutWindows[key] {
                 window.setFrame(screen.frame, display: true)
-                let root = LockoutScreenView(message: message).environment(model)
-                window.contentView = NSHostingView(rootView: root)
                 window.orderFrontRegardless()
                 continue
             }
@@ -258,7 +264,7 @@ final class OverlayCoordinator {
                 screen: screen
             )
             apply(configuration: Self.lockoutWindowConfiguration, to: window)
-            let root = LockoutScreenView(message: message).environment(model)
+            let root = LockoutArrivalView().environment(model)
             window.contentView = NSHostingView(rootView: root)
             window.makeKeyAndOrderFront(nil)
             lockoutWindows[key] = window
@@ -314,7 +320,7 @@ final class OverlayCoordinator {
     }
 
     private func timerFrame(for screen: NSScreen) -> CGRect {
-        let width: CGFloat = 140
+        let width = Self.timerWindowWidth
         let height: CGFloat = 50
         let margin: CGFloat = 20
         let originX = screen.visibleFrame.maxX - width - margin
@@ -357,24 +363,18 @@ private struct WarningOverlayView: View {
     }
 }
 
-/// Small pill-shaped countdown shown in the top-right corner of each
-/// screen during the last few minutes before lockout. Non-interactive
-/// (window passes clicks through) — purely informative.
 private struct FloatingCountdownTimerView: View {
-    /// Whole minutes until lockout. Clamped to `>= 0` so the view
-    /// never displays a negative number if the tick loop hands it
-    /// a stale or just-over value.
     let minutesRemaining: Int
 
-    /// SwiftUI body — a small dusk capsule with the minutes remaining.
     var body: some View {
         HStack(spacing: 7) {
             Image(systemName: "clock.fill")
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(SundownPalette.glow)
-            Text("\(max(0, minutesRemaining)) min")
+            Text("Curfew in \(max(0, minutesRemaining)) min")
+                .fixedSize(horizontal: true, vertical: false)
                 .accessibilityIdentifier("warning-countdown")
-                .accessibilityLabel("\(max(0, minutesRemaining)) min")
+                .accessibilityLabel("Curfew in \(max(0, minutesRemaining)) min")
                 .font(.system(size: 15, weight: .semibold, design: .rounded))
                 .monospacedDigit()
                 .foregroundStyle(SundownPalette.warmWhite)

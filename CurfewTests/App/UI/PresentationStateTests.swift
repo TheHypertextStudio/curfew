@@ -48,8 +48,17 @@ struct PresentationStateTests {
     func uncroppedCapture() throws {
         let capture = try source("CurfewUITests/MarketingCaptureTests.swift")
             .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
-        #expect(capture.contains("screenshot.image.size.width, element.frame.width"))
-        #expect(capture.contains("screenshot.image.size.height, element.frame.height"))
+        #expect(capture.contains("screenshot.image.size.width / element.frame.width"))
+        #expect(capture.contains("screenshot.image.size.height / element.frame.height"))
+        #expect(capture.contains("XCTAssertEqual( horizontalScale, verticalScale"))
+    }
+
+    @Test("Lockout arrival reads the live encouragement message")
+    func liveLockoutMessage() throws {
+        let arrival = try source("Curfew/UI/LockoutArrivalView.swift")
+        #expect(arrival.contains("LockoutScreenView(message: model.lockoutMessage)"))
+        let overlay = try source("Curfew/App/Infrastructure/OverlayCoordinator.swift")
+        #expect(overlay.contains("LockoutArrivalView().environment(model)"))
     }
 
     @Test("Contradictory states have isolated fixtures for remote review")
