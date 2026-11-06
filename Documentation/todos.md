@@ -1923,3 +1923,5 @@ Budget inspection now uses persisted grant counters and preserves consumed uses 
 - [x] Preserve schedule editing in the beta and route its time-based changes through the existing approval policy. Root parser tests cover both schedule inspection entry points and editing. Schedule crash recovery remains a general availability gate.
 - [x] Verify clean Homebrew install and upgrade using the public tap on isolated macOS runners. The tap distributes the current release while the next app release carries the expanded beta commands.
 - [x] Give users a preview-first way to free space in a full approval queue. Keep pending requests and unacknowledged grant recovery records.
+
+- [x] Reject candidate tags without matching Sparkle release notes before signing. The 0.0.17 staging run stopped before opening Sparkle because its tagged source lacked the notes.
