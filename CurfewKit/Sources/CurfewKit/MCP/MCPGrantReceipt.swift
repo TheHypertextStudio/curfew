@@ -1,7 +1,7 @@
 import CryptoKit
 import Foundation
 
-/// An extension already committed locally whose queue acknowledgement is not yet durable.
+/// An already committed local action with a queue acknowledgement pending.
 public struct MCPGrantReceipt: Codable, Equatable, Sendable {
     public let requestID: UUID
     public let tool: String
@@ -21,7 +21,11 @@ public struct MCPGrantReceipt: Codable, Equatable, Sendable {
     }
 
     public var isValid: Bool {
-        tool == MCPWriteTool.requestExtension.rawValue && appliedAt.timeIntervalSince1970
+        isValid(for: .requestExtension)
+    }
+
+    func isValid(for expectedTool: MCPWriteTool) -> Bool {
+        tool == expectedTool.rawValue && appliedAt.timeIntervalSince1970
             .isFinite &&
             argumentsSHA256.count == 64 && argumentsSHA256
             .allSatisfy { $0.isHexDigit && !$0.isUppercase }

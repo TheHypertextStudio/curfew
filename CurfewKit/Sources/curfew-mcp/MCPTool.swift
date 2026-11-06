@@ -128,9 +128,7 @@ extension MCPTool {
         settingsStore: CurfewSettingsStore? = nil,
         flavor: CurfewFlavor = .current
     ) -> MCPTool {
-        let store = settingsStore ?? CurfewSettingsStore(
-            defaults: UserDefaults(suiteName: SharedPaths.defaultsSuiteName) ?? .standard
-        )
+        let store = settingsStore ?? CurfewSettingsStore.production()
         return MCPTool(
             name: "curfew_schedule",
             description: """
@@ -139,7 +137,7 @@ extension MCPTool {
             """,
             inputSchema: emptySchema(),
             call: { _ in
-                let settings = store.load()
+                let settings = try store.loadChecked()
                 let enabled = AutomaticScheduleConsentPolicy.isEnabled(
                     savedConsent: store.loadAutomaticScheduleConsent(),
                     hasCompletedInitialSetup: settings.hasCompletedInitialSetup,
@@ -825,8 +823,7 @@ enum MCPToolError: Error, LocalizedError {
 
 /// Opens the settings using the Curfew app's UserDefaults suite.
 private func loadSharedSettings() -> CurfewSettings {
-    let defaults = UserDefaults(suiteName: SharedPaths.defaultsSuiteName) ?? .standard
-    return CurfewSettingsStore(defaults: defaults).load()
+    CurfewSettingsStore.production().load()
 }
 
 /// Reads the app's persisted override-event log from UserDefaults so

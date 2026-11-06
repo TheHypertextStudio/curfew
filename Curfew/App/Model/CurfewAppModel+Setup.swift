@@ -78,7 +78,7 @@ extension CurfewAppModel {
     }
 
     static func defaultSettingsStore() -> CurfewSettingsStore {
-        guard RuntimeEnvironment.isUnitTestHost else { return CurfewSettingsStore() }
+        guard RuntimeEnvironment.isUnitTestHost else { return .production() }
         let suite = "studio.hypertext.curfew.tests.\(UUID().uuidString)"
         guard let defaults = UserDefaults(suiteName: suite) else {
             preconditionFailure("Could not create isolated test settings")

@@ -412,7 +412,7 @@ final class CurfewAppModel: NSObject {
             .accessibilityAuthorization = accessibilityAuthorization ??
             SystemAccessibilityAuthorization()
 
-        let loadedSettings = settingsStore.load()
+        let (loadedSettings, error) = Self.loadSchedule(settingsStore, queue)
         self.settings = loadedSettings
         settingsStore.migrateMissingDevelopmentScheduleConsentIfNeeded(
             hasCompletedInitialSetup: loadedSettings.hasCompletedInitialSetup,
@@ -437,7 +437,7 @@ final class CurfewAppModel: NSObject {
             queue: queue
         )
         self.runtimePersistenceError = runtime.error
-        self.mcpGrantRecovery = MCPGrantRecoveryState(queue: queue, state: runtime.state)
+        self.mcpGrantRecovery = .init(queue: queue, state: runtime.state, scheduleError: error)
         self.extensionTracker = runtime.extensionTracker
         self.overrideTracker = runtime.overrideTracker
 

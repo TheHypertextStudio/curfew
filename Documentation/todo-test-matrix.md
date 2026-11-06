@@ -2478,3 +2478,5 @@ Injected shutdown-runner tests cover no-match, failure exit codes, signals and l
 The deployment-host check requires CLI and website guide links to use the configured site origin. Website contract tests accept formatter whitespace around the account link. Native `brew style` checks the cask that matches the public tap. The isolated install and upgrade receipts are recorded in `Documentation/cli-installation.md`.
 
 `release-candidate.test.mjs` runs the release notes preflight with missing, wrong-version, and matching notes. Signed Sparkle acceptance still requires the exact candidate artifact and its own hosted receipt.
+
+`MCPGrantRecoveryTests.restartAfterUnacknowledgedSchedule` reproduces the overwritten edit after a failed queue acknowledgement and model restart. `LocalScheduleJournalTests` verifies durable schedule and cooldown recovery, legacy request IDs, stale writers, and corrupt-state preservation.

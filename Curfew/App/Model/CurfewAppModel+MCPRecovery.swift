@@ -9,9 +9,15 @@ struct MCPGrantRecoveryState {
     var trackingStartedAt: Date?
     var nextAttemptAt = Date.distantPast
     var isResolving = false
+    var scheduleError: String?
 
-    init(queue: MCPRequestQueueStore, state: EnforcementRuntimeState) {
+    init(
+        queue: MCPRequestQueueStore,
+        state: EnforcementRuntimeState,
+        scheduleError: String? = nil
+    ) {
         self.queue = queue
+        self.scheduleError = scheduleError
         self.receipts = state.mcpGrantReceipts ?? []
         self.legacyIDs = state.legacyMCPGrantRequestIDs ?? []
         self.trackingStartedAt = state.mcpReceiptTrackingStartedAt
@@ -20,6 +26,22 @@ struct MCPGrantRecoveryState {
 
 @MainActor
 extension CurfewAppModel {
+    var schedulePersistenceError: String? {
+        get { mcpGrantRecovery.scheduleError }
+        set { mcpGrantRecovery.scheduleError = newValue }
+    }
+
+    static func loadSchedule(
+        _ store: CurfewSettingsStore, _ queue: MCPRequestQueueStore
+    ) -> (CurfewSettings, String?) {
+        do {
+            try store.prepareScheduleRecovery(queue: queue)
+            return try (store.loadChecked(), nil)
+        } catch {
+            return (store.load(), error.localizedDescription)
+        }
+    }
+
     var mcpRequestQueueStore: MCPRequestQueueStore {
         mcpGrantRecovery.queue
     }
@@ -124,11 +146,26 @@ extension CurfewAppModel {
         }
     }
 
+    func recoverMCPScheduleIfNeeded(_ request: MCPPendingRequest) -> Bool {
+        guard request.tool == .setSchedule else { return false }
+        guard schedulePersistenceError == nil else { return true }
+        do {
+            guard let outcome = try settingsStore.recoverScheduleOutcome(
+                for: request, now: currentTime
+            ) else { return false }
+            if writeMCPQueueUpdate(outcome) {
+                try settingsStore.acknowledgeScheduleOutcome(outcome)
+            }
+            pendingMCPRequests.removeAll { $0.id == request.id }
+        } catch {
+            logMCPRecoveryFailure(error)
+        }
+        return true
+    }
+
     func retryMCPGrantAcknowledgementsIfDue() {
         guard !isDemoSession, !privilegedHelperManager.maintenancePaused,
               !isResolvingMCPRequest,
-              runtimePersistenceError == nil,
-              !mcpGrantReceipts.isEmpty || !legacyMCPGrantRequestIDs.isEmpty,
               currentTime >= nextMCPGrantAcknowledgementAttemptAt else { return }
         nextMCPGrantAcknowledgementAttemptAt = currentTime.addingTimeInterval(15)
         retryMCPGrantAcknowledgements()
@@ -136,10 +173,17 @@ extension CurfewAppModel {
 
     func retryMCPGrantAcknowledgements() {
         do {
+            let scheduleIDs = (try? settingsStore.scheduleRecoveryIDs()) ?? []
+            let grantIDs = runtimePersistenceError == nil
+                ? Set(mcpGrantReceipts.map(\.requestID) + legacyMCPGrantRequestIDs) : []
+            guard !scheduleIDs.isEmpty || !grantIDs.isEmpty else { return }
             let requests = try mcpRequestQueueStore.load()
-            let ids = Set(mcpGrantReceipts.map(\.requestID) + legacyMCPGrantRequestIDs)
-            for request in requests where ids.contains(request.id) {
-                _ = recoverMCPGrantIfNeeded(request)
+            for request in requests {
+                if scheduleIDs.contains(request.id) {
+                    _ = recoverMCPScheduleIfNeeded(request)
+                } else if grantIDs.contains(request.id) {
+                    _ = recoverMCPGrantIfNeeded(request)
+                }
             }
         } catch { logMCPRecoveryFailure(error) }
     }

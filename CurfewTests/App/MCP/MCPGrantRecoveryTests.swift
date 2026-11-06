@@ -43,6 +43,44 @@ struct MCPGrantRecoveryTests {
         }
     }
 
+    @Test("Restart acknowledges a schedule request without overwriting a later edit")
+    func restartAfterUnacknowledgedSchedule() throws {
+        try withFixture { fixture in
+            try fixture.seedTrackedRuntime()
+            let fault = AcknowledgementFault()
+            let queue = MCPRequestQueueStore(
+                recordURL: fixture.queueURL,
+                beforeAcknowledgement: {
+                    if fault.enabled {
+                        throw CocoaError(.fileWriteUnknown)
+                    }
+                }
+            )
+            let request = MCPPendingRequest(
+                tool: .setSchedule,
+                argumentsJSON: #"{"weekday":"monday","lock_time":"22:00","is_day_off":false}"#,
+                requestedAt: fixture.now
+            )
+            try queue.append(request)
+            let initial = fixture.model(queue: queue)
+            fault.enabled = true
+            initial.approveMCPRequest(request)
+            #expect(initial.settings.schedule.rule(for: .monday).lockMinutes == 22 * 60)
+            #expect(try queue.load().first?.status == .pending)
+
+            initial.queueScheduleUpdate(.standardNineToFive)
+            let restarted = fixture.model(queue: queue)
+            try #require(restarted.settings.schedule == .standardNineToFive)
+            fault.enabled = false
+            restarted.approveMCPRequest(request)
+
+            #expect(restarted.settings.schedule == .standardNineToFive)
+            #expect(fixture.settings.load().schedule == .standardNineToFive)
+            #expect(try queue.load().first?.status == .approved)
+            #expect(try fixture.settings.scheduleRecoveryIDs().isEmpty)
+        }
+    }
+
     @Test("A post-commit storage error leaves pending status and protects the committed snapshot")
     func ambiguousRuntimeWrite() throws {
         try withFixture { fixture in
@@ -166,13 +204,16 @@ struct MCPGrantRecoveryTests {
             try? FileManager.default.removeItem(at: directory)
         }
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        let settings = CurfewSettingsStore(defaults: defaults)
+        let settings = CurfewSettingsStore(
+            defaults: defaults, scheduleRecordURL: directory.appendingPathComponent("schedule.json")
+        )
         var value = CurfewSettings.default
         value.hasCompletedInitialSetup = true
         value.mcpEnabled = true
         value.schedule = .allDaysOff
         settings.save(value)
         settings.saveAutomaticScheduleConsent(false)
+        try settings.prepareScheduleRecovery(queue: MCPRequestQueueStore())
         try body(Fixture(
             directory: directory,
             settings: settings,
@@ -213,7 +254,10 @@ private struct Fixture {
         runtime: EnforcementRuntimeStateStore? = nil
     ) -> CurfewAppModel {
         CurfewAppModel(
-            settingsStore: settings,
+            settingsStore: CurfewSettingsStore(
+                defaults: settings.storageDefaults,
+                scheduleRecordURL: directory.appendingPathComponent("schedule.json")
+            ),
             appRouter: AppRouterSpy(),
             activityRecorder: NullActivityRecording(),
             mcpRequestQueueStore: queue,

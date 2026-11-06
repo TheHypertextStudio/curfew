@@ -27,7 +27,7 @@ extension CurfewAppModel {
     func handleNewMCPRequests(_ requests: [MCPPendingRequest]) {
         guard !privilegedHelperManager.maintenancePaused else { return }
         for request in requests {
-            if recoverMCPGrantIfNeeded(request) {
+            if recoverMCPScheduleIfNeeded(request) || recoverMCPGrantIfNeeded(request) {
                 continue
             }
             recordAuditMCPRequestReceived(request)
@@ -163,8 +163,11 @@ extension CurfewAppModel {
             isDayOff: isDayOff
         )
         let proposed = WeeklySchedule(rules: proposedRules)
-        queueScheduleUpdate(proposed)
-        return true
+        return queueScheduleUpdate(
+            proposed,
+            requestedBy: Self.auditActor(for: request),
+            request: request
+        )
     }
 
     /// Local version of the `weekdayFromName` helper that lives in the MCP
