@@ -57,6 +57,22 @@ the normal authorization-only migration and reconnection path.
 Verify production provider callbacks, mail-sending authority, and associated
 domains separately; do not copy staging credentials or registrations into production.
 
+## Update an existing production release
+
+Use the routine update path when the production deployment configuration,
+license Worker, and marketing Worker configuration match the published release.
+The public account, sync, and license services must be healthy. Account and sync
+must stay out of maintenance. Use the cutover sequence below when those
+deployment inputs change.
+
+The owner reviews the same acceptance evidence as for a cutover. Add
+`previousVersion` to the private receipt with the exact published version,
+for example `0.0.16`. The activation workflow verifies the predecessor's tag,
+published assets, live Sparkle feed, and the live license Worker's reviewed
+source before publishing. A retry can also recognize the exact candidate feed.
+The workflow publishes the app and marketing assets. It leaves the account,
+sync, and license services online.
+
 ## Minimal controlled sequence
 
 1. **Audit without activation.** In `curfew-sync`, use the protected

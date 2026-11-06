@@ -100,6 +100,11 @@ async function verifyLocalPublication(input) {
 
 async function admit(input, localVerifier = verifyLocalPublication) {
   const { candidate } = inspectActivation(input.native, input.receipt);
+  const previousVersion = input.receipt.previousVersion;
+  if (previousVersion !== undefined) {
+    assert.ok(!input.local, 'Routine updates require a hosted candidate');
+    assert.match(previousVersion, /^0\.0\.(0|[1-9]\d*)$/);
+  }
   const observed = Date.parse(input.receipt.observedAt);
   const now = input.now ?? Date.now();
   assert.ok(observed <= now && now - observed <= 3_600_000, 'Fresh owner acceptance is required');
@@ -188,12 +193,98 @@ export async function preparePublication(input, localVerifier = verifyLocalPubli
   };
 }
 
-const requestOptions = () => ({
+const requestOptions = (timeout = 15_000) => ({
   redirect: 'manual',
   cache: 'no-store',
-  signal: AbortSignal.timeout(15_000),
+  signal: AbortSignal.timeout(timeout),
 });
-export async function checkPublicationReadiness(config, fetcher = fetch) {
+export function verifyUpdateBaseline({ candidate, previousVersion, release, bytes, tagCommit }) {
+  assert.match(previousVersion, /^0\.0\.(0|[1-9]\d*)$/);
+  assert.ok(
+    BigInt(previousVersion.split('.')[2]) < BigInt(candidate.version.split('.')[2]),
+    'The approved public predecessor must be older than the candidate',
+  );
+  assert.equal(release.tagName, `v${previousVersion}`);
+  assert.equal(release.isDraft, false);
+  assert.equal(release.isPrerelease, false);
+  const baseline = JSON.parse(bytes);
+  assert.equal(baseline.version, previousVersion);
+  assert.match(baseline.sourceCommit, /^[a-f0-9]{40}$/);
+  assert.equal(baseline.sourceCommit, tagCommit);
+  assert.equal(baseline.configurationSHA256, candidate.configurationSHA256);
+  assert.equal(baseline.team, candidate.team);
+  assert.equal(baseline.sparkleKey, candidate.sparkleKey);
+  for (const [name, digest] of [
+    ['candidate.json', createHash('sha256').update(bytes).digest('hex')],
+    ['appcast.xml', baseline.appcastSHA256],
+    [`Curfew-v${previousVersion}.dmg`, baseline.dmgSHA256],
+  ]) {
+    assert.match(digest, /^[a-f0-9]{64}$/);
+    const assets = release.assets.filter((asset) => asset.name === name);
+    assert.equal(assets.length, 1);
+    assert.equal(assets[0].digest, `sha256:${digest}`);
+  }
+  return baseline;
+}
+
+export async function loadUpdateBaseline(config, candidate, previousVersion) {
+  const tag = `v${previousVersion}`;
+  const release = JSON.parse(
+    execFileSync(
+      'gh',
+      [
+        'release',
+        'view',
+        tag,
+        '--repo',
+        repository,
+        '--json',
+        'tagName,isDraft,isPrerelease,assets',
+      ],
+      { encoding: 'utf8' },
+    ),
+  );
+  const manifest = await fetch(
+    `https://github.com/${repository}/releases/download/${tag}/candidate.json`,
+    { ...requestOptions(), redirect: 'follow' },
+  );
+  assert.equal(manifest.status, 200, 'Published predecessor manifest is unavailable');
+  const git = (...args) => execFileSync('git', args, { encoding: 'utf8' }).trim();
+  const tagCommit = git('rev-parse', `refs/tags/${tag}^{commit}`);
+  const baseline = verifyUpdateBaseline({
+    candidate,
+    previousVersion,
+    release,
+    bytes: Buffer.from(await manifest.arrayBuffer()),
+    tagCommit,
+  });
+
+  const issuer = await fetch(`${config.licenseOrigin}/health`, requestOptions());
+  assert.equal(issuer.status, 200, 'Issuer health must be available');
+  const issuerSourceCommit = issuer.headers.get('x-curfew-configuration-commit') ?? '';
+  assert.match(issuerSourceCommit, /^[a-f0-9]{40}$/);
+  for (const commit of [baseline.sourceCommit, issuerSourceCommit]) {
+    git('merge-base', '--is-ancestor', commit, candidate.sourceCommit);
+    git(
+      'diff',
+      '--quiet',
+      commit,
+      candidate.sourceCommit,
+      '--',
+      'web/worker',
+      'web/package.json',
+      'web/pnpm-lock.yaml',
+      'web/pnpm-workspace.yaml',
+      'deployment',
+      'scripts/deployment-config.mjs',
+      'scripts/release-configuration.mjs',
+      'landing/hosting',
+    );
+  }
+  return { baseline, candidate, issuerSourceCommit };
+}
+
+export async function checkPublicationReadiness(config, fetcher = fetch, update) {
   assert.equal(
     (await fetcher(config.siteOrigin, { ...requestOptions(), method: 'HEAD' })).status,
     200,
@@ -208,13 +299,30 @@ export async function checkPublicationReadiness(config, fetcher = fetch) {
       'Service configuration mismatch',
     );
     if (origin === config.licenseOrigin)
-      assert.equal(response.headers.get('x-curfew-configuration-commit'), config.sourceCommit);
+      assert.equal(
+        response.headers.get('x-curfew-configuration-commit'),
+        update ? update.issuerSourceCommit : config.sourceCommit,
+        'Issuer must match the reviewed source',
+      );
     else
       assert.equal(
         response.headers.get('x-curfew-maintenance'),
-        'true',
-        'Account authority must remain in maintenance during publication',
+        update ? 'false' : 'true',
+        update
+          ? 'Account authority must be out of maintenance for a routine update'
+          : 'Account authority must remain in maintenance during publication',
       );
+  }
+  if (update) {
+    const feed = await fetcher(`${config.siteOrigin}/appcast.xml`, requestOptions());
+    assert.equal(feed.status, 200, 'The production update feed must exist');
+    const digest = createHash('sha256')
+      .update(Buffer.from(await feed.arrayBuffer()))
+      .digest('hex');
+    assert.ok(
+      [update.baseline.appcastSHA256, update.candidate.appcastSHA256].includes(digest),
+      'Live feed does not match the approved predecessor or the exact candidate',
+    );
   }
 }
 
@@ -256,7 +364,7 @@ export async function verifyLivePublication(config, candidate, fetcher = fetch) 
     'Updater release notes do not match the candidate',
   );
   const installer = await fetcher(url, {
-    ...requestOptions(),
+    ...requestOptions(120_000),
     redirect: 'follow',
   });
   assert.equal(installer.status, 200, 'Customer installer download is unavailable');
@@ -442,6 +550,14 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     sha256: input.website.deployment.sha256,
     sourceCommit: input.website.deployment.sourceCommit,
   };
+  const checkReadiness = async (candidate) => {
+    const previousVersion = input.receipt.previousVersion;
+    const update =
+      previousVersion === undefined
+        ? undefined
+        : await loadUpdateBaseline(config, candidate, previousVersion);
+    await checkPublicationReadiness(config, fetch, update);
+  };
   if (command === 'prepare') {
     const prepared = await preparePublication(input);
     await writeFile(join(base, 'prepared.json'), JSON.stringify(prepared, null, 2) + '\n', {
@@ -449,15 +565,17 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     });
     console.log('Retained candidate and website are ready for owner-approved activation');
   } else if (command === 'ready') {
-    await admit(input);
-    await checkPublicationReadiness(config);
-    console.log('Website TLS and maintenance services are ready');
+    const candidate = await admit(input);
+    await checkReadiness(candidate);
+    console.log('Website TLS and production services are ready');
   } else if (command === 'verify') {
     const candidate = await admit(input);
+    if (input.receipt.previousVersion !== undefined) await checkReadiness(candidate);
     await verifyLivePublication(config, candidate);
     console.log('Live site, exact update feed, public redirect, and callback retirement verified');
   } else if (command === 'publish') {
     const candidate = await admit(input);
+    if (input.receipt.previousVersion !== undefined) await checkReadiness(candidate);
     const prepared = JSON.parse(await readFile(join(base, 'prepared.json'), 'utf8'));
     assert.deepEqual(prepared.candidate, candidate);
     if (candidate.provenance?.kind === 'local')

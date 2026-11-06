@@ -642,6 +642,8 @@ mid-lockout, and every action the root daemon takes. Format specification:
 
 ## 14. CLI (`curfew-ctl`, beta)
 
+- [x] Validate a routine signed app update while production accounts stay online. Public activation still requires owner acceptance.
+
 The CLI remains in beta until launch blockers and installed-artifact acceptance pass. Commands and output may change.
 
 - [x] Label the CLI beta in the README, website, and user guide.
