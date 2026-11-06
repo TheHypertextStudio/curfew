@@ -87,7 +87,12 @@ jobs:
         run: HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_INSTALL_FROM_API=1 brew ruby Tests/Packaging/cask_uninstall_test.rb
 
       - name: Verify Homebrew installs bundled commands repeatedly
-        run: HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_INSTALL_FROM_API=1 brew ruby Tests/Packaging/cask_cli_test.rb
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: '1'
+          HOMEBREW_NO_INSTALL_FROM_API: '1'
+        run: |
+          brew style Casks/curfew.rb
+          brew ruby Tests/Packaging/cask_cli_test.rb
 
       - name: Test shared package and executable contracts
         run: swift test --package-path CurfewKit --jobs 2 -Xswiftc -j2 --no-parallel

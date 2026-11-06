@@ -26,7 +26,7 @@ public struct SystemShutdownCanceller: PendingShutdownCanceling {
     private let runCommand: @Sendable () throws -> CommandResult
 
     public init() {
-        self.runCommand = Self.runSystemCommand
+        self.runCommand = { try Self.runSystemCommand() }
     }
 
     init(runCommand: @escaping @Sendable () throws -> CommandResult) {
