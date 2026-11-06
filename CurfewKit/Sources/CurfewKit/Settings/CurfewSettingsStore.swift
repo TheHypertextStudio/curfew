@@ -384,13 +384,22 @@ public final class CurfewSettingsStore {
     }
 
     private let defaults: UserDefaults
+    private var scheduleJournal: LocalScheduleJournal
     private let encoder = JSONEncoder()
     private let decoder = JSONDecoder()
 
     /// Creates a store backed by `defaults`. Pass a custom suite in tests
     /// to avoid polluting `UserDefaults.standard`.
-    public init(defaults: UserDefaults = SharedPaths.preferences) {
+    public init(
+        defaults: UserDefaults = SharedPaths.preferences,
+        scheduleRecordURL: URL? = nil
+    ) {
         self.defaults = defaults
+        self.scheduleJournal = LocalScheduleJournal(recordURL: scheduleRecordURL)
+    }
+
+    public static func production() -> CurfewSettingsStore {
+        CurfewSettingsStore(scheduleRecordURL: SharedPaths.localScheduleRecord)
     }
 
     /// The suite this store reads and writes.
@@ -406,6 +415,42 @@ public final class CurfewSettingsStore {
     /// Returns the stored settings, or ``CurfewSettings/default`` when no
     /// settings have been saved yet or decoding fails.
     public func load() -> CurfewSettings {
+        (try? loadChecked()) ?? loadPreferences()
+    }
+
+    public func loadChecked() throws -> CurfewSettings {
+        try scheduleJournal.overlay(on: loadPreferences())
+    }
+
+    public func prepareScheduleRecovery(queue: MCPRequestQueueStore) throws {
+        try scheduleJournal.prepare(settings: loadPreferences(), queue: queue)
+    }
+
+    public func commitSchedule(
+        _ settings: CurfewSettings,
+        replacing previous: CurfewSettings,
+        request: MCPPendingRequest?,
+        at date: Date
+    ) throws {
+        try scheduleJournal.commit(settings, replacing: previous, request: request, at: date)
+    }
+
+    public func recoverScheduleOutcome(
+        for request: MCPPendingRequest,
+        now: Date
+    ) throws -> MCPPendingRequest? {
+        try scheduleJournal.outcome(for: request, now: now)
+    }
+
+    public func acknowledgeScheduleOutcome(_ outcome: MCPPendingRequest) throws {
+        try scheduleJournal.acknowledge(outcome)
+    }
+
+    public func scheduleRecoveryIDs() throws -> Set<UUID> {
+        try scheduleJournal.protectedIDs()
+    }
+
+    private func loadPreferences() -> CurfewSettings {
         guard let data = defaults.data(forKey: Key.settings) else {
             return .default
         }

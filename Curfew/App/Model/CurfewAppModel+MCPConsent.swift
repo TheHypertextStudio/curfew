@@ -91,7 +91,7 @@ extension CurfewAppModel {
         guard !isResolvingMCPRequest else { return }
         isResolvingMCPRequest = true
         defer { isResolvingMCPRequest = false }
-        if recoverMCPGrantIfNeeded(request) {
+        if recoverMCPScheduleIfNeeded(request) || recoverMCPGrantIfNeeded(request) {
             return
         }
         if request.tool == .requestExtension, runtimePersistenceError != nil {
@@ -105,6 +105,16 @@ extension CurfewAppModel {
         )
 
         let applied = approved && applyMCPAction(request)
+        if request.tool == .setSchedule {
+            if applied {
+                _ = recoverMCPScheduleIfNeeded(request)
+                return
+            }
+            // The durable write can report failure after its rename.
+            if schedulePersistenceError != nil {
+                return
+            }
+        }
         // A failed save may already have committed. Keep the queue pending until a reload decides.
         if approved, request.tool == .requestExtension, runtimePersistenceError != nil {
             return

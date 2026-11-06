@@ -112,8 +112,9 @@ curfew-ctl schedule set monday --lock 22:00 --dry-run
 
 Drop `--dry-run` to submit it through the same approval policy. Schedule changes
 follow Curfew's cooldowns. Use Curfew Settings to edit rules with hours limits.
-If Curfew crashes while applying a schedule request, check `curfew-ctl schedule show`
-and `curfew-ctl request status REQUEST_UUID` before submitting again.
+If Curfew quits before reporting a result, reopen it and check
+`curfew-ctl request status REQUEST_UUID`. Reuse the same `--id` to retry.
+Curfew recovers the saved decision and preserves any later edit.
 
 ## Protect background work
 

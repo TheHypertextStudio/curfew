@@ -1,5 +1,6 @@
 import CurfewKit
 import Foundation
+import OSLog
 
 /// Schedule-mutation and pending-swap helpers for `CurfewAppModel`.
 /// Split into its own extension so the tick-loop file stays inside the
@@ -11,54 +12,67 @@ extension CurfewAppModel {
     /// the result as a `PendingScheduleChange` stamped with the earliest
     /// legal effective date. Also MCP's `curfew.set_schedule` entry
     /// point — shared path means shared anti-bypass semantics.
+    @discardableResult
     func queueScheduleUpdate(
         _ proposedSchedule: WeeklySchedule,
-        requestedBy actor: AuditActor = .user
-    ) {
-        // No automatic schedule is active before setup or in remote-only
-        // mode, so editing stored rules cannot bypass a live weekly lockout.
+        requestedBy actor: AuditActor = .user,
+        request: MCPPendingRequest? = nil
+    ) -> Bool {
+        var next = settings
         if !settings.hasCompletedInitialSetup || !automaticScheduleEnabled {
-            settings.schedule = proposedSchedule
-            settings.pendingScheduleChange = nil
-            persistSettings()
-            refreshAfterScheduleEdit()
-            return
-        }
-        let classification = policyEngine.classifyChange(
-            from: settings.schedule,
-            to: proposedSchedule
-        )
-        if classification == .noChange {
-            // Only worth a record when it cancels something. A no-op submit
-            // fires on every stepper nudge in the schedule editor, and the
-            // log must not fill with lines describing nothing happening.
-            if let cancelled = settings.pendingScheduleChange {
-                recordAuditScheduleCancelled(pending: cancelled, actor: actor)
-            }
-            settings.pendingScheduleChange = nil
-            persistSettings()
-            refreshAfterScheduleEdit()
-            return
+            next.schedule = proposedSchedule
+            next.pendingScheduleChange = nil
+        } else {
+            let classification = policyEngine.classifyChange(
+                from: settings.schedule, to: proposedSchedule
+            )
+            next.pendingScheduleChange = classification == .noChange ? nil : PendingScheduleChange(
+                proposedSchedule: proposedSchedule,
+                requestedAt: currentTime,
+                effectiveAt: policyEngine.earliestEffectiveDate(
+                    for: classification, requestedAt: currentTime
+                ),
+                classification: classification
+            )
         }
 
-        let effectiveDate = policyEngine.earliestEffectiveDate(
-            for: classification,
-            requestedAt: currentTime
-        )
-        recordAuditScheduleRequested(
-            proposed: proposedSchedule,
-            classification: classification,
-            effectiveAt: effectiveDate,
-            actor: actor
-        )
-        settings.pendingScheduleChange = PendingScheduleChange(
-            proposedSchedule: proposedSchedule,
-            requestedAt: currentTime,
-            effectiveAt: effectiveDate,
-            classification: classification
-        )
-        persistSettings()
+        let cancelled = settings.pendingScheduleChange
+        guard commitScheduleSettings(next, request: request) else { return false }
+        if let pending = next.pendingScheduleChange {
+            recordAuditScheduleRequested(
+                proposed: proposedSchedule, classification: pending.classification,
+                effectiveAt: pending.effectiveAt, actor: actor
+            )
+        } else if automaticScheduleEnabled, settings.hasCompletedInitialSetup, let cancelled {
+            recordAuditScheduleCancelled(pending: cancelled, actor: actor)
+        }
         refreshAfterScheduleEdit()
+        return true
+    }
+
+    /// Publish the schedule only after the same durable write has recorded its request outcome.
+    @discardableResult
+    func commitScheduleSettings(_ next: CurfewSettings, request: MCPPendingRequest? = nil) -> Bool {
+        if request != nil || next.schedule != settings.schedule ||
+            next.pendingScheduleChange != settings.pendingScheduleChange {
+            guard schedulePersistenceError == nil else { return false }
+            do {
+                try settingsStore.commitSchedule(
+                    next, replacing: settings, request: request, at: currentTime
+                )
+            } catch {
+                schedulePersistenceError = error.localizedDescription
+                Logger(subsystem: "studio.hypertext.curfew", category: "schedule")
+                    .error(
+                        "Could not save the schedule: \(error.localizedDescription, privacy: .public)"
+                    )
+                return false
+            }
+        }
+        if next != settings {
+            settings = next
+        }
+        return true
     }
 
     private func refreshAfterScheduleEdit() {
@@ -87,10 +101,12 @@ extension CurfewAppModel {
             recordAuditScheduleDeferred(pending: pending, reason: "weaker_change_during_lockout")
             return
         }
-        recordAuditScheduleApplied(pending: pending)
-        settings.schedule = pending.proposedSchedule
-        settings.pendingScheduleChange = nil
-        persistSettings()
+        let previous = settings.schedule
+        var next = settings
+        next.schedule = pending.proposedSchedule
+        next.pendingScheduleChange = nil
+        guard commitScheduleSettings(next) else { return }
+        recordAuditScheduleApplied(pending: pending, from: previous)
         flagScheduleChangeApplied()
     }
 }

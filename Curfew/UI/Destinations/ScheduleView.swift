@@ -42,10 +42,18 @@ struct ScheduleContent: View {
     /// Padded column of schedule panels.
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
+            if model.schedulePersistenceError != nil {
+                Label(
+                    "Schedule changes are unavailable. Reopen Curfew to retry.",
+                    systemImage: "exclamationmark.triangle.fill"
+                )
+                .font(CurfewTypography.body(14))
+                .foregroundStyle(CurfewTheme.warning)
+            }
             if model.settings.hasCompletedInitialSetup, !model.automaticScheduleEnabled {
                 automaticScheduleOffPanel
             }
-            presetsPanel
+            presetsPanel.disabled(model.schedulePersistenceError != nil)
             // A queued schedule change (anti-bypass cooldown) is high-priority —
             // surface it directly under the presets, not buried beneath the
             // seven-day editor where the user has to scroll to find it. The
@@ -56,7 +64,7 @@ struct ScheduleContent: View {
             } else if model.scheduleChangeJustApplied {
                 appliedConfirmationPanel
             }
-            weeklySchedulePanel
+            weeklySchedulePanel.disabled(model.schedulePersistenceError != nil)
         }
         .padding(24)
         .frame(maxWidth: 900, alignment: .leading)
@@ -117,7 +125,8 @@ struct ScheduleContent: View {
                 }
             }
             .buttonStyle(CurfewSecondaryButtonStyle())
-            .disabled(model.settings.pendingScheduleChange != nil)
+            .disabled(model.settings.pendingScheduleChange != nil || model
+                .schedulePersistenceError != nil)
         }
     }
 

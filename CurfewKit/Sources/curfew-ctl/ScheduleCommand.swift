@@ -55,9 +55,8 @@ struct ScheduleShowCommand: ParsableCommand {
     @OptionGroup var options: CLIOptions
 
     func run() throws {
-        let defaults = UserDefaults(suiteName: SharedPaths.defaultsSuiteName) ?? .standard
-        let store = CurfewSettingsStore(defaults: defaults)
-        let settings = store.load()
+        let store = CurfewSettingsStore.production()
+        let settings = try store.loadChecked()
         let enabled = AutomaticScheduleConsentPolicy.isEnabled(
             savedConsent: store.loadAutomaticScheduleConsent(),
             hasCompletedInitialSetup: settings.hasCompletedInitialSetup,

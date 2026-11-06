@@ -109,6 +109,9 @@ extension CurfewAppModel {
             return .unavailable
         }
         let enabled = choice == .weeklySchedule
+        if enabled, schedulePersistenceError != nil {
+            return .unavailable
+        }
         if enabled, scheduleMayLockOnArming(at: now), !confirmedImmediateLock {
             return .requiresImmediateLockConfirmation
         }
@@ -129,6 +132,7 @@ extension CurfewAppModel {
         at now: Date = Date()
     ) -> ScheduleActivationOutcome {
         guard settings.hasCompletedInitialSetup, !automaticScheduleEnabled,
+              schedulePersistenceError == nil,
               settings.pendingScheduleChange == nil else { return .unavailable }
         guard isAccessibilityTrusted else {
             requestAccessibilityAccess()

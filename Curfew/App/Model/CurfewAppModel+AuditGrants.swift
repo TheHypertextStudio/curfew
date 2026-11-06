@@ -90,11 +90,11 @@ extension CurfewAppModel {
     }
 
     /// Records a pending change reaching its effective date and taking hold.
-    func recordAuditScheduleApplied(pending: PendingScheduleChange) {
+    func recordAuditScheduleApplied(pending: PendingScheduleChange, from previous: WeeklySchedule) {
         auditLog.emit(
             .scheduleChangeApplied,
             actor: .app,
-            from: AuditScheduleSummary.digest(settings.schedule),
+            from: AuditScheduleSummary.digest(previous),
             to: AuditScheduleSummary.digest(pending.proposedSchedule),
             detail: [
                 "classification": .string(pending.classification.rawValue),

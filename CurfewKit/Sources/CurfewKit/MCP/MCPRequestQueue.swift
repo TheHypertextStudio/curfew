@@ -124,10 +124,10 @@ public enum MCPRequestQueue {
 
     public static func previewResolvedPrune(
         before cutoff: Date?, from url: URL = SharedPaths.mcpRequestQueue,
-        protectedRequestIDs: () throws -> Set<UUID> = { try protectedGrantRequestIDs() }
+        protectedRequestIDs: (() throws -> Set<UUID>)? = nil
     ) throws -> PrunePlan {
         let requests = try loadChecked(from: url)
-        let protected = try protectedRequestIDs()
+        let protected = try (protectedRequestIDs ?? protectedRequestIDsForProduction)()
         let resolved = requests.filter { $0.status != .pending }
         let unprotected = resolved.filter { !protected.contains($0.id) }
         let candidates = unprotected.filter { request in
@@ -144,12 +144,12 @@ public enum MCPRequestQueue {
 
     public static func pruneResolved(
         _ plan: PrunePlan,
-        protectedRequestIDs: () throws -> Set<UUID> = { try protectedGrantRequestIDs() }
+        protectedRequestIDs: (() throws -> Set<UUID>)? = nil
     ) throws -> PruneResult {
         let reviewed = Dictionary(grouping: plan.candidates, by: \.id)
         return try withExclusiveLock(at: plan.queueURL) {
             let requests = try loadChecked(from: plan.queueURL)
-            let protected = try protectedRequestIDs()
+            let protected = try (protectedRequestIDs ?? protectedRequestIDsForProduction)()
             var removed = [UUID]()
             let retained = requests.filter { request in
                 guard !protected.contains(request.id),
@@ -174,6 +174,12 @@ public enum MCPRequestQueue {
             .union(state.legacyMCPGrantRequestIDs ?? [])
     }
 
+    private static func protectedRequestIDsForProduction() throws -> Set<UUID> {
+        try protectedGrantRequestIDs().union(
+            LocalScheduleJournal(recordURL: SharedPaths.localScheduleRecord).protectedIDs()
+        )
+    }
+
     /// Removes completed requests before the cutoff while retaining grant recovery records.
     public static func pruneResolved(olderThan cutoff: Date) throws {
         let plan = try previewResolvedPrune(before: cutoff)
@@ -186,7 +192,7 @@ public enum MCPRequestQueue {
     /// sidecar file next to the queue, serialising every read-modify-write
     /// across the app process and `curfew-mcp` subprocesses. Lock failures
     /// must stop the write because an unlocked retry can discard another request.
-    private static func withExclusiveLock<T>(
+    static func withExclusiveLock<T>(
         at url: URL = SharedPaths.mcpRequestQueue,
         _ body: () throws -> T
     ) throws -> T {

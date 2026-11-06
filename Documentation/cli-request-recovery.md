@@ -47,4 +47,27 @@ Rollback to a binary that does not understand runtime format 2 is unsupported. S
 
 Submission deduplication lasts while the queue retains its completed request record. Removing acknowledged queue records also removes that retained identity evidence. A fresh operation must use a fresh UUID. This journal protects accepted extension grants across interruption and acknowledgement failure; it does not claim an unlimited historical idempotency ledger.
 
-Schedule changes still use the existing settings persistence path. They do not share the extension grant's atomic record. A replay after a failed schedule acknowledgement can recompute a cooldown or supersede a later edit. The CLI beta does not expose schedule mutation until that separate authority migration is verified. Existing MCP schedule behavior retains this general-availability limitation.
+## Recover a schedule change
+
+Curfew writes the active schedule, pending change, and request receipt into one
+private local file. The schedule editor, automatic application, and incoming sync
+all update that same record before showing or enforcing the change. The CLI and
+MCP schedule reads use the record when it exists.
+
+After restart, Curfew acknowledges a matching committed request with its original
+approval time. It preserves any later edit and the original cooldown. A stale
+writer or a reused request ID with different arguments cannot replace the record.
+Queue cleanup preserves requests still needed for recovery.
+
+On first launch, Curfew copies the existing schedule and records the IDs of pending
+schedule requests from older builds. It denies those requests with instructions
+to inspect the schedule before submitting again. A failed durable write leaves the
+request pending and prevents more schedule writes until Curfew reopens the file.
+The schedule view shows the error. Keep the local record and resolve outstanding
+requests before downgrading. Older versions read the preferences mirror and cannot
+recover schedule acknowledgements.
+
+`LocalScheduleJournalTests` covers reopen before preferences mirroring, cooldown
+preservation, legacy migration, stale writers, and damaged state. The hosted app
+regression fails queue acknowledgement, saves a later edit, and restarts before
+retrying the original request.

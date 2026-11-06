@@ -38,7 +38,7 @@ struct ScheduleSetCommand: ParsableCommand {
     }
 
     func run() throws {
-        let settings = loadSettings()
+        let settings = try CurfewSettingsStore.production().loadChecked()
         try submitCLIRequest(
             makeRequest(settings: settings), json: options.json, dryRun: dryRun,
             options: options, settings: settings

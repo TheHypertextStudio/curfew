@@ -41,6 +41,10 @@ public nonisolated enum SharedPaths {
         ).first ?? URL(fileURLWithPath: NSHomeDirectory() + "/Library/Application Support")
     }
 
+    static var localScheduleRecord: URL {
+        applicationSupport.appendingPathComponent("local-schedule.json")
+    }
+
     // MARK: - Home resolution for privileged processes
 
     /// Home directory of the human whose Curfew state these paths describe.

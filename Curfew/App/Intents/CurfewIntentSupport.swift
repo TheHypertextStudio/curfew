@@ -20,8 +20,7 @@ enum CurfewIntentSupport {
     /// Loads the shared settings the same way `curfew-mcp` does: through the
     /// app's `UserDefaults` suite, decoded by `CurfewSettingsStore`.
     static func loadSharedSettings() -> CurfewSettings {
-        let defaults = UserDefaults(suiteName: SharedPaths.defaultsSuiteName) ?? .standard
-        return CurfewSettingsStore(defaults: defaults).load()
+        CurfewSettingsStore.production().load()
     }
 
     /// A schedule-only forecast used to test weekly-consent interpretation.
@@ -32,9 +31,7 @@ enum CurfewIntentSupport {
         settingsStore: CurfewSettingsStore? = nil,
         flavor: CurfewFlavor = .current
     ) -> CurfewEvaluation {
-        let store = settingsStore ?? CurfewSettingsStore(
-            defaults: UserDefaults(suiteName: SharedPaths.defaultsSuiteName) ?? .standard
-        )
+        let store = settingsStore ?? CurfewSettingsStore.production()
         let settings = store.load()
         let enabled = AutomaticScheduleConsentPolicy.isEnabled(
             savedConsent: store.loadAutomaticScheduleConsent(),

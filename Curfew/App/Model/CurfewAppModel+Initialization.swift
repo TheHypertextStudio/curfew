@@ -65,9 +65,7 @@ extension CurfewAppModel {
                   SyncAuthorityResolver.allowsCloudKit(account: settings.accountSync) else {
                 return
             }
-            settings = mergedSettingsApplyingRemote(remoteSettings)
-            settingsStore.save(settings)
-            syncWidgetSharedState(settings)
+            commitScheduleSettings(mergedSettingsApplyingRemote(remoteSettings))
         }
         cloudKitSyncEngine.onLockoutStateReceived = { [weak self] snapshot in
             guard let self,
