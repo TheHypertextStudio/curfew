@@ -14,7 +14,7 @@ import {
 } from './local-release.mjs';
 
 const pendingDownload =
-  '<p>The public Mac download is coming soon. The installer will be available here when it is ready.</p>';
+  /<p>\s*The public Mac download is coming soon\.\s+The installer will be available here when it is ready\.\s*<\/p>/;
 const pendingInstallation = '<h2>When the download is available</h2>';
 
 function installerURL(candidate) {
@@ -29,14 +29,16 @@ function replaceOnce(html, expected, replacement) {
 
 /** A derived publication page; the sealed website input remains untouched. */
 export function renderPublishedDownload(html, candidate) {
+  html = replaceOnce(
+    html,
+    pendingDownload,
+    `<p><a class="button primary" href="${installerURL(candidate)}">Download Curfew ${candidate.version}</a></p>`,
+  );
+  html = replaceOnce(html, pendingInstallation, '<h2>Install Curfew</h2>');
   return replaceOnce(
-    replaceOnce(
-      html,
-      pendingDownload,
-      `<p><a class="button primary" href="${installerURL(candidate)}">Download Curfew ${candidate.version}</a></p>`,
-    ),
-    pendingInstallation,
-    '<h2>Install Curfew</h2>',
+    html,
+    /<p id="release-notes">\s*<a href="\/releases">Release notes<\/a>\s*<\/p>/,
+    `<p id="release-notes"><a href="/releases/${candidate.version}">Release notes for Curfew ${candidate.version}</a></p>`,
   );
 }
 
@@ -51,8 +53,23 @@ export function renderPublishedHome(html) {
 }
 
 /** Reuse the sealed site's typography, navigation and assets for update notes. */
-export function renderPublishedReleaseNotes(html, candidate, siteOrigin, content) {
+export function renderPublishedReleaseNotes(
+  html,
+  candidate,
+  siteOrigin,
+  content,
+  { older, newer } = {},
+) {
   const heading = `<h1>Curfew ${candidate.version}</h1>`;
+  const trail = `<nav class="release-trail" aria-label="Breadcrumb"><ol><li><a href="/">Curfew</a></li><li><a href="/releases">Release notes</a></li><li aria-current="page">${candidate.version}</li></ol></nav>`;
+  const links = [
+    older && `<a href="/releases/${older}">Previous release (${older})</a>`,
+    newer && `<a href="/releases/${newer}">Next release (${newer})</a>`,
+    !content?.includes('href="/download"') && '<a href="/download">Download Curfew</a>',
+  ].filter(Boolean);
+  const navigation = links.length
+    ? `<nav class="release-navigation" aria-label="Release navigation">${links.join(' ')}</nav>`
+    : '';
   assert.ok(
     typeof content === 'string' && content.includes(heading),
     'Release notes must match the candidate version',
@@ -77,9 +94,58 @@ export function renderPublishedReleaseNotes(html, candidate, siteOrigin, content
   );
   replaceUnique(
     /<main id="main" class="reading wrap">[\s\S]*?<\/main>/g,
-    `<main id="main" class="reading wrap">${content}</main>`,
+    `<main id="main" class="reading wrap">${trail}${content}${navigation}</main>`,
   );
   return html;
+}
+
+export function publishedReleaseVersions(releases, currentVersion) {
+  const patch = (version) => BigInt(version.split('.')[2]);
+  const versions = releases
+    .filter(
+      ({ draft, prerelease, published_at, tag_name }) =>
+        draft === false &&
+        prerelease === false &&
+        Number.isFinite(Date.parse(published_at)) &&
+        /^v0\.0\.(0|[1-9]\d*)$/.test(tag_name),
+    )
+    .map(({ tag_name }) => tag_name.slice(1))
+    .filter((version) => patch(version) < patch(currentVersion));
+  return [...new Set(versions)].sort((left, right) => (patch(left) > patch(right) ? -1 : 1));
+}
+
+async function loadPublishedReleaseHistory(currentVersion) {
+  const releases = JSON.parse(
+    execFileSync('gh', ['api', `repos/${repository}/releases`, '--paginate', '--slurp'], {
+      encoding: 'utf8',
+    }),
+  ).flat();
+  const history = [];
+  for (const version of publishedReleaseVersions(releases, currentVersion)) {
+    try {
+      const content = await readFile(
+        new URL(`../landing/releases/${version}.html`, import.meta.url),
+        'utf8',
+      );
+      history.push({ version, content });
+    } catch (error) {
+      if (error.code !== 'ENOENT') throw error;
+    }
+  }
+  return history;
+}
+
+function renderReleaseArchive(html, releases) {
+  const marker = /(<div id="release-history">)[\s\S]*?(<\/div>)/g;
+  assert.equal(html.match(marker)?.length, 1, 'Unknown or ambiguous release archive');
+  const entries = releases.map(
+    ({ version }, index) =>
+      `<li><a href="/releases/${version}">Curfew ${version}</a>${index === 0 ? '<span>Latest release</span>' : ''}</li>`,
+  );
+  return html.replace(
+    marker,
+    (_, open, close) => `${open}<ol class="release-list">${entries.join('')}</ol>${close}`,
+  );
 }
 
 async function verifyLocalPublication(input) {
@@ -160,11 +226,22 @@ export async function preparePublication(input, localVerifier = verifyLocalPubli
   const candidate = await admit(input, localVerifier);
   const downloadShell = await readFile(join(input.website.directory, 'download.html'), 'utf8');
   const download = renderPublishedDownload(downloadShell, candidate);
-  const releaseNotes = renderPublishedReleaseNotes(
-    downloadShell,
-    candidate,
-    input.website.deployment.manifest.environments.production.siteOrigin,
-    input.releaseNotes,
+  const releases = [
+    { version: candidate.version, content: input.releaseNotes },
+    ...(input.releaseHistory ?? []),
+  ];
+  const siteOrigin = input.website.deployment.manifest.environments.production.siteOrigin;
+  for (const { version } of releases) assert.match(version, /^0\.0\.(0|[1-9]\d*)$/);
+  const releasePages = releases.map(({ version, content }, index) => ({
+    version,
+    html: renderPublishedReleaseNotes(downloadShell, { version }, siteOrigin, content, {
+      older: releases[index + 1]?.version,
+      newer: releases[index - 1]?.version,
+    }),
+  }));
+  const releaseArchive = renderReleaseArchive(
+    await readFile(join(input.website.directory, 'releases.html'), 'utf8'),
+    releases,
   );
   const home = renderPublishedHome(
     await readFile(join(input.website.directory, 'index.html'), 'utf8'),
@@ -183,7 +260,9 @@ export async function preparePublication(input, localVerifier = verifyLocalPubli
   await writeFile(join(input.destination, 'download.html'), download);
   await writeFile(join(input.destination, 'index.html'), home);
   await mkdir(join(input.destination, 'releases'), { recursive: true });
-  await writeFile(join(input.destination, 'releases', `${candidate.version}.html`), releaseNotes);
+  await writeFile(join(input.destination, 'releases.html'), releaseArchive);
+  for (const { version, html } of releasePages)
+    await writeFile(join(input.destination, 'releases', `${version}.html`), html);
   return {
     candidate,
     ...(candidate.provenance?.kind === 'local'
@@ -330,6 +409,7 @@ export async function verifyLivePublication(config, candidate, fetcher = fetch) 
   const homepage = await fetcher(config.siteOrigin, requestOptions());
   assert.equal(homepage.status, 200);
   const homeHTML = await homepage.text();
+  assert.ok(homeHTML.includes('href="/releases"'), 'Homepage does not link the release archive');
   assert.ok(homeHTML.includes('href="/download"'), 'Homepage does not link the download page');
   for (const stale of ['Coming soon · Free', 'The public Mac download is coming soon.'])
     assert.ok(!homeHTML.includes(stale), 'Homepage still reports the installer unavailable');
@@ -345,6 +425,17 @@ export async function verifyLivePublication(config, candidate, fetcher = fetch) 
     !html.includes('The public Mac download is coming soon.'),
     'Customer download page still reports unavailable',
   );
+  const notesPath = `/releases/${candidate.version}`;
+  assert.ok(
+    html.includes(`href="${notesPath}"`),
+    'Download page does not link the current release notes',
+  );
+  const archive = await fetcher(`${config.siteOrigin}/releases`, requestOptions());
+  assert.equal(archive.status, 200, 'Release archive is unavailable');
+  assert.ok(
+    (await archive.text()).includes(`href="${notesPath}"`),
+    'Release archive does not list the current release',
+  );
   const notesURL = `${config.siteOrigin}/releases/${candidate.version}.html`;
   let notes = await fetcher(notesURL, requestOptions());
   if (notes.status === 307) {
@@ -359,9 +450,16 @@ export async function verifyLivePublication(config, candidate, fetcher = fetch) 
     notes = await fetcher(destination, requestOptions());
   }
   assert.equal(notes.status, 200, 'Updater release notes are unavailable');
+  const notesHTML = await notes.text();
   assert.ok(
-    (await notes.text()).includes(`<h1>Curfew ${candidate.version}</h1>`),
+    notesHTML.includes(`<h1>Curfew ${candidate.version}</h1>`),
     'Updater release notes do not match the candidate',
+  );
+  assert.ok(
+    notesHTML.includes('aria-label="Breadcrumb"') &&
+      notesHTML.includes('href="/releases"') &&
+      notesHTML.includes('href="/download"'),
+    'Release notes do not link back to the archive and download',
   );
   const installer = await fetcher(url, {
     ...requestOptions(120_000),
@@ -559,6 +657,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     await checkPublicationReadiness(config, fetch, update);
   };
   if (command === 'prepare') {
+    input.releaseHistory = await loadPublishedReleaseHistory(input.native.candidate.version);
     const prepared = await preparePublication(input);
     await writeFile(join(base, 'prepared.json'), JSON.stringify(prepared, null, 2) + '\n', {
       flag: 'wx',

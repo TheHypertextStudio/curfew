@@ -692,6 +692,11 @@ The retained hosting configuration redirects the signed `.html` notes address to
 its clean URL; verification follows only that exact same-origin redirect and
 rejects unexpected destinations or further redirects. The page’s canonical link
 and GitHub release notes use the clean URL.
+The published download page links to the current release notes. The release
+archive lists the approved candidate and older stable public releases with
+notes in the checkout. Each version links to the archive and adjacent versions.
+The release verifier checks navigation after deployment.
+
 Missing notes do not waive any owner-acceptance or source-identity gate. When
 using an operator worktree to run publication tooling, review its exact diff and
 keep remote main pinned to the candidate until the hosted publication completes.

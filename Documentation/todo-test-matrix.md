@@ -2485,3 +2485,7 @@ The deployment-host check requires CLI and website guide links to use the config
 
 `scripts/publication.test.mjs` verifies that a routine update accepts an approved published predecessor and healthy same-configuration services. It rejects a different live feed, an issuer source mismatch, active maintenance, and a mismatched public release manifest. An exact candidate feed supports retries. The default cutover test still requires maintenance.
 The live verifier tests separate deadlines for metadata and the full DMG transfer.
+
+## Release notes navigation
+
+The website acceptance suite follows the homepage, release archive, and download links with JavaScript disabled. `scripts/publication.test.mjs` verifies version navigation and excludes unreleased notes from the derived public archive. The live release verifier checks the same navigation after deployment.
