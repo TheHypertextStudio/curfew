@@ -238,7 +238,7 @@ exact app entitlements.
 
 For a strict `v0.0.x` tag, `.github/workflows/release.yml`:
 
-1. Runs the unsigned quality gate and rejects placeholder or missing keys.
+1. Checks for matching notes at `landing/releases/<version>.html` before setting up the build. It runs the unsigned quality gate and rejects placeholder or missing keys.
 2. Imports the Developer ID certificate only after quality checks finish, then
    validates and installs both approved production profiles. Archive and export
    select their exact UUIDs separately for the app and widget. Unsigned
@@ -727,7 +727,6 @@ state as rollback during active enforcement.
 Use the shared endpoint artifact and the pinned cf build/deployment commands in `domain-migration.md`. Protocol 0.0.13 is the domain-independent contract. A signed native release, verified callback associations, provider registrations, account recovery audit and production acceptance remain required; local unsigned builds do not satisfy them.
 
 The domain migration uses the shared endpoint artifact for native and backend configuration identity. The retained release snapshot additionally binds the resolved Sparkle public key and source digests; it does not substitute its own hash for the endpoint identity. See `domain-migration.md` for preparation, activation and rollback requirements.
-
 
 ## Background supervisor release gate
 

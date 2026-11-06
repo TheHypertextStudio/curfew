@@ -3,7 +3,7 @@ name: Signed release candidate
 on:
   push:
     tags:
-      - "v0.0.*"
+      - 'v0.0.*'
 
 jobs:
   release:
@@ -31,6 +31,17 @@ jobs:
           [[ "$APPLE_TEAM_ID" == T95VDD3A4W ]] || exit 1
           if [[ "$PUBLIC_RETENTION_APPROVED" != true ]]; then
             echo '::error::Candidate retention is public to signed-in repository readers. Explicit owner exposure approval or a reviewed private retention path is required.'
+            exit 1
+          fi
+
+      - name: Verify candidate release notes
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          version=${RELEASE_TAG#v}
+          notes="landing/releases/$version.html"
+          if ! grep -Fq "<h1>Curfew $version</h1>" "$notes" 2>/dev/null; then
+            echo "::error::Add version-matched release notes at $notes before tagging the candidate."
             exit 1
           fi
 
@@ -86,7 +97,7 @@ jobs:
 
       - name: Run quality gate
         env:
-          CURFEW_XCODEBUILD_SETTINGS: "CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO"
+          CURFEW_XCODEBUILD_SETTINGS: 'CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO'
         run: just check
 
       - name: Import Developer ID certificate

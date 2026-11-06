@@ -1,0 +1,34 @@
+<h1>Curfew 0.0.19</h1>
+<p class="lede">
+  Curfew’s command line beta adds a Homebrew install path and more ways to work from Terminal.
+</p>
+<h2>Install the command line</h2>
+<p>
+  Homebrew installs Curfew and puts <code>curfew-ctl</code> and <code>curfew-mcp</code> on PATH.
+</p>
+<p><code>brew install --cask thehypertextstudio/tap/curfew</code></p>
+<p>If you already installed Curfew with Homebrew, run this command to upgrade.</p>
+<p><code>brew upgrade --cask thehypertextstudio/tap/curfew</code></p>
+<p>
+  If you downloaded Curfew directly, open <strong>Settings → Integrations</strong> and choose
+  <strong>Install command line tool</strong>. Review the changes, choose <strong>Install</strong>,
+  and open a new Terminal.
+</p>
+<h2>Use the beta commands</h2>
+<p>
+  Read your schedule, budget, activity, reflections, and audit events. Request an extension or a
+  time-based schedule change and check the approval result with
+  <code>curfew-ctl request status</code>. Curfew applies its existing approval rules and schedule
+  cooldowns.
+</p>
+<p>
+  JSON output now uses schema version 1. Scripts can find lists under named fields, decisions under
+  <code>request_status</code>, and durations in seconds. The
+  <a href="/docs/cli">beta command guide</a> lists the changes and examples.
+</p>
+<h2>Update Curfew</h2>
+<p>
+  Curfew requires macOS 26 or later. Keep your existing app data so your schedule, history, and
+  preferences remain available.
+</p>
+<p><a href="/support">Get help with Curfew</a>.</p>
