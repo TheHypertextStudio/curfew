@@ -21,14 +21,26 @@ jobs:
     permissions:
       actions: read
       contents: read
-    uses: TheHypertextStudio/homebrew-tap/.github/workflows/homebrew-acceptance.yml@d3f30c8d66b42a50954263ee5fc8a7b9e398c960
-    with:
-      tap-ref: d3f30c8d66b42a50954263ee5fc8a7b9e398c960
-      prior-version: '0.0.14'
-      prior-run-id: '40040002065'
-      prior-source-sha: 35b758785304468253614f34c53f3ecef3c406a9
-      prior-artifact-id: '12539237776'
-      prior-archive-sha256: ab8e57bde6bd22d2ac01b6a40bf09d7cdeb480004711d91d5fedc9eebe326d01
+    runs-on: macos-26
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: TheHypertextStudio/homebrew-tap
+          ref: 7eb6c623e3f1fbd05935db8f7d86acf9c9a19b64
+          persist-credentials: false
+      - name: Upgrade the signed predecessor using the released cask
+        working-directory: ${{ runner.temp }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAP_REF: 7eb6c623e3f1fbd05935db8f7d86acf9c9a19b64
+          PRIOR_VERSION: '0.0.14'
+          PRIOR_RUN_ID: '40040002065'
+          PRIOR_SOURCE_SHA: 35b758785304468253614f34c53f3ecef3c406a9
+          PRIOR_ARTIFACT_ID: '12539237776'
+          PRIOR_ARCHIVE_SHA256: ab8e57bde6bd22d2ac01b6a40bf09d7cdeb480004711d91d5fedc9eebe326d01
+          HOMEBREW_NO_AUTO_UPDATE: '1'
+        run: node "$GITHUB_WORKSPACE/scripts/homebrew-acceptance.mjs"
 
   purchases:
     if: github.event_name != 'workflow_dispatch' || inputs.capture_scope == 'full'
