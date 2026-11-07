@@ -20,3 +20,5 @@ One Mac starts without Curfew. The other installs the version currently in the p
 Each Mac uses a local cask fixture for the candidate and checks signatures,
 PATH, every beta help path, JSON reads, and an unchanged repeat.
 The fixture stays on the runner. Public activation uses its own approval.
+
+The installed MCP server also completes initialization, lists tools, and answers a read-only `curfew_status` call over stdio. This check uses the fresh runner's unavailable app observation.

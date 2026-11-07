@@ -73,6 +73,16 @@ curfew-ctl request status 00000000-0000-4000-8000-000000000001 --json \
   | jq -e '.schema_version == 1 and .status == "ok" and .request_status == "not_found"'
 printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}' | curfew-mcp \
   | jq -e '.id == 1 and .result.serverInfo.name == "curfew-mcp"'
+printf '%s\n' \
+  '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}' \
+  '{"jsonrpc":"2.0","method":"notifications/initialized"}' \
+  '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}' \
+  '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"curfew_status","arguments":{}}}' \
+  | curfew-mcp | jq -se '
+      (map(select(.id == 2)) | .[0].result.tools | any(.name == "curfew_status")) and
+      (map(select(.id == 3)) | .[0].result.content | any(.type == "text" and (.text | contains("Phase: unknown"))))
+    '
+printf 'Bundled MCP listed and called curfew_status through an initialized stdio session.\n' | tee -a "$GITHUB_STEP_SUMMARY"
 
 link_state() {
   stat -f '%i:%m:%N' "$(command -v curfew-ctl)" "$(command -v curfew-mcp)"
