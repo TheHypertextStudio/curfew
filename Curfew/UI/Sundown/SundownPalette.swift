@@ -21,6 +21,21 @@ enum SundownPalette {
         usesSolidPanels ? .black : .black.opacity(0.72)
     }
 
+    /// Semi-translucent refractive surface for liquid glass panels; falls back to solid black
+    /// under Reduce Transparency to maintain high-contrast legibility.
+    static func glassSurface(usesSolidPanels: Bool) -> Color {
+        usesSolidPanels ? inputSurface(usesSolidPanels: true) : Color.black.opacity(0.60)
+    }
+
+    /// Subtle specular top highlight gradient for liquid glass card and capsule rims.
+    static var glassBorderGradient: LinearGradient {
+        LinearGradient(
+            colors: [warmWhite.opacity(0.28), warmWhite.opacity(0.06)],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+    }
+
     /// Shields small atmospheric text even when the sky or page fade is white.
     /// Shares the same contrast-tested backing as reflection and override inputs.
     static let textScrim = AtmospherePalette.textScrim

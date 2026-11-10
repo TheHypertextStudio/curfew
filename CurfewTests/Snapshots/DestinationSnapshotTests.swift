@@ -17,6 +17,7 @@
     /// directory is resolved from `#filePath`, so the test doesn't depend on the
     /// working directory or any environment plumbing.
     @MainActor
+    // swiftlint:disable:next type_body_length
     final class DestinationSnapshotTests: XCTestCase {
         func testRenderTodayFooterAtWorkspaceHeight() throws {
             try renderBoth(
@@ -126,9 +127,18 @@
         /// streak all read as populated.
         func testRenderSpineDestinations() throws {
             let outputDirectory = try Self.snapshotsDirectory()
-
             let model = Self.demoModel()
 
+            try renderWorkspaceDestinations(model: model, to: outputDirectory)
+            try renderAtmosphericOverlays(model: model, to: outputDirectory)
+
+            print("==> Snapshots written to \(outputDirectory.path)")
+        }
+
+        private func renderWorkspaceDestinations(
+            model: CurfewAppModel,
+            to outputDirectory: URL
+        ) throws {
             try renderBoth(
                 ScheduleContent().environment(model),
                 named: "schedule",
@@ -163,6 +173,12 @@
                 width: 900,
                 to: outputDirectory
             )
+        }
+
+        private func renderAtmosphericOverlays(
+            model: CurfewAppModel,
+            to outputDirectory: URL
+        ) throws {
             try renderBoth(
                 ContentView().environment(model),
                 named: "menubar",
@@ -176,8 +192,20 @@
                 height: 900,
                 to: outputDirectory
             )
-
-            print("==> Snapshots written to \(outputDirectory.path)")
+            try renderBoth(
+                MainWindowView().environment(model),
+                named: "main-window",
+                width: 1080,
+                height: 720,
+                to: outputDirectory
+            )
+            try renderBoth(
+                DaybreakReflectionView().environment(model),
+                named: "daybreak-reflection",
+                width: 1440,
+                height: 900,
+                to: outputDirectory
+            )
         }
 
         /// A demo model pinned to a flattering mid-workday state.

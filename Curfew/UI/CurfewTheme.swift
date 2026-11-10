@@ -223,6 +223,20 @@ struct CurfewPrimaryButtonStyle: ButtonStyle {
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
                     .fill(CurfewTheme.accentFill)
             )
+            .overlay(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .stroke(
+                        LinearGradient(
+                            colors: [
+                                CurfewTheme.onAccent.opacity(0.35),
+                                CurfewTheme.onAccent.opacity(0.08)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        ),
+                        lineWidth: 1
+                    )
+            )
             .foregroundStyle(CurfewTheme.onAccent)
             .opacity(feedback.opacity)
             .scaleEffect(feedback.scale)
@@ -289,5 +303,81 @@ struct CurfewLinkButtonStyle: ButtonStyle {
                 value: configuration.isPressed
             )
             .contentShape(Rectangle())
+    }
+}
+
+// MARK: - Liquid Glass (macOS 26)
+
+extension View {
+    /// Refractive liquid glass slate with specular rim for floating atmospheric cards.
+    /// Reverts to solid high-contrast panel under Reduce Transparency.
+    @ViewBuilder
+    func liquidGlassCard(
+        cornerRadius: CGFloat = 16,
+        usesSolidPanels: Bool
+    ) -> some View {
+        if usesSolidPanels {
+            background(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(SundownPalette.inputSurface(usesSolidPanels: true))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .stroke(SundownPalette.warmWhite.opacity(0.12), lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        } else {
+            background(
+                .ultraThinMaterial,
+                in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+            )
+            .background(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(SundownPalette.glassSurface(usesSolidPanels: false))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .stroke(SundownPalette.glassBorderGradient, lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        }
+    }
+
+    /// Liquid glass capsule with specular edge lighting for floating pills and indicators.
+    @ViewBuilder
+    func liquidGlassCapsule(
+        usesSolidPanels: Bool = false
+    ) -> some View {
+        if usesSolidPanels {
+            background(
+                Capsule()
+                    .fill(SundownPalette.inputSurface(usesSolidPanels: true))
+            )
+            .overlay(
+                Capsule()
+                    .stroke(SundownPalette.warmWhite.opacity(0.12), lineWidth: 1)
+            )
+            .clipShape(Capsule())
+        } else {
+            background(.ultraThinMaterial, in: Capsule())
+                .background(
+                    Capsule()
+                        .fill(SundownPalette.glassSurface(usesSolidPanels: false))
+                )
+                .overlay(
+                    Capsule()
+                        .stroke(SundownPalette.glassBorderGradient, lineWidth: 1)
+                )
+                .clipShape(Capsule())
+        }
+    }
+
+    /// Applies liquid glass styling to the sidebar, letting the system `NSGlassEffectView`
+    /// and detail backgroundExtensionEffect refract smoothly through without being blocked by an
+    /// opaque slab.
+    func sidebarGlass() -> some View {
+        background(.ultraThinMaterial)
+            .background(CurfewTheme.canvasStrong.opacity(0.35))
+            .ignoresSafeArea()
     }
 }

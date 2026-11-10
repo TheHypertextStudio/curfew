@@ -104,7 +104,8 @@ Marketing / debug capture (Debug-only demo fixture; never touches real
 settings/history and never arms enforcement, so auto-shutdown can't fire):
 
 ```bash
-just capture        # XCUITest screenshots → build/screenshots/curfew-*.png (CI-safe, no perms)
+just snapshot       # in-process NSWindow screenshots → build/screenshots/curfew-*.png (~4s, CI-safe, no perms)
+just capture        # XCUITest screenshots → build/screenshots/curfew-*.png (CI-safe, accepts optional target)
 just capture-hero   # local per-window stills with shadow (needs Screen Recording perm)
 just capture-video  # local lockout walkthrough .mov (needs Screen Recording perm)
 
@@ -115,7 +116,7 @@ CURFEW_DEMO_FIXTURE=1 CURFEW_DEMO_SCENARIO=lockout \
 
 Scenarios live in `Curfew/App/Demo/DemoFixture.swift`. `just capture-hero` /
 `capture-video` require Screen Recording permission (System Settings → Privacy &
-Security → Screen Recording); `just capture` does not.
+Security → Screen Recording); `just snapshot` and `just capture` do not.
 
 Lint and format commands:
 

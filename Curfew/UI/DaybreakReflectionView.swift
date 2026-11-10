@@ -17,12 +17,7 @@ struct DaybreakReflectionView: View {
 
     private var greeting: String {
         let hour = Calendar.current.component(.hour, from: model.currentTime)
-        return switch hour {
-        case 5 ..< 12: "Good morning"
-        case 12 ..< 17: "Good afternoon"
-        case 17 ..< 24: "Good evening"
-        default: "Welcome back"
-        }
+        return hour < 5 ? "Still up?" : "Good morning"
     }
 
     var body: some View {

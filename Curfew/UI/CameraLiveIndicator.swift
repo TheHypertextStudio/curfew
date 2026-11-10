@@ -40,6 +40,7 @@ struct CameraLiveIndicator: View {
                     Label(Self.title, systemImage: Self.symbol)
                         .font(CurfewTypography.bodyEmphasis(14))
                         .foregroundStyle(CurfewTheme.warning)
+                        .symbolEffect(.pulse, isActive: isLive)
 
                     Text(Self.detail)
                         .font(CurfewTypography.body(13))
@@ -77,6 +78,7 @@ struct CompactCameraLiveIndicator: View {
                         .font(CurfewTypography.body(13))
                         .foregroundStyle(CurfewTheme.warning)
                         .fixedSize(horizontal: false, vertical: true)
+                        .symbolEffect(.pulse, isActive: isLive)
 
                     Button("Presence Settings", action: onOpenSettings)
                         .buttonStyle(CurfewSecondaryButtonStyle())
