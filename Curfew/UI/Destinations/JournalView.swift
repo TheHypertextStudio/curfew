@@ -72,7 +72,7 @@ struct JournalView: View {
         }
         .padding(.horizontal, CurfewSpacing.xLarge)
         .padding(.vertical, CurfewSpacing.medium)
-        .background(CurfewTheme.canvas)
+        .background(.regularMaterial)
     }
 
     /// The read-only archive: the week's sundown chart and per-entry reflections.

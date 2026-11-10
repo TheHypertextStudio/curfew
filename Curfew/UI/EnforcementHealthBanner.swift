@@ -29,6 +29,7 @@ struct EnforcementHealthBanner: View {
                     Label(title, systemImage: EnforcementHealth.degradedBadgeSymbol)
                         .font(CurfewTypography.bodyEmphasis(14))
                         .foregroundStyle(CurfewTheme.warning)
+                        .symbolEffect(.wiggle, isActive: health != .active)
 
                     Text(detail)
                         .font(CurfewTypography.body(13))
@@ -65,6 +66,7 @@ struct CompactEnforcementHealthWarning: View {
                         .font(CurfewTypography.body(13))
                         .foregroundStyle(CurfewTheme.warning)
                         .fixedSize(horizontal: false, vertical: true)
+                        .symbolEffect(.wiggle, isActive: health != .active)
 
                     if health.offersAccessibilityRemediation {
                         Button("Restore Blocking", action: onFix)

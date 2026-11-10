@@ -35,7 +35,7 @@ struct Candidate {
 var best: Candidate?
 for window in windows {
     guard let windowOwner = window[kCGWindowOwnerName as String] as? String,
-          windowOwner == owner,
+          windowOwner == owner || windowOwner == "\(owner) Dev" || windowOwner.hasPrefix(owner),
           let processID = (window[kCGWindowOwnerPID as String] as? NSNumber)?.int32Value,
           ownerPID == nil || processID == ownerPID,
           let number = window[kCGWindowNumber as String] as? CGWindowID,

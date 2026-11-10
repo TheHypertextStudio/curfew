@@ -29,14 +29,17 @@ auto-shutdown can never fire during a capture.
 ## Capturing screenshots & video
 
 ```bash
+just snapshot       # In-process NSWindow screenshots (~4s, CI-safe, no perms)
 just capture        # XCUITest screenshots → build/screenshots/curfew-*.png (CI-safe)
 just capture-hero   # local per-window stills with shadow (needs Screen Recording)
 just capture-video  # local lockout walkthrough .mov (needs Screen Recording)
 ```
 
+`just snapshot` is the recommended default for fast visual verification during development.
+`just capture` accepts an optional test method (e.g. `just capture testCaptureWorkspaceMatrix`).
 `just capture-hero` / `just capture-video` use `screencapture`, which requires
 **Screen Recording** permission for the controlling terminal (System Settings →
-Privacy & Security → Screen Recording). `just capture` does not.
+Privacy & Security → Screen Recording). `just snapshot` and `just capture` do not.
 
 ## Operational Note
 

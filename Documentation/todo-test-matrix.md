@@ -2678,3 +2678,15 @@ The website acceptance suite follows the homepage, release archive, and download
   compiles the driver without installing/launching the signed app or granting
   permissions; the pure receipt tests run beside existing installer boundaries.
   A prepared disposable enforcement fixture and actual signed run remain open.
+
+## Liquid Glass materials and live snapshot harness
+
+- `Adopt macOS 26 Liquid Glass materials with specular gradients and high-contrast fallbacks under Reduce Transparency.`
+  - `LiquidGlassThemeTests/"Liquid glass view modifiers produce renderable view hierarchies in both appearances"`
+  - `LiquidGlassThemeTests/"Liquid glass surface switches between translucent and opaque solid fallback"`
+  - `LiquidGlassThemeTests/"Atmospheric text maintains contrast over translucent glass surface across appearances"`
+  - `LiquidGlassThemeTests/"Lockout visual configuration maps accessibility reduction flags deterministically"`
+- `Render full-window snapshots into build/screenshots using live in-process NSWindow and ImageRenderer.`
+  - `DestinationSnapshotTests.testRenderSpineDestinations`
+  - `DestinationSnapshotTests.testRenderCurrentMarketingScreens`
+  - `DestinationSnapshotTests.testRenderPresenceReminderControls`

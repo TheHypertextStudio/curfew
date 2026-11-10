@@ -311,8 +311,7 @@ struct LockoutScreenView: View {
         .foregroundStyle(SundownPalette.supportingText)
         .padding(.horizontal, 14)
         .padding(.vertical, 7)
-        .background(.white.opacity(0.08))
-        .clipShape(Capsule())
+        .liquidGlassCapsule(usesSolidPanels: visualConfiguration.usesSolidPanels)
     }
 }
 
@@ -353,8 +352,7 @@ struct EveningReflectionCard: View {
         }
         .padding(24)
         .frame(maxWidth: 600, alignment: .leading)
-        .background(SundownPalette.nightSky)
-        .cornerRadius(18)
+        .liquidGlassCard(cornerRadius: 18, usesSolidPanels: usesSolidPanels)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("End-of-work reflection")
     }

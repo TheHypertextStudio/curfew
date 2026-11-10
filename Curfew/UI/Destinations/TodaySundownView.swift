@@ -200,6 +200,9 @@ struct TodaySundownView: View {
                         .font(SundownType.body(13))
                 }
                 .foregroundStyle(CurfewTheme.ink)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .liquidGlassCapsule()
                 .padding(.top, isEnforcing ? 0 : 2)
                 .transition(.opacity)
             }
@@ -263,6 +266,10 @@ private struct SundownCapsuleButtonStyle: ButtonStyle {
             .padding(.horizontal, 22)
             .padding(.vertical, 12)
             .background(CurfewTheme.accentFill, in: .capsule)
+            .overlay(
+                Capsule()
+                    .stroke(SundownPalette.glassBorderGradient, lineWidth: 1)
+            )
             .shadow(
                 color: CurfewTheme.accent.opacity(configuration.isPressed ? 0.18 : 0.3),
                 radius: 10,

@@ -244,10 +244,9 @@ struct MainWindowView: View {
             .navigationTitle("Curfew")
             .listStyle(.sidebar)
             .scrollContentBackground(.hidden)
-            // One consistent adaptive surface so the sidebar harmonises with the
-            // canvas detail in both modes, instead of rendering a light glass slab
-            // beside a dark page (the "sudden colour change" seam).
-            .background(CurfewTheme.canvasStrong.ignoresSafeArea())
+            // Liquid glass sidebar — lets the system NSGlassEffectView refract the detail
+            // column's backgroundExtensionEffect while softly harmonising with both appearances.
+            .sidebarGlass()
             .navigationSplitViewColumnWidth(min: 220, ideal: 248, max: 340)
         } detail: {
             // Each destination owns its own background now — Today's composed sky

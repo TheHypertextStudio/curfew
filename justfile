@@ -179,9 +179,10 @@ dev:
 # -----------------------------------------------------------------------
 
 # CI / debug screenshots via XCUITest. Needs no Screen Recording permission,
-# so it also works on headless runners. Output: build/screenshots/*.png.
-capture:
-    scripts/extract-screenshots.sh
+# so it also works on headless runners. Pass an optional test target (e.g.
+# `just capture testCaptureWorkspaceMatrix`). Output: build/screenshots/*.png.
+capture target="":
+    scripts/extract-screenshots.sh {{ target }}
 
 # Local high-fidelity marketing stills (per-window, with shadow) via
 # `screencapture`. Requires Screen Recording permission for the terminal.
@@ -196,8 +197,8 @@ capture-video seconds="18":
     scripts/capture-video.sh {{ seconds }}
 
 # Headless SwiftUI snapshots of the main-window destinations. Renders via
-# ImageRenderer in a plain unit test — no UI-test runner, no Screen Recording,
-# no desktop takeover, CI-friendly. Output: build/snapshots/curfew-*.png.
+# in-process NSWindow frames in a plain unit test — no UI-test runner, no Screen Recording,
+# no desktop takeover, CI-friendly. Output: build/screenshots/curfew-*.png.
 snapshot:
     swift build --package-path CurfewKit -c release --product curfew-ctl --product curfew-mcp --product curfew-daemon
     xcodebuild test \
@@ -272,9 +273,10 @@ xliff:
 # Git hooks
 # -----------------------------------------------------------------------
 
-# Install staged formatting and retain the repository commit-message hook.
+# Symlink repo-managed hooks into .git/hooks so they fire on commit.
 install-hooks:
-    python3 .hypertext/formatting/install.py
+    ln -sf ../../scripts/hooks/commit-msg .git/hooks/commit-msg
+    chmod +x .git/hooks/commit-msg
 
 # -----------------------------------------------------------------------
 # Composite gates

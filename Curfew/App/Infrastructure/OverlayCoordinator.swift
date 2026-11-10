@@ -370,6 +370,7 @@ private struct WarningOverlayView: View {
 
 private struct FloatingCountdownTimerView: View {
     let minutesRemaining: Int
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
     var body: some View {
         HStack(spacing: 7) {
@@ -386,11 +387,7 @@ private struct FloatingCountdownTimerView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
-        .background(SundownPalette.nightSky, in: Capsule())
-        .overlay(
-            Capsule()
-                .stroke(.white.opacity(0.12), lineWidth: 1)
-        )
+        .liquidGlassCapsule(usesSolidPanels: reduceTransparency)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("warning-timer")
     }

@@ -2110,3 +2110,11 @@ real setup and existing permission consent. No such fixture was provisioned or
 permission granted in this change. Do not dispatch a pretend fresh-host lockout
 run or count compilation as `signedDevice` acceptance. Clock correction, sleep,
 login, populated-data recovery and active-service rollback remain separate gates.
+
+## Liquid Glass materials and live UI snapshot harness
+
+- [x] Adopt macOS 26 Liquid Glass materials across surfaces (`CurfewTheme.liquidGlassCard`, `liquidGlassCapsule`, `sidebarGlass()`, and bevel highlights in `SundownCapsuleButtonStyle` and `CurfewPrimaryButtonStyle`).
+- [x] Support high-contrast solid backgrounds when Reduce Transparency is active.
+- [x] Upgrade morning and evening reflection cards, floating countdown timers, streak capsules, and toolbar mode bars with translucent glass styling and SF Symbol animations.
+- [x] Upgrade headless snapshot engine (`DestinationSnapshotTests`) to render live in-process `NSWindow` + `NSHostingView` frames, eliminating headless AppKit control fallbacks (🚫).
+- [x] Standardize screenshot outputs to `build/screenshots/` and add `just snapshot` recipe.
