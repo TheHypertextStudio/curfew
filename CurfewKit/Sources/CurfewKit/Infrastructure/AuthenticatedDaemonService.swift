@@ -15,12 +15,20 @@ public final class AuthenticatedDaemonService: NSObject, CurfewDaemonXPCProtocol
     private let readExternal: (AuthenticatedDaemonControl, Date) -> LockoutDeadlineRecord?
     private let evaluate: (PrivilegedDaemonStatus, Date, Bool) -> Bool
     private let discover: () -> Void
+    private let sunriseScheduler: SunriseWakeScheduler?
+    private let sunriseOwner: String
+    private let sunriseNow: () -> Date
+    private let sunriseOnExternalPower: () -> Bool
 
     public init(
         store: PrivilegedDaemonStateStore = PrivilegedDaemonStateStore(),
         readExternal: @escaping (AuthenticatedDaemonControl, Date) -> LockoutDeadlineRecord?,
         evaluate: @escaping (PrivilegedDaemonStatus, Date, Bool) -> Bool,
-        discover: @escaping () -> Void
+        discover: @escaping () -> Void,
+        sunriseScheduler: SunriseWakeScheduler? = nil,
+        sunriseOwner: String = CurfewFlavor.current.daemonLabel + ".sunrise",
+        sunriseNow: @escaping () -> Date = Date.init,
+        sunriseOnExternalPower: @escaping () -> Bool = { false }
     ) {
         self.store = store
         do {
@@ -37,6 +45,10 @@ public final class AuthenticatedDaemonService: NSObject, CurfewDaemonXPCProtocol
         self.readExternal = readExternal
         self.evaluate = evaluate
         self.discover = discover
+        self.sunriseScheduler = sunriseScheduler
+        self.sunriseOwner = sunriseOwner
+        self.sunriseNow = sunriseNow
+        self.sunriseOnExternalPower = sunriseOnExternalPower
         super.init()
     }
 
@@ -139,6 +151,9 @@ public final class AuthenticatedDaemonService: NSObject, CurfewDaemonXPCProtocol
                     external: self.readExternal(self.control, now),
                     now: now
                 )
+                if let scheduler = self.sunriseScheduler {
+                    try self.cancelSunriseWake(using: scheduler)
+                }
                 try self.store.clear()
                 try reply(Self.encoder.encode(self.currentStatus(now: now)), nil)
             } catch { reply(nil, Self.nsError(error)) }
@@ -207,4 +222,72 @@ public final class AuthenticatedDaemonService: NSObject, CurfewDaemonXPCProtocol
         decoder.dateDecodingStrategy = .iso8601
         return decoder
     }()
+}
+
+extension AuthenticatedDaemonService {
+    public func replaceSunriseWakePlan(
+        _ request: Data, reply: @escaping (Data?, NSError?) -> Void
+    ) {
+        queue.async {
+            do {
+                if let error = self.persistenceError {
+                    throw error
+                }
+                guard let scheduler = self.sunriseScheduler else { throw Self.sunriseUnavailable }
+                let now = self.sunriseNow()
+                let plan = try self.authorizedSunrisePlan(request, now: now)
+                _ = try scheduler.reconcile(
+                    desired: plan, authorizedPlan: plan,
+                    onExternalPower: self.sunriseOnExternalPower(), now: now
+                )
+                try reply(Self.encoder.encode(plan), nil)
+            } catch { reply(nil, Self.nsError(error)) }
+        }
+    }
+
+    public func cancelSunriseWakePlan(reply: @escaping (Data?, NSError?) -> Void) {
+        queue.async {
+            do {
+                guard let scheduler = self.sunriseScheduler else { throw Self.sunriseUnavailable }
+                try self.cancelSunriseWake(using: scheduler)
+                try reply(Self.encoder.encode(true), nil)
+            } catch { reply(nil, Self.nsError(error)) }
+        }
+    }
+
+    /// The signature-pinned local caller supplies a presentation occurrence.
+    /// Validate its bounded wake window without consulting restriction authority.
+    private func authorizedSunrisePlan(_ request: Data, now: Date) throws -> SunriseWakePlan {
+        guard request.count <= 4096 else { throw SunriseWakeScheduler.Rejection.unauthorizedPlan }
+        let requested = try Self.decoder.decode(SunriseWakePlan.self, from: request)
+        guard requested.owner == sunriseOwner,
+              now.timeIntervalSince1970.isFinite,
+              requested.wakeAt.timeIntervalSince1970.isFinite,
+              requested.holdUntil.timeIntervalSince1970.isFinite,
+              requested.wakeAt > now
+        else { throw SunriseWakeScheduler.Rejection.unauthorizedPlan }
+        let interval = requested.holdUntil.timeIntervalSince(requested.wakeAt)
+        let lead = (interval - 300) / 60
+        guard (600 ... 3900).contains(interval),
+              lead.isFinite, (5 ... 60).contains(lead), lead.rounded() == lead else {
+            throw SunriseWakePlanner.ValidationError.invalidLeadMinutes
+        }
+        // Battery eligibility remains in reconciliation so a battery transition
+        // can cancel an existing AC-only owned event before rejecting replacement.
+        return requested
+    }
+
+    private func cancelSunriseWake(using scheduler: SunriseWakeScheduler) throws {
+        _ = try scheduler.reconcile(
+            desired: nil, authorizedPlan: nil,
+            onExternalPower: sunriseOnExternalPower(), now: sunriseNow()
+        )
+    }
+
+    private static var sunriseUnavailable: NSError {
+        NSError(
+            domain: "studio.hypertext.curfew.daemon.sunrise", code: 1,
+            userInfo: [NSLocalizedDescriptionKey: "Sunrise helper scheduling is unavailable."]
+        )
+    }
 }

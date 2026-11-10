@@ -41,8 +41,17 @@ final class PrivilegedHelperManager {
         case registrationFailed
     }
 
+    /// Invalidates scheduling receipts across removal, replacement and maintenance.
+    private(set) var sunriseOwnershipRevision: UInt64 = 0
+
     /// Installation state of the privileged daemon.
-    private(set) var daemonStatus: SMAppService.Status = .notRegistered
+    private(set) var daemonStatus: SMAppService.Status = .notRegistered {
+        didSet {
+            if oldValue != daemonStatus {
+                sunriseOwnershipRevision &+= 1
+            }
+        }
+    }
 
     /// Registration state of the main-app login item.
     private(set) var loginItemStatus: SMAppService.Status = .notRegistered
@@ -77,7 +86,14 @@ final class PrivilegedHelperManager {
     var connectionState: ConnectionState = .unavailable
     var repairInProgress = false
     var installationInProgress = false
-    var maintenancePaused = false
+    var maintenancePaused = false {
+        didSet {
+            if oldValue != maintenancePaused {
+                sunriseOwnershipRevision &+= 1
+            }
+        }
+    }
+
     @ObservationIgnored let registrationRepair = DaemonRegistrationRepair()
 
     var enforcementAvailability: PrivilegedEnforcementAvailability {
@@ -140,18 +156,6 @@ final class PrivilegedHelperManager {
         return owner
     }
 
-    /// Refreshes `daemonStatus` and `loginItemStatus` from the system.
-    /// Call this on app launch and after any `install` / `uninstall` attempt.
-    func refreshStatus() {
-        daemonStatus = daemonService.status
-        loginItemStatus = loginItemService.status
-        let daemonDesc = daemonStatus.debugDescription
-        let loginDesc = loginItemStatus.debugDescription
-        helperLogger.info(
-            "helper status: daemon=\(daemonDesc, privacy: .public) loginItem=\(loginDesc, privacy: .public)"
-        )
-    }
-
     // MARK: - Daemon
 
     /// Registers the LaunchDaemon with the system. macOS will prompt the user
@@ -176,6 +180,7 @@ final class PrivilegedHelperManager {
     /// disk — only the system registration is removed.
     func uninstallDaemon() async {
         guard !repairInProgress else { return }
+        sunriseOwnershipRevision &+= 1
         do {
             try await daemonRPC.prepareForUninstall()
             try daemonService.unregister()
@@ -296,26 +301,11 @@ final class PrivilegedHelperManager {
         }
     }
 
-    /// Removes the app from login items. The `PersistentLockdown` LaunchAgent
-    /// is unaffected — it must be uninstalled separately via its own API.
-    func unregisterLoginItem() {
-        do {
-            try loginItemService.unregister()
-            loginItemStatus = .notRegistered
-            lastError = nil
-            helperLogger.info("login item unregistered")
-        } catch {
-            lastError = error.localizedDescription
-            helperLogger.error(
-                "login item unregister failed: \(error.localizedDescription, privacy: .public)"
-            )
-        }
-    }
-
     /// An isolated app must remove its launchd registrations before erasing
     /// state or asking the user to trash its bundle. Attempt both removals so
     /// one failure does not leave the other registration behind.
     func unregisterForUninstall() -> [String] {
+        sunriseOwnershipRevision &+= 1
         var failures: [String] = []
         if daemonService.status != .notRegistered, daemonService.status != .notFound {
             do {
@@ -338,6 +328,33 @@ final class PrivilegedHelperManager {
 }
 
 extension PrivilegedHelperManager {
+    /// Removes the app from login items. The `PersistentLockdown` LaunchAgent
+    /// is unaffected — it must be uninstalled separately via its own API.
+    func unregisterLoginItem() {
+        do {
+            try loginItemService.unregister()
+            loginItemStatus = .notRegistered
+            lastError = nil
+            helperLogger.info("login item unregistered")
+        } catch {
+            lastError = error.localizedDescription
+            helperLogger.error(
+                "login item unregister failed: \(error.localizedDescription, privacy: .public)"
+            )
+        }
+    }
+
+    /// Refresh registration state after launch or an installation change.
+    func refreshStatus() {
+        daemonStatus = daemonService.status
+        loginItemStatus = loginItemService.status
+        let daemonDesc = daemonStatus.debugDescription
+        let loginDesc = loginItemStatus.debugDescription
+        helperLogger.info(
+            "helper status: daemon=\(daemonDesc, privacy: .public) loginItem=\(loginDesc, privacy: .public)"
+        )
+    }
+
     #if DEBUG
         func seedDemoStatus(
             daemon: SMAppService.Status = .notRegistered,

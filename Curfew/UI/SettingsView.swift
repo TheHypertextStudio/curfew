@@ -196,6 +196,8 @@ struct SettingsView: View {
         case .enforcement:
             extensionsPanel
             warningPanel
+        case .restScreen:
+            RestScreenSettingsView()
         case .presence:
             presencePanel
         case .shutdown:

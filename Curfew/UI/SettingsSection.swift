@@ -5,6 +5,7 @@ import Foundation
 enum SettingsSection: String, CaseIterable, Identifiable {
     case general
     case enforcement
+    case restScreen
     case presence
     case shutdown
     case protectedWork
@@ -25,6 +26,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
         switch self {
         case .general: "Protection"
         case .enforcement: "Lockout"
+        case .restScreen: "Rest Screen"
         case .presence: "Presence"
         case .shutdown: "Shutdown"
         case .protectedWork: "Protected Work"
@@ -39,6 +41,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
         switch self {
         case .general: "shield.lefthalf.filled"
         case .enforcement: "lock"
+        case .restScreen: "moon.stars"
         case .presence: "person.crop.rectangle"
         case .shutdown: "power"
         case .protectedWork: "terminal"
