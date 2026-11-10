@@ -28,6 +28,15 @@ verify_team() {
 node "$(dirname "$0")/release-candidate.mjs" verify-app "$APP_PATH" "$CONFIGURATION_PATH" "$EXPECTED_VERSION"
 [[ -d "$CONTENTS/Frameworks/Sparkle.framework" ]] || fail "Sparkle.framework missing"
 [[ -d "$CONTENTS/PlugIns/CurfewWidget.appex" ]] || fail "Widget extension missing"
+SAVER_PATH="$CONTENTS/Resources/Curfew.saver"
+[[ -d "$SAVER_PATH" ]] || fail "Curfew.saver missing"
+saver_identifier=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$SAVER_PATH/Contents/Info.plist")
+[[ "$saver_identifier" == "studio.hypertext.apps.curfew.screensaver" ]] || fail "unexpected companion identifier"
+saver_version=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$SAVER_PATH/Contents/Info.plist")
+[[ "$saver_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail "companion version missing or invalid"
+node "$(dirname "$0")/verify-companion-architectures.mjs" "$SAVER_PATH/Contents/MacOS/Curfew"
+/usr/bin/codesign --verify --deep --strict --verbose=2 "$SAVER_PATH"
+verify_team "$SAVER_PATH"
 
 embedded_tools=$(node "$(dirname "$0")/release-candidate.mjs" embedded-tools "$APP_PATH")
 while IFS= read -r tool; do

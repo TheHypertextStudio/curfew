@@ -253,3 +253,9 @@ activation after real signed-device/provider/recovery evidence.
 - [ ] Paste MCP config into Claude Desktop → `curfew.status` returns live data.
 - [ ] Trigger a curfew 5 minutes ahead → overlay fires at T-0.
 - [ ] `brew install curfew` (after Homebrew Cask merges) installs cleanly.
+
+## Rest companion artifact acceptance
+
+Build the app and companion for distribution architectures rather than treating the native Debug test destination as a universal artifact. Verify the embedded `Curfew.saver` with `scripts/verify-release-artifact.sh`: both arm64 and x86_64 executable slices, bounded and consistent Mach-O architecture records, the companion identifier and independent version, and its approved Developer ID signature/team. A native bundle load establishes only the current host slice. It does not prove execution inside the screensaver process or on the other host architecture.
+
+Production activation and public installer publication remain held until explicitly released. Archive/signing execution requires final source integration and the current isolated resource allocation; source verification does not establish either.

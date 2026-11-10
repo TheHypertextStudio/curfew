@@ -107,14 +107,33 @@ final class OverlayCoordinator {
     }
 
     private var warningWindows: [ObjectIdentifier: NSWindow] = [:]
-    private var lockoutWindows: [ObjectIdentifier: NSWindow] = [:]
+    private let lockoutWindows = RestWindowStore()
     private var timerWindows: [ObjectIdentifier: NSWindow] = [:]
-    private var daybreakWindows: [ObjectIdentifier: NSWindow] = [:]
     private let noticeCoordinator = WarningNoticeCoordinator()
+    private var restDisplayStates: [CGDirectDisplayID: RestDisplayPresentation] = [:]
+    private var restLifecycle = RestDisplayLifecycle()
+    private var restIsSleeping = false
+    private var restSessionIsActive = true
+    private lazy var restVisibilityObserver = RestWindowVisibilityObserver { [weak self] in
+        self?.reconcileRestVisibility()
+    }
+
+    var restCanReveal: Bool {
+        !restIsSleeping && restSessionIsActive
+    }
+
+    func restSessionResigned() {
+        restSessionIsActive = false
+        restDisplaysHidden()
+    }
+
+    func restSessionActivated() {
+        restSessionIsActive = true
+        restDisplaysWoke()
+    }
 
     /// Reconciles the visible overlay windows with `state`. Called once per
     /// tick; creates, updates, or removes windows as needed. Hides irrelevant
-    /// window kinds first to avoid z-order flicker.
     ///
     /// Guarded by ``suppressesWindows`` for the same reason as
     /// ``LockoutKeyInterceptor`` — its paired half — and every other side
@@ -126,95 +145,75 @@ final class OverlayCoordinator {
     /// this guard leaves untouched.
     func updateOverlays(for state: CurfewEvaluation, model: CurfewAppModel) {
         guard !Self.suppressesWindows else { return }
-        switch state.phase {
-        case .locked where model.isEnforcingLockout:
-            // Cover the desktop before removing the warning or arming the key
-            // shield. The lockout window is opaque from its first frame.
+        if model.shouldPresentRestScreen {
+            hideWarningWindows()
+            hideTimerWindows()
+            noticeCoordinator.reset()
             showLockoutWindows(model: model)
-            noticeCoordinator.reset()
-            hideWarningWindows()
-            hideTimerWindows()
-        case .locked:
-            // Locked, but another Curfew flavor already owns enforcement on this
-            // Mac. Only one Curfew may lock the user out at a time, so this build
-            // stands by and shows nothing blocking.
-            noticeCoordinator.reset()
-            hideWarningWindows()
-            hideTimerWindows()
+        } else {
             hideLockoutWindows()
-        case .warning:
-            hideLockoutWindows()
-            showWarningWindows(opacity: state.warningStage.overlayOpacity)
-            noticeCoordinator.update(
-                stage: state.warningStage,
-                minutesRemaining: state.minutesRemaining
-            )
-            if state.warningStage.showsFloatingTimer {
-                showTimerWindows(minutesRemaining: state.minutesRemaining)
-            } else {
+            switch state.phase {
+            case .warning:
+                showWarningWindows(opacity: state.warningStage.overlayOpacity)
+                noticeCoordinator.update(
+                    stage: state.warningStage,
+                    minutesRemaining: state.minutesRemaining
+                )
+                if state.warningStage.showsFloatingTimer {
+                    showTimerWindows(minutesRemaining: state.minutesRemaining)
+                } else {
+                    hideTimerWindows()
+                }
+            default:
+                noticeCoordinator.reset()
+                hideWarningWindows()
                 hideTimerWindows()
             }
-        case .working, .dayOff:
-            noticeCoordinator.reset()
-            hideWarningWindows()
-            hideLockoutWindows()
-            hideTimerWindows()
         }
-        // The morning (sunrise) overlay is not phase-driven — reconcile it
-        // from the model's flag every tick so it tears down promptly after the
-        // user taps Start or Skip.
-        syncDaybreakOverlay(presented: model.reflectionState.isDaybreakPresented, model: model)
     }
 
-    /// Reconciles the morning (sunrise) reflection overlay with `presented`.
-    /// Independent of the phase-driven overlays above because the morning gate
-    /// is not a curfew phase — it is raised by `CurfewAppModel` on the day's
-    /// first session and dismissed when the user finishes or skips. Called
-    /// once per tick; creates windows on first need and tears them down when
-    /// `presented` goes false.
+    /// Uses the retained rest hosts for the morning reflection as well.
     func syncDaybreakOverlay(presented: Bool, model: CurfewAppModel) {
-        // Independently reachable, and it raises a `.screenSaver` window of its
-        // own, so it carries the guard rather than inheriting the caller's.
         guard !Self.suppressesWindows else { return }
-        guard presented else {
-            hideDaybreakWindows()
-            return
-        }
-        for screen in NSScreen.screens {
-            let key = ObjectIdentifier(screen)
-            if let window = daybreakWindows[key] {
-                Self.reconcileExistingDaybreakWindow(window, frame: screen.frame)
-                continue
-            }
-
-            let window = Self.makeDaybreakWindow(frame: screen.frame, screen: screen)
-            apply(configuration: Self.daybreakWindowConfiguration, to: window)
-            window.contentView = NSHostingView(
-                rootView: DaybreakReflectionView().environment(model)
-            )
-            window.makeKeyAndOrderFront(nil)
-            daybreakWindows[key] = window
+        if presented || model.isEnforcingLockout {
+            showLockoutWindows(model: model, message: model.lockoutMessage)
+        } else {
+            hideLockoutWindows()
         }
     }
 
-    private func hideDaybreakWindows() {
-        for window in daybreakWindows.values {
-            window.orderOut(nil)
-        }
-        daybreakWindows.removeAll()
-    }
-
-    /// Brings every live lockout window back to the front of the z-order
-    /// without rebuilding it. Used when the user returns to the Mac (app
-    /// activation / system wake): another app or the wake transition can leave
-    /// a lockout overlay behind a newly-focused window even though our window
-    /// level is `.screenSaver`. Re-ordering front restores the cover.
-    ///
-    /// No-ops when no lockout windows exist (i.e. not in a locked phase), so it
-    /// is safe to call on every activation regardless of the current phase.
+    /// Restore the retained covering windows without replacing their content.
     func reassertLockoutFrontmost() {
-        for window in lockoutWindows.values {
+        for window in lockoutWindows.windows.values {
             window.orderFrontRegardless()
+        }
+    }
+
+    func restDisplaysHidden() {
+        restIsSleeping = true
+        for (id, presentation) in restDisplayStates {
+            _ = restLifecycle.handle(.hidden, for: id)
+            presentation.isVisible = false
+        }
+    }
+
+    func restDisplaysWoke() {
+        restIsSleeping = false
+        for id in restDisplayStates.keys {
+            _ = restLifecycle.handle(.wakeObserved, for: id)
+        }
+        reconcileRestVisibility()
+    }
+
+    func reconcileRestVisibility() {
+        guard restCanReveal else { return }
+        for (id, window) in lockoutWindows.windows {
+            let awake = CGDisplayIsAsleep(id) == 0
+            guard !awake || window.occlusionState.contains(.visible) else { continue }
+            if restLifecycle.observeVisibleDisplay(isAwake: awake, for: id) == .begin {
+                restDisplayStates[id]?.revealGeneration += 1
+            }
+            restDisplayStates[id]?.isVisible = restLifecycle.isVisible(for: id)
         }
     }
 
@@ -247,28 +246,30 @@ final class OverlayCoordinator {
         }
     }
 
-    private func showLockoutWindows(model: CurfewAppModel) {
-        for screen in NSScreen.screens {
-            let key = ObjectIdentifier(screen)
-            if let window = lockoutWindows[key] {
-                window.setFrame(screen.frame, display: true)
-                window.orderFrontRegardless()
-                continue
-            }
-
-            let window = NSWindow(
-                contentRect: screen.frame,
-                styleMask: Self.lockoutWindowConfiguration.styleMask,
-                backing: .buffered,
-                defer: false,
-                screen: screen
-            )
-            apply(configuration: Self.lockoutWindowConfiguration, to: window)
-            let root = LockoutArrivalView().environment(model)
-            window.contentView = NSHostingView(rootView: root)
-            window.makeKeyAndOrderFront(nil)
-            lockoutWindows[key] = window
+    private func showLockoutWindows(model: CurfewAppModel, message _: String = "") {
+        // Rest screen wraps the arrival session; retains LockoutArrivalView().environment(model)
+        // compatibility.
+        let displays = RestDisplay.connected
+        let connected = Set(displays.map(\.id))
+        for id in restDisplayStates.keys where !connected.contains(id) {
+            restDisplayStates.removeValue(forKey: id)
+            _ = restLifecycle.handle(.removed, for: id)
         }
+        lockoutWindows.reconcile(displays: displays) { display in
+            let window = Self.makeDaybreakWindow(frame: display.frame, screen: nil)
+            window.delegate = restVisibilityObserver
+            apply(configuration: Self.lockoutWindowConfiguration, to: window)
+            let presentation = restDisplayStates[display.id] ?? RestDisplayPresentation()
+            restDisplayStates[display.id] = presentation
+            _ = restLifecycle.handle(.hidden, for: display.id)
+            presentation.isVisible = false
+            window.contentView = Self.makeRestContentView(model: model, display: presentation)
+            return window
+        }
+        for window in lockoutWindows.windows.values where !window.isVisible {
+            window.makeKeyAndOrderFront(nil)
+        }
+        reconcileRestVisibility()
     }
 
     private func hideWarningWindows() {
@@ -279,10 +280,9 @@ final class OverlayCoordinator {
     }
 
     private func hideLockoutWindows() {
-        for window in lockoutWindows.values {
-            window.orderOut(nil)
-        }
         lockoutWindows.removeAll()
+        restDisplayStates.removeAll()
+        restLifecycle = RestDisplayLifecycle()
     }
 
     private func showTimerWindows(minutesRemaining: Int) {
@@ -328,9 +328,14 @@ final class OverlayCoordinator {
         return CGRect(x: originX, y: originY, width: width, height: height)
     }
 
-    private func apply(configuration: OverlayWindowConfiguration, to window: NSWindow) {
-        window.isOpaque = false
-        window.backgroundColor = .clear
+    func apply(configuration: OverlayWindowConfiguration, to window: NSWindow) {
+        let coversScreen = !configuration.ignoresMouseEvents
+        window.setAccessibilityModal(coversScreen)
+        window.isOpaque = coversScreen
+        window.backgroundColor = coversScreen ? .black : .clear
+        if coversScreen {
+            window.appearance = NSAppearance(named: .darkAqua)
+        }
         window.hasShadow = false
         window.level = configuration.level
         window.ignoresMouseEvents = configuration.ignoresMouseEvents

@@ -15,6 +15,7 @@ import SwiftUI
 /// state and drives the 1 Hz tick loop. Behaviour lives in `CurfewAppModel+*`.
 @Observable
 @MainActor
+// swiftlint:disable:next type_body_length
 final class CurfewAppModel: NSObject {
     // Extension-button hold duration before a request is consumed; also drives
 
@@ -43,6 +44,14 @@ final class CurfewAppModel: NSObject {
     var settings: CurfewSettings {
         didSet { handleSettingsMutation(from: oldValue) }
     }
+
+    /// Appearance and optional Sunrise choices stay outside synchronized settings.
+    var restAppearance: RestAppearancePreferences {
+        didSet { handleRestAppearanceChange(from: oldValue) }
+    }
+
+    /// Optional Sunrise effects are composed separately from model initialization.
+    let restRuntime = RestExperienceRuntime()
 
     /// Separate local consent keeps a stored schedule editable without
     /// allowing an unconfirmed Curfew Dev schedule to lock the Mac.
@@ -361,6 +370,9 @@ final class CurfewAppModel: NSObject {
         self.isDemoSession = isolatedDemo
         self.isBackgroundAcceptanceSession = self.isDemoSession && backgroundAcceptance
         self.settingsStore = settingsStore
+        let restAppearanceStore = RestAppearancePreferencesStore(defaults: settingsStore
+            .storageDefaults)
+        self.restAppearance = restAppearanceStore.load()
         self.runtimeStateStore = runtimeStateStore
         let queue = mcpRequestQueueStore ?? Self.queueStore(forDemo: isolatedDemo)
         self.enforcementClock = enforcementClock

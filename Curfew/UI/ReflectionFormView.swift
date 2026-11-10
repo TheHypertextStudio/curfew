@@ -12,7 +12,16 @@ import SwiftUI
 /// scale with Dynamic Type via ``ScaledMetric``.
 struct ReflectionFormView: View {
     /// The prompts to render, in order.
-    let prompts: [ReflectionPrompt]
+    @Bindable var draft: ReflectionDraft
+
+    private var prompts: [ReflectionPrompt] {
+        draft.prompts
+    }
+
+    private var values: [UUID: ReflectionValue] {
+        get { draft.values }
+        nonmutating set { draft.values = newValue }
+    }
 
     /// Label for the primary (submit) button — e.g. "Start the day" or
     /// "Save & settle in".
@@ -27,10 +36,6 @@ struct ReflectionFormView: View {
 
     /// Called when the user skips — the lenient dismissal path.
     let onSkip: () -> Void
-
-    /// Per-prompt working values, keyed by prompt id. Seeded empty; an entry
-    /// appears once the user touches a control.
-    @State private var values: [UUID: ReflectionValue] = [:]
 
     // Dynamic Type — base sizes that scale with the user's text-size setting.
     @ScaledMetric(relativeTo: .body) private var promptFontSize: CGFloat = 17
@@ -144,6 +149,7 @@ struct ReflectionFormView: View {
                 .background(panelFill)
                 .cornerRadius(12)
                 .accessibilityLabel(prompt.text)
+                .accessibilityIdentifier("reflection-answer")
         case .rating:
             ratingControl(for: prompt.id, scale: prompt.ratingMax)
         case .mood:

@@ -282,7 +282,14 @@ extension ThemeConsistencyTests {
         let source = try String(contentsOf: root.appendingPathComponent(
             "Curfew/UI/LockoutScreenView.swift"
         ), encoding: .utf8)
-        #expect(source.contains(".overlay(SundownPalette.textScrim)"))
+        let composition = try String(contentsOf: root.appendingPathComponent(
+            "Curfew/UI/RestScreenView.swift"
+        ), encoding: .utf8)
+        let renderer = try String(contentsOf: root.appendingPathComponent(
+            "CurfewKit/Sources/CurfewAtmosphere/RestAmbientScene.swift"
+        ), encoding: .utf8)
+        #expect(composition.contains("RestAmbientScene("))
+        #expect(renderer.contains(".overlay(AtmospherePalette.textScrim)"))
         for opacity in ["0.4", "0.5", "0.6", "0.72"] {
             #expect(!source.contains("warmWhite.opacity(\(opacity))"))
         }

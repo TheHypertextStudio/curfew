@@ -1,6 +1,7 @@
 #if DEBUG
     import AppKit
     @testable import Curfew
+    import CurfewKit
     import SwiftUI
     import XCTest
 
@@ -17,6 +18,14 @@
     /// working directory or any environment plumbing.
     @MainActor
     final class DestinationSnapshotTests: XCTestCase {
+        func testRenderTodayFooterAtWorkspaceHeight() throws {
+            try renderBoth(
+                TodaySundownView(streak: 3),
+                named: "today-footer", width: 832, height: 720,
+                to: Self.snapshotsDirectory()
+            )
+        }
+
         func testRenderCurrentMarketingScreens() throws {
             let directory = try Self.snapshotsDirectory()
             let model = Self.demoModel()
@@ -281,4 +290,3 @@
         }
     }
 #endif
-@testable import CurfewKit

@@ -42,3 +42,15 @@ features remain available.
 Apple service IDs and sign-in key associations must point to the canonical dev
 App ID before obsolete app registrations are retired. Keep the existing key
 material, service IDs, callbacks, App Groups and credential access groups.
+
+## Formatter compatibility
+
+CI uses SwiftFormat 0.63.1, matching the repository's formatting baseline. It
+downloads the official macOS release archive and verifies SHA-256
+`385ef1a263ba28685157b98c5536b9c9105e124518f28b7ef8a2bee4b167eaeb`
+before adding the extracted executable to the job's path. The repository's
+formatting rules and full source scope still apply. Use this version locally
+when reproducing CI; a Homebrew upgrade must not silently change the formatter
+used to accept an unchanged commit. Upgrade the pin and format the source
+together in an intentional toolchain change. Reverting the pin restores the
+previous floating Homebrew installation and its version-drift risk.

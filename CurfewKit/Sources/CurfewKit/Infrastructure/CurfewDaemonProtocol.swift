@@ -19,6 +19,9 @@ public enum PrivilegedDaemonConstants {
         reply: @escaping (Data?, NSError?) -> Void
     )
     func status(reply: @escaping (Data?, NSError?) -> Void)
+    /// Helper-local SunriseWakePlan envelope. This is not a remote MCP shape.
+    func replaceSunriseWakePlan(_ request: Data, reply: @escaping (Data?, NSError?) -> Void)
+    func cancelSunriseWakePlan(reply: @escaping (Data?, NSError?) -> Void)
     func prepareForUninstall(reply: @escaping (Data?, NSError?) -> Void)
 }
 

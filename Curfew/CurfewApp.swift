@@ -217,6 +217,7 @@ struct CurfewApp: App {
         let delegate = appDelegate
         DispatchQueue.main.async {
             delegate.model = model
+            model.configureRestExperience()
             AppCoordinator().handleInitialLaunch(
                 model: model,
                 shouldStartEnforcement: Self.shouldStartEnforcementOnLaunch
