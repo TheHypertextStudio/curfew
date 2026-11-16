@@ -61,6 +61,11 @@ extension CurfewAppModel {
         flags: FeatureFlags,
         helper: PrivilegedHelperManager
     ) -> EnforcementHealth {
+        if flags.privilegedHelperEnabled {
+            // Read registration first, so launch neither flags an absent
+            // helper nor hides an installed one behind the default reading.
+            helper.refreshStatus()
+        }
         let availability = flags.privilegedHelperEnabled
             ? helper.enforcementAvailability : .notRequired
         return seededEnforcementHealth(

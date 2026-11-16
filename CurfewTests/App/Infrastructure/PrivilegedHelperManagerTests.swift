@@ -166,7 +166,11 @@ struct PrivilegedHelperManagerTests {
             loginItemService: StubAppService(status: .notRegistered)
         )
 
+        // Before registration is read, the default reading proves nothing.
         #expect(manager.enforcementAvailability == .unavailable)
+        // Read and never installed: not required for a healthy Curfew.
+        manager.refreshStatus()
+        #expect(manager.enforcementAvailability == .notRequired)
         manager.seedConnectionStateForTesting(.unauthorized)
         #expect(manager.enforcementAvailability == .unauthorized)
         manager.seedConnectionStateForTesting(.stale)

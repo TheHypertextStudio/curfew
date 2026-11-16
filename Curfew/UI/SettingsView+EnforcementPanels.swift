@@ -15,14 +15,14 @@ extension SettingsView {
     /// guarded against the test host inside the model.
     @ViewBuilder
     var enforcementHealthPanel: some View {
-        if model.enforcementHealth.isFullyActive {
+        if model.presentedEnforcementHealth.isFullyActive {
             Section {
                 CurfewSectionTitle(
                     title: "Accessibility"
                 )
 
                 Label(
-                    model.enforcementHealth.settingsStatusTitle,
+                    model.presentedEnforcementHealth.settingsStatusTitle,
                     systemImage: "checkmark.circle.fill"
                 )
                 .font(CurfewTypography.bodyEmphasis(14))
@@ -34,7 +34,7 @@ extension SettingsView {
                     .fixedSize(horizontal: false, vertical: true)
             }
         } else {
-            EnforcementHealthBanner(health: model.enforcementHealth) {
+            EnforcementHealthBanner(health: model.presentedEnforcementHealth) {
                 model.requestAccessibilityAccess()
             }
         }

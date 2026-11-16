@@ -157,14 +157,14 @@ Temporary audit-only `continueAfterFailure` collection restores its prior value 
 ## Copy, permissions, and Settings
 
 - [x] Explain the macOS Device Control and Data Access label, administrator
-  authentication, and background-service checks in setup, troubleshooting, and
-  privacy help.
-  The MacBook walkthrough on November 3, 2026 verified these prompts and the
-  resulting Protection states. Other macOS versions and signed-release setup
-  still need their own acceptance. The in-app repair message names both macOS
-  labels. Account help distinguishes sign-in recovery codes from the encryption
-  Recovery Key. Roll back the help and app copy together. No permission or
-  enforcement behavior changed.
+      authentication, and background-service checks in setup, troubleshooting, and
+      privacy help.
+      The MacBook walkthrough on November 3, 2026 verified these prompts and the
+      resulting Protection states. Other macOS versions and signed-release setup
+      still need their own acceptance. The in-app repair message names both macOS
+      labels. Account help distinguishes sign-in recovery codes from the encryption
+      Recovery Key. Roll back the help and app copy together. No permission or
+      enforcement behavior changed.
 
 - [x] Replace the tall Settings page with nine categories. Keep upstream Protection for permission health, background protection, and setup. Keep allowances and warning times on Lockout. Retain native grouped forms and arrow-key sidebar navigation. See `settings-ui.md`.
 - [x] Share the documented Curfew Xcode scheme with app, unit-test, and UI-test targets to keep the native commands independent of Xcode automatic scheme generation and local suppression settings. The missing-scheme build and contract test failed before the shared configuration was added.
@@ -811,8 +811,10 @@ The CLI remains in beta until launch blockers and installed-artifact acceptance 
 
 - [x] First-launch getting-started window.
 - [x] Persist one-time first-launch setup state.
-- [x] First-run flow: welcome, schedule, budgets, permissions, confirmation.
-- [x] Onboarding completion now requires opening live schedule settings and acknowledging permissions guidance before finish.
+- [x] First-run setup is three steps plus an optional closing step: the curfew and days, Accessibility (with a floating drag panel beside System Settings) plus optional notifications and the Curfew helper, then tonight's curfew with a lock preview, then optional sync sign-in and the lifetime licence. Setup reopens at the step reached until completed; health warnings stay hidden until then; an absent helper is healthy.
+- [ ] Verify the Accessibility drag, notification and helper prompts, and lock preview on a signed build on a real Mac.
+- [ ] Add dedicated Sign in with Apple, Google and passkey buttons to the closing step once the account service exposes provider-specific sign-in.
+- [x] Setup completion requires an explicit schedule choice (or "No schedule yet") and real Accessibility trust.
 - [x] Anti-bypass: onboarding mutations route through `queueScheduleUpdate`.
 - [x] Onboarding relaunch from Settings.
 - [-] Setup navigation must work before the main workspace has opened. Queue
@@ -1974,23 +1976,23 @@ asserts its own screen and state before attaching an image.
   when Homebrew advances independently.
 
 - [x] Reconcile native rest hosts immediately when a reflection is saved or
-  skipped, including while enforcement is disarmed. Retain the rest host when
-  another restriction or unfinished evening still requires it; do not wait for
-  an enforcement tick to restore the workspace.
+      skipped, including while enforcement is disarmed. Retain the rest host when
+      another restriction or unfinished evening still requires it; do not wait for
+      an enforcement tick to restore the workspace.
 
 - [x] Review the streak footer in light and dark workspace renders at the native
-  window dimensions, retaining the unobscured native contrast gate. The renderer
-  is offscreen and never presents a desktop window.
+      window dimensions, retaining the unobscured native contrast gate. The renderer
+      is offscreen and never presents a desktop window.
 
 - [x] Name the actual native hosting and split-column containers, not additional
-  nested SwiftUI groups. Preserve native controls and use primary text ink for
-  the small streak caption identified by the unobscured native contrast audit.
-  Keep the separate global rest and uncovered-workspace audits unchanged.
+      nested SwiftUI groups. Preserve native controls and use primary text ink for
+      the small streak caption identified by the unobscured native contrast audit.
+      Keep the separate global rest and uncovered-workspace audits unchanged.
 
 - [x] Keep Rest Screen UI and accessibility audits robust: preserve visual
-  states across app activation, ignore non-app TouchBar/container groups and
-  occluded background window contrast in modal rest scenes, and attach test
-  screenshots via XCTAttachment rather than direct disk writes.
+      states across app activation, ignore non-app TouchBar/container groups and
+      occluded background window contrast in modal rest scenes, and attach test
+      screenshots via XCTAttachment rather than direct disk writes.
 
 ### Signed installer acceptance
 

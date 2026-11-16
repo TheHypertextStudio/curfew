@@ -13,14 +13,6 @@ enum ScheduleSurfaceCopy {
     static let workEndsLabel = "Work ends"
     static let workResumesLabel = "Work resumes"
 
-    static let onboardingMessage =
-        "Choose when work ends and resumes each day."
-
-    static let onboardingChecklist = [
-        "Set when work ends and resumes",
-        "Choose days without lockout"
-    ]
-
     static let mainChecklistItem =
         "Choose when work ends and resumes each day."
 
