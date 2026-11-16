@@ -21,7 +21,9 @@ private let ownershipLogger = Logger(
 /// actually relies on, and it steps aside the instant production needs to
 /// enforce. A tie (which only arises between two same-flavor processes) goes to
 /// the incumbent. Dead or stale owners — pid gone, or pid reused by an
-/// unrelated process — are reclaimed.
+/// unrelated process — are reclaimed, and so is any record without a
+/// recognized Curfew identity: the file is user-writable, so a record naming
+/// another app's live pid must never make this build stand by.
 ///
 /// The read-modify-write across processes is not atomic, but precedence is
 /// deterministic (production always outranks development), so the only possible
@@ -63,7 +65,8 @@ enum EnforcementOwnership {
             acquiredAt: now
         )
 
-        if let owner = incumbent, owner.processIdentifier != pid, isAlive(owner) {
+        if let owner = incumbent, owner.processIdentifier != pid,
+           owner.hasRecognizedIdentity, isAlive(owner) {
             // A different live process owns it. We may take over only if we
             // strictly outrank the incumbent; equal or higher keeps it.
             guard flavor.enforcementPriority > owner.enforcementPriority else {
@@ -114,7 +117,8 @@ enum EnforcementOwnership {
         lockURL: URL = SharedPaths.enforcementOwnerLock,
         isAlive: (EnforcementOwner) -> Bool = defaultIsAlive
     ) -> EnforcementOwner? {
-        guard let owner = readOwner(at: lockURL), isAlive(owner) else { return nil }
+        guard let owner = readOwner(at: lockURL), owner.hasRecognizedIdentity, isAlive(owner)
+        else { return nil }
         return owner
     }
 

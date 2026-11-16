@@ -97,6 +97,22 @@ struct OverlayWindowConfigurationTests {
             .contains(NSWindow.CollectionBehavior.fullScreenAuxiliary))
         #expect(configuration.collectionBehavior.contains(NSWindow.CollectionBehavior.stationary))
         #expect(!configuration.isMovable)
+        #expect(!configuration.canHide)
+    }
+
+    @Test("Applying the lockout configuration keeps the window visible when the app is hidden")
+    func lockoutWindowCannotHide() {
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 32, height: 32),
+            styleMask: .borderless,
+            backing: .buffered,
+            defer: false
+        )
+        defer { window.orderOut(nil) }
+        OverlayCoordinator().apply(
+            configuration: OverlayCoordinator.lockoutWindowConfiguration, to: window
+        )
+        #expect(!window.canHide)
     }
 
     @Test("Floating timer windows stay visible above fullscreen apps without capturing input")
