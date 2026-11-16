@@ -105,6 +105,17 @@ layer is translucent and a full-screen capture includes unrelated desktop conten
 The older full-screen warning images failed visual acceptance and are excluded
 from the review gallery. Full-screen lockout captures target the asserted overlay.
 
+`just snapshot` also writes the bare Horizon scene at four moments of a 7 AM to
+6 PM day: `curfew-horizon-afternoon.png` (3:30 PM), `curfew-horizon-last-light.png`
+(12 minutes before curfew), `curfew-horizon-locked.png` (9:41 PM) and
+`curfew-horizon-morning.png` (4 minutes after unlock). Compare them with
+`Documentation/design/horizon-prototype.html`. The headless harness draws every
+sky with the CPU reference renderer (`HorizonRenderer` in `CurfewAtmosphere`)
+through the `horizonSkyRendering` environment value, because its rasterisers do
+not run the on-screen Metal shader; `HorizonSnapshotTests/testShaderRenderingInHeadlessHarness`
+prints whether each path draws the shader. The live app and the screen saver use
+the shader, so check them on screen as well.
+
 Color review must compare Settings, Today, Schedule, and Journal together in both
 appearances. Settings and workspace use shared canvas/sidebar roles; sky scenes
 use shared control colors. A global palette change invalidates prior appearance

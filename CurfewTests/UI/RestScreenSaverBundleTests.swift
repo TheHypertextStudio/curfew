@@ -30,4 +30,12 @@ struct RestScreenSaverBundleTests {
             NSNumber(value: hostArchitecture)
         ) == true)
     }
+
+    @Test("The saver carries its own compiled Horizon shader library")
+    func saverBundlesShaderLibrary() throws {
+        let url = try #require(Bundle.main.url(forResource: "Curfew", withExtension: "saver"))
+        let companion = try #require(Bundle(url: url))
+        #expect(companion.url(forResource: "default", withExtension: "metallib") != nil)
+        #expect(Bundle.main.url(forResource: "default", withExtension: "metallib") != nil)
+    }
 }

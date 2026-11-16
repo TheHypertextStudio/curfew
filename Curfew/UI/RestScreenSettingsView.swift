@@ -32,7 +32,9 @@ struct RestScreenSettingsView: View {
                         reduceMotion: reduceMotion,
                         reduceTransparency: reduceTransparency,
                         clockSize: 52
-                    )
+                    ) { frame, drifts in
+                        HorizonSkyView(frame: frame, isDayRunning: drifts)
+                    }
                 }
                 .frame(height: 200)
                 .clipShape(RoundedRectangle(cornerRadius: 12))

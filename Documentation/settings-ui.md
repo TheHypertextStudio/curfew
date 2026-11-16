@@ -44,3 +44,12 @@ The original introduction and local-assistant summary regressions failed before 
 Native captures cover all nine categories at 900×680, compact controls at 760×580, expanded details, both appearances, and disabled reminders. Live checks reached all nine pages, changed pages with arrow keys, expanded camera privacy details without enabling capture, and changed the protected-work delay from 30 to 35 minutes before returning it to 30. Accessibility labels exposed names and values. Live selected-row contrast is readable; offscreen AppKit bitmap capture cannot composite native sidebar selection correctly.
 
 Five focused Settings UI tests pass after repairing the generated runner’s invalid resource signature with an ad-hoc signature. Both minimum-window failures were observed before the setup-heading fix and now pass. The full UI suite, spoken VoiceOver, and signed-app permission acceptance remain unverified. Unsigned results do not establish signed distribution behavior. Rollback requires no data migration.
+
+## Theme tokens
+
+Settings follows the system appearance on the paper and ink tokens with ember
+as the only accent. Panels use the 20 point panel radius and controls the
+8 point control radius (`CurfewRadius`); spacing uses the steps 4, 8, 12, 16,
+24, 40 and 64 (`CurfewSpacing`), with 24 between panels. The system sidebar
+is Liquid Glass on its own; Curfew no longer lays an extra material under it.
+

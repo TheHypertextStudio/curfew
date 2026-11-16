@@ -18,6 +18,8 @@
 		CF5A00000000000000000007 = { isa = PBXBuildFile; fileRef = CF5A00000000000000000002; };
 		CF5A00000000000000000008 = { isa = PBXBuildFile; productRef = CF5A00000000000000000012; };
 		CF5A00000000000000000009 = { isa = PBXBuildFile; productRef = CF5A00000000000000000013; };
+		CF5A00000000000000000022 /* HorizonSkyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF5A00000000000000000020 /* Curfew/UI/Horizon/HorizonSkyView.swift */; };
+		CF5A00000000000000000023 /* HorizonSky.metal in Sources */ = {isa = PBXBuildFile; fileRef = CF5A00000000000000000021 /* Curfew/UI/Horizon/HorizonSky.metal */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -75,6 +77,8 @@
 		CF5A00000000000000000002 = { isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = Curfew.saver; sourceTree = BUILT_PRODUCTS_DIR; };
 		CF5A00000000000000000003 = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurfewScreenSaverView.swift; sourceTree = "<group>"; };
 		CF5A00000000000000000004 = { isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		CF5A00000000000000000020 /* Curfew/UI/Horizon/HorizonSkyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Curfew/UI/Horizon/HorizonSkyView.swift; sourceTree = "<group>"; };
+		CF5A00000000000000000021 /* Curfew/UI/Horizon/HorizonSky.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = Curfew/UI/Horizon/HorizonSky.metal; sourceTree = "<group>"; };
 		CFD000000000000000000001 /* CurfewEndpoints.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = deployment/generated/CurfewEndpoints.xcconfig; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
@@ -177,6 +181,7 @@
 				9BD3FB9E2F4D4587007B2E95 /* CurfewUITests */,
 				C0FE00000000000000000005 /* CurfewWidget */,
 				C0FE00000000000000000006 /* CurfewWidgetSupport */,
+				CF5A00000000000000000024 /* CurfewScreenSaverSupport */,
 				9BD3FB832F4D4584007B2E95 /* Products */,
 				1F56E9B021971B57F3DE957D /* CurfewWidget */,
 			);
@@ -214,6 +219,15 @@
 				C0FE0000000000000000000A /* Curfew/App/Infrastructure/WidgetSharedStateStore.swift */,
 			);
 			name = CurfewWidgetSupport;
+			sourceTree = "<group>";
+		};
+		CF5A00000000000000000024 /* CurfewScreenSaverSupport */ = {
+			isa = PBXGroup;
+			children = (
+				CF5A00000000000000000020 /* Curfew/UI/Horizon/HorizonSkyView.swift */,
+				CF5A00000000000000000021 /* Curfew/UI/Horizon/HorizonSky.metal */,
+			);
+			name = CurfewScreenSaverSupport;
 			sourceTree = "<group>";
 		};
 		CF5A00000000000000000005 = { isa = PBXGroup; children = (CF5A00000000000000000003, CF5A00000000000000000004, ); path = CurfewScreenSaver; sourceTree = "<group>"; };
@@ -534,7 +548,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		CF5A0000000000000000000A = { isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (CF5A00000000000000000006, ); runOnlyForDeploymentPostprocessing = 0; };
+		CF5A0000000000000000000A = { isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (CF5A00000000000000000006, CF5A00000000000000000022, CF5A00000000000000000023, ); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */

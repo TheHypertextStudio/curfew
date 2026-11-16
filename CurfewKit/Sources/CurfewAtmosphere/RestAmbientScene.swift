@@ -3,8 +3,12 @@ import CurfewKit
 import SwiftUI
 
 /// Shared presentation only. Hosts own image loading, scheduling and the clock cadence.
+///
+/// The sky is supplied by the host: the app and the screen saver pass their
+/// Metal-backed Horizon view, which cannot live in this package. Tests and
+/// other hosts can use ``HorizonStillSky`` through the convenience initialiser.
 @available(macOS 26.0, *)
-public struct RestAmbientScene: View {
+public struct RestAmbientScene<Sky: View>: View {
     public let snapshot: RestSceneSnapshot
     public let date: Date
     public let image: CGImage?
@@ -14,8 +18,11 @@ public struct RestAmbientScene: View {
     public let clockSize: CGFloat
     public let showsMessage: Bool
     private let clockNamespace: Namespace.ID?
+    private let sky: (HorizonFrame, Bool) -> Sky
     @Namespace private var localClockNamespace
 
+    /// - Parameter sky: draws the Horizon scene for a frame; the flag says
+    ///   whether the day is running, so the bands should drift.
     public init(
         snapshot: RestSceneSnapshot,
         date: Date,
@@ -25,8 +32,10 @@ public struct RestAmbientScene: View {
         showsClock: Bool = true,
         clockSize: CGFloat = 110,
         showsMessage: Bool = true,
-        clockNamespace: Namespace.ID? = nil
+        clockNamespace: Namespace.ID? = nil,
+        @ViewBuilder sky: @escaping (HorizonFrame, Bool) -> Sky
     ) {
+        self.sky = sky
         self.snapshot = snapshot
         self.date = date
         self.image = image
@@ -52,7 +61,7 @@ public struct RestAmbientScene: View {
                 // The composite is opaque even for transparent imported pixels.
                 Color.black
                 background(in: proxy.size)
-                    .overlay(AtmospherePalette.textScrim)
+                    .overlay(shieldsText ? AtmospherePalette.textScrim : .clear)
                 if showsClock {
                     VStack(
                         alignment: appearance.clockPosition == .lowerLeft ? .leading : .center,
@@ -120,12 +129,8 @@ public struct RestAmbientScene: View {
                     .opacity(frame.sunriseProgress * 0.26)
                     .blendMode(.screen)
             } else {
-                AtmosphereSky(
-                    moment: resolvedMoment,
-                    date: date,
-                    reduceMotion: reduceMotion || appearance.staticBackground
-                )
-                // Sundown retains the original unmodified palette.
+                // The Horizon night is dark enough for the clock without a scrim.
+                sky(resolvedFrame, bandsDrift)
                 if appearance.palette == .warmAmber {
                     Color(red: 0.94, green: 0.46, blue: 0.12)
                         .opacity(0.20)
@@ -139,16 +144,25 @@ public struct RestAmbientScene: View {
         }
     }
 
-    var resolvedMoment: AtmosphereMoment {
-        guard frame.phase != .allDay else { return .night }
-        let hasOccurrence = true
-        return AtmosphereMoment.resolve(
-            now: date,
-            lockDate: hasOccurrence ? snapshot.lockDate : nil,
-            unlockDate: hasOccurrence ? snapshot.unlockDate : nil,
-            phase: hasOccurrence ? .locked : .dayOff,
-            sunriseLeadMinutes: appearance.sunriseLeadMinutes
-        )
+    /// Bands drift only once the morning has come; they hold still through the
+    /// lock, for a static background and under Reduce Motion.
+    var bandsDrift: Bool {
+        frame.phase == .morning && !appearance.staticBackground && !reduceMotion
+    }
+
+    /// The scrim keeps text readable over a photograph or a chosen colour.
+    private var shieldsText: Bool {
+        appearance.background == .image && image != nil || appearance.background == .solid
+    }
+
+    /// The sky for this instant, from the session's curfew and unlock. With no
+    /// occurrence the scene rests in the middle of a night.
+    var resolvedFrame: HorizonFrame {
+        guard frame.phase != .allDay, let lockDate = snapshot.lockDate,
+              let unlockDate = snapshot.unlockDate else {
+            return HorizonMoment.restingNight(at: date).frame
+        }
+        return HorizonMoment.scheduled(now: date, curfew: lockDate, nextUnlock: unlockDate).frame
     }
 
     private func focalImage(_ image: CGImage, in size: CGSize) -> some View {
@@ -167,5 +181,30 @@ public struct RestAmbientScene: View {
                 x: originX + width / 2,
                 y: originY + height / 2
             )
+    }
+}
+
+@available(macOS 26.0, *)
+public extension RestAmbientScene where Sky == HorizonStillSky {
+    /// A scene whose sky is the CPU reference render, for tests and hosts
+    /// without the Metal shader.
+    init(
+        snapshot: RestSceneSnapshot,
+        date: Date,
+        image: CGImage? = nil,
+        reduceMotion: Bool = false,
+        reduceTransparency: Bool = false,
+        showsClock: Bool = true,
+        clockSize: CGFloat = 110,
+        showsMessage: Bool = true,
+        clockNamespace: Namespace.ID? = nil
+    ) {
+        self.init(
+            snapshot: snapshot, date: date, image: image, reduceMotion: reduceMotion,
+            reduceTransparency: reduceTransparency, showsClock: showsClock,
+            clockSize: clockSize, showsMessage: showsMessage, clockNamespace: clockNamespace
+        ) { frame, _ in
+            HorizonStillSky(frame: frame)
+        }
     }
 }

@@ -13,7 +13,7 @@
     /// Screen Recording permission, never takes over the desktop, and runs on a
     /// headless CI machine — so it's the low-friction way to *see* a UX change.
     ///
-    /// Output lands in `build/snapshots/curfew-<name>.png` (gitignored). The
+    /// Output lands in `build/screenshots/curfew-<name>.png` (gitignored). The
     /// directory is resolved from `#filePath`, so the test doesn't depend on the
     /// working directory or any environment plumbing.
     @MainActor
@@ -66,7 +66,11 @@
         ) throws {
             let host = NSHostingView(rootView: view.environment(
                 \.colorScheme, appearance == .darkAqua ? .dark : .light
-            ).frame(
+            )
+            // Headless rasterisers do not run the sky's Metal shader; draw the
+            // same scene with the CPU reference renderer so captures are true.
+            .environment(\.horizonSkyRendering, .reference)
+            .frame(
                 width: width, height: height, alignment: .topLeading
             ))
             let frame = NSRect(x: 0, y: 0, width: width, height: height)
@@ -258,6 +262,7 @@
             let scheme: ColorScheme = appearance == .darkAqua ? .dark : .light
             let content = view
                 .environment(\.colorScheme, scheme)
+                .environment(\.horizonSkyRendering, .reference)
                 .frame(width: width, height: height, alignment: .topLeading)
                 .background(CurfewTheme.canvas)
 
@@ -283,7 +288,7 @@
             try png.write(to: directory.appendingPathComponent("curfew-\(name).png"))
         }
 
-        /// `<repo>/build/snapshots`, derived from this file's location so the
+        /// `<repo>/build/screenshots`, derived from this file's location so the
         /// output path is stable regardless of the test's working directory.
         static func snapshotsDirectory() throws -> URL {
             var url = URL(fileURLWithPath: #filePath)
@@ -292,7 +297,7 @@
             url.deleteLastPathComponent() // <repo>/
             let directory = url
                 .appendingPathComponent("build", isDirectory: true)
-                .appendingPathComponent("snapshots", isDirectory: true)
+                .appendingPathComponent("screenshots", isDirectory: true)
             try FileManager.default.createDirectory(
                 at: directory,
                 withIntermediateDirectories: true

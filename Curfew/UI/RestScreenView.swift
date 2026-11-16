@@ -88,7 +88,9 @@ struct RestScreenView: View {
                         showsClock: model.restHandoffIsAmbient,
                         clockSize: max(20, min(geometry.size.width, geometry.size.height) * 0.10),
                         clockNamespace: clockTransition
-                    )
+                    ) { frame, drifts in
+                        HorizonSkyView(frame: frame, isDayRunning: drifts)
+                    }
                 }
                 .ignoresSafeArea()
                 .accessibilityHidden(true)
