@@ -34,13 +34,12 @@ enum GettingStartedCopy {
     static let lockedHeadline = "That's the day."
     static let endPreview = "End preview"
 
-    static let extrasTitle = "Two optional extras."
-    static let syncTitle = "Sync across devices"
-    static let syncReason = "Your phone can lock this Mac, and your setup follows you."
-    static let signInToSync = "Sign in to sync"
-    static let licenceTitle = "Lifetime licence"
-    static let licenceReason = "Curfew Plus, paid once."
-    static let getLicence = "Get the lifetime licence"
+    static let extrasTitle = "Curfew on your other devices"
+    static let plusOffer =
+        "Curfew Plus is a single payment. It syncs your schedule and lets your phone "
+            + "lock this Mac. Sign in with Apple, Google or a passkey."
+    static let getPlus = "Get Curfew Plus"
+    static let signIn = "Sign in"
 
     static let immediateLockTitle = "This Mac locks right away"
     static let immediateLockMessage =

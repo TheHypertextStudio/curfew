@@ -93,8 +93,9 @@ struct GettingStartedScheduleStep: View {
 
 // MARK: Step 2
 
-/// Notifications and the Curfew helper first, each optional with one line
-/// saying why; Accessibility last, because granting it moves setup on.
+/// Accessibility first, because it is the one required grant and granting it
+/// moves setup on; then notifications and the Curfew helper, each marked
+/// optional, each with one line saying why.
 struct GettingStartedPermissionsStep: View {
     let notificationStatus: SetupPermissionStatus
     let helperStatus: SetupHelperStatus
@@ -108,9 +109,26 @@ struct GettingStartedPermissionsStep: View {
     var body: some View {
         GettingStartedPanel {
             GettingStartedRow(
+                symbol: "accessibility",
+                title: GettingStartedCopy.accessibilityTitle,
+                reason: GettingStartedCopy.accessibilityReason
+            ) {
+                if accessibilityGranted {
+                    GettingStartedStatus(text: "Allowed", done: true)
+                } else {
+                    Button(GettingStartedCopy.openSystemSettings, action: onOpenAccessibility)
+                        .buttonStyle(GettingStartedPrimaryButtonStyle())
+                        .accessibilityHint(
+                            "Opens Accessibility with Curfew ready to drag into the list."
+                        )
+                }
+            }
+            Divider().padding(.leading, 60)
+            GettingStartedRow(
                 symbol: "bell.fill",
                 title: GettingStartedCopy.notificationsTitle,
-                reason: GettingStartedCopy.notificationsReason
+                reason: GettingStartedCopy.notificationsReason,
+                isOptional: true
             ) {
                 switch notificationStatus {
                 case .notAsked:
@@ -128,48 +146,38 @@ struct GettingStartedPermissionsStep: View {
                 GettingStartedRow(
                     symbol: "lock.shield.fill",
                     title: GettingStartedCopy.helperTitle,
-                    reason: GettingStartedCopy.helperReason
+                    reason: GettingStartedCopy.helperReason,
+                    isOptional: true
                 ) {
-                    switch helperStatus {
-                    case .notInstalled:
-                        Button("Install", action: onInstallHelper)
-                            .buttonStyle(GettingStartedSecondaryButtonStyle())
-                            .accessibilityLabel("Install the Curfew helper")
-                    case .failed:
-                        Button("Try again", action: onInstallHelper)
-                            .buttonStyle(GettingStartedSecondaryButtonStyle())
-                            .accessibilityLabel("Try installing the Curfew helper again")
-                    case .installing:
-                        HStack(spacing: GettingStartedLayout.spacing8) {
-                            ProgressView().controlSize(.small)
-                            Text("Installing").foregroundStyle(CurfewTheme.mutedInk)
-                        }
-                        .accessibilityElement(children: .combine)
-                    case .needsApproval:
-                        Button("Approve", action: onApproveHelper)
-                            .buttonStyle(GettingStartedSecondaryButtonStyle())
-                            .accessibilityLabel("Approve the Curfew helper in System Settings")
-                    case .installed:
-                        GettingStartedStatus(text: "Installed", done: true)
-                    }
+                    helperControl
                 }
             }
-            Divider().padding(.leading, 60)
-            GettingStartedRow(
-                symbol: "accessibility",
-                title: GettingStartedCopy.accessibilityTitle,
-                reason: GettingStartedCopy.accessibilityReason
-            ) {
-                if accessibilityGranted {
-                    GettingStartedStatus(text: "Allowed", done: true)
-                } else {
-                    Button(GettingStartedCopy.openSystemSettings, action: onOpenAccessibility)
-                        .buttonStyle(GettingStartedPrimaryButtonStyle())
-                        .accessibilityHint(
-                            "Opens Accessibility with Curfew ready to drag into the list."
-                        )
-                }
+        }
+    }
+
+    @ViewBuilder
+    private var helperControl: some View {
+        switch helperStatus {
+        case .notInstalled:
+            Button("Install", action: onInstallHelper)
+                .buttonStyle(GettingStartedSecondaryButtonStyle())
+                .accessibilityLabel("Install the Curfew helper")
+        case .failed:
+            Button("Try again", action: onInstallHelper)
+                .buttonStyle(GettingStartedSecondaryButtonStyle())
+                .accessibilityLabel("Try installing the Curfew helper again")
+        case .installing:
+            HStack(spacing: GettingStartedLayout.spacing8) {
+                ProgressView().controlSize(.small)
+                Text("Installing").foregroundStyle(CurfewTheme.mutedInk)
             }
+            .accessibilityElement(children: .combine)
+        case .needsApproval:
+            Button("Approve", action: onApproveHelper)
+                .buttonStyle(GettingStartedSecondaryButtonStyle())
+                .accessibilityLabel("Approve the Curfew helper in System Settings")
+        case .installed:
+            GettingStartedStatus(text: "Installed", done: true)
         }
     }
 }
@@ -180,94 +188,107 @@ struct GettingStartedReadyStep: View {
     let readyLine: String
     let helperNote: String?
     let onPreview: () -> Void
+    @ScaledMetric(relativeTo: .largeTitle) private var heroSize: CGFloat = 40
 
     var body: some View {
         VStack(alignment: .leading, spacing: GettingStartedLayout.spacing24) {
-            Label(readyLine, systemImage: "sunset.fill")
-                .font(.system(.title2, design: .rounded, weight: .medium))
+            Text(readyLine)
+                .font(.system(size: heroSize, weight: .bold, design: .rounded))
                 .fixedSize(horizontal: false, vertical: true)
-            Button(action: onPreview) {
-                Label(GettingStartedCopy.previewLock, systemImage: "lock.fill")
-            }
-            .buttonStyle(GettingStartedSecondaryButtonStyle())
-            .accessibilityHint("Shows the lock for a few seconds. Nothing locks.")
-            if let helperNote {
-                Text(helperNote)
-                    .font(.callout)
-                    .foregroundStyle(CurfewTheme.mutedInk)
-                    .fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: GettingStartedLayout.spacing12) {
+                Button(action: onPreview) {
+                    Label(GettingStartedCopy.previewLock, systemImage: "lock.fill")
+                }
+                .buttonStyle(GettingStartedSecondaryButtonStyle())
+                .accessibilityHint("Shows the lock for a few seconds. Nothing locks.")
+                if let helperNote {
+                    Text(helperNote)
+                        .font(.footnote)
+                        .foregroundStyle(CurfewTheme.mutedInk)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
         }
+        .padding(.top, GettingStartedLayout.spacing40)
     }
 }
 
 // MARK: Closing step
 
-/// Optional: sign in to sync, and the lifetime licence. Both use the app's
-/// existing account and licence paths.
+/// One optional offer: Curfew Plus, which is what syncs Curfew to the
+/// person's other devices. Uses only the app's existing pricing link and
+/// account sign-in.
 struct GettingStartedExtrasStep: View {
     @Environment(CurfewAppModel.self) private var model
     @StateObject private var account: AccountEnrollmentController
-    let onTookExtra: () -> Void
+    let onSignedIn: () -> Void
 
     @MainActor
     init(
         makeAccount: @escaping @MainActor () -> AccountEnrollmentController,
-        onTookExtra: @escaping () -> Void
+        onSignedIn: @escaping () -> Void
     ) {
         _account = StateObject(wrappedValue: makeAccount())
-        self.onTookExtra = onTookExtra
+        self.onSignedIn = onSignedIn
+    }
+
+    private var isSignedIn: Bool {
+        if model.settings.accountSync.isEnrolled {
+            return true
+        }
+        if case .ready = account.state {
+            return true
+        }
+        return false
     }
 
     var body: some View {
-        GettingStartedPanel {
-            GettingStartedRow(
-                symbol: "arrow.triangle.2.circlepath",
-                title: GettingStartedCopy.syncTitle,
-                reason: GettingStartedCopy.syncReason
-            ) {
-                syncControl
-            }
-            Divider().padding(.leading, 60)
-            GettingStartedRow(
-                symbol: "seal.fill",
-                title: GettingStartedCopy.licenceTitle,
-                reason: GettingStartedCopy.licenceReason
-            ) {
+        VStack(alignment: .leading, spacing: GettingStartedLayout.spacing24) {
+            Text(GettingStartedCopy.plusOffer)
+                .font(.title3)
+                .foregroundStyle(CurfewTheme.ink)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack(spacing: GettingStartedLayout.spacing12) {
                 if model.licenseGate.isPlusUnlocked {
-                    GettingStartedStatus(text: "Active", done: true)
+                    GettingStartedStatus(text: "Curfew Plus is active", done: true)
                 } else {
-                    Button(GettingStartedCopy.getLicence) {
-                        onTookExtra()
+                    Button(GettingStartedCopy.getPlus) {
                         guard !model.isDemoSession,
                               !RuntimeEnvironment.isUnitTestHost else { return }
                         NSWorkspace.shared.open(LicensePurchase.pricingURL)
                     }
                     .buttonStyle(GettingStartedSecondaryButtonStyle())
-                    .accessibilityHint("Opens Curfew pricing in your browser.")
+                    .accessibilityHint("Opens Curfew Plus pricing in your browser.")
                 }
+                signInControl
             }
         }
         .background { GettingStartedWindowReader { account.presentationWindow = $0 } }
+        .onAppear {
+            if isSignedIn {
+                onSignedIn()
+            }
+        }
         .onChange(of: account.state) { _, state in
             if case .ready(let enrollment) = state {
                 model.settings.accountSync.enrollment = enrollment
-                onTookExtra()
+                onSignedIn()
             }
         }
     }
 
     @ViewBuilder
-    private var syncControl: some View {
-        if model.settings.accountSync.isEnrolled {
-            GettingStartedStatus(text: "On", done: true)
+    private var signInControl: some View {
+        if isSignedIn {
+            GettingStartedStatus(text: "Signed in", done: true)
         } else {
             switch account.state {
-            case .accountFree, .failed:
-                Button(GettingStartedCopy.signInToSync) {
+            case .accountFree, .failed, .ready:
+                Button(GettingStartedCopy.signIn) {
                     Task { await account.signIn() }
                 }
                 .buttonStyle(GettingStartedSecondaryButtonStyle())
+                .accessibilityHint("For people who already have Curfew Plus.")
             case .signingIn, .connectingDevice:
                 HStack(spacing: GettingStartedLayout.spacing8) {
                     ProgressView().controlSize(.small)
@@ -275,14 +296,11 @@ struct GettingStartedExtrasStep: View {
                         .buttonStyle(GettingStartedSecondaryButtonStyle())
                         .accessibilityLabel("Cancel sign in")
                 }
-            case .ready:
-                GettingStartedStatus(text: "On", done: true)
             case .storageUnavailable, .finishDeviceConnection, .finishDeviceRegistration,
                  .finishRecoverySetup, .saveRecoveryKey, .enterRecoveryKey:
                 // The remaining account steps (recovery key and the like)
                 // live in Settings, which resumes from the saved checkpoint.
                 Button("Finish in Settings") {
-                    onTookExtra()
                     model.settingsDestination = .account
                     model.openSettings()
                 }
@@ -298,6 +316,7 @@ struct GettingStartedRow<Trailing: View>: View {
     let symbol: String
     let title: String
     let reason: String
+    var isOptional = false
     @ViewBuilder let trailing: Trailing
 
     var body: some View {
@@ -308,7 +327,14 @@ struct GettingStartedRow<Trailing: View>: View {
                 .frame(width: 28)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: GettingStartedLayout.spacing4) {
-                Text(title).font(.setupRowTitle)
+                HStack(alignment: .firstTextBaseline, spacing: GettingStartedLayout.spacing8) {
+                    Text(title).font(.setupRowTitle)
+                    if isOptional {
+                        Text("Optional")
+                            .font(.system(.caption, design: .rounded, weight: .medium))
+                            .foregroundStyle(CurfewTheme.mutedInk)
+                    }
+                }
                 Text(reason)
                     .font(.subheadline)
                     .foregroundStyle(CurfewTheme.mutedInk)

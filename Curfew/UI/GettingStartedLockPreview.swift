@@ -72,9 +72,12 @@ private struct PreviewEndButtonStyle: ButtonStyle {
             .padding(.horizontal, GettingStartedLayout.spacing24)
             .padding(.vertical, GettingStartedLayout.spacing12)
             .foregroundStyle(GettingStartedPalette.panelText)
-            .background(.white.opacity(0.14), in: .capsule)
-            .overlay(Capsule().strokeBorder(.white.opacity(0.28)))
-            .glassEffect(.regular.interactive(), in: .capsule)
+            .background(.white.opacity(0.2), in: .capsule)
+            // Fill only: a stroked Capsule overlay drew a second straight
+            // outline on the frame's left and right edges. The focus ring
+            // follows the capsule.
+            .contentShape(.focusEffect, Capsule())
+            .contentShape(Capsule())
             .opacity(configuration.isPressed ? 0.7 : 1)
     }
 }
