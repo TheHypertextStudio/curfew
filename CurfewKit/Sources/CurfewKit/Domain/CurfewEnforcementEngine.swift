@@ -201,6 +201,7 @@ public struct CurfewEnforcementEngine {
         if let overrideUntil, date < overrideUntil {
             return workingWithOverride(
                 at: date,
+                overrideUntil: overrideUntil,
                 window: adjusted.window,
                 intervals: intervals,
                 trigger: adjusted.trigger
@@ -271,25 +272,33 @@ public struct CurfewEnforcementEngine {
         }
     }
 
-    /// Evaluation during an active override: the phase stays `.working` but
-    /// warning stages still escalate so the user can see their real deadline
-    /// approaching even while the override is in effect.
+    /// Evaluation during an active override. Before the lock time the normal
+    /// countdown applies. Once the lock time has passed, the override's own end
+    /// is the next lock, so the countdown targets `overrideUntil` and the
+    /// warning phase escalates before it ends rather than re-locking unannounced.
     private func workingWithOverride(
         at date: Date,
+        overrideUntil: Date,
         window: ScheduleWindow,
         intervals: WarningIntervals,
         trigger: EnforcementTrigger
     ) -> CurfewEvaluation {
-        let minutesRemaining = remainingMinutes(until: window.lockDate, from: date)
+        let relocksAtOverrideEnd = overrideUntil > window.lockDate
+            && overrideUntil < window.unlockDate
+        let deadline = relocksAtOverrideEnd ? overrideUntil : window.lockDate
+        let minutesRemaining = remainingMinutes(until: deadline, from: date)
         let stage = WarningStage.stage(
             forMinutesRemaining: minutesRemaining,
             intervals: intervals
         )
+        let warns = relocksAtOverrideEnd && stage != .none && stage != .lockout
         return CurfewEvaluation(
-            phase: .working,
+            phase: warns ? .warning : .working,
             warningStage: stage,
             minutesRemaining: minutesRemaining,
-            canRequestExtension: stage.allowsExtensionRequest,
+            // An extension moves the schedule lock, which no longer decides
+            // when this override re-locks.
+            canRequestExtension: !relocksAtOverrideEnd && stage.allowsExtensionRequest,
             lockDate: window.lockDate,
             unlockDate: window.unlockDate,
             trigger: trigger

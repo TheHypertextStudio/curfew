@@ -166,6 +166,21 @@ test charge or real-purchase requirement. Ledger migration and release gates
 remain separate in `Documentation/plus-activation.md`; verification does not
 authorize provider activation, credentials, grants or production changes.
 
+## Lockout bypass hardening
+
+| Behavior                                   | Coverage                                                                                                            |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
+| Forged owner record                        | `EnforcementOwnershipTests/forgedOwnerIsIgnored`                                                                    |
+| Focus, kiosk options, hide, display attach | `LockoutFocusControllerTests` with injected AppKit calls; `OverlayWindowConfigurationTests/lockoutWindowCannotHide` |
+| Restored override clamp                    | `RuntimeRestartTests/unrecordedOverrideIsDiscarded`, `restoredOverrideIsClamped`                                    |
+| Uninstall and rest-screen Settings         | `LockoutBypassGuardTests`                                                                                           |
+| Quit veto                                  | `LockoutBypassGuardTests/quitVetoedDuringLockout`                                                                   |
+| Supervisor during lockout                  | `AppSupervisorPolicyTests/lockoutDeadlineDisablesBackoff`                                                           |
+| Override expiry warning                    | `OverrideWindowBehaviorTests/overrideExpiryWarnsBeforeRelocking`, `earlyOverrideKeepsScheduleCountdown`             |
+
+Real activation, presentation options, display attach, and logout/restart
+behavior need a signed lockout run on an isolated Mac.
+
 ## Background recovery after clock corrections
 
 `AppSupervisorPolicyTests.backwardClockDoesNotStrandRecovery` proves that a

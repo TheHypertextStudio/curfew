@@ -99,6 +99,19 @@ Temporary audit-only `continueAfterFailure` collection restores its prior value 
 - [x] Prepare an offline signer-verified, environment-bound private import with
       no automatic readiness switch, remote mutation or resource provisioning.
 
+## Lockout bypass hardening
+
+- [x] Ignore enforcement-owner records without a recognized Curfew identity.
+- [x] Own keyboard focus during enforced lockout: activate, kiosk presentation,
+      reclaim on resign/hide, unhidable windows, immediate display coverage.
+- [x] Clamp a restored override to the recorded grant plus configured duration.
+- [x] Refuse uninstall and rest-screen Settings routes while curfew holds.
+- [x] Veto quit during lockout except logout, restart, and shutdown; no
+      supervisor back-off while a lockout deadline runs.
+- [x] Warn before an override that runs past the lock time expires.
+- [ ] Verify focus, kiosk options, hide, display attach, and quit veto in a real
+      signed lockout on an isolated Mac; unit tests inject every AppKit effect.
+
 ## Background recovery after clock corrections
 
 - [x] Keep only the remaining restart backoff when the wall clock moves backward,

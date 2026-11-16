@@ -16,7 +16,13 @@ flowchart LR
 
 The supervisor checks the Curfew process every five seconds and reacts to workspace termination notifications. It launches the app without activating it or restoring ordinary windows. Curfew creates lockout overlays when its schedule requires them. Closing every ordinary window leaves the timer running.
 
-The root daemon remains optional. The supervisor runs as the signed-in user and adds no privileged capability. Users can still disable background services through macOS. This version addresses Quit, Force Quit, crashes, and login recovery; it does not claim resistance to deliberate repeated process killing or service removal.
+The root daemon remains optional. The supervisor runs as the signed-in user and adds no privileged capability. Users can still disable background services through macOS. This version addresses Quit, Force Quit, crashes, and login recovery; it does not claim resistance to service removal.
+
+While the user-session lockout deadline record is unexpired, the supervisor relaunches Curfew as soon as the previous launch completes instead of backing off, so repeated kills cannot buy uncovered minutes. Ordinary crash recovery keeps its 5–60 second back-off.
+
+While a lockout is enforced, Curfew vetoes an ordinary quit and hides Quit Curfew. Logout, restart, and shutdown still terminate it: the delegate allows a quit after `NSWorkspace.willPowerOffNotification` or when the quit Apple event carries a logout, restart, or shutdown reason. A pending update install therefore waits until curfew lifts.
+
+Only a recognized Curfew identity can hold the shared enforcement-owner record. A live process with an unrecognized bundle identifier no longer makes the app stand by, matching the daemon's existing check.
 
 ## Registration and recovery
 
@@ -26,11 +32,11 @@ Production and development use separate service identities. Ordinary Debug build
 
 The supervisor resolves its executable through dyld because launchd can supply relative service arguments. The helper bundle phase runs SwiftPM on every Xcode build. SwiftPM tracks source dependencies and rebuilds changed helpers before Xcode copies and signs them.
 
-Runtime grant state is stored separately from telemetry. Curfew saves it atomically before applying a grant and restores it before its first evaluation. Restarting cannot refill weekly budgets or remove an unexpired local override. Existing signed remote releases and durable deadlines retain their existing authority.
+Runtime grant state is stored separately from telemetry. Curfew saves it atomically before applying a grant and restores it before its first evaluation. Restarting cannot refill weekly budgets or remove an unexpired local override. Because the runtime file is user-writable, a restored `overrideUntil` stands only when the recorded override log has a grant at or before it, and is clamped to that grant's time plus the configured override duration. Existing signed remote releases and durable deadlines retain their existing authority.
 
 The first upgrade reconstructs extension and override usage from existing local history. Older versions did not record snooze grants, so Curfew cannot recover that historical daily value. Grants issued by this version survive subsequent restarts.
 
-App, shell, and Homebrew uninstall paths unregister recovery before removing state. A failed unregister aborts removal. Successful app uninstall stops the timer, wake observers, keyboard shield, and enforcement ownership before deletion. Homebrew also unregisters during upgrade/reinstall; successful explicit unregister clears the registration-attempt marker so the replacement build can register on launch.
+In-app uninstall is refused while the schedule is locked or a durable deadline is still running, with the message "Uninstall is available once curfew lifts." App, shell, and Homebrew uninstall paths unregister recovery before removing state. A failed unregister aborts removal. Successful app uninstall stops the timer, wake observers, keyboard shield, and enforcement ownership before deletion. Homebrew also unregisters during upgrade/reinstall; successful explicit unregister clears the registration-attempt marker so the replacement build can register on launch.
 
 ## Release evidence
 
