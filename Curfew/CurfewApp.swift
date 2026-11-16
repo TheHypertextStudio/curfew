@@ -64,8 +64,27 @@ struct AppCoordinator: AppCoordinating {
 /// an authenticated remote lock cannot be accepted by its helper while the
 /// app remains in display-only mode. Only loaded test runtimes are excluded.
 enum CurfewLaunchBehavior {
+    /// Whether the main window opens with the app.
+    enum MainWindowLaunch: Equatable {
+        case presented
+        case suppressed
+
+        var sceneBehavior: SceneLaunchBehavior {
+            self == .presented ? .presented : .suppressed
+        }
+    }
+
     static func isBackgroundLaunch(arguments: [String]) -> Bool {
         arguments.contains("--background")
+    }
+
+    /// Until setup is completed, launch opens setup alone; the main window
+    /// opens when setup finishes.
+    static func mainWindowLaunchBehavior(
+        suppressesOrdinaryWindows: Bool,
+        setupPending: Bool
+    ) -> MainWindowLaunch {
+        suppressesOrdinaryWindows || setupPending ? .suppressed : .presented
     }
 
     static let developmentBundleIdentifier = CurfewFlavor.development.bundleIdentifier
@@ -252,7 +271,10 @@ struct CurfewApp: App {
         }
         .defaultSize(width: 1080, height: 720)
         .windowStyle(.hiddenTitleBar)
-        .defaultLaunchBehavior(Self.suppressesOrdinaryWindows ? .suppressed : .presented)
+        .defaultLaunchBehavior(CurfewLaunchBehavior.mainWindowLaunchBehavior(
+            suppressesOrdinaryWindows: Self.suppressesOrdinaryWindows,
+            setupPending: !model.settings.hasCompletedInitialSetup && !model.isDemoSession
+        ).sceneBehavior)
         .restorationBehavior(Self.backgroundLaunch ? .disabled : .automatic)
         .commands {
             MainWorkspaceCommands(delegate: appDelegate)
@@ -276,7 +298,7 @@ struct CurfewApp: App {
             // itself always renders correctly.)
             Image(systemName: model.menuBarSymbolName)
                 .contentTransition(.symbolEffect(.replace))
-                .symbolEffect(.pulse, isActive: model.enforcementHealth != .active)
+                .symbolEffect(.pulse, isActive: model.presentedEnforcementHealth != .active)
                 .accessibilityLabel("Curfew\(CurfewFlavor.current.displaySuffix) status")
                 .accessibilityIdentifier("curfew-status-item")
                 .accessibilityValue(model.menuBarHeaderLine)
@@ -298,14 +320,14 @@ struct CurfewApp: App {
 
         // Suppressed at launch; setup is opened on request through any available
         // scene, and can dismiss itself without a main workspace window.
-        Window("Set Up Curfew", id: CurfewAppModel.gettingStartedWindowID) {
+        Window(GettingStartedCopy.windowTitle, id: CurfewAppModel.gettingStartedWindowID) {
             GettingStartedView()
                 .environment(model)
                 .appWindowRouting(using: model.appRouter)
                 .preferredColorScheme(Self.demoColorScheme)
         }
-        .defaultSize(width: 620, height: 430)
-        .windowResizability(.contentSize)
+        .defaultSize(GettingStartedLayout.windowSize)
+        .windowResizability(.contentMinSize)
         .defaultLaunchBehavior(.suppressed)
         .restorationBehavior(Self.backgroundLaunch ? .disabled : .automatic)
     }

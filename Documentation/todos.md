@@ -829,8 +829,10 @@ The CLI remains in beta until launch blockers and installed-artifact acceptance 
 
 - [x] First-launch getting-started window.
 - [x] Persist one-time first-launch setup state.
-- [x] First-run flow: welcome, schedule, budgets, permissions, confirmation.
-- [x] Onboarding completion now requires opening live schedule settings and acknowledging permissions guidance before finish.
+- [x] First-run setup is three steps plus an optional closing step: the curfew and days, Accessibility (with a floating drag panel beside System Settings) plus optional notifications and the Curfew helper, then tonight's curfew with a lock preview, then optional sync sign-in and the lifetime licence. Setup reopens at the step reached until completed; health warnings stay hidden until then; an absent helper is healthy.
+- [ ] Verify the Accessibility drag, notification and helper prompts, and lock preview on a signed build on a real Mac.
+- [ ] Add dedicated Sign in with Apple, Google and passkey buttons to the closing step once the account service exposes provider-specific sign-in.
+- [x] Setup completion requires an explicit schedule choice (or "No schedule yet") and real Accessibility trust.
 - [x] Anti-bypass: onboarding mutations route through `queueScheduleUpdate`.
 - [x] Onboarding relaunch from Settings.
 - [-] Setup navigation must work before the main workspace has opened. Queue

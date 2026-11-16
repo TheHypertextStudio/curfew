@@ -812,18 +812,18 @@ tests cannot read or mutate a user's App Group lockout record.
   - `NewInstallScheduleTests/freshInstallOvernightBoundary(corruptSettings:)`
   - `NewInstallScheduleTests/existingSettingsRetainCustomSchedule()`
 - `First-run schedule edits apply immediately but opening the editor does not arm it.`
-  - `FirstRunSafetyFlowTests/openingScheduleDoesNotConfirmIt()`
-  - `FirstRunSafetyFlowTests/remoteOnlyChoiceAdvancesWithoutScheduleReview()`
+  - `FirstRunSafetyFlowTests/scheduleNeedsExplicitChoice()`
+  - `FirstRunSafetyFlowTests/remoteOnlyChoiceAdvancesWithoutSchedule()`
   - `FirstRunScheduleEditTests/firstRunScheduleEditIsImmediate()`
   - `FirstRunSafetyModelTests/remoteOnlyScheduleEditIsImmediate()`
   - `WeeklyScheduleReviewTests/allSevenRulesAreVisible()`
   - `FirstRunSafetyModelTests/immediateLockNeedsSeparateAcknowledgement()`
   - `FirstRunSafetyModelTests/enableNeedsSeparateImmediateLockAcknowledgement()`
   - `FirstRunSafetyModelTests/boundaryIsCheckedAtActivation()`
-  - `CurfewUITests/testSetupUsesOneInstructionAndPreservesScheduleGate()`
+  - `CurfewUITests/testSetupScheduleChoiceIsExplicitAndGatesAccess()`
   - `MarketingCaptureTests/testCaptureAStateConsistencySetupReview()`
   - `MarketingCaptureTests/testCaptureAStateConsistencySetupPermission()`
-  - `MarketingCaptureTests/testCaptureWorkspaceMatrix()` follows seven-day review before advancing.
+  - `MarketingCaptureTests/testCaptureWorkspaceMatrix()` makes the explicit schedule choice before advancing.
 - `Curfew Dev migration requires local schedule consent while retaining remote deadlines.`
   - `AutomaticScheduleConsentPolicyTests/developmentInstallDefaultsToRemoteOnly()` covers the signed development bundle and an explicit opt-in.
   - `AutomaticScheduleConsentPolicyTests/developmentIdentityOverridesProductionEnvironment()` prevents inherited flavor variables from rearming the signed development app.
@@ -1238,29 +1238,45 @@ tests cannot read or mutate a user's App Group lockout record.
 
 ## 15. Onboarding
 
-- `Show a first-launch getting-started window so users can configure Curfew immediately.`
-  - `CurfewTests/initialSetupPromptShownOnlyOnce()`
-- `Persist one-time first-launch setup state so Settings only auto-opens once.`
+- `Setup opens on every launch until it is completed, at the step the person reached, and opens alone.`
+  - `SetupReturnTests/reopensUntilCompleted()`, `resumesAtStep()` and
+    `finishedSetupReopensAsSummary()`.
+  - `SetupReturnTests/mainWindowWaitsForSetup()` keeps the main window closed
+    while setup is pending; `finishOpensToday()` opens it when setup ends.
+  - `SetupReturnTests/windowSizeMatchesContent()` keeps the window's default
+    size equal to what its content needs.
   - `CurfewTests/enforcementArmsOnlyAfterSetupCompletion()` uses an ephemeral
     deadline store so the unit suite never reads a real App Group lockout record.
-  - `CurfewTests/initialSetupPromptShownOnlyOnce()`
-- `Build first-run flow: welcome, schedule, extension budget, permissions, confirmation.`
-  - `FirstRunFlowTests/requiredSteps()`
-  - `FirstRunFlowTests/navigationBounds()`
-  - `FirstRunSafetyFlowTests/reviewedWeeklyChoiceAdvances()` verifies the
-    seven-rule acknowledgement and weekly choice are one state transition.
-  - `MarketingCaptureTests/testCaptureWorkspaceMatrix()` checks the selected
-    confirmation appears before Next advances to the next setup step, and both
-    choices remain hittable after opening the live schedule editor.
-  - `CurfewUITests/testSetupUsesOneInstructionAndPreservesScheduleGate()` checks
-    all seven rules and both choices are hittable at minimum window size;
-    rule and feedback text may be exposed as either an accessibility label or value.
-  - `SetupUXTests/completeOnboardingFlowUpdatesState()`
-- `Onboarding completion requires acknowledging all seven effective weekly rules
-or choosing remote-only mode, plus the existing permissions gate before finish.`
-  - `FirstRunFlowTests/scheduleStepRequiresReview()`
-  - `FirstRunFlowTests/permissionsStepRequiresAcknowledgement()`
-  - `OnboardingConfirmationRequirementTests/confirmationRequirementsTrackOutstandingSteps()`
+- `Build first-run setup as three steps plus an optional closing step.`
+  - `GettingStartedFlowTests/stepsAreThreePlusOptional()`, `headings()`,
+    `choosingScheduleAdvances()`, `commitMovesToReady()`,
+    `backFromPermissions()`, `progressRoundTrip()`,
+    `resumingCannotSkipCommit()` and `returningUser()`.
+  - `GettingStartedCopyTests/readyLineTonight()`, `readyLineOtherDays()` and
+    `wordsTable()` cover step 3's curfew line and the launch words.
+  - `SetupScheduleTests/prefill()`, `applyDraft()` and `nextCurfew()` cover
+    step 1's prefill, the single schedule write and tonight's curfew.
+  - `DestinationSnapshotTests/testRenderSetupSteps()` writes each step in light
+    and dark plus the drag panel and lock preview for `just snapshot`.
+  - `CurfewUITests/testOnboardingStartsAtARealGate()` and
+    `testSetupScheduleChoiceIsExplicitAndGatesAccess()` need a graphical lane.
+- `Setup completion requires an explicit schedule choice (or no schedule yet) and real Accessibility trust.`
+  - `FirstRunSafetyFlowTests/scheduleNeedsExplicitChoice()`,
+    `weeklyChoiceAdvances()` and `remoteOnlyChoiceAdvancesWithoutSchedule()`.
+  - `GettingStartedFlowTests/permissionsGate()`, `grantWhileWaitingContinues()`
+    and `existingGrantDoesNotAutoContinue()`.
+  - `FirstRunSafetyModelTests/immediateLockNeedsSeparateAcknowledgement()`
+    keeps the "this Mac locks right away" confirmation.
+- `Step 2 drag helper: open the Accessibility pane without the system prompt, float the app icon beside System Settings, follow the window, fall back to a screen corner, and advance on grant.`
+  - `AccessibilityDragHelperTests` (all) with injected window frames, trust
+    and panel presenter; `SetupPromptTimingTests/paneOpensWithoutPrompt()`.
+  - The real drag into System Settings needs a signed build on a real Mac.
+- `Notifications and the Curfew helper are requested only on step 2.`
+  - `SetupPromptTimingTests/startDoesNotRequestNotifications()`.
+- `The lock preview cannot arm, record or set a deadline, and always ends.`
+  - `LockPreviewSafetyTests/previewIsInert()` and `previewEndsOnRequest()`.
+- `No health warning before setup completes; an absent Curfew helper is healthy; a broken one is still reported.`
+  - `SetupHealthTests` (all).
 - `Allow onboarding relaunch from Settings.`
   - `SetupUXTests/gettingStartedActionRoutesThroughScene()`
 - `Setup navigation works before the main workspace has opened.`
@@ -1274,12 +1290,9 @@ or choosing remote-only mode, plus the existing permissions gate before finish.`
     boundary and the pending Schedule destination.
   - `CurfewUITests/testSetupReviewOpensAndDismissesWithoutMainWindow()`,
     `testMenuOpenedSetupDismissesWithoutMainWindow()`, and
-    `testFirstRunScheduleOpensNewMainWindow()` exercise the unsigned fixture with
+    `testFirstRunSetupOpensWithoutMainWindow()` exercise the unsigned fixture with
     main-window launch suppressed. These require a working graphical test lane;
     router tests alone do not establish installed-app acceptance.
-- `Add warm explanatory copy for commitment model and enforcement behavior.`
-  - `GettingStartedCopyTests/warmCommitmentCopy()`
-  - `GettingStartedCopyTests/scheduleCopyUsesWorkWindowLanguage()`
 - `Schedule editor and summary copy should make the editable times read as work-window boundaries, not ambiguous lock/unlock jargon.`
   - `ScheduleSurfaceCopyTests/scheduleLabelsExplainWorkWindow()`
   - `SchedulePolicyEngineTests/scheduleSummarySentenceForTomorrow()`
@@ -1799,9 +1812,9 @@ caller's current time.`
   - `CurfewUITests/testOffStateDoesNotPromiseAnActiveLock`
   - `CurfewUITests/testReadyFixtureDoesNotImplyCurfewIsOn`
 - Setup gating, conditional schedule controls, assistant feedback:
-  - `CurfewUITests/testSetupUsesOneInstructionAndPreservesScheduleGate`
-    follows the current schedule instruction and retains all seven-day review,
-    explicit-choice, and disabled-Next assertions.
+  - `CurfewUITests/testSetupScheduleChoiceIsExplicitAndGatesAccess`
+    checks the explicit choice and that step 2 cannot continue without
+    Accessibility.
   - `CurfewUITests/testScheduleHidesTimeControlsForDaysOff`
   - `CurfewUITests/testAssistantSetupShowsCopyFeedback`
     targets the native checkbox before checking policy and copy feedback.

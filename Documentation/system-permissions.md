@@ -31,6 +31,18 @@ sequenceDiagram
     Curfew-->>User: Show resulting shortcut blocking health
 ```
 
+## First-run setup
+
+Setup asks for everything on step 2, each with one line saying why, each showing its live state:
+
+- **Accessibility** (required). "Open System Settings" opens Privacy & Security, Accessibility, without also firing the system prompt. A small floating panel beside the System Settings window holds the app icon; dragging it provides the app bundle's file URL, which the list accepts. The panel finds System Settings through the window list (bounds and owner only, which needs no Screen Recording permission), follows the window while it moves, and sits in the top right of the screen when the window cannot be found. Setup polls trust while step 2 is visible; the moment trust is granted the panel disappears, Curfew comes forward and setup commits.
+- **Notifications** (optional). Requested only when the person presses Allow. Curfew no longer requests notification permission when enforcement starts, so nothing is requested after setup closes.
+- **The Curfew helper** (optional, builds that ship it). Installed only when the person presses Install; macOS asks for an administrator password.
+
+Health warnings (menu bar icon, popover, Today, Settings) stay hidden until setup has completed, so a fresh install never shows a warning before the person has been asked for anything. An unregistered helper is not required for healthy enforcement: a fresh install that finished setup without it is healthy, and step 3 says once that without the Curfew helper, force quitting Curfew ends the lock early. "Absent" means registration was actually read as not registered and the helper never connected; until registration is read, the previous mapping applies. A helper that was installed (registered, awaiting approval, or failing to connect) and a failed install the person asked for are still reported.
+
+Unit tests cover the geometry, following, fallback, advance-on-grant logic and prompt timing with injected window frames and trust. The drag into System Settings and the TCC grant itself need a signed build on a real Mac.
+
 ## Calendar
 
 Calendar reads require full access. Write-only access does not permit event reads. Each refresh rechecks permission and clears cached events when access disappears. Stopping the Pro feature also clears cached meetings.

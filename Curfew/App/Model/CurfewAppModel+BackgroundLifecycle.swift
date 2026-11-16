@@ -11,7 +11,8 @@ extension CurfewAppModel {
               !privilegedHelperManager.maintenancePaused,
               !privilegedHelperManager.repairInProgress else { return }
         started = true
-        notificationManager.requestPermissionIfNeeded()
+        // Notifications are asked for on setup step 2, with a reason, and
+        // never on their own after setup closes.
         backgroundServiceManager.ensureRegistered()
         installRespawnGuardIfNeeded()
         startEnforcementReassertionObservers()

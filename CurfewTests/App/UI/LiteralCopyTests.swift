@@ -95,16 +95,10 @@ struct LiteralCopyTests {
 
     @Test("Setup copy describes schedules without judging the user")
     func setupDescribesActions() {
-        #expect(GettingStartedCopy
-            .commitmentMessage ==
-            "Choose your work hours. Curfew warns you before lockout "
-            + "and blocks access when work ends.")
-        #expect(ScheduleSurfaceCopy
-            .onboardingMessage == "Choose when work ends and resumes each day.")
         #expect(ScheduleSurfaceCopy.weeklyScheduleSubtitle
             == "Set when work ends and when access resumes each day.")
         #expect(ScheduleSurfaceCopy.countdownPrefix == "until scheduled lockout at")
-        #expect(FirstRunStep.confirmation.checklist == ["Review your schedule", "Enable Curfew"])
+        #expect(GettingStartedCopy.noScheduleYet == "No schedule yet")
     }
 
     @Test("Shutdown countdown names shutdown rather than sleep")

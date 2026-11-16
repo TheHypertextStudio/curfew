@@ -53,6 +53,11 @@ final class PrivilegedHelperManager {
         }
     }
 
+    /// Whether `daemonStatus` has been read from the system yet. Until it
+    /// has, an unregistered reading is only the default, not evidence that
+    /// the helper is absent.
+    private(set) var hasReadDaemonStatus = false
+
     /// Registration state of the main-app login item.
     private(set) var loginItemStatus: SMAppService.Status = .notRegistered
 
@@ -96,8 +101,16 @@ final class PrivilegedHelperManager {
 
     @ObservationIgnored let registrationRepair = DaemonRegistrationRepair()
 
+    /// A helper that was never installed is not required for a healthy
+    /// Curfew. Once it is installed, every connection failure is reported,
+    /// and so is a failed install the person asked for.
     var enforcementAvailability: PrivilegedEnforcementAvailability {
-        switch connectionState {
+        if hasReadDaemonStatus,
+           daemonStatus == .notRegistered || daemonStatus == .notFound,
+           connectionState == .unavailable {
+            return .notRequired
+        }
+        return switch connectionState {
         case .ready: .ready
         case .unavailable: .unavailable
         case .unauthorized: .unauthorized
@@ -347,6 +360,7 @@ extension PrivilegedHelperManager {
     /// Refresh registration state after launch or an installation change.
     func refreshStatus() {
         daemonStatus = daemonService.status
+        hasReadDaemonStatus = true
         loginItemStatus = loginItemService.status
         let daemonDesc = daemonStatus.debugDescription
         let loginDesc = loginItemStatus.debugDescription
@@ -362,6 +376,7 @@ extension PrivilegedHelperManager {
             connection: ConnectionState = .unavailable
         ) {
             daemonStatus = daemon
+            hasReadDaemonStatus = true
             loginItemStatus = login
             connectionState = connection
             lastError = connection == .ready ? nil : "Background protection is not connected."

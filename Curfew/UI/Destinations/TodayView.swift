@@ -42,7 +42,7 @@ struct TodayView: View {
             statusLine: control.line,
             statusDetail: control.detail,
             isEnforcing: model.isEnforcementRunning,
-            showAccessibilityWarning: !model.isAccessibilityTrusted,
+            showAccessibilityWarning: model.showsHealthWarnings && !model.isAccessibilityTrusted,
             showAccessibilityGranted: model.accessibilityJustGranted,
             streak: model.thisWeekRollup().streak,
             primaryActionLabel: control.action,

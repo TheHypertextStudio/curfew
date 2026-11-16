@@ -1,38 +1,6 @@
 import CurfewKit
 import ServiceManagement
 
-struct OnboardingConfirmationRequirement: Equatable, Identifiable {
-    enum RequirementID: String {
-        case scheduleReview
-        case accessibilityGrant
-    }
-
-    let id: RequirementID
-    let title: String
-    let isSatisfied: Bool
-}
-
-extension FirstRunFlow {
-    var confirmationRequirements: [OnboardingConfirmationRequirement] {
-        [
-            OnboardingConfirmationRequirement(
-                id: .scheduleReview,
-                title: scheduleChoice != nil
-                    ? "Automatic schedule choice confirmed"
-                    : "Choose whether to use automatic lockouts",
-                isSatisfied: scheduleChoice != nil
-            ),
-            OnboardingConfirmationRequirement(
-                id: .accessibilityGrant,
-                title: isAccessibilityGranted
-                    ? "Accessibility access granted"
-                    : "Accessibility access still required",
-                isSatisfied: isAccessibilityGranted
-            )
-        ]
-    }
-}
-
 enum ShutdownPanelState: Equatable {
     case available
     case unavailable(message: String)

@@ -70,7 +70,7 @@ struct ContentView: View {
 
         VStack(spacing: 0) {
             header(snapshot: snapshot)
-            CompactEnforcementHealthWarning(health: model.enforcementHealth) {
+            CompactEnforcementHealthWarning(health: model.presentedEnforcementHealth) {
                 model.requestAccessibilityAccess()
             }
             .padding(.horizontal, 10)

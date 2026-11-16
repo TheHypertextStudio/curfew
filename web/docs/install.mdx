@@ -11,61 +11,63 @@ work before setup.
 
 1. Download Curfew from the [download page](https://thecurfew.app/download).
 2. Open the disk image and drag **Curfew** into **Applications**.
-3. Open Curfew from Applications and follow **Welcome to Curfew**.
+3. Open Curfew from Applications. Setup opens by itself and takes three steps.
 
 For Curfew Plus, follow the [activation and restore instructions](/licensing).
 
-![Curfew's Welcome screen introduces the setup walkthrough and its Next button.](/images/setup.png)
+![Curfew's setup window opens on its first step.](/images/setup.png)
 
-## Choose your first boundary
+## Step 1: choose your curfew
 
-1. In the **Schedule** setup step, click **Edit weekly schedule**.
-2. Set when work ends and resumes for each active day, and mark days off.
-   See [schedule settings](/schedules).
-3. Review all seven days, including days off. Choose
-   **I've reviewed these seven days — use this weekly schedule** to enable
-   scheduled lockouts, or **No automatic schedule — remote controls only**
-   to leave automatic lockouts off. Authorized remote locks can still apply.
-4. Choose your weekly extension and override limits, then continue to **Permissions**.
+Setup asks **When should this Mac close for the night?** Set the curfew time,
+the unlock time and the days that lock. They start from the current default
+schedule. Choose **Use this schedule** to turn on scheduled locks, or the small
+**No schedule yet** link to leave automatic locks off. Authorized remote locks
+can still apply. You can change times and days later in
+[schedule settings](/schedules).
 
-## Grant permissions
+## Step 2: let Curfew hold the lock
+
+Each item says why it is needed and shows its current state.
 
 **Accessibility is required.** Curfew uses it to block dismissal shortcuts
-during lockout. Follow the setup button to **System Settings → Privacy &
-Security**. Open **Device Control and Data Access**, or **Accessibility** on
-macOS versions that use that name. Turn on **Curfew.app**. Curfew Dev is a separate build. macOS describes this as broad device and data
-access. You may need Touch ID or an administrator password to change it.
-Return to Curfew and check that shortcut blocking is available.
+while this Mac is locked. Choose **Open System Settings**. A small panel opens
+beside System Settings with the Curfew icon: drag it into the list. macOS may
+ask for Touch ID or an administrator password. If Curfew is already listed,
+turn it on. macOS calls this **Device Control and Data Access**, or
+**Accessibility** on versions that use that name. Curfew Dev is a separate
+build. Setup moves on by itself the moment access is granted.
 
-In **Settings → Protection**, check **Background recovery** and **Background
-protection**. If macOS asks you to allow background activity, open **System
-Settings → General → Login Items & Extensions** and allow Curfew. macOS may
-ask for Touch ID or an administrator password to allow background activity for
-all users. Connect background protection when prompted and complete any macOS
-approval. Curfew should report that background recovery is enabled and
-background protection is connected.
+**Notifications are optional.** Choose **Allow** to hear about curfew 30, 15, 5
+and 1 minute ahead. Curfew does not ask again after setup.
 
-**Notifications are optional.** Allow them for early warnings before lockout.
-
-See [privacy and permissions](/privacy) for other permissions.
-
-## Review and enable
-
-Read the schedule summary on **Confirmation**. If you selected weekly lockouts,
-choose **Enable schedule and finish** when ready. With remote controls only,
-finishing setup leaves automatic lockouts off. Check **Today** for your status
-and next boundary.
+**The Curfew helper is optional.** Choose **Install** so the lock holds even if
+Curfew is quit; macOS asks for an administrator password. Without it, force
+quitting Curfew ends the lock early. You can install it later in
+**Settings → Protection**, where **Background recovery** and **Background
+protection** show its current state.
 
 <Warning>
-Enabling a schedule outside its permitted work window can start lockout.
-Curfew asks for a separate confirmation when lockout is imminent. Save your
-work before enabling weekly lockouts.
+  If your curfew has already started, Curfew asks you to confirm before setup finishes, because
+  finishing locks this Mac right away. Save your work first.
 </Warning>
+
+## Step 3: you're set
+
+Setup states when Curfew locks next, such as tonight at your curfew time.
+**Preview the lock** shows the lock for a few seconds; nothing locks, and
+**End preview** or Escape closes it.
+
+Two optional extras follow: **Sign in to sync** and **Get the lifetime
+licence**. **Skip** closes setup and opens **Today**.
+
+If you close setup early, it opens again at the same step the next time Curfew
+starts.
 
 Open **Settings → Protection → Continue Setup…** to resume setup, or
 **Review Setup…** after completing it.
 Use **General** in earlier versions.
-Change boundaries in **Schedule**, warnings in **Settings → Lockout**, and
+Change your curfew in **Schedule**, warnings in **Settings → Lockout**, and
 exception budgets in **Settings → Lockout**.
 
 If setup will not continue, follow [setup troubleshooting](/troubleshooting).
