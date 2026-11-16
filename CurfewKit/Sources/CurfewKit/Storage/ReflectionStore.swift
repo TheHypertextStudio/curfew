@@ -113,7 +113,7 @@ public final class ReflectionStore {
 
     /// Deletes every reflection older than `olderThan` seconds relative to
     /// `now`. Mirrors ``ActivityStore``'s retention trim so callers can apply
-    /// the same 52-week window on day rollover.
+    /// the same retention window on day rollover.
     public func trimReflections(olderThan olderThanSeconds: TimeInterval, now: Date) throws {
         try queue.sync {
             try runTrim(olderThanSeconds: olderThanSeconds, now: now)

@@ -140,6 +140,13 @@ struct ActivityCommand: ParsableCommand {
             return "Day off"
         case .reflectionRecorded:
             return "Reflection recorded (\(event.gateKind))"
+        case .dayEnded:
+            let how = event.note == DayEndCause.calledItADay.rawValue
+                ? "called it a day" : "the lock ended it"
+            return "Day ended: \(how) (\(event.minutesValue ?? 0) min from curfew)"
+        case .oneThingAnswered:
+            let done = event.note == OneThingOutcome.doneNote
+            return done ? "Did the one thing" : "Did not do the one thing"
         }
     }
 }

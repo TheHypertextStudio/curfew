@@ -10,17 +10,27 @@ this document.
 The audit log is **not** the activity store. `activity.sqlite3` is a queryable
 rollup that powers the This Week retrospective and the CSV export; it holds a
 dozen event kinds and is designed to be aggregated. The audit log is a
-plain-text, append-only record of *what Curfew did, when, and why*, including
+plain-text, append-only record of _what Curfew did, when, and why_, including
 the events that never reach the UI: daemon shutdown decisions, deferred
 schedule changes, consent verdicts, and permission loss during a live lockout.
 The two files overlap in a few places and disagree in none.
 
+The activity store also holds the Journal's two recorded facts. `day_ended`
+stores when the working day ended, with `minutes_value` set to signed minutes
+from that day's scheduled curfew and `note` set to `called_it_a_day` or
+`lock`; the scheduled curfew is `timestamp - minutes_value`. At most one is
+written per working day, and the earliest wins. `one_thing_answered` stores
+whether the morning's one thing was done (`note` is `done` or `not_done`; the
+latest answer for a day wins). Evening facts before 4:00 AM belong to the
+previous working day. Activity and reflections are kept for 400 days. Neither
+fact is an audit event.
+
 ## File locations
 
-| Stream   | Path                                            | Owner       | Mode                |
-|----------|-------------------------------------------------|-------------|---------------------|
-| `app`    | `~/Library/Logs/Curfew/curfew-app.jsonl`        | the user    | `0600`, dir `0700`  |
-| `daemon` | `/Library/Logs/Curfew/curfew-daemon.jsonl`      | `root`      | `0644`, dir `0755`  |
+| Stream   | Path                                       | Owner    | Mode               |
+| -------- | ------------------------------------------ | -------- | ------------------ |
+| `app`    | `~/Library/Logs/Curfew/curfew-app.jsonl`   | the user | `0600`, dir `0700` |
+| `daemon` | `/Library/Logs/Curfew/curfew-daemon.jsonl` | `root`   | `0644`, dir `0755` |
 
 A development build writes the app stream to `~/Library/Logs/Curfew (Dev)/`
 instead, mirroring the flavor split Curfew already applies to Application
@@ -77,19 +87,19 @@ over the emitted bytes:
 v, ts, seq, stream, actor, event, from, to, detail, prev, hash
 ```
 
-| Field    | Type              | Always present | Meaning |
-|----------|-------------------|----------------|---------|
-| `v`      | integer           | yes | Schema version. Currently `1`. |
-| `ts`     | string            | yes | ISO-8601 with milliseconds and an explicit numeric offset: `YYYY-MM-DDTHH:MM:SS.sss±HH:MM`. Never `Z` — UTC is written as `+00:00` so the shape is fixed. |
-| `seq`    | integer           | yes | Per-stream counter starting at 1, never reset, continuing across restarts and rotations. A gap means records were lost. |
-| `stream` | string            | yes | `app` or `daemon`. Identifies the writing process. |
-| `actor`  | string            | yes | Origin of the action. See [Actors](#actors). |
-| `event`  | string            | yes | Dotted event type. See [Event types](#event-types). |
-| `from`   | string            | no  | Prior state. Present only on transitions. |
-| `to`     | string            | no  | New state. Present only on transitions. |
-| `detail` | object            | no  | Event-specific payload. Omitted when empty. Values are JSON scalars only — never nested objects or arrays. Keys are sorted ascending by Unicode scalar. |
-| `prev`   | string            | yes | Lowercase hex SHA-256 of the previous record in this stream, or 64 zeros for the first record ever written. |
-| `hash`   | string            | yes | Lowercase hex SHA-256 of this record. Always the last key. See [Tamper evidence](#tamper-evidence). |
+| Field    | Type    | Always present | Meaning                                                                                                                                                   |
+| -------- | ------- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `v`      | integer | yes            | Schema version. Currently `1`.                                                                                                                            |
+| `ts`     | string  | yes            | ISO-8601 with milliseconds and an explicit numeric offset: `YYYY-MM-DDTHH:MM:SS.sss±HH:MM`. Never `Z` — UTC is written as `+00:00` so the shape is fixed. |
+| `seq`    | integer | yes            | Per-stream counter starting at 1, never reset, continuing across restarts and rotations. A gap means records were lost.                                   |
+| `stream` | string  | yes            | `app` or `daemon`. Identifies the writing process.                                                                                                        |
+| `actor`  | string  | yes            | Origin of the action. See [Actors](#actors).                                                                                                              |
+| `event`  | string  | yes            | Dotted event type. See [Event types](#event-types).                                                                                                       |
+| `from`   | string  | no             | Prior state. Present only on transitions.                                                                                                                 |
+| `to`     | string  | no             | New state. Present only on transitions.                                                                                                                   |
+| `detail` | object  | no             | Event-specific payload. Omitted when empty. Values are JSON scalars only — never nested objects or arrays. Keys are sorted ascending by Unicode scalar.   |
+| `prev`   | string  | yes            | Lowercase hex SHA-256 of the previous record in this stream, or 64 zeros for the first record ever written.                                               |
+| `hash`   | string  | yes            | Lowercase hex SHA-256 of this record. Always the last key. See [Tamper evidence](#tamper-evidence).                                                       |
 
 A parser **must** ignore unknown `event` values and unknown `detail` keys.
 Adding either is a non-breaking change and will not bump `v`. `v` increases
@@ -106,15 +116,15 @@ on-disk evidence of a timezone change mid-window.
 `actor` says who caused the event; `stream` says who attested to it. They
 differ whenever the app records something an external client asked for.
 
-| Token          | Meaning |
-|----------------|---------|
+| Token          | Meaning                                                                                         |
+| -------------- | ----------------------------------------------------------------------------------------------- |
 | `app`          | The Curfew app acted on its own: a tick-loop transition, a policy decision, an automatic grant. |
-| `daemon`       | The privileged daemon acted. |
-| `user`         | A person acting directly in Curfew's UI. |
-| `cli`          | `curfew-ctl` originated the request. |
-| `mcp`          | An MCP client originated the request, identity unknown. |
-| `mcp:<client>` | An MCP client with a known identifier, e.g. `mcp:claude-desktop`. |
-| `system`       | macOS originated the event: TCC permission change, idle detection, wake. |
+| `daemon`       | The privileged daemon acted.                                                                    |
+| `user`         | A person acting directly in Curfew's UI.                                                        |
+| `cli`          | `curfew-ctl` originated the request.                                                            |
+| `mcp`          | An MCP client originated the request, identity unknown.                                         |
+| `mcp:<client>` | An MCP client with a known identifier, e.g. `mcp:claude-desktop`.                               |
+| `system`       | macOS originated the event: TCC permission change, idle detection, wake.                        |
 
 Split on the first `:`; the head is always one of the seven classes above.
 Client identifiers are sanitised to `[A-Za-z0-9._-]`, truncated to 64
@@ -158,23 +168,23 @@ named `*Length` is a character count.
 
 ### Audit stream meta
 
-| Event | `from`/`to` | `detail` |
-|-------|-------------|----------|
-| `audit.stream_opened` | — | `path`, `schemaVersion`, `pid`, `uid`, `maxSegmentBytes`, `maxRotatedSegments`, `retentionDays`, `chainRecovered` (bool: whether the writer found and continued an existing chain) |
-| `audit.rotated` | — | `rotatedTo` (file name the previous segment became), `maxSegmentBytes` |
+| Event                 | `from`/`to` | `detail`                                                                                                                                                                           |
+| --------------------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `audit.stream_opened` | —           | `path`, `schemaVersion`, `pid`, `uid`, `maxSegmentBytes`, `maxRotatedSegments`, `retentionDays`, `chainRecovered` (bool: whether the writer found and continued an existing chain) |
+| `audit.rotated`       | —           | `rotatedTo` (file name the previous segment became), `maxSegmentBytes`                                                                                                             |
 
 `chainRecovered: false` on anything other than the very first record of a
 stream's life means the previous segments were deleted or unreadable.
 
 ### App lifecycle — `stream: app`
 
-| Event | `from`/`to` | `detail` |
-|-------|-------------|----------|
-| `app.launched` | — | `version`, `build`, `flavor`, `pid`, `enforcementArmed`, `setupComplete`, `accessibility` (`granted`/`denied`), `autoShutdownEnabled`, `scheduleDigest`, `phase` |
-| `app.terminating` | — | `phase`, `enforcementRunning` |
-| `app.accessibility_changed` | `granted` ⇄ `denied` | — |
-| `app.enforcement_health_changed` | `active` / `degraded_no_accessibility` / `degraded_tap_down` | `phase` |
-| `app.respawn_guard_changed` | `armed` / `disarmed` / `arm_failed` / `disarm_failed` | `phase`, `error` (present only on a failure) |
+| Event                            | `from`/`to`                                                  | `detail`                                                                                                                                                         |
+| -------------------------------- | ------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `app.launched`                   | —                                                            | `version`, `build`, `flavor`, `pid`, `enforcementArmed`, `setupComplete`, `accessibility` (`granted`/`denied`), `autoShutdownEnabled`, `scheduleDigest`, `phase` |
+| `app.terminating`                | —                                                            | `phase`, `enforcementRunning`                                                                                                                                    |
+| `app.accessibility_changed`      | `granted` ⇄ `denied`                                         | —                                                                                                                                                                |
+| `app.enforcement_health_changed` | `active` / `degraded_no_accessibility` / `degraded_tap_down` | `phase`                                                                                                                                                          |
+| `app.respawn_guard_changed`      | `armed` / `disarmed` / `arm_failed` / `disarm_failed`        | `phase`, `error` (present only on a failure)                                                                                                                     |
 
 An `app.launched` with no preceding `app.terminating` is the signal that the
 previous run was killed, crashed, or force-quit. That is the same condition the
@@ -186,13 +196,13 @@ file: it says keyboard shortcut blocking was unavailable during lockout.
 
 ### Enforcement — `stream: app`
 
-| Event | `from`/`to` | `detail` |
-|-------|-------------|----------|
-| `enforcement.phase_changed` | `working` / `warning` / `locked` / `day_off` | `warningStage`, `minutesRemaining`, `trigger` (`time`/`hours`), `scheduleDigest`, `extensionMinutesToday`, `snoozeMinutesToday`, `todayDayOff`, `todayLock`, `todayUnlock`, `todayMode`, `todayHoursLimitMinutes` (when set), `lockAt`, `unlockAt` |
-| `enforcement.warning_stage_changed` | `none` / `T-30` / `T-15` / `T-5` / `T-2` / `T-1` / `lockout` | `minutesRemaining`, `phase` |
-| `lockout.started` | — | everything from `enforcement.phase_changed`, plus `durableDeadlineActive` |
-| `lockout.ended` | — | everything from `enforcement.phase_changed`, plus `reason`: `schedule`, `override`, or `day_off` |
-| `browser.destination_reviewed` | — | `hostname`, `decision` (`grant`/`challenge`/`deny`), `scopeKind` (`origin`/`path_prefix`/`none`) |
+| Event                               | `from`/`to`                                                  | `detail`                                                                                                                                                                                                                                           |
+| ----------------------------------- | ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `enforcement.phase_changed`         | `working` / `warning` / `locked` / `day_off`                 | `warningStage`, `minutesRemaining`, `trigger` (`time`/`hours`), `scheduleDigest`, `extensionMinutesToday`, `snoozeMinutesToday`, `todayDayOff`, `todayLock`, `todayUnlock`, `todayMode`, `todayHoursLimitMinutes` (when set), `lockAt`, `unlockAt` |
+| `enforcement.warning_stage_changed` | `none` / `T-30` / `T-15` / `T-5` / `T-2` / `T-1` / `lockout` | `minutesRemaining`, `phase`                                                                                                                                                                                                                        |
+| `lockout.started`                   | —                                                            | everything from `enforcement.phase_changed`, plus `durableDeadlineActive`                                                                                                                                                                          |
+| `lockout.ended`                     | —                                                            | everything from `enforcement.phase_changed`, plus `reason`: `schedule`, `override`, or `day_off`                                                                                                                                                   |
+| `browser.destination_reviewed`      | —                                                            | `hostname`, `decision` (`grant`/`challenge`/`deny`), `scopeKind` (`origin`/`path_prefix`/`none`)                                                                                                                                                   |
 
 `lockout.started` and `lockout.ended` are redundant with the phase transition
 on purpose. They are the two lines an auditor greps for first, and forcing that
@@ -207,12 +217,12 @@ for.
 
 ### Schedule — `stream: app`
 
-| Event | `from`/`to` | `detail` |
-|-------|-------------|----------|
+| Event                       | `from`/`to`                    | `detail`                                                                                                       |
+| --------------------------- | ------------------------------ | -------------------------------------------------------------------------------------------------------------- |
 | `schedule.change_requested` | schedule digest before → after | `classification` (`weaker`/`stricter`/`no_change`), `changedDays` (comma-separated `mon`…`sun`), `effectiveAt` |
-| `schedule.change_deferred` | — | `reason`, `fromDigest`, `toDigest`, `classification`, `requestedAt`, `effectiveAt` |
-| `schedule.change_applied` | digest before → after | `classification`, `requestedAt`, `effectiveAt`, `delaySeconds` |
-| `schedule.change_cancelled` | withdrawn digest → live digest | `classification`, `requestedAt`, `effectiveAt` |
+| `schedule.change_deferred`  | —                              | `reason`, `fromDigest`, `toDigest`, `classification`, `requestedAt`, `effectiveAt`                             |
+| `schedule.change_applied`   | digest before → after          | `classification`, `requestedAt`, `effectiveAt`, `delaySeconds`                                                 |
+| `schedule.change_cancelled` | withdrawn digest → live digest | `classification`, `requestedAt`, `effectiveAt`                                                                 |
 
 Curfew's anti-bypass policy delays a weaker schedule by 24 hours and a stricter
 one until the next midnight, and refuses to install a weaker one at all while
@@ -241,14 +251,14 @@ happening. A `no_change` that withdraws a queued change is recorded, as
 
 ### Grants — `stream: app`
 
-| Event | `detail` |
-|-------|----------|
-| `extension.requested` | reserved; not currently emitted |
-| `extension.granted` | `minutes`, `budgetRemaining`, `budgetLimit`, `minutesGrantedToday`, `warningStage` |
-| `extension.denied` | `reason` (`not_offered`, `budget_exhausted`), `budgetRemaining`, `phase` |
-| `override.requested` | `reasonLength`, `reasonDigest`, `budgetRemaining` |
-| `override.granted` | `minutes`, `budgetRemaining`, `budgetLimit`, `reasonLength`, `reasonDigest`, `activeUntil` |
-| `override.denied` | `reason` (`not_locked`, `budget_exhausted`, `gate_failed`), `budgetRemaining`, `phase` |
+| Event                 | `detail`                                                                                   |
+| --------------------- | ------------------------------------------------------------------------------------------ |
+| `extension.requested` | reserved; not currently emitted                                                            |
+| `extension.granted`   | `minutes`, `budgetRemaining`, `budgetLimit`, `minutesGrantedToday`, `warningStage`         |
+| `extension.denied`    | `reason` (`not_offered`, `budget_exhausted`), `budgetRemaining`, `phase`                   |
+| `override.requested`  | `reasonLength`, `reasonDigest`, `budgetRemaining`                                          |
+| `override.granted`    | `minutes`, `budgetRemaining`, `budgetLimit`, `reasonLength`, `reasonDigest`, `activeUntil` |
+| `override.denied`     | `reason` (`not_locked`, `budget_exhausted`, `gate_failed`), `budgetRemaining`, `phase`     |
 
 `actor` is `user` for in-app grants and `mcp` / `mcp:<client>` for ones an
 assistant asked for. The override justification itself is never written — see
@@ -256,14 +266,14 @@ assistant asked for. The override justification itself is never written — see
 
 ### Presence — `stream: app`
 
-| Event | `from`/`to` | `detail` |
-|-------|-------------|----------|
-| `presence.changed` | `active` ⇄ `idle` | `thresholdSeconds` |
-| `presence.state_changed` | `working` / `present_idle` / `absent` / `unknown` | `personSignal`, `hidIdle`, `idleThresholdSeconds`, `cameraEnabled`, `cameraLive`, `cameraAuthorization`, `phase` |
-| `presence.camera_started` | — | `authorization`, `analysisIntervalSeconds`, `phase` |
-| `presence.camera_stopped` | — | `reason`, `phase` |
-| `presence.camera_authorization_changed` | `not_determined` / `denied` / `restricted` / `authorized` | `cameraEnabled` |
-| `presence.distraction_warned` | — | `state`, `sustainedSeconds`, `thresholdSeconds`, `repeatSeconds`, `phase` |
+| Event                                   | `from`/`to`                                               | `detail`                                                                                                         |
+| --------------------------------------- | --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `presence.changed`                      | `active` ⇄ `idle`                                         | `thresholdSeconds`                                                                                               |
+| `presence.state_changed`                | `working` / `present_idle` / `absent` / `unknown`         | `personSignal`, `hidIdle`, `idleThresholdSeconds`, `cameraEnabled`, `cameraLive`, `cameraAuthorization`, `phase` |
+| `presence.camera_started`               | —                                                         | `authorization`, `analysisIntervalSeconds`, `phase`                                                              |
+| `presence.camera_stopped`               | —                                                         | `reason`, `phase`                                                                                                |
+| `presence.camera_authorization_changed` | `not_determined` / `denied` / `restricted` / `authorized` | `cameraEnabled`                                                                                                  |
+| `presence.distraction_warned`           | —                                                         | `state`, `sustainedSeconds`, `thresholdSeconds`, `repeatSeconds`, `phase`                                        |
 
 `presence.changed` is the HID-only view and is **unchanged**: `active` when
 input arrived inside `thresholdSeconds`, `idle` otherwise. It decides whether
@@ -275,12 +285,12 @@ than instead of it, so a parser written against `presence.changed` keeps
 working. The two disagree by design — one signal cannot produce four states.
 Read the fused tokens as:
 
-| `to` | Meaning |
-|------|---------|
-| `working` | Keyboard or pointer input arrived inside the idle threshold. This does not establish whether the user was working. |
+| `to`           | Meaning                                                                                                            |
+| -------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `working`      | Keyboard or pointer input arrived inside the idle threshold. This does not establish whether the user was working. |
 | `present_idle` | No recent input, but the camera detected a human shape. Curfew cannot distinguish reading, a call, or distraction. |
-| `absent` | No recent input and the camera did not detect a human shape. This does not establish that the user left. |
-| `unknown` | No input and no camera signal to say why. |
+| `absent`       | No recent input and the camera did not detect a human shape. This does not establish that the user left.           |
+| `unknown`      | No input and no camera signal to say why.                                                                          |
 
 **`unknown` is not a weaker `absent`.** It is what Curfew writes when it cannot
 see, which — because camera presence detection ships off — is the steady state
@@ -315,16 +325,16 @@ or a person count.** See [Privacy](#privacy).
 
 ### Auto-shutdown, app side — `stream: app`
 
-| Event | `detail` |
-|-------|----------|
-| `shutdown.scheduled` | `fireAt`, `delayMinutes`, `activeDevice` |
-| `shutdown.retry_scheduled` | `fireAt`, `delayMinutes`, `activeDevice` |
-| `shutdown.executed` | `delayMinutes`, `activeDevice` |
-| `shutdown.permission_denied` | `delayMinutes`, `activeDevice` |
-| `shutdown.failed` | `delayMinutes`, `activeDevice` |
-| `shutdown.deferred` | `fireAt` (the deferral bound), `delayMinutes`, `activeDevice` |
-| `shutdown.released_by_break_glass` | `delayMinutes`, `activeDevice` |
-| `shutdown.cancelled` | reserved; the workflow returning to idle is currently recorded only by the absence of a further transition |
+| Event                              | `detail`                                                                                                   |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `shutdown.scheduled`               | `fireAt`, `delayMinutes`, `activeDevice`                                                                   |
+| `shutdown.retry_scheduled`         | `fireAt`, `delayMinutes`, `activeDevice`                                                                   |
+| `shutdown.executed`                | `delayMinutes`, `activeDevice`                                                                             |
+| `shutdown.permission_denied`       | `delayMinutes`, `activeDevice`                                                                             |
+| `shutdown.failed`                  | `delayMinutes`, `activeDevice`                                                                             |
+| `shutdown.deferred`                | `fireAt` (the deferral bound), `delayMinutes`, `activeDevice`                                              |
+| `shutdown.released_by_break_glass` | `delayMinutes`, `activeDevice`                                                                             |
+| `shutdown.cancelled`               | reserved; the workflow returning to idle is currently recorded only by the absence of a further transition |
 
 This is the app's Apple Events path, which the user can decline. The daemon's
 `/sbin/shutdown` path is separate and lives in the daemon stream.
@@ -336,16 +346,16 @@ work finishing first closes the window earlier.
 
 ### MCP and CLI — `stream: app`
 
-| Event | `actor` | `detail` |
-|-------|---------|----------|
-| `mcp.request_received` | the origin: `mcp`, `mcp:<client>`, or `cli` | `requestId`, `tool`, `signed`, `signatureValid`, `policy`, `argumentsLength`, `argumentsDigest` |
-| `mcp.request_auto_approved` | always `app` | `requestId`, `tool`, `policy` |
-| `mcp.request_queued` | always `app` | `requestId`, `tool`, `policy` |
-| `mcp.request_approved` | always `user` | `requestId`, `tool`, `policy` |
-| `mcp.request_denied` | `user` or `app` — see below | `requestId`, `tool`, `policy`, `denialReason` |
+| Event                       | `actor`                                     | `detail`                                                                                        |
+| --------------------------- | ------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `mcp.request_received`      | the origin: `mcp`, `mcp:<client>`, or `cli` | `requestId`, `tool`, `signed`, `signatureValid`, `policy`, `argumentsLength`, `argumentsDigest` |
+| `mcp.request_auto_approved` | always `app`                                | `requestId`, `tool`, `policy`                                                                   |
+| `mcp.request_queued`        | always `app`                                | `requestId`, `tool`, `policy`                                                                   |
+| `mcp.request_approved`      | always `user`                               | `requestId`, `tool`, `policy`                                                                   |
+| `mcp.request_denied`        | `user` or `app` — see below                 | `requestId`, `tool`, `policy`, `denialReason`                                                   |
 
 `tool` is the wire name: `curfew.request_extension`, `curfew.request_override`,
-or `curfew.set_schedule`. `policy` is the consent setting in force:  `queue`,
+or `curfew.set_schedule`. `policy` is the consent setting in force: `queue`,
 `autoApprove`, or `deny`. `signatureValid: false` on an
 `mcp.request_auto_approved` would be a bug — Curfew downgrades an unsigned or
 forged request to the consent sheet even under auto-approve, and this pair of
@@ -369,12 +379,12 @@ alone, never that plus a `mcp.request_approved`.
 
 ### Protected-work carve-out
 
-| Event | Stream | `detail` |
-|-------|--------|----------|
-| `protected_work.active` | `daemon` | — |
-| `protected_work.cleared` | `daemon` | — |
-| `break_glass.observed` | `daemon` | `releaseId`, `issuedAt` |
-| `break_glass.cleared` | `daemon` | — |
+| Event                    | Stream   | `detail`                |
+| ------------------------ | -------- | ----------------------- |
+| `protected_work.active`  | `daemon` | —                       |
+| `protected_work.cleared` | `daemon` | —                       |
+| `break_glass.observed`   | `daemon` | `releaseId`, `issuedAt` |
+| `break_glass.cleared`    | `daemon` | —                       |
 
 A protected-work claim is an agent telling Curfew that killing this machine
 right now would destroy work in flight; a break-glass release is the privileged
@@ -397,21 +407,21 @@ and `shutdown.released_by_break_glass` instead.
 
 ### Daemon — `stream: daemon`
 
-| Event | `detail` |
-|-------|----------|
-| `daemon.started` | `pid`, `uid`, `loopIntervalSeconds`, `heartbeatTimeoutSeconds` |
-| `daemon.stopped` | `shutdownIssued` |
-| `daemon.deadline_observed` | `lockoutStartedAt`, `scheduledUnlockAt`, `kind` (`scheduled_time` or `scheduled_hours`), `source` (`user` or `shadow`) |
-| `daemon.deadline_elapsed` | `scheduledUnlockAt` |
-| `daemon.heartbeat_stale` | `ageSeconds` (`-1` when the heartbeat file is absent entirely), `thresholdSeconds`, `heartbeatPresent` |
-| `daemon.heartbeat_recovered` | same fields as above |
-| `daemon.shutdown_issued` | — |
-| `daemon.shutdown_failed` | `error` |
-| `daemon.shutdown_cancelled` | `reason`: `protected_work`, `break_glass`, or `lockout_ended` |
-| `daemon.shutdown_held` | `until` (the deferral bound), `shutdownWasInFlight` |
-| `daemon.stand_down` | — |
-| `daemon.deferral_opened` | `startedAt`, `openForSeconds` |
-| `daemon.deferral_closed` | — |
+| Event                        | `detail`                                                                                                               |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `daemon.started`             | `pid`, `uid`, `loopIntervalSeconds`, `heartbeatTimeoutSeconds`                                                         |
+| `daemon.stopped`             | `shutdownIssued`                                                                                                       |
+| `daemon.deadline_observed`   | `lockoutStartedAt`, `scheduledUnlockAt`, `kind` (`scheduled_time` or `scheduled_hours`), `source` (`user` or `shadow`) |
+| `daemon.deadline_elapsed`    | `scheduledUnlockAt`                                                                                                    |
+| `daemon.heartbeat_stale`     | `ageSeconds` (`-1` when the heartbeat file is absent entirely), `thresholdSeconds`, `heartbeatPresent`                 |
+| `daemon.heartbeat_recovered` | same fields as above                                                                                                   |
+| `daemon.shutdown_issued`     | —                                                                                                                      |
+| `daemon.shutdown_failed`     | `error`                                                                                                                |
+| `daemon.shutdown_cancelled`  | `reason`: `protected_work`, `break_glass`, or `lockout_ended`                                                          |
+| `daemon.shutdown_held`       | `until` (the deferral bound), `shutdownWasInFlight`                                                                    |
+| `daemon.stand_down`          | —                                                                                                                      |
+| `daemon.deferral_opened`     | `startedAt`, `openForSeconds`                                                                                          |
+| `daemon.deferral_closed`     | —                                                                                                                      |
 
 These are the highest-stakes records Curfew writes: the daemon runs as root and
 can power the machine off. The sequence that matters reads
@@ -422,7 +432,7 @@ enforced lockout and root shut the Mac down ninety seconds later.
 **`daemon.shutdown_cancelled` is the counterpart, and it changes what that
 sequence means.** `/sbin/shutdown -h +1` runs about a minute after it is
 issued, so a `daemon.shutdown_issued` followed by a `daemon.shutdown_cancelled`
-inside the next minute means the machine did *not* power off. Read the two
+inside the next minute means the machine did _not_ power off. Read the two
 together or you will conclude the opposite of what happened. The `reason`
 distinguishes the three ways it can occur: an agent claimed protected work, a
 break-glass release was honored, or the lockout window simply ended.
@@ -448,11 +458,11 @@ not five thousand.
 
 Defaults, per stream:
 
-| Setting | Default | Effect |
-|---------|---------|--------|
-| `maxSegmentBytes` | 5 MiB (5,242,880) | Rotate before an append would exceed this. |
-| `maxRotatedSegments` | 4 | Keep four rotated files behind the active one. |
-| `retentionDays` | 90 | Delete a rotated segment last modified longer ago than this. |
+| Setting              | Default           | Effect                                                       |
+| -------------------- | ----------------- | ------------------------------------------------------------ |
+| `maxSegmentBytes`    | 5 MiB (5,242,880) | Rotate before an append would exceed this.                   |
+| `maxRotatedSegments` | 4                 | Keep four rotated files behind the active one.               |
+| `retentionDays`      | 90                | Delete a rotated segment last modified longer ago than this. |
 
 The ceiling is therefore **25 MiB per stream, 50 MiB total**. At the volume
 Curfew writes — a few hundred records on a heavy day, roughly 300 bytes each —
@@ -521,7 +531,7 @@ user, the chain head lives inside it, and SHA-256 is unkeyed — anyone willing
 to write thirty lines of Python can rewrite the file and recompute every hash.
 Preventing that would require a trusted chain anchor outside the user's control.
 Curfew keeps audit records on the machine and does not verify the chain against
-an external anchor. The app stream is tamper-*evident* against casual editing,
+an external anchor. The app stream is tamper-_evident_ against casual editing,
 not against a writer who recomputes the chain.
 
 The **daemon stream is meaningfully stronger**. It is `root:wheel`, mode
@@ -560,7 +570,7 @@ so Curfew omits reflection content and written reasons from it.
 **Written instead, for the two redacted cases:** a `*Length` character count
 and a `*Digest`, 16 hex characters of unsalted SHA-256 over the text.
 
-The override-reason decision was the close one, and the answer is *redact*. The
+The override-reason decision was the close one, and the answer is _redact_. The
 verbatim text is already persisted in `activity.sqlite3` for the user's own
 retrospective, which the privacy policy already accounts for; copying it into a
 second, plain-text, shareable file widens exposure without making the decision
@@ -600,19 +610,19 @@ jq -r '"\(.ts)  \(.event)  \(.detail | tostring)"' /Library/Logs/Curfew/curfew-d
 
 ## Implementation
 
-| Concern | File |
-|---------|------|
-| Record, event, and actor types | `Sources/CurfewKit/Storage/AuditEvent.swift` |
-| Serialization, hash chain, redaction | `Sources/CurfewKit/Storage/AuditLineEncoder.swift` |
-| Paths and rotation policy | `Sources/CurfewKit/Storage/AuditLogPaths.swift` |
-| Append, rotation, chain recovery | `Sources/CurfewKit/Storage/AuditLogWriter.swift` |
-| Process-wide facade, transition dedup | `Sources/CurfewKit/Storage/AuditLog.swift` |
-| Domain-to-token mapping, schedule digest | `Sources/CurfewKit/Storage/AuditTokens.swift` |
-| App-side emitters | `Curfew/App/Model/CurfewAppModel+Audit.swift`, `+AuditGrants.swift`, `+AuditLifecycle.swift`, `+AuditPresence.swift` |
-| MCP consent resolution and its attribution | `Curfew/App/Model/CurfewAppModel+MCPConsent.swift` |
-| Daemon actions (what was done) | `Sources/CurfewKit/Domain/DaemonEnforcementRuntime.swift` |
-| Daemon observations (what was read) | `Sources/CurfewKit/Domain/DaemonAuditObserver.swift` |
-| Daemon file and process I/O | `Sources/curfew-daemon/main.swift` |
+| Concern                                    | File                                                                                                                 |
+| ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
+| Record, event, and actor types             | `Sources/CurfewKit/Storage/AuditEvent.swift`                                                                         |
+| Serialization, hash chain, redaction       | `Sources/CurfewKit/Storage/AuditLineEncoder.swift`                                                                   |
+| Paths and rotation policy                  | `Sources/CurfewKit/Storage/AuditLogPaths.swift`                                                                      |
+| Append, rotation, chain recovery           | `Sources/CurfewKit/Storage/AuditLogWriter.swift`                                                                     |
+| Process-wide facade, transition dedup      | `Sources/CurfewKit/Storage/AuditLog.swift`                                                                           |
+| Domain-to-token mapping, schedule digest   | `Sources/CurfewKit/Storage/AuditTokens.swift`                                                                        |
+| App-side emitters                          | `Curfew/App/Model/CurfewAppModel+Audit.swift`, `+AuditGrants.swift`, `+AuditLifecycle.swift`, `+AuditPresence.swift` |
+| MCP consent resolution and its attribution | `Curfew/App/Model/CurfewAppModel+MCPConsent.swift`                                                                   |
+| Daemon actions (what was done)             | `Sources/CurfewKit/Domain/DaemonEnforcementRuntime.swift`                                                            |
+| Daemon observations (what was read)        | `Sources/CurfewKit/Domain/DaemonAuditObserver.swift`                                                                 |
+| Daemon file and process I/O                | `Sources/curfew-daemon/main.swift`                                                                                   |
 
 ## Known gaps
 

@@ -108,7 +108,7 @@ public final class ActivityStore {
 
     /// Deletes every event older than `olderThan` seconds relative to
     /// `now`. The recorder calls this on day rollover to enforce the
-    /// 52-week retention window.
+    /// retention window (``JournalRetention``).
     public func trimEvents(olderThan olderThanSeconds: TimeInterval, now: Date) throws {
         try queue.sync {
             try runTrim(olderThanSeconds: olderThanSeconds, now: now)
