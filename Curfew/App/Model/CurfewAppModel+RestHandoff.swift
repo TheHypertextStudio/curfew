@@ -28,11 +28,8 @@ extension CurfewAppModel {
         return phase != .interactive
     }
 
-    /// Without a screensaver handoff, Rest now would fall back to Settings,
-    /// which must not open behind an enforced lockout.
     var canRestNow: Bool {
         restPresentation.layout == .quiet && !isOverrideComposerVisible && !restHandoffIsAmbient
-            && (restRuntime.handoff.coordinator != nil || !isEnforcingLockout)
     }
 
     func restNow() {
