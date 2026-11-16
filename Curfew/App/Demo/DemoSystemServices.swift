@@ -46,6 +46,11 @@
             ])]
         }
 
+        /// Starts from `entries`, such as the Journal's sample history.
+        init(entries: [Reflection]) {
+            self.entries = entries
+        }
+
         func record(_ reflection: Reflection) {
             entries.append(reflection); mutationCount += 1
         }
