@@ -160,8 +160,10 @@ struct ContentView: View {
                 model.settings.hasCompletedInitialSetup ? "Review Setup" : "Finish Setup",
                 icon: "sparkles"
             ) { model.showGettingStarted() }
-            Divider().padding(.vertical, 4)
-            menuRow("Quit Curfew", icon: "power") { NSApp.terminate(nil) }
+            if model.allowsQuit {
+                Divider().padding(.vertical, 4)
+                menuRow("Quit Curfew", icon: "power") { NSApp.terminate(nil) }
+            }
         }
         .padding(10)
     }

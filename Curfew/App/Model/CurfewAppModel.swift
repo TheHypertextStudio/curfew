@@ -463,7 +463,9 @@ final class CurfewAppModel: NSObject {
             self.extensionMinutesGrantedToday = runtime.state.extensionMinutes
             self.snoozeMinutesGrantedToday = runtime.state.snoozeMinutes
         }
-        self.overrideUntil = runtime.state.overrideUntil
+        self.overrideUntil = Self.recordedOverrideUntil(
+            runtime.state.overrideUntil, overrides: loadedEvents, settings: loadedSettings
+        )
         self.state = Self.initialEvaluation(
             settings: loadedSettings,
             automaticScheduleEnabled: resolvedScheduleConsent,
