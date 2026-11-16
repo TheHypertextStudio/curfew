@@ -17,7 +17,7 @@ struct RestPresentationSnapshot: Equatable {
     let isRestricted: Bool
     let isMorning: Bool
     let layout: RestContentState
-    let sky: SkyMoment
+    let sky: HorizonFrame
 
     static func resolve(
         now: Date, session: RestSessionContext, isRestricted: Bool, content: RestContentState
@@ -26,11 +26,20 @@ struct RestPresentationSnapshot: Equatable {
             isRestricted: isRestricted,
             isMorning: session.unlockDate.map { now >= $0 } ?? false,
             layout: content,
-            sky: SkyMoment.resolve(
-                now: now, lockDate: session.lockDate,
-                unlockDate: session.unlockDate, phase: isRestricted ? .locked : .working
-            )
+            sky: sky(now: now, session: session)
         )
+    }
+}
+
+extension RestPresentationSnapshot {
+    /// The Horizon frame for the rest session's curfew and unlock, or a
+    /// resting night when the session has no schedule behind it.
+    static func sky(now: Date, session: RestSessionContext) -> HorizonFrame {
+        guard let lock = session.lockDate, let unlock = session.unlockDate, unlock > lock,
+              unlock != .distantFuture else {
+            return HorizonMoment.restingNight(at: now).frame
+        }
+        return HorizonMoment.scheduled(now: now, curfew: lock, nextUnlock: unlock).frame
     }
 }
 

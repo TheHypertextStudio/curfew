@@ -7,7 +7,7 @@ import SwiftUI
 /// The native host owns cadence; every rendered frame resolves from absolute time.
 @objc(CurfewScreenSaverView)
 final class CurfewScreenSaverView: ScreenSaverView {
-    private var hostedScene: NSHostingView<RestAmbientScene>?
+    private var hostedScene: NSHostingView<RestAmbientScene<HorizonSkyView>>?
     private var session: RestScreenSaverSession?
     private var lastPreferenceRead: Date?
     private var rendering = false
@@ -94,7 +94,10 @@ final class CurfewScreenSaverView: ScreenSaverView {
             clockSize: max(20, min(bounds.width, bounds.height) * 0.10),
             // The export allowlist has already applied separate message consent.
             showsMessage: true
-        )
+        ) { frame, drifts in
+            // The same Horizon scene as the app, from this bundle's shader.
+            HorizonSkyView(frame: frame, isDayRunning: drifts)
+        }
         if let hostedScene {
             hostedScene.rootView = scene
             hostedScene.frame = bounds

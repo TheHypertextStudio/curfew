@@ -45,7 +45,7 @@ The regression tests below are implemented. Isolated native tests exercise the a
 | --- | --- | --- |
 | Stable display hosts | `OverlayContinuityTests/retainsHostAcrossTicks`, `removesDisconnectedDisplay`, `preservesHostOnRearrangement`; `DaybreakOverlayReconciliationTests/restWindowHasAccessibleTitle`, `restHostHasAccessibleName` | Typing/hold across ticks, monitor attach/remove/rearrange |
 | Midnight/session continuity | `ReflectionGatingTests/pendingEveningSurvivesMidnight`, `overrideDoesNotCreateMorning`, `returnFromOverrideDoesNotRepromptEvening`, `duplicateSaveIsIgnored`; `RestSessionIntegrationTests` covers delayed holds, saves after midnight, day-off handoff and remote temporary release | Active editing across midnight and morning |
-| Sky and intentional motion | `SkyMomentContinuityTests`, `RestTransitionTests`, `ThemeConsistencyTests/atmosphericContrast`; native contrast audit in `CurfewUITests/testRestScenesHaveReadableAccessibleControls` includes the opaque unlock-time status | Motion recording, interruption, long content, small/large displays, VoiceOver and Reduce Motion |
+| Sky and intentional motion | Package `HorizonModelTests` (path, elevation continuity at curfew and unlock, weight ramps, moon phase, extension raises the sun), `HorizonFieldTests` (spec ramp table, 14 steps, sun and moon discs, reference renderer), `HorizonBandPhaseTests` (0.05 bands per second only while running); app `HorizonSkyModelTests`, `RestTransitionTests`, `ThemeConsistencyTests/atmosphericContrast`, `RestScreenSaverBundleTests/saverBundlesShaderLibrary`, `HorizonSnapshotTests`; native contrast audit in `CurfewUITests/testRestScenesHaveReadableAccessibleControls` includes the opaque unlock-time status | Motion recording, interruption, long content, small/large displays, VoiceOver and Reduce Motion |
 | Current scene on wake | `RestDisplayLifecycleTests` (including interrupted-wake rearming, new-display coverage and independently reported display wake), `RestVisibilityTests`, `RestWindowVisibilityObserverTests/nativeVisibilityRequestsReconciliation`, `EnforcementReassertionWiringTests/wakeRefreshesCurrentTime`, `systemWakeWaitsForDisplayWake` | Physical display/Mac sleep, authentication and unequal monitor wake |
 | Native rest-window backing | `RestWindowBackingTests/restWindowsHaveOpaqueBacking`, `warningsRemainTransparent` exercise the actual coordinator configuration for covering scenes and translucent warnings | Native contrast audit and physical display-return acceptance remain required |
 | Native rest modal accessibility | `RestWindowModalAccessibilityTests/restWindowsExposeModalAccessibility`, `warningAndTimerRemainNonmodal` exercise the actual rest-window factory/configuration and actual native getter offscreen | Full native unit acceptance, installed VoiceOver navigation, multi-display lifecycle and the unchanged combined audit remain required; AXModal alone does not prove workspace audit exclusion. |
@@ -2681,11 +2681,16 @@ The website acceptance suite follows the homepage, release archive, and download
 
 ## Liquid Glass materials and live snapshot harness
 
-- `Adopt macOS 26 Liquid Glass materials with specular gradients and high-contrast fallbacks under Reduce Transparency.`
-  - `LiquidGlassThemeTests/"Liquid glass view modifiers produce renderable view hierarchies in both appearances"`
-  - `LiquidGlassThemeTests/"Liquid glass surface switches between translucent and opaque solid fallback"`
-  - `LiquidGlassThemeTests/"Atmospheric text maintains contrast over translucent glass surface across appearances"`
+- `Use system Liquid Glass only, with a solid panel under Reduce Transparency and an outline under Increase Contrast.`
+  - `HorizonGlassTests` (look resolution; both glass button styles and panels render in every look)
+  - `LiquidGlassThemeTests/"System glass modifiers produce renderable view hierarchies in both appearances"`
   - `LiquidGlassThemeTests/"Lockout visual configuration maps accessibility reduction flags deterministically"`
+- `Horizon foundation: hold to confirm, icons, menu bar glyph and tokens.`
+  - `HoldToConfirmTimerTests` (fill, confirm once at the duration, early release cancels, VoiceOver confirms immediately)
+  - `HorizonSymbolTests` (every symbol exists in SF Symbols)
+  - `HorizonMenuBarGlyphTests` (sun height by countdown, resting on the line, locked, Sunrise, template image)
+  - `HorizonTokensTests` (three radii, seven spacing steps, rounded type roles that scale)
+  - Not covered by unit tests: haptic feedback on hardware, keyboard focus order on screen, shader output on screen and in the saver host.
 - `Render full-window snapshots into build/screenshots using live in-process NSWindow and ImageRenderer.`
   - `DestinationSnapshotTests.testRenderSpineDestinations`
   - `DestinationSnapshotTests.testRenderCurrentMarketingScreens`

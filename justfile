@@ -209,7 +209,8 @@ snapshot:
         -destination '{{ destination }}' \
         -derivedDataPath build \
         -skip-testing:CurfewUITests \
-        -only-testing:CurfewTests/DestinationSnapshotTests
+        -only-testing:CurfewTests/DestinationSnapshotTests \
+        -only-testing:CurfewTests/HorizonSnapshotTests
 
 # The web monorepo lives in `web/` (pnpm + Turborepo), kept separate so it can be
 # extracted into its own repo. These recipes drive it from the repo root.

@@ -1,50 +1,117 @@
 import CurfewKit
 import SwiftUI
 
-/// Intentional type scale for the sundown design language (proposal).
+/// The type scale. One family, San Francisco: the rounded design for numerals,
+/// headlines and buttons, the default design for body text. No serif and no
+/// spaced capitals.
 ///
-/// Built on the system font (SF Pro) — native, modern, and it gives Dynamic
-/// Type and optical sizing for free. Numerals use the rounded design (clock-
-/// like, warm); everything else uses the default design (clean).
-///
-/// "Bolder" by **range**, not by blanket weight: a substantial Semibold hero,
-/// Bold headlines and figures, and restrained Regular/Medium for everything
-/// supporting. Weight is a hierarchy tool — earned by headlines and numbers,
-/// withheld from body and labels.
+/// Prefer ``View/sundownFont(_:size:)``: it scales the size with the system
+/// text size, relative to the role's text style. The static functions return
+/// a fixed-size font for call sites that have not moved to it yet.
 enum SundownType {
-    /// Hero numerals (the countdown). Substantial weight + scale — confident,
-    /// never wispy.
+    /// A type role: weight, design and the text style its size scales with.
+    enum Role: CaseIterable, Sendable {
+        /// Hero numerals (the countdown, the clock).
+        case display
+        /// Metric figures.
+        case figure
+        /// Section headlines.
+        case headline
+        /// Decisions and sub-headers.
+        case title
+        /// Button labels.
+        case button
+        /// Reading text.
+        case body
+        /// A single emphasised value inside otherwise-regular text.
+        case strong
+        /// Small sentence-case captions.
+        case label
+
+        var weight: Font.Weight {
+            switch self {
+            case .display, .title, .button: .semibold
+            case .figure, .headline: .bold
+            case .body: .regular
+            case .strong, .label: .medium
+            }
+        }
+
+        var design: Font.Design {
+            switch self {
+            case .display, .figure, .headline, .title, .button: .rounded
+            case .body, .strong, .label: .default
+            }
+        }
+
+        /// The system text style the size scales relative to.
+        var relativeTo: Font.TextStyle? {
+            switch self {
+            case .display, .figure: .largeTitle
+            case .headline: .title
+            case .title: .title3
+            case .button, .strong: .headline
+            case .body: .body
+            case .label: .caption
+            }
+        }
+
+        func font(size: CGFloat) -> Font {
+            .system(size: size, weight: weight, design: design)
+        }
+    }
+
     static func display(_ size: CGFloat) -> Font {
-        .system(size: size, weight: .semibold, design: .rounded)
+        Role.display.font(size: size)
     }
 
-    /// Section headlines — the deliberate step up in confidence.
     static func headline(_ size: CGFloat = 28) -> Font {
-        .system(size: size, weight: .bold)
+        Role.headline.font(size: size)
     }
 
-    /// Punchy data — metric counts that should read as an achievement.
     static func figure(_ size: CGFloat) -> Font {
-        .system(size: size, weight: .bold, design: .rounded)
+        Role.figure.font(size: size)
     }
 
-    /// Decisions and sub-headers — present, but not headline-loud.
     static func title(_ size: CGFloat = 18) -> Font {
-        .system(size: size, weight: .semibold)
+        Role.title.font(size: size)
     }
 
-    /// Reading text.
+    static func button(_ size: CGFloat = 15) -> Font {
+        Role.button.font(size: size)
+    }
+
     static func body(_ size: CGFloat = 15) -> Font {
-        .system(size: size, weight: .regular)
+        Role.body.font(size: size)
     }
 
-    /// A single emphasised value inside otherwise-regular text.
     static func strong(_ size: CGFloat = 15) -> Font {
-        .system(size: size, weight: .medium)
+        Role.strong.font(size: size)
     }
 
-    /// Small sentence-case captions.
     static func label(_ size: CGFloat = 12) -> Font {
-        .system(size: size, weight: .medium)
+        Role.label.font(size: size)
+    }
+}
+
+extension View {
+    /// Sets a type role at a base size that scales with the system text size.
+    /// Use `.monospacedDigit()` only where numbers align in columns.
+    func sundownFont(_ role: SundownType.Role, size: CGFloat) -> some View {
+        modifier(SundownScaledFont(role: role, base: size))
+    }
+}
+
+private struct SundownScaledFont: ViewModifier {
+    let role: SundownType.Role
+    @ScaledMetric private var size: CGFloat
+
+    init(role: SundownType.Role, base: CGFloat) {
+        self.role = role
+        _size = ScaledMetric(wrappedValue: base, relativeTo: role.relativeTo ?? .body)
+    }
+
+    func body(content: Content) -> some View {
+        content.font(role.font(size: size))
     }
 }

@@ -1,5 +1,6 @@
 import AppKit
 @testable import Curfew
+import CurfewAtmosphere
 @testable import CurfewKit
 import SwiftUI
 import Testing
@@ -108,14 +109,18 @@ struct ThemeConsistencyTests {
         }
     }
 
-    @Test("Atmospheric labels remain readable across the opaque night gradient")
+    @Test("Atmospheric labels remain readable across every Horizon night stop")
     func atmosphericContrast() throws {
         let appearance = try #require(NSAppearance(named: .darkAqua))
-        for stop in SundownPalette.skyStops(for: 0) {
-            #expect(contrast(SundownPalette.warmWhite, stop.color, appearance: appearance) >= 4.5)
-            #expect(contrast(SundownPalette.supportingText, stop.color, appearance: appearance) >=
-                4.5)
-            #expect(contrast(SundownPalette.glow, stop.color, appearance: appearance) >= 3)
+        let stops = HorizonPalette.night + [HorizonPalette.nightGround]
+        for stop in stops {
+            let color = Color(red: stop.red, green: stop.green, blue: stop.blue)
+            #expect(contrast(SundownPalette.warmWhite, color, appearance: appearance) >= 4.5)
+            #expect(contrast(SundownPalette.supportingText, color, appearance: appearance) >= 4.5)
+            #expect(contrast(SundownPalette.glow, color, appearance: appearance) >= 3)
+        }
+        for panel in [SundownPalette.nightSky, SundownPalette.nightPanel] {
+            #expect(contrast(SundownPalette.warmWhite, panel, appearance: appearance) >= 4.5)
         }
     }
 
@@ -289,7 +294,7 @@ extension ThemeConsistencyTests {
             "CurfewKit/Sources/CurfewAtmosphere/RestAmbientScene.swift"
         ), encoding: .utf8)
         #expect(composition.contains("RestAmbientScene("))
-        #expect(renderer.contains(".overlay(AtmospherePalette.textScrim)"))
+        #expect(renderer.contains(".overlay(shieldsText ? AtmospherePalette.textScrim : .clear)"))
         for opacity in ["0.4", "0.5", "0.6", "0.72"] {
             #expect(!source.contains("warmWhite.opacity(\(opacity))"))
         }

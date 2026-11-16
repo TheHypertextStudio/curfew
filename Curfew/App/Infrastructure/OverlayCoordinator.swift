@@ -387,7 +387,7 @@ private struct FloatingCountdownTimerView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
-        .liquidGlassCapsule(usesSolidPanels: reduceTransparency)
+        .horizonGlass(in: Capsule())
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("warning-timer")
     }

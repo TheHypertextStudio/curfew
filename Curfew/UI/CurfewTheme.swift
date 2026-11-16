@@ -83,26 +83,38 @@ private func adaptive(light: RGB, dark: RGB) -> Color {
     })
 }
 
-/// Spacing scale shared across the app's chrome (Settings, the workspace
-/// destinations, panels). Centralising the values means the rhythm is
-/// consistent and, crucially, that inter-panel spacing (`section`) reads as
-/// larger than intra-panel spacing (`medium`) so grouped cards stay visually
-/// distinct instead of melting together.
+/// Spacing steps shared across the app: 4, 8, 12, 16, 24, 40 and 64. Other
+/// values are replaced by the nearest step. Inter-panel spacing (`section`)
+/// reads larger than intra-panel spacing (`medium`) so grouped cards stay
+/// visually distinct.
 enum CurfewSpacing {
-    /// Tight 4 pt gap — adjacent glyphs, chip internals.
+    /// Every allowed step, smallest first.
+    static let steps: [CGFloat] = [4, 8, 12, 16, 24, 40, 64]
+    /// 4 pt: adjacent glyphs, chip internals.
     static let xSmall: CGFloat = 4
-    /// 8 pt — related controls on one line.
+    /// 8 pt: related controls on one line.
     static let small: CGFloat = 8
-    /// 12 pt — default gap between rows inside a panel.
+    /// 12 pt: default gap between rows inside a panel.
     static let medium: CGFloat = 12
-    /// 16 pt — generous in-panel separation, e.g. title to first control.
+    /// 16 pt: generous in-panel separation, e.g. title to first control.
     static let large: CGFloat = 16
-    /// 24 pt — outer page padding around a tab's scroll content.
+    /// 24 pt: outer page padding around a tab's scroll content.
     static let xLarge: CGFloat = 24
-    /// 20 pt — gap *between* panels in a stack. Deliberately larger than
-    /// `medium` so cards read as separate groups; deliberately smaller than
-    /// `xLarge` so a tab doesn't feel sparse.
-    static let section: CGFloat = 20
+    /// 40 pt: separation between the parts of a full-window surface.
+    static let xxLarge: CGFloat = 40
+    /// 64 pt: the widest breathing room, around a surface's hero.
+    static let xxxLarge: CGFloat = 64
+    /// Gap between panels in a stack.
+    static let section: CGFloat = xLarge
+}
+
+/// The three corner radii. Floating buttons use `Capsule()` rather than a
+/// radius.
+enum CurfewRadius {
+    /// Controls: buttons, fields, chips.
+    static let control: CGFloat = 8
+    /// Panels and cards.
+    static let panel: CGFloat = 20
 }
 
 /// The Curfew chrome's typographic names, mapped onto the one canonical scale
@@ -143,11 +155,11 @@ enum CurfewTypography {
 }
 
 /// Rounded-rect panel container. Applies the `surface` fill, hairline
-/// border, and 16 pt corner radius. Used everywhere grouped content
+/// border, and the panel radius. Used everywhere grouped content
 /// sits on a canvas background.
 struct CurfewPanel<Content: View>: View {
-    /// Internal padding between the border and `content`. Defaults to 18.
-    var padding: CGFloat = 18
+    /// Internal padding between the border and `content`.
+    var padding: CGFloat = CurfewSpacing.large
     /// Child content rendered inside the panel.
     @ViewBuilder var content: Content
 
@@ -158,9 +170,12 @@ struct CurfewPanel<Content: View>: View {
         }
         .padding(padding)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(CurfewTheme.surface, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .background(
+            CurfewTheme.surface,
+            in: RoundedRectangle(cornerRadius: CurfewRadius.panel, style: .continuous)
+        )
         .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
+            RoundedRectangle(cornerRadius: CurfewRadius.panel, style: .continuous)
                 .stroke(CurfewTheme.border, lineWidth: 1)
         )
     }
@@ -217,25 +232,11 @@ struct CurfewPrimaryButtonStyle: ButtonStyle {
         )
         return configuration.label
             .font(CurfewTypography.bodyEmphasis(14))
-            .padding(.horizontal, 14)
-            .padding(.vertical, 9)
+            .padding(.horizontal, CurfewSpacing.large)
+            .padding(.vertical, CurfewSpacing.small)
             .background(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                RoundedRectangle(cornerRadius: CurfewRadius.control, style: .continuous)
                     .fill(CurfewTheme.accentFill)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .stroke(
-                        LinearGradient(
-                            colors: [
-                                CurfewTheme.onAccent.opacity(0.35),
-                                CurfewTheme.onAccent.opacity(0.08)
-                            ],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        ),
-                        lineWidth: 1
-                    )
             )
             .foregroundStyle(CurfewTheme.onAccent)
             .opacity(feedback.opacity)
@@ -261,14 +262,14 @@ struct CurfewSecondaryButtonStyle: ButtonStyle {
         )
         return configuration.label
             .font(CurfewTypography.bodyEmphasis(14))
-            .padding(.horizontal, 14)
-            .padding(.vertical, 9)
+            .padding(.horizontal, CurfewSpacing.large)
+            .padding(.vertical, CurfewSpacing.small)
             .background(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                RoundedRectangle(cornerRadius: CurfewRadius.control, style: .continuous)
                     .fill(CurfewTheme.surfaceMuted)
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                RoundedRectangle(cornerRadius: CurfewRadius.control, style: .continuous)
                     .stroke(CurfewTheme.border, lineWidth: 1)
             )
             .foregroundStyle(CurfewTheme.ink)
@@ -303,81 +304,5 @@ struct CurfewLinkButtonStyle: ButtonStyle {
                 value: configuration.isPressed
             )
             .contentShape(Rectangle())
-    }
-}
-
-// MARK: - Liquid Glass (macOS 26)
-
-extension View {
-    /// Refractive liquid glass slate with specular rim for floating atmospheric cards.
-    /// Reverts to solid high-contrast panel under Reduce Transparency.
-    @ViewBuilder
-    func liquidGlassCard(
-        cornerRadius: CGFloat = 16,
-        usesSolidPanels: Bool
-    ) -> some View {
-        if usesSolidPanels {
-            background(
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .fill(SundownPalette.inputSurface(usesSolidPanels: true))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .stroke(SundownPalette.warmWhite.opacity(0.12), lineWidth: 1)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-        } else {
-            background(
-                .ultraThinMaterial,
-                in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-            )
-            .background(
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .fill(SundownPalette.glassSurface(usesSolidPanels: false))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .stroke(SundownPalette.glassBorderGradient, lineWidth: 1)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-        }
-    }
-
-    /// Liquid glass capsule with specular edge lighting for floating pills and indicators.
-    @ViewBuilder
-    func liquidGlassCapsule(
-        usesSolidPanels: Bool = false
-    ) -> some View {
-        if usesSolidPanels {
-            background(
-                Capsule()
-                    .fill(SundownPalette.inputSurface(usesSolidPanels: true))
-            )
-            .overlay(
-                Capsule()
-                    .stroke(SundownPalette.warmWhite.opacity(0.12), lineWidth: 1)
-            )
-            .clipShape(Capsule())
-        } else {
-            background(.ultraThinMaterial, in: Capsule())
-                .background(
-                    Capsule()
-                        .fill(SundownPalette.glassSurface(usesSolidPanels: false))
-                )
-                .overlay(
-                    Capsule()
-                        .stroke(SundownPalette.glassBorderGradient, lineWidth: 1)
-                )
-                .clipShape(Capsule())
-        }
-    }
-
-    /// Applies liquid glass styling to the sidebar, letting the system `NSGlassEffectView`
-    /// and detail backgroundExtensionEffect refract smoothly through without being blocked by an
-    /// opaque slab.
-    func sidebarGlass() -> some View {
-        background(.ultraThinMaterial)
-            .background(CurfewTheme.canvasStrong.opacity(0.35))
-            .ignoresSafeArea()
     }
 }

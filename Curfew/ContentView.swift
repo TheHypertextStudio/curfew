@@ -1,4 +1,5 @@
 import AppKit
+import CurfewAtmosphere
 import CurfewKit
 import SwiftUI
 
@@ -99,7 +100,7 @@ struct ContentView: View {
     /// into the popover canvas at the bottom so there's no hard seam.
     private func header(snapshot: EnforcementSnapshot) -> some View {
         ZStack(alignment: .topLeading) {
-            SundownSky(moment: model.skyMoment)
+            HorizonSkyView(frame: model.horizonFrame, isDayRunning: model.isHorizonDayRunning)
                 .overlay(alignment: .bottom) {
                     LinearGradient(
                         colors: [.clear, CurfewTheme.canvas],
@@ -244,9 +245,7 @@ struct MainWindowView: View {
             .navigationTitle("Curfew")
             .listStyle(.sidebar)
             .scrollContentBackground(.hidden)
-            // Liquid glass sidebar — lets the system NSGlassEffectView refract the detail
-            // column's backgroundExtensionEffect while softly harmonising with both appearances.
-            .sidebarGlass()
+            // The system sidebar is already Liquid Glass; nothing is laid under it.
             .navigationSplitViewColumnWidth(min: 220, ideal: 248, max: 340)
         } detail: {
             // Each destination owns its own background now — Today's composed sky
