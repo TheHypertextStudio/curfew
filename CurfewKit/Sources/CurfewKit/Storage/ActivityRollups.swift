@@ -1,5 +1,8 @@
 import Foundation
 
+// Deprecated: the Journal pull request removes these rollups and the streak
+// once nothing reads them. New code uses JournalDayRecord and JournalSummary.
+
 /// Daily summary row. One instance per calendar day within the observed
 /// week. Produced by ``ActivityRollups/weeklyRollup(events:weekStart:calendar:)``.
 ///
@@ -7,6 +10,11 @@ import Foundation
 /// "0 extensions" without a nil-coalesce at every call site. A day with
 /// zero activity still appears in the weekly output so the streak and
 /// day-of-week grid stay contiguous.
+@available(
+    *,
+    deprecated,
+    message: "Counts lockouts, not what the person did. The Journal reads JournalDayRecord and JournalSummary; the Journal pull request removes this."
+)
 public struct DailyActivityRollup: Equatable {
     /// Start-of-day moment this rollup bucket is keyed on. Stored as a
     /// `Date` (not a `DateComponents`) so timeline rendering can compare
@@ -38,6 +46,11 @@ public struct DailyActivityRollup: Equatable {
 /// weekStart + 7 days)`; missing days carry zero rollups so downstream
 /// callers can iterate the array without gap handling. Totals are
 /// pre-computed so the UI doesn't have to re-fold in `body`.
+@available(
+    *,
+    deprecated,
+    message: "Counts lockouts, not what the person did. The Journal reads JournalDayRecord and JournalSummary; the Journal pull request removes this."
+)
 public struct WeeklyActivityRollup: Equatable {
     /// Per-day rollups in chronological order, length always 7.
     public let days: [DailyActivityRollup]
@@ -71,6 +84,11 @@ public struct WeeklyActivityRollup: Equatable {
 /// static methods (rather than injecting into `ActivityStore`) so tests
 /// can exercise the aggregation on hand-built event arrays without
 /// opening a database.
+@available(
+    *,
+    deprecated,
+    message: "Counts lockouts, not what the person did. The Journal reads JournalDayRecord and JournalSummary; the Journal pull request removes this."
+)
 public enum ActivityRollups {
     /// Width of the rollup window in days.
     private static let daysPerWeek = 7
@@ -155,6 +173,7 @@ public enum ActivityRollups {
 
 /// Per-day mutable accumulator used during the rollup fold. Private to
 /// this file; the public surface is the immutable ``DailyActivityRollup``.
+@available(*, deprecated)
 private struct DailyAccumulator {
     private var extensionCount = 0
     private var extensionMinutes = 0
@@ -173,7 +192,7 @@ private struct DailyAccumulator {
         case .lockoutStarted:
             hadLockout = true
         case .sessionStarted, .sessionEnded, .lockoutEnded,
-             .warningEscalated, .dayOff, .reflectionRecorded:
+             .warningEscalated, .dayOff, .reflectionRecorded, .dayEnded, .oneThingAnswered:
             break
         }
     }

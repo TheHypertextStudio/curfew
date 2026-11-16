@@ -157,14 +157,14 @@ Temporary audit-only `continueAfterFailure` collection restores its prior value 
 ## Copy, permissions, and Settings
 
 - [x] Explain the macOS Device Control and Data Access label, administrator
-  authentication, and background-service checks in setup, troubleshooting, and
-  privacy help.
-  The MacBook walkthrough on November 3, 2026 verified these prompts and the
-  resulting Protection states. Other macOS versions and signed-release setup
-  still need their own acceptance. The in-app repair message names both macOS
-  labels. Account help distinguishes sign-in recovery codes from the encryption
-  Recovery Key. Roll back the help and app copy together. No permission or
-  enforcement behavior changed.
+      authentication, and background-service checks in setup, troubleshooting, and
+      privacy help.
+      The MacBook walkthrough on November 3, 2026 verified these prompts and the
+      resulting Protection states. Other macOS versions and signed-release setup
+      still need their own acceptance. The in-app repair message names both macOS
+      labels. Account help distinguishes sign-in recovery codes from the encryption
+      Recovery Key. Roll back the help and app copy together. No permission or
+      enforcement behavior changed.
 
 - [x] Replace the tall Settings page with nine categories. Keep upstream Protection for permission health, background protection, and setup. Keep allowances and warning times on Lockout. Retain native grouped forms and arrow-key sidebar navigation. See `settings-ui.md`.
 - [x] Share the documented Curfew Xcode scheme with app, unit-test, and UI-test targets to keep the native commands independent of Xcode automatic scheme generation and local suppression settings. The missing-scheme build and contract test failed before the shared configuration was added.
@@ -691,7 +691,10 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 
 ## 11. Activity Log + Retrospective
 
-- [x] SQLite storage with 52-week rolling retention (direct `sqlite3` C API, no GRDB).
+- [x] SQLite storage with rolling retention (direct `sqlite3` C API, no GRDB). Retention is 400 days (`JournalRetention`) so the Journal year view and year in review can read a full year and its comparison.
+- [x] Record how each working day ended (`day_ended`) and whether the one thing was done (`one_thing_answered`); build `JournalDayRecord`, period summaries, patterns, trend lines and year totals in CurfewKit.
+- [ ] Update the published privacy and retention policies from 52 weeks to 400 days before releasing the longer retention.
+- [ ] Remove `ActivityRollups`, the weekly lockout count and the streak once the Journal no longer reads them (deprecated now).
 - [x] Hours-based and combined curfew modes (lock after N hours of active work; per-day toggle in the schedule editor).
 - [x] `WorkTimeAggregator` computes active-minutes-today from ActivityStore + idle windows.
 - [x] `ThisWeekView` memoises the weekly rollup on `(weekStart, activityMutationCount)` so the tick loop stops rerunning the query every second.
@@ -1974,23 +1977,23 @@ asserts its own screen and state before attaching an image.
   when Homebrew advances independently.
 
 - [x] Reconcile native rest hosts immediately when a reflection is saved or
-  skipped, including while enforcement is disarmed. Retain the rest host when
-  another restriction or unfinished evening still requires it; do not wait for
-  an enforcement tick to restore the workspace.
+      skipped, including while enforcement is disarmed. Retain the rest host when
+      another restriction or unfinished evening still requires it; do not wait for
+      an enforcement tick to restore the workspace.
 
 - [x] Review the streak footer in light and dark workspace renders at the native
-  window dimensions, retaining the unobscured native contrast gate. The renderer
-  is offscreen and never presents a desktop window.
+      window dimensions, retaining the unobscured native contrast gate. The renderer
+      is offscreen and never presents a desktop window.
 
 - [x] Name the actual native hosting and split-column containers, not additional
-  nested SwiftUI groups. Preserve native controls and use primary text ink for
-  the small streak caption identified by the unobscured native contrast audit.
-  Keep the separate global rest and uncovered-workspace audits unchanged.
+      nested SwiftUI groups. Preserve native controls and use primary text ink for
+      the small streak caption identified by the unobscured native contrast audit.
+      Keep the separate global rest and uncovered-workspace audits unchanged.
 
 - [x] Keep Rest Screen UI and accessibility audits robust: preserve visual
-  states across app activation, ignore non-app TouchBar/container groups and
-  occluded background window contrast in modal rest scenes, and attach test
-  screenshots via XCTAttachment rather than direct disk writes.
+      states across app activation, ignore non-app TouchBar/container groups and
+      occluded background window contrast in modal rest scenes, and attach test
+      screenshots via XCTAttachment rather than direct disk writes.
 
 ### Signed installer acceptance
 

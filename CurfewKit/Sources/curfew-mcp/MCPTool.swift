@@ -896,5 +896,7 @@ private func eventDetail(_ event: ActivityEvent) -> String {
         "override_granted +\(event.minutesValue ?? 0) min"
     case .dayOff: "day_off"
     case .reflectionRecorded: "reflection_recorded (\(event.gateKind))"
+    case .dayEnded: "day_ended \(event.note ?? "?") (\(event.minutesValue ?? 0) min from curfew)"
+    case .oneThingAnswered: "one_thing_answered \(event.note ?? "?")"
     }
 }

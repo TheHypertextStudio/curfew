@@ -262,6 +262,10 @@ final class CurfewAppModel: NSObject {
     /// at the end of `tick()`'s enforcement tail.
     @ObservationIgnored var lastEnforcedPhase: EnforcementPhase = .dayOff
 
+    /// Working day whose end the lock path last checked, so the 1 Hz tick
+    /// reads the activity log once per lock rather than every second.
+    @ObservationIgnored var journalDayEndCheckedDay: Date?
+
     /// Warning stages fired today across every device on this iCloud
     /// account. Seeded from the `LockoutState` CKRecord; consulted by
     /// `WarningNotificationManager` to suppress cross-device duplicates.

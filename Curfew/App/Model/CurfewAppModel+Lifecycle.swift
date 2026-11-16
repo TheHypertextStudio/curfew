@@ -14,9 +14,10 @@ import WidgetKit
 /// has one obvious file to open.
 @MainActor
 extension CurfewAppModel {
-    /// How many seconds of activity log to keep. Matches the 52-week rolling
-    /// retention promise in PRIVACY.md.
-    static let activityRetentionSeconds: TimeInterval = 52 * 7 * 24 * 60 * 60
+    /// How many seconds of activity log and reflections to keep: at least 400
+    /// days, so the Journal's year view and year in review can read a whole
+    /// calendar year and its comparison. See ``JournalRetention``.
+    static let activityRetentionSeconds: TimeInterval = JournalRetention.activitySeconds
 
     /// The sequence is the enforcement invariant. Splitting it would hide the
     /// order in which state, durable lockout, effects, and status settle.
@@ -98,6 +99,7 @@ extension CurfewAppModel {
             to: state.phase,
             at: currentTime
         )
+        recordDayEndedByLockIfNeeded()
         reconcileOverrideComposerState(previousPhase: previousPhase)
         notificationManager.update(
             stage: state.warningStage,
@@ -378,7 +380,7 @@ extension CurfewAppModel {
 
     /// Day-rollover bookkeeping: resets daily grant counters, the
     /// calendar-overlap dedup, the cross-device warning-stage set, runs
-    /// the 52-week activity trim, and re-verifies the persisted Pro
+    /// the activity retention trim, and re-verifies the persisted Pro
     /// license so a tampered UserDefaults can't keep Pro alive forever.
     func handleDayRollover(to nextDayToken: String) {
         currentDayToken = nextDayToken
