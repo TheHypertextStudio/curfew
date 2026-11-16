@@ -28,10 +28,10 @@ that a work session starts in the morning or that lockout begins at night.
 
 At the day's first session (the transition into the `.working` phase, i.e. the
 daily unlock), Curfew raises a full-screen **Daybreak** overlay on every
-display. The overlay covers every display. A visible *Skip* dismisses it, and the gate
+display. The overlay covers every display. A visible _Skip_ dismisses it, and the gate
 does not prompt again that day. The user
 answers a short, configurable set of prompts (a focus question, a mood
-check-in by default). It is *not* enforcement: there is no key interception, no
+check-in by default). It is _not_ enforcement: there is no key interception, no
 respawn, no shutdown coupling.
 
 Surface: `DaybreakReflectionView` + `DaybreakBackgroundView`, presented via
@@ -58,7 +58,7 @@ access is granted. It shows the time,
 a lockout message, the unlock time, and the **override** flow.
 
 When the evening reflection gate is enabled and unresolved for the day, the
-**evening reflection** is presented *inside* this lockout screen as the
+**evening reflection** is presented _inside_ this lockout screen as the
 optional end reflection, rather than before lockout. It is
 **non-blocking**: saving or skipping it never delays or weakens enforcement;
 the clock and override flow remain below it.
@@ -79,10 +79,10 @@ deadline armed across force-kill / reboot.
 The two reflection gates prompt at the start of a session and when lockout
 begins:
 
-| Gate            | When                        | Surface                       | Placement decision                |
-| --------------- | --------------------------- | ----------------------------- | --------------------------------- |
-| Start reflection | day's first session (unlock) | full-screen Daybreak overlay | can be skipped |
-| End reflection | lockout begins | inside the lockout screen | optional; does not delay lockout |
+| Gate             | When                         | Surface                      | Placement decision               |
+| ---------------- | ---------------------------- | ---------------------------- | -------------------------------- |
+| Start reflection | day's first session (unlock) | full-screen Daybreak overlay | can be skipped                   |
+| End reflection   | lockout begins               | inside the lockout screen    | optional; does not delay lockout |
 
 Each gate prompts **at most once per day** — a saved or skipped gate is marked
 resolved (`reflectionGatesResolvedToday`, reset on day rollover and seeded at
@@ -97,10 +97,14 @@ launch from the store so a relaunch does not prompt again).
 - Reflections are stored in a dedicated SQLite store (`ReflectionStore`,
   mirroring `ActivityStore`) at `SharedPaths.reflectionDatabase`. A lightweight
   `ActivityEventKind.reflectionRecorded` marker is also written to the activity
-  log (carrying the gate in `gateKind`) so timelines note *that* a reflection
+  log (carrying the gate in `gateKind`) so timelines note _that_ a reflection
   happened without duplicating content.
-- The **Journal** charts reflections below the week's lockout chart
-  (`JournalReflectionsView`), with mood/rating chips for trend-spotting.
+- The **Journal** shows what the person did in a week, month or year: when
+  they stopped against curfew, whether they did the one thing, the extra time
+  they took and the reason typed for each override, and morning readiness.
+  Opening a day in its "Every day" table shows that evening's timeline and
+  every answer written that day. Reflections export as Markdown or JSON, and
+  activity as CSV, for the period shown.
 
 ### Agent access (read-only)
 
