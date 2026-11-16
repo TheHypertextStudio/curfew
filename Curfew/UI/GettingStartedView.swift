@@ -23,7 +23,7 @@ struct GettingStartedView: View {
     @State private var dragHelper: AccessibilityDragHelper?
     @State private var preview: LockPreviewController?
     @State private var confirmingImmediateLock = false
-    @State private var tookAnExtra = false
+    @State private var signedIn = false
     @AccessibilityFocusState private var headingFocused: Bool
 
     /// `nil` uses the system; fixed values serve snapshots.
@@ -148,7 +148,7 @@ struct GettingStartedView: View {
         case .extras:
             GettingStartedExtrasStep(
                 makeAccount: makeAccount ?? { AccountEnrollmentController.settingsController() },
-                onTookExtra: { tookAnExtra = true }
+                onSignedIn: { signedIn = true }
             )
         }
     }
@@ -198,7 +198,7 @@ struct GettingStartedView: View {
                 }
             case .extras:
                 Spacer()
-                Button(tookAnExtra ? "Done" : "Skip") { model.finishGettingStarted() }
+                Button(signedIn ? "Done" : "Skip") { model.finishGettingStarted() }
                     .buttonStyle(GettingStartedSecondaryButtonStyle())
                     .keyboardShortcut(.defaultAction)
             }

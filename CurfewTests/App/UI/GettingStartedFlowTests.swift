@@ -18,6 +18,7 @@ struct GettingStartedFlowTests {
         #expect(FirstRunStep.schedule.title == "When should this Mac close for the night?")
         #expect(FirstRunStep.permissions.title == "Let Curfew hold the lock.")
         #expect(FirstRunStep.ready.title == "You're set.")
+        #expect(FirstRunStep.extras.title == "Curfew on your other devices")
     }
 
     @Test("Choosing a schedule is the explicit choice and moves on in one press")
@@ -141,6 +142,34 @@ struct GettingStartedFlowTests {
 }
 
 struct GettingStartedCopyTests {
+    @Test("Step 2 puts the one required grant first and marks the rest optional")
+    func permissionsOrder() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent()
+            .deletingLastPathComponent().deletingLastPathComponent()
+        let source = try String(
+            contentsOf: root.appendingPathComponent("Curfew/UI/GettingStartedSteps.swift"),
+            encoding: .utf8
+        )
+        let step = try #require(source.range(of: "struct GettingStartedPermissionsStep"))
+        let body = source[step.upperBound...]
+        let access = try #require(body.range(of: "GettingStartedCopy.accessibilityTitle"))
+        let alerts = try #require(body.range(of: "GettingStartedCopy.notificationsTitle"))
+        let helper = try #require(body.range(of: "GettingStartedCopy.helperTitle"))
+        #expect(access.lowerBound < alerts.lowerBound)
+        #expect(alerts.lowerBound < helper.lowerBound)
+        #expect(body.components(separatedBy: "isOptional: true").count - 1 == 2)
+    }
+
+    @Test("The closing step is one Curfew Plus offer with sign-in for existing owners")
+    func closingOffer() {
+        #expect(GettingStartedCopy.getPlus == "Get Curfew Plus")
+        #expect(GettingStartedCopy.signIn == "Sign in")
+        #expect(GettingStartedCopy.plusOffer.contains("single payment"))
+        #expect(GettingStartedCopy.plusOffer.contains("lock this Mac"))
+        #expect(GettingStartedCopy.plusOffer.contains("Apple, Google or a passkey"))
+    }
+
     @Test("Step 3 states tonight's actual curfew time")
     func readyLineTonight() throws {
         let calendar = Calendar(identifier: .gregorian)
