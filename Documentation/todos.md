@@ -99,6 +99,19 @@ Temporary audit-only `continueAfterFailure` collection restores its prior value 
 - [x] Prepare an offline signer-verified, environment-bound private import with
       no automatic readiness switch, remote mutation or resource provisioning.
 
+## Lockout bypass hardening
+
+- [x] Ignore enforcement-owner records without a recognized Curfew identity.
+- [x] Own keyboard focus during enforced lockout: activate, kiosk presentation,
+      reclaim on resign/hide, unhidable windows, immediate display coverage.
+- [x] Clamp a restored override to the recorded grant plus configured duration.
+- [x] Refuse uninstall and rest-screen Settings routes while curfew holds.
+- [x] Veto quit during lockout except logout, restart, and shutdown; no
+      supervisor back-off while a lockout deadline runs.
+- [x] Warn before an override that runs past the lock time expires.
+- [ ] Verify focus, kiosk options, hide, display attach, and quit veto in a real
+      signed lockout on an isolated Mac; unit tests inject every AppKit effect.
+
 ## Background recovery after clock corrections
 
 - [x] Keep only the remaining restart backoff when the wall clock moves backward,
@@ -157,14 +170,14 @@ Temporary audit-only `continueAfterFailure` collection restores its prior value 
 ## Copy, permissions, and Settings
 
 - [x] Explain the macOS Device Control and Data Access label, administrator
-  authentication, and background-service checks in setup, troubleshooting, and
-  privacy help.
-  The MacBook walkthrough on November 3, 2026 verified these prompts and the
-  resulting Protection states. Other macOS versions and signed-release setup
-  still need their own acceptance. The in-app repair message names both macOS
-  labels. Account help distinguishes sign-in recovery codes from the encryption
-  Recovery Key. Roll back the help and app copy together. No permission or
-  enforcement behavior changed.
+      authentication, and background-service checks in setup, troubleshooting, and
+      privacy help.
+      The MacBook walkthrough on November 3, 2026 verified these prompts and the
+      resulting Protection states. Other macOS versions and signed-release setup
+      still need their own acceptance. The in-app repair message names both macOS
+      labels. Account help distinguishes sign-in recovery codes from the encryption
+      Recovery Key. Roll back the help and app copy together. No permission or
+      enforcement behavior changed.
 
 - [x] Replace the tall Settings page with nine categories. Keep upstream Protection for permission health, background protection, and setup. Keep allowances and warning times on Lockout. Retain native grouped forms and arrow-key sidebar navigation. See `settings-ui.md`.
 - [x] Share the documented Curfew Xcode scheme with app, unit-test, and UI-test targets to keep the native commands independent of Xcode automatic scheme generation and local suppression settings. The missing-scheme build and contract test failed before the shared configuration was added.
@@ -1974,23 +1987,23 @@ asserts its own screen and state before attaching an image.
   when Homebrew advances independently.
 
 - [x] Reconcile native rest hosts immediately when a reflection is saved or
-  skipped, including while enforcement is disarmed. Retain the rest host when
-  another restriction or unfinished evening still requires it; do not wait for
-  an enforcement tick to restore the workspace.
+      skipped, including while enforcement is disarmed. Retain the rest host when
+      another restriction or unfinished evening still requires it; do not wait for
+      an enforcement tick to restore the workspace.
 
 - [x] Review the streak footer in light and dark workspace renders at the native
-  window dimensions, retaining the unobscured native contrast gate. The renderer
-  is offscreen and never presents a desktop window.
+      window dimensions, retaining the unobscured native contrast gate. The renderer
+      is offscreen and never presents a desktop window.
 
 - [x] Name the actual native hosting and split-column containers, not additional
-  nested SwiftUI groups. Preserve native controls and use primary text ink for
-  the small streak caption identified by the unobscured native contrast audit.
-  Keep the separate global rest and uncovered-workspace audits unchanged.
+      nested SwiftUI groups. Preserve native controls and use primary text ink for
+      the small streak caption identified by the unobscured native contrast audit.
+      Keep the separate global rest and uncovered-workspace audits unchanged.
 
 - [x] Keep Rest Screen UI and accessibility audits robust: preserve visual
-  states across app activation, ignore non-app TouchBar/container groups and
-  occluded background window contrast in modal rest scenes, and attach test
-  screenshots via XCTAttachment rather than direct disk writes.
+      states across app activation, ignore non-app TouchBar/container groups and
+      occluded background window contrast in modal rest scenes, and attach test
+      screenshots via XCTAttachment rather than direct disk writes.
 
 ### Signed installer acceptance
 
