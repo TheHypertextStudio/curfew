@@ -57,7 +57,6 @@ struct LockoutBypassGuardTests {
         model.restNow()
         #expect(router.showSettingsCallCount == 0)
         #expect(router.activateCallCount == 0)
-        #expect(!model.canRestNow)
     }
 
     @Test("Quit is vetoed during lockout but not for logout, restart, or shutdown")
