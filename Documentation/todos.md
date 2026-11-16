@@ -695,16 +695,18 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 - [x] Record how each working day ended (`day_ended`) and whether the one thing was done (`one_thing_answered`); build `JournalDayRecord`, period summaries, patterns, trend lines and year totals in CurfewKit.
 - [ ] Update the published privacy and retention policies from 52 weeks to 400 days before releasing the longer retention.
 - [ ] Remove `ActivityRollups`, the weekly lockout count and the streak once the Journal no longer reads them (deprecated now).
+- [x] Replace the Journal screen with the approved prototype: a week, month and year range in the toolbar; one headline sentence; four tiles with comparisons and trend lines; the "When you stopped" chart (a grid of every working day in year range) with hover and keyboard detail; three pattern cards that say how many days they rest on; overrides in the person's words; and the "Every day" table that opens each evening. The Journal no longer reads the weekly rollup or the streak, so `ActivityRollups` now only feeds Today, the widget and `curfew_get_weekly_summary`. The old week chart, rating trend and unused `ThisWeekView` are deleted. Prompts open from the toolbar; reflections export as Markdown or JSON and activity as CSV for the shown period. Debug demo launches carry the Journal sample history; Release builds contain none of it. Roll back by reverting the Journal views; the day records are untouched.
+- [ ] Year in review card: the year's marks on the line over the sky with four totals, saved or shared as an image.
 - [x] Hours-based and combined curfew modes (lock after N hours of active work; per-day toggle in the schedule editor).
 - [x] `WorkTimeAggregator` computes active-minutes-today from ActivityStore + idle windows.
-- [x] `ThisWeekView` memoises the weekly rollup on `(weekStart, activityMutationCount)` so the tick loop stops rerunning the query every second.
+- [x] The weekly rollup is memoised on `(weekStart, activityMutationCount)` so the tick loop stops rerunning the query every second.
 - [x] Per-day schedule exception seam (`DayRuleException` struct) — Codable-compatible for future holiday pickers.
 - [x] `ActivityRecorder` writes lifecycle/extension/override events.
 - [x] `ActivityRollups` computes daily/weekly aggregates.
 - [x] `IdleWatcher` detects idle periods (5-min cutoff).
-- [x] "This Week" view in app UI.
-- [x] CSV export. (v0.2)
-- [x] Device-attributed insights. Surfaced in `ThisWeekView` when 2+ overrides exist and in `curfew_get_weekly_summary`'s `overrides_by_device` field.
+- [x] "This Week" view in app UI, since replaced by the Journal.
+- [x] CSV export, from the Journal's Export menu for the shown period. (v0.2)
+- [x] Device-attributed insights. Surfaced in `curfew_get_weekly_summary`'s `overrides_by_device` field. The unused `ThisWeekView` that also showed it was removed with the Journal redesign.
 
 ## 11.5 Audit log
 

@@ -51,9 +51,6 @@ import CurfewKit
                 LockoutSundownView(message: EncouragementMessageCatalog.next(after: nil)),
                 named: "copy-remote-lockout", width: 1200, height: 800, to: directory
             )
-            try render(
-                JournalSundownView(), named: "copy-journal", width: 900, to: directory
-            )
         }
 
         func testRenderSettingsCategories() throws {
