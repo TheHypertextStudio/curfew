@@ -156,14 +156,10 @@ struct SettingsView: View {
                     }
                 }
             )) {
-                Section {
-                    navigationGroup([.general, .enforcement, .presence, .shutdown, .protectedWork])
-                }
-                Section {
-                    navigationGroup([.account, .integrations])
-                }
-                Section {
-                    navigationGroup([.advanced, .about])
+                ForEach(SettingsSection.sidebarGroups, id: \.self) { group in
+                    Section {
+                        navigationGroup(group)
+                    }
                 }
             }
             .listStyle(.sidebar)
