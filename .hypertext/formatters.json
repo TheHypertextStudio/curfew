@@ -343,7 +343,7 @@
       "reason": "Line-oriented configuration, legal text or plain list; no general code formatter applies. Preserve meaningful ordering and data."
     },
     {
-      "include": ["LICENSE"],
+      "include": ["LICENSE", ".github/CODEOWNERS"],
       "kind": "non-formattable",
       "reason": "Line-oriented configuration, legal text or plain list; no general code formatter applies. Preserve meaningful ordering and data."
     },
