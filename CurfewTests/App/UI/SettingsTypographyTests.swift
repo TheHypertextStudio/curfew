@@ -11,8 +11,9 @@ struct SettingsTypographyTests {
             .deletingLastPathComponent().deletingLastPathComponent()
         let paths = [
             "Curfew/UI/SettingsView.swift",
-            "Curfew/UI/Destinations/JournalReflectionsView.swift",
-            "Curfew/UI/Destinations/JournalSundownView.swift",
+            "Curfew/UI/Destinations/JournalView.swift",
+            "Curfew/UI/Destinations/JournalPanels.swift",
+            "Curfew/UI/Destinations/JournalDayTable.swift",
             "Curfew/UI/LockoutScreenView.swift"
         ]
         for path in paths {
