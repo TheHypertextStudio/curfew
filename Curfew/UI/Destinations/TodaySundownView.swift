@@ -15,7 +15,9 @@ import SwiftUI
 struct TodaySundownView: View {
     /// The atmosphere to render behind the hero — the same moment the whole app
     /// shares this tick. Defaults to dusk for previews / the snapshot tier.
-    var moment: SkyMoment = .dusk
+    var horizon: HorizonFrame = Self.previewHorizon
+    /// Whether the working day is running, so the bands drift.
+    var isDayRunning = false
     var greeting = "Good afternoon"
     var timeRemaining = "3h 30m"
     var emptyNote = "No curfew scheduled today."
@@ -65,7 +67,7 @@ struct TodaySundownView: View {
     /// field and the control below docks at the bottom with no dead band.
     private var sky: some View {
         ZStack(alignment: .topLeading) {
-            SundownSky(moment: moment)
+            HorizonSkyView(frame: horizon, isDayRunning: isDayRunning)
                 .backgroundExtensionEffect()
                 .overlay(alignment: .bottom) { bottomFade }
                 .overlay { skyTextScrim }
@@ -202,7 +204,7 @@ struct TodaySundownView: View {
                 .foregroundStyle(CurfewTheme.ink)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
-                .liquidGlassCapsule()
+                .horizonGlass(in: Capsule())
                 .padding(.top, isEnforcing ? 0 : 2)
                 .transition(.opacity)
             }
@@ -266,10 +268,6 @@ private struct SundownCapsuleButtonStyle: ButtonStyle {
             .padding(.horizontal, 22)
             .padding(.vertical, 12)
             .background(CurfewTheme.accentFill, in: .capsule)
-            .overlay(
-                Capsule()
-                    .stroke(SundownPalette.glassBorderGradient, lineWidth: 1)
-            )
             .shadow(
                 color: CurfewTheme.accent.opacity(configuration.isPressed ? 0.18 : 0.3),
                 radius: 10,
@@ -277,5 +275,15 @@ private struct SundownCapsuleButtonStyle: ButtonStyle {
             )
             .scaleEffect(configuration.isPressed ? 0.96 : 1.0)
             .animation(.spring(response: 0.3, dampingFraction: 0.6), value: configuration.isPressed)
+    }
+}
+
+extension TodaySundownView {
+    /// Mid-afternoon on a 7 AM to 6 PM day, for previews and the snapshot tier.
+    static var previewHorizon: HorizonFrame {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let afternoon = calendar.date(bySettingHour: 15, minute: 30, second: 0, of: today) ?? today
+        return HorizonMoment.unscheduled(now: afternoon).frame
     }
 }

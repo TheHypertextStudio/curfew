@@ -19,7 +19,9 @@ struct RestTransitionTests {
         )
         #expect(scene.isRestricted)
         #expect(scene.isMorning)
-        #expect(scene.sky.light >= 0.4)
+        // At unlock the sun stands on the horizon at full weight.
+        #expect(scene.sky.sunWeight == 1)
+        #expect(abs(scene.sky.elevation) < 1e-9)
     }
 
     @Test("Ordinary clock ticks do not choose a new layout")

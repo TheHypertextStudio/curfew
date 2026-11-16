@@ -34,7 +34,10 @@ import CurfewKit
             )
             try renderHosted(
                 EveningReflectionCard(usesSolidPanels: true).environment(model)
-                    .background(SundownSky(moment: model.skyMoment)),
+                    .background(HorizonSkyView(
+                        frame: model.horizonFrame, isDayRunning: false
+                    ))
+                    .environment(\.horizonSkyRendering, .reference),
                 named: "copy-reflection", width: 650, height: 650, to: directory
             )
             try renderHosted(

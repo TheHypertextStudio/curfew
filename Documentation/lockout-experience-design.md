@@ -15,7 +15,7 @@ The clock may intentionally move and resize when the composition changes. Future
 - The baseline lockout path replaces `NSHostingView` instances on repeated updates. The newer baseline already preserves its daybreak host. Extend stable hosting to the continuous experience and update observed data instead.
 - `handleDayRollover` calls `resetReflectionGatesForNewDay`, which unconditionally removes pending reflection surfaces. This is a confirmed dismissal path for the evening card; it does not prove the cause of every reported disappearing element.
 - `ReflectionFormView` keeps unfinished answers in view-local state. Host replacement and content replacement can discard that state.
-- `SkyMoment.locked` already describes a night arc, but its direction flag changes discretely, and changing to the working calculation can jump from pre-dawn to daylight.
+- The sky is the Horizon model (`HorizonMoment` in `CurfewAtmosphere`): the sun crosses the working day and meets the horizon at the effective curfew, the moon crosses the night in its real phase, and elevation is continuous through curfew and through the scheduled unlock, so the lock and Sunrise never jump between palettes. The rest scene, the lock, Today and the screen saver all draw it with the same shader (`Curfew/UI/Horizon/HorizonSky.metal`). Its bands hold still while locked.
 - Lockout and daybreak currently use separate window collections. Their handoff should share a stable screen composition while retaining the correct input policy.
 - Wake observers currently reassert enforcement; they do not manage an intentional visible reveal or rendering suspension.
 

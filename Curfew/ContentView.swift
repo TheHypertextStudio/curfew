@@ -1,4 +1,5 @@
 import AppKit
+import CurfewAtmosphere
 import CurfewKit
 import SwiftUI
 
@@ -99,7 +100,7 @@ struct ContentView: View {
     /// into the popover canvas at the bottom so there's no hard seam.
     private func header(snapshot: EnforcementSnapshot) -> some View {
         ZStack(alignment: .topLeading) {
-            SundownSky(moment: model.skyMoment)
+            HorizonSkyView(frame: model.horizonFrame, isDayRunning: model.isHorizonDayRunning)
                 .overlay(alignment: .bottom) {
                     LinearGradient(
                         colors: [.clear, CurfewTheme.canvas],

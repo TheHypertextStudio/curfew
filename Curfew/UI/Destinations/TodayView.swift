@@ -1,4 +1,5 @@
 import AppKit
+import CurfewAtmosphere
 import CurfewKit
 import SwiftUI
 
@@ -25,7 +26,8 @@ struct TodayView: View {
             && model.state.lockDate != nil && snapshot.timeRemainingText != "—"
 
         TodaySundownView(
-            moment: model.skyMoment,
+            horizon: model.horizonFrame,
+            isDayRunning: model.isHorizonDayRunning,
             greeting: Self.greeting(at: model.currentTime),
             timeRemaining: hasWindow ? snapshot.timeRemainingText : "",
             emptyNote: Self.emptyNote(
