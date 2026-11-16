@@ -1,0 +1,356 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Curfew Visual Refresh</title>
+<style>
+/* Layout: one live scene to scrub and press, then the same scene on four surfaces, then the icon set and rules. */
+:root{
+  --bg:#f2f1f6; --panel:#ffffff; --fg:#17182b; --soft:#5a5c75; --line:#d9d8e4; --ember:#b8491f; --chip:#e7e5f0;
+  --bone:#fff6ea;
+  --disp:ui-rounded,"SF Pro Rounded",-apple-system,system-ui,"Helvetica Neue",sans-serif;
+  --ui:-apple-system,system-ui,"Helvetica Neue",Arial,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b0c15;--panel:#13152a;--fg:#eceaf5;--soft:#a3a5bf;--line:#2a2c45;--ember:#ee8c5f;--chip:#1f2139;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0b0c15;--panel:#13152a;--fg:#eceaf5;--soft:#a3a5bf;--line:#2a2c45;--ember:#ee8c5f;--chip:#1f2139;color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--ui);font-size:15px;line-height:1.5}
+.wrap{max-width:1180px;margin:0 auto;padding-block:40px 80px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:56px}
+h1{font-family:var(--disp);font-weight:650;font-size:clamp(30px,5vw,46px);line-height:1.06;letter-spacing:-.02em;margin:6px 0 10px;text-wrap:balance}
+h2{font-family:var(--disp);font-size:22px;font-weight:650;margin:0;letter-spacing:-.01em}
+h3{font-family:var(--disp);font-size:16px;font-weight:650;margin:0}
+p{margin:0}
+.eyebrow{font-size:13px;font-weight:600;color:var(--ember)}
+.lead{color:var(--soft);max-width:62ch;font-size:16px}
+.sec{display:flex;flex-direction:column;gap:20px}
+.sechead{display:flex;flex-direction:column;gap:6px;max-width:66ch}
+.sechead p,.cap{color:var(--soft)}
+.cap{font-size:13px}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:24px}
+.cell{display:flex;flex-direction:column;gap:6px;min-width:0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.card p,.card li{color:var(--soft);font-size:14px}
+.specs{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px}
+.ctl{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.ctl input[type=range]{flex:1;min-width:180px;accent-color:var(--ember)}
+.ctl button{font:600 13px var(--disp);color:var(--fg);background:var(--chip);border:1px solid var(--line);border-radius:999px;padding:7px 14px;cursor:pointer}
+.ctl output{font:600 13px var(--disp);font-variant-numeric:tabular-nums;min-width:8ch;text-align:right}
+button:focus-visible,input:focus-visible{outline:2px solid var(--ember);outline-offset:3px}
+.ic{width:1.2em;height:1.2em;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;vertical-align:-.22em}
+.icons{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:12px}
+.icons figure{margin:0;display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 8px;border:1px solid var(--line);border-radius:14px;background:var(--panel);font-size:12px;color:var(--soft);text-align:center}
+.icons .ic{width:28px;height:28px;color:var(--fg);stroke-width:1.6}
+.steps{display:flex;height:44px;border-radius:8px;overflow:hidden}
+.steps i{flex:1}
+
+/* scenes: fixed palette, they depict the app */
+.f{position:relative;aspect-ratio:16/10;border-radius:16px;overflow:hidden;container-type:inline-size;color:var(--bone);isolation:isolate;max-width:100%;background:#0b0d22}
+.f.hero{aspect-ratio:16/9;border-radius:22px}
+.nogl .f{background:linear-gradient(180deg,#1f4fb5 0 20%,#3f77d6 20% 38%,#74a6e8 38% 54%,#b4d2f2 54% 74%,#121d4a 74%)}
+.f>canvas{position:absolute;inset:0;width:100%;height:100%}
+.a{position:absolute}
+.d{font-family:var(--disp);font-weight:650;letter-spacing:-.02em}
+.num{font-family:var(--disp);font-weight:650;font-variant-numeric:tabular-nums;line-height:.95;letter-spacing:-.035em;white-space:nowrap}
+.num span{display:inline-block}
+.num .r{animation:roll .28s cubic-bezier(.2,.8,.2,1)}
+@keyframes roll{from{transform:translateY(.28em);opacity:0}}
+.num small{font-size:.28em;letter-spacing:0;margin-left:.25em;opacity:.85}
+.lens{display:inline-flex;align-items:center;gap:.5em;padding:.62em 1.15em;border-radius:999px;border:0;background:transparent;color:var(--bone);font:600 max(1.7cqw,10px) var(--disp);white-space:nowrap;cursor:pointer;position:relative;overflow:hidden}
+.nogl .lens{background:rgba(10,12,34,.45)}
+.nogl .lens[data-tint="1"]{background:#d9673a}
+.lens::after{content:"";position:absolute;left:0;bottom:0;height:100%;width:0;background:rgba(255,246,234,.22);pointer-events:none}
+.lens.holding::after{width:100%;transition:width 1.1s linear}
+.plain{background:none;border:0;color:var(--bone);font:500 max(1.5cqw,10px) var(--ui);cursor:pointer;opacity:.78;display:inline-flex;gap:.45em;align-items:center}
+.thing{background:none;border:0;color:var(--bone);cursor:pointer;display:inline-flex;align-items:center;gap:.55em;font:600 max(2.3cqw,12px) var(--disp);letter-spacing:-.01em;white-space:nowrap}
+.thing .ic{width:1.25em;height:1.25em}
+.thing .t{position:relative}
+.thing .t::after{content:"";position:absolute;left:0;top:54%;height:.09em;width:0;background:currentColor;border-radius:1em;transition:width .35s cubic-bezier(.3,.7,.2,1)}
+.thing.done .t{opacity:.6}
+.thing.done .t::after{width:100%}
+.thing .chk{stroke-dasharray:14;stroke-dashoffset:14;transition:stroke-dashoffset .3s .05s ease-out}
+.thing.done .chk{stroke-dashoffset:0}
+
+/* hero choreography: sky holds time and voice, ground holds what you do */
+.hero .fx{transition:opacity .6s ease,transform .9s cubic-bezier(.3,.7,.2,1),top .9s cubic-bezier(.3,.7,.2,1),font-size .9s cubic-bezier(.3,.7,.2,1)}
+.hero .big{left:50%;top:25%;font-size:13.5cqw;transform:translateX(-50%)}
+.hero .sub{left:50%;top:51%;transform:translateX(-50%);font:500 max(1.75cqw,10px) var(--ui);white-space:nowrap;display:flex;gap:.45em;align-items:center}
+.hero .voice{left:50%;top:50%;transform:translateX(-50%);font-size:4.2cqw;white-space:nowrap;opacity:0}
+.hero .acts{left:50%;top:61.5%;transform:translateX(-50%);display:flex;gap:1.2cqw}
+.hero .mine{left:50%;top:83.5%;transform:translateX(-50%)}
+.hero .back{left:50%;top:85%;transform:translate(-50%,2cqw);opacity:0;pointer-events:none}
+.hero .gate{left:50%;top:78.5%;width:56%;transform:translate(-50%,2cqw);opacity:0;pointer-events:none;display:flex;flex-direction:column;gap:1.3cqw}
+.hero .gate .note{font:500 max(1.5cqw,10px) var(--ui);opacity:.85;display:flex;gap:.5em;align-items:center}
+.hero .gate .row{display:flex;gap:1.4cqw;align-items:center}
+.hero .gate .field{flex:1;min-width:0;border-bottom:1.5px solid rgba(255,246,234,.5);padding-bottom:.5cqw;font:600 max(2cqw,11px) var(--disp);opacity:.6}
+.hero[data-ph=lock] .big,.hero[data-ph=rise] .big{top:24%;font-size:15cqw}
+.hero[data-ph=lock] .voice,.hero[data-ph=rise] .voice{opacity:1}
+.hero[data-ph=lock] .sub,.hero[data-ph=rise] .sub{top:60%}
+.hero[data-ph=lock] .acts,.hero[data-ph=rise] .acts,.hero[data-ph=gate] .acts{opacity:0;transform:translate(-50%,6cqw);pointer-events:none}
+.hero[data-ph=lock] .mine,.hero[data-ph=rise] .mine,.hero[data-ph=gate] .mine{opacity:0;transform:translate(-50%,3cqw);pointer-events:none}
+.hero[data-ph=lock] .back{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+.hero[data-ph=gate] .big{font-size:4.6cqw;top:8%}
+.hero[data-ph=gate] .voice{opacity:1;top:21%;font-size:7.5cqw}
+.hero[data-ph=gate] .sub{opacity:0}
+.hero[data-ph=gate] .gate{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+@media (prefers-reduced-motion:reduce){.hero .fx{transition:opacity .3s}.num .r{animation:none}}
+
+/* applied mocks */
+.side{left:0;top:0;bottom:0;width:21%;background:rgba(12,14,36,.38);-webkit-backdrop-filter:blur(20px) saturate(1.5);backdrop-filter:blur(20px) saturate(1.5);border-right:1px solid rgba(255,255,255,.14);padding:7cqw 1.5cqw 2cqw;display:flex;flex-direction:column;gap:.7cqw;font:500 max(2.1cqw,8px) var(--ui)}
+.side span{padding:.9cqw 1.3cqw;border-radius:1.4cqw;display:flex;gap:.6em;align-items:center}
+.side .on{background:rgba(255,255,255,.16);font-weight:600}
+.lights{left:1.6cqw;top:1.8cqw;display:flex;gap:.9cqw}
+.lights i{width:1.5cqw;height:1.5cqw;border-radius:50%;background:rgba(255,255,255,.4)}
+.desk{background:#23263f}
+.win{background:#f4f3f1;color:#23211f;border-radius:1.6cqw;box-shadow:0 2cqw 5cqw rgba(0,0,0,.4);font-size:max(1.9cqw,7.5px);overflow:hidden}
+.row{display:flex;align-items:center;justify-content:space-between;padding:1cqw 1.6cqw;border-top:1px solid #e2e0dc}
+.tog{width:3.4cqw;height:1.9cqw;border-radius:99px;background:#cfccc6}
+.tog.y{background:#34c759}
+.helper{background:#14162c;border:1px solid rgba(255,255,255,.14);border-radius:3cqw;box-shadow:0 2cqw 5cqw rgba(0,0,0,.45);padding:3cqw;display:flex;flex-direction:column;align-items:center;gap:1.5cqw;text-align:center}
+.icon{width:9cqw;height:9cqw;border-radius:2.1cqw;position:relative;overflow:hidden;background:linear-gradient(180deg,#2a2f7a 0 18%,#6a4a9c 18% 34%,#c8648a 34% 48%,#f2913f 48% 60%,#ffd98a 60% 70%,#1a143a 70%);box-shadow:0 1cqw 2.4cqw rgba(0,0,0,.45)}
+.icon::before{content:"";position:absolute;left:50%;top:70%;width:34%;aspect-ratio:1;border-radius:50%;background:#fff3d6;transform:translate(-50%,-62%);clip-path:inset(0 0 38% 0)}
+.mb{display:flex;align-items:center;gap:20px;flex-wrap:wrap;background:#1b1c2b;border-radius:12px;padding:10px 16px;color:#fff6ea;font:500 12px var(--ui)}
+.mb figure{margin:0;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;font-variant-numeric:tabular-nums;opacity:.9}
+
+/* week */
+.week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}
+.day{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:12px;color:var(--soft);min-width:0}
+.day b{font:650 12px var(--disp);font-variant-numeric:tabular-nums;color:var(--fg)}
+.day .ic{width:15px;height:15px;color:var(--fg)}
+.trk{position:relative;width:100%;height:120px;border-radius:8px;background:var(--chip);margin-bottom:3px}
+.trk::before{content:"";position:absolute;left:0;right:0;top:62%;border-top:1.5px solid var(--ember)}
+.dot{position:absolute;left:50%;width:12px;height:12px;border-radius:50%;background:var(--fg);transform:translate(-50%,-50%)}
+.dot.late{background:var(--ember)}
+.x{font-size:11px;color:var(--ember);font-weight:650}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="i-sunset" viewBox="0 0 24 24"><path d="M3 18h18M7 18a5 5 0 0 1 10 0M12 3.5v6m-3-2.6 3 3 3-3M4.6 12.6l1.6 1.2M19.4 12.6l-1.6 1.2M7 21.5h10"/></symbol>
+<symbol id="i-sunrise" viewBox="0 0 24 24"><path d="M3 18h18M7 18a5 5 0 0 1 10 0M12 9.5v-6m-3 2.6 3-3 3 3M4.6 12.6l1.6 1.2M19.4 12.6l-1.6 1.2M7 21.5h10"/></symbol>
+<symbol id="i-lock" viewBox="0 0 24 24"><path d="M7.5 11V8a4.5 4.5 0 0 1 9 0v3M6.5 11h11a1.5 1.5 0 0 1 1.5 1.5v6a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 5 18.5v-6A1.5 1.5 0 0 1 6.5 11z"/></symbol>
+<symbol id="i-unlock" viewBox="0 0 24 24"><path d="M7.5 11V8a4.5 4.5 0 0 1 8.7-1.6M6.5 11h11a1.5 1.5 0 0 1 1.5 1.5v6a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 5 18.5v-6A1.5 1.5 0 0 1 6.5 11z"/></symbol>
+<symbol id="i-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M8 12.4l2.7 2.7L16 9.6"/></symbol>
+<symbol id="i-more" viewBox="0 0 24 24"><path d="M19.6 10.2A8 8 0 1 0 12 20M12 7.5V12l3 1.8M19 14.5v6m-3-3h6"/></symbol>
+<symbol id="i-moon" viewBox="0 0 24 24"><path d="M19.5 14.2A8 8 0 0 1 9.8 4.5a8 8 0 1 0 9.7 9.7z"/></symbol>
+<symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.8v2M12 19.2v2M2.8 12h2M19.2 12h2M5.5 5.5l1.4 1.4M17.1 17.1l1.4 1.4M5.5 18.5l1.4-1.4M17.1 6.9l1.4-1.4"/></symbol>
+<symbol id="i-cal" viewBox="0 0 24 24"><path d="M5.5 6h13A1.5 1.5 0 0 1 20 7.5v11a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18.5v-11A1.5 1.5 0 0 1 5.5 6zM4 10.5h16M8 3.8v4M16 3.8v4"/></symbol>
+<symbol id="i-book" viewBox="0 0 24 24"><path d="M6 4h11a1.5 1.5 0 0 1 1.5 1.5V20H7.5A2.5 2.5 0 0 1 5 17.5v-12A1.5 1.5 0 0 1 6.5 4M5 17.5A2.5 2.5 0 0 1 7.5 15h11M9 8h6"/></symbol>
+</defs></svg>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">Curfew visual refresh, third pass</div>
+  <h1>The sky, cut in steps.</h1>
+  <p class="lead">A sky drawn one way: hard-edged bands of light that wrap the sun and flatten toward the horizon. The sun is your working day and sets at curfew. On screen is the time you have, the one thing you said today was for, and two buttons. Drag the slider, hold the first button, tick the task.</p>
+</header>
+
+<section class="sec">
+  <div class="f hero" id="hero" data-ph="work">
+    <canvas id="heroSky" aria-hidden="true"></canvas>
+    <div class="a fx big num" id="big" aria-live="off"></div>
+    <div class="a fx sub" id="sub"></div>
+    <div class="a fx voice d" id="voice">That's the day.</div>
+    <div class="a fx acts">
+      <button type="button" class="lens" id="ext"><svg class="ic"><use href="#i-more"/></svg><span id="extL">15 more minutes</span></button>
+      <button type="button" class="lens" data-tint="1" id="wrapUp"><svg class="ic"><use href="#i-sunset"/></svg>Call it a day</button>
+    </div>
+    <div class="a fx mine"><button type="button" class="thing" id="thing" aria-pressed="false"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path class="chk" d="M8 12.4l2.7 2.7L16 9.6"/></svg><span class="t">Ship the billing migration</span></button></div>
+    <div class="a fx back"><button type="button" class="plain"><svg class="ic"><use href="#i-unlock"/></svg>Need to get back in?</button></div>
+    <div class="a fx gate">
+      <div class="note"><svg class="ic"><use href="#i-moon"/></svg>Last night you left: pick up the billing migration at the retry test.</div>
+      <div class="row"><div class="field">What is today for?</div><button type="button" class="lens" data-tint="1"><svg class="ic"><use href="#i-sunrise"/></svg>Start the day</button></div>
+    </div>
+  </div>
+  <div class="ctl">
+    <button type="button" id="playSet">Play sunset</button>
+    <button type="button" id="playRise">Play sunrise</button>
+    <input type="range" id="scrub" min="840" max="1890" step="1" value="930" aria-label="Time of day">
+    <output id="clock" for="scrub">3:30 PM</output>
+  </div>
+  <p class="cap">The bands drift outward while you are working and stop when the Mac locks. Night falls from the top, one band at a time. The moon is in tonight's actual phase.</p>
+</section>
+
+<section class="sec">
+  <div class="sechead"><h2>What changed and why</h2></div>
+  <div class="specs">
+    <div class="card"><h3>Nothing you don't act on</h3><p>The status pill, first warning, extensions left and “back” are gone. Warnings arrive when they arrive. How many extensions remain shows only while you are asking for one. The unlock time shows only once you are locked.</p></div>
+    <div class="card"><h3>One hand for the sky</h3><p>No water, bloom, grain or ticks. Every pixel of sky is one of fourteen flat steps. The shapes come from how light falls off around the sun, so they change all day without anyone drawing them.</p></div>
+    <div class="card"><h3>Glass only on buttons</h3><p>Two buttons float in the densest part of the sky, where the glass has edges to bend. Nothing else is glass: no chips, no cards, no labels.</p></div>
+    <div class="card"><h3>One type family</h3><p>San Francisco throughout, rounded for numerals, headlines and buttons. No serif line, no engraved capitals.</p></div>
+    <div class="card"><h3>Sky for time, ground for you</h3><p>Above the horizon: the countdown and what Curfew says. Below it: your task, your note from last night, your answer in the morning.</p></div>
+    <div class="card"><h3>Icons carry the meaning</h3><p>Sunset means curfew, sunrise means morning, the lock means locked. Each control and status line leads with one, drawn at the system weight so they sit with SF Symbols.</p></div>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="sechead"><h2>Applied</h2></div>
+  <div class="two">
+    <div class="cell">
+      <div class="f scene" data-m="930" data-x0="0.27" data-x1="0.96">
+        <canvas aria-hidden="true"></canvas>
+        <div class="a side"><span class="on"><svg class="ic"><use href="#i-sun"/></svg>Today</span><span><svg class="ic"><use href="#i-cal"/></svg>Schedule</span><span><svg class="ic"><use href="#i-book"/></svg>Journal</span></div>
+        <div class="a lights"><i></i><i></i><i></i></div>
+        <div class="a num" style="left:60.5%;transform:translateX(-50%);top:25%;font-size:11.5cqw">2:30</div>
+        <div class="a" style="left:60.5%;transform:translateX(-50%);top:49.5%;font:500 max(2.2cqw,9px) var(--ui);white-space:nowrap;display:flex;gap:.45em;align-items:center"><svg class="ic"><use href="#i-sunset"/></svg>until curfew at 6:00 PM</div>
+        <div class="a" style="left:60.5%;transform:translateX(-50%);top:60.5%;display:flex;gap:1.4cqw"><span class="lens" style="font-size:max(2.1cqw,8px)"><svg class="ic"><use href="#i-more"/></svg>15 more minutes</span><span class="lens" data-tint="1" style="font-size:max(2.1cqw,8px)"><svg class="ic"><use href="#i-sunset"/></svg>Call it a day</span></div>
+        <div class="a" style="left:60.5%;transform:translateX(-50%);top:84%"><span class="thing" style="font-size:max(2.7cqw,10px)"><svg class="ic"><use href="#i-circle"/></svg><span class="t">Ship the billing migration</span></span></div>
+      </div>
+      <b>Today</b><span class="cap">The sky runs under the system sidebar. The streak chip is gone.</span>
+    </div>
+    <div class="cell">
+      <div class="f scene" data-m="1864">
+        <canvas aria-hidden="true"></canvas>
+        <div class="a num" style="left:0;right:0;text-align:center;top:8%;font-size:5cqw">7:04 <small style="font-size:.5em">AM</small></div>
+        <div class="a d" style="left:0;right:0;text-align:center;top:21%;font-size:9cqw">Morning.</div>
+        <div class="a" style="left:19%;right:19%;top:78.5%;display:flex;flex-direction:column;gap:1.6cqw">
+          <div style="font:500 max(2.1cqw,8px) var(--ui);opacity:.85;display:flex;gap:.5em;align-items:center"><svg class="ic"><use href="#i-moon"/></svg>Last night you left: pick up the billing migration at the retry test.</div>
+          <div style="display:flex;gap:2cqw;align-items:center"><div style="flex:1;min-width:0;border-bottom:1.5px solid rgba(255,246,234,.55);padding-bottom:.6cqw;font:600 max(2.6cqw,10px) var(--disp)">Ship the billing migration<span style="opacity:.5">|</span></div><span class="lens" data-tint="1" style="font-size:max(2.2cqw,8px)"><svg class="ic"><use href="#i-sunrise"/></svg>Start the day</span></div>
+        </div>
+      </div>
+      <b>Sunrise</b><span class="cap">Last night's note comes back, you answer one question, the Mac is yours. Which steps appear is up to you.</span>
+    </div>
+    <div class="cell">
+      <div class="f desk">
+        <div class="a win" style="left:5%;top:12%;width:50%;height:74%"><div style="padding:1.4cqw 1.6cqw;font-weight:650">Accessibility</div><div class="row"><span>Alfred</span><i class="tog y"></i></div><div class="row"><span>Raycast</span><i class="tog y"></i></div><div class="row" style="background:#fbe6d6;outline:2px dashed #e0703d;outline-offset:-3px"><span style="color:#b8491f;font-weight:650">Drop Curfew here</span><span></span></div><div class="row"><span>Rectangle</span><i class="tog"></i></div></div>
+        <div class="a helper" style="right:5%;top:19%;width:33%"><div class="icon"></div><div class="d" style="font-size:max(2.6cqw,9px)">Drag Curfew into the list</div><div style="font:400 max(1.9cqw,8px) var(--ui);opacity:.8">So the lock holds when shortcuts try to get past it.</div></div>
+        <svg viewBox="0 0 1000 625" style="position:absolute;inset:0;width:100%;height:100%" aria-hidden="true"><path d="M640 300 C600 300 590 345 548 345" fill="none" stroke="#fff6ea" stroke-width="4" stroke-linecap="round"/><path d="M562 333 L546 345 L562 357" fill="none" stroke="#fff6ea" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <b>Setup, step 2 of 3</b><span class="cap">A small panel sits beside System Settings with the icon to drag. Setup moves on by itself once access is granted.</span>
+    </div>
+    <div class="cell">
+      <div class="card">
+        <p class="d" style="color:var(--fg);font-size:18px;line-height:1.3">You stopped before curfew four nights out of five. Tuesday took 30 extra minutes.</p>
+        <div class="week">
+          <div class="day"><div class="trk"><i class="dot" style="top:44%"></i></div><b>5:48</b><svg class="ic"><use href="#i-check"/></svg>M</div>
+          <div class="day"><div class="trk"><i class="dot late" style="top:84%"></i></div><b>6:30</b><span class="x">+30</span>T</div>
+          <div class="day"><div class="trk"><i class="dot" style="top:55%"></i></div><b>5:55</b><svg class="ic"><use href="#i-check"/></svg>W</div>
+          <div class="day"><div class="trk"><i class="dot" style="top:30%"></i></div><b>5:21</b><svg class="ic"><use href="#i-check"/></svg>T</div>
+          <div class="day"><div class="trk"><i class="dot" style="top:60%"></i></div><b>5:58</b><span>&nbsp;</span>F</div>
+          <div class="day"><div class="trk" style="opacity:.4"></div><b>&nbsp;</b><span>&nbsp;</span>S</div>
+          <div class="day"><div class="trk" style="opacity:.4"></div><b>&nbsp;</b><span>&nbsp;</span>S</div>
+        </div>
+        <p class="cap">The dot is when you stopped; the line is curfew. A tick means you did the one thing.</p>
+      </div>
+      <b>The week</b><span class="cap">Replaces “lockout recorded”. It plots what you did, not what the app did.</span>
+    </div>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="sechead"><h2>Icons</h2><p>Drawn for Curfew at the SF Symbols weight. The menu bar icon is the live one: the sun drops toward the line as curfew nears.</p></div>
+  <div class="icons">
+    <figure><svg class="ic"><use href="#i-sunset"/></svg>Curfew</figure>
+    <figure><svg class="ic"><use href="#i-sunrise"/></svg>Sunrise</figure>
+    <figure><svg class="ic"><use href="#i-lock"/></svg>Locked</figure>
+    <figure><svg class="ic"><use href="#i-unlock"/></svg>Override</figure>
+    <figure><svg class="ic"><use href="#i-more"/></svg>More time</figure>
+    <figure><svg class="ic"><use href="#i-check"/></svg>The one thing</figure>
+    <figure><svg class="ic"><use href="#i-moon"/></svg>Last night</figure>
+    <figure><svg class="ic"><use href="#i-cal"/></svg>Schedule</figure>
+    <figure><svg class="ic"><use href="#i-book"/></svg>Journal</figure>
+  </div>
+  <div class="mb" id="mb"><span style="opacity:.6">Menu bar</span></div>
+</section>
+
+<section class="sec">
+  <div class="sechead"><h2>Rules</h2></div>
+  <div class="specs">
+    <div class="card"><h3>Colour is the time of day</h3><div class="steps"><i style="background:#1a44a8"></i><i style="background:#3870d1"></i><i style="background:#70a3e8"></i><i style="background:#b3d1f2"></i><i style="background:#f0f5fa"></i></div><div class="steps"><i style="background:#262b75"></i><i style="background:#614599"></i><i style="background:#bd618c"></i><i style="background:#f28f45"></i><i style="background:#ffd685"></i></div><div class="steps"><i style="background:#07081a"></i><i style="background:#0c0f2a"></i><i style="background:#13173f"></i><i style="background:#1b2052"></i><i style="background:#262a63"></i></div><p>Afternoon, the last hour, night. Ember is the only accent and marks the one primary action.</p></div>
+    <div class="card"><h3>Motion means the day is running</h3><p>Bands drift while you work and hold still when locked. Numerals roll when they change. Holding a button fills it. Reduce Motion stops the drift and swaps the sunset for a short fade.</p></div>
+    <div class="card"><h3>Pages follow the system</h3><p>Schedule, Journal and Settings are plain: warm paper in light mode, warm ink in dark. The sky is kept for Today, the lockout, Sunrise and setup.</p></div>
+    <div class="card"><h3>Three corners, one grid</h3><p>Controls 8, panels 20, buttons fully round. Spacing 4, 8, 12, 16, 24, 40, 64.</p></div>
+  </div>
+</section>
+</div>
+
+<script>
+(function(){
+var H=.26,WS=420,CF0=1080,CF=1080,UN=1860,left=3;
+var still=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+function qb(a,c,b,t){var u=1-t;return[u*u*a[0]+2*t*u*c[0]+t*t*b[0],u*u*a[1]+2*t*u*c[1]+t*t*b[1]];}
+function geo(a,b){var m=(a+b)/2;return{P0:[a,H],P2:[b,H],CS:[m,1.6],CM:[m,1.6]};}
+function sm(a,b,x){x=Math.max(0,Math.min(1,(x-a)/(b-a)));return x*x*(3-2*x);}
+var GF=geo(.07,.93);
+function model(m,G,cf){var p,SW,E,MW=0,q=(m-cf)/(UN-cf);
+ if(m<=cf){p=(m-WS)/(cf-WS);SW=1;E=Math.sin(Math.PI*Math.max(0,p));}
+ else if(m<UN){E=-.9*Math.min(1,(m-cf)/70,(UN-m)/35);
+  if(m<=cf+45){p=(m-WS)/(cf-WS);SW=1-sm(cf+5,cf+45,m);}else if(m>=UN-40){p=(m-UN)/(CF0-WS);SW=sm(UN-40,UN-5,m);}else{p=1.2;SW=0;}
+  MW=Math.min(sm(cf+5,cf+50,m),1-sm(UN-50,UN-10,m));}
+ else{p=(m-UN)/(CF0-WS);SW=1;E=Math.sin(Math.PI*p);}
+ return{S:qb(G.P0,G.CS,G.P2,p),SW:SW,M:qb(G.P0,G.CM,G.P2,q),MW:MW,E:E};}
+var jd=Date.now()/864e5+2440587.5,age=((jd-2451550.1)%29.530588853+29.530588853)%29.530588853,MOON=2*Math.PI*age/29.530588853;
+var FS=['#version 300 es','precision highp float;',
+'uniform vec2 R;uniform vec2 S;uniform vec2 M;uniform vec2 W;uniform float E;uniform float PH;uniform float MO;uniform float DP;uniform vec4 G[4];uniform vec3 GP[4];out vec4 o;',
+'const float H=.26;const float N=14.;',
+'vec3 ph(vec3 d,vec3 g,vec3 u,vec3 n,float e){if(e>.1)return mix(g,d,smoothstep(.1,.55,e));if(e>-.05)return mix(u,g,smoothstep(-.05,.1,e));return mix(n,u,smoothstep(-.4,-.05,e));}',
+'vec3 ramp(float k,float e){vec3 c0=ph(vec3(.10,.27,.66),vec3(.15,.17,.46),vec3(.07,.08,.24),vec3(.027,.031,.094),e),c1=ph(vec3(.22,.44,.82),vec3(.38,.27,.60),vec3(.20,.15,.42),vec3(.047,.059,.165),e),c2=ph(vec3(.44,.64,.91),vec3(.74,.38,.55),vec3(.50,.22,.45),vec3(.10,.12,.31),e),c3=ph(vec3(.70,.82,.95),vec3(.95,.56,.27),vec3(.83,.34,.30),vec3(.135,.155,.37),e),c4=ph(vec3(.94,.96,.98),vec3(1.,.84,.52),vec3(.96,.62,.30),vec3(.19,.21,.46),e);',
+' float x=clamp(k,0.,1.)*4.;if(x<1.)return mix(c0,c1,x);if(x<2.)return mix(c1,c2,x-1.);if(x<3.)return mix(c2,c3,x-2.);return mix(c3,c4,x-3.);}',
+'vec3 scene(vec2 p){vec2 uv=p/R;float asp=R.x/R.y;float a=max((uv.y-H)/(1.-H),0.);',
+' float rs=length(vec2((uv.x-S.x)*asp,uv.y-S.y)),rm=length(vec2((uv.x-M.x)*asp,uv.y-M.y));',
+' float low=1.-smoothstep(.05,.6,abs(E));',
+' float L=1.-(1.-exp(-rs*2.4)*W.x)*(1.-exp(-rm*3.2)*W.y*.7)*(1.-exp(-a*3.2)*mix(.34,.9,low));',
+' float x=L*N+PH;float w=clamp(fwidth(x)*1.1,0.,.45);float kq=floor(x)+smoothstep(1.-w,1.,fract(x));float k=(kq-PH)/N;',
+' vec3 c=ramp(k,E+(k-.5)*.24);float aa=1.5/R.y;',
+' c=mix(c,ramp(1.,E+.12)*1.02+.03,(1.-smoothstep(.05-aa,.05+aa,rs))*step(.01,W.x));',
+' vec2 q=vec2((uv.x-M.x)*asp,uv.y-M.y)/.04;float mq=dot(q,q);float lit=step(0.,q.x*sin(MO)-sqrt(max(1.-mq,0.))*cos(MO));',
+' c=mix(c,mix(vec3(.2,.22,.42),vec3(.93,.92,.97),lit),(1.-smoothstep(1.-aa*40.,1.+aa*40.,mq))*smoothstep(.0,.25,W.y));',
+' vec3 g=ph(vec3(.07,.11,.29),vec3(.11,.085,.25),vec3(.065,.05,.18),vec3(.018,.02,.055),E);return uv.y<H?g:c;}',
+'float sd(vec2 p,vec4 g,float r){vec2 q=abs(p-g.xy)-g.zw+r;return length(max(q,0.))+min(max(q.x,q.y),0.)-r;}',
+'void main(){vec2 p=gl_FragCoord.xy;vec2 pp=p;float rim=0.,tint=0.,ins=0.;',
+' for(int i=0;i<4;i++){vec4 g=G[i];vec3 gp=GP[i];if(gp.z>.01){float d=sd(p,g,gp.x);if(d<0.){float t=clamp(1.+d/max(gp.x,1.),0.,1.);vec2 n=normalize(vec2(sd(p+vec2(1.,0.),g,gp.x)-sd(p-vec2(1.,0.),g,gp.x),sd(p+vec2(0.,1.),g,gp.x)-sd(p-vec2(0.,1.),g,gp.x))+1e-5);',
+'  pp=p-n*t*t*gp.x*1.15*gp.z;ins=max(ins,gp.z);tint=max(tint,gp.y*gp.z);rim=max(rim,smoothstep(-2.6*DP,-.7*DP,d)*gp.z*(.5+.5*n.y));}}}',
+' vec3 c=scene(pp);c=mix(c,c*.62,ins*(1.-tint));c=mix(c,vec3(.86,.40,.21),tint*.8);c+=rim*.42;o=vec4(c,1.);}'].join('\n');
+function mk(cv){var gl=cv.getContext('webgl2',{antialias:false,preserveDrawingBuffer:true});if(!gl)return null;
+ function sh(t,s){var x=gl.createShader(t);gl.shaderSource(x,s);gl.compileShader(x);if(!gl.getShaderParameter(x,gl.COMPILE_STATUS)){console.error(gl.getShaderInfoLog(x));return null;}return x;}
+ var vs=sh(gl.VERTEX_SHADER,'#version 300 es\nin vec2 p;void main(){gl_Position=vec4(p,0.,1.);}'),fs=sh(gl.FRAGMENT_SHADER,FS);if(!vs||!fs)return null;
+ var pr=gl.createProgram();gl.attachShader(pr,vs);gl.attachShader(pr,fs);gl.linkProgram(pr);if(!gl.getProgramParameter(pr,gl.LINK_STATUS)){console.error(gl.getProgramInfoLog(pr));return null;}gl.useProgram(pr);
+ var b=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);
+ var l=gl.getAttribLocation(pr,'p');gl.enableVertexAttribArray(l);gl.vertexAttribPointer(l,2,gl.FLOAT,false,0,0);
+ var U={};['R','S','M','W','E','PH','MO','DP','G','GP'].forEach(function(n){U[n]=gl.getUniformLocation(pr,n);});
+ var ga=new Float32Array(16),gp=new Float32Array(12);
+ return function(o,phase,lens,dpr){gl.viewport(0,0,cv.width,cv.height);gl.uniform2f(U.R,cv.width,cv.height);gl.uniform2f(U.S,o.S[0],o.S[1]);gl.uniform2f(U.M,o.M[0],o.M[1]);gl.uniform2f(U.W,o.SW,o.MW);gl.uniform1f(U.E,o.E);gl.uniform1f(U.PH,phase);gl.uniform1f(U.MO,MOON);gl.uniform1f(U.DP,dpr);
+  ga.fill(0);gp.fill(0);for(var i=0;i<lens.length&&i<4;i++){ga.set(lens[i].slice(0,4),i*4);gp.set(lens[i].slice(4,7),i*3);}gl.uniform4fv(U.G,ga);gl.uniform3fv(U.GP,gp);gl.drawArrays(gl.TRIANGLES,0,3);};}
+function dprOf(){return Math.min(window.devicePixelRatio||1,2);}
+function fit(cv){var d=dprOf(),w=Math.max(2,Math.round(cv.clientWidth*d)),h=Math.max(2,Math.round(cv.clientHeight*d));if(cv.width!==w||cv.height!==h){cv.width=w;cv.height=h;}}
+function lenses(box,cv){var out=[],c=cv.getBoundingClientRect();if(!c.width)return out;var sc=cv.width/c.width,els=box.querySelectorAll('.lens');
+ for(var i=0;i<els.length;i++){var el=els[i],a=1,n=el;while(n&&n!==box){a*=parseFloat(getComputedStyle(n).opacity);n=n.parentElement;}if(a<.02)continue;
+  var r=el.getBoundingClientRect(),rad=Math.min(parseFloat(getComputedStyle(el).borderTopLeftRadius)||0,r.height/2);
+  out.push([(r.left+r.width/2-c.left)*sc,(c.bottom-(r.top+r.height/2))*sc,r.width/2*sc,r.height/2*sc,rad*sc,+el.dataset.tint||0,a]);}return out;}
+
+var off=document.createElement('canvas'),drawOff=mk(off);
+if(!drawOff)document.documentElement.classList.add('nogl');
+function paintScenes(){if(!drawOff)return;var list=document.querySelectorAll('.scene');for(var i=0;i<list.length;i++){var el=list[i],cv=el.querySelector('canvas'),G=el.dataset.x0?geo(+el.dataset.x0,+el.dataset.x1):GF;fit(cv);off.width=cv.width;off.height=cv.height;drawOff(model(+el.dataset.m,G,CF0),3.3,lenses(el,cv),dprOf());cv.getContext('2d').drawImage(off,0,0);}}
+
+var $=function(id){return document.getElementById(id);},hero=$('hero'),hcv=$('heroSky'),drawHero=drawOff?mk(hcv):null,scrub=$('scrub');
+var m=+scrub.value,anim=null,phase=3.3,last=performance.now(),ph='work',cache={};
+function clk(mm){var h=Math.floor(mm/60)%24,mi=Math.floor(mm%60),ap=h>=12?'PM':'AM';return{t:(h%12||12)+':'+(mi<10?'0':'')+mi,ap:ap};}
+function full(mm){var c=clk(mm);return c.t+' '+c.ap;}
+function ico(n){return'<svg class="ic"><use href="#i-'+n+'"/></svg>';}
+function put(id,html){if(cache[id]!==html){cache[id]=html;$(id).innerHTML=html;}}
+function roll(str,suffix){var key=str+'|'+(suffix||'');if(cache.big===key)return;var prev=(cache.big||'').split('|')[0],h='';for(var i=0;i<str.length;i++)h+='<span'+(prev.length===str.length&&prev[i]!==str[i]?' class="r"':'')+'>'+str[i]+'</span>';if(suffix)h+='<small>'+suffix+'</small>';cache.big=key;$('big').innerHTML=h;}
+function ui(){ph=m<CF-30?'work':m<CF?'warn':m<UN-20?'lock':m<UN?'rise':'gate';hero.dataset.ph=ph;var rem=Math.max(0,Math.ceil(CF-m)),c=clk(m);$('clock').textContent=full(m);
+ if(ph==='work'||ph==='warn'){roll(Math.floor(rem/60)+':'+(rem%60<10?'0':'')+rem%60);
+  put('sub',ph==='work'?ico('sunset')+'until curfew at '+full(CF):rem>15?'Decide what gets finished and what waits.':rem>5?"Finish what you're in. Don't start anything.":rem>1?'Save everything.':'Last call.');}
+ else{roll(c.t,c.ap);put('voice',ph==='lock'?"That's the day.":ph==='rise'?'Nearly morning.':'Morning.');
+  put('sub',ph==='rise'?ico('sunrise')+'Unlocks in '+Math.max(1,Math.ceil(UN-m))+' minutes':ico('lock')+'Unlocks at 7:00 AM');}}
+function frame(now){var dt=Math.min(.1,(now-last)/1000);last=now;if(!still&&(ph==='work'||ph==='warn'||ph==='gate'))phase+=dt*.05;fit(hcv);if(drawHero)drawHero(model(m,GF,CF),phase,lenses(hero,hcv),dprOf());requestAnimationFrame(frame);}
+function play(a,b,ms){if(anim)cancelAnimationFrame(anim);var s=performance.now();(function step(n){var k=Math.min(1,(n-s)/ms);k=k*k*(3-2*k);m=a+(b-a)*k;scrub.value=Math.round(m);ui();if(k<1)anim=requestAnimationFrame(step);})(s);}
+scrub.addEventListener('input',function(){if(anim)cancelAnimationFrame(anim);m=+scrub.value;ui();});
+$('playSet').addEventListener('click',function(){play(CF-45,CF+14,still?400:9000);});
+$('playRise').addEventListener('click',function(){play(UN-34,UN+6,still?400:8000);});
+$('wrapUp').addEventListener('click',function(){if(ph==='work'||ph==='warn')play(m,CF+10,still?400:5000);});
+var thing=$('thing');thing.addEventListener('click',function(){var d=thing.classList.toggle('done');thing.setAttribute('aria-pressed',d?'true':'false');});
+var ext=$('ext'),holdT=null;
+function hold(){if(holdT||left<1||(ph!=='work'&&ph!=='warn'))return;ext.classList.add('holding');$('extL').textContent='Keep holding. '+left+' left this week';holdT=setTimeout(function(){holdT=null;ext.classList.remove('holding');CF+=15;left--;$('extL').textContent='Added';ui();setTimeout(function(){$('extL').textContent=left?'15 more minutes':'No extensions left';},1600);},1100);}
+function drop(){if(!holdT)return;clearTimeout(holdT);holdT=null;ext.classList.remove('holding');$('extL').textContent='Hold for 15 more minutes';setTimeout(function(){if(!holdT)$('extL').textContent=left?'15 more minutes':'No extensions left';},1400);}
+ext.addEventListener('pointerdown',hold);ext.addEventListener('pointerup',drop);ext.addEventListener('pointerleave',drop);
+ext.addEventListener('keydown',function(e){if((e.key===' '||e.key==='Enter')&&!e.repeat){e.preventDefault();hold();}});ext.addEventListener('keyup',function(e){if(e.key===' '||e.key==='Enter')drop();});
+
+(function(){var mb=$('mb'),g=[['3:30 PM',6,1],['5:10 PM',10,1],['5:40 PM',13.5,1],['Locked',0,0],['6:45 AM',13.5,2]];
+ for(var i=0;i<g.length;i++){var y=g[i][1],k=g[i][2],s='<svg width="22" height="18" viewBox="0 0 22 18" aria-hidden="true"><defs><clipPath id="c'+i+'"><rect width="22" height="13.5"/></clipPath></defs>';
+  if(k)s+='<circle cx="'+(k===1?13:7)+'" cy="'+y+'" r="3.5" fill="#fff6ea" clip-path="url(#c'+i+')"/>';
+  s+='<line x1="2" y1="13.5" x2="20" y2="13.5" stroke="#fff6ea" stroke-width="1.6" stroke-linecap="round"/></svg>';
+  var f=document.createElement('figure');f.innerHTML=s+'<span>'+g[i][0]+'</span>';mb.appendChild(f);}})();
+
+var rz;window.addEventListener('resize',function(){clearTimeout(rz);rz=setTimeout(paintScenes,120);});
+ui();requestAnimationFrame(function(){paintScenes();requestAnimationFrame(frame);});
+})();
+</script>
