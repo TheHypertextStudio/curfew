@@ -28,13 +28,50 @@ struct RuntimeRestartTests {
             extensionResetBoundary: now, overrideResetBoundary: now,
             overrideUntil: now.addingTimeInterval(1800)
         ))
-        let model = makeModel(store: store, now: now, enforcementEnabled: true)
+        let model = makeModel(
+            store: store, now: now, settingsStore: settingsStore(grantedAt: [now]),
+            enforcementEnabled: true
+        )
         #expect(model.extensionMinutesGrantedToday == 30)
         #expect(model.snoozeMinutesGrantedToday == 2)
         #expect(model.extensionsRemaining == 1)
         #expect(model.overridesRemaining == 1)
         #expect(model.overrideUntil == now.addingTimeInterval(1800))
-        #expect(model.state.phase == .working)
+        #expect(model.state.phase != .locked)
+    }
+
+    @Test("A restored override with no recorded grant is discarded")
+    func unrecordedOverrideIsDiscarded() throws {
+        let now = Date()
+        let store = EnforcementRuntimeStateStore()
+        try store.save(EnforcementRuntimeState(
+            dayToken: CurfewAppModel.dayToken(for: now),
+            extensionUses: 0, overrideUses: 0,
+            extensionResetBoundary: now, overrideResetBoundary: now,
+            overrideUntil: now.addingTimeInterval(30 * 24 * 3600)
+        ))
+        let model = makeModel(store: store, now: now, enforcementEnabled: true)
+        #expect(model.overrideUntil == nil)
+        #expect(model.state.phase == .locked)
+    }
+
+    @Test("A restored override cannot outlast its recorded grant plus the configured duration")
+    func restoredOverrideIsClamped() throws {
+        let now = Date()
+        let grantedAt = now.addingTimeInterval(-600)
+        let store = EnforcementRuntimeStateStore()
+        try store.save(EnforcementRuntimeState(
+            dayToken: CurfewAppModel.dayToken(for: now),
+            extensionUses: 0, overrideUses: 1,
+            extensionResetBoundary: now, overrideResetBoundary: now,
+            overrideUntil: now.addingTimeInterval(30 * 24 * 3600)
+        ))
+        let model = makeModel(
+            store: store, now: now, settingsStore: settingsStore(grantedAt: [grantedAt]),
+            enforcementEnabled: true
+        )
+        let limit = TimeInterval(model.settings.overrideDurationMinutes * 60)
+        #expect(model.overrideUntil == grantedAt.addingTimeInterval(limit))
     }
 
     @Test("Restart after midnight discards daily grants but retains weekly consumption")
@@ -75,7 +112,9 @@ struct RuntimeRestartTests {
             .addingTimeInterval(-OverrideRequestPolicy.cooldownSeconds)
         #expect(model.canConfirmOverride)
         model.confirmOverride()
-        let restarted = makeModel(store: EnforcementRuntimeStateStore(recordURL: url))
+        let restarted = makeModel(
+            store: EnforcementRuntimeStateStore(recordURL: url), settingsStore: model.settingsStore
+        )
         #expect(restarted.extensionMinutesGrantedToday == 15)
         #expect(restarted.snoozeMinutesGrantedToday == 1)
         #expect(restarted.extensionsRemaining == 2)
@@ -177,6 +216,18 @@ struct RuntimeRestartTests {
             lockoutDeadlineStore: ModelTestSupport.lockoutDeadlineStore(),
             runtimeStateStore: store, runtimeNow: now
         )
+    }
+
+    private func settingsStore(grantedAt dates: [Date]) -> CurfewSettingsStore {
+        let defaults = UserDefaults(suiteName: "CurfewRuntimeTests.\(UUID().uuidString)")!
+        let store = CurfewSettingsStore(defaults: defaults)
+        for date in dates {
+            store.appendOverrideEvent(OverrideEvent(
+                timestamp: date, deviceName: "Test Mac",
+                reason: String(repeating: "r", count: 50), grantedDurationMinutes: 30
+            ))
+        }
+        return store
     }
 
     private func warningState() -> CurfewEvaluation {

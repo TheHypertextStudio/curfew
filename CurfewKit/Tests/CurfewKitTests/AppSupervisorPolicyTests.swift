@@ -87,4 +87,28 @@ struct AppSupervisorPolicyTests {
         let decision9 = policy.shouldLaunch(at: now.addingTimeInterval(62), appIsRunning: false)
         #expect(decision9)
     }
+
+    @Test("Repeated kills during an active lockout deadline relaunch without backing off")
+    func lockoutDeadlineDisablesBackoff() {
+        var policy = AppSupervisorPolicy()
+        var now = Date(timeIntervalSince1970: 1000)
+        for _ in 0 ..< 6 {
+            let decision = policy.shouldLaunch(at: now, appIsRunning: false, lockoutActive: true)
+            #expect(decision)
+            policy.launchCompleted(at: now)
+            now = now.addingTimeInterval(1)
+        }
+        let coalesced = policy.shouldLaunch(at: now, appIsRunning: false, lockoutActive: true)
+        #expect(coalesced)
+        let inFlight = policy.shouldLaunch(at: now, appIsRunning: false, lockoutActive: true)
+        #expect(!inFlight)
+        policy.launchCompleted(at: now)
+        // Once the deadline passes, ordinary recovery starts from the base delay.
+        let afterLockout = policy.shouldLaunch(
+            at: now.addingTimeInterval(1), appIsRunning: false
+        )
+        #expect(!afterLockout)
+        let base = policy.shouldLaunch(at: now.addingTimeInterval(5), appIsRunning: false)
+        #expect(base)
+    }
 }

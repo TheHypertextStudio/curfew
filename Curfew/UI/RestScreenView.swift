@@ -130,7 +130,8 @@ struct RestScreenView: View {
                                 .background(.white.opacity(0.12), in: Capsule())
                                 .accessibilityIdentifier("rest-now")
                         }
-                        if model.restRuntime.handoff.coordinator?.policy.setupStatus != nil {
+                        if !model.isEnforcingLockout,
+                           model.restRuntime.handoff.coordinator?.policy.setupStatus != nil {
                             Button("Set up Curfew screensaver…") { model.openRestScreenSetup() }
                                 .foregroundStyle(SundownPalette.warmWhite)
                                 .accessibilityIdentifier("rest-saver-setup")
