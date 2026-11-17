@@ -41,28 +41,22 @@ extension SettingsView {
 
     /// Weekly counts and lengths of more time and overrides. The ranges bound
     /// each stepper to values that don't break downstream invariants (overrides
-    /// have a 15-minute floor).
+    /// have a 15-minute floor). Each row shows the value in force; a raise
+    /// waits like a looser schedule and is described under the row's label,
+    /// with a button beside the stepper to keep the current value.
     var extensionsPanel: some View {
         @Bindable var model = model
-        return SettingsGroup("More time and overrides") {
-            SettingsValueRow(
-                title: "More time per week", detail: "Each one pushes curfew back.",
-                value: $model.settings.extensionWeeklyLimit, range: 0 ... 10
+        return SettingsGroup("More time and overrides", footer: LimitSurfaceCopy.groupFooter) {
+            limitRow(
+                .extensionCount, title: "More time per week",
+                detail: "Each one pushes curfew back.", range: 0 ... 10
             )
-            SettingsValueRow(
-                title: "Length of more time",
-                value: $model.settings.extensionDurationMinutes, range: 5 ... 60,
-                step: 5, usesMinutes: true
+            limitRow(.extensionMinutes, title: "Length of more time", range: 5 ... 60, step: 5)
+            limitRow(
+                .overrideCount, title: "Overrides per week",
+                detail: "Each one gets you back in after the lock.", range: 0 ... 10
             )
-            SettingsValueRow(
-                title: "Overrides per week", detail: "Each one gets you back in after the lock.",
-                value: $model.settings.overrideWeeklyLimit, range: 0 ... 10
-            )
-            SettingsValueRow(
-                title: "Length of an override",
-                value: $model.settings.overrideDurationMinutes, range: 15 ... 60,
-                step: 5, usesMinutes: true
-            )
+            limitRow(.overrideMinutes, title: "Length of an override", range: 15 ... 60, step: 5)
             SettingsPickerRow(
                 title: "Week starts on",
                 detail: "More time and overrides refill on this day.",
@@ -74,6 +68,32 @@ extension SettingsView {
                 }
             }
         }
+    }
+
+    private func limitRow(
+        _ limit: WeeklyLimit, title: String, detail: String? = nil,
+        range: ClosedRange<Int>, step: Int = 1
+    ) -> some View {
+        let waiting = model.pendingLimitDescription(for: limit)
+        let usesMinutes = limit == .extensionMinutes || limit == .overrideMinutes
+        let standing = LimitSurfaceCopy.value(model.settings[limit], of: limit)
+        return SettingsValueRow(
+            title: title,
+            detail: waiting ?? detail,
+            tone: waiting == nil ? .secondary : .warning,
+            value: Binding(
+                get: { model.requestedLimit(limit) },
+                set: { model.requestLimit(limit, value: $0) }
+            ),
+            range: range, step: step, usesMinutes: usesMinutes,
+            shownValue: model.settings[limit],
+            action: waiting == nil ? nil : SettingsRowAction(
+                title: LimitSurfaceCopy.keep(standing),
+                accessibilityLabel: LimitSurfaceCopy.keepAccessibility(title, standing: standing)
+            ) {
+                model.cancelPendingLimit(limit)
+            }
+        )
     }
 
     /// Five steppers for the five warning stages, kept behind one disclosure
