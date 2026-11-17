@@ -281,6 +281,7 @@ rollback restores the prior fullscreen-warning gap.
 - Once the budget is spent, the button is disabled with text: _"No extensions remaining this week."_
 - Extensions reset on a configurable day (default: Monday at unlock time)
 - Extension usage is logged and shown in the weekly summary
+- Raising a weekly limit (the count or length of extensions or overrides) waits like a looser schedule: it applies 24 hours after the request, and a due raise is held while this Mac is locked. Lowering a limit applies at once. Until a raise applies, enforcement, Today, the lock, MCP, the CLI and the widget all use the value in force; Settings shows the value in force and says what is waiting, when it applies, and offers to keep the current value. Before setup finishes, edits apply immediately.
 
 **UX Notes:**
 

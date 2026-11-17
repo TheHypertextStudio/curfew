@@ -102,8 +102,11 @@ extension CurfewAppModel {
     /// the next sync. The C7 guard then catches it on the apply path too,
     /// but deferring at receive time keeps the local schedule in `settings`
     /// rather than silently rewriting it.
+    ///
+    /// Weekly limits are gated on every receipt, locked or not: a raise from
+    /// another Mac waits here as a local raise would (`WeeklyLimitPolicy`).
     private func mergedSettingsApplyingRemote(_ remote: CurfewSettings) -> CurfewSettings {
-        var merged = remote
+        var merged = limitPolicy.gateRemote(remote, local: settings, at: currentTime)
         guard state.phase == .locked else { return merged }
         let classification = policyEngine.classifyChange(
             from: settings.schedule,

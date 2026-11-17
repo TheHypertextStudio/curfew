@@ -902,6 +902,11 @@ tests cannot read or mutate a user's App Group lockout record.
   - `SchedulePolicyEngineTests/stricterChangeAppliesNextDay()`
 - `Weaker schedule changes require 24-hour cooldown.`
   - `SchedulePolicyEngineTests/weakeningChangeHas24HourCooldown()`
+- `Raised weekly limits wait like a looser schedule; lowered limits apply at once.`
+  - `WeeklyLimitPolicyTests` (raise waits for each limit, same boundary as the schedule, lower applies, lower clears a waiting raise, replace, shrink keeps time, set back cancels, limits wait independently, setup applies at once, applies on time, held while locked, clock set back, stale entries dropped, synced raises wait and cannot be backdated, sync echo keeps time, synced lower applies, encoding round trip, legacy payload, store relaunch)
+  - `WeeklyLimitWaitTests` (5:55 PM raise, lower, replace and cancel, every reader uses the value in force: Today's more time, MCP extension, the widget snapshot and the lock's override; relaunch, clock set back and forward into the lock, week rollover, schedule off, setup, CloudKit receipt, row wording)
+  - `BudgetCommandTests/waitingRaiseIsNotReported()`
+  - Snapshots: `DestinationSnapshotTests/testRenderWaitingLimitRaises` writes `curfew-settings-limits-{steady,waiting}-{light,dark}.png`.
 - `Add DST-safe local timezone handling and schedule resolution tests.`
   - `ScheduleResolutionTests/scheduleWindowResolvesSpringForwardGap()`
 - `Add schedule summary sentence generation for Settings.`

@@ -90,6 +90,30 @@ struct BudgetCommandTests {
         #expect(extensions["remaining"] == 0)
     }
 
+    @Test("Budget reports the limits in force, not a raise that is still waiting")
+    func waitingRaiseIsNotReported() throws {
+        var settings = CurfewSettings.default
+        settings.hasCompletedInitialSetup = true
+        let policy = WeeklyLimitPolicy()
+        let now = try budgetDate(day: 2)
+        settings = policy.request(.extensionCount, value: 10, in: settings, at: now)
+        settings = policy.request(.extensionMinutes, value: 60, in: settings, at: now)
+        settings = policy.request(.overrideCount, value: 10, in: settings, at: now)
+        settings = policy.request(.overrideMinutes, value: 60, in: settings, at: now)
+        let store = EnforcementRuntimeStateStore()
+        try store.save(EnforcementRuntimeState(dayToken: "2026-11-02", extensionUses: 1))
+        let result = try BudgetCommand.snapshot(
+            settings: settings, store: store, now: now, calendar: budgetCalendar()
+        )
+        let extensions = try #require(result["extensions"] as? [String: Int])
+        let overrides = try #require(result["overrides"] as? [String: Int])
+        #expect(extensions["weekly_limit"] == 3)
+        #expect(extensions["remaining"] == 2)
+        #expect(extensions["duration_seconds"] == 15 * 60)
+        #expect(overrides["weekly_limit"] == 2)
+        #expect(overrides["duration_seconds"] == 30 * 60)
+    }
+
     @Test("Missing runtime authority cannot become a full budget")
     func missingRuntime() {
         #expect(throws: (any Error).self) {
