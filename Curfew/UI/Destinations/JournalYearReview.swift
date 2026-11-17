@@ -1,3 +1,4 @@
+import AppKit
 import CoreGraphics
 import CurfewAtmosphere
 import CurfewKit
@@ -50,6 +51,23 @@ struct JournalYearReview: Equatable, Sendable {
 
     let year: Int
     let content: Content
+
+    /// Where the year in review sits on the year page.
+    enum Placement: Equatable, Sendable {
+        /// First, under the page's headline and above the tiles: the card
+        /// is the year's shareable object.
+        case leading
+        /// After every other section.
+        case trailing
+    }
+
+    var placement: Placement {
+        switch content {
+        case .card: .leading
+        // One line leading the page reads as a fault; it waits at the end.
+        case .tooFewDays: .trailing
+        }
+    }
 
     /// The card for the year `period` covers, from that year's records.
     /// `today` decides whether the year is finished.
@@ -238,5 +256,50 @@ struct JournalYearMark: Equatable, Sendable {
     static func strokeWidth(count: Int, width: Double) -> Double {
         let slot = (lineEnd - lineStart) * width / Double(max(count, 1))
         return max(1, slot * strokeShare)
+    }
+}
+
+/// What the Copy and Save actions are doing. The image renders before it
+/// can be copied or written, which takes a moment, so each action says it is
+/// working and Copy confirms in its own label.
+enum JournalYearReviewWork: Equatable, Sendable {
+    case idle
+    case copying
+    case copied
+    case saving
+
+    /// How long "Copied" stays in the Copy button.
+    static let copiedDuration: Duration = .seconds(1.6)
+
+    var copyTitle: String {
+        switch self {
+        case .copying: "Copying…"
+        case .copied: "Copied"
+        case .idle, .saving: "Copy image"
+        }
+    }
+
+    var copySymbol: String {
+        self == .copied ? "checkmark" : "doc.on.doc"
+    }
+
+    var saveTitle: String {
+        self == .saving ? "Saving…" : "Save image…"
+    }
+
+    /// Copy and Save wait while either is rendering.
+    var isRendering: Bool {
+        self == .copying || self == .saving
+    }
+}
+
+/// Puts the year in review's PNG on a pasteboard.
+enum JournalYearReviewPasteboard {
+    /// Replaces `pasteboard`'s contents with the image. Returns whether the
+    /// pasteboard took it.
+    @discardableResult
+    static func write(png: Data, to pasteboard: NSPasteboard) -> Bool {
+        pasteboard.clearContents()
+        return pasteboard.setData(png, forType: .png)
     }
 }

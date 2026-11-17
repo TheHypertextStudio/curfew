@@ -1,3 +1,4 @@
+import AppKit
 @testable import Curfew
 import CurfewKit
 import Foundation
@@ -265,5 +266,73 @@ struct JournalYearReviewTests {
             format: format
         )
         #expect(screen.yearReview == nil)
+    }
+}
+
+/// Where the card sits on the page, and what Copy and Save say and do.
+extension JournalYearReviewTests {
+    // MARK: - Section order
+
+    @Test func theYearPageLeadsWithTheCardAndOtherRangesHaveNone() {
+        let days = records(Array(repeating: -10, count: 30))
+        let weekdays: Set<Weekday> = [.monday, .tuesday, .wednesday, .thursday, .friday]
+        func sections(_ range: JournalRange) -> [JournalScreen.Section] {
+            JournalScreen(
+                records: days,
+                period: JournalPeriod.containing(
+                    day(2026, 1, 20),
+                    range: range,
+                    calendar: calendar
+                ),
+                today: day(2026, 6, 1),
+                workingWeekdays: weekdays,
+                format: format
+            ).sections
+        }
+        #expect(sections(.year) == [.yearReview, .summary, .patterns, .words, .days])
+        #expect(sections(.month) == [.summary, .patterns, .words, .days])
+        #expect(sections(.week) == [.summary, .patterns, .words, .days])
+    }
+
+    @Test func aYearWithTooFewDaysEndsThePageWithItsOneLine() {
+        let few = records(Array(repeating: -10, count: 6))
+        #expect(review(few, today: day(2026, 3, 1)).placement == .trailing)
+        let screen = JournalScreen(
+            records: few,
+            period: JournalPeriod.containing(day(2026, 1, 20), range: .year, calendar: calendar),
+            today: day(2026, 6, 1),
+            workingWeekdays: [.monday, .tuesday, .wednesday, .thursday, .friday],
+            format: format
+        )
+        #expect(screen.sections == [.summary, .patterns, .words, .days, .yearReview])
+    }
+
+    // MARK: - Copy and Save
+
+    @Test func copySaysItIsWorkingThenConfirmsInItsOwnLabel() {
+        #expect(JournalYearReviewWork.idle.copyTitle == "Copy image")
+        #expect(JournalYearReviewWork.copying.copyTitle == "Copying…")
+        #expect(JournalYearReviewWork.copied.copyTitle == "Copied")
+        #expect(JournalYearReviewWork.copied.copySymbol == "checkmark")
+        #expect(JournalYearReviewWork.idle.saveTitle == "Save image…")
+        #expect(JournalYearReviewWork.saving.saveTitle == "Saving…")
+    }
+
+    @Test func copyAndSaveWaitOnlyWhileTheImageRenders() {
+        #expect(JournalYearReviewWork.copying.isRendering)
+        #expect(JournalYearReviewWork.saving.isRendering)
+        #expect(!JournalYearReviewWork.copied.isRendering)
+        #expect(!JournalYearReviewWork.idle.isRendering)
+    }
+
+    @Test @MainActor func copyReplacesThePasteboardWithThePNG() {
+        let pasteboard = NSPasteboard(name: NSPasteboard.Name("JournalYearReview-\(UUID())"))
+        defer { pasteboard.releaseGlobally() }
+        pasteboard.clearContents()
+        pasteboard.setString("Earlier text", forType: .string)
+        let png = Data([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A])
+        #expect(JournalYearReviewPasteboard.write(png: png, to: pasteboard))
+        #expect(pasteboard.data(forType: .png) == png)
+        #expect(pasteboard.string(forType: .string) == nil)
     }
 }

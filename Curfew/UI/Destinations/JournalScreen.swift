@@ -30,7 +30,7 @@ struct JournalScreen {
     let patterns: JournalPatternsPresentation
     let words: JournalWords
     let rows: [JournalRow]
-    /// Year range ends with the year in review; other ranges have none.
+    /// Year range leads with the year in review; other ranges have none.
     let yearReview: JournalYearReview?
     /// Year range shows the latest twelve rows until asked for the rest.
     let collapsedRowLimit: Int?
@@ -164,8 +164,31 @@ struct JournalScreen {
         self.canGoForward = period.next(calendar: calendar).interval.start <= todayStart
     }
 
-    /// The year in review closes the year range once the year has stop
-    /// times or days recorded before them; other ranges have none.
+    /// The page's sections under the headline, in order.
+    enum Section: Equatable {
+        case yearReview
+        /// The tiles and the main chart.
+        case summary
+        case patterns
+        case words
+        case days
+    }
+
+    var sections: [Section] {
+        let recorded = state != .noWorkingDays
+        let review = yearReview?.placement
+        return [
+            review == .leading ? .yearReview : nil,
+            recorded ? .summary : nil,
+            .patterns,
+            recorded ? .words : nil,
+            recorded ? .days : nil,
+            review == .trailing ? .yearReview : nil
+        ].compactMap(\.self)
+    }
+
+    /// The year range has a year in review once the year has stop times or
+    /// days recorded before them; other ranges have none.
     private static func yearReview(
         state: State,
         records: [JournalDayRecord],

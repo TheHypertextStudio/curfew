@@ -37,6 +37,12 @@ enum JournalStyle {
     /// Over marks on the year in review's sky, which keeps its night
     /// colours in either appearance. Early marks take the sky's text colour.
     static let overOnSky = adaptive(light: 0xFFB27A, dark: 0xFFB27A)
+    /// The year in review's stage: the quiet surface the card floats on.
+    static let stage = CurfewTheme.surfaceMuted
+    /// The card's contact shadow, tinted from its own night sky.
+    static let cardContactShadow = adaptive(light: 0x1A1438, dark: 0x030209, alpha: (0.30, 0.85))
+    /// The card's wide ambient shadow, tinted from its own night sky.
+    static let cardAmbientShadow = adaptive(light: 0x2A1F55, dark: 0x040312, alpha: (0.28, 0.95))
     /// Figures printed on a filled data segment.
     static let onEarly = adaptive(light: 0xFFFFFF, dark: 0x14120F)
     static let onAtCurfew = adaptive(light: 0x1D1A18, dark: 0xFFFFFF)
@@ -70,14 +76,19 @@ enum JournalStyle {
     /// Widest the reading column grows.
     static let contentWidth: CGFloat = 992
 
-    private static func adaptive(light: UInt32, dark: UInt32) -> Color {
+    private static func adaptive(
+        light: UInt32,
+        dark: UInt32,
+        alpha: (light: CGFloat, dark: CGFloat) = (1, 1)
+    ) -> Color {
         Color(NSColor(name: nil) { appearance in
-            let hex = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua ? dark : light
+            let isDark = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+            let hex = isDark ? dark : light
             return NSColor(
                 srgbRed: CGFloat((hex >> 16) & 0xFF) / 255,
                 green: CGFloat((hex >> 8) & 0xFF) / 255,
                 blue: CGFloat(hex & 0xFF) / 255,
-                alpha: 1
+                alpha: isDark ? alpha.dark : alpha.light
             )
         })
     }
