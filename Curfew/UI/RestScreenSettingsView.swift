@@ -5,232 +5,309 @@ import CurfewKit
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// Local appearance controls embedded in the existing Settings form.
+extension EnvironmentValues {
+    /// Opens "Your own words" when the pane appears, for full-size renders of
+    /// the pane with its rows showing.
+    @Entry var restOwnWordsInitiallyOpen = false
+}
+
+/// The Rest screen pane, the theme editor. A theme is a sky palette, a clock
+/// style and a voice; the real screens sit at the top, drawn full size and
+/// scaled, and every change below shows there at once and is saved as it is
+/// made. There is no Apply button.
+///
+/// Help text follows the Settings rule: text about one control sits under
+/// that control's label in the same row; text about a whole group is one
+/// footer under it.
 struct RestScreenSettingsView: View {
-    @Environment(CurfewAppModel.self) private var model
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-    @State private var draft = RestAppearanceDraft(RestAppearancePreferences())
-    @State private var backgroundImage: CGImage?
-    @State private var choosingImage = false
-    @State private var imageError: String?
-    @State private var imageOperationInProgress = false
+    @Environment(CurfewAppModel.self) var model
+    @State var subject = RestAppearancePreviewSubject.lock
+    @State private var warningStage = WarningStage.fifteenMinutes
+    @State private var ownWordsOpen = false
+    @State var choosingImage = false
+    @State var imageError: String?
+    @State var imageOperationInProgress = false
     @State private var imageTask: Task<Void, Never>?
+    @Environment(\.restOwnWordsInitiallyOpen) private var ownWordsInitiallyOpen
 
     var body: some View {
         Group {
-            Section {
-                TimelineView(.animation(minimumInterval: reduceMotion || draft
-                        .staticBackground ? 1 : 1.0 / 30)) { context in
-                    RestAmbientScene(
-                        snapshot: RestSceneSnapshot(
-                            version: 1, expiresAt: .distantFuture, appearance: draft.preferences,
-                            lockDate: nil, unlockDate: nil
-                        ),
-                        date: context.date,
-                        image: backgroundImage,
-                        reduceMotion: reduceMotion,
-                        reduceTransparency: reduceTransparency,
-                        clockSize: 52
-                    ) { frame, drifts in
-                        HorizonSkyView(frame: frame, isDayRunning: drifts)
-                    }
-                }
-                .frame(height: 200)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                .accessibilityLabel("Rest screen preview")
-                .accessibilityIdentifier("rest-appearance-preview")
-            }
-            Section("Background") {
-                Picker("Background", selection: $draft.background) {
-                    Text("Atmosphere").tag(RestAppearancePreferences.Background.atmosphere)
-                    Text("Solid color").tag(RestAppearancePreferences.Background.solid)
-                    Text("Image").tag(RestAppearancePreferences.Background.image)
-                }
-                .accessibilityIdentifier("rest-background-choice")
-                .disabled(imageOperationInProgress)
-                Picker("Palette", selection: $draft.palette) {
-                    Text("Sundown").tag(RestAppearancePreferences.Palette.sundown)
-                    Text("Warm amber").tag(RestAppearancePreferences.Palette.warmAmber)
-                    Text("Cool twilight").tag(RestAppearancePreferences.Palette.coolTwilight)
-                }
-                .accessibilityIdentifier("rest-palette-choice")
-                if draft.background == .solid {
-                    ColorPicker("Background color", selection: solidColor, supportsOpacity: false)
-                }
-                if draft.background == .image {
-                    Button("Choose image…") { choosingImage = true }
-                        .disabled(imageOperationInProgress)
-                    if draft.ownedImageFilename != nil {
-                        Button("Remove image", role: .destructive) {
-                            imageTask = Task { await removeImage() }
-                        }
-                        .disabled(imageOperationInProgress)
-                        Slider(value: $draft.focalX, in: 0 ... 1) { Text("Horizontal focus") }
-                        Slider(value: $draft.focalY, in: 0 ... 1) { Text("Vertical focus") }
-                    }
-                }
-                if let imageError {
-                    Text(imageError).foregroundStyle(CurfewTheme.mutedInk)
-                }
-                Toggle("Static background", isOn: $draft.staticBackground)
-                    .toggleStyle(.switch)
-                Text("Reduce Motion also keeps the atmosphere still.")
-                    .foregroundStyle(CurfewTheme.mutedInk)
-            }
-            Section("Clock and message") {
-                Picker("Clock style", selection: $draft.clockStyle) {
-                    Text("Rounded").tag(RestAppearancePreferences.ClockStyle.rounded)
-                    Text("Standard").tag(RestAppearancePreferences.ClockStyle.standard)
-                    Text("Serif").tag(RestAppearancePreferences.ClockStyle.serif)
-                }
-                .accessibilityIdentifier("rest-clock-style")
-                Picker("Ambient clock position", selection: $draft.clockPosition) {
-                    Text("Center").tag(RestAppearancePreferences.ClockPosition.center)
-                    Text("Upper center").tag(RestAppearancePreferences.ClockPosition.upperCenter)
-                    Text("Lower left").tag(RestAppearancePreferences.ClockPosition.lowerLeft)
-                }
-                .accessibilityIdentifier("rest-clock-position")
-                TextField("Personal message", text: $draft.message)
-                    .accessibilityIdentifier("rest-personal-message")
-                    .onChange(of: draft.message) { _, message in
-                        if message.count > 140 {
-                            draft.message = String(message.prefix(140))
-                        }
-                    }
-                Text("\(draft.message.count)/140 characters")
-                    .font(.caption).foregroundStyle(CurfewTheme.mutedInk)
-                Toggle("Show personal message in screensaver", isOn: $draft.saverMessageEnabled)
-                    .toggleStyle(.switch)
-                    .accessibilityIdentifier("rest-saver-message")
-            }
+            previewSection
+            skySection
+            clockSection
+            voiceSection
             RestScreenSaverSetupSection()
         }
-        .pickerStyle(.menu)
-        .task(id: draft.ownedImageFilename) {
-            let directory = model.restBackgroundDirectory
-            let filename = draft.ownedImageFilename
-            let image = await Task.detached(priority: .userInitiated) {
-                RestBackgroundImageStore(directory: directory).image(named: filename)
-            }.value
-            guard !Task.isCancelled else { return }
-            backgroundImage = image
-        }
-        .onAppear { draft = RestAppearanceDraft(model.restAppearance) }
+        .onAppear { ownWordsOpen = ownWordsOpen || ownWordsInitiallyOpen }
         .onDisappear {
             imageTask?.cancel()
             imageTask = nil
         }
-        .onChange(of: draft) { _, value in
-            var saved = value
-            if saved.background == .image, saved.ownedImageFilename == nil {
-                saved.background = model.restAppearance.background
-            }
-            model.restAppearance = saved.preferences
-        }
         .onChange(of: choosingImage) { _, presented in
-            if !presented, draft.background == .image, draft.ownedImageFilename == nil {
-                draft.background = model.restAppearance.background
+            if !presented, model.restAppearance.background == .image,
+               model.restAppearance.ownedImageFilename == nil {
+                model.updateTheme { $0.background = .atmosphere }
             }
         }
-        .fileImporter(isPresented: $choosingImage, allowedContentTypes: [
-            .jpeg,
-            .png,
-            .heic
-        ]) { result in
+        .fileImporter(
+            isPresented: $choosingImage, allowedContentTypes: [.jpeg, .png, .heic]
+        ) { result in
             imageTask = Task { await importImage(result) }
         }
+    }
+
+    // MARK: - Preview
+
+    private var previewSection: some View {
+        Section {
+            RestAppearancePreview(subject: subject, warningStage: warningStage)
+                .frame(maxWidth: .infinity)
+            Picker("Show", selection: $subject) {
+                ForEach(RestAppearancePreviewSubject.allCases, id: \.self) { subject in
+                    Text(subject.title).tag(subject)
+                }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .frame(maxWidth: .infinity)
+            .accessibilityLabel("Preview")
+            .accessibilityIdentifier("rest-preview-subject")
+        }
+    }
+
+    // MARK: - Sky
+
+    private var skySection: some View {
+        Section {
+            ForEach(RestAppearancePreferences.Palette.allCases, id: \.self) { palette in
+                RestAppearanceChoiceRow(
+                    title: RestAppearanceCopy.paletteName(palette),
+                    detail: RestAppearanceCopy.paletteSummary(palette),
+                    isSelected: model.restAppearance.palette == palette,
+                    action: { choose(palette) },
+                    leading: { RestPaletteSwatch(palette: palette) }
+                )
+                .accessibilityIdentifier("rest-palette-\(palette.rawValue)")
+            }
+            backgroundRows
+            Toggle(isOn: themeBinding(\.staticBackground)) {
+                Text("Keep the sky still")
+                Text("On the rest screen. Reduce Motion always keeps it still.")
+            }
+            .toggleStyle(.switch)
+            .accessibilityIdentifier("rest-static-background")
+        } header: {
+            Text("Sky")
+        } footer: {
+            Text("The sky is the same on Today, the lock, Sunrise and the screen saver.")
+                .font(CurfewTypography.body(12))
+                .foregroundStyle(CurfewTheme.mutedInk)
+        }
+    }
+
+    @ViewBuilder
+    private var backgroundRows: some View {
+        let background = model.restAppearance.background
+        Picker(selection: backgroundBinding) {
+            ForEach(
+                [RestAppearancePreferences.Background.atmosphere, .solid, .image], id: \.self
+            ) { choice in
+                Text(RestAppearanceCopy.backgroundName(choice)).tag(choice)
+            }
+        } label: {
+            Text("Behind the lock")
+            if let imageError {
+                Text(imageError).foregroundStyle(CurfewTheme.warning)
+            } else if background != .atmosphere {
+                Text("Today and Sunrise keep the sky.")
+            }
+        }
+        .pickerStyle(.menu)
+        .disabled(imageOperationInProgress)
+        .accessibilityIdentifier("rest-background-choice")
+        if background == .solid {
+            ColorPicker("Color", selection: solidColor, supportsOpacity: false)
+        }
+        if background == .image, model.restAppearance.ownedImageFilename != nil {
+            imageRows
+        }
+    }
+
+    @ViewBuilder
+    private var imageRows: some View {
+        LabeledContent("Image") {
+            HStack {
+                Button("Choose another image…") { choosingImage = true }
+                Button("Remove image", role: .destructive) {
+                    imageTask = Task { await removeImage() }
+                }
+            }
+            .disabled(imageOperationInProgress)
+        }
+        Slider(value: themeBinding(\.focalX), in: 0 ... 1) { Text("Horizontal focus") }
+        Slider(value: themeBinding(\.focalY), in: 0 ... 1) { Text("Vertical focus") }
+    }
+
+    // MARK: - Clock
+
+    private var clockSection: some View {
+        Section {
+            LabeledContent {
+                RestClockFacePicker(selection: Binding(
+                    get: { model.restAppearance.clockStyle },
+                    set: { style in
+                        model.updateTheme { $0.clockStyle = style }
+                        if subject == .warning {
+                            subject = .lock
+                        }
+                    }
+                ))
+            } label: {
+                Text("Style")
+                Text("On the lock, the screen saver and Sunrise.")
+            }
+            Picker(selection: Binding(
+                get: { model.restAppearance.clockPosition },
+                set: { position in
+                    model.updateTheme { $0.clockPosition = position }
+                    subject = .screenSaver
+                }
+            )) {
+                ForEach(RestAppearancePreferences.ClockPosition.allCases, id: \.self) { position in
+                    Text(RestAppearanceCopy.positionName(position)).tag(position)
+                }
+            } label: {
+                Text("Position")
+                Text("In the screen saver. The lock keeps the clock centered.")
+            }
+            .pickerStyle(.segmented)
+            .accessibilityIdentifier("rest-clock-position")
+        } header: {
+            Text("Clock")
+        }
+    }
+
+    // MARK: - Voice
+
+    private var voiceSection: some View {
+        Section {
+            ForEach(RestAppearancePreferences.Voice.allCases, id: \.self) { choice in
+                let pack = VoicePack(choice)
+                RestAppearanceChoiceRow(
+                    title: pack.name,
+                    detail: "\(pack.summary) “\(pack.lockedHeadline)”",
+                    isSelected: model.restAppearance.voice == choice,
+                    action: { choose(choice) },
+                    leading: { EmptyView() }
+                )
+                .accessibilityIdentifier("rest-voice-\(choice.rawValue)")
+            }
+            DisclosureGroup(isExpanded: $ownWordsOpen) {
+                ownWordsRows
+            } label: {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Your own words")
+                    Text(ownWordsSummary)
+                        .font(.subheadline)
+                        .foregroundStyle(CurfewTheme.mutedInk)
+                }
+            }
+            .accessibilityIdentifier("rest-own-words")
+        } header: {
+            Text("Voice")
+        }
+    }
+
+    private var ownWordsRows: some View {
+        ForEach(VoicePack.Line.allCases, id: \.self) { line in
+            RestOwnWordsRow(
+                line: line, onFocus: show, onSaverChange: { subject = .screenSaver }
+            )
+        }
+    }
+
+    /// Closed: what is in the person's words. Open: the rule for every line.
+    private var ownWordsSummary: String {
+        if ownWordsOpen {
+            return "Up to \(VoiceCustomLines.maximumLength) characters each. "
+                + "An empty line uses the voice's own."
+        }
+        let count = model.restAppearance.customLines.count
+        return switch count {
+        case 0: "Rewrite the lines that carry the voice."
+        case 1: "1 line in your words."
+        default: "\(count) lines in your words."
+        }
+    }
+}
+
+// MARK: - Changes
+
+extension RestScreenSettingsView {
+    /// A palette is the app's sky, so it never replaces a chosen color or
+    /// image behind the lock; with one of those, the preview turns to Today.
+    private func choose(_ palette: RestAppearancePreferences.Palette) {
+        model.updateTheme { $0.palette = palette }
+        if model.restAppearance.background != .atmosphere, subject != .sunrise {
+            subject = .warning
+        }
+    }
+
+    private func choose(_ voice: RestAppearancePreferences.Voice) {
+        model.updateTheme { $0.voice = voice }
+        if subject == .screenSaver {
+            subject = .lock
+        }
+    }
+
+    /// Shows the moment a rewritten line belongs to.
+    private func show(_ line: VoicePack.Line) {
+        subject = RestAppearancePreviewSubject(line)
+        if let stage = RestAppearancePreviewSubject.stage(for: line) {
+            warningStage = stage
+        }
+    }
+
+    private func themeBinding<Value>(
+        _ keyPath: WritableKeyPath<RestAppearanceDraft, Value>
+    ) -> Binding<Value> {
+        Binding(
+            get: { RestAppearanceDraft(model.restAppearance)[keyPath: keyPath] },
+            set: { value in model.updateTheme { $0[keyPath: keyPath] = value } }
+        )
+    }
+
+    private var backgroundBinding: Binding<RestAppearancePreferences.Background> {
+        Binding(
+            get: { model.restAppearance.background },
+            set: { background in
+                imageError = nil
+                if background == .image, model.restAppearance.ownedImageFilename == nil {
+                    choosingImage = true
+                    return
+                }
+                model.updateTheme { $0.background = background }
+                subject = .lock
+            }
+        )
     }
 
     private var solidColor: Binding<Color> {
         Binding(
             get: {
-                AtmospherePalette.solidBackground(
-                    red: draft.solidRed, green: draft.solidGreen, blue: draft.solidBlue
+                let value = model.restAppearance
+                return AtmospherePalette.solidBackground(
+                    red: value.solidRed, green: value.solidGreen, blue: value.solidBlue
                 )
             },
             set: { color in
                 guard let color = NSColor(color).usingColorSpace(.sRGB) else { return }
-                draft.solidRed = Double(color.redComponent)
-                draft.solidGreen = Double(color.greenComponent)
-                draft.solidBlue = Double(color.blueComponent)
+                model.updateTheme {
+                    $0.solidRed = Double(color.redComponent)
+                    $0.solidGreen = Double(color.greenComponent)
+                    $0.solidBlue = Double(color.blueComponent)
+                }
             }
         )
-    }
-
-    @MainActor
-    private func importImage(_ result: Result<URL, Error>) async {
-        imageOperationInProgress = true
-        defer { imageOperationInProgress = false }
-        do {
-            let source = try result.get()
-            let directory = model.restBackgroundDirectory
-            let imported = try await Task.detached(priority: .userInitiated) {
-                let granted = source.startAccessingSecurityScopedResource()
-                defer {
-                    if granted {
-                        source.stopAccessingSecurityScopedResource()
-                    }
-                }
-                return try RestBackgroundImageStore(directory: directory).importImage(from: source)
-            }.value
-            guard !Task.isCancelled else {
-                try? await Task.detached(priority: .utility) {
-                    try RestBackgroundImageStore(directory: directory).removeImage(at: imported)
-                }.value
-                return
-            }
-            let previousFilename = model.restAppearance.ownedImageFilename
-            var current = RestAppearanceDraft(model.restAppearance)
-            current.ownedImageFilename = imported.lastPathComponent
-            current.background = .image
-            draft = current
-            imageError = nil
-            // Merge into current preferences before retiring the previous owned asset.
-            model.restAppearance = current.preferences
-            if let previousFilename, previousFilename != imported.lastPathComponent {
-                do {
-                    try await Task.detached(priority: .utility) {
-                        try RestBackgroundImageStore(directory: directory).removeImage(
-                            at: directory.appendingPathComponent(previousFilename)
-                        )
-                    }.value
-                } catch {
-                    imageError = "Your new image is saved. The previous copy could not be removed."
-                }
-            }
-        } catch {
-            draft.background = model.restAppearance.background
-            if (error as NSError).code != NSUserCancelledError {
-                imageError = "The image could not be imported. Your background has been kept."
-            }
-        }
-    }
-
-    @MainActor
-    private func removeImage() async {
-        guard let filename = draft.ownedImageFilename else { return }
-        imageOperationInProgress = true
-        defer { imageOperationInProgress = false }
-        let directory = model.restBackgroundDirectory
-        do {
-            try await Task.detached(priority: .userInitiated) {
-                try RestBackgroundImageStore(directory: directory)
-                    .removeImage(at: directory.appendingPathComponent(filename))
-            }.value
-            // A newer settings view may have changed unrelated choices meanwhile.
-            if model.restAppearance.ownedImageFilename == filename {
-                var current = RestAppearanceDraft(model.restAppearance)
-                current.ownedImageFilename = nil
-                if current.background == .image {
-                    current.background = .atmosphere
-                }
-                model.restAppearance = current.preferences
-                draft = current
-            }
-            imageError = nil
-        } catch {
-            imageError = "The image could not be removed. Your background has been kept."
-        }
     }
 }

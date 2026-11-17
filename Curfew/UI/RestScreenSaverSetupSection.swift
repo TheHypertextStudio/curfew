@@ -10,40 +10,43 @@ struct RestScreenSaverSetupSection: View {
     @State private var usesSelectedSaver = RestSaverFacts(defaults: .standard).usesSelectedSaver
 
     var body: some View {
-        Section("Screensaver") {
-            Text(statusText)
-                .foregroundStyle(CurfewTheme.mutedInk)
-            Button(installationTitle) {
-                state = installation.requestInstallation()
+        Section {
+            LabeledContent {
+                Button(installationTitle) {
+                    state = installation.requestInstallation()
+                }
+                .accessibilityIdentifier("rest-saver-install")
+            } label: {
+                Text("Curfew's screen saver")
+                Text(statusText)
             }
-            .accessibilityIdentifier("rest-saver-install")
-            Button("Open Screen Saver Settings…") {
-                state = installation.openSystemSettings()
+            LabeledContent {
+                Button("Open Screen Saver Settings…") {
+                    state = installation.openSystemSettings()
+                }
+                .accessibilityIdentifier("rest-saver-settings")
+            } label: {
+                Text("Choose Curfew in System Settings")
+                Text("Your Mac's usual password still applies.")
             }
-            .accessibilityIdentifier("rest-saver-settings")
-            Text(
-                """
-                Choose Curfew in System Settings → Screen Saver after installing. \
-                Your Mac’s usual authentication still applies.
-                """
-            )
-            .foregroundStyle(CurfewTheme.mutedInk)
             if RestSaverChoice.offersSelectedSaverOption(selection: selection) {
                 Toggle(
                     "Use this Mac's screen saver when the lock is idle",
                     isOn: $usesSelectedSaver
                 )
+                .toggleStyle(.switch)
                 .onChange(of: usesSelectedSaver) { _, value in
                     RestSaverFacts(defaults: .standard).usesSelectedSaver = value
                 }
                 .accessibilityIdentifier("rest-saver-use-selected")
             }
             if canRemove {
-                Button("Remove Curfew screensaver…", role: .destructive) {
+                Button("Remove Curfew's screen saver…", role: .destructive) {
                     confirmingRemoval = true
                 }
+                .buttonStyle(.link)
                 .confirmationDialog(
-                    "Move the Curfew screensaver to Trash?",
+                    "Move Curfew's screen saver to the Trash?",
                     isPresented: $confirmingRemoval
                 ) {
                     Button("Move to Trash", role: .destructive) {
@@ -51,11 +54,11 @@ struct RestScreenSaverSetupSection: View {
                     }
                     Button("Cancel", role: .cancel) {}
                 } message: {
-                    Text(
-                        "You can reinstall it here later. Your rest screen appearance will be kept."
-                    )
+                    Text("You can install it again here. Your theme is kept.")
                 }
             }
+        } header: {
+            Text("Screen saver")
         }
         .onAppear {
             state = installation.inspect()
@@ -70,10 +73,11 @@ struct RestScreenSaverSetupSection: View {
     }
 
     private var installationTitle: String {
-        if case .versionMismatch = state {
-            return "Update Curfew screensaver…"
+        switch state {
+        case .versionMismatch: "Update…"
+        case .installed: "Reinstall…"
+        default: "Install…"
         }
-        return "Install Curfew screensaver…"
     }
 
     private var canRemove: Bool {
@@ -88,9 +92,9 @@ struct RestScreenSaverSetupSection: View {
         case .missingCompanion:
             "The companion is missing from this copy of Curfew. Reinstall the app to restore it."
         case .available(let version):
-            "Curfew screensaver \(version) is ready to install."
+            "Version \(version) is ready to install."
         case .installed(let version):
-            "Curfew screensaver \(version) is installed. Select it in System Settings to use it."
+            "Version \(version) is installed. Choose it in System Settings to use it."
         case .versionMismatch(let bundled, let installed):
             "Installed version \(installed). Version \(bundled) is available with this app."
         case .installRequestAccepted(let version):
@@ -99,7 +103,7 @@ struct RestScreenSaverSetupSection: View {
             then select Curfew in System Settings.
             """
         case .operationRejected(let reason):
-            "\(reason) You can also open System Settings → Screen Saver directly."
+            "\(reason) You can also open Screen Saver in System Settings."
         }
     }
 

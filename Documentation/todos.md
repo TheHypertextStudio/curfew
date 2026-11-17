@@ -2159,6 +2159,18 @@ login, populated-data recovery and active-service rollback remain separate gates
 ## Horizon lock, warnings, transitions and screen saver handoff
 
 - [x] One voice pack (`VoicePack.standard`) holds every line in the launch design's default voice; the lock says "That's the day." instead of rotating status reports.
+
+## Theme and voice
+
+A theme is a sky palette, a clock style and a voice. Settings > Rest screen is the editor: the real rest screen on top (the lock, the screen saver's clock, Today in the last half hour with the warning notice, and Sunrise, drawn full size and scaled), then Sky, Clock and Voice as plain rows. Every change shows in the preview at once and is saved locally as it is made.
+
+- [x] Three authored palettes (Sundown, Desert, Polar), each a complete set of Horizon ramps, grounds and moon faces. Saved `sundown`, `warmAmber` and `coolTwilight` choices map onto them, so older preferences keep their warm or cool mood; the soft-light tints are gone.
+- [x] The shader reads every palette colour, the moon included, from `HorizonPalette.shaderTable`; the CPU renderer reads the same palette. The theme reaches every sky through `\.horizonPalette` at each window's root and through the rest scene's appearance, so Today, the menu bar, the lock, Sunrise, setup's lock preview and the screen saver draw the same sky. The widget draws no sky.
+- [x] Three complete voice packs (Firm, the default; Gentle; Playful). `TodayVoice` is folded into `VoicePack`, and Today, the menu bar, warnings, notifications, the lock, the override composer, the close-out and Sunrise all read the model's active voice.
+- [x] "Your own words": the lock's headline, the four warning lines, the Sunrise greeting and question, and the override question, each in one row with its moment, the voice's line as placeholder and a way back. Lines are trimmed, kept on one line and capped at 60 characters; empty means the voice's line. The former free-text personal message is the lock's own words, migrated on load, and still reaches the screen saver only with consent.
+- [x] The lock's clock uses the chosen clock style; the clock position applies to the screen saver.
+- [x] Reduce Transparency panels (the lock's panels, glass buttons and the warning notice) take the active palette's night. Today's legibility shade is this moment's own far sky, darkened, so it reads as deeper sky in every palette.
+- [ ] Judge the palettes on screen through the Metal shader on a real display (headless renders use the CPU reference), and the saver's palette and words in the system screen saver host.
 - [x] Warnings: one night-tinted glass notice with the stage line and a seconds countdown at every stage, built once per display; notifications titled "N minutes to curfew" with the stage line as body; "1 more minute"; "Still with it?" presence nudge.
 - [x] Arriving: a two second move that starts when a lock window is first seen, shared by every display; Reduce Motion gives a 0.3 s fade.
 - [x] Locked: the prototype's lock layout, "This Mac" copy, one-sentence VoiceOver announcement with focus on the clock, anchored curfew so an hours-mode deadline cannot freeze the sky.

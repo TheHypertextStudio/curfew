@@ -3,6 +3,47 @@ import CurfewAtmosphere
 import CurfewKit
 import SwiftUI
 
+/// A still rest screen for the theme editor: the lock (or the screen saver's
+/// clock) at a fixed moment of a fixed night, drawn by the real views from
+/// the person's current theme. Nothing on it can be pressed, takes focus,
+/// announces itself or joins the screen saver handoff.
+struct RestScreenPreview: Equatable {
+    enum Subject: Equatable {
+        /// The lock: clock, headline, unlock line and the override entry.
+        case lock
+        /// The idle scene the screen saver shows: the sky and the clock.
+        case screenSaver
+    }
+
+    var subject: Subject
+    var now: Date
+    var curfew: Date
+    var unlock: Date
+
+    /// 9:41 PM tonight, after a 6:00 PM curfew, unlocking at 7:00 AM.
+    static func tonight(
+        _ subject: Subject, near reference: Date, calendar: Calendar = .current
+    ) -> RestScreenPreview {
+        let day = calendar.startOfDay(for: reference)
+        func at(_ hour: Int, _ minute: Int, days: Int = 0) -> Date {
+            let base = calendar.date(byAdding: .day, value: days, to: day) ?? day
+            return calendar.date(bySettingHour: hour, minute: minute, second: 0, of: base)
+                ?? base
+        }
+        return RestScreenPreview(
+            subject: subject, now: at(21, 41), curfew: at(18, 0), unlock: at(7, 0, days: 1)
+        )
+    }
+
+    /// The lock's night sky at this moment, with tonight's moon.
+    var frame: HorizonFrame {
+        LockSceneSky.frame(for: HorizonMoment(
+            now: now, dayStart: unlock.addingTimeInterval(-24 * 3600), curfew: curfew,
+            nextUnlock: unlock
+        ))
+    }
+}
+
 /// One continuous scene per display: the sky, the lock or the morning, and
 /// the arrival that plays the first time the window is seen. Content changes
 /// without replacing the window, sky or editing session.
@@ -10,6 +51,8 @@ struct RestScreenView: View {
     let model: CurfewAppModel
     @Bindable var display: RestDisplayPresentation
     let scene: LockScene
+    /// Set by the theme editor: draw a still preview instead of the live lock.
+    var preview: RestScreenPreview?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @State private var backgroundImage: CGImage?
@@ -18,12 +61,18 @@ struct RestScreenView: View {
     @State private var coverOpacity: Double
     @State private var previousContent: RestContentState
 
-    init(model: CurfewAppModel, display: RestDisplayPresentation, scene: LockScene) {
+    init(
+        model: CurfewAppModel, display: RestDisplayPresentation, scene: LockScene,
+        preview: RestScreenPreview? = nil
+    ) {
         self.model = model
         self.display = display
         self.scene = scene
-        _coverOpacity = State(initialValue: display.isVisible ? 0 : 1)
-        _previousContent = State(initialValue: model.restPresentation.layout)
+        self.preview = preview
+        _coverOpacity = State(initialValue: display.isVisible || preview != nil ? 0 : 1)
+        _previousContent = State(
+            initialValue: preview == nil ? model.restPresentation.layout : .quiet
+        )
     }
 
     private var choreography: RestAppearance.Transition {
@@ -37,22 +86,29 @@ struct RestScreenView: View {
     }
 
     private var content: RestContentState {
-        model.restPresentation.layout
+        preview == nil ? model.restPresentation.layout : .quiet
     }
 
     private var showsMorning: Bool {
-        content == .morning && !model.isEnforcingLockout
+        preview == nil && content == .morning && !model.isEnforcingLockout
+    }
+
+    /// Whether the scene shows the screen saver's clock instead of the lock.
+    private var isAmbient: Bool {
+        preview.map { $0.subject == .screenSaver } ?? model.restHandoffIsAmbient
     }
 
     private var clockDesign: Font.Design {
-        switch model.restAppearance.clockStyle {
-        case .rounded: .rounded
-        case .standard: .default
-        case .serif: .serif
-        }
+        model.restAppearance.clockStyle.fontDesign
     }
 
     var sceneSnapshot: RestSceneSnapshot {
+        if let preview {
+            return RestSceneSnapshot(
+                version: 1, expiresAt: .distantFuture, appearance: model.restAppearance,
+                lockDate: preview.curfew, unlockDate: preview.unlock
+            )
+        }
         let interval = model.reflectionState.scheduledInterval
         let candidate = interval?.end
         let unlock = candidate == .distantFuture ? nil : candidate
@@ -69,6 +125,9 @@ struct RestScreenView: View {
     /// The lock's sky at `date`: the night the lock shows, reached from the
     /// sky the person was looking at over the arrival's first seconds.
     func lockFrame(fallback: HorizonFrame, at date: Date) -> HorizonFrame {
+        if let preview {
+            return preview.frame
+        }
         guard !showsMorning else { return fallback }
         var moment = model.horizonMoment()
         moment.now = date
@@ -95,16 +154,17 @@ struct RestScreenView: View {
                     minimumInterval: scene.timeline.stage(at: Date()) == .arriving
                         ? 1.0 / 30 :
                         (reduceMotion || model.restAppearance.staticBackground ? 1 : 1.0 / 24),
-                    paused: !display.isVisible
+                    paused: !display.isVisible || preview != nil
                 )) { context in
-                    let date = model.isDemoSession ? model.currentTime : context.date
+                    let date = preview?.now
+                        ?? (model.isDemoSession ? model.currentTime : context.date)
                     RestAmbientScene(
                         snapshot: sceneSnapshot,
                         date: date,
                         image: backgroundImage,
                         reduceMotion: reduceMotion,
                         reduceTransparency: reduceTransparency,
-                        showsClock: model.restHandoffIsAmbient,
+                        showsClock: isAmbient,
                         clockSize: max(20, min(geometry.size.width, geometry.size.height) * 0.10),
                         clockNamespace: clockTransition
                     ) { frame, drifts in
@@ -115,11 +175,13 @@ struct RestScreenView: View {
                     }
                     .overlay {
                         if !showsMorning {
-                            LockoutScreenView(scene: scene, date: date)
-                                .environment(model)
-                                .opacity(model.restHandoffIsAmbient ? 0 : 1)
-                                .accessibilityHidden(model.restHandoffIsAmbient)
-                                .allowsHitTesting(interactive)
+                            LockoutScreenView(
+                                scene: preview == nil ? scene : nil, date: date, preview: preview
+                            )
+                            .environment(model)
+                            .opacity(isAmbient ? 0 : 1)
+                            .accessibilityHidden(isAmbient)
+                            .allowsHitTesting(interactive)
                         }
                     }
                 }
@@ -133,8 +195,12 @@ struct RestScreenView: View {
                     .accessibilityHidden(true)
             }
         }
-        .animation(.easeInOut(duration: motion.layoutDuration), value: model.restHandoffIsAmbient)
-        .onAppear { model.restRuntime.handoff.visibleHosts.insert(hostID) }
+        .animation(.easeInOut(duration: motion.layoutDuration), value: isAmbient)
+        .onAppear {
+            if preview == nil {
+                model.restRuntime.handoff.visibleHosts.insert(hostID)
+            }
+        }
         .onDisappear { model.restRuntime.handoff.visibleHosts.remove(hostID) }
         .task(id: model.restAppearance.ownedImageFilename) {
             let directory = model.restBackgroundDirectory
@@ -157,7 +223,7 @@ struct RestScreenView: View {
     }
 
     private var interactive: Bool {
-        display.isVisible && coverOpacity == 0 && !model.restHandoffIsAmbient
+        preview == nil && display.isVisible && coverOpacity == 0 && !model.restHandoffIsAmbient
     }
 
     /// The morning keeps its own layout; the Sunrise gate owns its content.
@@ -190,7 +256,7 @@ struct RestScreenView: View {
     /// already shows the sky the person was looking at. Later sightings, after
     /// sleep or a screen saver, fade in from black so a stale frame never shows.
     private func reveal() async {
-        guard display.revealGeneration > 0, display.isVisible else { return }
+        guard preview == nil, display.revealGeneration > 0, display.isVisible else { return }
         let now = Date()
         if scene.timeline.stage(at: now) == .waitingToBeSeen
             || scene.timeline.stage(at: now) == .arriving {
