@@ -13,7 +13,7 @@ struct CurfewAppShortcuts: AppShortcutsProvider {
                 "Check \(.applicationName) status",
                 "Am I in \(.applicationName)"
             ],
-            shortTitle: "Curfew Status",
+            shortTitle: "Curfew status",
             systemImageName: "moon.stars"
         )
         AppShortcut(
@@ -23,7 +23,7 @@ struct CurfewAppShortcuts: AppShortcutsProvider {
                 "Time remaining in \(.applicationName)",
                 "When does \(.applicationName) lock"
             ],
-            shortTitle: "Time Remaining",
+            shortTitle: "Time left",
             systemImageName: "timer"
         )
         AppShortcut(
@@ -32,7 +32,7 @@ struct CurfewAppShortcuts: AppShortcutsProvider {
                 "Request a \(.applicationName) extension",
                 "Ask \(.applicationName) for more time"
             ],
-            shortTitle: "Request Extension",
+            shortTitle: "More time",
             systemImageName: "plus.circle"
         )
         AppShortcut(
@@ -41,7 +41,7 @@ struct CurfewAppShortcuts: AppShortcutsProvider {
                 "Request a \(.applicationName) override",
                 "Override \(.applicationName)"
             ],
-            shortTitle: "Request Override",
+            shortTitle: "Override",
             systemImageName: "lock.open"
         )
         AppShortcut(
@@ -50,7 +50,7 @@ struct CurfewAppShortcuts: AppShortcutsProvider {
                 "Set my \(.applicationName) schedule",
                 "Change my \(.applicationName) curfew time"
             ],
-            shortTitle: "Set Schedule",
+            shortTitle: "Set curfew",
             systemImageName: "calendar"
         )
     }

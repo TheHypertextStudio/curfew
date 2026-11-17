@@ -96,8 +96,8 @@ struct LiteralCopyTests {
     @Test("Setup copy describes schedules without judging the user")
     func setupDescribesActions() {
         #expect(ScheduleSurfaceCopy.weeklyScheduleSubtitle
-            == "Set when work ends and when access resumes each day.")
-        #expect(ScheduleSurfaceCopy.countdownPrefix == "until scheduled lockout at")
+            == "Pick when curfew starts and when this Mac unlocks.")
+        #expect(ScheduleSurfaceCopy.countdownPrefix == "until curfew at")
         #expect(GettingStartedCopy.noScheduleYet == "No schedule yet")
     }
 

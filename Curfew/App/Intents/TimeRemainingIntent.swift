@@ -2,15 +2,15 @@ import AppIntents
 import CurfewKit
 
 /// Mirrors the MCP `curfew_get_time_remaining` read tool. Returns the whole
-/// number of minutes until lockout as the intent's value (so Shortcuts can
+/// number of minutes until curfew as the intent's value (so Shortcuts can
 /// branch on it) plus a short spoken dialog.
 ///
 /// Read-only: shares the MCP read path; no consent flow.
 struct TimeRemainingIntent: AppIntent {
-    static var title: LocalizedStringResource = "Get Time Remaining"
+    static var title: LocalizedStringResource = "Get time left"
 
     static var description = IntentDescription(
-        "Returns the number of minutes until curfew locks your Mac.",
+        "Returns the minutes until curfew locks this Mac.",
         categoryName: "Status"
     )
 
@@ -27,17 +27,21 @@ struct TimeRemainingIntent: AppIntent {
         switch status.phase {
         case "locked":
             minutes = 0
-            dialog = "Curfew is already active."
+            dialog = IntentDialog(stringLiteral: IntentCopy.locked(
+                unlockTime: status.unlockDate.map(CurfewIntentSupport.formatTime)
+            ))
         case "day_off":
             minutes = .max
-            dialog = "No automatic lockout is scheduled now. Remote locks remain possible."
+            dialog = IntentDialog(stringLiteral: IntentCopy.dayOff)
         case "working", "warning":
             guard let observedMinutes = status.minutesRemaining else {
                 throw CurfewIntentError.statusUnavailable
             }
             minutes = observedMinutes
-            let noun = minutes == 1 ? "minute" : "minutes"
-            dialog = IntentDialog(stringLiteral: "\(minutes) \(noun) until curfew.")
+            dialog = IntentDialog(stringLiteral: CurfewIntentSupport.countdownLine(
+                minutes: minutes,
+                curfewTime: status.lockDate.map(CurfewIntentSupport.formatTime)
+            ))
         default:
             throw CurfewIntentError.statusUnavailable
         }

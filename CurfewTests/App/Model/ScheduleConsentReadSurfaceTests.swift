@@ -25,11 +25,11 @@ struct ScheduleConsentReadSurfaceTests {
         let status = CurfewIntentSupport.currentObservedStatus(at: now, store: store)
 
         #expect(status?.phase == "locked")
-        #expect(CurfewIntentSupport.statusSummary(status).contains("Curfew is active"))
+        #expect(CurfewIntentSupport.statusSummary(status).hasPrefix("Locked. Unlocks at"))
         #expect(CurfewIntentSupport.currentObservedStatus(
             at: now.addingTimeInterval(120), store: store
         ) == nil)
-        #expect(CurfewIntentSupport.statusSummary(nil).contains("not reported"))
+        #expect(CurfewIntentSupport.statusSummary(nil).contains("hasn't checked in"))
     }
 
     @Test("Shortcuts evaluates the active consent state rather than the saved rule")

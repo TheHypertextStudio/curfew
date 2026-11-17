@@ -9,13 +9,12 @@ import CurfewKit
 /// rule when it resolves the request); this intent just queues the ask, the
 /// same way the MCP tool does.
 struct RequestExtensionIntent: AppIntent {
-    static var title: LocalizedStringResource = "Request Curfew Extension"
+    static var title: LocalizedStringResource = "Ask for more time"
 
     static var description = IntentDescription(
         """
-        Queues a request for a short work-session extension. Curfew shows a \
-        consent prompt; extensions are only granted during the curfew warning \
-        window.
+        Asks Curfew for more time before the lock. You approve it in Curfew, \
+        and more time is only given in the last stretch before curfew.
         """,
         categoryName: "Requests"
     )
@@ -26,22 +25,19 @@ struct RequestExtensionIntent: AppIntent {
 
     @Parameter(
         title: "Reason",
-        description: "Why you need more time (shown to you in the consent prompt).",
+        description: "Why you need more time. Curfew shows it when you approve.",
         default: ""
     )
     var reason: String
 
     @MainActor
     func perform() async throws -> some IntentResult & ProvidesDialog {
-        let id = try CurfewIntentSupport.enqueueWriteRequest(
+        try CurfewIntentSupport.enqueueWriteRequest(
             tool: .requestExtension,
             arguments: ["reason": reason]
         )
         return .result(
-            dialog: IntentDialog(
-                stringLiteral: "Extension request queued. Approve it in Curfew to apply it. "
-                    + "(Request \(id.uuidString.prefix(8)).)"
-            )
+            dialog: IntentDialog(stringLiteral: IntentCopy.moreTimeAsked)
         )
     }
 }

@@ -74,12 +74,15 @@ struct PrivilegedHelperStatusCopyTests {
 }
 
 struct ScheduleSurfaceCopyTests {
-    @Test("Schedule editor copy frames the schedule as work time versus blackout")
+    @Test("Schedule editor copy names curfew and the unlock time")
     func scheduleLabelsExplainWorkWindow() {
-        #expect(ScheduleSurfaceCopy.weeklyScheduleSubtitle.contains("work"))
-        #expect(ScheduleSurfaceCopy.weeklyScheduleSubtitle.contains("access resumes"))
-        #expect(ScheduleSurfaceCopy.workEndsLabel == "Work ends")
-        #expect(ScheduleSurfaceCopy.workResumesLabel == "Work resumes")
+        #expect(ScheduleSurfaceCopy.weeklyScheduleSubtitle
+            == "Pick when curfew starts and when this Mac unlocks.")
+        #expect(ScheduleSurfaceCopy.workEndsLabel == "Curfew")
+        #expect(ScheduleSurfaceCopy.workResumesLabel == "Unlocks")
+        #expect(ScheduleSurfaceCopy.onboardingChecklist.allSatisfy { !$0.contains("lockout") })
+        #expect(ScheduleSurfaceCopy.scheduleOffTitle == "Schedule is off")
+        #expect(ScheduleSurfaceCopy.turnOnSchedule == "Turn on weekly schedule")
     }
 }
 

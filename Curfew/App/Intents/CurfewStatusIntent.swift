@@ -6,10 +6,10 @@ import CurfewKit
 ///
 /// Read-only: no consent flow, no queue write.
 struct CurfewStatusIntent: AppIntent {
-    static var title: LocalizedStringResource = "Get Curfew Status"
+    static var title: LocalizedStringResource = "Get Curfew status"
 
     static var description = IntentDescription(
-        "Reports the current Curfew enforcement phase and how long remains until curfew.",
+        "Says whether this Mac is locked and how long until curfew.",
         categoryName: "Status"
     )
 
