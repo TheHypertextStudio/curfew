@@ -171,25 +171,6 @@ struct ExtensionResetConfigurationTests {
 
 @MainActor
 struct ExtensionActivationInteractionTests {
-    @Test("Tapping extension action alone does not consume budget")
-    func tapDoesNotConsumeBudget() {
-        let model = ModelTestSupport.makeModel()
-        model.currentTime = Date(timeIntervalSince1970: 1_700_000_000)
-        model.state = CurfewEvaluation(
-            phase: .warning,
-            warningStage: .fifteenMinutes,
-            minutesRemaining: 15,
-            canRequestExtension: true,
-            lockDate: nil,
-            unlockDate: nil
-        )
-
-        let before = model.extensionsRemaining
-        model.tapExtensionRequest()
-
-        #expect(model.extensionsRemaining == before)
-    }
-
     @Test("Hold-confirm extension action consumes budget")
     func holdConfirmConsumesBudget() {
         let model = ModelTestSupport.makeModel()

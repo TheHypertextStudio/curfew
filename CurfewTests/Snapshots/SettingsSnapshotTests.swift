@@ -9,25 +9,6 @@ import CurfewKit
         func testRenderLiteralCopySurfaces() throws {
             let directory = try Self.snapshotsDirectory()
             let model = Self.demoModel()
-            for enforcing in [false, true] {
-                let copy = TodayView.control(needsSetup: false, enforcing: enforcing)
-                try render(
-                    TodaySundownView(
-                        statusLine: copy.line, statusDetail: copy.detail,
-                        isEnforcing: enforcing, primaryActionLabel: copy.action
-                    ),
-                    named: enforcing ? "copy-today-on" : "copy-today-off",
-                    width: 900, height: 680, to: directory
-                )
-            }
-            let copy = TodayView.control(needsSetup: false, enforcing: true)
-            try render(
-                TodaySundownView(
-                    statusLine: copy.line, statusDetail: copy.detail,
-                    isEnforcing: true, showAccessibilityWarning: true
-                ),
-                named: "copy-today-permission", width: 600, height: 740, to: directory
-            )
             try renderHosted(
                 SettingsView().environment(model),
                 named: "copy-settings", width: 900, height: 680, to: directory

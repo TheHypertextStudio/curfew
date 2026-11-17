@@ -2,279 +2,225 @@ import CurfewAtmosphere
 import CurfewKit
 import SwiftUI
 
-/// Presentational Today surface in the sundown language. Driven by plain
-/// values + actions so it can be rendered live (via ``TodayView``) or in the
-/// snapshot tier with demo defaults.
+/// The Today surface, driven by plain values so it renders live (through
+/// ``TodayView``) and in the snapshot tier.
 ///
-/// Today carries one thing: tonight's curfew window, and the control for it.
-/// 1. **The window** — the countdown is the protagonist over the living
-///    ``HorizonSkyView``, which deepens as the lock time nears; the lock time is its
-///    primary detail, the unlock time the quieter other end of the same event.
-/// 2. **The control** — whether Curfew is enforcing, plus the action. The
-///    view's only accent, and a state dot that's muted when off.
+/// The sky holds time and voice: the countdown, "until curfew at (time)" or
+/// the warning line, and the two hold-to-confirm actions just above the
+/// horizon. The ground holds what the person does: the one thing.
 struct TodaySundownView: View {
-    /// The atmosphere to render behind the hero — the same moment the whole app
-    /// shares this tick. Defaults to dusk for previews / the snapshot tier.
     var horizon: HorizonFrame = Self.previewHorizon
-    /// Whether the working day is running, so the bands drift.
     var isDayRunning = false
-    var greeting = "Good afternoon"
-    var timeRemaining = "3h 30m"
-    var emptyNote = "No curfew scheduled today."
-    /// Whether the empty-state note doubles as a button to Schedule. False while
-    /// a curfew is active (the note states status, not an invitation to edit).
-    var emptyNoteActionable = true
-    var lockTime = "6:00 PM"
-    var unlockTime = "7:00 AM"
-    var statusLine = "Curfew is off"
-    var statusDetail = TodayView.control(needsSetup: false, enforcing: false).detail
-    var isEnforcing = false
+    var presentation: TodayPresentation
+    var oneThing: TodayOneThing?
+    var voice: TodayVoice = .standard
+    var holdDuration: TimeInterval = CurfewAppModel.extensionConfirmationHoldSeconds
     var showAccessibilityWarning = false
-    /// True for the brief window after Accessibility trust is granted, to show a
-    /// success confirmation. Model-owned (see `CurfewAppModel.accessibilityJustGranted`)
-    /// so it survives navigation and self-dismisses from a single source.
+    /// True for the brief window after Accessibility trust is granted.
     var showAccessibilityGranted = false
-    /// Trailing consecutive nights held. Shows a streak badge when ≥ 2.
-    var streak: Int = 0
-    var primaryActionLabel = "Turn On"
-    var onPrimaryAction: () -> Void = {}
-    /// Tapping the empty-state note (no window scheduled) navigates to Schedule.
-    var onEmptyNoteAction: () -> Void = {}
+    var onTurnOn: () -> Void = {}
+    var onMoreTime: () -> Void = {}
+    var onCallItADay: () -> Void = {}
+    var onOneThingDone: (Bool) -> Void = { _ in }
+    var onSaveOneThing: (String) -> Bool = { _ in true }
     var onResolveAccessibility: () -> Void = {}
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            sky
-            decision
-            accessibilityWarning
-            // Extra window height collects here as calm canvas rather than a gap
-            // between the countdown and the control.
-            Spacer(minLength: 0)
+        ZStack(alignment: .top) {
+            // Extended beneath the system sidebar, so the sky runs behind it.
+            HorizonSkyView(frame: horizon, isDayRunning: isDayRunning)
+                .backgroundExtensionEffect()
+                .ignoresSafeArea()
+            GeometryReader { proxy in
+                layout(in: proxy.size)
+            }
+            .ignoresSafeArea(.container, edges: .vertical)
+            TodayHealthBanner(
+                showWarning: showAccessibilityWarning,
+                showGranted: showAccessibilityGranted,
+                onResolve: onResolveAccessibility
+            )
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .background(CurfewTheme.canvas)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .accessibilityElement(children: .contain)
         .animation(.easeOut(duration: 0.4), value: showAccessibilityGranted)
         .animation(.easeOut(duration: 0.4), value: showAccessibilityWarning)
     }
 
-    // MARK: - The window (full-bleed living sky, the protagonist)
+    private func layout(in size: CGSize) -> some View {
+        let metrics = TodayMetrics.window(size)
+        let skyHeight = size.height * (1 - HorizonGeometry.horizon)
+        return VStack(spacing: 0) {
+            TodayHero(
+                presentation: presentation, metrics: metrics, horizon: horizon, voice: voice,
+                holdDuration: holdDuration, onTurnOn: onTurnOn, onMoreTime: onMoreTime,
+                onCallItADay: onCallItADay
+            )
+            .padding(.bottom, metrics.actionsToHorizon)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+            .frame(height: skyHeight)
 
-    /// The hero. The living ``HorizonSkyView`` bleeds edge-to-edge — including up
-    /// under the title bar via `ignoresSafeArea` — so the dusk reaches the very
-    /// top of the window with the traffic lights floating over it. The text
-    /// stays inside the safe area so the greeting clears the controls. The hero
-    /// grows to fill all available height so the countdown floats in a large
-    /// field and the control below docks at the bottom with no dead band.
-    private var sky: some View {
-        ZStack(alignment: .topLeading) {
-            HorizonSkyView(frame: horizon, isDayRunning: isDayRunning)
-                .backgroundExtensionEffect()
-                .overlay(alignment: .bottom) { bottomFade }
-                .overlay { skyTextScrim }
-                .ignoresSafeArea(.container, edges: .top)
-            skyContent
-        }
-        // A fixed, composed hero — capped so the mesh and sun never stretch or
-        // distort to fill an arbitrarily tall window. Extra height becomes calm
-        // canvas below, not a stretched sky.
-        .frame(maxWidth: .infinity)
-        .frame(minHeight: 380, maxHeight: 520)
-    }
-
-    /// The large hero line used for the no-countdown states (empty / setup /
-    /// active-curfew). Shared by the tappable and informational variants.
-    private var emptyNoteText: some View {
-        Text(emptyNote)
-            .font(.system(size: 40, weight: .semibold))
-            .foregroundStyle(SundownPalette.warmWhite.opacity(0.92))
-            .frame(maxWidth: 460, alignment: .leading)
-    }
-
-    private var skyContent: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text(greeting)
-                .font(.system(size: 30, weight: .semibold))
-                .foregroundStyle(SundownPalette.warmWhite.opacity(0.95))
-
-            if timeRemaining.isEmpty {
-                if emptyNoteActionable {
-                    Button(action: onEmptyNoteAction) {
-                        emptyNoteText
-                    }
-                    .buttonStyle(.plain)
-                    .padding(.top, 16)
-                } else {
-                    // Active-curfew status: informational, not a navigation button.
-                    emptyNoteText
-                        .padding(.top, 16)
+            Group {
+                if presentation.showsOneThing {
+                    OneThingView(
+                        oneThing: oneThing, size: metrics.oneThing, voice: voice,
+                        onDone: onOneThingDone, onSave: onSaveOneThing
+                    )
+                    .frame(maxWidth: metrics.groundWidth)
+                    .accessibilitySortPriority(2)
                 }
-                Spacer(minLength: 0)
-            } else {
-                Spacer(minLength: 0)
-                Text(timeRemaining)
-                    .font(SundownType.display(108))
-                    .monospacedDigit()
-                    .contentTransition(.numericText())
-                    .animation(.easeInOut(duration: 0.5), value: timeRemaining)
-                    .foregroundStyle(SundownPalette.warmWhite)
-                    .shadow(color: .black.opacity(0.18), radius: 22, y: 8)
-
-                HStack(spacing: 5) {
-                    Text(ScheduleSurfaceCopy.countdownPrefix)
-                        .foregroundStyle(SundownPalette.warmWhite.opacity(0.72))
-                    Text(lockTime)
-                        .font(SundownType.strong(16))
-                        .foregroundStyle(SundownPalette.warmWhite)
-                }
-                .font(SundownType.body(16))
-                .shadow(color: .black.opacity(0.35), radius: 8, y: 1)
-                .padding(.top, 10)
-
-                Text("Scheduled unlock: \(unlockTime)")
-                    .font(SundownType.body(14))
-                    .foregroundStyle(SundownPalette.supportingText)
-                    .shadow(color: .black.opacity(0.3), radius: 6, y: 1)
-                    .padding(.top, 5)
             }
+            .padding(.top, metrics.horizonToGround)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .padding(.horizontal, 40)
-        .padding(.top, 34)
-        // Sit the countdown near the hero's lower edge so it flows straight into
-        // the control beneath — no floating gap between them.
-        .padding(.bottom, 30)
+        .padding(.horizontal, CurfewSpacing.xLarge)
     }
+}
 
-    /// The sky and page fade can both become bright. The shared backing keeps
-    /// small schedule text readable throughout the hero, including daytime.
-    private var skyTextScrim: some View {
-        SundownPalette.textScrim
-            .allowsHitTesting(false)
-    }
+/// Sizes for one Today surface, from the prototype's proportions: numerals
+/// 13.5% of the width, the line and buttons near the horizon, the one thing
+/// a little below it.
+struct TodayMetrics: Equatable {
+    var numeral: CGFloat
+    var statement: CGFloat
+    var line: CGFloat
+    var oneThing: CGFloat
+    /// Numerals to the line under them. Negative where the numerals' descender
+    /// space would otherwise open a gap wider than the prototype's.
+    var headlineToLine: CGFloat
+    /// The line to the buttons.
+    var lineToActions: CGFloat
+    /// The buttons' bottom edge to the horizon.
+    var actionsToHorizon: CGFloat
+    /// The horizon to the one thing.
+    var horizonToGround: CGFloat
+    var groundWidth: CGFloat
+    /// Stacks the two actions vertically where the width is tight.
+    var stacksActions: Bool
 
-    /// Softens the sky's bottom edge into the page so there's no hard seam where
-    /// the sky meets the surface below.
-    private var bottomFade: some View {
-        LinearGradient(
-            colors: [.clear, CurfewTheme.canvas],
-            startPoint: .top,
-            endPoint: .bottom
+    static func window(_ size: CGSize) -> TodayMetrics {
+        let numeral = min(max(size.width * 0.135, 64), min(size.height * 0.2, 150))
+        return TodayMetrics(
+            numeral: numeral,
+            statement: (numeral * 0.34).rounded(),
+            line: 15,
+            oneThing: 19,
+            // The numerals' line box carries their descender; pull the line up
+            // into it so the visible gap is the prototype's eighth of an em.
+            headlineToLine: -(numeral * 0.1).rounded(),
+            lineToActions: size.height < 560 ? CurfewSpacing.xLarge : CurfewSpacing.xxLarge,
+            actionsToHorizon: size.height < 560 ? CurfewSpacing.xLarge : CurfewSpacing.xxLarge,
+            horizonToGround: min(max(size.height * 0.095, CurfewSpacing.xLarge), 72),
+            groundWidth: min(560, size.width * 0.62),
+            stacksActions: false
         )
-        .frame(height: 150)
     }
 
-    // MARK: - The control (system state + the only accent/action)
+    /// The menu bar popover: the same order at a third of the scale.
+    static let popover = TodayMetrics(
+        numeral: 52,
+        statement: 22,
+        line: 13,
+        oneThing: 15,
+        headlineToLine: -5,
+        lineToActions: CurfewSpacing.large,
+        actionsToHorizon: CurfewSpacing.large,
+        horizonToGround: CurfewSpacing.large,
+        groundWidth: 300,
+        stacksActions: true
+    )
+}
 
-    private var decision: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            // When armed, the countdown above already says Curfew is on — no
-            // redundant status badge. Off / needs-setup gets a real invitation
-            // to act: a heading, one concrete line, and the action.
-            if !isEnforcing {
-                Text(statusLine)
-                    .font(SundownType.title(19))
-                    .foregroundStyle(CurfewTheme.ink)
-                    .contentTransition(.opacity)
+/// The sky's half of Today: the countdown or a statement, the line under it
+/// and the actions. Shared by the window and the menu bar popover.
+struct TodayHero: View {
+    var presentation: TodayPresentation
+    var metrics: TodayMetrics
+    var horizon: HorizonFrame
+    var voice: TodayVoice
+    var holdDuration: TimeInterval
+    var onTurnOn: () -> Void
+    var onMoreTime: () -> Void
+    var onCallItADay: () -> Void
 
-                if !statusDetail.isEmpty {
-                    Text(statusDetail)
-                        .font(SundownType.body(15))
-                        .foregroundStyle(CurfewTheme.mutedInk)
-                        .contentTransition(.opacity)
+    var body: some View {
+        VStack(spacing: 0) {
+            VStack(spacing: presentation.isCountdown ? metrics.headlineToLine : CurfewSpacing
+                .small) {
+                    headline
+                    if let line = presentation.line {
+                        TodayLine(text: line, symbol: presentation.lineSymbol, size: metrics.line)
+                    }
                 }
+                .skyInk(horizon)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(presentation.spokenTime)
+                .accessibilityAddTraits(.updatesFrequently)
+                .accessibilitySortPriority(3)
 
-                Button(action: onPrimaryAction) {
-                    Text(primaryActionLabel)
-                }
-                .buttonStyle(SundownCapsuleButtonStyle())
-                .padding(.top, 4)
-                .transition(.scale(scale: 0.92).combined(with: .opacity))
-            }
-
-            // The earned streak is the one quiet, meaningful note worth keeping
-            // while armed.
-            if streak >= 2 {
-                HStack(spacing: 6) {
-                    Image(systemName: "moon.stars.fill")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(CurfewTheme.accent)
-                    Text("\(streak) nights in a row")
-                        .font(SundownType.body(13))
-                }
-                .foregroundStyle(CurfewTheme.ink)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .horizonGlass(in: Capsule())
-                .padding(.top, isEnforcing ? 0 : 2)
-                .transition(.opacity)
-            }
+            TodayActions(
+                presentation: presentation, voice: voice, holdDuration: holdDuration,
+                stacked: metrics.stacksActions, onTurnOn: onTurnOn, onMoreTime: onMoreTime,
+                onCallItADay: onCallItADay
+            )
+            .padding(.top, metrics.lineToActions)
+            .accessibilitySortPriority(1)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 40)
-        .padding(.top, 14)
-        .animation(.spring(response: 0.45, dampingFraction: 0.8), value: isEnforcing)
+        .foregroundStyle(SundownPalette.warmWhite)
+        .multilineTextAlignment(.center)
     }
 
     @ViewBuilder
-    private var accessibilityWarning: some View {
-        if showAccessibilityGranted {
-            HStack(spacing: 11) {
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(CurfewTheme.accent)
-                Text("Accessibility access granted.")
-                    .font(SundownType.body(14))
-                    .foregroundStyle(CurfewTheme.ink)
-            }
-            .padding(.horizontal, 18)
-            .padding(.vertical, 14)
-            .background(CurfewTheme.surfaceMuted, in: .rect(cornerRadius: 12))
-            .padding(.horizontal, 40)
-            .padding(.top, 22)
-            .transition(.opacity)
-        } else if showAccessibilityWarning {
-            HStack(spacing: 11) {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(CurfewTheme.warning)
-                Text("Curfew needs Accessibility access to block bypass shortcuts during lockout.")
-                    .font(SundownType.body(14))
-                    .foregroundStyle(CurfewTheme.ink)
-                Spacer(minLength: 12)
-                Button("Grant Access", action: onResolveAccessibility)
-                    .buttonStyle(.plain)
-                    .font(SundownType.title(14))
-                    .foregroundStyle(CurfewTheme.accent)
-            }
-            .padding(.horizontal, 18)
-            .padding(.vertical, 14)
-            .background(CurfewTheme.warning.opacity(0.13), in: .rect(cornerRadius: 12))
-            .padding(.horizontal, 40)
-            .padding(.top, 22)
+    private var headline: some View {
+        switch presentation.headline {
+        case .countdown(let value):
+            TodayCountdown(value: value, size: metrics.numeral)
+        case .statement(let text):
+            Text(text)
+                .sundownFont(.headline, size: metrics.statement)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 }
 
-/// The Today hero's primary call to action — an ember capsule that reads as
-/// the one confident action over the sky. Distinct from the chrome's
-/// `CurfewPrimaryButtonStyle` (a small rounded rect) because this button is the
-/// emotional centre of the empty state; it carries a soft ember glow and a
-/// springy press so turning Curfew on feels deliberate.
-private struct SundownCapsuleButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(SundownType.title(15))
-            .foregroundStyle(CurfewTheme.onAccent)
-            .padding(.horizontal, 22)
-            .padding(.vertical, 12)
-            .background(CurfewTheme.accentFill, in: .capsule)
-            .shadow(
-                color: CurfewTheme.accent.opacity(configuration.isPressed ? 0.18 : 0.3),
-                radius: 10,
-                y: 4
-            )
-            .scaleEffect(configuration.isPressed ? 0.96 : 1.0)
-            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: configuration.isPressed)
+/// The countdown numerals. They roll as they change, counting down, and swap
+/// without moving under Reduce Motion.
+struct TodayCountdown: View {
+    var value: String
+    var size: CGFloat
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        Text(value)
+            .sundownFont(.display, size: size)
+            .monospacedDigit()
+            .tracking(-0.03 * size)
+            // Tracking also trails the last figure; shift it back so the
+            // figures, not their box, sit on the centre line.
+            .offset(x: -0.015 * size)
+            .lineLimit(1)
+            .minimumScaleFactor(0.6)
+            .contentTransition(reduceMotion ? .identity : .numericText(countsDown: true))
+            .animation(reduceMotion ? nil : .smooth(duration: 0.28), value: value)
+    }
+}
+
+/// A status line led by its symbol at the text's weight.
+struct TodayLine: View {
+    var text: String
+    var symbol: HorizonSymbol?
+    var size: CGFloat
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: size * 0.4) {
+            if let symbol {
+                symbol.image
+            }
+            Text(text)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .sundownFont(.strong, size: size)
+        .contentTransition(.opacity)
     }
 }
 

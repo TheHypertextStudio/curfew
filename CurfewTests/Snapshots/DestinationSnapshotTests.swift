@@ -18,14 +18,6 @@
     /// working directory or any environment plumbing.
     @MainActor
     final class DestinationSnapshotTests: XCTestCase {
-        func testRenderTodayFooterAtWorkspaceHeight() throws {
-            try renderBoth(
-                TodaySundownView(streak: 3),
-                named: "today-footer", width: 832, height: 720,
-                to: Self.snapshotsDirectory()
-            )
-        }
-
         func testRenderCurrentMarketingScreens() throws {
             let directory = try Self.snapshotsDirectory()
             let model = Self.demoModel()
@@ -113,14 +105,14 @@
             model.state = DemoFixture.evaluation(for: .overview, now: Date())
             XCTAssertFalse(model.isAccessibilityTrusted)
             try render(
-                TodayView(selectedSection: .constant(.today)).environment(model),
+                TodayView().environment(model),
                 named: "permission-missing", width: 900, height: 680, to: directory
             )
             trust.trusted = true
             model.refreshAccessibilityTrust()
             XCTAssertTrue(model.isAccessibilityTrusted)
             try render(
-                TodayView(selectedSection: .constant(.today)).environment(model),
+                TodayView().environment(model),
                 named: "permission-granted", width: 900, height: 680, to: directory
             )
         }
@@ -148,30 +140,12 @@
                 width: 880,
                 to: outputDirectory
             )
-            try renderBoth(
-                TodaySundownView(),
-                named: "today-sundown",
-                width: 900,
-                to: outputDirectory
-            )
-            try renderBoth(
-                emptyToday(),
-                named: "today-empty",
-                width: 900,
-                to: outputDirectory
-            )
         }
 
         private func renderAtmosphericOverlays(
             model: CurfewAppModel,
             to outputDirectory: URL
         ) throws {
-            try renderBoth(
-                ContentView().environment(model),
-                named: "menubar",
-                width: 320,
-                to: outputDirectory
-            )
             try renderBoth(
                 LockoutSundownView(),
                 named: "lockout-sundown",
@@ -201,19 +175,6 @@
             model.currentTime = DemoFixture.referenceTime(for: .overview, now: Date())
             model.state = DemoFixture.evaluation(for: .overview, now: model.currentTime)
             return model
-        }
-
-        /// The not-set-up Today state (empty hero + accessibility warning).
-        private func emptyToday() -> TodaySundownView {
-            TodaySundownView(
-                greeting: "Good evening",
-                timeRemaining: "",
-                emptyNote: "Set your schedule to begin.",
-                statusLine: "Finish setting up Curfew",
-                statusDetail: "Set your schedule, then turn Curfew on.",
-                showAccessibilityWarning: true,
-                primaryActionLabel: "Finish Setup"
-            )
         }
 
         /// Renders `view` in both Light and Dark appearance, writing
