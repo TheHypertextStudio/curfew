@@ -10,14 +10,14 @@ import Testing
 /// native power: every effect is injected.
 @MainActor
 struct SunriseGateTests {
-    private nonisolated static func localDate(_ day: Int, _ hour: Int, _ minute: Int = 0) -> Date {
+    nonisolated static func localDate(_ day: Int, _ hour: Int, _ minute: Int = 0) -> Date {
         // 2026-10-19 is a Monday. `.tenToSix` works 06:00 to 22:00 on weekdays.
         Calendar.current.date(from: DateComponents(
             year: 2026, month: 10, day: day, hour: hour, minute: minute
         ))!
     }
 
-    private func makeModel(
+    func makeModel(
         now: Date = localDate(19, 9),
         reflections: MemoryReflections? = nil
     ) throws -> CurfewAppModel {

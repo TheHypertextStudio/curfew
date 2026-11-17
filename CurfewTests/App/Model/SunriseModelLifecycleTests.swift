@@ -50,6 +50,8 @@ struct SunriseModelLifecycleTests {
         model.currentTime = date("2026-10-19T12:00:00-07:00")
         model.sunriseCalendar = calendar()
         model.restAppearance = preferences()
+        // These contracts cover the battery policy, so this Mac has one.
+        model.sunriseRuntime.hardware = .laptop
         return model
     }
 

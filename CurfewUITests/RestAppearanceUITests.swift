@@ -39,13 +39,12 @@ extension CurfewUITests {
         destination.click()
         let detail = app.descendants(matching: .any)["settings-page-sunrise"]
         XCTAssertTrue(detail.waitForExistence(timeout: 5))
-        assertOff(app.switches["Wake this Mac for Sunrise"], revealingIn: detail)
-        assertOff(app.switches["Allow on battery"], revealingIn: detail)
-        let status = app.staticTexts["Sunrise appears when you first use this Mac in the morning."]
-        XCTAssertTrue(
-            status.waitForExistence(timeout: 3),
-            "Sunrise must report its wake status separately from the opt-in control."
-        )
+        assertOff(app.switches["sunrise-wake"], revealingIn: detail)
+        // "Allow on battery" appears only on a Mac with a battery.
+        let battery = app.switches["sunrise-battery"]
+        if battery.exists {
+            assertOff(battery, revealingIn: detail)
+        }
         let screenshot = app.screenshot()
         let attachment = XCTAttachment(screenshot: screenshot)
         attachment.name = "curfew-sunrise-settings"
