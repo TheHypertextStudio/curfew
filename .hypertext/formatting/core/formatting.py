@@ -61,6 +61,74 @@ def configuration_file(name):
     )
 
 
+# Formatter configuration that a formatter reads from any folder above the
+# repository, whatever the repository itself provides.
+OUTER_CONFIG_NAMES = {
+    ".editorconfig",
+    ".swift-format",
+    ".clang-format",
+    "rustfmt.toml",
+    ".rustfmt.toml",
+}
+
+
+def prettier_config(folder):
+    for config in sorted(
+        (*folder.glob(".prettierrc*"), *folder.glob("prettier.config.*"))
+    ):
+        if config.is_file() or config.is_symlink():
+            return config
+    manifest = folder / "package.json"
+    try:
+        text = manifest.read_text(encoding="utf-8")
+    except OSError:
+        return None
+    try:
+        declared = json.loads(text)
+    except ValueError:
+        return manifest
+    return manifest if isinstance(declared, dict) and "prettier" in declared else None
+
+
+def ruff_config(folder):
+    for name in ("ruff.toml", ".ruff.toml"):
+        if (folder / name).is_file():
+            return folder / name
+    project = folder / "pyproject.toml"
+    try:
+        text = project.read_text(encoding="utf-8")
+    except OSError:
+        return None
+    lines = (line.strip() for line in text.splitlines())
+    return project if any(line.startswith("[tool.ruff") for line in lines) else None
+
+
+def swiftformat_config(folder):
+    config = folder / ".swiftformat"
+    return config if config.is_file() or config.is_symlink() else None
+
+
+# Prettier and Ruff use the nearest configuration, and SwiftFormat is given the
+# repository's own .swiftformat, so a repository that has its own configuration
+# for one of them hides the same configuration in any folder above it.
+SHADOWED_CONFIG = (prettier_config, ruff_config, swiftformat_config)
+
+
+def outer_configuration(repo):
+    """Return formatter configuration above the repository that would apply."""
+    active = [find for find in SHADOWED_CONFIG if find(repo) is None]
+    for folder in repo.parents:
+        for name in sorted(OUTER_CONFIG_NAMES):
+            config = folder / name
+            if config.is_file() or config.is_symlink():
+                return config
+        for find in active:
+            config = find(folder)
+            if config is not None:
+                return config
+    return None
+
+
 def read_file(path):
     if path.is_symlink():
         raise ValueError("Formatting refuses symlinked files: " + str(path))
@@ -342,10 +410,22 @@ def format_staged(repo):
                         + name
                     )
 
+        # Folders above the repository hold other projects' files, such as the
+        # main checkout around a worktree under .claude/worktrees. Only
+        # configuration a formatter would really read there is refused.
+        outer = outer_configuration(repo)
+        if outer is not None:
+            raise ValueError(
+                "External formatter configuration must be made repository-local: "
+                + str(outer)
+            )
         directories = {repo}
         for name in paths:
-            directories.update((repo / name).parent.parents)
-            directories.add((repo / name).parent)
+            parent = (repo / name).parent
+            directories.add(parent)
+            directories.update(
+                folder for folder in parent.parents if folder.is_relative_to(repo)
+            )
         for directory in directories:
             if not directory.exists():
                 continue
