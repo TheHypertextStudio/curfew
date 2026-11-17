@@ -27,7 +27,7 @@
                 )
                 try renderJournal(
                     JournalView(range: .year), model: model,
-                    named: "journal-year-\(suffix)", height: 2050, appearance: appearance
+                    named: "journal-year-\(suffix)", height: 2700, appearance: appearance
                 )
             }
         }
@@ -71,6 +71,67 @@
                 Self.edgeCaseScreen(kind: .beforeStopTimes, model: model),
                 named: "journal-before-stop-times-light", height: 1500
             )
+        }
+
+        /// The year in review on its own in both appearances, the line it
+        /// shows with too few days, and the exported image itself.
+        func testRenderJournalYearReview() async throws {
+            let model = Self.demoModel()
+            let calendar = Calendar.current
+            let now = model.currentTime
+            let period = JournalPeriod.containing(now, range: .year, calendar: calendar)
+            let records = period.records(from: model.journalDayRecords(
+                in: period.interval.start ... now, calendar: calendar
+            ).filter { $0.day < calendar.startOfDay(for: now) })
+            let format = JournalFormat(calendar: calendar)
+            let review = JournalYearReview(
+                records: records, period: period, today: now, format: format
+            )
+            guard case .card(let card) = review.content else {
+                return XCTFail("The demo year should have enough days for the card")
+            }
+            for (appearance, suffix) in [(NSAppearance.Name.aqua, "light"), (.darkAqua, "dark")] {
+                try renderYearReview(
+                    review, named: "journal-year-review-\(suffix)", height: 680,
+                    appearance: appearance
+                )
+            }
+            let few = JournalYearReview(
+                records: Array(records.suffix(6)), period: period, today: now, format: format
+            )
+            try renderYearReview(
+                few, named: "journal-year-review-too-few-light", height: 140, appearance: .aqua
+            )
+
+            let png = try await JournalYearReviewImage(card: card).pngData()
+            let image = try XCTUnwrap(NSBitmapImageRep(data: png))
+            XCTAssertEqual(image.pixelsWide, 3200)
+            XCTAssertEqual(image.pixelsHigh, 2000)
+            try png.write(
+                to: Self.screenshotsDirectory()
+                    .appendingPathComponent("curfew-journal-year-review-export.png")
+            )
+        }
+
+        /// The year in review section as it sits at the end of the year range.
+        private func renderYearReview(
+            _ review: JournalYearReview,
+            named name: String,
+            height: CGFloat,
+            appearance: NSAppearance.Name
+        ) throws {
+            let section = VStack(alignment: .leading, spacing: 12) {
+                Text("Year in review")
+                    .journalFont(.section)
+                    .foregroundStyle(JournalStyle.ink)
+                JournalYearReviewView(review: review)
+            }
+            .padding(24)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .background(JournalStyle.page)
+            .environment(\.colorScheme, appearance == .darkAqua ? .dark : .light)
+            .environment(\.horizonSkyRendering, .reference)
+            try capture(section, named: name, width: 880, height: height, appearance: appearance)
         }
 
         private enum EdgeCase {
@@ -145,6 +206,7 @@
                 view.environment(model)
             }
             .environment(\.colorScheme, appearance == .darkAqua ? .dark : .light)
+            .environment(\.horizonSkyRendering, .reference)
             .tint(CurfewTheme.accent)
             try capture(
                 root,
