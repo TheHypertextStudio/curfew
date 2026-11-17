@@ -7,6 +7,7 @@ import Testing
 @MainActor
 private final class NotificationRequestSpy: WarningNotificationManaging {
     var onSnoozeRequested: (() -> Void)?
+    var voice = VoicePack.standard
     private(set) var permissionRequests = 0
 
     func requestPermissionIfNeeded() {

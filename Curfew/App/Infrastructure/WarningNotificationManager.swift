@@ -29,6 +29,8 @@ struct WarningNotificationCategoryDefinition: Equatable {
 @MainActor
 protocol WarningNotificationManaging: AnyObject {
     var onSnoozeRequested: (() -> Void)? { get set }
+    /// The voice notifications speak in; the model keeps it current.
+    var voice: VoicePack { get set }
     func requestPermissionIfNeeded()
     func update(
         stage: WarningStage,
@@ -41,6 +43,7 @@ protocol WarningNotificationManaging: AnyObject {
 @MainActor
 final class NoOpWarningNotificationManager: WarningNotificationManaging {
     var onSnoozeRequested: (() -> Void)?
+    var voice = VoicePack.standard
 
     func requestPermissionIfNeeded() {}
 
@@ -88,6 +91,9 @@ final class WarningNotificationManager: NSObject {
     /// Called on `@MainActor` when the user taps the snooze action. The model
     /// wires this to `requestNotificationSnooze()`.
     var onSnoozeRequested: (() -> Void)?
+
+    /// The voice the banners speak in. The model sets it from the theme.
+    var voice = VoicePack.standard
 
     /// Creates a manager backed by `center`. Production uses the default
     /// `.current()` singleton; tests can inject a stub to capture add/remove
@@ -174,7 +180,7 @@ final class WarningNotificationManager: NSObject {
     /// make out loud — a nudge that just said "get back to work" would leave
     /// the user guessing how the app decided that.
     func deliverDistractionNudge() {
-        let payload = Self.distractionPayload
+        let payload = Self.distractionPayload(voice: voice)
         let content = UNMutableNotificationContent()
         content.title = payload.title
         content.body = payload.body
@@ -195,12 +201,14 @@ final class WarningNotificationManager: NSObject {
     /// Silent by design: the user is sitting right there, so a sound would be
     /// a jolt where a banner is a glance. The curfew warnings escalate to
     /// sound because they precede the Mac locking; this one does not.
-    static let distractionPayload = WarningNotificationPayload(
-        title: VoicePack.standard.presenceTitle,
-        body: VoicePack.standard.presenceBody,
-        categoryIdentifier: distractionCategoryIdentifier,
-        playsSound: false
-    )
+    static func distractionPayload(voice: VoicePack = .standard) -> WarningNotificationPayload {
+        WarningNotificationPayload(
+            title: voice.presenceTitle,
+            body: voice.presenceBody,
+            categoryIdentifier: distractionCategoryIdentifier,
+            playsSound: false
+        )
+    }
 
     /// Stable string token for a `WarningStage`, shared by the
     /// `LockoutState` CloudKit record so publishers and consumers agree
@@ -271,7 +279,7 @@ final class WarningNotificationManager: NSObject {
     }
 
     private func notificationContent(for stage: WarningStage) -> UNMutableNotificationContent? {
-        guard let payload = Self.payload(for: stage) else {
+        guard let payload = Self.payload(for: stage, voice: voice) else {
             return nil
         }
 

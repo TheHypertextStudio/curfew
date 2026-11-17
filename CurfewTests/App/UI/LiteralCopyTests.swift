@@ -23,7 +23,7 @@ struct LiteralCopyTests {
         #expect(off.offersTurnOn)
         #expect(off.moreTime == nil)
         #expect(!off.callsItADay)
-        #expect(TodayVoice.standard.turnOn == "Turn on Curfew")
+        #expect(VoicePack.standard.turnOn == "Turn on Curfew")
     }
 
     @Test("Presence reminder instructions distinguish idle detection from the extra delay")
@@ -66,7 +66,7 @@ struct LiteralCopyTests {
         #expect(fifteen.title == "15 minutes to curfew")
         #expect(fifteen.body == "Finish what you're in. Don't start anything.")
         #expect(WarningNotificationManager.payload(for: .lockout) == nil)
-        #expect(WarningNotificationManager.distractionPayload.body
+        #expect(WarningNotificationManager.distractionPayload().body
             ==
             "You're at this Mac but haven't touched it in a while. "
             + "Back to work, or call it a break.")

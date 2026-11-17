@@ -31,7 +31,6 @@ enum GettingStartedCopy {
         "Without the Curfew helper, force quitting Curfew ends the lock early."
 
     static let previewLock = "Preview the lock"
-    static let lockedHeadline = "That's the day."
     static let endPreview = "End preview"
 
     static let extrasTitle = "Curfew on your other devices"
@@ -63,10 +62,6 @@ enum GettingStartedCopy {
             return "Curfew locks tomorrow at \(time)."
         }
         return "Curfew locks \(curfew.formatted(.dateTime.weekday(.wide))) at \(time)."
-    }
-
-    static func unlockLine(_ unlock: Date) -> String {
-        "Unlocks at \(unlock.formatted(date: .omitted, time: .shortened))"
     }
 }
 

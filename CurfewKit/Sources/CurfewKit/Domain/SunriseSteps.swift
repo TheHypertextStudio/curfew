@@ -7,14 +7,16 @@ import Foundation
 // reflections (last night's note and today's one thing). Answers are saved as
 // an ordinary morning reflection, so no stored or wire shape changes.
 
-/// The lines Sunrise says. Kept in one place so views never write them inline.
+/// Sunrise's fixed words. The greeting, the question, the action and last
+/// night's prefix come from the default ``VoicePack``; the views read the
+/// active pack, and these are what stored defaults are written with.
 public enum SunriseVoice {
-    public static let greeting = "Morning."
-    public static let question = "What is today for?"
-    public static let startTheDay = "Start the day"
+    public static let greeting = VoicePack.standard.gateHeadline
+    public static let question = VoicePack.standard.gateQuestion
+    public static let startTheDay = VoicePack.standard.gateAction
     public static let next = "Next"
     public static let skip = "Skip"
-    public static let lastNightPrefix = "Last night you left:"
+    public static let lastNightPrefix = VoicePack.standard.lastNightPrefix
     public static let readiness = "How ready do you feel?"
 
     /// "Last night you left: (their words)".
@@ -250,17 +252,22 @@ public struct SunriseGatePage: Equatable, Sendable {
 
 /// Builds the gate's pages from the enabled steps.
 public enum SunriseGate {
-    /// The one thing's prompt. Its identity is what the Journal and Today read.
-    public static var oneThingPrompt: ReflectionPrompt {
-        ReflectionPrompt(id: JournalPromptIDs.oneThing, text: SunriseVoice.question, kind: .text)
+    /// The one thing's prompt, asked in the active voice's words. Its
+    /// identity is what the Journal and Today read.
+    public static func oneThingPrompt(
+        question: String = SunriseVoice.question
+    ) -> ReflectionPrompt {
+        ReflectionPrompt(id: JournalPromptIDs.oneThing, text: question, kind: .text)
     }
 
     /// Last night's note rides on the page of the next question; a note with
     /// nothing after it gets a page of its own. An empty note is left out.
+    /// `question` is how the active voice asks for the one thing.
     public static func pages(
         steps: [SunriseStep],
         morningPrompts: [ReflectionPrompt],
-        lastNightNote: String?
+        lastNightNote: String?,
+        question: String = SunriseVoice.question
     ) -> [SunriseGatePage] {
         let note = lastNightNote?.trimmingCharacters(in: .whitespacesAndNewlines)
         var pendingNote: String?
@@ -268,7 +275,7 @@ public enum SunriseGate {
         for step in steps where step.isEnabled {
             let prompt: ReflectionPrompt? = switch step.kind {
             case .lastNightNote: nil
-            case .oneThing: oneThingPrompt
+            case .oneThing: oneThingPrompt(question: question)
             case .readiness: morningPrompts.first { $0.id == JournalPromptIDs.readiness }
                 ?? ReflectionDefaults.morningPrompts[1]
             case .question(let id): morningPrompts.first { $0.id == id }

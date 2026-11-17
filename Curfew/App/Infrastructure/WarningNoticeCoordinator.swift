@@ -1,4 +1,5 @@
 import AppKit
+import CurfewAtmosphere
 import CurfewKit
 import Observation
 import SwiftUI
@@ -54,6 +55,10 @@ final class WarningNoticeState {
     var stage: WarningStage = .none
     var curfew: Date?
     var fallbackSeconds = 0
+    /// The voice the stage line is spoken in.
+    var voice = VoicePack.standard
+    /// The palette its solid panel takes under Reduce Transparency.
+    var palette = HorizonPalette.standard
     @ObservationIgnored var onDismiss: () -> Void = {}
 }
 
@@ -83,7 +88,10 @@ final class WarningNoticeCoordinator {
         }
     }
 
-    func update(stage: WarningStage, curfew: Date?, minutesRemaining: Int) {
+    func update(
+        stage: WarningStage, curfew: Date?, minutesRemaining: Int, voice: VoicePack = .standard,
+        palette: HorizonPalette = .standard
+    ) {
         guard visibility.shouldShow(stage) else {
             hide()
             return
@@ -92,6 +100,12 @@ final class WarningNoticeCoordinator {
         state.stage = stage
         state.curfew = curfew
         state.fallbackSeconds = max(0, minutesRemaining) * 60
+        if state.voice != voice {
+            state.voice = voice
+        }
+        if state.palette != palette {
+            state.palette = palette
+        }
 
         let screens = NSScreen.screens
         let connected = Set(screens.map(ObjectIdentifier.init))
@@ -171,7 +185,6 @@ final class WarningNoticeCoordinator {
 /// line. The countdown updates itself each second; the window never rebuilds.
 struct WarningNoticeView: View {
     let state: WarningNoticeState
-    var voice = VoicePack.standard
     var now: Date?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -198,7 +211,7 @@ struct WarningNoticeView: View {
                     .accessibilityLabel(WarningNoticeContent
                         .spokenCountdown(secondsRemaining: seconds))
                     .accessibilityIdentifier("warning-countdown")
-                if let line = voice.stageLine(state.stage) {
+                if let line = state.voice.stageLine(state.stage) {
                     Text(line)
                         .font(.system(size: 13, weight: .medium))
                         .foregroundStyle(SundownPalette.supportingText)
@@ -226,6 +239,7 @@ struct WarningNoticeView: View {
         .padding(.vertical, CurfewSpacing.medium)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .nightPanel()
+        .environment(\.horizonPalette, state.palette)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("early-warning-notice")
     }

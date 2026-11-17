@@ -101,6 +101,7 @@ extension CurfewAppModel {
         )
         recordDayEndedByLockIfNeeded()
         reconcileOverrideComposerState(previousPhase: previousPhase)
+        notificationManager.voice = voice
         notificationManager.update(
             stage: state.warningStage,
             now: currentTime,
@@ -155,7 +156,7 @@ extension CurfewAppModel {
 
     private func propagatePhaseTransition(from previousPhase: EnforcementPhase) {
         if previousPhase != .locked, state.phase == .locked {
-            lockoutMessage = EncouragementMessageCatalog.next(after: lockoutMessage)
+            lockoutMessage = EncouragementMessageCatalog.next(after: lockoutMessage, voice: voice)
         }
         // Raise / clear the morning + evening reflection gates off the same
         // transition the tick already computed.

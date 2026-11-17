@@ -56,7 +56,7 @@ struct SunriseGateView: View {
             let screen = geometry.size.height + Self.chromeAbove + Self.chromeBelow
             VStack(spacing: 0) {
                 Color.clear.frame(height: max(0, screen * 0.19 - Self.chromeAbove))
-                Text(SunriseVoice.greeting)
+                Text(model.voice.gateHeadline)
                     .sundownFont(.title, size: 76)
                     .foregroundStyle(SundownPalette.warmWhite)
                     .accessibilityAddTraits(.isHeader)
@@ -85,7 +85,7 @@ struct SunriseGateView: View {
     private var ground: some View {
         VStack(alignment: .leading, spacing: CurfewSpacing.large) {
             if let note = page?.note {
-                Label(SunriseVoice.lastNight(note), horizonSymbol: .lastNight)
+                Label(model.voice.lastNight(note), horizonSymbol: .lastNight)
                     .sundownFont(.strong, size: 17)
                     .foregroundStyle(SundownPalette.supportingText)
                     .fixedSize(horizontal: false, vertical: true)
@@ -204,7 +204,7 @@ struct SunriseGateView: View {
     @ViewBuilder
     private var primaryLabel: some View {
         if isLastPage {
-            Label(SunriseVoice.startTheDay, horizonSymbol: .sunrise)
+            Label(model.voice.gateAction, horizonSymbol: .sunrise)
         } else {
             Text(SunriseVoice.next)
         }

@@ -191,7 +191,7 @@ struct LockScreenTests {
             #expect(WarningNotificationManager.payload(for: stage)?.title != "Curfew")
         }
         #expect(WarningNotificationManager.snoozeActionTitle == "1 more minute")
-        #expect(WarningNotificationManager.distractionPayload.title == "Still with it?")
+        #expect(WarningNotificationManager.distractionPayload().title == "Still with it?")
     }
 
     @Test("The notice counts down in minutes and seconds and reads as time to curfew")
