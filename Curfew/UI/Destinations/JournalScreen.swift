@@ -84,10 +84,11 @@ struct JournalScreen {
         case .noStopTimes:
             self.headline = "These days were recorded before Curfew noted stop times."
         case .populated:
-            self.headline = "You stopped before curfew on \(summary.stoppedBeforeCurfew) of "
-                + "\(JournalFormat.count(summary.daysWithStop, "day")). "
-                + "The lock ended \(summary.endedByLock). "
-                + (summary.ranOver > 0 ? "\(summary.ranOver) ran over." : "None ran over.")
+            self.headline = JournalCountWords.headline(
+                early: summary.stoppedBeforeCurfew,
+                lock: summary.endedByLock,
+                over: summary.ranOver
+            )
         }
 
         let previous = period.previous(calendar: calendar)
