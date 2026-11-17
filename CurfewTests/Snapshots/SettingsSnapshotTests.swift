@@ -69,6 +69,36 @@ import CurfewKit
             XCTAssertFalse(model.isPresenceCameraLive)
         }
 
+        /// Warnings and limits with nothing waiting, then with two raises
+        /// waiting, in both appearances.
+        func testRenderWaitingLimitRaises() throws {
+            let directory = try Self.snapshotsDirectory()
+            let model = Self.demoModel()
+            for (state, appearance) in [
+                ("steady", NSAppearance.Name.aqua), ("steady", .darkAqua)
+            ] {
+                try renderHosted(
+                    SettingsView(initialSection: .enforcement).environment(model),
+                    named: "settings-limits-\(state)-\(appearance == .aqua ? "light" : "dark")",
+                    width: 760, height: 580, appearance: appearance, to: directory
+                )
+            }
+            XCTAssertTrue(model.settings.hasCompletedInitialSetup)
+            let extensions = model.settings.extensionWeeklyLimit
+            let overrideMinutes = model.settings.overrideDurationMinutes
+            model.requestLimit(.extensionCount, value: extensions + 3)
+            model.requestLimit(.overrideMinutes, value: overrideMinutes + 15)
+            XCTAssertEqual(model.settings.extensionWeeklyLimit, extensions)
+            XCTAssertEqual(model.settings.pendingLimitChanges.count, 2)
+            for appearance in [NSAppearance.Name.aqua, .darkAqua] {
+                try renderHosted(
+                    SettingsView(initialSection: .enforcement).environment(model),
+                    named: "settings-limits-waiting-\(appearance == .aqua ? "light" : "dark")",
+                    width: 760, height: 580, appearance: appearance, to: directory
+                )
+            }
+        }
+
         func testRenderShippingSettingsIntegrations() throws {
             let directory = try Self.snapshotsDirectory()
             let suite = "CurfewSettingsSnapshot-\(UUID().uuidString)"

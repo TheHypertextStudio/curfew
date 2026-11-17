@@ -93,38 +93,64 @@ struct SettingsRow<Control: View>: View {
     }
 }
 
+/// A button that belongs to a row's own control, such as withdrawing the
+/// waiting change that row's detail describes.
+struct SettingsRowAction {
+    let title: String
+    var accessibilityLabel: String?
+    let perform: () -> Void
+}
+
 /// A row whose control is a number with a stepper.
+///
+/// `shownValue` lets the number differ from what the stepper edits: a weekly
+/// limit shows the value in force while the stepper moves the waiting raise,
+/// which the row's `detail` then describes. `action` sits beside the stepper
+/// so the way out of that status stays with its control.
 struct SettingsValueRow: View {
     @Environment(\.isEnabled) private var isEnabled
     let title: String
     var detail: String?
+    var tone: SettingsDetailTone = .secondary
     @Binding var value: Int
     let range: ClosedRange<Int>
     var step = 1
     var usesMinutes = false
     var accessibilityTitle: String?
+    var shownValue: Int?
+    var action: SettingsRowAction?
 
     init(
-        title: String, detail: String? = nil, value: Binding<Int>, range: ClosedRange<Int>,
-        step: Int = 1, usesMinutes: Bool = false, accessibilityTitle: String? = nil
+        title: String, detail: String? = nil, tone: SettingsDetailTone = .secondary,
+        value: Binding<Int>, range: ClosedRange<Int>, step: Int = 1, usesMinutes: Bool = false,
+        accessibilityTitle: String? = nil, shownValue: Int? = nil, action: SettingsRowAction? = nil
     ) {
         self.title = title
         self.detail = detail
+        self.tone = tone
         _value = value
         self.range = range
         self.step = step
         self.usesMinutes = usesMinutes
         self.accessibilityTitle = accessibilityTitle
+        self.shownValue = shownValue
+        self.action = action
     }
 
-    private var valueLabel: String {
-        usesMinutes ? String(localized: "\(value) min") : value.formatted()
+    private func label(_ number: Int) -> String {
+        usesMinutes ? String(localized: "\(number) min") : number.formatted()
     }
 
     var body: some View {
-        SettingsRow(title: title, detail: detail) {
+        SettingsRow(title: title, detail: detail, tone: tone) {
             HStack(spacing: 6) {
-                Text(valueLabel)
+                if let action {
+                    Button(action.title, action: action.perform)
+                        .buttonStyle(CurfewLinkButtonStyle())
+                        .accessibilityLabel(Text(action.accessibilityLabel ?? action.title))
+                        .padding(.trailing, 6)
+                }
+                Text(label(shownValue ?? value))
                     .font(CurfewTypography.bodyEmphasis(13))
                     .monospacedDigit()
                     .frame(minWidth: 62)
@@ -134,7 +160,7 @@ struct SettingsValueRow: View {
                 Stepper("", value: $value, in: range, step: step)
                     .labelsHidden()
                     .accessibilityLabel(Text(LocalizedStringKey(accessibilityTitle ?? title)))
-                    .accessibilityValue(valueLabel)
+                    .accessibilityValue(label(value))
             }
         }
         .opacity(isEnabled ? 1 : 0.5)
