@@ -17,6 +17,10 @@ struct JournalPage: View {
             VStack(alignment: .leading, spacing: 40) {
                 VStack(alignment: .leading, spacing: 24) {
                     header
+                    if let review = screen.yearReview, screen.sections.first == .yearReview {
+                        yearReview(review)
+                            .padding(.vertical, 16)
+                    }
                     if screen.state != .noWorkingDays {
                         JournalTilesView(tiles: screen.tiles)
                         chartCard
@@ -43,12 +47,16 @@ struct JournalPage: View {
                         )
                     }
                 }
-                if let review = screen.yearReview {
-                    section("Year in review") {
-                        JournalYearReviewView(review: review)
-                    }
+                if let review = screen.yearReview, screen.sections.last == .yearReview {
+                    yearReview(review)
                 }
             }
+        }
+    }
+
+    private func yearReview(_ review: JournalYearReview) -> some View {
+        section("Year in review") {
+            JournalYearReviewView(review: review)
         }
     }
 
