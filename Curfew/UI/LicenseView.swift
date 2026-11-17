@@ -19,129 +19,154 @@ struct LicenseView: View {
     }
 
     /// Panel that swaps between an activation form and the activated
-    /// licence summary depending on `LicenseGate.isPlusUnlocked`.
+    /// licence summary depending on `LicenseGate.isPlusUnlocked`. Every row
+    /// carries its own help and status under its label; the group footer says
+    /// what Plus adds.
     var body: some View {
-        Section("Curfew Plus") {
-            if activation.isBusy {
-                HStack { ProgressView().controlSize(.small); Text(activation.message ?? "Working…")
-                }
-            } else if let message = activation.message {
-                Text(message).foregroundStyle(CurfewTheme.accent)
-                    .accessibilityIdentifier("license-activation-status")
-            }
-            if let error = activation
-                .error ?? (activation.message == nil ? gate.activationError : nil) {
-                Text(error).foregroundStyle(CurfewTheme.warning)
-                    .textSelection(.enabled)
-            }
+        SettingsGroup("Curfew Plus", footer: gate.isPlusUnlocked ? nil : featureFooter) {
             if gate.isPlusUnlocked {
-                unlockedBody
+                unlockedRows
             } else {
-                lockedBody
+                lockedRows
             }
         }
         .sheet(isPresented: $showingRestore) { restoreSheet }
     }
 
+    /// The activation's progress, result or error, shown under the row of
+    /// the control that started it.
+    private var activationStatus: (text: String, tone: SettingsDetailTone)? {
+        if let error = activation
+            .error ?? (activation.message == nil ? gate.activationError : nil) {
+            return (error, .warning)
+        }
+        if activation.isBusy {
+            return (activation.message ?? "Working…", .secondary)
+        }
+        if let message = activation.message {
+            return (message, .secondary)
+        }
+        return nil
+    }
+
     // MARK: - Unlocked state
 
-    private var unlockedBody: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 6) {
-                Image(systemName: "checkmark.seal.fill")
-                    .foregroundStyle(CurfewTheme.accent)
-                Text(activeSummary)
-                    .font(CurfewTypography.bodyEmphasis(14))
-                    .foregroundStyle(CurfewTheme.ink)
-            }
-
-            Button("Deactivate License") {
+    @ViewBuilder
+    private var unlockedRows: some View {
+        let status = activationStatus
+        SettingsRow(
+            title: "Curfew Plus is active",
+            detail: status?.text ?? activeSummary,
+            tone: status?.tone ?? .secondary
+        ) {
+            Button("Deactivate license") {
                 activation.cancel()
                 gate.deactivate()
                 keyDraft = ""
             }
             .buttonStyle(CurfewSecondaryButtonStyle())
         }
+        .accessibilityIdentifier("license-activation-status")
     }
 
-    /// "Lifetime — email" or "Subscription · active until <date> — email",
-    /// drawn from the activated key's `plan` and `expiresAt`.
+    /// "Lifetime, for email" or "Subscription, active until (date), for
+    /// email", drawn from the activated key's `plan` and `expiresAt`.
     ///
     /// Deliberately says "active until", not "renews": `expiresAt` is the
     /// current period end (plus a grace window) regardless of whether the
     /// subscription is actively renewing or already cancelled and coasting
-    /// to that same deadline — nothing here can tell the two apart, so
+    /// to that same deadline. Nothing here can tell the two apart, so
     /// "renews" would promise automatic continuation to someone who just
     /// cancelled.
     private var activeSummary: String {
         let email = gate.activatedKey?.email ?? ""
+        let owner = email.isEmpty ? "" : ", for \(email)"
         switch gate.activatedKey?.plan {
         case .subscription:
             if let expiresAt = gate.activatedKey?.expiresAt {
                 let date = expiresAt.formatted(date: .abbreviated, time: .omitted)
-                return "Subscription · active until \(date) — \(email)"
+                return "Subscription, active until \(date)\(owner)"
             }
-            return "Subscription — \(email)"
+            return "Subscription\(owner)"
         case .lifetime, .none:
-            return "Lifetime — \(email)"
+            return "Lifetime\(owner)"
         }
     }
 
     // MARK: - Locked state
 
-    private var lockedBody: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            // A stored-but-expired subscription lands here; nudge toward renewal.
-            if gate.activatedKey != nil {
-                Text("Your subscription has expired. Renew to restore Plus.")
-                    .font(CurfewTypography.label(12))
-                    .foregroundStyle(CurfewTheme.mutedInk)
-            }
+    @ViewBuilder
+    private var lockedRows: some View {
+        let expired = gate.activatedKey != nil
+        // A stored-but-expired subscription lands here; nudge toward renewal.
+        SettingsRow(
+            title: expired ? "Your subscription has expired." : "Get Curfew Plus",
+            detail: expired ? "Renew to restore Plus." : "One purchase, or a subscription.",
+            tone: expired ? .warning : .secondary
+        ) {
+            Link(
+                expired ? "Renew Curfew Plus" : "Get Curfew Plus",
+                destination: LicensePurchase.pricingURL
+            )
+            .buttonStyle(CurfewSecondaryButtonStyle())
+        }
 
-            plusFeatureList
+        SettingsActionRow(
+            title: "Already bought it",
+            detail: "Get a link sent to the email on your receipt.",
+            actionTitle: "Restore purchase…"
+        ) {
+            activation.cancel()
+            restoreRequestID = UUID()
+            showingRestore = true
+        }
+        .disabled(activation.isBusy)
 
-            HStack(spacing: 10) {
-                Button("Restore Purchase…") {
-                    activation.cancel()
-                    restoreRequestID = UUID()
-                    showingRestore = true
+        licenseKeyRow
+    }
+
+    /// The manual key entry: the row says what it is and shows the
+    /// activation's status; the field appears in the same row when opened.
+    private var licenseKeyRow: some View {
+        let status = activationStatus
+        return VStack(alignment: .leading, spacing: 8) {
+            SettingsRow(
+                title: "License key",
+                detail: status?.text ?? "Paste the key from your purchase email.",
+                tone: status?.tone ?? .secondary
+            ) {
+                HStack(spacing: 8) {
+                    if activation.isBusy {
+                        ProgressView().controlSize(.small)
+                    }
+                    Button("Enter a license key") {
+                        manualEntryExpanded.toggle()
+                    }
+                    .buttonStyle(CurfewSecondaryButtonStyle())
+                    .accessibilityValue(manualEntryExpanded ? "Expanded" : "Collapsed")
                 }
-                .buttonStyle(CurfewSecondaryButtonStyle())
-                .disabled(activation.isBusy)
-                Link("Get Curfew Plus", destination: LicensePurchase.pricingURL)
-                    .buttonStyle(CurfewLinkButtonStyle())
             }
-
-            Button {
-                manualEntryExpanded.toggle()
-            } label: {
-                Label(
-                    "Enter a license key",
-                    systemImage: manualEntryExpanded ? "chevron.down" : "chevron.right"
-                )
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityValue(manualEntryExpanded ? "Expanded" : "Collapsed")
-
+            .accessibilityIdentifier("license-activation-status")
             if manualEntryExpanded {
-                TextField("License key", text: $keyDraft)
-                    .accessibilityLabel("License key")
-                    .accessibilityIdentifier("license-key-input")
-                    .font(CurfewTypography.body(13))
-                    .textFieldStyle(.roundedBorder)
-                    .disableAutocorrection(true)
-                Button("Activate") { activation.activateManually(keyDraft) }
-                    .buttonStyle(CurfewPrimaryButtonStyle())
-                    .disabled(activation.isBusy || keyDraft
-                        .trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                HStack(spacing: 8) {
+                    TextField("License key", text: $keyDraft)
+                        .accessibilityLabel("License key")
+                        .accessibilityIdentifier("license-key-input")
+                        .font(CurfewTypography.body(13))
+                        .textFieldStyle(.roundedBorder)
+                        .disableAutocorrection(true)
+                    Button("Activate") { activation.activateManually(keyDraft) }
+                        .buttonStyle(CurfewPrimaryButtonStyle())
+                        .disabled(activation.isBusy || keyDraft
+                            .trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
             }
         }
     }
 
     private var restoreSheet: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Restore Purchase").font(.title2.bold())
+            Text("Restore purchase").font(.title2.bold())
             Text("Enter the email address on your receipt.")
                 .foregroundStyle(CurfewTheme.mutedInk)
             TextField("Purchase email", text: $purchaseEmail)
@@ -162,7 +187,7 @@ struct LicenseView: View {
                 if activation.isBusy {
                     ProgressView().controlSize(.small)
                 }
-                Button("Send Restore Link", action: requestRestore)
+                Button("Send restore link", action: requestRestore)
                     .keyboardShortcut(.defaultAction)
                     .disabled(!canRestore || activation.isBusy)
             }
@@ -191,24 +216,21 @@ struct LicenseView: View {
         }
     }
 
-    private var plusFeatureList: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            if model.featureFlags.widgetKitEnabled {
-                plusFeatureRow("Widgets", icon: "rectangle.3.group")
-            }
-            if model.featureFlags.cloudSyncEnabled {
-                plusFeatureRow("Schedule sync across your Macs", icon: "icloud")
-            }
-            if model.featureFlags.calendarEnabled {
-                plusFeatureRow("Today's calendar events", icon: "calendar.badge.clock")
-            }
+    /// What Plus adds, as one sentence under the group.
+    private var featureFooter: String? {
+        var features: [String] = []
+        if model.featureFlags.widgetKitEnabled {
+            features.append("widgets")
         }
-    }
-
-    private func plusFeatureRow(_ label: String, icon: String) -> some View {
-        Label(label, systemImage: icon)
-            .font(CurfewTypography.body(13))
-            .foregroundStyle(CurfewTheme.mutedInk)
+        if model.featureFlags.cloudSyncEnabled {
+            features.append("schedule sync across your Macs")
+        }
+        if model.featureFlags.calendarEnabled {
+            features.append("today's calendar events")
+        }
+        guard !features.isEmpty else { return nil }
+        let list = features.formatted(.list(type: .and))
+        return "Plus adds \(list)."
     }
 }
 
