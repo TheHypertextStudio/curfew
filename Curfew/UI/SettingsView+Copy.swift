@@ -51,4 +51,10 @@ enum ReflectionPromptsCopy {
     static let restoreMessage = "Every question you wrote or changed is replaced, "
         + "and both switches turn back on. This can't be undone."
     static let restoreConfirm = "Replace questions"
+    static let addQuestion = "Add a question"
+    static let emptyQuestion = "Write a question, or remove this one."
+    static let claudeTitle = "Read your reflections in Claude"
+    static let claudeDetail = "Connected AI assistants can read your reflections but cannot edit "
+        + "them. Your assistant may send them to its own service."
+    static let claudeButton = "Manage AI access…"
 }

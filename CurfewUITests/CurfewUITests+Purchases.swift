@@ -12,11 +12,11 @@ extension CurfewUITests {
         app.launch()
         let manualEntry = app.buttons["Enter a license key"]
         XCTAssertTrue(manualEntry.waitForExistence(timeout: 3))
-        let restore = app.buttons["Restore Purchase…"]
+        let restore = app.buttons["Restore purchase…"]
         XCTAssertTrue(restore.waitForExistence(timeout: 5))
         restore.click()
         XCTAssertTrue(app.textFields["Purchase email"].waitForExistence(timeout: 3))
-        XCTAssertFalse(app.buttons["Send Restore Link"].isEnabled)
+        XCTAssertFalse(app.buttons["Send restore link"].isEnabled)
         app.buttons["Cancel"].click()
         let dismissed = XCTNSPredicateExpectation(
             predicate: NSPredicate(format: "exists == false"),
@@ -44,7 +44,7 @@ extension CurfewUITests {
             sheet.staticTexts[invalidKey].exists,
             "A manual activation error must not appear in a new restoration form."
         )
-        XCTAssertFalse(sheet.buttons["Send Restore Link"].isEnabled)
+        XCTAssertFalse(sheet.buttons["Send restore link"].isEnabled)
         sheet.buttons["Cancel"].click()
     }
 }

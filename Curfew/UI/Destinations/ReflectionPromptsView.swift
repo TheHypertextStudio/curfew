@@ -2,41 +2,71 @@ import CurfewKit
 import SwiftUI
 
 /// The questions editor for Sunrise and curfew, reachable from ``JournalView``.
-/// Each question is a card with its answer type and a live preview. Edits
-/// round-trip through ``CurfewAppModel/updateReflectionConfiguration(_:)``.
+/// Laid out with the Settings rows: each group's explanation is its footer,
+/// each question is one row (the question, its answer type and a preview of
+/// the answer), and a question's own problem shows under it in that row.
+/// Edits round-trip through ``CurfewAppModel/updateReflectionConfiguration(_:)``.
 struct ReflectionPromptsView: View {
-    /// Shared app state — prompts read/write through it.
+    /// Shared app state; prompts read and write through it.
     @Environment(CurfewAppModel.self) private var model
 
-    /// Which prompt's text field should hold keyboard focus — set so a freshly
+    /// Which prompt's text field should hold keyboard focus, set so a freshly
     /// added prompt is ready to type into.
     @FocusState private var focusedPromptID: UUID?
 
     /// Restoring defaults replaces every custom question, so it asks first.
     @State private var confirmingRestoreDefaults = false
 
-    /// Scrollable column of editor cards, matching the Schedule destination's
-    /// padded `CurfewPanel` rhythm.
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: CurfewSpacing.section) {
-                gatesPanel
-                promptsPanel(
-                    for: .morning,
-                    title: ReflectionPromptsCopy.sunriseTitle,
-                    subtitle: ReflectionPromptsCopy.sunriseSubtitle
+        Form {
+            SettingsGroup(
+                ReflectionPromptsCopy.gatesTitle,
+                footer: ReflectionPromptsCopy.gatesSubtitle
+            ) {
+                SettingsToggleRow(
+                    title: ReflectionPromptsCopy.askAtSunrise,
+                    isOn: gateEnabledBinding(for: .morning)
                 )
-                promptsPanel(
-                    for: .evening,
-                    title: ReflectionPromptsCopy.curfewTitle,
-                    subtitle: ReflectionPromptsCopy.curfewSubtitle
+                SettingsToggleRow(
+                    title: ReflectionPromptsCopy.askAtCurfew,
+                    isOn: gateEnabledBinding(for: .evening)
                 )
-                readInClaudePanel
-                defaultsPanel
             }
-            .padding(CurfewSpacing.xLarge)
-            .frame(maxWidth: 900, alignment: .leading)
+            promptsGroup(
+                for: .morning,
+                title: ReflectionPromptsCopy.sunriseTitle,
+                footer: ReflectionPromptsCopy.sunriseSubtitle
+            )
+            promptsGroup(
+                for: .evening,
+                title: ReflectionPromptsCopy.curfewTitle,
+                footer: ReflectionPromptsCopy.curfewSubtitle
+            )
+            if model.featureFlags.mcpServerEnabled {
+                SettingsGroup {
+                    SettingsActionRow(
+                        title: ReflectionPromptsCopy.claudeTitle,
+                        detail: ReflectionPromptsCopy.claudeDetail,
+                        actionTitle: ReflectionPromptsCopy.claudeButton
+                    ) {
+                        model.settingsDestination = .integrations
+                        model.openSettings()
+                    }
+                }
+            }
+            SettingsGroup {
+                SettingsActionRow(
+                    title: ReflectionPromptsCopy.defaultsTitle,
+                    detail: ReflectionPromptsCopy.defaultsSubtitle,
+                    actionTitle: ReflectionPromptsCopy.restoreButton
+                ) {
+                    confirmingRestoreDefaults = true
+                }
+            }
         }
+        .formStyle(.grouped)
+        .scrollContentBackground(.hidden)
+        .background(CurfewTheme.canvas)
         .confirmationDialog(
             ReflectionPromptsCopy.restoreTitle,
             isPresented: $confirmingRestoreDefaults
@@ -50,64 +80,39 @@ struct ReflectionPromptsView: View {
         }
     }
 
-    // MARK: - Gates
-
-    /// The two gate on/off toggles, with the explanatory copy *above* the
-    /// controls so the panel reads top-down instead of bottom-heavy.
-    private var gatesPanel: some View {
-        CurfewPanel {
-            CurfewSectionTitle(
-                title: ReflectionPromptsCopy.gatesTitle,
-                subtitle: ReflectionPromptsCopy.gatesSubtitle
-            )
-
-            SettingsToggleRow(
-                title: ReflectionPromptsCopy.askAtSunrise,
-                isOn: gateEnabledBinding(for: .morning)
-            )
-            SettingsToggleRow(
-                title: ReflectionPromptsCopy.askAtCurfew,
-                isOn: gateEnabledBinding(for: .evening)
-            )
-        }
-    }
-
     // MARK: - Prompt editor
 
-    private func promptsPanel(
+    private func promptsGroup(
         for gate: ReflectionGate,
         title: String,
-        subtitle: String
+        footer: String
     ) -> some View {
-        CurfewPanel {
-            CurfewSectionTitle(title: title, subtitle: subtitle)
-
-            let prompts = model.reflectionConfiguration.prompts(for: gate)
+        let prompts = model.reflectionConfiguration.prompts(for: gate)
+        return SettingsGroup(title, footer: footer) {
             ForEach(Array(prompts.enumerated()), id: \.element.id) { index, prompt in
-                promptCard(for: gate, prompt: prompt, index: index, total: prompts.count)
+                promptRow(for: gate, prompt: prompt, index: index, total: prompts.count)
             }
-
-            Button {
+            Button(ReflectionPromptsCopy.addQuestion) {
                 addPrompt(for: gate)
-            } label: {
-                Label("Add question", systemImage: "plus.circle")
             }
-            .buttonStyle(CurfewLinkButtonStyle())
-            .padding(.top, CurfewSpacing.xSmall)
+            .buttonStyle(.borderless)
+            .foregroundStyle(CurfewTheme.accent)
         }
     }
 
-    /// One prompt rendered as a self-contained card on the panel's surface, so
-    /// each question reads as a discrete unit with its own controls.
-    private func promptCard(
+    /// One question as one row: the question and its options on the first
+    /// line, how it is answered under it, and its problem, if any, last.
+    private func promptRow(
         for gate: ReflectionGate,
         prompt: ReflectionPrompt,
         index: Int,
         total: Int
     ) -> some View {
-        VStack(alignment: .leading, spacing: CurfewSpacing.medium) {
+        VStack(alignment: .leading, spacing: CurfewSpacing.small) {
             HStack(spacing: CurfewSpacing.small) {
                 TextField("Question", text: promptTextBinding(for: gate, promptID: prompt.id))
+                    .labelsHidden()
+                    .multilineTextAlignment(.leading)
                     .textFieldStyle(.roundedBorder)
                     .focused($focusedPromptID, equals: prompt.id)
 
@@ -117,34 +122,32 @@ struct ReflectionPromptsView: View {
             HStack(spacing: CurfewSpacing.medium) {
                 answerTypePicker(for: gate, prompt: prompt)
                 if prompt.kind == .rating {
-                    Stepper(
-                        "Scale of \(prompt.ratingMax)",
-                        value: promptScaleBinding(for: gate, promptID: prompt.id),
-                        in: 2 ... 10
-                    )
+                    HStack(spacing: CurfewSpacing.xSmall) {
+                        Text("Scale of \(prompt.ratingMax)")
+                            .font(CurfewTypography.body(12))
+                            .foregroundStyle(CurfewTheme.mutedInk)
+                            .accessibilityHidden(true)
+                        Stepper(
+                            "Scale of \(prompt.ratingMax)",
+                            value: promptScaleBinding(for: gate, promptID: prompt.id),
+                            in: 2 ... 10
+                        )
+                        .labelsHidden()
+                        .accessibilityLabel("Rating scale, 1 to \(prompt.ratingMax)")
+                    }
                     .fixedSize()
-                    .accessibilityLabel("Rating scale, 1 to \(prompt.ratingMax)")
                 }
-                Spacer(minLength: 0)
+                Spacer(minLength: CurfewSpacing.small)
+                promptPreview(for: prompt)
             }
 
             if prompt.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                Label("Add a question, or remove this row.", systemImage: "exclamationmark.circle")
+                Text(ReflectionPromptsCopy.emptyQuestion)
                     .font(CurfewTypography.body(12))
                     .foregroundStyle(CurfewTheme.warning)
             }
-
-            promptPreview(for: prompt)
         }
-        .padding(CurfewSpacing.medium)
-        .background(
-            CurfewTheme.surfaceMuted,
-            in: RoundedRectangle(cornerRadius: 12, style: .continuous)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(CurfewTheme.border, lineWidth: 1)
-        )
+        .padding(.vertical, 2)
     }
 
     /// Reorder / remove collapsed into a single overflow menu, so the question
@@ -200,13 +203,9 @@ struct ReflectionPromptsView: View {
     }
 
     /// A compact, non-interactive preview of how the prompt's answer control
-    /// renders, so the user sees what they're building. Chips use the raised
-    /// `surface` so they read against the muted card.
+    /// renders, so the person sees what they're building, at the row's end.
     private func promptPreview(for prompt: ReflectionPrompt) -> some View {
         HStack(spacing: CurfewSpacing.small) {
-            Text("Preview")
-                .font(CurfewTypography.label(11))
-                .foregroundStyle(CurfewTheme.mutedInk)
             switch prompt.kind {
             case .text:
                 Text("A short written answer")
@@ -214,14 +213,14 @@ struct ReflectionPromptsView: View {
                     .foregroundStyle(CurfewTheme.mutedInk)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 5)
-                    .background(CurfewTheme.surface, in: RoundedRectangle(cornerRadius: 6))
+                    .background(CurfewTheme.surfaceMuted, in: RoundedRectangle(cornerRadius: 6))
             case .rating:
                 HStack(spacing: 5) {
                     ForEach(1 ... max(2, prompt.ratingMax), id: \.self) { value in
                         Text("\(value)")
                             .font(CurfewTypography.body(11))
                             .frame(width: 20, height: 20)
-                            .background(CurfewTheme.surface, in: Circle())
+                            .background(CurfewTheme.surfaceMuted, in: Circle())
                             .foregroundStyle(CurfewTheme.mutedInk)
                     }
                 }
@@ -233,45 +232,19 @@ struct ReflectionPromptsView: View {
                     }
                 }
             }
-            Spacer(minLength: 0)
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Answered with \(prompt.kind.previewName)")
     }
+}
 
-    // MARK: - Connect / defaults
-
-    /// Points the user at the Integrations settings to connect an assistant that
-    /// can read their reflections. Only shown when this build ships the MCP
-    /// control plane.
-    @ViewBuilder
-    private var readInClaudePanel: some View {
-        if model.featureFlags.mcpServerEnabled {
-            CurfewPanel {
-                CurfewSectionTitle(
-                    title: "Read your reflections in Claude",
-                    subtitle: "Connected AI assistants can read your reflections "
-                        + "but cannot edit them. "
-                        + "Your assistant may send them to its own service."
-                )
-                Button("Manage AI access…") {
-                    model.settingsDestination = .integrations
-                    model.openSettings()
-                }
-                .buttonStyle(CurfewSecondaryButtonStyle())
-            }
-        }
-    }
-
-    private var defaultsPanel: some View {
-        CurfewPanel {
-            CurfewSectionTitle(
-                title: ReflectionPromptsCopy.defaultsTitle,
-                subtitle: ReflectionPromptsCopy.defaultsSubtitle
-            )
-
-            Button(ReflectionPromptsCopy.restoreButton) {
-                confirmingRestoreDefaults = true
-            }
-            .buttonStyle(CurfewSecondaryButtonStyle())
+private extension ReflectionPromptKind {
+    /// What the answer looks like, for the preview's spoken label.
+    var previewName: String {
+        switch self {
+        case .text: "a short written answer"
+        case .rating: "a rating"
+        case .mood: "a mood"
         }
     }
 }
