@@ -29,7 +29,7 @@ struct JournalTimeCardArt<Sky: View>: View {
             sunWeight: 1,
             moon: HorizonPoint(x: 0.5, y: -1),
             moonWeight: 0,
-            elevation: 0.02,
+            elevation: JournalTimeCardSky.swatchElevation,
             moonPhase: 0
         )
     }

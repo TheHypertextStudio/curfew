@@ -222,6 +222,23 @@ struct JournalTimeCardTests {
         #expect(JournalTimeCardSky.desert.palette == .desert)
     }
 
+    @Test func eachSkySwatchShowsThatSkysOwnDusk() {
+        for sky in JournalTimeCardSky.allCases {
+            let stops = sky.swatchStops
+            #expect(stops.count == 5)
+            #expect(stops.first == sky.palette.ramp(
+                0,
+                elevation: JournalTimeCardSky.swatchElevation
+            ))
+            #expect(stops.last == sky.palette.ramp(
+                1,
+                elevation: JournalTimeCardSky.swatchElevation
+            ))
+        }
+        #expect(Set(JournalTimeCardSky.allCases.map { $0.swatchStops.last?.bytes ?? [] })
+            .count == 3)
+    }
+
     @Test func choicesPersist() throws {
         let suite = "JournalTimeCardTests-\(UUID())"
         let defaults = try #require(UserDefaults(suiteName: suite))
