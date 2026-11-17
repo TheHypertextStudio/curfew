@@ -2,8 +2,9 @@
 // Documentation/design/horizon-prototype.html, and the GPU twin of
 // CurfewKit/Sources/CurfewAtmosphere/HorizonField.swift. Keep the three in step.
 //
-// Built into the app and the screen saver bundle (never the Swift package), so
-// `swift build` and `swift test` stay independent of the Metal toolchain.
+// This source is not compiled by any target. Run scripts/build-horizon-shader.sh
+// after editing it and commit the regenerated HorizonSky.metallib, which the app
+// and the screen saver bundle as a resource, so no build needs the Metal toolchain.
 
 #include <metal_stdlib>
 #include <SwiftUI/SwiftUI_Metal.h>

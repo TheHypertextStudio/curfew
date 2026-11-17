@@ -1,3 +1,4 @@
+@testable import Curfew
 import Foundation
 import ScreenSaver
 import Testing
@@ -35,7 +36,8 @@ struct RestScreenSaverBundleTests {
     func saverBundlesShaderLibrary() throws {
         let url = try #require(Bundle.main.url(forResource: "Curfew", withExtension: "saver"))
         let companion = try #require(Bundle(url: url))
-        #expect(companion.url(forResource: "default", withExtension: "metallib") != nil)
-        #expect(Bundle.main.url(forResource: "default", withExtension: "metallib") != nil)
+        let saverLibrary = try #require(companion.url(forResource: "HorizonSky", withExtension: "metallib"))
+        #expect(HorizonShaderLibrary.functionNames(at: saverLibrary).contains("horizonSky"))
+        #expect(HorizonShaderLibrary.load(from: companion) != nil)
     }
 }
