@@ -12,6 +12,7 @@ struct RestSaverLauncherTests {
         var receipt = true
         var running = true
         var cancelOnWait = false
+        var engineRunning = false
         lazy var launcher = RestSaverLauncher(operations: .init(
             resolve: { [self] in calls.append("resolve"); return url },
             requestReadback: { [self] in calls.append("request") },
@@ -24,8 +25,34 @@ struct RestSaverLauncherTests {
                 if cancelOnWait {
                     throw CancellationError()
                 }
-            }
+            },
+            isEngineRunning: { [self] in engineRunning }
         ))
+    }
+
+    @Test("A saver already running is never started again or stopped")
+    func engineAlreadyRunning() async {
+        let fixture = Fixture()
+        fixture.engineRunning = true
+        #expect(await fixture.launcher.launch() == .saverAlreadyRunning)
+        #expect(fixture.calls.isEmpty)
+    }
+
+    @Test("The selected saver starts without waiting for a Curfew receipt or being stopped")
+    func selectedSaverHasNoReceipt() async {
+        let fixture = Fixture()
+        fixture.receipt = false
+        #expect(await fixture.launcher.launch(target: .selected) == .started)
+        #expect(fixture.calls == ["resolve", "open"])
+    }
+
+    @Test("Curfew's saver without a full-screen receipt is stopped")
+    func curfewSaverNeedsReceipt() async {
+        let fixture = Fixture()
+        fixture.receipt = false
+        #expect(await fixture.launcher
+            .launch(target: .curfew) == .unavailable(.companionUnavailable))
+        #expect(fixture.calls.contains("stop-1234"))
     }
 
     @Test("Natural return is consumed once so the same coordinator can hand off again")

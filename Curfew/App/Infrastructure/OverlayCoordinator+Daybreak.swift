@@ -16,9 +16,9 @@ private final class DaybreakOverlayWindow: NSWindow {
 @MainActor
 extension OverlayCoordinator {
     static func makeRestContentView(
-        model: CurfewAppModel, display: RestDisplayPresentation
+        model: CurfewAppModel, display: RestDisplayPresentation, scene: LockScene
     ) -> NSView {
-        makeRestHostingView(rootView: RestScreenView(model: model, display: display))
+        makeRestHostingView(rootView: RestScreenView(model: model, display: display, scene: scene))
     }
 
     static func makeRestHostingView<Content: View>(rootView: Content) -> NSHostingView<Content> {

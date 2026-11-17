@@ -53,14 +53,6 @@ struct PresentationStateTests {
         #expect(capture.contains("XCTAssertEqual( horizontalScale, verticalScale"))
     }
 
-    @Test("Lockout arrival reads the live encouragement message")
-    func liveLockoutMessage() throws {
-        let arrival = try source("Curfew/UI/LockoutArrivalView.swift")
-        #expect(arrival.contains("LockoutScreenView(message: model.lockoutMessage)"))
-        let overlay = try source("Curfew/App/Infrastructure/OverlayCoordinator.swift")
-        #expect(overlay.contains("LockoutArrivalView().environment(model)"))
-    }
-
     @Test("Contradictory states have isolated fixtures for remote review")
     func stateFixtures() throws {
         let fixtures = try source("Curfew/App/Model/CurfewAppModel+DemoReview.swift")

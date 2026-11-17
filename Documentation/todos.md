@@ -2141,3 +2141,17 @@ login, populated-data recovery and active-service rollback remain separate gates
 - [x] Upgrade morning and evening reflection cards, floating countdown timers, streak capsules, and toolbar mode bars with translucent glass styling and SF Symbol animations.
 - [x] Upgrade headless snapshot engine (`DestinationSnapshotTests`) to render live in-process `NSWindow` + `NSHostingView` frames, eliminating headless AppKit control fallbacks (🚫).
 - [x] Standardize screenshot outputs to `build/screenshots/` and add `just snapshot` recipe.
+
+## Horizon lock, warnings, transitions and screen saver handoff
+
+- [x] One voice pack (`VoicePack.standard`) holds every line in the launch design's default voice; the lock says "That's the day." instead of rotating status reports.
+- [x] Warnings: one night-tinted glass notice with the stage line and a seconds countdown at every stage, built once per display; notifications titled "N minutes to curfew" with the stage line as body; "1 more minute"; "Still with it?" presence nudge.
+- [x] Arriving: a two second move that starts when a lock window is first seen, shared by every display; Reduce Motion gives a 0.3 s fade.
+- [x] Locked: the prototype's lock layout, "This Mac" copy, one-sentence VoiceOver announcement with focus on the clock, anchored curfew so an hours-mode deadline cannot freeze the sky.
+- [x] Sunrise lead-in on the lock: "Nearly morning." / "Unlocks in N minutes".
+- [x] Override composer with progress, cooling off and `HoldToConfirmButton`.
+- [x] Evening close-out copy and the one thing yes or no, stored with `recordOneThingOutcome(done:)`.
+- [x] Leaving: windows fade to the desktop after release (0.3 s under Reduce Motion), passing input through.
+- [x] Screen saver handoff: Curfew's proven saver by default; the selected saver only by an opt-in offered when one is selected; nothing over a running saver; no dead "Rest now".
+- [ ] Verify on a spare Mac with a real lock: arrival under a running saver and after display sleep, leaving fade, kiosk focus, VoiceOver announcement, glass legibility of the notice over light wallpapers, the saver's first full-screen receipt, and the selected-saver option.
+- [ ] Fix the cause in `CurfewEnforcementEngine.applyHoursMode`: once worked minutes are spent, `lockDate` becomes the evaluation time on every tick.

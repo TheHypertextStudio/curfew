@@ -76,6 +76,15 @@ final class CurfewScreenSaverView: ScreenSaverView {
         }
     }
 
+    /// The lock's night for the published occurrence, as the app draws it.
+    static func lockFrame(snapshot: RestSceneSnapshot, at date: Date) -> HorizonFrame? {
+        guard let lock = snapshot.lockDate, let unlock = snapshot.unlockDate,
+              lock < unlock, date >= lock, date < unlock else { return nil }
+        return LockSceneSky.frame(
+            for: HorizonMoment.scheduled(now: date, curfew: lock, nextUnlock: unlock)
+        )
+    }
+
     private func refresh(at date: Date) {
         refreshPreferencesIfNeeded(at: date)
         let snapshot = session?.snapshot ?? RestSceneSnapshot(
@@ -95,8 +104,12 @@ final class CurfewScreenSaverView: ScreenSaverView {
             // The export allowlist has already applied separate message consent.
             showsMessage: true
         ) { frame, drifts in
-            // The same Horizon scene as the app, from this bundle's shader.
-            HorizonSkyView(frame: frame, isDayRunning: drifts)
+            // The same Horizon scene as the app's lock, from the same model
+            // and this bundle's shader, so a handoff shows one continuous sky.
+            HorizonSkyView(
+                frame: Self.lockFrame(snapshot: snapshot, at: date) ?? frame,
+                isDayRunning: drifts
+            )
         }
         if let hostedScene {
             hostedScene.rootView = scene

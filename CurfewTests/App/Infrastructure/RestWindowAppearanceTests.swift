@@ -36,8 +36,7 @@ struct RestWindowAppearanceTests {
         let supplied = try #require(NSAppearance(named: NSAppearance.Name(rawValue: suppliedName)))
         let coordinator = OverlayCoordinator()
         for configuration in [
-            OverlayCoordinator.warningWindowConfiguration,
-            OverlayCoordinator.timerWindowConfiguration
+            OverlayCoordinator.warningWindowConfiguration
         ] {
             let window = makeWindow()
             defer { window.orderOut(nil) }

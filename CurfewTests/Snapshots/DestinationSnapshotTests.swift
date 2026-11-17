@@ -30,7 +30,8 @@
                 named: "marketing-schedule", width: 1080, height: 720, to: directory
             )
             try render(
-                LockoutSundownView(message: "Rest well."),
+                LockSnapshotTests.lockWindow(LockSnapshotTests.lockedModel(now: model.currentTime
+                        .addingTimeInterval(7 * 3600))),
                 named: "marketing-lockout", width: 960, height: 600, to: directory
             )
         }
@@ -146,13 +147,6 @@
             model: CurfewAppModel,
             to outputDirectory: URL
         ) throws {
-            try renderBoth(
-                LockoutSundownView(),
-                named: "lockout-sundown",
-                width: 1440,
-                height: 900,
-                to: outputDirectory
-            )
             try renderBoth(
                 MainWindowView().environment(model),
                 named: "main-window",

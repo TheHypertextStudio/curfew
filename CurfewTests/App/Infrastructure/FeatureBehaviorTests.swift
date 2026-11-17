@@ -114,19 +114,6 @@ struct OverlayWindowConfigurationTests {
         )
         #expect(!window.canHide)
     }
-
-    @Test("Floating timer windows stay visible above fullscreen apps without capturing input")
-    func timerWindowConfiguration() {
-        let configuration = OverlayCoordinator.timerWindowConfiguration
-        #expect(configuration.styleMask == NSWindow.StyleMask.borderless)
-        #expect(configuration.level == NSWindow.Level.screenSaver)
-        #expect(configuration.ignoresMouseEvents)
-        #expect(configuration.collectionBehavior
-            .contains(NSWindow.CollectionBehavior.canJoinAllSpaces))
-        #expect(configuration.collectionBehavior
-            .contains(NSWindow.CollectionBehavior.fullScreenAuxiliary))
-        #expect(OverlayCoordinator.timerWindowWidth >= 240)
-    }
 }
 
 struct WarningNoticeVisibilityTests {
@@ -137,35 +124,18 @@ struct WarningNoticeVisibilityTests {
         visibility.dismiss(.thirtyMinutes)
         #expect(!visibility.shouldShow(.thirtyMinutes))
         #expect(visibility.shouldShow(.fifteenMinutes))
-        #expect(!visibility.shouldShow(.fiveMinutes))
+        #expect(visibility.shouldShow(.fiveMinutes))
         visibility.reset()
         #expect(visibility.shouldShow(.thirtyMinutes))
     }
 }
 
-struct LockoutArrivalAnimationTests {
-    @Test("Lockout fades in for three seconds unless Reduce Motion is enabled")
-    func motionPolicy() {
-        #expect(LockoutArrivalAnimation.duration(reduceMotion: false) == 3)
-        #expect(LockoutArrivalAnimation.duration(reduceMotion: true) == 0)
-    }
-}
-
-struct EncouragementMessageRotationTests {
-    @Test("Encouragement messages rotate through all entries and wrap")
-    func messageRotationWraps() {
-        let first = EncouragementMessageCatalog.next(after: nil)
-        let second = EncouragementMessageCatalog.next(after: first)
-        let third = EncouragementMessageCatalog.next(after: second)
-        let fourth = EncouragementMessageCatalog.next(after: third)
-        let fifth = EncouragementMessageCatalog.next(after: fourth)
-        let wrapped = EncouragementMessageCatalog.next(after: fifth)
-
-        #expect(first != second)
-        #expect(second != third)
-        #expect(third != fourth)
-        #expect(fourth != fifth)
-        #expect(wrapped == first)
+struct LockHeadlineTests {
+    @Test("The lock says one thing instead of rotating status reports")
+    func headlineIsTheVoicePacks() {
+        #expect(EncouragementMessageCatalog.next(after: nil) == "That's the day.")
+        #expect(EncouragementMessageCatalog.next(after: "That's the day.") == "That's the day.")
+        #expect(EncouragementMessageCatalog.postOverride == "Curfew's over. Welcome back.")
     }
 }
 

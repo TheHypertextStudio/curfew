@@ -53,13 +53,34 @@ keep the interactive screen in control. The retained window moves its clock into
 the configured ambient position without discarding drafts or replacing display
 hosts. Reduce Motion removes the clock movement.
 
-Curfew resolves the system ScreenSaverEngine using NSWorkspace. It does not
-select a screensaver or change authentication policy. A fresh, generation-bound
-full-screen companion receipt is required within eight seconds; preview readback
-cannot satisfy it. If another saver appears or launch fails, only the engine
-started by this request is stopped and setup remains available. No existing
-screensaver process is claimed or terminated. The companion opts into the native
-system gamma fade, without changing global display gamma or brightness.
+Which saver, if any, is decided by `RestSaverChoice` before every idle check:
+
+- By default Curfew hands off only to its own bundled saver, and only when
+  System Settings has it selected and it has a persisted successful full-screen
+  receipt (`RestSaverFacts.curfewSaverProven`, remembered the first time the
+  saver acknowledges a full-screen render, whether Curfew or the system started
+  it). Without that receipt Curfew stays on the lock and, outside the lock,
+  offers to finish setting up the saver.
+- Handing off to the Mac's selected saver is a separate option, "Use this Mac's
+  screen saver when the lock is idle", shown in the Screensaver settings only
+  when System Settings has a saver other than Curfew's selected. It is off by
+  default. Curfew never launches a foreign saver unless it is on; that saver
+  sends no receipt, so Curfew neither waits for one nor stops it.
+- If any saver is already running, Curfew launches nothing and shows no setup
+  prompt. A saver that starts during a launch returns the lock to interactive
+  with no setup status.
+- The lock's "Start the screen saver" control exists only when a handoff is
+  allowed; it is never a visible button that does nothing.
+
+The selection is read from the current host's `com.apple.screensaver`
+`moduleDict` without changing it. Curfew resolves the system ScreenSaverEngine
+using NSWorkspace and does not change authentication policy. For Curfew's saver
+a fresh, generation-bound full-screen receipt is still required within eight
+seconds; preview readback cannot satisfy it. If it does not arrive, only the
+engine started by this request is stopped. No existing screensaver process is
+claimed or terminated. The companion opts into the native system gamma fade,
+without changing global display gamma or brightness. The bundled saver draws the
+lock's own `LockSceneSky` frame from the published curfew and unlock.
 
 Return waits for the owned engine to exit and the macOS session to become active.
 Current time and the existing enforcement path are refreshed before content can

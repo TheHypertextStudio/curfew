@@ -118,3 +118,50 @@ struct RestScreenSaverInstallation {
         return version
     }
 }
+
+/// The two persisted facts behind the handoff decision: whether Curfew's own
+/// saver has ever proven a full-screen render on this Mac, and whether the
+/// person chose to hand off to the Mac's selected saver instead (off by
+/// default). Kept in the app's own defaults.
+struct RestSaverFacts {
+    static let provenKey = "rest.saver.curfewFullScreenProven.v1"
+    static let usesSelectedKey = "rest.saver.usesSelectedSaver.v1"
+
+    let defaults: UserDefaults
+
+    var curfewSaverProven: Bool {
+        get { defaults.bool(forKey: Self.provenKey) }
+        nonmutating set { defaults.set(newValue, forKey: Self.provenKey) }
+    }
+
+    var usesSelectedSaver: Bool {
+        get { defaults.bool(forKey: Self.usesSelectedKey) }
+        nonmutating set { defaults.set(newValue, forKey: Self.usesSelectedKey) }
+    }
+}
+
+/// Reads which screen saver System Settings has selected, without changing it.
+enum RestSaverSelectionReader {
+    /// Classifies a `moduleDict` from the screen saver preferences.
+    static func selection(moduleDict: [String: Any]?) -> RestSaverChoice.Selection {
+        guard let moduleDict else { return .none }
+        let path = moduleDict["path"] as? String ?? ""
+        let name = moduleDict["moduleName"] as? String ?? ""
+        if path.isEmpty, name.isEmpty {
+            return .unknown
+        }
+        if URL(fileURLWithPath: path).lastPathComponent == "Curfew.saver" || name == "Curfew" {
+            return .curfew
+        }
+        return .other
+    }
+
+    /// The live selection from the current host's screen saver preferences.
+    static func live() -> RestSaverChoice.Selection {
+        let value = CFPreferencesCopyValue(
+            "moduleDict" as CFString, "com.apple.screensaver" as CFString,
+            kCFPreferencesCurrentUser, kCFPreferencesCurrentHost
+        )
+        return selection(moduleDict: value as? [String: Any])
+    }
+}

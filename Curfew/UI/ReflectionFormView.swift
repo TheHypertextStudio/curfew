@@ -23,9 +23,12 @@ struct ReflectionFormView: View {
         nonmutating set { draft.values = newValue }
     }
 
-    /// Label for the primary (submit) button — e.g. "Start the day" or
-    /// "Save & settle in".
+    /// Label for the primary (submit) button, e.g. "Start the day" or
+    /// "Save and close".
     let submitLabel: String
+
+    /// Label for the lenient dismissal.
+    var skipLabel = "Skip"
 
     /// Whether non-text panels switch to solid fills for Reduce Transparency.
     let usesSolidPanels: Bool
@@ -34,8 +37,33 @@ struct ReflectionFormView: View {
     /// user actually answered are included.
     let onSubmit: ([ReflectionAnswer]) -> Void
 
+    /// The empty state's two lines, when no questions are configured.
+    var emptyTitle = "No questions here yet."
+    var emptyDetail = "Add some in Journal."
+
+    /// True when the surrounding surface collected an answer of its own (the
+    /// close-out's yes or no), so saving is allowed without a prompt answer.
+    var extraAnswerGiven = false
+
     /// Called when the user skips — the lenient dismissal path.
     let onSkip: () -> Void
+
+    init(
+        draft: ReflectionDraft, submitLabel: String, skipLabel: String = "Skip",
+        usesSolidPanels: Bool, emptyTitle: String = "No questions here yet.",
+        emptyDetail: String = "Add some in Journal.", extraAnswerGiven: Bool = false,
+        onSubmit: @escaping ([ReflectionAnswer]) -> Void, onSkip: @escaping () -> Void
+    ) {
+        self.draft = draft
+        self.submitLabel = submitLabel
+        self.skipLabel = skipLabel
+        self.usesSolidPanels = usesSolidPanels
+        self.emptyTitle = emptyTitle
+        self.emptyDetail = emptyDetail
+        self.extraAnswerGiven = extraAnswerGiven
+        self.onSubmit = onSubmit
+        self.onSkip = onSkip
+    }
 
     // Dynamic Type — base sizes that scale with the user's text-size setting.
     @ScaledMetric(relativeTo: .body) private var promptFontSize: CGFloat = 17
@@ -69,17 +97,7 @@ struct ReflectionFormView: View {
                     }
                 }
 
-                HStack(spacing: 16) {
-                    Button(submitLabel) { onSubmit(builtAnswers()) }
-                        .buttonStyle(.borderedProminent)
-                        .controlSize(.large)
-                        .disabled(builtAnswers().isEmpty)
-
-                    Button("Skip", action: onSkip)
-                        .buttonStyle(.plain)
-                        .foregroundStyle(SundownPalette.supportingText)
-                }
-                .padding(.top, 4)
+                actions(canSubmit: !builtAnswers().isEmpty || extraAnswerGiven)
             }
         }
         .frame(maxWidth: 560, alignment: .leading)
@@ -91,15 +109,33 @@ struct ReflectionFormView: View {
     /// "Continue" (not a de-emphasized "Skip") since there is genuinely
     /// nothing to answer, not something they're opting out of.
     private var emptyPromptsNotice: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            titleText("No prompts configured for this reflection yet.")
-            Text("Add prompts in Journal → Prompts to start recording reflections here.")
-                .font(.system(size: editorFontSize, weight: .regular, design: .rounded))
-                .foregroundStyle(SundownPalette.supportingText)
-            Button("Continue", action: onSkip)
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
+        VStack(alignment: .leading, spacing: CurfewSpacing.large) {
+            VStack(alignment: .leading, spacing: CurfewSpacing.xSmall) {
+                titleText(emptyTitle)
+                Text(emptyDetail)
+                    .font(.system(size: editorFontSize))
+                    .foregroundStyle(SundownPalette.supportingText)
+            }
+            if extraAnswerGiven {
+                actions(canSubmit: true)
+            } else {
+                Button(submitLabel, action: onSkip)
+                    .buttonStyle(.horizonGlassProminent)
+            }
         }
+    }
+
+    /// The primary action in the foundation's prominent glass, and the quiet skip.
+    private func actions(canSubmit: Bool) -> some View {
+        HStack(spacing: CurfewSpacing.large) {
+            Button(submitLabel) { onSubmit(builtAnswers()) }
+                .buttonStyle(.horizonGlassProminent)
+                .disabled(!canSubmit)
+            Button(skipLabel, action: onSkip)
+                .buttonStyle(.plain)
+                .foregroundStyle(SundownPalette.supportingText)
+        }
+        .padding(.top, CurfewSpacing.xSmall)
     }
 
     /// Shared style for a prompt's question text and the empty-state

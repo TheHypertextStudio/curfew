@@ -190,7 +190,7 @@ struct AccountLifecycleWiringTests {
         #expect(model.state.phase == .locked)
         #expect(model.state.unlockDate == now.addingTimeInterval(1800))
         #expect(model.lockoutDeadlineStore.load()?.kind == .remoteCommand)
-        #expect(model.lockoutMessage == "Curfew is blocking access.")
+        #expect(model.lockoutMessage == "That's the day.")
     }
 
     @Test("A daemon-applied remote deadline supersedes a local Convince Me override")

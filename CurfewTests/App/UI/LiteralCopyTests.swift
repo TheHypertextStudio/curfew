@@ -5,15 +5,9 @@ import Testing
 
 @MainActor
 struct LiteralCopyTests {
-    @Test("Lockout messages do not assume work cannot resume later today")
-    func lockoutMessagesDescribeTheCurrentWindow() {
-        #expect(EncouragementMessageCatalog.messages == [
-            "Curfew is blocking access.",
-            "Lockout has started.",
-            "Take time to rest.",
-            "Rest well.",
-            "Lockout is active."
-        ])
+    @Test("The lock's headline is a statement, not a status report")
+    func lockHeadline() {
+        #expect(EncouragementMessageCatalog.messages == ["That's the day."])
     }
 
     @Test("Off Today says once that Curfew is off and offers one way to turn it on")
@@ -66,15 +60,16 @@ struct LiteralCopyTests {
             .presenceDescription(.unknown) == "Curfew can't determine whether you're at your Mac.")
     }
 
-    @Test("Warning copy names the deadline and lockout uses the screen instead of a banner")
+    @Test("Warning copy names the time to curfew and the lock uses the screen instead of a banner")
     func notificationsDescribeLockout() throws {
         let fifteen = try #require(WarningNotificationManager.payload(for: .fifteenMinutes))
-        #expect(fifteen.body == "Lockout starts in 15 minutes. Finish your current task.")
+        #expect(fifteen.title == "15 minutes to curfew")
+        #expect(fifteen.body == "Finish what you're in. Don't start anything.")
         #expect(WarningNotificationManager.payload(for: .lockout) == nil)
         #expect(WarningNotificationManager.distractionPayload.body
             ==
-            "Curfew detected a person but no recent keyboard or pointer input. "
-            + "Do you want to continue your task or take a break?")
+            "You're at this Mac but haven't touched it in a while. "
+            + "Back to work, or call it a break.")
     }
 
     @Test("Accessibility guidance names the unavailable capability")
