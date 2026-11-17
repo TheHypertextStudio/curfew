@@ -181,19 +181,15 @@ struct LiveProtectedWorkTests {
         probe.terminateAndWait()
 
         // The kernel may not have reaped it the instant `waitUntilExit`
-        // returns, so give the table a moment to settle rather than asserting
-        // on a race.
-        let deadline = Date().addingTimeInterval(5)
-        var stillListed = true
-        while Date() < deadline, stillListed {
-            stillListed = SysctlProcessEnumerator().runningProcesses()
-                .contains { $0.processIdentifier == pid }
-            if stillListed {
-                usleep(20000)
-            }
+        // returns, so give the table time to settle rather than asserting on
+        // a race. The read must also see the table at all: an empty answer
+        // would pass for "gone" without proving anything.
+        let gone = SpawnedProcessProbe.poll {
+            let processes = SysctlProcessEnumerator().runningProcesses()
+            return !processes.isEmpty && !processes.contains { $0.processIdentifier == pid }
         }
 
-        #expect(!stillListed)
+        #expect(gone)
     }
 
     /// `utmpx` is what `who` reads, and the test host has no way to guarantee a
