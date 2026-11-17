@@ -46,9 +46,27 @@ struct AccountEnrollmentCancellationTests {
             oauth: oauth
         )
 
+        // If this ever stalls, say where and in what state, then let the
+        // exchange go so the run ends instead of waiting out the time limit.
+        var step = "waiting for the exchange to start"
+        let watchdog = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(300))
+            guard !Task.isCancelled else { return }
+            Issue.record(
+                """
+                Stalled while \(step). state=\(controller.state) \
+                exchangeStarted=\(oauth.started) exchangeCancelled=\(oauth.sawCancellation)
+                """
+            )
+            oauth.release()
+        }
+        defer { watchdog.cancel() }
+
         let signIn = Task { await controller.signIn() }
         await oauth.waitUntilStarted()
+        step = "cancelling"
         controller.cancelSignIn()
+        step = "waiting for sign-in to finish after cancelling"
         await signIn.value
 
         #expect(controller.state == .accountFree)
@@ -162,31 +180,51 @@ private final class CancelledEnrollmentRecorder: AccountDeviceEnrolling {
 
 @MainActor
 private final class StalledTokenExchangeOAuthEnrollment: AccountOAuthEnrolling {
-    private var started = false
+    private(set) var started = false
+    private(set) var sawCancellation = false
+    private var released = false
     private var startWaiters: [CheckedContinuation<Void, Never>] = []
+
+    struct Released: Error {}
 
     func signIn(
         presentationWindow _: NSWindow?,
         authorizationURLHandler _: @escaping @MainActor (URL) -> Void
     ) async throws -> AccountOAuthGrant {
         started = true
+        resumeStartWaiters()
+        // Stall until cancelled. Only cancelling ends this call in a passing
+        // run, so the test passes only when cancelling reaches the token
+        // exchange itself. ``release()`` is the watchdog's way out.
+        while !released {
+            do {
+                try await Task.sleep(for: .milliseconds(100))
+            } catch {
+                sawCancellation = true
+                throw error
+            }
+        }
+        throw Released()
+    }
+
+    func waitUntilStarted() async {
+        if started || released {
+            return
+        }
+        await withCheckedContinuation { startWaiters.append($0) }
+    }
+
+    /// Ends the stall without a cancellation, for a run that has gone wrong.
+    func release() {
+        released = true
+        resumeStartWaiters()
+    }
+
+    private func resumeStartWaiters() {
         for waiter in startWaiters {
             waiter.resume()
         }
         startWaiters.removeAll()
-        // Stall until cancelled. Nothing else ends this call, so the test
-        // passes only when cancelling reaches the token exchange itself, and
-        // no amount of machine load can let a timer win the race instead.
-        while true {
-            try await Task.sleep(for: .seconds(3600))
-        }
-    }
-
-    func waitUntilStarted() async {
-        if started {
-            return
-        }
-        await withCheckedContinuation { startWaiters.append($0) }
     }
 
     func cancelSignIn() {}
