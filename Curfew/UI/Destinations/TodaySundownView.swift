@@ -27,10 +27,12 @@ struct TodaySundownView: View {
 
     var body: some View {
         ZStack(alignment: .top) {
-            // Extended beneath the system sidebar, so the sky runs behind it.
+            // Drawn over the same area as the text, so the shade below is
+            // measured on the sky actually behind it; the extension effect
+            // carries it on beneath the system sidebar.
             HorizonSkyView(frame: horizon, isDayRunning: isDayRunning)
                 .backgroundExtensionEffect()
-                .ignoresSafeArea()
+                .ignoresSafeArea(.container, edges: .vertical)
             GeometryReader { proxy in
                 layout(in: proxy.size)
             }
@@ -50,15 +52,21 @@ struct TodaySundownView: View {
     private func layout(in size: CGSize) -> some View {
         let metrics = TodayMetrics.window(size)
         let skyHeight = size.height * (1 - HorizonGeometry.horizon)
+        let shade = TodaySkyLegibility.shade(
+            for: horizon, size: size, regions: metrics.textRegions(in: size)
+        )
         return VStack(spacing: 0) {
             TodayHero(
-                presentation: presentation, metrics: metrics, horizon: horizon, voice: voice,
+                presentation: presentation, metrics: metrics, horizon: horizon, shade: shade,
+                voice: voice,
                 holdDuration: holdDuration, onTurnOn: onTurnOn, onMoreTime: onMoreTime,
                 onCallItADay: onCallItADay
             )
             .padding(.bottom, metrics.actionsToHorizon)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
             .frame(height: skyHeight)
+            // The shade belongs to the sky; keep it off the ground.
+            .clipped()
 
             Group {
                 if presentation.showsOneThing {
@@ -137,6 +145,7 @@ struct TodayHero: View {
     var presentation: TodayPresentation
     var metrics: TodayMetrics
     var horizon: HorizonFrame
+    var shade: TodaySkyShade
     var voice: TodayVoice
     var holdDuration: TimeInterval
     var onTurnOn: () -> Void
@@ -144,19 +153,19 @@ struct TodayHero: View {
     var onCallItADay: () -> Void
 
     var body: some View {
+        let headlineGap = presentation.isCountdown ? metrics.headlineToLine : CurfewSpacing.small
         VStack(spacing: 0) {
-            VStack(spacing: presentation.isCountdown ? metrics.headlineToLine : CurfewSpacing
-                .small) {
-                    headline
-                    if let line = presentation.line {
-                        TodayLine(text: line, symbol: presentation.lineSymbol, size: metrics.line)
-                    }
+            VStack(spacing: headlineGap) {
+                headline
+                if let line = presentation.line {
+                    TodayLine(text: line, symbol: presentation.lineSymbol, size: metrics.line)
                 }
-                .skyInk(horizon)
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(presentation.spokenTime)
-                .accessibilityAddTraits(.updatesFrequently)
-                .accessibilitySortPriority(3)
+            }
+
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(presentation.spokenTime)
+            .accessibilityAddTraits(.updatesFrequently)
+            .accessibilitySortPriority(3)
 
             TodayActions(
                 presentation: presentation, voice: voice, holdDuration: holdDuration,
@@ -166,6 +175,8 @@ struct TodayHero: View {
             .padding(.top, metrics.lineToActions)
             .accessibilitySortPriority(1)
         }
+        // One shade behind the whole block, so it never draws over any of it.
+        .skyShade(shade.block, frame: horizon, spread: metrics.shadeSpread)
         .foregroundStyle(SundownPalette.warmWhite)
         .multilineTextAlignment(.center)
     }

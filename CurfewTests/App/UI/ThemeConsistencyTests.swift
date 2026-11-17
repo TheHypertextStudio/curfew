@@ -300,7 +300,7 @@ extension ThemeConsistencyTests {
         }
     }
 
-    @Test("Today keeps text legible with the sky halo instead of a scrim")
+    @Test("Today keeps text legible with a measured soft shade instead of a scrim or glow")
     func todayHeroPalette() throws {
         let root = URL(fileURLWithPath: #filePath).resolvingSymlinksInPath()
             .deletingLastPathComponent().deletingLastPathComponent()
@@ -309,7 +309,8 @@ extension ThemeConsistencyTests {
             "Curfew/UI/Destinations/TodaySundownView.swift"
         ), encoding: .utf8)
         #expect(!source.contains("textScrim"))
-        #expect(source.contains(".skyInk(horizon)"))
+        #expect(source.contains(".skyShade("))
+        #expect(!source.contains(".shadow("))
         #expect(!source.contains(".black.opacity(0.32)"))
         #expect(!source.contains("warmWhite.opacity(0.78)"))
     }
