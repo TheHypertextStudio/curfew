@@ -30,7 +30,7 @@ struct JournalScreen {
     let patterns: JournalPatternsPresentation
     let words: JournalWords
     let rows: [JournalRow]
-    /// Year range leads with the year in review; other ranges have none.
+    /// Year range leads with the time card; other ranges have none.
     let yearReview: JournalYearReview?
     /// Year range shows the latest twelve rows until asked for the rest.
     let collapsedRowLimit: Int?
@@ -156,9 +156,14 @@ struct JournalScreen {
             self.showAllTitle = nil
         }
 
-        self.yearReview = Self.yearReview(
-            state: state, records: periodRecords, period: period, today: today, format: format
-        )
+        // The year range has a time card once the year has stop times or
+        // days recorded before them; other ranges have none.
+        self.yearReview = period.range == .year && (state == .populated || state == .noStopTimes)
+            ? JournalYearReview(
+                records: periodRecords, period: period, today: today,
+                workingWeekdays: workingWeekdays, format: format
+            )
+            : nil
 
         self.canGoBack = records.contains { $0.day < period.interval.start }
         self.canGoForward = period.next(calendar: calendar).interval.start <= todayStart
@@ -185,20 +190,6 @@ struct JournalScreen {
             recorded ? .days : nil,
             review == .trailing ? .yearReview : nil
         ].compactMap(\.self)
-    }
-
-    /// The year range has a year in review once the year has stop times or
-    /// days recorded before them; other ranges have none.
-    private static func yearReview(
-        state: State,
-        records: [JournalDayRecord],
-        period: JournalPeriod,
-        today: Date,
-        format: JournalFormat
-    ) -> JournalYearReview? {
-        guard period.range == .year, state == .populated || state == .noStopTimes
-        else { return nil }
-        return JournalYearReview(records: records, period: period, today: today, format: format)
     }
 
     // MARK: - Days

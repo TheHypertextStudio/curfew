@@ -74,9 +74,11 @@
             )
         }
 
-        /// The year in review on its own in both appearances, the line it
-        /// shows with too few days, and the exported image itself.
-        func testRenderJournalYearReview() async throws {
+        /// The time card: the exported image for both stocks and both
+        /// punch patterns, the three skies and the three headlines; the
+        /// card on its stage at rest, lifted and customizing in light and
+        /// dark; and the line a year with too few days shows.
+        func testRenderJournalTimeCard() async throws {
             let model = Self.demoModel()
             let calendar = Calendar.current
             let now = model.currentTime
@@ -85,58 +87,112 @@
                 in: period.interval.start ... now, calendar: calendar
             ).filter { $0.day < calendar.startOfDay(for: now) })
             let format = JournalFormat(calendar: calendar)
+            let weekdays: Set<Weekday> = [.monday, .tuesday, .wednesday, .thursday, .friday]
             let review = JournalYearReview(
-                records: records, period: period, today: now, format: format
+                records: records, period: period, today: now, workingWeekdays: weekdays,
+                format: format
             )
             guard case .card(let card) = review.content else {
                 return XCTFail("The demo year should have enough days for the card")
             }
+
+            try await exportTimeCards(card)
+
             for (appearance, suffix) in [(NSAppearance.Name.aqua, "light"), (.darkAqua, "dark")] {
-                try renderYearReview(
+                try renderTimeCard(
                     JournalYearReviewView(review: review),
-                    named: "journal-year-review-\(suffix)", height: 760, appearance: appearance
+                    named: "journal-time-card-\(suffix)", height: 720, appearance: appearance
                 )
-                try renderYearReview(
-                    JournalYearReviewStage(card: card, showsLift: true),
-                    named: "journal-year-review-lifted-\(suffix)", height: 760,
+                try renderTimeCard(
+                    JournalTimeCardStage(card: card, showsLift: true),
+                    named: "journal-time-card-lifted-\(suffix)", height: 720,
                     appearance: appearance
                 )
-            }
-            for (name, palette) in [("desert", HorizonPalette.desert), ("polar", .polar)] {
-                try renderYearReview(
-                    JournalYearReviewStage(card: card).environment(\.horizonPalette, palette),
-                    named: "journal-year-review-\(name)", height: 760, appearance: .aqua
+                try renderTimeCard(
+                    JournalTimeCardStage(card: card, isCustomizing: true),
+                    named: "journal-time-card-customizing-\(suffix)", height: 1080,
+                    appearance: appearance
+                )
+                try renderTimeCard(
+                    JournalTimeCardStage(card: card, isCustomizing: true),
+                    named: "journal-time-card-customizing-wide-\(suffix)", height: 1000,
+                    width: 1100, appearance: appearance
                 )
             }
             let few = Array(records.suffix(6))
             try renderJournalPage(
                 JournalScreen(
-                    records: few, period: period, today: now,
-                    workingWeekdays: [.monday, .tuesday, .wednesday, .thursday, .friday],
+                    records: few, period: period, today: now, workingWeekdays: weekdays,
                     format: format
                 ),
                 named: "journal-year-too-few-light", height: 2450
             )
-
-            let png = try await JournalYearReviewImage(card: card).pngData()
-            let image = try XCTUnwrap(NSBitmapImageRep(data: png))
-            XCTAssertEqual(image.pixelsWide, 3200)
-            XCTAssertEqual(image.pixelsHigh, 2000)
-            try png.write(
-                to: Self.screenshotsDirectory()
-                    .appendingPathComponent("curfew-journal-year-review-export.png")
-            )
         }
 
-        /// The year in review section as it leads the year range.
-        private func renderYearReview(
+        /// The exported image for both stocks and both punch patterns, the
+        /// three skies on either stock and the three headlines.
+        private func exportTimeCards(_ card: JournalYearReview.Card) async throws {
+            func export(_ style: JournalTimeCardStyle, named name: String) async throws {
+                let png = try await JournalYearReviewImage(card: card, style: style).pngData()
+                let image = try XCTUnwrap(NSBitmapImageRep(data: png))
+                XCTAssertEqual(image.pixelsWide, 1600)
+                XCTAssertEqual(image.pixelsHigh, 2000)
+                try png.write(
+                    to: Self.screenshotsDirectory().appendingPathComponent("curfew-\(name).png")
+                )
+            }
+            let base = JournalTimeCardStyle(
+                stock: .night, sky: .sundown, punches: .calendar, headline: .eveningsOut
+            )
+            for stock in JournalTimeCardStock.allCases {
+                for punches in JournalTimeCardPunches.allCases {
+                    var style = base
+                    style.stock = stock
+                    style.punches = punches
+                    try await export(
+                        style,
+                        named: "time-card-\(stock.rawValue)-\(punches.rawValue)"
+                    )
+                }
+            }
+            for sky in JournalTimeCardSky.allCases {
+                for stock in JournalTimeCardStock.allCases {
+                    var style = base
+                    style.sky = sky
+                    style.stock = stock
+                    style.punches = stock == .night ? .skyline : .calendar
+                    try await export(
+                        style,
+                        named: "time-card-sky-\(sky.rawValue)-\(stock.rawValue)"
+                    )
+                }
+            }
+            for (index, headline) in JournalTimeCardHeadline.allCases.enumerated() {
+                var style = base
+                style.headline = headline
+                style.stock = index.isMultiple(of: 2) ? .paper : .night
+                try await export(style, named: "time-card-headline-\(headline.rawValue)")
+            }
+        }
+
+        /// A throwaway place for the time card's choices, so snapshots never
+        /// read or write the person's preferences.
+        static func scratchTimeCardStore() -> JournalTimeCardStore {
+            let suite = "CurfewJournalSnapshotTimeCard"
+            UserDefaults().removePersistentDomain(forName: suite)
+            return JournalTimeCardStore(defaults: UserDefaults(suiteName: suite) ?? UserDefaults())
+        }
+
+        /// The time card section as it leads the year range.
+        private func renderTimeCard(
             _ content: some View,
             named name: String,
             height: CGFloat,
+            width: CGFloat = 880,
             appearance: NSAppearance.Name
         ) throws {
             let section = VStack(alignment: .leading, spacing: 12) {
-                Text("Year in review")
+                Text("Time card")
                     .journalFont(.section)
                     .foregroundStyle(JournalStyle.ink)
                 content
@@ -147,7 +203,11 @@
             .background(JournalStyle.page)
             .environment(\.colorScheme, appearance == .darkAqua ? .dark : .light)
             .environment(\.horizonSkyRendering, .reference)
-            try capture(section, named: name, width: 880, height: height, appearance: appearance)
+            .environment(\.journalTimeCardStore, Self.scratchTimeCardStore())
+            // Headless rasterisers draw no Liquid Glass; the Reduce
+            // Transparency fallback shows the actions' real fill.
+            .environment(\._accessibilityReduceTransparency, true)
+            try capture(section, named: name, width: width, height: height, appearance: appearance)
         }
 
         private enum EdgeCase {
@@ -223,6 +283,7 @@
             }
             .environment(\.colorScheme, appearance == .darkAqua ? .dark : .light)
             .environment(\.horizonSkyRendering, .reference)
+            .environment(\.journalTimeCardStore, Self.scratchTimeCardStore())
             .tint(CurfewTheme.accent)
             try capture(
                 root,
@@ -250,6 +311,7 @@
             }
             .background(JournalStyle.page)
             .environment(\.colorScheme, .light)
+            .environment(\.journalTimeCardStore, Self.scratchTimeCardStore())
             try capture(
                 page,
                 named: name,
