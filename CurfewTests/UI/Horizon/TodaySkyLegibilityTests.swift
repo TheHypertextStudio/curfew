@@ -56,46 +56,53 @@ struct TodaySkyLegibilityTests {
     /// The lowest contrast over `region` with the shade reduced to its
     /// measured coverage.
     private func lowest(
-        in region: HorizonUnitRegion, frame: HorizonFrame, size: CGSize, opacity: Double
+        in region: HorizonUnitRegion, frame: HorizonFrame, size: CGSize, opacity: Double,
+        palette: HorizonPalette = .standard
     ) -> Double {
         let canvas = HorizonField.Canvas(
             aspect: size.width / size.height, pixelHeight: size.height
         )
         let density = opacity * TodaySkyLegibility.coverage
-        return TodaySkyLegibility.samples(in: region, frame: frame, canvas: canvas)
-            .map {
-                TodaySkyLegibility.contrast(
-                    TodaySkyLegibility.ink,
-                    TodaySkyLegibility.shaded($0, frame: frame, density: density)
-                )
-            }
-            .min() ?? 0
+        return TodaySkyLegibility.samples(
+            in: region, frame: frame, canvas: canvas, palette: palette
+        )
+        .map {
+            TodaySkyLegibility.contrast(
+                TodaySkyLegibility.ink,
+                TodaySkyLegibility.shaded($0, frame: frame, density: density, palette: palette)
+            )
+        }
+        .min() ?? 0
     }
 
-    @Test("The chosen shade gives numerals 3:1 and every line and button 4.5:1 all day")
-    func todayTextIsLegible() {
+    @Test(
+        "In every palette the chosen shade gives numerals 3:1 and every line and button 4.5:1",
+        arguments: HorizonPalette.all
+    )
+    func todayTextIsLegible(palette: HorizonPalette) {
         for surface in Self.surfaces {
             let regions = surface.metrics.textRegions(in: surface.size)
             for (index, frame) in day().enumerated() {
                 let shade = TodaySkyLegibility.shade(
-                    for: frame, size: surface.size, regions: regions
+                    for: frame, size: surface.size, regions: regions, palette: palette
                 )
                 // The view draws one shade behind the whole block.
                 let block = shade.block
-                let numerals = lowest(
-                    in: regions.numerals, frame: frame, size: surface.size, opacity: block
-                )
-                let line = lowest(
-                    in: regions.line, frame: frame, size: surface.size, opacity: block
-                )
-                let actions = lowest(
-                    in: regions.actions, frame: frame, size: surface.size,
-                    opacity: block
-                )
+                func lowest(_ region: HorizonUnitRegion) -> Double {
+                    self.lowest(
+                        in: region, frame: frame, size: surface.size, opacity: block,
+                        palette: palette
+                    )
+                }
                 let moment = "\(surface.name), minute \(index * 5)"
-                #expect(numerals >= TodaySkyLegibility.largeTextRatio, "numerals \(moment)")
-                #expect(line >= TodaySkyLegibility.textRatio, "line \(moment)")
-                #expect(actions >= TodaySkyLegibility.textRatio, "actions \(moment)")
+                #expect(
+                    lowest(regions.numerals) >= TodaySkyLegibility.largeTextRatio,
+                    "numerals \(moment)"
+                )
+                #expect(lowest(regions.line) >= TodaySkyLegibility.textRatio, "line \(moment)")
+                #expect(
+                    lowest(regions.actions) >= TodaySkyLegibility.textRatio, "actions \(moment)"
+                )
             }
         }
     }

@@ -106,7 +106,8 @@ struct ContentView: View {
         let skyHeight = Self.skyHeight * (1 - HorizonGeometry.horizon)
         let size = CGSize(width: Self.width, height: Self.skyHeight)
         let shade = TodaySkyLegibility.shade(
-            for: model.horizonFrame, size: size, regions: metrics.textRegions(in: size)
+            for: model.horizonFrame, size: size, regions: metrics.textRegions(in: size),
+            palette: model.horizonPalette
         )
         return ZStack(alignment: .top) {
             HorizonSkyView(frame: model.horizonFrame, isDayRunning: model.isHorizonDayRunning)

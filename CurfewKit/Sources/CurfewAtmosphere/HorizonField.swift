@@ -61,26 +61,31 @@ public enum HorizonField {
         }
     }
 
-    /// The final colour at a point.
+    /// The final colour at a point, in `palette`.
     public static func color(
-        at point: HorizonPoint, canvas: Canvas, frame: HorizonFrame, bands: Bands
+        at point: HorizonPoint, canvas: Canvas, frame: HorizonFrame, bands: Bands,
+        palette: HorizonPalette = .standard
     ) -> HorizonRGB {
-        color(
+        palette.fieldColor(
             at: point, level: brightness(at: point, aspect: canvas.aspect, frame: frame),
             canvas: canvas, frame: frame, bands: bands
         )
     }
+}
 
-    /// The final colour at a point whose brightness is already known.
-    static func color(
-        at point: HorizonPoint, level: Double, canvas: Canvas, frame: HorizonFrame, bands: Bands
+extension HorizonPalette {
+    /// The final colour at a point whose brightness is already known, in
+    /// this palette.
+    func fieldColor(
+        at point: HorizonPoint, level: Double, canvas: HorizonField.Canvas, frame: HorizonFrame,
+        bands: HorizonField.Bands
     ) -> HorizonRGB {
         if point.y < HorizonGeometry.horizon {
-            return HorizonPalette.ground(elevation: frame.elevation)
+            return ground(elevation: frame.elevation)
         }
         let aspect = canvas.aspect
-        let step = quantised(level, bandPhase: bands.phase, edgeWidth: bands.edgeWidth)
-        var color = HorizonPalette.ramp(step, elevation: frame.elevation + (step - 0.5) * 0.24)
+        let step = HorizonField.quantised(level, bandPhase: bands.phase, edgeWidth: bands.edgeWidth)
+        var color = ramp(step, elevation: frame.elevation + (step - 0.5) * 0.24)
         let edge = 1.5 / max(canvas.pixelHeight, 1)
 
         // The sun disc, in the brightest stop of a slightly higher sky.
@@ -88,7 +93,7 @@ public enum HorizonField {
         let radius = HorizonGeometry.sunRadius
         let disc = (1 - smoothstep(radius - edge, radius + edge, toSun))
             * (frame.sunWeight >= 0.01 ? 1 : 0)
-        let sunColor = HorizonPalette.ramp(1, elevation: frame.elevation + 0.12)
+        let sunColor = ramp(1, elevation: frame.elevation + 0.12)
             .scaled(1.02).offset(0.03)
         color = color.mixed(with: sunColor, disc)
 
@@ -98,7 +103,7 @@ public enum HorizonField {
         let squared = across * across + upward * upward
         let terminator = across * sin(frame.moonPhase) - sqrt(max(1 - squared, 0)) *
             cos(frame.moonPhase)
-        let face = terminator >= 0 ? HorizonPalette.moonLit : HorizonPalette.moonDark
+        let face = terminator >= 0 ? moonLit : moonDark
         let moonDisc = (1 - smoothstep(1 - edge * 40, 1 + edge * 40, squared))
             * smoothstep(0, 0.25, frame.moonWeight)
         return color.mixed(with: face, moonDisc)

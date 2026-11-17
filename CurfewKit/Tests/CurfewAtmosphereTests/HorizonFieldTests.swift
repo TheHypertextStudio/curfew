@@ -39,53 +39,57 @@ struct HorizonFieldTests {
     @Test("High sun uses the day ramp stop for stop")
     func dayRamp() {
         for (index, stop) in Self.day.enumerated() {
-            expectColor(HorizonPalette.ramp(Double(index) / 4, elevation: 0.6), stop)
+            expectColor(HorizonPalette.standard.ramp(Double(index) / 4, elevation: 0.6), stop)
         }
-        expectColor(HorizonPalette.ground(elevation: 0.6), (0.07, 0.11, 0.29))
+        expectColor(HorizonPalette.standard.ground(elevation: 0.6), (0.07, 0.11, 0.29))
     }
 
     @Test("At elevation 0.1 the ramp is the last-hour palette")
     func lastHourRamp() {
-        for (index, stop) in HorizonPalette.lastHour.enumerated() {
+        for (index, stop) in HorizonPalette.standard.lastHour.enumerated() {
             expectColor(
-                HorizonPalette.ramp(Double(index) / 4, elevation: 0.1),
+                HorizonPalette.standard.ramp(Double(index) / 4, elevation: 0.1),
                 (stop.red, stop.green, stop.blue)
             )
         }
-        expectColor(HorizonPalette.lastHour[0], (0.15, 0.17, 0.46))
-        expectColor(HorizonPalette.lastHour[1], (0.38, 0.27, 0.60))
-        expectColor(HorizonPalette.lastHour[4], (1.0, 0.84, 0.52))
-        expectColor(HorizonPalette.ground(elevation: 0.1), (0.11, 0.085, 0.25))
+        expectColor(HorizonPalette.standard.lastHour[0], (0.15, 0.17, 0.46))
+        expectColor(HorizonPalette.standard.lastHour[1], (0.38, 0.27, 0.60))
+        expectColor(HorizonPalette.standard.lastHour[4], (1.0, 0.84, 0.52))
+        expectColor(HorizonPalette.standard.ground(elevation: 0.1), (0.11, 0.085, 0.25))
     }
 
     @Test("Just below the horizon the ramp is dusk, and deep night is night")
     func duskAndNightRamps() {
         for (index, stop) in Self.dusk.enumerated() {
-            expectColor(HorizonPalette.ramp(Double(index) / 4, elevation: -0.05), stop)
+            expectColor(HorizonPalette.standard.ramp(Double(index) / 4, elevation: -0.05), stop)
         }
         for (index, stop) in Self.night.enumerated() {
-            expectColor(HorizonPalette.ramp(Double(index) / 4, elevation: -0.4), stop)
-            expectColor(HorizonPalette.ramp(Double(index) / 4, elevation: -0.9), stop)
+            expectColor(HorizonPalette.standard.ramp(Double(index) / 4, elevation: -0.4), stop)
+            expectColor(HorizonPalette.standard.ramp(Double(index) / 4, elevation: -0.9), stop)
         }
-        expectColor(HorizonPalette.ground(elevation: -0.05), (0.065, 0.05, 0.18))
-        expectColor(HorizonPalette.ground(elevation: -0.9), (0.018, 0.02, 0.055))
+        expectColor(HorizonPalette.standard.ground(elevation: -0.05), (0.065, 0.05, 0.18))
+        expectColor(HorizonPalette.standard.ground(elevation: -0.9), (0.018, 0.02, 0.055))
     }
 
-    @Test("The shader table lays out six stops of four palettes")
+    @Test("The shader table lays out six stops of four palettes, then the moon")
     func shaderTable() {
-        let table = HorizonPalette.shaderTable
-        #expect(table.count == 72)
+        let table = HorizonPalette.standard.shaderTable
+        #expect(table.count == 78)
+        #expect(table.count == HorizonPalette.shaderTableCount)
         // Stop 0, day.
         #expect(Array(table[0 ..< 3]) == [0.10, 0.27, 0.66])
         // Stop 2, night.
         #expect(Array(table[33 ..< 36]) == [0.10, 0.12, 0.31])
         // Ground, last hour.
         #expect(Array(table[63 ..< 66]) == [0.11, 0.085, 0.25])
+        // The moon's lit and unlit faces.
+        #expect(Array(table[72 ..< 75]) == [0.93, 0.92, 0.97])
+        #expect(Array(table[75 ..< 78]) == [0.2, 0.22, 0.42])
     }
 
     @Test("Between stops the ramp interpolates linearly")
     func rampInterpolates() {
-        let between = HorizonPalette.ramp(0.125, elevation: 0.6)
+        let between = HorizonPalette.standard.ramp(0.125, elevation: 0.6)
         expectColor(between, (0.16, 0.355, 0.74))
     }
 
@@ -141,7 +145,7 @@ struct HorizonFieldTests {
             curfew: Date(timeIntervalSince1970: 1_800_000_000 + 4 * 3600),
             nextUnlock: Date(timeIntervalSince1970: 1_800_000_000 + 16 * 3600)
         ).frame
-        let ground = HorizonPalette.ground(elevation: frame.elevation)
+        let ground = HorizonPalette.standard.ground(elevation: frame.elevation)
         for across in stride(from: 0.0, through: 1.0, by: 0.1) {
             for height in stride(from: 0.0, to: HorizonGeometry.horizon, by: 0.05) {
                 let color = HorizonField.color(
@@ -160,7 +164,7 @@ struct HorizonFieldTests {
             moon: HorizonPoint(x: 0.2, y: 0.8), moonWeight: 0,
             elevation: 0.3, moonPhase: 0
         )
-        let disc = HorizonPalette.ramp(1, elevation: 0.42).scaled(1.02).offset(0.03)
+        let disc = HorizonPalette.standard.ramp(1, elevation: 0.42).scaled(1.02).offset(0.03)
         let centre = HorizonField.color(
             at: HorizonPoint(x: 0.5, y: 0.6), canvas: canvas, frame: frame, bands: sharp
         )
@@ -214,7 +218,7 @@ struct HorizonFieldTests {
             frame: frame, bandPhase: 0.3, pixelWidth: 160, pixelHeight: 100
         ))
         // Row 0 of the buffer is the top of the image; the last row is ground.
-        let ground = HorizonPalette.ground(elevation: frame.elevation).bytes
+        let ground = HorizonPalette.standard.ground(elevation: frame.elevation).bytes
         let last = (99 * 160 + 80) * 4
         #expect(Array(pixels[last ..< last + 3]) == ground)
         #expect(pixels[last + 3] == 255)
