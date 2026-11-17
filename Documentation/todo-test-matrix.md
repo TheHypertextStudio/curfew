@@ -2,7 +2,7 @@
 
 ## Today and the menu bar
 
-Today and the menu bar popover read one resolved `TodayPresentation`; every string comes from `TodayVoice`. Call it a day begins the lock by writing the same `LockoutDeadlineRecord` a scheduled lock writes and arming the helper with it. `MenuBarPresentationModelTests` was observed failing on the old status strings and the past curfew shown during an override before the change.
+Today and the menu bar popover read one resolved `TodayPresentation`; every string comes from the model's active `VoicePack`. Call it a day begins the lock by writing the same `LockoutDeadlineRecord` a scheduled lock writes and arming the helper with it. `MenuBarPresentationModelTests` was observed failing on the old status strings and the past curfew shown during an override before the change.
 
 | Behavior                                                                                                                                                       | Contract coverage                                                                   | Additional acceptance                                                                                            |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
@@ -14,6 +14,22 @@ Today and the menu bar popover read one resolved `TodayPresentation`; every stri
 | One thing saves through the morning log, ticks and unticks                                                                                                     | `TodayBehaviorTests/oneThing`                                                       | None                                                                                                             |
 | Text over the sky keeps 3:1 (numerals) and 4.5:1 (line, button labels) all day; soft shade only where needed, rendered coverage measured                       | `TodaySkyLegibilityTests`                                                           | Native contrast audit `testWorkspaceHasReadableAccessibleControlsWithoutRestCoveringIt`; real glass over the sky |
 | Visual review of Today and the popover                                                                                                                         | `DestinationSnapshotTests/testRenderTodayStates`, `testRenderTodayWindowAndPopover` | Captures use the Reduce Transparency look because system glass does not draw headless                            |
+
+## Theme and voice
+
+The theme editor in Settings > Rest screen changes the sky palette, the clock style and the voice in place. Palettes and voices are pure values in the package; the app reads one active palette and one active voice from the model.
+
+| Behavior | Contract coverage | Acceptance still required |
+| --- | --- | --- |
+| Palettes are complete, distinct, darken toward night, brighten toward the light, keep warm white legible on the lock and the ground | `HorizonPaletteTests` | On-screen judgement through the Metal shader |
+| Shader and CPU renderer draw the same picture for every palette: one table, moon included, nothing baked into the shader | `HorizonPaletteTests/shaderTableMatchesPalette`, `shaderReadsWholeTable`, `rendererUsesPalette`, `HorizonShaderLibraryTests` | GPU pixel comparison on a real display |
+| Today's text stays legible in every palette all day | `TodaySkyLegibilityTests/todayTextIsLegible(palette:)` | None |
+| Voices obey the word rules (sentence case, no exclamation marks or dashes, banned words), are short and distinct | `VoicePackTests/rules`, `sentenceCaseAndShort`, `voicesAreDistinct` | Reading review |
+| Own words validated and laid over the voice; empty means the voice's line | `VoicePackTests/customLines`, `settingLines`, `RestAppearanceThemeTests/customLineNormalization` | None |
+| Older records load: palette names, the free-text message carried into the lock's words, unknown voice falls back | `RestAppearanceThemeTests/legacyRecordMigrates`, `voiceDecoding`, `RestAppearancePreferencesTests` | Upgrade on a real Mac with saved preferences |
+| Every surface speaks the active voice and draws the active palette; changes persist | `ThemeAndVoiceTests` | Notification banners on a signed build |
+| Screen saver receives the palette and the consented words through the validated export | `RestCompanionExportTests`, `RestCompanionSceneBridgeTests`, `RestScreenSaverSessionTests` | `RestScreenSaverHostAcceptanceTests` in an allocated session |
+| Visual review of the editor, each voice on the lock, each palette at day, last hour, dusk and night, Today, the lock and Sunrise | `DestinationSnapshotTests/testRenderThemeEditor`, `testRenderThemeLockVoices`, `testRenderThemeSkies`, `testRenderThemeToday`, `testRenderThemeSunrise` | Liquid Glass and shader on screen |
 
 ## Journal day records
 

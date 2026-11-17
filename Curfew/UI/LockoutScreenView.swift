@@ -1,3 +1,4 @@
+import CurfewAtmosphere
 import CurfewKit
 import SwiftUI
 
@@ -98,19 +99,36 @@ struct LockoutScreenView: View {
     @AccessibilityFocusState private var clockFocused: Bool
 
     var scene: LockScene?
-    var voice = VoicePack.standard
     /// The instant the scene is drawn for; the timeline's progress reads it.
     var date: Date
+    /// A still lock for the theme editor: its own clock and unlock, nothing
+    /// pressable, nothing announced.
+    var preview: RestScreenPreview?
+
+    /// The active voice: the chosen pack with the person's own words.
+    private var voice: VoicePack {
+        model.voice
+    }
+
+    private var now: Date {
+        preview?.now ?? model.currentTime
+    }
 
     private var content: LockScreenContent {
         LockScreenContent.resolve(
-            status: model.restRestrictionStatus, now: model.currentTime,
+            status: preview.map { .lockedUntil($0.unlock) } ?? model.restRestrictionStatus,
+            now: now,
             leadMinutes: model.restAppearance.sunriseLeadMinutes, voice: voice
         )
     }
 
     private var isCompact: Bool {
-        model.isOverrideComposerVisible || model.reflectionState.isEveningReflectionPending
+        preview == nil
+            && (model.isOverrideComposerVisible || model.reflectionState.isEveningReflectionPending)
+    }
+
+    private var clockDesign: Font.Design {
+        model.restAppearance.clockStyle.fontDesign
     }
 
     private var clockProgress: Double {
@@ -166,8 +184,8 @@ struct LockoutScreenView: View {
         LockTextLayout.resolve(
             size: size,
             content: LockTextContent(
-                clock: LockClockText.numerals(model.currentTime),
-                period: LockClockText.period(model.currentTime),
+                clock: LockClockText.numerals(now),
+                period: LockClockText.period(now),
                 headline: content.headline, line: content.line
             ),
             compact: isCompact
@@ -210,12 +228,14 @@ struct LockoutScreenView: View {
     }
 
     private func clock(_ layout: LockTextLayout) -> some View {
-        let numerals = LockClockText.numerals(model.currentTime)
+        let numerals = LockClockText.numerals(now)
         var text = Text(numerals)
-            .font(.system(size: layout.clockSize, weight: .semibold, design: .rounded))
-        if let period = LockClockText.period(model.currentTime) {
+            .font(.system(size: layout.clockSize, weight: .semibold, design: clockDesign))
+        if let period = LockClockText.period(now) {
             text = text + Text(" ") + Text(period)
-                .font(.system(size: layout.clockSize * 0.28, weight: .semibold, design: .rounded))
+                .font(.system(
+                    size: layout.clockSize * 0.28, weight: .semibold, design: clockDesign
+                ))
                 .foregroundStyle(SundownPalette.warmWhite.opacity(0.85))
         }
         return text
@@ -226,21 +246,17 @@ struct LockoutScreenView: View {
             .scaleEffect(0.9 + 0.1 * clockProgress)
             .animation(reduceMotion ? nil : .snappy(duration: 0.28), value: numerals)
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel(model.currentTime.formatted(date: .omitted, time: .shortened))
+            .accessibilityLabel(now.formatted(date: .omitted, time: .shortened))
             .accessibilityFocused($clockFocused)
             .accessibilityIdentifier("rest-clock")
     }
 
-    /// The person's own message and any shutdown notice, under the block.
+    /// Any shutdown notice, under the block. The person's own words are the
+    /// headline itself.
     private func supporting(width: CGFloat) -> some View {
         let size = max(13, width * 0.014)
         return VStack(spacing: CurfewSpacing.small) {
-            if !model.restAppearance.message.isEmpty {
-                Text(model.restAppearance.message)
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: 600)
-            }
-            if let shutdown = model.shutdownStatusLine {
+            if preview == nil, let shutdown = model.shutdownStatusLine {
                 Text(shutdown)
             }
         }
@@ -252,7 +268,10 @@ struct LockoutScreenView: View {
 
     private var ground: some View {
         HStack(spacing: CurfewSpacing.xLarge) {
-            if model.isEnforcingLockout {
+            if preview != nil {
+                QuietLockButton(title: voice.overrideEntry, symbol: .override) {}
+                    .allowsHitTesting(false)
+            } else if model.isEnforcingLockout {
                 if model.overridesRemaining == 0 {
                     Text(voice.noOverridesLeft)
                         .foregroundStyle(SundownPalette.supportingText)
@@ -263,7 +282,9 @@ struct LockoutScreenView: View {
                     .accessibilityIdentifier("override-entry")
                 }
             }
-            RestSaverControl()
+            if preview == nil {
+                RestSaverControl()
+            }
         }
         .font(.system(size: 15, weight: .medium))
     }
@@ -271,16 +292,14 @@ struct LockoutScreenView: View {
     @ViewBuilder
     private var panel: some View {
         if model.isOverrideComposerVisible, model.isEnforcingLockout {
-            OverrideComposer(voice: voice)
+            OverrideComposer()
         } else if model.reflectionState.isEveningReflectionPending {
-            EveningReflectionCard(
-                voice: voice, usesSolidPanels: reduceTransparency
-            )
+            EveningReflectionCard(usesSolidPanels: reduceTransparency)
         }
     }
 
     private func announce() {
-        guard model.isEnforcingLockout else { return }
+        guard preview == nil, model.isEnforcingLockout else { return }
         AccessibilityNotification.Announcement(content.accessibilitySummary).post()
         clockFocused = true
     }
@@ -294,15 +313,17 @@ struct NightPanelSurface: ViewModifier {
     var cornerRadius = CurfewRadius.panel
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Environment(\.colorSchemeContrast) private var contrast
+    @Environment(\.horizonPalette) private var palette
 
     func body(content: Content) -> some View {
         let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+        let fill = HorizonGlassLook.solidFill(palette)
         Group {
             if reduceTransparency {
-                content.background(HorizonGlassLook.solidFill.opacity(0.94), in: shape)
+                content.background(fill.opacity(0.94), in: shape)
             } else {
                 content.glassEffect(
-                    .regular.tint(HorizonGlassLook.solidFill.opacity(0.55)),
+                    .regular.tint(fill.opacity(0.55)),
                     in: shape
                 )
             }
