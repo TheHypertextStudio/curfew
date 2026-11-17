@@ -5,8 +5,7 @@ import SwiftUI
 /// the right control per kind (prose / 1–N rating / mood pick), collects the
 /// answers locally, and hands a built `[ReflectionAnswer]` back on submit.
 ///
-/// Used by both the full-screen morning ``DaybreakReflectionView`` and the
-/// in-lockout ``EveningReflectionCard``, which supply their own surrounding
+/// Used by the in-lockout ``EveningReflectionCard``, which supply their own surrounding
 /// chrome (background, headline). Styled for a dark dusk/dawn backdrop:
 /// white-on-translucent, rounded type, matching the lockout screen. All sizes
 /// scale with Dynamic Type via ``ScaledMetric``.

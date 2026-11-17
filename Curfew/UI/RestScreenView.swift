@@ -168,7 +168,7 @@ struct RestScreenView: View {
                 if !model.restHandoffIsAmbient {
                     morningClock
                 }
-                DaybreakReflectionView()
+                SunriseGateView()
                     .transition(.opacity.combined(with: .offset(y: motion.translation)))
                     .animation(
                         .easeOut(duration: motion.contentDuration)

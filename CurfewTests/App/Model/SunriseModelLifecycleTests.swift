@@ -30,6 +30,7 @@ struct SunriseModelLifecycleTests {
         let store = CurfewSettingsStore(defaults: defaults)
         var settings = CurfewSettings.default
         settings.schedule = .tenToSix
+        settings.hasCompletedInitialSetup = true
         store.save(settings)
         let model = CurfewAppModel(
             settingsStore: store, appRouter: AppRouterSpy(), flavor: .current,
@@ -44,7 +45,8 @@ struct SunriseModelLifecycleTests {
             accountWakeLedgerStore: AccountWakeLedgerStore(recordURL: FileManager.default
                 .temporaryDirectory.appendingPathComponent("sunrise-ledger-\(UUID()).json"))
         )
-        model.automaticScheduleEnabled = false
+        // Curfew is on: Sunrise plans a wake only while Curfew is on.
+        model.automaticScheduleEnabled = true
         model.currentTime = date("2026-10-19T12:00:00-07:00")
         model.sunriseCalendar = calendar()
         model.restAppearance = preferences()
@@ -56,13 +58,12 @@ struct SunriseModelLifecycleTests {
         model.sunriseOnExternalPower = { effects.externalPower }
     }
 
-    @Test("A local Sunrise schedules before enforcement or automatic lockout is enabled")
+    @Test("A local Sunrise schedules without arming enforcement or recording a lock")
     func schedulesWithoutEnforcement() async throws {
         let model = try model()
         let effects = Effects()
         inject(effects, into: model)
         #expect(!model.isEnforcementRunning)
-        #expect(!model.automaticScheduleEnabled)
         #expect(model.lockoutDeadlineStore.load() == nil)
         await model.reconcileSunriseWake()
         let plan = try #require(effects.plans.first)

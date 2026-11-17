@@ -12,8 +12,9 @@ import Foundation
 ///   from the settings store on init, persisted on edit).
 /// - `isEveningReflectionPending` drives the evening card inside
 ///   ``LockoutScreenView`` — true from `→ locked` until the user saves or skips.
-/// - `isDaybreakPresented` drives the full-screen morning overlay — true from
-///   the day's first session until Start/Skip.
+/// - `isDaybreakPresented` drives the Sunrise gate — true from the day's first
+///   session until the person starts the day. (The name predates Sunrise and
+///   is kept because the lock and overlay code read it.)
 /// - `gatesResolvedToday` records which gates have been handled today so
 ///   neither re-prompts; reset on day rollover and seeded at init.
 struct ReflectionRuntimeState {
@@ -31,9 +32,9 @@ struct ReflectionRuntimeState {
     var eveningDraft = ReflectionDraft(prompts: ReflectionConfiguration.default.eveningPrompts)
 }
 
-/// Reflection-gate behaviour for `CurfewAppModel`: deciding when the morning
-/// (sunrise) and evening (sundown) gates appear, persisting answers, and
-/// keeping each gate to at most one prompt per day.
+/// Reflection-gate behaviour for `CurfewAppModel`: deciding when Sunrise and
+/// the evening (sundown) gate appear, persisting answers, and keeping each
+/// gate to at most one prompt per day.
 ///
 /// The gates are driven off the same phase transitions the tick loop already
 /// computes (`→ working` for morning, `→ locked` for evening) rather than a
@@ -88,8 +89,12 @@ extension CurfewAppModel {
     /// transitioned from. Invoked from `propagatePhaseTransition` so it runs
     /// exactly on transitions, not every tick.
     ///
-    /// - Morning fires when we cross into `.working` (the day's unlock / first
-    ///   session), the morning gate is enabled, and it is unresolved today.
+    /// - Sunrise fires when we cross into `.working` (the day's unlock / first
+    ///   session), it is enabled, unresolved today and has a step to show.
+    ///   Startup calls this with `.dayOff`, so a cold start or relaunch during
+    ///   the working day with the morning unanswered also opens it.
+    /// - Crossing into `.working` with no gate to show releases any Sunrise
+    ///   display hold, so the Mac never sits lit on an empty desktop.
     /// - Evening fires when we cross into `.locked` (sundown), the evening gate
     ///   is enabled, and it is unresolved today.
     func evaluateReflectionGates(previousPhase: EnforcementPhase) {
@@ -98,10 +103,15 @@ extension CurfewAppModel {
            !isTemporaryRestRelease,
            reflectionState.scheduledInterval.map({ currentTime >= $0.end }) ?? true,
            !reflectionState.gatesResolvedToday.contains(.morning) {
-            reflectionState.morningDraft = ReflectionDraft(
-                prompts: reflectionConfiguration.morningPrompts
-            )
-            reflectionState.isDaybreakPresented = true
+            let pages = currentSunrisePages()
+            if !pages.isEmpty {
+                prepareSunriseGate(pages: pages)
+                reflectionState.isDaybreakPresented = true
+            }
+        }
+        if previousPhase != .working, state.phase == .working,
+           !reflectionState.isDaybreakPresented {
+            dismissSunrisePresentation()
         }
 
         if reflectionConfiguration.eveningEnabled,

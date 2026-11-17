@@ -37,17 +37,6 @@ struct SunrisePresentationPlanTests {
         ) == nil)
     }
 
-    @Test("A night that unlocks into a day off is passed over; Friday wakes on Tuesday")
-    func skipsUnlockIntoDayOff() throws {
-        // Friday 22:00 unlocks Saturday 06:00, a day off. Sunday is off, so
-        // nothing unlocks on Monday; the next working morning is Tuesday.
-        let plan = try #require(SunriseWakePlanner(owner: owner).presentationPlan(
-            schedule: .tenToSix, appearance: appearance(),
-            at: date("2026-10-23T12:00:00-07:00"), calendar: calendar()
-        ))
-        #expect(plan.wakeAt == date("2026-10-27T05:30:00-07:00"))
-    }
-
     @Test("A future configured night resolves without a restriction or battery-power input")
     func futureOccurrence() throws {
         let plan = try #require(SunriseWakePlanner(owner: owner).presentationPlan(
@@ -295,5 +284,16 @@ extension SunrisePresentationPlanTests {
         ))
         #expect(window.lockDate == date("2026-10-20T02:00:00-07:00"))
         #expect(window.unlockDate == date("2026-10-20T08:00:00-07:00"))
+    }
+
+    @Test("A night that unlocks into a day off is passed over; Friday wakes on Tuesday")
+    func skipsUnlockIntoDayOff() throws {
+        // Friday 22:00 unlocks Saturday 06:00, a day off. Sunday is off, so
+        // nothing unlocks on Monday; the next working morning is Tuesday.
+        let plan = try #require(SunriseWakePlanner(owner: owner).presentationPlan(
+            schedule: .tenToSix, appearance: appearance(),
+            at: date("2026-10-23T12:00:00-07:00"), calendar: calendar()
+        ))
+        #expect(plan.wakeAt == date("2026-10-27T05:30:00-07:00"))
     }
 }

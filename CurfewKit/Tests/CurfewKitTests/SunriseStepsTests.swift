@@ -19,7 +19,7 @@ struct SunriseStepsTests {
             morningPrompts: ReflectionDefaults.morningPrompts
         )
         #expect(steps.map(\.kind) == [.lastNightNote, .oneThing, .readiness])
-        #expect(steps.allSatisfy(\.isEnabled))
+        #expect(!steps.contains { !$0.isEnabled })
         #expect(steps.map(\.isRequired) == [false, true, false])
     }
 
@@ -189,6 +189,14 @@ struct SunriseGatePagesTests {
         let steps = [SunriseStep(kind: .question(custom.id), isEnabled: true, isRequired: false)]
         let pages = SunriseGate.pages(steps: steps, morningPrompts: [custom], lastNightNote: nil)
         #expect(pages.map(\.prompt) == [custom])
+    }
+
+    @Test("A question with no words yet is left out of the gate")
+    func blankQuestion() {
+        let blank = ReflectionPrompt(text: "  ", kind: .text)
+        let steps = [SunriseStep(kind: .question(blank.id), isEnabled: true, isRequired: true)]
+        #expect(SunriseGate.pages(steps: steps, morningPrompts: [blank], lastNightNote: nil)
+            .isEmpty)
     }
 
     @Test("Readiness keeps the scale the person chose for it")

@@ -154,13 +154,6 @@
                 height: 720,
                 to: outputDirectory
             )
-            try renderBoth(
-                DaybreakReflectionView().environment(model),
-                named: "daybreak-reflection",
-                width: 1440,
-                height: 900,
-                to: outputDirectory
-            )
         }
 
         /// A demo model pinned to a flattering mid-workday state.

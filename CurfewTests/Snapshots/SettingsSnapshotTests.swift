@@ -22,7 +22,7 @@ import CurfewKit
                 named: "copy-reflection", width: 650, height: 650, to: directory
             )
             try renderHosted(
-                DaybreakReflectionView().environment(model)
+                SunriseGateView().environment(model)
                     .transaction { $0.disablesAnimations = true },
                 named: "copy-start-reflection", width: 900, height: 950,
                 settlingTime: 1.1, to: directory

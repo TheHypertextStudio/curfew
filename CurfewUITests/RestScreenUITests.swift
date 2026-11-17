@@ -104,12 +104,14 @@ extension CurfewUITests {
 
     func testMorningDismissalRestoresWorkspaceKeyboardNavigation() {
         let app = launchFixture("lockout", state: "rest-morning")
-        let editor = app.textViews["reflection-answer"].firstMatch
-        XCTAssertTrue(editor.waitForExistence(timeout: 5))
-        editor.click()
-        editor.typeText("Keep the morning intentional.")
-        XCTAssertEqual(editor.value as? String, "Keep the morning intentional.")
-        app.buttons["Skip"].click()
+        let field = app.textFields["sunrise-answer"].firstMatch
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.click()
+        // The one thing is required: Return moves on only once it has words.
+        field.typeText("Keep the morning intentional.\r")
+        let skip = app.buttons["sunrise-skip"]
+        XCTAssertTrue(skip.waitForExistence(timeout: 5), "Readiness is skippable by default.")
+        skip.click()
         let restClosed = XCTNSPredicateExpectation(
             predicate: NSPredicate(format: "exists == false"), object: app.groups["rest-screen"]
         )
@@ -125,7 +127,9 @@ extension CurfewUITests {
     func testRestScenesHaveReadableAccessibleControls() throws {
         for state in ["rest-continuity", "rest-morning"] {
             let app = launchFixture("lockout", state: state)
-            let editor = app.textViews["reflection-answer"].firstMatch
+            let editor = state == "rest-morning"
+                ? app.textFields["sunrise-answer"].firstMatch
+                : app.textViews["reflection-answer"].firstMatch
             XCTAssertTrue(editor.waitForExistence(timeout: 5))
             XCTAssertFalse(editor.label.isEmpty)
             XCTAssertEqual(app.groups["rest-screen"].label, "Curfew rest screen")

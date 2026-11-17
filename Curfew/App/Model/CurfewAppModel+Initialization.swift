@@ -25,6 +25,7 @@ extension CurfewAppModel {
         }
 
         reflectionState.configuration = settingsStore.loadReflectionConfiguration()
+        loadSunrisePreferences()
         seedReflectionGatesResolvedToday()
         // A relaunch that lands already inside `.working`/`.locked` (app
         // force-quit or crashed mid-session, then reopened) has no in-session
