@@ -63,6 +63,27 @@ Settings uses 860×620 content at default and 760×520 at minimum. The main work
 uses 1080×720 and 980×660. Setup has a content-sized minimum of 640×470. Full-screen
 overlays match the display and do not have a separate minimum window size.
 
+## Recording first-run setup
+
+The unsigned Debug fixture can walk through setup by itself, so the whole first
+run can be recorded without a pointer and without taking the keyboard away.
+Both switches are Debug-only and need the demo fixture; a signed build ignores
+them.
+
+```bash
+open -g -n "build/capture/Build/Products/Debug/Curfew Dev.app" \
+  --env CURFEW_DEMO_FIXTURE=1 --env CURFEW_DEMO_SCENARIO=getting-started \
+  --env CURFEW_DEMO_SETUP_WALKTHROUGH=1 --env CURFEW_DEMO_STAY_BEHIND=1
+```
+
+`CURFEW_DEMO_SETUP_WALKTHROUGH=1` plays the welcome and then presses through
+every screen on a timer (about 46 seconds), nudging both times on the way.
+`CURFEW_DEMO_STAY_BEHIND=1` stops the fixture bringing itself forward. Record
+the "Set up Curfew" window with a window capture (ScreenCaptureKit captures it
+while it sits behind other windows); this needs Screen Recording permission.
+The fixture trusts Accessibility already, so the recording shows "Allowed"
+without the System Settings drag.
+
 ## Acceptance
 
 Review actual images for clipped or missing controls, text density, contrast,
@@ -210,7 +231,6 @@ with a past scheduled lock shows “Curfew is off. Review your schedule.” inst
 of “0:00.” The state-consistency capture runs first to expose fixture failures
 early. `PresentationStateTests.lockedCountdown` and the remote capture both cover
 this presentation-only correction; enforcement and stored schedules are unchanged.
-
 
 Returning setup review now derives its content from the saved setup state instead
 of the walkthrough cursor. A revoked Accessibility grant immediately shows its

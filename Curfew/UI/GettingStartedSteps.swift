@@ -2,11 +2,158 @@ import AppKit
 import CurfewKit
 import SwiftUI
 
-// MARK: Step 1
+/// Where the welcome is in its opening: the title card, the small mark alone,
+/// one of the three captions, or the resting sentence with its button.
+enum SetupIntroPhase: Equatable {
+    case title
+    case settled
+    case caption(Int)
+    case rest
+}
 
-/// Two times and the days they apply to, prefilled from the current schedule.
-struct GettingStartedScheduleStep: View {
+// MARK: Welcome
+
+/// The sentence between the welcome's heading and its buttons. It keeps its
+/// space while the welcome's day plays, so nothing around it moves.
+struct GettingStartedWelcomeContent: View {
+    let isRest: Bool
+    @Environment(\.setupMetrics) private var metrics
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        Text(GettingStartedCopy.welcomeLine)
+            .setupBody(metrics.body)
+            .opacity(isRest ? 1 : 0)
+            .offset(y: isRest || reduceMotion ? 0 : 14)
+            .blur(radius: isRest || reduceMotion ? 0 : 6)
+            .animation(
+                reduceMotion
+                    ? .easeOut(duration: 0.2)
+                    : .spring(duration: 0.75, bounce: 0.12).delay(0.15),
+                value: isRest
+            )
+            .accessibilityHidden(!isRest)
+    }
+}
+
+// MARK: Times
+
+/// One time, large, with a round button either side. The buttons move it a
+/// quarter hour; the arrow keys and VoiceOver move it five minutes (Shift an
+/// hour); dragging it up or down scrubs it. The time has a fixed width, so the
+/// buttons never move as the digits change.
+struct GettingStartedTimeControl: View {
     @Binding var draft: SetupScheduleDraft
+    let field: SetupScheduleDraft.Field
+    let label: String
+    @Environment(\.setupMetrics) private var metrics
+    @State private var dragStart: SetupScheduleDraft?
+
+    private var minutes: Int {
+        field == .curfew ? draft.lockMinutes : draft.unlockMinutes
+    }
+
+    private var date: Date {
+        Self.date(minutes: minutes)
+    }
+
+    private static func date(minutes: Int) -> Date {
+        Calendar.current.startOfDay(for: Date()).addingTimeInterval(TimeInterval(minutes * 60))
+    }
+
+    /// A time in the locale's format, with the AM or PM mark set smaller.
+    private func timeText(_ date: Date) -> AttributedString {
+        var text = date.formatted(Date.FormatStyle().hour().minute().attributed)
+        for run in text.runs where run.dateField == .amPM {
+            text[run.range].font = SundownType.figure((metrics.numeral * 0.36).rounded())
+        }
+        return text
+    }
+
+    private func step(_ change: Int) {
+        withAnimation(.snappy(duration: 0.25)) {
+            draft = draft.adjusting(field, by: change)
+        }
+    }
+
+    var body: some View {
+        HStack(spacing: GettingStartedLayout.spacing16) {
+            Button { step(-15) } label: { Image(systemName: "minus") }
+                .buttonStyle(GettingStartedStepButtonStyle())
+                .accessibilityLabel("\(GettingStartedCopy.earlier), \(label)")
+            ZStack {
+                // The widest time there is, to hold the width.
+                Text(timeText(Self.date(minutes: 22 * 60 + 58)))
+                    .hidden()
+                Text(timeText(date))
+                    .contentTransition(.numericText(value: Double(minutes)))
+            }
+            .sundownFont(.figure, size: metrics.numeral)
+            .monospacedDigit()
+            .fixedSize()
+            .focusable()
+            .onKeyPress(keys: [.upArrow, .rightArrow]) { press in
+                step(press.modifiers.contains(.shift) ? 60 : 5)
+                return .handled
+            }
+            .onKeyPress(keys: [.downArrow, .leftArrow]) { press in
+                step(press.modifiers.contains(.shift) ? -60 : -5)
+                return .handled
+            }
+            .gesture(scrub)
+            .accessibilityElement()
+            .accessibilityLabel(label)
+            .accessibilityValue(date.formatted(date: .omitted, time: .shortened))
+            .accessibilityAdjustableAction { direction in
+                step(direction == .increment ? 5 : -5)
+            }
+            Button { step(15) } label: { Image(systemName: "plus") }
+                .buttonStyle(GettingStartedStepButtonStyle())
+                .accessibilityLabel("\(GettingStartedCopy.later), \(label)")
+        }
+    }
+
+    private var scrub: some Gesture {
+        DragGesture(minimumDistance: 4)
+            .onChanged { value in
+                let start = dragStart ?? draft
+                dragStart = start
+                let change = Int((-value.translation.height / 6).rounded()) * 5
+                draft = start.adjusting(field, by: change)
+            }
+            .onEnded { _ in dragStart = nil }
+    }
+}
+
+/// The one question: when the day ends. The days and the unlock time are
+/// stated as defaults and changed on their own screen.
+struct GettingStartedScheduleContent: View {
+    @Binding var draft: SetupScheduleDraft
+    let onChange: () -> Void
+    @Environment(\.setupMetrics) private var metrics
+
+    var body: some View {
+        VStack(spacing: GettingStartedLayout.spacing8) {
+            GettingStartedTimeControl(
+                draft: $draft, field: .curfew, label: GettingStartedCopy.curfewLabel
+            )
+            HStack(spacing: GettingStartedLayout.spacing12) {
+                Text(GettingStartedCopy.defaultsLine(
+                    days: draft.workingDays, unlockMinutes: draft.unlockMinutes
+                ))
+                .sundownFont(.body, size: metrics.small)
+                Button(GettingStartedCopy.change, action: onChange)
+                    .buttonStyle(GettingStartedSecondaryButtonStyle(compact: true))
+                    .accessibilityHint(GettingStartedCopy.changeHint)
+            }
+        }
+    }
+}
+
+/// When this Mac opens again, and which days lock. Reached from "Change".
+struct GettingStartedMorningContent: View {
+    @Binding var draft: SetupScheduleDraft
+    @Environment(\.setupMetrics) private var metrics
 
     private var calendar: Calendar {
         .current
@@ -19,50 +166,28 @@ struct GettingStartedScheduleStep: View {
     }
 
     var body: some View {
-        GettingStartedPanel {
-            GettingStartedRow(
-                symbol: "sunset.fill",
-                title: GettingStartedCopy.curfewLabel,
-                reason: GettingStartedCopy.curfewReason
-            ) {
-                timePicker(minutes: $draft.lockMinutes, label: "Curfew time")
-            }
-            Divider().padding(.leading, 60)
-            GettingStartedRow(
-                symbol: "sunrise.fill",
-                title: GettingStartedCopy.unlockLabel,
-                reason: GettingStartedCopy.unlockReason
-            ) {
-                timePicker(minutes: $draft.unlockMinutes, label: "Unlock time")
-            }
-            Divider().padding(.leading, 60)
-            VStack(alignment: .leading, spacing: GettingStartedLayout.spacing12) {
-                Text(GettingStartedCopy.daysLabel)
-                    .font(.setupRowTitle)
-                    .accessibilityAddTraits(.isHeader)
-                HStack(spacing: GettingStartedLayout.spacing8) {
-                    ForEach(orderedDays) { day in
-                        Toggle(isOn: binding(for: day)) {
-                            Text(calendar.shortWeekdaySymbols[day.rawValue - 1])
-                                .frame(maxWidth: .infinity)
-                        }
-                        .toggleStyle(GettingStartedChipStyle())
-                        .accessibilityLabel(calendar.weekdaySymbols[day.rawValue - 1])
+        VStack(spacing: GettingStartedLayout.spacing8) {
+            GettingStartedTimeControl(
+                draft: $draft, field: .unlock, label: GettingStartedCopy.unlockLabel
+            )
+            HStack(spacing: GettingStartedLayout.spacing8) {
+                ForEach(orderedDays) { day in
+                    Toggle(isOn: binding(for: day)) {
+                        Text(calendar.veryShortWeekdaySymbols[day.rawValue - 1])
                     }
+                    .toggleStyle(GettingStartedChipStyle())
+                    .accessibilityLabel(calendar.weekdaySymbols[day.rawValue - 1])
                 }
             }
-            .padding(.leading, 60)
-            .padding(.trailing, GettingStartedLayout.spacing16)
-            .padding(.vertical, GettingStartedLayout.spacing16)
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel(GettingStartedCopy.daysLabel)
+            // Always in its place, shown only when there is something to say.
+            Text(GettingStartedCopy.pickADay)
+                .sundownFont(.body, size: metrics.small)
+                .opacity(draft.workingDays.isEmpty ? 1 : 0)
+                .animation(.easeOut(duration: 0.2), value: draft.workingDays.isEmpty)
+                .accessibilityHidden(!draft.workingDays.isEmpty)
         }
-    }
-
-    private func timePicker(minutes: Binding<Int>, label: String) -> some View {
-        DatePicker(label, selection: dateBinding(minutes), displayedComponents: .hourAndMinute)
-            .datePickerStyle(.stepperField)
-            .labelsHidden()
-            .controlSize(.large)
-            .accessibilityLabel(label)
     }
 
     private func binding(for day: Weekday) -> Binding<Bool> {
@@ -76,320 +201,5 @@ struct GettingStartedScheduleStep: View {
                 }
             }
         )
-    }
-
-    private func dateBinding(_ minutes: Binding<Int>) -> Binding<Date> {
-        let calendar = calendar
-        let midnight = calendar.startOfDay(for: Date())
-        return Binding(
-            get: { midnight.addingTimeInterval(TimeInterval(minutes.wrappedValue * 60)) },
-            set: { date in
-                let parts = calendar.dateComponents([.hour, .minute], from: date)
-                minutes.wrappedValue = (parts.hour ?? 0) * 60 + (parts.minute ?? 0)
-            }
-        )
-    }
-}
-
-// MARK: Step 2
-
-/// Accessibility first, because it is the one required grant and granting it
-/// moves setup on; then notifications and the Curfew helper, each marked
-/// optional, each with one line saying why.
-struct GettingStartedPermissionsStep: View {
-    let notificationStatus: SetupPermissionStatus
-    let helperStatus: SetupHelperStatus
-    let showsHelper: Bool
-    let accessibilityGranted: Bool
-    let notificationsSkipped: Bool
-    let helperSkipped: Bool
-    let onSkipNotifications: () -> Void
-    let onSkipHelper: () -> Void
-    let onAllowNotifications: () -> Void
-    let onInstallHelper: () -> Void
-    let onApproveHelper: () -> Void
-    let onOpenAccessibility: () -> Void
-
-    var body: some View {
-        GettingStartedPanel {
-            GettingStartedRow(
-                symbol: "accessibility",
-                title: GettingStartedCopy.accessibilityTitle,
-                reason: GettingStartedCopy.accessibilityReason
-            ) {
-                if accessibilityGranted {
-                    GettingStartedStatus(text: "Allowed", done: true)
-                } else {
-                    Button(GettingStartedCopy.openSystemSettings, action: onOpenAccessibility)
-                        .buttonStyle(GettingStartedPrimaryButtonStyle())
-                        .accessibilityHint(
-                            "Opens Accessibility with Curfew ready to drag into the list."
-                        )
-                }
-            }
-            Divider().padding(.leading, 60)
-            GettingStartedRow(
-                symbol: "bell.fill",
-                title: GettingStartedCopy.notificationsTitle,
-                reason: GettingStartedCopy.notificationsReason,
-                isOptional: true
-            ) {
-                switch notificationStatus {
-                case .notAsked where notificationsSkipped:
-                    GettingStartedStatus(text: "Skipped", done: false)
-                case .notAsked:
-                    HStack(spacing: GettingStartedLayout.spacing12) {
-                        Button("Skip", action: onSkipNotifications)
-                            .buttonStyle(GettingStartedLinkButtonStyle())
-                            .accessibilityLabel("Skip notifications")
-                        Button("Allow", action: onAllowNotifications)
-                            .buttonStyle(GettingStartedSecondaryButtonStyle())
-                            .accessibilityLabel("Allow notifications")
-                    }
-                case .allowed:
-                    GettingStartedStatus(text: "Allowed", done: true)
-                case .off:
-                    GettingStartedStatus(text: "Off", done: false)
-                }
-            }
-            if showsHelper {
-                Divider().padding(.leading, 60)
-                GettingStartedRow(
-                    symbol: "lock.shield.fill",
-                    title: GettingStartedCopy.helperTitle,
-                    reason: GettingStartedCopy.helperReason,
-                    isOptional: true
-                ) {
-                    helperControl
-                }
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var helperControl: some View {
-        switch helperStatus {
-        case .notInstalled where helperSkipped, .failed where helperSkipped:
-            GettingStartedStatus(text: "Skipped", done: false)
-        case .notInstalled:
-            HStack(spacing: GettingStartedLayout.spacing12) {
-                Button("Skip", action: onSkipHelper)
-                    .buttonStyle(GettingStartedLinkButtonStyle())
-                    .accessibilityLabel("Skip the Curfew helper")
-                Button("Install", action: onInstallHelper)
-                    .buttonStyle(GettingStartedSecondaryButtonStyle())
-                    .accessibilityLabel("Install the Curfew helper")
-            }
-        case .failed:
-            Button("Try again", action: onInstallHelper)
-                .buttonStyle(GettingStartedSecondaryButtonStyle())
-                .accessibilityLabel("Try installing the Curfew helper again")
-        case .installing:
-            HStack(spacing: GettingStartedLayout.spacing8) {
-                ProgressView().controlSize(.small)
-                Text("Installing").foregroundStyle(CurfewTheme.mutedInk)
-            }
-            .accessibilityElement(children: .combine)
-        case .needsApproval:
-            Button("Approve", action: onApproveHelper)
-                .buttonStyle(GettingStartedSecondaryButtonStyle())
-                .accessibilityLabel("Approve the Curfew helper in System Settings")
-        case .installed:
-            GettingStartedStatus(text: "Installed", done: true)
-        }
-    }
-}
-
-// MARK: Step 3
-
-struct GettingStartedReadyStep: View {
-    let readyLine: String
-    let helperNote: String?
-    let onPreview: () -> Void
-    @ScaledMetric(relativeTo: .largeTitle) private var heroSize: CGFloat = 40
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: GettingStartedLayout.spacing24) {
-            Text(readyLine)
-                .font(.system(size: heroSize, weight: .bold, design: .rounded))
-                .fixedSize(horizontal: false, vertical: true)
-            VStack(alignment: .leading, spacing: GettingStartedLayout.spacing12) {
-                Button(action: onPreview) {
-                    Label(GettingStartedCopy.previewLock, systemImage: "lock.fill")
-                }
-                .buttonStyle(GettingStartedSecondaryButtonStyle())
-                .accessibilityHint("Shows the lock for a few seconds. Nothing locks.")
-                if let helperNote {
-                    Text(helperNote)
-                        .font(.footnote)
-                        .foregroundStyle(CurfewTheme.mutedInk)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-        }
-        .padding(.top, GettingStartedLayout.spacing40)
-    }
-}
-
-// MARK: Closing step
-
-/// One optional offer: Curfew Plus, which is what syncs Curfew to the
-/// person's other devices. Uses only the app's existing pricing link and
-/// account sign-in.
-struct GettingStartedExtrasStep: View {
-    @Environment(CurfewAppModel.self) private var model
-    @StateObject private var account: AccountEnrollmentController
-    let onSignedIn: () -> Void
-
-    @MainActor
-    init(
-        makeAccount: @escaping @MainActor () -> AccountEnrollmentController,
-        onSignedIn: @escaping () -> Void
-    ) {
-        _account = StateObject(wrappedValue: makeAccount())
-        self.onSignedIn = onSignedIn
-    }
-
-    private var isSignedIn: Bool {
-        if model.settings.accountSync.isEnrolled {
-            return true
-        }
-        if case .ready = account.state {
-            return true
-        }
-        return false
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: GettingStartedLayout.spacing24) {
-            Text(GettingStartedCopy.plusOffer)
-                .font(.title3)
-                .foregroundStyle(CurfewTheme.ink)
-                .fixedSize(horizontal: false, vertical: true)
-            HStack(spacing: GettingStartedLayout.spacing12) {
-                if model.licenseGate.isPlusUnlocked {
-                    GettingStartedStatus(text: "Curfew Plus is active", done: true)
-                } else {
-                    Button(GettingStartedCopy.getPlus) {
-                        guard !model.isDemoSession,
-                              !RuntimeEnvironment.isUnitTestHost else { return }
-                        NSWorkspace.shared.open(LicensePurchase.pricingURL)
-                    }
-                    .buttonStyle(GettingStartedSecondaryButtonStyle())
-                    .accessibilityHint("Opens Curfew Plus pricing in your browser.")
-                }
-                signInControl
-            }
-        }
-        .background { GettingStartedWindowReader { account.presentationWindow = $0 } }
-        .onAppear {
-            if isSignedIn {
-                onSignedIn()
-            }
-        }
-        .onChange(of: account.state) { _, state in
-            if case .ready(let enrollment) = state {
-                model.settings.accountSync.enrollment = enrollment
-                onSignedIn()
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var signInControl: some View {
-        if isSignedIn {
-            GettingStartedStatus(text: "Signed in", done: true)
-        } else {
-            switch account.state {
-            case .accountFree, .failed, .ready:
-                Button(GettingStartedCopy.signIn) {
-                    Task { await account.signIn() }
-                }
-                .buttonStyle(GettingStartedSecondaryButtonStyle())
-                .accessibilityHint("For people who already have Curfew Plus.")
-            case .signingIn, .connectingDevice:
-                HStack(spacing: GettingStartedLayout.spacing8) {
-                    ProgressView().controlSize(.small)
-                    Button("Cancel") { account.cancelSignIn() }
-                        .buttonStyle(GettingStartedSecondaryButtonStyle())
-                        .accessibilityLabel("Cancel sign in")
-                }
-            case .storageUnavailable, .finishDeviceConnection, .finishDeviceRegistration,
-                 .finishRecoverySetup, .saveRecoveryKey, .enterRecoveryKey:
-                // The remaining account steps (recovery key and the like)
-                // live in Settings, which resumes from the saved checkpoint.
-                Button("Finish in Settings") {
-                    model.settingsDestination = .account
-                    model.openSettings()
-                }
-                .buttonStyle(GettingStartedSecondaryButtonStyle())
-            }
-        }
-    }
-}
-
-// MARK: Shared pieces
-
-struct GettingStartedRow<Trailing: View>: View {
-    let symbol: String
-    let title: String
-    let reason: String
-    var isOptional = false
-    @ViewBuilder let trailing: Trailing
-
-    var body: some View {
-        HStack(alignment: .center, spacing: GettingStartedLayout.spacing16) {
-            Image(systemName: symbol)
-                .font(.system(.title3, weight: .medium))
-                .foregroundStyle(CurfewTheme.accent)
-                .frame(width: 28)
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: GettingStartedLayout.spacing4) {
-                HStack(alignment: .firstTextBaseline, spacing: GettingStartedLayout.spacing8) {
-                    Text(title).font(.setupRowTitle)
-                    if isOptional {
-                        Text("Optional")
-                            .font(.system(.caption, design: .rounded, weight: .medium))
-                            .foregroundStyle(CurfewTheme.mutedInk)
-                    }
-                }
-                Text(reason)
-                    .font(.subheadline)
-                    .foregroundStyle(CurfewTheme.mutedInk)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .accessibilityElement(children: .combine)
-            Spacer(minLength: GettingStartedLayout.spacing12)
-            trailing
-        }
-        .padding(.horizontal, GettingStartedLayout.spacing16)
-        .padding(.vertical, GettingStartedLayout.spacing16)
-    }
-}
-
-/// A row's live state, in words with a symbol so colour is never the signal.
-struct GettingStartedStatus: View {
-    let text: String
-    let done: Bool
-
-    var body: some View {
-        Label(text, systemImage: done ? "checkmark.circle.fill" : "minus.circle")
-            .font(.system(.body, design: .rounded, weight: .semibold))
-            .foregroundStyle(done ? CurfewTheme.accent : CurfewTheme.mutedInk)
-    }
-}
-
-/// Hands the hosting window to the account sign-in so its browser sheet has
-/// an anchor.
-private struct GettingStartedWindowReader: NSViewRepresentable {
-    let resolve: @MainActor (NSWindow?) -> Void
-
-    func makeNSView(context _: Context) -> NSView {
-        NSView()
-    }
-
-    func updateNSView(_ view: NSView, context _: Context) {
-        let resolve = resolve
-        DispatchQueue.main.async { resolve(view.window) }
     }
 }

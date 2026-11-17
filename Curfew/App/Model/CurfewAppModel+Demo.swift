@@ -84,8 +84,11 @@ import CurfewKit
             // Force the app to the foreground. Demo launches (especially the
             // first one under XCUITest) otherwise sometimes settle in
             // "Running Background", which both spoils captures and trips the
-            // UI-test activation check.
-            NSApp.activate(ignoringOtherApps: true)
+            // UI-test activation check. A capture that asked to stay behind is
+            // left where it is.
+            if !RuntimeEnvironment.staysBehindForCapture {
+                NSApp.activate(ignoringOtherApps: true)
+            }
 
             currentTime = DemoFixture.referenceTime(for: scenario, now: Date())
             state = DemoFixture.evaluation(for: scenario, now: currentTime)

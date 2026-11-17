@@ -42,8 +42,12 @@ extension CurfewUITests {
         app.menuItems["Set up Curfew"].click()
         let setup = app.windows["Set up Curfew"]
         XCTAssertTrue(setup.waitForExistence(timeout: 5))
-        XCTAssertTrue(setup.staticTexts["When should this Mac close for the night?"]
-            .waitForExistence(timeout: 5))
+        // Setup opens on its welcome: the skip link while its day plays, or
+        // the button once it rests.
+        XCTAssertTrue(
+            setup.buttons["Skip intro"].waitForExistence(timeout: 5)
+                || setup.buttons["Set my curfew"].waitForExistence(timeout: 5)
+        )
         XCTAssertFalse(app.windows["Curfew"].exists)
     }
 }

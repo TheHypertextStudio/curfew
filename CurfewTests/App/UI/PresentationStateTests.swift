@@ -130,9 +130,9 @@ struct PresentationStateTests {
 
     @Test("Returning setup review dismisses without changing protection")
     func returningSetup() throws {
-        let setup = try source("Curfew/UI/GettingStartedView.swift")
+        let setup = try source("Curfew/UI/GettingStartedView+Screens.swift")
         #expect(setup.contains("flow.isReview"))
-        #expect(setup.contains("Button(\"Done\")"))
+        #expect(setup.contains("SetupAction(title: \"Done\") { model.dismissGettingStarted() }"))
     }
 
     @Test("Authentication failure explains the problem without blaming the user or build")

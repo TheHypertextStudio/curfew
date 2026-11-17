@@ -7,6 +7,7 @@ struct FirstRunSafetyFlowTests {
     @Test("Setup cannot leave the schedule step without an explicit choice")
     func scheduleNeedsExplicitChoice() {
         var flow = FirstRunFlow()
+        flow.begin()
 
         #expect(!flow.canAdvance)
         flow.advance()

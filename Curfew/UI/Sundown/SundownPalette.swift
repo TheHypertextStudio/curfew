@@ -32,6 +32,9 @@ enum SundownPalette {
     static let ember = CurfewTheme.accentFill
     /// A brighter ember for kindled / pressed states.
     static let emberBright = CurfewTheme.accent
+    /// A deeper ember for a filled button over the sky: dark enough that warm
+    /// white reads on it at 4.5 to 1 (`SetupSkyContrastTests`).
+    static let emberDeep = Color(red: 0.749, green: 0.294, blue: 0.110)
     /// Warm bloom used for the sun's glow.
     static let glow = Color(red: 1.0, green: 0.85, blue: 0.62)
 

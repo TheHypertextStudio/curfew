@@ -33,17 +33,17 @@ does not spell out. Open them in a browser.
 One word per thing, everywhere, including Settings, intents, notifications and
 the widget.
 
-| Thing                                | Say                         | Never say                                           |
-| ------------------------------------ | --------------------------- | --------------------------------------------------- |
-| The time work ends and the Mac locks | curfew                      | lockout time, scheduled lockout, work ends          |
-| The state after curfew               | locked, the lock            | lockout active, enforcement, blocking access        |
-| The morning sequence                 | Sunrise                     | daybreak, start of work, morning reflection         |
-| The answer to "What is today for?"   | the one thing               | intention, focus, goal                              |
-| Ending the day early on purpose      | Call it a day               | rest now, wrap up                                   |
+| Thing                                | Say                          | Never say                                           |
+| ------------------------------------ | ---------------------------- | --------------------------------------------------- |
+| The time work ends and the Mac locks | curfew                       | lockout time, scheduled lockout, work ends          |
+| The state after curfew               | locked, the lock             | lockout active, enforcement, blocking access        |
+| The morning sequence                 | Sunrise                      | daybreak, start of work, morning reflection         |
+| The answer to "What is today for?"   | the one thing                | intention, focus, goal                              |
+| Ending the day early on purpose      | Call it a day                | rest now, wrap up                                   |
 | More minutes before the lock         | more time, "15 more minutes" | extension request, snooze, grace                    |
-| Getting back in after the lock       | override                    | convince me, break glass                            |
-| The machine                          | this Mac                    | computer, device                                    |
-| The background piece                 | the Curfew helper           | daemon, supervisor, background protection, recovery |
+| Getting back in after the lock       | override                     | convince me, break glass                            |
+| The machine                          | this Mac                     | computer, device                                    |
+| The background piece                 | the Curfew helper            | daemon, supervisor, background protection, recovery |
 
 Rules: sentence case; no exclamation marks; no dashes used as punctuation; times
 come from the locale formatter, never hard-coded 24-hour strings; a control says
@@ -51,25 +51,25 @@ what happens when pressed.
 
 ### Default voice
 
-| Moment                    | Line                                                                   |
-| ------------------------- | ---------------------------------------------------------------------- |
-| Today, under the countdown | until curfew at 6:00 PM                                               |
-| 30 minutes left           | Decide what gets finished and what waits.                              |
-| 15 minutes left           | Finish what you're in. Don't start anything.                           |
-| 5 minutes left            | Save everything.                                                       |
-| 1 minute left             | Last call.                                                             |
-| Notification titles       | 30 minutes to curfew (and 15, 5, 1)                                    |
-| Locked, headline          | That's the day.                                                        |
-| Locked, line              | Unlocks at 7:00 AM                                                     |
-| Override entry            | Need to get back in?                                                   |
-| Override question         | What can't wait?                                                       |
-| Sunrise lead-in           | Nearly morning. / Unlocks in 12 minutes                                |
-| Sunrise gate              | Morning. / What is today for? / Start the day                          |
-| Last night's note         | Last night you left: (their words)                                     |
-| Buttons on Today          | 15 more minutes / Call it a day                                        |
-| While holding             | Keep holding. 2 left this week / Added / No extensions left            |
-| Curfew off                | Curfew is off. / Nothing locks until you turn it back on.              |
-| Uninstall while locked    | Uninstall is available once curfew lifts.                              |
+| Moment                     | Line                                                        |
+| -------------------------- | ----------------------------------------------------------- |
+| Today, under the countdown | until curfew at 6:00 PM                                     |
+| 30 minutes left            | Decide what gets finished and what waits.                   |
+| 15 minutes left            | Finish what you're in. Don't start anything.                |
+| 5 minutes left             | Save everything.                                            |
+| 1 minute left              | Last call.                                                  |
+| Notification titles        | 30 minutes to curfew (and 15, 5, 1)                         |
+| Locked, headline           | That's the day.                                             |
+| Locked, line               | Unlocks at 7:00 AM                                          |
+| Override entry             | Need to get back in?                                        |
+| Override question          | What can't wait?                                            |
+| Sunrise lead-in            | Nearly morning. / Unlocks in 12 minutes                     |
+| Sunrise gate               | Morning. / What is today for? / Start the day               |
+| Last night's note          | Last night you left: (their words)                          |
+| Buttons on Today           | 15 more minutes / Call it a day                             |
+| While holding              | Keep holding. 2 left this week / Added / No extensions left |
+| Curfew off                 | Curfew is off. / Nothing locks until you turn it back on.   |
+| Uninstall while locked     | Uninstall is available once curfew lifts.                   |
 
 Voice lines live in one voice pack type so the theme editor can swap them. No
 string for these moments is written inline in a view.
@@ -91,7 +91,7 @@ Outputs, all unitless, in a frame where x runs 0 to 1 left to right and y runs
 - Sun path: quadratic from `(x0, 0.26)` through control `(mid, 1.6)` to
   `(x1, 0.26)`, with `x0 = 0.07`, `x1 = 0.93` on full-bleed surfaces. A surface
   with a sidebar passes its own span. Progress `p = (now - start) / (curfew -
-  start)`. The moon uses the same path with progress across the night.
+start)`. The moon uses the same path with progress across the night.
 - Elevation `E`: `sin(pi * p)` by day; by night
   `-0.9 * min(1, minutesSinceCurfew / 70, minutesToUnlock / 35)`.
 - Sun weight: 1 by day; fades out from 5 to 45 minutes after curfew while the
@@ -113,14 +113,14 @@ terminator from the phase angle. Below the horizon is one flat ground colour.
 
 Ramp stops, as sRGB fractions, from far sky (0) to nearest the light (4):
 
-| Stop   | Day           | Last hour     | Dusk          | Night            |
-| ------ | ------------- | ------------- | ------------- | ---------------- |
-| 0      | .10 .27 .66   | .15 .17 .46   | .07 .08 .24   | .027 .031 .094   |
-| 1      | .22 .44 .82   | .38 .27 .60   | .20 .15 .42   | .047 .059 .165   |
-| 2      | .44 .64 .91   | .74 .38 .55   | .50 .22 .45   | .10 .12 .31      |
-| 3      | .70 .82 .95   | .95 .56 .27   | .83 .34 .30   | .135 .155 .37    |
-| 4      | .94 .96 .98   | 1.0 .84 .52   | .96 .62 .30   | .19 .21 .46      |
-| Ground | .07 .11 .29   | .11 .085 .25  | .065 .05 .18  | .018 .02 .055    |
+| Stop   | Day         | Last hour    | Dusk         | Night          |
+| ------ | ----------- | ------------ | ------------ | -------------- |
+| 0      | .10 .27 .66 | .15 .17 .46  | .07 .08 .24  | .027 .031 .094 |
+| 1      | .22 .44 .82 | .38 .27 .60  | .20 .15 .42  | .047 .059 .165 |
+| 2      | .44 .64 .91 | .74 .38 .55  | .50 .22 .45  | .10 .12 .31    |
+| 3      | .70 .82 .95 | .95 .56 .27  | .83 .34 .30  | .135 .155 .37  |
+| 4      | .94 .96 .98 | 1.0 .84 .52  | .96 .62 .30  | .19 .21 .46    |
+| Ground | .07 .11 .29 | .11 .085 .25 | .065 .05 .18 | .018 .02 .055  |
 
 The palette near the sun in the last hour reads slightly muddy in the
 prototype. Tuning the last-hour stops 2 and 3 is in scope for the foundation
@@ -234,19 +234,49 @@ unless that option is on.
 
 ### Setup
 
-Three steps, about four clicks, one drag, one authentication.
+One sky and one thing per screen. `Documentation/design/onboarding-prototype.html`
+is where the order and the words were worked out; the app has since moved on
+from its layout, and the app is the reference.
 
-1. **When should this Mac close for the night?** Two time pickers and day
-   chips, prefilled. A small link keeps the explicit "no schedule yet" choice.
-2. **Let Curfew hold the lock.** Opens the Accessibility pane with a floating
-   panel beside it holding the app icon to drag into the list. Setup advances
-   the moment access is granted. Notifications and the helper are requested on
-   this screen, each with one line saying why.
-3. **You're set. Curfew locks tonight at (time).** A button previews the lock.
+Every screen shares four places that never move, top to bottom: the mark, the
+heading, the content and the buttons. The heading and the main button are in
+the same place on every screen. When one screen replaces another each place
+swaps its content where it stands, heading first, then content, then buttons.
+Every action is a button: the main one an ember capsule, every other one a
+capsule of darkened sky. Nothing is an underlined link.
+
+1. **Welcome.** The window opens before dawn on the word "Curfew". The sky
+   plays one day behind three captions ("You work.", "At curfew, this Mac
+   locks.", "In the morning it opens again."), then rests on "Curfew ends your
+   work day." with one button. "Skip intro" is there while it plays.
+2. **When should your day end?** The curfew time alone, large, with a round
+   button either side. The days and the unlock time are stated as defaults on
+   one line; "Change" opens them on their own screen. A second button keeps
+   the explicit "no schedule yet" choice.
+3. **Let Curfew hold the lock.** Accessibility, alone, with one line saying
+   why. Opens the Accessibility pane with a floating panel beside it holding
+   the app icon to drag into the list. Setup commits the moment access is
+   granted and moves on by itself.
+4. **Two more. Both optional.** Notifications and the helper, one row each.
+   Continue without touching a row is the skip. An ask already answered is
+   left out, and the screen is skipped when nothing is left to ask.
+5. **You're set. Curfew locks tonight at (time).** A second button previews
+   the lock.
 
 Then one optional closing step: sync across devices with Sign in with Apple,
-Google or a passkey, and the lifetime licence. Skip is as prominent as
-continue.
+Google or a passkey, and the lifetime licence. Its three actions weigh the
+same.
+
+Setup's sky is a story, not the time outside: a fixed day that only runs
+forward. Moving on is always later the same day or the next day, and a screen
+arrives as the sky settles. Every screen rests in twilight or at night, the
+questions a quarter hour after sunset, the welcome just before sunrise and the
+summary at night under the moon, so warm white text has 4.5 to 1 everywhere it
+sits without any shading; daylight is seen only in motion. The window is all
+sky: the horizon lies just below its bottom edge, because setup keeps nothing
+on the ground, and the sun sets and rises at that edge.
+Reduce Motion skips the welcome's day and the sweeps and cross-fades the
+screens.
 
 Health warnings stay hidden until setup completes. A fresh install that
 finished setup shows no warning. The helper is not required for a healthy
@@ -278,13 +308,13 @@ everything below it.
 
 Chart colours, validated for colour-blind separation on the app's surfaces:
 
-| Role             | Light     | Dark      |
-| ---------------- | --------- | --------- |
-| Before curfew    | `#2f62c8` | `#5f8fe8` |
-| Over             | `#c9521d` | `#dd6c3a` |
-| At curfew        | `#9a958e` | `#7d766f` |
-| Early, 3 steps   | `#8aabe7` `#5a84d8` `#2f62c8` | `#41609f` `#5078cc` `#5f8fe8` |
-| Over, 3 steps    | `#e79f78` `#da7644` `#c9521d` | `#8a4326` `#b85a32` `#dd6c3a` |
+| Role           | Light                         | Dark                          |
+| -------------- | ----------------------------- | ----------------------------- |
+| Before curfew  | `#2f62c8`                     | `#5f8fe8`                     |
+| Over           | `#c9521d`                     | `#dd6c3a`                     |
+| At curfew      | `#9a958e`                     | `#7d766f`                     |
+| Early, 3 steps | `#8aabe7` `#5a84d8` `#2f62c8` | `#41609f` `#5078cc` `#5f8fe8` |
+| Over, 3 steps  | `#e79f78` `#da7644` `#c9521d` | `#8a4326` `#b85a32` `#dd6c3a` |
 
 Text never takes a data colour. Early is always up and over is always down, so
 nothing depends on colour alone.
@@ -336,17 +366,17 @@ streak are removed once nothing reads them.
 Each is its own branch and worktree. Files listed are owned by that pull
 request; another pull request does not edit them.
 
-| #   | Outcome                                             | Owns                                                                                                                                      | Needs      |
-| --- | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
-| A   | Sky model, shader, tokens, glass styles, icons      | new `Horizon*` in `CurfewAtmosphere` and `Curfew/UI/Horizon`, `CurfewTheme.swift`, `Curfew/UI/Sundown/*`, `SundownType.swift`, snapshot harness | none       |
-| F   | Record how the day ended and the one thing; summaries | `ActivityEvent*`, `ActivityRollups.swift`, new Journal domain types in `CurfewKit`, model wiring without UI                               | none       |
-| B   | Today, menu bar, Call it a day                      | `TodayView.swift`, `TodaySundownView.swift`, `ContentView.swift`, menu bar label, `+Presentation`, `+Actions`                              | A, F       |
-| C   | Lock, warnings, transitions, screen saver handoff   | `LockoutScreenView.swift`, `RestScreenView.swift`, `LockoutArrivalView.swift`, `OverlayCoordinator*`, warning notice and notifications, rest handoff, `CurfewScreenSaver/*`, the message catalog | A, lockout hardening |
-| D   | Sunrise gate, steps, hooks, settings pane           | `DaybreakReflectionView.swift` and its replacement, `+Reflection`, `+Sunrise`, reflection defaults, Sunrise settings, new intents          | A          |
-| E   | Three-step setup, drag helper, health seeding       | `GettingStarted*`, `SystemSurfaceModels.swift`, health seeding, the drag panel, helper required-ness, licence and account step             | A          |
-| G   | Journal and year in review                          | `Curfew/UI/Destinations/Journal*`, `RatingTrend.swift`, `ThisWeekView.swift`, new Journal views                                            | A, F       |
-| H   | Copy, Settings, widget, accessibility sweep         | `SettingsView*`, `ScheduleView.swift`, `DayRuleRow.swift`, `ReflectionPromptsView.swift`, intents copy, `CurfewWidget/*`, `copy-guidelines.md` | A          |
-| I   | Theme and voice editor                              | `RestScreenSettingsView.swift`, `RestAppearance*`, voice packs                                                                             | C          |
+| #   | Outcome                                               | Owns                                                                                                                                                                                             | Needs                |
+| --- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------- |
+| A   | Sky model, shader, tokens, glass styles, icons        | new `Horizon*` in `CurfewAtmosphere` and `Curfew/UI/Horizon`, `CurfewTheme.swift`, `Curfew/UI/Sundown/*`, `SundownType.swift`, snapshot harness                                                  | none                 |
+| F   | Record how the day ended and the one thing; summaries | `ActivityEvent*`, `ActivityRollups.swift`, new Journal domain types in `CurfewKit`, model wiring without UI                                                                                      | none                 |
+| B   | Today, menu bar, Call it a day                        | `TodayView.swift`, `TodaySundownView.swift`, `ContentView.swift`, menu bar label, `+Presentation`, `+Actions`                                                                                    | A, F                 |
+| C   | Lock, warnings, transitions, screen saver handoff     | `LockoutScreenView.swift`, `RestScreenView.swift`, `LockoutArrivalView.swift`, `OverlayCoordinator*`, warning notice and notifications, rest handoff, `CurfewScreenSaver/*`, the message catalog | A, lockout hardening |
+| D   | Sunrise gate, steps, hooks, settings pane             | `DaybreakReflectionView.swift` and its replacement, `+Reflection`, `+Sunrise`, reflection defaults, Sunrise settings, new intents                                                                | A                    |
+| E   | Three-step setup, drag helper, health seeding         | `GettingStarted*`, `SystemSurfaceModels.swift`, health seeding, the drag panel, helper required-ness, licence and account step                                                                   | A                    |
+| G   | Journal and year in review                            | `Curfew/UI/Destinations/Journal*`, `RatingTrend.swift`, `ThisWeekView.swift`, new Journal views                                                                                                  | A, F                 |
+| H   | Copy, Settings, widget, accessibility sweep           | `SettingsView*`, `ScheduleView.swift`, `DayRuleRow.swift`, `ReflectionPromptsView.swift`, intents copy, `CurfewWidget/*`, `copy-guidelines.md`                                                   | A                    |
+| I   | Theme and voice editor                                | `RestScreenSettingsView.swift`, `RestAppearance*`, voice packs                                                                                                                                   | C                    |
 
 ## Verification
 

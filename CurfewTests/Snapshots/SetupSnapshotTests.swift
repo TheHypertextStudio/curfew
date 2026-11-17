@@ -5,8 +5,8 @@
     import SwiftUI
     import XCTest
 
-    /// Setup steps for `just snapshot`: each step in light and dark, plus the
-    /// floating drag panel and the lock preview.
+    /// Setup screens for `just snapshot`: every screen, plus the floating drag
+    /// panel and the lock preview.
     extension DestinationSnapshotTests {
         func testRenderSetupSteps() throws {
             let directory = try Self.snapshotsDirectory()
@@ -16,31 +16,37 @@
             model.settings.accountSync.enrollment = nil
             let size = GettingStartedLayout.windowSize
 
+            // Setup is drawn over its own sky, so it looks the same in light and dark.
             for (name, flow) in Self.setupFlows() {
-                for appearance in [NSAppearance.Name.aqua, .darkAqua] {
-                    let suffix = appearance == .darkAqua ? "dark" : "light"
-                    try renderHosted(
-                        GettingStartedView(
-                            flow: flow,
-                            notifications: FixedNotificationPermission(value: .notAsked),
-                            makeAccount: {
-                                // Never the real Keychain: a fresh, signed-out account.
-                                AccountEnrollmentController(
-                                    secretStore: EnrollmentRecoveryMemorySecretStore()
-                                )
-                            }
-                        ).environment(model),
-                        named: "setup-\(name)-\(suffix)",
-                        width: size.width,
-                        height: size.height,
-                        settlingTime: 0.3,
-                        appearance: appearance,
-                        to: directory
-                    )
-                }
+                try renderHosted(
+                    setupView(flow: flow).environment(model),
+                    named: "setup-\(name)", width: size.width, height: size.height,
+                    settlingTime: 0.3, to: directory
+                )
             }
+            var question = FirstRunFlow()
+            question.begin()
+            try renderHosted(
+                setupView(flow: question, editingMorning: true).environment(model),
+                named: "setup-2b-morning", width: size.width, height: size.height,
+                settlingTime: 0.3, to: directory
+            )
 
             try renderSetupFloatingSurfaces(model: model, to: directory)
+        }
+
+        private func setupView(flow: FirstRunFlow, editingMorning: Bool = false) -> some View {
+            GettingStartedView(
+                flow: flow,
+                editingMorning: editingMorning,
+                notifications: FixedNotificationPermission(value: .notAsked),
+                makeAccount: {
+                    // Never the real Keychain: a fresh, signed-out account.
+                    AccountEnrollmentController(
+                        secretStore: EnrollmentRecoveryMemorySecretStore()
+                    )
+                }
+            )
         }
 
         private func renderSetupFloatingSurfaces(
@@ -75,19 +81,25 @@
         }
 
         static func setupFlows() -> [(String, FirstRunFlow)] {
-            let schedule = FirstRunFlow()
+            let welcome = FirstRunFlow()
+            var schedule = welcome
+            schedule.begin()
             var permissions = schedule
             permissions.chooseSchedule(.weeklySchedule)
-            var ready = permissions
-            ready.updateAccessibilityGranted(true)
-            ready.markCommitted()
+            var optional = permissions
+            optional.updateAccessibilityGranted(true)
+            optional.markCommitted(offersOptional: true)
+            var ready = optional
+            ready.advance()
             var extras = ready
             extras.advance()
             return [
-                ("1-schedule", schedule),
-                ("2-permissions", permissions),
-                ("3-ready", ready),
-                ("4-extras", extras)
+                ("1-welcome", welcome),
+                ("2-schedule", schedule),
+                ("3-permission", permissions),
+                ("4-optional", optional),
+                ("5-ready", ready),
+                ("6-extras", extras)
             ]
         }
     }
