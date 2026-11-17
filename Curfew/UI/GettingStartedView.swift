@@ -24,6 +24,9 @@ struct GettingStartedView: View {
     @State private var preview: LockPreviewController?
     @State private var confirmingImmediateLock = false
     @State private var signedIn = false
+    @State private var notificationsSkipped = false
+    @State private var helperSkipped = false
+    @FocusState private var continueFocused: Bool
     @AccessibilityFocusState private var headingFocused: Bool
 
     /// `nil` uses the system; fixed values serve snapshots.
@@ -85,6 +88,9 @@ struct GettingStartedView: View {
             preview?.dismiss()
         }
         .onChange(of: flow.currentStep) { _, step in stepChanged(to: step) }
+        .onChange(of: optionalsResolved) { _, resolved in
+            flow.updateOptionalPermissions(resolved: resolved)
+        }
         .onChange(of: model.isAccessibilityTrusted) { _, trusted in
             flow.updateAccessibilityGranted(trusted)
         }
@@ -131,6 +137,10 @@ struct GettingStartedView: View {
                 helperStatus: helperStatus,
                 showsHelper: model.featureFlags.privilegedHelperEnabled,
                 accessibilityGranted: model.isAccessibilityTrusted,
+                notificationsSkipped: notificationsSkipped,
+                helperSkipped: helperSkipped,
+                onSkipNotifications: { notificationsSkipped = true },
+                onSkipHelper: { helperSkipped = true },
                 onAllowNotifications: requestNotifications,
                 onInstallHelper: installHelper,
                 onApproveHelper: approveHelper,
@@ -184,6 +194,7 @@ struct GettingStartedView: View {
                 }
                 .buttonStyle(GettingStartedPrimaryButtonStyle())
                 .keyboardShortcut(.defaultAction)
+                .focused($continueFocused)
                 .disabled(!flow.canAdvance)
             case .ready:
                 Spacer()
@@ -243,6 +254,7 @@ private extension GettingStartedView {
             model.refreshAccessibilityTrust()
             model.privilegedHelperManager.refreshStatus()
         }
+        flow.updateOptionalPermissions(resolved: optionalsResolved)
         flow.updateAccessibilityGranted(model.isAccessibilityTrusted)
         refreshPermissions()
         stepChanged(to: flow.currentStep, announce: false)
@@ -285,8 +297,9 @@ private extension GettingStartedView {
             openPane: { model.openAccessibilityPaneForSetup() }
         )
         helper.onGranted = {
+            flow.updateOptionalPermissions(resolved: optionalsResolved)
             flow.updateAccessibilityGranted(true)
-            continueFromPermissions()
+            holdOrContinueAfterGrant()
         }
         dragHelper = helper
         return helper
@@ -309,6 +322,27 @@ private extension GettingStartedView {
     func approveHelper() {
         guard !model.isDemoSession else { return }
         model.openHelperApprovalSettings()
+    }
+
+    /// Notifications are resolved once allowed, turned off or skipped; the
+    /// helper once installed, awaiting approval, skipped, or not offered.
+    var optionalsResolved: Bool {
+        let notifications = notificationStatus != .notAsked || notificationsSkipped
+        let helper = !model.featureFlags.privilegedHelperEnabled || helperSkipped
+            || helperStatus == .installed || helperStatus == .needsApproval
+        return notifications && helper
+    }
+
+    /// A fresh grant advances only when both optional rows are resolved;
+    /// otherwise setup comes forward on step 2 with Continue focused.
+    func holdOrContinueAfterGrant() {
+        model.appRouter.activate()
+        if flow.optionalsResolved {
+            continueFromPermissions()
+        } else {
+            AccessibilityNotification.Announcement("Accessibility allowed.").post()
+            continueFocused = true
+        }
     }
 
     /// Commits setup once access is granted. A schedule that would lock

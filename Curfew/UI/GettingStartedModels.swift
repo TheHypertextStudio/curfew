@@ -138,6 +138,9 @@ struct FirstRunFlow: Equatable {
     private(set) var isCommitted = false
     /// Reopened after setup was already completed.
     private(set) var isReview = false
+    /// Whether both optional rows on step 2 (notifications and the Curfew
+    /// helper) are allowed, installed or explicitly skipped.
+    private(set) var optionalsResolved = false
 
     var canAdvance: Bool {
         switch currentStep {
@@ -177,13 +180,21 @@ struct FirstRunFlow: Equatable {
     }
 
     /// Syncs live trust. Returns `true` exactly when a fresh grant arrives
-    /// while step 2 is waiting for it, which is the moment setup advances.
-    /// Revoked trust re-closes the gate.
+    /// while step 2 is waiting for it and both optional rows are already
+    /// resolved, which is the only time setup advances by itself. Otherwise
+    /// setup holds on step 2 with Continue enabled, so the optional rows are
+    /// still offered. Revoked trust re-closes the gate.
     @discardableResult
     mutating func updateAccessibilityGranted(_ granted: Bool) -> Bool {
         let wasGranted = isAccessibilityGranted
         isAccessibilityGranted = granted
-        return granted && !wasGranted && currentStep == .permissions
+        return granted && !wasGranted && currentStep == .permissions && optionalsResolved
+    }
+
+    /// Records whether notifications and the Curfew helper are each allowed,
+    /// installed or explicitly skipped.
+    mutating func updateOptionalPermissions(resolved: Bool) {
+        optionalsResolved = resolved
     }
 
     /// Called once the model has completed setup (or, for a returning
@@ -222,6 +233,7 @@ struct FirstRunFlow: Equatable {
     static func returningUser(isAccessibilityGranted: Bool) -> FirstRunFlow {
         var flow = FirstRunFlow()
         flow.isReview = true
+        flow.optionalsResolved = true
         flow.scheduleChoice = .weeklySchedule
         if isAccessibilityGranted {
             flow.isAccessibilityGranted = true

@@ -273,7 +273,9 @@ struct CurfewApp: App {
         .windowStyle(.hiddenTitleBar)
         .defaultLaunchBehavior(CurfewLaunchBehavior.mainWindowLaunchBehavior(
             suppressesOrdinaryWindows: Self.suppressesOrdinaryWindows,
-            setupPending: !model.settings.hasCompletedInitialSetup && !model.isDemoSession
+            // Launch-time constants only: reading observed settings here would
+            // re-evaluate the scenes whenever settings change.
+            setupPending: model.shouldOpenSettingsOnLaunch && !model.isDemoSession
         ).sceneBehavior)
         .restorationBehavior(Self.backgroundLaunch ? .disabled : .automatic)
         .commands {
