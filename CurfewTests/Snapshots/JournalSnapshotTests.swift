@@ -110,12 +110,12 @@
                 )
                 try renderTimeCard(
                     JournalTimeCardStage(card: card, isCustomizing: true),
-                    named: "journal-time-card-customizing-\(suffix)", height: 1080,
+                    named: "journal-time-card-customizing-narrow-\(suffix)", height: 1040,
                     appearance: appearance
                 )
                 try renderTimeCard(
                     JournalTimeCardStage(card: card, isCustomizing: true),
-                    named: "journal-time-card-customizing-wide-\(suffix)", height: 1000,
+                    named: "journal-time-card-customizing-wide-\(suffix)", height: 720,
                     width: 1100, appearance: appearance
                 )
             }
