@@ -57,7 +57,7 @@ extension JournalPresentationTests {
         #expect(screen.patterns.readiness.note
             == "Needs five mornings of each kind. The fewer kind has 0.")
         #expect(screen.patterns.endings.sentence
-            == "You ended 1 day yourself. The lock ended 0. None ran over.")
+            == "You ended 1 day yourself.")
         #expect(screen.patterns.endings.note == "From 1 day with a stop time.")
     }
 

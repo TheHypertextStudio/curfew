@@ -179,3 +179,44 @@ struct JournalFormat {
         return monthDay(min(end, calendar.startOfDay(for: today)))
     }
 }
+
+/// Sentences about how days ended. A clause whose count is zero is left
+/// out, "all" is said plainly, and when no day ended early the sentence
+/// leads with what did happen.
+enum JournalCountWords {
+    /// "You stopped before curfew on 3 of 5 days. The lock ended 2."
+    static func headline(early: Int, lock: Int, over: Int) -> String {
+        let total = early + lock + over
+        guard early > 0 else { return withoutEarly(lock: lock, over: over) }
+        if early == total {
+            return total == 1 ? "You stopped before curfew on your one day."
+                : "You stopped before curfew on all \(total) days."
+        }
+        let lead = "You stopped before curfew on \(early) of "
+            + "\(JournalFormat.count(total, "day"))."
+        return ([lead] + rest(lock: lock, over: over)).joined(separator: " ")
+    }
+
+    /// "You ended 12 days yourself. The lock ended 6. 3 ran over."
+    static func endings(early: Int, lock: Int, over: Int) -> String {
+        guard early > 0 else { return withoutEarly(lock: lock, over: over) }
+        let lead = "You ended \(JournalFormat.count(early, "day")) yourself."
+        return ([lead] + rest(lock: lock, over: over)).joined(separator: " ")
+    }
+
+    private static func rest(lock: Int, over: Int) -> [String] {
+        [lock > 0 ? "The lock ended \(lock)." : nil, over > 0 ? "\(over) ran over." : nil]
+            .compactMap(\.self)
+    }
+
+    private static func withoutEarly(lock: Int, over: Int) -> String {
+        let total = lock + over
+        if over == 0 {
+            return total == 1 ? "The lock ended your one day." : "The lock ended all \(total) days."
+        }
+        if lock == 0 {
+            return total == 1 ? "Your one day ran over." : "All \(total) days ran over."
+        }
+        return "The lock ended \(JournalFormat.count(lock, "day")) and \(over) ran over."
+    }
+}

@@ -126,6 +126,7 @@ struct JournalView: View {
             Button { isEditingPrompts = true } label: {
                 Label("Edit prompts", systemImage: "text.bubble")
             }
+            .accessibilityIdentifier("journal-edit-prompts")
             .help("Edit the questions Curfew asks in the morning and evening")
             Menu {
                 Button("Reflections as Markdown…") { export(.markdown, period: screen.period) }

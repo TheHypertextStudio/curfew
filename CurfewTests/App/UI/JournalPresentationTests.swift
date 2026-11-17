@@ -155,7 +155,35 @@ struct JournalPresentationTests {
             today: day(2026, 11, 13)
         )
         #expect(calm.headline
-            == "You stopped before curfew on 1 of 1 day. The lock ended 0. None ran over.")
+            == "You stopped before curfew on your one day.")
+    }
+
+    @Test("The headline leaves out zero clauses and says all plainly", arguments: [
+        (4, 0, 0, "You stopped before curfew on all 4 days."),
+        (1, 0, 0, "You stopped before curfew on your one day."),
+        (3, 1, 0, "You stopped before curfew on 3 of 4 days. The lock ended 1."),
+        (3, 0, 2, "You stopped before curfew on 3 of 5 days. 2 ran over."),
+        (1, 2, 1, "You stopped before curfew on 1 of 4 days. The lock ended 2. 1 ran over."),
+        (0, 5, 0, "The lock ended all 5 days."),
+        (0, 1, 0, "The lock ended your one day."),
+        (0, 0, 3, "All 3 days ran over."),
+        (0, 0, 1, "Your one day ran over."),
+        (0, 3, 2, "The lock ended 3 days and 2 ran over."),
+        (0, 1, 1, "The lock ended 1 day and 1 ran over.")
+    ])
+    func headlineClauses(early: Int, lock: Int, over: Int, expected: String) {
+        #expect(JournalCountWords.headline(early: early, lock: lock, over: over) == expected)
+    }
+
+    @Test("The day endings sentence leaves out zero clauses too", arguments: [
+        (12, 6, 3, "You ended 12 days yourself. The lock ended 6. 3 ran over."),
+        (1, 0, 0, "You ended 1 day yourself."),
+        (5, 0, 2, "You ended 5 days yourself. 2 ran over."),
+        (0, 4, 0, "The lock ended all 4 days."),
+        (0, 3, 2, "The lock ended 3 days and 2 ran over.")
+    ])
+    func endingClauses(early: Int, lock: Int, over: Int, expected: String) {
+        #expect(JournalCountWords.endings(early: early, lock: lock, over: over) == expected)
     }
 
     @Test("Comparisons say up, down or same, named for the previous period")

@@ -137,7 +137,7 @@ final class CurfewUITests: XCTestCase {
     @MainActor
     func testPromptEditorDoesNotAdvertiseFutureFeatures() {
         let app = launchFixture("this-week")
-        app.radioButtons["Prompts"].click()
+        app.buttons["journal-edit-prompts"].firstMatch.click()
         XCTAssertTrue(app.staticTexts["Read your reflections in Claude"]
             .waitForExistence(timeout: 3))
         XCTAssertFalse(app.staticTexts.containing(NSPredicate(
@@ -383,7 +383,7 @@ extension CurfewUITests {
 
     func testManageAIAccessAlwaysOpensConnections() {
         let app = launchFixture("this-week")
-        app.radioButtons["Prompts"].click()
+        app.buttons["journal-edit-prompts"].firstMatch.click()
         let manage = app.buttons["Manage AI Access…"]
         XCTAssertTrue(manage.waitForExistence(timeout: 3))
         app.scrollViews.allElementsBoundByIndex.max {
