@@ -115,6 +115,13 @@ public struct CurfewSettings: Codable, Equatable {
     /// Defaults to ``OverrideRequestPolicy/defaultOverrideDurationMinutes``.
     public var overrideDurationMinutes: Int
 
+    /// Raised limits that are waiting to apply, at most one per
+    /// ``WeeklyLimit``. The four limit fields above always hold the value in
+    /// force; see ``WeeklyLimitPolicy``. Empty on every payload written before
+    /// limit raises waited, so an upgrade never treats current limits as
+    /// pending.
+    public var pendingLimitChanges: [PendingLimitChange]
+
     /// The weekday on which extension and override budgets reset. Defaults
     /// to Monday to align with a typical work week.
     public var resetWeekday: Weekday
@@ -180,6 +187,7 @@ public struct CurfewSettings: Codable, Equatable {
         case extensionDurationMinutes
         case overrideWeeklyLimit
         case overrideDurationMinutes
+        case pendingLimitChanges
         case resetWeekday
         case autoShutdownEnabled
         case autoShutdownDelayMinutes
@@ -207,6 +215,7 @@ public struct CurfewSettings: Codable, Equatable {
         extensionDurationMinutes: Int,
         overrideWeeklyLimit: Int,
         overrideDurationMinutes: Int,
+        pendingLimitChanges: [PendingLimitChange] = [],
         resetWeekday: Weekday,
         autoShutdownEnabled: Bool,
         autoShutdownDelayMinutes: Int,
@@ -227,6 +236,7 @@ public struct CurfewSettings: Codable, Equatable {
         self.extensionDurationMinutes = extensionDurationMinutes
         self.overrideWeeklyLimit = overrideWeeklyLimit
         self.overrideDurationMinutes = overrideDurationMinutes
+        self.pendingLimitChanges = pendingLimitChanges
         self.resetWeekday = resetWeekday
         self.autoShutdownEnabled = autoShutdownEnabled
         self.autoShutdownDelayMinutes = autoShutdownDelayMinutes
@@ -266,6 +276,10 @@ public struct CurfewSettings: Codable, Equatable {
             Int.self,
             forKey: .overrideDurationMinutes
         )
+        self.pendingLimitChanges = try container.decodeIfPresent(
+            [PendingLimitChange].self,
+            forKey: .pendingLimitChanges
+        ) ?? []
         self.resetWeekday = try container.decode(Weekday.self, forKey: .resetWeekday)
         self.autoShutdownEnabled = try container.decode(Bool.self, forKey: .autoShutdownEnabled)
         self.autoShutdownDelayMinutes = try container.decode(
@@ -325,6 +339,7 @@ public struct CurfewSettings: Codable, Equatable {
         try container.encode(extensionDurationMinutes, forKey: .extensionDurationMinutes)
         try container.encode(overrideWeeklyLimit, forKey: .overrideWeeklyLimit)
         try container.encode(overrideDurationMinutes, forKey: .overrideDurationMinutes)
+        try container.encode(pendingLimitChanges, forKey: .pendingLimitChanges)
         try container.encode(resetWeekday, forKey: .resetWeekday)
         try container.encode(autoShutdownEnabled, forKey: .autoShutdownEnabled)
         try container.encode(autoShutdownDelayMinutes, forKey: .autoShutdownDelayMinutes)
