@@ -227,7 +227,9 @@ unless that option is on.
   one thing as input. App Intents expose today's one thing and "when Sunrise
   completes" and "when curfew starts" for automations.
 - Self-wake is an option inside Sunrise settings, off by default, labelled with
-  what it needs: the Curfew helper, power, and an open lid.
+  what it needs on this Mac. Every Mac needs the Curfew helper. A Mac with a
+  lid and a battery also needs power and the lid open, and only there do the
+  battery option and battery wording appear. Copy never assumes a laptop.
 - Sunrise settings are their own pane, not a section of rest screen appearance.
 
 ### Setup
