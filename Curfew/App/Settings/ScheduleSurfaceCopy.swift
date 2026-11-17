@@ -1,30 +1,38 @@
 import CurfewKit
 import Foundation
 
+/// Words for the schedule editor and the countdown, in the product's
+/// vocabulary: "curfew" for when work ends, "unlocks" for the morning.
 enum ScheduleSurfaceCopy {
-    static let countdownPrefix = "until scheduled lockout at"
+    static let countdownPrefix = "until curfew at"
 
     static let weeklyScheduleSubtitle =
-        "Set when work ends and when access resumes each day."
+        "Pick when curfew starts and when this Mac unlocks."
 
-    static let weeklyScheduleExplanation =
-        "Curfew blocks access to your Mac from Work ends until Work resumes."
+    static let workEndsLabel = "Curfew"
+    static let workResumesLabel = "Unlocks"
 
-    static let workEndsLabel = "Work ends"
-    static let workResumesLabel = "Work resumes"
-
-    static let onboardingMessage =
-        "Choose when work ends and resumes each day."
+    static let onboardingMessage = weeklyScheduleSubtitle
 
     static let onboardingChecklist = [
-        "Set when work ends and resumes",
-        "Choose days without lockout"
+        "Pick when curfew starts and when this Mac unlocks",
+        "Pick your days off"
     ]
 
-    static let mainChecklistItem =
-        "Choose when work ends and resumes each day."
+    static let mainChecklistItem = weeklyScheduleSubtitle
 
-    static func summarySentence(workEnds: String, workResumes: String) -> String {
-        "Tomorrow, work ends at \(workEnds) and resumes at \(workResumes)."
+    static let scheduleOffTitle = "Schedule is off"
+    static let scheduleOffBody = "Nothing locks on its own until you turn the weekly schedule on."
+    static let turnOnSchedule = "Turn on weekly schedule"
+    static let pendingBeforeTurningOn = "A change is waiting to apply. Turn the schedule on after it does."
+
+    static let immediateLockTitle = "Curfew starts right away"
+    static let immediateLockBody =
+        "Your schedule says work is already over, so this Mac locks as soon as you confirm."
+    static let immediateLockConfirm = "Lock now"
+    static let immediateLockCancel = "Not yet"
+
+    static func lockedUntil(_ unlock: String) -> String {
+        "This Mac is locked now. Unlocks at \(unlock)."
     }
 }

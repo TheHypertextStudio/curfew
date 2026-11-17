@@ -203,7 +203,7 @@ struct ScheduleResolutionTests {
             .replacingOccurrences(of: "\u{00A0}", with: " ")
 
         #expect(normalizedSentence ==
-            "Tomorrow, work ends at 6:00 PM and resumes at 8:00 AM.")
+            "Tomorrow, curfew at 6:00 PM. Unlocks at 8:00 AM.")
     }
 }
 

@@ -91,28 +91,38 @@ enum CurfewIntentSupport {
 
     /// A stale observation never becomes a false claim that the Mac is free.
     static func statusSummary(_ status: CurfewObservedStatus?) -> String {
-        guard let status else {
-            return "Curfew has not reported active enforcement recently. Open Curfew to check."
-        }
+        guard let status else { return IntentCopy.notCheckedIn }
         switch status.phase {
         case "locked":
-            if let unlock = status.unlockDate {
-                return "Curfew is active. Unlocks at \(formatTime(unlock))."
-            }
-            return "Curfew is active."
+            return IntentCopy.locked(unlockTime: status.unlockDate.map(formatTime))
         case "day_off":
-            return "No automatic lockout is scheduled now. Authorized remote locks can still apply."
+            return IntentCopy.dayOff
         case "working", "warning":
-            guard let minutes = status.minutesRemaining else {
-                return "Curfew's countdown is unavailable. Open Curfew to check."
-            }
-            let noun = minutes == 1 ? "minute" : "minutes"
-            if let lock = status.lockDate {
-                return "Work session active — \(minutes) \(noun) until curfew at \(formatTime(lock))."
-            }
-            return "Work session active — \(minutes) \(noun) until curfew."
+            guard let minutes = status.minutesRemaining else { return IntentCopy.notCheckedIn }
+            return countdownLine(minutes: minutes, curfewTime: status.lockDate.map(formatTime))
         default:
             return status.availabilityDescription
+        }
+    }
+
+    /// "3 hours 30 minutes until curfew at 6:00 PM."
+    static func countdownLine(minutes: Int, curfewTime: String?) -> String {
+        let duration = durationText(minutes: minutes)
+        guard let curfewTime else { return "\(duration) until curfew." }
+        return "\(duration) until curfew at \(curfewTime)."
+    }
+
+    /// Spoken hours and minutes: "3 hours 30 minutes", "1 hour", "45 minutes".
+    static func durationText(minutes: Int) -> String {
+        let hours = max(minutes, 0) / 60
+        let rest = max(minutes, 0) % 60
+        func unit(_ value: Int, _ name: String) -> String {
+            "\(value) \(name)\(value == 1 ? "" : "s")"
+        }
+        switch (hours, rest) {
+        case (0, _): return unit(rest, "minute")
+        case (_, 0): return unit(hours, "hour")
+        default: return "\(unit(hours, "hour")) \(unit(rest, "minute"))"
         }
     }
 
@@ -142,11 +152,31 @@ enum CurfewIntentError: Error, CustomLocalizedStringResourceConvertible {
     var localizedStringResource: LocalizedStringResource {
         switch self {
         case .queueUnavailable:
-            "Couldn't reach Curfew's request queue. Make sure Curfew has been launched once."
+            "Couldn't reach Curfew. Open it once, then try again."
         case .invalidLockTime:
-            "That lock time isn't valid. Use a time of day between 00:00 and 23:59."
+            "That time isn't valid. Pick a time of day."
         case .statusUnavailable:
-            "Curfew has not reported a reliable countdown recently. Open Curfew to check."
+            LocalizedStringResource(stringLiteral: IntentCopy.notCheckedIn)
         }
+    }
+}
+
+/// Every line Siri and Shortcuts say for Curfew, in the product's words.
+enum IntentCopy {
+    static let notCheckedIn = "Curfew hasn't checked in. Open it to see where things stand."
+    static let dayOff = "Day off. No curfew today."
+    static let moreTimeAsked = "Asked. Approve it in Curfew."
+    static let overrideOpened = "Overrides only happen in Curfew. It's open. Make your case there."
+
+    static func locked(unlockTime: String?) -> String {
+        guard let unlockTime else { return "Locked." }
+        return "Locked. Unlocks at \(unlockTime)."
+    }
+
+    static func scheduleAsked(weekday: String, curfewTime: String?, isDayOff: Bool) -> String {
+        if isDayOff || curfewTime == nil {
+            return "Asked for \(weekday) as a day off. Approve it in Curfew."
+        }
+        return "Asked for curfew at \(curfewTime ?? "") on \(weekday). Approve it in Curfew."
     }
 }
