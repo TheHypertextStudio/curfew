@@ -19,17 +19,17 @@ Today and the menu bar popover read one resolved `TodayPresentation`; every stri
 
 The theme editor in Settings > Rest screen changes the sky palette, the clock style and the voice in place. Palettes and voices are pure values in the package; the app reads one active palette and one active voice from the model.
 
-| Behavior | Contract coverage | Acceptance still required |
-| --- | --- | --- |
-| Palettes are complete, distinct, darken toward night, brighten toward the light, keep warm white legible on the lock and the ground | `HorizonPaletteTests` | On-screen judgement through the Metal shader |
-| Shader and CPU renderer draw the same picture for every palette: one table, moon included, nothing baked into the shader | `HorizonPaletteTests/shaderTableMatchesPalette`, `shaderReadsWholeTable`, `rendererUsesPalette`, `HorizonShaderLibraryTests` | GPU pixel comparison on a real display |
-| Today's text stays legible in every palette all day | `TodaySkyLegibilityTests/todayTextIsLegible(palette:)` | None |
-| Voices obey the word rules (sentence case, no exclamation marks or dashes, banned words), are short and distinct | `VoicePackTests/rules`, `sentenceCaseAndShort`, `voicesAreDistinct` | Reading review |
-| Own words validated and laid over the voice; empty means the voice's line | `VoicePackTests/customLines`, `settingLines`, `RestAppearanceThemeTests/customLineNormalization` | None |
-| Older records load: palette names, the free-text message carried into the lock's words, unknown voice falls back | `RestAppearanceThemeTests/legacyRecordMigrates`, `voiceDecoding`, `RestAppearancePreferencesTests` | Upgrade on a real Mac with saved preferences |
-| Every surface speaks the active voice and draws the active palette; changes persist | `ThemeAndVoiceTests` | Notification banners on a signed build |
-| Screen saver receives the palette and the consented words through the validated export | `RestCompanionExportTests`, `RestCompanionSceneBridgeTests`, `RestScreenSaverSessionTests` | `RestScreenSaverHostAcceptanceTests` in an allocated session |
-| Visual review of the editor, each voice on the lock, each palette at day, last hour, dusk and night, Today, the lock and Sunrise | `DestinationSnapshotTests/testRenderThemeEditor`, `testRenderThemeLockVoices`, `testRenderThemeSkies`, `testRenderThemeToday`, `testRenderThemeSunrise` | Liquid Glass and shader on screen |
+| Behavior                                                                                                                            | Contract coverage                                                                                                                                       | Acceptance still required                                    |
+| ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| Palettes are complete, distinct, darken toward night, brighten toward the light, keep warm white legible on the lock and the ground | `HorizonPaletteTests`                                                                                                                                   | On-screen judgement through the Metal shader                 |
+| Shader and CPU renderer draw the same picture for every palette: one table, moon included, nothing baked into the shader            | `HorizonPaletteTests/shaderTableMatchesPalette`, `shaderReadsWholeTable`, `rendererUsesPalette`, `HorizonShaderLibraryTests`                            | GPU pixel comparison on a real display                       |
+| Today's text stays legible in every palette all day                                                                                 | `TodaySkyLegibilityTests/todayTextIsLegible(palette:)`                                                                                                  | None                                                         |
+| Voices obey the word rules (sentence case, no exclamation marks or dashes, banned words), are short and distinct                    | `VoicePackTests/rules`, `sentenceCaseAndShort`, `voicesAreDistinct`                                                                                     | Reading review                                               |
+| Own words validated and laid over the voice; empty means the voice's line                                                           | `VoicePackTests/customLines`, `settingLines`, `RestAppearanceThemeTests/customLineNormalization`                                                        | None                                                         |
+| Older records load: palette names, the free-text message carried into the lock's words, unknown voice falls back                    | `RestAppearanceThemeTests/legacyRecordMigrates`, `voiceDecoding`, `RestAppearancePreferencesTests`                                                      | Upgrade on a real Mac with saved preferences                 |
+| Every surface speaks the active voice and draws the active palette; changes persist                                                 | `ThemeAndVoiceTests`                                                                                                                                    | Notification banners on a signed build                       |
+| Screen saver receives the palette and the consented words through the validated export                                              | `RestCompanionExportTests`, `RestCompanionSceneBridgeTests`, `RestScreenSaverSessionTests`                                                              | `RestScreenSaverHostAcceptanceTests` in an allocated session |
+| Visual review of the editor, each voice on the lock, each palette at day, last hour, dusk and night, Today, the lock and Sunrise    | `DestinationSnapshotTests/testRenderThemeEditor`, `testRenderThemeLockVoices`, `testRenderThemeSkies`, `testRenderThemeToday`, `testRenderThemeSunrise` | Liquid Glass and shader on screen                            |
 
 ## Journal day records
 
@@ -1311,19 +1311,34 @@ tests cannot read or mutate a user's App Group lockout record.
     size equal to what its content needs.
   - `CurfewTests/enforcementArmsOnlyAfterSetupCompletion()` uses an ephemeral
     deadline store so the unit suite never reads a real App Group lockout record.
-- `Build first-run setup as three steps plus an optional closing step.`
-  - `GettingStartedFlowTests/stepsAreThreePlusOptional()`, `headings()`,
-    `choosingScheduleAdvances()`, `commitMovesToReady()`,
-    `backFromPermissions()`, `progressRoundTrip()`,
-    `resumingCannotSkipCommit()` and `returningUser()`.
-  - `GettingStartedCopyTests/readyLineTonight()`, `readyLineOtherDays()` and
-    `wordsTable()` cover step 3's curfew line and the launch words.
+- `Build first-run setup as a welcome and one thing per screen over the Horizon sky.`
+  - `GettingStartedFlowTests/stepsInOrder()`, `headings()`, `welcomeBegins()`,
+    `choosingScheduleAdvances()`, `grantWhileWaitingContinues()`,
+    `commitMovesToOptional()`, `commitSkipsOptionalWhenNothingIsOffered()`,
+    `backFromPermissions()`, `progressRoundTrip()`, `resumingOnTheQuestion()`,
+    `resumingCannotSkipCommit()` and `returningUser()` cover the order of the
+    screens, the gate and where setup reopens.
+  - `SetupOptionalAskTests` covers which optional asks are offered and in what
+    order; `SetupScheduleStepTests` covers the quarter hour steps, the wrap
+    past midnight and the bounds on the day's length.
+  - `GettingStartedCopyTests/welcome()`, `permissionLine()`, `defaultsLine()`,
+    `readyLineTonight()`, `readyLineOtherDays()` and `wordsTable()` cover the
+    words on each screen.
+  - `SetupSkyStoryTests` covers the hour each screen rests on, that the sky
+    only runs forward, the sweep between screens and the welcome's day.
+  - `SetupSkyContrastTests/restingScreensAreReadable(scene:)` samples the sky
+    behind every place setup puts text, on each resting screen and at two
+    window sizes, and requires 4.5 to 1; `middayFails()` proves the check can
+    fail and `primaryButton()` covers the button's own fill.
   - `SetupScheduleTests/prefill()`, `applyDraft()` and `nextCurfew()` cover
-    step 1's prefill, the single schedule write and tonight's curfew.
-  - `DestinationSnapshotTests/testRenderSetupSteps()` writes each step in light
-    and dark plus the drag panel and lock preview for `just snapshot`.
-  - `CurfewUITests/testOnboardingStartsAtARealGate()` and
-    `testSetupScheduleChoiceIsExplicitAndGatesAccess()` need a graphical lane.
+    the question's prefill, the single schedule write and tonight's curfew.
+  - `DestinationSnapshotTests/testRenderSetupSteps()` writes every screen plus
+    the drag panel and lock preview for `just snapshot`.
+  - `CurfewUITests/testOnboardingStartsAtARealGate()`,
+    `testSetupScheduleChoiceIsExplicitAndGatesAccess()` and
+    `testFirstRunSetupOpensWithoutMainWindow()` need a graphical lane. Not
+    covered by any test: the welcome's motion and the sweeps, which are
+    watched in a recording.
 - `Setup completion requires an explicit schedule choice (or no schedule yet) and real Accessibility trust.`
   - `FirstRunSafetyFlowTests/scheduleNeedsExplicitChoice()`,
     `weeklyChoiceAdvances()` and `remoteOnlyChoiceAdvancesWithoutSchedule()`.
@@ -2468,14 +2483,16 @@ changes; rollback restores the prior landing release and docs commit.
 
 ### Development app consolidation
 
-| Behavior                                                                                                              | Coverage                                                                                     |
-| --------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| Only Curfew and Curfew Dev are built; app/widget IDs and install paths stay distinct                                  | `scripts/dev-consolidation.test.mjs`; signed Debug/Release builds                            |
-| Development preferences, shared history, account and Docket credential services stay in the installed store           | `CurfewFlavorTests.derivedValues`; `AppNamespaceTests`; `scripts/dev-consolidation.test.mjs` |
-| Canonical and predecessor development identities resolve consistently for embedded helpers                            | `CurfewFlavorTests`; `AppNamespaceTests.studioIdentityWins`                                  |
-| A development app cannot inherit production enforcement priority                                                      | `AppNamespaceTests.ownershipSurvivesTheRename`; `DevelopmentDaemonSafetyTests`               |
-| Signed Dev arms normally, cannot enter demo fixtures, and disarms only in a real test host                            | `DevelopmentLaunchBehaviorTests`; isolated CI captures exercise unsigned demo fixtures       |
-| Uninstall targets Curfew Dev and its retained store without removing production or dormant personal-development state | `UninstallCoordinatorTests`                                                                  |
+| Behavior                                                                                                                                      | Coverage                                                                                             |
+| --------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Only Curfew and Curfew Dev are built; app/widget IDs and install paths stay distinct                                                          | `scripts/dev-consolidation.test.mjs`; signed Debug/Release builds                                    |
+| Development preferences, shared history, account and Docket credential services stay in the installed store                                   | `CurfewFlavorTests.derivedValues`; `AppNamespaceTests`; `scripts/dev-consolidation.test.mjs`         |
+| Canonical and predecessor development identities resolve consistently for embedded helpers                                                    | `CurfewFlavorTests`; `AppNamespaceTests.studioIdentityWins`                                          |
+| A development app cannot inherit production enforcement priority                                                                              | `AppNamespaceTests.ownershipSurvivesTheRename`; `DevelopmentDaemonSafetyTests`                       |
+| Signed Dev arms normally, cannot enter demo fixtures, and disarms only in a real test host                                                    | `DevelopmentLaunchBehaviorTests`; isolated CI captures exercise unsigned demo fixtures               |
+| A unit-test host stays out of the Dock and the menu bar and opens no windows, so concurrent test runs do not look like extra copies of Curfew | `DevelopmentLaunchBehaviorTests`; `DestinationSnapshotTests` still render under the accessory policy |
+| A capture fixture asked to stay behind never brings itself forward, and nothing else can ask                                                  | `DevelopmentLaunchBehaviorTests/captureCanStayBehind()`                                              |
+| Uninstall targets Curfew Dev and its retained store without removing production or dormant personal-development state                         | `UninstallCoordinatorTests`                                                                          |
 
 The installed upgrade additionally requires readback of schedule, history,
 account connectivity, authenticated helper readiness, and ordinary update trust.

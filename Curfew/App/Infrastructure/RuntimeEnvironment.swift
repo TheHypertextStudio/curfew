@@ -60,6 +60,19 @@ nonisolated enum RuntimeEnvironment {
         #endif
     }
 
+    /// Capture runs only: with `CURFEW_DEMO_STAY_BEHIND=1` the demo fixture
+    /// never brings itself forward, so recording it does not take the keyboard
+    /// away from whoever is working on this Mac.
+    static var staysBehindForCapture: Bool {
+        staysBehindDecision(
+            isDemoFixture: isDemoFixture, environment: ProcessInfo.processInfo.environment
+        )
+    }
+
+    static func staysBehindDecision(isDemoFixture: Bool, environment: [String: String]) -> Bool {
+        isDemoFixture && environment["CURFEW_DEMO_STAY_BEHIND"] == "1"
+    }
+
     /// `true` when running inside an `xcodebuild test` host process.
     static var isUnitTestHost: Bool {
         testHostDecision(
@@ -78,6 +91,36 @@ nonisolated enum RuntimeEnvironment {
             return true
         }
         return false
+    }
+
+    /// `true` when this process hosts unit tests, known early enough to
+    /// decide how the app presents itself (Dock, menu bar, windows).
+    static var hostsUnitTests: Bool {
+        #if DEBUG
+            let isDebugBuild = true
+        #else
+            let isDebugBuild = false
+        #endif
+        return hostsUnitTestsDecision(
+            environment: ProcessInfo.processInfo.environment,
+            isDebugBuild: isDebugBuild,
+            hasLoadedTestRuntime: hasLoadedTestRuntime
+        )
+    }
+
+    /// The test runtime can load after the scenes are first built, so a Debug
+    /// build also accepts the configuration path `xcodebuild test` passes to
+    /// its host. This decides presentation only. It never disarms
+    /// enforcement, which still requires a loaded test runtime.
+    static func hostsUnitTestsDecision(
+        environment: [String: String],
+        isDebugBuild: Bool,
+        hasLoadedTestRuntime: Bool
+    ) -> Bool {
+        if hasLoadedTestRuntime {
+            return true
+        }
+        return isDebugBuild && environment["XCTestConfigurationFilePath"] != nil
     }
 
     /// Stronger test-host evidence for enforcement launch policy. An

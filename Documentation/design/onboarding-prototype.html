@@ -1,0 +1,1978 @@
+<!doctype html>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Curfew Setup</title>
+<style>
+  /* Layout: one setup window on a desk to click through, then what each screen is for. */
+  :root {
+    --bg: #f2f1f6;
+    --panel: #ffffff;
+    --fg: #17182b;
+    --soft: #5a5c75;
+    --line: #d9d8e4;
+    --ember: #b8491f;
+    --chip: #e7e5f0;
+    --bone: #fff6ea;
+    --disp: ui-rounded, 'SF Pro Rounded', -apple-system, system-ui, 'Helvetica Neue', sans-serif;
+    --ui: -apple-system, system-ui, 'Helvetica Neue', Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) {
+      --bg: #0b0c15;
+      --panel: #13152a;
+      --fg: #eceaf5;
+      --soft: #a3a5bf;
+      --line: #2a2c45;
+      --ember: #ee8c5f;
+      --chip: #1f2139;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme='dark'] {
+    --bg: #0b0c15;
+    --panel: #13152a;
+    --fg: #eceaf5;
+    --soft: #a3a5bf;
+    --line: #2a2c45;
+    --ember: #ee8c5f;
+    --chip: #1f2139;
+    color-scheme: dark;
+  }
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--ui);
+    font-size: 15px;
+    line-height: 1.5;
+  }
+  .wrap {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding-block: 40px 80px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    display: flex;
+    flex-direction: column;
+    gap: 48px;
+  }
+  h1 {
+    font-family: var(--disp);
+    font-weight: 650;
+    font-size: clamp(30px, 5vw, 46px);
+    line-height: 1.06;
+    letter-spacing: -0.02em;
+    margin: 6px 0 10px;
+    text-wrap: balance;
+  }
+  h2 {
+    font-family: var(--disp);
+    font-size: 22px;
+    font-weight: 650;
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+  h3 {
+    font-family: var(--disp);
+    font-size: 16px;
+    font-weight: 650;
+    margin: 0;
+  }
+  p {
+    margin: 0;
+  }
+  .eyebrow {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ember);
+  }
+  .lead {
+    color: var(--soft);
+    max-width: 64ch;
+    font-size: 16px;
+  }
+  .sec {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+  }
+  .card p {
+    color: var(--soft);
+    font-size: 14px;
+  }
+  .card .k {
+    font: 600 12px var(--ui);
+    color: var(--ember);
+  }
+  .specs {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 16px;
+  }
+  .ctl {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+  .ctl button {
+    font: 600 13px var(--disp);
+    color: var(--fg);
+    background: var(--chip);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 7px 14px;
+    cursor: pointer;
+  }
+  .ctl button[aria-current='true'],
+  .ctl button[aria-pressed='true'] {
+    background: var(--fg);
+    color: var(--bg);
+    border-color: var(--fg);
+  }
+  .ctl .gap {
+    flex: 1;
+  }
+  .try {
+    color: var(--soft);
+    font-size: 14px;
+    min-height: 1.5em;
+  }
+  button:focus-visible,
+  [role='slider']:focus-visible {
+    outline: 2px solid var(--ember);
+    outline-offset: 3px;
+  }
+  .ic {
+    width: 1.2em;
+    height: 1.2em;
+    flex: none;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    vertical-align: -0.22em;
+  }
+
+  /* the desk and the setup window */
+  .stage {
+    overflow-x: auto;
+    border-radius: 22px;
+  }
+  .desk {
+    position: relative;
+    aspect-ratio: 16/10;
+    min-width: 660px;
+    border-radius: 22px;
+    overflow: hidden;
+    background: radial-gradient(120% 90% at 50% 0%, #2b2e52 0%, #1a1c30 55%, #12131f 100%);
+    container-type: inline-size;
+    isolation: isolate;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .a {
+    position: absolute;
+  }
+  .app {
+    left: 50%;
+    top: 50%;
+    width: 84%;
+    aspect-ratio: 72/52;
+    transform: translate(-50%, -50%);
+    border-radius: 1.3cqw;
+    overflow: hidden;
+    background: #0b0d22;
+    color: var(--bone);
+    container-type: inline-size;
+    box-shadow:
+      0 3cqw 8cqw rgba(0, 0, 0, 0.5),
+      0 0 0 1px rgba(255, 255, 255, 0.08);
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.94);
+    transition:
+      transform 0.7s cubic-bezier(0.2, 0.9, 0.25, 1),
+      filter 0.5s,
+      opacity 0.45s;
+  }
+  .app.open {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+  .desk[data-sys='1'] .app.open {
+    transform: translate(-50%, -50%) scale(0.97);
+    filter: brightness(0.7);
+  }
+  .app > canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .nogl .app {
+    background: linear-gradient(
+      180deg,
+      #1f4fb5 0 20%,
+      #3f77d6 20% 38%,
+      #74a6e8 38% 54%,
+      #b4d2f2 54% 74%,
+      #121d4a 74%
+    );
+  }
+  .lights {
+    left: 2cqw;
+    top: 2cqw;
+    display: flex;
+    gap: 1.1cqw;
+    z-index: 3;
+  }
+  .lights i {
+    width: 1.7cqw;
+    height: 1.7cqw;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.38);
+  }
+
+  /* one screen: a single centred column above the horizon, button right under what it acts on */
+  .scr {
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 90%;
+    padding-top: 4cqw;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+  }
+  .scr.on {
+    pointer-events: auto;
+  }
+  .sky {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2cqw;
+    padding: 0 10cqw;
+    text-align: center;
+  }
+  .gnd {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5cqw;
+    margin-top: 3.6cqw;
+  }
+  /* Today keeps its own layout: time in the sky, the one thing on the ground */
+  .scr.split {
+    height: 100%;
+    padding: 0;
+    display: block;
+  }
+  .scr.split .sky {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 74%;
+    justify-content: center;
+    padding-top: 5cqw;
+  }
+  .scr.split .gnd {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 74%;
+    bottom: 0;
+    justify-content: center;
+    margin: 0;
+  }
+  /* a screen leaves quickly, then the next arrives piece by piece: headline, control, button */
+  .scr .sky > *,
+  .scr .gnd > * {
+    opacity: 0;
+  }
+  .scr.on .sky > *,
+  .scr.on .gnd > * {
+    opacity: 1;
+    animation: in 0.85s cubic-bezier(0.2, 0.85, 0.2, 1) backwards;
+    animation-delay: calc(var(--d, 0.32s) + var(--i, 0) * 0.08s);
+  }
+  .scr.out .sky > *,
+  .scr.out .gnd > * {
+    animation: out 0.26s ease-in forwards;
+  }
+  @keyframes in {
+    from {
+      opacity: 0;
+      transform: translateY(2.2cqw);
+      filter: blur(0.9cqw);
+    }
+  }
+  @keyframes out {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+      transform: translateY(-1.4cqw);
+      filter: blur(0.6cqw);
+    }
+  }
+  .scr .sky > :nth-child(2) {
+    --i: 1;
+  }
+  .scr .sky > :nth-child(3) {
+    --i: 2;
+  }
+  .scr .sky > :nth-child(4) {
+    --i: 3;
+  }
+  .scr .gnd > * {
+    --i: 4;
+  }
+  .scr .gnd > :nth-child(2) {
+    --i: 5;
+  }
+  /* the welcome: a title card that settles into a small mark above the captions */
+  .mark {
+    transition: transform 1.2s cubic-bezier(0.3, 0.8, 0.2, 1);
+  }
+  .scr.title .mark {
+    transform: translateY(8.5cqw) scale(3.6);
+  }
+  #wH {
+    min-height: 5.3cqw;
+  }
+  #wP {
+    min-height: 3.5cqw;
+  }
+  #wGnd {
+    min-height: 10.5cqw;
+  }
+  .skip {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -5.2cqw;
+    text-align: center;
+    font: 500 max(2cqw, 9px) var(--ui);
+    color: rgba(255, 246, 234, 0.7);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s;
+  }
+  .scr.playing.on .skip {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .cap {
+    display: inline-block;
+    animation: in 0.8s cubic-bezier(0.2, 0.85, 0.2, 1) backwards;
+  }
+  .cap.bye {
+    animation: out 0.26s ease-in forwards;
+  }
+  .mark {
+    font: 650 max(2.4cqw, 10px) var(--disp);
+    letter-spacing: 0.01em;
+    color: rgba(255, 246, 234, 0.85);
+  }
+  .h {
+    font: 650 4.8cqw/1.1 var(--disp);
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+  .p {
+    font: 500 max(2.5cqw, 10px)/1.4 var(--ui);
+    color: rgba(255, 246, 234, 0.94);
+    text-wrap: balance;
+    max-width: 60cqw;
+  }
+  .small {
+    font: 400 max(2cqw, 9px)/1.4 var(--ui);
+    color: rgba(255, 246, 234, 0.78);
+    max-width: 60cqw;
+    text-wrap: balance;
+  }
+  .time {
+    display: flex;
+    align-items: center;
+    gap: 3cqw;
+  }
+  .num {
+    font: 650 12.5cqw/0.95 var(--disp);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.035em;
+    white-space: nowrap;
+    cursor: ns-resize;
+    touch-action: none;
+    border-radius: 1.5cqw;
+    padding: 0 1cqw;
+  }
+  .num span {
+    display: inline-block;
+  }
+  .num .r {
+    animation: roll 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  @keyframes roll {
+    from {
+      transform: translateY(0.28em);
+      opacity: 0;
+    }
+  }
+  .num small {
+    font-size: 0.34em;
+    letter-spacing: 0;
+    margin-left: 0.22em;
+    opacity: 0.85;
+  }
+  .step {
+    width: 5.2cqw;
+    height: 5.2cqw;
+    border-radius: 50%;
+    border: 0.25cqw solid rgba(255, 246, 234, 0.5);
+    background: none;
+    color: var(--bone);
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    font-size: 2.6cqw;
+    transition:
+      background 0.15s,
+      transform 0.15s cubic-bezier(0.3, 1.6, 0.5, 1);
+  }
+  .step:hover {
+    background: rgba(255, 246, 234, 0.14);
+  }
+  .step:active {
+    transform: scale(0.9);
+  }
+  .def {
+    font: 500 max(2.3cqw, 10px) var(--ui);
+    color: rgba(255, 246, 234, 0.92);
+  }
+  .link {
+    background: none;
+    border: 0;
+    padding: 0.2em 0.1em;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+    text-decoration-color: rgba(255, 246, 234, 0.45);
+  }
+  .chips {
+    display: flex;
+    gap: 1.2cqw;
+  }
+  .dayc {
+    width: 6cqw;
+    height: 4.6cqw;
+    border-radius: 1.2cqw;
+    border: 0.25cqw solid rgba(255, 246, 234, 0.4);
+    background: none;
+    color: var(--bone);
+    font: 600 max(2.1cqw, 9px) var(--disp);
+    cursor: pointer;
+    opacity: 0.65;
+    transition:
+      background 0.2s,
+      opacity 0.2s,
+      transform 0.2s cubic-bezier(0.3, 1.6, 0.5, 1);
+  }
+  .dayc[aria-pressed='true'] {
+    background: var(--bone);
+    color: #141a44;
+    border-color: var(--bone);
+    opacity: 1;
+  }
+  .dayc:active {
+    transform: scale(0.9);
+  }
+  .rows {
+    display: flex;
+    flex-direction: column;
+    gap: 1.8cqw;
+    width: 54cqw;
+  }
+  .rows > div {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 3cqw;
+    font: 500 max(2.5cqw, 10px) var(--ui);
+    text-align: left;
+    min-height: 4.6cqw;
+  }
+  .pill {
+    font: 600 max(2.6cqw, 11px) var(--disp);
+    border-radius: 99px;
+    padding: 1.5cqw 4cqw;
+    white-space: nowrap;
+    cursor: pointer;
+    border: 0;
+    transition:
+      transform 0.18s cubic-bezier(0.3, 1.5, 0.5, 1),
+      filter 0.18s;
+  }
+  .pill:hover {
+    filter: brightness(1.08);
+  }
+  .pill:active {
+    transform: scale(0.95);
+  }
+  .go {
+    background: #bf4b1c;
+    color: #fff8ee;
+  }
+  .go[disabled] {
+    opacity: 0.45;
+    cursor: default;
+  }
+  .out {
+    background: none;
+    color: var(--bone);
+    border: 0.25cqw solid rgba(255, 246, 234, 0.5);
+    padding: 1.25cqw 3.2cqw;
+  }
+  .rows .pill {
+    font-size: max(2.2cqw, 10px);
+    padding: 0.8cqw 2.4cqw;
+  }
+  .glass {
+    background: rgba(255, 255, 255, 0.18);
+    color: var(--bone);
+  }
+  .alt {
+    font: 500 max(2.2cqw, 10px) var(--ui);
+    color: var(--bone);
+  }
+  .stat {
+    font: 600 max(2.3cqw, 10px) var(--disp);
+    display: inline-flex;
+    gap: 0.4em;
+    align-items: center;
+  }
+  .stat {
+    animation: in 0.6s cubic-bezier(0.2, 0.85, 0.2, 1) backwards;
+  }
+  .stat.off {
+    color: rgba(255, 246, 234, 0.72);
+  }
+  .stat .ic {
+    stroke-dasharray: 22;
+    stroke-dashoffset: 22;
+    animation: draw 0.4s 0.05s ease-out forwards;
+  }
+  @keyframes draw {
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+  .trio {
+    display: flex;
+    gap: 1.6cqw;
+  }
+  .tag {
+    font: 600 max(2cqw, 9px) var(--disp);
+    color: rgba(255, 246, 234, 0.72);
+  }
+  .num.lock {
+    font-size: 17cqw;
+    cursor: default;
+  }
+  .tline {
+    font: 500 max(2.3cqw, 10px) var(--ui);
+    display: flex;
+    gap: 0.45em;
+    align-items: center;
+  }
+  .thing {
+    font: 600 max(2.8cqw, 11px) var(--disp);
+    display: flex;
+    gap: 0.55em;
+    align-items: center;
+    color: rgba(255, 246, 234, 0.62);
+  }
+
+  /* the sheet for a schedule that would lock right now */
+  .sheet {
+    left: 50%;
+    top: 50%;
+    width: 56%;
+    transform: translate(-50%, -46%) scale(0.96);
+    background: #14162c;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 2.4cqw;
+    padding: 3.4cqw;
+    display: flex;
+    flex-direction: column;
+    gap: 1.3cqw;
+    opacity: 0;
+    pointer-events: none;
+    transition:
+      opacity 0.25s,
+      transform 0.35s cubic-bezier(0.3, 0.7, 0.2, 1);
+    z-index: 4;
+    box-shadow: 0 2cqw 6cqw rgba(0, 0, 0, 0.5);
+  }
+  .app[data-sheet='1'] .scr.on {
+    opacity: 0.18;
+    pointer-events: none;
+  }
+  .app[data-sheet='1'] .sheet {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translate(-50%, -50%);
+  }
+  .sheet h4 {
+    margin: 0;
+    font: 650 max(2.8cqw, 12px) var(--disp);
+  }
+  .sheet p {
+    font: 400 max(2.1cqw, 10px)/1.4 var(--ui);
+    opacity: 0.85;
+  }
+  .sheet div {
+    display: flex;
+    gap: 1.4cqw;
+    justify-content: flex-end;
+    margin-top: 1cqw;
+  }
+
+  /* System Settings and the drag panel, on the desk */
+  .sys {
+    left: 3%;
+    top: 14%;
+    width: 38%;
+    height: 70%;
+    background: #f4f3f1;
+    color: #23211f;
+    border-radius: 1.3cqw;
+    box-shadow: 0 2cqw 5cqw rgba(0, 0, 0, 0.45);
+    font-size: max(1.5cqw, 9px);
+    overflow: hidden;
+    opacity: 0;
+    transform: translateX(-6cqw);
+    pointer-events: none;
+    transition:
+      opacity 0.35s,
+      transform 0.5s cubic-bezier(0.3, 0.7, 0.2, 1);
+    z-index: 5;
+  }
+  .sys header {
+    padding: 1.2cqw 1.4cqw;
+    font-weight: 650;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2cqw;
+  }
+  .sys header small {
+    font-weight: 400;
+    color: #6d6a66;
+    font-size: 0.86em;
+  }
+  .sys .row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.85cqw 1.4cqw;
+    border-top: 1px solid #e2e0dc;
+  }
+  .sys .drop {
+    width: 100%;
+    border: 0;
+    border-top: 1px solid #e2e0dc;
+    background: #fbe6d6;
+    outline: 2px dashed #e0703d;
+    outline-offset: -3px;
+    color: #b8491f;
+    font: 650 1em var(--ui);
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .sys .drop.over {
+    background: #f7cdb1;
+  }
+  .sys .drop.in {
+    background: none;
+    outline: 0;
+    color: #23211f;
+    font-weight: 400;
+    cursor: default;
+  }
+  .tog {
+    width: 3cqw;
+    height: 1.7cqw;
+    border-radius: 99px;
+    background: #cfccc6;
+    flex: none;
+    position: relative;
+    transition: background 0.25s;
+  }
+  .tog::after {
+    content: '';
+    position: absolute;
+    top: 0.2cqw;
+    left: 0.2cqw;
+    width: 1.3cqw;
+    height: 1.3cqw;
+    border-radius: 50%;
+    background: #fff;
+    transition: transform 0.25s cubic-bezier(0.3, 1.4, 0.5, 1);
+  }
+  .tog.y {
+    background: #34c759;
+  }
+  .tog.y::after {
+    transform: translateX(1.3cqw);
+  }
+  .helper {
+    left: 44%;
+    top: 25%;
+    width: 22%;
+    background: #14162c;
+    color: var(--bone);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 2cqw;
+    box-shadow: 0 2cqw 5cqw rgba(0, 0, 0, 0.5);
+    padding: 2.2cqw 1.6cqw;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.1cqw;
+    text-align: center;
+    opacity: 0;
+    transform: translateY(2cqw) scale(0.94);
+    pointer-events: none;
+    transition:
+      opacity 0.3s 0.12s,
+      transform 0.5s 0.12s cubic-bezier(0.3, 1.3, 0.5, 1);
+    z-index: 6;
+  }
+  .helper b {
+    font: 650 max(1.7cqw, 10px) var(--disp);
+  }
+  .helper span {
+    font: 400 max(1.3cqw, 8px)/1.35 var(--ui);
+    opacity: 0.75;
+  }
+  .desk[data-sys='1'] .sys,
+  .desk[data-sys='1'] .helper {
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
+  }
+  .icon {
+    width: 7cqw;
+    height: 7cqw;
+    border-radius: 1.7cqw;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(
+      180deg,
+      #2a2f7a 0 18%,
+      #6a4a9c 18% 34%,
+      #c8648a 34% 48%,
+      #f2913f 48% 60%,
+      #ffd98a 60% 70%,
+      #1a143a 70%
+    );
+    box-shadow: 0 1cqw 2.4cqw rgba(0, 0, 0, 0.45);
+    cursor: grab;
+    touch-action: none;
+  }
+  .icon::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 70%;
+    width: 34%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: #fff3d6;
+    transform: translate(-50%, -62%);
+    clip-path: inset(0 0 38% 0);
+  }
+  .icon.drag {
+    position: fixed;
+    z-index: 20;
+    cursor: grabbing;
+    pointer-events: none;
+    transform: scale(1.08) rotate(-4deg);
+  }
+  .icon.gone {
+    visibility: hidden;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .app,
+    .sys,
+    .helper,
+    .mark {
+      transition: opacity 0.3s;
+    }
+    .scr.on .sky > *,
+    .scr.on .gnd > *,
+    .cap,
+    .stat,
+    .num .r {
+      animation: none;
+    }
+    .scr.out .sky > *,
+    .scr.out .gnd > * {
+      animation: none;
+      opacity: 0;
+    }
+    .stat .ic {
+      animation: none;
+      stroke-dashoffset: 0;
+    }
+  }
+  .still .app,
+  .still .sys,
+  .still .helper,
+  .still .mark {
+    transition: opacity 0.3s;
+  }
+  .still .scr.on .sky > *,
+  .still .scr.on .gnd > *,
+  .still .cap,
+  .still .stat,
+  .still .num .r {
+    animation: none;
+  }
+  .still .scr.out .sky > *,
+  .still .scr.out .gnd > * {
+    animation: none;
+    opacity: 0;
+  }
+</style>
+
+<svg width="0" height="0" style="position: absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-sunset" viewBox="0 0 24 24">
+      <path
+        d="M3 18h18M7 18a5 5 0 0 1 10 0M12 3.5v6m-3-2.6 3 3 3-3M4.6 12.6l1.6 1.2M19.4 12.6l-1.6 1.2M7 21.5h10"
+      />
+    </symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24">
+      <path
+        d="M7.5 11V8a4.5 4.5 0 0 1 9 0v3M6.5 11h11a1.5 1.5 0 0 1 1.5 1.5v6a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 5 18.5v-6A1.5 1.5 0 0 1 6.5 11z"
+      />
+    </symbol>
+    <symbol id="i-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" /></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24">
+      <path d="M19.6 10.2A8 8 0 1 0 12 20M12 7.5V12l3 1.8M19 14.5v6m-3-3h6" />
+    </symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" /></symbol>
+    <symbol id="i-minus" viewBox="0 0 24 24"><path d="M6 12h12" /></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M6 12h12M12 6v12" /></symbol>
+  </defs>
+</svg>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Curfew setup, approach C</div>
+    <h1>See it first.</h1>
+    <p class="lead">
+      The welcome plays one day so you know what Curfew does before it asks anything. After that
+      every screen holds one thing, with its one button right beneath it.
+    </p>
+  </header>
+
+  <section class="sec">
+    <div class="stage">
+      <div class="desk" id="desk">
+        <div class="a app" id="app">
+          <canvas id="sky" aria-hidden="true"></canvas>
+          <div class="a lights" aria-hidden="true"><i></i><i></i><i></i></div>
+
+          <div class="a scr title" data-s="welcome" id="wScr">
+            <div class="sky">
+              <div class="mark">Curfew</div>
+              <div class="h" id="wH"></div>
+              <div class="p" id="wP"></div>
+            </div>
+            <div class="gnd" id="wGnd"></div>
+            <div class="skip">
+              <button type="button" class="link" data-do="begin">Skip intro</button>
+            </div>
+          </div>
+
+          <div class="a scr" data-s="curfew">
+            <div class="sky">
+              <div class="h">When should your day end?</div>
+              <div class="time">
+                <button type="button" class="step" data-step="cf,-15" aria-label="Earlier">
+                  <svg class="ic"><use href="#i-minus" /></svg>
+                </button>
+                <div
+                  class="num"
+                  id="cfNum"
+                  role="slider"
+                  tabindex="0"
+                  aria-label="Curfew time"
+                  data-k="cf"
+                ></div>
+                <button type="button" class="step" data-step="cf,15" aria-label="Later">
+                  <svg class="ic"><use href="#i-plus" /></svg>
+                </button>
+              </div>
+              <div class="def" id="def"></div>
+            </div>
+            <div class="gnd">
+              <button type="button" class="pill go" data-do="use">Use this schedule</button>
+              <div class="alt">
+                <button type="button" class="link" data-do="none">No schedule yet</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="a scr" data-s="rest">
+            <div class="sky">
+              <div class="h">When does this Mac open again?</div>
+              <div class="time">
+                <button type="button" class="step" data-step="ws,-15" aria-label="Earlier">
+                  <svg class="ic"><use href="#i-minus" /></svg>
+                </button>
+                <div
+                  class="num"
+                  id="wsNum"
+                  role="slider"
+                  tabindex="0"
+                  aria-label="Unlock time"
+                  data-k="ws"
+                ></div>
+                <button type="button" class="step" data-step="ws,15" aria-label="Later">
+                  <svg class="ic"><use href="#i-plus" /></svg>
+                </button>
+              </div>
+              <div class="chips" id="chips" role="group" aria-label="Days that lock"></div>
+            </div>
+            <div class="gnd">
+              <button type="button" class="pill go" id="restGo" data-do="rested">Done</button>
+              <div class="alt" id="restAlt"></div>
+            </div>
+          </div>
+
+          <div class="a scr" data-s="grip">
+            <div class="sky">
+              <div class="h">Let Curfew hold the lock.</div>
+              <div class="p">It needs Accessibility, so shortcuts can&rsquo;t get past it.</div>
+            </div>
+            <div class="gnd" id="gripGnd"></div>
+          </div>
+
+          <div class="a scr" data-s="extra">
+            <div class="sky">
+              <div class="h">Two more. Both optional.</div>
+              <div class="rows">
+                <div><span>Warnings before curfew</span><span id="noGo"></span></div>
+                <div><span>Keep the lock if Curfew is quit</span><span id="heGo"></span></div>
+              </div>
+            </div>
+            <div class="gnd">
+              <button type="button" class="pill go" data-do="extraGo">Continue</button>
+            </div>
+          </div>
+
+          <div class="a scr" data-s="set">
+            <div class="sky">
+              <div class="h">You&rsquo;re set.</div>
+              <div class="p" id="readyLine"></div>
+              <div class="small" id="weak"></div>
+            </div>
+            <div class="gnd">
+              <button type="button" class="pill go" data-do="setGo">Continue</button>
+              <div class="alt">
+                <button type="button" class="link" data-do="preview">Preview the lock</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="a scr split" data-s="pre">
+            <div class="sky">
+              <div class="tag" id="preTag">Preview</div>
+              <div class="num lock" id="preClock"></div>
+              <div class="h">That&rsquo;s the day.</div>
+              <div class="tline" id="preSub"></div>
+            </div>
+            <div class="gnd">
+              <button type="button" class="pill glass" data-do="preEnd" id="preEnd">
+                End preview
+              </button>
+            </div>
+          </div>
+
+          <div class="a scr" data-s="plus">
+            <div class="sky">
+              <div class="h">Curfew on your other devices</div>
+              <div class="p">
+                Curfew Plus is a single payment. It syncs your schedule and lets your phone lock
+                this Mac.
+              </div>
+            </div>
+            <div class="gnd">
+              <div class="trio">
+                <button type="button" class="pill out" data-do="today">Get Curfew Plus</button
+                ><button type="button" class="pill out" data-do="today">Sign in</button
+                ><button type="button" class="pill out" data-do="today">Skip</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="a scr split" data-s="today">
+            <div class="sky">
+              <div class="num lock" id="tBig" style="font-size: 15cqw"></div>
+              <div class="tline" id="tSub"></div>
+              <div class="trio">
+                <span class="pill glass"
+                  ><svg class="ic"><use href="#i-more" /></svg> 15 more minutes</span
+                ><span class="pill go"
+                  ><svg class="ic"><use href="#i-sunset" /></svg> Call it a day</span
+                >
+              </div>
+            </div>
+            <div class="gnd">
+              <div class="thing">
+                <svg class="ic"><use href="#i-circle" /></svg>What is today for?
+              </div>
+            </div>
+          </div>
+
+          <div class="a sheet" role="alertdialog" aria-labelledby="shT">
+            <h4 id="shT">This Mac locks right away</h4>
+            <p>It&rsquo;s already curfew, so finishing setup locks this Mac now.</p>
+            <div>
+              <button type="button" class="pill out" data-do="shBack">Change the times</button
+              ><button type="button" class="pill go" data-do="shGo">Finish and lock</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="a sys" id="sys" aria-hidden="true">
+          <header>
+            Accessibility<small>Allow the applications below to control your computer.</small>
+          </header>
+          <div class="row"><span>Alfred</span><i class="tog y"></i></div>
+          <div class="row"><span>Raycast</span><i class="tog y"></i></div>
+          <button type="button" class="row drop" id="drop">
+            <span id="dropL">Drop Curfew here</span
+            ><i class="tog" id="dropT" style="visibility: hidden"></i>
+          </button>
+          <div class="row"><span>Rectangle</span><i class="tog"></i></div>
+        </div>
+        <div class="a helper" id="helper">
+          <div class="icon" id="icon" role="img" aria-label="Curfew app icon"></div>
+          <b id="helperL">Drag Curfew into the list</b>
+          <span id="helperS">If Curfew is already listed, switch it on.</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="ctl" id="nav">
+      <button type="button" data-go="welcome">1 Welcome</button>
+      <button type="button" data-go="curfew">2 Curfew</button>
+      <button type="button" data-go="grip">3 Permission</button>
+      <button type="button" data-go="extra">4 Optional</button>
+      <button type="button" data-go="set">5 Set</button>
+      <button type="button" data-go="plus">Plus</button>
+      <button type="button" data-go="today">Today</button>
+      <span class="gap"></span>
+      <button type="button" id="still" aria-pressed="false">Reduce Motion</button>
+      <button type="button" id="restart">Start over</button>
+    </div>
+    <p class="try" id="try"></p>
+  </section>
+
+  <section class="sec">
+    <h2>Screen by screen</h2>
+    <div class="specs">
+      <div class="card">
+        <span class="k">1</span>
+        <h3>Welcome</h3>
+        <p>
+          The sky plays one day in about ten seconds with three captions, then rests on one sentence
+          saying what Curfew is. The button is there from the start, so nobody has to wait.
+        </p>
+      </div>
+      <div class="card">
+        <span class="k">2</span>
+        <h3>One question</h3>
+        <p>
+          Only the curfew time. Weekdays and a 7:00 AM unlock are stated as defaults, and "Change"
+          opens them on their own screen. "Use this schedule" and "No schedule yet" are the two
+          explicit choices.
+        </p>
+      </div>
+      <div class="card">
+        <span class="k">3</span>
+        <h3>The one permission</h3>
+        <p>
+          Accessibility, alone, with one line saying why. The drag panel sits beside System
+          Settings. Setup comes forward and moves on by itself once access is granted.
+        </p>
+      </div>
+      <div class="card">
+        <span class="k">4</span>
+        <h3>Two optional asks</h3>
+        <p>
+          Notifications and the Curfew helper as two rows. Continue without touching either is the
+          skip, so there are no Skip buttons.
+        </p>
+      </div>
+      <div class="card">
+        <span class="k">5</span>
+        <h3>You're set</h3>
+        <p>
+          The sky shows the real time of day and one sentence says when this Mac next locks. The
+          preview is a quiet link. Curfew Plus follows as it does now, then the window is Today.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <h2>What stays true</h2>
+    <div class="specs">
+      <div class="card">
+        <h3>Editing arms nothing</h3>
+        <p>
+          The schedule is recorded on an explicit press and enforced only after real Accessibility
+          trust. A schedule that would lock at once asks first. Setup reopens where it was left.
+        </p>
+      </div>
+      <div class="card">
+        <h3>Keys and VoiceOver</h3>
+        <p>
+          Each time is a slider read as a time. Arrow keys move five minutes, Shift an hour, and the
+          round buttons fifteen. The icon drag has the switch in the list as its other path.
+        </p>
+      </div>
+      <div class="card">
+        <h3>Reduce Motion</h3>
+        <p>
+          The welcome skips the day and shows its resting sentence. Screens cross-fade and the sky
+          holds still. Try the toggle above.
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+  (function () {
+    var H = 0.1,
+      NOW = 762; // the prototype's "now" is 12:42 PM
+    var S = { ws: 420, cf: 1080, days: [1, 1, 1, 1, 1, 0, 0], weekly: true };
+    var st = { scr: 'welcome', from: 'curfew', ax: 0, no: 'ask', he: 'ask', locked: 0, played: 0 };
+    var still = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var $ = function (id) {
+        return document.getElementById(id);
+      },
+      desk = $('desk'),
+      app = $('app'),
+      cv = $('sky');
+
+    // the sky: the Horizon prototype's model and shader
+    function qb(a, c, b, t) {
+      var u = 1 - t;
+      return [
+        u * u * a[0] + 2 * t * u * c[0] + t * t * b[0],
+        u * u * a[1] + 2 * t * u * c[1] + t * t * b[1],
+      ];
+    }
+    var PC = [0.5, 1.6];
+    function sm(a, b, x) {
+      x = Math.max(0, Math.min(1, (x - a) / (b - a)));
+      return x * x * (3 - 2 * x);
+    }
+    // m is story time: it only runs forward, so the model reads it as a time of day
+    function model(m) {
+      var ws = S.ws,
+        cf = S.cf,
+        un = ws + 1440,
+        len = cf - ws,
+        p,
+        SW,
+        E,
+        MW = 0;
+      m = ws + ((((m - ws) % 1440) + 1440) % 1440);
+      var q = (m - cf) / (un - cf);
+      if (m <= cf) {
+        p = (m - ws) / len;
+        SW = 1;
+        E = Math.sin(Math.PI * Math.max(0, p));
+      } else if (m < un) {
+        E = -0.9 * Math.min(1, (m - cf) / 70, (un - m) / 35);
+        if (m <= cf + 45) {
+          p = (m - ws) / len;
+          SW = 1 - sm(cf + 5, cf + 45, m);
+        } else if (m >= un - 40) {
+          p = (m - un) / len;
+          SW = sm(un - 40, un - 5, m);
+        } else {
+          p = 1.2;
+          SW = 0;
+        }
+        MW = Math.min(sm(cf + 5, cf + 50, m), 1 - sm(un - 50, un - 10, m));
+      } else {
+        p = (m - un) / len;
+        SW = 1;
+        E = Math.sin(Math.PI * Math.min(1, p));
+      }
+      var P0 = [0.07, H],
+        P2 = [0.93, H];
+      return { S: qb(P0, PC, P2, p), SW: SW, M: qb(P0, PC, P2, q), MW: MW, E: E };
+    }
+    var jd = Date.now() / 864e5 + 2440587.5,
+      age = (((jd - 2451550.1) % 29.530588853) + 29.530588853) % 29.530588853,
+      MOON = (2 * Math.PI * age) / 29.530588853;
+    var FS = [
+      '#version 300 es',
+      'precision highp float;',
+      'uniform vec2 R;uniform vec2 S;uniform vec2 M;uniform vec2 W;uniform float E;uniform float PH;uniform float MO;uniform float H;out vec4 o;',
+      'const float N=14.;',
+      'vec3 ph(vec3 d,vec3 g,vec3 u,vec3 n,float e){if(e>.1)return mix(g,d,smoothstep(.1,.55,e));if(e>-.05)return mix(u,g,smoothstep(-.05,.1,e));return mix(n,u,smoothstep(-.4,-.05,e));}',
+      'vec3 ramp(float k,float e){vec3 c0=ph(vec3(.10,.27,.66),vec3(.15,.17,.46),vec3(.07,.08,.24),vec3(.027,.031,.094),e),c1=ph(vec3(.22,.44,.82),vec3(.38,.27,.60),vec3(.20,.15,.42),vec3(.047,.059,.165),e),c2=ph(vec3(.44,.64,.91),vec3(.74,.38,.55),vec3(.50,.22,.45),vec3(.10,.12,.31),e),c3=ph(vec3(.70,.82,.95),vec3(.95,.56,.27),vec3(.83,.34,.30),vec3(.135,.155,.37),e),c4=ph(vec3(.94,.96,.98),vec3(1.,.84,.52),vec3(.96,.62,.30),vec3(.19,.21,.46),e);',
+      ' float x=clamp(k,0.,1.)*4.;if(x<1.)return mix(c0,c1,x);if(x<2.)return mix(c1,c2,x-1.);if(x<3.)return mix(c2,c3,x-2.);return mix(c3,c4,x-3.);}',
+      'void main(){vec2 uv=gl_FragCoord.xy/R;float asp=R.x/R.y;float a=max((uv.y-H)/(1.-H),0.);',
+      ' float rs=length(vec2((uv.x-S.x)*asp,uv.y-S.y)),rm=length(vec2((uv.x-M.x)*asp,uv.y-M.y));',
+      ' float low=1.-smoothstep(.05,.6,abs(E));',
+      ' float L=1.-(1.-exp(-rs*2.4)*W.x)*(1.-exp(-rm*3.2)*W.y*.7)*(1.-exp(-a*3.2)*mix(.34,.9,low));',
+      ' float x=L*N+PH;float w=clamp(fwidth(x)*1.1,0.,.45);float kq=floor(x)+smoothstep(1.-w,1.,fract(x));float k=(kq-PH)/N;',
+      ' vec3 c=ramp(k,E+(k-.5)*.24);float aa=1.5/R.y;',
+      ' c=mix(c,ramp(1.,E+.12)*1.02+.03,(1.-smoothstep(.05-aa,.05+aa,rs))*step(.01,W.x));',
+      ' vec2 q=vec2((uv.x-M.x)*asp,uv.y-M.y)/.04;float mq=dot(q,q);float lit=step(0.,q.x*sin(MO)-sqrt(max(1.-mq,0.))*cos(MO));',
+      ' c=mix(c,mix(vec3(.2,.22,.42),vec3(.93,.92,.97),lit),(1.-smoothstep(1.-aa*40.,1.+aa*40.,mq))*smoothstep(.0,.25,W.y));',
+      ' vec3 g=ph(vec3(.07,.11,.29),vec3(.11,.085,.25),vec3(.065,.05,.18),vec3(.018,.02,.055),E);o=vec4(uv.y<H?g:c,1.);}',
+    ].join('\n');
+    function mk(cv) {
+      var gl = cv.getContext('webgl2', { antialias: false, preserveDrawingBuffer: true });
+      if (!gl) return null;
+      function sh(t, s) {
+        var x = gl.createShader(t);
+        gl.shaderSource(x, s);
+        gl.compileShader(x);
+        if (!gl.getShaderParameter(x, gl.COMPILE_STATUS)) {
+          console.error(gl.getShaderInfoLog(x));
+          return null;
+        }
+        return x;
+      }
+      var vs = sh(
+          gl.VERTEX_SHADER,
+          '#version 300 es\nin vec2 p;void main(){gl_Position=vec4(p,0.,1.);}',
+        ),
+        fs = sh(gl.FRAGMENT_SHADER, FS);
+      if (!vs || !fs) return null;
+      var pr = gl.createProgram();
+      gl.attachShader(pr, vs);
+      gl.attachShader(pr, fs);
+      gl.linkProgram(pr);
+      if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) return null;
+      gl.useProgram(pr);
+      var b = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, b);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+      var l = gl.getAttribLocation(pr, 'p');
+      gl.enableVertexAttribArray(l);
+      gl.vertexAttribPointer(l, 2, gl.FLOAT, false, 0, 0);
+      var U = {};
+      ['R', 'S', 'M', 'W', 'E', 'PH', 'MO', 'H'].forEach(function (n) {
+        U[n] = gl.getUniformLocation(pr, n);
+      });
+      return function (o, phase) {
+        gl.viewport(0, 0, cv.width, cv.height);
+        gl.uniform2f(U.R, cv.width, cv.height);
+        gl.uniform2f(U.S, o.S[0], o.S[1]);
+        gl.uniform2f(U.M, o.M[0], o.M[1]);
+        gl.uniform2f(U.W, o.SW, o.MW);
+        gl.uniform1f(U.E, o.E);
+        gl.uniform1f(U.PH, phase);
+        gl.uniform1f(U.MO, MOON);
+        gl.uniform1f(U.H, H);
+        gl.drawArrays(gl.TRIANGLES, 0, 3);
+      };
+    }
+    function fit(cv) {
+      var d = Math.min(window.devicePixelRatio || 1, 2),
+        w = Math.max(2, Math.round(cv.clientWidth * d)),
+        h = Math.max(2, Math.round(cv.clientHeight * d));
+      if (cv.width !== w || cv.height !== h) {
+        cv.width = w;
+        cv.height = h;
+      }
+    }
+    var draw = mk(cv);
+    if (!draw) document.documentElement.classList.add('nogl');
+
+    // words
+    function clk(mm) {
+      mm = ((Math.round(mm) % 1440) + 1440) % 1440;
+      var h = Math.floor(mm / 60),
+        mi = mm % 60;
+      return { t: (h % 12 || 12) + ':' + (mi < 10 ? '0' : '') + mi, ap: h >= 12 ? 'PM' : 'AM' };
+    }
+    function full(mm) {
+      var c = clk(mm);
+      return c.t + ' ' + c.ap;
+    }
+    function ico(n) {
+      return '<svg class="ic"><use href="#i-' + n + '"/></svg>';
+    }
+    function roll(el, str, suffix) {
+      var key = str + '|' + (suffix || '');
+      if (el._k === key) return;
+      var prev = (el._k || '').split('|')[0],
+        h = '';
+      for (var i = 0; i < str.length; i++)
+        h +=
+          '<span' +
+          (prev.length === str.length && prev[i] !== str[i] ? ' class="r"' : '') +
+          '>' +
+          str[i] +
+          '</span>';
+      if (suffix) h += '<small>' + suffix + '</small>';
+      el._k = key;
+      el.innerHTML = h;
+    }
+    function put(el, html) {
+      if (el._h !== html) {
+        el._h = html;
+        el.innerHTML = html;
+      }
+    }
+    var NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+      SHORT = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+    function dayPhrase() {
+      var d = S.days,
+        on = [];
+      for (var i = 0; i < 7; i++) if (d[i]) on.push(i);
+      if (!on.length) return '';
+      if (on.length === 7) return 'Every day';
+      if (on.join() === '0,1,2,3,4') return 'Weekdays';
+      var run = on.every(function (v, i) {
+        return i === 0 || v === on[i - 1] + 1;
+      });
+      if (run && on.length > 2) return NAMES[on[0]] + ' to ' + NAMES[on[on.length - 1]];
+      var n = on.map(function (i) {
+        return NAMES[i] + 's';
+      });
+      return n.length === 1 ? n[0] : n.slice(0, -1).join(', ') + ' and ' + n[n.length - 1];
+    }
+    function stat(text, ok) {
+      return (
+        '<span class="stat' +
+        (ok ? '' : ' off') +
+        '">' +
+        (ok ? ico('check') : '') +
+        text +
+        '</span>'
+      );
+    }
+    var TRY = {
+      welcome: 'Watch the day play, or skip it.',
+      curfew:
+        'Change the time with the round buttons, the arrow keys, or by dragging it. "Change" opens unlock and days. Set curfew before 12:42 PM to meet the lock-right-away check.',
+      rest: 'Set when this Mac opens and which days lock.',
+      grip: 'Open System Settings, then drag the icon into the list or click the slot.',
+      extra: 'Allow or install either one, or just continue.',
+      set: 'Preview the lock, or continue.',
+      pre: 'Click the button or press Escape.',
+      plus: 'Any of the three. They weigh the same.',
+      today: 'This is Today. Setup has ended.',
+    };
+
+    // state to screen
+    var shown = null;
+    function render() {
+      var i,
+        list = app.querySelectorAll('.scr');
+      if (shown !== st.scr) {
+        shown = st.scr;
+        for (i = 0; i < list.length; i++) {
+          var e = list[i];
+          if (e.dataset.s === st.scr) {
+            e.classList.remove('out');
+            e.classList.add('on');
+          } else if (e.classList.contains('on')) {
+            e.classList.remove('on');
+            e.classList.add('out');
+            (function (e) {
+              setTimeout(function () {
+                e.classList.remove('out');
+              }, 330);
+            })(e);
+          }
+        }
+      }
+      roll($('cfNum'), clk(S.cf).t, clk(S.cf).ap);
+      roll($('wsNum'), clk(S.ws).t, clk(S.ws).ap);
+      $('cfNum').setAttribute('aria-valuetext', full(S.cf));
+      $('wsNum').setAttribute('aria-valuetext', full(S.ws));
+      var dp = dayPhrase();
+      put(
+        $('def'),
+        dp +
+          '. Opens at ' +
+          full(S.ws) +
+          '. <button type="button" class="link" data-do="rest">Change</button>',
+      );
+      var chips = $('chips').children;
+      for (i = 0; i < chips.length; i++)
+        chips[i].setAttribute('aria-pressed', S.days[i] ? 'true' : 'false');
+      $('restGo').disabled = !dp;
+      put($('restAlt'), dp ? '' : 'Pick at least one day.');
+      put(
+        $('gripGnd'),
+        st.ax
+          ? st.settled
+            ? '<button type="button" class="pill go" data-do="gripGo">Continue</button>'
+            : stat('Allowed', 1)
+          : desk.dataset.sys === '1'
+            ? stat('Waiting for System Settings', 0)
+            : '<button type="button" class="pill go" data-do="ax">Open System Settings</button><div class="alt"><button type="button" class="link" data-do="back">Back</button></div>',
+      );
+      put(
+        $('noGo'),
+        st.no === 'ok'
+          ? stat('Allowed', 1)
+          : '<button type="button" class="pill out" data-do="no">Allow</button>',
+      );
+      put(
+        $('heGo'),
+        st.he === 'ok'
+          ? stat('Installed', 1)
+          : st.he === 'busy'
+            ? stat('Installing', 0)
+            : '<button type="button" class="pill out" data-do="he">Install</button>',
+      );
+      put(
+        $('readyLine'),
+        S.weekly
+          ? 'Curfew locks ' +
+              (S.cf % 1440 >= 1020 ? 'tonight' : 'today') +
+              ' at ' +
+              full(S.cf) +
+              '.'
+          : 'Nothing locks on a schedule. Set a curfew any time in Schedule.',
+      );
+      put(
+        $('weak'),
+        st.he === 'ok'
+          ? ''
+          : 'Without the Curfew helper, force quitting Curfew ends the lock early.',
+      );
+      roll($('preClock'), clk(S.cf).t, clk(S.cf).ap);
+      put($('preSub'), ico('lock') + 'Unlocks at ' + full(S.ws));
+      put($('preTag'), st.locked ? '' : 'Preview');
+      put($('preEnd'), st.locked ? 'Back to the prototype' : 'End preview');
+      var rem = Math.max(0, S.cf - NOW);
+      roll($('tBig'), Math.floor(rem / 60) + ':' + (rem % 60 < 10 ? '0' : '') + (rem % 60));
+      put($('tSub'), S.weekly ? ico('sunset') + 'until curfew at ' + full(S.cf) : 'Curfew is off.');
+      put($('try'), '<b style="color:var(--fg);font-weight:600">Try:</b> ' + TRY[st.scr]);
+      var cur = { rest: 'curfew', pre: 'set' }[st.scr] || st.scr,
+        nav = $('nav').querySelectorAll('[data-go]');
+      for (i = 0; i < nav.length; i++)
+        nav[i].setAttribute('aria-current', nav[i].dataset.go === cur ? 'true' : 'false');
+    }
+    function go(s) {
+      st.scr = s;
+      st.locked = 0;
+      app.dataset.sheet = '';
+      if (s !== 'grip') desk.dataset.sys = '';
+      if (s === 'welcome') play();
+      else part = 3;
+      if (s === 'today') ripple(1.5);
+      var dist = Math.abs(aim() - m);
+      app.style.setProperty(
+        '--d',
+        (still || s === 'welcome' || dist < 90 ? 0.32 : sweep(dist) * 0.55).toFixed(2) + 's',
+      );
+      render();
+    }
+
+    // 1. the welcome: a title card, one day with three captions, then a resting sentence
+    var t0 = 0,
+      part = 3,
+      evt = 0,
+      tw = null,
+      rip = 0;
+    function ripple(n) {
+      if (!still) rip += n;
+    }
+    function swap(id, html, delay) {
+      var e = $(id),
+        old = e.firstElementChild;
+      function set() {
+        e.innerHTML = html
+          ? '<span class="cap"' +
+            (delay ? ' style="animation-delay:' + delay + 's"' : '') +
+            '>' +
+            html +
+            '</span>'
+          : '';
+      }
+      if (old && !still) {
+        old.classList.add('bye');
+        setTimeout(set, 260);
+      } else set();
+    }
+    function rested() {
+      part = 3;
+      $('wScr').classList.remove('title', 'playing');
+      swap('wH', 'Curfew ends your work day.');
+      swap('wP', 'At the time you pick, this Mac locks until morning.', 0.1);
+      put(
+        $('wGnd'),
+        '<button type="button" class="pill go" data-do="begin">Set my curfew</button><div class="alt"><button type="button" class="link" data-do="again">Watch again</button></div>',
+      );
+    }
+    function keys() {
+      var ws = S.ws,
+        cf = S.cf,
+        len = cf - ws;
+      return [
+        [0, ws - 75],
+        [1.7, ws - 50],
+        [3.4, ws + 45],
+        [6.4, cf - 12],
+        [8.4, cf + 78],
+        [9.5, cf + 118],
+        [11.8, ws + 1440 - 6],
+      ];
+    }
+    function play() {
+      if (still) {
+        m = S.ws - 6;
+        rested();
+        return;
+      }
+      part = 0;
+      evt = 0;
+      tw = null;
+      t0 = performance.now() + 500;
+      m = S.ws - 75;
+      $('wScr').classList.add('title', 'playing');
+      $('wH').innerHTML = '';
+      $('wP').innerHTML = '';
+      put($('wGnd'), '');
+    }
+    var CUES = [
+      [
+        1.5,
+        function () {
+          $('wScr').classList.remove('title');
+        },
+      ],
+      [
+        2.5,
+        function () {
+          swap('wH', 'You work.');
+        },
+      ],
+      [
+        6.9,
+        function () {
+          swap('wH', 'At curfew, this Mac locks.');
+        },
+      ],
+      [
+        10.5,
+        function () {
+          swap('wH', 'In the morning it opens again.');
+        },
+      ],
+      [13, rested],
+    ];
+
+    // the sky follows the screen. Story time only runs forward, so moving on is always later in the day or the next one.
+    var m = S.ws - 75,
+      phase = 3.3,
+      last = performance.now();
+    function tod() {
+      var len = S.cf - S.ws;
+      switch (st.scr) {
+        case 'welcome':
+        case 'rest':
+          return S.ws - 6;
+        case 'curfew':
+          return S.cf + 4;
+        case 'grip':
+          return S.cf + 6;
+        case 'extra':
+          return S.cf + 8;
+        case 'set':
+        case 'plus':
+          return S.cf + 92;
+        case 'pre':
+          return S.cf + 80;
+        default:
+          return S.ws + Math.max(len * 0.04, Math.min(len * 0.985, NOW - S.ws));
+      }
+    }
+    function sweep(dist) {
+      return Math.max(0.9, Math.min(2.2, 0.9 + (dist / 1440) * 2));
+    }
+    function aim() {
+      var cur = tw ? tw.b : m,
+        d = (((tod() - cur) % 1440) + 1440) % 1440;
+      if (d > 1200) d -= 1440;
+      return cur + d;
+    }
+    function frame(now) {
+      var dt = Math.min(0.1, (now - last) / 1000);
+      last = now;
+      var moving = !still;
+      if (st.scr === 'welcome' && part < 3 && !still) {
+        var t = Math.max(0, (now - t0) / 1000),
+          K = keys(),
+          i = 0;
+        while (i < K.length - 2 && t > K[i + 1][0]) i++;
+        var k = Math.max(0, Math.min(1, (t - K[i][0]) / (K[i + 1][0] - K[i][0]))),
+          key = K[i][1] + (K[i + 1][1] - K[i][1]) * k;
+        m += (key - m) * (1 - Math.exp(-dt * 9));
+        while (evt < CUES.length && t >= CUES[evt][0]) CUES[evt++][1]();
+        moving = t < 8.2 || t > 10.2;
+      } else {
+        var g = aim();
+        if (still) {
+          m = g;
+          tw = null;
+        } else {
+          if (tw && Math.abs(tw.b - g) > 0.5) tw = null;
+          if (!tw && Math.abs(g - m) > 0.5)
+            tw = { a: m, b: g, t0: now, d: sweep(Math.abs(g - m)) * 1000 };
+          if (tw) {
+            var u = Math.min(1, (now - tw.t0) / tw.d);
+            u = u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
+            m = tw.a + (tw.b - tw.a) * u;
+            if (u >= 1) {
+              m = tw.b;
+              tw = null;
+            }
+          }
+        }
+        moving = !still && st.scr !== 'pre';
+      }
+      var hz = st.scr === 'today' || st.scr === 'pre' ? 0.26 : 0.1;
+      H = still || Math.abs(hz - H) < 0.001 ? hz : H + (hz - H) * (1 - Math.exp(-dt * 3));
+      var dr = rip * (1 - Math.exp(-dt * 5));
+      phase += dr;
+      rip -= dr;
+      if (moving) phase += dt * 0.05;
+      fit(cv);
+      if (draw) draw(model(m), phase);
+      requestAnimationFrame(frame);
+    }
+
+    // 2. the times
+    function setTime(k, v) {
+      if (k === 'cf') S.cf = Math.max(S.ws + 60, Math.min(S.ws + 1200, v));
+      else S.ws = Math.max(Math.max(0, S.cf - 1200), Math.min(S.cf - 60, v));
+      render();
+    }
+    ['cfNum', 'wsNum'].forEach(function (id) {
+      var e = $(id),
+        k = e.dataset.k,
+        y0 = 0,
+        v0 = 0,
+        down = false;
+      e.addEventListener('pointerdown', function (ev) {
+        down = true;
+        y0 = ev.clientY;
+        v0 = S[k];
+        e.setPointerCapture(ev.pointerId);
+      });
+      e.addEventListener('pointermove', function (ev) {
+        if (down) setTime(k, v0 + Math.round((y0 - ev.clientY) / 6) * 5);
+      });
+      function up() {
+        down = false;
+      }
+      e.addEventListener('pointerup', up);
+      e.addEventListener('pointercancel', up);
+      e.addEventListener('keydown', function (ev) {
+        var d =
+          ev.key === 'ArrowRight' || ev.key === 'ArrowUp'
+            ? 1
+            : ev.key === 'ArrowLeft' || ev.key === 'ArrowDown'
+              ? -1
+              : 0;
+        if (!d) return;
+        ev.preventDefault();
+        setTime(k, S[k] + d * (ev.shiftKey ? 60 : 5));
+      });
+    });
+    (function () {
+      var box = $('chips');
+      for (var i = 0; i < 7; i++) {
+        (function (i) {
+          var b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'dayc';
+          b.textContent = SHORT[i];
+          b.setAttribute('aria-label', NAMES[i]);
+          b.addEventListener('click', function () {
+            S.days[i] = S.days[i] ? 0 : 1;
+            render();
+          });
+          box.appendChild(b);
+        })(i);
+      }
+    })();
+
+    // 3. the permission
+    function commit(force) {
+      if (S.weekly && !force && !(NOW >= S.ws && NOW < S.cf - 1)) {
+        st.settled = 1;
+        render();
+        app.dataset.sheet = '1';
+        return;
+      }
+      if (force) {
+        go('pre');
+        st.locked = 1;
+        render();
+      } else go('extra');
+    }
+    function grant() {
+      if (st.ax) return;
+      var d = $('drop');
+      d.classList.remove('over');
+      d.classList.add('in');
+      $('dropL').textContent = 'Curfew';
+      var t = $('dropT');
+      t.style.visibility = 'visible';
+      setTimeout(function () {
+        t.classList.add('y');
+      }, 60);
+      $('icon').classList.add('gone');
+      $('helperL').textContent = 'Allowed';
+      $('helperS').textContent = 'Back to Curfew.';
+      setTimeout(
+        function () {
+          desk.dataset.sys = '';
+          st.ax = 1;
+          st.settled = 0;
+          ripple(2);
+          render();
+          setTimeout(
+            function () {
+              if (st.scr === 'grip' && !st.settled) {
+                st.settled = 1;
+                commit();
+              }
+            },
+            still ? 300 : 1100,
+          );
+        },
+        still ? 300 : 900,
+      );
+    }
+    $('drop').addEventListener('click', grant);
+    (function () {
+      var ic = $('icon'),
+        ghost = null;
+      function over(e) {
+        var r = $('sys').getBoundingClientRect();
+        return (
+          e.clientX > r.left && e.clientX < r.right && e.clientY > r.top && e.clientY < r.bottom
+        );
+      }
+      function move(e) {
+        if (!ghost) return;
+        ghost.style.left = e.clientX - ghost.offsetWidth / 2 + 'px';
+        ghost.style.top = e.clientY - ghost.offsetHeight / 2 + 'px';
+        $('drop').classList.toggle('over', over(e));
+      }
+      ic.addEventListener('pointerdown', function (e) {
+        if (st.ax) return;
+        var r = ic.getBoundingClientRect();
+        ghost = ic.cloneNode(true);
+        ghost.removeAttribute('id');
+        ghost.classList.add('drag');
+        ghost.style.width = r.width + 'px';
+        ghost.style.height = r.height + 'px';
+        ghost.style.borderRadius = r.width * 0.24 + 'px';
+        document.body.appendChild(ghost);
+        ic.classList.add('gone');
+        ic.setPointerCapture(e.pointerId);
+        move(e);
+      });
+      ic.addEventListener('pointermove', move);
+      function up(e) {
+        if (!ghost) return;
+        ghost.remove();
+        ghost = null;
+        if (over(e)) grant();
+        else {
+          ic.classList.remove('gone');
+          $('drop').classList.remove('over');
+        }
+      }
+      ic.addEventListener('pointerup', up);
+      ic.addEventListener('pointercancel', up);
+    })();
+
+    // every button in the window
+    var preT = null;
+    app.addEventListener('click', function (e) {
+      var s = e.target.closest('[data-step]');
+      if (s) {
+        var a = s.dataset.step.split(',');
+        setTime(a[0], S[a[0]] + +a[1]);
+        return;
+      }
+      var b = e.target.closest('[data-do]');
+      if (!b || b.disabled) return;
+      switch (b.dataset.do) {
+        case 'begin':
+          go('curfew');
+          break;
+        case 'again':
+          play();
+          render();
+          break;
+        case 'rest':
+          go('rest');
+          break;
+        case 'rested':
+          go('curfew');
+          break;
+        case 'use':
+          S.weekly = true;
+          go('grip');
+          break;
+        case 'none':
+          S.weekly = false;
+          go('grip');
+          break;
+        case 'back':
+          go('curfew');
+          break;
+        case 'ax':
+          desk.dataset.sys = '1';
+          render();
+          break;
+        case 'gripGo':
+          commit();
+          break;
+        case 'no':
+          st.no = 'ok';
+          ripple(1);
+          render();
+          break;
+        case 'he':
+          st.he = 'busy';
+          render();
+          setTimeout(function () {
+            st.he = 'ok';
+            ripple(1);
+            render();
+          }, 900);
+          break;
+        case 'extraGo':
+          go('set');
+          break;
+        case 'setGo':
+          go('plus');
+          break;
+        case 'today':
+          go('today');
+          break;
+        case 'preview':
+          go('pre');
+          clearTimeout(preT);
+          preT = setTimeout(function () {
+            if (st.scr === 'pre' && !st.locked) go('set');
+          }, 9000);
+          break;
+        case 'preEnd':
+          clearTimeout(preT);
+          go('set');
+          break;
+        case 'shBack':
+          go('curfew');
+          break;
+        case 'shGo':
+          commit(true);
+          break;
+      }
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && st.scr === 'pre') {
+        clearTimeout(preT);
+        go('set');
+      }
+    });
+
+    // prototype controls
+    $('nav').addEventListener('click', function (e) {
+      var b = e.target.closest('[data-go]');
+      if (!b) return;
+      var s = b.dataset.go;
+      if (s !== 'welcome' && s !== 'curfew' && s !== 'grip') {
+        st.ax = 1;
+        st.settled = 1;
+      }
+      go(s);
+    });
+    function reset() {
+      S.ws = 420;
+      S.cf = 1080;
+      S.days = [1, 1, 1, 1, 1, 0, 0];
+      S.weekly = true;
+      st.ax = 0;
+      st.settled = 0;
+      st.no = 'ask';
+      st.he = 'ask';
+      var d = $('drop');
+      d.classList.remove('in', 'over');
+      $('dropL').textContent = 'Drop Curfew here';
+      var t = $('dropT');
+      t.classList.remove('y');
+      t.style.visibility = 'hidden';
+      $('icon').classList.remove('gone');
+      $('helperL').textContent = 'Drag Curfew into the list';
+      $('helperS').textContent = 'If Curfew is already listed, switch it on.';
+      go('welcome');
+    }
+    $('restart').addEventListener('click', reset);
+    $('still').addEventListener('click', function () {
+      still = !still;
+      this.setAttribute('aria-pressed', still ? 'true' : 'false');
+      document.documentElement.classList.toggle('still', still);
+      if (st.scr === 'welcome') {
+        m = S.ws - 6;
+        rested();
+      }
+    });
+
+    go('welcome');
+    setTimeout(function () {
+      app.classList.add('open');
+    }, 150);
+    requestAnimationFrame(frame);
+  })();
+</script>

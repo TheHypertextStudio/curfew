@@ -7,11 +7,27 @@ enum GettingStartedCopy {
     /// Window title. Sentence case, like every other line in setup.
     static let windowTitle = "Set up Curfew"
 
-    static let curfewLabel = "Curfew"
-    static let unlockLabel = "Unlocks"
-    static let curfewReason = "This Mac locks for the night."
-    static let unlockReason = "This Mac opens again in the morning."
+    static let wordmark = "Curfew"
+    static let welcomeTitle = "Curfew ends your work day."
+    static let welcomeLine = "At the time you pick, this Mac locks until morning."
+    /// The three captions the welcome plays over one day, in order.
+    static let introCaptions = [
+        "You work.", "At curfew, this Mac locks.", "In the morning it opens again."
+    ]
+    static let begin = "Set my curfew"
+    static let skipIntro = "Skip intro"
+    static let watchAgain = "Watch again"
+
+    static let scheduleTitle = "When should your day end?"
+    static let morningTitle = "When does this Mac open again?"
+    static let curfewLabel = "Curfew time"
+    static let unlockLabel = "Unlock time"
     static let daysLabel = "Days that lock"
+    static let change = "Change"
+    static let changeHint = "Sets when this Mac opens again and which days lock."
+    static let pickADay = "Pick at least one day."
+    static let earlier = "Earlier"
+    static let later = "Later"
     static let useSchedule = "Use this schedule"
     /// The small link that keeps the explicit "no automatic schedule" choice.
     static let noScheduleYet = "No schedule yet"
@@ -23,6 +39,13 @@ enum GettingStartedCopy {
     static let helperReason = "So the lock holds even if Curfew is quit."
     static let accessibilityTitle = "Accessibility"
     static let accessibilityReason = "So the lock holds when shortcuts try to get past it."
+    /// The one line under the permission screen's heading.
+    static let accessibilityLine = "It needs Accessibility, so shortcuts can't get past it."
+    static let waitingForAccess = "Waiting for System Settings"
+    static let allowed = "Allowed"
+    /// The two optional asks, as the rows that offer them.
+    static let notificationsAsk = "Warnings before curfew"
+    static let helperAsk = "Keep the lock if Curfew is quit"
     static let openSystemSettings = "Open System Settings"
     static let dragInstruction = "Drag Curfew into the list"
 
@@ -46,6 +69,46 @@ enum GettingStartedCopy {
     static let immediateLockConfirm = "Finish and lock"
     static let immediateLockCancel = "Change the times"
 
+    static func optionalTitle(count: Int) -> String {
+        count == 1 ? "One more. It's optional." : "Two more. Both optional."
+    }
+
+    /// The days that lock, in words: "Weekdays", "Every day", a run such as
+    /// "Monday to Thursday", or the days listed.
+    static func dayPhrase(_ days: Set<Weekday>, calendar: Calendar = .current) -> String {
+        let week: [Weekday] = [
+            .monday, .tuesday, .wednesday, .thursday, .friday, .saturday, .sunday
+        ]
+        let positions = week.indices.filter { days.contains(week[$0]) }
+        let names = positions.map { calendar.weekdaySymbols[week[$0].rawValue - 1] }
+        guard let first = names.first, let last = names.last else { return "No days" }
+        if positions.count == week.count {
+            return "Every day"
+        }
+        if positions == Array(0 ... 4) {
+            return "Weekdays"
+        }
+        if names.count == 1 {
+            return first
+        }
+        let isRun = zip(positions, positions.dropFirst()).allSatisfy { $1 == $0 + 1 }
+        if isRun, names.count > 2 {
+            return "\(first) to \(last)"
+        }
+        return names.dropLast().joined(separator: ", ") + " and " + last
+    }
+
+    /// What the question screen assumes unless it is changed: the days that
+    /// lock and when this Mac opens again.
+    static func defaultsLine(
+        days: Set<Weekday>, unlockMinutes: Int, calendar: Calendar = .current
+    ) -> String {
+        let unlock = calendar.startOfDay(for: Date())
+            .addingTimeInterval(TimeInterval(unlockMinutes * 60))
+        let time = unlock.formatted(date: .omitted, time: .shortened)
+        return "\(dayPhrase(days, calendar: calendar)). Opens at \(time)."
+    }
+
     /// Step 3's statement of when this Mac next locks. Times come from the
     /// locale formatter; never a hard-coded 24-hour string.
     static func readyLine(curfew: Date?, now: Date, calendar: Calendar = .current) -> String {
@@ -65,19 +128,30 @@ enum GettingStartedCopy {
     }
 }
 
-/// One screen of first-run setup: three steps and one optional closing step.
+/// One screen of first-run setup: a welcome, the question, the one required
+/// permission, the optional asks, the summary, and one optional closing offer.
 ///
-/// `Int`-backed because persisted progress keys off `rawValue`. Keep the case
-/// order stable.
+/// `Int`-backed because persisted progress keys off `rawValue`. The first four
+/// raw values are already saved on some Macs, so they never move; new screens
+/// take new values and ``order`` says where they sit.
 enum FirstRunStep: Int, CaseIterable, Identifiable {
-    /// When should this Mac close for the night?
+    /// When should your day end?
     case schedule
-    /// Accessibility (required), notifications and the Curfew helper.
+    /// Accessibility, the one required grant.
     case permissions
     /// Setup is committed; states tonight's curfew and offers a preview.
     case ready
     /// Optional: sync sign-in and the lifetime licence.
     case extras
+    /// Says what Curfew is before asking anything.
+    case welcome
+    /// Notifications and the Curfew helper, both optional.
+    case optional
+
+    /// The screens in the order a person meets them.
+    static let order: [FirstRunStep] = [
+        .welcome, .schedule, .permissions, .optional, .ready, .extras
+    ]
 
     var id: Int {
         rawValue
@@ -85,20 +159,35 @@ enum FirstRunStep: Int, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .schedule: "When should this Mac close for the night?"
+        case .welcome: GettingStartedCopy.welcomeTitle
+        case .schedule: GettingStartedCopy.scheduleTitle
         case .permissions: "Let Curfew hold the lock."
+        case .optional: GettingStartedCopy.optionalTitle(count: 2)
         case .ready: "You're set."
         case .extras: GettingStartedCopy.extrasTitle
         }
     }
+}
 
-    var progressLabel: String {
-        switch self {
-        case .schedule: "Step 1 of 3"
-        case .permissions: "Step 2 of 3"
-        case .ready: "Step 3 of 3"
-        case .extras: "Optional"
+/// One of the asks setup makes after the required grant. Each can be left
+/// alone: pressing Continue is the skip.
+enum SetupOptionalAsk: Equatable {
+    case notifications
+    case helper
+
+    /// The asks still worth making, notifications first. One already answered
+    /// is not asked again, and builds without the Curfew helper never offer it.
+    static func offered(
+        notifications: SetupPermissionStatus, helper: SetupHelperStatus, showsHelper: Bool
+    ) -> [SetupOptionalAsk] {
+        var asks: [SetupOptionalAsk] = []
+        if notifications == .notAsked {
+            asks.append(.notifications)
         }
+        if showsHelper, helper != .installed {
+            asks.append(.helper)
+        }
+        return asks
     }
 }
 
@@ -119,13 +208,13 @@ struct InitialSetupProgress: Codable, Equatable {
 ///
 /// A plain value type so the whole flow is unit tested without a run loop.
 /// The schedule choice is always an explicit press (`chooseSchedule`), and
-/// step 2 is a hard gate on *real* Accessibility trust; setup is committed
-/// (enforcement armed) only by the model, after which `markCommitted` moves
-/// the cursor to step 3 and going back is no longer offered.
+/// the permission screen is a hard gate on *real* Accessibility trust; setup
+/// is committed (enforcement armed) only by the model, after which
+/// `markCommitted` moves the cursor on and going back is no longer offered.
 struct FirstRunFlow: Equatable {
-    private(set) var currentStep: FirstRunStep = .schedule
+    private(set) var currentStep: FirstRunStep = .welcome
     /// Opening the editor is not consent. A choice is required before setup
-    /// leaves step 1 or arms enforcement.
+    /// leaves the question or arms enforcement.
     private(set) var scheduleChoice: AutomaticScheduleChoice?
     /// Live Accessibility trust, synced by the view from the model.
     private(set) var isAccessibilityGranted = false
@@ -133,15 +222,12 @@ struct FirstRunFlow: Equatable {
     private(set) var isCommitted = false
     /// Reopened after setup was already completed.
     private(set) var isReview = false
-    /// Whether both optional rows on step 2 (notifications and the Curfew
-    /// helper) are allowed, installed or explicitly skipped.
-    private(set) var optionalsResolved = false
 
     var canAdvance: Bool {
         switch currentStep {
+        case .welcome, .optional, .ready: true
         case .schedule: scheduleChoice != nil
         case .permissions: isAccessibilityGranted
-        case .ready: true
         case .extras: false
         }
     }
@@ -165,47 +251,51 @@ struct FirstRunFlow: Equatable {
         )
     }
 
+    /// The welcome's button: on to the question. Nothing is chosen yet.
+    mutating func begin() {
+        guard currentStep == .welcome else { return }
+        currentStep = .schedule
+    }
+
     /// The explicit schedule choice. Both the primary button and the small
     /// "no schedule yet" link call this, and both move on in the same press.
     mutating func chooseSchedule(_ choice: AutomaticScheduleChoice) {
         scheduleChoice = choice
-        if currentStep == .schedule {
+        if currentStep == .schedule || currentStep == .welcome {
             currentStep = .permissions
         }
     }
 
     /// Syncs live trust. Returns `true` exactly when a fresh grant arrives
-    /// while step 2 is waiting for it and both optional rows are already
-    /// resolved, which is the only time setup advances by itself. Otherwise
-    /// setup holds on step 2 with Continue enabled, so the optional rows are
-    /// still offered. Revoked trust re-closes the gate.
+    /// while the permission screen is waiting for it, which is the only time
+    /// setup moves on by itself. Access that was already there waits for
+    /// Continue. Revoked trust re-closes the gate.
     @discardableResult
     mutating func updateAccessibilityGranted(_ granted: Bool) -> Bool {
         let wasGranted = isAccessibilityGranted
         isAccessibilityGranted = granted
-        return granted && !wasGranted && currentStep == .permissions && optionalsResolved
-    }
-
-    /// Records whether notifications and the Curfew helper are each allowed,
-    /// installed or explicitly skipped.
-    mutating func updateOptionalPermissions(resolved: Bool) {
-        optionalsResolved = resolved
+        return granted && !wasGranted && currentStep == .permissions
     }
 
     /// Called once the model has completed setup (or, for a returning
-    /// person, once access is back).
-    mutating func markCommitted() {
+    /// person, once access is back). The optional asks come next when there
+    /// is anything left to ask; a review goes straight to the summary.
+    mutating func markCommitted(offersOptional: Bool = false) {
         isCommitted = true
-        if currentStep == .permissions || currentStep == .schedule {
-            currentStep = .ready
+        if currentStep == .permissions || currentStep == .schedule || currentStep == .welcome {
+            currentStep = offersOptional && !isReview ? .optional : .ready
         }
     }
 
-    /// Step 3 to the optional closing step. Steps 1 and 2 move on only
-    /// through `chooseSchedule` and the model's commit.
+    /// The optional asks to the summary, and the summary to the closing
+    /// offer. The earlier screens move on only through `begin`,
+    /// `chooseSchedule` and the model's commit.
     mutating func advance() {
-        guard currentStep == .ready, !isReview else { return }
-        currentStep = .extras
+        switch currentStep {
+        case .optional: currentStep = .ready
+        case .ready where !isReview: currentStep = .extras
+        default: break
+        }
     }
 
     mutating func retreat() {
@@ -214,21 +304,24 @@ struct FirstRunFlow: Equatable {
     }
 
     /// Restores saved progress. Without a committed setup, the furthest a
-    /// person can land is step 2, and only with a recorded schedule choice.
+    /// person can land is the permission screen, and only with a recorded
+    /// schedule choice. Someone who never left the welcome sees it again.
     static func resuming(_ progress: InitialSetupProgress) -> FirstRunFlow {
         var flow = FirstRunFlow()
-        guard let weekly = progress.usesWeeklySchedule,
-              progress.step >= FirstRunStep.permissions.rawValue else { return flow }
+        guard let step = FirstRunStep(rawValue: progress.step), step != .welcome else {
+            return flow
+        }
+        flow.begin()
+        guard let weekly = progress.usesWeeklySchedule, step != .schedule else { return flow }
         flow.chooseSchedule(weekly ? .weeklySchedule : .remoteControlsOnly)
         return flow
     }
 
-    /// Setup reopened after it was completed: the summary, or step 2 when
-    /// Accessibility has since been lost.
+    /// Setup reopened after it was completed: the summary, or the permission
+    /// screen when Accessibility has since been lost.
     static func returningUser(isAccessibilityGranted: Bool) -> FirstRunFlow {
         var flow = FirstRunFlow()
         flow.isReview = true
-        flow.optionalsResolved = true
         flow.scheduleChoice = .weeklySchedule
         if isAccessibilityGranted {
             flow.isAccessibilityGranted = true

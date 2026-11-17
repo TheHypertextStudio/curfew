@@ -4,93 +4,127 @@ import SwiftUI
 
 /// First-run setup, hosted by the `getting-started` window.
 ///
-/// Three steps and one optional closing step:
-/// 1. When should this Mac close for the night? (an explicit schedule choice)
-/// 2. Let Curfew hold the lock. (Accessibility, required; notifications and
-///    the Curfew helper, optional) Setup commits the moment access is granted.
-/// 3. You're set. States tonight's curfew and previews the lock.
+/// One sky and one thing per screen:
+/// 1. A welcome. The sky plays one day behind three captions, then rests.
+/// 2. When should your day end? (an explicit schedule choice; the unlock time
+///    and the days sit behind "Change")
+/// 3. Let Curfew hold the lock. (Accessibility, required) Setup commits the
+///    moment access is granted.
+/// 4. Notifications and the Curfew helper, both optional.
+/// 5. You're set. States tonight's curfew and previews the lock.
 /// Then sync and the lifetime licence, which can be skipped as easily.
 ///
 /// Progress is saved on every step change so setup reopens where the person
 /// left it until it is completed.
 struct GettingStartedView: View {
-    @Environment(CurfewAppModel.self) private var model
+    @Environment(CurfewAppModel.self) var model
+    @Environment(\.accessibilityReduceMotion) var reduceMotion
 
-    @State private var flow: FirstRunFlow
-    @State private var hasLoaded: Bool
-    @State private var draft: SetupScheduleDraft?
-    @State private var notificationStatus: SetupPermissionStatus
-    @State private var dragHelper: AccessibilityDragHelper?
-    @State private var preview: LockPreviewController?
-    @State private var confirmingImmediateLock = false
-    @State private var signedIn = false
-    @State private var notificationsSkipped = false
-    @State private var helperSkipped = false
-    @FocusState private var continueFocused: Bool
-    @AccessibilityFocusState private var headingFocused: Bool
+    @State var flow: FirstRunFlow
+    @State var hasLoaded: Bool
+    @State var draft: SetupScheduleDraft?
+    @State var editingMorning: Bool
+    @State var notificationStatus: SetupPermissionStatus
+    @State var optionalAsks: [SetupOptionalAsk] = [.notifications, .helper]
+    @State var dragHelper: AccessibilityDragHelper?
+    @State var waitingForAccess = false
+    @State var movingOn = false
+    @State var preview: LockPreviewController?
+    @State var confirmingImmediateLock = false
+    @State var signedIn = false
+    @State var story: SetupSkyStory
+    @State var entranceDelay = 0.0
+    @State var introPhase = SetupIntroPhase.rest
+    @State var introStart: Date?
+    @State var introTask: Task<Void, Never>?
 
     /// `nil` uses the system; fixed values serve snapshots.
-    private let notifications: (any NotificationPermissionProviding)?
+    let notifications: (any NotificationPermissionProviding)?
     /// `nil` uses the app's account enrollment, the same one Settings uses.
-    private let makeAccount: (@MainActor () -> AccountEnrollmentController)?
-    private let now: () -> Date
+    let makeAccount: (@MainActor () -> AccountEnrollmentController)?
+    let now: () -> Date
+    /// A fixed flow is a still picture: no welcome day, no sweeps.
+    let isLive: Bool
 
     /// - Parameters:
     ///   - flow: A fixed cursor for snapshots; `nil` loads saved progress.
+    ///   - editingMorning: Shows the unlock and days screen of the question.
     ///   - notifications: Reads and requests notification permission.
     ///   - notificationStatus: The status shown before the first read.
     init(
         flow: FirstRunFlow? = nil,
+        editingMorning: Bool = false,
         notifications: (any NotificationPermissionProviding)? = nil,
         notificationStatus: SetupPermissionStatus = .notAsked,
         makeAccount: (@MainActor () -> AccountEnrollmentController)? = nil,
         now: @escaping () -> Date = Date.init
     ) {
+        let start = flow ?? FirstRunFlow()
         self.makeAccount = makeAccount
-        _flow = State(initialValue: flow ?? FirstRunFlow())
+        self.isLive = flow == nil
+        _flow = State(initialValue: start)
         _hasLoaded = State(initialValue: flow != nil)
+        _editingMorning = State(initialValue: editingMorning)
         _notificationStatus = State(initialValue: notificationStatus)
+        // A live setup opens on the welcome's title card, before dawn, so the
+        // first frame is already the start of its day.
+        _story = State(initialValue: flow == nil
+            ? SetupSkyStory(at: SetupSky.Intro.minute(at: 0))
+            : SetupSkyStory(
+                restingOn: Self.scene(for: start.currentStep, editingMorning: editingMorning)
+            ))
+        _introPhase = State(initialValue: flow == nil ? .title : .rest)
         self.notifications = notifications
         self.now = now
     }
 
     var body: some View {
-        ZStack {
-            GettingStartedBackdrop()
-            VStack(alignment: .leading, spacing: 0) {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: GettingStartedLayout.spacing24) {
-                        header
-                        stepContent
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, GettingStartedLayout.spacing40)
-                    .padding(.top, GettingStartedLayout.spacing40)
-                    .padding(.bottom, GettingStartedLayout.spacing24)
+        GeometryReader { proxy in
+            let band = SetupSky.textBand
+            ZStack {
+                SetupSkyBackdrop(story: story, introStart: introStart)
+                GettingStartedScaffold(
+                    scene: scene,
+                    headline: headline,
+                    wordmark: wordmark,
+                    secondary: secondaryAction,
+                    primary: primaryAction,
+                    delay: entranceDelay,
+                    animates: animates
+                ) {
+                    content
                 }
-                .scrollBounceBehavior(.basedOnSize)
-                actionRow
-                    .padding(.horizontal, GettingStartedLayout.spacing40)
-                    .padding(.bottom, GettingStartedLayout.spacing24)
+                .frame(
+                    width: proxy.size.width * band.width,
+                    height: proxy.size.height * band.height
+                )
+                .position(x: proxy.size.width * band.midX, y: proxy.size.height * band.midY)
             }
+            .environment(\.setupMetrics, SetupMetrics.window(proxy.size))
         }
+        // The sky and the text band are both measured from the whole window,
+        // title bar included, so the band the contrast tests sample is exact.
+        .ignoresSafeArea()
         .frame(
             minWidth: GettingStartedLayout.contentMinimum.width,
             idealWidth: GettingStartedLayout.windowSize.width,
             minHeight: GettingStartedLayout.contentMinimum.height,
             idealHeight: GettingStartedLayout.windowSize.height
         )
-        .foregroundStyle(CurfewTheme.ink)
-        .tint(CurfewTheme.accent)
+        .foregroundStyle(GettingStartedPalette.ink)
+        .tint(GettingStartedPalette.ink)
         .onAppear(perform: load)
+        .task {
+            #if DEBUG
+                await runCaptureWalkthrough()
+            #endif
+        }
         .onDisappear {
+            introTask?.cancel()
             dragHelper?.stop()
             preview?.dismiss()
         }
         .onChange(of: flow.currentStep) { _, step in stepChanged(to: step) }
-        .onChange(of: optionalsResolved) { _, resolved in
-            flow.updateOptionalPermissions(resolved: resolved)
-        }
         .onChange(of: model.isAccessibilityTrusted) { _, trusted in
             flow.updateAccessibilityGranted(trusted)
         }
@@ -104,148 +138,44 @@ struct GettingStartedView: View {
                 continueFromPermissions(confirmedImmediateLock: true)
             }
             Button(GettingStartedCopy.immediateLockCancel, role: .cancel) {
-                flow.retreat()
+                change { flow.retreat() }
             }
         } message: {
             Text(GettingStartedCopy.immediateLockMessage)
         }
     }
-
-    private var header: some View {
-        VStack(alignment: .leading, spacing: GettingStartedLayout.spacing8) {
-            if !flow.isReview {
-                Text(flow.currentStep.progressLabel)
-                    .font(.system(.subheadline, design: .rounded, weight: .semibold))
-                    .foregroundStyle(CurfewTheme.mutedInk)
-            }
-            Text(flow.currentStep.title)
-                .font(.setupHeading)
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityAddTraits(.isHeader)
-                .accessibilityFocused($headingFocused)
-        }
-    }
-
-    @ViewBuilder
-    private var stepContent: some View {
-        switch flow.currentStep {
-        case .schedule:
-            GettingStartedScheduleStep(draft: draftBinding)
-        case .permissions:
-            GettingStartedPermissionsStep(
-                notificationStatus: notificationStatus,
-                helperStatus: helperStatus,
-                showsHelper: model.featureFlags.privilegedHelperEnabled,
-                accessibilityGranted: model.isAccessibilityTrusted,
-                notificationsSkipped: notificationsSkipped,
-                helperSkipped: helperSkipped,
-                onSkipNotifications: { notificationsSkipped = true },
-                onSkipHelper: { helperSkipped = true },
-                onAllowNotifications: requestNotifications,
-                onInstallHelper: installHelper,
-                onApproveHelper: approveHelper,
-                onOpenAccessibility: openAccessibility
-            )
-        case .ready:
-            GettingStartedReadyStep(
-                readyLine: GettingStartedCopy.readyLine(
-                    curfew: model.nextCurfew(after: now(), usesWeeklySchedule: usesWeeklySchedule),
-                    now: now()
-                ),
-                helperNote: model.helperAbsenceNote,
-                onPreview: previewLock
-            )
-        case .extras:
-            GettingStartedExtrasStep(
-                makeAccount: makeAccount ?? { AccountEnrollmentController.settingsController() },
-                onSignedIn: { signedIn = true }
-            )
-        }
-    }
-
-    private var actionRow: some View {
-        HStack(spacing: GettingStartedLayout.spacing12) {
-            switch flow.currentStep {
-            case .schedule:
-                Button(GettingStartedCopy.noScheduleYet) {
-                    flow.chooseSchedule(.remoteControlsOnly)
-                }
-                .buttonStyle(GettingStartedLinkButtonStyle())
-                .help(GettingStartedCopy.noScheduleYetHint)
-                .accessibilityHint(GettingStartedCopy.noScheduleYetHint)
-                Spacer()
-                Button(GettingStartedCopy.useSchedule) {
-                    if let draft {
-                        model.applySetupSchedule(draft)
-                    }
-                    flow.chooseSchedule(.weeklySchedule)
-                }
-                .buttonStyle(GettingStartedPrimaryButtonStyle())
-                .keyboardShortcut(.defaultAction)
-                .disabled(draft?.workingDays.isEmpty ?? true)
-            case .permissions:
-                if flow.canGoBack {
-                    Button("Back") { flow.retreat() }
-                        .buttonStyle(GettingStartedSecondaryButtonStyle())
-                }
-                Spacer()
-                Button(flow.isReview ? "Done" : "Continue") {
-                    continueFromPermissions()
-                }
-                .buttonStyle(GettingStartedPrimaryButtonStyle())
-                .keyboardShortcut(.defaultAction)
-                .focused($continueFocused)
-                .disabled(!flow.canAdvance)
-            case .ready:
-                Spacer()
-                if flow.isReview {
-                    Button("Done") { model.dismissGettingStarted() }
-                        .buttonStyle(GettingStartedPrimaryButtonStyle())
-                        .keyboardShortcut(.defaultAction)
-                } else {
-                    Button("Continue") { flow.advance() }
-                        .buttonStyle(GettingStartedPrimaryButtonStyle())
-                        .keyboardShortcut(.defaultAction)
-                }
-            case .extras:
-                Spacer()
-                Button(signedIn ? "Done" : "Skip") { model.finishGettingStarted() }
-                    .buttonStyle(GettingStartedSecondaryButtonStyle())
-                    .keyboardShortcut(.defaultAction)
-            }
-        }
-    }
 }
 
-private extension GettingStartedView {
-    var notificationProvider: any NotificationPermissionProviding {
-        notifications ?? SystemNotificationPermission()
+// MARK: Scenes and the sky
+
+extension GettingStartedView {
+    static func scene(for step: FirstRunStep, editingMorning: Bool) -> SetupScene {
+        switch step {
+        case .welcome: .welcome
+        case .schedule: editingMorning ? .morning : .schedule
+        case .permissions: .permissions
+        case .optional: .optional
+        case .ready: .ready
+        case .extras: .extras
+        }
     }
 
-    var usesWeeklySchedule: Bool {
-        flow.isReview ? model.automaticScheduleEnabled : flow.usesWeeklySchedule
+    var scene: SetupScene {
+        Self.scene(for: flow.currentStep, editingMorning: editingMorning)
     }
 
-    var draftBinding: Binding<SetupScheduleDraft> {
-        Binding(
-            get: { draft ?? model.setupScheduleDraft },
-            set: { draft = $0 }
-        )
-    }
-
-    var helperStatus: SetupHelperStatus {
-        let helper = model.privilegedHelperManager
-        return SetupHelperStatus.resolve(
-            daemon: helper.daemonStatus,
-            connection: helper.connectionState,
-            isInstalling: helper.installationInProgress
-        )
+    var animates: Bool {
+        isLive && !reduceMotion
     }
 
     func load() {
         if !hasLoaded {
             hasLoaded = true
             flow = model.loadSetupFlow()
+            if flow.currentStep != .welcome {
+                story = SetupSkyStory(restingOn: scene)
+                introPhase = .rest
+            }
         }
         if draft == nil {
             draft = model.setupScheduleDraft
@@ -254,123 +184,74 @@ private extension GettingStartedView {
             model.refreshAccessibilityTrust()
             model.privilegedHelperManager.refreshStatus()
         }
-        flow.updateOptionalPermissions(resolved: optionalsResolved)
         flow.updateAccessibilityGranted(model.isAccessibilityTrusted)
         refreshPermissions()
         stepChanged(to: flow.currentStep, announce: false)
-    }
-
-    func stepChanged(to step: FirstRunStep, announce: Bool = true) {
-        model.saveSetupProgress(flow)
-        headingFocused = true
-        if announce {
-            let prefix = flow.isReview ? "" : "\(step.progressLabel). "
-            AccessibilityNotification.Announcement("\(prefix)\(step.title)").post()
-        }
-        if step == .permissions, !flow.isCommitted || flow.isReview {
-            accessibilityHelper().startPolling()
-        } else {
-            dragHelper?.stop()
+        if flow.currentStep == .welcome, isLive {
+            playIntro()
         }
     }
 
-    func refreshPermissions() {
-        let provider = notificationProvider
-        Task { notificationStatus = await provider.status() }
+    /// Every move between screens goes through here, so the sky sets off for
+    /// the next screen's hour in the same update that swaps the screen, and
+    /// the screen knows how long to wait for it.
+    func change(_ update: () -> Void) {
+        let before = scene
+        withAnimation(animates ? .easeInOut(duration: 0.3) : .easeOut(duration: 0.2)) {
+            update()
+            let after = scene
+            guard before != after else { return }
+            stopIntro()
+            let distance = story.move(to: after, at: Date(), animated: animates)
+            entranceDelay = animates ? SetupSky.entranceDelay(distance: distance) : 0
+        }
     }
 
-    func accessibilityHelper() -> AccessibilityDragHelper {
-        if let dragHelper {
-            return dragHelper
+    /// Plays the welcome's day: the title card, three captions, then rest.
+    func playIntro() {
+        introTask?.cancel()
+        guard animates else {
+            introStart = nil
+            introPhase = .rest
+            story = SetupSkyStory(restingOn: .welcome)
+            return
         }
-        let model = model
-        let helper = AccessibilityDragHelper(
-            isTrusted: {
-                if !model.isDemoSession {
-                    model.refreshAccessibilityTrust()
+        let start = Date()
+        entranceDelay = 0
+        withAnimation(.easeOut(duration: 0.4)) {
+            introStart = start
+            introPhase = .title
+        }
+        var cues: [(Double, SetupIntroPhase)] = [(SetupSky.Intro.titleSettles, .settled)]
+        cues += SetupSky.Intro.captionTimes.enumerated().map { ($1, .caption($0)) }
+        cues.append((SetupSky.Intro.duration, .rest))
+        introTask = Task { @MainActor in
+            for (time, phase) in cues {
+                let wait = start.addingTimeInterval(time).timeIntervalSinceNow
+                if wait > 0 {
+                    try? await Task.sleep(for: .seconds(wait))
                 }
-                return model.isAccessibilityTrusted
-            },
-            windows: SystemSettingsWindowLocator(),
-            screens: { NSScreen.screens.map(\.visibleFrame) },
-            presenter: DragPanelWindowPresenter(),
-            openPane: { model.openAccessibilityPaneForSetup() }
-        )
-        helper.onGranted = {
-            flow.updateOptionalPermissions(resolved: optionalsResolved)
-            flow.updateAccessibilityGranted(true)
-            holdOrContinueAfterGrant()
-        }
-        dragHelper = helper
-        return helper
-    }
-
-    func openAccessibility() {
-        guard !model.isDemoSession else { return }
-        accessibilityHelper().openSystemSettings()
-    }
-
-    func requestNotifications() {
-        let provider = notificationProvider
-        Task { notificationStatus = await provider.request() }
-    }
-
-    func installHelper() {
-        Task { await model.privilegedHelperManager.installAndConnectDaemon() }
-    }
-
-    func approveHelper() {
-        guard !model.isDemoSession else { return }
-        model.openHelperApprovalSettings()
-    }
-
-    /// Notifications are resolved once allowed, turned off or skipped; the
-    /// helper once installed, awaiting approval, skipped, or not offered.
-    var optionalsResolved: Bool {
-        let notifications = notificationStatus != .notAsked || notificationsSkipped
-        let helper = !model.featureFlags.privilegedHelperEnabled || helperSkipped
-            || helperStatus == .installed || helperStatus == .needsApproval
-        return notifications && helper
-    }
-
-    /// A fresh grant advances only when both optional rows are resolved;
-    /// otherwise setup comes forward on step 2 with Continue focused.
-    func holdOrContinueAfterGrant() {
-        model.appRouter.activate()
-        if flow.optionalsResolved {
-            continueFromPermissions()
-        } else {
-            AccessibilityNotification.Announcement("Accessibility allowed.").post()
-            continueFocused = true
+                guard !Task.isCancelled else { return }
+                withAnimation(.easeOut(duration: 0.4)) {
+                    introPhase = phase
+                }
+            }
+            story = SetupSkyStory(restingOn: .welcome)
+            introStart = nil
         }
     }
 
-    /// Commits setup once access is granted. A schedule that would lock
-    /// right away asks first, in plain words.
-    func continueFromPermissions(confirmedImmediateLock: Bool = false) {
-        guard flow.isAccessibilityGranted, flow.currentStep == .permissions else { return }
-        switch model.commitSetup(flow, confirmedImmediateLock: confirmedImmediateLock) {
-        case .activated:
-            dragHelper?.stop()
-            flow.markCommitted()
-            model.appRouter.activate()
-        case .requiresImmediateLockConfirmation:
-            model.appRouter.activate()
-            confirmingImmediateLock = true
-        case .unavailable:
-            break
+    /// Leaves the welcome's day wherever it has got to, so the sky carries on
+    /// from there.
+    func stopIntro() {
+        introTask?.cancel()
+        introTask = nil
+        if let introStart {
+            story = SetupSkyStory(
+                at: SetupSky.Intro.minute(at: Date().timeIntervalSince(introStart))
+            )
         }
-    }
-
-    func previewLock() {
-        let model = model
-        let controller = preview ?? LockPreviewController(
-            presenter: LockPreviewWindowPresenter(appearance: { model.restAppearance })
-        )
-        preview = controller
-        controller.present(model.lockPreviewContent(
-            now: now(),
-            usesWeeklySchedule: usesWeeklySchedule
-        ))
+        introStart = nil
+        introPhase = .rest
     }
 }

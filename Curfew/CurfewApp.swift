@@ -52,6 +52,9 @@ struct AppCoordinator: AppCoordinating {
         }
 
         if model.shouldOpenSettingsOnLaunch,
+           CurfewLaunchBehavior.presentation(
+               hostsUnitTests: RuntimeEnvironment.hostsUnitTests
+           ).opensWindowsOnLaunch,
            !CurfewLaunchBehavior.isBackgroundLaunch(arguments: ProcessInfo.processInfo.arguments) {
             model.showGettingStarted()
         }
@@ -190,8 +193,12 @@ struct CurfewApp: App {
         #endif
     }
 
+    private static let presentation = CurfewLaunchBehavior.presentation(
+        hostsUnitTests: RuntimeEnvironment.hostsUnitTests
+    )
+
     private static var suppressesOrdinaryWindows: Bool {
-        backgroundLaunch || demoStartsWithoutMainWindow
+        backgroundLaunch || demoStartsWithoutMainWindow || !presentation.opensWindowsOnLaunch
     }
 
     /// Constructs the app model, wires the `@State`-owned model, and defers
@@ -199,6 +206,9 @@ struct CurfewApp: App {
     /// first body evaluation completes before enforcement arms.
     init() {
         Self.handleBackgroundServiceCommand()
+        if Self.presentation.activationPolicy != .regular {
+            NSApplication.shared.setActivationPolicy(Self.presentation.activationPolicy)
+        }
         #if DEBUG
             if let scenario = CurfewLaunchBehavior.demoScenario(
                 environment: Self.demoEnvironment
@@ -289,7 +299,7 @@ struct CurfewApp: App {
             }
         }
 
-        MenuBarExtra {
+        MenuBarExtra(isInserted: .constant(Self.presentation.showsMenuBarItem)) {
             ContentView()
                 .preferredColorScheme(Self.demoColorScheme)
                 .environment(model)
@@ -324,6 +334,8 @@ struct CurfewApp: App {
                 .preferredColorScheme(Self.demoColorScheme)
         }
         .defaultSize(GettingStartedLayout.windowSize)
+        // Setup's sky runs to every edge of the window, under the title bar.
+        .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentMinSize)
         .defaultLaunchBehavior(.suppressed)
         .restorationBehavior(Self.backgroundLaunch ? .disabled : .automatic)

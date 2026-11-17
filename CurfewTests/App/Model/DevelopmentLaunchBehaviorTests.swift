@@ -1,3 +1,4 @@
+import AppKit
 @testable import Curfew
 import Testing
 
@@ -37,6 +38,44 @@ struct DevelopmentLaunchBehaviorTests {
             bundleIdentifier: studioBundleID,
             hasLoadedTestRuntime: true
         ))
+    }
+
+    @Test("A unit-test host stays out of the Dock and the menu bar and opens no windows")
+    func hostIsInvisible() {
+        let hosted = CurfewLaunchBehavior.presentation(hostsUnitTests: true)
+        #expect(hosted.activationPolicy == .accessory)
+        #expect(!hosted.showsMenuBarItem)
+        #expect(!hosted.opensWindowsOnLaunch)
+
+        let ordinary = CurfewLaunchBehavior.presentation(hostsUnitTests: false)
+        #expect(ordinary.activationPolicy == .regular)
+        #expect(ordinary.showsMenuBarItem)
+        #expect(ordinary.opensWindowsOnLaunch)
+    }
+
+    @Test("Only a Debug build takes the test configuration variable as proof of a test host")
+    func hostPresentationNeedsDebugOrLoadedRuntime() {
+        let injected = ["XCTestConfigurationFilePath": "/tmp/run.xctestconfiguration"]
+        #expect(RuntimeEnvironment.hostsUnitTestsDecision(
+            environment: injected, isDebugBuild: true, hasLoadedTestRuntime: false
+        ))
+        #expect(!RuntimeEnvironment.hostsUnitTestsDecision(
+            environment: injected, isDebugBuild: false, hasLoadedTestRuntime: false
+        ))
+        #expect(RuntimeEnvironment.hostsUnitTestsDecision(
+            environment: [:], isDebugBuild: false, hasLoadedTestRuntime: true
+        ))
+        #expect(!RuntimeEnvironment.hostsUnitTestsDecision(
+            environment: [:], isDebugBuild: true, hasLoadedTestRuntime: false
+        ))
+    }
+
+    @Test("Only a demo fixture asked to stay behind skips bringing itself forward")
+    func captureCanStayBehind() {
+        let asked = ["CURFEW_DEMO_STAY_BEHIND": "1"]
+        #expect(RuntimeEnvironment.staysBehindDecision(isDemoFixture: true, environment: asked))
+        #expect(!RuntimeEnvironment.staysBehindDecision(isDemoFixture: false, environment: asked))
+        #expect(!RuntimeEnvironment.staysBehindDecision(isDemoFixture: true, environment: [:]))
     }
 
     @Test("Personal Debug cannot spoof Curfew Dev through the flavor environment")

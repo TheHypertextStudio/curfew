@@ -8,9 +8,7 @@ final class CurfewUITests: XCTestCase {
     @MainActor
     func testOnboardingStartsAtARealGate() {
         let app = launchFixture("getting-started")
-        XCTAssertTrue(app.staticTexts["When should this Mac close for the night?"]
-            .waitForExistence(timeout: 8))
-        XCTAssertTrue(app.staticTexts["Step 1 of 3"].exists)
+        openSetupQuestion(in: app)
         XCTAssertTrue(app.buttons["Use this schedule"].isEnabled)
         XCTAssertTrue(app.buttons["No schedule yet"].exists)
     }
@@ -272,18 +270,32 @@ final class CurfewUITests: XCTestCase {
 extension CurfewUITests {
     func testSetupScheduleChoiceIsExplicitAndGatesAccess() {
         let app = launchFixture("getting-started", size: "minimum")
+        openSetupQuestion(in: app)
         let use = app.buttons["Use this schedule"]
         XCTAssertTrue(use.waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["No schedule yet"].isHittable)
         use.click()
-        XCTAssertTrue(app.staticTexts["Let Curfew hold the lock."].waitForExistence(timeout: 3))
-        XCTAssertTrue(app.staticTexts["Step 2 of 3"].exists)
-        // The demo fixture already trusts Accessibility, so setup holds on
-        // step 2 with Continue enabled and the optional rows still offered.
+        XCTAssertTrue(app.staticTexts["Let Curfew hold the lock."].waitForExistence(timeout: 6))
+        // The demo fixture already trusts Accessibility, so the permission
+        // screen holds with Continue enabled instead of moving on by itself.
+        XCTAssertTrue(app.buttons["Continue"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.buttons["Continue"].isEnabled)
-        XCTAssertTrue(app.buttons["Skip notifications"].exists)
         app.buttons["Back"].click()
-        XCTAssertTrue(app.staticTexts["Step 1 of 3"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["When should your day end?"].waitForExistence(timeout: 6))
+    }
+
+    /// Setup opens on its welcome. Skips the welcome's day, or presses its
+    /// button once it rests, and waits for the question.
+    func openSetupQuestion(in app: XCUIApplication) {
+        let skip = app.buttons["Skip intro"]
+        let begin = app.buttons["Set my curfew"]
+        if skip.waitForExistence(timeout: 8) {
+            skip.click()
+        } else {
+            XCTAssertTrue(begin.waitForExistence(timeout: 8))
+            begin.click()
+        }
+        XCTAssertTrue(app.staticTexts["When should your day end?"].waitForExistence(timeout: 8))
     }
 
     func testTaskBrowserEnforcementPanelActions() {

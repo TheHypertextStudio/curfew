@@ -50,6 +50,7 @@ final class SystemAppRouter: AppRouting {
 
     /// Activates the Curfew process, ignoring which app currently holds focus.
     func activate() {
+        guard !RuntimeEnvironment.staysBehindForCapture else { return }
         NSApp.activate(ignoringOtherApps: true)
     }
 

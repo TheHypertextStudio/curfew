@@ -4,28 +4,45 @@ import Foundation
 import Testing
 
 struct GettingStartedFlowTests {
-    @Test("Setup is three steps plus one optional closing step")
-    func stepsAreThreePlusOptional() {
-        #expect(FirstRunStep.allCases == [.schedule, .permissions, .ready, .extras])
-        #expect(FirstRunStep.schedule.progressLabel == "Step 1 of 3")
-        #expect(FirstRunStep.permissions.progressLabel == "Step 2 of 3")
-        #expect(FirstRunStep.ready.progressLabel == "Step 3 of 3")
-        #expect(FirstRunStep.extras.progressLabel == "Optional")
+    @Test("Setup opens on a welcome, then asks one thing per screen")
+    func stepsInOrder() {
+        #expect(FirstRunStep.order == [
+            .welcome, .schedule, .permissions, .optional, .ready, .extras
+        ])
+        // Saved progress keys off these raw values; the first four never move.
+        #expect(FirstRunStep.schedule.rawValue == 0)
+        #expect(FirstRunStep.permissions.rawValue == 1)
+        #expect(FirstRunStep.ready.rawValue == 2)
+        #expect(FirstRunStep.extras.rawValue == 3)
     }
 
     @Test("Step headings use the launch copy")
     func headings() {
-        #expect(FirstRunStep.schedule.title == "When should this Mac close for the night?")
+        #expect(FirstRunStep.welcome.title == "Curfew ends your work day.")
+        #expect(FirstRunStep.schedule.title == "When should your day end?")
         #expect(FirstRunStep.permissions.title == "Let Curfew hold the lock.")
+        #expect(FirstRunStep.optional.title == "Two more. Both optional.")
         #expect(FirstRunStep.ready.title == "You're set.")
         #expect(FirstRunStep.extras.title == "Curfew on your other devices")
+    }
+
+    @Test("A fresh setup starts on the welcome and its button opens the question")
+    func welcomeBegins() {
+        var flow = FirstRunFlow()
+        #expect(flow.currentStep == .welcome)
+        #expect(flow.canAdvance)
+
+        flow.begin()
+
+        #expect(flow.currentStep == .schedule)
+        #expect(flow.scheduleChoice == nil)
+        #expect(!flow.canAdvance)
     }
 
     @Test("Choosing a schedule is the explicit choice and moves on in one press")
     func choosingScheduleAdvances() {
         var flow = FirstRunFlow()
-        #expect(!flow.canAdvance)
-        #expect(flow.scheduleChoice == nil)
+        flow.begin()
 
         flow.chooseSchedule(.weeklySchedule)
 
@@ -36,12 +53,13 @@ struct GettingStartedFlowTests {
     @Test("No schedule yet is an explicit choice too")
     func noScheduleYetIsExplicit() {
         var flow = FirstRunFlow()
+        flow.begin()
         flow.chooseSchedule(.remoteControlsOnly)
         #expect(flow.scheduleChoice == .remoteControlsOnly)
         #expect(flow.currentStep == .permissions)
     }
 
-    @Test("Step 2 cannot continue without real Accessibility access")
+    @Test("The permission screen cannot continue without real Accessibility access")
     func permissionsGate() {
         var flow = FirstRunFlow()
         flow.chooseSchedule(.weeklySchedule)
@@ -56,11 +74,10 @@ struct GettingStartedFlowTests {
         #expect(!flow.canAdvance)
     }
 
-    @Test("A fresh grant advances by itself, once, when both optional rows are resolved")
+    @Test("A fresh grant moves setup on by itself, once")
     func grantWhileWaitingContinues() {
         var flow = FirstRunFlow()
         flow.chooseSchedule(.weeklySchedule)
-        flow.updateOptionalPermissions(resolved: true)
 
         let firstGrant = flow.updateAccessibilityGranted(true)
         #expect(firstGrant)
@@ -68,19 +85,7 @@ struct GettingStartedFlowTests {
         #expect(!repeatGrant)
     }
 
-    @Test("A fresh grant holds on step 2 while an optional row is unresolved")
-    func grantHoldsForOptionalRows() {
-        var flow = FirstRunFlow()
-        flow.chooseSchedule(.weeklySchedule)
-
-        let grant = flow.updateAccessibilityGranted(true)
-
-        #expect(!grant)
-        #expect(flow.currentStep == .permissions)
-        #expect(flow.canAdvance)
-    }
-
-    @Test("Access that was already granted does not skip step 2 by itself")
+    @Test("Access that was already granted does not skip the permission screen by itself")
     func existingGrantDoesNotAutoContinue() {
         var flow = FirstRunFlow()
         let existingGrant = flow.updateAccessibilityGranted(true)
@@ -90,26 +95,39 @@ struct GettingStartedFlowTests {
         #expect(flow.canAdvance)
     }
 
-    @Test("Committing setup moves to step 3 and back is no longer offered")
-    func commitMovesToReady() {
+    @Test("Committing setup offers the optional asks, then says it is set")
+    func commitMovesToOptional() {
         var flow = FirstRunFlow()
         flow.chooseSchedule(.weeklySchedule)
         #expect(flow.canGoBack)
         _ = flow.updateAccessibilityGranted(true)
 
-        flow.markCommitted()
+        flow.markCommitted(offersOptional: true)
 
         #expect(flow.isCommitted)
-        #expect(flow.currentStep == .ready)
+        #expect(flow.currentStep == .optional)
         #expect(!flow.canGoBack)
         flow.retreat()
+        #expect(flow.currentStep == .optional)
+        flow.advance()
         #expect(flow.currentStep == .ready)
         flow.advance()
         #expect(flow.currentStep == .extras)
         #expect(flow.isLastStep)
     }
 
-    @Test("Back from step 2 returns to the schedule and keeps the choice open")
+    @Test("With nothing optional left to ask, committing goes straight to the summary")
+    func commitSkipsOptionalWhenNothingIsOffered() {
+        var flow = FirstRunFlow()
+        flow.chooseSchedule(.weeklySchedule)
+        _ = flow.updateAccessibilityGranted(true)
+
+        flow.markCommitted(offersOptional: false)
+
+        #expect(flow.currentStep == .ready)
+    }
+
+    @Test("Back from the permission screen returns to the question and keeps the choice open")
     func backFromPermissions() {
         var flow = FirstRunFlow()
         flow.chooseSchedule(.weeklySchedule)
@@ -129,16 +147,27 @@ struct GettingStartedFlowTests {
         #expect(!resumed.isCommitted)
     }
 
-    @Test("Resuming never lands past step 2 without a committed setup")
-    func resumingCannotSkipCommit() {
-        let resumed = FirstRunFlow.resuming(InitialSetupProgress(step: 3, usesWeeklySchedule: true))
-        #expect(resumed.currentStep == .permissions)
+    @Test("Someone who left on the question comes back to it, not to the welcome")
+    func resumingOnTheQuestion() {
+        var flow = FirstRunFlow()
+        flow.begin()
+        #expect(FirstRunFlow.resuming(flow.progress).currentStep == .schedule)
+        #expect(FirstRunFlow.resuming(FirstRunFlow().progress).currentStep == .welcome)
+    }
 
+    @Test("Resuming never lands past the permission screen without a committed setup")
+    func resumingCannotSkipCommit() {
+        for step in [FirstRunStep.optional, .ready, .extras] {
+            let resumed = FirstRunFlow.resuming(
+                InitialSetupProgress(step: step.rawValue, usesWeeklySchedule: true)
+            )
+            #expect(resumed.currentStep == .permissions)
+        }
         let unchosen = FirstRunFlow.resuming(InitialSetupProgress(step: 1, usesWeeklySchedule: nil))
         #expect(unchosen.currentStep == .schedule)
     }
 
-    @Test("Reopening a finished setup shows the summary, or step 2 when access was lost")
+    @Test("Reopening a finished setup shows the summary, or the permission when access was lost")
     func returningUser() {
         let healthy = FirstRunFlow.returningUser(isAccessibilityGranted: true)
         #expect(healthy.currentStep == .ready)
@@ -149,29 +178,113 @@ struct GettingStartedFlowTests {
         #expect(lost.currentStep == .permissions)
         let regranted = lost.updateAccessibilityGranted(true)
         #expect(regranted)
-        lost.markCommitted()
+        lost.markCommitted(offersOptional: true)
         #expect(lost.currentStep == .ready)
     }
 }
 
-struct GettingStartedCopyTests {
-    @Test("Step 2 puts the one required grant first and marks the rest optional")
-    func permissionsOrder() throws {
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent().deletingLastPathComponent()
-            .deletingLastPathComponent().deletingLastPathComponent()
-        let source = try String(
-            contentsOf: root.appendingPathComponent("Curfew/UI/GettingStartedSteps.swift"),
-            encoding: .utf8
+struct SetupOptionalAskTests {
+    @Test("The optional screen offers notifications, then the Curfew helper")
+    func order() {
+        #expect(SetupOptionalAsk.offered(
+            notifications: .notAsked, helper: .notInstalled, showsHelper: true
+        ) == [.notifications, .helper])
+        #expect(GettingStartedCopy.optionalTitle(count: 2) == "Two more. Both optional.")
+    }
+
+    @Test("Anything already answered is not asked again")
+    func answeredAsksAreLeftOut() {
+        #expect(SetupOptionalAsk.offered(
+            notifications: .allowed, helper: .notInstalled, showsHelper: true
+        ) == [.helper])
+        #expect(SetupOptionalAsk.offered(
+            notifications: .off, helper: .installed, showsHelper: true
+        ).isEmpty)
+        #expect(SetupOptionalAsk.offered(
+            notifications: .notAsked, helper: .notInstalled, showsHelper: false
+        ) == [.notifications])
+        #expect(GettingStartedCopy.optionalTitle(count: 1) == "One more. It's optional.")
+    }
+
+    @Test("A helper that failed or waits for approval is still offered")
+    func unfinishedHelperIsOffered() {
+        for status in [SetupHelperStatus.failed, .needsApproval, .installing] {
+            #expect(SetupOptionalAsk.offered(
+                notifications: .allowed, helper: status, showsHelper: true
+            ) == [.helper])
+        }
+    }
+}
+
+struct SetupScheduleStepTests {
+    private let draft = SetupScheduleDraft(
+        lockMinutes: 18 * 60, unlockMinutes: 7 * 60, workingDays: [.monday]
+    )
+
+    @Test("The round buttons move a time by a quarter hour")
+    func steps() {
+        #expect(draft.adjusting(.curfew, by: 15).lockMinutes == 18 * 60 + 15)
+        #expect(draft.adjusting(.unlock, by: -15).unlockMinutes == 6 * 60 + 45)
+    }
+
+    @Test("A time wraps past midnight")
+    func wraps() {
+        let late = SetupScheduleDraft(
+            lockMinutes: 23 * 60 + 50, unlockMinutes: 7 * 60, workingDays: [.monday]
         )
-        let step = try #require(source.range(of: "struct GettingStartedPermissionsStep"))
-        let body = source[step.upperBound...]
-        let access = try #require(body.range(of: "GettingStartedCopy.accessibilityTitle"))
-        let alerts = try #require(body.range(of: "GettingStartedCopy.notificationsTitle"))
-        let helper = try #require(body.range(of: "GettingStartedCopy.helperTitle"))
-        #expect(access.lowerBound < alerts.lowerBound)
-        #expect(alerts.lowerBound < helper.lowerBound)
-        #expect(body.components(separatedBy: "isOptional: true").count - 1 == 2)
+        #expect(late.adjusting(.curfew, by: 15).lockMinutes == 5)
+    }
+
+    @Test("The day stays between one hour and twenty")
+    func dayLengthIsBounded() {
+        let short = SetupScheduleDraft(
+            lockMinutes: 8 * 60, unlockMinutes: 7 * 60, workingDays: [.monday]
+        )
+        #expect(short.adjusting(.curfew, by: -15) == short)
+        #expect(short.adjusting(.unlock, by: 15) == short)
+        let long = SetupScheduleDraft(
+            lockMinutes: 3 * 60, unlockMinutes: 7 * 60, workingDays: [.monday]
+        )
+        #expect(long.adjusting(.curfew, by: 15) == long)
+    }
+}
+
+struct GettingStartedCopyTests {
+    @Test("The welcome says what Curfew is in one sentence and three captions")
+    func welcome() {
+        #expect(GettingStartedCopy.welcomeLine
+            == "At the time you pick, this Mac locks until morning.")
+        #expect(GettingStartedCopy.introCaptions == [
+            "You work.", "At curfew, this Mac locks.", "In the morning it opens again."
+        ])
+        #expect(GettingStartedCopy.begin == "Set my curfew")
+    }
+
+    @Test("The permission screen asks for Accessibility alone, with one line saying why")
+    func permissionLine() {
+        #expect(GettingStartedCopy.accessibilityLine
+            == "It needs Accessibility, so shortcuts can't get past it.")
+    }
+
+    @Test("The days and unlock time are stated as defaults under the question")
+    func defaultsLine() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.locale = Locale(identifier: "en_US")
+        let seven = try #require(calendar.date(from: DateComponents(hour: 7)))
+            .formatted(date: .omitted, time: .shortened)
+        let weekdays: Set<Weekday> = [.monday, .tuesday, .wednesday, .thursday, .friday]
+        #expect(GettingStartedCopy.defaultsLine(
+            days: weekdays, unlockMinutes: 7 * 60, calendar: calendar
+        ) == "Weekdays. Opens at \(seven).")
+        #expect(GettingStartedCopy.dayPhrase(Set(Weekday.allCases), calendar: calendar)
+            == "Every day")
+        #expect(GettingStartedCopy.dayPhrase(
+            [.monday, .tuesday, .wednesday, .thursday], calendar: calendar
+        ) == "Monday to Thursday")
+        #expect(GettingStartedCopy.dayPhrase(
+            [.monday, .wednesday, .friday], calendar: calendar
+        ) == "Monday, Wednesday and Friday")
+        #expect(GettingStartedCopy.dayPhrase([.sunday], calendar: calendar) == "Sunday")
     }
 
     @Test("The closing step is one Curfew Plus offer with sign-in for existing owners")
@@ -221,7 +334,14 @@ struct GettingStartedCopyTests {
 
     @Test("Setup copy follows the launch words")
     func wordsTable() {
-        let lines = [
+        let lines = GettingStartedCopy.introCaptions + [
+            GettingStartedCopy.welcomeTitle,
+            GettingStartedCopy.welcomeLine,
+            GettingStartedCopy.scheduleTitle,
+            GettingStartedCopy.morningTitle,
+            GettingStartedCopy.accessibilityLine,
+            GettingStartedCopy.notificationsAsk,
+            GettingStartedCopy.helperAsk,
             GettingStartedCopy.noScheduleYet,
             GettingStartedCopy.accessibilityReason,
             GettingStartedCopy.notificationsReason,

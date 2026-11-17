@@ -19,15 +19,20 @@ final class SignedInstallerAcceptanceTests: XCTestCase {
         let app = XCUIApplication(bundleIdentifier: "studio.hypertext.apps.curfew")
         app.launch()
         defer { app.terminate() }
-        XCTAssertTrue(app.staticTexts["When should this Mac close for the night?"]
+        // Setup opens on its welcome: skip its day, or press its button once
+        // it rests, to reach the question.
+        let skip = app.buttons["Skip intro"]
+        (skip.waitForExistence(timeout: 15) ? skip : app.buttons["Set my curfew"]).click()
+        XCTAssertTrue(app.staticTexts["When should your day end?"]
             .waitForExistence(timeout: 15))
         XCTAssertTrue(app.buttons["Use this schedule"].isEnabled)
         XCTAssertTrue(app.buttons["No schedule yet"].isHittable)
         attachScreenshot(of: app, named: "signed-installer-first-launch")
         app.buttons["Use this schedule"].click()
-        XCTAssertTrue(app.staticTexts["Step 2 of 3"].waitForExistence(timeout: 5))
-        XCTAssertFalse(app.buttons["Continue"].isEnabled)
-        XCTAssertTrue(app.buttons["Open System Settings"].exists)
+        XCTAssertTrue(app.staticTexts["Let Curfew hold the lock."].waitForExistence(timeout: 8))
+        // Without Accessibility there is nothing to continue with.
+        XCTAssertTrue(app.buttons["Open System Settings"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["Continue"].exists)
         attachScreenshot(of: app, named: "signed-installer-permission-gate")
         try writeFreshReceipt(bundle: bundle)
     }

@@ -1,0 +1,875 @@
+<!doctype html>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Setup Approaches</title>
+<style>
+  /* Layout: three approaches, each one row of every screen in order, then one table to choose from. */
+  :root {
+    --bg: #f2f1f6;
+    --panel: #ffffff;
+    --fg: #17182b;
+    --soft: #5a5c75;
+    --line: #d9d8e4;
+    --ember: #b8491f;
+    --chip: #e7e5f0;
+    --bone: #fff6ea;
+    --disp: ui-rounded, 'SF Pro Rounded', -apple-system, system-ui, 'Helvetica Neue', sans-serif;
+    --ui: -apple-system, system-ui, 'Helvetica Neue', Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) {
+      --bg: #0b0c15;
+      --panel: #13152a;
+      --fg: #eceaf5;
+      --soft: #a3a5bf;
+      --line: #2a2c45;
+      --ember: #ee8c5f;
+      --chip: #1f2139;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme='dark'] {
+    --bg: #0b0c15;
+    --panel: #13152a;
+    --fg: #eceaf5;
+    --soft: #a3a5bf;
+    --line: #2a2c45;
+    --ember: #ee8c5f;
+    --chip: #1f2139;
+    color-scheme: dark;
+  }
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--ui);
+    font-size: 15px;
+    line-height: 1.5;
+  }
+  .wrap {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding-block: 40px 80px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    display: flex;
+    flex-direction: column;
+    gap: 64px;
+  }
+  h1 {
+    font-family: var(--disp);
+    font-weight: 650;
+    font-size: clamp(30px, 5vw, 46px);
+    line-height: 1.06;
+    letter-spacing: -0.02em;
+    margin: 6px 0 10px;
+    text-wrap: balance;
+  }
+  h2 {
+    font-family: var(--disp);
+    font-size: 26px;
+    font-weight: 650;
+    margin: 0;
+    letter-spacing: -0.015em;
+  }
+  p {
+    margin: 0;
+  }
+  .eyebrow {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ember);
+  }
+  .lead {
+    color: var(--soft);
+    max-width: 66ch;
+    font-size: 16px;
+  }
+  .sec {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .sechead {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-width: 70ch;
+  }
+  .sechead p {
+    color: var(--soft);
+    font-size: 16px;
+  }
+  .strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 272px), 1fr));
+    gap: 20px 16px;
+  }
+  .cell {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+  }
+  .cell .n {
+    font: 650 13px var(--disp);
+    color: var(--fg);
+  }
+  .cell .cap {
+    font-size: 13px;
+    color: var(--soft);
+  }
+  .facts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+    gap: 12px 32px;
+    border-top: 1px solid var(--line);
+    padding-top: 16px;
+  }
+  .facts div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .facts b {
+    font: 600 12px var(--ui);
+    color: var(--ember);
+  }
+  .facts span {
+    font-size: 14px;
+    color: var(--soft);
+  }
+  .tablewrap {
+    overflow-x: auto;
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    background: var(--panel);
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 640px;
+    font-size: 14px;
+  }
+  th,
+  td {
+    text-align: left;
+    padding: 12px 16px;
+    border-top: 1px solid var(--line);
+    vertical-align: top;
+  }
+  thead th {
+    border-top: 0;
+    font: 600 12px var(--ui);
+    color: var(--soft);
+  }
+  tbody th {
+    font: 650 15px var(--disp);
+    white-space: nowrap;
+  }
+  td {
+    color: var(--soft);
+  }
+  .pick {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-width: 78ch;
+  }
+  .pick b {
+    font: 650 16px var(--disp);
+  }
+  .pick p {
+    color: var(--soft);
+  }
+
+  /* a setup screen: sky says and asks, ground holds the one action */
+  .f {
+    position: relative;
+    aspect-ratio: 72/52;
+    border-radius: 14px;
+    overflow: hidden;
+    container-type: inline-size;
+    color: var(--bone);
+    background: #0b0d22;
+    isolation: isolate;
+  }
+  .nogl .f {
+    background: linear-gradient(
+      180deg,
+      #1f4fb5 0 20%,
+      #3f77d6 20% 38%,
+      #74a6e8 38% 54%,
+      #b4d2f2 54% 74%,
+      #121d4a 74%
+    );
+  }
+  .f > canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .lights {
+    position: absolute;
+    left: 3cqw;
+    top: 3cqw;
+    display: flex;
+    gap: 1.5cqw;
+  }
+  .lights i {
+    width: 2.4cqw;
+    height: 2.4cqw;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.38);
+  }
+  .sky {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 74%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2.6cqw;
+    padding: 9cqw 9cqw 0;
+    text-align: center;
+  }
+  .gnd {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 74%;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5cqw;
+  }
+  .h {
+    font: 650 6.3cqw/1.1 var(--disp);
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+  .h.fade {
+    animation: fade 0.6s ease;
+  }
+  @keyframes fade {
+    from {
+      opacity: 0;
+      transform: translateY(1.5cqw);
+    }
+  }
+  .p {
+    font: 500 3.4cqw/1.4 var(--ui);
+    color: rgba(255, 246, 234, 0.94);
+    text-wrap: balance;
+    max-width: 64cqw;
+  }
+  .big {
+    font: 650 15cqw/0.95 var(--disp);
+    letter-spacing: -0.035em;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .big small {
+    font-size: 0.34em;
+    letter-spacing: 0;
+    margin-left: 0.22em;
+    opacity: 0.85;
+  }
+  .def {
+    font: 500 3.1cqw var(--ui);
+    color: rgba(255, 246, 234, 0.9);
+  }
+  .def u,
+  .alt {
+    text-underline-offset: 0.2em;
+    text-decoration-color: rgba(255, 246, 234, 0.45);
+  }
+  .sent {
+    font: 650 6.1cqw/1.34 var(--disp);
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+  .sent i {
+    font-style: normal;
+    border-bottom: 0.45cqw solid rgba(255, 246, 234, 0.6);
+    padding-bottom: 0.1cqw;
+    white-space: nowrap;
+  }
+  .chips {
+    display: flex;
+    gap: 1.6cqw;
+  }
+  .chips i {
+    font: 600 3cqw var(--disp);
+    font-style: normal;
+    width: 8cqw;
+    height: 6.4cqw;
+    border-radius: 1.6cqw;
+    border: 0.35cqw solid rgba(255, 246, 234, 0.4);
+    display: grid;
+    place-items: center;
+    opacity: 0.65;
+  }
+  .chips i.y {
+    background: var(--bone);
+    color: #141a44;
+    border-color: var(--bone);
+    opacity: 1;
+  }
+  .rows {
+    display: flex;
+    flex-direction: column;
+    gap: 2cqw;
+    width: 70cqw;
+  }
+  .rows div {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 3cqw;
+    font: 500 3.3cqw var(--ui);
+    text-align: left;
+  }
+  .rows i {
+    font: 600 2.9cqw var(--disp);
+    font-style: normal;
+    border: 0.35cqw solid rgba(255, 246, 234, 0.5);
+    border-radius: 1.4cqw;
+    padding: 0.9cqw 2.2cqw;
+    white-space: nowrap;
+  }
+  .go {
+    font: 600 3.3cqw var(--disp);
+    background: #d9673a;
+    color: #fff8ee;
+    border-radius: 99px;
+    padding: 1.5cqw 3.6cqw;
+    white-space: nowrap;
+  }
+  .alt {
+    font: 500 2.8cqw var(--ui);
+    opacity: 0.82;
+    text-decoration: underline;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .h.fade {
+      animation: none;
+    }
+  }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Curfew setup, three approaches</div>
+    <h1>Three ways to start.</h1>
+    <p class="lead">
+      Each one opens with a welcome, puts one thing on each screen and keeps the action in the same
+      place. They differ in how Curfew introduces itself and how it asks for the schedule. All three
+      ask for the same things under the same rules, then offer Curfew Plus once and open Today.
+    </p>
+  </header>
+
+  <div id="out" style="display: contents"></div>
+
+  <section class="sec">
+    <div class="sechead"><h2>Side by side</h2></div>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr>
+            <th></th>
+            <th>Screens</th>
+            <th>Clicks to finish</th>
+            <th>How it explains itself</th>
+            <th>Most on one screen</th>
+            <th>Motion</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th>One thing at a time</th>
+            <td>7</td>
+            <td>About 9</td>
+            <td>One sentence, then questions</td>
+            <td>One value</td>
+            <td>The sun moves a little each screen</td>
+          </tr>
+          <tr>
+            <th>The deal</th>
+            <td>4</td>
+            <td>About 6</td>
+            <td>Three plain lines, as an agreement</td>
+            <td>One sentence holding three values</td>
+            <td>None. One still evening</td>
+          </tr>
+          <tr>
+            <th>See it first</th>
+            <td>5</td>
+            <td>About 7</td>
+            <td>Plays one day, then asks</td>
+            <td>One value, with the rest as defaults</td>
+            <td>The welcome only</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="pick">
+      <b>Recommendation: See it first</b>
+      <p>
+        The welcome answers "what is this" by showing the thing itself, so every later screen can
+        stay short. It asks one question before the permission. The motion sits where it explains
+        something and nowhere else. One thing at a time is the safer fallback if the intro feels
+        like too much.
+      </p>
+    </div>
+  </section>
+</div>
+
+<script>
+  (function () {
+    // The three flows as data: m is the minute of the day the sky shows (7:00 AM unlock, 6:00 PM curfew).
+    var ROWS = [
+      ['Warnings before curfew', 'Allow'],
+      ['Keep the lock if Curfew is quit', 'Install'],
+    ];
+    var FLOWS = [
+      {
+        name: 'One thing at a time',
+        idea: 'A plain welcome, then every question alone on its own screen. Nobody can get lost, and no screen takes more than a few seconds.',
+        bet: 'Clarity. Each screen has one job and one button.',
+        cost: 'The most screens and clicks. It can feel long for something this simple.',
+        sky: 'One slow day. The sun is a little further along on each screen.',
+        frames: [
+          {
+            m: 446,
+            h: 'Curfew ends your work day.',
+            p: 'At the time you pick, this Mac locks until morning.',
+            go: 'Get started',
+            cap: 'Welcome. Says what Curfew is before asking anything.',
+          },
+          {
+            m: 684,
+            h: 'When does your day end?',
+            big: ['6:00', 'PM'],
+            go: 'Continue',
+            alt: 'No schedule yet',
+            cap: 'Curfew. The one decision that matters most.',
+          },
+          {
+            m: 724,
+            h: 'When does this Mac open again?',
+            big: ['7:00', 'AM'],
+            go: 'Continue',
+            cap: 'Unlock.',
+          },
+          {
+            m: 763,
+            h: 'Which days?',
+            chips: 1,
+            go: 'Use this schedule',
+            cap: 'Days. This press is the explicit choice.',
+          },
+          {
+            m: 803,
+            h: 'Let Curfew hold the lock.',
+            p: 'It needs Accessibility, so shortcuts can’t get past it.',
+            go: 'Open System Settings',
+            cap: 'The required grant, alone. Moves on by itself once allowed.',
+          },
+          {
+            m: 842,
+            h: 'Two more. Both optional.',
+            rows: 1,
+            go: 'Continue',
+            cap: 'Notifications and the Curfew helper.',
+          },
+          {
+            m: 1062,
+            h: 'You’re set.',
+            p: 'Curfew locks tonight at 6:00 PM.',
+            go: 'Open Curfew',
+            alt: 'Preview the lock',
+            cap: 'Done. States what happens next.',
+          },
+        ],
+      },
+      {
+        name: 'The deal',
+        idea: 'Curfew states the arrangement in plain words, the schedule is one sentence you edit, and the ending reads it back. It sounds like a person, and it is the shortest.',
+        bet: 'Honesty and speed. It reads as an agreement you are making.',
+        cost: 'The least to look at. The sentence carries three values at once.',
+        sky: 'One still evening behind the words. Nothing moves.',
+        frames: [
+          {
+            m: 1066,
+            h: 'A curfew for this Mac.',
+            p: 'You pick when the work day ends. At that time, this Mac locks. In the morning it opens again.',
+            go: 'Pick the time',
+            cap: 'Welcome. The whole arrangement in three lines.',
+          },
+          {
+            m: 1066,
+            sent: 1,
+            go: 'Use this schedule',
+            alt: 'No schedule yet',
+            cap: 'The schedule as one sentence. Press a value to change it.',
+          },
+          {
+            m: 1066,
+            h: 'One permission makes it a real lock.',
+            p: 'Accessibility keeps shortcuts from getting past it.',
+            go: 'Open System Settings',
+            cap: 'The required grant. Once allowed, the two optional offers take its place here.',
+          },
+          {
+            m: 1066,
+            h: 'That’s the deal.',
+            p: 'Curfew locks tonight at 6:00 PM.',
+            go: 'Done',
+            alt: 'Preview the lock',
+            cap: 'Done. Reads the arrangement back.',
+          },
+        ],
+      },
+      {
+        name: 'See it first',
+        idea: 'The welcome plays one day: you work, curfew arrives, morning comes. Then a single question, with everything else set to sensible defaults.',
+        bet: 'People understand by watching. One number is all it asks before the permission.',
+        cost: 'The welcome takes about ten seconds, though the button is there from the start. Unlock and days sit behind "Change".',
+        sky: 'It plays once in the welcome, then rests. The last screen shows the real time.',
+        frames: [
+          {
+            live: 1,
+            m: 1040,
+            h: 'Curfew ends your work day.',
+            go: 'Set my curfew',
+            cap: 'Welcome. The sky plays one day with three captions. Playing here.',
+          },
+          {
+            m: 750,
+            h: 'When should your day end?',
+            big: ['6:00', 'PM'],
+            def: 1,
+            go: 'Use this schedule',
+            alt: 'No schedule yet',
+            cap: 'One question. The rest are defaults one press away.',
+          },
+          {
+            m: 790,
+            h: 'Let Curfew hold the lock.',
+            p: 'It needs Accessibility, so shortcuts can’t get past it.',
+            go: 'Open System Settings',
+            cap: 'The required grant, alone.',
+          },
+          {
+            m: 830,
+            h: 'Two more. Both optional.',
+            rows: 1,
+            go: 'Continue',
+            cap: 'Notifications and the Curfew helper.',
+          },
+          {
+            m: 858,
+            h: 'You’re set.',
+            p: 'Curfew locks tonight at 6:00 PM.',
+            go: 'Open Curfew',
+            alt: 'Preview the lock',
+            cap: 'Done, at the real time of day, so it is already Today.',
+          },
+        ],
+      },
+    ];
+    function el(tag, cls, html) {
+      var e = document.createElement(tag);
+      if (cls) e.className = cls;
+      if (html != null) e.innerHTML = html;
+      return e;
+    }
+    function screen(f) {
+      var box = el('div', 'f');
+      if (f.live) box.dataset.live = '1';
+      else box.dataset.m = f.m;
+      box.appendChild(el('canvas'));
+      box.lastChild.setAttribute('aria-hidden', 'true');
+      box.appendChild(el('div', 'lights', '<i></i><i></i><i></i>'));
+      var sky = el('div', 'sky'),
+        g = el('div', 'gnd');
+      if (f.h) sky.appendChild(el('div', 'h', f.h));
+      if (f.sent)
+        sky.appendChild(
+          el(
+            'div',
+            'sent',
+            'This Mac locks at <i>6:00 PM</i> on <i>weekdays</i> and opens at <i>7:00 AM</i>.',
+          ),
+        );
+      if (f.p) sky.appendChild(el('div', 'p', f.p));
+      if (f.big) sky.appendChild(el('div', 'big', f.big[0] + '<small>' + f.big[1] + '</small>'));
+      if (f.def) sky.appendChild(el('div', 'def', 'Weekdays. Opens at 7:00 AM. <u>Change</u>'));
+      if (f.chips)
+        sky.appendChild(
+          el(
+            'div',
+            'chips',
+            '<i class="y">M</i><i class="y">T</i><i class="y">W</i><i class="y">T</i><i class="y">F</i><i>S</i><i>S</i>',
+          ),
+        );
+      if (f.rows)
+        sky.appendChild(
+          el(
+            'div',
+            'rows',
+            ROWS.map(function (r) {
+              return '<div><span>' + r[0] + '</span><i>' + r[1] + '</i></div>';
+            }).join(''),
+          ),
+        );
+      g.appendChild(el('div', 'go', f.go));
+      if (f.alt) g.appendChild(el('div', 'alt', f.alt));
+      box.appendChild(sky);
+      box.appendChild(g);
+      return box;
+    }
+    var out = document.getElementById('out');
+    FLOWS.forEach(function (F, i) {
+      var s = el('section', 'sec');
+      s.appendChild(
+        el(
+          'div',
+          'sechead',
+          '<h2>' + String.fromCharCode(65 + i) + '. ' + F.name + '</h2><p>' + F.idea + '</p>',
+        ),
+      );
+      var strip = el('div', 'strip');
+      F.frames.forEach(function (f, j) {
+        var c = el('div', 'cell');
+        c.appendChild(screen(f));
+        c.appendChild(
+          el(
+            'div',
+            null,
+            '<span class="n">' + (j + 1) + '</span> <span class="cap">' + f.cap + '</span>',
+          ),
+        );
+        strip.appendChild(c);
+      });
+      s.appendChild(strip);
+      s.appendChild(
+        el(
+          'div',
+          'facts',
+          '<div><b>The bet</b><span>' +
+            F.bet +
+            '</span></div><div><b>The cost</b><span>' +
+            F.cost +
+            '</span></div><div><b>The sky</b><span>' +
+            F.sky +
+            '</span></div>',
+        ),
+      );
+      out.appendChild(s);
+    });
+
+    // The sky: the Horizon prototype's model and shader, unchanged.
+    var H = 0.26,
+      WS = 420,
+      CF = 1080,
+      UN = 1860;
+    var still = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    function qb(a, c, b, t) {
+      var u = 1 - t;
+      return [
+        u * u * a[0] + 2 * t * u * c[0] + t * t * b[0],
+        u * u * a[1] + 2 * t * u * c[1] + t * t * b[1],
+      ];
+    }
+    var P0 = [0.07, H],
+      P2 = [0.93, H],
+      PC = [0.5, 1.6];
+    function sm(a, b, x) {
+      x = Math.max(0, Math.min(1, (x - a) / (b - a)));
+      return x * x * (3 - 2 * x);
+    }
+    function model(m) {
+      var p,
+        SW,
+        E,
+        MW = 0,
+        q = (m - CF) / (UN - CF);
+      if (m <= CF) {
+        p = (m - WS) / (CF - WS);
+        SW = 1;
+        E = Math.sin(Math.PI * Math.max(0, p));
+      } else if (m < UN) {
+        E = -0.9 * Math.min(1, (m - CF) / 70, (UN - m) / 35);
+        if (m <= CF + 45) {
+          p = (m - WS) / (CF - WS);
+          SW = 1 - sm(CF + 5, CF + 45, m);
+        } else if (m >= UN - 40) {
+          p = (m - UN) / (CF - WS);
+          SW = sm(UN - 40, UN - 5, m);
+        } else {
+          p = 1.2;
+          SW = 0;
+        }
+        MW = Math.min(sm(CF + 5, CF + 50, m), 1 - sm(UN - 50, UN - 10, m));
+      } else {
+        p = (m - UN) / (CF - WS);
+        SW = 1;
+        E = Math.sin(Math.PI * p);
+      }
+      return { S: qb(P0, PC, P2, p), SW: SW, M: qb(P0, PC, P2, q), MW: MW, E: E };
+    }
+    var jd = Date.now() / 864e5 + 2440587.5,
+      age = (((jd - 2451550.1) % 29.530588853) + 29.530588853) % 29.530588853,
+      MOON = (2 * Math.PI * age) / 29.530588853;
+    var FS = [
+      '#version 300 es',
+      'precision highp float;',
+      'uniform vec2 R;uniform vec2 S;uniform vec2 M;uniform vec2 W;uniform float E;uniform float PH;uniform float MO;out vec4 o;',
+      'const float H=.26;const float N=14.;',
+      'vec3 ph(vec3 d,vec3 g,vec3 u,vec3 n,float e){if(e>.1)return mix(g,d,smoothstep(.1,.55,e));if(e>-.05)return mix(u,g,smoothstep(-.05,.1,e));return mix(n,u,smoothstep(-.4,-.05,e));}',
+      'vec3 ramp(float k,float e){vec3 c0=ph(vec3(.10,.27,.66),vec3(.15,.17,.46),vec3(.07,.08,.24),vec3(.027,.031,.094),e),c1=ph(vec3(.22,.44,.82),vec3(.38,.27,.60),vec3(.20,.15,.42),vec3(.047,.059,.165),e),c2=ph(vec3(.44,.64,.91),vec3(.74,.38,.55),vec3(.50,.22,.45),vec3(.10,.12,.31),e),c3=ph(vec3(.70,.82,.95),vec3(.95,.56,.27),vec3(.83,.34,.30),vec3(.135,.155,.37),e),c4=ph(vec3(.94,.96,.98),vec3(1.,.84,.52),vec3(.96,.62,.30),vec3(.19,.21,.46),e);',
+      ' float x=clamp(k,0.,1.)*4.;if(x<1.)return mix(c0,c1,x);if(x<2.)return mix(c1,c2,x-1.);if(x<3.)return mix(c2,c3,x-2.);return mix(c3,c4,x-3.);}',
+      'void main(){vec2 uv=gl_FragCoord.xy/R;float asp=R.x/R.y;float a=max((uv.y-H)/(1.-H),0.);',
+      ' float rs=length(vec2((uv.x-S.x)*asp,uv.y-S.y)),rm=length(vec2((uv.x-M.x)*asp,uv.y-M.y));',
+      ' float low=1.-smoothstep(.05,.6,abs(E));',
+      ' float L=1.-(1.-exp(-rs*2.4)*W.x)*(1.-exp(-rm*3.2)*W.y*.7)*(1.-exp(-a*3.2)*mix(.34,.9,low));',
+      ' float x=L*N+PH;float w=clamp(fwidth(x)*1.1,0.,.45);float kq=floor(x)+smoothstep(1.-w,1.,fract(x));float k=(kq-PH)/N;',
+      ' vec3 c=ramp(k,E+(k-.5)*.24);float aa=1.5/R.y;',
+      ' c=mix(c,ramp(1.,E+.12)*1.02+.03,(1.-smoothstep(.05-aa,.05+aa,rs))*step(.01,W.x));',
+      ' vec2 q=vec2((uv.x-M.x)*asp,uv.y-M.y)/.04;float mq=dot(q,q);float lit=step(0.,q.x*sin(MO)-sqrt(max(1.-mq,0.))*cos(MO));',
+      ' c=mix(c,mix(vec3(.2,.22,.42),vec3(.93,.92,.97),lit),(1.-smoothstep(1.-aa*40.,1.+aa*40.,mq))*smoothstep(.0,.25,W.y));',
+      ' vec3 g=ph(vec3(.07,.11,.29),vec3(.11,.085,.25),vec3(.065,.05,.18),vec3(.018,.02,.055),E);o=vec4(uv.y<H?g:c,1.);}',
+    ].join('\n');
+    function mk(cv) {
+      var gl = cv.getContext('webgl2', { antialias: false, preserveDrawingBuffer: true });
+      if (!gl) return null;
+      function sh(t, s) {
+        var x = gl.createShader(t);
+        gl.shaderSource(x, s);
+        gl.compileShader(x);
+        if (!gl.getShaderParameter(x, gl.COMPILE_STATUS)) {
+          console.error(gl.getShaderInfoLog(x));
+          return null;
+        }
+        return x;
+      }
+      var vs = sh(
+          gl.VERTEX_SHADER,
+          '#version 300 es\nin vec2 p;void main(){gl_Position=vec4(p,0.,1.);}',
+        ),
+        fs = sh(gl.FRAGMENT_SHADER, FS);
+      if (!vs || !fs) return null;
+      var pr = gl.createProgram();
+      gl.attachShader(pr, vs);
+      gl.attachShader(pr, fs);
+      gl.linkProgram(pr);
+      if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) return null;
+      gl.useProgram(pr);
+      var b = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, b);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+      var l = gl.getAttribLocation(pr, 'p');
+      gl.enableVertexAttribArray(l);
+      gl.vertexAttribPointer(l, 2, gl.FLOAT, false, 0, 0);
+      var U = {};
+      ['R', 'S', 'M', 'W', 'E', 'PH', 'MO'].forEach(function (n) {
+        U[n] = gl.getUniformLocation(pr, n);
+      });
+      return function (o, phase) {
+        gl.viewport(0, 0, cv.width, cv.height);
+        gl.uniform2f(U.R, cv.width, cv.height);
+        gl.uniform2f(U.S, o.S[0], o.S[1]);
+        gl.uniform2f(U.M, o.M[0], o.M[1]);
+        gl.uniform2f(U.W, o.SW, o.MW);
+        gl.uniform1f(U.E, o.E);
+        gl.uniform1f(U.PH, phase);
+        gl.uniform1f(U.MO, MOON);
+        gl.drawArrays(gl.TRIANGLES, 0, 3);
+      };
+    }
+    function fit(cv) {
+      var d = Math.min(window.devicePixelRatio || 1, 2),
+        w = Math.max(2, Math.round(cv.clientWidth * d)),
+        h = Math.max(2, Math.round(cv.clientHeight * d));
+      if (cv.width !== w || cv.height !== h) {
+        cv.width = w;
+        cv.height = h;
+      }
+    }
+    var off = document.createElement('canvas'),
+      drawOff = mk(off);
+    if (!drawOff) document.documentElement.classList.add('nogl');
+    function paint() {
+      if (!drawOff) return;
+      var list = document.querySelectorAll('.f[data-m]');
+      for (var i = 0; i < list.length; i++) {
+        var cv = list[i].querySelector('canvas');
+        fit(cv);
+        off.width = cv.width;
+        off.height = cv.height;
+        drawOff(model(+list[i].dataset.m), 3.3);
+        cv.getContext('2d').drawImage(off, 0, 0);
+      }
+    }
+
+    // The welcome of "See it first": one day in about ten seconds, with a caption for each part.
+    var live = document.querySelector('.f[data-live]'),
+      lcv = live.querySelector('canvas'),
+      lh = live.querySelector('.h'),
+      drawLive = drawOff && !still ? mk(lcv) : null;
+    var PARTS = [
+        [0, 0.42, 700, 1078, 'You work.'],
+        [0.42, 0.72, 1078, 1150, 'At curfew, this Mac locks.'],
+        [0.72, 1, 1822, 1905, 'In the morning it opens again.'],
+      ],
+      part = -1,
+      phase = 3.3,
+      t0 = performance.now(),
+      last = t0;
+    function frame(now) {
+      var dt = Math.min(0.1, (now - last) / 1000);
+      last = now;
+      var t = ((now - t0) / 11000) % 1,
+        i = t < 0.42 ? 0 : t < 0.72 ? 1 : 2,
+        P = PARTS[i],
+        k = (t - P[0]) / (P[1] - P[0]);
+      k = k * k * (3 - 2 * k);
+      if (i !== part) {
+        part = i;
+        lh.textContent = P[4];
+        lh.classList.remove('fade');
+        void lh.offsetWidth;
+        lh.classList.add('fade');
+      }
+      if (i !== 1) phase += dt * 0.05;
+      fit(lcv);
+      if (drawLive) drawLive(model(P[2] + (P[3] - P[2]) * k), phase);
+      requestAnimationFrame(frame);
+    }
+    if (still || !drawLive) {
+      live.dataset.m = 1040;
+      delete live.dataset.live;
+    } else requestAnimationFrame(frame);
+    var rz;
+    window.addEventListener('resize', function () {
+      clearTimeout(rz);
+      rz = setTimeout(paint, 120);
+    });
+    requestAnimationFrame(paint);
+  })();
+</script>

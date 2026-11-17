@@ -64,10 +64,15 @@ final class MarketingCaptureTests: XCTestCase {
                         attach(window, name: "\(scenario)-bottom-\(appearance)-\(size)")
                     }
                     if scenario == "getting-started" {
+                        let skip = app.buttons["Skip intro"]
+                        (skip.waitForExistence(timeout: 3) ? skip : app.buttons["Set my curfew"])
+                            .click()
+                        assertText("When should your day end?", in: app)
                         XCTAssertTrue(app.buttons["No schedule yet"].isHittable)
+                        attach(window, name: "setup-question-\(appearance)-\(size)")
                         app.buttons["Use this schedule"].click()
-                        assertText("Step 2 of 3", in: app)
-                        attach(window, name: "setup-step-2-\(appearance)-\(size)")
+                        assertText("Let Curfew hold the lock.", in: app)
+                        attach(window, name: "setup-permission-\(appearance)-\(size)")
                     }
                     if scenario == "this-week" {
                         app.buttons["journal-edit-prompts"].firstMatch.click()

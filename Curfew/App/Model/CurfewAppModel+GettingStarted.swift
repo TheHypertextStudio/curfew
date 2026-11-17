@@ -30,6 +30,28 @@ struct SetupScheduleDraft: Equatable {
         )
     }
 
+    /// The two times the question screens change.
+    enum Field {
+        case curfew
+        case unlock
+    }
+
+    /// Moves one time by `minutes`, wrapping past midnight. A change that
+    /// would leave the day shorter than an hour or longer than twenty is
+    /// refused, so the two times can never cross.
+    func adjusting(_ field: Field, by minutes: Int) -> SetupScheduleDraft {
+        func wrapped(_ value: Int) -> Int {
+            ((value % 1440) + 1440) % 1440
+        }
+        var next = self
+        switch field {
+        case .curfew: next.lockMinutes = wrapped(lockMinutes + minutes)
+        case .unlock: next.unlockMinutes = wrapped(unlockMinutes + minutes)
+        }
+        let dayLength = wrapped(next.lockMinutes - next.unlockMinutes)
+        return (60 ... 1200).contains(dayLength) ? next : self
+    }
+
     /// The same times on every day, preserving nothing but the chosen days.
     func schedule(basedOn base: WeeklySchedule) -> WeeklySchedule {
         var next = base
