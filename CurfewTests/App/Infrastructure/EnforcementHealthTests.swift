@@ -86,7 +86,7 @@ struct EnforcementHealthTests {
 
             #expect(health == expectedHealth)
             #expect(health.isFullyActive == false)
-            #expect(health.bannerDetail?.contains("Background protection") == true)
+            #expect(health.bannerDetail?.contains("Curfew helper") == true)
             #expect(health.offersAccessibilityRemediation == false)
         }
     }

@@ -12,6 +12,7 @@ extension SettingsView {
             Button("Install command line tool…") {
                 prepareCLIInstallation()
             }
+            .buttonStyle(CurfewSecondaryButtonStyle())
             .accessibilityIdentifier("install-command-line-tool")
             .confirmationDialog("Install curfew-ctl?", isPresented: $showsCLIInstallation) {
                 Button("Install") { applyCLIInstallation() }

@@ -204,7 +204,7 @@ struct ReflectionPromptsView: View {
         }
         .pickerStyle(.segmented)
         .labelsHidden()
-        .frame(maxWidth: 260)
+        .fixedSize()
     }
 
     /// A compact, non-interactive preview of how the prompt's answer control

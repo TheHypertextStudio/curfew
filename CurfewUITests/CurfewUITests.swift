@@ -343,7 +343,7 @@ extension CurfewUITests {
         let review = app.buttons["Review setup…"]
         XCTAssertTrue(review.exists)
         XCTAssertLessThan(review.frame.maxY, window.frame.maxY - 12)
-        XCTAssertFalse(app.staticTexts["Background protection needs attention."].exists)
+        XCTAssertFalse(app.staticTexts["The Curfew helper needs attention."].exists)
         XCTAssertTrue(app.disclosureTriangles["Troubleshooting"].exists)
     }
 
