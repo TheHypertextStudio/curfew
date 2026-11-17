@@ -112,7 +112,7 @@ struct ThemeConsistencyTests {
     @Test("Atmospheric labels remain readable across every Horizon night stop")
     func atmosphericContrast() throws {
         let appearance = try #require(NSAppearance(named: .darkAqua))
-        let stops = HorizonPalette.night + [HorizonPalette.nightGround]
+        let stops = HorizonPalette.standard.night + [HorizonPalette.standard.nightGround]
         for stop in stops {
             let color = Color(red: stop.red, green: stop.green, blue: stop.blue)
             #expect(contrast(SundownPalette.warmWhite, color, appearance: appearance) >= 4.5)

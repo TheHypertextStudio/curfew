@@ -1,3 +1,4 @@
+import CurfewAtmosphere
 import SwiftUI
 
 /// How a glass surface draws for the current accessibility settings. System
@@ -12,8 +13,16 @@ struct HorizonGlassLook: Equatable {
     }
 
     /// The solid stand-in for glass over the sky: the night ramp's second stop,
-    /// dark enough for warm white text at any time of day.
+    /// dark enough for warm white text at any time of day. Sundown's; views
+    /// use ``solidFill(_:)`` with the theme's palette.
     static let solidFill = SundownPalette.nightPanel
+
+    /// The solid stand-in for glass in `palette`: its night's second stop.
+    static func solidFill(_ palette: HorizonPalette) -> Color {
+        let stop = palette.night[1]
+        return AtmospherePalette.solidBackground(red: stop.red, green: stop.green, blue: stop.blue)
+    }
+
     static let outline = SundownPalette.warmWhite.opacity(0.7)
 }
 
@@ -29,11 +38,10 @@ extension View {
         Group {
             if look.usesSystemGlass {
                 glassEffect(.regular.tint(tint).interactive(interactive), in: shape)
+            } else if prominent {
+                background(CurfewTheme.accentFill, in: shape)
             } else {
-                background(
-                    prominent ? CurfewTheme.accentFill : HorizonGlassLook.solidFill,
-                    in: shape
-                )
+                background { HorizonSolidPanel(shape: shape) }
             }
         }
         .overlay {
@@ -54,6 +62,16 @@ extension View {
     /// accessibility settings.
     func horizonGlass(in shape: some Shape) -> some View {
         modifier(HorizonGlassSurface(shape: shape))
+    }
+}
+
+/// The solid panel under Reduce Transparency, in the theme's palette.
+private struct HorizonSolidPanel<S: Shape>: View {
+    let shape: S
+    @Environment(\.horizonPalette) private var palette
+
+    var body: some View {
+        shape.fill(HorizonGlassLook.solidFill(palette))
     }
 }
 
@@ -78,6 +96,7 @@ private struct HorizonGlassSurface<S: Shape>: ViewModifier {
 /// capsules.
 struct HorizonGlassButtonStyle: PrimitiveButtonStyle {
     var prominent = false
+    @Environment(\.horizonPalette) private var palette
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Environment(\.colorSchemeContrast) private var contrast
 
@@ -98,7 +117,7 @@ struct HorizonGlassButtonStyle: PrimitiveButtonStyle {
                     .padding(.horizontal, CurfewSpacing.large)
                     .padding(.vertical, CurfewSpacing.small)
                     .background(
-                        prominent ? CurfewTheme.accentFill : HorizonGlassLook.solidFill,
+                        prominent ? CurfewTheme.accentFill : HorizonGlassLook.solidFill(palette),
                         in: Capsule()
                     )
                     .foregroundStyle(SundownPalette.warmWhite)

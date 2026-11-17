@@ -29,6 +29,7 @@ struct HorizonSkyView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.displayScale) private var displayScale
     @Environment(\.horizonSkyRendering) private var rendering
+    @Environment(\.horizonPalette) private var palette
     @State private var bands = HorizonBandPhase(anchor: Date(), isRunning: false)
 
     init(frame: HorizonFrame, isDayRunning: Bool) {
@@ -63,7 +64,8 @@ struct HorizonSkyView: View {
                     frame: frame,
                     size: size,
                     phase: phase,
-                    scale: displayScale
+                    scale: displayScale,
+                    palette: palette
                 ))
         case .shader, .reference:
             // Also the fallback when the bundled shader library cannot load.
@@ -71,8 +73,11 @@ struct HorizonSkyView: View {
         }
     }
 
-    /// The SwiftUI shader for one frame, from the bundled library.
-    static func shader(frame: HorizonFrame, size: CGSize, phase: Double, scale: CGFloat) -> Shader {
+    /// The SwiftUI shader for one frame in `palette`, from the bundled library.
+    static func shader(
+        frame: HorizonFrame, size: CGSize, phase: Double, scale: CGFloat,
+        palette: HorizonPalette = .standard
+    ) -> Shader {
         (HorizonShaderLibrary.shared?.library ?? .default).horizonSky(
             .float2(size),
             .float2(frame.sun.x, frame.sun.y),
@@ -82,7 +87,7 @@ struct HorizonSkyView: View {
             .float(phase),
             .float(frame.moonPhase),
             .float(scale),
-            .floatArray(HorizonPalette.shaderTable)
+            .floatArray(palette.shaderTable)
         )
     }
 }

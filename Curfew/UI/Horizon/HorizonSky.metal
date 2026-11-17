@@ -22,8 +22,11 @@ float3 ph(float3 d, float3 g, float3 u, float3 n, float e) {
 }
 
 // The palette arrives from Swift (`HorizonPalette.shaderTable`) so the CPU
-// renderer and the shader share one table: for each of six stops (five ramp
-// stops, then the ground), the day, last hour, dusk and night colours.
+// renderer and the shader share one table for every theme: for each of six
+// stops (five ramp stops, then the ground), the day, last hour, dusk and night
+// colours; then the moon's lit and unlit faces.
+constant int TABLE_COUNT = 78;
+constant int MOON = 72;
 float3 entry(device const float *table, int stop, int palette) {
     int i = (stop * 4 + palette) * 3;
     return float3(table[i], table[i + 1], table[i + 2]);
@@ -61,8 +64,8 @@ float brightness(float2 uv, float asp, float2 S, float2 M, float2 W, float E) {
     float2 position, half4 color, float2 size, float2 S, float2 M, float2 W,
     float E, float PH, float MO, float scale, device const float *table, int count
 ) {
-    if (count < 72) return half4(0.0h, 0.0h, 0.0h, 1.0h);
     using namespace horizon;
+    if (count < TABLE_COUNT) return half4(0.0h, 0.0h, 0.0h, 1.0h);
     float2 uv = float2(position.x / size.x, 1.0 - position.y / size.y);
     float asp = size.x / size.y;
     float pixel = 1.0 / max(scale, 1.0);
@@ -90,7 +93,9 @@ float brightness(float2 uv, float asp, float2 S, float2 M, float2 W, float E) {
     float mq = dot(q, q);
     float lit = step(0.0, q.x * sin(MO) - sqrt(max(1.0 - mq, 0.0)) * cos(MO));
     float moon = (1.0 - smoothstep(1.0 - aa * 40.0, 1.0 + aa * 40.0, mq)) * smoothstep(0.0, 0.25, W.y);
-    c = mix(c, mix(float3(0.2, 0.22, 0.42), float3(0.93, 0.92, 0.97), lit), moon);
+    float3 moonLit = float3(table[MOON], table[MOON + 1], table[MOON + 2]);
+    float3 moonDark = float3(table[MOON + 3], table[MOON + 4], table[MOON + 5]);
+    c = mix(c, mix(moonDark, moonLit, lit), moon);
 
     float3 g = stopColor(table, 5, E);
     float3 outColor = uv.y < H ? g : c;

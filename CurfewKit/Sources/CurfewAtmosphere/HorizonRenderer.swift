@@ -8,7 +8,8 @@ import Foundation
 public enum HorizonRenderer {
     /// RGBA8 pixels, row 0 at the top, alpha always 255.
     public static func pixels(
-        frame: HorizonFrame, bandPhase: Double, pixelWidth: Int, pixelHeight: Int
+        frame: HorizonFrame, bandPhase: Double, pixelWidth: Int, pixelHeight: Int,
+        palette: HorizonPalette = .standard
     ) -> [UInt8]? {
         guard pixelWidth > 0, pixelHeight > 0 else { return nil }
         let width = Double(pixelWidth)
@@ -39,7 +40,7 @@ public enum HorizonRenderer {
                 let index = row * gridWidth + column
                 let level = levels[index]
                 let change = abs(levels[index + 1] - level) + abs(levels[index + gridWidth] - level)
-                let color = HorizonField.color(
+                let color = palette.fieldColor(
                     at: HorizonPoint(x: (Double(column) + 0.5) / width, y: rowY),
                     level: level, canvas: canvas, frame: frame,
                     bands: HorizonField.Bands(
@@ -57,13 +58,14 @@ public enum HorizonRenderer {
         return bytes
     }
 
-    /// An sRGB image of the scene at the requested pixel size.
+    /// An sRGB image of the scene at the requested pixel size, in `palette`.
     public static func image(
-        frame: HorizonFrame, bandPhase: Double, pixelWidth: Int, pixelHeight: Int
+        frame: HorizonFrame, bandPhase: Double, pixelWidth: Int, pixelHeight: Int,
+        palette: HorizonPalette = .standard
     ) -> CGImage? {
         guard let bytes = pixels(
                   frame: frame, bandPhase: bandPhase, pixelWidth: pixelWidth,
-                  pixelHeight: pixelHeight
+                  pixelHeight: pixelHeight, palette: palette
               ), let space = CGColorSpace(name: CGColorSpace.sRGB),
               let provider = CGDataProvider(data: Data(bytes) as CFData) else { return nil }
         return CGImage(

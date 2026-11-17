@@ -18,7 +18,10 @@ extension OverlayCoordinator {
     static func makeRestContentView(
         model: CurfewAppModel, display: RestDisplayPresentation, scene: LockScene
     ) -> NSView {
-        makeRestHostingView(rootView: RestScreenView(model: model, display: display, scene: scene))
+        makeRestHostingView(
+            rootView: RestScreenView(model: model, display: display, scene: scene)
+                .curfewTheme(model)
+        )
     }
 
     static func makeRestHostingView<Content: View>(rootView: Content) -> NSHostingView<Content> {

@@ -130,16 +130,10 @@ public struct RestAmbientScene<Sky: View>: View {
                     .blendMode(.screen)
             } else {
                 // The Horizon night is dark enough for the clock without a scrim.
+                // The palette travels with the appearance, so the screen saver
+                // draws the sky the person chose.
                 sky(resolvedFrame, bandsDrift)
-                if appearance.palette == .warmAmber {
-                    Color(red: 0.94, green: 0.46, blue: 0.12)
-                        .opacity(0.20)
-                        .blendMode(.softLight)
-                } else if appearance.palette == .coolTwilight {
-                    Color(red: 0.20, green: 0.32, blue: 0.75)
-                        .opacity(0.25)
-                        .blendMode(.softLight)
-                }
+                    .environment(\.horizonPalette, HorizonPalette(appearance.palette))
             }
         }
     }

@@ -262,6 +262,7 @@ struct CurfewApp: App {
         Window("Curfew", id: MainWorkspaceSection.windowID) {
             MainWindowView()
                 .environment(model)
+                .curfewTheme(model)
                 .appWindowRouting(using: model.appRouter)
                 .disabled(model.privilegedHelperManager.repairInProgress)
                 .frame(minWidth: 980, minHeight: 660)
@@ -292,6 +293,7 @@ struct CurfewApp: App {
             ContentView()
                 .preferredColorScheme(Self.demoColorScheme)
                 .environment(model)
+                .curfewTheme(model)
                 .onOpenURL { _ = model.handleIncomingURL($0) }
         } label: {
             CurfewMenuBarLabel(model: model)
@@ -303,6 +305,7 @@ struct CurfewApp: App {
             SettingsView()
                 .preferredColorScheme(Self.demoColorScheme)
                 .environment(model)
+                .curfewTheme(model)
                 .appWindowRouting(using: model.appRouter)
                 .frame(minWidth: 760, minHeight: 520)
                 .onOpenURL { _ = model.handleIncomingURL($0) }
@@ -316,6 +319,7 @@ struct CurfewApp: App {
         Window(GettingStartedCopy.windowTitle, id: CurfewAppModel.gettingStartedWindowID) {
             GettingStartedView()
                 .environment(model)
+                .curfewTheme(model)
                 .appWindowRouting(using: model.appRouter)
                 .preferredColorScheme(Self.demoColorScheme)
         }

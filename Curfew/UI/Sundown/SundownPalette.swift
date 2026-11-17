@@ -38,14 +38,14 @@ enum SundownPalette {
     /// Shared opaque night surface for warning notices and static lock views:
     /// the Horizon night's far sky.
     static let nightSky = Color(
-        red: HorizonPalette.night[0].red, green: HorizonPalette.night[0].green,
-        blue: HorizonPalette.night[0].blue
+        red: HorizonPalette.standard.night[0].red, green: HorizonPalette.standard.night[0].green,
+        blue: HorizonPalette.standard.night[0].blue
     )
 
     /// Solid stand-in for glass over the sky under Reduce Transparency: the
     /// Horizon night's second stop.
     static let nightPanel = Color(
-        red: HorizonPalette.night[1].red, green: HorizonPalette.night[1].green,
-        blue: HorizonPalette.night[1].blue
+        red: HorizonPalette.standard.night[1].red, green: HorizonPalette.standard.night[1].green,
+        blue: HorizonPalette.standard.night[1].blue
     )
 }
