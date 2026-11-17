@@ -1,34 +1,60 @@
 import CurfewKit
-import EventKit
 import SwiftUI
 
-/// Builds the single VoiceOver summary string read aloud when the
-/// lockout overlay appears. Centralised so tests can verify the copy
-/// without instantiating SwiftUI.
-enum LockoutAccessibilityCopy {
-    /// Combines the lockout message and optional unlock time into a
-    /// single screen-reader sentence. Falls back to "Unlock time
-    /// unavailable." when `unlockLine` is `nil` (schedule error).
-    static func summary(message: String, unlockLine: String?) -> String {
-        let unlockPortion = unlockLine ?? "Unlock time unavailable."
-        return "Curfew lockout active. \(message). \(unlockPortion)"
+/// What the lock says right now, from the restriction status and the voice
+/// pack. Pure, so tests read the words without SwiftUI.
+struct LockScreenContent: Equatable {
+    let headline: String
+    let line: String?
+    let symbol: HorizonSymbol
+    let isLeadIn: Bool
+    /// One sentence for VoiceOver as the lock appears.
+    let accessibilitySummary: String
+
+    static func resolve(
+        status: RestRestrictionStatus, now: Date, leadMinutes: Int, voice: VoicePack
+    ) -> LockScreenContent {
+        switch status {
+        case .lockedUntil(let unlock):
+            let seconds = unlock.timeIntervalSince(now)
+            if seconds <= TimeInterval(max(0, leadMinutes)) * 60 {
+                let minutes = Int((seconds / 60).rounded(.up))
+                return LockScreenContent(
+                    headline: voice.leadInHeadline, line: voice.unlocksIn(minutes: minutes),
+                    symbol: .sunrise, isLeadIn: true,
+                    accessibilitySummary: voice.leadInSummary(minutes: minutes)
+                )
+            }
+            return LockScreenContent(
+                headline: voice.lockedHeadline, line: voice.unlocksAt(unlock), symbol: .locked,
+                isLeadIn: false, accessibilitySummary: voice.lockedSummary(until: unlock)
+            )
+        case .stillLocked:
+            return LockScreenContent(
+                headline: voice.lockedHeadline, line: voice.unlockPassed, symbol: .locked,
+                isLeadIn: false, accessibilitySummary: voice.unlockPassed
+            )
+        case .unknown:
+            return LockScreenContent(
+                headline: voice.lockedHeadline, line: voice.unlockUnknown, symbol: .locked,
+                isLeadIn: false, accessibilitySummary: voice.unlockUnknown
+            )
+        case .released:
+            return LockScreenContent(
+                headline: voice.released, line: nil, symbol: .override, isLeadIn: false,
+                accessibilitySummary: voice.released
+            )
+        }
     }
 }
 
-/// Accessibility-driven visual tuning for the lockout screen.
-/// Evaluates the user's Reduce Motion / Reduce Transparency preferences
-/// once per render; the struct is pure data so tests can assert the
-/// mapping without touching SwiftUI environment.
+/// Accessibility-driven visual tuning for the lock screen.
 struct LockoutVisualConfiguration: Equatable {
-    /// When `false`, the slow gradient animation is disabled.
+    /// When `false`, moves are replaced by short fades.
     var animateBackground: Bool
-    /// When `true`, semi-transparent panels switch to solid fills so
-    /// content remains legible for users who can't parse translucency.
+    /// When `true`, translucent panels switch to solid fills.
     var usesSolidPanels: Bool
 
-    /// Derives a configuration from the two accessibility environment
-    /// values. Kept as a pure static so `LockoutBackgroundView` and the
-    /// body rendering path can share the same resolution logic.
     static func resolve(
         reduceMotion: Bool,
         reduceTransparency: Bool
@@ -40,320 +66,254 @@ struct LockoutVisualConfiguration: Equatable {
     }
 }
 
-/// Full-screen overlay rendered on every display during the lockout
-/// phase. Shows the current time, the lockout message, the unlock time,
-/// optional calendar context (Pro), and the Convince Me override flow.
+/// The clock's numerals and day period, split so the period can sit small
+/// beside the numerals as in the prototype.
+enum LockClockText {
+    static func numerals(_ date: Date, locale: Locale = .autoupdatingCurrent) -> String {
+        var style = Date.FormatStyle.dateTime.hour(.defaultDigits(amPM: .omitted))
+            .minute(.twoDigits)
+        style.locale = locale
+        return date.formatted(style)
+    }
+
+    static func period(_ date: Date, locale: Locale = .autoupdatingCurrent) -> String? {
+        let template = DateFormatter.dateFormat(fromTemplate: "j", options: 0, locale: locale) ?? ""
+        guard template.contains("a") else { return nil }
+        let formatter = DateFormatter()
+        formatter.locale = locale
+        formatter.dateFormat = "a"
+        return formatter.string(from: date)
+    }
+}
+
+/// The lock, laid out like the prototype's `lock` phase: the clock centred
+/// in the sky, "That's the day." under it, the unlock line with the lock
+/// symbol, and one quiet text button on the ground, "Need to get back in?".
+/// Opening the override composer or the evening close-out lifts the clock
+/// and makes room on the same scene.
 struct LockoutScreenView: View {
     @Environment(CurfewAppModel.self) private var model
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @AccessibilityFocusState private var clockFocused: Bool
 
-    /// The user-facing message body — varies by trigger (wall time vs.
-    /// hours exhausted vs. combined). Formatted by the app model.
-    let message: String
-    var contentDelay = 0.0
+    var scene: LockScene?
+    var voice = VoicePack.standard
+    /// The instant the scene is drawn for; the timeline's progress reads it.
+    var date: Date
 
-    /// Tracks hold-gesture progress (0 → 1) for the confirm-override button.
-    @State private var holdProgress: Double = 0
-    @GestureState private var isHoldingOverride = false
-
-    private var visualConfiguration: LockoutVisualConfiguration {
-        LockoutVisualConfiguration.resolve(
-            reduceMotion: reduceMotion,
-            reduceTransparency: reduceTransparency
+    private var content: LockScreenContent {
+        LockScreenContent.resolve(
+            status: model.restRestrictionStatus, now: model.currentTime,
+            leadMinutes: model.restAppearance.sunriseLeadMinutes, voice: voice
         )
     }
 
-    /// The unlock promise beneath the clock. Always non-nil so the lockout never
-    /// strands the user without a "how long" answer — a degenerate schedule with
-    /// no `unlockDate` falls back to a reassuring line rather than showing
-    /// nothing (the VoiceOver copy carries the same fallback).
-    private var unlockLine: String {
-        Self.unlockLine(for: model.restRestrictionStatus)
+    private var isCompact: Bool {
+        model.isOverrideComposerVisible || model.reflectionState.isEveningReflectionPending
     }
 
-    static func unlockLine(for status: RestRestrictionStatus) -> String {
-        switch status {
-        case .lockedUntil(let date):
-            "Your computer unlocks at \(date.formatted(date: .omitted, time: .shortened))"
-        case .stillLocked:
-            "Your scheduled unlock time has passed. Your computer is still locked."
-        case .unknown:
-            "Your computer stays locked until the schedule lifts."
-        case .released:
-            "Your scheduled rest has ended."
-        }
+    private var clockProgress: Double {
+        scene?.timeline.clock(at: date) ?? 1
     }
 
-    static func unlockStatusLabel(for status: RestRestrictionStatus) -> some View {
-        Text(unlockLine(for: status))
-            .font(.system(size: 18, weight: .regular, design: .rounded))
-            .foregroundStyle(SundownPalette.warmWhite)
+    private var wordsProgress: Double {
+        scene?.timeline.words(at: date) ?? 1
     }
 
-    private var accessibilitySummary: String {
-        LockoutAccessibilityCopy.summary(message: message, unlockLine: unlockLine)
-    }
-
-    /// Full-screen lockout UI — animated gradient background with the
-    /// time, message, unlock info, optional calendar pill, and the
-    /// Convince Me flow stacked centrally.
     var body: some View {
-        VStack(spacing: 28) {
-            centralBeat
-            if model.isEnforcingLockout {
-                overrideSection
+        GeometryReader { proxy in
+            let size = proxy.size
+            ZStack(alignment: .top) {
+                VStack(spacing: 0) {
+                    clock(in: size)
+                        .padding(.top, size.height * (isCompact ? 0.07 : 0.2))
+                    words(in: size)
+                        .padding(.top, size.height * (isCompact ? 0.01 : 0.035))
+                    if isCompact {
+                        ScrollView {
+                            panel
+                                .padding(.vertical, CurfewSpacing.xLarge)
+                                .frame(maxWidth: .infinity)
+                        }
+                        .scrollIndicators(.hidden)
+                        .scrollBounceBehavior(.basedOnSize)
+                        .transition(.opacity.combined(with: .offset(y: reduceMotion ? 0 : 12)))
+                    }
+                    Spacer(minLength: 0)
+                }
+                .frame(width: size.width)
+                if !isCompact {
+                    ground
+                        .position(x: size.width / 2, y: size.height * 0.85)
+                        .opacity(wordsProgress)
+                }
             }
+            .frame(width: size.width, height: size.height)
+            .animation(.smooth(duration: reduceMotion ? 0.2 : 0.6), value: isCompact)
         }
-        .frame(maxWidth: 720)
         .accessibilityElement(children: .contain)
-        .accessibilityLabel(model.isEnforcingLockout ? accessibilitySummary : "Evening reflection")
+        .accessibilityLabel(content.accessibilitySummary)
         .accessibilityIdentifier("lockout-screen")
+        .onAppear(perform: announce)
     }
 
-    /// The calm centre of the lockout: the time as protagonist, the message,
-    /// and — beneath a thin horizon rule — the unlock time as a quiet promise.
-    /// Contextual cards (calendar, the evening reflection) sit below it.
-    private var centralBeat: some View {
-        VStack(spacing: 22) {
-            VStack(spacing: 12) {
-                Text(message)
-                    .font(.system(size: 26, weight: .medium, design: .rounded))
-                    .foregroundStyle(SundownPalette.warmWhite.opacity(0.9))
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: 720)
+    // MARK: Clock and words
 
-                VStack(spacing: 10) {
-                    Capsule()
-                        .fill(SundownPalette.warmWhite.opacity(0.22))
-                        .frame(width: 64, height: 1)
-                    Self.unlockStatusLabel(for: model.restRestrictionStatus)
-                }
-                .padding(.top, 4)
-
-                if let shutdownStatusLine = model.shutdownStatusLine {
-                    Text(shutdownStatusLine)
-                        .font(.system(size: 13, weight: .regular, design: .rounded))
-                        .foregroundStyle(SundownPalette.supportingText)
-                }
-            }
-
-            // Calendar strip: next event and current event, Plus-gated.
-            if model.featureFlags.calendarEnabled, model.licenseGate.isPlusUnlocked {
-                calendarStrip
-            }
-
-            if model.reflectionState.isEveningReflectionPending {
-                EveningReflectionCard(usesSolidPanels: visualConfiguration.usesSolidPanels)
-                    .environment(model)
-                    .padding(.top, 4)
-                    .transition(.opacity.combined(with: .offset(
-                        y: visualConfiguration.animateBackground ? 8 : 0
-                    )))
+    private func clock(in size: CGSize) -> some View {
+        let full = min(size.width * 0.15, size.height * 0.26)
+        let fontSize = isCompact ? full * 0.32 : full
+        let numerals = LockClockText.numerals(model.currentTime)
+        return HStack(alignment: .firstTextBaseline, spacing: fontSize * 0.04) {
+            Text(numerals)
+                .font(.system(size: fontSize, weight: .semibold, design: .rounded))
+                .monospacedDigit()
+                .contentTransition(.numericText())
+            if let period = LockClockText.period(model.currentTime) {
+                Text(period)
+                    .font(.system(size: fontSize * 0.28, weight: .semibold, design: .rounded))
+                    .opacity(0.85)
             }
         }
-        .animation(
-            .easeOut(duration: visualConfiguration.animateBackground ? 0.35 : 0.15)
-                .delay(contentDelay), value: model.reflectionState.isEveningReflectionPending
-        )
+        .foregroundStyle(SundownPalette.warmWhite)
+        .scaleEffect(0.9 + 0.1 * clockProgress)
+        .animation(reduceMotion ? nil : .snappy(duration: 0.28), value: numerals)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(model.currentTime.formatted(date: .omitted, time: .shortened))
+        .accessibilityFocused($clockFocused)
+        .accessibilityIdentifier("rest-clock")
     }
 
-    /// The "Convince Me" override flow, anchored at the bottom and held at low
-    /// emphasis until invoked, so it never competes with the central beat.
-    private var overrideSection: some View {
-        @Bindable var model = model
-        return VStack(spacing: 10) {
-            if model.isOverrideComposerVisible {
-                TextEditor(text: $model.overrideReasonDraft)
-                    .foregroundStyle(SundownPalette.warmWhite)
-                    .accessibilityIdentifier("override-reason")
-                    .font(.system(size: 14, weight: .regular, design: .rounded))
-                    .scrollContentBackground(.hidden)
-                    .frame(width: 420, height: 120)
-                    .padding(8)
-                    .background(
-                        SundownPalette.inputSurface(
-                            usesSolidPanels: visualConfiguration.usesSolidPanels
-                        ),
-                        in: RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    )
-
-                Text(
-                    "Minimum \(OverrideRequestPolicy.minimumJustificationCharacters) characters"
-                )
-                .font(.caption)
-                .foregroundStyle(SundownPalette.supportingText)
-
-                if model.overrideCooldownRemaining > 0 {
-                    let remaining = Int(ceil(model.overrideCooldownRemaining))
-                    Text(String(format: "Cooling off: %d:%02d", remaining / 60, remaining % 60))
-                        .font(.caption.monospacedDigit())
-                        .foregroundStyle(SundownPalette.supportingText)
-                        .accessibilityIdentifier("override-cooldown")
+    private func words(in size: CGSize) -> some View {
+        let headlineSize = min(size.width * 0.042, size.height * 0.075)
+        let lineSize = max(15, size.width * 0.0175)
+        return VStack(spacing: isCompact ? CurfewSpacing.small : size.height * 0.035) {
+            Text(content.headline)
+                .font(.system(
+                    size: isCompact ? headlineSize * 0.7 : headlineSize,
+                    weight: .semibold, design: .rounded
+                ))
+                .multilineTextAlignment(.center)
+                .contentTransition(.opacity)
+            if let line = content.line, !isCompact {
+                Label {
+                    Text(line)
+                } icon: {
+                    content.symbol.image
                 }
-
-                let holdDuration = OverrideRequestPolicy.confirmationHoldSeconds
-                Button(action: {}, label: {
-                    ZStack {
-                        Capsule()
-                            .fill(SundownPalette.ember.opacity(model.canConfirmOverride ? 1 : 0.4))
-                        // Progress fill sweeps left-to-right during the hold gesture.
-                        CurfewTheme.filledProgressOverlay
-                            .clipShape(Capsule())
-                            .scaleEffect(x: holdProgress, y: 1, anchor: .leading)
-                            .animation(
-                                .linear(duration: holdProgress == 0 ? 0 : holdDuration),
-                                value: holdProgress
-                            )
-                        Text(
-                            "Hold \(Int(holdDuration))s to unlock for "
-                                + "\(model.settings.overrideDurationMinutes) min"
-                        )
-                        .font(.system(size: 14, weight: .semibold, design: .rounded))
-                        .foregroundStyle(CurfewTheme.onAccent)
-                    }
-                    .frame(width: 340, height: 44)
-                })
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("override-hold-confirm")
-                .disabled(!model.canConfirmOverride)
-                .simultaneousGesture(
-                    LongPressGesture(minimumDuration: holdDuration)
-                        .updating($isHoldingOverride) { pressing, state, _ in
-                            state = pressing
-                        }
-                        .onEnded { completed in
-                            guard completed else { return }
-                            model.confirmOverride()
-                            holdProgress = 0
-                        }
-                )
-                .onChange(of: isHoldingOverride) { _, isPressing in
-                    if isPressing, model.canConfirmOverride {
-                        holdProgress = 1
-                    } else {
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                            holdProgress = 0
-                        }
-                    }
-                }
-                // If the budget is exhausted on a tick mid-hold, hit-testing is
-                // revoked before the gesture's release fires — reset the fill
-                // reactively so it can't strand full.
-                .onChange(of: model.canConfirmOverride) { _, canConfirm in
-                    if !canConfirm {
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                            holdProgress = 0
-                        }
-                    }
-                }
-            } else if model.overridesRemaining == 0 {
-                Text("No overrides left this week")
-                    .font(.callout)
+                .font(.system(size: lineSize, weight: .medium))
+                .contentTransition(.opacity)
+                .accessibilityIdentifier("lockout-unlock-line")
+            }
+            if !model.restAppearance.message.isEmpty, !isCompact {
+                Text(model.restAppearance.message)
+                    .font(.system(size: max(13, lineSize * 0.8)))
                     .foregroundStyle(SundownPalette.supportingText)
-            } else {
-                Button(OverrideRequestPolicy.entryPrompt) {
-                    model.beginOverrideRequest()
-                }
-                .accessibilityIdentifier("override-entry")
-                .buttonStyle(.plain)
-                .foregroundStyle(SundownPalette.supportingText)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: 600)
+            }
+            if let shutdown = model.shutdownStatusLine, !isCompact {
+                Text(shutdown)
+                    .font(.system(size: max(13, lineSize * 0.75)))
+                    .foregroundStyle(SundownPalette.supportingText)
             }
         }
+        .foregroundStyle(SundownPalette.warmWhite)
+        .opacity(wordsProgress)
+        .offset(y: (1 - wordsProgress) * (reduceMotion ? 0 : 10))
+        .animation(.easeInOut(duration: 0.6), value: content.headline)
     }
 
-    /// Compact pill strip showing the currently-running meeting or next
-    /// upcoming event today. Visibility is pre-gated at the call site.
+    // MARK: Ground
+
+    private var ground: some View {
+        HStack(spacing: CurfewSpacing.xLarge) {
+            if model.isEnforcingLockout {
+                if model.overridesRemaining == 0 {
+                    Text(voice.noOverridesLeft)
+                        .foregroundStyle(SundownPalette.supportingText)
+                } else {
+                    QuietLockButton(title: voice.overrideEntry, symbol: .override) {
+                        model.beginOverrideRequest()
+                    }
+                    .accessibilityIdentifier("override-entry")
+                }
+            }
+            RestSaverControl()
+        }
+        .font(.system(size: 15, weight: .medium))
+    }
+
     @ViewBuilder
-    private var calendarStrip: some View {
-        if model.calendarMonitor.hasCurrentEvent,
-           let event = model.calendarMonitor.todayEvents.first(where: {
-               guard let start = $0.startDate, let end = $0.endDate else { return false }
-               return start <= Date() && end > Date()
-           }) {
-            calendarPill(
-                label: "In progress",
-                title: event.title ?? "Meeting",
-                // The meeting is already running — "until" the time it ends.
-                timePhrase: event.endDate.map {
-                    "until \($0.formatted(date: .omitted, time: .shortened))"
-                }
-            )
-        } else if let next = model.calendarMonitor.nextEvent {
-            calendarPill(
-                label: "Up next",
-                title: next.title ?? "Meeting",
-                // The meeting hasn't started — "at" the time it starts, not
-                // "until": that previously read as "you're free until then",
-                // backwards from what it meant (the meeting begins then).
-                timePhrase: next.startDate.map {
-                    "at \($0.formatted(date: .omitted, time: .shortened))"
-                }
+    private var panel: some View {
+        if model.isOverrideComposerVisible, model.isEnforcingLockout {
+            OverrideComposer(voice: voice)
+        } else if model.reflectionState.isEveningReflectionPending {
+            EveningReflectionCard(
+                voice: voice, usesSolidPanels: reduceTransparency
             )
         }
     }
 
-    private func calendarPill(label: String, title: String, timePhrase: String?) -> some View {
-        HStack(spacing: 8) {
-            Image(systemName: "calendar")
-                .font(.system(size: 12, weight: .medium))
-            Text(label)
-                .font(.system(size: 11, weight: .semibold, design: .rounded))
-            Text(title)
-                .font(.system(size: 13, weight: .regular, design: .rounded))
-                .lineLimit(1)
-            if let timePhrase {
-                Text(timePhrase)
-                    .font(.system(size: 12, weight: .regular, design: .rounded))
-                    .opacity(0.8)
-            }
-        }
-        .foregroundStyle(SundownPalette.supportingText)
-        .padding(.horizontal, 14)
-        .padding(.vertical, 7)
-        .horizonGlass(in: Capsule())
+    private func announce() {
+        guard model.isEnforcingLockout else { return }
+        AccessibilityNotification.Announcement(content.accessibilitySummary).post()
+        clockFocused = true
     }
 }
 
-/// The evening (sundown) reflection, shown inside the lockout screen as the
-/// optional shutdown ritual. Renders the configured evening prompts; "Save &
-/// settle in" records them and collapses the card, "Skip" dismisses it. Either
-/// way the reflection never delays or weakens enforcement — the clock and
-/// Convince Me flow remain below it.
-struct EveningReflectionCard: View {
-    @Environment(CurfewAppModel.self) private var model
+/// The surface under panels that float over the sky or the desktop: system
+/// glass tinted toward night so warm white text reads over any wallpaper,
+/// a solid night panel under Reduce Transparency, and an outline under
+/// Increase Contrast.
+struct NightPanelSurface: ViewModifier {
+    var cornerRadius = CurfewRadius.panel
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.colorSchemeContrast) private var contrast
 
-    /// Forwarded from the lockout screen's accessibility configuration so the
-    /// card's panels stay legible under Reduce Transparency.
-    let usesSolidPanels: Bool
+    func body(content: Content) -> some View {
+        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+        Group {
+            if reduceTransparency {
+                content.background(HorizonGlassLook.solidFill.opacity(0.94), in: shape)
+            } else {
+                content.glassEffect(
+                    .regular.tint(HorizonGlassLook.solidFill.opacity(0.55)),
+                    in: shape
+                )
+            }
+        }
+        .overlay {
+            if contrast == .increased {
+                shape.stroke(HorizonGlassLook.outline, lineWidth: 1)
+            }
+        }
+    }
+}
+
+extension View {
+    func nightPanel(cornerRadius: CGFloat = CurfewRadius.panel) -> some View {
+        modifier(NightPanelSurface(cornerRadius: cornerRadius))
+    }
+}
+
+/// The lock's one kind of secondary control: quiet text over the ground, led
+/// by a symbol. Not glass; it does not compete with the clock.
+struct QuietLockButton: View {
+    let title: String
+    let symbol: HorizonSymbol
+    let action: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Reflect on your work")
-                    .font(.system(size: 22, weight: .semibold, design: .rounded))
-                    .foregroundStyle(SundownPalette.warmWhite)
-                Text("A moment to reflect before you step away.")
-                    .font(.system(size: 18, weight: .regular, design: .rounded))
-                    .foregroundStyle(SundownPalette.warmWhite)
+        Button(action: action) {
+            Label {
+                Text(title)
+            } icon: {
+                symbol.image
             }
-
-            ReflectionFormView(
-                draft: model.reflectionDraft(for: .evening),
-                submitLabel: "Save & settle in",
-                usesSolidPanels: usesSolidPanels,
-                onSubmit: { answers in
-                    model.saveReflection(gate: .evening, answers: answers)
-                },
-                onSkip: {
-                    model.skipReflection(gate: .evening)
-                }
-            )
         }
-        .padding(24)
-        .frame(maxWidth: 600, alignment: .leading)
-        .horizonGlassPanel()
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel("End-of-work reflection")
+        .buttonStyle(.plain)
+        .foregroundStyle(SundownPalette.warmWhite.opacity(0.78))
+        .contentShape(Rectangle())
     }
 }

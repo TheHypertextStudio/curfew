@@ -1,10 +1,13 @@
 import AppKit
+import CurfewKit
 import SwiftUI
 
 /// Explicit setup requests; opening Settings never changes the selected screensaver.
 struct RestScreenSaverSetupSection: View {
     @State private var state: RestScreenSaverInstallation.State = .missingCompanion
     @State private var confirmingRemoval = false
+    @State private var selection: RestSaverChoice.Selection = .unknown
+    @State private var usesSelectedSaver = RestSaverFacts(defaults: .standard).usesSelectedSaver
 
     var body: some View {
         Section("Screensaver") {
@@ -25,6 +28,16 @@ struct RestScreenSaverSetupSection: View {
                 """
             )
             .foregroundStyle(CurfewTheme.mutedInk)
+            if RestSaverChoice.offersSelectedSaverOption(selection: selection) {
+                Toggle(
+                    "Use this Mac's screen saver when the lock is idle",
+                    isOn: $usesSelectedSaver
+                )
+                .onChange(of: usesSelectedSaver) { _, value in
+                    RestSaverFacts(defaults: .standard).usesSelectedSaver = value
+                }
+                .accessibilityIdentifier("rest-saver-use-selected")
+            }
             if canRemove {
                 Button("Remove Curfew screensaver…", role: .destructive) {
                     confirmingRemoval = true
@@ -44,11 +57,15 @@ struct RestScreenSaverSetupSection: View {
                 }
             }
         }
-        .onAppear { state = installation.inspect() }
+        .onAppear {
+            state = installation.inspect()
+            selection = RestSaverSelectionReader.live()
+        }
         .onReceive(NotificationCenter.default.publisher(
             for: NSApplication.didBecomeActiveNotification
         )) { _ in
             state = installation.inspect()
+            selection = RestSaverSelectionReader.live()
         }
     }
 

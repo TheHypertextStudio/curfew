@@ -45,6 +45,9 @@ extension RestSaverLauncher {
                     }
                     try await Task.sleep(for: .milliseconds(100))
                 }
+            },
+            isEngineRunning: {
+                !NSRunningApplication.runningApplications(withBundleIdentifier: identifier).isEmpty
             }
         ))
     }

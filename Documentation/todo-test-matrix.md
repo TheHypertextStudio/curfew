@@ -2769,3 +2769,24 @@ The website acceptance suite follows the homepage, release archive, and download
   - `DestinationSnapshotTests.testRenderSpineDestinations`
   - `DestinationSnapshotTests.testRenderCurrentMarketingScreens`
   - `DestinationSnapshotTests.testRenderPresenceReminderControls`
+
+## Horizon lock, warnings, transitions and screen saver handoff
+
+- `The default voice is one swappable voice pack.`
+  - `VoicePackTests` (every table line, composed lines, singular minutes, no banned words, exclamation marks or dashes)
+  - `LockHeadlineTests`, `LiteralCopyTests/"The lock's headline is a statement, not a status report"`
+- `Warnings carry the stage line and a countdown; notifications are titled by time to curfew.`
+  - `LockScreenTests/"Warning notifications are titled by time to curfew with the stage line as body"`
+  - `LockScreenTests/"The notice counts down in minutes and seconds and reads as time to curfew"`
+  - `LockScreenTests/"Early notices can be dismissed; the last five minutes stay"`
+- `The lock's words, lead-in, VoiceOver sentence, override composer and close-out.`
+  - `LockScreenTests` (locked, lead-in, other states, accessibility summary, composer states, close-out question and day lookup, close-out recording)
+- `Arriving and leaving.`
+  - `LockTransitionTests` (waits to be seen, no restart, shared across displays, order of the move, Reduce Motion, leaving and relock, windows leave only after their fade, the lock window's sky from the sky in view to night, anchored curfew)
+  - `LockSceneSkyTests` (night at curfew, model frame deep in the night and in the lead-in, short nights, real moon phase, blend ends)
+- `Screen saver handoff follows the owner's rule.`
+  - `RestSaverChoiceTests` (every branch, the option's visibility, a saver starting during a launch)
+  - `RestSaverLauncherTests` (running engine untouched, selected saver without receipt, Curfew's saver stopped without receipt)
+  - `LockScreenTests/"The selected saver is read from the screen saver preferences"`, `/"Start the screen saver is offered only when a handoff is allowed"`
+- `Snapshots: just snapshot writes curfew-lock-night, -close-out, -lead-in, -override-typing, -override-cooling, -override-ready and curfew-notice-{30,15,5,1}-{light,dark}` (`LockSnapshotTests`).
+  - Not covered by unit tests: the real lock on hardware (focus, kiosk, arrival under a saver or after display sleep, the leaving fade), Liquid Glass rendering (snapshots use the Reduce Transparency alternative), and the saver's full-screen receipt.

@@ -4,7 +4,7 @@ import SwiftUI
 
 /// Value type that captures the window-level properties applied to all
 /// overlay windows of a given kind. Centralising these in a struct means
-/// the warning, lockout, and timer windows can each be described in one
+/// the warning and lockout windows can each be described in one
 /// place and reused for both initial creation and frame-update paths.
 struct OverlayWindowConfiguration: Equatable {
     /// Window style flags — overlays use `.borderless` so no title bar appears.
@@ -14,7 +14,7 @@ struct OverlayWindowConfiguration: Equatable {
     /// full-screen apps; input policy differs between the two phases.
     var level: NSWindow.Level
 
-    /// When `true` the window is transparent to mouse input. Warning and timer
+    /// When `true` the window is transparent to mouse input. Warning
     /// windows pass through clicks; the lockout window captures them.
     var ignoresMouseEvents: Bool
 
@@ -34,7 +34,7 @@ struct OverlayWindowConfiguration: Equatable {
 /// Manages the set of overlay `NSWindow` instances that visualise
 /// ``CurfewEvaluation`` across every connected display.
 ///
-/// One window per screen per overlay kind (warning / lockout / timer) keeps
+/// One window per screen per overlay kind (warning / lockout) keeps
 /// multi-monitor setups consistent. The coordinator creates windows lazily on
 /// first need, updates them in-place on subsequent ticks, and tears them down
 /// when the phase clears. `CurfewAppModel` calls
@@ -60,9 +60,12 @@ final class OverlayCoordinator {
     }
 
     private var warningWindows: [ObjectIdentifier: NSWindow] = [:]
+    private let warningTint = WarningTintState()
     private let lockoutWindows = RestWindowStore()
-    private var timerWindows: [ObjectIdentifier: NSWindow] = [:]
     private let noticeCoordinator = WarningNoticeCoordinator()
+    /// The scene every lock window shares, from the lock's first window until
+    /// its windows have faded away.
+    private var lockScene: LockScene?
     private var restDisplayStates: [CGDirectDisplayID: RestDisplayPresentation] = [:]
     private var restLifecycle = RestDisplayLifecycle()
     private var restIsSleeping = false
@@ -111,7 +114,6 @@ final class OverlayCoordinator {
         guard !Self.suppressesWindows else { return }
         if model.shouldPresentRestScreen {
             hideWarningWindows()
-            hideTimerWindows()
             noticeCoordinator.reset()
             showLockoutWindows(model: model)
         } else {
@@ -121,17 +123,12 @@ final class OverlayCoordinator {
                 showWarningWindows(opacity: state.warningStage.overlayOpacity)
                 noticeCoordinator.update(
                     stage: state.warningStage,
+                    curfew: state.lockDate,
                     minutesRemaining: state.minutesRemaining
                 )
-                if state.warningStage.showsFloatingTimer {
-                    showTimerWindows(minutesRemaining: state.minutesRemaining)
-                } else {
-                    hideTimerWindows()
-                }
             default:
                 noticeCoordinator.reset()
                 hideWarningWindows()
-                hideTimerWindows()
             }
         }
     }
@@ -188,12 +185,18 @@ final class OverlayCoordinator {
             return
         }
 
-        for screen in NSScreen.screens {
+        warningTint.opacity = opacity
+        let screens = NSScreen.screens
+        let connected = Set(screens.map(ObjectIdentifier.init))
+        for key in warningWindows.keys where !connected.contains(key) {
+            warningWindows.removeValue(forKey: key)?.orderOut(nil)
+        }
+        for screen in screens {
             let key = ObjectIdentifier(screen)
             if let window = warningWindows[key] {
-                window.setFrame(screen.frame, display: true)
-                window.contentView = NSHostingView(rootView: WarningOverlayView(opacity: opacity))
-                window.orderFrontRegardless()
+                if window.frame != screen.frame {
+                    window.setFrame(screen.frame, display: true)
+                }
                 continue
             }
 
@@ -205,15 +208,14 @@ final class OverlayCoordinator {
                 screen: screen
             )
             apply(configuration: Self.warningWindowConfiguration, to: window)
-            window.contentView = NSHostingView(rootView: WarningOverlayView(opacity: opacity))
+            window.contentView = NSHostingView(rootView: WarningOverlayView(tint: warningTint))
             window.orderFrontRegardless()
             warningWindows[key] = window
         }
     }
 
     private func showLockoutWindows(model: CurfewAppModel, message _: String = "") {
-        // Rest screen wraps the arrival session; retains LockoutArrivalView().environment(model)
-        // compatibility.
+        let scene = currentLockScene(model: model)
         let displays = RestDisplay.connected
         let connected = Set(displays.map(\.id))
         for id in restDisplayStates.keys where !connected.contains(id) {
@@ -228,7 +230,9 @@ final class OverlayCoordinator {
             restDisplayStates[display.id] = presentation
             _ = restLifecycle.handle(.hidden, for: display.id)
             presentation.isVisible = false
-            window.contentView = Self.makeRestContentView(model: model, display: presentation)
+            window.contentView = Self.makeRestContentView(
+                model: model, display: presentation, scene: scene
+            )
             return window
         }
         for window in lockoutWindows.windows.values where !window.isVisible {
@@ -251,55 +255,41 @@ final class OverlayCoordinator {
         warningWindows.removeAll()
     }
 
+    /// The lock's shared scene. A new lock starts from the sky the person was
+    /// looking at; a morning-only screen or a relaunch mid-lock is settled.
+    private func currentLockScene(model: CurfewAppModel) -> LockScene {
+        if let lockScene {
+            lockScene.relock()
+            return lockScene
+        }
+        let scene = LockScene()
+        let now = model.currentTime
+        if model.isEnforcingLockout {
+            scene.begin(at: now, startingFrame: model.horizonFrame)
+        } else {
+            scene.settle(at: now)
+        }
+        lockScene = scene
+        return scene
+    }
+
+    /// Release fades the scene to the desktop before the windows go, in a
+    /// short fade under Reduce Motion. Focus and input return at once.
     private func hideLockoutWindows() {
         lockoutFocus.release()
         lockoutModel = nil
-        lockoutWindows.removeAll()
+        if let lockScene, !lockoutWindows.windows.isEmpty {
+            let reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+            lockScene.release(at: Date(), reduceMotion: reduceMotion)
+            lockoutWindows.leave(
+                duration: LockSceneTimeline.leavingDuration(reduceMotion: reduceMotion)
+            )
+        } else {
+            lockoutWindows.removeAll()
+        }
+        lockScene = nil
         restDisplayStates.removeAll()
         restLifecycle = RestDisplayLifecycle()
-    }
-
-    private func showTimerWindows(minutesRemaining: Int) {
-        for screen in NSScreen.screens {
-            let key = ObjectIdentifier(screen)
-            let frame = timerFrame(for: screen)
-            let rootView = FloatingCountdownTimerView(minutesRemaining: minutesRemaining)
-
-            if let window = timerWindows[key] {
-                window.setFrame(frame, display: true)
-                window.contentView = NSHostingView(rootView: rootView)
-                window.orderFrontRegardless()
-                continue
-            }
-
-            let window = NSWindow(
-                contentRect: frame,
-                styleMask: Self.timerWindowConfiguration.styleMask,
-                backing: .buffered,
-                defer: false,
-                screen: screen
-            )
-            apply(configuration: Self.timerWindowConfiguration, to: window)
-            window.contentView = NSHostingView(rootView: rootView)
-            window.orderFrontRegardless()
-            timerWindows[key] = window
-        }
-    }
-
-    private func hideTimerWindows() {
-        for window in timerWindows.values {
-            window.orderOut(nil)
-        }
-        timerWindows.removeAll()
-    }
-
-    private func timerFrame(for screen: NSScreen) -> CGRect {
-        let width = Self.timerWindowWidth
-        let height: CGFloat = 50
-        let margin: CGFloat = 20
-        let originX = screen.visibleFrame.maxX - width - margin
-        let originY = screen.visibleFrame.maxY - height - margin
-        return CGRect(x: originX, y: originY, width: width, height: height)
     }
 
     func apply(configuration: OverlayWindowConfiguration, to window: NSWindow) {
@@ -320,12 +310,23 @@ final class OverlayCoordinator {
     }
 }
 
+/// The warning tint's opacity, observed by windows that are built once.
+@Observable
+@MainActor
+final class WarningTintState {
+    var opacity = 0.0
+}
+
 /// Translucent fill shown during the warning phase. Opacity ramps with
 /// the warning stage (see `WarningStage.overlayOpacity`) so the dim
 /// deepens as the lock approaches.
 private struct WarningOverlayView: View {
-    /// 0.0–1.0 opacity for the tint. `0` hides the overlay entirely.
-    let opacity: Double
+    let tint: WarningTintState
+
+    private var opacity: Double {
+        tint.opacity
+    }
+
     /// Respects the system "Reduce transparency" accessibility setting by
     /// switching to a solid black fill at a slightly bumped alpha. Matches
     /// the handling in `CurfewTheme`.
@@ -340,30 +341,5 @@ private struct WarningOverlayView: View {
 
         base
             .ignoresSafeArea()
-    }
-}
-
-private struct FloatingCountdownTimerView: View {
-    let minutesRemaining: Int
-    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-
-    var body: some View {
-        HStack(spacing: 7) {
-            Image(systemName: "clock.fill")
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(SundownPalette.glow)
-            Text("Curfew in \(max(0, minutesRemaining)) min")
-                .fixedSize(horizontal: true, vertical: false)
-                .accessibilityIdentifier("warning-countdown")
-                .accessibilityLabel("Curfew in \(max(0, minutesRemaining)) min")
-                .font(.system(size: 15, weight: .semibold, design: .rounded))
-                .monospacedDigit()
-                .foregroundStyle(SundownPalette.warmWhite)
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
-        .horizonGlass(in: Capsule())
-        .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("warning-timer")
     }
 }

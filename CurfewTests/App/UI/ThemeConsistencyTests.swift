@@ -321,7 +321,7 @@ extension ThemeConsistencyTests {
             .deletingLastPathComponent().deletingLastPathComponent()
             .deletingLastPathComponent().deletingLastPathComponent()
         let source = try String(contentsOf: root.appendingPathComponent(
-            "Curfew/UI/LockoutScreenView.swift"
+            "Curfew/UI/LockOverrideComposer.swift"
         ), encoding: .utf8)
         let editor = try #require(source.components(separatedBy:
             "TextEditor(text: $model.overrideReasonDraft)").last)

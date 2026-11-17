@@ -27,20 +27,6 @@ extension OverlayCoordinator {
         hidesOnDeactivate: false
     )
 
-    /// Window configuration for the small floating countdown timer shown at
-    /// T-5 and below. Level `.screenSaver` keeps it above full-screen work.
-    /// Mouse events pass through.
-    static let timerWindowWidth: CGFloat = 240
-
-    static let timerWindowConfiguration = OverlayWindowConfiguration(
-        styleMask: [.borderless],
-        level: .screenSaver,
-        ignoresMouseEvents: true,
-        collectionBehavior: [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary],
-        isMovable: false,
-        hidesOnDeactivate: false
-    )
-
     /// Window configuration for the full-screen morning (sunrise) reflection
     /// overlay. Same commanding `.screenSaver` presence as the lockout so it
     /// owns the screen the moment it appears, but it is *not* paired with the

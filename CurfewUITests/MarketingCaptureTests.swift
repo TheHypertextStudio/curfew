@@ -193,11 +193,14 @@ final class MarketingCaptureTests: XCTestCase {
             app.terminate()
             app = launch("warning", appearance: appearance)
             XCTAssertTrue(app.staticTexts["warning-countdown"].waitForExistence(timeout: 8))
-            XCTAssertEqual(app.staticTexts["warning-countdown"].value as? String, "Curfew in 2 min")
-            let warning = app.descendants(matching: .any)["warning-timer"]
+            XCTAssertEqual(
+                app.staticTexts["warning-countdown"].value as? String,
+                "2 minutes to curfew"
+            )
+            let warning = app.descendants(matching: .any)["early-warning-notice"]
             XCTAssertTrue(warning.waitForExistence(timeout: 3))
             XCTAssertGreaterThan(warning.frame.width, 80)
-            XCTAssertLessThan(warning.frame.height, 80)
+            XCTAssertLessThan(warning.frame.height, 140)
             attach(warning.screenshot(), name: "warning-\(appearance)")
             app.terminate()
             app = launch("lockout", appearance: appearance)

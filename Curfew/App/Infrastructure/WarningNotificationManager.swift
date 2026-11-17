@@ -71,7 +71,7 @@ final class WarningNotificationManager: NSObject {
     /// Category for warnings that offer a snooze action (T-30, T-15).
     static let warningSnoozeCategoryIdentifier = "CURFEW_WARNING_SNOOZE"
 
-    /// Action identifier for the "Snooze 1 min" button on snooze-category
+    /// Action identifier for the "1 more minute" button on snooze-category
     /// notifications. Matched in `userNotificationCenter(_:didReceive:)`.
     static let snoozeActionIdentifier = "SNOOZE_ONE_MIN"
 
@@ -196,9 +196,8 @@ final class WarningNotificationManager: NSObject {
     /// a jolt where a banner is a glance. The curfew warnings escalate to
     /// sound because they precede the Mac locking; this one does not.
     static let distractionPayload = WarningNotificationPayload(
-        title: "No recent input",
-        body: "Curfew detected a person but no recent keyboard or pointer input. "
-            + "Do you want to continue your task or take a break?",
+        title: VoicePack.standard.presenceTitle,
+        body: VoicePack.standard.presenceBody,
         categoryIdentifier: distractionCategoryIdentifier,
         playsSound: false
     )
@@ -223,50 +222,34 @@ final class WarningNotificationManager: NSObject {
         return "\(components.year ?? 0)-\(components.month ?? 0)-\(components.day ?? 0)"
     }
 
-    /// Returns the notification payload for an approaching lockout. The
-    /// lockout window itself replaces a T-0 banner. Exposed as `static`
-    /// so tests can verify copy and sound policy without a live center.
-    static func payload(for stage: WarningStage) -> WarningNotificationPayload? {
+    /// The notification for an approaching curfew: titled by the time left,
+    /// with the stage line as its body; never the app's name as the title.
+    /// The lock itself replaces a T-0 banner.
+    static func payload(
+        for stage: WarningStage, voice: VoicePack = .standard
+    ) -> WarningNotificationPayload? {
+        let minutes: Int
+        let category: String
         switch stage {
-        case .thirtyMinutes:
-            WarningNotificationPayload(
-                title: "Curfew",
-                body: "Lockout starts in 30 minutes.",
-                categoryIdentifier: warningSnoozeCategoryIdentifier,
-                playsSound: false
-            )
-        case .fifteenMinutes:
-            WarningNotificationPayload(
-                title: "Curfew",
-                body: "Lockout starts in 15 minutes. Finish your current task.",
-                categoryIdentifier: warningSnoozeCategoryIdentifier,
-                playsSound: false
-            )
-        case .fiveMinutes:
-            WarningNotificationPayload(
-                title: "Curfew",
-                body: "Lockout starts in 5 minutes. Save your work now.",
-                categoryIdentifier: warningCategoryIdentifier,
-                playsSound: true
-            )
-        case .twoMinutes:
-            WarningNotificationPayload(
-                title: "Curfew",
-                body: "Lockout starts in 2 minutes.",
-                categoryIdentifier: warningCategoryIdentifier,
-                playsSound: true
-            )
-        case .oneMinute:
-            WarningNotificationPayload(
-                title: "Curfew",
-                body: "Lockout starts in 1 minute. Save your work now.",
-                categoryIdentifier: warningCategoryIdentifier,
-                playsSound: true
-            )
-        case .lockout, .none:
-            nil
+        case .thirtyMinutes: (minutes, category) = (30, warningSnoozeCategoryIdentifier)
+        case .fifteenMinutes: (minutes, category) = (15, warningSnoozeCategoryIdentifier)
+        case .fiveMinutes: (minutes, category) = (5, warningCategoryIdentifier)
+        case .twoMinutes: (minutes, category) = (2, warningCategoryIdentifier)
+        case .oneMinute: (minutes, category) = (1, warningCategoryIdentifier)
+        case .lockout, .none: return nil
         }
+        guard let line = voice.stageLine(stage) else { return nil }
+        return WarningNotificationPayload(
+            title: voice.warningTitle(minutes: minutes),
+            body: line,
+            categoryIdentifier: category,
+            // The last five minutes sound; the early warnings are a glance.
+            playsSound: minutes <= 5
+        )
     }
+
+    /// The quick action on the early warnings: one more minute before curfew.
+    static let snoozeActionTitle = VoicePack.standard.moreTime(minutes: 1)
 
     /// Returns the two category definitions used by this manager. Exposed as
     /// `static` so tests can verify category / action wiring without a live center.
@@ -309,7 +292,7 @@ final class WarningNotificationManager: NSObject {
                     if identifier == Self.snoozeActionIdentifier {
                         return UNNotificationAction(
                             identifier: Self.snoozeActionIdentifier,
-                            title: "Snooze 1 min",
+                            title: Self.snoozeActionTitle,
                             options: []
                         )
                     }

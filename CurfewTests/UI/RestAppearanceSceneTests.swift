@@ -15,7 +15,11 @@ struct RestAppearanceSceneTests {
             lockDate: model.currentTime.addingTimeInterval(-3600),
             unlockDate: model.currentTime.addingTimeInterval(300)
         )
-        let scene = RestScreenView(model: model, display: RestDisplayPresentation()).sceneSnapshot
+        let scene = RestScreenView(
+            model: model,
+            display: RestDisplayPresentation(),
+            scene: LockScene()
+        ).sceneSnapshot
         #expect(scene.lockDate == nil)
         #expect(scene.unlockDate == nil)
         #expect(scene.resolve(at: model.currentTime, timeZone: .current).phase == .allDay)
@@ -33,7 +37,11 @@ struct RestAppearanceSceneTests {
             canRequestExtension: false,
             lockDate: interval.start, unlockDate: interval.end.addingTimeInterval(3600)
         )
-        let scene = RestScreenView(model: model, display: RestDisplayPresentation()).sceneSnapshot
+        let scene = RestScreenView(
+            model: model,
+            display: RestDisplayPresentation(),
+            scene: LockScene()
+        ).sceneSnapshot
         #expect(scene.lockDate == interval.start)
         #expect(scene.unlockDate == interval.end)
         #expect(scene.resolve(at: model.currentTime, timeZone: .current).phase == .morning)

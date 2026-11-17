@@ -153,15 +153,16 @@ struct AccessibilityConfigurationTests {
         #expect(reducedTransparency.usesSolidPanels)
     }
 
-    @Test("VoiceOver copy includes message and unlock information")
+    @Test("VoiceOver hears when this Mac unlocks")
     func voiceOverSummaryIncludesUnlockCopy() {
-        let summary = LockoutAccessibilityCopy.summary(
-            message: "Great work today.",
-            unlockLine: "Your computer unlocks at 8:00 AM"
-        )
+        let now = Date()
+        let unlock = now.addingTimeInterval(8 * 3600)
+        let summary = LockScreenContent.resolve(
+            status: .lockedUntil(unlock), now: now, leadMinutes: 30, voice: .standard
+        ).accessibilitySummary
 
-        #expect(summary.contains("Great work today."))
-        #expect(summary.contains("8:00 AM"))
+        #expect(summary.hasPrefix("This Mac is locked until"))
+        #expect(summary.contains(unlock.formatted(date: .omitted, time: .shortened)))
     }
 }
 

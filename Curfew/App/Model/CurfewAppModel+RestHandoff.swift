@@ -13,6 +13,33 @@ final class RestHandoffRuntime {
     @ObservationIgnored var blockers: [RestHandoffPolicy.Blocker] = []
     @ObservationIgnored var lastInput: TimeInterval = 0
     var sessionIsActive = true
+    /// Whether, and to which saver, the lock may hand off right now.
+    var decision: RestSaverChoice.Decision = .stay(nil)
+    @ObservationIgnored var facts = RestSaverFacts(defaults: .standard)
+    @ObservationIgnored var readSelection: () -> RestSaverChoice
+        .Selection = RestSaverSelectionReader.live
+    @ObservationIgnored var isSaverRunning: () -> Bool = { false }
+
+    var handOffTarget: RestSaverChoice.Target? {
+        if case .handOff(let target) = decision {
+            return target
+        }
+        return nil
+    }
+
+    /// Re-reads the facts and decides. A proven receipt is remembered.
+    func refreshDecision() {
+        if launcher?.hasFullScreenReceipt == true {
+            facts.curfewSaverProven = true
+        }
+        let next = RestSaverChoice.decide(
+            selection: readSelection(), curfewSaverProven: facts.curfewSaverProven,
+            usesSelectedSaver: facts.usesSelectedSaver, saverRunning: isSaverRunning()
+        )
+        if next != decision {
+            decision = next
+        }
+    }
 
     @discardableResult
     func observeReturn() -> Task<Void, Never>? {
@@ -28,8 +55,18 @@ extension CurfewAppModel {
         return phase != .interactive
     }
 
+    /// "Start the screen saver" is offered only when a handoff is allowed.
     var canRestNow: Bool {
         restPresentation.layout == .quiet && !isOverrideComposerVisible && !restHandoffIsAmbient
+            && restRuntime.handoff.handOffTarget != nil
+    }
+
+    /// What is missing before Curfew can hand off, when it can be set up.
+    var restSaverMissing: RestSaverChoice.Missing? {
+        if case .stay(let missing) = restRuntime.handoff.decision {
+            return missing
+        }
+        return nil
     }
 
     func restNow() {
@@ -52,6 +89,11 @@ extension CurfewAppModel {
         let runtime = restRuntime.handoff
         let launcher = RestSaverLauncher.live(preferences: preferences)
         runtime.launcher = launcher
+        runtime.isSaverRunning = {
+            !NSRunningApplication.runningApplications(
+                withBundleIdentifier: "com.apple.ScreenSaver.Engine"
+            ).isEmpty && launcher.ownedProcess == nil
+        }
         runtime.coordinator = RestHandoffCoordinator(operations: .init(
             settle: {
                 let reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
@@ -61,7 +103,10 @@ extension CurfewAppModel {
             launch: { [weak self] in
                 // Check for input once more at the end of the visual transition.
                 self?.updateRestHandoff()
-                return await launcher.launch()
+                guard let target = self?.restRuntime.handoff.handOffTarget else {
+                    return .saverAlreadyRunning
+                }
+                return await launcher.launch(target: target)
             },
             refreshTime: { [weak self] in self?.currentTime = Date() },
             refreshAuthority: { [weak self] in
@@ -121,6 +166,11 @@ extension CurfewAppModel {
         if !form {
             coordinator.handle(.reflectionResolved(.skipped))
         }
+        // Only hand off when the rule allows it: Curfew's proven saver, or
+        // the selected saver by the person's choice, and never over a saver
+        // that is already running.
+        runtime.refreshDecision()
+        guard runtime.handOffTarget != nil else { return }
         coordinator.handle(.idleCheck)
     }
 }

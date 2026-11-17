@@ -19,7 +19,7 @@ final class CurfewUITests: XCTestCase {
     func testWarningAndLockoutPresentation() {
         var app = launchFixture("warning")
         XCTAssertTrue(app.staticTexts["warning-countdown"].waitForExistence(timeout: 8))
-        XCTAssertEqual(app.staticTexts["warning-countdown"].value as? String, "Curfew in 2 min")
+        XCTAssertEqual(app.staticTexts["warning-countdown"].value as? String, "2 minutes to curfew")
         app.terminate()
         XCTAssertTrue(app.wait(for: .notRunning, timeout: 8))
         app = launchFixture("lockout")
@@ -33,7 +33,7 @@ final class CurfewUITests: XCTestCase {
         let app = launchFixture("early-warning")
         let dismiss = app.buttons["warning-dismiss"]
         XCTAssertTrue(dismiss.waitForExistence(timeout: 8))
-        XCTAssertTrue(app.staticTexts["Curfew in 30 min"].exists)
+        XCTAssertTrue(app.staticTexts["Decide what gets finished and what waits."].exists)
         dismiss.click()
         XCTAssertFalse(dismiss.waitForExistence(timeout: 2))
     }

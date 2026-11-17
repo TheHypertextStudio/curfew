@@ -24,12 +24,11 @@ struct RestWindowModalAccessibilityTests {
         }
     }
 
-    @Test("Click-through warning and timer windows remain nonmodal for accessibility")
+    @Test("Click-through warning windows remain nonmodal for accessibility")
     func warningAndTimerRemainNonmodal() {
         let coordinator = OverlayCoordinator()
         for configuration in [
-            OverlayCoordinator.warningWindowConfiguration,
-            OverlayCoordinator.timerWindowConfiguration
+            OverlayCoordinator.warningWindowConfiguration
         ] {
             let window = NSWindow(
                 contentRect: NSRect(x: 0, y: 0, width: 32, height: 32),

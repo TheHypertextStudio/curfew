@@ -27,14 +27,6 @@ import CurfewKit
                 named: "copy-start-reflection", width: 900, height: 950,
                 settlingTime: 1.1, to: directory
             )
-            try render(
-                LockoutSundownView(message: "Rest well."),
-                named: "copy-lockout", width: 1200, height: 800, to: directory
-            )
-            try render(
-                LockoutSundownView(message: EncouragementMessageCatalog.next(after: nil)),
-                named: "copy-remote-lockout", width: 1200, height: 800, to: directory
-            )
         }
 
         func testRenderSettingsCategories() throws {
