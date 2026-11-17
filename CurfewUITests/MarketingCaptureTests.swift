@@ -341,10 +341,10 @@ extension MarketingCaptureTests {
                         .waitForExistence(timeout: 3))
                     let titles = [
                         "general": "Accessibility",
-                        "enforcement": "Extensions and Overrides",
+                        "enforcement": "More time and overrides",
                         "presence": "Presence",
-                        "shutdown": "Automatic Shutdown",
-                        "protectedWork": "Protected Work",
+                        "shutdown": "Shut down after curfew",
+                        "protectedWork": "Protected work",
                         "account": "Curfew Account",
                         "integrations": "AI assistants",
                         "advanced": "Remove Curfew",

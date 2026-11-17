@@ -33,11 +33,11 @@ enum SettingsSection: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .general: "Protection"
-        case .enforcement: "Lockout"
-        case .restScreen: "Rest Screen"
+        case .enforcement: "Warnings and limits"
+        case .restScreen: "Rest screen"
         case .presence: "Presence"
         case .shutdown: "Shutdown"
-        case .protectedWork: "Protected Work"
+        case .protectedWork: "Protected work"
         case .account: "Account"
         case .integrations: "Integrations"
         case .advanced: "Advanced"
@@ -48,7 +48,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
     var icon: String {
         switch self {
         case .general: "shield.lefthalf.filled"
-        case .enforcement: "lock"
+        case .enforcement: "bell"
         case .restScreen: "moon.stars"
         case .presence: "person.crop.rectangle"
         case .shutdown: "power"

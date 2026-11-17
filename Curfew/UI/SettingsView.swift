@@ -27,6 +27,7 @@ struct SettingsView: View {
     @State var showsPresencePrivacy = false
     @State var showsDeferringCommands = false
     @State var showsProtectedProcesses = false
+    @State var shutdownPermission: ShutdownAutomationPermission.Result?
 
     init(initialSection: SettingsSection? = nil, expandedDetails: Bool = false) {
         self.initialSection = initialSection
@@ -63,9 +64,9 @@ struct SettingsView: View {
                             model.showGettingStarted()
                         } label: {
                             if model.settings.hasCompletedInitialSetup {
-                                Text("Review Setup…")
+                                Text("Review setup…")
                             } else {
-                                Text("Continue Setup…")
+                                Text("Continue setup…")
                             }
                         }
                         .buttonStyle(.bordered)
@@ -184,10 +185,7 @@ struct SettingsView: View {
         switch selection {
         case .general:
             enforcementHealthPanel
-            backgroundServicePanel
-            if model.featureFlags.privilegedHelperEnabled {
-                privilegedHelperPanel
-            }
+            curfewHelperPanel
             setupPanel
         case .enforcement:
             extensionsPanel

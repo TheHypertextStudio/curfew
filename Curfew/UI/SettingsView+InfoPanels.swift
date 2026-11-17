@@ -12,7 +12,7 @@ extension SettingsView {
                 } label: {
                     CurfewSectionTitle(
                         title: "Chrome and Docket",
-                        subtitle: "Configure Chrome blocking for active work in Docket."
+                        subtitle: "Keep Chrome to the websites for your active Docket task."
                     )
                 }
             }
@@ -90,7 +90,7 @@ extension SettingsView {
             }
             if !model.pendingMCPRequests.isEmpty {
                 LabeledContent("Awaiting approval", value: "\(model.pendingMCPRequests.count)")
-                Button("Review Request…") {
+                Button("Review request…") {
                     openWindow(id: MainWorkspaceSection.windowID)
                     model.requestWorkspaceNavigation(to: .today)
                 }
@@ -113,7 +113,7 @@ extension SettingsView {
             let count = model.calendarMonitor.todayEvents.count
             LabeledContent("Today's events", value: count == 1 ? "1 event" : "\(count) events")
         case .notDetermined:
-            Button("Allow Calendar Access…") {
+            Button("Allow calendar access…") {
                 if !model.isDemoSession {
                     model.calendarMonitor.requestAccessAndSync()
                 }
@@ -121,7 +121,7 @@ extension SettingsView {
         default:
             Text("Curfew needs full Calendar access to read events.")
                 .foregroundStyle(CurfewTheme.mutedInk)
-            Button("Open Calendar Settings") {
+            Button("Open Calendar settings") {
                 if !model.isDemoSession,
                    let url =
                    URL(

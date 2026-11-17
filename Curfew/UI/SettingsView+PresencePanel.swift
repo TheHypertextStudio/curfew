@@ -60,7 +60,7 @@ extension SettingsView {
                     .font(CurfewTypography.body(13))
                     .foregroundStyle(CurfewTheme.mutedInk)
                     .fixedSize(horizontal: false, vertical: true)
-                Button("Open Camera Settings") {
+                Button("Open Camera settings") {
                     model.openCameraPrivacySettings()
                 }
                 .buttonStyle(CurfewSecondaryButtonStyle())
@@ -205,8 +205,8 @@ extension SettingsView {
     /// because a list that opens with the reassurance reads as a sales pitch.
     static let presenceDataFacts = [
         "Captured: video frames from the camera, about one every two seconds, "
-            + "kept in memory only while Curfew analyses them.",
-        "Derived: one yes-or-no answer — was a person visible — and the time "
+            + "kept in memory only while Curfew looks at them.",
+        "Derived: one yes-or-no answer to whether a person was visible, and the time "
             + "it was taken. No identity, no face print, no photo, no count.",
         "Retained: the yes-or-no answer, until the next one replaces it. "
             + "Frames are never written to disk and never leave this Mac.",

@@ -133,8 +133,8 @@ struct AccountConnectionPresentation: Equatable {
         if !remoteEnforcementReady {
             return AccountConnectionPresentation(
                 title: "Remote locks are not ready",
-                detail: "This Mac is signed in, but background protection cannot enforce remote "
-                    + "locks right now. Review Background Protection in Protection.",
+                detail: "This Mac is signed in, but the Curfew helper can't apply remote locks "
+                    + "right now. Check it in Protection.",
                 systemImage: "exclamationmark.triangle.fill",
                 tone: .warning,
                 lastConfirmedAt: date

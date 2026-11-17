@@ -48,19 +48,19 @@ extension SettingsView {
                !model.privilegedHelperManager.isRemoteLockEnforcementAvailable {
                 if model.privilegedHelperManager.installationInProgress
                     || model.privilegedHelperManager.repairInProgress {
-                    Label("Connecting background protection…", systemImage: "hourglass")
+                    Label("Connecting the Curfew helper…", systemImage: "hourglass")
                 } else if model.privilegedHelperManager.daemonStatus == .requiresApproval {
-                    Button("Approve Background Protection…") {
+                    Button("Allow the Curfew helper…") {
                         if !model.isDemoSession {
                             SMAppService.openSystemSettingsLoginItems()
                         }
                     }
                     .buttonStyle(CurfewPrimaryButtonStyle())
                 } else if model.privilegedHelperManager.daemonStatus == .enabled {
-                    Button("Review Background Protection") { selection = .general }
+                    Button("Check the Curfew helper") { selection = .general }
                         .buttonStyle(CurfewPrimaryButtonStyle())
                 } else {
-                    Button("Connect Background Protection…") {
+                    Button("Set up the Curfew helper…") {
                         Task { await model.privilegedHelperManager.installAndConnectDaemon() }
                     }
                     .buttonStyle(CurfewPrimaryButtonStyle())
@@ -195,7 +195,7 @@ extension SettingsView {
                             + "after one minute."
                             : "Curfew could not copy the Recovery Key. Select and copy it manually."
                     } label: {
-                        Label("Copy Recovery Key", systemImage: "doc.on.doc")
+                        Label("Copy recovery key", systemImage: "doc.on.doc")
                     }
                     .buttonStyle(CurfewSecondaryButtonStyle())
                     .accessibilityIdentifier("settings-copy-recovery-key")
@@ -203,7 +203,7 @@ extension SettingsView {
                     Button {
                         saveRecoveryKey(key)
                     } label: {
-                        Label("Save Recovery Key…", systemImage: "arrow.down.doc")
+                        Label("Save recovery key…", systemImage: "arrow.down.doc")
                     }
                     .buttonStyle(CurfewSecondaryButtonStyle())
                     .accessibilityIdentifier("settings-save-recovery-key")

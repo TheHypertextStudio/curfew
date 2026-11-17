@@ -4,11 +4,11 @@ This note is for maintainers editing Curfew's Settings window. Keep controls in 
 
 ## Decision
 
-Settings uses nine categories: Protection, Lockout, Presence, Shutdown, Protected Work, Account, Integrations, Advanced, and About. Each selection displays one page. Protection remains the initial page after the rebase. Existing enforcement and integrations identifiers remain stable.
+Settings uses ten categories: Protection, Warnings and limits, Rest screen, Presence, Shutdown, Protected work, Account, Integrations, Advanced, and About. Titles are sentence case. Each selection displays one page. Protection remains the initial page after the rebase. Existing enforcement and integrations identifiers remain stable.
 
 The previous Enforcement tab placed permission health, extension budgets, warning intervals, camera consent, shutdown, and process lists in one long scroll view. Users had to search unrelated controls to change one setting. A sidebar keeps the categories visible while each page displays only its own controls.
 
-Protection keeps Review Setup or Continue Setup in its fixed page heading. Two minimum-window UI regressions exposed a clipped setup action below helper and permission guidance at 760×520; the action now stays visible while the settings form scrolls. Incomplete setup still has its explanation in the form.
+Protection keeps Review setup or Continue setup in its fixed page heading. Two minimum-window UI regressions exposed a clipped setup action below helper and permission guidance at 760×520; the action now stays visible while the settings form scrolls. Incomplete setup still has its explanation in the form.
 
 Less common warning controls, process lists, integration setup, and camera data details expand on request. Permission state, camera consent facts, shutdown limits, and the consequences of declared work remain visible. Collapsing the entire previous page would reduce its height but would leave unrelated settings mixed together, so the layout uses separate destinations.
 
@@ -17,15 +17,26 @@ This component diagram shows the Settings navigation and its pages.
 ```mermaid
 flowchart LR
     Navigation[Settings navigation] --> Protection[Protection page]
-    Navigation --> Lockout[Lockout page]
+    Navigation --> Limits[Warnings and limits page]
+    Navigation --> Rest[Rest screen page]
     Navigation --> Presence[Presence page]
     Navigation --> Shutdown[Shutdown page]
-    Navigation --> Work[Protected Work page]
+    Navigation --> Work[Protected work page]
     Navigation --> Account[Account page]
     Navigation --> Integrations[Integrations page]
     Navigation --> Advanced[Advanced page]
     Navigation --> About[About page]
 ```
+
+## The Curfew helper
+
+The restart service, the privileged helper and the login item are three registrations, but the person only needs to know whether curfew holds if Curfew quits. Protection shows them as one "Curfew helper" row: one status sentence and at most one action, resolved by `CurfewHelperStatus`. Every state that needs attention outside a lock offers an action: allow in System Settings, set up, reconnect, or quit and reopen Curfew when reconnecting in place is refused. During a lock the row offers nothing and says the fix waits until curfew lifts, and the helper cannot be removed.
+
+Developer detail (Docket poll times, native host state, raw selector identifiers, the local HTTP server and its port) appears only in the development flavor or with `CURFEW_DIAGNOSTICS=1`, through `SettingsDeveloperDetail`.
+
+The schedule's lock trigger (at curfew, after hours worked, or whichever comes first) is one control under the weekly schedule. Day rows carry only their times and day-off switch. Turning on shutdown after curfew asks macOS for Automation access immediately, so the prompt never first appears during a real shutdown at night.
+
+Sunrise settings still live inside the Rest screen page, which another change owns. A separate Sunrise destination waits on that page being split.
 
 ## Control refinement
 

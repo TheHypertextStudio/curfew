@@ -30,7 +30,7 @@ struct CameraLiveIndicator: View {
     /// Body copy. States the two facts a user most wants confirmed at the
     /// moment they notice the green light.
     static let detail = "Curfew is checking whether you're at your Mac. "
-        + "Frames are analysed on this Mac and never saved or sent anywhere."
+        + "Frames are analyzed on this Mac and never saved or sent anywhere."
 
     /// Full panel, or nothing when the camera is off.
     var body: some View {

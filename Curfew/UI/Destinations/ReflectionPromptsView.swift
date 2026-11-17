@@ -20,6 +20,9 @@ struct ReflectionPromptsView: View {
     /// added prompt is ready to type into.
     @FocusState private var focusedPromptID: UUID?
 
+    /// Restoring defaults replaces every custom question, so it asks first.
+    @State private var confirmingRestoreDefaults = false
+
     /// Scrollable column of editor cards, matching the Schedule destination's
     /// padded `CurfewPanel` rhythm.
     var body: some View {
@@ -28,13 +31,13 @@ struct ReflectionPromptsView: View {
                 gatesPanel
                 promptsPanel(
                     for: .morning,
-                    title: "Start-of-work prompts",
-                    subtitle: "Shown at the day's first session."
+                    title: ReflectionPromptsCopy.sunriseTitle,
+                    subtitle: ReflectionPromptsCopy.sunriseSubtitle
                 )
                 promptsPanel(
                     for: .evening,
-                    title: "End-of-work prompts",
-                    subtitle: "Shown when lockout starts."
+                    title: ReflectionPromptsCopy.curfewTitle,
+                    subtitle: ReflectionPromptsCopy.curfewSubtitle
                 )
                 readInClaudePanel
                 defaultsPanel
@@ -42,7 +45,17 @@ struct ReflectionPromptsView: View {
             .padding(CurfewSpacing.xLarge)
             .frame(maxWidth: 900, alignment: .leading)
         }
-        .scrollIndicators(.hidden)
+        .confirmationDialog(
+            ReflectionPromptsCopy.restoreTitle,
+            isPresented: $confirmingRestoreDefaults
+        ) {
+            Button(ReflectionPromptsCopy.restoreConfirm, role: .destructive) {
+                model.updateReflectionConfiguration(.default)
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(ReflectionPromptsCopy.restoreMessage)
+        }
     }
 
     // MARK: - Gates
@@ -52,18 +65,18 @@ struct ReflectionPromptsView: View {
     private var gatesPanel: some View {
         CurfewPanel {
             CurfewSectionTitle(
-                title: "Reflection",
-                subtitle: "Prompt yourself at the start and end of each day."
+                title: ReflectionPromptsCopy.gatesTitle,
+                subtitle: ReflectionPromptsCopy.gatesSubtitle
             )
 
-            Text("Curfew asks the first set of questions at your first work session each day. "
-                + "It asks the second set during lockout. You can skip either reflection.")
-                .font(CurfewTypography.body(13))
-                .foregroundStyle(CurfewTheme.mutedInk)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Toggle("Start-of-work reflection", isOn: gateEnabledBinding(for: .morning))
-            Toggle("End-of-work reflection", isOn: gateEnabledBinding(for: .evening))
+            SettingsToggleRow(
+                title: ReflectionPromptsCopy.askAtSunrise,
+                isOn: gateEnabledBinding(for: .morning)
+            )
+            SettingsToggleRow(
+                title: ReflectionPromptsCopy.askAtCurfew,
+                isOn: gateEnabledBinding(for: .evening)
+            )
         }
     }
 
@@ -85,7 +98,7 @@ struct ReflectionPromptsView: View {
             Button {
                 addPrompt(for: gate)
             } label: {
-                Label("Add prompt", systemImage: "plus.circle")
+                Label("Add question", systemImage: "plus.circle")
             }
             .buttonStyle(CurfewLinkButtonStyle())
             .padding(.top, CurfewSpacing.xSmall)
@@ -113,7 +126,7 @@ struct ReflectionPromptsView: View {
                 answerTypePicker(for: gate, prompt: prompt)
                 if prompt.kind == .rating {
                     Stepper(
-                        "Scale 1–\(prompt.ratingMax)",
+                        "Scale of \(prompt.ratingMax)",
                         value: promptScaleBinding(for: gate, promptID: prompt.id),
                         in: 2 ... 10
                     )
@@ -149,14 +162,14 @@ struct ReflectionPromptsView: View {
             Button {
                 movePrompt(for: gate, from: index, to: index - 1)
             } label: {
-                Label("Move Up", systemImage: "chevron.up")
+                Label("Move up", systemImage: "chevron.up")
             }
             .disabled(index == 0)
 
             Button {
                 movePrompt(for: gate, from: index, to: index + 1)
             } label: {
-                Label("Move Down", systemImage: "chevron.down")
+                Label("Move down", systemImage: "chevron.down")
             }
             .disabled(index == total - 1)
 
@@ -173,9 +186,10 @@ struct ReflectionPromptsView: View {
                 .foregroundStyle(CurfewTheme.mutedInk)
         }
         .menuStyle(.borderlessButton)
+        .help("Move or remove this question")
         .menuIndicator(.hidden)
         .fixedSize()
-        .accessibilityLabel("Prompt options")
+        .accessibilityLabel("Question options")
     }
 
     /// The segmented text / rating / mood picker.
@@ -246,7 +260,7 @@ struct ReflectionPromptsView: View {
                         + "but cannot edit them. "
                         + "Your assistant may send them to its own service."
                 )
-                Button("Manage AI Access…") {
+                Button("Manage AI access…") {
                     model.settingsDestination = .integrations
                     model.openSettings()
                 }
@@ -257,10 +271,13 @@ struct ReflectionPromptsView: View {
 
     private var defaultsPanel: some View {
         CurfewPanel {
-            CurfewSectionTitle(title: "Defaults")
+            CurfewSectionTitle(
+                title: ReflectionPromptsCopy.defaultsTitle,
+                subtitle: ReflectionPromptsCopy.defaultsSubtitle
+            )
 
-            Button("Restore default prompts") {
-                model.updateReflectionConfiguration(.default)
+            Button(ReflectionPromptsCopy.restoreButton) {
+                confirmingRestoreDefaults = true
             }
             .buttonStyle(CurfewSecondaryButtonStyle())
         }
@@ -382,4 +399,24 @@ extension ReflectionPromptsView {
         }
         model.updateReflectionConfiguration(config)
     }
+}
+
+/// Words for the questions editor. Morning questions belong to Sunrise;
+/// evening questions are asked at curfew.
+enum ReflectionPromptsCopy {
+    static let gatesTitle = "Questions"
+    static let gatesSubtitle = "Curfew asks at Sunrise and again at curfew. You can skip either."
+    static let askAtSunrise = "Ask at Sunrise"
+    static let askAtCurfew = "Ask at curfew"
+    static let sunriseTitle = "Sunrise questions"
+    static let sunriseSubtitle = "Asked before the day starts."
+    static let curfewTitle = "Curfew questions"
+    static let curfewSubtitle = "Asked when this Mac locks."
+    static let defaultsTitle = "Default questions"
+    static let defaultsSubtitle = "Start over with the questions Curfew comes with."
+    static let restoreButton = "Restore defaults…"
+    static let restoreTitle = "Replace your questions with the defaults?"
+    static let restoreMessage =
+        "Every question you wrote or changed is replaced, and both switches turn back on. This can't be undone."
+    static let restoreConfirm = "Replace questions"
 }

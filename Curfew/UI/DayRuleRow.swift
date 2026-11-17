@@ -9,8 +9,10 @@ import SwiftUI
 ///
 /// Rendered as a vertical pair of rows:
 /// - Top row: weekday abbreviation + "day off" toggle.
-/// - Bottom row: "Work ends" DatePicker → "->" → "Work resumes" DatePicker
-///   (both disabled when day off).
+/// - Bottom row: "Curfew" time → "Unlocks" time (hidden on a day off).
+///
+/// How the lock is triggered (at curfew, after hours worked, or both) is one
+/// choice for the whole week in ``ScheduleLockRuleControl``, not per row.
 ///
 /// Kept in its own file (rather than nested inside `SettingsView`) so this
 /// file can hold all the date-⇄-minutes conversion helpers together and so
@@ -75,42 +77,6 @@ struct DayRuleRow: View {
         )
     }
 
-    /// Binding for the `CurfewMode` segmented picker. Flipping to `.hours`
-    /// or `.combined` seeds a default `hoursLimitMinutes` (8 hours) when
-    /// the user has not set one yet so the enforcement engine doesn't
-    /// interpret `nil` as "no hours ceiling" and quietly disable the
-    /// hours leg of combined mode.
-    private func modeBinding() -> Binding<CurfewMode> {
-        Binding(
-            get: { dayRule.mode },
-            set: { newMode in
-                model.updateRule(for: weekday) { rule in
-                    rule.mode = newMode
-                    if newMode != .time, rule.hoursLimitMinutes == nil {
-                        rule.hoursLimitMinutes = 8 * 60
-                    }
-                }
-            }
-        )
-    }
-
-    /// Binding for the "hours" value shown alongside the mode picker.
-    /// Exposed in hours (not minutes) since that's what the user thinks
-    /// in; the model stores minutes to keep the engine's math in one unit.
-    private func hoursLimitBinding() -> Binding<Double> {
-        Binding(
-            get: {
-                Double(dayRule.hoursLimitMinutes ?? 8 * 60) / 60
-            },
-            set: { newHours in
-                let clamped = max(1.0, min(16.0, newHours))
-                model.updateRule(for: weekday) { rule in
-                    rule.hoursLimitMinutes = Int(clamped * 60)
-                }
-            }
-        )
-    }
-
     /// SwiftUI body — weekday label + time pickers + mode switcher.
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -126,7 +92,7 @@ struct DayRuleRow: View {
                 Spacer()
 
                 if !dayRule.isDayOff {
-                    Button("Apply to all") {
+                    Button("Use for every day") {
                         model.applyTimesToAllDays(
                             lockMinutes: dayRule.lockMinutes,
                             unlockMinutes: dayRule.unlockMinutes
@@ -135,6 +101,7 @@ struct DayRuleRow: View {
                     .font(CurfewTypography.label(11))
                     .foregroundStyle(CurfewTheme.accent)
                     .buttonStyle(.plain)
+                    .accessibilityLabel("Use \(weekday.shortName) times for every day")
                 }
             }
 
@@ -153,9 +120,10 @@ struct DayRuleRow: View {
                     .labelsHidden()
                     .disabled(dayRule.isDayOff)
 
-                    Text("→")
-                        .font(CurfewTypography.body(16))
+                    Image(systemName: "arrow.right")
+                        .font(CurfewTypography.body(13))
                         .foregroundStyle(CurfewTheme.mutedInk)
+                        .accessibilityHidden(true)
 
                     Text(ScheduleSurfaceCopy.workResumesLabel)
                         .font(CurfewTypography.label(12))
@@ -168,38 +136,6 @@ struct DayRuleRow: View {
                     )
                     .labelsHidden()
                     .disabled(dayRule.isDayOff)
-                }
-            }
-            if !dayRule.isDayOff {
-                DisclosureGroup("Lockout rule") {
-                    HStack(spacing: 10) {
-                        Text("Trigger")
-                            .font(CurfewTypography.label(12))
-                            .foregroundStyle(CurfewTheme.mutedInk)
-                            .frame(width: 48, alignment: .leading)
-
-                        Picker("Mode", selection: modeBinding()) {
-                            ForEach(CurfewMode.allCases, id: \.self) { mode in
-                                Text(mode.shortName).tag(mode)
-                            }
-                        }
-                        .pickerStyle(.segmented)
-                        .labelsHidden()
-                        .frame(maxWidth: 220)
-
-                        if dayRule.mode != .time {
-                            Stepper(
-                                value: hoursLimitBinding(),
-                                in: 1.0 ... 16.0,
-                                step: 0.5
-                            ) {
-                                Text(
-                                    "\(String(format: "%.1f", hoursLimitBinding().wrappedValue)) h"
-                                )
-                                .font(CurfewTypography.body(13))
-                            }
-                        }
-                    }
                 }
             }
         }
@@ -225,5 +161,107 @@ struct DayRuleRow: View {
     private func dateToMinutes(_ date: Date) -> Int {
         let components = Calendar.current.dateComponents([.hour, .minute], from: date)
         return (components.hour ?? 0) * 60 + (components.minute ?? 0)
+    }
+}
+
+/// The week's lock trigger, chosen once. Day rows only carry times.
+enum ScheduleLockRule {
+    /// The trigger and work-hours limit the week currently uses, read from the
+    /// first working day, and whether any working day differs from it.
+    static func current(in schedule: WeeklySchedule) -> (mode: CurfewMode, hours: Double, isMixed: Bool) {
+        let working = Weekday.allCases.map { schedule.rule(for: $0) }.filter { !$0.isDayOff }
+        guard let first = working.first else { return (.time, 8, false) }
+        let hours = Double(first.hoursLimitMinutes ?? 8 * 60) / 60
+        let isMixed = working.contains {
+            $0.mode != first.mode ||
+                ($0.mode != .time && $0.hoursLimitMinutes != first.hoursLimitMinutes)
+        }
+        return (first.mode, hours, isMixed)
+    }
+
+    static func title(for mode: CurfewMode) -> String {
+        switch mode {
+        case .time: "At curfew"
+        case .hours: "After hours worked"
+        case .combined: "Whichever comes first"
+        }
+    }
+
+    static func hoursText(_ hours: Double) -> String {
+        let whole = Int(hours)
+        let minutes = Int((hours - Double(whole)) * 60)
+        let hourText = "\(whole) hour\(whole == 1 ? "" : "s")"
+        return minutes == 0 ? hourText : "\(hourText) \(minutes) minutes"
+    }
+}
+
+/// One advanced control for how every working day locks.
+struct ScheduleLockRuleControl: View {
+    @Environment(CurfewAppModel.self) private var model
+    @State private var isExpanded = false
+
+    private var current: (mode: CurfewMode, hours: Double, isMixed: Bool) {
+        ScheduleLockRule.current(in: model.editableSchedule)
+    }
+
+    var body: some View {
+        let current = current
+        DisclosureGroup(isExpanded: $isExpanded) {
+            VStack(alignment: .leading, spacing: 10) {
+                Picker("This Mac locks", selection: Binding(
+                    get: { current.mode },
+                    set: { apply(mode: $0, hours: current.hours) }
+                )) {
+                    ForEach(CurfewMode.allCases, id: \.self) { mode in
+                        Text(ScheduleLockRule.title(for: mode)).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .fixedSize()
+
+                if current.mode != .time {
+                    Stepper(
+                        value: Binding(
+                            get: { current.hours },
+                            set: { apply(mode: current.mode, hours: max(1, min(16, $0))) }
+                        ),
+                        in: 1 ... 16,
+                        step: 0.5
+                    ) {
+                        Text("Work limit: \(ScheduleLockRule.hoursText(current.hours))")
+                            .font(CurfewTypography.body(13))
+                    }
+                    .accessibilityLabel("Work limit")
+                    .accessibilityValue(ScheduleLockRule.hoursText(current.hours))
+                }
+                if current.isMixed {
+                    Text("Your days use different rules. Choosing one here applies it to every working day.")
+                        .font(CurfewTypography.body(12))
+                        .foregroundStyle(CurfewTheme.mutedInk)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .padding(.top, 8)
+        } label: {
+            HStack {
+                Text("When this Mac locks")
+                    .font(CurfewTypography.bodyEmphasis(13))
+                Spacer()
+                Text(current.isMixed ? "Varies by day" : ScheduleLockRule.title(for: current.mode))
+                    .font(CurfewTypography.body(13))
+                    .foregroundStyle(CurfewTheme.mutedInk)
+            }
+        }
+    }
+
+    private func apply(mode: CurfewMode, hours: Double) {
+        for weekday in Weekday.allCases where !model.editableSchedule.rule(for: weekday).isDayOff {
+            model.updateRule(for: weekday) { rule in
+                rule.mode = mode
+                if mode != .time {
+                    rule.hoursLimitMinutes = Int(hours * 60)
+                }
+            }
+        }
     }
 }
