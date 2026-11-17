@@ -1,6 +1,7 @@
 import CurfewKit
 
-/// Editing state preserves spaces while the persisted value is normalized.
+/// Editing state for the theme. Change any field and read ``preferences`` for
+/// the normalized value to save; every other choice is carried as it was.
 struct RestAppearanceDraft: Equatable {
     var background: RestAppearancePreferences.Background
     var palette: RestAppearancePreferences.Palette
@@ -10,7 +11,8 @@ struct RestAppearanceDraft: Equatable {
     var clockStyle: RestAppearancePreferences.ClockStyle
     var clockPosition: RestAppearancePreferences.ClockPosition
     var staticBackground: Bool
-    var message: String
+    var voice: RestAppearancePreferences.Voice
+    var customLines: VoiceCustomLines
     var ownedImageFilename: String?
     var focalX: Double
     var focalY: Double
@@ -28,7 +30,8 @@ struct RestAppearanceDraft: Equatable {
         self.clockStyle = value.clockStyle
         self.clockPosition = value.clockPosition
         self.staticBackground = value.staticBackground
-        self.message = value.message
+        self.voice = value.voice
+        self.customLines = value.customLines
         self.ownedImageFilename = value.ownedImageFilename
         self.focalX = value.focalX
         self.focalY = value.focalY
@@ -48,7 +51,8 @@ struct RestAppearanceDraft: Equatable {
             clockStyle: clockStyle,
             clockPosition: clockPosition,
             staticBackground: staticBackground,
-            message: message,
+            voice: voice,
+            customLines: customLines,
             ownedImageFilename: ownedImageFilename,
             focalX: focalX,
             focalY: focalY,

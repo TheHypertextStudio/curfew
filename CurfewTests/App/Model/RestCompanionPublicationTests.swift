@@ -21,7 +21,8 @@ struct RestCompanionPublicationTests {
             version: 1, expiresAt: now.addingTimeInterval(7200),
             appearance: RestAppearancePreferences(
                 background: background ?? (filename == nil ? .atmosphere : .image),
-                message: message, ownedImageFilename: filename,
+                customLines: VoiceCustomLines([.lockedHeadline: message]),
+                ownedImageFilename: filename,
                 saverMessageEnabled: sharesMessage
             ),
             lockDate: unlockOffset == nil ? nil : now.addingTimeInterval(-3600),

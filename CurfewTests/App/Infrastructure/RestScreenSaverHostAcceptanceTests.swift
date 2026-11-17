@@ -124,7 +124,9 @@ final class RestScreenSaverHostAcceptanceTests: XCTestCase {
         RestSceneSnapshot(
             version: 1, expiresAt: now.addingTimeInterval(4500),
             appearance: RestAppearancePreferences(
-                palette: palette, message: "Curfew native verification", saverMessageEnabled: true
+                palette: palette,
+                customLines: VoiceCustomLines([.lockedHeadline: "Curfew native verification"]),
+                saverMessageEnabled: true
             ),
             lockDate: now.addingTimeInterval(-3600), unlockDate: now.addingTimeInterval(900)
         )

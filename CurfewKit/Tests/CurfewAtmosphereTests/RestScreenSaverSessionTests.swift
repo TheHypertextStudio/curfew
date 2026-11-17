@@ -51,7 +51,7 @@ struct RestScreenSaverSessionTests {
             appearance: RestAppearancePreferences(
                 background: .image,
                 clockStyle: .serif, clockPosition: .lowerLeft,
-                message: message,
+                customLines: VoiceCustomLines([.lockedHeadline: message]),
                 ownedImageFilename: "00000000-0000-0000-0000-000000000001.jpg",
                 saverMessageEnabled: true
             ),

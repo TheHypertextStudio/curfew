@@ -41,7 +41,7 @@ struct RestCompanionPresentationStoreTests {
         RestSceneSnapshot(
             version: 1, expiresAt: now.addingTimeInterval(3600 + offset + expiryOffset),
             appearance: RestAppearancePreferences(
-                background: .image, message: message,
+                background: .image, customLines: VoiceCustomLines([.lockedHeadline: message]),
                 ownedImageFilename: "51000000-0000-0000-0000-000000000001.jpg",
                 saverMessageEnabled: true, sunriseWakeEnabled: true,
                 sunriseOnBatteryEnabled: true

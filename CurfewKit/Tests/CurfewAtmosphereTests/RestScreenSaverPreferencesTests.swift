@@ -21,7 +21,10 @@ struct RestScreenSaverPreferencesTests {
     private func snapshot(message: String = "Rest") -> RestSceneSnapshot {
         RestSceneSnapshot(
             version: 1, expiresAt: now.addingTimeInterval(3600),
-            appearance: RestAppearancePreferences(message: message, saverMessageEnabled: true),
+            appearance: RestAppearancePreferences(
+                customLines: VoiceCustomLines([.lockedHeadline: message]),
+                saverMessageEnabled: true
+            ),
             lockDate: now.addingTimeInterval(-60), unlockDate: now.addingTimeInterval(1800)
         )
     }
