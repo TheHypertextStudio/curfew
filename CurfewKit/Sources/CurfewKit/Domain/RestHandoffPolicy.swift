@@ -1,5 +1,58 @@
 import Foundation
 
+/// Which screen saver, if any, the lock hands off to when idle. The rule:
+/// by default only Curfew's bundled saver, and only once it has a persisted
+/// full-screen receipt; the Mac's selected saver only through an option that
+/// exists only when another saver is selected and is off by default; never a
+/// launch while a saver is already running, and no setup prompt then either.
+public nonisolated enum RestSaverChoice {
+    /// What System Settings has selected as the screen saver.
+    public enum Selection: Equatable, Sendable {
+        case none, curfew, other, unknown
+    }
+
+    public enum Target: Equatable, Sendable {
+        /// Curfew's bundled saver, which shows the lock's own scene.
+        case curfew
+        /// Whatever saver the Mac has selected, by the person's choice.
+        case selected
+    }
+
+    /// What is missing before Curfew can hand off on its own.
+    public enum Missing: Equatable, Sendable {
+        case curfewSaverNotSelected
+        case curfewSaverNotProven
+    }
+
+    public enum Decision: Equatable, Sendable {
+        case handOff(Target)
+        /// Stay on the lock screen. A reason is shown only when there is
+        /// something the person can set up.
+        case stay(Missing?)
+    }
+
+    public static func decide(
+        selection: Selection, curfewSaverProven: Bool, usesSelectedSaver: Bool,
+        saverRunning: Bool
+    ) -> Decision {
+        guard !saverRunning else { return .stay(nil) }
+        switch selection {
+        case .curfew:
+            return curfewSaverProven ? .handOff(.curfew) : .stay(.curfewSaverNotProven)
+        case .other:
+            return usesSelectedSaver ? .handOff(.selected) : .stay(.curfewSaverNotSelected)
+        case .none, .unknown:
+            return .stay(.curfewSaverNotSelected)
+        }
+    }
+
+    /// The "use this Mac's screen saver" option appears only when System
+    /// Settings has a saver other than Curfew's selected.
+    public static func offersSelectedSaverOption(selection: Selection) -> Bool {
+        selection == .other
+    }
+}
+
 /// Presentation-only handoff decisions. Effects carry no enforcement authority.
 public nonisolated struct RestHandoffPolicy: Sendable {
     public typealias Generation = UInt64
@@ -23,6 +76,9 @@ public nonisolated struct RestHandoffPolicy: Sendable {
     public enum LaunchResult: Equatable, Sendable {
         case started
         case unavailable(SetupStatus)
+        /// A screen saver was already running when the launch reached it.
+        /// Nothing needs setting up; the lock simply stays.
+        case saverAlreadyRunning
     }
 
     public enum Event: Equatable, Sendable {
@@ -159,6 +215,11 @@ public nonisolated struct RestHandoffPolicy: Sendable {
         case .started:
             phase = .saver
             controlsMayReturn = false
+        case .saverAlreadyRunning:
+            pendingGeneration = nil
+            phase = .interactive
+            controlsMayReturn = true
+            recordActivity(monotonicSeconds)
         case .unavailable(let status):
             setupStatus = status
             pendingGeneration = nil
