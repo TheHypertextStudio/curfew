@@ -68,23 +68,23 @@ private struct TaskBrowserEnforcementPanel: View {
     /// Docket identifiers, so it only appears with developer detail.
     @ViewBuilder
     private var destinationsEditor: some View {
-                Button {
-                    mappingsExpanded.toggle()
-                } label: {
-                    Label(
-                        "Allowed destinations",
-                        systemImage:
-                        mappingsExpanded ? "chevron.down" : "chevron.right"
-                    )
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("task-browser-destinations-disclosure")
-                .accessibilityValue(mappingsExpanded ? "Expanded" : "Collapsed")
-                if mappingsExpanded {
-                    mappingControls
-                }
+        Button {
+            mappingsExpanded.toggle()
+        } label: {
+            Label(
+                "Allowed destinations",
+                systemImage:
+                mappingsExpanded ? "chevron.down" : "chevron.right"
+            )
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("task-browser-destinations-disclosure")
+        .accessibilityValue(mappingsExpanded ? "Expanded" : "Collapsed")
+        if mappingsExpanded {
+            mappingControls
+        }
     }
 
     private var connectionControls: some View {

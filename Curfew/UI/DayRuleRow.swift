@@ -166,17 +166,27 @@ struct DayRuleRow: View {
 
 /// The week's lock trigger, chosen once. Day rows only carry times.
 enum ScheduleLockRule {
+    static let mixedNote =
+        "Your days use different rules. Choosing one here applies it to every working day."
+
+    struct Current: Equatable {
+        let mode: CurfewMode
+        let hours: Double
+        let isMixed: Bool
+    }
+
     /// The trigger and work-hours limit the week currently uses, read from the
     /// first working day, and whether any working day differs from it.
-    static func current(in schedule: WeeklySchedule) -> (mode: CurfewMode, hours: Double, isMixed: Bool) {
+    static func current(in schedule: WeeklySchedule) -> Current {
         let working = Weekday.allCases.map { schedule.rule(for: $0) }.filter { !$0.isDayOff }
-        guard let first = working.first else { return (.time, 8, false) }
+        guard let first = working.first
+        else { return Current(mode: .time, hours: 8, isMixed: false) }
         let hours = Double(first.hoursLimitMinutes ?? 8 * 60) / 60
         let isMixed = working.contains {
             $0.mode != first.mode ||
                 ($0.mode != .time && $0.hoursLimitMinutes != first.hoursLimitMinutes)
         }
-        return (first.mode, hours, isMixed)
+        return Current(mode: first.mode, hours: hours, isMixed: isMixed)
     }
 
     static func title(for mode: CurfewMode) -> String {
@@ -200,7 +210,7 @@ struct ScheduleLockRuleControl: View {
     @Environment(CurfewAppModel.self) private var model
     @State private var isExpanded = false
 
-    private var current: (mode: CurfewMode, hours: Double, isMixed: Bool) {
+    private var current: ScheduleLockRule.Current {
         ScheduleLockRule.current(in: model.editableSchedule)
     }
 
@@ -235,7 +245,7 @@ struct ScheduleLockRuleControl: View {
                     .accessibilityValue(ScheduleLockRule.hoursText(current.hours))
                 }
                 if current.isMixed {
-                    Text("Your days use different rules. Choosing one here applies it to every working day.")
+                    Text(ScheduleLockRule.mixedNote)
                         .font(CurfewTypography.body(12))
                         .foregroundStyle(CurfewTheme.mutedInk)
                         .fixedSize(horizontal: false, vertical: true)

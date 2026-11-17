@@ -46,7 +46,7 @@ struct CurfewMCPAccessTests {
         let text = try #require(content["text"] as? String)
         #expect(text.contains("Automatic weekly schedule: off"))
         #expect(text.contains("Saved weekly schedule:"))
-        #expect(text.contains("Mon: locks after 6 h of work; unlocks at 06:00"))
+        #expect(text.contains("Mon, after 6 hours of work, to "))
     }
 
     @Test("Local MCP read tools use fresh app observations, not schedule predictions")

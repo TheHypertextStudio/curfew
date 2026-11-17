@@ -12,7 +12,10 @@ import CurfewKit
             let directory = try Self.snapshotsDirectory()
             let model = Self.demoModel()
             for section in SettingsSection.allCases {
-                for (appearance, suffix) in [(NSAppearance.Name.aqua, "light"), (.darkAqua, "dark")] {
+                for (appearance, suffix) in [
+                    (NSAppearance.Name.aqua, "light"),
+                    (.darkAqua, "dark")
+                ] {
                     try renderHosted(
                         SettingsView(initialSection: section).environment(model),
                         named: "sweep-settings-\(section.id)-\(suffix)",
@@ -61,7 +64,10 @@ import CurfewKit
                 ))
             ]
             for (name, presentation) in states {
-                for (appearance, suffix) in [(NSAppearance.Name.aqua, "light"), (.darkAqua, "dark")] {
+                for (appearance, suffix) in [
+                    (NSAppearance.Name.aqua, "light"),
+                    (.darkAqua, "dark")
+                ] {
                     try renderHosted(
                         widgetTile(CurfewWidgetFace(presentation: presentation, size: .small)),
                         named: "sweep-widget-small-\(name)-\(suffix)",
@@ -81,7 +87,10 @@ import CurfewKit
         private func widgetTile(_ face: some View) -> some View {
             face
                 .padding(16)
-                .background(.fill.tertiary, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+                .background(
+                    .fill.tertiary,
+                    in: RoundedRectangle(cornerRadius: 22, style: .continuous)
+                )
                 .background(
                     Color(nsColor: .windowBackgroundColor),
                     in: RoundedRectangle(cornerRadius: 22, style: .continuous)
