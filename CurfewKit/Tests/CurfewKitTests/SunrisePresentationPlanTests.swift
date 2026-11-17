@@ -37,6 +37,17 @@ struct SunrisePresentationPlanTests {
         ) == nil)
     }
 
+    @Test("A night that unlocks into a day off is passed over; Friday wakes on Tuesday")
+    func skipsUnlockIntoDayOff() throws {
+        // Friday 22:00 unlocks Saturday 06:00, a day off. Sunday is off, so
+        // nothing unlocks on Monday; the next working morning is Tuesday.
+        let plan = try #require(SunriseWakePlanner(owner: owner).presentationPlan(
+            schedule: .tenToSix, appearance: appearance(),
+            at: date("2026-10-23T12:00:00-07:00"), calendar: calendar()
+        ))
+        #expect(plan.wakeAt == date("2026-10-27T05:30:00-07:00"))
+    }
+
     @Test("A future configured night resolves without a restriction or battery-power input")
     func futureOccurrence() throws {
         let plan = try #require(SunriseWakePlanner(owner: owner).presentationPlan(
@@ -83,6 +94,11 @@ struct SunrisePresentationPlanTests {
     func searchesConfiguredNights() throws {
         var schedule = WeeklySchedule.allDaysOff
         schedule.rules[.monday] = DayRule(
+            isDayOff: false, lockMinutes: 22 * 60, unlockMinutes: 6 * 60
+        )
+        // Tuesday is a working day, so Monday night's unlock leads into work.
+        // Tuesday night unlocks into Wednesday, a day off, and is passed over.
+        schedule.rules[.tuesday] = DayRule(
             isDayOff: false, lockMinutes: 22 * 60, unlockMinutes: 6 * 60
         )
         let plan = try #require(SunriseWakePlanner(owner: owner).presentationPlan(
@@ -181,6 +197,9 @@ struct SunrisePresentationPlanTests {
     func daylightSavingWindows() throws {
         var schedule = WeeklySchedule.allDaysOff
         schedule.rules[.sunday] = DayRule(
+            isDayOff: false, lockMinutes: 22 * 60, unlockMinutes: 6 * 60
+        )
+        schedule.rules[.monday] = DayRule(
             isDayOff: false, lockMinutes: 22 * 60, unlockMinutes: 6 * 60
         )
         for instant in [

@@ -4,6 +4,8 @@ import Foundation
 public extension SunriseWakePlanner {
     /// Resolves a local presentation occurrence without authorizing helper operations.
     /// The occurrence survives scheduled unlock through its five-minute display hold.
+    /// A night whose unlock falls on a day off is passed over: nothing waits on
+    /// the screen that morning, so waking the Mac would only light an empty desk.
     func presentationPlan(
         schedule: WeeklySchedule,
         appearance: RestAppearancePreferences,
@@ -22,7 +24,9 @@ public extension SunriseWakePlanner {
                   candidate.lockDate.timeIntervalSince1970.isFinite,
                   candidate.unlockDate.timeIntervalSince1970.isFinite,
                   candidate.unlockDate > candidate.lockDate,
-                  candidate.unlockDate.addingTimeInterval(300) > date else { continue }
+                  candidate.unlockDate.addingTimeInterval(300) > date,
+                  !schedule.rule(for: candidate.unlockDate, calendar: calendar).isDayOff
+            else { continue }
             if let current = occurrence, current.unlockDate <= candidate.unlockDate {
                 continue
             }
