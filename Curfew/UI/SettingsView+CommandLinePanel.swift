@@ -3,30 +3,23 @@ import SwiftUI
 
 extension SettingsView {
     var commandLinePanel: some View {
-        Section {
-            Text(
-                "Use curfew-ctl to read your schedule, export activity, " +
-                    "and request changes from Terminal."
-            )
-            .foregroundStyle(CurfewTheme.mutedInk)
-            Button("Install command line tool…") {
+        SettingsGroup("Command line (beta)") {
+            SettingsActionRow(
+                title: "curfew-ctl",
+                detail: cliInstallationMessage.isEmpty
+                    ? "Read your schedule, export activity and ask for changes from Terminal."
+                    : cliInstallationMessage,
+                actionTitle: "Install command line tool…",
+                identifier: "install-command-line-tool"
+            ) {
                 prepareCLIInstallation()
             }
-            .buttonStyle(CurfewSecondaryButtonStyle())
-            .accessibilityIdentifier("install-command-line-tool")
             .confirmationDialog("Install curfew-ctl?", isPresented: $showsCLIInstallation) {
                 Button("Install") { applyCLIInstallation() }
                 Button("Cancel", role: .cancel) {}
             } message: {
                 Text(cliInstallationSummary)
             }
-            if !cliInstallationMessage.isEmpty {
-                Text(cliInstallationMessage)
-                    .textSelection(.enabled)
-                    .accessibilityIdentifier("command-line-installation-result")
-            }
-        } header: {
-            Text("Command line (beta)")
         }
     }
 

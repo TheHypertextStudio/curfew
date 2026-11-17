@@ -135,6 +135,18 @@ struct ScheduleContent: View {
     /// sentence at the bottom pulls from the model so it reflects either
     /// the live schedule or a pending-but-not-effective change.
     private var weeklySchedulePanel: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            weeklyScheduleBox
+            // Live status for the whole week sits under the box as its footer.
+            Text(model.scheduleSummarySentence)
+                .font(CurfewTypography.body(12))
+                .foregroundStyle(CurfewTheme.mutedInk)
+                // Matches `CurfewPanel`'s content inset so the footer lines up.
+                .padding(.horizontal, 18)
+        }
+    }
+
+    private var weeklyScheduleBox: some View {
         CurfewPanel {
             CurfewSectionTitle(
                 title: "Weekly schedule",
@@ -149,10 +161,6 @@ struct ScheduleContent: View {
                     }
                 }
             }
-
-            Text(model.scheduleSummarySentence)
-                .font(CurfewTypography.body(14))
-                .foregroundStyle(CurfewTheme.mutedInk)
 
             Divider()
 

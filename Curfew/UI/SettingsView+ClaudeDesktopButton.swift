@@ -20,18 +20,17 @@ extension SettingsView {
         case .claudeNotInstalled:
             EmptyView()
         case .alreadyRegistered:
-            HStack(spacing: 4) {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundStyle(CurfewTheme.accent)
-                Text("Added to Claude Desktop")
-                    .font(CurfewTypography.label(12))
-                    .foregroundStyle(CurfewTheme.mutedInk)
-            }
+            SettingsActionRow(
+                title: "Claude Desktop", detail: "Added to Claude Desktop", actionTitle: nil
+            )
         case .willReplace, .notRegistered, .registered:
-            Button("Add to Claude Desktop") {
+            SettingsActionRow(
+                title: "Claude Desktop",
+                detail: "Lets Claude read your schedule and ask for changes.",
+                actionTitle: "Add to Claude Desktop"
+            ) {
                 runClaudeDesktopRegister()
             }
-            .buttonStyle(CurfewSecondaryButtonStyle())
         }
     }
 

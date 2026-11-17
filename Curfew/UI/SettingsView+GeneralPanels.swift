@@ -11,33 +11,32 @@ extension SettingsView {
 
     private var assistantDiagnosticsPanel: some View {
         @Bindable var model = model
-        return Section {
-            Toggle("Local HTTP server", isOn: $model.settings.mcpHTTPEnabled)
+        return SettingsGroup("Assistant diagnostics", footer: "Most assistants don't need this.") {
+            SettingsToggleRow(
+                title: "Local HTTP server",
+                detail: "For MCP clients that can't launch the bundled server. "
+                    + "Listens on 127.0.0.1 only.",
+                isOn: $model.settings.mcpHTTPEnabled
+            )
             if model.settings.mcpHTTPEnabled {
-                LabeledContent("Port") {
+                SettingsRow(title: "Port", detail: "Restart Curfew to apply a change.") {
                     TextField("9847", value: $model.settings.mcpHTTPPort, format: .number)
+                        .labelsHidden()
                         .frame(width: 80)
                 }
-                Text("Restart Curfew to apply changes.").foregroundStyle(CurfewTheme.mutedInk)
             }
-            DisclosureGroup("Technical details") {
-                Text("For MCP clients that cannot launch the bundled stdio server. "
-                    + "Listens on 127.0.0.1 only; other devices cannot connect.")
-                    .foregroundStyle(CurfewTheme.mutedInk)
-            }
-        } header: {
-            Text("Assistant diagnostics")
-        } footer: {
-            Text("Most assistants do not need this.")
         }
     }
 
     @ViewBuilder
     var setupPanel: some View {
         if !model.settings.hasCompletedInitialSetup {
-            Section("Setup") {
-                Text("Finish setup and Curfew starts keeping your schedule.")
-                    .foregroundStyle(CurfewTheme.mutedInk)
+            SettingsGroup("Setup") {
+                SettingsActionRow(
+                    title: "Setup isn't finished",
+                    detail: "Finish setup and Curfew starts keeping your schedule.",
+                    actionTitle: nil
+                )
             }
         }
     }
