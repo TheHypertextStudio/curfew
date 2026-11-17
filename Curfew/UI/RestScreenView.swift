@@ -259,7 +259,9 @@ struct RestScreenView: View {
     /// sleep or a screen saver, fade in from black so a stale frame never shows.
     private func reveal() async {
         guard preview == nil, display.revealGeneration > 0, display.isVisible else { return }
-        let now = Date()
+        // The arrival runs on the clock the scene is drawn with: the demo
+        // fixture's own clock, so its lock arrives the same at any hour.
+        let now = model.isDemoSession ? model.currentTime : Date()
         if scene.timeline.stage(at: now) == .waitingToBeSeen
             || scene.timeline.stage(at: now) == .arriving {
             scene.seen(at: now, reduceMotion: reduceMotion)

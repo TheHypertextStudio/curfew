@@ -46,6 +46,18 @@ struct CurfewHelperStatusTests {
             .action == .reopenCurfew)
     }
 
+    @Test("A helper or login item awaiting approval asks for it even without a restart agent")
+    func approvalWithoutRestartAgent() {
+        for inputs in [
+            Inputs(restartAvailable: false, helperStatus: .requiresApproval),
+            Inputs(restartAvailable: false, loginItemStatus: .requiresApproval)
+        ] {
+            #expect(CurfewHelperStatus(inputs).action == .allowInSystemSettings, "\(inputs)")
+        }
+        let noAgent = Inputs(restartAvailable: false, restartStatus: .requiresApproval)
+        #expect(CurfewHelperStatus(noAgent).tone == .ready)
+    }
+
     @Test("The helper is never repaired during a lock, and the row says when it can be")
     func lockedRefusesRepair() {
         let status = CurfewHelperStatus(Inputs(connection: .stale, isLocked: true))

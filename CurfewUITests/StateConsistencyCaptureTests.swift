@@ -121,18 +121,29 @@ extension MarketingCaptureTests {
         )).firstMatch
         XCTAssertTrue(window.waitForExistence(timeout: 8))
         if state == "today-off-locked" {
-            assertText("Curfew is off. Review your schedule.", in: app)
+            assertText("Curfew is off. Nothing locks until you turn it back on.", in: app)
             XCTAssertTrue(app.buttons["Turn on Curfew"].exists, app.debugDescription)
-            XCTAssertFalse(app.staticTexts["Curfew is active."].exists, app.debugDescription)
+            // Off wins over the schedule's lock: nothing claims "Unlocks at".
+            XCTAssertFalse(app.descendants(matching: .any).matching(NSPredicate(
+                format: "label CONTAINS %@ OR value CONTAINS %@", "Unlocks at", "Unlocks at"
+            )).firstMatch.exists, app.debugDescription)
         } else {
-            assertText("Review setup", in: app)
-            assertText("Automatic weekly lockouts are off.", in: app)
-            assertText("Authorized remote locks can still apply.", in: app)
-            XCTAssertTrue(app.buttons["Done"].exists, app.debugDescription)
-            XCTAssertFalse(app.buttons["Finish Setup"].exists, app.debugDescription)
+            // Reopened setup is a review: no question, no Back, nothing to commit.
             if state == "setup-review-denied" {
-                XCTAssertTrue(app.buttons["Open System Settings"].exists, app.debugDescription)
+                let open = app.buttons["Open System Settings"]
+                XCTAssertTrue(open.waitForExistence(timeout: 5), app.debugDescription)
+                assertText("Let Curfew hold the lock.", in: app)
+                XCTAssertFalse(app.buttons["Done"].exists, app.debugDescription)
+            } else {
+                XCTAssertTrue(
+                    app.buttons["Done"].waitForExistence(timeout: 5), app.debugDescription
+                )
+                assertText("You're set.", in: app)
+                assertText("Nothing locks on a schedule.", in: app)
             }
+            XCTAssertFalse(app.buttons["Use this schedule"].exists, app.debugDescription)
+            XCTAssertFalse(app.buttons["Back"].exists, app.debugDescription)
+            XCTAssertFalse(app.buttons["Continue"].exists, app.debugDescription)
         }
         attach(window, name: "\(state)-\(appearance)-\(size)")
     }
