@@ -208,6 +208,11 @@ struct ScheduleResolutionTests {
 }
 
 struct SchedulePresetTests {
+    @Test("Preset names are sentence case")
+    func presetNames() {
+        #expect(SchedulePreset.allCases.map(\.rawValue) == ["9 to 5", "Startup hours", "Half day"])
+    }
+
     @Test("Schedule presets expose expected lock and unlock defaults")
     func presetDefaults() {
         let nineToFive = WeeklySchedule.standardNineToFive.rule(for: .monday)
