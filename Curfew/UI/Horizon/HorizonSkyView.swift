@@ -25,6 +25,8 @@ extension EnvironmentValues {
 struct HorizonSkyView: View {
     var frame: HorizonFrame
     var isDayRunning: Bool
+    /// How the sky is quieted behind text at a given size; nothing by default.
+    var hush: (CGSize) -> HorizonHush
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.displayScale) private var displayScale
@@ -32,9 +34,13 @@ struct HorizonSkyView: View {
     @Environment(\.horizonPalette) private var palette
     @State private var bands = HorizonBandPhase(anchor: Date(), isRunning: false)
 
-    init(frame: HorizonFrame, isDayRunning: Bool) {
+    init(
+        frame: HorizonFrame, isDayRunning: Bool,
+        hush: @escaping (CGSize) -> HorizonHush = { _ in .none }
+    ) {
         self.frame = frame
         self.isDayRunning = isDayRunning
+        self.hush = hush
     }
 
     private var isRunning: Bool {
@@ -42,9 +48,10 @@ struct HorizonSkyView: View {
     }
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: !isRunning)) { context in
-            GeometryReader { proxy in
-                scene(size: proxy.size, phase: bands.value(at: context.date))
+        GeometryReader { proxy in
+            let quiet = hush(proxy.size)
+            TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: !isRunning)) { context in
+                scene(size: proxy.size, phase: bands.value(at: context.date), hush: quiet)
             }
         }
         .onAppear { bands = bands.updating(isRunning: isRunning, at: Date()) }
@@ -55,7 +62,7 @@ struct HorizonSkyView: View {
     }
 
     @ViewBuilder
-    private func scene(size: CGSize, phase: Double) -> some View {
+    private func scene(size: CGSize, phase: Double, hush: HorizonHush) -> some View {
         switch rendering {
         case .shader where HorizonShaderLibrary.shared != nil:
             Rectangle()
@@ -65,20 +72,23 @@ struct HorizonSkyView: View {
                     size: size,
                     phase: phase,
                     scale: displayScale,
-                    palette: palette
+                    palette: palette,
+                    hush: hush
                 ))
         case .shader, .reference:
             // Also the fallback when the bundled shader library cannot load.
-            HorizonStillSky(frame: frame, bandPhase: phase)
+            HorizonStillSky(frame: frame, bandPhase: phase, hush: hush)
         }
     }
 
     /// The SwiftUI shader for one frame in `palette`, from the bundled library.
     static func shader(
         frame: HorizonFrame, size: CGSize, phase: Double, scale: CGFloat,
-        palette: HorizonPalette = .standard
+        palette: HorizonPalette = .standard, hush: HorizonHush = .none
     ) -> Shader {
-        (HorizonShaderLibrary.shared?.library ?? .default).horizonSky(
+        let shape = hush.shaderShape
+        let tone = hush.shaderTone
+        return (HorizonShaderLibrary.shared?.library ?? .default).horizonSky(
             .float2(size),
             .float2(frame.sun.x, frame.sun.y),
             .float2(frame.moon.x, frame.moon.y),
@@ -87,6 +97,8 @@ struct HorizonSkyView: View {
             .float(phase),
             .float(frame.moonPhase),
             .float(scale),
+            .float4(shape[0], shape[1], shape[2], shape[3]),
+            .float3(tone[0], tone[1], tone[2]),
             .floatArray(palette.shaderTable)
         )
     }

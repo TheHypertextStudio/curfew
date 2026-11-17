@@ -104,17 +104,14 @@ struct ContentView: View {
         let presentation = model.todayPresentation
         let metrics = TodayMetrics.popover
         let skyHeight = Self.skyHeight * (1 - HorizonGeometry.horizon)
-        let size = CGSize(width: Self.width, height: Self.skyHeight)
-        let shade = TodaySkyLegibility.shade(
-            for: model.horizonFrame, size: size, regions: metrics.textRegions(in: size),
-            palette: model.horizonPalette
-        )
         return ZStack(alignment: .top) {
-            HorizonSkyView(frame: model.horizonFrame, isDayRunning: model.isHorizonDayRunning)
+            HorizonSkyView(
+                today: model.horizonFrame, isDayRunning: model.isHorizonDayRunning,
+                palette: model.horizonPalette, metrics: { _ in metrics }
+            )
             VStack(spacing: 0) {
                 TodayHero(
-                    presentation: presentation, metrics: metrics, horizon: model.horizonFrame,
-                    shade: shade, voice: model.voice,
+                    presentation: presentation, metrics: metrics, voice: model.voice,
                     holdDuration: CurfewAppModel.extensionConfirmationHoldSeconds,
                     onTurnOn: turnOn,
                     onMoreTime: { model.confirmExtensionRequest() },
@@ -123,7 +120,6 @@ struct ContentView: View {
                 .padding(.bottom, metrics.actionsToHorizon)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
                 .frame(height: skyHeight)
-                .clipped()
                 Group {
                     if presentation.showsOneThing {
                         OneThingView(

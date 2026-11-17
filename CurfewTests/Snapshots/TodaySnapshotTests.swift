@@ -116,6 +116,33 @@
             }
         }
 
+        /// The two hardest skies behind the text: mid-morning, when the sun
+        /// passes closest to the countdown, and the last minutes, when the
+        /// glow sits on the horizon behind the actions.
+        func testRenderTodayNearTheSun() throws {
+            let directory = try Self.snapshotsDirectory()
+            let states = [
+                TodayCapture(
+                    name: "morning", frame: Self.frame(9, 30), Self.counting(minutes: 510),
+                    Self.shipIt
+                ),
+                TodayCapture(
+                    name: "dusk", frame: Self.frame(17, 58),
+                    Self.counting(minutes: 2, stage: .oneMinute, canExtend: true), Self.shipIt
+                )
+            ]
+            for state in states {
+                try render(
+                    TodaySundownView(
+                        horizon: state.frame, presentation: state.presentation,
+                        oneThing: state.oneThing
+                    )
+                    .transaction { $0.disablesAnimations = true },
+                    named: "today-\(state.name)", width: 832, height: 720, to: directory
+                )
+            }
+        }
+
         /// The "What is today for?" field is an AppKit control, which only a
         /// hosted capture draws; a day off has no hold control to blank it.
         func testRenderTodayAskingForTheOneThing() throws {
@@ -131,6 +158,31 @@
                 named: "today-no-one-thing", width: 832, height: 720, settlingTime: 0.3,
                 to: directory
             )
+        }
+
+        /// The popover's small sky through the day: the sun passes closest to
+        /// its text mid-morning and mid-afternoon.
+        func testRenderTodayPopoverThroughTheDay() throws {
+            let directory = try Self.snapshotsDirectory()
+            let model = Self.demoModel()
+            model.started = true
+            model.reflectionState.recorder = InMemoryReflectionRecording()
+            model.saveTodaysOneThing("Ship the billing migration")
+            for (hour, minute) in [(8, 45), (10, 15), (12, 30), (15, 45)] {
+                model.currentTime = Self.at(hour, minute)
+                let remaining = (18 - hour) * 60 - minute
+                model.state = CurfewEvaluation(
+                    phase: .working, warningStage: .none, minutesRemaining: remaining,
+                    canRequestExtension: false, lockDate: Self.at(18, 0),
+                    unlockDate: Self.at(7, 0, nextDay: true)
+                )
+                try render(
+                    ContentView().environment(model)
+                        .transaction { $0.disablesAnimations = true },
+                    named: String(format: "today-popover-%02d%02d", hour, minute), width: 340,
+                    to: directory
+                )
+            }
         }
 
         func testRenderTodayWindowAndPopover() throws {
