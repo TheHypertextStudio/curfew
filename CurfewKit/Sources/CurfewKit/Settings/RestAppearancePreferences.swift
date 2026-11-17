@@ -1,20 +1,34 @@
 import Foundation
 
 /// Normalized appearance and opt-in Sunrise preferences that remain local to this Mac.
+///
+/// The theme lives here: the sky palette, the clock style and position, the
+/// voice pack and the person's own words for the lines that carry the voice.
+/// Every field decodes on its own, so older records load with new fields at
+/// their defaults.
 public nonisolated struct RestAppearancePreferences: Codable, Equatable, Sendable {
     public enum Background: String, Codable, Sendable {
         case atmosphere, solid, image
     }
 
-    public enum Palette: String, Codable, Sendable {
+    /// The sky. The stored names predate the palettes they now draw:
+    /// `sundown` is Sundown, `warmAmber` is Desert, `coolTwilight` is Polar,
+    /// so a choice made before the theme editor keeps its warm or cool mood.
+    public enum Palette: String, Codable, Sendable, CaseIterable {
         case sundown, warmAmber, coolTwilight
     }
 
-    public enum ClockStyle: String, Codable, Sendable {
+    /// The voice pack, by its ``VoicePack/id``.
+    public enum Voice: String, Codable, Sendable, CaseIterable {
+        case standard = "default"
+        case gentle, playful
+    }
+
+    public enum ClockStyle: String, Codable, Sendable, CaseIterable {
         case rounded, standard, serif
     }
 
-    public enum ClockPosition: String, Codable, Sendable {
+    public enum ClockPosition: String, Codable, Sendable, CaseIterable {
         case center, upperCenter, lowerLeft
     }
 
@@ -26,7 +40,9 @@ public nonisolated struct RestAppearancePreferences: Codable, Equatable, Sendabl
     public let clockStyle: ClockStyle
     public let clockPosition: ClockPosition
     public let staticBackground: Bool
-    public let message: String
+    public let voice: Voice
+    /// The person's own words, laid over the voice pack.
+    public let customLines: VoiceCustomLines
     public let ownedImageFilename: String?
     public let focalX: Double
     public let focalY: Double
@@ -44,7 +60,8 @@ public nonisolated struct RestAppearancePreferences: Codable, Equatable, Sendabl
         clockStyle: ClockStyle = .rounded,
         clockPosition: ClockPosition = .center,
         staticBackground: Bool = false,
-        message: String = "",
+        voice: Voice = .standard,
+        customLines: VoiceCustomLines = VoiceCustomLines(),
         ownedImageFilename: String? = nil,
         focalX: Double = 0.5,
         focalY: Double = 0.5,
@@ -62,7 +79,8 @@ public nonisolated struct RestAppearancePreferences: Codable, Equatable, Sendabl
         self.clockStyle = clockStyle
         self.clockPosition = clockPosition
         self.staticBackground = staticBackground
-        self.message = String(message.trimmingCharacters(in: .whitespacesAndNewlines).prefix(140))
+        self.voice = voice
+        self.customLines = customLines
         self.ownedImageFilename = imageFilename
         self.focalX = Self.unitValue(focalX, fallback: 0.5)
         self.focalY = Self.unitValue(focalY, fallback: 0.5)
@@ -83,7 +101,8 @@ public nonisolated struct RestAppearancePreferences: Codable, Equatable, Sendabl
         self.clockStyle = presentationAppearance.clockStyle
         self.clockPosition = presentationAppearance.clockPosition
         self.staticBackground = presentationAppearance.staticBackground
-        self.message = presentationAppearance.message
+        self.voice = .standard
+        self.customLines = VoiceCustomLines([.lockedHeadline: presentationAppearance.message])
         self.ownedImageFilename = nil
         self.focalX = presentationAppearance.focalX
         self.focalY = presentationAppearance.focalY
@@ -93,11 +112,46 @@ public nonisolated struct RestAppearancePreferences: Codable, Equatable, Sendabl
         self.sunriseOnBatteryEnabled = false
     }
 
+    /// The person's own words on the lock, or empty. This is the line the
+    /// screen saver may show under its clock, with consent.
+    public var message: String {
+        customLines[.lockedHeadline] ?? ""
+    }
+
+    /// The active voice: the chosen pack with the person's words over it.
+    public var voicePack: VoicePack {
+        VoicePack(voice).applying(customLines)
+    }
+
     private enum CodingKeys: String, CodingKey {
         case background, palette, solidRed, solidGreen, solidBlue
-        case clockStyle, clockPosition, staticBackground, message, ownedImageFilename
+        case clockStyle, clockPosition, staticBackground, voice, customLines, ownedImageFilename
         case focalX, focalY, saverMessageEnabled
         case sunriseWakeEnabled, sunriseLeadMinutes, sunriseOnBatteryEnabled
+        /// Before the theme editor, the person's words on the lock were a
+        /// free-text "personal message". Read only, to migrate it.
+        case message
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(background, forKey: .background)
+        try container.encode(palette, forKey: .palette)
+        try container.encode(solidRed, forKey: .solidRed)
+        try container.encode(solidGreen, forKey: .solidGreen)
+        try container.encode(solidBlue, forKey: .solidBlue)
+        try container.encode(clockStyle, forKey: .clockStyle)
+        try container.encode(clockPosition, forKey: .clockPosition)
+        try container.encode(staticBackground, forKey: .staticBackground)
+        try container.encode(voice, forKey: .voice)
+        try container.encode(customLines, forKey: .customLines)
+        try container.encodeIfPresent(ownedImageFilename, forKey: .ownedImageFilename)
+        try container.encode(focalX, forKey: .focalX)
+        try container.encode(focalY, forKey: .focalY)
+        try container.encode(saverMessageEnabled, forKey: .saverMessageEnabled)
+        try container.encode(sunriseWakeEnabled, forKey: .sunriseWakeEnabled)
+        try container.encode(sunriseLeadMinutes, forKey: .sunriseLeadMinutes)
+        try container.encode(sunriseOnBatteryEnabled, forKey: .sunriseOnBatteryEnabled)
     }
 
     /// Missing or malformed fields migrate independently, retaining valid sibling choices.
@@ -115,7 +169,8 @@ public nonisolated struct RestAppearancePreferences: Codable, Equatable, Sendabl
                 .center,
             staticBackground: (try? container.decode(Bool.self, forKey: .staticBackground)) ??
                 false,
-            message: (try? container.decode(String.self, forKey: .message)) ?? "",
+            voice: (try? container.decode(Voice.self, forKey: .voice)) ?? .standard,
+            customLines: Self.decodeCustomLines(from: container),
             ownedImageFilename: try? container.decode(String.self, forKey: .ownedImageFilename),
             focalX: (try? container.decode(Double.self, forKey: .focalX)) ?? 0.5,
             focalY: (try? container.decode(Double.self, forKey: .focalY)) ?? 0.5,
@@ -130,6 +185,19 @@ public nonisolated struct RestAppearancePreferences: Codable, Equatable, Sendabl
                 forKey: .sunriseOnBatteryEnabled
             )) ?? false
         )
+    }
+
+    /// The person's own words, with an older free-text message carried into
+    /// the lock's headline when they have not written one there.
+    private static func decodeCustomLines(
+        from container: KeyedDecodingContainer<CodingKeys>
+    ) -> VoiceCustomLines {
+        let lines = (try? container.decode(VoiceCustomLines.self, forKey: .customLines))
+            ?? VoiceCustomLines()
+        guard lines[.lockedHeadline] == nil,
+              let message = try? container.decode(String.self, forKey: .message)
+        else { return lines }
+        return lines.setting(.lockedHeadline, to: message)
     }
 
     private static func unitValue(_ value: Double, fallback: Double) -> Double {

@@ -18,6 +18,8 @@ public nonisolated struct RestCompanionExport: Equatable, Sendable {
         public let clockStyle: RestAppearancePreferences.ClockStyle
         public let clockPosition: RestAppearancePreferences.ClockPosition
         public let staticBackground: Bool
+        /// The person's own words on the lock, only when they agreed to show
+        /// them in the screen saver; validated like every custom line.
         public let message: String
         public let focalX: Double
         public let focalY: Double
@@ -169,7 +171,7 @@ private extension RestCompanionExport.Appearance {
             clockStyle: clockStyle,
             clockPosition: clockPosition,
             staticBackground: staticBackground,
-            message: message,
+            customLines: VoiceCustomLines([.lockedHeadline: message]),
             focalX: focalX,
             focalY: focalY,
             sunriseLeadMinutes: sunriseLeadMinutes

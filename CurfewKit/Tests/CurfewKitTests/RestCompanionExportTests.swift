@@ -15,7 +15,8 @@ struct RestCompanionExportTests {
             version: 1,
             expiresAt: now.addingTimeInterval(expiresIn),
             appearance: RestAppearancePreferences(
-                background: .image, message: "Private personal message",
+                background: .image,
+                customLines: VoiceCustomLines([.lockedHeadline: "Private personal message"]),
                 ownedImageFilename: filename, saverMessageEnabled: messageEnabled,
                 sunriseWakeEnabled: true, sunriseOnBatteryEnabled: true
             ),

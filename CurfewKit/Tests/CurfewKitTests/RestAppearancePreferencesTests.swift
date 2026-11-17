@@ -2,8 +2,8 @@
 import Foundation
 import Testing
 
-/// Contract preparation only: intended production types do not exist yet.
-/// Compilation failure is not behavioral RED. See the task-1 report.
+/// The local theme record: every field decodes on its own, and records saved
+/// before the theme editor load with their choices intact.
 struct RestAppearancePreferencesTests {
     private func decode(_ json: String) throws -> RestAppearancePreferences {
         try JSONDecoder().decode(RestAppearancePreferences.self, from: Data(json.utf8))
@@ -18,6 +18,9 @@ struct RestAppearancePreferencesTests {
         #expect(expected.clockStyle == .rounded)
         #expect(expected.clockPosition == .center)
         #expect(!expected.staticBackground)
+        #expect(expected.voice == .standard)
+        #expect(expected.customLines.isEmpty)
+        #expect(expected.voicePack == .standard)
         #expect(expected.message.isEmpty)
         #expect(expected.ownedImageFilename == nil)
         #expect(expected.focalX == 0.5)
@@ -92,7 +95,10 @@ struct RestAppearancePreferencesTests {
             clockStyle: .serif,
             clockPosition: .lowerLeft,
             staticBackground: true,
-            message: "Tomorrow can wait.",
+            voice: .playful,
+            customLines: VoiceCustomLines([
+                .lockedHeadline: "Tomorrow can wait.", .sunriseQuestion: "What's first?"
+            ]),
             focalX: 0.2,
             focalY: 0.8,
             saverMessageEnabled: true,
@@ -135,21 +141,6 @@ struct RestAppearancePreferencesTests {
             #expect(invalid.solidGreen == 0.07)
             #expect(invalid.solidBlue == 0.15)
         }
-    }
-
-    @Test("Messages trim surrounding whitespace and truncate by extended grapheme Character")
-    func messageNormalization() throws {
-        let grapheme = "👨‍👩‍👧‍👦"
-        let expected = String(repeating: grapheme, count: 140)
-        let input = " \n" + expected + "e\u{301}end\t "
-        #expect(RestAppearancePreferences(message: input).message == expected)
-        #expect(RestAppearancePreferences(message: input).message.count == 140)
-        let encoded = try JSONEncoder().encode(["message": input])
-        #expect(try JSONDecoder().decode(RestAppearancePreferences.self, from: encoded)
-            .message == expected)
-        let exactly140 = String(repeating: "e\u{301}", count: 140)
-        #expect(RestAppearancePreferences(message: exactly140).message == exactly140)
-        #expect(RestAppearancePreferences(message: " \n\t ").message.isEmpty)
     }
 
     @Test("Focal points clamp to the image and nonfinite input returns to center")
@@ -214,7 +205,9 @@ struct RestAppearancePreferencesTests {
         }
         #expect(!RestAppearancePreferences(sunriseWakeEnabled: true).sunriseOnBatteryEnabled)
         #expect(!RestAppearancePreferences(sunriseOnBatteryEnabled: true).sunriseWakeEnabled)
-        #expect(!RestAppearancePreferences(message: "Private message").saverMessageEnabled)
+        #expect(!RestAppearancePreferences(
+            customLines: VoiceCustomLines([.lockedHeadline: "Private message"])
+        ).saverMessageEnabled)
         #expect(!RestAppearancePreferences(saverMessageEnabled: true).sunriseWakeEnabled)
     }
 
@@ -224,7 +217,11 @@ struct RestAppearancePreferencesTests {
         let suiteName = "RestAppearancePreferencesTests.Roundtrip.\(UUID().uuidString)"
         let defaults = try #require(UserDefaults(suiteName: suiteName))
         defer { defaults.removePersistentDomain(forName: suiteName) }
-        let preferences = RestAppearancePreferences(message: "Rest well", sunriseWakeEnabled: true)
+        let preferences = RestAppearancePreferences(
+            voice: .gentle,
+            customLines: VoiceCustomLines([.lockedHeadline: "Rest well"]),
+            sunriseWakeEnabled: true
+        )
         let store = RestAppearancePreferencesStore(defaults: defaults)
         #expect(store.load() == RestAppearancePreferences())
         store.save(preferences)

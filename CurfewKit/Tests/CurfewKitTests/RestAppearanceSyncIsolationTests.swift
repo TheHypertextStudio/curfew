@@ -14,7 +14,7 @@ struct RestAppearanceSyncIsolationTests {
         let beforeSettings = settingsStore.load()
         let before = try #require(defaults.data(forKey: "curfew.settings.v1"))
         let local = RestAppearancePreferences(
-            message: "Local private message",
+            customLines: VoiceCustomLines([.lockedHeadline: "Local private message"]),
             saverMessageEnabled: true,
             sunriseWakeEnabled: true,
             sunriseLeadMinutes: 15,

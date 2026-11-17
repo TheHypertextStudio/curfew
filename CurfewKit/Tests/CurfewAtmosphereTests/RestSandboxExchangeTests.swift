@@ -28,7 +28,7 @@ struct RestSandboxExchangeTests {
             expiresAt: now.addingTimeInterval(3600),
             appearance: .init(
                 palette: .warmAmber,
-                message: "Local only",
+                customLines: VoiceCustomLines([.lockedHeadline: "Local only"]),
                 saverMessageEnabled: true
             ),
             lockDate: now.addingTimeInterval(-60),

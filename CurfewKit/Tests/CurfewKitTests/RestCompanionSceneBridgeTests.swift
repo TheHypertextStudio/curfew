@@ -29,7 +29,7 @@ struct RestCompanionSceneBridgeTests {
                 background: .image, palette: .coolTwilight,
                 solidRed: 0.2, solidGreen: 0.3, solidBlue: 0.4,
                 clockStyle: .serif, clockPosition: .lowerLeft, staticBackground: true,
-                message: "Time to rest",
+                customLines: VoiceCustomLines([.lockedHeadline: "Time to rest"]),
                 ownedImageFilename: "12345678-1234-1234-1234-123456789abc.png",
                 focalX: 0.25, focalY: 0.75, saverMessageEnabled: includeMessage,
                 sunriseWakeEnabled: true, sunriseLeadMinutes: 45,
