@@ -2856,3 +2856,9 @@ The website acceptance suite follows the homepage, release archive, and download
   - `LockScreenTests/"The selected saver is read from the screen saver preferences"`, `/"Start the screen saver is offered only when a handoff is allowed"`
 - `Snapshots: just snapshot writes curfew-lock-night, -close-out, -lead-in, -override-typing, -override-cooling, -override-ready and curfew-notice-{30,15,5,1}-{light,dark}` (`LockSnapshotTests`).
   - Not covered by unit tests: the real lock on hardware (focus, kiosk, arrival under a saver or after display sleep, the leaving fade), Liquid Glass rendering (snapshots use the Reduce Transparency alternative), and the saver's full-screen receipt.
+- `The close-out and the override composer keep keyboard focus after the arrival.`
+  - `LockTransitionTests/"The lock's words follow the sky's frames only while the arrival plays"`
+  - `CurfewUITests/testReflectionTypingSurvivesClockTicks`
+- `The lock clock, Today's headline and the Sunrise headline read as text.`
+  - `SunriseGateHeadlineTests`
+  - `CurfewUITests/testRestScenesHaveReadableAccessibleControls`, `/testResolvingReflectionMakesRoomForTheQuietClock`, `/testWorkspaceHasReadableAccessibleControlsWithoutRestCoveringIt`

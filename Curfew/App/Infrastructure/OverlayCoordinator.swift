@@ -127,7 +127,8 @@ final class OverlayCoordinator {
                     curfew: state.lockDate,
                     minutesRemaining: state.minutesRemaining,
                     voice: model.voice,
-                    palette: model.horizonPalette
+                    palette: model.horizonPalette,
+                    pinnedNow: model.isDemoSession ? model.currentTime : nil
                 )
             default:
                 noticeCoordinator.reset()

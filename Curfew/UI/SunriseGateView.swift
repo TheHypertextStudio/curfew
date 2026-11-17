@@ -51,6 +51,13 @@ struct SunriseGateView: View {
     static let chromeAbove: CGFloat = 32 + 78 + 18
     private static let chromeBelow: CGFloat = 32
 
+    /// The headline as VoiceOver reads it. A one-word line such as "Morning."
+    /// reads the same without its full stop, and without it the label is not
+    /// mistaken for an identifier.
+    static func spokenHeadline(_ headline: String) -> String {
+        headline.hasSuffix(".") ? String(headline.dropLast()) : headline
+    }
+
     var body: some View {
         GeometryReader { geometry in
             let screen = geometry.size.height + Self.chromeAbove + Self.chromeBelow
@@ -59,6 +66,7 @@ struct SunriseGateView: View {
                 Text(model.voice.gateHeadline)
                     .sundownFont(.title, size: 76)
                     .foregroundStyle(SundownPalette.warmWhite)
+                    .accessibilityLabel(Self.spokenHeadline(model.voice.gateHeadline))
                     .accessibilityAddTraits(.isHeader)
                 Spacer(minLength: CurfewSpacing.xLarge)
                 ground

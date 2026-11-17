@@ -55,6 +55,8 @@ final class WarningNoticeState {
     var stage: WarningStage = .none
     var curfew: Date?
     var fallbackSeconds = 0
+    /// The demo fixture's fixed clock; nil counts down from the wall clock.
+    var pinnedNow: Date?
     /// The voice the stage line is spoken in.
     var voice = VoicePack.standard
     /// The palette its solid panel takes under Reduce Transparency.
@@ -90,7 +92,7 @@ final class WarningNoticeCoordinator {
 
     func update(
         stage: WarningStage, curfew: Date?, minutesRemaining: Int, voice: VoicePack = .standard,
-        palette: HorizonPalette = .standard
+        palette: HorizonPalette = .standard, pinnedNow: Date? = nil
     ) {
         guard visibility.shouldShow(stage) else {
             hide()
@@ -100,6 +102,9 @@ final class WarningNoticeCoordinator {
         state.stage = stage
         state.curfew = curfew
         state.fallbackSeconds = max(0, minutesRemaining) * 60
+        if state.pinnedNow != pinnedNow {
+            state.pinnedNow = pinnedNow
+        }
         if state.voice != voice {
             state.voice = voice
         }
@@ -190,7 +195,7 @@ struct WarningNoticeView: View {
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 1)) { context in
-            let date = now ?? context.date
+            let date = now ?? state.pinnedNow ?? context.date
             let seconds = state.curfew.map { Int($0.timeIntervalSince(date).rounded(.up)) }
                 ?? state.fallbackSeconds
             content(seconds: seconds)

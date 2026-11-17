@@ -80,6 +80,22 @@ struct LockTransitionTests {
         #expect(timeline.stage(at: now.addingTimeInterval(20)) == .settled)
     }
 
+    @Test("The lock's words follow the sky's frames only while the arrival plays")
+    func wordsHoldStillOutsideTheArrival() {
+        var timeline = LockSceneTimeline()
+        #expect(timeline.wordsDate(at: now) == timeline.wordsDate(at: now.addingTimeInterval(5)))
+        #expect(timeline.clock(at: timeline.wordsDate(at: now)) == 0)
+
+        timeline.seen(at: now, reduceMotion: false)
+        let arriving = now.addingTimeInterval(1)
+        #expect(timeline.wordsDate(at: arriving) == arriving)
+
+        let settled = timeline.wordsDate(at: now.addingTimeInterval(3))
+        #expect(settled == timeline.wordsDate(at: now.addingTimeInterval(60)))
+        #expect(timeline.clock(at: settled) == 1)
+        #expect(timeline.words(at: settled) == 1)
+    }
+
     @Test("Windows leave only after their fade completes")
     func windowStoreFadesBeforeOrderingOut() {
         var completions: [() -> Void] = []
