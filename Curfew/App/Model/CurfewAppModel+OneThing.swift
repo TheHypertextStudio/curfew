@@ -52,7 +52,7 @@ extension CurfewAppModel {
             .first { $0.id == JournalPromptIDs.oneThing }
         let answer = ReflectionAnswer(
             promptID: JournalPromptIDs.oneThing,
-            promptTextSnapshot: prompt?.text ?? voice.oneThingQuestion,
+            promptTextSnapshot: prompt?.text ?? voice.gateQuestion,
             value: .text(trimmed)
         )
         reflectionState.recorder.record(

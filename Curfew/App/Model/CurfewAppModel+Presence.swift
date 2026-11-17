@@ -220,6 +220,7 @@ extension CurfewAppModel {
 
         let sustained = runtime.monitor.secondsInState(at: currentTime)
         presenceRuntimes[ObjectIdentifier(self)]?.lastWarnedAt = currentTime
+        notificationManager.voice = voice
         notificationManager.deliverDistractionNudge()
         recordAuditDistractionWarning(sustainedSeconds: sustained)
     }

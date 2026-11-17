@@ -1,4 +1,5 @@
 import AppKit
+import CurfewAtmosphere
 import CurfewKit
 import SwiftUI
 
@@ -124,7 +125,9 @@ final class OverlayCoordinator {
                 noticeCoordinator.update(
                     stage: state.warningStage,
                     curfew: state.lockDate,
-                    minutesRemaining: state.minutesRemaining
+                    minutesRemaining: state.minutesRemaining,
+                    voice: model.voice,
+                    palette: model.horizonPalette
                 )
             default:
                 noticeCoordinator.reset()

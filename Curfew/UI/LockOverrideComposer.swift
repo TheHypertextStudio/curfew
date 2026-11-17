@@ -34,7 +34,10 @@ struct OverrideComposer: View {
     @Environment(CurfewAppModel.self) private var model
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @FocusState private var editorFocused: Bool
-    var voice = VoicePack.standard
+
+    private var voice: VoicePack {
+        model.voice
+    }
 
     private var state: OverrideComposerState {
         OverrideComposerState(

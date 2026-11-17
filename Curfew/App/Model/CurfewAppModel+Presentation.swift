@@ -11,11 +11,6 @@ import Foundation
 /// lockout overlay, and widgets.
 @MainActor
 extension CurfewAppModel {
-    /// The words this surface speaks. One value, so a voice pack can swap it.
-    var voice: TodayVoice {
-        .standard
-    }
-
     /// The override that is holding the lock open right now, if any.
     var activeOverrideUntil: Date? {
         (accountReleaseOverrideUntil() ?? overrideUntil).flatMap { $0 > currentTime ? $0 : nil }
@@ -57,7 +52,7 @@ extension CurfewAppModel {
     var menuBarAccessibilityLabel: String {
         let name = "Curfew\(CurfewFlavor.current.displaySuffix)"
         if isEnforcementRunning, let curfew = upcomingCurfew {
-            let left = TodayVoice.spokenDuration(curfew.timeIntervalSince(currentTime))
+            let left = VoicePack.spokenDuration(curfew.timeIntervalSince(currentTime))
             return "\(name), \(left) left"
         }
         return "\(name), \(menuBarHeaderLine)"
@@ -117,7 +112,7 @@ extension CurfewAppModel {
 
     /// The label of the control that asks for more time.
     var extensionRequestTitle: String {
-        voice.moreTime
+        voice.moreTime(minutes: 15)
     }
 
     /// Everything Today and the menu bar popover show, resolved from the
@@ -247,16 +242,16 @@ extension CurfewAppModel {
         switch phase {
         case .working:
             if let curfew = upcomingCurfew {
-                return voice.curfewAt(TodayVoice.time(curfew))
+                return voice.curfewAt(VoicePack.time(curfew))
             }
             if let release = overrideReleaseEnd {
-                return voice.overrideUntil(TodayVoice.time(release))
+                return voice.overrideUntil(VoicePack.time(release))
             }
             return voice.menuNoCurfew
         case .warning:
             return voice.curfewIn(minutes: max(1, state.minutesRemaining))
         case .locked:
-            return state.unlockDate.map { voice.lockedUntil(TodayVoice.time($0)) }
+            return state.unlockDate.map { voice.lockedUntil(VoicePack.time($0)) }
                 ?? voice.menuLocked
         case .dayOff:
             return voice.menuNoCurfew

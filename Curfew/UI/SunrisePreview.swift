@@ -16,7 +16,8 @@ struct SunrisePreviewScene: View {
         let pages = SunriseGate.pages(
             steps: model.sunriseSteps,
             morningPrompts: model.reflectionConfiguration.morningPrompts,
-            lastNightNote: model.sunriseLastNightNote ?? "pick up where you stopped."
+            lastNightNote: model.sunriseLastNightNote ?? "pick up where you stopped.",
+            question: model.voice.gateQuestion
         )
         return SunriseGateView.Preview(page: pages.first, isLastPage: pages.count <= 1)
     }
@@ -35,7 +36,10 @@ struct SunrisePreviewScene: View {
                 ScrollView {
                     VStack(spacing: 18) {
                         Text(unlock.addingTimeInterval(4 * 60), style: .time)
-                            .font(.system(size: 64, weight: .semibold, design: .rounded))
+                            .font(.system(
+                                size: 64, weight: .semibold,
+                                design: model.restAppearance.clockStyle.fontDesign
+                            ))
                             .monospacedDigit()
                             .foregroundStyle(SundownPalette.warmWhite)
                         SunriseGateView(preview: preview)
@@ -86,7 +90,7 @@ enum SunrisePreviewWindow {
         window.isReleasedWhenClosed = false
         window.contentView = NSHostingView(rootView: SunrisePreviewFrame {
             Self.window?.close()
-        }.environment(model))
+        }.environment(model).curfewTheme(model))
         window.setFrame(frame, display: true)
         window.makeKeyAndOrderFront(nil)
         Self.window = window

@@ -6,7 +6,7 @@ import SwiftUI
 /// Curfew" when Curfew is off.
 struct TodayActions: View {
     var presentation: TodayPresentation
-    var voice: TodayVoice
+    var voice: VoicePack
     var holdDuration: TimeInterval
     var stacked: Bool
     var onTurnOn: () -> Void
@@ -58,7 +58,7 @@ struct TodayActions: View {
 /// nothing.
 struct MoreTimeButton: View {
     var moreTime: TodayPresentation.MoreTime
-    var voice: TodayVoice
+    var voice: VoicePack
     var holdDuration: TimeInterval
     var action: () -> Void
     @State private var justAdded = false
@@ -67,8 +67,8 @@ struct MoreTimeButton: View {
         switch moreTime {
         case .available(let left):
             HoldToConfirmButton(
-                justAdded ? voice.added : voice.moreTime,
-                holdingLabel: voice.keepHolding(extensionsLeft: left),
+                justAdded ? voice.added : voice.moreTime(minutes: 15),
+                holdingLabel: voice.holdingWithRemaining(left),
                 symbol: .moreTime, duration: holdDuration
             ) {
                 action()
@@ -95,7 +95,7 @@ struct MoreTimeButton: View {
 struct OneThingView: View {
     var oneThing: TodayOneThing?
     var size: CGFloat
-    var voice: TodayVoice
+    var voice: VoicePack
     var onDone: (Bool) -> Void
     var onSave: (String) -> Bool
     @State private var draft = ""
@@ -127,8 +127,8 @@ struct OneThingView: View {
             .accessibilityHint(oneThing.isDone ? "Marks it not done." : "Marks it done.")
         } else {
             TextField(
-                voice.oneThingQuestion, text: $draft,
-                prompt: Text(voice.oneThingQuestion)
+                voice.gateQuestion, text: $draft,
+                prompt: Text(voice.gateQuestion)
                     .foregroundStyle(SundownPalette.warmWhite.opacity(0.66))
             )
             .textFieldStyle(.plain)
@@ -148,7 +148,7 @@ struct OneThingView: View {
                 }
             }
             .frame(maxWidth: 420)
-            .accessibilityLabel(voice.oneThingQuestion)
+            .accessibilityLabel(voice.gateQuestion)
             .accessibilityHint("Press Return to save it as today's one thing.")
         }
     }

@@ -77,10 +77,9 @@ struct TodayBehaviorTests {
             extensionsLeft: 0
         ))
         #expect(exhausted.moreTime == .exhausted)
-        #expect(TodayVoice.standard
-            .keepHolding(extensionsLeft: 2) == "Keep holding. 2 left this week")
-        #expect(TodayVoice.standard.added == "Added")
-        #expect(TodayVoice.standard.noExtensionsLeft == "No extensions left")
+        #expect(VoicePack.standard.holdingWithRemaining(2) == "Keep holding. 2 left this week")
+        #expect(VoicePack.standard.added == "Added")
+        #expect(VoicePack.standard.noExtensionsLeft == "No extensions left")
     }
 
     @Test("Locked, off and day off never show a countdown or the actions")

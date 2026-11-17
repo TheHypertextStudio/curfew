@@ -24,10 +24,14 @@ struct VoicePackTests {
         TimeZone(identifier: "UTC")!
     }
 
-    @Test("The default voice is the only voice and is the standard one")
-    func standardIsTheOnlyVoice() {
-        #expect(VoicePack.all == [VoicePack.standard])
-        #expect(VoicePack.standard.id == "default")
+    @Test("Curfew ships the default voice and two more, in the editor's order")
+    func shippedVoices() {
+        #expect(VoicePack.all == [.standard, .gentle, .playful])
+        #expect(VoicePack.all.map(\.id) == ["default", "gentle", "playful"])
+        #expect(VoicePack.all.map(\.name) == ["Firm", "Gentle", "Playful"])
+        for choice in RestAppearancePreferences.Voice.allCases {
+            #expect(VoicePack(choice).id == choice.rawValue)
+        }
     }
 
     @Test("Warning stage lines follow the voice table")
@@ -118,16 +122,106 @@ struct VoicePackTests {
         #expect(voice.noQuestionsDetail == "Add some in Journal once you're back.")
     }
 
-    @Test("No line uses an exclamation mark, a dash as punctuation, or banned words")
+    @Test("No line in any voice uses an exclamation mark, a dash as punctuation, or banned words")
     func rules() {
         let banned = [
             "lockout", "enforcement", "blocking access", "daybreak", "snooze",
-            "computer", "device", "daemon", "convince me", "break glass", "!", " - ", "—", "–"
+            "computer", "device", "daemon", "convince me", "break glass", "!", " - ", "—", "–",
+            "intention", "focus", "goal", "rest now", "wrap up", "extension request", "grace",
+            "start of work", "morning reflection", "scheduled lockout", "work ends"
         ]
-        for line in voice.everyFixedLine {
-            for word in banned {
-                #expect(!line.lowercased().contains(word), "\(line) contains \(word)")
+        for pack in VoicePack.all {
+            for line in pack.everyFixedLine {
+                for word in banned {
+                    #expect(!line.lowercased().contains(word), "\(pack.name): \(line) has \(word)")
+                }
             }
         }
+    }
+
+    @Test("Every line in every voice is sentence case, written out and short")
+    func sentenceCaseAndShort() {
+        for pack in VoicePack.all {
+            for line in pack.everyFixedLine {
+                #expect(!line.isEmpty, "\(pack.name) has an empty line")
+                #expect(line == line.trimmingCharacters(in: .whitespacesAndNewlines))
+                // Today's prefix runs into the time, so it starts lower case.
+                if line != pack.untilCurfewPrefix, let first = line.first {
+                    #expect(first.isUppercase, "\(pack.name): \(line) is not sentence case")
+                }
+                // No word after the first is capitalised, except names Curfew owns.
+                let words = line.split(separator: " ").dropFirst()
+                let allowed: Set = ["Curfew", "Curfew's", "Mac", "Mac.", "Journal", "I"]
+                for word in words where word.first?.isUppercase == true {
+                    let previous = line.range(of: " \(word)").map {
+                        line[line.startIndex ..< $0.lowerBound]
+                    }
+                    let afterSentence = previous.map {
+                        $0.hasSuffix(".") || $0.hasSuffix("?")
+                    } ?? false
+                    #expect(
+                        allowed.contains(String(word)) || afterSentence,
+                        "\(pack.name): \(line) capitalises \(word)"
+                    )
+                }
+            }
+            for line in pack.voiceLines where line != pack.presenceBody {
+                #expect(line.count <= 48, "\(pack.name): \(line) is long")
+            }
+        }
+    }
+
+    @Test("The two new voices are their own, line for line, apart from shared vocabulary")
+    func voicesAreDistinct() {
+        for (index, pack) in VoicePack.all.enumerated() {
+            for other in VoicePack.all[(index + 1)...] {
+                for (mine, theirs) in zip(pack.voiceLines, other.voiceLines) {
+                    #expect(mine != theirs, "\(pack.name) and \(other.name) share \(mine)")
+                }
+                #expect(pack.callItADay == other.callItADay)
+                #expect(pack.gateAction == other.gateAction)
+                #expect(pack.overrideEntry == other.overrideEntry)
+            }
+        }
+    }
+
+    @Test("Own words replace only the lines that carry the voice, and empty means the pack's")
+    func customLines() {
+        let custom = VoiceCustomLines([
+            .lockedHeadline: "  Go see the kids. ",
+            .thirtyMinutes: "Half time.",
+            .fifteenMinutes: "",
+            .sunriseGreeting: "Hello again.",
+            .sunriseQuestion: "What's first?",
+            .overrideQuestion: "Really?"
+        ])
+        let pack = VoicePack.gentle.applying(custom)
+        #expect(pack.lockedHeadline == "Go see the kids.")
+        #expect(pack.stageLine(.thirtyMinutes) == "Half time.")
+        #expect(pack.stageLine(.fifteenMinutes) == VoicePack.gentle.fifteenMinuteLine)
+        #expect(pack.stageLine(.oneMinute) == VoicePack.gentle.lastMinuteLine)
+        #expect(pack.gateHeadline == "Hello again.")
+        #expect(pack.gateQuestion == "What's first?")
+        #expect(pack.overrideQuestion == "Really?")
+        #expect(pack.closeOutTitle == VoicePack.gentle.closeOutTitle)
+        #expect(pack.id == "gentle")
+        #expect(custom[.fifteenMinutes] == nil)
+        #expect(VoicePack.standard.applying(VoiceCustomLines()) == .standard)
+        for line in VoicePack.Line.allCases {
+            #expect(pack.line(line) == (custom[line] ?? VoicePack.gentle.line(line)))
+        }
+    }
+
+    @Test("Setting a line validates it, and clearing it returns to the pack's words")
+    func settingLines() {
+        let long = String(repeating: "x", count: 200)
+        var lines = VoiceCustomLines().setting(.lastMinute, to: long)
+        #expect(lines[.lastMinute]?.count == VoiceCustomLines.maximumLength)
+        lines = lines.setting(.lastMinute, to: "   ")
+        #expect(lines[.lastMinute] == nil)
+        lines = lines.setting(.lastMinute, to: "Done.").setting(.lastMinute, to: nil)
+        #expect(lines.isEmpty)
+        #expect(VoiceCustomLines.normalized("a\nb") == "a b")
+        #expect(VoiceCustomLines.normalized(" \t ") == nil)
     }
 }

@@ -128,19 +128,11 @@ extension CurfewAppModel {
     /// Writes the three wake choices, which live with this Mac's rest
     /// appearance, leaving every other appearance choice as it is.
     func updateSunriseWake(enabled: Bool? = nil, leadMinutes: Int? = nil, onBattery: Bool? = nil) {
-        let current = restAppearance
-        restAppearance = RestAppearancePreferences(
-            background: current.background, palette: current.palette,
-            solidRed: current.solidRed, solidGreen: current.solidGreen,
-            solidBlue: current.solidBlue, clockStyle: current.clockStyle,
-            clockPosition: current.clockPosition, staticBackground: current.staticBackground,
-            message: current.message, ownedImageFilename: current.ownedImageFilename,
-            focalX: current.focalX, focalY: current.focalY,
-            saverMessageEnabled: current.saverMessageEnabled,
-            sunriseWakeEnabled: enabled ?? current.sunriseWakeEnabled,
-            sunriseLeadMinutes: leadMinutes ?? current.sunriseLeadMinutes,
-            sunriseOnBatteryEnabled: onBattery ?? current.sunriseOnBatteryEnabled
-        )
+        var draft = RestAppearanceDraft(restAppearance)
+        draft.sunriseWakeEnabled = enabled ?? draft.sunriseWakeEnabled
+        draft.sunriseLeadMinutes = leadMinutes ?? draft.sunriseLeadMinutes
+        draft.sunriseOnBatteryEnabled = onBattery ?? draft.sunriseOnBatteryEnabled
+        restAppearance = draft.preferences
     }
 }
 
@@ -240,7 +232,7 @@ extension CurfewAppModel {
     func currentSunrisePages() -> [SunriseGatePage] {
         SunriseGate.pages(
             steps: sunriseSteps, morningPrompts: reflectionConfiguration.morningPrompts,
-            lastNightNote: sunriseLastNightNote
+            lastNightNote: sunriseLastNightNote, question: voice.gateQuestion
         )
     }
 

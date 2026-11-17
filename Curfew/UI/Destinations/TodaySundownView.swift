@@ -13,7 +13,7 @@ struct TodaySundownView: View {
     var isDayRunning = false
     var presentation: TodayPresentation
     var oneThing: TodayOneThing?
-    var voice: TodayVoice = .standard
+    var voice: VoicePack = .standard
     var holdDuration: TimeInterval = CurfewAppModel.extensionConfirmationHoldSeconds
     var showAccessibilityWarning = false
     /// True for the brief window after Accessibility trust is granted.
@@ -24,6 +24,7 @@ struct TodaySundownView: View {
     var onOneThingDone: (Bool) -> Void = { _ in }
     var onSaveOneThing: (String) -> Bool = { _ in true }
     var onResolveAccessibility: () -> Void = {}
+    @Environment(\.horizonPalette) private var palette
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -53,7 +54,7 @@ struct TodaySundownView: View {
         let metrics = TodayMetrics.window(size)
         let skyHeight = size.height * (1 - HorizonGeometry.horizon)
         let shade = TodaySkyLegibility.shade(
-            for: horizon, size: size, regions: metrics.textRegions(in: size)
+            for: horizon, size: size, regions: metrics.textRegions(in: size), palette: palette
         )
         return VStack(spacing: 0) {
             TodayHero(
@@ -146,7 +147,7 @@ struct TodayHero: View {
     var metrics: TodayMetrics
     var horizon: HorizonFrame
     var shade: TodaySkyShade
-    var voice: TodayVoice
+    var voice: VoicePack
     var holdDuration: TimeInterval
     var onTurnOn: () -> Void
     var onMoreTime: () -> Void

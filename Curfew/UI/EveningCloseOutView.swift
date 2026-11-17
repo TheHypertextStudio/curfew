@@ -47,10 +47,13 @@ struct EveningCloseOut: Equatable {
 /// never weakens the lock.
 struct EveningReflectionCard: View {
     @Environment(CurfewAppModel.self) private var model
-    var voice = VoicePack.standard
     let usesSolidPanels: Bool
     @State private var closeOut: EveningCloseOut?
     @Environment(\.eveningOneThingPreview) private var previewOneThing
+
+    private var voice: VoicePack {
+        model.voice
+    }
 
     var body: some View {
         let closeOut = closeOut ?? EveningCloseOut(oneThing: nil)

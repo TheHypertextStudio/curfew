@@ -33,13 +33,15 @@ struct GettingStartedLockPreviewView: View {
             }
             VStack(spacing: GettingStartedLayout.spacing16) {
                 Text(content.curfew, style: .time)
-                    .font(.system(size: 96, weight: .semibold, design: .rounded))
+                    .font(.system(
+                        size: 96, weight: .semibold, design: appearance.clockStyle.fontDesign
+                    ))
                     .monospacedDigit()
-                Text(GettingStartedCopy.lockedHeadline)
+                Text(appearance.voicePack.lockedHeadline)
                     .font(.system(.largeTitle, design: .rounded, weight: .bold))
                     .accessibilityAddTraits(.isHeader)
                     .accessibilityFocused($headlineFocused)
-                Label(GettingStartedCopy.unlockLine(content.unlock), systemImage: "lock.fill")
+                Label(appearance.voicePack.unlocksAt(content.unlock), systemImage: "lock.fill")
                     .font(.system(.title3, design: .rounded, weight: .medium))
             }
             .foregroundStyle(GettingStartedPalette.panelText)

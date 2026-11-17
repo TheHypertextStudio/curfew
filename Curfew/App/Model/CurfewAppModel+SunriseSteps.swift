@@ -49,7 +49,7 @@ extension CurfewAppModel {
         let prompts = reflectionConfiguration.morningPrompts
         switch kind {
         case .lastNightNote: return "Last night's note"
-        case .oneThing: return SunriseVoice.question
+        case .oneThing: return voice.gateQuestion
         case .readiness:
             return prompts.first { $0.id == JournalPromptIDs.readiness }?.text ?? SunriseVoice
                 .readiness

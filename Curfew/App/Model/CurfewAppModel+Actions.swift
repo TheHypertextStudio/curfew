@@ -310,7 +310,7 @@ extension CurfewAppModel {
     }
 
     private func grantOverride(reason: String) {
-        lockoutMessage = EncouragementMessageCatalog.postOverride
+        lockoutMessage = voice.released
         let event = OverrideEvent(
             timestamp: currentTime,
             deviceName: currentDeviceName(),
