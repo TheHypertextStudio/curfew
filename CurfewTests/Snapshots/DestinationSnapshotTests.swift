@@ -147,13 +147,18 @@
             model: CurfewAppModel,
             to outputDirectory: URL
         ) throws {
-            try renderBoth(
-                MainWindowView().environment(model),
-                named: "main-window",
-                width: 1080,
-                height: 720,
-                to: outputDirectory
-            )
+            // `ImageRenderer` cannot draw the split view's sidebar, so the
+            // window renders hosted, as the real window would draw it. Hosted
+            // captures go blank once a hold control's glass is on screen, so
+            // this is the window before the day is started.
+            for (appearance, suffix) in [(NSAppearance.Name.aqua, "light"), (.darkAqua, "dark")] {
+                try renderHosted(
+                    MainWindowView().environment(model)
+                        .transaction { $0.disablesAnimations = true },
+                    named: "main-window-\(suffix)", width: 1080, height: 720,
+                    settlingTime: 0.4, appearance: appearance, to: outputDirectory
+                )
+            }
         }
 
         /// A demo model pinned to a flattering mid-workday state.
