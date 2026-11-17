@@ -36,7 +36,10 @@ struct RestScreenSaverBundleTests {
     func saverBundlesShaderLibrary() throws {
         let url = try #require(Bundle.main.url(forResource: "Curfew", withExtension: "saver"))
         let companion = try #require(Bundle(url: url))
-        let saverLibrary = try #require(companion.url(forResource: "HorizonSky", withExtension: "metallib"))
+        let saverLibrary = try #require(companion.url(
+            forResource: "HorizonSky",
+            withExtension: "metallib"
+        ))
         #expect(HorizonShaderLibrary.functionNames(at: saverLibrary).contains("horizonSky"))
         #expect(HorizonShaderLibrary.load(from: companion) != nil)
     }
