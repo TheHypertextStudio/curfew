@@ -161,6 +161,10 @@ struct ScheduleContent: View {
             Text(model.scheduleSummarySentence)
                 .font(CurfewTypography.body(14))
                 .foregroundStyle(CurfewTheme.mutedInk)
+
+            Divider()
+
+            ScheduleLockRuleControl()
         }
     }
 

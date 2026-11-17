@@ -11,7 +11,7 @@ nonisolated enum TaskBrowserPanelCopy {
 
     static func availabilityMessage(for flavor: CurfewFlavor) -> String? {
         flavor == .development
-            ? "Chrome task-browser enforcement is unavailable in this development build."
+            ? "Websites during work isn't available in this build."
             : nil
     }
 }
@@ -43,10 +43,31 @@ private struct TaskBrowserEnforcementPanel: View {
                 Text(controller.viewModel.statusSummary)
                     .foregroundStyle(CurfewTheme.mutedInk)
                     .fixedSize(horizontal: false, vertical: true)
-                DisclosureGroup("Connection details") {
-                    statusRows
+                if SettingsDeveloperDetail.isVisible {
+                    DisclosureGroup("Connection details") {
+                        statusRows
+                    }
                 }
                 enforcementControls
+                if SettingsDeveloperDetail.isVisible {
+                    destinationsEditor
+                }
+            }
+        } header: {
+            Text(TaskBrowserPanelCopy.title)
+                .accessibilityIdentifier("task-browser-enforcement-panel")
+        }
+        .task {
+            if CurfewFlavor.current != .development || model.isDemoSession {
+                controller.refresh()
+            }
+        }
+    }
+
+    /// The ID-based destination editor is a diagnostic tool: it needs raw
+    /// Docket identifiers, so it only appears with developer detail.
+    @ViewBuilder
+    private var destinationsEditor: some View {
                 Button {
                     mappingsExpanded.toggle()
                 } label: {
@@ -64,16 +85,6 @@ private struct TaskBrowserEnforcementPanel: View {
                 if mappingsExpanded {
                     mappingControls
                 }
-            }
-        } header: {
-            Text(TaskBrowserPanelCopy.title)
-                .accessibilityIdentifier("task-browser-enforcement-panel")
-        }
-        .task {
-            if CurfewFlavor.current != .development || model.isDemoSession {
-                controller.refresh()
-            }
-        }
     }
 
     private var connectionControls: some View {

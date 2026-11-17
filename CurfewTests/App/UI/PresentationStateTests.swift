@@ -174,7 +174,7 @@ struct PresentationStateTests {
         #expect(health.settingsStatusTitle == "Can't verify Curfew")
         #expect(health.bannerDetail?.contains("official website") == true)
         #expect(health.compactPopoverMessage?.contains("verify Curfew") == true)
-        let panel = try source("Curfew/UI/SettingsView+PrivilegedHelperPanel.swift")
+        let panel = try source("Curfew/UI/SettingsView+CurfewHelperPanel.swift")
         #expect(!panel.contains("This build was rejected"))
         #expect(!panel.contains("reinstall a signed release"))
     }

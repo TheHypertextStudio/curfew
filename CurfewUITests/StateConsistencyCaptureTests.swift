@@ -103,11 +103,11 @@ extension MarketingCaptureTests {
         default: assertText("Remote locks are not ready", in: app)
         }
         if state == "account-helper-hidden" {
-            XCTAssertFalse(app.buttons["Review Background Protection"].exists, app.debugDescription)
+            XCTAssertFalse(app.buttons["Check the Curfew helper"].exists, app.debugDescription)
         } else {
-            XCTAssertTrue(app.buttons["Review Background Protection"].exists, app.debugDescription)
+            XCTAssertTrue(app.buttons["Check the Curfew helper"].exists, app.debugDescription)
         }
-        XCTAssertFalse(app.buttons["Install Background Protection…"].exists, app.debugDescription)
+        XCTAssertFalse(app.buttons["Set up the Curfew helper…"].exists, app.debugDescription)
         attach(window, name: "\(state)-\(appearance)-\(size)")
     }
 

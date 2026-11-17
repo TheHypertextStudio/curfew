@@ -92,13 +92,13 @@ final class CurfewUITests: XCTestCase {
         XCTAssertLessThan(general.frame.minY - window.frame.minY, 125)
         let about = app.descendants(matching: .any)["settings-category-about"]
         XCTAssertTrue(window.frame.contains(about.frame))
-        let review = app.buttons["Review Setup…"]
+        let review = app.buttons["Review setup…"]
         XCTAssertTrue(review.exists)
         XCTAssertLessThan(review.frame.maxY, window.frame.maxY - 12)
         XCTAssertFalse(app.staticTexts["Initial setup"].exists)
         XCTAssertFalse(app.staticTexts["Installation"].exists)
         XCTAssertEqual(general.value as? String, "Protection")
-        XCTAssertTrue(app.buttons["background-protection-remove"].exists)
+        XCTAssertTrue(app.descendants(matching: .any)["curfew-helper-status"].exists)
     }
 
     @MainActor
@@ -114,8 +114,8 @@ final class CurfewUITests: XCTestCase {
         app.typeKey(",", modifierFlags: .command)
         let window = app.windows["com_apple_SwiftUI_Settings_window"]
         XCTAssertTrue(window.waitForExistence(timeout: 5))
-        XCTAssertTrue(app.buttons["Restore Shortcut Blocking"].exists)
-        XCTAssertLessThan(app.buttons["Review Setup…"].frame.maxY, window.frame.maxY - 12)
+        XCTAssertTrue(app.buttons["Restore shortcut blocking"].exists)
+        XCTAssertLessThan(app.buttons["Review setup…"].frame.maxY, window.frame.maxY - 12)
     }
 
     @MainActor
@@ -365,7 +365,7 @@ extension CurfewUITests {
         let window = app.windows["com_apple_SwiftUI_Settings_window"]
         XCTAssertTrue(window.waitForExistence(timeout: 5))
         app.descendants(matching: .any)["settings-category-general"].click()
-        let review = app.buttons["Review Setup…"]
+        let review = app.buttons["Review setup…"]
         XCTAssertTrue(review.exists)
         XCTAssertLessThan(review.frame.maxY, window.frame.maxY - 12)
         XCTAssertFalse(app.staticTexts["Background protection needs attention."].exists)

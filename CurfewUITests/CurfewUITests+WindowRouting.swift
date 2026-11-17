@@ -8,7 +8,7 @@ extension CurfewUITests {
         let settings = app.windows["com_apple_SwiftUI_Settings_window"]
         XCTAssertTrue(settings.waitForExistence(timeout: 5))
 
-        app.buttons["Review Setup…"].click()
+        app.buttons["Review setup…"].click()
         let setup = app.windows["Set Up Curfew"]
         XCTAssertTrue(setup.waitForExistence(timeout: 5))
         XCTAssertTrue(setup.staticTexts["Review setup"].exists)
@@ -17,7 +17,7 @@ extension CurfewUITests {
         XCTAssertTrue(settings.exists)
         XCTAssertFalse(app.windows["Curfew"].exists)
 
-        app.buttons["Review Setup…"].click()
+        app.buttons["Review setup…"].click()
         XCTAssertTrue(setup.waitForExistence(timeout: 5))
         setup.buttons["Done"].click()
         XCTAssertTrue(setup.waitForNonExistence(timeout: 5))

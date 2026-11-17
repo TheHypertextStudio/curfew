@@ -20,6 +20,9 @@ struct EnforcementHealthBanner: View {
     /// System Settings — both guarded against the unit-test host inside the
     /// model, so this component never triggers a TCC prompt itself.
     let onFix: () -> Void
+    /// The warning glyph's wiggle loops, so it stops under Reduce Motion.
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.openSettings) private var openSettings
 
     /// Degraded banner, or an empty view when enforcement is active.
     var body: some View {
@@ -29,7 +32,7 @@ struct EnforcementHealthBanner: View {
                     Label(title, systemImage: EnforcementHealth.degradedBadgeSymbol)
                         .font(CurfewTypography.bodyEmphasis(14))
                         .foregroundStyle(CurfewTheme.warning)
-                        .symbolEffect(.wiggle, isActive: health != .active)
+                        .symbolEffect(.wiggle, isActive: health != .active && !reduceMotion)
 
                     Text(detail)
                         .font(CurfewTypography.body(13))
@@ -37,7 +40,10 @@ struct EnforcementHealthBanner: View {
                         .fixedSize(horizontal: false, vertical: true)
 
                     if health.offersAccessibilityRemediation {
-                        Button("Restore Shortcut Blocking", action: onFix)
+                        Button("Restore shortcut blocking", action: onFix)
+                            .buttonStyle(CurfewSecondaryButtonStyle())
+                    } else {
+                        Button("Open Curfew settings") { openSettings() }
                             .buttonStyle(CurfewSecondaryButtonStyle())
                     }
                 }
@@ -56,6 +62,8 @@ struct CompactEnforcementHealthWarning: View {
     let health: EnforcementHealth
     /// Fix-it action — see ``EnforcementHealthBanner/onFix``.
     let onFix: () -> Void
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.openSettings) private var openSettings
 
     /// Compact warning row, or an empty view when enforcement is active.
     var body: some View {
@@ -66,10 +74,13 @@ struct CompactEnforcementHealthWarning: View {
                         .font(CurfewTypography.body(13))
                         .foregroundStyle(CurfewTheme.warning)
                         .fixedSize(horizontal: false, vertical: true)
-                        .symbolEffect(.wiggle, isActive: health != .active)
+                        .symbolEffect(.wiggle, isActive: health != .active && !reduceMotion)
 
                     if health.offersAccessibilityRemediation {
-                        Button("Restore Blocking", action: onFix)
+                        Button("Restore blocking", action: onFix)
+                            .buttonStyle(CurfewSecondaryButtonStyle())
+                    } else {
+                        Button("Open settings") { openSettings() }
                             .buttonStyle(CurfewSecondaryButtonStyle())
                     }
                 }

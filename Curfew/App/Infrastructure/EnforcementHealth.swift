@@ -141,7 +141,7 @@ enum EnforcementHealth: Equatable {
         case .degradedNoAccessibility:
             "Accessibility access needed to block shortcuts during lockout."
         case .degradedTapDown:
-            "Keyboard shortcut blocking was interrupted. Choose Restore Shortcut Blocking to retry."
+            "Keyboard shortcut blocking was interrupted. Choose Restore shortcut blocking to retry."
         case .degradedHelperUnavailable:
             "Background protection isn't connected. Review setup in Settings → Protection."
         case .degradedHelperUnauthorized:
@@ -199,7 +199,7 @@ enum EnforcementHealth: Equatable {
 
     /// Remediation body shown when the expected keyboard shield tap is down.
     static let tapDownBannerDetail =
-        "Curfew is no longer blocking bypass shortcuts. Choose Restore Shortcut Blocking "
+        "Curfew is no longer blocking bypass shortcuts. Choose Restore shortcut blocking "
             + "to retry. If access was revoked, grant Accessibility access in System Settings "
             + "and return to Curfew."
 

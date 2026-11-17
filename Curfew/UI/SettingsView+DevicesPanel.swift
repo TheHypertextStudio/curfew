@@ -17,8 +17,7 @@ extension SettingsView {
         Section("Devices") {
             if model.deviceRegistry.activeDevices.isEmpty {
                 Text(
-                    "No devices registered yet. Enable iCloud sync " +
-                        "in Settings → Account → iCloud Sync."
+                    "No other Macs yet. Turn on iCloud sync in Account to add them."
                 )
                 .font(CurfewTypography.body(13))
                 .foregroundStyle(CurfewTheme.mutedInk)

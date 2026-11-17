@@ -62,21 +62,21 @@ extension MarketingCaptureTests {
                     XCTAssertTrue(popover.staticTexts[
                         "Accessibility access needed to block shortcuts during lockout."
                     ].exists)
-                    XCTAssertTrue(popover.buttons["Restore Blocking"].exists)
+                    XCTAssertTrue(popover.buttons["Restore blocking"].exists)
                 case "tap-down":
                     XCTAssertTrue(popover.staticTexts[
                         "Keyboard shortcut blocking was interrupted. "
-                            + "Choose Restore Shortcut Blocking to retry."
+                            + "Choose Restore shortcut blocking to retry."
                     ].exists)
-                    XCTAssertTrue(popover.buttons["Restore Blocking"].exists)
+                    XCTAssertTrue(popover.buttons["Restore blocking"].exists)
                 case "helper-unauthorized":
                     XCTAssertTrue(popover.staticTexts[
                         "Background protection can't verify Curfew. "
                             + "Reinstall Curfew from the official website."
                     ].exists)
-                    XCTAssertFalse(popover.buttons["Restore Blocking"].exists)
+                    XCTAssertFalse(popover.buttons["Restore blocking"].exists)
                 default:
-                    XCTAssertFalse(popover.buttons["Restore Blocking"].exists)
+                    XCTAssertFalse(popover.buttons["Restore blocking"].exists)
                 }
                 attach(popover, name: "menu-bar-\(state)-\(appearance)")
                 app.terminate()
