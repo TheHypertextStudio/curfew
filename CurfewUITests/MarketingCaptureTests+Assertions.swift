@@ -99,7 +99,7 @@ extension MarketingCaptureTests {
     }
 
     private func assertZeroBudgets(in app: XCUIApplication) {
-        for label in ["Extensions per week", "Overrides per week"] {
+        for label in ["More time per week", "Overrides per week"] {
             let value = app.steppers[label].value
             XCTAssertEqual(
                 Double(String(describing: value ?? "")),

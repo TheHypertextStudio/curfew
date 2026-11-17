@@ -15,38 +15,28 @@ struct AccountConnectionStatusView: View {
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: CurfewSpacing.small) {
-            Image(systemName: presentation.systemImage)
-                .foregroundStyle(statusColor)
-            VStack(alignment: .leading, spacing: 3) {
-                Text(presentation.title)
-                    .font(CurfewTypography.bodyEmphasis(13))
-                Text(presentation.detail)
-                    .font(CurfewTypography.body(12))
-                    .foregroundStyle(CurfewTheme.mutedInk)
-                    .fixedSize(horizontal: false, vertical: true)
-                if case .rejected(let reason) = engine.syncStatus,
-                   reason == AccountSyncRejectionReason.localDeviceIdentityMissing ||
-                   reason == AccountSyncRejectionReason.localDeviceIdentityInvalid,
-                   let supportURL = URL(string: "mailto:hello@hypertext.studio") {
-                    Link("Contact Curfew support", destination: supportURL)
-                        .font(CurfewTypography.bodyEmphasis(12))
-                }
-                if let lastConfirmedAt = presentation.lastConfirmedAt {
-                    Text("Last confirmed \(lastConfirmedAt, style: .relative)")
-                        .font(CurfewTypography.body(11))
-                        .foregroundStyle(CurfewTheme.mutedInk)
-                }
+        SettingsRow(
+            title: presentation.title,
+            detail: detailText,
+            tone: presentation.tone == .warning ? .warning : .secondary
+        ) {
+            if needsSupport, let supportURL = URL(string: "mailto:hello@hypertext.studio") {
+                Link("Contact Curfew support", destination: supportURL)
+                    .font(CurfewTypography.bodyEmphasis(12))
             }
         }
-        .accessibilityElement(children: .combine)
     }
 
-    private var statusColor: Color {
-        switch presentation.tone {
-        case .neutral: CurfewTheme.mutedInk
-        case .ready: CurfewTheme.accent
-        case .warning: CurfewTheme.warning
-        }
+    /// The explanation, with when the connection was last confirmed.
+    private var detailText: String {
+        guard let lastConfirmedAt = presentation.lastConfirmedAt else { return presentation.detail }
+        return presentation.detail
+            + " Last confirmed \(lastConfirmedAt.formatted(.relative(presentation: .named)))."
+    }
+
+    private var needsSupport: Bool {
+        guard case .rejected(let reason) = engine.syncStatus else { return false }
+        return reason == AccountSyncRejectionReason.localDeviceIdentityMissing
+            || reason == AccountSyncRejectionReason.localDeviceIdentityInvalid
     }
 }

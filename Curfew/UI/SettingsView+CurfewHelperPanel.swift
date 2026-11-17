@@ -12,6 +12,15 @@ struct CurfewHelperStatus: Equatable {
         case ready
         case working
         case attention
+
+        /// The row's headline; the sentence under it says the rest.
+        var title: String {
+            switch self {
+            case .ready: "On"
+            case .working: "Starting"
+            case .attention: "Needs attention"
+            }
+        }
     }
 
     enum Action: Equatable {
@@ -167,83 +176,52 @@ private struct CurfewHelperPanel: View {
 
     var body: some View {
         let status = status
-        Section {
-            HStack(alignment: .firstTextBaseline, spacing: 10) {
-                statusGlyph(status.tone)
-                Text(status.sentence)
-                    .font(CurfewTypography.body(13))
-                    .foregroundStyle(CurfewTheme.ink)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityIdentifier("curfew-helper-status")
-                Spacer(minLength: 8)
+        let isLocked = model.state.phase == .locked
+        SettingsGroup("Curfew helper") {
+            SettingsActionRow(
+                title: status.tone.title,
+                detail: status.sentence,
+                tone: status.tone == .attention ? .warning : .secondary,
+                actionTitle: status.action?.title,
+                identifier: "curfew-helper-action"
+            ) {
                 if let action = status.action {
-                    Button(action.title) { perform(action) }
-                        .buttonStyle(CurfewSecondaryButtonStyle())
-                        .accessibilityIdentifier("curfew-helper-action")
+                    perform(action)
                 }
             }
-            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("curfew-helper-status")
             if let runtimePersistenceError {
-                Label(
-                    "Curfew can't save more time and overrides right now.",
-                    systemImage: "exclamationmark.triangle.fill"
+                SettingsActionRow(
+                    title: "Can't save more time and overrides",
+                    detail: runtimePersistenceError,
+                    tone: .warning,
+                    actionTitle: nil
                 )
-                .font(CurfewTypography.body(13))
-                .foregroundStyle(CurfewTheme.warning)
-                .help(runtimePersistenceError)
                 .accessibilityIdentifier("runtime-persistence-error")
             }
             if model.featureFlags.privilegedHelperEnabled, helper.daemonStatus == .enabled {
-                DisclosureGroup("Details", isExpanded: $showsDetails) {
-                    if let error = helper.lastError ?? restart.lastError ?? restart
-                        .supervisorHealthError {
-                        Text(error)
-                            .font(CurfewTypography.body(12))
-                            .foregroundStyle(CurfewTheme.mutedInk)
-                            .textSelection(.enabled)
-                    }
-                    Button("Remove the Curfew helper…") {
+                DisclosureGroup(isExpanded: $showsDetails) {
+                    SettingsActionRow(
+                        title: "Remove the Curfew helper",
+                        detail: isLocked
+                            ? "The helper can't be removed while this Mac is locked."
+                            : helper.lastError ?? "Your schedule and history stay saved.",
+                        actionTitle: "Remove…",
+                        identifier: "background-protection-remove"
+                    ) {
                         Task { await helper.uninstallDaemon() }
                     }
-                    .disabled(model.state.phase == .locked)
-                    .accessibilityIdentifier("background-protection-remove")
-                    Text(
-                        model.state.phase == .locked
-                            ? "The helper can't be removed while this Mac is locked."
-                            : "Your schedule and history stay saved."
-                    )
-                    .font(CurfewTypography.body(12))
-                    .foregroundStyle(CurfewTheme.mutedInk)
+                    .disabled(isLocked)
+                } label: {
+                    SettingsRowLabel(title: "Details")
                 }
-                .font(CurfewTypography.body(13))
             }
-        } header: {
-            Text("Curfew helper")
-                .accessibilityIdentifier("background-protection-heading")
         }
-        .accessibilityIdentifier("background-service-status")
         .disabled(helper.installationInProgress || helper.repairInProgress)
         .onAppear { restart.refreshStatus() }
         .onReceive(NotificationCenter.default
             .publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
                 restart.refreshStatus()
-        }
-    }
-
-    @ViewBuilder
-    private func statusGlyph(_ tone: CurfewHelperStatus.Tone) -> some View {
-        switch tone {
-        case .ready:
-            Image(systemName: "checkmark.circle.fill")
-                .foregroundStyle(CurfewTheme.accent)
-                .accessibilityLabel("Working")
-        case .working:
-            ProgressView().controlSize(.small)
-                .accessibilityLabel("In progress")
-        case .attention:
-            Image(systemName: "exclamationmark.triangle.fill")
-                .foregroundStyle(CurfewTheme.warning)
-                .accessibilityLabel("Needs attention")
         }
     }
 

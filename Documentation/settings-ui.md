@@ -28,6 +28,10 @@ flowchart LR
     Navigation --> About[About page]
 ```
 
+## Rows, help text and footers
+
+Panes build every group from the components in `SettingsControls.swift`, so no pane lays out help text by hand. `SettingsGroup(_ title:footer:)` is a box with an optional footer for text about the whole group. Rows are `SettingsToggleRow`, `SettingsValueRow`, `SettingsPickerRow` and `SettingsActionRow`, built on `SettingsRow`; each takes a `detail` line shown under its label and a `tone` (`.secondary` or `.warning`), and the control aligns with the label's first line. Status attaches as a row's `detail`. A warning with an action is one `SettingsActionRow` with `tone: .warning`; a `nil` `actionTitle` leaves a status row. Disclosure labels use `SettingsRowLabel`. Dividers separate controls only, and groups do not mix icon-led rows with plain ones.
+
 ## The Curfew helper
 
 The restart service, the privileged helper and the login item are three registrations, but the person only needs to know whether curfew holds if Curfew quits. Protection shows them as one "Curfew helper" row: one status sentence and at most one action, resolved by `CurfewHelperStatus`. Every state that needs attention outside a lock offers an action: allow in System Settings, set up, reconnect, or quit and reopen Curfew when reconnecting in place is refused. During a lock the row offers nothing and says the fix waits until curfew lifts, and the helper cannot be removed.

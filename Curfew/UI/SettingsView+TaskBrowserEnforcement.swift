@@ -35,14 +35,9 @@ private struct TaskBrowserEnforcementPanel: View {
         Section {
             if let unavailable = TaskBrowserPanelCopy.availabilityMessage(for: .current),
                !model.isDemoSession {
-                Text(unavailable).foregroundStyle(CurfewTheme.mutedInk)
+                SettingsActionRow(title: "Docket", detail: unavailable, actionTitle: nil)
             } else {
-                Text("Limit Chrome to websites for your active Docket task.")
-                    .foregroundStyle(CurfewTheme.mutedInk)
                 connectionControls
-                Text(controller.viewModel.statusSummary)
-                    .foregroundStyle(CurfewTheme.mutedInk)
-                    .fixedSize(horizontal: false, vertical: true)
                 if SettingsDeveloperDetail.isVisible {
                     DisclosureGroup("Connection details") {
                         statusRows
@@ -88,23 +83,19 @@ private struct TaskBrowserEnforcementPanel: View {
     }
 
     private var connectionControls: some View {
-        HStack(spacing: CurfewSpacing.medium) {
-            Button(connectionActionTitle) {
-                Task {
-                    if controller.viewModel.docketAuthorization.isHealthy {
-                        try? await controller.disconnect()
-                    } else {
-                        try? await controller.connect()
-                    }
+        SettingsActionRow(
+            title: "Docket",
+            detail: controller.errorMessage ?? controller.viewModel.statusSummary,
+            tone: controller.errorMessage == nil ? .secondary : .warning,
+            actionTitle: connectionActionTitle,
+            identifier: "task-browser-connect-button"
+        ) {
+            Task {
+                if controller.viewModel.docketAuthorization.isHealthy {
+                    try? await controller.disconnect()
+                } else {
+                    try? await controller.connect()
                 }
-            }
-            .buttonStyle(CurfewSecondaryButtonStyle())
-            .accessibilityIdentifier("task-browser-connect-button")
-
-            if let errorMessage = controller.errorMessage {
-                Text(errorMessage)
-                    .font(CurfewTypography.body(13))
-                    .foregroundStyle(CurfewTheme.warning)
             }
         }
     }
@@ -121,40 +112,36 @@ private struct TaskBrowserEnforcementPanel: View {
 
     @ViewBuilder
     private var enforcementControls: some View {
-        Toggle(
-            "Limit Chrome during work",
+        SettingsToggleRow(
+            title: "Limit Chrome during work",
+            detail: activeWorkDetail,
+            identifier: "task-browser-enforcement-toggle",
             isOn: Binding(
                 get: { controller.viewModel.enforcementEnabled },
                 set: { _ = controller.setEnforcementEnabled($0) }
             )
         )
         .disabled(!controller.viewModel.canToggleEnforcement)
-        .accessibilityIdentifier("task-browser-enforcement-toggle")
 
-        if let title = controller.viewModel.activeTaskTitle {
-            LabeledContent("Active task") {
-                Text(title)
-                    .font(CurfewTypography.bodyEmphasis(13))
-            }
-        } else {
-            Text("Curfew has no current work session from Docket.")
-                .font(CurfewTypography.body(13))
-                .foregroundStyle(CurfewTheme.mutedInk)
-        }
-
-        if let breakEndsAt = controller.viewModel.breakEndsAt {
-            LabeledContent("Break ends") {
-                Text(breakEndsAt, style: .time)
-                    .font(CurfewTypography.bodyEmphasis(13))
-            }
-        }
-
-        Button(TaskBrowserPanelCopy.breakAction) {
+        SettingsActionRow(
+            title: "Break",
+            detail: controller.viewModel.breakEndsAt.map {
+                "Ends at \($0.formatted(date: .omitted, time: .shortened))"
+            } ?? "Chrome opens up for 15 minutes.",
+            actionTitle: TaskBrowserPanelCopy.breakAction,
+            identifier: "task-browser-break-button"
+        ) {
             controller.beginBreak()
         }
-        .buttonStyle(CurfewSecondaryButtonStyle())
         .disabled(!controller.viewModel.canBeginBreak)
-        .accessibilityIdentifier("task-browser-break-button")
+    }
+
+    /// The active Docket task, or that there is none, under the switch.
+    private var activeWorkDetail: String {
+        if let title = controller.viewModel.activeTaskTitle {
+            return "Active task: \(title)"
+        }
+        return "Curfew has no current work session from Docket."
     }
 
     private var mappingControls: some View {
