@@ -76,9 +76,9 @@ final class MarketingCaptureTests: XCTestCase {
                     }
                     if scenario == "this-week" {
                         app.buttons["journal-edit-prompts"].firstMatch.click()
-                        XCTAssertTrue(app
-                            .staticTexts["Prompt yourself at the start and end of each day."]
-                            .waitForExistence(timeout: 3))
+                        let gates = "Curfew asks at Sunrise and again at curfew. "
+                            + "You can skip either."
+                        XCTAssertTrue(app.staticTexts[gates].waitForExistence(timeout: 3))
                         attach(window, name: "prompts-\(appearance)-\(size)")
                         scrollToBottom(window)
                         attach(window, name: "prompts-bottom-\(appearance)-\(size)")
@@ -146,7 +146,9 @@ final class MarketingCaptureTests: XCTestCase {
     func testCaptureDistinctWorkspaceStates() {
         for (scenario, states) in [
             ("configuration", ["schedule-pending", "schedule-applied", "schedule-overnight"]),
-            ("overview", ["day-off", "accessibility-denied"]),
+            // A day off reads "No curfew today." only while Curfew enforces,
+            // which the demo never does; TodayBehaviorTests covers it instead.
+            ("overview", ["accessibility-denied"]),
             ("this-week", ["journal-populated", "prompts-empty"]),
             (
                 "lockout",
@@ -198,9 +200,11 @@ final class MarketingCaptureTests: XCTestCase {
             app.terminate()
             app = launch("warning", appearance: appearance)
             XCTAssertTrue(app.staticTexts["warning-countdown"].waitForExistence(timeout: 8))
-            XCTAssertEqual(
-                app.staticTexts["warning-countdown"].value as? String,
-                "2 minutes to curfew"
+            // The notice shows "2:00" and speaks "2 minutes to curfew".
+            let countdown = app.staticTexts["warning-countdown"]
+            XCTAssertTrue(
+                [countdown.label, countdown.value as? String].contains("2 minutes to curfew"),
+                countdown.debugDescription
             )
             let warning = app.descendants(matching: .any)["early-warning-notice"]
             XCTAssertTrue(warning.waitForExistence(timeout: 3))

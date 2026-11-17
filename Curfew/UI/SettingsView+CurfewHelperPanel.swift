@@ -74,9 +74,12 @@ struct CurfewHelperStatus: Equatable {
         if inputs.inProgress {
             return Self(.working, "Connecting the Curfew helper…", nil)
         }
-        let approvals = [inputs.restartStatus, inputs.loginItemStatus] +
-            (inputs.helperRequired ? [inputs.helperStatus] : [])
-        if inputs.restartAvailable, approvals.contains(.requiresApproval) {
+        // The restart agent's status counts only where the agent exists; the
+        // login item and the helper wait for approval either way.
+        let approvals = (inputs.restartAvailable ? [inputs.restartStatus] : [])
+            + [inputs.loginItemStatus]
+            + (inputs.helperRequired ? [inputs.helperStatus] : [])
+        if approvals.contains(.requiresApproval) {
             return Self(
                 .attention,
                 "macOS is waiting for you to allow the Curfew helper in Login Items.",

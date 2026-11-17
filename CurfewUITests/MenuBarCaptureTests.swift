@@ -81,10 +81,11 @@ extension MarketingCaptureTests {
                     XCTAssertTrue(popover.buttons["Restore blocking"].exists)
                 case "helper-unauthorized":
                     XCTAssertTrue(popover.staticTexts[
-                        "Background protection can't verify Curfew. "
-                            + "Reinstall Curfew from the official website."
+                        "The Curfew helper can't verify Curfew. "
+                            + "Reinstall it from the official website."
                     ].exists)
                     XCTAssertFalse(popover.buttons["Restore blocking"].exists)
+                    XCTAssertTrue(popover.buttons["Open settings"].exists)
                 default:
                     XCTAssertFalse(popover.buttons["Restore blocking"].exists)
                 }

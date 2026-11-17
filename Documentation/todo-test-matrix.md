@@ -2862,3 +2862,6 @@ The website acceptance suite follows the homepage, release archive, and download
 - `The lock clock, Today's headline and the Sunrise headline read as text.`
   - `SunriseGateHeadlineTests`
   - `CurfewUITests/testRestScenesHaveReadableAccessibleControls`, `/testResolvingReflectionMakesRoomForTheQuietClock`, `/testWorkspaceHasReadableAccessibleControlsWithoutRestCoveringIt`
+- `The Curfew helper row asks for approval without a restart agent.`
+  - `CurfewHelperStatusTests/"A helper or login item awaiting approval asks for it even without a restart agent"`
+  - `MarketingCaptureTests/testCaptureDistinctSettingsStates` (helper-approval, login-approval)
