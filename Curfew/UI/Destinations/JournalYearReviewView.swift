@@ -31,6 +31,7 @@ struct JournalYearReviewStage: View {
     var showsLift = false
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.horizonPalette) private var palette
     @State private var isHovered = false
     @State private var work = JournalYearReviewWork.idle
 
@@ -38,7 +39,7 @@ struct JournalYearReviewStage: View {
     static let cardMaxWidth: CGFloat = 720
 
     private var image: JournalYearReviewImage {
-        JournalYearReviewImage(card: card)
+        JournalYearReviewImage(card: card, palette: palette)
     }
 
     private var isLifted: Bool {
@@ -333,9 +334,11 @@ struct JournalYearReviewArt<Sky: View>: View {
 
 /// The year in review as a PNG, for Save and Share. The sky comes from the
 /// CPU reference renderer at the fixed export size, so the image is the same
-/// on every Mac and in either appearance.
+/// on every Mac and in either appearance. It is drawn in the sky the person
+/// chose, so the image matches the card they see.
 struct JournalYearReviewImage: Transferable {
     let card: JournalYearReview.Card
+    var palette: HorizonPalette = .standard
 
     static var transferRepresentation: some TransferRepresentation {
         DataRepresentation(exportedContentType: .png) { image in
@@ -359,10 +362,10 @@ struct JournalYearReviewImage: Transferable {
         let scale = JournalYearReview.exportScale
         let pixelWidth = Int(size.width * scale)
         let pixelHeight = Int(size.height * scale)
-        let sky = await Task.detached(priority: .userInitiated) {
+        let sky = await Task.detached(priority: .userInitiated) { [palette] in
             HorizonRenderer.image(
                 frame: JournalYearReview.skyFrame, bandPhase: HorizonBandPhase.resting,
-                pixelWidth: pixelWidth, pixelHeight: pixelHeight
+                pixelWidth: pixelWidth, pixelHeight: pixelHeight, palette: palette
             )
         }.value
         guard let sky else { throw RenderError.failed }

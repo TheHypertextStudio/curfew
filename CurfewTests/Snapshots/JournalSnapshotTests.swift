@@ -1,6 +1,7 @@
 #if DEBUG
     import AppKit
     @testable import Curfew
+    import CurfewAtmosphere
     import CurfewKit
     import SwiftUI
     import XCTest
@@ -99,6 +100,12 @@
                     JournalYearReviewStage(card: card, showsLift: true),
                     named: "journal-year-review-lifted-\(suffix)", height: 760,
                     appearance: appearance
+                )
+            }
+            for (name, palette) in [("desert", HorizonPalette.desert), ("polar", .polar)] {
+                try renderYearReview(
+                    JournalYearReviewStage(card: card).environment(\.horizonPalette, palette),
+                    named: "journal-year-review-\(name)", height: 760, appearance: .aqua
                 )
             }
             let few = Array(records.suffix(6))
