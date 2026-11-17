@@ -125,7 +125,7 @@ struct TodayMetrics: Equatable {
         headlineToLine: -5,
         lineToActions: CurfewSpacing.large,
         actionsToHorizon: CurfewSpacing.large,
-        horizonToGround: CurfewSpacing.large,
+        horizonToGround: CurfewSpacing.xLarge,
         groundWidth: 300,
         stacksActions: true
     )
