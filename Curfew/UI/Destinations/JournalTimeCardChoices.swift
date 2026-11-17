@@ -39,6 +39,16 @@ enum JournalTimeCardSky: String, CaseIterable, Codable, Sendable {
         }
     }
 
+    /// How high the sun stands over the card's sky; the swatch blends its
+    /// colours at the same moment.
+    static let swatchElevation = 0.02
+
+    /// The sky's dusk colours from far sky to nearest the sun, for the
+    /// swatch in the editor.
+    var swatchStops: [HorizonRGB] {
+        (0 ..< 5).map { palette.ramp(Double($0) / 4, elevation: Self.swatchElevation) }
+    }
+
     var title: String {
         switch self {
         case .sundown: "Sundown"
