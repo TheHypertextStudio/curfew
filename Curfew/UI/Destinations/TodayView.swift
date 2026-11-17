@@ -3,123 +3,32 @@ import CurfewAtmosphere
 import CurfewKit
 import SwiftUI
 
-/// "Today" workspace destination — the live status surface.
-///
-/// A thin adapter: reads the model's snapshot/state and renders the
-/// presentational ``TodaySundownView``. The scheduled curfew window (countdown +
-/// lock/unlock) and the on/off control; the weekly retrospective lives in the
-/// Journal.
+/// "Today" workspace destination. A thin adapter: reads the model's resolved
+/// ``TodayPresentation`` and the one thing, and forwards actions.
 struct TodayView: View {
     @Environment(CurfewAppModel.self) private var model
-    /// Binding to the sidebar selection so the empty-state note can navigate
-    /// the user directly to the Schedule destination.
-    @Binding var selectedSection: MainWorkspaceSection
 
     var body: some View {
-        let snapshot = model.snapshot
-        let needsSetup = !model.settings.hasCompletedInitialSetup
-        let isLocked = model.state.phase == .locked
-        let control = Self.control(needsSetup: needsSetup, enforcing: model.isEnforcementRunning)
-        // A scheduled lock may retain a zero-minute value after locking.
-        // Only a future boundary has a countdown.
-        let hasWindow = !isLocked && model.state.phase != .dayOff
-            && model.state.lockDate != nil && snapshot.timeRemainingText != "—"
-
         TodaySundownView(
             horizon: model.horizonFrame,
             isDayRunning: model.isHorizonDayRunning,
-            greeting: Self.greeting(at: model.currentTime),
-            timeRemaining: hasWindow ? snapshot.timeRemainingText : "",
-            emptyNote: Self.emptyNote(
-                needsSetup: needsSetup,
-                isLocked: isLocked && model.isEnforcementRunning,
-                enforcing: model.isEnforcementRunning,
-                unlockTime: Self.timeString(model.state.unlockDate)
-            ),
-            // During an active curfew window the note states status, so it must
-            // not double as a "go edit your schedule" button.
-            emptyNoteActionable: !(isLocked && model.isEnforcementRunning),
-            lockTime: Self.timeString(model.state.lockDate),
-            unlockTime: Self.timeString(model.state.unlockDate),
-            statusLine: control.line,
-            statusDetail: control.detail,
-            isEnforcing: model.isEnforcementRunning,
+            presentation: model.todayPresentation,
+            oneThing: model.todaysOneThing,
+            voice: model.voice,
             showAccessibilityWarning: model.showsHealthWarnings && !model.isAccessibilityTrusted,
             showAccessibilityGranted: model.accessibilityJustGranted,
-            streak: model.thisWeekRollup().streak,
-            primaryActionLabel: control.action,
-            onPrimaryAction: {
-                if needsSetup {
-                    model.showGettingStarted()
-                } else {
+            onTurnOn: {
+                if model.settings.hasCompletedInitialSetup {
                     model.start()
+                } else {
+                    model.showGettingStarted()
                 }
             },
-            onEmptyNoteAction: { selectedSection = .schedule },
+            onMoreTime: { model.confirmExtensionRequest() },
+            onCallItADay: { model.callItADay() },
+            onOneThingDone: { model.setOneThingDone($0) },
+            onSaveOneThing: { model.saveTodaysOneThing($0) },
             onResolveAccessibility: { model.requestAccessibilityAccess() }
         )
-    }
-
-    /// Hero copy for the no-countdown states. Distinguishes an active curfew
-    /// (`.locked` → state the window, not "nothing scheduled") from a genuine
-    /// day off and from first-run setup.
-    private static func emptyNote(
-        needsSetup: Bool, isLocked: Bool, enforcing: Bool, unlockTime: String
-    ) -> String {
-        if needsSetup {
-            return "Set your schedule to begin."
-        }
-        if !enforcing, unlockTime != "—" {
-            return "Curfew is off. Review your schedule."
-        }
-        if isLocked {
-            return unlockTime == "—"
-                ? "Curfew is active."
-                : "Curfew is active until \(unlockTime)."
-        }
-        return "No curfew scheduled today."
-    }
-
-    /// The bottom-section copy + action for the current state.
-    struct Control {
-        let line: String
-        let detail: String
-        let action: String
-    }
-
-    static func control(needsSetup: Bool, enforcing: Bool) -> Control {
-        if needsSetup {
-            return Control(
-                line: "Finish setting up Curfew",
-                detail: "Set your schedule, then turn Curfew on.",
-                action: "Finish Setup"
-            )
-        }
-        if enforcing {
-            return Control(
-                line: "Curfew is on",
-                detail: "Curfew is set to enforce your schedule.",
-                action: ""
-            )
-        }
-        return Control(
-            line: "Curfew is off",
-            detail: "Curfew won't block access until you turn it on.",
-            action: "Turn on Curfew"
-        )
-    }
-
-    private static func greeting(at date: Date) -> String {
-        switch Calendar.current.component(.hour, from: date) {
-        case 5 ..< 12: "Good morning"
-        case 12 ..< 17: "Good afternoon"
-        case 17 ..< 24: "Good evening"
-        default: "Welcome back"
-        }
-    }
-
-    private static func timeString(_ date: Date?) -> String {
-        guard let date else { return "—" }
-        return date.formatted(date: .omitted, time: .shortened)
     }
 }

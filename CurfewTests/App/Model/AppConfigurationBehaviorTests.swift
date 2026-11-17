@@ -332,11 +332,11 @@ struct EnforcementSnapshotTests {
 
         #expect(snapshot.phase == .warning)
         #expect(snapshot.symbolName == "exclamationmark.triangle")
-        #expect(snapshot.statusLine == "Lockout approaching")
+        #expect(snapshot.statusLine == "Curfew in 15 minutes")
         #expect(snapshot.timeRemainingText == "0:15")
         #expect(snapshot.canRequestExtension)
         #expect(snapshot.extensionsRemaining == 2)
-        #expect(snapshot.extensionRequestTitle == "Hold 2s for +20m extension")
+        #expect(snapshot.extensionRequestTitle == "15 more minutes")
         #expect(snapshot.scheduleWindowText.contains("->"))
     }
 

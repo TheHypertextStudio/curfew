@@ -43,171 +43,141 @@ enum MainWorkspaceSection: String, CaseIterable, Identifiable {
     /// SF Symbol used in the sidebar row.
     var symbolName: String {
         switch self {
-        case .today:
-            "sun.horizon"
-        case .schedule:
-            "calendar"
-        case .journal:
-            "book.closed"
+        case .today: HorizonSymbol.today.systemName
+        case .schedule: HorizonSymbol.schedule.systemName
+        case .journal: HorizonSymbol.journal.systemName
+        }
+    }
+
+    /// ⌘1, ⌘2 and ⌘3 move between the sections.
+    var shortcut: KeyEquivalent {
+        switch self {
+        case .today: "1"
+        case .schedule: "2"
+        case .journal: "3"
         }
     }
 }
 
-/// Compact menu-bar popover. Shows the live status snapshot plus quick
-/// actions (open workspace, request extension, open settings, quit).
-/// The full UI is in `MainWindowView`; this view is tight and fixed-width
-/// because the menu bar allots limited vertical space.
+/// The menu bar popover: the same sky, countdown, one thing and two actions
+/// as Today, then Open Curfew, Settings and Quit. Quit is hidden while locked.
 struct ContentView: View {
-    /// Live app state — snapshot reads the derived display fields.
     @Environment(CurfewAppModel.self) private var model
-    /// SwiftUI `openWindow` action so the popover can raise the main
-    /// `WindowGroup` identified by `MainWorkspaceSection.windowID`.
     @Environment(\.openWindow) private var openWindow
     @Environment(\.openSettings) private var openSettings
 
-    /// Menu-bar popover content.
-    var body: some View {
-        let snapshot = model.snapshot
+    /// Height of the sky, ground included.
+    static let skyHeight: CGFloat = 340
 
+    var body: some View {
         VStack(spacing: 0) {
-            header(snapshot: snapshot)
+            sky
             CompactEnforcementHealthWarning(health: model.presentedEnforcementHealth) {
                 model.requestAccessibilityAccess()
             }
-            .padding(.horizontal, 10)
-            .padding(.top, 10)
+            .padding(.horizontal, CurfewSpacing.small)
+            .padding(.top, CurfewSpacing.small)
             // Renders only while a capture session is live. The popover is
             // where a user goes when they notice the system's green camera
             // light and want to know which app turned it on.
             CompactCameraLiveIndicator(isLive: model.isPresenceCameraLive) {
                 model.openSettings()
             }
-            .padding(.horizontal, 10)
-            .padding(.top, 10)
-            actions(snapshot: snapshot)
+            .padding(.horizontal, CurfewSpacing.small)
+            .padding(.top, CurfewSpacing.small)
+            menu
         }
         .onAppear {
             model.appRouter.registerSettingsOpener { openSettings() }
         }
-        .frame(width: 320)
+        .frame(width: 340)
         .background(CurfewTheme.canvas)
         .foregroundStyle(CurfewTheme.ink)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("curfew-menu-popover")
     }
 
-    /// Compact sundown header — the countdown over the live sky, which melts
-    /// into the popover canvas at the bottom so there's no hard seam.
-    private func header(snapshot: EnforcementSnapshot) -> some View {
-        ZStack(alignment: .topLeading) {
+    /// The sky with the countdown and actions above the horizon and the one
+    /// thing on the ground, at the popover's scale.
+    private var sky: some View {
+        let presentation = model.todayPresentation
+        let metrics = TodayMetrics.popover
+        let skyHeight = Self.skyHeight * (1 - HorizonGeometry.horizon)
+        return ZStack(alignment: .top) {
             HorizonSkyView(frame: model.horizonFrame, isDayRunning: model.isHorizonDayRunning)
-                .overlay(alignment: .bottom) {
-                    LinearGradient(
-                        colors: [.clear, CurfewTheme.canvas],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                    .frame(height: 48)
+            VStack(spacing: 0) {
+                TodayHero(
+                    presentation: presentation, metrics: metrics, horizon: model.horizonFrame,
+                    voice: model.voice,
+                    holdDuration: CurfewAppModel.extensionConfirmationHoldSeconds,
+                    onTurnOn: turnOn,
+                    onMoreTime: { model.confirmExtensionRequest() },
+                    onCallItADay: { model.callItADay() }
+                )
+                .padding(.bottom, metrics.actionsToHorizon)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                .frame(height: skyHeight)
+                Group {
+                    if presentation.showsOneThing {
+                        OneThingView(
+                            oneThing: model.todaysOneThing, size: metrics.oneThing,
+                            voice: model.voice,
+                            onDone: { model.setOneThingDone($0) },
+                            onSave: { model.saveTodaysOneThing($0) }
+                        )
+                        .accessibilitySortPriority(2)
+                    }
                 }
-                .overlay(SundownPalette.textScrim)
-            VStack(alignment: .leading, spacing: 4) {
-                Text(snapshot.timeRemainingText)
-                    .font(.system(size: 40, weight: .semibold, design: .rounded))
-                    .monospacedDigit()
-                    .contentTransition(.numericText())
-                    .foregroundStyle(SundownPalette.warmWhite)
-                    .shadow(color: .black.opacity(0.18), radius: 10, y: 3)
-                Text(headerLine(snapshot))
-                    .font(CurfewTypography.body(13))
-                    .foregroundStyle(SundownPalette.supportingText)
-                    .shadow(color: .black.opacity(0.3), radius: 6, y: 1)
+                .padding(.top, metrics.horizonToGround)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             }
-            .padding(.horizontal, 18)
-            .padding(.top, 18)
+            .padding(.horizontal, CurfewSpacing.large)
         }
-        .frame(height: 128)
+        .frame(height: Self.skyHeight)
         .clipped()
+        .accessibilityElement(children: .contain)
     }
 
-    private func headerLine(_ snapshot: EnforcementSnapshot) -> String {
-        model.menuBarHeaderLine
-    }
-
-    /// Menu-style action rows.
-    private func actions(snapshot: EnforcementSnapshot) -> some View {
+    private var menu: some View {
         VStack(spacing: 2) {
-            menuRow("Open Curfew", icon: "sun.horizon", prominent: true) {
+            menuRow("Open Curfew", symbol: HorizonSymbol.today.systemName) {
                 openMainWorkspace()
             }
-            if model.isEnforcementRunning, snapshot.canRequestExtension {
-                if snapshot.extensionsRemaining == 0 {
-                    // Budget exhausted — say so plainly instead of a greyed,
-                    // unexplained control the user can't tell why they can't tap.
-                    infoRow("No extensions left this week", icon: "plus.slash.minus")
-                } else {
-                    menuRow(snapshot.extensionRequestTitle, icon: "plus.circle") {
-                        model.tapExtensionRequest()
-                    }
-                    .simultaneousGesture(
-                        LongPressGesture(
-                            minimumDuration: CurfewAppModel.extensionConfirmationHoldSeconds
-                        )
-                        .onEnded { _ in model.confirmExtensionRequest() }
-                    )
-                }
-            }
-            menuRow("Settings", icon: "gearshape") { model.openSettings() }
-            menuRow(
-                model.settings.hasCompletedInitialSetup ? "Review Setup" : "Finish Setup",
-                icon: "sparkles"
-            ) { model.showGettingStarted() }
+            menuRow("Settings", symbol: "gearshape") { model.openSettings() }
             if model.allowsQuit {
-                Divider().padding(.vertical, 4)
-                menuRow("Quit Curfew", icon: "power") { NSApp.terminate(nil) }
+                Divider().padding(.vertical, CurfewSpacing.xSmall)
+                menuRow("Quit Curfew", symbol: "power") { NSApp.terminate(nil) }
             }
         }
-        .padding(10)
-    }
-
-    /// Non-interactive, low-emphasis status row — same metrics as ``menuRow`` but
-    /// muted and without a button, for stating why an action is unavailable.
-    private func infoRow(_ title: String, icon: String) -> some View {
-        HStack(spacing: 11) {
-            Image(systemName: icon)
-                .font(.system(size: 14, weight: .medium))
-                .frame(width: 20)
-                .foregroundStyle(CurfewTheme.mutedInk)
-            Text(title)
-                .font(CurfewTypography.body(14))
-                .foregroundStyle(CurfewTheme.mutedInk)
-            Spacer()
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 9)
+        .padding(CurfewSpacing.small)
     }
 
     private func menuRow(
-        _ title: String,
-        icon: String,
-        prominent: Bool = false,
-        action: @escaping () -> Void
+        _ title: String, symbol: String, action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
-            HStack(spacing: 11) {
-                Image(systemName: icon)
-                    .font(.system(size: 14, weight: .medium))
+            HStack(spacing: CurfewSpacing.medium) {
+                Image(systemName: symbol)
                     .frame(width: 20)
-                    .foregroundStyle(prominent ? CurfewTheme.accent : CurfewTheme.mutedInk)
+                    .foregroundStyle(CurfewTheme.mutedInk)
                 Text(title)
-                    .font(CurfewTypography.bodyEmphasis(14))
                     .foregroundStyle(CurfewTheme.ink)
                 Spacer()
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 9)
+            .sundownFont(.strong, size: 14)
+            .padding(.horizontal, CurfewSpacing.small)
+            .padding(.vertical, CurfewSpacing.small)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+    }
+
+    private func turnOn() {
+        if model.settings.hasCompletedInitialSetup {
+            model.start()
+        } else {
+            model.showGettingStarted()
+        }
     }
 
     private func openMainWorkspace() {
@@ -216,12 +186,11 @@ struct ContentView: View {
     }
 }
 
-/// Main application window — `NavigationSplitView` whose detail column carries
-/// `.backgroundExtensionEffect()` on the `HorizonSkyView`. This is the
-/// macOS 26 public API for bleeding a detail-column background behind the
-/// floating sidebar glass: the system mirrors and blurs the sky into the
-/// sidebar's safe-area edge so the `NSGlassEffectView` that backs the sidebar
-/// refracts sky colours rather than the desktop wallpaper behind the window.
+/// Main application window. On Today the detail's sky carries
+/// `.backgroundExtensionEffect()`, the macOS 26 way to run a detail background
+/// behind the floating sidebar: the system sidebar glass, with no extra
+/// material, refracts the sky and keeps its own labels and selection legible.
+/// On Schedule and Journal the sidebar sits on the opaque adaptive canvas.
 struct MainWindowView: View {
     /// Live app state shared across detail panes.
     @Environment(CurfewAppModel.self) private var model
@@ -235,6 +204,9 @@ struct MainWindowView: View {
     /// Sidebar visibility — kept .all so the floating glass sidebar is always
     /// shown on launch. The user can still dismiss it with the toolbar toggle.
     @State private var columnVisibility: NavigationSplitViewVisibility = .all
+    private var showsSky: Bool {
+        selectedSection == .today
+    }
 
     var body: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
@@ -247,9 +219,15 @@ struct MainWindowView: View {
             .navigationTitle("Curfew")
             .listStyle(.sidebar)
             .scrollContentBackground(.hidden)
-            // One opaque adaptive surface. A translucent material here lets the desktop
-            // show through behind the selected row and fails the native contrast audit.
-            .background(CurfewTheme.canvasStrong.ignoresSafeArea())
+            // Off Today the sidebar is one opaque adaptive surface, as before.
+            // On Today it is only the system glass, over the sky the detail
+            // extends beneath it; no custom material sits under it, so nothing
+            // from behind the window can show through the selected row.
+            .background {
+                if !showsSky {
+                    CurfewTheme.canvasStrong.ignoresSafeArea()
+                }
+            }
             .navigationSplitViewColumnWidth(min: 220, ideal: 248, max: 340)
         } detail: {
             // Each destination owns its own background now — Today's composed sky
@@ -258,6 +236,7 @@ struct MainWindowView: View {
             // distorting to fill the window).
             detailContent
                 .id(selectedSection)
+                .focusedSceneValue(\.workspaceSection, $selectedSection)
                 .transition(.opacity)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .animation(.easeInOut(duration: 0.28), value: selectedSection)
@@ -326,7 +305,7 @@ struct MainWindowView: View {
     private var detailContent: some View {
         switch selectedSection {
         case .today:
-            TodayView(selectedSection: $selectedSection)
+            TodayView()
                 .environment(model)
         case .schedule:
             ScheduleView()
@@ -336,4 +315,9 @@ struct MainWindowView: View {
                 .environment(model)
         }
     }
+}
+
+extension FocusedValues {
+    /// The main window's selected section, for the ⌘1 to ⌘3 commands.
+    @Entry var workspaceSection: Binding<MainWorkspaceSection>?
 }

@@ -188,10 +188,6 @@ extension CurfewAppModel {
         queueScheduleUpdate(nextSchedule)
     }
 
-    /// Placeholder called when the user taps (not holds) the extension button.
-    /// No-ops currently; reserved for future haptic / visual tap feedback.
-    func tapExtensionRequest() {}
-
     /// Consumes one extension slot, adds the configured duration to today's
     /// grant total, records the activity event, and re-ticks. No-ops when
     /// `canRequestExtension` is false or the budget is exhausted.
@@ -215,6 +211,57 @@ extension CurfewAppModel {
             actor: .user
         )
         refreshAfterUserAction()
+    }
+
+    /// Whether Call it a day can begin the lock now: Curfew is on, the working
+    /// window is open with a future curfew and a known unlock, and no override
+    /// is holding the lock open.
+    var canCallItADay: Bool {
+        CallItADayGate.isAvailable(CallItADayGate.Situation(
+            enforcing: isEnforcementRunning,
+            setupComplete: settings.hasCompletedInitialSetup,
+            phase: state.phase,
+            now: currentTime,
+            lockDate: state.lockDate,
+            unlockDate: state.unlockDate,
+            overrideActive: activeOverrideUntil != nil
+        ))
+    }
+
+    /// Ends the working day now. Records that the person called it a day, then
+    /// begins tonight's lock through the same durable path a scheduled lock
+    /// uses: a ``LockoutDeadlineRecord`` that holds until the scheduled unlock,
+    /// armed with the Curfew helper and enforced by the tick even across a
+    /// relaunch. The lock transition raises the evening close-out as usual.
+    /// Returns `false`, changing nothing, when it is not available.
+    @discardableResult
+    func callItADay() -> Bool {
+        guard canCallItADay, let unlock = state.unlockDate else { return false }
+        if let existing = lockoutDeadlineStore.load(), currentTime < existing.scheduledUnlockAt {
+            return false
+        }
+        recordCalledItADay()
+        let record: LockoutDeadlineRecord = if settings.accountSync.usesWakeCampaign {
+            WakeLockoutDeadlineResolver.record(
+                lockoutStartedAt: currentTime,
+                scheduleUnlockAt: unlock,
+                account: settings.accountSync,
+                wakeStatus: accountWakeLedger.current
+            )
+        } else {
+            LockoutDeadlineRecord(
+                lockoutStartedAt: currentTime,
+                scheduledUnlockAt: unlock,
+                kind: state.trigger == .hours ? .scheduledHours : .scheduledTime
+            )
+        }
+        lockoutDeadlineStore.save(record)
+        if featureFlags.privilegedHelperEnabled {
+            lastPrivilegedHeartbeatAt = currentTime
+            Task { await privilegedHelperManager.armLockout(record) }
+        }
+        refreshAfterUserAction()
+        return true
     }
 
     /// Grants a 1-minute snooze by adding to `snoozeMinutesGrantedToday`.
@@ -300,5 +347,29 @@ extension CurfewAppModel {
             return "(no reason provided)"
         }
         return reason
+    }
+}
+
+/// When Call it a day may begin the lock. Pure, so the gating is tested
+/// without a model.
+enum CallItADayGate {
+    struct Situation: Equatable {
+        var enforcing: Bool
+        var setupComplete: Bool
+        var phase: EnforcementPhase
+        var now: Date
+        var lockDate: Date?
+        var unlockDate: Date?
+        var overrideActive: Bool
+    }
+
+    static func isAvailable(_ situation: Situation) -> Bool {
+        guard situation.enforcing, situation.setupComplete,
+              situation.phase == .working || situation.phase == .warning,
+              !situation.overrideActive,
+              let lock = situation.lockDate, lock > situation.now,
+              let unlock = situation.unlockDate, unlock > lock, unlock != .distantFuture
+        else { return false }
+        return true
     }
 }

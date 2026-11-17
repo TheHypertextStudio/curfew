@@ -11,25 +11,71 @@ import Foundation
 /// lockout overlay, and widgets.
 @MainActor
 extension CurfewAppModel {
-    /// Menu-bar status distinguishes a scheduled boundary from armed enforcement.
+    /// The words this surface speaks. One value, so a voice pack can swap it.
+    var voice: TodayVoice {
+        .standard
+    }
+
+    /// The override that is holding the lock open right now, if any.
+    var activeOverrideUntil: Date? {
+        (accountReleaseOverrideUntil() ?? overrideUntil).flatMap { $0 > currentTime ? $0 : nil }
+    }
+
+    /// The next moment the Mac locks, as the person should read it: the
+    /// schedule's curfew (with any extension), or the moment an override that
+    /// re-locks tonight ends. `nil` outside a working window and whenever the
+    /// only known curfew is already in the past, so no surface names a past time.
+    var upcomingCurfew: Date? {
+        guard state.phase == .working || state.phase == .warning else { return nil }
+        if let release = activeOverrideUntil, let lock = state.lockDate,
+           let unlock = state.unlockDate, release > lock, release < unlock {
+            return release
+        }
+        guard let lock = state.lockDate, lock > currentTime else { return nil }
+        return lock
+    }
+
+    /// The end of an override that does not re-lock tonight, while it lasts.
+    var overrideReleaseEnd: Date? {
+        guard upcomingCurfew == nil, state.phase == .working || state.phase == .warning else {
+            return nil
+        }
+        return activeOverrideUntil
+    }
+
+    /// Menu bar status: the curfew, the minutes left, or the unlock.
     var menuBarHeaderLine: String {
-        guard isEnforcementRunning else { return "Curfew is off" }
+        guard isEnforcementRunning else { return voice.menuCurfewOff }
         if settings.hasCompletedInitialSetup,
            !automaticScheduleEnabled, state.phase != .locked {
             return "Automatic schedule off"
         }
-        if let lock = state.lockDate, state.phase == .working {
-            return "Locks at \(lock.formatted(date: .omitted, time: .shortened))"
-        }
-        return snapshot.statusLine
+        return statusLine
     }
 
-    /// SF Symbol name representing the current phase. Surfaces in the menu
-    /// bar.
-    ///
-    /// When enforcement is degraded (Accessibility revoked or the keyboard
-    /// shield's tap is down) the phase glyph is replaced by the warning badge
-    /// so a silently broken lockout cannot look like business as usual.
+    /// The menu bar item's spoken name: the app, then the time left.
+    var menuBarAccessibilityLabel: String {
+        let name = "Curfew\(CurfewFlavor.current.displaySuffix)"
+        if isEnforcementRunning, let curfew = upcomingCurfew {
+            let left = TodayVoice.spokenDuration(curfew.timeIntervalSince(currentTime))
+            return "\(name), \(left) left"
+        }
+        return "\(name), \(menuBarHeaderLine)"
+    }
+
+    /// The drawn menu bar icon's state: lower as curfew nears, on the line in
+    /// the last half hour, no sun while locked.
+    var menuBarGlyphState: HorizonMenuBarGlyph.State {
+        HorizonMenuBarGlyph.State.resolve(
+            isLocked: state.phase == .locked,
+            isSunrise: reflectionState.isDaybreakPresented,
+            minutesToCurfew: isEnforcementRunning
+                ? upcomingCurfew.map { $0.timeIntervalSince(currentTime) / 60 } : nil
+        )
+    }
+
+    /// SF Symbol shown in place of the drawn icon while enforcement is
+    /// degraded, so a silently broken lock cannot look like business as usual.
     var menuBarSymbolName: String {
         if presentedEnforcementHealth != .active {
             return presentedEnforcementHealth.menuBarBadgeSymbol ?? "exclamationmark.triangle.fill"
@@ -37,8 +83,8 @@ extension CurfewAppModel {
         return symbolName(for: state.phase)
     }
 
-    /// One-line description of the current phase for the status bar and
-    /// popover header.
+    /// One-line description of the current phase for the menu bar and the
+    /// snapshot.
     var statusLine: String {
         if settings.hasCompletedInitialSetup,
            !automaticScheduleEnabled, state.phase != .locked {
@@ -69,12 +115,27 @@ extension CurfewAppModel {
         )
     }
 
-    /// Full button label for the extension hold button, e.g.
-    /// `"Hold 2s for +15m extension"`.
+    /// The label of the control that asks for more time.
     var extensionRequestTitle: String {
-        let holdSeconds = Int(Self.extensionConfirmationHoldSeconds)
-        let minutes = settings.extensionDurationMinutes
-        return "Hold \(holdSeconds)s for +\(minutes)m extension"
+        voice.moreTime
+    }
+
+    /// Everything Today and the menu bar popover show, resolved from the
+    /// model in one place.
+    var todayPresentation: TodayPresentation {
+        TodayPresentation.resolve(TodaySituation(
+            setupComplete: settings.hasCompletedInitialSetup,
+            enforcing: isEnforcementRunning,
+            phase: state.phase,
+            warningStage: state.warningStage,
+            minutesRemaining: state.minutesRemaining,
+            upcomingCurfew: upcomingCurfew,
+            unlockDate: state.unlockDate,
+            overrideEnds: overrideReleaseEnd,
+            canRequestExtension: state.canRequestExtension,
+            extensionsRemaining: extensionsRemaining,
+            canCallItADay: canCallItADay
+        ), voice: voice)
     }
 
     /// The schedule the user is currently editing. Returns the pending
@@ -121,12 +182,12 @@ extension CurfewAppModel {
         guard let pending = settings.pendingScheduleChange else {
             return nil
         }
-        let timestamp = pending.effectiveAt.formatted(date: .abbreviated, time: .shortened)
+        let day = pending.effectiveAt.formatted(.dateTime.month(.abbreviated).day())
         switch pending.classification {
         case .weaker:
-            return "A less strict schedule is queued for \(timestamp)."
+            return voice.laterCurfew(startingOn: day)
         case .stricter:
-            return "A stricter schedule is queued for \(timestamp)."
+            return voice.earlierCurfew(startingOn: day)
         case .noChange:
             return nil
         }
@@ -180,18 +241,25 @@ extension CurfewAppModel {
         }
     }
 
-    /// One-line status copy for `phase`, used in the menu bar tooltip and
-    /// the snapshot's `statusLine`.
+    /// One-line status copy for `phase` at the model's current dates, used in
+    /// the menu bar and the snapshot's `statusLine`. Times use the locale.
     func statusLine(for phase: EnforcementPhase) -> String {
         switch phase {
         case .working:
-            "Work hours are active"
+            if let curfew = upcomingCurfew {
+                return voice.curfewAt(TodayVoice.time(curfew))
+            }
+            if let release = overrideReleaseEnd {
+                return voice.overrideUntil(TodayVoice.time(release))
+            }
+            return voice.menuNoCurfew
         case .warning:
-            "Lockout approaching"
+            return voice.curfewIn(minutes: max(1, state.minutesRemaining))
         case .locked:
-            "Curfew lockout active"
+            return state.unlockDate.map { voice.lockedUntil(TodayVoice.time($0)) }
+                ?? voice.menuLocked
         case .dayOff:
-            "Day off"
+            return voice.menuNoCurfew
         }
     }
 

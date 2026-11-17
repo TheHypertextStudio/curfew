@@ -123,26 +123,6 @@ struct PresentationStateTests {
         #expect(!panel.contains("retained active work session"))
     }
 
-    @Test("Scheduled lock time never claims protection is active when Curfew is off")
-    func todayOffState() throws {
-        let today = try source("Curfew/UI/Destinations/TodayView.swift")
-        #expect(today.contains("isLocked: isLocked && model.isEnforcementRunning"))
-        #expect(today.contains("emptyNoteActionable: !(isLocked && model.isEnforcementRunning)"))
-        #expect(today.contains("Curfew is off. Review your schedule."))
-    }
-
-    @Test("The menu hides extension grants while Curfew is off")
-    func menuOffExtension() throws {
-        let content = try source("Curfew/ContentView.swift")
-        #expect(content.contains("if model.isEnforcementRunning, snapshot.canRequestExtension"))
-    }
-
-    @Test("Today does not render a lock countdown after the scheduled lock")
-    func lockedCountdown() throws {
-        let today = try source("Curfew/UI/Destinations/TodayView.swift")
-        #expect(today.contains("let hasWindow = !isLocked"))
-    }
-
     @Test("Completed setup review does not depend on a stale walkthrough cursor")
     func setupReviewContent() throws {
         let setup = try source("Curfew/UI/GettingStartedView.swift")

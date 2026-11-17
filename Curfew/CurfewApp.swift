@@ -279,7 +279,7 @@ struct CurfewApp: App {
         ).sceneBehavior)
         .restorationBehavior(Self.backgroundLaunch ? .disabled : .automatic)
         .commands {
-            MainWorkspaceCommands(delegate: appDelegate)
+            MainWorkspaceCommands(delegate: appDelegate, model: model)
             CommandGroup(after: .appInfo) {
                 Button("Check for Updates…") {
                     updater.checkForUpdates()
@@ -294,16 +294,7 @@ struct CurfewApp: App {
                 .environment(model)
                 .onOpenURL { _ = model.handleIncomingURL($0) }
         } label: {
-            // Morph between phase glyphs on change, and pulse when enforcement
-            // is degraded so a silently-broken lockout draws the eye in the
-            // menu bar. (Menu-bar symbol animation is best-effort; the glyph
-            // itself always renders correctly.)
-            Image(systemName: model.menuBarSymbolName)
-                .contentTransition(.symbolEffect(.replace))
-                .symbolEffect(.pulse, isActive: model.presentedEnforcementHealth != .active)
-                .accessibilityLabel("Curfew\(CurfewFlavor.current.displaySuffix) status")
-                .accessibilityIdentifier("curfew-status-item")
-                .accessibilityValue(model.menuBarHeaderLine)
+            CurfewMenuBarLabel(model: model)
                 .appWindowRouting(using: model.appRouter)
         }
         .menuBarExtraStyle(.window)
@@ -335,14 +326,57 @@ struct CurfewApp: App {
     }
 }
 
+/// The status item: the drawn sun over a line, lower as curfew nears, on the
+/// line in the last half hour and without a sun while locked. While
+/// enforcement is degraded the warning badge replaces it and pulses, so a
+/// silently broken lock cannot look like business as usual.
+private struct CurfewMenuBarLabel: View {
+    let model: CurfewAppModel
+
+    var body: some View {
+        Group {
+            if model.presentedEnforcementHealth != .active {
+                Image(systemName: model.menuBarSymbolName)
+                    .symbolEffect(.pulse, isActive: true)
+            } else {
+                Image(nsImage: HorizonMenuBarGlyph(state: model.menuBarGlyphState).image())
+            }
+        }
+        .accessibilityLabel(model.menuBarAccessibilityLabel)
+        .accessibilityIdentifier("curfew-status-item")
+        .accessibilityValue(model.menuBarHeaderLine)
+    }
+}
+
 private struct MainWorkspaceCommands: Commands {
     @Environment(\.openWindow) private var openWindow
+    @FocusedBinding(\.workspaceSection) private var focusedSection
     let delegate: AppDelegate
+    let model: CurfewAppModel
 
     var body: some Commands {
         delegate.openMainWindow = { openWindow(id: MainWorkspaceSection.windowID) }
-        return CommandGroup(after: .windowArrangement) {
-            Button("Open Curfew") { openWindow(id: MainWorkspaceSection.windowID) }
+        return Group {
+            CommandGroup(after: .windowArrangement) {
+                Button("Open Curfew") { openWindow(id: MainWorkspaceSection.windowID) }
+            }
+            CommandGroup(before: .sidebar) {
+                ForEach(MainWorkspaceSection.allCases) { section in
+                    Button(section.title) { show(section) }
+                        .keyboardShortcut(section.shortcut, modifiers: .command)
+                }
+                Divider()
+            }
+        }
+    }
+
+    /// Selects `section` in the open window, or opens the window on it.
+    private func show(_ section: MainWorkspaceSection) {
+        if focusedSection != nil {
+            focusedSection = section
+        } else {
+            model.requestedWorkspaceSection = section
+            openWindow(id: MainWorkspaceSection.windowID)
         }
     }
 }

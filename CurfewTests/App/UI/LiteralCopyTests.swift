@@ -16,24 +16,20 @@ struct LiteralCopyTests {
         ])
     }
 
-    @Test("Disabled Today copy describes Curfew rather than the system lock")
-    func disabledTodayExplainsCurfew() {
-        #expect(TodaySundownView()
-            .statusDetail == "Curfew won't block access until you turn it on.")
-    }
-
-    @Test("Today distinguishes setup from enabled and disabled scheduling")
-    func todayControlsDescribeScheduledEnforcement() {
-        let enabled = TodayView.control(needsSetup: false, enforcing: true)
-        #expect(enabled.line == "Curfew is on")
-        #expect(enabled.detail == "Curfew is set to enforce your schedule.")
-        #expect(enabled.action.isEmpty)
-        let disabled = TodayView.control(needsSetup: false, enforcing: false)
-        #expect(disabled.detail == "Curfew won't block access until you turn it on.")
-        #expect(disabled.action == "Turn on Curfew")
-        let setup = TodayView.control(needsSetup: true, enforcing: false)
-        #expect(setup.detail == "Set your schedule, then turn Curfew on.")
-        #expect(setup.action == "Finish Setup")
+    @Test("Off Today says once that Curfew is off and offers one way to turn it on")
+    func offTodayCopy() {
+        let off = TodayPresentation.resolve(TodaySituation(
+            setupComplete: true, enforcing: false, phase: .working, warningStage: .none,
+            minutesRemaining: 90, upcomingCurfew: Date().addingTimeInterval(5400),
+            unlockDate: nil, overrideEnds: nil, canRequestExtension: false,
+            extensionsRemaining: 2, canCallItADay: false
+        ))
+        #expect(off.headline == .statement("Curfew is off."))
+        #expect(off.line == "Nothing locks until you turn it back on.")
+        #expect(off.offersTurnOn)
+        #expect(off.moreTime == nil)
+        #expect(!off.callsItADay)
+        #expect(TodayVoice.standard.turnOn == "Turn on Curfew")
     }
 
     @Test("Presence reminder instructions distinguish idle detection from the extra delay")

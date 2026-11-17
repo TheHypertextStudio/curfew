@@ -300,7 +300,7 @@ extension ThemeConsistencyTests {
         }
     }
 
-    @Test("Today shields schedule text from the brightest sky with the shared scrim")
+    @Test("Today keeps text legible with the sky halo instead of a scrim")
     func todayHeroPalette() throws {
         let root = URL(fileURLWithPath: #filePath).resolvingSymlinksInPath()
             .deletingLastPathComponent().deletingLastPathComponent()
@@ -308,7 +308,8 @@ extension ThemeConsistencyTests {
         let source = try String(contentsOf: root.appendingPathComponent(
             "Curfew/UI/Destinations/TodaySundownView.swift"
         ), encoding: .utf8)
-        #expect(source.contains("SundownPalette.textScrim"))
+        #expect(!source.contains("textScrim"))
+        #expect(source.contains(".skyInk(horizon)"))
         #expect(!source.contains(".black.opacity(0.32)"))
         #expect(!source.contains("warmWhite.opacity(0.78)"))
     }
@@ -353,7 +354,7 @@ private struct AccentComponents: Decodable {
 }
 
 extension ThemeConsistencyTests {
-    @Test("The menu-bar header shields text and exposes an accessible popover target")
+    @Test("The menu bar draws the live glyph and its popover reads without a scrim")
     func menuBarContrastAndAccess() throws {
         let root = URL(fileURLWithPath: #filePath).resolvingSymlinksInPath()
             .deletingLastPathComponent().deletingLastPathComponent()
@@ -361,17 +362,16 @@ extension ThemeConsistencyTests {
         let content = try String(contentsOf: root.appendingPathComponent(
             "Curfew/ContentView.swift"
         ), encoding: .utf8)
-        #expect(content.contains(".overlay(SundownPalette.textScrim)"))
-        #expect(content.contains(".foregroundStyle(SundownPalette.supportingText)"))
+        #expect(!content.contains("textScrim"))
         #expect(content.contains("curfew-menu-popover"))
-        #expect(content.contains("model.settings.hasCompletedInitialSetup"))
-        #expect(content.contains("\"Review Setup\""))
-        #expect(content.contains("\"Finish Setup\""))
+        #expect(content.contains("if model.allowsQuit"))
 
         let app = try String(contentsOf: root.appendingPathComponent(
             "Curfew/CurfewApp.swift"
         ), encoding: .utf8)
         #expect(app.contains("curfew-status-item"))
+        #expect(app.contains("HorizonMenuBarGlyph(state: model.menuBarGlyphState)"))
+        #expect(app.contains(".accessibilityLabel(model.menuBarAccessibilityLabel)"))
         #expect(app.contains(".accessibilityValue(model.menuBarHeaderLine)"))
     }
 }
