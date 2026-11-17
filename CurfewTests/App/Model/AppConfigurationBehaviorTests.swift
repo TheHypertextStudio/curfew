@@ -379,6 +379,8 @@ struct SettingsSectionTests {
         ])
         #expect(SettingsSection.enforcement.rawValue == "enforcement")
         #expect(SettingsSection.integrations.rawValue == "integrations")
+        // Every page must be reachable from the sidebar, exactly once and in order.
+        #expect(SettingsSection.sidebarGroups.flatMap(\.self) == SettingsSection.allCases)
     }
 }
 

@@ -4,7 +4,7 @@ import XCTest
 extension CurfewUITests {
     func testRestScreenSettingsStartWithSafeLocalDefaults() {
         let app = launchFixture("settings", state: "ready")
-        let destination = app.descendants(matching: .any)["settings-restScreen-tab"]
+        let destination = app.descendants(matching: .any)["settings-category-restScreen"]
         XCTAssertTrue(destination.waitForExistence(timeout: 8))
         destination.click()
 
@@ -27,7 +27,7 @@ extension CurfewUITests {
         XCTAssertTrue(app.popUpButtons["rest-clock-style"].exists)
         XCTAssertTrue(app.popUpButtons["rest-clock-position"].exists)
         XCTAssertTrue(app.textFields["rest-personal-message"].exists)
-        let detail = app.descendants(matching: .any)["settings-detail"]
+        let detail = app.descendants(matching: .any)["settings-page-restScreen"]
         let sharing = app.switches["rest-saver-message"]
         assertOff(sharing, revealingIn: detail)
         let sunrise = app.switches["rest-sunrise-wake"]
@@ -46,10 +46,10 @@ extension CurfewUITests {
 
     func testRestScreenShowsWakeRequestStatus() {
         let app = launchFixture("settings", state: "ready")
-        let destination = app.descendants(matching: .any)["settings-restScreen-tab"]
+        let destination = app.descendants(matching: .any)["settings-category-restScreen"]
         XCTAssertTrue(destination.waitForExistence(timeout: 8))
         destination.click()
-        let detail = app.descendants(matching: .any)["settings-detail"]
+        let detail = app.descendants(matching: .any)["settings-page-restScreen"]
         XCTAssertTrue(detail.waitForExistence(timeout: 5))
         let status = app.descendants(matching: .any)["rest-sunrise-status"]
         XCTAssertTrue(

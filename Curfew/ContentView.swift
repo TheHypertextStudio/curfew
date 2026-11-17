@@ -244,9 +244,9 @@ struct MainWindowView: View {
             .navigationTitle("Curfew")
             .listStyle(.sidebar)
             .scrollContentBackground(.hidden)
-            // Liquid glass sidebar — lets the system NSGlassEffectView refract the detail
-            // column's backgroundExtensionEffect while softly harmonising with both appearances.
-            .sidebarGlass()
+            // One opaque adaptive surface. A translucent material here lets the desktop
+            // show through behind the selected row and fails the native contrast audit.
+            .background(CurfewTheme.canvasStrong.ignoresSafeArea())
             .navigationSplitViewColumnWidth(min: 220, ideal: 248, max: 340)
         } detail: {
             // Each destination owns its own background now — Today's composed sky
