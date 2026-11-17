@@ -4,11 +4,11 @@ import XCTest
 extension CurfewUITests {
     func testRestScreenOffersExplicitCompanionSetupAndSystemSelection() {
         let app = launchFixture("settings", state: "ready")
-        let destination = app.descendants(matching: .any)["settings-restScreen-tab"]
+        let destination = app.descendants(matching: .any)["settings-category-restScreen"]
         XCTAssertTrue(destination.waitForExistence(timeout: 8))
         destination.click()
 
-        let detail = app.descendants(matching: .any)["settings-detail"]
+        let detail = app.descendants(matching: .any)["settings-page-restScreen"]
         XCTAssertTrue(detail.waitForExistence(timeout: 5))
         let install = app.buttons["rest-saver-install"]
         let settings = app.buttons["rest-saver-settings"]
