@@ -19,7 +19,8 @@
 		CF5A00000000000000000008 = { isa = PBXBuildFile; productRef = CF5A00000000000000000012; };
 		CF5A00000000000000000009 = { isa = PBXBuildFile; productRef = CF5A00000000000000000013; };
 		CF5A00000000000000000022 /* HorizonSkyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF5A00000000000000000020 /* Curfew/UI/Horizon/HorizonSkyView.swift */; };
-		CF5A00000000000000000023 /* HorizonSky.metal in Sources */ = {isa = PBXBuildFile; fileRef = CF5A00000000000000000021 /* Curfew/UI/Horizon/HorizonSky.metal */; };
+		CF5A00000000000000000023 /* HorizonSky.metallib in Resources */ = {isa = PBXBuildFile; fileRef = CF5A00000000000000000021 /* Curfew/UI/Horizon/HorizonSky.metallib */; };
+		CF5A00000000000000000026 /* HorizonShaderLibrary.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF5A00000000000000000025 /* Curfew/UI/Horizon/HorizonShaderLibrary.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -78,7 +79,8 @@
 		CF5A00000000000000000003 = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurfewScreenSaverView.swift; sourceTree = "<group>"; };
 		CF5A00000000000000000004 = { isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		CF5A00000000000000000020 /* Curfew/UI/Horizon/HorizonSkyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Curfew/UI/Horizon/HorizonSkyView.swift; sourceTree = "<group>"; };
-		CF5A00000000000000000021 /* Curfew/UI/Horizon/HorizonSky.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = Curfew/UI/Horizon/HorizonSky.metal; sourceTree = "<group>"; };
+		CF5A00000000000000000021 /* Curfew/UI/Horizon/HorizonSky.metallib */ = {isa = PBXFileReference; lastKnownFileType = "archive.metal-library"; path = Curfew/UI/Horizon/HorizonSky.metallib; sourceTree = "<group>"; };
+		CF5A00000000000000000025 /* Curfew/UI/Horizon/HorizonShaderLibrary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Curfew/UI/Horizon/HorizonShaderLibrary.swift; sourceTree = "<group>"; };
 		CFD000000000000000000001 /* CurfewEndpoints.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = deployment/generated/CurfewEndpoints.xcconfig; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
@@ -94,6 +96,8 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
+				UI/Horizon/HorizonSky.metal,
+				UI/Horizon/HorizonSky.metal.sha256,
 			);
 			target = 9BD3FB812F4D4584007B2E95 /* Curfew */;
 		};
@@ -225,7 +229,8 @@
 			isa = PBXGroup;
 			children = (
 				CF5A00000000000000000020 /* Curfew/UI/Horizon/HorizonSkyView.swift */,
-				CF5A00000000000000000021 /* Curfew/UI/Horizon/HorizonSky.metal */,
+				CF5A00000000000000000021 /* Curfew/UI/Horizon/HorizonSky.metallib */,
+				CF5A00000000000000000025 /* Curfew/UI/Horizon/HorizonShaderLibrary.swift */,
 			);
 			name = CurfewScreenSaverSupport;
 			sourceTree = "<group>";
@@ -468,7 +473,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		CF5A0000000000000000000C = { isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+		CF5A0000000000000000000C = { isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (CF5A00000000000000000023, ); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
@@ -548,7 +553,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		CF5A0000000000000000000A = { isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (CF5A00000000000000000006, CF5A00000000000000000022, CF5A00000000000000000023, ); runOnlyForDeploymentPostprocessing = 0; };
+		CF5A0000000000000000000A = { isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (CF5A00000000000000000006, CF5A00000000000000000022, CF5A00000000000000000026, ); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
