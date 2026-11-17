@@ -54,7 +54,10 @@ import CurfewKit
             model.reflectionState.isDaybreakPresented = true
         }
 
-        private func renderRest(_ model: CurfewAppModel, named name: String) throws {
+        private func renderRest(
+            _ model: CurfewAppModel, named name: String,
+            width: CGFloat = 1440, height: CGFloat = 900
+        ) throws {
             let display = RestDisplayPresentation()
             display.isVisible = true
             try renderHosted(
@@ -63,7 +66,7 @@ import CurfewKit
                     // Transparency fallback shows the buttons' real fill.
                     .environment(\._accessibilityReduceTransparency, true)
                     .transaction { $0.disablesAnimations = true },
-                named: name, width: 1440, height: 900, settlingTime: 0.6,
+                named: name, width: width, height: height, settlingTime: 0.6,
                 appearance: .darkAqua, to: Self.snapshotsDirectory()
             )
         }
@@ -75,6 +78,9 @@ import CurfewKit
             openGate(withNote)
             XCTAssertEqual(withNote.restPresentation.layout, .morning)
             try renderRest(withNote, named: "sunrise-gate-note")
+            // A 13-inch display and a large external display.
+            try renderRest(withNote, named: "sunrise-gate-note-13in", width: 1280, height: 800)
+            try renderRest(withNote, named: "sunrise-gate-note-large", width: 2560, height: 1440)
 
             withNote.reflectionState.morningDraft.values[JournalPromptIDs.oneThing] =
                 .text("Ship the billing migration")
