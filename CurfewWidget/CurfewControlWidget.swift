@@ -9,7 +9,6 @@ import WidgetKit
 /// It reads the same shared snapshot the timeline widget reads
 /// (`WidgetSharedStateStore` → settings → `CurfewEnforcementEngine`), so the
 /// control, the timeline widget, and the app never disagree about state.
-@available(macOS 15.0, *)
 struct CurfewControlWidget: ControlWidget {
     var body: some ControlWidgetConfiguration {
         StaticControlConfiguration(
@@ -20,8 +19,8 @@ struct CurfewControlWidget: ControlWidget {
                 Label(value.label, systemImage: value.symbolName)
             }
         }
-        .displayName("Curfew Status")
-        .description("See time until curfew and open Curfew.")
+        .displayName("Curfew")
+        .description("Time left until curfew. Opens Curfew.")
     }
 }
 
@@ -35,7 +34,6 @@ enum CurfewControlIdentity {
 /// Supplies the control's display value, recomputed each time Control Center
 /// refreshes. Reuses the timeline provider's read path so the control matches
 /// the rest of the surface.
-@available(macOS 15.0, *)
 struct CurfewControlValueProvider: ControlValueProvider {
     /// What the control renders: a short label and an SF Symbol keyed to phase.
     struct Value {
@@ -45,7 +43,7 @@ struct CurfewControlValueProvider: ControlValueProvider {
 
     /// Gallery preview value (no live read).
     var previewValue: Value {
-        Value(label: "Curfew", symbolName: "moon.stars")
+        Value(label: "Curfew", symbolName: "sun.horizon")
     }
 
     /// Live value pulled from the shared snapshot at refresh time.
@@ -83,10 +81,11 @@ struct CurfewControlValueProvider: ControlValueProvider {
             Value(label: "Locked", symbolName: "lock.fill")
         case .dayOff:
             Value(label: "Day off", symbolName: "sun.max")
-        case .working:
-            Value(label: "\(minutesRemaining) min", symbolName: "moon.stars")
-        case .warning:
-            Value(label: "\(minutesRemaining) min", symbolName: "exclamationmark.triangle")
+        case .working, .warning:
+            Value(
+                label: CurfewWidgetPresentation.countdown(minutes: minutesRemaining),
+                symbolName: "sun.horizon"
+            )
         }
     }
 }
@@ -108,7 +107,6 @@ private extension EnforcementPhase {
 
 /// Opens Curfew when the control is tapped. Lives in the widget extension so
 /// the control can reference it; `openAppWhenRun` brings the host app forward.
-@available(macOS 15.0, *)
 struct OpenCurfewControlIntent: AppIntent {
     static var title: LocalizedStringResource = "Open Curfew"
 

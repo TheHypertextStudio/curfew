@@ -93,6 +93,20 @@
 			);
 			target = 9BD3FB812F4D4584007B2E95 /* Curfew */;
 		};
+		C0FE00000000000000000202 /* Exceptions for "CurfewWidget" folder in "CurfewTests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				"CurfewWidget-Debug.entitlements",
+				CurfewControlWidget.swift,
+				CurfewWidget.entitlements,
+				CurfewWidget.swift,
+				CurfewWidgetEntry.swift,
+				CurfewWidgetProvider.swift,
+				CurfewWidgetView.swift,
+				Info.plist,
+			);
+			target = 9BD3FB902F4D4587007B2E95 /* CurfewTests */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -100,6 +114,7 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				C0FE00000000000000000200 /* Exceptions for "CurfewWidget" folder in "CurfewWidget" target */,
+				C0FE00000000000000000202 /* Exceptions for "CurfewWidget" folder in "CurfewTests" target */,
 			);
 			path = CurfewWidget;
 			sourceTree = "<group>";
@@ -266,6 +281,7 @@
 			);
 			fileSystemSynchronizedGroups = (
 				9BD3FB942F4D4587007B2E95 /* CurfewTests */,
+				1F56E9B021971B57F3DE957D /* CurfewWidget */,
 			);
 			name = CurfewTests;
 			packageProductDependencies = (
