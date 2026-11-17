@@ -52,7 +52,7 @@ struct LiteralCopyTests {
     func localAssistantSummaryNamesDataAndLimits() {
         #expect(SettingsView.localAIExplanation ==
             "While enabled, local assistants can read your Curfew status, schedule, activity, "
-            + "and reflection text. They cannot end lockout or turn off Curfew.")
+            + "and reflection text. They can't end the lock or turn off Curfew.")
     }
 
     @Test("Presence introduction explains the camera and its limit in two sentences")

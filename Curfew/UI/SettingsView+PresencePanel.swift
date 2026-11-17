@@ -195,7 +195,7 @@ extension SettingsView {
     Curfew detects inactivity after \(Int(IdleWatcher.defaultIdleThresholdSeconds) / 60) \
     minutes without keyboard or pointer input. The additional delay starts when \
     the camera detects a person and Curfew detects inactivity. Reminders do not \
-    start a lockout. Curfew does not show them during lockout or when the camera \
+    lock this Mac. Curfew does not show them while locked or when the camera \
     detects no person.
     """
 
