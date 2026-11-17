@@ -190,8 +190,15 @@ struct DeviceStatusWiringTests {
 
     @Test("The heartbeat publishes on cadence and not before")
     func heartbeatRespectsTheCadence() async {
+        // The model's own clock, advanced only by this test. With the wall
+        // clock, a busy machine could let a minute pass between ticks (the
+        // settle below yields the main actor to every other suite) and the
+        // cadence would rightly fire again.
+        let start = Date()
+        var now = start
         let harness = DeviceStatusWiringHarness(
-            reporting: DeviceStatusWiringHarness.configured(heartbeatSeconds: 60)
+            reporting: DeviceStatusWiringHarness.configured(heartbeatSeconds: 60),
+            clock: { now }
         )
         let model = harness.model
 
@@ -200,13 +207,22 @@ struct DeviceStatusWiringTests {
         await harness.settle()
         #expect(harness.transport.calls.count == 1)
 
-        // Ten more ticks inside the same minute publish nothing further —
-        // otherwise a coordinator would take one report a second forever.
-        for _ in 0 ..< 10 {
+        // Ticks a second apart, through the rest of the minute, publish
+        // nothing further — otherwise a coordinator would take one report a
+        // second forever.
+        for second in 1 ..< 60 {
+            now = start.addingTimeInterval(TimeInterval(second))
             model.tick()
         }
         await harness.settle()
         #expect(harness.transport.calls.count == 1)
+
+        // A minute on, the cadence comes round and exactly one more goes out.
+        now = start.addingTimeInterval(60)
+        model.tick()
+        model.tick()
+        await harness.settle()
+        #expect(harness.transport.calls.count == 2)
     }
 
     @Test("Every published version is strictly increasing")
