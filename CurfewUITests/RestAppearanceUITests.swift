@@ -30,37 +30,27 @@ extension CurfewUITests {
         let detail = app.descendants(matching: .any)["settings-page-restScreen"]
         let sharing = app.switches["rest-saver-message"]
         assertOff(sharing, revealingIn: detail)
-        let sunrise = app.switches["rest-sunrise-wake"]
-        assertOff(sunrise, revealingIn: detail)
-        let battery = app.switches["rest-sunrise-battery"]
-        assertOff(battery, revealingIn: detail)
-        let sunriseScreenshot = app.screenshot()
-        let sunriseAttachment = XCTAttachment(screenshot: sunriseScreenshot)
-        sunriseAttachment.name = "curfew-rest-settings-sunrise"
-        sunriseAttachment.lifetime = .keepAlways
-        add(sunriseAttachment)
-        try? sunriseScreenshot.pngRepresentation.write(to: output.appendingPathComponent(
-            "curfew-rest-settings-sunrise.png"
-        ))
     }
 
-    func testRestScreenShowsWakeRequestStatus() {
+    func testSunriseSettingsStartWithWakeOff() {
         let app = launchFixture("settings", state: "ready")
-        let destination = app.descendants(matching: .any)["settings-category-restScreen"]
+        let destination = app.descendants(matching: .any)["settings-category-sunrise"]
         XCTAssertTrue(destination.waitForExistence(timeout: 8))
         destination.click()
-        let detail = app.descendants(matching: .any)["settings-page-restScreen"]
+        let detail = app.descendants(matching: .any)["settings-page-sunrise"]
         XCTAssertTrue(detail.waitForExistence(timeout: 5))
-        let status = app.descendants(matching: .any)["rest-sunrise-status"]
+        assertOff(app.switches["Wake this Mac for Sunrise"], revealingIn: detail)
+        assertOff(app.switches["Allow on battery"], revealingIn: detail)
+        let status = app.staticTexts["Sunrise appears when you first use this Mac in the morning."]
         XCTAssertTrue(
             status.waitForExistence(timeout: 3),
-            "Sunrise must report its request status separately from the opt-in control."
+            "Sunrise must report its wake status separately from the opt-in control."
         )
-        for _ in 0 ..< 6 where !status.isHittable {
-            detail.scroll(byDeltaX: 0, deltaY: -250)
-        }
-        XCTAssertTrue(status.isHittable)
-        XCTAssertEqual(status.label, "Sunrise is off.")
+        let screenshot = app.screenshot()
+        let attachment = XCTAttachment(screenshot: screenshot)
+        attachment.name = "curfew-sunrise-settings"
+        attachment.lifetime = .keepAlways
+        add(attachment)
         // Do not enable wake or launch system services in this disarmed UI contract.
     }
 

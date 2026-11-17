@@ -1,5 +1,19 @@
 # Curfew Implementation TODOs
 
+## Sunrise gate, steps and hooks
+
+Design: the Horizon launch design, "Sunrise", and [rest experience features](rest-experience-features.md) "Sunrise gate". Steps and the picked Shortcut are local to this Mac; no wire or sync format changes.
+
+- [x] Order Sunrise steps (last night's note, the one thing, readiness, the person's own questions), each on or off and required or skippable, with the note never required. Existing morning prompts migrate as steps in their order; prompts added or removed elsewhere join or leave the list.
+- [x] Show the gate at unlock and on the first use of the day after a cold start or relaunch while the morning is unanswered: "Morning.", last night's note, "What is today for?" and "Start the day". Answers save through the morning reflection, so Today (`sunriseOneThingToday`) and the Journal read the one thing. Required steps hold; any non-empty text satisfies them; a gate whose pages cannot be read still offers "Start the day".
+- [x] Plan no wake while Curfew is off or when a night unlocks into a day off, and release the display hold at unlock when there is no gate to show.
+- [x] Run one picked Shortcut after the gate through `/usr/bin/shortcuts`, with the one thing as text input, never blocking release; a failure is mentioned once on Today. App Intents return today's one thing and whether Sunrise is complete.
+- [x] Give Sunrise its own Settings pane (steps, Shortcut, wake, lead, battery, status sentence with a time, auto-shutdown warning) and remove the Sunrise section from Rest Screen settings.
+- [x] Call the morning Sunrise everywhere a person sees it: Journal rows, exports, the command line, Settings and accessibility labels.
+- [ ] Verify on hardware: self-wake from sleep with the installed helper on power and battery, the gate's focus and VoiceOver order on a real lock, Shortcut runs from the signed app, and the release fade.
+
+Rollback: revert the Sunrise commits. Saved steps live under one local defaults key and are ignored by earlier builds; morning prompts and reflections keep their format.
+
 ## Rest customization, native screensaver and Sunrise
 
 Design: [rest experience features](rest-experience-features.md). Delivery: [implementation plan](internal/rest-experience-features-plan.md). Keep appearance local to this Mac, presentation independent of enforcement, and production activation/public installer publication held.

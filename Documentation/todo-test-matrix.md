@@ -48,6 +48,22 @@ The Journal shows what the person did, laid out as the approved prototype (`jour
 | Sample history only in the Debug demo model                                                                  | `JournalDemoWiringTests`                                                                       | None                                                                            |
 | Hover and keyboard detail, VoiceOver reading of each day                                                     | None                                                                                           | Manual: arrow keys through the chart and grid, VoiceOver on the chart and table |
 
+## Sunrise gate
+
+The gate, its steps, the wake rules and the Shortcut runner are covered without native power, XPC or a real Shortcut: every effect is injected.
+
+| Behavior                                                                                                | Contract coverage                                                                                                              | Additional evidence                 |
+| ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------- |
+| Steps: defaults, migration from morning prompts, reconciliation, note never required, storage           | `SunriseStepsTests`                                                                                                            | None                                |
+| Gate pages: note joins the next question, blank questions left out, required and skippable advancing    | `SunriseGatePagesTests`                                                                                                        | `just snapshot` gate renders        |
+| Last night's note and today's one thing from saved reflections                                          | `SunriseDayTests`, `SunriseIntentTests`                                                                                        | None                                |
+| Cold start and relaunch open the gate; an answered morning does not                                     | `SunriseGateTests/coldStartOpensGate`, `coldStartAfterAnswerStaysClosed`                                                       | Real relaunch on hardware           |
+| Answering saves the one thing for Today and the Journal and releases the Mac; empty pages still release | `SunriseGateTests/answeringSavesAndReleases`, `emptyPagesRelease`, `requiredStepHolds`                                         | None                                |
+| No wake while Curfew is off or before a day off; release at unlock without a gate                       | `SunriseGateTests/curfewOffPlansNoWake`, `unlockWithoutGateReleasesHold`, `SunrisePresentationPlanTests/skipsUnlockIntoDayOff` | Self-wake on hardware               |
+| Shortcut listing and running behind an injected launcher; quiet failure notice                          | `SunriseShortcutRunnerTests`, `SunriseGateTests/shortcutRunsAfterRelease`, `shortcutFailureIsQuiet`                            | A real Shortcut from the signed app |
+| Wake status sentence and auto-shutdown warning                                                          | `SunriseWakeStatusCopyTests`                                                                                                   | `just snapshot` settings renders    |
+| Sunrise settings pane reachable and starting with wake off                                              | `SettingsSectionTests`, `CurfewUITests/testSunriseSettingsStartWithWakeOff`                                                    | UI tests run in CI only             |
+
 ## Rest customization, native screensaver and Sunrise
 
 See [the approved feature design](rest-experience-features.md). Preference contracts establish behavioral failing-first coverage before normalization/persistence implementation; the preference, scene and pure wake-planning package contracts pass; rendered and native integration remain required. Missing symbols and setup/compile errors are not behavioral RED. Final acceptance requires actual native and physical verification. The strict lint gate includes changed shared-core policies and package contract tests; behavior-preserving helper extraction retains the same contract suites and public phase spellings.

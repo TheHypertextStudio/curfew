@@ -105,30 +105,6 @@ struct RestScreenSettingsView: View {
                     .accessibilityIdentifier("rest-saver-message")
             }
             RestScreenSaverSetupSection()
-            Section("Sunrise") {
-                Toggle("Automatically wake for Sunrise", isOn: $draft.sunriseWakeEnabled)
-                    .toggleStyle(.switch)
-                    .accessibilityIdentifier("rest-sunrise-wake")
-                Stepper(
-                    "Begin \(draft.sunriseLeadMinutes) minutes before unlock",
-                    value: $draft.sunriseLeadMinutes,
-                    in: 5 ... 60
-                )
-                Toggle("Allow Sunrise on battery", isOn: $draft.sunriseOnBatteryEnabled)
-                    .toggleStyle(.switch)
-                    .accessibilityIdentifier("rest-sunrise-battery")
-                Text(sunriseStatusText)
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel(sunriseStatusText)
-                    .accessibilityIdentifier("rest-sunrise-status")
-                Text(
-                    """
-                    Sunrise follows your scheduled unlock. External power is required \
-                    unless you allow battery use. Your Mac’s usual authentication still applies.
-                    """
-                )
-                .foregroundStyle(CurfewTheme.mutedInk)
-            }
         }
         .pickerStyle(.menu)
         .task(id: draft.ownedImageFilename) {
@@ -255,30 +231,6 @@ struct RestScreenSettingsView: View {
             imageError = nil
         } catch {
             imageError = "The image could not be removed. Your background has been kept."
-        }
-    }
-}
-
-private extension RestScreenSettingsView {
-    var sunriseStatusText: String {
-        guard draft.sunriseWakeEnabled else { return "Sunrise is off." }
-        switch model.sunriseStatus {
-        case .disabled:
-            return "Sunrise is waiting to connect."
-        case .waitingForSchedule:
-            return "Waiting for a scheduled unlock."
-        case .scheduled:
-            return "Wake scheduled for Sunrise."
-        case .dismissed:
-            return "Sunrise was dismissed for this morning."
-        case .displayRequested:
-            return "Sunrise display wake requested."
-        case .helperUnavailable:
-            return "Sunrise needs the Curfew helper. Install or repair it in Protection settings."
-        case .requestRejected:
-            return "The Sunrise wake request was rejected. Check Protection settings."
-        case .batteryExcluded:
-            return "Sunrise is paused on battery. Connect power or allow battery use."
         }
     }
 }

@@ -6,6 +6,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
     case general
     case enforcement
     case restScreen
+    case sunrise
     case presence
     case shutdown
     case protectedWork
@@ -21,7 +22,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
     /// Sidebar groups, in display order. Every section must appear exactly once so no
     /// settings page is reachable only through an in-app handoff.
     static let sidebarGroups: [[Self]] = [
-        [.general, .enforcement, .restScreen, .presence, .shutdown, .protectedWork],
+        [.general, .enforcement, .restScreen, .sunrise, .presence, .shutdown, .protectedWork],
         [.account, .integrations],
         [.advanced, .about]
     ]
@@ -35,6 +36,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
         case .general: "Protection"
         case .enforcement: "Warnings and limits"
         case .restScreen: "Rest screen"
+        case .sunrise: "Sunrise"
         case .presence: "Presence"
         case .shutdown: "Shutdown"
         case .protectedWork: "Protected work"
@@ -50,6 +52,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
         case .general: "shield.lefthalf.filled"
         case .enforcement: "bell"
         case .restScreen: "moon.stars"
+        case .sunrise: "sunrise"
         case .presence: "person.crop.rectangle"
         case .shutdown: "power"
         case .protectedWork: "terminal"
