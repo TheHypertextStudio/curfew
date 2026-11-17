@@ -30,5 +30,6 @@ struct TodayView: View {
             onSaveOneThing: { model.saveTodaysOneThing($0) },
             onResolveAccessibility: { model.requestAccessibilityAccess() }
         )
+        .overlay(alignment: .bottom) { SunriseShortcutNotice() }
     }
 }

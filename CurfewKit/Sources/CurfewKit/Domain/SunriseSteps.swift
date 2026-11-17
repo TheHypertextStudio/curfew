@@ -279,7 +279,10 @@ public enum SunriseGate {
                 }
                 continue
             }
-            guard let prompt else { continue }
+            // A question added but never written has nothing to answer.
+            guard let prompt,
+                  !prompt.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            else { continue }
             pages.append(SunriseGatePage(
                 note: pendingNote, prompt: prompt, isRequired: step.isRequired
             ))

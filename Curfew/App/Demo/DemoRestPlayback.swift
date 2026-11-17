@@ -32,6 +32,9 @@
                 lockDate: lock, unlockDate: unlock
             )
             reflectionState.isEveningReflectionPending = review == .restContinuity
+            if isMorning {
+                prepareSunriseGate(pages: currentSunrisePages())
+            }
             reflectionState.isDaybreakPresented = isMorning
             reflectionState.eveningDraft = ReflectionDraft(prompts: [
                 ReflectionPrompt(
