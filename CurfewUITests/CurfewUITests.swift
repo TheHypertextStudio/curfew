@@ -278,7 +278,10 @@ extension CurfewUITests {
         use.click()
         XCTAssertTrue(app.staticTexts["Let Curfew hold the lock."].waitForExistence(timeout: 3))
         XCTAssertTrue(app.staticTexts["Step 2 of 3"].exists)
-        XCTAssertFalse(app.buttons["Continue"].isEnabled)
+        // The demo fixture already trusts Accessibility, so setup holds on
+        // step 2 with Continue enabled and the optional rows still offered.
+        XCTAssertTrue(app.buttons["Continue"].isEnabled)
+        XCTAssertTrue(app.buttons["Skip notifications"].exists)
         app.buttons["Back"].click()
         XCTAssertTrue(app.staticTexts["Step 1 of 3"].waitForExistence(timeout: 3))
     }

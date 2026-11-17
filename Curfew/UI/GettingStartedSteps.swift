@@ -101,6 +101,10 @@ struct GettingStartedPermissionsStep: View {
     let helperStatus: SetupHelperStatus
     let showsHelper: Bool
     let accessibilityGranted: Bool
+    let notificationsSkipped: Bool
+    let helperSkipped: Bool
+    let onSkipNotifications: () -> Void
+    let onSkipHelper: () -> Void
     let onAllowNotifications: () -> Void
     let onInstallHelper: () -> Void
     let onApproveHelper: () -> Void
@@ -131,10 +135,17 @@ struct GettingStartedPermissionsStep: View {
                 isOptional: true
             ) {
                 switch notificationStatus {
+                case .notAsked where notificationsSkipped:
+                    GettingStartedStatus(text: "Skipped", done: false)
                 case .notAsked:
-                    Button("Allow", action: onAllowNotifications)
-                        .buttonStyle(GettingStartedSecondaryButtonStyle())
-                        .accessibilityLabel("Allow notifications")
+                    HStack(spacing: GettingStartedLayout.spacing12) {
+                        Button("Skip", action: onSkipNotifications)
+                            .buttonStyle(GettingStartedLinkButtonStyle())
+                            .accessibilityLabel("Skip notifications")
+                        Button("Allow", action: onAllowNotifications)
+                            .buttonStyle(GettingStartedSecondaryButtonStyle())
+                            .accessibilityLabel("Allow notifications")
+                    }
                 case .allowed:
                     GettingStartedStatus(text: "Allowed", done: true)
                 case .off:
@@ -158,10 +169,17 @@ struct GettingStartedPermissionsStep: View {
     @ViewBuilder
     private var helperControl: some View {
         switch helperStatus {
+        case .notInstalled where helperSkipped, .failed where helperSkipped:
+            GettingStartedStatus(text: "Skipped", done: false)
         case .notInstalled:
-            Button("Install", action: onInstallHelper)
-                .buttonStyle(GettingStartedSecondaryButtonStyle())
-                .accessibilityLabel("Install the Curfew helper")
+            HStack(spacing: GettingStartedLayout.spacing12) {
+                Button("Skip", action: onSkipHelper)
+                    .buttonStyle(GettingStartedLinkButtonStyle())
+                    .accessibilityLabel("Skip the Curfew helper")
+                Button("Install", action: onInstallHelper)
+                    .buttonStyle(GettingStartedSecondaryButtonStyle())
+                    .accessibilityLabel("Install the Curfew helper")
+            }
         case .failed:
             Button("Try again", action: onInstallHelper)
                 .buttonStyle(GettingStartedSecondaryButtonStyle())

@@ -122,7 +122,11 @@ struct SetupHealthTests {
 
     @Test("A fresh install that finished setup without the helper is healthy")
     func absentHelperIsHealthy() {
-        let store = SetupModelFactory.store { $0.hasCompletedInitialSetup = true }
+        // No locking day, so the result does not depend on the time the test runs.
+        let store = SetupModelFactory.store {
+            $0.hasCompletedInitialSetup = true
+            $0.schedule = .allDaysOff
+        }
         let model = SetupModelFactory.model(
             store: store,
             trusted: true,
@@ -139,7 +143,11 @@ struct SetupHealthTests {
 
     @Test("A helper that was installed and then broke is still reported")
     func brokenHelperIsStillDetected() {
-        let store = SetupModelFactory.store { $0.hasCompletedInitialSetup = true }
+        // No locking day, so the result does not depend on the time the test runs.
+        let store = SetupModelFactory.store {
+            $0.hasCompletedInitialSetup = true
+            $0.schedule = .allDaysOff
+        }
         let model = SetupModelFactory.model(
             store: store,
             trusted: true,

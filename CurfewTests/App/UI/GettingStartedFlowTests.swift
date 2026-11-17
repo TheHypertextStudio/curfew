@@ -56,15 +56,28 @@ struct GettingStartedFlowTests {
         #expect(!flow.canAdvance)
     }
 
-    @Test("A fresh grant while waiting on step 2 asks setup to continue, once")
+    @Test("A fresh grant advances by itself, once, when both optional rows are resolved")
     func grantWhileWaitingContinues() {
         var flow = FirstRunFlow()
         flow.chooseSchedule(.weeklySchedule)
+        flow.updateOptionalPermissions(resolved: true)
 
         let firstGrant = flow.updateAccessibilityGranted(true)
         #expect(firstGrant)
         let repeatGrant = flow.updateAccessibilityGranted(true)
         #expect(!repeatGrant)
+    }
+
+    @Test("A fresh grant holds on step 2 while an optional row is unresolved")
+    func grantHoldsForOptionalRows() {
+        var flow = FirstRunFlow()
+        flow.chooseSchedule(.weeklySchedule)
+
+        let grant = flow.updateAccessibilityGranted(true)
+
+        #expect(!grant)
+        #expect(flow.currentStep == .permissions)
+        #expect(flow.canAdvance)
     }
 
     @Test("Access that was already granted does not skip step 2 by itself")
