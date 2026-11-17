@@ -144,7 +144,8 @@ extension CurfewAppModel {
             extensionMinutesGrantedToday: extensionMinutesGrantedToday + snoozeMinutesGrantedToday,
             overrideUntil: accountReleaseOverrideUntil() ?? overrideUntil,
             warningIntervals: settings.warningIntervals,
-            workedMinutesToday: workedMinutesToday(at: currentTime)
+            workedMinutesToday: workedMinutesToday(at: currentTime),
+            lockoutStartedAt: activeLockoutStartedAt
         )
         retainScheduledRestInterval(from: newState)
         if state != newState {

@@ -27,6 +27,15 @@ private let durableLockoutLogger = Logger(
 extension CurfewAppModel {
     static let privilegedHeartbeatInterval: TimeInterval = 30
 
+    /// When the lockout in force began, while its durable record still holds.
+    /// The engine pins a spent hours budget to it, so the lock time stays
+    /// where curfew started for the whole lock and across a relaunch.
+    var activeLockoutStartedAt: Date? {
+        guard let record = lockoutDeadlineStore.load(),
+              currentTime < record.scheduledUnlockAt else { return nil }
+        return record.lockoutStartedAt
+    }
+
     /// Single entry point the tick loop calls to keep the durable record
     /// aligned. Combines the two checks (enforce / clear-on-natural-unlock)
     /// so the tick body stays inside its lint-enforced length budget.
@@ -230,7 +239,8 @@ extension CurfewAppModel {
             extensionMinutesGrantedToday + snoozeMinutesGrantedToday,
             overrideUntil: currentTime,
             warningIntervals: settings.warningIntervals,
-            workedMinutesToday: workedMinutesToday(at: currentTime)
+            workedMinutesToday: workedMinutesToday(at: currentTime),
+            lockoutStartedAt: activeLockoutStartedAt
         )
         guard featureFlags.privilegedHelperEnabled else {
             clearAcknowledgedWakeDeadline(record)
