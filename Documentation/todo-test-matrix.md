@@ -73,7 +73,7 @@ The year range's time card is worked out from the day records by `JournalYearRev
 | Threshold, the three headlines, footer counts, spoken summary, no written words, export size and name         | `JournalYearReviewTests`          | `curfew-time-card-*` exports                                 |
 | Calendar punches: a slot per working day, week order, weekend and seven-day workers, July band, month labels  | `JournalTimeCardTests` (calendar) | `curfew-time-card-*-calendar`                                |
 | Skyline punches: self-ended evenings only, curfew gutter, 5, 10 or 15 minute bins, peaky years, clamped tails | `JournalTimeCardTests` (skyline)  | `curfew-time-card-*-skyline`                                 |
-| Choices: defaults follow appearance and theme sky, explicit choices hold, persistence, shuffle                | `JournalTimeCardTests` (choices)  | `curfew-journal-time-card-*` at rest, lifted and customizing |
+| Choices: defaults follow appearance and theme sky, explicit choices hold, persistence, shuffle, sky swatches  | `JournalTimeCardTests` (choices)  | `curfew-journal-time-card-*` at rest, lifted and customizing |
 | Editing, drag, Share, Copy and Save, hover lift, Reduce Motion, VoiceOver and keyboard                        | None                              | Manual in the running app; snapshots draw no Liquid Glass    |
 
 ## Sunrise gate

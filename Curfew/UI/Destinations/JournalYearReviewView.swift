@@ -25,7 +25,8 @@ struct JournalYearReviewView: View {
 /// The stage: a surface that contrasts with the card's stock, the card
 /// floating on it, and two actions under it. Customize turns the stage into
 /// an editing state in place, like editing a widget: the card settles and a
-/// gallery of live miniatures appears under the actions.
+/// panel of options appears beside it, or under it on a narrow stage. The
+/// card is the only preview and changes as each option does.
 struct JournalTimeCardStage: View {
     let card: JournalYearReview.Card
     /// Draws the hover lift without a pointer, for snapshots.
@@ -68,21 +69,30 @@ struct JournalTimeCardStage: View {
     }
 
     var body: some View {
-        VStack(spacing: CurfewSpacing.xLarge) {
-            cardObject
-            actions
+        Group {
             if isCustomizing {
-                JournalTimeCardGallery(card: card, style: style, choose: choose)
-                    .transition(
-                        reduceMotion ? .opacity
-                            : .opacity.combined(with: .move(edge: .bottom))
-                            .combined(with: .scale(scale: 0.98, anchor: .top))
-                    )
+                // Beside the card when the stage is wide enough, centred
+                // as a pair; under it when not.
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .center, spacing: CurfewSpacing.xxLarge) {
+                        cardObject
+                        options
+                    }
+                    VStack(spacing: CurfewSpacing.xLarge) {
+                        cardObject
+                        options
+                    }
+                }
+            } else {
+                VStack(spacing: CurfewSpacing.xLarge) {
+                    cardObject
+                    actions
+                }
             }
         }
         .padding(.horizontal, CurfewSpacing.xLarge)
         .padding(.top, CurfewSpacing.xxLarge)
-        .padding(.bottom, CurfewSpacing.xLarge)
+        .padding(.bottom, isCustomizing ? CurfewSpacing.xxLarge : CurfewSpacing.xLarge)
         .frame(maxWidth: .infinity)
         .background(
             ink.stage,
@@ -151,35 +161,30 @@ struct JournalTimeCardStage: View {
 
     private static let actionWidth: CGFloat = 116
 
+    private var options: some View {
+        JournalTimeCardOptions(
+            style: style,
+            choose: choose,
+            shuffle: shuffle,
+            done: { setCustomizing(false) }
+        )
+        .transition(reduceMotion ? .opacity : .opacity.combined(with: .scale(scale: 0.96)))
+    }
+
     private var actions: some View {
         HStack(spacing: CurfewSpacing.small) {
-            if isCustomizing {
-                Button(action: shuffle) {
-                    Label("Shuffle", systemImage: "shuffle")
-                        .frame(minWidth: Self.actionWidth)
-                }
-                .buttonStyle(JournalTimeCardActionStyle())
-                .help("Try a random card")
-                Button { setCustomizing(false) } label: {
-                    Label("Done", systemImage: "checkmark")
-                        .frame(minWidth: Self.actionWidth)
-                }
-                .buttonStyle(JournalTimeCardActionStyle(prominent: true))
-                .keyboardShortcut(.defaultAction)
-            } else {
-                Button { setCustomizing(true) } label: {
-                    Label("Customize", systemImage: "paintbrush.pointed")
-                        .frame(minWidth: Self.actionWidth)
-                }
-                .buttonStyle(JournalTimeCardActionStyle())
-                .help("Choose the stock, sky, punches and headline")
-                ShareLink(item: image, preview: preview) {
-                    Label("Share", systemImage: "square.and.arrow.up")
-                        .frame(minWidth: Self.actionWidth)
-                }
-                .buttonStyle(JournalTimeCardActionStyle(prominent: true))
-                .help("Share the time card as an image")
+            Button { setCustomizing(true) } label: {
+                Label("Customize", systemImage: "paintbrush.pointed")
+                    .frame(minWidth: Self.actionWidth)
             }
+            .buttonStyle(JournalTimeCardActionStyle())
+            .help("Choose the stock, sky, punches and headline")
+            ShareLink(item: image, preview: preview) {
+                Label("Share", systemImage: "square.and.arrow.up")
+                    .frame(minWidth: Self.actionWidth)
+            }
+            .buttonStyle(JournalTimeCardActionStyle(prominent: true))
+            .help("Share the time card as an image")
         }
         .labelStyle(.titleAndIcon)
         .fixedSize()
