@@ -15,6 +15,10 @@ final class SunriseModelRuntime {
     var status: SunriseWakeCoordinator.Status = .disabled
     /// The wake the last reconcile resolved, for the settings status line.
     var plan: SunriseWakePlan?
+    /// Whether this Mac has a lid and a battery. Read once; tests set it.
+    var hardware = SunriseHardware.resolve(IOKitSunriseHardwareProvider())
+    /// The step open for editing in Sunrise settings.
+    var editingStep: SunriseStepKind?
 
     var preferences = SunrisePreferences()
 
@@ -111,7 +115,9 @@ extension CurfewAppModel {
         await coordinator.reconcile(
             plan: plan, enabled: preferences.sunriseWakeEnabled,
             batteryOptIn: preferences.sunriseOnBatteryEnabled,
-            onExternalPower: sunriseOnExternalPower(), now: currentTime
+            // A Mac without a battery is always on power.
+            onExternalPower: !sunriseRuntime.hardware.hasBattery || sunriseOnExternalPower(),
+            now: currentTime
         )
         guard sunriseWakeCoordinator === coordinator, !isDemoSession else { return }
         if sunriseStatus != coordinator.status {
@@ -188,11 +194,14 @@ extension CurfewAppModel {
 
     /// Adds one of the person's own questions: a morning prompt (so answers
     /// keep their identity in the Journal) and a skippable step at the end.
-    func addSunriseQuestion(_ text: String) {
+    @discardableResult
+    func addSunriseQuestion(_ text: String) -> UUID {
         var configuration = reflectionConfiguration
-        configuration.morningPrompts.append(ReflectionPrompt(text: text, kind: .text))
+        let prompt = ReflectionPrompt(text: text, kind: .text)
+        configuration.morningPrompts.append(prompt)
         updateReflectionConfiguration(configuration)
         updateSunriseSteps(sunriseSteps)
+        return prompt.id
     }
 
     func renameSunriseQuestion(_ id: UUID, to text: String) {
@@ -204,6 +213,9 @@ extension CurfewAppModel {
     }
 
     func removeSunriseQuestion(_ id: UUID) {
+        if sunriseRuntime.editingStep == .question(id) {
+            sunriseRuntime.editingStep = nil
+        }
         var configuration = reflectionConfiguration
         configuration.morningPrompts.removeAll { $0.id == id }
         updateReflectionConfiguration(configuration)

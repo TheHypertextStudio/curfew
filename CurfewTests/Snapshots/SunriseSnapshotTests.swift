@@ -114,46 +114,77 @@ import CurfewKit
             try renderRest(custom, named: "sunrise-gate-question")
         }
 
-        func testRenderSunriseSettings() throws {
+        private func renderSunrisePane(
+            _ model: CurfewAppModel, named name: String, dark: Bool = true
+        ) throws {
             let directory = try Self.snapshotsDirectory()
+            for appearance in dark ? [NSAppearance.Name.aqua, .darkAqua] : [.aqua] {
+                let suffix = appearance == .darkAqua ? "-dark" : ""
+                try renderHosted(
+                    SettingsView(initialSection: .sunrise).environment(model),
+                    named: "\(name)\(suffix)", width: 900, height: 1300, settlingTime: 0.4,
+                    appearance: appearance, to: directory
+                )
+            }
+        }
+
+        private func sunrisePaneModel(hardware: SunriseHardware, shortcuts: Bool = true)
+            -> CurfewAppModel {
             let model = Self.demoModel()
             model.automaticScheduleEnabled = true
             model.settings.autoShutdownEnabled = false
-            for appearance in [NSAppearance.Name.aqua, .darkAqua] {
-                let suffix = appearance == .darkAqua ? "-dark" : ""
-                try renderHosted(
-                    SettingsView(initialSection: .sunrise).environment(model),
-                    named: "sunrise-settings-wake-off\(suffix)", width: 900, height: 900,
-                    appearance: appearance, to: directory
+            model.sunriseRuntime.hardware = hardware
+            model.sunriseRuntime.shortcutRunner = SunriseShortcutRunner(
+                launcher: RecordingShortcutLauncher(
+                    status: 0,
+                    output: shortcuts ? "Plan my day (1A2B3C4D-0000-0000-0000-000000000001)" : ""
                 )
-            }
-
-            model.updateSunriseWake(enabled: true)
-            model.setSunriseShortcut(SunriseShortcut(identifier: "A", name: "Plan my day"))
-            model.sunriseRuntime.plan = SunriseWakePlanner(owner: "snapshot").presentationPlan(
-                schedule: model.settings.schedule, appearance: model.restAppearance,
-                at: model.currentTime, calendar: .current
             )
-            model.sunriseStatus = .scheduled
-            for appearance in [NSAppearance.Name.aqua, .darkAqua] {
-                let suffix = appearance == .darkAqua ? "-dark" : ""
-                try renderHosted(
-                    SettingsView(initialSection: .sunrise).environment(model),
-                    named: "sunrise-settings-wake-on\(suffix)", width: 900, height: 900,
-                    appearance: appearance, to: directory
-                )
-            }
+            return model
+        }
 
-            model.settings.autoShutdownEnabled = true
-            model.sunriseStatus = .helperUnavailable
-            for appearance in [NSAppearance.Name.aqua, .darkAqua] {
-                let suffix = appearance == .darkAqua ? "-dark" : ""
-                try renderHosted(
-                    SettingsView(initialSection: .sunrise).environment(model),
-                    named: "sunrise-settings-blocked\(suffix)", width: 900, height: 900,
-                    appearance: appearance, to: directory
+        func testRenderSunriseSettings() throws {
+            // At rest, on a Mac with a lid and battery and on one with neither.
+            let laptop = sunrisePaneModel(hardware: .laptop)
+            try renderSunrisePane(laptop, named: "sunrise-settings-laptop")
+            let desktop = sunrisePaneModel(hardware: .desktop)
+            try renderSunrisePane(desktop, named: "sunrise-settings-desktop")
+
+            // Wake on and scheduled, with a Shortcut picked.
+            desktop.updateSunriseWake(enabled: true)
+            desktop.setSunriseShortcut(
+                SunriseShortcut(
+                    identifier: "1A2B3C4D-0000-0000-0000-000000000001",
+                    name: "Plan my day"
                 )
-            }
+            )
+            desktop.sunriseRuntime.plan = SunriseWakePlanner(owner: "snapshot").presentationPlan(
+                schedule: desktop.settings.schedule, appearance: desktop.restAppearance,
+                at: desktop.currentTime, calendar: .current
+            )
+            desktop.sunriseStatus = .scheduled
+            try renderSunrisePane(desktop, named: "sunrise-settings-wake-on")
+
+            // Blocked: no helper, and auto-shutdown on.
+            laptop.updateSunriseWake(enabled: true)
+            laptop.settings.autoShutdownEnabled = true
+            laptop.sunriseStatus = .helperUnavailable
+            try renderSunrisePane(laptop, named: "sunrise-settings-blocked")
+
+            // A row open, and a question being added.
+            let open = sunrisePaneModel(hardware: .desktop)
+            open.sunriseRuntime.editingStep = .oneThing
+            try renderSunrisePane(open, named: "sunrise-settings-row-open")
+            let adding = sunrisePaneModel(hardware: .desktop)
+            let id = adding.addSunriseQuestion("")
+            adding.sunriseRuntime.editingStep = .question(id)
+            try renderSunrisePane(adding, named: "sunrise-settings-adding")
+
+            // No Shortcuts on this Mac.
+            try renderSunrisePane(
+                sunrisePaneModel(hardware: .desktop, shortcuts: false),
+                named: "sunrise-settings-no-shortcuts"
+            )
         }
     }
 #endif
