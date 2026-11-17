@@ -215,7 +215,7 @@ struct ContentView: View {
 }
 
 /// Main application window — `NavigationSplitView` whose detail column carries
-/// `.backgroundExtensionEffect()` on the `SundownSky` view. This is the
+/// `.backgroundExtensionEffect()` on the `HorizonSkyView`. This is the
 /// macOS 26 public API for bleeding a detail-column background behind the
 /// floating sidebar glass: the system mirrors and blurs the sky into the
 /// sidebar's safe-area edge so the `NSGlassEffectView` that backs the sidebar
@@ -245,7 +245,9 @@ struct MainWindowView: View {
             .navigationTitle("Curfew")
             .listStyle(.sidebar)
             .scrollContentBackground(.hidden)
-            // The system sidebar is already Liquid Glass; nothing is laid under it.
+            // One opaque adaptive surface. A translucent material here lets the desktop
+            // show through behind the selected row and fails the native contrast audit.
+            .background(CurfewTheme.canvasStrong.ignoresSafeArea())
             .navigationSplitViewColumnWidth(min: 220, ideal: 248, max: 340)
         } detail: {
             // Each destination owns its own background now — Today's composed sky
