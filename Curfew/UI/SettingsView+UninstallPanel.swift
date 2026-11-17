@@ -77,7 +77,7 @@ extension SettingsView {
         alert.alertStyle = .warning
         alert.messageText = "Curfew couldn’t be uninstalled."
         alert.informativeText = model.privilegedHelperManager.lastError
-            ?? "Background protection must be removed before Curfew can delete its saved data."
+            ?? "The Curfew helper has to be removed before Curfew can delete its saved data."
         alert.addButton(withTitle: "OK")
         alert.runModal()
     }

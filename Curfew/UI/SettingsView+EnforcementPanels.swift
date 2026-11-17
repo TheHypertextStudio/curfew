@@ -47,16 +47,16 @@ extension SettingsView {
     var extensionsPanel: some View {
         @Bindable var model = model
         return Section {
-            CurfewSectionTitle(title: "Extensions and Overrides")
+            CurfewSectionTitle(title: "More time and overrides")
 
             allowanceControls(
-                title: "Extensions", detail: "Delay scheduled lockout.",
+                title: "More time", detail: "Pushes curfew back.",
                 weeklyLimit: $model.settings.extensionWeeklyLimit,
                 duration: $model.settings.extensionDurationMinutes,
                 minimumDuration: 5
             )
             allowanceControls(
-                title: "Overrides", detail: "Temporarily unlock during lockout.",
+                title: "Overrides", detail: "Gets you back in after the lock.",
                 weeklyLimit: $model.settings.overrideWeeklyLimit,
                 duration: $model.settings.overrideDurationMinutes,
                 minimumDuration: 15
@@ -64,14 +64,14 @@ extension SettingsView {
 
             Divider()
 
-            Picker("Weekly reset day", selection: $model.settings.resetWeekday) {
+            Picker("Week starts on", selection: $model.settings.resetWeekday) {
                 ForEach(Weekday.allCases) { weekday in
                     Text(weekday.shortName).tag(weekday)
                 }
             }
             .pickerStyle(.segmented)
 
-            Text("Extension and override budgets refresh on this day each week.")
+            Text("More time and overrides refill on this day.")
                 .font(CurfewTypography.body(13))
                 .foregroundStyle(CurfewTheme.mutedInk)
                 .fixedSize(horizontal: false, vertical: true)
@@ -105,7 +105,8 @@ extension SettingsView {
         .padding(.vertical, 4)
     }
 
-    /// Five steppers for the T-30 / T-15 / T-5 / T-2 / T-1 warning stages.
+    /// Five steppers for the five warning stages, kept behind one disclosure
+    /// because the stored model has five independent times.
     ///
     /// Each stepper's range is constrained so the relative ordering
     /// (earlier → later) is preserved without the user having to think
@@ -114,14 +115,9 @@ extension SettingsView {
     /// persisting.
     var warningPanel: some View {
         Section {
-            CurfewSectionTitle(title: "Warning Intervals")
+            CurfewSectionTitle(title: "Warnings")
 
-            let intervals = model.settings.warningIntervals
-            let minutes = [
-                intervals.thirtyMinutes, intervals.fifteenMinutes, intervals.fiveMinutes,
-                intervals.twoMinutes, intervals.oneMinute
-            ].map(String.init).joined(separator: ", ")
-            Text("Warnings before lockout: \(minutes) min")
+            Text(SettingsCopy.warningSummary(model.settings.warningIntervals))
                 .font(CurfewTypography.body(13))
                 .foregroundStyle(CurfewTheme.mutedInk)
                 .fixedSize(horizontal: false, vertical: true)
@@ -134,7 +130,7 @@ extension SettingsView {
 
     private var warningControls: some View {
         VStack(alignment: .leading, spacing: CurfewSpacing.medium) {
-            Text("Time before lockout")
+            Text("Minutes before curfew")
                 .font(CurfewTypography.label())
                 .foregroundStyle(CurfewTheme.mutedInk)
             SettingsValueRow(
@@ -174,30 +170,60 @@ extension SettingsView {
     var shutdownPanel: some View {
         @Bindable var model = model
         return Section {
-            CurfewSectionTitle(title: "Automatic Shutdown")
+            CurfewSectionTitle(title: "Shut down after curfew")
             switch ShutdownPanelState.resolve(isAvailable: SystemShutdownController.isAvailable) {
             case .available:
                 SettingsToggleRow(
-                    title: "Enable auto shutdown",
-                    isOn: $model.settings.autoShutdownEnabled
+                    title: "Shut down this Mac after curfew",
+                    isOn: Binding(
+                        get: { model.settings.autoShutdownEnabled },
+                        set: { enabled in
+                            model.settings.autoShutdownEnabled = enabled
+                            if enabled { askForShutdownPermission() }
+                        }
+                    )
                 )
 
                 SettingsValueRow(
-                    title: "Shutdown delay", value: $model.settings.autoShutdownDelayMinutes,
+                    title: "Wait before shutting down",
+                    value: $model.settings.autoShutdownDelayMinutes,
                     range: 1 ... 60, usesMinutes: true
                 )
                 .disabled(!model.settings.autoShutdownEnabled)
 
-                Text(ShutdownPanelState.availableExplanation)
+                Text(SettingsCopy.shutdownPermissionReason)
                     .font(CurfewTypography.body(13))
                     .foregroundStyle(CurfewTheme.mutedInk)
                     .fixedSize(horizontal: false, vertical: true)
+                if shutdownPermission == .denied {
+                    HStack(spacing: 10) {
+                        Label(SettingsCopy.shutdownPermissionDenied,
+                              systemImage: "exclamationmark.triangle.fill")
+                            .font(CurfewTypography.body(13))
+                            .foregroundStyle(CurfewTheme.warning)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Spacer(minLength: 8)
+                        Button("Open Automation settings") {
+                            ShutdownAutomationPermission.openSystemSettings()
+                        }
+                        .buttonStyle(CurfewSecondaryButtonStyle())
+                    }
+                }
             case .unavailable(let message):
                 Text(message)
                     .font(CurfewTypography.body(13))
                     .foregroundStyle(CurfewTheme.mutedInk)
                     .fixedSize(horizontal: false, vertical: true)
             }
+        }
+    }
+
+    /// Asks macOS for Automation access the moment shutdown is switched on,
+    /// so the prompt never first appears at night during a real shutdown.
+    func askForShutdownPermission() {
+        guard !model.isDemoSession else { return }
+        Task {
+            shutdownPermission = await ShutdownAutomationPermission.request()
         }
     }
 

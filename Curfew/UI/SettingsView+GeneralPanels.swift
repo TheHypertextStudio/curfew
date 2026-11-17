@@ -2,7 +2,14 @@ import CurfewKit
 import SwiftUI
 
 extension SettingsView {
+    @ViewBuilder
     var advancedPanel: some View {
+        if SettingsDeveloperDetail.isVisible {
+            assistantDiagnosticsPanel
+        }
+    }
+
+    private var assistantDiagnosticsPanel: some View {
         @Bindable var model = model
         return Section {
             Toggle("Local HTTP server", isOn: $model.settings.mcpHTTPEnabled)
@@ -29,7 +36,7 @@ extension SettingsView {
     var setupPanel: some View {
         if !model.settings.hasCompletedInitialSetup {
             Section("Setup") {
-                Text("Finish setup before Curfew can enforce your schedule.")
+                Text("Finish setup and Curfew starts keeping your schedule.")
                     .foregroundStyle(CurfewTheme.mutedInk)
             }
         }

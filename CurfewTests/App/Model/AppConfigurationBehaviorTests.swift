@@ -374,7 +374,7 @@ struct SettingsSectionTests {
     @Test("Settings uses task-based navigation while retaining stored identifiers")
     func sectionSet() {
         #expect(SettingsSection.allCases.map(\.title) == [
-            "Protection", "Lockout", "Rest Screen", "Presence", "Shutdown", "Protected Work",
+            "Protection", "Warnings and limits", "Rest screen", "Presence", "Shutdown", "Protected work",
             "Account", "Integrations", "Advanced", "About"
         ])
         #expect(SettingsSection.enforcement.rawValue == "enforcement")
