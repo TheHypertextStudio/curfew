@@ -53,7 +53,11 @@ struct CurfewWidgetPresentationTests {
             let presentation = CurfewWidgetPresentation(
                 phase: phase, minutesRemaining: 30, lockDate: Date(), unlockDate: Date()
             )
-            for text in [presentation.headline, presentation.line, presentation.accessibilityLabel] {
+            for text in [
+                presentation.headline,
+                presentation.line,
+                presentation.accessibilityLabel
+            ] {
                 for banned in ["enforcement", "Warning", "T-", "streak", "lockout"] {
                     #expect(!text.contains(banned), "\(text)")
                 }

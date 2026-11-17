@@ -37,27 +37,27 @@ struct CurfewWidgetPresentation: Equatable {
         case .working, .warning:
             let minutes = max(0, minutesRemaining)
             let countdown = Self.countdown(minutes: minutes)
-            headline = countdown
-            headlineIsCountdown = true
+            self.headline = countdown
+            self.headlineIsCountdown = true
             if let lockDate {
-                line = "until curfew at \(timeFormatter(lockDate))"
+                self.line = "until curfew at \(timeFormatter(lockDate))"
             } else {
-                line = "until curfew"
+                self.line = "until curfew"
             }
-            sunHeight = min(1, Double(minutes) / Double(Self.dayLengthMinutes))
-            accessibilityLabel = "\(Self.spokenDuration(minutes: minutes)) \(line)."
+            self.sunHeight = min(1, Double(minutes) / Double(Self.dayLengthMinutes))
+            self.accessibilityLabel = "\(Self.spokenDuration(minutes: minutes)) \(line)."
         case .locked:
-            headline = "That's the day."
-            headlineIsCountdown = false
-            line = unlockDate.map { "Unlocks at \(timeFormatter($0))" } ?? "Locked"
-            sunHeight = nil
-            accessibilityLabel = "Locked. \(line)."
+            self.headline = "That's the day."
+            self.headlineIsCountdown = false
+            self.line = unlockDate.map { "Unlocks at \(timeFormatter($0))" } ?? "Locked"
+            self.sunHeight = nil
+            self.accessibilityLabel = "Locked. \(line)."
         case .dayOff:
-            headline = "Day off"
-            headlineIsCountdown = false
-            line = "No curfew today."
-            sunHeight = 1
-            accessibilityLabel = "Day off. No curfew today."
+            self.headline = "Day off"
+            self.headlineIsCountdown = false
+            self.line = "No curfew today."
+            self.sunHeight = 1
+            self.accessibilityLabel = "Day off. No curfew today."
         }
     }
 
@@ -117,7 +117,12 @@ struct CurfewHorizonGlyph: View {
                 width: radius * 2, height: radius * 2
             ))
             // The line hides whatever part of the sun has set below it.
-            context.clip(to: Path(CGRect(x: 0, y: 0, width: size.width, height: lineY - lineWidth / 2)))
+            context.clip(to: Path(CGRect(
+                x: 0,
+                y: 0,
+                width: size.width,
+                height: lineY - lineWidth / 2
+            )))
             context.fill(sun, with: .color(CurfewWidgetPalette.ember))
         }
         .accessibilityHidden(true)

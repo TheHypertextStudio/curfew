@@ -17,7 +17,8 @@ enum ScheduleSurfaceCopy {
     static let scheduleOffTitle = "Schedule is off"
     static let scheduleOffBody = "Nothing locks on its own until you turn the weekly schedule on."
     static let turnOnSchedule = "Turn on weekly schedule"
-    static let pendingBeforeTurningOn = "A change is waiting to apply. Turn the schedule on after it does."
+    static let pendingBeforeTurningOn =
+        "A change is waiting to apply. Turn the schedule on after it does."
 
     static let immediateLockTitle = "Curfew starts right away"
     static let immediateLockBody =

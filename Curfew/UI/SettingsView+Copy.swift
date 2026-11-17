@@ -4,8 +4,8 @@ import Foundation
 /// Settings sentences that are built from values, kept here so they can be
 /// tested and read in one place.
 enum SettingsCopy {
-    static let shutdownPermissionReason =
-        "Curfew shuts this Mac down through System Events, so macOS asks for permission when you turn this on."
+    static let shutdownPermissionReason = "Curfew shuts this Mac down through System Events, "
+        + "so macOS asks for permission when you turn this on."
     static let shutdownPermissionDenied =
         "macOS won't let Curfew shut this Mac down yet."
 
@@ -31,4 +31,24 @@ enum SettingsDeveloperDetail {
     static func resolve(flavor: CurfewFlavor, environment: [String: String]) -> Bool {
         flavor == .development || environment["CURFEW_DIAGNOSTICS"] == "1"
     }
+}
+
+/// Words for the questions editor. Morning questions belong to Sunrise;
+/// evening questions are asked at curfew.
+enum ReflectionPromptsCopy {
+    static let gatesTitle = "Questions"
+    static let gatesSubtitle = "Curfew asks at Sunrise and again at curfew. You can skip either."
+    static let askAtSunrise = "Ask at Sunrise"
+    static let askAtCurfew = "Ask at curfew"
+    static let sunriseTitle = "Sunrise questions"
+    static let sunriseSubtitle = "Asked before the day starts."
+    static let curfewTitle = "Curfew questions"
+    static let curfewSubtitle = "Asked when this Mac locks."
+    static let defaultsTitle = "Default questions"
+    static let defaultsSubtitle = "Start over with the questions Curfew comes with."
+    static let restoreButton = "Restore defaults…"
+    static let restoreTitle = "Replace your questions with the defaults?"
+    static let restoreMessage = "Every question you wrote or changed is replaced, "
+        + "and both switches turn back on. This can't be undone."
+    static let restoreConfirm = "Replace questions"
 }
