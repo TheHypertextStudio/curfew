@@ -217,7 +217,7 @@ struct ContentView: View {
 }
 
 /// Main application window — `NavigationSplitView` whose detail column carries
-/// `.backgroundExtensionEffect()` on the `SundownSky` view. This is the
+/// `.backgroundExtensionEffect()` on the `HorizonSkyView`. This is the
 /// macOS 26 public API for bleeding a detail-column background behind the
 /// floating sidebar glass: the system mirrors and blurs the sky into the
 /// sidebar's safe-area edge so the `NSGlassEffectView` that backs the sidebar

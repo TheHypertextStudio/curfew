@@ -28,7 +28,9 @@ struct GettingStartedLockPreviewView: View {
                 reduceMotion: reduceMotion,
                 reduceTransparency: reduceTransparency,
                 showsClock: false
-            )
+            ) { frame, drifts in
+                HorizonSkyView(frame: frame, isDayRunning: drifts)
+            }
             VStack(spacing: GettingStartedLayout.spacing16) {
                 Text(content.curfew, style: .time)
                     .font(.system(size: 96, weight: .semibold, design: .rounded))
