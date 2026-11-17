@@ -144,9 +144,11 @@ struct JournalPatternsPresentation: Equatable {
         switch verdict {
         case .earned(let finding):
             JournalPatternCard(
-                sentence: "You ended \(JournalFormat.count(finding.stoppedBeforeCurfew, "day")) "
-                    + "yourself. The lock ended \(finding.endedByLock). "
-                    + (finding.ranOver > 0 ? "\(finding.ranOver) ran over." : "None ran over."),
+                sentence: JournalCountWords.endings(
+                    early: finding.stoppedBeforeCurfew,
+                    lock: finding.endedByLock,
+                    over: finding.ranOver
+                ),
                 note: "From \(JournalFormat.count(finding.days, "day")) with a stop time.",
                 isEarned: true
             )

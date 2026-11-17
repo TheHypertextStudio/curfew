@@ -85,7 +85,7 @@ final class MarketingCaptureTests: XCTestCase {
                         }
                     }
                     if scenario == "this-week" {
-                        app.radioButtons["Prompts"].click()
+                        app.buttons["journal-edit-prompts"].firstMatch.click()
                         XCTAssertTrue(app
                             .staticTexts["Prompt yourself at the start and end of each day."]
                             .waitForExistence(timeout: 3))
@@ -184,7 +184,7 @@ final class MarketingCaptureTests: XCTestCase {
                     )).firstMatch
                     XCTAssertTrue(window.waitForExistence(timeout: 8))
                     if state == "prompts-empty" {
-                        app.radioButtons["Prompts"].click()
+                        app.buttons["journal-edit-prompts"].firstMatch.click()
                     }
                     assertWorkspaceState(state, in: app)
                     attach(window, name: "state-\(state)")

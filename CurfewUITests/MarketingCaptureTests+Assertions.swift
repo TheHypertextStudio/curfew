@@ -16,10 +16,7 @@ extension MarketingCaptureTests {
             )
         case "day-off": assertText("No curfew scheduled today.", in: app)
         case "accessibility-denied": assertText("Accessibility", in: app)
-        case "journal-populated": assertText(
-                "Finished the project and made time for a walk.",
-                in: app
-            )
+        case "journal-populated": assertText("When you stopped", in: app)
         case "prompts-empty":
             XCTAssertEqual(app.textFields.count, 0)
             XCTAssertTrue(app.buttons["Add prompt"].firstMatch.exists)
