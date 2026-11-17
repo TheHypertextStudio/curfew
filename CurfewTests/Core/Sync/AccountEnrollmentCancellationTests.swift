@@ -34,8 +34,10 @@ struct AccountEnrollmentCancellationTests {
     @Test(
         "Cancelling while token exchange waits frees the sign-in state promptly",
         // A guard against a hang, should cancellation ever stop reaching the
-        // exchange; not a timing assertion.
-        .timeLimit(.minutes(5))
+        // exchange; not a timing assertion. It is far longer than the test
+        // needs because a loaded Mac can keep the main actor from this test
+        // for minutes, and running out of time ends the whole test process.
+        .timeLimit(.minutes(30))
     )
     func stalledTokenExchangeCanBeCancelled() async {
         let oauth = StalledTokenExchangeOAuthEnrollment()
