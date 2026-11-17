@@ -289,8 +289,9 @@ test('current policies expose the notice, official contact, and preserved refund
     await page.goto(`/${name}`);
     await expect(page.getByRole('complementary', { name: 'Policy update' })).toBeVisible();
     await expect(page.locator('main .policy-header h1')).toBeVisible();
+    const effective = ['privacy', 'retention'].includes(name) ? '2026-11-16' : '2026-10-14';
     await expect(
-      page.locator('main .policy-header .policy-meta time[datetime="2026-10-14"]'),
+      page.locator(`main .policy-header .policy-meta time[datetime="${effective}"]`),
     ).toHaveCount(1);
     await expect(page.locator('main .policy-header .privacy-lede')).not.toContainText('Published');
     await expect(page.locator('main a[href="mailto:legal@hypertext.studio"]')).toHaveCount(1);
