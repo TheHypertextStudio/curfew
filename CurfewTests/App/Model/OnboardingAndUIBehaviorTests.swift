@@ -155,8 +155,8 @@ struct GettingStartedCopyTests {
         let setup = SettingsView.localAISetupExplanation.lowercased()
 
         #expect(title.contains("on this mac"))
-        #expect(explanation.contains("cannot grant an override"))
-        #expect(explanation.contains("cannot end an active lockout"))
+        #expect(explanation.contains("can't grant an override"))
+        #expect(explanation.contains("end the lock"))
         #expect(!explanation.contains("lock and unlock"))
         #expect(explanation.contains("declare work in progress"))
         #expect(explanation.contains("postpone shutdown"))

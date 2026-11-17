@@ -106,14 +106,14 @@ enum EnforcementHealth: Equatable {
         case .degradedTapDown:
             Self.tapDownBannerDetail
         case .degradedHelperUnavailable:
-            "Background protection isn't connected. Install or approve it in Settings → Protection."
+            "The Curfew helper isn't connected. Set it up in Settings, under Protection."
         case .degradedHelperUnauthorized:
-            "Background protection couldn't verify Curfew. "
+            "The Curfew helper couldn't verify Curfew. "
                 + "Reinstall Curfew from the official website."
         case .degradedHelperStale:
-            "Background protection lost its connection. Reopen Curfew before relying on lockout."
+            "The Curfew helper stopped answering. Quit and reopen Curfew."
         case .degradedHelperRegistration:
-            "Background protection couldn't start. Open Settings → Protection to try again."
+            "The Curfew helper couldn't start. Try again in Settings, under Protection."
         }
     }
 
@@ -143,13 +143,13 @@ enum EnforcementHealth: Equatable {
         case .degradedTapDown:
             "Keyboard shortcut blocking was interrupted. Choose Restore shortcut blocking to retry."
         case .degradedHelperUnavailable:
-            "Background protection isn't connected. Review setup in Settings → Protection."
+            "The Curfew helper isn't connected. Set it up in Settings."
         case .degradedHelperUnauthorized:
-            "Background protection can't verify Curfew. Reinstall Curfew from the official website."
+            "The Curfew helper can't verify Curfew. Reinstall it from the official website."
         case .degradedHelperStale:
-            "Background protection lost its connection. Reopen Curfew."
+            "The Curfew helper stopped answering. Quit and reopen Curfew."
         case .degradedHelperRegistration:
-            "Background protection couldn't start. Try again in Settings → Protection."
+            "The Curfew helper couldn't start. Try again in Settings."
         }
     }
 
@@ -203,7 +203,7 @@ enum EnforcementHealth: Equatable {
             + "to retry. If access was revoked, grant Accessibility access in System Settings "
             + "and return to Curfew."
 
-    static let helperBannerTitle = "Background protection needs attention"
+    static let helperBannerTitle = "The Curfew helper needs attention"
 
     /// SF Symbol used for every degraded menu-bar badge.
     static let degradedBadgeSymbol = "exclamationmark.triangle.fill"

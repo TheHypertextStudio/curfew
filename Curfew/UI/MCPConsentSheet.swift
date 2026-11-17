@@ -101,11 +101,13 @@ struct MCPConsentSheet: View {
                     onDeny()
                 }
                 .buttonStyle(CurfewSecondaryButtonStyle())
+                .keyboardShortcut(.cancelAction)
 
                 Button("Approve") {
                     onApprove()
                 }
                 .buttonStyle(CurfewPrimaryButtonStyle())
+                .keyboardShortcut(.defaultAction)
                 .disabled(!presentation.canApprove)
             }
         }

@@ -33,11 +33,12 @@ extension SettingsView {
                     .foregroundStyle(CurfewTheme.mutedInk)
                     .fixedSize(horizontal: false, vertical: true)
             }
-        } else {
+        } else if model.enforcementHealth.offersAccessibilityRemediation {
             EnforcementHealthBanner(health: model.enforcementHealth) {
                 model.requestAccessibilityAccess()
             }
         }
+        // Helper problems are stated once, in the Curfew helper row below.
     }
 
     /// Controls weekly extension and override counts + their durations.
@@ -61,8 +62,6 @@ extension SettingsView {
                 duration: $model.settings.overrideDurationMinutes,
                 minimumDuration: 15
             )
-
-            Divider()
 
             Picker("Week starts on", selection: $model.settings.resetWeekday) {
                 ForEach(Weekday.allCases) { weekday in

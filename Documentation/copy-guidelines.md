@@ -2,6 +2,48 @@
 
 This note is for maintainers editing Curfew's visible text. Describe the observed state, available action, and consequence before shipping a copy change.
 
+## Voice
+
+Curfew is dry and firm: short, certain sentences, with the playfulness in the confidence. Nothing on screen reports the app doing its job. A control says what happens when pressed, and every state that needs attention offers a way forward.
+
+Use one word per thing, everywhere, including Settings, intents, notifications and the widget.
+
+| Thing                                | Say                         | Never say                                           |
+| ------------------------------------ | --------------------------- | --------------------------------------------------- |
+| The time work ends and the Mac locks | curfew                      | lockout time, scheduled lockout, work ends          |
+| The state after curfew               | locked, the lock            | lockout active, enforcement, blocking access        |
+| The morning sequence                 | Sunrise                     | daybreak, start of work, morning reflection         |
+| The answer to "What is today for?"   | the one thing               | intention, focus, goal                              |
+| Ending the day early on purpose      | Call it a day               | rest now, wrap up                                   |
+| More minutes before the lock         | more time, "15 more minutes" | extension request, snooze, grace                    |
+| Getting back in after the lock       | override                    | convince me, break glass                            |
+| The machine                          | this Mac                    | computer, device                                    |
+| The background piece                 | the Curfew helper           | daemon, supervisor, background protection, recovery |
+
+Write in sentence case, including buttons, sidebar titles and intent titles. Use no exclamation marks and no dashes as punctuation. Take times from the locale formatter, never a hard-coded 24-hour string, and write countdowns as hours and minutes (“2:30”). Use American spelling. Keep implementation words (daemon, supervisor, enforcement, policy, warning stage tokens, request identifiers) out of anything a person reads; ports, poll times and raw identifiers appear only with developer detail.
+
+These are the default lines for the moments people see most.
+
+| Moment                    | Line                                                                   |
+| ------------------------- | ---------------------------------------------------------------------- |
+| Today, under the countdown | until curfew at 6:00 PM                                               |
+| 30 minutes left           | Decide what gets finished and what waits.                              |
+| 15 minutes left           | Finish what you're in. Don't start anything.                           |
+| 5 minutes left            | Save everything.                                                       |
+| 1 minute left             | Last call.                                                             |
+| Notification titles       | 30 minutes to curfew (and 15, 5, 1)                                    |
+| Locked, headline          | That's the day.                                                        |
+| Locked, line              | Unlocks at 7:00 AM                                                     |
+| Override entry            | Need to get back in?                                                   |
+| Override question         | What can't wait?                                                       |
+| Sunrise lead-in           | Nearly morning. / Unlocks in 12 minutes                                |
+| Sunrise gate              | Morning. / What is today for? / Start the day                          |
+| Last night's note         | Last night you left: (their words)                                     |
+| Buttons on Today          | 15 more minutes / Call it a day                                        |
+| While holding             | Keep holding. 2 left this week / Added / No extensions left            |
+| Curfew off                | Curfew is off. / Nothing locks until you turn it back on.              |
+| Uninstall while locked    | Uninstall is available once curfew lifts.                              |
+
 ## Claims and wording
 
 Curfew is set to enforce a schedule when enabled. Missing Accessibility access means keyboard shortcut blocking is unavailable. Other enforcement capabilities retain their own state; do not describe the whole app as stopped or fully protected based on Accessibility alone.
@@ -12,9 +54,9 @@ Keyboard or pointer inactivity means no recent input. It does not establish that
 
 Protected applications skip Curfew's application termination step. A system shutdown still stops them. Protected work can delay termination and shutdown up to the configured limit. It does not unlock the screen or change the schedule.
 
-Name the scheduled unlock time when available. Today describes countdowns and unlock times as scheduled events, including when enforcement is off. Do not assume every schedule ends at night or resumes in the morning. Use “delay shutdown” for deferrals and retain “hold” for physical confirmation gestures. Keep technical command names such as `break-glass`, then explain what they suspend.
+Name the unlock time when available, as “Unlocks at 7:00 AM.” Use “delay shutdown” for deferrals and retain “hold” for physical confirmation gestures. Keep technical command names such as `break-glass`, then explain what they suspend.
 
-Journal counts describe recorded lockouts. Use “days with lockout” and “Lockout recorded.” A day without a recorded lockout does not necessarily mean the user configured a day off. Ordinary warmth such as “Rest well” remains appropriate. As of October 20, 2026, overrides require a five-minute wait, a reason of at least 50 characters, and a three-second hold. This wait is separate from the schedule-change cooldown.
+A lock happening is not an achievement, so the Journal records what the person did: when they stopped, whether they did the one thing, and what extra time they took. Ordinary warmth such as “Rest well” remains appropriate. As of October 20, 2026, overrides require a five-minute wait, a reason of at least 50 characters, and a three-second hold. This wait is separate from the schedule-change cooldown.
 
 ## October 4, 2026 audit
 
