@@ -184,26 +184,63 @@ public protocol LoginSessionEnumerating {
 /// the daemon runs as root, and the carve-out is worthless if the two of them
 /// see different machines.
 public struct SysctlProcessEnumerator: RunningProcessEnumerating {
-    public init() {}
+    /// One `sysctl(KERN_PROC_ALL)` call: sizes the table when `buffer` is nil,
+    /// otherwise fills it. Returns 0 or the `errno` it failed with.
+    typealias TableRead = (_ buffer: UnsafeMutableRawPointer?, _ length: inout Int) -> Int32
+
+    /// How many times to size and read the table before giving up. Each
+    /// retry doubles the slack, so only a table growing without bound could
+    /// exhaust it.
+    static let readAttempts = 8
+
+    private let readTable: TableRead
+
+    public init() {
+        self.init(readTable: Self.readKernelTable)
+    }
+
+    init(readTable: @escaping TableRead) {
+        self.readTable = readTable
+    }
 
     public func runningProcesses() -> [RunningProcess] {
-        var name: [Int32] = [CTL_KERN, KERN_PROC, KERN_PROC_ALL, 0]
-        var length = 0
-        guard sysctl(&name, 4, nil, &length, nil, 0) == 0, length > 0 else {
-            return []
-        }
-
-        // The table can grow between sizing and reading, so ask for a little
-        // slack and trust the byte count `sysctl` reports back rather than
-        // the one it gave us first.
         let stride = MemoryLayout<kinfo_proc>.stride
-        var buffer = [kinfo_proc](repeating: kinfo_proc(), count: length / stride + 16)
-        var actual = buffer.count * stride
-        guard sysctl(&name, 4, &buffer, &actual, nil, 0) == 0 else {
-            return []
-        }
+        for attempt in 0 ..< Self.readAttempts {
+            var length = 0
+            guard readTable(nil, &length) == 0, length > 0 else {
+                return []
+            }
 
-        return (0 ..< (actual / stride)).compactMap { index in
+            // The table can grow between sizing and reading, so ask for some
+            // slack and trust the byte count `sysctl` reports back rather than
+            // the one it gave us first. A table that outgrew the slack (a busy
+            // build forks hundreds of processes a second) answers `ENOMEM`;
+            // reading it again is the only correct answer, because an empty
+            // list would tell both kill paths that no agent is running.
+            var buffer = [kinfo_proc](
+                repeating: kinfo_proc(),
+                count: length / stride + (16 << attempt)
+            )
+            var actual = buffer.count * stride
+            let result = buffer.withUnsafeMutableBytes { readTable($0.baseAddress, &actual) }
+            if result == 0 {
+                return Self.processes(in: buffer, count: min(actual / stride, buffer.count))
+            }
+            guard result == ENOMEM else { return [] }
+        }
+        return []
+    }
+
+    private static func readKernelTable(
+        _ buffer: UnsafeMutableRawPointer?,
+        _ length: inout Int
+    ) -> Int32 {
+        var name: [Int32] = [CTL_KERN, KERN_PROC, KERN_PROC_ALL, 0]
+        return sysctl(&name, 4, buffer, &length, nil, 0) == 0 ? 0 : errno
+    }
+
+    private static func processes(in buffer: [kinfo_proc], count: Int) -> [RunningProcess] {
+        (0 ..< count).compactMap { index in
             var entry = buffer[index]
             let command = withUnsafePointer(to: &entry.kp_proc.p_comm) {
                 $0.withMemoryRebound(to: CChar.self, capacity: Int(MAXCOMLEN) + 1) {
