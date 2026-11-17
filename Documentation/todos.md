@@ -618,6 +618,9 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 - [x] Keep all seven effective rules and both automatic-schedule choices visible and clickable in the minimum first-run window; show the selected choice before Next advances.
 - [x] Implement schedule presets: 9-to-5, Startup Hours, Half Day.
 - [x] Enforce anti-bypass policy — stricter changes apply next day; weaker require 24-hour cooldown.
+- [x] Make raised weekly limits wait like a looser schedule. Raising the count or length of more time or overrides is queued as a `PendingLimitChange` timed by `SchedulePolicyEngine.earliestEffectiveDate(for: .weaker)` and held while this Mac is locked; lowering applies at once and clears a waiting raise; asking for the value in force cancels it. The limit fields in `CurfewSettings` always hold the value in force, so every reader stays on it until the raise applies. Raises synced from another Mac are re-timed by this Mac's clock. Older saved settings load with nothing waiting. Settings > Warnings and limits shows the value in force, the waiting raise under the row's label and a Keep button beside the stepper. Rollback: an older build ignores `pendingLimitChanges` and keeps the value in force.
+- [ ] Decide whether moving "Week starts on" should wait too: today it applies at once, so moving the refill day to tomorrow refills more time and overrides a few days early.
+- [ ] Defend schedule and limit cooldowns against a clock set forward while unlocked; both compare the wall clock to `effectiveAt`.
 - [x] Add DST-safe local timezone handling and schedule resolution tests.
 - [x] Add schedule summary sentence generation for Settings.
 - [x] Add a single `EnforcementSnapshot` read model for UI surfaces.

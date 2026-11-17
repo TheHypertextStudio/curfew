@@ -151,6 +151,8 @@ extension CurfewAppModel {
         if state != newState {
             state = newState
         }
+        // After the evaluation, so a raise is held whenever this tick is locked.
+        applyPendingLimitsIfNeeded(now: currentTime)
     }
 
     /// Re-evaluate after a user action that changes enforcement inputs
