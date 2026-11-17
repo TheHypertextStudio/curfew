@@ -43,7 +43,7 @@ The Journal reads what the person did, not whether the lock fired. Two local fac
 | Per-day record: extension plus override, midnight crossing, schedule change, day off, DST, time zone, override log fallback, no data | `JournalDayBuilderTests`                                                                                   | None                                                        |
 | Period summary, median and week/month/year periods                                                                                   | `JournalSummaryTests`, `JournalPeriodTests`                                                                | None                                                        |
 | Weekday, readiness and day ending patterns with thresholds and reasons                                                               | `WeekdayPatternTests`, `ReadinessPatternTests`, `DayEndingsPatternTests`                                   | Pattern wording belongs to the Journal pull request         |
-| Trend lines and year in review totals                                                                                                | `JournalTrendTests`, `JournalYearInReviewTests`                                                            | Rendered year in review                                     |
+| Trend lines and year totals                                                                                                          | `JournalTrendTests`, `JournalYearInReviewTests`                                                            | Rendered year time card                                     |
 | Retention of at least 400 days                                                                                                       | `JournalRetentionTests`, `JournalDayWiringTests/retention`, `LifecycleWiringTests/dayRolloverTrims`        | Published privacy and retention policies still say 52 weeks |
 | Deterministic Debug-only sample data                                                                                                 | `JournalSampleDataTests`                                                                                   | Journal snapshots                                           |
 
@@ -63,6 +63,18 @@ The Journal shows what the person did, laid out as the approved prototype (`jour
 | Table rows as full sentences, opened details, latest twelve in year range                                    | `JournalPresentationTests/tableRows`, `yearTable`                                              | `curfew-journal-week-expanded-light`                                            |
 | Sample history only in the Debug demo model                                                                  | `JournalDemoWiringTests`                                                                       | None                                                                            |
 | Hover and keyboard detail, VoiceOver reading of each day                                                     | None                                                                                           | Manual: arrow keys through the chart and grid, VoiceOver on the chart and table |
+
+## Journal time card
+
+The year range's time card is worked out from the day records by `JournalYearReview`, `JournalTimeCardCalendar` and `JournalTimeCardSkyline` with no view involved, and the choices by `JournalTimeCardChoices`; these tests were observed failing on the missing types before the card was written. `DestinationSnapshotTests/testRenderJournalTimeCard` renders every stock, pattern, sky and headline as the exported image, and the stage at rest, lifted and customizing in light and dark.
+
+| Behavior                                                                                                      | Contract coverage                 | Additional acceptance                                        |
+| ------------------------------------------------------------------------------------------------------------- | --------------------------------- | ------------------------------------------------------------ |
+| Threshold, the three headlines, footer counts, spoken summary, no written words, export size and name         | `JournalYearReviewTests`          | `curfew-time-card-*` exports                                 |
+| Calendar punches: a slot per working day, week order, weekend and seven-day workers, July band, month labels  | `JournalTimeCardTests` (calendar) | `curfew-time-card-*-calendar`                                |
+| Skyline punches: self-ended evenings only, curfew gutter, 5, 10 or 15 minute bins, peaky years, clamped tails | `JournalTimeCardTests` (skyline)  | `curfew-time-card-*-skyline`                                 |
+| Choices: defaults follow appearance and theme sky, explicit choices hold, persistence, shuffle                | `JournalTimeCardTests` (choices)  | `curfew-journal-time-card-*` at rest, lifted and customizing |
+| Editing, drag, Share, Copy and Save, hover lift, Reduce Motion, VoiceOver and keyboard                        | None                              | Manual in the running app; snapshots draw no Liquid Glass    |
 
 ## Sunrise gate
 

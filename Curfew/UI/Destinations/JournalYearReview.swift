@@ -1,45 +1,61 @@
 import AppKit
 import CoreGraphics
-import CurfewAtmosphere
 import CurfewKit
 import Foundation
 
-/// The year in review card at the end of the Journal's year range: the
-/// year's working days as marks on the curfew line over the sky, and four
-/// totals. Worked out from the year's day records so the views only draw it.
+/// The year time card at the head of the Journal's year range: one headline
+/// over the sky, the year punched into the card stock, and a footer. Worked
+/// out from the year's day records so the views only draw it.
 ///
 /// The card never carries the person's written words: no one thing text, no
-/// answers, no override reasons. Only counts, times and the marks.
+/// answers, no override reasons. Only counts, times and holes.
 struct JournalYearReview: Equatable, Sendable {
     /// Working days with a stop time the card needs before it says anything.
-    /// Four working weeks: below that the marks are a handful of strokes and
-    /// "longest run" or "typical stop" read as noise.
+    /// Four working weeks: below that the punches are a handful of holes and
+    /// "usual time" or "longest run" read as noise.
     static let minimumDays = 20
 
-    /// One total: a figure over a few plain words.
-    struct Total: Equatable, Hashable, Sendable {
+    /// One headline: a big value, an optional small unit set beside it, and
+    /// the plain line under the sky that completes it.
+    struct Headline: Equatable, Hashable, Sendable {
         let value: String
-        let label: String
-        /// The total as a sentence, for VoiceOver.
+        /// The day period of a 12-hour time, set small after the value.
+        let unit: String?
+        let line: String
+        /// The headline as a sentence, for VoiceOver.
         let spoken: String
     }
 
     /// What the card shows once the year has enough days.
     struct Card: Equatable, Sendable {
+        let year: Int
         /// "2026", or "2026 so far" while the year is still running.
         let yearLabel: String
-        /// "127 evenings ended before curfew."
-        let headline: String
-        let totals: [Total]
-        let marks: [JournalYearMark]
-        /// The marks in words, for VoiceOver.
-        let marksSummary: String
+        /// "212 working days".
+        let workingDaysLabel: String
+        /// "40 ended by the lock".
+        let lockLabel: String
+        let calendar: JournalTimeCardCalendar
+        let skyline: JournalTimeCardSkyline
         /// The default name for the saved image.
         let fileName: String
+        let headlines: [JournalTimeCardHeadline: Headline]
 
-        /// Everything the card says, in reading order, for VoiceOver.
-        var accessibilityValue: String {
-            ([headline] + totals.map(\.spoken) + [marksSummary]).joined(separator: " ")
+        func headline(_ kind: JournalTimeCardHeadline) -> Headline {
+            headlines[kind] ?? Headline(value: "", unit: nil, line: "", spoken: "")
+        }
+
+        /// Everything the card in `style` says, in reading order, for VoiceOver.
+        func spokenSummary(_ style: JournalTimeCardStyle) -> String {
+            let punches = switch style.punches {
+            case .calendar:
+                "Each evening out before curfew is a hole punched in its place in the year."
+            case .skyline:
+                "Each evening you stopped yourself is a hole, stacked by how early or late it "
+                    + "was." + (skyline.spokenPeak.map { " Most were \($0)." } ?? "")
+            }
+            return "Curfew time card for \(yearLabel). \(headline(style.headline).spoken) "
+                + "\(workingDaysLabel), \(lockLabel). \(punches)"
         }
     }
 
@@ -52,7 +68,7 @@ struct JournalYearReview: Equatable, Sendable {
     let year: Int
     let content: Content
 
-    /// Where the year in review sits on the year page.
+    /// Where the time card sits on the year page.
     enum Placement: Equatable, Sendable {
         /// First, under the page's headline and above the tiles: the card
         /// is the year's shareable object.
@@ -70,13 +86,21 @@ struct JournalYearReview: Equatable, Sendable {
     }
 
     /// The card for the year `period` covers, from that year's records.
-    /// `today` decides whether the year is finished.
-    init(records: [JournalDayRecord], period: JournalPeriod, today: Date, format: JournalFormat) {
+    /// `today` decides whether the year is finished; `workingWeekdays` lays
+    /// out the calendar punches.
+    init(
+        records: [JournalDayRecord],
+        period: JournalPeriod,
+        today: Date,
+        workingWeekdays: Set<Weekday>,
+        format: JournalFormat
+    ) {
         let calendar = format.calendar
         let sorted = records.sorted { $0.day < $1.day }
         let summary = JournalSummary(records: sorted)
         let totals = JournalYearInReview(records: sorted, calendar: calendar)
-        self.year = calendar.component(.year, from: period.interval.start)
+        let year = calendar.component(.year, from: period.interval.start)
+        self.year = year
         let isFinished = calendar.startOfDay(for: today) >= period.interval.end
 
         guard summary.daysWithStop >= Self.minimumDays,
@@ -91,209 +115,76 @@ struct JournalYearReview: Equatable, Sendable {
             return
         }
 
-        let early = totals.daysStoppedBeforeCurfew
-        let clock = format.clock(typical)
-        let oneThing = JournalFormat.count(totals.oneThingDays, "day")
-        let extra = format.duration(totals.extraMinutes)
-        let run = JournalFormat.count(totals.longestRunBeforeCurfew, "day")
-        let marks = JournalYearMark.marks(offsets: sorted.compactMap(\.stopOffsetMinutes))
+        let lock = sorted.count { $0.ending?.cause == .lock }
         self.content = .card(Card(
+            year: year,
             yearLabel: isFinished ? "\(year)" : "\(year) so far",
-            headline: Self.headline(early: early),
-            totals: [
-                Total(value: clock, label: "typical stop", spoken: "Typical stop \(clock)."),
-                Total(
-                    value: oneThing, label: "you did the one thing",
-                    spoken: "You did the one thing on \(oneThing)."
-                ),
-                Total(
-                    value: extra,
-                    label: isFinished ? "extra time, all year" : "extra time so far",
-                    spoken: isFinished ? "\(extra) extra time all year." : "\(extra) extra time so far."
-                ),
-                Total(
-                    value: run, label: "longest run stopping early",
-                    spoken: "Longest run stopping early: \(run)."
-                )
-            ],
-            marks: marks,
-            marksSummary: Self.marksSummary(marks),
-            fileName: Self.fileName(year: year)
+            workingDaysLabel: JournalFormat.count(summary.daysWithStop, "working day"),
+            lockLabel: "\(lock) ended by the lock",
+            calendar: JournalTimeCardCalendar(
+                year: year, records: sorted, workingWeekdays: workingWeekdays, format: format
+            ),
+            skyline: JournalTimeCardSkyline(records: sorted, format: format),
+            fileName: Self.fileName(year: year),
+            headlines: [
+                .eveningsOut: Self.eveningsOut(totals.daysStoppedBeforeCurfew),
+                .usualTime: Self.usualTime(format.clock(typical), isFinished: isFinished),
+                .longestRun: Self.longestRun(totals.longestRunBeforeCurfew)
+            ]
         ))
     }
 
     // MARK: - Words
 
-    /// "A year in review needs 20 working days. This year has 6."
+    /// "A time card needs 20 working days. This year has 6."
     static func tooFewDaysLine(have: Int) -> String {
-        "A year in review needs \(minimumDays) working days. This year has \(have)."
+        "A time card needs \(minimumDays) working days. This year has \(have)."
     }
 
-    /// "127 evenings ended before curfew."
-    static func headline(early: Int) -> String {
-        switch early {
-        case 0: "No evening ended before curfew."
-        case 1: "1 evening ended before curfew."
-        default: "\(early) evenings ended before curfew."
-        }
+    static func eveningsOut(_ count: Int) -> Headline {
+        let line = count == 1 ? "evening out before curfew" : "evenings out before curfew"
+        return Headline(value: "\(count)", unit: nil, line: line, spoken: "\(count) \(line).")
     }
 
-    /// "Each working day is a mark on the curfew line: 127 rise above it for
-    /// stopping early, 52 sit on it where the lock ended the day, 40 drop
-    /// below it for running over."
-    static func marksSummary(_ marks: [JournalYearMark]) -> String {
-        let early = marks.count { $0.kind == .early }
-        let lock = marks.count { $0.kind == .atCurfew }
-        let over = marks.count { $0.kind == .over }
-        let clauses = [
-            early > 0 ? "\(early) rise above it for stopping early" : nil,
-            lock > 0 ? "\(lock) sit on it where the lock ended the day" : nil,
-            over > 0 ? "\(over) drop below it for running over" : nil
-        ].compactMap(\.self)
-        return "Each working day is a mark on the curfew line: "
-            + clauses.joined(separator: ", ") + "."
+    /// "5:45" with "PM" set small, or "17:45" alone.
+    static func usualTime(_ clock: String, isFinished: Bool) -> Headline {
+        let line = isFinished ? "was your usual time out" : "is your usual time out"
+        let parts = clock.split(separator: " ", maxSplits: 1).map(String.init)
+        let hasPeriod = parts.count == 2 && !parts[1].contains { $0.isNumber }
+        return Headline(
+            value: hasPeriod ? parts[0] : clock,
+            unit: hasPeriod ? parts[1] : nil,
+            line: line,
+            spoken: "\(clock) \(line)."
+        )
     }
 
-    /// "curfew-year-in-review-2026.png".
+    /// "14" over "in a row out before curfew": short enough for one line.
+    static func longestRun(_ count: Int) -> Headline {
+        Headline(
+            value: "\(count)", unit: nil, line: "in a row out before curfew",
+            spoken: "Longest run: \(JournalFormat.count(count, "evening")) in a row out before curfew."
+        )
+    }
+
+    /// "curfew-time-card-2026.png".
     static func fileName(year: Int) -> String {
-        "curfew-year-in-review-\(year).png"
+        "curfew-time-card-\(year).png"
     }
 
     // MARK: - Export
 
-    /// The exported image's size in points. One size, always, so every
-    /// shared card looks the same.
-    static let exportSize = CGSize(width: 1600, height: 1000)
+    /// The exported image's size in points: the card on its stage at 4:5.
+    /// One size, always, so every shared card looks the same.
+    static let exportSize = CGSize(width: 800, height: 1000)
     /// Pixels per point in the exported image.
     static let exportScale: CGFloat = 2
-    /// Width over height, shared by the card on screen and the image.
-    static let aspectRatio = exportSize.width / exportSize.height
-
-    /// The sky behind the card: the sun just under the line at the right, the
-    /// last light of the day. Fixed, so the card looks the same whenever and
-    /// wherever it is opened.
-    static let skyFrame = HorizonFrame(
-        sun: HorizonPoint(x: 0.86, y: 0.2),
-        sunWeight: 1,
-        moon: HorizonPoint(x: 0.5, y: -1),
-        moonWeight: 0,
-        elevation: 0.02,
-        moonPhase: 0
-    )
-    /// How much the sky is dimmed under the words, as in the prototype.
-    static let skyDimming = 0.18
+    /// The card's width in the exported image, leaving an even margin of
+    /// stage around it.
+    static let exportCardWidth: CGFloat = 560
 }
 
-/// One working day on the year in review's curfew line. Up for stopping
-/// early, down for running over, a short neutral tick across the line when
-/// the lock ended the day.
-struct JournalYearMark: Equatable, Sendable {
-    enum Kind: Equatable, Sendable {
-        case early
-        case atCurfew
-        case over
-    }
-
-    let kind: Kind
-    /// Horizontal centre as a fraction of the card's width.
-    let centerX: Double
-    /// Top and bottom of the stroke as fractions of the card's height, from
-    /// the top.
-    let top: Double
-    let bottom: Double
-
-    // MARK: - Layout, in fractions of the card
-
-    /// Where the line starts and ends across the card.
-    static let lineStart = 0.05
-    static let lineEnd = 0.95
-    /// The curfew line sits on the sky's horizon.
-    static let lineY = 1 - HorizonGeometry.horizon
-    /// Stroke length per minute from curfew, as a fraction of the height.
-    /// Early and over share one scale.
-    static let lengthPerMinute = 0.0021
-    /// Longest early stroke, in minutes. Earlier days draw at this length so
-    /// marks stay clear of the headline.
-    static let earliestMinutes = 90
-    /// Longest over stroke, in minutes. Later days draw at this length so
-    /// marks stay clear of the totals below the line.
-    static let latestMinutes = 45
-    /// Half the length of the neutral tick, as a fraction of the height.
-    static let tickHalfLength = 0.012
-    /// Stroke width as a share of each day's slot.
-    static let strokeShare = 0.55
-
-    /// One mark per offset, in day order, spaced evenly along the line.
-    static func marks(offsets: [Int]) -> [JournalYearMark] {
-        let slot = (lineEnd - lineStart) / Double(max(offsets.count, 1))
-        return offsets.enumerated().map { index, offset in
-            let centerX = lineStart + (Double(index) + 0.5) * slot
-            if offset < 0 {
-                let length = Double(min(-offset, earliestMinutes)) * lengthPerMinute
-                return JournalYearMark(
-                    kind: .early,
-                    centerX: centerX,
-                    top: lineY - length,
-                    bottom: lineY
-                )
-            } else if offset > 0 {
-                let length = Double(min(offset, latestMinutes)) * lengthPerMinute
-                return JournalYearMark(
-                    kind: .over,
-                    centerX: centerX,
-                    top: lineY,
-                    bottom: lineY + length
-                )
-            }
-            return JournalYearMark(
-                kind: .atCurfew, centerX: centerX, top: lineY - tickHalfLength,
-                bottom: lineY + tickHalfLength
-            )
-        }
-    }
-
-    /// Stroke width in points for `count` marks on a card `width` wide.
-    static func strokeWidth(count: Int, width: Double) -> Double {
-        let slot = (lineEnd - lineStart) * width / Double(max(count, 1))
-        return max(1, slot * strokeShare)
-    }
-}
-
-/// What the Copy and Save actions are doing. The image renders before it
-/// can be copied or written, which takes a moment, so each action says it is
-/// working and Copy confirms in its own label.
-enum JournalYearReviewWork: Equatable, Sendable {
-    case idle
-    case copying
-    case copied
-    case saving
-
-    /// How long "Copied" stays in the Copy button.
-    static let copiedDuration: Duration = .seconds(1.6)
-
-    var copyTitle: String {
-        switch self {
-        case .copying: "Copying…"
-        case .copied: "Copied"
-        case .idle, .saving: "Copy image"
-        }
-    }
-
-    var copySymbol: String {
-        self == .copied ? "checkmark" : "doc.on.doc"
-    }
-
-    var saveTitle: String {
-        self == .saving ? "Saving…" : "Save image…"
-    }
-
-    /// Copy and Save wait while either is rendering.
-    var isRendering: Bool {
-        self == .copying || self == .saving
-    }
-}
-
-/// Puts the year in review's PNG on a pasteboard.
+/// Puts the time card's PNG on a pasteboard.
 enum JournalYearReviewPasteboard {
     /// Replaces `pasteboard`'s contents with the image. Returns whether the
     /// pasteboard took it.

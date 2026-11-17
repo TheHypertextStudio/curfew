@@ -55,7 +55,7 @@ struct JournalPage: View {
     }
 
     private func yearReview(_ review: JournalYearReview) -> some View {
-        section("Year in review") {
+        section("Time card") {
             JournalYearReviewView(review: review)
         }
     }

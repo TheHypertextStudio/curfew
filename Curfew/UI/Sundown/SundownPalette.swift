@@ -48,4 +48,29 @@ enum SundownPalette {
         red: HorizonPalette.standard.night[1].red, green: HorizonPalette.standard.night[1].green,
         blue: HorizonPalette.standard.night[1].blue
     )
+
+    // MARK: - Time card
+
+    /// The year time card's fixed colours. The card draws in these in either
+    /// appearance; its night stock and paper stage come from the chosen sky.
+    enum TimeCard {
+        /// Words on the card's sky.
+        static let onSky = Color(red: 1, green: 0.965, blue: 0.918)
+        /// Print on the night stock.
+        static let nightPrint = Color(red: 1, green: 0.953, blue: 0.886)
+        /// The pale stage under night stock.
+        static let table = Color(red: 0.914, green: 0.890, blue: 0.847)
+        static let nightHoleShadow = Color(red: 0.16, green: 0.12, blue: 0.10).opacity(0.28)
+        static let nightShadow = Color(red: 0.10, green: 0.08, blue: 0.22).opacity(0.34)
+        /// The cream paper stock and its edge.
+        static let paper = HorizonRGB(0.957, 0.929, 0.875)
+        static let paperEdge = Color(red: 0.886, green: 0.847, blue: 0.769)
+        /// The dark ink the paper stock's print leans toward.
+        static let paperInk = HorizonRGB(0.18, 0.165, 0.29)
+
+        /// A sky colour as a SwiftUI colour.
+        static func color(_ rgb: HorizonRGB) -> Color {
+            Color(red: rgb.red, green: rgb.green, blue: rgb.blue)
+        }
+    }
 }

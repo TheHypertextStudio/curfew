@@ -2,35 +2,41 @@ import AppKit
 @testable import Curfew
 import CurfewKit
 import Foundation
+import SwiftUI
 import Testing
 
-/// The year in review card's words, threshold, marks and file name, built
-/// from day records without any view.
+/// The year time card's words, threshold, punches and file name, built from
+/// day records without any view.
 struct JournalYearReviewTests {
-    private static var calendar: Calendar {
+    static func calendar(firstWeekday: Int = 2) -> Calendar {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(identifier: "America/Los_Angeles")!
-        calendar.firstWeekday = 2
+        calendar.firstWeekday = firstWeekday
         calendar.locale = Locale(identifier: "en_US")
         return calendar
     }
 
     var calendar: Calendar {
-        Self.calendar
+        Self.calendar()
     }
 
     var format: JournalFormat {
         JournalFormat(calendar: calendar, locale: Locale(identifier: "en_US"))
     }
 
+    static let weekdays: Set<Weekday> = [.monday, .tuesday, .wednesday, .thursday, .friday]
+
     func day(_ year: Int, _ month: Int, _ day: Int) -> Date {
         calendar.date(from: DateComponents(year: year, month: month, day: day))!
     }
 
-    /// A day that ended `offset` minutes from a 6:00 PM curfew.
+    /// A day that ended `offset` minutes from a 6:00 PM curfew. Early days
+    /// were called by the person; the rest were ended by the lock unless
+    /// `cause` says otherwise.
     func record(
         _ date: Date,
         offset: Int?,
+        cause: DayEndCause? = nil,
         done: Bool? = true,
         overrideMinutes: Int = 0,
         reason: String? = nil
@@ -38,7 +44,7 @@ struct JournalYearReviewTests {
         let curfew = calendar.date(bySettingHour: 18, minute: 0, second: 0, of: date)!
         let ending = offset.map { offset in
             DayEnding(
-                cause: offset < 0 ? .calledItADay : .lock,
+                cause: cause ?? (offset < 0 ? .calledItADay : .lock),
                 stoppedAt: curfew.addingTimeInterval(TimeInterval(offset - overrideMinutes) * 60),
                 scheduledCurfew: curfew
             )
@@ -53,22 +59,32 @@ struct JournalYearReviewTests {
         )
     }
 
-    /// `offsets` on consecutive days from Jan 5, 2026.
-    func records(_ offsets: [Int?]) -> [JournalDayRecord] {
-        offsets.enumerated().map { index, offset in
-            record(
-                calendar.date(byAdding: .day, value: index, to: day(2026, 1, 5))!,
-                offset: offset,
-                done: index.isMultiple(of: 2)
-            )
+    /// `offsets` on consecutive weekdays from Mon Jan 5, 2026.
+    func records(_ offsets: [Int?], cause: DayEndCause? = nil) -> [JournalDayRecord] {
+        var date = day(2026, 1, 5)
+        return offsets.map { offset in
+            while [1, 7].contains(calendar.component(.weekday, from: date)) {
+                date = calendar.date(byAdding: .day, value: 1, to: date)!
+            }
+            defer { date = calendar.date(byAdding: .day, value: 1, to: date)! }
+            return record(date, offset: offset, cause: cause)
         }
     }
 
-    func review(_ records: [JournalDayRecord], today: Date) -> JournalYearReview {
-        JournalYearReview(
+    func review(
+        _ records: [JournalDayRecord],
+        today: Date,
+        workingWeekdays: Set<Weekday> = Self.weekdays,
+        format: JournalFormat? = nil
+    ) -> JournalYearReview {
+        let format = format ?? self.format
+        return JournalYearReview(
             records: records,
-            period: JournalPeriod.containing(day(2026, 6, 1), range: .year, calendar: calendar),
+            period: JournalPeriod.containing(
+                day(2026, 6, 1), range: .year, calendar: format.calendar
+            ),
             today: today,
+            workingWeekdays: workingWeekdays,
             format: format
         )
     }
@@ -87,9 +103,10 @@ struct JournalYearReviewTests {
         let few = records(Array(repeating: -10, count: JournalYearReview.minimumDays - 1))
         let review = review(few, today: day(2026, 3, 1))
         #expect(review.content == .tooFewDays(
-            "A year in review needs 20 working days. This year has 19."
+            "A time card needs 20 working days. This year has 19."
         ))
         #expect(review.year == 2026)
+        #expect(review.placement == .trailing)
     }
 
     @Test func daysWithoutAStopTimeDoNotCountTowardTheThreshold() {
@@ -102,44 +119,89 @@ struct JournalYearReviewTests {
 
     @Test func theThresholdItselfMakesTheCard() throws {
         let enough = records(Array(repeating: -10, count: JournalYearReview.minimumDays))
-        _ = try card(review(enough, today: day(2026, 3, 1)))
+        let review = review(enough, today: day(2026, 3, 1))
+        _ = try card(review)
+        #expect(review.placement == .leading)
     }
 
-    // MARK: - Words
+    // MARK: - Headlines
 
-    @Test func aFinishedYearUsesThePrototypeWording() throws {
-        // 12 early (alternating with lock days), then 8 over by 30.
+    @Test func theDefaultHeadlineCountsEveningsOutBeforeCurfew() throws {
+        // 12 early alternating with lock days, then 8 over by 30.
         let offsets: [Int?] = (0 ..< 24).map { $0.isMultiple(of: 2) ? -20 : 0 }
             + Array(repeating: 30, count: 8)
         let card = try card(review(records(offsets), today: day(2027, 1, 10)))
+        let headline = card.headline(.eveningsOut)
+        #expect(headline.value == "12")
+        #expect(headline.unit == nil)
+        #expect(headline.line == "evenings out before curfew")
+        #expect(headline.spoken == "12 evenings out before curfew.")
         #expect(card.yearLabel == "2026")
-        #expect(card.headline == "12 evenings ended before curfew.")
-        #expect(card.totals.map(\.label) == [
-            "typical stop", "you did the one thing", "extra time, all year",
-            "longest run stopping early"
-        ])
-        #expect(card.totals[0].value == "6:00 PM")
-        #expect(card.totals[1].value == "16 days")
-        #expect(card.totals[2].value == "4h")
-        #expect(card.totals[3].value == "1 day")
-        #expect(card.fileName == "curfew-year-in-review-2026.png")
     }
 
-    @Test func aYearStillRunningSaysSoFar() throws {
-        let card = try card(review(
+    @Test func oneEveningOutIsSingular() throws {
+        let offsets: [Int?] = [-20] + Array(repeating: 0, count: 24)
+        let card = try card(review(records(offsets), today: day(2027, 1, 10)))
+        #expect(card.headline(.eveningsOut).line == "evening out before curfew")
+        #expect(card.headline(.longestRun)
+            .spoken == "Longest run: 1 evening in a row out before curfew.")
+    }
+
+    @Test func theUsualTimeOutIsTheTypicalStopWithItsDayPeriodSetSmall() throws {
+        let finished = try card(review(
+            records(Array(repeating: -15, count: 25)),
+            today: day(2027, 1, 2)
+        ))
+        let usual = finished.headline(.usualTime)
+        #expect(usual.value == "5:45")
+        #expect(usual.unit == "PM")
+        #expect(usual.line == "was your usual time out")
+        #expect(usual.spoken == "5:45 PM was your usual time out.")
+
+        let running = try card(review(
             records(Array(repeating: -15, count: 25)),
             today: day(2026, 3, 1)
         ))
-        #expect(card.yearLabel == "2026 so far")
-        #expect(card.totals[2].label == "extra time so far")
-        #expect(card.totals[0].value == "5:45 PM")
-        #expect(card.totals[3].value == "25 days")
+        #expect(running.headline(.usualTime).line == "is your usual time out")
+        #expect(running.yearLabel == "2026 so far")
     }
 
-    @Test func headlineCountsAreWorded() {
-        #expect(JournalYearReview.headline(early: 0) == "No evening ended before curfew.")
-        #expect(JournalYearReview.headline(early: 1) == "1 evening ended before curfew.")
-        #expect(JournalYearReview.headline(early: 127) == "127 evenings ended before curfew.")
+    @Test func aTwentyFourHourClockHasNoDayPeriod() throws {
+        var calendar = calendar
+        calendar.locale = Locale(identifier: "en_GB")
+        let format = JournalFormat(calendar: calendar, locale: Locale(identifier: "en_GB"))
+        let card = try card(review(
+            records(Array(repeating: -15, count: 25)), today: day(2027, 1, 2), format: format
+        ))
+        #expect(card.headline(.usualTime).value == "17:45")
+        #expect(card.headline(.usualTime).unit == nil)
+    }
+
+    @Test func theLongestRunCountsEveningsInARow() throws {
+        let offsets: [Int?] = Array(repeating: -10, count: 7) + [0] + Array(
+            repeating: -10,
+            count: 14
+        )
+        let card = try card(review(records(offsets), today: day(2027, 1, 2)))
+        let run = card.headline(.longestRun)
+        #expect(run.value == "14")
+        #expect(run.line == "in a row out before curfew")
+        #expect(run.spoken == "Longest run: 14 evenings in a row out before curfew.")
+    }
+
+    // MARK: - Footer
+
+    @Test func theFooterCountsWorkingDaysAndTheEveningsTheLockEnded() throws {
+        let offsets: [Int?] = Array(repeating: -10, count: 18) + [0, 0, 0]
+            + [nil]
+        var days = records(offsets)
+        // Over by 20 after an extension, ended by the lock.
+        days.append(record(day(2026, 3, 2), offset: 20))
+        // Over by 5, called by the person inside an extension.
+        days.append(record(day(2026, 3, 3), offset: 5, cause: .calledItADay))
+        let card = try card(review(days, today: day(2027, 1, 2)))
+        #expect(card.workingDaysLabel == "23 working days")
+        #expect(card.lockLabel == "4 ended by the lock")
     }
 
     @Test func theCardNeverCarriesWrittenWords() throws {
@@ -151,96 +213,61 @@ struct JournalYearReviewTests {
             reason: "Secret reason"
         ))
         let card = try card(review(days, today: day(2026, 4, 1)))
-        let everything = [card.yearLabel, card.headline, card.marksSummary, card.accessibilityValue]
-            + card.totals.flatMap { [$0.value, $0.label, $0.spoken] }
+        var everything = [card.yearLabel, card.workingDaysLabel, card.lockLabel]
+        for headline in JournalTimeCardHeadline.allCases {
+            let words = card.headline(headline)
+            everything += [words.value, words.unit ?? "", words.line, words.spoken]
+        }
+        for punches in JournalTimeCardPunches.allCases {
+            everything.append(card.spokenSummary(
+                JournalTimeCardStyle(
+                    stock: .night,
+                    sky: .sundown,
+                    punches: punches,
+                    headline: .eveningsOut
+                )
+            ))
+        }
         for text in everything {
             #expect(!text.contains("Secret"))
             #expect(!text.contains("billing"))
         }
     }
 
-    @Test func voiceOverReadsTheTotalsAndTheMarks() throws {
-        let offsets: [Int?] = Array(repeating: -10, count: 20) + [0, 0, 30]
+    @Test func voiceOverReadsTheHeadlineTheFooterAndThePunches() throws {
+        let offsets: [Int?] = Array(repeating: -10, count: 20) + [0, 0]
         let card = try card(review(records(offsets), today: day(2027, 1, 2)))
-        #expect(card.marksSummary == "Each working day is a mark on the curfew line: "
-            + "20 rise above it for stopping early, 2 sit on it where the lock ended the day, "
-            + "1 drop below it for running over.")
-        #expect(card.accessibilityValue.hasPrefix("20 evenings ended before curfew. Typical stop"))
-        #expect(card.accessibilityValue.contains("You did the one thing on 12 days."))
-        #expect(card.accessibilityValue.contains("30m extra time all year."))
-        #expect(card.accessibilityValue.contains("Longest run stopping early: 20 days."))
-    }
-
-    @Test func marksSummaryLeavesOutKindsThatDidNotHappen() {
-        let marks = JournalYearMark.marks(offsets: [-5, -10])
-        #expect(JournalYearReview.marksSummary(marks)
-            == "Each working day is a mark on the curfew line: 2 rise above it for stopping early.")
-    }
-
-    // MARK: - Marks
-
-    @Test func marksGoUpForEarlyDownForOverAndAcrossForTheLock() {
-        let marks = JournalYearMark.marks(offsets: [-30, 0, 20])
-        let line = JournalYearMark.lineY
-        #expect(marks.map(\.kind) == [.early, .atCurfew, .over])
-        #expect(marks[0].bottom == line)
-        #expect(abs(marks[0].top - (line - 30 * JournalYearMark.lengthPerMinute)) < 1e-9)
-        #expect(marks[1].top < line && marks[1].bottom > line)
-        #expect(marks[2].top == line)
-        #expect(abs(marks[2].bottom - (line + 20 * JournalYearMark.lengthPerMinute)) < 1e-9)
-    }
-
-    @Test func earlyAndOverShareOneScale() {
-        let marks = JournalYearMark.marks(offsets: [-25, 25])
-        let rise = marks[0].bottom - marks[0].top
-        let drop = marks[1].bottom - marks[1].top
-        #expect(abs(rise - drop) < 1e-9)
-    }
-
-    @Test func longStrokesStopShortOfTheWords() {
-        let marks = JournalYearMark.marks(offsets: [-500, 500])
-        let line = JournalYearMark.lineY
-        let per = JournalYearMark.lengthPerMinute
-        #expect(abs(marks[0].top - (line - Double(JournalYearMark.earliestMinutes) * per)) < 1e-9)
-        #expect(abs(marks[1].bottom - (line + Double(JournalYearMark.latestMinutes) * per)) < 1e-9)
-        // The totals start about 15% above the bottom edge.
-        #expect(marks[1].bottom < 0.85)
-        // The headline ends about a third of the way down.
-        #expect(marks[0].top > 0.4)
-    }
-
-    @Test func marksAreSpacedEvenlyAlongTheLine() {
-        let marks = JournalYearMark.marks(offsets: [-1, -1, -1, -1])
-        let slot = (JournalYearMark.lineEnd - JournalYearMark.lineStart) / 4
-        #expect(abs(marks[0].centerX - (JournalYearMark.lineStart + slot / 2)) < 1e-9)
-        #expect(abs(marks[3].centerX - (JournalYearMark.lineEnd - slot / 2)) < 1e-9)
-    }
-
-    @Test func theCardDrawsOnlyDaysWithAStopTimeInDayOrder() throws {
-        let offsets: [Int?] = [nil] + Array(repeating: -10, count: 20) + [nil, 15]
-        let card = try card(review(records(offsets).shuffled(), today: day(2026, 3, 1)))
-        #expect(card.marks.count == 21)
-        #expect(card.marks.last?.kind == .over)
-    }
-
-    @Test func strokesThinWithMoreDaysButNeverVanish() {
-        #expect(JournalYearMark.strokeWidth(count: 10, width: 1600) > JournalYearMark.strokeWidth(
-            count: 250, width: 1600
+        let calendarSummary = card.spokenSummary(JournalTimeCardStyle(
+            stock: .paper, sky: .desert, punches: .calendar, headline: .eveningsOut
         ))
-        #expect(JournalYearMark.strokeWidth(count: 5000, width: 300) == 1)
+        #expect(calendarSummary == "Curfew time card for 2026. 20 evenings out before curfew. "
+            + "22 working days, 2 ended by the lock. "
+            + "Each evening out before curfew is a hole punched in its place in the year.")
+        let skylineSummary = card.spokenSummary(JournalTimeCardStyle(
+            stock: .paper, sky: .desert, punches: .skyline, headline: .eveningsOut
+        ))
+        #expect(skylineSummary.hasSuffix(
+            "Each evening you stopped yourself is a hole, stacked by how early or late it was. "
+                + "Most were 5 to 10 minutes early."
+        ))
     }
 
-    // MARK: - Export and placement
+    // MARK: - Export
 
-    @Test func theExportIsOneFixedSize() {
-        #expect(JournalYearReview.exportSize == CGSize(width: 1600, height: 1000))
+    @Test func theExportIsTheCardOnItsStageAtOneSize() {
+        #expect(JournalYearReview.exportSize == CGSize(width: 800, height: 1000))
         #expect(JournalYearReview.exportScale == 2)
-        #expect(JournalYearReview.fileName(year: 2031) == "curfew-year-in-review-2031.png")
+        #expect(JournalYearReview.fileName(year: 2031) == "curfew-time-card-2031.png")
+        #expect(JournalTimeCardLayout.aspectRatio == 8.0 / 11.0)
     }
+}
 
-    @Test func onlyTheYearRangeEndsWithTheCard() {
+/// Where the card sits on the year page, and the pasteboard it copies to.
+extension JournalYearReviewTests {
+    // MARK: - Placement
+
+    @Test func onlyTheYearRangeHasTheCard() {
         let days = records(Array(repeating: -10, count: 30))
-        let weekdays: Set<Weekday> = [.monday, .tuesday, .wednesday, .thursday, .friday]
         for (range, expected) in [(JournalRange.week, false), (.month, false), (.year, true)] {
             let screen = JournalScreen(
                 records: days,
@@ -250,7 +277,7 @@ struct JournalYearReviewTests {
                     calendar: calendar
                 ),
                 today: day(2026, 6, 1),
-                workingWeekdays: weekdays,
+                workingWeekdays: Self.weekdays,
                 format: format
             )
             #expect((screen.yearReview != nil) == expected)
@@ -267,16 +294,12 @@ struct JournalYearReviewTests {
         )
         #expect(screen.yearReview == nil)
     }
-}
 
-/// Where the card sits on the page, and what Copy and Save say and do.
-extension JournalYearReviewTests {
-    // MARK: - Section order
-
-    @Test func theYearPageLeadsWithTheCardAndOtherRangesHaveNone() {
-        let days = records(Array(repeating: -10, count: 30))
-        let weekdays: Set<Weekday> = [.monday, .tuesday, .wednesday, .thursday, .friday]
-        func sections(_ range: JournalRange) -> [JournalScreen.Section] {
+    @Test func theYearPageLeadsWithTheCardAndATooShortYearEndsWithItsLine() {
+        func sections(
+            _ days: [JournalDayRecord],
+            _ range: JournalRange
+        ) -> [JournalScreen.Section] {
             JournalScreen(
                 records: days,
                 period: JournalPeriod.containing(
@@ -285,44 +308,15 @@ extension JournalYearReviewTests {
                     calendar: calendar
                 ),
                 today: day(2026, 6, 1),
-                workingWeekdays: weekdays,
+                workingWeekdays: Self.weekdays,
                 format: format
             ).sections
         }
-        #expect(sections(.year) == [.yearReview, .summary, .patterns, .words, .days])
-        #expect(sections(.month) == [.summary, .patterns, .words, .days])
-        #expect(sections(.week) == [.summary, .patterns, .words, .days])
-    }
-
-    @Test func aYearWithTooFewDaysEndsThePageWithItsOneLine() {
+        let days = records(Array(repeating: -10, count: 30))
+        #expect(sections(days, .year) == [.yearReview, .summary, .patterns, .words, .days])
+        #expect(sections(days, .month) == [.summary, .patterns, .words, .days])
         let few = records(Array(repeating: -10, count: 6))
-        #expect(review(few, today: day(2026, 3, 1)).placement == .trailing)
-        let screen = JournalScreen(
-            records: few,
-            period: JournalPeriod.containing(day(2026, 1, 20), range: .year, calendar: calendar),
-            today: day(2026, 6, 1),
-            workingWeekdays: [.monday, .tuesday, .wednesday, .thursday, .friday],
-            format: format
-        )
-        #expect(screen.sections == [.summary, .patterns, .words, .days, .yearReview])
-    }
-
-    // MARK: - Copy and Save
-
-    @Test func copySaysItIsWorkingThenConfirmsInItsOwnLabel() {
-        #expect(JournalYearReviewWork.idle.copyTitle == "Copy image")
-        #expect(JournalYearReviewWork.copying.copyTitle == "Copying…")
-        #expect(JournalYearReviewWork.copied.copyTitle == "Copied")
-        #expect(JournalYearReviewWork.copied.copySymbol == "checkmark")
-        #expect(JournalYearReviewWork.idle.saveTitle == "Save image…")
-        #expect(JournalYearReviewWork.saving.saveTitle == "Saving…")
-    }
-
-    @Test func copyAndSaveWaitOnlyWhileTheImageRenders() {
-        #expect(JournalYearReviewWork.copying.isRendering)
-        #expect(JournalYearReviewWork.saving.isRendering)
-        #expect(!JournalYearReviewWork.copied.isRendering)
-        #expect(!JournalYearReviewWork.idle.isRendering)
+        #expect(sections(few, .year) == [.summary, .patterns, .words, .days, .yearReview])
     }
 
     @Test @MainActor func copyReplacesThePasteboardWithThePNG() {

@@ -34,15 +34,6 @@ enum JournalStyle {
     static let early2 = adaptive(light: 0x5A84D8, dark: 0x5078CC)
     static let over1 = adaptive(light: 0xE79F78, dark: 0x8A4326)
     static let over2 = adaptive(light: 0xDA7644, dark: 0xB85A32)
-    /// Over marks on the year in review's sky, which keeps its night
-    /// colours in either appearance. Early marks take the sky's text colour.
-    static let overOnSky = adaptive(light: 0xFFB27A, dark: 0xFFB27A)
-    /// The year in review's stage: the quiet surface the card floats on.
-    static let stage = CurfewTheme.surfaceMuted
-    /// The card's contact shadow, tinted from its own night sky.
-    static let cardContactShadow = adaptive(light: 0x1A1438, dark: 0x030209, alpha: (0.30, 0.85))
-    /// The card's wide ambient shadow, tinted from its own night sky.
-    static let cardAmbientShadow = adaptive(light: 0x2A1F55, dark: 0x040312, alpha: (0.28, 0.95))
     /// Figures printed on a filled data segment.
     static let onEarly = adaptive(light: 0xFFFFFF, dark: 0x14120F)
     static let onAtCurfew = adaptive(light: 0x1D1A18, dark: 0xFFFFFF)
