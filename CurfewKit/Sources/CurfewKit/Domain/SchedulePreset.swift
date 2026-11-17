@@ -14,13 +14,13 @@ import Foundation
 /// only identifies which preset was chosen.
 public enum SchedulePreset: String, CaseIterable, Identifiable {
     /// 9am–5pm weekdays, weekends off.
-    case nineToFive = "9-to-5"
+    case nineToFive = "9 to 5"
 
     /// 8am–8pm weekdays, weekends off.
-    case startupHours = "Startup Hours"
+    case startupHours = "Startup hours"
 
     /// 8am–1pm weekdays (short day), weekends off.
-    case halfDay = "Half Day"
+    case halfDay = "Half day"
 
     /// Satisfies `Identifiable` using the raw preset label. Stable
     /// across app versions so SwiftUI list diffing is sound.

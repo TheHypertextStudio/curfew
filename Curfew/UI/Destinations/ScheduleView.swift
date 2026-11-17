@@ -94,14 +94,6 @@ struct ScheduleContent: View {
                 .font(CurfewTypography.body(13))
                 .foregroundStyle(CurfewTheme.warning)
             }
-            VStack(alignment: .leading, spacing: 4) {
-                ForEach(model.settings.schedule.reviewLines, id: \.self) { line in
-                    Text(line)
-                        .font(CurfewTypography.body(13))
-                        .foregroundStyle(CurfewTheme.ink)
-                }
-            }
-            .accessibilityElement(children: .combine)
             if model.settings.pendingScheduleChange != nil {
                 Text(ScheduleSurfaceCopy.pendingBeforeTurningOn)
                     .font(CurfewTypography.body(13))
@@ -118,7 +110,7 @@ struct ScheduleContent: View {
         }
     }
 
-    /// One-click preset selector (9-to-5 / Startup Hours / Half Day). Acts
+    /// One-click preset selector (9 to 5, Startup hours, Half day). Acts
     /// as the "start from a baseline" shortcut so users aren't forced to
     /// build a seven-day schedule from scratch.
     private var presetsPanel: some View {

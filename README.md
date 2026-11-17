@@ -12,7 +12,7 @@ Curfew is the first product from [Hypertext Studio](https://hypertext.studio), a
 
 ### Today (v0.1) — flexible work rhythms and hard end-of-work gates
 
-- **Weekly schedule** with per-day work-end/resume times, day-off support, hours-based modes, and three editable presets (9-to-5, Startup Hours, Half Day).
+- **Weekly schedule** with per-day work-end/resume times, day-off support, hours-based modes, and three editable presets (9 to 5, Startup hours, Half day).
 - **Graduated warnings** at T-30, T-15, T-5, T-2, T-1 with configurable intervals and per-stage notifications.
 - **Full-screen lockout** across every display and Space, with keyboard-shortcut interception (⌘⇥, ⌘Q, ⌘⌥Esc, …).
 - **Extension budget** — 3 × 15 min per week, hold-to-confirm so accidental taps don't burn a slot.
