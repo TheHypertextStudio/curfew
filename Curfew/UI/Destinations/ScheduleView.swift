@@ -21,7 +21,6 @@ struct ScheduleView: View {
             ScheduleContent()
                 .environment(model)
         }
-        .scrollIndicators(.hidden)
         // A calm, opaque adaptive canvas. Schedule is a utility surface — the
         // living sky belongs on Today, not stretched behind the editor where it
         // crushes legibility. The canvas extends under the title bar and the
@@ -44,7 +43,7 @@ struct ScheduleContent: View {
         VStack(alignment: .leading, spacing: 16) {
             if model.schedulePersistenceError != nil {
                 Label(
-                    "Schedule changes are unavailable. Reopen Curfew to retry.",
+                    "Schedule changes can't be saved right now. Quit and reopen Curfew.",
                     systemImage: "exclamationmark.triangle.fill"
                 )
                 .font(CurfewTypography.body(14))
@@ -70,56 +69,45 @@ struct ScheduleContent: View {
         .frame(maxWidth: 900, alignment: .leading)
         .animation(.easeInOut, value: model.scheduleChangeJustApplied)
         .alert(
-            "This Mac may lock within a minute",
+            ScheduleSurfaceCopy.immediateLockTitle,
             isPresented: $showingImmediateLockConfirmation
         ) {
-            Button("Enable imminent lockout", role: .destructive) {
+            Button(ScheduleSurfaceCopy.immediateLockConfirm, role: .destructive) {
                 model.enableAutomaticSchedule(confirmedImmediateLock: true)
             }
-            Button("Keep automatic schedule off", role: .cancel) {}
+            Button(ScheduleSurfaceCopy.immediateLockCancel, role: .cancel) {}
         } message: {
-            Text(
-                model.settings.schedule.reviewLines.joined(separator: "\n") +
-                    "\n\nMay lock this Mac now. Existing lockouts stay active."
-            )
+            Text(ScheduleSurfaceCopy.immediateLockBody)
         }
     }
 
     private var automaticScheduleOffPanel: some View {
         CurfewPanel {
-            CurfewSectionTitle(title: "Automatic schedule off")
-            Text(
-                "Saved weekly times are inactive. Authorized remote locks can still apply."
+            CurfewSectionTitle(
+                title: ScheduleSurfaceCopy.scheduleOffTitle,
+                subtitle: ScheduleSurfaceCopy.scheduleOffBody
             )
-            .font(CurfewTypography.body(14))
-            .foregroundStyle(CurfewTheme.mutedInk)
-            if !model.hasExplicitAutomaticScheduleConsent {
-                Text(
-                    "This update left your saved weekly schedule off until you enable it."
-                )
-                .font(CurfewTypography.body(13))
-                .foregroundStyle(CurfewTheme.mutedInk)
-            }
             if model.state.phase == .locked, let unlock = model.state.unlockDate {
-                Text(
-                    "An existing lockout remains active until \(unlock.formatted(date: .omitted, time: .shortened))."
-                )
+                Text(ScheduleSurfaceCopy.lockedUntil(
+                    unlock.formatted(date: .omitted, time: .shortened)
+                ))
                 .font(CurfewTypography.body(13))
                 .foregroundStyle(CurfewTheme.warning)
             }
-            ForEach(model.settings.schedule.reviewLines, id: \.self) { line in
-                Text(line)
-                    .font(CurfewTypography.body(13))
-                    .foregroundStyle(CurfewTheme.ink)
+            VStack(alignment: .leading, spacing: 4) {
+                ForEach(model.settings.schedule.reviewLines, id: \.self) { line in
+                    Text(line)
+                        .font(CurfewTypography.body(13))
+                        .foregroundStyle(CurfewTheme.ink)
+                }
             }
+            .accessibilityElement(children: .combine)
             if model.settings.pendingScheduleChange != nil {
-                Text(
-                    "A change is pending. Wait for it to apply before enabling weekly lockouts."
-                )
-                .font(CurfewTypography.body(13))
-                .foregroundStyle(CurfewTheme.warning)
+                Text(ScheduleSurfaceCopy.pendingBeforeTurningOn)
+                    .font(CurfewTypography.body(13))
+                    .foregroundStyle(CurfewTheme.warning)
             }
-            Button("I've reviewed all seven days — enable weekly lockouts") {
+            Button(ScheduleSurfaceCopy.turnOnSchedule) {
                 if model.enableAutomaticSchedule() == .requiresImmediateLockConfirmation {
                     showingImmediateLockConfirmation = true
                 }
@@ -181,7 +169,7 @@ struct ScheduleContent: View {
     /// impulsive bypass; stricter edits may take effect next day).
     private func pendingChangePanel(message: String) -> some View {
         CurfewPanel {
-            CurfewSectionTitle(title: "Scheduled change")
+            CurfewSectionTitle(title: "Waiting to apply")
             Text(message)
                 .font(CurfewTypography.body(14))
                 .foregroundStyle(CurfewTheme.warning)

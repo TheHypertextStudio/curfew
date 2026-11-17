@@ -14,13 +14,12 @@ import CurfewKit
 /// user to confirm it in Curfew. It does not, and must not, grant an override
 /// on its own.
 struct RequestOverrideIntent: AppIntent {
-    static var title: LocalizedStringResource = "Request Curfew Override"
+    static var title: LocalizedStringResource = "Ask for an override"
 
     static var description = IntentDescription(
         """
-        Prepares a curfew override request with your reason. For your own \
-        protection, overrides must be confirmed inside Curfew — this opens the \
-        app so you can complete the confirmation.
+        Opens Curfew with your reason ready. Overrides only happen inside \
+        Curfew, where you make your case.
         """,
         categoryName: "Requests"
     )
@@ -31,7 +30,7 @@ struct RequestOverrideIntent: AppIntent {
 
     @Parameter(
         title: "Reason",
-        description: "Your justification for working past curfew.",
+        description: "What can't wait.",
         inputOptions: String.IntentInputOptions(multiline: true)
     )
     var reason: String
@@ -43,10 +42,7 @@ struct RequestOverrideIntent: AppIntent {
             arguments: ["reason": reason]
         )
         return .result(
-            dialog: IntentDialog(
-                stringLiteral: "Overrides must be confirmed in Curfew. I've opened the app — "
-                    + "finish the confirmation there to work past curfew."
-            )
+            dialog: IntentDialog(stringLiteral: IntentCopy.overrideOpened)
         )
     }
 }

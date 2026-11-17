@@ -203,25 +203,49 @@ public struct WeeklySchedule: Equatable, Codable {
     }
 
     /// Every saved rule in the same Monday-to-Sunday order as the editor.
-    /// Use these lines when asking for consent to enable automatic lockouts:
-    /// a one-day preview can hide a stricter rule later in the week.
+    /// Use these lines when asking for consent to turn on the weekly
+    /// schedule: a one-day preview can hide a stricter rule later in the week.
     public var reviewLines: [String] {
+        reviewLines(locale: .current)
+    }
+
+    /// ``reviewLines`` with times written in `locale`'s clock format, for
+    /// example "Mon, 5:00 PM to 8:00 AM" or "Sat, day off".
+    public func reviewLines(locale: Locale) -> [String] {
         Weekday.allCases.map { weekday in
             let rule = rule(for: weekday)
-            guard !rule.isDayOff else { return "\(weekday.shortName): day off" }
-            let lock = minutesToHHMM(rule.lockMinutes)
-            let unlock = minutesToHHMM(rule.unlockMinutes)
-            let hours = rule.hoursLimitMinutes ?? 8 * 60
-            let hoursText = hours.isMultiple(of: 60)
-                ? "\(hours / 60) h"
-                : "\(hours / 60) h \(hours % 60) m"
-            let trigger = switch rule.mode {
-            case .time: "locks at \(lock)"
-            case .hours: "locks after \(hoursText) of work"
-            case .combined: "locks at \(lock) or after \(hoursText) of work"
+            guard !rule.isDayOff else { return "\(weekday.shortName), day off" }
+            let lock = Self.clockText(minutes: rule.lockMinutes, locale: locale)
+            let unlock = Self.clockText(minutes: rule.unlockMinutes, locale: locale)
+            let hours = Self.durationText(minutes: rule.hoursLimitMinutes ?? 8 * 60, locale: locale)
+            return switch rule.mode {
+            case .time: "\(weekday.shortName), \(lock) to \(unlock)"
+            case .hours: "\(weekday.shortName), after \(hours) of work, to \(unlock)"
+            case .combined: "\(weekday.shortName), \(lock) or after \(hours) of work, to \(unlock)"
             }
-            return "\(weekday.shortName): \(trigger); unlocks at \(unlock)"
         }
+    }
+
+    /// Minutes after midnight as a wall-clock time in `locale`'s format.
+    static func clockText(minutes: Int, locale: Locale) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = locale
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        formatter.dateStyle = .none
+        formatter.timeStyle = .short
+        return formatter.string(from: Date(timeIntervalSinceReferenceDate: TimeInterval(minutes * 60)))
+    }
+
+    /// A work-hours limit such as "8 hours" or "7 hours 30 minutes".
+    static func durationText(minutes: Int, locale: Locale) -> String {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.locale = locale
+        let formatter = DateComponentsFormatter()
+        formatter.calendar = calendar
+        formatter.unitsStyle = .full
+        formatter.allowedUnits = [.hour, .minute]
+        let text = formatter.string(from: TimeInterval(minutes * 60)) ?? "\(minutes / 60) hours"
+        return text.replacingOccurrences(of: ", ", with: " ")
     }
 
     /// Returns the active ``ScheduleWindow`` for `date`, accounting for
@@ -266,7 +290,7 @@ public struct WeeklySchedule: Equatable, Codable {
     }
 
     /// Returns a natural-language sentence describing tomorrow's enforcement
-    /// window, e.g. "Tomorrow, work ends at 6:00 PM and resumes at 8:00 AM."
+    /// window, e.g. "Tomorrow, curfew at 6:00 PM. Unlocks at 8:00 AM."
     /// Used in the schedule summary card in the primary window.
     ///
     /// Returns a day-off message when tomorrow has no enforcement window.
@@ -283,7 +307,7 @@ public struct WeeklySchedule: Equatable, Codable {
                 calendar: calendar
             )
         else {
-            return "Tomorrow is a day off. Curfew will not enforce."
+            return "Tomorrow is a day off. No curfew."
         }
 
         let formatter = DateFormatter()
@@ -295,7 +319,7 @@ public struct WeeklySchedule: Equatable, Codable {
 
         let lockText = formatter.string(from: window.lockDate)
         let unlockText = formatter.string(from: window.unlockDate)
-        return "Tomorrow, work ends at \(lockText) and resumes at \(unlockText)."
+        return "Tomorrow, curfew at \(lockText). Unlocks at \(unlockText)."
     }
 
     /// Returns the previous day's schedule window when `date` falls within

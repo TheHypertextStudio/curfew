@@ -12,13 +12,12 @@ import Foundation
 /// (`weekday`, `lock_time`, optional `unlock_time` / `is_day_off`) so
 /// `applyMCPScheduleUpdate` parses it identically.
 struct SetScheduleIntent: AppIntent {
-    static var title: LocalizedStringResource = "Set Curfew Schedule"
+    static var title: LocalizedStringResource = "Set curfew for a day"
 
     static var description = IntentDescription(
         """
-        Queues a curfew schedule change for one weekday. Later lock times wait \
-        out a 24-hour cooldown; earlier (stricter) times apply at the next day \
-        boundary. Requires approval in Curfew.
+        Asks Curfew to change one day's curfew. You approve it in Curfew. A \
+        later curfew waits a day; an earlier one starts tomorrow.
         """,
         categoryName: "Requests"
     )
@@ -29,28 +28,28 @@ struct SetScheduleIntent: AppIntent {
     var weekday: ScheduleWeekday
 
     @Parameter(
-        title: "Lock Time",
-        description: "The time of day curfew should begin.",
+        title: "Curfew time",
+        description: "When work ends and this Mac locks.",
         kind: .time
     )
     var lockTime: Date
 
     @Parameter(
-        title: "Unlock Time",
-        description: "Optional. The time curfew lifts. Leaves the current unlock time if unset.",
+        title: "Unlock time",
+        description: "Optional. When this Mac unlocks. Leaves the current time if unset.",
         kind: .time
     )
     var unlockTime: Date?
 
     @Parameter(
-        title: "Day Off",
+        title: "Day off",
         description: "Mark this weekday as a day off (no curfew).",
         default: false
     )
     var isDayOff: Bool
 
     static var parameterSummary: some ParameterSummary {
-        Summary("Set \(\.$weekday) curfew to lock at \(\.$lockTime)") {
+        Summary("Set curfew on \(\.$weekday) to \(\.$lockTime)") {
             \.$unlockTime
             \.$isDayOff
         }
@@ -73,17 +72,17 @@ struct SetScheduleIntent: AppIntent {
             arguments["is_day_off"] = "true"
         }
 
-        let id = try CurfewIntentSupport.enqueueWriteRequest(
+        try CurfewIntentSupport.enqueueWriteRequest(
             tool: .setSchedule,
             arguments: arguments
         )
 
-        let dayOffNote = isDayOff ? " as a day off" : " to lock at \(lockHHMM)"
         return .result(
-            dialog: IntentDialog(
-                stringLiteral: "Schedule change for \(weekday.rawValue.capitalized)\(dayOffNote) "
-                    + "queued. Approve it in Curfew to apply. (Request \(id.uuidString.prefix(8)).)"
-            )
+            dialog: IntentDialog(stringLiteral: IntentCopy.scheduleAsked(
+                weekday: weekday.rawValue.capitalized,
+                curfewTime: CurfewIntentSupport.formatTime(lockTime),
+                isDayOff: isDayOff
+            ))
         )
     }
 
