@@ -8,7 +8,7 @@ import SwiftUI
 ///
 /// Today carries one thing: tonight's curfew window, and the control for it.
 /// 1. **The window** — the countdown is the protagonist over the living
-///    ``SundownSky``, which deepens as the lock time nears; the lock time is its
+///    ``HorizonSkyView``, which deepens as the lock time nears; the lock time is its
 ///    primary detail, the unlock time the quieter other end of the same event.
 /// 2. **The control** — whether Curfew is enforcing, plus the action. The
 ///    view's only accent, and a state dot that's muted when off.
@@ -59,7 +59,7 @@ struct TodaySundownView: View {
 
     // MARK: - The window (full-bleed living sky, the protagonist)
 
-    /// The hero. The living ``SundownSky`` bleeds edge-to-edge — including up
+    /// The hero. The living ``HorizonSkyView`` bleeds edge-to-edge — including up
     /// under the title bar via `ignoresSafeArea` — so the dusk reaches the very
     /// top of the window with the traffic lights floating over it. The text
     /// stays inside the safe area so the greeting clears the controls. The hero
