@@ -17,12 +17,18 @@ public extension EnvironmentValues {
 public struct HorizonStillSky: View {
     public var frame: HorizonFrame
     public var bandPhase: Double
+    /// Quiets the sky behind text; ``HorizonHush/none`` by default.
+    public var hush: HorizonHush
     @Environment(\.displayScale) private var displayScale
     @Environment(\.horizonPalette) private var palette
 
-    public init(frame: HorizonFrame, bandPhase: Double = HorizonBandPhase.resting) {
+    public init(
+        frame: HorizonFrame, bandPhase: Double = HorizonBandPhase.resting,
+        hush: HorizonHush = .none
+    ) {
         self.frame = frame
         self.bandPhase = bandPhase
+        self.hush = hush
     }
 
     public var body: some View {
@@ -32,7 +38,7 @@ public struct HorizonStillSky: View {
                 frame: frame, bandPhase: bandPhase,
                 pixelWidth: max(1, Int((proxy.size.width * scale).rounded())),
                 pixelHeight: max(1, Int((proxy.size.height * scale).rounded())),
-                palette: palette
+                palette: palette, hush: hush
             ) {
                 Image(decorative: image, scale: scale)
                     .resizable()

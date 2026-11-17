@@ -6,9 +6,10 @@ import Foundation
 public enum HorizonField {
     /// Brightness at a point: the screen blend of a falloff around the sun, a
     /// falloff around the moon, and a falloff above the horizon that
-    /// strengthens while the sun is low.
+    /// strengthens while the sun is low. `hush` quiets it behind text
+    /// (``HorizonHush``); the default leaves it as the model draws it.
     public static func brightness(
-        at point: HorizonPoint, aspect: Double, frame: HorizonFrame
+        at point: HorizonPoint, aspect: Double, frame: HorizonFrame, hush: HorizonHush = .none
     ) -> Double {
         let horizon = HorizonGeometry.horizon
         let above = max((point.y - horizon) / (1 - horizon), 0)
@@ -17,8 +18,9 @@ public enum HorizonField {
         let low = 1 - smoothstep(0.05, 0.6, abs(frame.elevation))
         let sun = 1 - exp(-toSun * 2.4) * frame.sunWeight
         let moon = 1 - exp(-toMoon * 3.2) * frame.moonWeight * 0.7
-        let sky = 1 - exp(-above * 3.2) * mix(0.34, 0.9, low)
-        return 1 - sun * moon * sky
+        let quiet = 1 - hush.glow * hush.weight(at: point, aspect: aspect)
+        let sky = 1 - exp(-above * 3.2) * mix(0.34, 0.9, low) * quiet
+        return hush.toned(1 - sun * moon * sky)
     }
 
     /// The step a brightness falls in, as a ramp position. `edgeWidth` is the
@@ -64,10 +66,11 @@ public enum HorizonField {
     /// The final colour at a point, in `palette`.
     public static func color(
         at point: HorizonPoint, canvas: Canvas, frame: HorizonFrame, bands: Bands,
-        palette: HorizonPalette = .standard
+        palette: HorizonPalette = .standard, hush: HorizonHush = .none
     ) -> HorizonRGB {
         palette.fieldColor(
-            at: point, level: brightness(at: point, aspect: canvas.aspect, frame: frame),
+            at: point,
+            level: brightness(at: point, aspect: canvas.aspect, frame: frame, hush: hush),
             canvas: canvas, frame: frame, bands: bands
         )
     }

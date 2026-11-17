@@ -139,12 +139,15 @@ import CurfewKit
             }
         }
 
-        /// Today in the afternoon and the last half hour, in each other palette.
+        /// Today mid-morning, at noon, in the afternoon and the last half hour, in
+        /// each other palette.
         func testRenderThemeToday() throws {
             let directory = try Self.snapshotsDirectory()
             for (name, choice) in Self.palettes.dropFirst() {
                 for (moment, now, minutes, stage) in [
-                    ("afternoon", Self.themeAt(15, 30), 150, WarningStage.none),
+                    ("morning", Self.themeAt(9, 30), 510, WarningStage.none),
+                    ("noon", Self.themeAt(12, 30), 330, .none),
+                    ("afternoon", Self.themeAt(15, 30), 150, .none),
                     ("last-half-hour", Self.themeAt(17, 48), 12, .fifteenMinutes)
                 ] {
                     let frame = HorizonMoment(

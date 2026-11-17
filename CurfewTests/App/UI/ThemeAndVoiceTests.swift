@@ -189,15 +189,22 @@ struct ThemeAndVoiceTests {
         #expect(RestAppearancePreferences.ClockStyle.serif.fontDesign == .serif)
     }
 
-    @Test("The Today shade is measured on the theme's own sky")
-    func shadeUsesPalette() {
+    @Test("The Today hush is measured on the theme's own sky")
+    func hushUsesPalette() {
         let start = Date(timeIntervalSince1970: 1_800_000_000)
         let frame = HorizonMoment(
             now: start.addingTimeInterval(5 * 3600), dayStart: start,
             curfew: start.addingTimeInterval(11 * 3600),
             nextUnlock: start.addingTimeInterval(24 * 3600)
         ).frame
-        #expect(TodaySkyLegibility.ground(for: frame, palette: .desert)
-            != TodaySkyLegibility.ground(for: frame, palette: .standard))
+        let size = CGSize(width: 832, height: 720)
+        let regions = TodayMetrics.window(size).textRegions(in: size)
+        #expect(TodaySkyLegibility.hush(for: frame, size: size, regions: regions, palette: .desert)
+            != TodaySkyLegibility.hush(
+                for: frame,
+                size: size,
+                regions: regions,
+                palette: .standard
+            ))
     }
 }

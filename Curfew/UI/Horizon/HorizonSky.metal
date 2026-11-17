@@ -45,14 +45,32 @@ float3 ramp(device const float *table, float k, float e) {
     return mix(stopColor(table, 3, e), stopColor(table, 4, e), x - 3.0);
 }
 
-float brightness(float2 uv, float asp, float2 S, float2 M, float2 W, float E) {
+// The hush behind Today's text (HorizonHush.swift): Q is the dome's centre
+// and radii, T its glow, scale and knee. Q = (0.5, 0.5, 1, 1) and
+// T = (0, 1, 1) leave the sky as the model draws it.
+float hushWeight(float2 uv, float asp, float4 Q, float glow) {
+    if (glow <= 0.0 || Q.z <= 0.0 || Q.w <= 0.0) return 0.0;
+    float across = (uv.x - Q.x) * asp / Q.z;
+    float above = max(uv.y - Q.y, 0.0) / Q.w;
+    return exp(-(across * across + above * above));
+}
+
+float toned(float L, float3 T) {
+    if (T.y >= 1.0) return L;
+    if (L <= T.z) return L * T.y;
+    float lowered = T.z * T.y;
+    return lowered + (L - T.z) * (1.0 - lowered) / max(1.0 - T.z, 1e-4);
+}
+
+float brightness(float2 uv, float asp, float2 S, float2 M, float2 W, float E, float4 Q, float3 T) {
     float a = max((uv.y - H) / (1.0 - H), 0.0);
     float rs = length(float2((uv.x - S.x) * asp, uv.y - S.y));
     float rm = length(float2((uv.x - M.x) * asp, uv.y - M.y));
     float low = 1.0 - smoothstep(0.05, 0.6, abs(E));
-    return 1.0 - (1.0 - exp(-rs * 2.4) * W.x)
-               * (1.0 - exp(-rm * 3.2) * W.y * 0.7)
-               * (1.0 - exp(-a * 3.2) * mix(0.34, 0.9, low));
+    float quiet = 1.0 - T.x * hushWeight(uv, asp, Q, T.x);
+    return toned(1.0 - (1.0 - exp(-rs * 2.4) * W.x)
+                     * (1.0 - exp(-rm * 3.2) * W.y * 0.7)
+                     * (1.0 - exp(-a * 3.2) * mix(0.34, 0.9, low) * quiet), T);
 }
 
 }  // namespace horizon
@@ -62,7 +80,8 @@ float brightness(float2 uv, float asp, float2 S, float2 M, float2 W, float E) {
 /// edges are measured in device pixels exactly as the prototype measures them.
 [[ stitchable ]] half4 horizonSky(
     float2 position, half4 color, float2 size, float2 S, float2 M, float2 W,
-    float E, float PH, float MO, float scale, device const float *table, int count
+    float E, float PH, float MO, float scale, float4 Q, float3 T,
+    device const float *table, int count
 ) {
     using namespace horizon;
     if (count < TABLE_COUNT) return half4(0.0h, 0.0h, 0.0h, 1.0h);
@@ -72,9 +91,9 @@ float brightness(float2 uv, float asp, float2 S, float2 M, float2 W, float E) {
     float2 uvx = float2((position.x + pixel) / size.x, uv.y);
     float2 uvy = float2(uv.x, 1.0 - (position.y + pixel) / size.y);
 
-    float L = brightness(uv, asp, S, M, W, E);
-    float Lx = brightness(uvx, asp, S, M, W, E);
-    float Ly = brightness(uvy, asp, S, M, W, E);
+    float L = brightness(uv, asp, S, M, W, E, Q, T);
+    float Lx = brightness(uvx, asp, S, M, W, E, Q, T);
+    float Ly = brightness(uvy, asp, S, M, W, E, Q, T);
 
     float x = L * N + PH;
     float fw = (abs(Lx - L) + abs(Ly - L)) * N;

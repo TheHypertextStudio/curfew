@@ -15,20 +15,23 @@ struct TodayTextRegions: Equatable {
     var numerals: HorizonUnitRegion
     var line: HorizonUnitRegion
     var actions: HorizonUnitRegion
-}
 
-/// How strongly the sky is shaded behind each piece of Today's text, from 0
-/// (not at all) to 1. Zero wherever the sky behind already passes.
-struct TodaySkyShade: Equatable {
-    var numerals: Double
-    var line: Double
-    var actions: Double
+    /// Each region with the contrast its text needs.
+    var needs: [(region: HorizonUnitRegion, ratio: Double)] {
+        [
+            (numerals, TodaySkyLegibility.largeTextRatio),
+            (line, TodaySkyLegibility.textRatio),
+            (actions, TodaySkyLegibility.textRatio)
+        ]
+    }
 
-    static let none = TodaySkyShade(numerals: 0, line: 0, actions: 0)
-
-    /// The one shade drawn behind the whole block: enough for its neediest part.
-    var block: Double {
-        max(numerals, line, actions)
+    /// The smallest rectangle holding all three.
+    var block: HorizonUnitRegion {
+        let all = [numerals, line, actions]
+        return HorizonUnitRegion(
+            minX: all.map(\.minX).min() ?? 0, maxX: all.map(\.maxX).max() ?? 1,
+            minY: all.map(\.minY).min() ?? 0, maxY: all.map(\.maxY).max() ?? 1
+        )
     }
 }
 
@@ -70,22 +73,24 @@ extension TodayMetrics {
             actions: region(width: min(width - 32, 360), top: actionsTop, bottom: actionsBottom)
         )
     }
-
-    /// How far the soft shade reaches past the block, and how soft it is.
-    var shadeSpread: CGFloat {
-        (numeral * 0.3).rounded()
-    }
 }
 
-/// Keeps warm white text readable on every sky without a visible effect.
+/// Keeps warm white text readable on every sky without drawing anything over it.
 ///
-/// Each frame, the CPU field is sampled under the numerals, the line and the
-/// actions. Where the sky already gives the text its contrast nothing is
-/// drawn. Where it does not, a wide, soft shade of the moment's ground colour
-/// sits behind that text at just the opacity needed: the sky reads a little
-/// dimmer there, with no edge. `TodaySkyLegibilityTests` measures how much of
-/// the shade reaches the text (``coverage``) and proves the contrast across
-/// the day.
+/// Nothing is laid on the sky. The sky itself is quieted behind the text
+/// (``HorizonHush``): first the horizon's glow is taken out under the text
+/// block, and only if that is not enough (the sun close to the countdown)
+/// are all of the sky's levels lowered together, which keeps every band's
+/// shape and the sun's rings round. Both act before the field is cut into
+/// bands, so the result is still the sky's own hard-edged steps with no edge
+/// or patch of another colour.
+///
+/// The measure is phase independent: a band's ramp position never exceeds
+/// the brightness under it by more than the widest anti-aliased edge
+/// (``margin``), so holding the brightness under each piece of text at or
+/// below the brightest ramp position that still gives its contrast holds it
+/// for every band phase. `TodaySkyLegibilityTests` checks the colours
+/// actually drawn.
 enum TodaySkyLegibility {
     /// Warm white, the ink over the sky.
     static let ink = HorizonRGB(0.99, 0.97, 0.94)
@@ -93,113 +98,138 @@ enum TodaySkyLegibility {
     static let largeTextRatio = 3.0
     /// Every other line, and button labels.
     static let textRatio = 4.5
-    /// The least share of the shade's opacity that reaches any point of the
-    /// text it sits behind, once blurred. Measured by the tests.
-    static let coverage = 0.8
-    private static let phases = [0.0, 0.25, 0.5, 0.75]
+    /// The furthest an anti-aliased band edge can lift the ramp position
+    /// above the brightness under it: the shader's widest edge, in bands.
+    static let margin = 0.45 / Double(HorizonGeometry.bandCount)
+    /// How far the glow's dome reaches past the text block, as multiples of
+    /// the block's half-width and half-height.
+    static let reach = (across: 2.1, above: 2.25)
 
-    /// The shade for each piece of text on a sky of `size`.
-    static func shade(
+    /// The hush for Today's text on a sky of `size` at this moment.
+    static func hush(
         for frame: HorizonFrame, size: CGSize, regions: TodayTextRegions,
         palette: HorizonPalette = .standard
-    ) -> TodaySkyShade {
+    ) -> HorizonHush {
         guard size.width > 0, size.height > 0 else { return .none }
-        let canvas = HorizonField.Canvas(
-            aspect: Double(size.width / size.height), pixelHeight: Double(size.height)
-        )
-        func opacity(_ region: HorizonUnitRegion, ratio: Double) -> Double {
-            let needed = requiredDensity(
-                in: region, frame: frame, canvas: canvas, ratio: ratio, palette: palette
+        let aspect = Double(size.width / size.height)
+        let shape = dome(for: regions.block, aspect: aspect)
+        let limits = regions.needs.map { need in
+            Limit(
+                points: grid(in: need.region),
+                level: brightestPosition(for: frame, ratio: need.ratio, palette: palette) - margin
             )
-            guard needed > 0 else { return 0 }
-            // In steps of 0.05, so the shade changes rarely as the sun moves.
-            return min(1, (needed / coverage * 20).rounded(.up) / 20)
         }
-        return TodaySkyShade(
-            numerals: opacity(regions.numerals, ratio: largeTextRatio),
-            line: opacity(regions.line, ratio: textRatio),
-            actions: opacity(regions.actions, ratio: textRatio)
-        )
-    }
-
-    /// The least density of the ground colour over the sky that gives every
-    /// sampled point of `region` the `ratio`, across the band phases.
-    static func requiredDensity(
-        in region: HorizonUnitRegion, frame: HorizonFrame, canvas: HorizonField.Canvas,
-        ratio: Double, palette: HorizonPalette = .standard
-    ) -> Double {
-        func shadedSky(_ sky: HorizonRGB, _ density: Double) -> HorizonRGB {
-            shaded(sky, frame: frame, density: density, palette: palette)
+        func measure(glow: Double) -> Measure {
+            var trial = shape
+            trial.glow = glow
+            return Measure(limits: limits, frame: frame, aspect: aspect, hush: trial)
         }
-        var needed = 0.0
-        for sky in samples(in: region, frame: frame, canvas: canvas, palette: palette)
-            where contrast(ink, shadedSky(sky, needed)) < ratio {
-            var low = needed
+        if measure(glow: 0).scale >= 1 {
+            return .none
+        }
+        var result = shape
+        if measure(glow: 1).scale < 1 {
+            result.glow = 1
+        } else {
+            var low = 0.0
             var high = 1.0
-            for _ in 0 ..< 8 {
+            for _ in 0 ..< 14 {
                 let middle = (low + high) / 2
-                if contrast(ink, shadedSky(sky, middle)) >= ratio {
+                if measure(glow: middle).scale >= 1 {
                     high = middle
                 } else {
                     low = middle
                 }
             }
-            needed = high
+            result.glow = high
         }
-        return needed
+        let measured = measure(glow: result.glow)
+        if measured.scale < 1 {
+            result.scale = measured.scale
+            result.knee = measured.brightest
+        }
+        return result
     }
 
-    /// Sky colours under `region`: a 13 by 7 grid at four band phases.
-    static func samples(
-        in region: HorizonUnitRegion, frame: HorizonFrame, canvas: HorizonField.Canvas,
-        palette: HorizonPalette = .standard
-    ) -> [HorizonRGB] {
-        var colors: [HorizonRGB] = []
-        colors.reserveCapacity(13 * 7 * phases.count)
-        for phase in phases {
-            for column in 0 ... 12 {
-                for row in 0 ... 6 {
-                    let point = HorizonPoint(
-                        x: region.minX + (region.maxX - region.minX) * Double(column) / 12,
-                        y: region.minY + (region.maxY - region.minY) * Double(row) / 6
+    /// The glow's dome over the text block, with nothing taken out yet.
+    private static func dome(for block: HorizonUnitRegion, aspect: Double) -> HorizonHush {
+        HorizonHush(
+            centre: HorizonPoint(
+                x: (block.minX + block.maxX) / 2,
+                y: (block.minY + block.maxY) / 2
+            ),
+            radiusX: (block.maxX - block.minX) / 2 * aspect * reach.across,
+            radiusY: (block.maxY - block.minY) / 2 * reach.above,
+            glow: 0, scale: 1, knee: 1
+        )
+    }
+
+    /// Points under one piece of text and the brightest level they may reach.
+    private struct Limit {
+        var points: [HorizonPoint]
+        var level: Double
+    }
+
+    /// The brightest level under the text for one hush, and the scale that
+    /// brings every point down to its limit.
+    private struct Measure {
+        var brightest = 0.0
+        var scale = 1.0
+
+        init(limits: [Limit], frame: HorizonFrame, aspect: Double, hush: HorizonHush) {
+            for limit in limits {
+                for point in limit.points {
+                    let level = HorizonField.brightness(
+                        at: point, aspect: aspect, frame: frame, hush: hush
                     )
-                    colors.append(HorizonField.color(
-                        at: point, canvas: canvas, frame: frame,
-                        bands: HorizonField.Bands(phase: phase, edgeWidth: 0), palette: palette
-                    ))
+                    self.brightest = max(brightest, level)
+                    if level > limit.level {
+                        self.scale = min(scale, max(limit.level, 0) / level)
+                    }
                 }
             }
         }
-        return colors
     }
 
-    /// The shade colour: this moment's far sky, darkened to the depth of the
-    /// palette's far sky just after curfew. Behind the text the sky reads as
-    /// a deeper shade of itself (blue under a blue day, plum under a plum
-    /// evening) rather than as a patch of another colour, in every palette.
-    static func ground(
-        for frame: HorizonFrame, palette: HorizonPalette = .standard
-    ) -> HorizonRGB {
-        let depth = palette.ramp(0, elevation: min(frame.elevation, 0) - 0.1)
-        let sky = palette.ramp(0, elevation: frame.elevation)
-        let skyLuminance = luminance(sky)
-        guard skyLuminance > luminance(depth) else { return sky }
-        // sRGB scales luminance by roughly the 2.2 power of the factor.
-        let factor = pow(luminance(depth) / skyLuminance, 1 / 2.2)
-        return HorizonRGB(sky.red * factor, sky.green * factor, sky.blue * factor)
+    /// The brightest ramp position whose colour still gives warm white
+    /// `ratio` against it, at this moment's elevation.
+    static func brightestPosition(
+        for frame: HorizonFrame, ratio: Double, palette: HorizonPalette = .standard
+    ) -> Double {
+        func passes(_ position: Double) -> Bool {
+            let color = palette.ramp(position, elevation: frame.elevation + (position - 0.5) * 0.24)
+            return contrast(ink, color) >= ratio
+        }
+        guard passes(0) else { return 0 }
+        var low = 0.0
+        var high = 1.0
+        if passes(high) {
+            return high
+        }
+        for _ in 0 ..< 20 {
+            let middle = (low + high) / 2
+            if passes(middle) {
+                low = middle
+            } else {
+                high = middle
+            }
+        }
+        return low
     }
 
-    /// `sky` under the shade at `density`.
-    static func shaded(
-        _ sky: HorizonRGB, frame: HorizonFrame, density: Double,
-        palette: HorizonPalette = .standard
-    ) -> HorizonRGB {
-        let shade = ground(for: frame, palette: palette)
-        return HorizonRGB(
-            sky.red + (shade.red - sky.red) * density,
-            sky.green + (shade.green - sky.green) * density,
-            sky.blue + (shade.blue - sky.blue) * density
-        )
+    /// A 25 by 13 grid of points over `region`.
+    static func grid(in region: HorizonUnitRegion) -> [HorizonPoint] {
+        var points: [HorizonPoint] = []
+        points.reserveCapacity(25 * 13)
+        for column in 0 ... 24 {
+            for row in 0 ... 12 {
+                points.append(HorizonPoint(
+                    x: region.minX + (region.maxX - region.minX) * Double(column) / 24,
+                    y: region.minY + (region.maxY - region.minY) * Double(row) / 12
+                ))
+            }
+        }
+        return points
     }
 
     /// Relative luminance of an sRGB colour.
@@ -220,51 +250,18 @@ enum TodaySkyLegibility {
     }
 }
 
-/// The soft shade itself: a rounded rectangle reaching past the text, blurred
-/// wide enough that it has no edge.
-struct TodaySkyShadeShape: View {
-    var color: Color
-    var opacity: Double
-    var spread: CGFloat
-
-    var body: some View {
-        RoundedRectangle(cornerRadius: spread * 2.5, style: .continuous)
-            .fill(color.opacity(opacity))
-            .padding(-spread * 1.75)
-            .blur(radius: spread * 0.9)
-            .allowsHitTesting(false)
-            .accessibilityHidden(true)
-    }
-}
-
-/// A soft shade of the moment's ground colour, in the theme's palette.
-private struct TodaySkyShadeBackground: ViewModifier {
-    var opacity: Double
-    var frame: HorizonFrame
-    var spread: CGFloat
-    @Environment(\.horizonPalette) private var palette
-
-    func body(content: Content) -> some View {
-        content.background {
-            if opacity > 0 {
-                let ground = TodaySkyLegibility.ground(for: frame, palette: palette)
-                TodaySkyShadeShape(
-                    color: AtmospherePalette.solidBackground(
-                        red: ground.red, green: ground.green, blue: ground.blue
-                    ),
-                    opacity: opacity,
-                    spread: spread
-                )
-                .animation(.easeInOut(duration: 1), value: opacity)
-            }
+extension HorizonSkyView {
+    /// The sky behind Today's text, quieted so `metrics`' text reads at
+    /// every moment, in `palette`.
+    init(
+        today frame: HorizonFrame, isDayRunning: Bool, palette: HorizonPalette,
+        metrics: @escaping (CGSize) -> TodayMetrics
+    ) {
+        self.init(frame: frame, isDayRunning: isDayRunning) { size in
+            TodaySkyLegibility.hush(
+                for: frame, size: size, regions: metrics(size).textRegions(in: size),
+                palette: palette
+            )
         }
-    }
-}
-
-extension View {
-    /// A soft shade of the moment's ground colour behind this text, at
-    /// `opacity`; nothing when the sky already passes.
-    func skyShade(_ opacity: Double, frame: HorizonFrame, spread: CGFloat) -> some View {
-        modifier(TodaySkyShadeBackground(opacity: opacity, frame: frame, spread: spread))
     }
 }

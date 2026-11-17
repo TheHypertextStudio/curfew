@@ -28,12 +28,15 @@ struct TodaySundownView: View {
 
     var body: some View {
         ZStack(alignment: .top) {
-            // Drawn over the same area as the text, so the shade below is
-            // measured on the sky actually behind it; the extension effect
-            // carries it on beneath the system sidebar.
-            HorizonSkyView(frame: horizon, isDayRunning: isDayRunning)
-                .backgroundExtensionEffect()
-                .ignoresSafeArea(.container, edges: .vertical)
+            // Drawn over the same area as the text, so the sky is quieted
+            // exactly behind it; the extension effect carries it on beneath
+            // the system sidebar.
+            HorizonSkyView(
+                today: horizon, isDayRunning: isDayRunning, palette: palette,
+                metrics: TodayMetrics.window
+            )
+            .backgroundExtensionEffect()
+            .ignoresSafeArea(.container, edges: .vertical)
             GeometryReader { proxy in
                 layout(in: proxy.size)
             }
@@ -53,21 +56,15 @@ struct TodaySundownView: View {
     private func layout(in size: CGSize) -> some View {
         let metrics = TodayMetrics.window(size)
         let skyHeight = size.height * (1 - HorizonGeometry.horizon)
-        let shade = TodaySkyLegibility.shade(
-            for: horizon, size: size, regions: metrics.textRegions(in: size), palette: palette
-        )
         return VStack(spacing: 0) {
             TodayHero(
-                presentation: presentation, metrics: metrics, horizon: horizon, shade: shade,
-                voice: voice,
+                presentation: presentation, metrics: metrics, voice: voice,
                 holdDuration: holdDuration, onTurnOn: onTurnOn, onMoreTime: onMoreTime,
                 onCallItADay: onCallItADay
             )
             .padding(.bottom, metrics.actionsToHorizon)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
             .frame(height: skyHeight)
-            // The shade belongs to the sky; keep it off the ground.
-            .clipped()
 
             Group {
                 if presentation.showsOneThing {
@@ -145,8 +142,6 @@ struct TodayMetrics: Equatable {
 struct TodayHero: View {
     var presentation: TodayPresentation
     var metrics: TodayMetrics
-    var horizon: HorizonFrame
-    var shade: TodaySkyShade
     var voice: VoicePack
     var holdDuration: TimeInterval
     var onTurnOn: () -> Void
@@ -176,8 +171,8 @@ struct TodayHero: View {
             .padding(.top, metrics.lineToActions)
             .accessibilitySortPriority(1)
         }
-        // One shade behind the whole block, so it never draws over any of it.
-        .skyShade(shade.block, frame: horizon, spread: metrics.shadeSpread)
+        // Nothing is drawn behind the text: the sky beneath it is quieted
+        // (`HorizonSkyView(today:)`), so it reads at every moment.
         .foregroundStyle(SundownPalette.warmWhite)
         .multilineTextAlignment(.center)
     }
