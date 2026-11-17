@@ -9,6 +9,7 @@ import UniformTypeIdentifiers
 /// few days.
 struct JournalYearReviewView: View {
     let review: JournalYearReview
+    @State private var isSaving = false
 
     var body: some View {
         switch review.content {
@@ -36,13 +37,17 @@ struct JournalYearReviewView: View {
     private func actions(_ card: JournalYearReview.Card) -> some View {
         HStack(spacing: CurfewSpacing.small) {
             Button { save(card) } label: {
-                Label("Save image…", systemImage: "square.and.arrow.down")
+                Label(
+                    isSaving ? "Saving…" : "Save image…",
+                    systemImage: "square.and.arrow.down"
+                )
             }
+            .disabled(isSaving)
             .help("Save the year in review as an image")
             ShareLink(
                 item: JournalYearReviewImage(card: card),
                 preview: SharePreview(
-                    "\(card.yearLabel) in review",
+                    "Year in review, \(card.yearLabel)",
                     icon: HorizonSymbol.curfew.image
                 )
             ) {
@@ -62,6 +67,8 @@ struct JournalYearReviewView: View {
         panel.begin { response in
             guard response == .OK, let url = panel.url else { return }
             Task { @MainActor in
+                isSaving = true
+                defer { isSaving = false }
                 do {
                     try await JournalYearReviewImage(card: card).pngData().write(to: url)
                 } catch {
