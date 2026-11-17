@@ -33,6 +33,8 @@ struct CameraLiveIndicator: View {
         + "Frames are analyzed on this Mac and never saved or sent anywhere."
 
     /// Full panel, or nothing when the camera is off.
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     var body: some View {
         if isLive {
             CurfewPanel {
@@ -40,14 +42,14 @@ struct CameraLiveIndicator: View {
                     Label(Self.title, systemImage: Self.symbol)
                         .font(CurfewTypography.bodyEmphasis(14))
                         .foregroundStyle(CurfewTheme.warning)
-                        .symbolEffect(.pulse, isActive: isLive)
+                        .symbolEffect(.pulse, isActive: isLive && !reduceMotion)
 
                     Text(Self.detail)
                         .font(CurfewTypography.body(13))
                         .foregroundStyle(CurfewTheme.mutedInk)
                         .fixedSize(horizontal: false, vertical: true)
 
-                    Button("Turn Off Presence Detection", action: onTurnOff)
+                    Button("Turn off presence detection", action: onTurnOff)
                         .buttonStyle(CurfewSecondaryButtonStyle())
                 }
             }
@@ -69,6 +71,8 @@ struct CompactCameraLiveIndicator: View {
     /// Tapping opens Settings, where the switch lives.
     let onOpenSettings: () -> Void
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     /// Single row, or nothing when the camera is off.
     var body: some View {
         if isLive {
@@ -78,9 +82,9 @@ struct CompactCameraLiveIndicator: View {
                         .font(CurfewTypography.body(13))
                         .foregroundStyle(CurfewTheme.warning)
                         .fixedSize(horizontal: false, vertical: true)
-                        .symbolEffect(.pulse, isActive: isLive)
+                        .symbolEffect(.pulse, isActive: isLive && !reduceMotion)
 
-                    Button("Presence Settings", action: onOpenSettings)
+                    Button("Presence settings", action: onOpenSettings)
                         .buttonStyle(CurfewSecondaryButtonStyle())
                 }
             }

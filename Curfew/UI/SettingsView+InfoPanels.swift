@@ -10,9 +10,9 @@ extension SettingsView {
                 DisclosureGroup(isExpanded: $showsBrowserIntegration) {
                     taskBrowserEnforcementPanel
                 } label: {
-                    CurfewSectionTitle(
+                    SettingsRowLabel(
                         title: "Chrome and Docket",
-                        subtitle: "Keep Chrome to the websites for your active Docket task."
+                        detail: "Keep Chrome to the websites for your active Docket task."
                     )
                 }
             }
@@ -21,9 +21,11 @@ extension SettingsView {
             }
             if model.featureFlags.widgetKitEnabled {
                 PlusGate(feature: "Widgets", description: "See your curfew at a glance.") {
-                    Section("Widgets") {
-                        Text("Add a Curfew widget from your Mac's widget gallery.")
-                            .foregroundStyle(CurfewTheme.mutedInk)
+                    SettingsGroup(
+                        "Widgets",
+                        footer: "Add a Curfew widget from your Mac's widget gallery."
+                    ) {
+                        EmptyView()
                     }
                 }
             }
@@ -32,7 +34,7 @@ extension SettingsView {
                     feature: "Calendar",
                     description: "See today's events alongside your curfew."
                 ) {
-                    Section("Calendar") { calendarAuthRow }
+                    SettingsGroup("Calendar") { calendarAuthRow }
                 }
             }
         }
@@ -40,68 +42,82 @@ extension SettingsView {
 
     private var mcpConfigPanel: some View {
         @Bindable var model = model
-        return Section {
-            Text(Self.localAIExplanation)
-                .foregroundStyle(CurfewTheme.mutedInk)
+        return SettingsGroup(
+            "AI assistants",
+            footer: model.settings.mcpEnabled
+                ? "Your journal is stored on this Mac. An assistant you connect can receive "
+                + "its contents, so only connect assistants you trust."
+                : nil
+        ) {
             SettingsToggleRow(
                 title: "Allow assistants on this Mac",
+                detail: Self.localAIExplanation,
+                identifier: "assistant-enabled",
                 isOn: $model.settings.mcpEnabled
             )
-            .accessibilityIdentifier("assistant-enabled")
-            DisclosureGroup("Data access and shutdown requests", isExpanded: $showsAIPermissions) {
+            DisclosureGroup(isExpanded: $showsAIPermissions) {
                 Text(Self.localAIAuthorityDetails)
+                    .font(CurfewTypography.body(12))
                     .foregroundStyle(CurfewTheme.mutedInk)
+                    .fixedSize(horizontal: false, vertical: true)
+            } label: {
+                SettingsRowLabel(title: "Data access and shutdown requests")
             }
             if model.settings.mcpEnabled {
-                Picker("Changes", selection: $model.aiConsentPolicy) {
+                SettingsPickerRow(
+                    title: "Changes",
+                    detail: model.aiConsentPolicy.rationale,
+                    selection: $model.aiConsentPolicy,
+                    identifier: "assistant-policy"
+                ) {
                     ForEach(AIConsentPolicy.allCases, id: \.self) { policy in
                         Text(policy.displayName).tag(policy)
                     }
                 }
-                .pickerStyle(.menu)
-                .accessibilityIdentifier("assistant-policy")
-                Text(model.aiConsentPolicy.rationale).foregroundStyle(CurfewTheme.mutedInk)
                 claudeDesktopRegisterButton
-                VStack(alignment: .leading, spacing: 10) {
-                    Button {
-                        manualSetupExpanded.toggle()
-                    } label: {
-                        Label(
-                            "Manual setup",
-                            systemImage: manualSetupExpanded ? "chevron.down" : "chevron.right"
-                        )
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier("manual-assistant-setup")
-                    .accessibilityValue(manualSetupExpanded ? "Expanded" : "Collapsed")
-                    if manualSetupExpanded {
-                        Text(
-                            "Add the bundled curfew-mcp server "
-                                + "to your assistant's MCP configuration."
-                        )
-                        .foregroundStyle(CurfewTheme.mutedInk)
-                        Button(didCopyConfig ? "Copied" : "Copy Configuration") {
-                            copyClaudeDesktopConfig()
-                            didCopyConfig = true
-                        }
-                        .accessibilityIdentifier("copy-assistant-config")
-                    }
-                }
+                manualSetupRow
             }
             if !model.pendingMCPRequests.isEmpty {
-                LabeledContent("Awaiting approval", value: "\(model.pendingMCPRequests.count)")
-                Button("Review request…") {
+                SettingsActionRow(
+                    title: "Awaiting approval",
+                    detail: model.pendingMCPRequests.count == 1
+                        ? "1 request" : "\(model.pendingMCPRequests.count) requests",
+                    actionTitle: "Review request…",
+                    identifier: "review-ai-request"
+                ) {
                     openWindow(id: MainWorkspaceSection.windowID)
                     model.requestWorkspaceNavigation(to: .today)
                 }
-                .accessibilityIdentifier("review-ai-request")
             }
-        } header: {
-            Text("AI assistants")
-        } footer: {
-            if model.settings.mcpEnabled {
-                Text("Your journal is stored on this Mac. An assistant you connect can receive "
-                    + "its contents, so only connect assistants you trust.")
+        }
+    }
+
+    @ViewBuilder
+    private var manualSetupRow: some View {
+        Button {
+            manualSetupExpanded.toggle()
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: manualSetupExpanded ? "chevron.down" : "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(CurfewTheme.mutedInk)
+                    .accessibilityHidden(true)
+                SettingsRowLabel(title: "Manual setup")
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("manual-assistant-setup")
+        .accessibilityValue(manualSetupExpanded ? "Expanded" : "Collapsed")
+        if manualSetupExpanded {
+            SettingsActionRow(
+                title: "Assistant configuration",
+                detail: "Add the bundled curfew-mcp server to your assistant's MCP configuration.",
+                actionTitle: didCopyConfig ? "Copied" : "Copy configuration",
+                identifier: "copy-assistant-config"
+            ) {
+                copyClaudeDesktopConfig()
+                didCopyConfig = true
             }
         }
     }
@@ -111,20 +127,30 @@ extension SettingsView {
         switch model.calendarMonitor.authorizationStatus {
         case .fullAccess:
             let count = model.calendarMonitor.todayEvents.count
-            LabeledContent("Today's events", value: count == 1 ? "1 event" : "\(count) events")
+            SettingsActionRow(
+                title: "Today's events",
+                detail: count == 1 ? "1 event" : "\(count) events",
+                actionTitle: nil
+            )
         case .notDetermined:
-            Button("Allow calendar access…") {
+            SettingsActionRow(
+                title: "Calendar access",
+                detail: "Curfew reads today's events to show them beside your curfew.",
+                actionTitle: "Allow calendar access…"
+            ) {
                 if !model.isDemoSession {
                     model.calendarMonitor.requestAccessAndSync()
                 }
             }
         default:
-            Text("Curfew needs full Calendar access to read events.")
-                .foregroundStyle(CurfewTheme.mutedInk)
-            Button("Open Calendar settings") {
+            SettingsActionRow(
+                title: "Calendar access",
+                detail: "Curfew needs full Calendar access to read events.",
+                tone: .warning,
+                actionTitle: "Open Calendar settings"
+            ) {
                 if !model.isDemoSession,
-                   let url =
-                   URL(
+                   let url = URL(
                        string: "x-apple.systempreferences:com.apple.preference.security"
                            + "?Privacy_Calendars"
                    ) {
@@ -152,7 +178,7 @@ extension SettingsView {
         Group {
             devicesListPanel
             PlusGate(feature: "iCloud sync", description: "Sync your schedule across your Macs.") {
-                Section("iCloud sync") { syncStatusRow }
+                SettingsGroup("iCloud sync") { syncStatusRow }
             }
         }
     }
@@ -161,17 +187,28 @@ extension SettingsView {
     private var syncStatusRow: some View {
         switch model.cloudKitSyncEngine.syncStatus {
         case .idle:
-            Text("Ready to sync").foregroundStyle(CurfewTheme.mutedInk)
+            SettingsActionRow(title: "iCloud sync", detail: "Ready to sync", actionTitle: nil)
         case .syncing:
-            HStack { ProgressView().controlSize(.small); Text("Syncing…") }
+            SettingsActionRow(title: "iCloud sync", detail: "Syncing…", actionTitle: nil)
         case .synced(let date):
-            LabeledContent("Last synced") { Text(date, style: .relative) }
+            SettingsActionRow(
+                title: "iCloud sync",
+                detail: "Last synced \(date.formatted(.relative(presentation: .named)))",
+                actionTitle: nil
+            )
         case .failed(let message):
-            Text("Couldn't sync your schedule.").foregroundStyle(CurfewTheme.warning)
-            DisclosureGroup("Details") { Text(message).textSelection(.enabled) }
+            SettingsActionRow(
+                title: "Couldn't sync your schedule.",
+                detail: message,
+                tone: .warning,
+                actionTitle: nil
+            )
         case .unavailable:
-            Text("Sign in to iCloud in System Settings to sync your schedule.")
-                .foregroundStyle(CurfewTheme.mutedInk)
+            SettingsActionRow(
+                title: "iCloud sync",
+                detail: "Sign in to iCloud in System Settings to sync your schedule.",
+                actionTitle: nil
+            )
         }
     }
 

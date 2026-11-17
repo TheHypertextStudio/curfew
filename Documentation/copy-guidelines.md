@@ -22,6 +22,8 @@ Use one word per thing, everywhere, including Settings, intents, notifications a
 
 Write in sentence case, including buttons, sidebar titles and intent titles. Use no exclamation marks and no dashes as punctuation. Take times from the locale formatter, never a hard-coded 24-hour string, and write countdowns as hours and minutes (“2:30”). Use American spelling. Keep implementation words (daemon, supervisor, enforcement, policy, warning stage tokens, request identifiers) out of anything a person reads; ports, poll times and raw identifiers appear only with developer detail.
 
+Place help text by what it explains. Text about one control sits in that control's row, under its label, in secondary text. Text about a whole group is one footer under the group's box. Help text is never a row of its own, and live status belongs under the label of the control it describes. A warning that needs an action is one row holding the message and its button.
+
 These are the default lines for the moments people see most.
 
 | Moment                    | Line                                                                   |

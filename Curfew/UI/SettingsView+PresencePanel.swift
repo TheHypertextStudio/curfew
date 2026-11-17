@@ -7,31 +7,25 @@ extension SettingsView {
     /// nudge controls, and the plain-language data statement.
     var presencePanel: some View {
         Group {
-            Section {
-                Text(Self.presenceExplanation)
-                    .font(CurfewTypography.body(13))
-                    .foregroundStyle(CurfewTheme.mutedInk)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                CameraLiveIndicator(isLive: model.isPresenceCameraLive) {
-                    model.disablePresenceDetection()
+            SettingsGroup("Camera", footer: Self.presencePrivacySummary) {
+                if model.isPresenceCameraLive {
+                    SettingsActionRow(
+                        title: CameraLiveIndicator.title,
+                        detail: CameraLiveIndicator.detail,
+                        tone: .warning,
+                        actionTitle: "Turn off"
+                    ) {
+                        model.disablePresenceDetection()
+                    }
                 }
-                Text(Self.presencePrivacySummary)
-                    .font(CurfewTypography.body(13))
-                    .foregroundStyle(CurfewTheme.mutedInk)
-                    .fixedSize(horizontal: false, vertical: true)
                 presenceConsentControl
-                if model.settings.presence.cameraEnabled {
-                    presenceStatusLine
-                }
                 DisclosureGroup("Camera data and privacy", isExpanded: $showsPresencePrivacy) {
                     presenceDataStatement
                         .padding(.top, 8)
                 }
             }
             if model.settings.presence.cameraEnabled {
-                Section {
-                    CurfewSectionTitle(title: "Reminders")
+                SettingsGroup("Reminders", footer: Self.presenceNudgeNote) {
                     presenceNudgeControls
                 }
             }
@@ -39,35 +33,31 @@ extension SettingsView {
     }
 
     /// The consent switch, or a route to System Settings when macOS is the one
-    /// saying no.
-    ///
-    /// A plain `Toggle` bound straight to the setting would let the user switch
-    /// presence detection on while camera access is denied — a stored intent to
-    /// run a camera that cannot run. Instead the "on" path goes through
-    /// `enablePresenceDetection()`, which prompts first and only persists the
-    /// setting if access was actually granted.
+    /// saying no. The "on" path goes through `enablePresenceDetection()`, which
+    /// prompts first and only persists the setting if access was granted.
     @ViewBuilder
     private var presenceConsentControl: some View {
         switch model.presenceCameraAuthorization {
         case .restricted:
-            Label(Self.presenceRestrictedNote, systemImage: "lock.fill")
-                .font(CurfewTypography.body(13))
-                .foregroundStyle(CurfewTheme.mutedInk)
-                .fixedSize(horizontal: false, vertical: true)
+            SettingsActionRow(
+                title: Self.presenceToggleTitle,
+                detail: Self.presenceRestrictedNote,
+                actionTitle: nil
+            )
         case .denied:
-            VStack(alignment: .leading, spacing: 8) {
-                Text(Self.presenceDeniedNote)
-                    .font(CurfewTypography.body(13))
-                    .foregroundStyle(CurfewTheme.mutedInk)
-                    .fixedSize(horizontal: false, vertical: true)
-                Button("Open Camera settings") {
-                    model.openCameraPrivacySettings()
-                }
-                .buttonStyle(CurfewSecondaryButtonStyle())
+            SettingsActionRow(
+                title: Self.presenceToggleTitle,
+                detail: Self.presenceDeniedNote,
+                tone: .warning,
+                actionTitle: "Open Camera settings"
+            ) {
+                model.openCameraPrivacySettings()
             }
         case .notDetermined, .authorized:
             SettingsToggleRow(
-                title: "Use the camera to detect whether I'm at my Mac",
+                title: Self.presenceToggleTitle,
+                detail: presenceStatusDetail ?? Self.presenceExplanation,
+                tone: model.isPresenceCameraStalled ? .warning : .secondary,
                 isOn: Binding(
                     get: { model.settings.presence.cameraEnabled },
                     set: { wantsOn in
@@ -82,32 +72,25 @@ extension SettingsView {
         }
     }
 
-    /// What Curfew currently believes, stated plainly. Doubles as the failure
-    /// surface: a camera that will not open says so here instead of leaving
-    /// the panel looking like everything works.
-    @ViewBuilder
-    private var presenceStatusLine: some View {
+    static let presenceToggleTitle = "Use the camera to tell whether I'm at my Mac"
+
+    /// What Curfew currently believes, as the switch's secondary line. Doubles
+    /// as the failure surface when the camera will not open.
+    private var presenceStatusDetail: String? {
+        guard model.settings.presence.cameraEnabled else { return nil }
         if model.isPresenceCameraStalled {
-            Label(Self.presenceStalledNote, systemImage: "video.slash")
-                .font(CurfewTypography.body(13))
-                .foregroundStyle(CurfewTheme.warning)
-                .fixedSize(horizontal: false, vertical: true)
-        } else {
-            Text("Right now: \(Self.presenceDescription(model.presenceState))")
-                .font(CurfewTypography.body(13))
-                .foregroundStyle(CurfewTheme.mutedInk)
-                .fixedSize(horizontal: false, vertical: true)
+            return Self.presenceStalledNote
         }
+        return "Right now: \(Self.presenceDescription(model.presenceState))"
     }
 
     /// The nudge switch and its two windows. Shown only once the camera is on,
-    /// because without it the nudge can never fire and a live-looking control
-    /// that does nothing is worse than no control.
+    /// because without it the nudge can never fire.
     @ViewBuilder
     private var presenceNudgeControls: some View {
         @Bindable var model = model
         SettingsToggleRow(
-            title: "Remind me when I'm at my Mac but inactive.",
+            title: "Remind me when I'm at my Mac but inactive",
             isOn: $model.settings.presence.warnsWhenDistracted
         )
 
@@ -127,11 +110,6 @@ extension SettingsView {
             step: 5, usesMinutes: true
         )
         .disabled(!model.settings.presence.warnsWhenDistracted)
-
-        Text(Self.presenceNudgeNote)
-            .font(CurfewTypography.body(13))
-            .foregroundStyle(CurfewTheme.mutedInk)
-            .fixedSize(horizontal: false, vertical: true)
     }
 
     /// Detailed consent facts accompany the always-visible frame-use summary.
@@ -181,13 +159,13 @@ extension SettingsView {
     /// Shown when the user has refused or revoked camera access.
     static let presenceDeniedNote = """
     Curfew doesn't have camera access. Presence detection stays off until you \
-    grant it in System Settings → Privacy & Security → Camera.
+    allow it in System Settings, under Privacy & Security, then Camera.
     """
 
     /// Shown when the setting is on and access is granted, but no session.
     static let presenceStalledNote = """
-    Presence detection is on, but the camera isn't available — another app may \
-    be using it. Curfew is falling back to keyboard activity alone.
+    The camera isn't available; another app may be using it. Curfew is using \
+    keyboard activity alone.
     """
 
     /// Explains what the nudge will and won't interrupt.

@@ -14,54 +14,19 @@ extension SettingsView {
     /// re-launching Mac can re-register cleanly without a create/delete
     /// race.
     var devicesListPanel: some View {
-        Section("Devices") {
-            if model.deviceRegistry.activeDevices.isEmpty {
-                Text(
-                    "No other Macs yet. Turn on iCloud sync in Account to add them."
+        SettingsGroup(
+            "Macs",
+            footer: model.deviceRegistry.activeDevices.isEmpty
+                ? "No other Macs yet. Turn on iCloud sync in Account to add them."
+                : nil
+        ) {
+            ForEach(model.deviceRegistry.activeDevices) { device in
+                SettingsActionRow(
+                    title: device.id == DeviceRegistry.localDeviceID()
+                        ? "\(device.deviceName) (this Mac)" : device.deviceName,
+                    detail: lastSeenLabel(for: device.lastSeen),
+                    actionTitle: nil
                 )
-                .font(CurfewTypography.body(13))
-                .foregroundStyle(CurfewTheme.mutedInk)
-                .fixedSize(horizontal: false, vertical: true)
-            } else {
-                VStack(alignment: .leading, spacing: 8) {
-                    ForEach(model.deviceRegistry.activeDevices) { device in
-                        deviceRow(device)
-                        if device.id != model.deviceRegistry.activeDevices.last?.id {
-                            Divider()
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private func deviceRow(_ device: DeviceSummary) -> some View {
-        HStack(spacing: 10) {
-            Circle()
-                .fill(device.isActiveLocal ? CurfewTheme.accent : CurfewTheme.mutedInk)
-                .frame(width: 8, height: 8)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(device.deviceName)
-                    .font(CurfewTypography.bodyEmphasis(14))
-                    .foregroundStyle(CurfewTheme.ink)
-
-                Text(lastSeenLabel(for: device.lastSeen))
-                    .font(CurfewTypography.label(12))
-                    .foregroundStyle(CurfewTheme.mutedInk)
-            }
-            Spacer()
-
-            if device.id == DeviceRegistry.localDeviceID() {
-                Text("This Mac")
-                    .font(CurfewTypography.label(11))
-                    .foregroundStyle(CurfewTheme.mutedInk)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
-                    .background(
-                        CurfewTheme.surfaceMuted,
-                        in: Capsule()
-                    )
             }
         }
     }

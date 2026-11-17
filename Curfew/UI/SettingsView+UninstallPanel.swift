@@ -15,16 +15,15 @@ extension SettingsView {
     /// user via a drag-to-Trash prompt, which matches Finder conventions
     /// and avoids having to re-obtain elevated permissions.
     var uninstallPanel: some View {
-        Section("Remove Curfew") {
-            Text("Permanently delete settings, history, and the license key from this Mac. "
-                + "Your synced schedule is kept. This cannot be undone.")
-                .foregroundStyle(CurfewTheme.mutedInk)
-
-            Button("Uninstall Curfew…") {
+        SettingsGroup("Remove Curfew") {
+            SettingsActionRow(
+                title: "Uninstall Curfew",
+                detail: "Deletes settings, history and the license key from this Mac. "
+                    + "Your synced schedule is kept. This can't be undone.",
+                actionTitle: "Uninstall Curfew…"
+            ) {
                 confirmUninstall()
             }
-            .buttonStyle(CurfewSecondaryButtonStyle())
-            .accessibilityHint("Opens a confirmation dialog before clearing local state.")
         }
     }
 

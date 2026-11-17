@@ -6,15 +6,16 @@ import UniformTypeIdentifiers
 
 extension SettingsView {
     var coordinatorSyncPanel: some View {
-        Section {
+        SettingsGroup("Curfew Account", footer: Self.accountExplanation) {
             accountEnrollmentControls
-            DisclosureGroup("Encryption and account recovery") {
-                Text(Self.accountSecurityNote).foregroundStyle(CurfewTheme.mutedInk)
+            DisclosureGroup {
+                Text(Self.accountSecurityNote)
+                    .font(CurfewTypography.body(12))
+                    .foregroundStyle(CurfewTheme.mutedInk)
+                    .fixedSize(horizontal: false, vertical: true)
+            } label: {
+                SettingsRowLabel(title: "Encryption and account recovery")
             }
-        } header: {
-            Text("Curfew Account")
-        } footer: {
-            Text(Self.accountExplanation)
         }
     }
 
@@ -24,10 +25,12 @@ extension SettingsView {
             storageUnavailableControls
         } else if case .ready(let enrollment) = accountEnrollment.state,
                   model.settings.accountSync.enrollment != enrollment {
-            Label("Encrypted account sync is ready.", systemImage: "checkmark.shield")
-                .onAppear {
-                    model.settings.accountSync.enrollment = enrollment
-                }
+            SettingsActionRow(
+                title: "Connected", detail: "Encrypted account sync is ready.", actionTitle: nil
+            )
+            .onAppear {
+                model.settings.accountSync.enrollment = enrollment
+            }
         } else if model.settings.accountSync.isEnrolled {
             AccountConnectionStatusView(
                 engine: model.accountSyncEngine,
@@ -46,31 +49,46 @@ extension SettingsView {
             }
             if model.featureFlags.privilegedHelperEnabled,
                !model.privilegedHelperManager.isRemoteLockEnforcementAvailable {
-                if model.privilegedHelperManager.installationInProgress
-                    || model.privilegedHelperManager.repairInProgress {
-                    Label("Connecting the Curfew helper…", systemImage: "hourglass")
-                } else if model.privilegedHelperManager.daemonStatus == .requiresApproval {
-                    Button("Allow the Curfew helper…") {
+                let helper = model.privilegedHelperManager
+                if helper.installationInProgress || helper.repairInProgress {
+                    SettingsActionRow(
+                        title: "Remote locks", detail: "Connecting the Curfew helper…",
+                        actionTitle: nil
+                    )
+                } else if helper.daemonStatus == .requiresApproval {
+                    SettingsActionRow(
+                        title: "Remote locks", detail: "They need the Curfew helper.",
+                        tone: .warning, actionTitle: "Allow the Curfew helper…"
+                    ) {
                         if !model.isDemoSession {
                             SMAppService.openSystemSettingsLoginItems()
                         }
                     }
-                    .buttonStyle(CurfewPrimaryButtonStyle())
-                } else if model.privilegedHelperManager.daemonStatus == .enabled {
-                    Button("Check the Curfew helper") { selection = .general }
-                        .buttonStyle(CurfewPrimaryButtonStyle())
+                } else if helper.daemonStatus == .enabled {
+                    SettingsActionRow(
+                        title: "Remote locks", detail: "They need the Curfew helper.",
+                        tone: .warning, actionTitle: "Check the Curfew helper"
+                    ) { selection = .general }
                 } else {
-                    Button("Set up the Curfew helper…") {
-                        Task { await model.privilegedHelperManager.installAndConnectDaemon() }
+                    SettingsActionRow(
+                        title: "Remote locks", detail: "They need the Curfew helper.",
+                        tone: .warning, actionTitle: "Set up the Curfew helper…"
+                    ) {
+                        Task { await helper.installAndConnectDaemon() }
                     }
-                    .buttonStyle(CurfewPrimaryButtonStyle())
                 }
             }
             if model.accountSyncEngine.syncStatus.requiresSameAccountSignIn {
                 if case .signingIn = accountEnrollment.state {
                     accountSignInInProgress
                 } else {
-                    Button("Sign in again to reconnect this Mac") {
+                    SettingsActionRow(
+                        title: "Sign in again",
+                        detail: accountEnrollment.enrollmentRetryError
+                            ?? "Use the same Curfew account to reconnect this Mac.",
+                        tone: .warning,
+                        actionTitle: "Sign in again to reconnect this Mac"
+                    ) {
                         if let enrollment = model.settings.accountSync.enrollment {
                             Task {
                                 guard await accountEnrollment.reconnectEnrolledMac(enrollment),
@@ -81,16 +99,16 @@ extension SettingsView {
                             }
                         }
                     }
-                    .buttonStyle(CurfewPrimaryButtonStyle())
-                    if let message = accountEnrollment.enrollmentRetryError {
-                        Label(message, systemImage: "exclamationmark.triangle")
-                            .foregroundStyle(CurfewTheme.warning)
-                    }
                 }
             }
             if case .rejected(AccountSyncRejectionReason.accessDenied) =
                 model.accountSyncEngine.syncStatus {
-                Button("Retry account connection") {
+                SettingsActionRow(
+                    title: "Access was denied",
+                    detail: "Check this Mac's access in your account, then try again.",
+                    tone: .warning,
+                    actionTitle: "Retry account connection"
+                ) {
                     if let enrollment = model.settings.accountSync.enrollment {
                         Task {
                             await model.accountSyncEngine
@@ -98,83 +116,84 @@ extension SettingsView {
                         }
                     }
                 }
-                .buttonStyle(CurfewSecondaryButtonStyle())
             }
             openAccountButton
         } else {
             switch accountEnrollment.state {
             case .accountFree:
-                Button("Sign in and enroll this Mac") {
+                SettingsActionRow(
+                    title: "Not signed in",
+                    detail: "Sign in to sync your schedule and allow remote control.",
+                    actionTitle: "Sign in and enroll this Mac"
+                ) {
                     Task { await accountEnrollment.signIn() }
                 }
-                .buttonStyle(CurfewPrimaryButtonStyle())
                 openAccountButton
             case .storageUnavailable:
                 storageUnavailableControls
             case .signingIn:
                 accountSignInInProgress
             case .connectingDevice:
-                ProgressView("Securely connecting this Mac…")
+                SettingsActionRow(
+                    title: "Connecting", detail: "Securely connecting this Mac…", actionTitle: nil
+                )
             case .finishDeviceConnection:
-                Text("You’re signed in. Curfew still needs to connect this Mac. "
-                    + "No new sign-in is needed.")
-                    .font(CurfewTypography.bodyEmphasis(13))
-                    .foregroundStyle(CurfewTheme.warning)
-                    .fixedSize(horizontal: false, vertical: true)
-                enrollmentRetryStatus
-                Button("Finish connecting this Mac") {
+                SettingsActionRow(
+                    title: "Almost connected",
+                    detail: enrollmentRetryDetail ?? "You’re signed in. Curfew still needs "
+                        + "to connect this Mac. No new sign-in is needed.",
+                    tone: .warning,
+                    actionTitle: "Finish connecting this Mac"
+                ) {
                     Task { await accountEnrollment.signIn() }
                 }
-                .buttonStyle(CurfewPrimaryButtonStyle())
             case .finishDeviceRegistration:
-                Text(accountEnrollment.requiresReauthorization
-                    ? "Curfew needs a fresh sign-in to finish connecting this same Mac."
-                    : "You’re signed in. Curfew still needs to finish connecting this Mac. "
-                    + "No new sign-in is needed.")
-                    .font(CurfewTypography.bodyEmphasis(13))
-                    .foregroundStyle(CurfewTheme.warning)
-                    .fixedSize(horizontal: false, vertical: true)
-                enrollmentRetryStatus
-                Button(accountEnrollment.requiresReauthorization
-                    ? "Sign in again to finish connecting"
-                    : "Finish connecting this Mac") {
-                        Task {
-                            if accountEnrollment.requiresReauthorization {
-                                await accountEnrollment.reauthorizeSavedEnrollment()
-                            } else {
-                                await accountEnrollment.finishDeviceRegistration()
-                            }
+                SettingsActionRow(
+                    title: "Almost connected",
+                    detail: enrollmentRetryDetail ?? (accountEnrollment.requiresReauthorization
+                        ? "Curfew needs a fresh sign-in to finish connecting this same Mac."
+                        : "You’re signed in. Curfew still needs to finish connecting this Mac. "
+                        + "No new sign-in is needed."),
+                    tone: .warning,
+                    actionTitle: accountEnrollment.requiresReauthorization
+                        ? "Sign in again to finish connecting"
+                        : "Finish connecting this Mac"
+                ) {
+                    Task {
+                        if accountEnrollment.requiresReauthorization {
+                            await accountEnrollment.reauthorizeSavedEnrollment()
+                        } else {
+                            await accountEnrollment.finishDeviceRegistration()
                         }
                     }
-                    .buttonStyle(CurfewPrimaryButtonStyle())
-                    .disabled(accountEnrollment.isFinishingEnrollment
-                        || (accountEnrollment.requiresReauthorization
-                            && !accountEnrollment.canReauthorizeSavedEnrollment))
+                }
+                .disabled(accountEnrollment.isFinishingEnrollment
+                    || (accountEnrollment.requiresReauthorization
+                        && !accountEnrollment.canReauthorizeSavedEnrollment))
             case .finishRecoverySetup:
-                Text(accountEnrollment.requiresReauthorization
-                    ? "This Mac is registered. Sign in again with the same account to "
-                    + "finish recovery setup."
-                    : "You’re signed in and this Mac is registered. Curfew still needs to "
-                    + "finish recovery setup before remote control can turn on.")
-                    .font(CurfewTypography.bodyEmphasis(13))
-                    .foregroundStyle(CurfewTheme.warning)
-                    .fixedSize(horizontal: false, vertical: true)
-                enrollmentRetryStatus
-                Button(accountEnrollment.requiresReauthorization
-                    ? "Sign in again to finish recovery setup"
-                    : "Finish recovery setup") {
-                        Task {
-                            if accountEnrollment.requiresReauthorization {
-                                await accountEnrollment.reauthorizeSavedEnrollment()
-                            } else {
-                                await accountEnrollment.finishRecoverySetup()
-                            }
+                SettingsActionRow(
+                    title: "Recovery setup isn't finished",
+                    detail: enrollmentRetryDetail ?? (accountEnrollment.requiresReauthorization
+                        ? "This Mac is registered. Sign in again with the same account to "
+                        + "finish recovery setup."
+                        : "You’re signed in and this Mac is registered. Curfew still needs to "
+                        + "finish recovery setup before remote control can turn on."),
+                    tone: .warning,
+                    actionTitle: accountEnrollment.requiresReauthorization
+                        ? "Sign in again to finish recovery setup"
+                        : "Finish recovery setup"
+                ) {
+                    Task {
+                        if accountEnrollment.requiresReauthorization {
+                            await accountEnrollment.reauthorizeSavedEnrollment()
+                        } else {
+                            await accountEnrollment.finishRecoverySetup()
                         }
                     }
-                    .buttonStyle(CurfewPrimaryButtonStyle())
-                    .disabled(accountEnrollment.isFinishingEnrollment
-                        || (accountEnrollment.requiresReauthorization
-                            && !accountEnrollment.canReauthorizeSavedEnrollment))
+                }
+                .disabled(accountEnrollment.isFinishingEnrollment
+                    || (accountEnrollment.requiresReauthorization
+                        && !accountEnrollment.canReauthorizeSavedEnrollment))
             case .saveRecoveryKey(let key, _):
                 Text(
                     "Save this Recovery Key outside Curfew. "
@@ -258,17 +277,21 @@ extension SettingsView {
                 .disabled(accountRecoveryKey.isEmpty
                     || accountEnrollment.requiresReauthorization)
             case .ready(let enrollment):
-                Label("Encrypted account sync is ready.", systemImage: "checkmark.shield")
-                    .onAppear {
-                        model.settings.accountSync.enrollment = enrollment
-                    }
+                SettingsActionRow(
+                    title: "Connected", detail: "Encrypted account sync is ready.", actionTitle: nil
+                )
+                .onAppear {
+                    model.settings.accountSync.enrollment = enrollment
+                }
             case .failed(let message):
-                Label(message, systemImage: "exclamationmark.triangle")
-                    .foregroundStyle(CurfewTheme.warning)
-                Button("Try account enrollment again") {
+                SettingsActionRow(
+                    title: "Couldn't connect this Mac",
+                    detail: message,
+                    tone: .warning,
+                    actionTitle: "Try account enrollment again"
+                ) {
                     Task { await accountEnrollment.signIn() }
                 }
-                .buttonStyle(CurfewSecondaryButtonStyle())
                 openAccountButton
             }
         }
@@ -276,51 +299,44 @@ extension SettingsView {
 
     @ViewBuilder
     private var accountSignInInProgress: some View {
-        ProgressView("Waiting for secure sign-in and 2FA…")
-        Button("Cancel sign-in") {
+        SettingsActionRow(
+            title: "Signing in",
+            detail: "Waiting for secure sign-in and 2FA…",
+            actionTitle: "Cancel sign-in",
+            identifier: "settings-cancel-account-sign-in"
+        ) {
             accountEnrollment.cancelSignIn()
         }
-        .buttonStyle(CurfewSecondaryButtonStyle())
-        .accessibilityIdentifier("settings-cancel-account-sign-in")
         if accountEnrollment.browserSignInURL != nil {
-            Text(
-                "Did Curfew open the wrong browser profile? Copy this temporary, private "
-                    + "sign-in link and paste it into the profile that stores your passkey."
-            )
-            .font(CurfewTypography.body(12))
-            .foregroundStyle(CurfewTheme.mutedInk)
-            .fixedSize(horizontal: false, vertical: true)
-
-            Button {
+            SettingsActionRow(
+                title: "Wrong browser profile?",
+                detail: "Copy this temporary, private sign-in link and paste it into the "
+                    + "profile that stores your passkey.",
+                actionTitle: "Copy sign-in link",
+                identifier: "settings-copy-account-sign-in-link"
+            ) {
                 accountEnrollment.copyBrowserSignInLink()
-            } label: {
-                Label("Copy sign-in link", systemImage: "doc.on.doc")
             }
-            .buttonStyle(CurfewSecondaryButtonStyle())
-            .accessibilityIdentifier("settings-copy-account-sign-in-link")
         }
     }
 
     private var storageUnavailableControls: some View {
-        VStack(alignment: .leading, spacing: CurfewSpacing.small) {
-            Label(
-                "Curfew can’t check this Mac’s saved account connection right now.",
-                systemImage: "exclamationmark.triangle"
-            )
-            .foregroundStyle(CurfewTheme.warning)
-            Text(
-                "Your local schedule and protection still work, but Curfew may need "
-                    + "to repair this Mac’s account sign-in. Check the saved connection "
-                    + "again. If this keeps happening, contact Curfew support."
-            )
-            .font(CurfewTypography.body(12))
-            .foregroundStyle(CurfewTheme.mutedInk)
-            Button("Check saved connection again") {
-                accountEnrollment.reloadSavedEnrollment()
-            }
-            .buttonStyle(CurfewSecondaryButtonStyle())
-            .accessibilityIdentifier("settings-retry-saved-account-connection")
+        SettingsActionRow(
+            title: "Curfew can’t check this Mac’s saved account connection right now.",
+            detail: "Your schedule still works on this Mac. If this keeps happening, "
+                + "contact Curfew support.",
+            tone: .warning,
+            actionTitle: "Check saved connection again",
+            identifier: "settings-retry-saved-account-connection"
+        ) {
+            accountEnrollment.reloadSavedEnrollment()
         }
+    }
+
+    /// A retry problem replaces the row's explanation rather than adding a row.
+    private var enrollmentRetryDetail: String? {
+        accountEnrollment.isFinishingEnrollment
+            ? "Finishing secure connection…" : accountEnrollment.enrollmentRetryError
     }
 
     @ViewBuilder
@@ -334,10 +350,13 @@ extension SettingsView {
     }
 
     private var openAccountButton: some View {
-        Button("Manage devices and remote control") {
+        SettingsActionRow(
+            title: "Macs and remote control",
+            detail: "Managed in your Curfew Account online.",
+            actionTitle: "Manage devices and remote control"
+        ) {
             NSWorkspace.shared.open(CurfewServiceEndpoints.current.accountPortal)
         }
-        .buttonStyle(CurfewSecondaryButtonStyle())
     }
 
     private func saveRecoveryKey(_ key: String) {
