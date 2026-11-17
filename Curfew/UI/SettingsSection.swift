@@ -18,6 +18,14 @@ enum SettingsSection: String, CaseIterable, Identifiable {
         .enforcement
     }
 
+    /// Sidebar groups, in display order. Every section must appear exactly once so no
+    /// settings page is reachable only through an in-app handoff.
+    static let sidebarGroups: [[Self]] = [
+        [.general, .enforcement, .restScreen, .presence, .shutdown, .protectedWork],
+        [.account, .integrations],
+        [.advanced, .about]
+    ]
+
     var id: String {
         rawValue
     }
