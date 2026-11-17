@@ -2,26 +2,17 @@ import SwiftUI
 import CurfewKit
 import WidgetKit
 
-/// WidgetKit bundle entry point. The target also compiles Curfew's shared
-/// domain/settings/storage sources plus `WidgetSharedStateStore` so the
-/// extension stays in sync with the host app's scheduling model.
+/// WidgetKit bundle entry point: the timeline widget and the Control Center
+/// control.
 @main
 struct CurfewWidgetBundle: WidgetBundle {
-    /// Bundle body: the timeline widget plus, on macOS 15+, the Control
-    /// Center control. The control is gated behind `@available` because
-    /// `ControlWidget` is unavailable on earlier systems; the bundle still
-    /// ships the timeline widget there.
     var body: some Widget {
         CurfewWidget()
-        if #available(macOS 15.0, *) {
-            CurfewControlWidget()
-        }
+        CurfewControlWidget()
     }
 }
 
-/// The lone Curfew widget. Static configuration (no user-tunable
-/// intent parameters yet); provider feeds `CurfewWidgetView` snapshots
-/// pulled from the shared App Group container.
+/// The time left until curfew, and the curfew time.
 struct CurfewWidget: Widget {
     /// Stable widget identifier. Used by `WidgetCenter` to reload
     /// timelines from the host app.
@@ -33,8 +24,8 @@ struct CurfewWidget: Widget {
             CurfewWidgetView(entry: entry)
         }
         .configurationDisplayName("Curfew")
-        .description("See your current enforcement phase and time remaining.")
-        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
+        .description("Time left until curfew.")
+        .supportedFamilies([.systemSmall, .systemMedium])
     }
 }
 
