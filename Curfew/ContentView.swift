@@ -68,6 +68,7 @@ struct ContentView: View {
 
     /// Height of the sky, ground included.
     static let skyHeight: CGFloat = 340
+    static let width: CGFloat = 340
 
     var body: some View {
         VStack(spacing: 0) {
@@ -90,7 +91,7 @@ struct ContentView: View {
         .onAppear {
             model.appRouter.registerSettingsOpener { openSettings() }
         }
-        .frame(width: 340)
+        .frame(width: Self.width)
         .background(CurfewTheme.canvas)
         .foregroundStyle(CurfewTheme.ink)
         .accessibilityElement(children: .contain)
@@ -103,12 +104,16 @@ struct ContentView: View {
         let presentation = model.todayPresentation
         let metrics = TodayMetrics.popover
         let skyHeight = Self.skyHeight * (1 - HorizonGeometry.horizon)
+        let size = CGSize(width: Self.width, height: Self.skyHeight)
+        let shade = TodaySkyLegibility.shade(
+            for: model.horizonFrame, size: size, regions: metrics.textRegions(in: size)
+        )
         return ZStack(alignment: .top) {
             HorizonSkyView(frame: model.horizonFrame, isDayRunning: model.isHorizonDayRunning)
             VStack(spacing: 0) {
                 TodayHero(
                     presentation: presentation, metrics: metrics, horizon: model.horizonFrame,
-                    voice: model.voice,
+                    shade: shade, voice: model.voice,
                     holdDuration: CurfewAppModel.extensionConfirmationHoldSeconds,
                     onTurnOn: turnOn,
                     onMoreTime: { model.confirmExtensionRequest() },
@@ -117,6 +122,7 @@ struct ContentView: View {
                 .padding(.bottom, metrics.actionsToHorizon)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
                 .frame(height: skyHeight)
+                .clipped()
                 Group {
                     if presentation.showsOneThing {
                         OneThingView(

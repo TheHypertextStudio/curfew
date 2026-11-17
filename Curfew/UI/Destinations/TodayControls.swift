@@ -14,7 +14,10 @@ struct TodayActions: View {
     var onCallItADay: () -> Void
 
     var body: some View {
-        GlassEffectContainer(spacing: CurfewSpacing.medium) {
+        // No shared glass container: inside one, the ember tint of "Call it a
+        // day" spreads to the plain glass of "15 more minutes" and the two read
+        // as equals. Each keeps its own glass.
+        Group {
             let layout = stacked
                 ? AnyLayout(VStackLayout(spacing: CurfewSpacing.small))
                 : AnyLayout(HStackLayout(spacing: CurfewSpacing.medium))
@@ -33,8 +36,15 @@ struct TodayActions: View {
                     .accessibilityHint("Locks this Mac now, until the scheduled unlock.")
                 }
                 if presentation.offersTurnOn {
-                    Button(voice.turnOn, action: onTurnOn)
-                        .buttonStyle(.horizonGlassProminent)
+                    Button(action: onTurnOn) {
+                        // The system glass style sets its own label weight;
+                        // name the button role so it matches the hold buttons.
+                        Text(voice.turnOn)
+                            .sundownFont(.button, size: 15)
+                            .padding(.horizontal, CurfewSpacing.small)
+                            .padding(.vertical, CurfewSpacing.small)
+                    }
+                    .buttonStyle(.horizonGlassProminent)
                 }
             }
         }
@@ -142,79 +152,6 @@ struct OneThingView: View {
             .accessibilityHint("Press Return to save it as today's one thing.")
         }
     }
-}
-
-/// Keeps text over the sky readable from noon to last light without a scrim:
-/// a tight halo in the moment's ground colour hugs each glyph, so the light
-/// text always meets a dark edge however bright the band behind it is.
-/// ``TodaySkyLegibility`` models it and its test proves the contrast over
-/// the palette.
-private struct SkyInk: ViewModifier {
-    var frame: HorizonFrame
-    var isActive: Bool
-
-    func body(content: Content) -> some View {
-        let ground = TodaySkyLegibility.halo(for: frame)
-        let color = isActive
-            ? AtmospherePalette.solidBackground(
-                red: ground.red, green: ground.green, blue: ground.blue
-            ) : .clear
-        content
-            .shadow(color: color.opacity(TodaySkyLegibility.haloOpacity), radius: 1)
-            .shadow(color: color.opacity(TodaySkyLegibility.haloOpacity), radius: 3)
-    }
-}
-
-extension View {
-    /// Text over the sky, kept legible on every band by a tight ground halo.
-    func skyInk(_ frame: HorizonFrame, isActive: Bool = true) -> some View {
-        modifier(SkyInk(frame: frame, isActive: isActive))
-    }
-}
-
-/// The legibility model for text over the sky. The halo is two stacked
-/// shadows of `haloOpacity`; at a glyph's edge each lays down at least half
-/// its opacity, so the edge carries `haloEdgeDensity` of the ground colour.
-enum TodaySkyLegibility {
-    static let haloOpacity = 0.85
-    static var haloEdgeDensity: Double {
-        1 - pow(1 - haloOpacity / 2, 2)
-    }
-
-    /// The halo colour: the flat ground of the moment, so it reads as part of
-    /// the scene rather than a shadow.
-    static func halo(for frame: HorizonFrame) -> HorizonRGB {
-        HorizonPalette.ground(elevation: frame.elevation)
-    }
-
-    /// The colour at a glyph's edge: the sky under the halo's edge density.
-    static func edge(over sky: HorizonRGB, frame: HorizonFrame) -> HorizonRGB {
-        let halo = halo(for: frame)
-        let density = haloEdgeDensity
-        return HorizonRGB(
-            sky.red + (halo.red - sky.red) * density,
-            sky.green + (halo.green - sky.green) * density,
-            sky.blue + (halo.blue - sky.blue) * density
-        )
-    }
-
-    /// WCAG contrast ratio between two sRGB colours.
-    static func contrast(_ first: HorizonRGB, _ second: HorizonRGB) -> Double {
-        func channel(_ value: Double) -> Double {
-            let clamped = min(max(value, 0), 1)
-            return clamped <= 0.04045 ? clamped / 12.92 : pow((clamped + 0.055) / 1.055, 2.4)
-        }
-        func luminance(_ color: HorizonRGB) -> Double {
-            0.2126 * channel(color.red) + 0.7152 * channel(color.green)
-                + 0.0722 * channel(color.blue)
-        }
-        let one = luminance(first)
-        let two = luminance(second)
-        return (max(one, two) + 0.05) / (min(one, two) + 0.05)
-    }
-
-    /// Warm white, the ink over the sky.
-    static let ink = HorizonRGB(0.99, 0.97, 0.94)
 }
 
 /// The Accessibility health banner as the setup flow defines it, on its own
