@@ -245,8 +245,8 @@ struct LockoutScreenView: View {
             .contentTransition(.numericText())
             .scaleEffect(0.9 + 0.1 * clockProgress)
             .animation(reduceMotion ? nil : .snappy(duration: 0.28), value: numerals)
-            .accessibilityElement(children: .ignore)
             .accessibilityLabel(now.formatted(date: .omitted, time: .shortened))
+            .accessibilityAddTraits(.isStaticText)
             .accessibilityFocused($clockFocused)
             .accessibilityIdentifier("rest-clock")
     }

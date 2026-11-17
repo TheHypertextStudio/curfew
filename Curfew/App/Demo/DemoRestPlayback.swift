@@ -32,6 +32,11 @@
                 lockDate: lock, unlockDate: unlock
             )
             reflectionState.isEveningReflectionPending = review == .restContinuity
+            // The continuity scene stands for a Mac whose screen saver handoff
+            // is allowed, so the lock offers "Start the screen saver" once the
+            // close-out is resolved. Demo sessions never work out the decision.
+            restRuntime.handoff.decision = review == .restContinuity
+                ? .handOff(.curfew) : .stay(nil)
             if isMorning {
                 prepareSunriseGate(pages: currentSunrisePages())
             }

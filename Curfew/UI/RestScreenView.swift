@@ -176,7 +176,9 @@ struct RestScreenView: View {
                     .overlay {
                         if !showsMorning {
                             LockoutScreenView(
-                                scene: preview == nil ? scene : nil, date: date, preview: preview
+                                scene: preview == nil ? scene : nil,
+                                date: preview == nil ? scene.timeline.wordsDate(at: date) : date,
+                                preview: preview
                             )
                             .environment(model)
                             .opacity(isAmbient ? 0 : 1)

@@ -95,6 +95,15 @@ struct LockSceneTimeline: Equatable {
         Self.ease(segment(arrival(at: date), from: 0.6, to: 1))
     }
 
+    /// The date the lock's words are drawn for: each frame's date while the
+    /// arrival plays, and one fixed date before and after it. The words read
+    /// the date only for the arrival, so holding it still keeps a sky frame
+    /// from redrawing the close-out or the override composer while someone
+    /// types in them.
+    func wordsDate(at date: Date) -> Date {
+        stage(at: date) == .arriving ? date : .distantFuture
+    }
+
     private func segment(_ value: Double, from lower: Double, to upper: Double) -> Double {
         min(max((value - lower) / (upper - lower), 0), 1)
     }
