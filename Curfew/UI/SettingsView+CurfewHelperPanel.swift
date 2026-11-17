@@ -56,66 +56,65 @@ struct CurfewHelperStatus: Equatable {
     static let readySentence = "The Curfew helper keeps curfew in place, even if Curfew quits."
     static let lockedSuffix = " You can fix this once curfew lifts."
 
-    // swiftlint:disable:next cyclomatic_complexity
     init(_ inputs: Inputs) {
+        self = Self.registration(inputs) ?? Self.connection(inputs) ?? Self.restart(inputs)
+    }
+
+    /// Work in progress, approvals and missing registrations come first.
+    private static func registration(_ inputs: Inputs) -> Self? {
         if inputs.inProgress {
-            self.init(.working, "Connecting the Curfew helper…", nil)
-            return
+            return Self(.working, "Connecting the Curfew helper…", nil)
         }
         let approvals = [inputs.restartStatus, inputs.loginItemStatus] +
             (inputs.helperRequired ? [inputs.helperStatus] : [])
         if inputs.restartAvailable, approvals.contains(.requiresApproval) {
-            self.init(
+            return Self(
                 .attention,
                 "macOS is waiting for you to allow the Curfew helper in Login Items.",
                 .allowInSystemSettings
             )
-            return
         }
         let missing = [SMAppService.Status.notRegistered, .notFound]
         let restartMissing = inputs.restartAvailable && missing.contains(inputs.restartStatus)
         let helperMissing = inputs.helperRequired && missing.contains(inputs.helperStatus)
         if restartMissing || helperMissing {
-            self.init(
+            return Self(
                 .attention,
                 "The Curfew helper isn't set up, so curfew only holds while Curfew is open.",
                 .setUp
             )
-            return
         }
-        if inputs.helperRequired, inputs.connection == .registrationFailed {
-            self.init(.attention, "The Curfew helper didn't finish installing.", .setUp)
-            return
+        return nil
+    }
+
+    /// A registered helper that failed to install or stopped answering.
+    private static func connection(_ inputs: Inputs) -> Self? {
+        guard inputs.helperRequired else { return nil }
+        if inputs.connection == .registrationFailed {
+            return Self(.attention, "The Curfew helper didn't finish installing.", .setUp)
         }
-        if inputs.helperRequired, inputs.connection != .ready || inputs.maintenancePaused {
-            let sentence = inputs.connection == .unauthorized
-                ? "This Mac doesn't trust the Curfew helper right now."
-                : "The Curfew helper stopped answering."
-            if inputs.isLocked {
-                self.init(.attention, sentence + Self.lockedSuffix, nil)
-            } else {
-                self.init(
-                    .attention,
-                    sentence,
-                    inputs.canReconnectInPlace ? .reconnect : .reopenCurfew
-                )
-            }
-            return
+        guard inputs.connection != .ready || inputs.maintenancePaused else { return nil }
+        let sentence = inputs.connection == .unauthorized
+            ? "This Mac doesn't trust the Curfew helper right now."
+            : "The Curfew helper stopped answering."
+        if inputs.isLocked {
+            return Self(.attention, sentence + lockedSuffix, nil)
         }
+        return Self(.attention, sentence, inputs.canReconnectInPlace ? .reconnect : .reopenCurfew)
+    }
+
+    /// The restart service's own health once everything is registered.
+    private static func restart(_ inputs: Inputs) -> Self {
         if inputs.restartAvailable, inputs.restartProblem {
             let sentence = "The Curfew helper stopped checking in."
-            self.init(
-                .attention,
-                inputs.isLocked ? sentence + Self.lockedSuffix : sentence,
-                inputs.isLocked ? nil : .reopenCurfew
-            )
-            return
+            return inputs.isLocked
+                ? Self(.attention, sentence + lockedSuffix, nil)
+                : Self(.attention, sentence, .reopenCurfew)
         }
         if inputs.restartAvailable, !inputs.restartHealthy {
-            self.init(.working, "The Curfew helper is starting.", nil)
-            return
+            return Self(.working, "The Curfew helper is starting.", nil)
         }
-        self.init(.ready, Self.readySentence, nil)
+        return Self(.ready, readySentence, nil)
     }
 
     private init(_ tone: Tone, _ sentence: String, _ action: Action?) {

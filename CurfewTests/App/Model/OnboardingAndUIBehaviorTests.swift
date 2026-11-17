@@ -137,8 +137,8 @@ struct GettingStartedCopyTests {
     @Test("Schedule step copy explains when work ends and resumes")
     func scheduleCopyUsesWorkWindowLanguage() {
         let message = FirstRunStep.schedule.message.lowercased()
-        #expect(message.contains("work ends"))
-        #expect(message.contains("resumes"))
+        #expect(message.contains("curfew"))
+        #expect(message.contains("unlocks"))
     }
 
     @Test("Local AI setup describes its real authority without implying remote unlock")

@@ -1,17 +1,9 @@
 import CurfewKit
 import SwiftUI
 
-/// The "Prompts" face of the Reflect destination — a first-class editor for the
-/// questions you answer at the morning and evening gates. Promoted out of the
-/// Settings window (where it was buried under a tab) into the workspace, beside
-/// the reflections it shapes, reachable from ``JournalView``'s mode switcher.
-///
-/// Each prompt is its own card: the question on its own line with a tidy
-/// overflow menu for reorder/remove, the answer-type controls on a second line
-/// with room to breathe, and a quiet live preview — rather than the old single
-/// cramped row. Edits round-trip through
-/// ``CurfewAppModel/updateReflectionConfiguration(_:)`` so they persist
-/// immediately, matching the rest of the app.
+/// The questions editor for Sunrise and curfew, reachable from ``JournalView``.
+/// Each question is a card with its answer type and a live preview. Edits
+/// round-trip through ``CurfewAppModel/updateReflectionConfiguration(_:)``.
 struct ReflectionPromptsView: View {
     /// Shared app state — prompts read/write through it.
     @Environment(CurfewAppModel.self) private var model
@@ -399,24 +391,4 @@ extension ReflectionPromptsView {
         }
         model.updateReflectionConfiguration(config)
     }
-}
-
-/// Words for the questions editor. Morning questions belong to Sunrise;
-/// evening questions are asked at curfew.
-enum ReflectionPromptsCopy {
-    static let gatesTitle = "Questions"
-    static let gatesSubtitle = "Curfew asks at Sunrise and again at curfew. You can skip either."
-    static let askAtSunrise = "Ask at Sunrise"
-    static let askAtCurfew = "Ask at curfew"
-    static let sunriseTitle = "Sunrise questions"
-    static let sunriseSubtitle = "Asked before the day starts."
-    static let curfewTitle = "Curfew questions"
-    static let curfewSubtitle = "Asked when this Mac locks."
-    static let defaultsTitle = "Default questions"
-    static let defaultsSubtitle = "Start over with the questions Curfew comes with."
-    static let restoreButton = "Restore defaults…"
-    static let restoreTitle = "Replace your questions with the defaults?"
-    static let restoreMessage =
-        "Every question you wrote or changed is replaced, and both switches turn back on. This can't be undone."
-    static let restoreConfirm = "Replace questions"
 }

@@ -178,7 +178,9 @@ extension SettingsView {
                         get: { model.settings.autoShutdownEnabled },
                         set: { enabled in
                             model.settings.autoShutdownEnabled = enabled
-                            if enabled { askForShutdownPermission() }
+                            if enabled {
+                                askForShutdownPermission()
+                            }
                         }
                     )
                 )
@@ -196,11 +198,13 @@ extension SettingsView {
                     .fixedSize(horizontal: false, vertical: true)
                 if shutdownPermission == .denied {
                     HStack(spacing: 10) {
-                        Label(SettingsCopy.shutdownPermissionDenied,
-                              systemImage: "exclamationmark.triangle.fill")
-                            .font(CurfewTypography.body(13))
-                            .foregroundStyle(CurfewTheme.warning)
-                            .fixedSize(horizontal: false, vertical: true)
+                        Label(
+                            SettingsCopy.shutdownPermissionDenied,
+                            systemImage: "exclamationmark.triangle.fill"
+                        )
+                        .font(CurfewTypography.body(13))
+                        .foregroundStyle(CurfewTheme.warning)
+                        .fixedSize(horizontal: false, vertical: true)
                         Spacer(minLength: 8)
                         Button("Open Automation settings") {
                             ShutdownAutomationPermission.openSystemSettings()

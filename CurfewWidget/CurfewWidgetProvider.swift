@@ -115,9 +115,9 @@ struct CurfewWidgetProvider: TimelineProvider {
     /// snapshot from an app that's been quit for a while shouldn't override a
     /// fresh prediction. Future timeline entries always return nil here.
     private func currentLiveSnapshot(for date: Date) -> WidgetEnforcementSnapshot? {
-        guard abs(date.timeIntervalSince(Date())) < 60 else { return nil }
-        guard let snapshot = WidgetSharedStateStore().loadEnforcement() else { return nil }
-        guard Date().timeIntervalSince(snapshot.updatedAt) < 90 * 60 else { return nil }
+        guard abs(date.timeIntervalSince(Date())) < 60,
+              let snapshot = WidgetSharedStateStore().loadEnforcement(),
+              Date().timeIntervalSince(snapshot.updatedAt) < 90 * 60 else { return nil }
         return snapshot
     }
 

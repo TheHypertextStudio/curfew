@@ -1,5 +1,5 @@
-import SwiftUI
 import CurfewKit
+import SwiftUI
 import WidgetKit
 
 /// WidgetKit bundle entry point: the timeline widget and the Control Center

@@ -1,5 +1,5 @@
-@testable import Curfew
 import CoreServices
+@testable import Curfew
 import CurfewKit
 import Testing
 
@@ -16,7 +16,8 @@ struct SettingsCopyTests {
     @Test("Automation answers map to granted, denied or undecided")
     func automationResult() {
         #expect(ShutdownAutomationPermission.result(for: noErr) == .granted)
-        #expect(ShutdownAutomationPermission.result(for: OSStatus(errAEEventNotPermitted)) == .denied)
+        #expect(ShutdownAutomationPermission
+            .result(for: OSStatus(errAEEventNotPermitted)) == .denied)
         #expect(ShutdownAutomationPermission.result(for: OSStatus(procNotFound)) == .undetermined)
     }
 

@@ -34,7 +34,11 @@ struct IntentCopyTests {
         #expect(IntentCopy.moreTimeAsked == "Asked. Approve it in Curfew.")
         #expect(IntentCopy.overrideOpened
             == "Overrides only happen in Curfew. It's open. Make your case there.")
-        let schedule = IntentCopy.scheduleAsked(weekday: "Monday", curfewTime: "6:00 PM", isDayOff: false)
+        let schedule = IntentCopy.scheduleAsked(
+            weekday: "Monday",
+            curfewTime: "6:00 PM",
+            isDayOff: false
+        )
         #expect(schedule == "Asked for curfew at 6:00 PM on Monday. Approve it in Curfew.")
         #expect(IntentCopy.scheduleAsked(weekday: "Saturday", curfewTime: nil, isDayOff: true)
             == "Asked for Saturday as a day off. Approve it in Curfew.")
