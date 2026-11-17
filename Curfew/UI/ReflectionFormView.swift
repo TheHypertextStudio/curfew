@@ -66,6 +66,7 @@ struct ReflectionFormView: View {
     }
 
     // Dynamic Type — base sizes that scale with the user's text-size setting.
+    @FocusState private var focusedPrompt: UUID?
     @ScaledMetric(relativeTo: .body) private var promptFontSize: CGFloat = 17
     @ScaledMetric(relativeTo: .body) private var editorFontSize: CGFloat = 15
     @ScaledMetric(relativeTo: .body) private var ratingFontSize: CGFloat = 16
@@ -86,12 +87,12 @@ struct ReflectionFormView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 22) {
+        VStack(alignment: .leading, spacing: CurfewSpacing.large) {
             if visiblePrompts.isEmpty {
                 emptyPromptsNotice
             } else {
                 ForEach(visiblePrompts) { prompt in
-                    VStack(alignment: .leading, spacing: 10) {
+                    VStack(alignment: .leading, spacing: CurfewSpacing.small) {
                         titleText(prompt.text)
                         control(for: prompt)
                     }
@@ -176,14 +177,23 @@ struct ReflectionFormView: View {
     private func control(for prompt: ReflectionPrompt) -> some View {
         switch prompt.kind {
         case .text:
+            let focused = focusedPrompt == prompt.id
             TextEditor(text: textBinding(for: prompt.id))
                 .foregroundStyle(SundownPalette.warmWhite)
-                .font(.system(size: editorFontSize, weight: .regular, design: .rounded))
+                .font(.system(size: editorFontSize))
                 .scrollContentBackground(.hidden)
-                .frame(height: 96)
-                .padding(8)
-                .background(panelFill)
-                .cornerRadius(12)
+                .focused($focusedPrompt, equals: prompt.id)
+                .frame(height: 56)
+                .padding(.horizontal, CurfewSpacing.small)
+                .padding(.vertical, CurfewSpacing.small)
+                .background(SceneField.fill, in: SceneField.shape)
+                .overlay {
+                    SceneField.shape.strokeBorder(
+                        SundownPalette.warmWhite.opacity(focused ? 0.6 : 0.16),
+                        lineWidth: focused ? 1.5 : 1
+                    )
+                }
+                .animation(.easeOut(duration: 0.15), value: focused)
                 .accessibilityLabel(prompt.text)
                 .accessibilityIdentifier("reflection-answer")
         case .rating:
@@ -193,32 +203,30 @@ struct ReflectionFormView: View {
         }
     }
 
-    private var panelFill: Color {
-        SundownPalette.inputSurface(usesSolidPanels: usesSolidPanels)
-    }
-
     // MARK: - Rating
 
+    /// One segmented control: a quiet track with the chosen number filled.
     private func ratingControl(for id: UUID, scale: Int) -> some View {
         let current = currentRating(for: id)
-        return HStack(spacing: 10) {
+        return HStack(spacing: CurfewSpacing.xSmall) {
             ForEach(1 ... max(2, scale), id: \.self) { value in
-                Button {
+                Button("\(value)") {
                     values[id] = .rating(value: value, scale: scale)
-                } label: {
-                    Text("\(value)")
-                        .font(.system(size: ratingFontSize, weight: .semibold, design: .rounded))
-                        .frame(width: ratingButtonSize, height: ratingButtonSize)
-                        .background(value == current ? CurfewTheme.accentFill : panelFill)
-                        .foregroundStyle(value == current ? CurfewTheme.onAccent : SundownPalette
-                            .supportingText)
-                        .clipShape(Circle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(SceneChoiceButtonStyle(
+                    chosen: value == current, minWidth: ratingButtonSize
+                ))
                 .accessibilityLabel("\(value) out of \(scale)")
                 .accessibilityAddTraits(value == current ? [.isSelected] : [])
             }
         }
+        .padding(CurfewSpacing.xSmall)
+        .background(SceneField.fill, in: SceneField.shape)
+        .overlay { SceneField.shape.strokeBorder(
+            SundownPalette.warmWhite.opacity(0.16),
+            lineWidth: 1
+        ) }
+        .fixedSize()
     }
 
     private func currentRating(for id: UUID) -> Int {
@@ -232,28 +240,31 @@ struct ReflectionFormView: View {
 
     private func moodControl(for id: UUID) -> some View {
         let current = currentMood(for: id)
-        return HStack(spacing: 10) {
+        return HStack(spacing: CurfewSpacing.xSmall) {
             ForEach(ReflectionMood.allCases, id: \.self) { mood in
                 Button {
                     values[id] = .mood(mood)
                 } label: {
-                    VStack(spacing: 4) {
+                    VStack(spacing: CurfewSpacing.xSmall) {
                         Text(Self.moodGlyph(mood))
                             .font(.system(size: moodGlyphSize))
                         Text(Self.moodLabel(mood))
-                            .font(.system(size: moodLabelSize, weight: .medium, design: .rounded))
+                            .font(.system(size: moodLabelSize, weight: .medium))
                     }
                     .frame(width: moodButtonWidth, height: moodButtonHeight)
-                    .background(mood == current ? CurfewTheme.accentFill : panelFill)
-                    .foregroundStyle(mood == current ? CurfewTheme.onAccent : SundownPalette
-                        .supportingText)
-                    .cornerRadius(12)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(SceneChoiceButtonStyle(chosen: mood == current))
                 .accessibilityLabel(Self.moodLabel(mood))
                 .accessibilityAddTraits(mood == current ? [.isSelected] : [])
             }
         }
+        .padding(CurfewSpacing.xSmall)
+        .background(SceneField.fill, in: SceneField.shape)
+        .overlay { SceneField.shape.strokeBorder(
+            SundownPalette.warmWhite.opacity(0.16),
+            lineWidth: 1
+        ) }
+        .fixedSize()
     }
 
     private func currentMood(for id: UUID) -> ReflectionMood? {
@@ -296,5 +307,41 @@ struct ReflectionFormView: View {
         case .good: "Good"
         case .great: "Great"
         }
+    }
+}
+
+/// The quiet field on the night scene: one step lighter than the panel, a
+/// hairline, and the control radius.
+enum SceneField {
+    static let fill = SundownPalette.warmWhite.opacity(0.07)
+    static let shape = RoundedRectangle(cornerRadius: CurfewRadius.control, style: .continuous)
+}
+
+/// A single choice on the night scene, fill only: quiet until chosen, then
+/// ember, the one accent. No stroke is drawn over the shape, so nothing
+/// draws straight lines at its ends; the focus ring follows the shape.
+struct SceneChoiceButtonStyle: ButtonStyle {
+    var chosen: Bool
+    var minWidth: CGFloat?
+    var capsule = false
+
+    func makeBody(configuration: Configuration) -> some View {
+        let shape = capsule
+            ? AnyShape(Capsule())
+            : AnyShape(RoundedRectangle(cornerRadius: CurfewRadius.control - 2, style: .continuous))
+        return configuration.label
+            .sundownFont(.button, size: 15)
+            .foregroundStyle(chosen ? CurfewTheme.onAccent : SundownPalette.warmWhite)
+            .padding(.horizontal, CurfewSpacing.medium)
+            .padding(.vertical, CurfewSpacing.small)
+            .frame(minWidth: minWidth)
+            .background(
+                chosen ? CurfewTheme.accentFill : SundownPalette.warmWhite
+                    .opacity(capsule ? 0.12 : 0),
+                in: shape
+            )
+            .contentShape(.focusEffect, shape)
+            .contentShape(shape)
+            .opacity(configuration.isPressed ? 0.7 : 1)
     }
 }

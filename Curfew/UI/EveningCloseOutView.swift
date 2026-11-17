@@ -89,7 +89,8 @@ struct EveningReflectionCard: View {
         }
         .foregroundStyle(SundownPalette.warmWhite)
         .padding(CurfewSpacing.xLarge)
-        .frame(maxWidth: 600, alignment: .leading)
+        .frame(maxWidth: 520, alignment: .leading)
+        .fixedSize(horizontal: false, vertical: true)
         .nightPanel()
         .accessibilityElement(children: .contain)
         .accessibilityLabel(voice.closeOutTitle)
@@ -134,29 +135,8 @@ private struct OneThingQuestion: View {
     private func choice(_ title: String, value: Bool) -> some View {
         let chosen = value == answer
         return Button(title) { choose(value) }
-            .buttonStyle(ChoiceButtonStyle(chosen: chosen))
+            .buttonStyle(SceneChoiceButtonStyle(chosen: chosen, capsule: true))
             .accessibilityAddTraits(chosen ? .isSelected : [])
             .accessibilityLabel("\(title), \(voice.oneThingQuestion)")
-    }
-}
-
-/// A capsule choice on the night scene, drawn by the style so nothing clips it.
-private struct ChoiceButtonStyle: ButtonStyle {
-    let chosen: Bool
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .sundownFont(.button, size: 15)
-            .foregroundStyle(SundownPalette.warmWhite)
-            .padding(.horizontal, CurfewSpacing.large)
-            .padding(.vertical, CurfewSpacing.small)
-            .background(chosen ? CurfewTheme.accentFill : .clear, in: Capsule())
-            .overlay {
-                Capsule().strokeBorder(
-                    SundownPalette.warmWhite.opacity(chosen ? 0 : 0.4), lineWidth: 1
-                )
-            }
-            .contentShape(Capsule())
-            .opacity(configuration.isPressed ? 0.7 : 1)
     }
 }

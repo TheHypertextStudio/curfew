@@ -124,26 +124,28 @@ struct LockoutScreenView: View {
     var body: some View {
         GeometryReader { proxy in
             let size = proxy.size
-            ZStack(alignment: .top) {
-                VStack(spacing: 0) {
-                    clock(in: size)
-                        .padding(.top, size.height * (isCompact ? 0.07 : 0.2))
-                    words(in: size)
-                        .padding(.top, size.height * (isCompact ? 0.01 : 0.035))
-                    if isCompact {
-                        ScrollView {
-                            panel
-                                .padding(.vertical, CurfewSpacing.xLarge)
-                                .frame(maxWidth: .infinity)
-                        }
-                        .scrollIndicators(.hidden)
-                        .scrollBounceBehavior(.basedOnSize)
-                        .transition(.opacity.combined(with: .offset(y: reduceMotion ? 0 : 12)))
+            let layout = textLayout(in: size)
+            ZStack(alignment: .topLeading) {
+                textBlock(layout)
+                    .frame(width: layout.block.width, height: layout.block.height)
+                    .position(x: layout.block.midX, y: layout.block.midY)
+                if isCompact {
+                    let below = max(0, size.height - layout.block.maxY)
+                    ScrollView {
+                        panel
+                            .padding(.vertical, CurfewSpacing.xLarge)
+                            .frame(maxWidth: .infinity)
                     }
-                    Spacer(minLength: 0)
-                }
-                .frame(width: size.width)
-                if !isCompact {
+                    .scrollIndicators(.hidden)
+                    .scrollBounceBehavior(.basedOnSize)
+                    .frame(width: size.width, height: below)
+                    .position(x: size.width / 2, y: layout.block.maxY + below / 2)
+                    .transition(.opacity.combined(with: .offset(y: reduceMotion ? 0 : 12)))
+                } else {
+                    supporting(width: size.width)
+                        .frame(width: size.width)
+                        .position(x: size.width / 2, y: layout.block.maxY + CurfewSpacing.xLarge)
+                        .opacity(wordsProgress)
                     ground
                         .position(x: size.width / 2, y: size.height * 0.85)
                         .opacity(wordsProgress)
@@ -160,68 +162,90 @@ struct LockoutScreenView: View {
 
     // MARK: Clock and words
 
-    private func clock(in size: CGSize) -> some View {
-        let full = min(size.width * 0.15, size.height * 0.26)
-        let fontSize = isCompact ? full * 0.32 : full
-        let numerals = LockClockText.numerals(model.currentTime)
-        return HStack(alignment: .firstTextBaseline, spacing: fontSize * 0.04) {
-            Text(numerals)
-                .font(.system(size: fontSize, weight: .semibold, design: .rounded))
-                .monospacedDigit()
-                .contentTransition(.numericText())
-            if let period = LockClockText.period(model.currentTime) {
-                Text(period)
-                    .font(.system(size: fontSize * 0.28, weight: .semibold, design: .rounded))
-                    .opacity(0.85)
-            }
-        }
-        .foregroundStyle(SundownPalette.warmWhite)
-        .scaleEffect(0.9 + 0.1 * clockProgress)
-        .animation(reduceMotion ? nil : .snappy(duration: 0.28), value: numerals)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(model.currentTime.formatted(date: .omitted, time: .shortened))
-        .accessibilityFocused($clockFocused)
-        .accessibilityIdentifier("rest-clock")
+    private func textLayout(in size: CGSize) -> LockTextLayout {
+        LockTextLayout.resolve(
+            size: size,
+            content: LockTextContent(
+                clock: LockClockText.numerals(model.currentTime),
+                period: LockClockText.period(model.currentTime),
+                headline: content.headline, line: content.line
+            ),
+            compact: isCompact
+        )
     }
 
-    private func words(in size: CGSize) -> some View {
-        let headlineSize = min(size.width * 0.042, size.height * 0.075)
-        let lineSize = max(15, size.width * 0.0175)
-        return VStack(spacing: isCompact ? CurfewSpacing.small : size.height * 0.035) {
+    /// The clock, headline and unlock line, each held to its slot so the
+    /// block's frame is exactly what is drawn.
+    private func textBlock(_ layout: LockTextLayout) -> some View {
+        VStack(spacing: 0) {
+            clock(layout)
+                .frame(height: layout.clockHeight)
+            Color.clear.frame(height: layout.clockGap)
             Text(content.headline)
-                .font(.system(
-                    size: isCompact ? headlineSize * 0.7 : headlineSize,
-                    weight: .semibold, design: .rounded
-                ))
-                .multilineTextAlignment(.center)
+                .font(.system(size: layout.headlineSize, weight: .semibold, design: .rounded))
+                .lineLimit(1)
+                .minimumScaleFactor(0.4)
                 .contentTransition(.opacity)
-            if let line = content.line, !isCompact {
+                .frame(height: layout.headlineHeight)
+                .opacity(wordsProgress)
+            if layout.lineHeight > 0, let line = content.line {
+                Color.clear.frame(height: layout.lineGap)
                 Label {
                     Text(line)
                 } icon: {
                     content.symbol.image
                 }
-                .font(.system(size: lineSize, weight: .medium))
+                .font(.system(size: layout.lineSize, weight: .medium))
+                .lineLimit(1)
+                .minimumScaleFactor(0.4)
                 .contentTransition(.opacity)
+                .frame(height: layout.lineHeight)
+                .opacity(wordsProgress)
                 .accessibilityIdentifier("lockout-unlock-line")
             }
-            if !model.restAppearance.message.isEmpty, !isCompact {
+        }
+        .frame(width: layout.block.width)
+        .foregroundStyle(SundownPalette.warmWhite)
+        .animation(.easeInOut(duration: 0.6), value: content.headline)
+    }
+
+    private func clock(_ layout: LockTextLayout) -> some View {
+        let numerals = LockClockText.numerals(model.currentTime)
+        var text = Text(numerals)
+            .font(.system(size: layout.clockSize, weight: .semibold, design: .rounded))
+        if let period = LockClockText.period(model.currentTime) {
+            text = text + Text(" ") + Text(period)
+                .font(.system(size: layout.clockSize * 0.28, weight: .semibold, design: .rounded))
+                .foregroundStyle(SundownPalette.warmWhite.opacity(0.85))
+        }
+        return text
+            .monospacedDigit()
+            .lineLimit(1)
+            .minimumScaleFactor(0.4)
+            .contentTransition(.numericText())
+            .scaleEffect(0.9 + 0.1 * clockProgress)
+            .animation(reduceMotion ? nil : .snappy(duration: 0.28), value: numerals)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(model.currentTime.formatted(date: .omitted, time: .shortened))
+            .accessibilityFocused($clockFocused)
+            .accessibilityIdentifier("rest-clock")
+    }
+
+    /// The person's own message and any shutdown notice, under the block.
+    private func supporting(width: CGFloat) -> some View {
+        let size = max(13, width * 0.014)
+        return VStack(spacing: CurfewSpacing.small) {
+            if !model.restAppearance.message.isEmpty {
                 Text(model.restAppearance.message)
-                    .font(.system(size: max(13, lineSize * 0.8)))
-                    .foregroundStyle(SundownPalette.supportingText)
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: 600)
             }
-            if let shutdown = model.shutdownStatusLine, !isCompact {
+            if let shutdown = model.shutdownStatusLine {
                 Text(shutdown)
-                    .font(.system(size: max(13, lineSize * 0.75)))
-                    .foregroundStyle(SundownPalette.supportingText)
             }
         }
-        .foregroundStyle(SundownPalette.warmWhite)
-        .opacity(wordsProgress)
-        .offset(y: (1 - wordsProgress) * (reduceMotion ? 0 : 10))
-        .animation(.easeInOut(duration: 0.6), value: content.headline)
+        .font(.system(size: size))
+        .foregroundStyle(SundownPalette.supportingText)
     }
 
     // MARK: Ground
