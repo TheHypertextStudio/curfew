@@ -55,14 +55,15 @@ struct BrowserNativeLifecycleTests {
     }
 
     private func waitForPendingRequest(_ store: BrowserNativeStore) async throws {
-        let deadline = ContinuousClock.now.advanced(by: .seconds(10))
-        while ContinuousClock.now < deadline {
-            if try !store.pending(at: Date()).isEmpty {
-                break
-            }
+        // Returns as soon as the request is waiting. The deadline only stops a
+        // hang; it is long because a loaded Mac can hold this test for minutes.
+        let deadline = ContinuousClock.now.advanced(by: .seconds(300))
+        var waiting = try store.pending(at: Date()).count
+        while waiting == 0, ContinuousClock.now < deadline {
             try await Task.sleep(for: .milliseconds(5))
+            waiting = try store.pending(at: Date()).count
         }
-        try #require(store.pending(at: Date()).count == 1)
+        try #require(waiting == 1)
     }
 
     @Test func failedFirstPollPreservesSignedPolicyAcrossRuntimeRestart() async throws {
