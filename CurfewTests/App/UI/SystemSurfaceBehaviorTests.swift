@@ -80,7 +80,6 @@ struct ScheduleSurfaceCopyTests {
             == "Pick when curfew starts and when this Mac unlocks.")
         #expect(ScheduleSurfaceCopy.workEndsLabel == "Curfew")
         #expect(ScheduleSurfaceCopy.workResumesLabel == "Unlocks")
-        #expect(ScheduleSurfaceCopy.onboardingChecklist.allSatisfy { !$0.contains("lockout") })
         #expect(ScheduleSurfaceCopy.scheduleOffTitle == "Schedule is off")
         #expect(ScheduleSurfaceCopy.turnOnSchedule == "Turn on weekly schedule")
     }

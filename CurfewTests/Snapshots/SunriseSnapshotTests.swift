@@ -60,8 +60,10 @@ import CurfewKit
         ) throws {
             let display = RestDisplayPresentation()
             display.isVisible = true
+            let scene = LockScene()
+            scene.settle(at: model.currentTime)
             try renderHosted(
-                RestScreenView(model: model, display: display)
+                RestScreenView(model: model, display: display, scene: scene)
                     // Headless rasterisers draw no Liquid Glass; the Reduce
                     // Transparency fallback shows the buttons' real fill.
                     .environment(\._accessibilityReduceTransparency, true)

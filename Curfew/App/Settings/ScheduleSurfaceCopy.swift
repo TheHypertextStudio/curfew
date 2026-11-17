@@ -12,8 +12,6 @@ enum ScheduleSurfaceCopy {
     static let workEndsLabel = "Curfew"
     static let workResumesLabel = "Unlocks"
 
-    static let mainChecklistItem = weeklyScheduleSubtitle
-
     static let scheduleOffTitle = "Schedule is off"
     static let scheduleOffBody = "Nothing locks on its own until you turn the weekly schedule on."
     static let turnOnSchedule = "Turn on weekly schedule"
