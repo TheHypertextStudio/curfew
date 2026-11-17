@@ -43,6 +43,11 @@ struct JournalPage: View {
                         )
                     }
                 }
+                if let review = screen.yearReview {
+                    section("Year in review") {
+                        JournalYearReviewView(review: review)
+                    }
+                }
             }
         }
     }

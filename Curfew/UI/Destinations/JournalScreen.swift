@@ -30,6 +30,8 @@ struct JournalScreen {
     let patterns: JournalPatternsPresentation
     let words: JournalWords
     let rows: [JournalRow]
+    /// Year range ends with the year in review; other ranges have none.
+    let yearReview: JournalYearReview?
     /// Year range shows the latest twelve rows until asked for the rest.
     let collapsedRowLimit: Int?
     let showAllTitle: String?
@@ -154,8 +156,26 @@ struct JournalScreen {
             self.showAllTitle = nil
         }
 
+        self.yearReview = Self.yearReview(
+            state: state, records: periodRecords, period: period, today: today, format: format
+        )
+
         self.canGoBack = records.contains { $0.day < period.interval.start }
         self.canGoForward = period.next(calendar: calendar).interval.start <= todayStart
+    }
+
+    /// The year in review closes the year range once the year has stop
+    /// times or days recorded before them; other ranges have none.
+    private static func yearReview(
+        state: State,
+        records: [JournalDayRecord],
+        period: JournalPeriod,
+        today: Date,
+        format: JournalFormat
+    ) -> JournalYearReview? {
+        guard period.range == .year, state == .populated || state == .noStopTimes
+        else { return nil }
+        return JournalYearReview(records: records, period: period, today: today, format: format)
     }
 
     // MARK: - Days
