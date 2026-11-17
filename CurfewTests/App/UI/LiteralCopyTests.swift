@@ -115,8 +115,8 @@ struct LiteralCopyTests {
 
     @Test("Default reflection questions describe work without judgment")
     func reflectionDefaultsStayNeutral() {
-        #expect(ReflectionDefaults.morningPrompts[1]
-            .text == "How prepared do you feel to start work?")
+        #expect(ReflectionDefaults.morningPrompts[0].text == "What is today for?")
+        #expect(ReflectionDefaults.morningPrompts[1].text == "How ready do you feel?")
         #expect(ReflectionDefaults.eveningPrompts[0].text == "What did you finish today?")
         #expect(ReflectionDefaults.eveningPrompts[1]
             .text == "What would you like to continue next time?")

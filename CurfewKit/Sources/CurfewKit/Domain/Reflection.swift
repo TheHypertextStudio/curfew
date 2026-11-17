@@ -16,6 +16,15 @@ public enum ReflectionGate: String, Equatable, Hashable, CaseIterable, Codable {
     /// End-of-day retrospective gate (sundown). Presented inside the lockout
     /// screen as the optional shutdown ritual.
     case evening
+
+    /// The name a person sees for this gate in the Journal, exports and the
+    /// command line. The morning is always Sunrise.
+    public var displayName: String {
+        switch self {
+        case .morning: "Sunrise"
+        case .evening: "Evening"
+        }
+    }
 }
 
 /// The answer type a ``ReflectionPrompt`` expects, which determines how the
@@ -286,19 +295,26 @@ public func reflectionValueText(_ value: ReflectionValue) -> String {
 /// reinstall, or a config reset, reproduces the same prompt identities — and
 /// so tests can reference a known prompt by id.
 public enum ReflectionDefaults {
-    /// Default sunrise intent prompts: one focus question and a neutral 1–5
-    /// readiness rating. (Mood remains a selectable type, just not a default —
-    /// the defaults stay neutral and rating-centric.)
+    /// The evening "left for next time" prompt. Sunrise shows its answer the
+    /// next morning as last night's note.
+    public static let leftForNextTimePromptID = UUID(
+        uuidString: "B0000000-0000-0000-0000-000000000002"
+    )!
+
+    /// Default Sunrise prompts: the one thing ("What is today for?") and a
+    /// neutral 1–5 readiness rating. (Mood remains a selectable type, just not
+    /// a default — the defaults stay neutral and rating-centric.) Their
+    /// identities are fixed: the Journal and Today read answers by them.
     public static var morningPrompts: [ReflectionPrompt] {
         [
             ReflectionPrompt(
                 id: UUID(uuidString: "A0000000-0000-0000-0000-000000000001")!,
-                text: "What's the one thing that matters most today?",
+                text: SunriseVoice.question,
                 kind: .text
             ),
             ReflectionPrompt(
                 id: UUID(uuidString: "A0000000-0000-0000-0000-000000000002")!,
-                text: "How prepared do you feel to start work?",
+                text: SunriseVoice.readiness,
                 kind: .rating
             )
         ]
@@ -314,7 +330,7 @@ public enum ReflectionDefaults {
                 kind: .text
             ),
             ReflectionPrompt(
-                id: UUID(uuidString: "B0000000-0000-0000-0000-000000000002")!,
+                id: leftForNextTimePromptID,
                 text: "What would you like to continue next time?",
                 kind: .text
             ),
@@ -341,7 +357,7 @@ public enum ReflectionDefaults {
 /// formats are unit-testable.
 public enum ReflectionExport {
     /// A human-readable Markdown journal: an `# Reflections` title, one `##`
-    /// section per day (ascending), and `### Start of work / ### Lockout` blocks whose
+    /// section per day (ascending), and `### Sunrise / ### Evening` blocks whose
     /// answers render as `**prompt**` with the value beneath (text) or inline
     /// (rating `n/max`, mood label). Empty input yields a title-only document so
     /// callers always get well-formed output.
@@ -363,9 +379,10 @@ public enum ReflectionExport {
             lines.append("## \(dayFormatter.string(from: day))")
             lines.append("")
             for reflection in byDay[day] ?? [] {
-                let gateName = reflection.gate == .morning ? "Start of work" : "Lockout"
-                lines
-                    .append("### \(gateName) · \(timeFormatter.string(from: reflection.timestamp))")
+                lines.append(
+                    "### \(reflection.gate.displayName) · "
+                        + timeFormatter.string(from: reflection.timestamp)
+                )
                 for answer in reflection.answers {
                     switch answer.value {
                     case .text(let prose):
