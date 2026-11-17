@@ -9,9 +9,41 @@ import SwiftUI
 /// answer satisfies it, and a page that cannot be read leaves only "Start the
 /// day", so the person is never trapped. Return moves on.
 struct SunriseGateView: View {
+    /// A still page for previews: nothing takes focus, nothing can be pressed,
+    /// nothing is answered or recorded.
+    struct Preview {
+        let page: SunriseGatePage?
+        let isLastPage: Bool
+    }
+
+    var preview: Preview?
+
     @Environment(CurfewAppModel.self) private var model
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @FocusState private var fieldFocused: Bool
+    @State private var previewDraft = ReflectionDraft(prompts: [])
+
+    private var page: SunriseGatePage? {
+        preview.map(\.page) ?? model.currentSunrisePage
+    }
+
+    private var draft: ReflectionDraft {
+        preview == nil ? model.reflectionState.morningDraft : previewDraft
+    }
+
+    private var canSkip: Bool {
+        guard let preview else { return model.canSkipSunrisePage }
+        return preview.page?.prompt != nil && preview.page?.isRequired == false
+    }
+
+    private var canAdvance: Bool {
+        guard let preview else { return model.canAdvanceSunrise }
+        return preview.page?.canAdvance(with: nil) ?? true
+    }
+
+    private var isLastPage: Bool {
+        preview?.isLastPage ?? model.isLastSunrisePage
+    }
 
     /// What ``RestScreenView`` stacks above this view: its top padding, the
     /// small clock and the spacing after it. Used to place the ground block
@@ -30,7 +62,7 @@ struct SunriseGateView: View {
                     .accessibilityAddTraits(.isHeader)
                 Spacer(minLength: CurfewSpacing.xLarge)
                 ground
-                    .frame(maxWidth: min(640, geometry.size.width * 0.62), alignment: .leading)
+                    .frame(maxWidth: min(880, geometry.size.width * 0.66), alignment: .leading)
                     .frame(
                         minHeight: max(
                             0,
@@ -44,17 +76,17 @@ struct SunriseGateView: View {
         .containerRelativeFrame(.vertical) { length, _ in
             max(320, length - Self.chromeAbove - Self.chromeBelow)
         }
+        .allowsHitTesting(preview == nil)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Sunrise")
         .accessibilityIdentifier("sunrise-gate")
     }
 
     private var ground: some View {
-        let page = model.currentSunrisePage
-        return VStack(alignment: .leading, spacing: CurfewSpacing.medium) {
+        VStack(alignment: .leading, spacing: CurfewSpacing.large) {
             if let note = page?.note {
                 Label(SunriseVoice.lastNight(note), horizonSymbol: .lastNight)
-                    .sundownFont(.strong, size: 15)
+                    .sundownFont(.strong, size: 17)
                     .foregroundStyle(SundownPalette.supportingText)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityElement(children: .combine)
@@ -69,20 +101,14 @@ struct SunriseGateView: View {
                     }
                 case .rating, .mood:
                     Text(prompt.text)
-                        .sundownFont(.title, size: 22)
+                        .sundownFont(.display, size: 44)
                         .foregroundStyle(SundownPalette.warmWhite)
                         .fixedSize(horizontal: false, vertical: true)
                     HStack(alignment: .center, spacing: CurfewSpacing.large) {
                         if prompt.kind == .rating {
-                            SunriseRatingPicker(
-                                prompt: prompt,
-                                draft: model.reflectionState.morningDraft
-                            )
+                            SunriseRatingPicker(prompt: prompt, draft: draft)
                         } else {
-                            SunriseMoodPicker(
-                                prompt: prompt,
-                                draft: model.reflectionState.morningDraft
-                            )
+                            SunriseMoodPicker(prompt: prompt, draft: draft)
                         }
                         Spacer(minLength: CurfewSpacing.large)
                         actions(page: page, inline: true)
@@ -99,6 +125,7 @@ struct SunriseGateView: View {
             value: model.sunriseRuntime.pageIndex
         )
         .task(id: model.sunriseRuntime.pageIndex) {
+            guard preview == nil else { return }
             // The window becomes key a moment after it is ordered in.
             try? await Task.sleep(for: .milliseconds(150))
             fieldFocused = true
@@ -112,7 +139,7 @@ struct SunriseGateView: View {
                 prompt: Text(prompt.text).foregroundStyle(SundownPalette.warmWhite.opacity(0.6))
             )
             .textFieldStyle(.plain)
-            .sundownFont(.title, size: 24)
+            .sundownFont(.display, size: 48)
             .foregroundStyle(SundownPalette.warmWhite)
             .focused($fieldFocused)
             .onSubmit { model.advanceSunrise() }
@@ -120,7 +147,7 @@ struct SunriseGateView: View {
             .accessibilityIdentifier("sunrise-answer")
             Rectangle()
                 .fill(SundownPalette.warmWhite.opacity(fieldFocused ? 0.8 : 0.5))
-                .frame(height: 1.5)
+                .frame(height: 2)
                 .accessibilityHidden(true)
         }
     }
@@ -130,10 +157,10 @@ struct SunriseGateView: View {
             if !inline {
                 Spacer(minLength: 0)
             }
-            if model.canSkipSunrisePage {
+            if canSkip {
                 Button(SunriseVoice.skip) { model.skipSunrisePage() }
                     .buttonStyle(.plain)
-                    .sundownFont(.strong, size: 15)
+                    .sundownFont(.button, size: 15)
                     .foregroundStyle(SundownPalette.supportingText)
                     .accessibilityIdentifier("sunrise-skip")
             }
@@ -142,25 +169,49 @@ struct SunriseGateView: View {
         .fixedSize(horizontal: inline, vertical: false)
     }
 
+    /// The one primary action, at the shared primary size. Until a required
+    /// answer is given it stays full size but turns into an outlined, muted
+    /// capsule, so it reads as waiting rather than as a smaller control.
+    @ViewBuilder
     private func primaryButton(page _: SunriseGatePage?) -> some View {
-        let finishing = model.isLastSunrisePage
-        return Button {
-            model.advanceSunrise()
-        } label: {
-            if finishing {
-                Label(SunriseVoice.startTheDay, horizonSymbol: .sunrise)
-            } else {
-                Text(SunriseVoice.next)
+        if canAdvance {
+            Button {
+                model.advanceSunrise()
+            } label: {
+                primaryLabel
             }
+            .buttonStyle(.horizonGlassProminent)
+            .keyboardShortcut(.defaultAction)
+            .accessibilityIdentifier("sunrise-start")
+        } else {
+            // Same footprint as the primary capsule, drawn as an outline. Not
+            // a button until it can act, so nothing draws a control bezel.
+            primaryLabel
+                .sundownFont(.button, size: 15)
+                .foregroundStyle(SundownPalette.warmWhite.opacity(0.55))
+                .padding(.horizontal, CurfewSpacing.large)
+                .padding(.vertical, CurfewSpacing.small)
+                .overlay(Capsule().inset(by: 0.5).stroke(
+                    SundownPalette.warmWhite.opacity(0.45), lineWidth: 1
+                ))
+                .accessibilityElement(children: .combine)
+                .accessibilityAddTraits(.isButton)
+                .accessibilityHint("Answer the question first.")
+                .accessibilityIdentifier("sunrise-start")
         }
-        .buttonStyle(.horizonGlassProminent)
-        .keyboardShortcut(.defaultAction)
-        .disabled(!model.canAdvanceSunrise)
-        .accessibilityIdentifier("sunrise-start")
+    }
+
+    @ViewBuilder
+    private var primaryLabel: some View {
+        if isLastPage {
+            Label(SunriseVoice.startTheDay, horizonSymbol: .sunrise)
+        } else {
+            Text(SunriseVoice.next)
+        }
     }
 
     private func textBinding(_ id: UUID) -> Binding<String> {
-        let draft = model.reflectionState.morningDraft
+        let draft = draft
         return Binding(
             get: {
                 if case .text(let text) = draft.values[id] {
@@ -177,7 +228,7 @@ struct SunriseGateView: View {
 private struct SunriseRatingPicker: View {
     let prompt: ReflectionPrompt
     @Bindable var draft: ReflectionDraft
-    @ScaledMetric(relativeTo: .body) private var size: CGFloat = 40
+    @ScaledMetric(relativeTo: .body) private var size: CGFloat = 52
 
     var body: some View {
         let scale = max(2, prompt.ratingMax)
@@ -192,7 +243,7 @@ private struct SunriseRatingPicker: View {
                     draft.values[prompt.id] = .rating(value: value, scale: scale)
                 } label: {
                     Text("\(value)")
-                        .sundownFont(.button, size: 16)
+                        .sundownFont(.button, size: 20)
                         .frame(width: size, height: size)
                         .background(
                             value == chosen ? CurfewTheme.accentFill : SundownPalette.warmWhite
