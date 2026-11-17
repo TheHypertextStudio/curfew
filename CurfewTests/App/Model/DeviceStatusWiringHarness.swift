@@ -72,6 +72,9 @@ struct DeviceStatusWiringHarness {
     ///   - idleSeconds: How idle the fake HID source reports.
     ///   - secret: The shared signing secret to seed the in-memory store with.
     ///     Pass `""` for a model that has an address but no credential.
+    ///   - clock: The model's enforcement clock. Defaults to the wall clock;
+    ///     a test about cadence passes one it advances itself, so a loaded
+    ///     machine cannot move time between its ticks.
     init(
         reporting: DeviceStatusReportingPolicy = .default,
         schedule: WeeklySchedule? = nil,
@@ -79,7 +82,8 @@ struct DeviceStatusWiringHarness {
         flavor: CurfewFlavor = .production,
         outcome: DeviceStatusPublishOutcome = .accepted,
         idleSeconds: TimeInterval = 600,
-        secret: String = DeviceStatusWiringHarness.secret
+        secret: String = DeviceStatusWiringHarness.secret,
+        clock: @escaping () -> Date = Date.init
     ) {
         let suite = "studio.hypertext.curfew.tests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite) ?? .standard
@@ -110,7 +114,9 @@ struct DeviceStatusWiringHarness {
                 idleThresholdSeconds: 300
             ),
             lockoutDeadlineStore: LockoutDeadlineStore(recordURL: deadlineURL),
-            accessibilityAuthorization: FakeAccessibilityAuthorization(trusted: true)
+            accessibilityAuthorization: FakeAccessibilityAuthorization(trusted: true),
+            runtimeNow: clock(),
+            enforcementClock: clock
         )
         let transport = RecordingStatusTransport(outcome: outcome)
         model.deviceStatusTransportOverride = transport
