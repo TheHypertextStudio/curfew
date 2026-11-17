@@ -19,8 +19,9 @@ extension EnvironmentValues {
 /// 0.05 per second only while `isDayRunning` is true; they hold still when the
 /// day is not running and under Reduce Motion.
 ///
-/// This file and `HorizonSky.metal` are compiled into both the app and the
-/// screen saver bundle, so it must depend only on SwiftUI and CurfewAtmosphere.
+/// This file is compiled into both the app and the screen saver bundle, so it
+/// must depend only on SwiftUI and CurfewAtmosphere. The shader comes from the
+/// bundled `HorizonSky.metallib`; if it cannot load, the CPU image is drawn.
 struct HorizonSkyView: View {
     var frame: HorizonFrame
     var isDayRunning: Bool
@@ -55,7 +56,7 @@ struct HorizonSkyView: View {
     @ViewBuilder
     private func scene(size: CGSize, phase: Double) -> some View {
         switch rendering {
-        case .shader:
+        case .shader where HorizonShaderLibrary.shared != nil:
             Rectangle()
                 .fill(.black)
                 .colorEffect(Self.shader(
@@ -64,14 +65,15 @@ struct HorizonSkyView: View {
                     phase: phase,
                     scale: displayScale
                 ))
-        case .reference:
+        case .shader, .reference:
+            // Also the fallback when the bundled shader library cannot load.
             HorizonStillSky(frame: frame, bandPhase: phase)
         }
     }
 
-    /// The SwiftUI shader for one frame. Exposed for tests.
+    /// The SwiftUI shader for one frame, from the bundled library.
     static func shader(frame: HorizonFrame, size: CGSize, phase: Double, scale: CGFloat) -> Shader {
-        library.horizonSky(
+        (HorizonShaderLibrary.shared?.library ?? .default).horizonSky(
             .float2(size),
             .float2(frame.sun.x, frame.sun.y),
             .float2(frame.moon.x, frame.moon.y),
@@ -83,11 +85,4 @@ struct HorizonSkyView: View {
             .floatArray(HorizonPalette.shaderTable)
         )
     }
-
-    /// The bundle that holds this code also holds its compiled `default.metallib`:
-    /// the app, or the screen saver loaded into the system's saver host, whose
-    /// main bundle is not ours.
-    static let library = ShaderLibrary.bundle(Bundle(for: HorizonBundleToken.self))
 }
-
-private final class HorizonBundleToken {}
