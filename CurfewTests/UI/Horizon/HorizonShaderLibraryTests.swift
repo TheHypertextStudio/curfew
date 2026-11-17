@@ -24,7 +24,7 @@ struct HorizonShaderLibraryTests {
         ).trimmingCharacters(in: .whitespacesAndNewlines)
         #expect(
             recorded == digest,
-            "HorizonSky.metal changed; run scripts/build-horizon-shader.sh to regenerate the library"
+            "HorizonSky.metal changed; regenerate it with scripts/build-horizon-shader.sh"
         )
     }
 
