@@ -13,18 +13,24 @@ struct PrivilegedDaemonWiringTests {
         model.privilegedHelperManager.refreshStatus()
 
         model.displayTick()
-        for _ in 0 ..< 1000 where rpc.statusCallCount == 0 {
-            await Task.yield()
-        }
+        await waitUntil { rpc.statusCallCount > 0 }
         #expect(rpc.statusCallCount == 1)
-        for _ in 0 ..< 1000 where model.privilegedHelperManager.connectionState != .ready {
-            await Task.yield()
-        }
+        await waitUntil { model.privilegedHelperManager.connectionState == .ready }
         #expect(model.privilegedHelperManager.connectionState == .ready)
 
         model.displayTick()
         await Task.yield()
         #expect(rpc.statusCallCount == 1)
+    }
+
+    /// Waits for `condition` itself rather than for a number of yields, which
+    /// a loaded Mac can use up before the helper answers. The deadline only
+    /// stops a hang.
+    private func waitUntil(_ condition: () -> Bool) async {
+        let deadline = ContinuousClock.now.advanced(by: .seconds(120))
+        while !condition(), ContinuousClock.now < deadline {
+            try? await Task.sleep(for: .milliseconds(5))
+        }
     }
 
     @Test("Daemon relaunch status replaces a weaker local lockout deadline")
