@@ -322,15 +322,12 @@ struct ProtectedWorkLivenessTests {
     // MARK: - Helpers
 
     private func waitUntilGone(_ pid: Int32) throws {
-        let deadline = Date().addingTimeInterval(5)
-        while Date() < deadline {
-            let listed = SysctlProcessEnumerator().runningProcesses()
-                .contains { $0.processIdentifier == pid }
-            if !listed {
-                return
-            }
-            usleep(20000)
+        let gone = SpawnedProcessProbe.poll {
+            let processes = SysctlProcessEnumerator().runningProcesses()
+            return !processes.isEmpty && !processes.contains { $0.processIdentifier == pid }
         }
-        Issue.record("pid \(pid) never left the process table")
+        if !gone {
+            Issue.record("pid \(pid) never left the process table")
+        }
     }
 }

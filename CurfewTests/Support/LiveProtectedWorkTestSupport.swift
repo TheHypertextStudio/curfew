@@ -30,8 +30,9 @@ final class SpawnedProcessProbe {
     ///   - executableName: at most `MAXCOMLEN` (16) characters, or the kernel
     ///     will truncate it and the caller's expectations with it.
     ///   - lifetimeSeconds: generous enough that the process cannot exit
-    ///     mid-assertion on a loaded machine.
-    init(executableName: String, lifetimeSeconds: Int = 120) throws {
+    ///     mid-assertion on a loaded machine. It outlives the longest wait
+    ///     below, and ``terminateAndWait()`` ends it long before.
+    init(executableName: String, lifetimeSeconds: Int = 600) throws {
         self.executableName = executableName
         self.directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("curfew-probe-\(UUID().uuidString)", isDirectory: true)
@@ -75,14 +76,28 @@ final class SpawnedProcessProbe {
 
     private func waitUntilVisible() throws {
         let enumerator = SysctlProcessEnumerator()
-        let deadline = Date().addingTimeInterval(5)
-        while Date() < deadline {
-            if isVisibleToEnumerator(enumerator) {
-                return
+        guard Self.poll(until: { self.isVisibleToEnumerator(enumerator) }) else {
+            throw ProbeFailure.neverAppearedInProcessTable(executableName)
+        }
+    }
+
+    /// How long a poll waits before calling the kernel wrong. The first exec
+    /// of a freshly copied binary waits on code-signature checks, which take
+    /// seconds while other builds saturate the machine, so this is generous;
+    /// an idle machine still returns within milliseconds.
+    static let pollDeadline: TimeInterval = 120
+
+    /// Polls `condition` every 20 ms until it holds or ``pollDeadline``
+    /// passes. Returns whether it held.
+    static func poll(until condition: () -> Bool) -> Bool {
+        let deadline = Date().addingTimeInterval(pollDeadline)
+        repeat {
+            if condition() {
+                return true
             }
             usleep(20000)
-        }
-        throw ProbeFailure.neverAppearedInProcessTable(executableName)
+        } while Date() < deadline
+        return condition()
     }
 
     enum ProbeFailure: Error {
