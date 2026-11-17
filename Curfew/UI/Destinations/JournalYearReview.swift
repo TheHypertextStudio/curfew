@@ -106,9 +106,9 @@ struct JournalYearReview: Equatable, Sendable {
 
     // MARK: - Words
 
-    /// "Too few days for a year in review: 6 of the 20 it needs."
+    /// "A year in review needs 20 working days. This year has 6."
     static func tooFewDaysLine(have: Int) -> String {
-        "Too few days for a year in review: \(have) of the \(minimumDays) it needs."
+        "A year in review needs \(minimumDays) working days. This year has \(have)."
     }
 
     /// "127 evenings ended before curfew."

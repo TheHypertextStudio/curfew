@@ -86,7 +86,7 @@ struct JournalYearReviewTests {
         let few = records(Array(repeating: -10, count: JournalYearReview.minimumDays - 1))
         let review = review(few, today: day(2026, 3, 1))
         #expect(review.content == .tooFewDays(
-            "Too few days for a year in review: 19 of the 20 it needs."
+            "A year in review needs 20 working days. This year has 19."
         ))
         #expect(review.year == 2026)
     }
