@@ -31,7 +31,12 @@ struct AccountEnrollmentCancellationTests {
     }
 
     @MainActor
-    @Test("Cancelling while token exchange waits frees the sign-in state promptly")
+    @Test(
+        "Cancelling while token exchange waits frees the sign-in state promptly",
+        // A guard against a hang, should cancellation ever stop reaching the
+        // exchange; not a timing assertion.
+        .timeLimit(.minutes(5))
+    )
     func stalledTokenExchangeCanBeCancelled() async {
         let oauth = StalledTokenExchangeOAuthEnrollment()
         let controller = AccountEnrollmentController(
@@ -167,10 +172,12 @@ private final class StalledTokenExchangeOAuthEnrollment: AccountOAuthEnrolling {
             waiter.resume()
         }
         startWaiters.removeAll()
-        // Leave enough time for cancellation even when the full CI suite
-        // delays this test's MainActor continuation under load.
-        try await Task.sleep(for: .seconds(30))
-        throw AccountOAuthEnrollmentError.browserCompletedConnectionFailed
+        // Stall until cancelled. Nothing else ends this call, so the test
+        // passes only when cancelling reaches the token exchange itself, and
+        // no amount of machine load can let a timer win the race instead.
+        while true {
+            try await Task.sleep(for: .seconds(3600))
+        }
     }
 
     func waitUntilStarted() async {
