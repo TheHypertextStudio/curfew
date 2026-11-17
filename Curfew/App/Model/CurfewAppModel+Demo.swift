@@ -27,6 +27,7 @@ import CurfewKit
             let deadline = Bundle.main
                 .object(forInfoDictionaryKey: "CurfewAcceptanceDeadline") as? Date
                 ?? now.addingTimeInterval(5)
+            let journal = demoJournalSample(now: now)
             return CurfewAppModel(
                 settingsStore: settingsStore,
                 appRouter: SystemAppRouter(),
@@ -42,7 +43,10 @@ import CurfewKit
                         calendarEnabled: true
                     )
                     : .shippingV1,
-                activityRecorder: makeDemoActivityRecorder(now: now),
+                activityRecorder: makeDemoActivityRecorder(now: now, journal: journal),
+                reflectionState: ReflectionRuntimeState(
+                    recorder: DemoReflectionRecorder(entries: journal.reflections)
+                ),
                 notificationManager: NoOpWarningNotificationManager(),
                 licenseGate: LicenseGate(defaults: UserDefaults(suiteName: "CurfewDemoLicense")),
                 accountSyncEngine: AccountSyncEngine(transport: NoOpAccountSyncTransport()),
@@ -153,7 +157,19 @@ import CurfewKit
             return store
         }
 
-        private static func makeDemoActivityRecorder(now: Date) -> any ActivityRecording {
+        /// About eleven months of Journal history ending yesterday, so the
+        /// Journal has days to draw. Only this Debug-only demo model reads it;
+        /// it lands in the demo's temporary stores, never the user's.
+        private static func demoJournalSample(now: Date) -> JournalSampleData.Sample {
+            let calendar = Calendar.current
+            let yesterday = calendar.date(byAdding: .day, value: -1, to: now) ?? now
+            return JournalSampleData.make(endingOn: yesterday, calendar: calendar)
+        }
+
+        private static func makeDemoActivityRecorder(
+            now: Date,
+            journal: JournalSampleData.Sample
+        ) -> any ActivityRecording {
             let directory = FileManager.default.temporaryDirectory
                 .appendingPathComponent("curfew-demo-\(UUID().uuidString)", isDirectory: true)
             do {
@@ -162,7 +178,12 @@ import CurfewKit
                     withIntermediateDirectories: true
                 )
                 let store = try ActivityStore(directory: directory)
-                for event in DemoFixture.seededActivityEvents(now: now) {
+                // The Journal sample carries its own more time and overrides,
+                // so only the fixture's lockout days are kept beside it.
+                let lockoutDays = DemoFixture.seededActivityEvents(now: now).filter {
+                    $0.kind != .extensionGranted && $0.kind != .overrideGranted
+                }
+                for event in lockoutDays + journal.events {
                     try? store.append(event)
                 }
                 return ActivityRecorder(store: store)

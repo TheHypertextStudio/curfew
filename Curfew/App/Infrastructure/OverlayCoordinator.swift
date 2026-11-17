@@ -26,6 +26,9 @@ struct OverlayWindowConfiguration: Equatable {
 
     /// Always `false` — overlays must not vanish when another app is focused.
     var hidesOnDeactivate: Bool
+
+    /// Always `false` — overlays must not vanish when Curfew is hidden.
+    var canHide = false
 }
 
 /// Manages the set of overlay `NSWindow` instances that visualise
@@ -38,56 +41,6 @@ struct OverlayWindowConfiguration: Equatable {
 /// ``updateOverlays(for:model:)`` once per tick.
 @MainActor
 final class OverlayCoordinator {
-    /// Window configuration for the translucent dim overlay shown during the
-    /// warning phase. Mouse events pass through so normal interaction continues.
-    static let warningWindowConfiguration = OverlayWindowConfiguration(
-        styleMask: [.borderless],
-        level: .screenSaver,
-        ignoresMouseEvents: true,
-        collectionBehavior: [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary],
-        isMovable: false,
-        hidesOnDeactivate: false
-    )
-
-    /// Window configuration for the full-screen lockout overlay. Level
-    /// `.screenSaver` keeps it above the Dock and any full-screen app.
-    /// Mouse events are captured so the user cannot interact with the desktop.
-    static let lockoutWindowConfiguration = OverlayWindowConfiguration(
-        styleMask: [.borderless],
-        level: .screenSaver,
-        ignoresMouseEvents: false,
-        collectionBehavior: [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary],
-        isMovable: false,
-        hidesOnDeactivate: false
-    )
-
-    /// Window configuration for the small floating countdown timer shown at
-    /// T-5 and below. Level `.screenSaver` keeps it above full-screen work.
-    /// Mouse events pass through.
-    static let timerWindowWidth: CGFloat = 240
-
-    static let timerWindowConfiguration = OverlayWindowConfiguration(
-        styleMask: [.borderless],
-        level: .screenSaver,
-        ignoresMouseEvents: true,
-        collectionBehavior: [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary],
-        isMovable: false,
-        hidesOnDeactivate: false
-    )
-
-    /// Window configuration for the full-screen morning (sunrise) reflection
-    /// overlay. Same commanding `.screenSaver` presence as the lockout so it
-    /// owns the screen the moment it appears, but it is *not* paired with the
-    /// key interceptor — the user can dismiss it (Start / Skip) at any time.
-    static let daybreakWindowConfiguration = OverlayWindowConfiguration(
-        styleMask: [.borderless],
-        level: .screenSaver,
-        ignoresMouseEvents: false,
-        collectionBehavior: [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary],
-        isMovable: false,
-        hidesOnDeactivate: false
-    )
-
     /// Whether this process must not put overlay windows on screen.
     ///
     /// True in a unit-test host, and false everywhere else — including the
@@ -117,6 +70,17 @@ final class OverlayCoordinator {
     private lazy var restVisibilityObserver = RestWindowVisibilityObserver { [weak self] in
         self?.reconcileRestVisibility()
     }
+
+    private weak var lockoutModel: CurfewAppModel?
+    private lazy var lockoutFocus = LockoutFocusController(
+        holdsFocus: { [weak self] in self?.lockoutModel?.restHandoffIsAmbient == false },
+        onScreensChanged: { [weak self] in
+            guard let self, let model = lockoutModel, !lockoutWindows.windows.isEmpty else {
+                return
+            }
+            showLockoutWindows(model: model)
+        }
+    )
 
     var restCanReveal: Bool {
         !restIsSleeping && restSessionIsActive
@@ -187,6 +151,7 @@ final class OverlayCoordinator {
         for window in lockoutWindows.windows.values {
             window.orderFrontRegardless()
         }
+        lockoutFocus.reassert()
     }
 
     func restDisplaysHidden() {
@@ -269,6 +234,13 @@ final class OverlayCoordinator {
         for window in lockoutWindows.windows.values where !window.isVisible {
             window.makeKeyAndOrderFront(nil)
         }
+        lockoutModel = model
+        // Demo captures and the dismissible morning screen keep normal focus.
+        if model.isEnforcingLockout, !model.isDemoSession {
+            lockoutFocus.engage()
+        } else {
+            lockoutFocus.release()
+        }
         reconcileRestVisibility()
     }
 
@@ -280,6 +252,8 @@ final class OverlayCoordinator {
     }
 
     private func hideLockoutWindows() {
+        lockoutFocus.release()
+        lockoutModel = nil
         lockoutWindows.removeAll()
         restDisplayStates.removeAll()
         restLifecycle = RestDisplayLifecycle()
@@ -342,6 +316,7 @@ final class OverlayCoordinator {
         window.collectionBehavior = configuration.collectionBehavior
         window.isMovable = configuration.isMovable
         window.hidesOnDeactivate = configuration.hidesOnDeactivate
+        window.canHide = configuration.canHide
     }
 }
 

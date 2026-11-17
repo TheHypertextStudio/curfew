@@ -262,6 +262,10 @@ final class CurfewAppModel: NSObject {
     /// at the end of `tick()`'s enforcement tail.
     @ObservationIgnored var lastEnforcedPhase: EnforcementPhase = .dayOff
 
+    /// Working day whose end the lock path last checked, so the 1 Hz tick
+    /// reads the activity log once per lock rather than every second.
+    @ObservationIgnored var journalDayEndCheckedDay: Date?
+
     /// Warning stages fired today across every device on this iCloud
     /// account. Seeded from the `LockoutState` CKRecord; consulted by
     /// `WarningNotificationManager` to suppress cross-device duplicates.
@@ -439,7 +443,8 @@ final class CurfewAppModel: NSObject {
         self.hasExplicitAutomaticScheduleConsent = savedScheduleConsent != nil &&
             !settingsStore.wasAutomaticScheduleConsentMigrated()
         self.automaticScheduleEnabled = resolvedScheduleConsent
-        self.shouldOpenSettingsOnLaunch = settingsStore.consumeShouldShowInitialSetup()
+        // Setup reopens on every launch until it is completed.
+        self.shouldOpenSettingsOnLaunch = !loadedSettings.hasCompletedInitialSetup
         let loadedEvents = settingsStore.loadOverrideEvents()
         self.overrideEvents = loadedEvents
 
@@ -459,7 +464,9 @@ final class CurfewAppModel: NSObject {
             self.extensionMinutesGrantedToday = runtime.state.extensionMinutes
             self.snoozeMinutesGrantedToday = runtime.state.snoozeMinutes
         }
-        self.overrideUntil = runtime.state.overrideUntil
+        self.overrideUntil = Self.recordedOverrideUntil(
+            runtime.state.overrideUntil, overrides: loadedEvents, settings: loadedSettings
+        )
         self.state = Self.initialEvaluation(
             settings: loadedSettings,
             automaticScheduleEnabled: resolvedScheduleConsent,

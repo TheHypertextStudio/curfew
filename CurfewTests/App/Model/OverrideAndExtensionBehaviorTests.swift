@@ -87,8 +87,53 @@ struct OverrideWindowBehaviorTests {
             overrideUntil: overrideUntil
         )
 
-        #expect(duringState.phase == .working)
+        #expect(duringState.phase != .locked)
         #expect(afterState.phase == .locked)
+    }
+
+    @Test("An override past the lock time counts down to its own end and warns first")
+    func overrideExpiryWarnsBeforeRelocking() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try #require(TimeZone(secondsFromGMT: 0))
+        let engine = CurfewEnforcementEngine(calendar: calendar)
+        func at(_ hour: Int, _ minute: Int) throws -> Date {
+            try #require(calendar.date(from: DateComponents(
+                year: 2026, month: 2, day: 2, hour: hour, minute: minute
+            )))
+        }
+        let overrideUntil = try at(19, 0)
+
+        let early = try engine.evaluate(
+            at: at(18, 10), schedule: .standardNineToFive,
+            extensionMinutesGrantedToday: 0, overrideUntil: overrideUntil
+        )
+        #expect(early.phase == .working)
+        #expect(early.minutesRemaining == 50)
+
+        let late = try engine.evaluate(
+            at: at(18, 56), schedule: .standardNineToFive,
+            extensionMinutesGrantedToday: 0, overrideUntil: overrideUntil
+        )
+        #expect(late.phase == .warning)
+        #expect(late.warningStage == .fiveMinutes)
+        #expect(late.minutesRemaining == 4)
+        #expect(!late.canRequestExtension)
+    }
+
+    @Test("An override that ends before the lock time leaves the normal countdown alone")
+    func earlyOverrideKeepsScheduleCountdown() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try #require(TimeZone(secondsFromGMT: 0))
+        let engine = CurfewEnforcementEngine(calendar: calendar)
+        let now = try #require(calendar.date(from: DateComponents(
+            year: 2026, month: 2, day: 2, hour: 16, minute: 0
+        )))
+        let state = engine.evaluate(
+            at: now, schedule: .standardNineToFive, extensionMinutesGrantedToday: 0,
+            overrideUntil: now.addingTimeInterval(600)
+        )
+        #expect(state.phase == .working)
+        #expect(state.minutesRemaining == 120)
     }
 }
 

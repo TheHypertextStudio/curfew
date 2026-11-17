@@ -4,41 +4,34 @@ import Foundation
 import Testing
 
 struct FirstRunSafetyFlowTests {
-    @Test("Opening the schedule editor alone cannot authorize automatic lockout")
-    func openingScheduleDoesNotConfirmIt() {
+    @Test("Setup cannot leave the schedule step without an explicit choice")
+    func scheduleNeedsExplicitChoice() {
         var flow = FirstRunFlow()
-        flow.advance()
-
-        flow.markScheduleReviewed()
 
         #expect(!flow.canAdvance)
         flow.advance()
         #expect(flow.currentStep == .schedule)
+        #expect(flow.scheduleChoice == nil)
     }
 
-    @Test("Reviewing seven rules and choosing the weekly schedule is one transition")
-    func reviewedWeeklyChoiceAdvances() {
+    @Test("Using the shown schedule is one explicit transition")
+    func weeklyChoiceAdvances() {
         var flow = FirstRunFlow()
-        flow.advance()
 
-        flow.chooseReviewedWeeklySchedule()
+        flow.chooseSchedule(.weeklySchedule)
 
         #expect(flow.scheduleChoice == .weeklySchedule)
-        #expect(flow.canAdvance)
-        flow.advance()
-        #expect(flow.currentStep == .extensionBudget)
+        #expect(flow.currentStep == .permissions)
     }
 
-    @Test("Remote-only setup can be explicitly selected without a weekly schedule")
-    func remoteOnlyChoiceAdvancesWithoutScheduleReview() {
+    @Test("No schedule yet can be explicitly selected without a weekly schedule")
+    func remoteOnlyChoiceAdvancesWithoutSchedule() {
         var flow = FirstRunFlow()
-        flow.advance()
 
         flow.chooseSchedule(.remoteControlsOnly)
 
-        #expect(flow.canAdvance)
-        flow.advance()
-        #expect(flow.currentStep == .extensionBudget)
+        #expect(flow.scheduleChoice == .remoteControlsOnly)
+        #expect(flow.currentStep == .permissions)
     }
 }
 

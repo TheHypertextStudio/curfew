@@ -28,7 +28,7 @@ protocol ReflectionRecording: AnyObject {
     func reflections(in range: ClosedRange<Date>) -> [Reflection]
 
     /// Deletes reflections older than `seconds` relative to `now`. Called on
-    /// day rollover to share the activity log's 52-week retention window.
+    /// day rollover to share the activity log's retention window.
     func trim(olderThan seconds: TimeInterval, now: Date)
 
     /// Monotonic counter bumped on every successful write. Lets the Journal

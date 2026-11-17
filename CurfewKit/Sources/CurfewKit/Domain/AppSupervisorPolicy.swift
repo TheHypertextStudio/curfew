@@ -10,7 +10,14 @@ public struct AppSupervisorPolicy {
 
     public init() {}
 
-    public mutating func shouldLaunch(at now: Date, appIsRunning: Bool) -> Bool {
+    /// - Parameter lockoutActive: A lockout deadline is still running. Repeated
+    ///   kills then relaunch as soon as the previous launch completes, with no
+    ///   back-off, so killing Curfew cannot buy minutes without the overlay.
+    public mutating func shouldLaunch(
+        at now: Date,
+        appIsRunning: Bool,
+        lockoutActive: Bool = false
+    ) -> Bool {
         if let lastEvaluatedAt, now < lastEvaluatedAt {
             // Preserve remaining delays when a clock correction moves time backward.
             let correction = now.timeIntervalSince(lastEvaluatedAt)
@@ -29,10 +36,13 @@ public struct AppSupervisorPolicy {
             return false
         }
         healthySince = nil
-        guard !launchInFlight, nextLaunchAt.map({ now >= $0 }) ?? true else { return false }
+        guard !launchInFlight,
+              lockoutActive || nextLaunchAt.map({ now >= $0 }) ?? true else { return false }
         launchInFlight = true
         nextLaunchAt = now.addingTimeInterval(retryDelay)
-        retryDelay = min(60, retryDelay * 2)
+        if !lockoutActive {
+            retryDelay = min(60, retryDelay * 2)
+        }
         return true
     }
 

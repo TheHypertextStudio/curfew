@@ -53,6 +53,11 @@ protocol ActivityRecording: AnyObject {
     /// so test spies and ``NullActivityRecording`` need not implement it.
     func recordReflectionRecorded(gate: ReflectionGate, at timestamp: Date)
 
+    /// Appends one Journal fact built in CurfewKit: a ``DayEnding`` event or a
+    /// ``OneThingOutcome`` event. A default no-op is provided so test spies
+    /// and ``NullActivityRecording`` need not implement it.
+    func recordJournalEvent(_ event: ActivityEvent)
+
     /// Returns events in the given date range. The recorder is the single
     /// entry point for both writes and reads so consumers don't need to
     /// separately hold the underlying store. Failure modes (store closed,
@@ -67,8 +72,8 @@ protocol ActivityRecording: AnyObject {
     func exportCSV(in range: ClosedRange<Date>) throws -> String
 
     /// Deletes events older than `seconds` relative to `now`. Called on
-    /// day rollover to enforce the 52-week retention window advertised in
-    /// PRIVACY.md. Failures are logged and swallowed — a trim that fails
+    /// day rollover to enforce the retention window (``JournalRetention``). Failures are logged and
+    /// swallowed — a trim that fails
     /// must never block the tick loop.
     func trim(olderThan seconds: TimeInterval, now: Date)
 
@@ -86,6 +91,9 @@ extension ActivityRecording {
     /// ``NullActivityRecording``) need not implement the reflection marker.
     /// ``ActivityRecorder`` overrides this to write the real event.
     func recordReflectionRecorded(gate: ReflectionGate, at timestamp: Date) {}
+
+    /// Default no-op; ``ActivityRecorder`` writes the event.
+    func recordJournalEvent(_ event: ActivityEvent) {}
 }
 
 /// Production ``ActivityRecording`` that writes to a SQLite-backed
@@ -206,6 +214,11 @@ final class ActivityRecorder: ActivityRecording {
             minutesValue: nil,
             note: nil
         ))
+    }
+
+    /// Writes one Journal fact (day end or one thing answer) as given.
+    func recordJournalEvent(_ event: ActivityEvent) {
+        appendSafely(event)
     }
 
     /// Returns events within the range, swallowing (and logging) any

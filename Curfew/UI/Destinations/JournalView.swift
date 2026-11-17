@@ -3,146 +3,240 @@ import CurfewKit
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// "Journal" workspace destination — the reflective archive: the week's sundown
-/// chart (``JournalSundownView``), the neutral rating trends and per-entry
-/// reflections (``JournalReflectionsView``), and an export menu (Markdown /
-/// JSON / Share) for getting a week's journal out of the app.
+/// The Journal destination: what the person did, scoped by a week, month or
+/// year range in the window toolbar. When they stopped against curfew,
+/// whether they did the one thing, what extra time they took and why, and
+/// how ready they felt, from the per-day records CurfewKit builds.
 struct JournalView: View {
     @Environment(CurfewAppModel.self) private var model
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    /// Which face of Reflect is showing: the read-only archive, or the prompt
-    /// editor that shapes it.
-    @State private var mode: ReflectMode = .entries
+    @State private var range: JournalRange
+    /// A date inside the shown period; `nil` follows today.
+    @State private var anchor: Date?
+    @State private var records: [JournalDayRecord] = []
+    @State private var reflections: [Reflection] = []
+    @State private var today: Date?
+    @State private var expanded: Set<Date>
+    @State private var showsAll = false
+    @State private var isEditingPrompts = false
+    private let initiallyActive: Date?
 
-    /// The two faces of the Reflect destination.
-    private enum ReflectMode: String, CaseIterable, Identifiable {
-        /// The week's chart + reflection entries (read-only archive).
-        case entries
-        /// The morning / evening prompt editor.
-        case prompts
+    init(
+        range: JournalRange = .month,
+        anchor: Date? = nil,
+        expanded: Set<Date> = [],
+        initiallyActive: Date? = nil
+    ) {
+        _range = State(initialValue: range)
+        _anchor = State(initialValue: anchor)
+        _expanded = State(initialValue: expanded)
+        self.initiallyActive = initiallyActive
+    }
 
-        var id: String {
-            rawValue
-        }
+    private var calendar: Calendar {
+        .current
+    }
 
-        var title: String {
-            switch self {
-            case .entries: "Entries"
-            case .prompts: "Prompts"
-            }
-        }
+    private var format: JournalFormat {
+        JournalFormat(calendar: calendar)
+    }
+
+    private var workingWeekdays: Set<Weekday> {
+        let rules = model.settings.schedule.rules
+        return Set(Weekday.allCases.filter { rules[$0]?.isDayOff == false })
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            modeBar
-            switch mode {
-            case .entries:
-                entriesContent
-            case .prompts:
-                ReflectionPromptsView()
-                    .environment(model)
-            }
+        let today = today ?? Date()
+        let period = JournalPeriod.containing(anchor ?? today, range: range, calendar: calendar)
+        let screen = JournalScreen(
+            records: records,
+            reflections: reflections,
+            period: period,
+            today: today,
+            workingWeekdays: workingWeekdays,
+            format: format
+        )
+        ScrollView {
+            JournalPage(
+                screen: screen,
+                format: format,
+                expanded: $expanded,
+                showsAll: $showsAll,
+                initiallyActive: initiallyActive,
+                editPrompts: { isEditingPrompts = true }
+            )
+            .id(period)
+            .transition(.opacity)
+            .frame(maxWidth: JournalStyle.contentWidth, alignment: .leading)
+            .padding(.horizontal, 24)
+            .padding(.top, 24)
+            .padding(.bottom, 64)
+            .frame(maxWidth: .infinity)
         }
-        // One opaque adaptive canvas behind the whole destination — it extends
-        // under the title bar and all the way to the window edge (under the
-        // scroller), so the desktop/sky can't peek through the scrollbar. Journal
-        // is a utility surface; no living sky stretched behind the content.
-        .background(CurfewTheme.canvas.ignoresSafeArea())
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: period)
+        .background(JournalStyle.page.ignoresSafeArea())
+        .toolbar { toolbar(screen: screen) }
+        .background(JournalRefreshTrigger(reload: reload))
+        .onAppear(perform: reload)
+        .sheet(isPresented: $isEditingPrompts) {
+            JournalPromptsSheet()
+                .environment(model)
+        }
     }
 
-    /// Mode switcher pinned at the top of the destination: the Entries|Prompts
-    /// segmented control leading, and (in Entries) the export menu trailing.
-    private var modeBar: some View {
-        HStack(spacing: CurfewSpacing.medium) {
-            Picker("View", selection: $mode) {
-                ForEach(ReflectMode.allCases) { mode in
-                    Text(mode.title).tag(mode)
+    // MARK: - Toolbar
+
+    @ToolbarContentBuilder
+    private func toolbar(screen: JournalScreen) -> some ToolbarContent {
+        let noun = screen.period.range.rawValue
+        ToolbarItem(placement: .navigation) {
+            ControlGroup {
+                Button { step(-1, from: screen.period) } label: {
+                    Label("Previous \(noun)", systemImage: "chevron.left")
                 }
+                .disabled(!screen.canGoBack)
+                .keyboardShortcut(.leftArrow, modifiers: .command)
+                .help("Previous \(noun)")
+                Button { step(1, from: screen.period) } label: {
+                    Label("Next \(noun)", systemImage: "chevron.right")
+                }
+                .disabled(!screen.canGoForward)
+                .keyboardShortcut(.rightArrow, modifiers: .command)
+                .help("Next \(noun)")
+            }
+            .disabled(screen.state == .noHistory)
+        }
+        ToolbarItem(placement: .principal) {
+            Picker("Range", selection: Binding(
+                get: { range },
+                set: { change(to: $0, from: screen.period) }
+            )) {
+                Text("Week").tag(JournalRange.week)
+                Text("Month").tag(JournalRange.month)
+                Text("Year").tag(JournalRange.year)
             }
             .pickerStyle(.segmented)
-            .labelsHidden()
             .fixedSize()
-
-            Spacer(minLength: 0)
-
-            if mode == .entries {
-                exportMenu
-            }
+            .disabled(screen.state == .noHistory)
+            .help("Show a week, a month or a year")
         }
-        .padding(.horizontal, CurfewSpacing.xLarge)
-        .padding(.vertical, CurfewSpacing.medium)
-        .background(.regularMaterial)
+        ToolbarItemGroup(placement: .primaryAction) {
+            Button { isEditingPrompts = true } label: {
+                Label("Edit prompts", systemImage: "text.bubble")
+            }
+            .accessibilityIdentifier("journal-edit-prompts")
+            .help("Edit the questions Curfew asks in the morning and evening")
+            Menu {
+                Button("Reflections as Markdown…") { export(.markdown, period: screen.period) }
+                Button("Reflections as JSON…") { export(.json, period: screen.period) }
+                Button("Activity as CSV…") { export(.csv, period: screen.period) }
+                Divider()
+                Button("Copy reflections") { copyReflections(period: screen.period) }
+            } label: {
+                Label("Export", systemImage: "square.and.arrow.up")
+            }
+            .help("Export \(screen.label)")
+        }
     }
 
-    /// The read-only archive: the week's sundown chart and per-entry reflections.
-    private var entriesContent: some View {
-        let rollup = model.thisWeekRollup()
-        return ScrollView {
-            VStack(spacing: 0) {
-                JournalSundownView(
-                    dateRange: Self.dateRange(for: rollup),
-                    nights: Self.nights(
-                        for: rollup,
-                        schedule: model.editableSchedule,
-                        now: model.currentTime
-                    ),
-                    footnote: Self.footnote(for: rollup)
-                )
+    // MARK: - Navigation
 
-                JournalReflectionsView(
-                    reflections: model.reflections(inWeekOf: model.currentTime),
-                    referenceDate: model.currentTime,
-                    onConfigurePrompts: { mode = .prompts }
-                )
-            }
-        }
-        .scrollIndicators(.hidden)
+    private func step(_ count: Int, from period: JournalPeriod) {
+        let target = period.offset(by: count, calendar: calendar)
+        let today = today ?? model.currentTime
+        anchor = target.interval.contains(today) ? nil : target.interval.start
+        expanded = []
+        showsAll = false
     }
 
-    /// Export affordance floated over the Journal header: save a Markdown or
-    /// JSON file, or share/copy this week's journal. Mirrors the NSSavePanel
-    /// pattern in ``ThisWeekView``.
-    private var exportMenu: some View {
-        Menu {
-            Button("Export as Markdown…") { exportReflections(asJSON: false) }
-            Button("Export as JSON…") { exportReflections(asJSON: true) }
-            Divider()
-            Button("Copy this week") {
-                let markdown = model.exportReflectionsMarkdown(inWeekOf: model.currentTime)
-                NSPasteboard.general.clearContents()
-                NSPasteboard.general.setString(markdown, forType: .string)
-            }
-            ShareLink(
-                "Share this week",
-                item: model.exportReflectionsMarkdown(inWeekOf: model.currentTime)
-            )
-        } label: {
-            Image(systemName: "square.and.arrow.up")
-                .imageScale(.large)
+    /// Finer ranges land on the latest part of the shown period; coarser
+    /// ranges keep the period that contains it.
+    private func change(to newRange: JournalRange, from period: JournalPeriod) {
+        guard newRange != range else { return }
+        let order: [JournalRange] = [.week, .month, .year]
+        let today = calendar.startOfDay(for: today ?? model.currentTime)
+        let finer = (order.firstIndex(of: newRange) ?? 0) < (order.firstIndex(of: range) ?? 0)
+        if finer {
+            let last = calendar.date(byAdding: .day, value: -1, to: period.interval.end)
+                ?? period.interval.start
+            let target = min(last, today)
+            anchor = target == today ? nil : target
+        } else if anchor != nil {
+            anchor = period.interval.start
         }
-        .menuStyle(.borderlessButton)
-        .fixedSize()
-        .help("Export or share this week's reflections")
-        .accessibilityLabel("Export reflections")
+        range = newRange
+        expanded = []
+        showsAll = false
     }
 
-    /// Opens an NSSavePanel and writes this week's reflections as Markdown or
-    /// JSON. Defaults the filename per format; failures surface non-modally.
-    private func exportReflections(asJSON: Bool) {
-        let panel = NSSavePanel()
-        panel.allowedContentTypes = asJSON
-            ? [.json]
-            : [UTType(filenameExtension: "md") ?? .plainText]
-        panel.nameFieldStringValue = asJSON
-            ? "curfew-reflections.json"
-            : "curfew-reflections.md"
+    // MARK: - Data
+
+    private func reload() {
         let now = model.currentTime
+        today = now
+        let start = calendar.date(
+            byAdding: .day,
+            value: -JournalRetention.minimumDays,
+            to: calendar.startOfDay(for: now)
+        ) ?? now
+        records = model.journalDayRecords(in: start ... now, calendar: calendar)
+        reflections = model.reflectionState.recorder.reflections(in: start ... now)
+    }
+
+    // MARK: - Export
+
+    private enum ExportFormat {
+        case markdown
+        case json
+        case csv
+    }
+
+    private func range(of period: JournalPeriod) -> ClosedRange<Date> {
+        period.interval.start ... period.interval.end
+    }
+
+    private func export(_ kind: ExportFormat, period: JournalPeriod) {
+        let label = format.periodLabel(period, workingWeekdays: workingWeekdays)
+        let span = range(of: period)
+        let text: String
+        let hasContent: Bool
+        switch kind {
+        case .markdown, .json:
+            let entries = model.reflectionState.recorder.reflections(in: span)
+            hasContent = !entries.isEmpty
+            text = kind == .json ? ReflectionExport.json(entries) : ReflectionExport
+                .markdown(entries)
+        case .csv:
+            text = model.exportActivityCSV(in: span)
+            hasContent = text.split(separator: "\n", omittingEmptySubsequences: true).count > 1
+        }
+        guard hasContent else {
+            let alert = NSAlert()
+            alert.messageText = "Nothing to export for \(label)"
+            alert.informativeText = kind == .csv
+                ? "Curfew recorded no activity in \(label)."
+                : "There are no reflections in \(label)."
+            alert.addButton(withTitle: "OK")
+            alert.runModal()
+            return
+        }
+        let panel = NSSavePanel()
+        let slug = label.lowercased().replacingOccurrences(of: " ", with: "-")
+        switch kind {
+        case .markdown:
+            panel.allowedContentTypes = [UTType(filenameExtension: "md") ?? .plainText]
+            panel.nameFieldStringValue = "curfew-reflections-\(slug).md"
+        case .json:
+            panel.allowedContentTypes = [.json]
+            panel.nameFieldStringValue = "curfew-reflections-\(slug).json"
+        case .csv:
+            panel.allowedContentTypes = [.commaSeparatedText]
+            panel.nameFieldStringValue = "curfew-activity-\(slug).csv"
+        }
         panel.begin { response in
             guard response == .OK, let url = panel.url else { return }
-            let text = asJSON
-                ? model.exportReflectionsJSON(inWeekOf: now)
-                : model.exportReflectionsMarkdown(inWeekOf: now)
             do {
                 try text.write(to: url, atomically: true, encoding: .utf8)
             } catch {
@@ -151,77 +245,42 @@ struct JournalView: View {
         }
     }
 
-    private static func nights(
-        for rollup: WeeklyActivityRollup,
-        schedule: WeeklySchedule,
-        now: Date
-    ) -> [(day: String, state: JournalSundownView.NightState)] {
-        let calendar = Calendar.current
-        let todayStart = calendar.startOfDay(for: now)
-        return rollup.days.map { daily in
-            (
-                day: narrowDayFormatter.string(from: daily.day),
-                state: state(
-                    for: daily,
-                    schedule: schedule,
-                    todayStart: todayStart,
-                    calendar: calendar
-                )
-            )
-        }
+    private func copyReflections(period: JournalPeriod) {
+        let entries = model.reflectionState.recorder.reflections(in: range(of: period))
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(ReflectionExport.markdown(entries), forType: .string)
     }
+}
 
-    private static func state(
-        for daily: DailyActivityRollup,
-        schedule: WeeklySchedule,
-        todayStart: Date,
-        calendar: Calendar
-    ) -> JournalSundownView.NightState {
-        if calendar.startOfDay(for: daily.day) >= todayStart {
-            return .upcoming
-        }
-        if schedule.rule(for: daily.day).isDayOff {
-            return .off
-        }
-        if daily.overrideCount > 0 {
-            return .overridden
-        }
-        if daily.hadLockout {
-            return .kept
-        }
-        return .off
+/// Reloads the Journal when the day turns over or the lock begins or ends,
+/// without making the page itself follow the once-a-second clock.
+private struct JournalRefreshTrigger: View {
+    @Environment(CurfewAppModel.self) private var model
+    let reload: () -> Void
+
+    var body: some View {
+        Color.clear
+            .onChange(of: Calendar.current.startOfDay(for: model.currentTime)) { reload() }
+            .onChange(of: model.state.phase) { reload() }
+            .accessibilityHidden(true)
     }
+}
 
-    private static func footnote(for rollup: WeeklyActivityRollup) -> String {
-        let extensions = rollup.totalExtensionCount
-        let overrides = rollup.totalOverrideCount
-        let extLabel = "\(extensions) extension\(extensions == 1 ? "" : "s")"
-        let ovrLabel = "\(overrides) override\(overrides == 1 ? "" : "s")"
-        return "\(extLabel), \(ovrLabel) this week"
-    }
+/// The prompt editor, opened from the toolbar.
+private struct JournalPromptsSheet: View {
+    @Environment(\.dismiss) private var dismiss
 
-    private static func dateRange(for rollup: WeeklyActivityRollup) -> String {
-        guard let first = rollup.days.first?.day, let last = rollup.days.last?.day else {
-            return "This week"
+    var body: some View {
+        NavigationStack {
+            ReflectionPromptsView()
+                .navigationTitle("Prompts")
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Done") { dismiss() }
+                    }
+                }
         }
-        return "\(monthDayFormatter.string(from: first))–\(dayFormatter.string(from: last))"
+        .frame(minWidth: 620, idealWidth: 720, minHeight: 520, idealHeight: 680)
+        .background(CurfewTheme.canvas)
     }
-
-    private static let narrowDayFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "EEEEE"
-        return formatter
-    }()
-
-    private static let monthDayFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMM d"
-        return formatter
-    }()
-
-    private static let dayFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "d"
-        return formatter
-    }()
 }

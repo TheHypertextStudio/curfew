@@ -59,6 +59,20 @@ extension CurfewAppModel {
         }
     }
 
+    /// The runtime file is user-writable, so a restored `overrideUntil` only
+    /// stands when a recorded override grant backs it, and never beyond that
+    /// grant's time plus the configured override duration.
+    static func recordedOverrideUntil(
+        _ stored: Date?, overrides: [OverrideEvent], settings: CurfewSettings
+    ) -> Date? {
+        guard let stored,
+              let grant = overrides.filter({ $0.timestamp <= stored })
+                  .max(by: { $0.timestamp < $1.timestamp })
+        else { return nil }
+        let minutes = min(grant.grantedDurationMinutes, settings.overrideDurationMinutes)
+        return min(stored, grant.timestamp.addingTimeInterval(TimeInterval(max(0, minutes) * 60)))
+    }
+
     static func runtimeBudgetTrackers(
         settings: CurfewSettings, state: EnforcementRuntimeState, now: Date
     ) -> (extension: ExtensionBudgetTracker, override: ExtensionBudgetTracker) {

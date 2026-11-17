@@ -29,18 +29,18 @@ Adding transitions to the existing frequently replaced roots is smaller initiall
 
 ## The experience through the night
 
-| Moment | Composition and transition |
-| --- | --- |
-| Lockout begins | Desktop coverage and enforcement take effect immediately. Sky and content settle into the evening composition inside the covering window. |
-| Evening reflection is active | Clock makes room for meaningful content. The user may answer or skip using existing policy. Ordinary clock updates do not move the layout. |
-| Reflection resolves | Content fades out and the clock intentionally moves into the quieter overnight composition. |
-| Midnight | Bookkeeping may reset; an active evening form, draft, clock, and current lockout explanation remain. There is no midnight dismissal or special animation. |
-| Overnight | Dark, restrained atmosphere with gentle optional ambient motion. Keep lock status, the applicable unlock explanation, and available recovery actions understandable. |
-| Morning approaches | Sky gradually warms during the final portion of the scheduled interval. Keep the transition continuous through the scheduled boundary. |
+| Moment                         | Composition and transition                                                                                                                                                          |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Lockout begins                 | Desktop coverage and enforcement take effect immediately. Sky and content settle into the evening composition inside the covering window.                                           |
+| Evening reflection is active   | Clock makes room for meaningful content. The user may answer or skip using existing policy. Ordinary clock updates do not move the layout.                                          |
+| Reflection resolves            | Content fades out and the clock intentionally moves into the quieter overnight composition.                                                                                         |
+| Midnight                       | Bookkeeping may reset; an active evening form, draft, clock, and current lockout explanation remain. There is no midnight dismissal or special animation.                           |
+| Overnight                      | Dark, restrained atmosphere with gentle optional ambient motion. Keep lock status, the applicable unlock explanation, and available recovery actions understandable.                |
+| Morning approaches             | Sky gradually warms during the final portion of the scheduled interval. Keep the transition continuous through the scheduled boundary.                                              |
 | Morning scene becomes relevant | Clock moves to support the morning content. Render actual restriction status independently of the atmosphere. Morning reflection is dismissible according to its existing contract. |
-| The screen leaves | If no restriction or user-requested morning surface remains, transition the visual content out without delaying release authority. |
+| The screen leaves              | If no restriction or user-requested morning surface remains, transition the visual content out without delaying release authority.                                                  |
 
-If an evening draft is still being edited when morning becomes relevant, keep that form visible and usable. After save/skip, move to the current morning scene. Never silently discard an unfinished answer to run a transition. A temporary override is not a new morning, and does not create a second evening prompt on return to the same scheduled night.
+If an evening draft is still being edited when morning becomes relevant, keep that form visible and usable. After save/skip, move to the current morning scene. Never silently discard an unfinished answer to run a transition. A temporary override is not a new morning, and does not create a second evening prompt on return to the same scheduled night. While an override runs past the lock time, the countdown targets the override's end, so the usual warning stages and overlays appear before it re-locks.
 
 Evening reflection records use the originating lock occurrence's timestamp, so saving after midnight remains in the correct journal day and does not suppress the next evening. Activity events retain the actual save time. The stored reflection format is unchanged.
 
@@ -82,6 +82,8 @@ Use display identifiers rather than `NSScreen` object identity for host lifetime
 
 Reconcile native window-visibility callbacks as well as clock updates: a static scene must reveal as soon as macOS reports it visible. Ordinary ticks retain the visible window without reordering it during input; activation and wake reassertion own restoring frontmost coverage. Give the borderless window and its native hosting group useful accessibility names and exclude decorative sky layers from navigation. The deliberate override hold runs alongside native button tracking; presentation changes must not shorten its duration or bypass authorization gates.
 
+An enforced lockout also owns keyboard focus. When it first shows and on each frontmost reassertion, Curfew activates itself and applies kiosk presentation options (hidden Dock and menu bar; no app switching, hiding, Apple menu, or Force Quit). It takes focus back when it resigns active, unhides itself if hidden, and covers a newly attached display on `didChangeScreenParametersNotification` instead of waiting for the next tick. Lockout windows cannot be hidden. Logout, restart, and shutdown stay available. Focus is not reclaimed while the rest screensaver handoff owns the display, and release restores the previous presentation options. The morning screen and demo captures keep normal focus. While enforcing, the rest screen does not offer screensaver setup, and Rest now never falls back to opening Settings behind the overlay.
+
 Do not fade the entire enforcing window to transparency. Fade content or an opaque internal cover while retaining coverage and mouse capture. When the authoritative state releases, disable enforcement immediately; cosmetic animation must not extend lockout or leave invisible interactive blockers.
 
 macOS owns the backlight transition, login screen, and authentication. A dark cover can choreograph Curfew's first visible frames, but cannot promise control over firmware, monitor behavior, or the system authentication screen. Verify the native handoff rather than inferring it from a notification.
@@ -92,10 +94,10 @@ Investigate a user-controlled **Wake the display for Sunrise** option, initially
 
 Two different capabilities must be assessed:
 
-| Capability | Candidate mechanism | Evidence required |
-| --- | --- | --- |
-| Mac running, display asleep | Public `IOPMAssertionDeclareUserActivity`; optionally a short bounded display-sleep assertion | API outcome, observed display wake, and actual visible scene, measured separately |
-| Mac asleep | Persist a scheduled system wake through `IOPMSchedulePowerEvent` using existing authenticated privilege boundaries if appropriate | Supported hardware/power-state proof, helper availability, cancellation/replacement, and subsequent visible display wake |
+| Capability                  | Candidate mechanism                                                                                                               | Evidence required                                                                                                        |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Mac running, display asleep | Public `IOPMAssertionDeclareUserActivity`; optionally a short bounded display-sleep assertion                                     | API outcome, observed display wake, and actual visible scene, measured separately                                        |
+| Mac asleep                  | Persist a scheduled system wake through `IOPMSchedulePowerEvent` using existing authenticated privilege boundaries if appropriate | Supported hardware/power-state proof, helper availability, cancellation/replacement, and subsequent visible display wake |
 
 Apple documents [display wake through user-activity assertions](https://developer.apple.com/documentation/iokit/1557127-iopmassertiondeclareuseractivity) without special privileges, [bounded display-idle prevention](https://developer.apple.com/documentation/iokit/kiopmassertiontypepreventuseridledisplaysleep), and [scheduled system power events](https://developer.apple.com/documentation/iokit/1557076-iopmschedulepowerevent), which require root. Recheck SDK headers and current documentation before implementation. Context7 was unavailable because its monthly quota was exhausted; these are primary Apple references.
 
@@ -135,13 +137,13 @@ Sunrise follows the current local scheduled unlock, with a configurable 5–60-m
 
 The authenticated helper schedules one owned wake event and replaces or cancels only Curfew-owned events. Helper unavailability remains an explicit state. No power-on from shutdown, hardware brightness change or authentication bypass is included. Keep synthetic display activity separate from human activity and release proofs. Closed lids, manually powered-off monitors and FileVault retain their platform limitations and require separate hardware evidence.
 
-| Setup | Assessment | Follow-on acceptance |
-| --- | --- | --- |
-| Mac running, internal display asleep | Public display-wake API is a documented candidate | Observe physical illumination and visible app separately, on AC and battery |
-| Mac running, external display in standby | Same API is a candidate; dock/monitor behavior can differ | Exercise the actual dock, cable and monitor; preserve other displays' scene |
-| Mac asleep | Requires a scheduled wake; display activation is a second step | Verify owned event delivery, helper rejection, clock/schedule replacement and cancellation |
-| Closed lid or disconnected/manually powered-off monitor | No visibility guarantee established | Report unavailable or unverified, without a retry loop |
-| Login or FileVault authentication visible | System authentication remains authoritative | Verify Curfew reveals only when its own scene is visible |
-| Feature disabled or no current Sunrise request | No wake or keep-awake operation | Verify no assertion/event remains owned by the feature |
+| Setup                                                   | Assessment                                                     | Follow-on acceptance                                                                       |
+| ------------------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| Mac running, internal display asleep                    | Public display-wake API is a documented candidate              | Observe physical illumination and visible app separately, on AC and battery                |
+| Mac running, external display in standby                | Same API is a candidate; dock/monitor behavior can differ      | Exercise the actual dock, cable and monitor; preserve other displays' scene                |
+| Mac asleep                                              | Requires a scheduled wake; display activation is a second step | Verify owned event delivery, helper rejection, clock/schedule replacement and cancellation |
+| Closed lid or disconnected/manually powered-off monitor | No visibility guarantee established                            | Report unavailable or unverified, without a retry loop                                     |
+| Login or FileVault authentication visible               | System authentication remains authoritative                    | Verify Curfew reveals only when its own scene is visible                                   |
+| Feature disabled or no current Sunrise request          | No wake or keep-awake operation                                | Verify no assertion/event remains owned by the feature                                     |
 
 No physical wake probes, assertions, helper changes, or scheduled power events have been executed as part of this assessment. The visual refactor remains independent of adopting this optional capability.

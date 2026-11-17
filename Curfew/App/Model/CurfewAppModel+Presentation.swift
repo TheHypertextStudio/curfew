@@ -31,8 +31,8 @@ extension CurfewAppModel {
     /// shield's tap is down) the phase glyph is replaced by the warning badge
     /// so a silently broken lockout cannot look like business as usual.
     var menuBarSymbolName: String {
-        if enforcementHealth != .active {
-            return enforcementHealth.menuBarBadgeSymbol ?? "exclamationmark.triangle.fill"
+        if presentedEnforcementHealth != .active {
+            return presentedEnforcementHealth.menuBarBadgeSymbol ?? "exclamationmark.triangle.fill"
         }
         return symbolName(for: state.phase)
     }

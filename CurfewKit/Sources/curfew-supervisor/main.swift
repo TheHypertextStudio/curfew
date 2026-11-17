@@ -50,7 +50,11 @@ private final class Supervisor {
             launchFailure = nil
         }
         recordHealth()
-        guard policy.shouldLaunch(at: Date(), appIsRunning: isRunning) else { return }
+        let now = Date()
+        let lockoutActive = LockoutDeadlineStore().load().map { now < $0.scheduledUnlockAt }
+            ?? false
+        guard policy.shouldLaunch(at: now, appIsRunning: isRunning, lockoutActive: lockoutActive)
+        else { return }
         let launch = UUID()
         activeLaunch = launch
         let configuration = NSWorkspace.OpenConfiguration()

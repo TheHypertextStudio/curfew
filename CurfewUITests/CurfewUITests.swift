@@ -8,11 +8,11 @@ final class CurfewUITests: XCTestCase {
     @MainActor
     func testOnboardingStartsAtARealGate() {
         let app = launchFixture("getting-started")
-        XCTAssertTrue(app.staticTexts["Welcome to Curfew"].waitForExistence(timeout: 8))
-        XCTAssertTrue(app.staticTexts["Step 1 of 5"].exists)
-        XCTAssertFalse(app.buttons["Back"].isEnabled)
-        XCTAssertTrue(app.buttons["Next"].isEnabled)
-        XCTAssertTrue(app.buttons["Not now"].exists)
+        XCTAssertTrue(app.staticTexts["When should this Mac close for the night?"]
+            .waitForExistence(timeout: 8))
+        XCTAssertTrue(app.staticTexts["Step 1 of 3"].exists)
+        XCTAssertTrue(app.buttons["Use this schedule"].isEnabled)
+        XCTAssertTrue(app.buttons["No schedule yet"].exists)
     }
 
     @MainActor
@@ -137,7 +137,7 @@ final class CurfewUITests: XCTestCase {
     @MainActor
     func testPromptEditorDoesNotAdvertiseFutureFeatures() {
         let app = launchFixture("this-week")
-        app.radioButtons["Prompts"].click()
+        app.buttons["journal-edit-prompts"].firstMatch.click()
         XCTAssertTrue(app.staticTexts["Read your reflections in Claude"]
             .waitForExistence(timeout: 3))
         XCTAssertFalse(app.staticTexts.containing(NSPredicate(
@@ -270,45 +270,20 @@ final class CurfewUITests: XCTestCase {
 
 @MainActor
 extension CurfewUITests {
-    func testSetupUsesOneInstructionAndPreservesScheduleGate() {
+    func testSetupScheduleChoiceIsExplicitAndGatesAccess() {
         let app = launchFixture("getting-started", size: "minimum")
-        XCTAssertTrue(app.buttons["Next"].waitForExistence(timeout: 5))
-        app.buttons["Next"].click()
-        XCTAssertTrue(app.staticTexts["Choose when work ends and resumes each day."]
-            .waitForExistence(timeout: 3))
-        XCTAssertFalse(app.buttons["Next"].isEnabled)
-        XCTAssertTrue(app.buttons["Edit weekly schedule"].isHittable)
-        for day in ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] {
-            let rule = app.staticTexts.containing(NSPredicate(
-                format: "label BEGINSWITH %@ OR value BEGINSWITH %@",
-                "\(day):", "\(day):"
-            )).firstMatch
-            XCTAssertTrue(
-                rule.isHittable,
-                "\(day)'s effective rule must be visible.\n\(app.debugDescription)"
-            )
-        }
-        let weeklyChoice = app.buttons[
-            "I've reviewed these seven days — use this weekly schedule"
-        ]
-        let remoteOnlyChoice = app.buttons["No automatic schedule — remote controls only"]
-        XCTAssertTrue(weeklyChoice.isHittable)
-        XCTAssertTrue(remoteOnlyChoice.isHittable)
-        XCTAssertGreaterThan(
-            weeklyChoice.frame.height,
-            45,
-            "The full weekly-choice label should wrap, not truncate"
-        )
-        weeklyChoice.click()
-        let selectedFeedback = app.staticTexts.containing(NSPredicate(
-            format: "label CONTAINS %@ OR value CONTAINS %@",
-            "Weekly lockouts selected.", "Weekly lockouts selected."
-        )).firstMatch
-        XCTAssertTrue(selectedFeedback.waitForExistence(timeout: 3))
-        XCTAssertTrue(selectedFeedback.isHittable)
-        XCTAssertTrue(app.buttons["Next"].isEnabled)
-        app.buttons["Next"].click()
-        XCTAssertTrue(app.staticTexts["Step 3 of 5"].waitForExistence(timeout: 3))
+        let use = app.buttons["Use this schedule"]
+        XCTAssertTrue(use.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["No schedule yet"].isHittable)
+        use.click()
+        XCTAssertTrue(app.staticTexts["Let Curfew hold the lock."].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["Step 2 of 3"].exists)
+        // The demo fixture already trusts Accessibility, so setup holds on
+        // step 2 with Continue enabled and the optional rows still offered.
+        XCTAssertTrue(app.buttons["Continue"].isEnabled)
+        XCTAssertTrue(app.buttons["Skip notifications"].exists)
+        app.buttons["Back"].click()
+        XCTAssertTrue(app.staticTexts["Step 1 of 3"].waitForExistence(timeout: 3))
     }
 
     func testTaskBrowserEnforcementPanelActions() {
@@ -383,7 +358,7 @@ extension CurfewUITests {
 
     func testManageAIAccessAlwaysOpensConnections() {
         let app = launchFixture("this-week")
-        app.radioButtons["Prompts"].click()
+        app.buttons["journal-edit-prompts"].firstMatch.click()
         let manage = app.buttons["Manage AI Access…"]
         XCTAssertTrue(manage.waitForExistence(timeout: 3))
         app.scrollViews.allElementsBoundByIndex.max {

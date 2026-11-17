@@ -76,7 +76,7 @@ Curfew.app
 │   ├── SettingsView              tabbed: true → Settings window; false → sidebar pane
 │   ├── SettingsView+InfoPanels   Integrations, Devices, Advanced, Setup panels
 │   ├── LockoutOverlayView        Full-screen dim + extend + override UI
-│   ├── ThisWeekView              Retrospective: lockouts held, budgets, streak
+│   ├── Destinations/Journal*     Journal: stop times, the one thing, extra time, readiness
 │   ├── LicenseView               Activate / deactivate Pro license key
 │   ├── PurchasePromptView / ProGate  Gate wrapper for Pro-only surfaces
 │   ├── MCPConsentSheet           Approve / deny queued AI write requests
