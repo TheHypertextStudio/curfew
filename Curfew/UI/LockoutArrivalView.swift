@@ -113,7 +113,8 @@ struct LockSceneTimeline: Equatable {
 final class LockScene {
     private(set) var timeline = LockSceneTimeline()
     /// When this lock began. The sky's curfew never moves later than this,
-    /// so a deadline that is recomputed every tick cannot freeze the scene.
+    /// so a lock that starts before the scheduled curfew (Call it a day, a
+    /// remote lock) keeps its night when the schedule's own curfew arrives.
     private(set) var began: Date?
     /// The sky the person was looking at as the lock began.
     private(set) var startingFrame: HorizonFrame?

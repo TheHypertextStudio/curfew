@@ -125,7 +125,7 @@ struct LockTransitionTests {
         #expect(view.lockFrame(fallback: fallback, at: settled) == LockSceneSky.frame(for: moment))
     }
 
-    @Test("A deadline recomputed every tick cannot move the lock's curfew later")
+    @Test("A lock that began before its scheduled curfew keeps the sky's curfew at its start")
     func anchoredCurfew() {
         let scene = LockScene()
         scene.begin(at: now, startingFrame: HorizonMoment.restingNight(at: now).frame)

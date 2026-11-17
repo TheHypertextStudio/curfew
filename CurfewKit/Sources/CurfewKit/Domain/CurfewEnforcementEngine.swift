@@ -165,13 +165,20 @@ public struct CurfewEnforcementEngine {
     ///     every synced device (idle time excluded). Only consulted when the
     ///     day's rule is in `.hours` or `.combined` mode; defaults to 0 so
     ///     existing call sites that pre-date the feature keep working.
+    ///   - lockoutStartedAt: When the lockout in force began, from the durable
+    ///     ``LockoutDeadlineRecord``, or `nil` when none is. Once the hours
+    ///     budget is spent the hours lock time is this moment rather than
+    ///     `date`, so it stays where curfew started while the Mac is locked,
+    ///     across a relaunch and past midnight. Never moves it later than
+    ///     `date`, so it cannot shorten or end a lock.
     public func evaluate(
         at date: Date,
         schedule: WeeklySchedule,
         extensionMinutesGrantedToday: Int,
         overrideUntil: Date?,
         warningIntervals: WarningIntervals = .default,
-        workedMinutesToday: Int = 0
+        workedMinutesToday: Int = 0,
+        lockoutStartedAt: Date? = nil
     ) -> CurfewEvaluation {
         guard let window = schedule.scheduleWindow(
             for: date,
@@ -193,7 +200,8 @@ public struct CurfewEnforcementEngine {
             rule: rule,
             at: date,
             workedMinutesToday: workedMinutesToday,
-            extensionMinutesGrantedToday: extensionMinutesGrantedToday
+            extensionMinutesGrantedToday: extensionMinutesGrantedToday,
+            lockoutStartedAt: lockoutStartedAt
         )
 
         let intervals = warningIntervals.normalized
@@ -236,12 +244,20 @@ public struct CurfewEnforcementEngine {
     /// tonight"; pushing both deadlines honors that regardless of which
     /// clock is about to fire. Combined mode still picks the nearer of
     /// the two post-extension deadlines.
+    ///
+    /// Once the budget is spent the deadline is the moment it ran out, which
+    /// is when the lockout began: lockout time is not work, so the worked
+    /// total stops growing at the lock and "now + 0" would otherwise follow
+    /// the clock for as long as the Mac stays locked. An extension granted
+    /// during the lock reopens the budget and moves the deadline by exactly
+    /// the granted minutes from now, as before.
     private func applyHoursMode(
         window: ScheduleWindow,
         rule: DayRule,
         at date: Date,
         workedMinutesToday: Int,
-        extensionMinutesGrantedToday: Int
+        extensionMinutesGrantedToday: Int,
+        lockoutStartedAt: Date?
     ) -> (window: ScheduleWindow, trigger: EnforcementTrigger) {
         guard rule.mode != .time,
               let hoursLimit = rule.hoursLimitMinutes,
@@ -251,7 +267,11 @@ public struct CurfewEnforcementEngine {
         }
         let effectiveLimit = hoursLimit + max(0, extensionMinutesGrantedToday)
         let minutesLeft = max(0, effectiveLimit - workedMinutesToday)
-        let hoursDeadline = date.addingTimeInterval(TimeInterval(minutesLeft * 60))
+        let hoursDeadline = if minutesLeft == 0 {
+            min(date, lockoutStartedAt ?? date)
+        } else {
+            date.addingTimeInterval(TimeInterval(minutesLeft * 60))
+        }
 
         switch rule.mode {
         case .hours:

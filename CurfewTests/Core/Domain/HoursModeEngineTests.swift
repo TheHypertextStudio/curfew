@@ -113,7 +113,109 @@ struct HoursModeEngineTests {
         #expect(eval.trigger == .time)
     }
 
+    // MARK: - The lock time once the hours are spent
+
+    @Test("Hours mode holds the lock time at the lockout's start while it stays locked")
+    func hoursLockTimeHoldsWhileLocked() {
+        let engine = CurfewEnforcementEngine(calendar: utcCalendar)
+        let schedule = WeeklySchedule(rules: ruleForAllDays(spentRule(.hours)))
+        let lockedAt = fixedDate(hour: 10)
+        for minutesLater in [0, 1, 30, 240, 479] {
+            let eval = engine.evaluate(
+                at: lockedAt.addingTimeInterval(TimeInterval(minutesLater * 60)),
+                schedule: schedule, extensionMinutesGrantedToday: 0, overrideUntil: nil,
+                workedMinutesToday: 480, lockoutStartedAt: lockedAt
+            )
+            #expect(eval.phase == .locked)
+            #expect(eval.lockDate == lockedAt)
+            #expect(eval.trigger == .hours)
+        }
+    }
+
+    @Test("Combined mode holds the hours lock time, past the wall-clock curfew too")
+    func combinedLockTimeHoldsWhileLocked() {
+        let engine = CurfewEnforcementEngine(calendar: utcCalendar)
+        let schedule = WeeklySchedule(rules: ruleForAllDays(spentRule(.combined)))
+        let lockedAt = fixedDate(hour: 10)
+        for hour in [10, 11, 17, 18, 23] {
+            let eval = engine.evaluate(
+                at: fixedDate(hour: hour).addingTimeInterval(59),
+                schedule: schedule, extensionMinutesGrantedToday: 0, overrideUntil: nil,
+                workedMinutesToday: 480, lockoutStartedAt: lockedAt
+            )
+            #expect(eval.phase == .locked)
+            #expect(eval.lockDate == lockedAt)
+            #expect(eval.trigger == .hours)
+        }
+    }
+
+    @Test("A spent budget with no lockout yet locks now, and a later start never delays it")
+    func spentBudgetLocksNoLaterThanNow() {
+        let engine = CurfewEnforcementEngine(calendar: utcCalendar)
+        let schedule = WeeklySchedule(rules: ruleForAllDays(spentRule(.hours)))
+        let now = fixedDate(hour: 10)
+        for start in [nil, now.addingTimeInterval(600)] {
+            let eval = engine.evaluate(
+                at: now, schedule: schedule, extensionMinutesGrantedToday: 0,
+                overrideUntil: nil, workedMinutesToday: 480, lockoutStartedAt: start
+            )
+            #expect(eval.phase == .locked)
+            #expect(eval.lockDate == now)
+        }
+    }
+
+    @Test("An extension before the lock moves the hours deadline by the granted minutes")
+    func extensionBeforeLockMovesDeadline() {
+        let engine = CurfewEnforcementEngine(calendar: utcCalendar)
+        let schedule = WeeklySchedule(rules: ruleForAllDays(spentRule(.hours)))
+        let now = fixedDate(hour: 10)
+        let eval = engine.evaluate(
+            at: now, schedule: schedule, extensionMinutesGrantedToday: 15,
+            overrideUntil: nil, workedMinutesToday: 470
+        )
+        #expect(eval.phase == .warning)
+        #expect(eval.lockDate == now.addingTimeInterval(25 * 60))
+    }
+
+    @Test("An extension during the lock moves the hours deadline by the granted minutes")
+    func extensionDuringLockMovesDeadline() {
+        let engine = CurfewEnforcementEngine(calendar: utcCalendar)
+        let schedule = WeeklySchedule(rules: ruleForAllDays(spentRule(.hours)))
+        let lockedAt = fixedDate(hour: 10)
+        let now = lockedAt.addingTimeInterval(40 * 60)
+        let eval = engine.evaluate(
+            at: now, schedule: schedule, extensionMinutesGrantedToday: 15,
+            overrideUntil: nil, workedMinutesToday: 480, lockoutStartedAt: lockedAt
+        )
+        #expect(eval.phase == .warning)
+        #expect(eval.lockDate == now.addingTimeInterval(15 * 60))
+        #expect(eval.trigger == .hours)
+    }
+
+    @Test("Time mode ignores the lockout's start")
+    func timeModeIgnoresLockoutStart() {
+        let engine = CurfewEnforcementEngine(calendar: utcCalendar)
+        let schedule = WeeklySchedule(rules: ruleForAllDays(spentRule(.time)))
+        let curfew = fixedDate(hour: 18)
+        let eval = engine.evaluate(
+            at: fixedDate(hour: 19), schedule: schedule, extensionMinutesGrantedToday: 0,
+            overrideUntil: nil, workedMinutesToday: 480,
+            lockoutStartedAt: fixedDate(hour: 10)
+        )
+        #expect(eval.phase == .locked)
+        #expect(eval.lockDate == curfew)
+        #expect(eval.trigger == .time)
+    }
+
     // MARK: - Fixtures
+
+    /// An 18:00 curfew with an eight-hour budget.
+    private func spentRule(_ mode: CurfewMode) -> DayRule {
+        DayRule(
+            isDayOff: false, lockMinutes: 18 * 60, unlockMinutes: 8 * 60,
+            mode: mode, hoursLimitMinutes: mode == .time ? nil : 480
+        )
+    }
 
     private var utcCalendar: Calendar {
         var calendar = Calendar(identifier: .gregorian)
