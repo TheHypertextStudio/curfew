@@ -12,13 +12,6 @@ enum ScheduleSurfaceCopy {
     static let workEndsLabel = "Curfew"
     static let workResumesLabel = "Unlocks"
 
-    static let onboardingMessage = weeklyScheduleSubtitle
-
-    static let onboardingChecklist = [
-        "Pick when curfew starts and when this Mac unlocks",
-        "Pick your days off"
-    ]
-
     static let mainChecklistItem = weeklyScheduleSubtitle
 
     static let scheduleOffTitle = "Schedule is off"

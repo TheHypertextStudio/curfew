@@ -15,7 +15,10 @@ test('policies identify the operator, official contact, notice, and history', as
     assert.match(policy, /mailto:legal@hypertext\.studio/);
     assert.match(policy, /1810 East Sahara Avenue STE75246/);
     assert.match(policy, /href="\/legal\/history"/);
-    assert.match(policy, /October 14, 2026/);
+    assert.match(
+      policy,
+      ['privacy', 'retention'].includes(name) ? /November 16, 2026/ : /October 14, 2026/,
+    );
   }
   assert.match(await content('terms'), /November 13, 2026/);
 });
@@ -45,7 +48,7 @@ test('privacy explains task review transfer and avoids unconditional deletion pr
   assert.match(privacy, /Docket and Athena/);
   assert.match(privacy, /query strings.*fragments/);
   assert.match(privacy, /assistant.*own service/);
-  assert.match(retention, /52 weeks/);
+  assert.match(retention, /400 days/);
   assert.match(retention, /365 days/);
   assert.match(retention, /30 days after/);
   assert.match(retention, /scheduled cleanup/);
@@ -158,7 +161,8 @@ test('current policy headings group their readable publication metadata', async 
     assert.ok(header, `${name} has a grouped policy header`);
     assert.match(header, /<h1>/);
     assert.match(header, /class="policy-meta"/);
-    assert.equal((header.match(/datetime="2026-10-14"/g) ?? []).length, 1);
+    const effective = ['privacy', 'retention'].includes(name) ? '2026-11-16' : '2026-10-14';
+    assert.equal((header.match(new RegExp(`datetime="${effective}"`, 'g')) ?? []).length, 1);
     assert.match(header, /href="\/legal\/history"/);
     assert.doesNotMatch(header.match(/class="privacy-lede">.*?<\/p>/)?.[0] ?? '', /Published/);
   }

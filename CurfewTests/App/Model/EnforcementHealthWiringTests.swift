@@ -60,6 +60,8 @@ struct EnforcementHealthWiringTests {
     @Test("Untrusted Accessibility degrades health and badges the menu bar")
     func untrustedDegradesAndBadgesMenuBar() {
         let model = makeModel(accessibilityTrusted: false)
+        // Warnings surface only once setup has completed.
+        model.settings.hasCompletedInitialSetup = true
 
         // Seeded from the fake before super.init, so the model knows it is
         // untrusted without a tick.
@@ -135,6 +137,8 @@ struct EnforcementHealthWiringTests {
     @Test("Trusted but a downed expected tap degrades health and badges the menu bar")
     func trustedTapDownDegradesAndBadgesMenuBar() {
         let model = makeModel(accessibilityTrusted: true)
+        // Warnings surface only once setup has completed.
+        model.settings.hasCompletedInitialSetup = true
         // The real CGEvent tap cannot run headlessly, so force "tap not firing"
         // through the liveness seam. Lockout marks the tap as expected-active.
         model.tapLivenessOverride = { false }

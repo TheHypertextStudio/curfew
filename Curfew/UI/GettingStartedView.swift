@@ -1,371 +1,376 @@
 import AppKit
-import Combine
 import CurfewKit
 import SwiftUI
 
-/// First-launch onboarding view hosted by the `getting-started`
-/// `WindowGroup` scene in `CurfewApp`.
+/// First-run setup, hosted by the `getting-started` window.
 ///
-/// Layout is deliberately static: a title, a commitment-framing sentence,
-/// a single `CurfewPanel` whose content switches on `flow.currentStep`, and
-/// a bottom action row. Advancing / retreating through the five
-/// `FirstRunStep` cases updates the panel; "Finish Setup" on the final
-/// step passes an explicit schedule choice to the model before setup arms.
+/// Three steps and one optional closing step:
+/// 1. When should this Mac close for the night? (an explicit schedule choice)
+/// 2. Let Curfew hold the lock. (Accessibility, required; notifications and
+///    the Curfew helper, optional) Setup commits the moment access is granted.
+/// 3. You're set. States tonight's curfew and previews the lock.
+/// Then sync and the lifetime licence, which can be skipped as easily.
 ///
-/// Uses `@State` (rather than `@StateObject` + an `ObservableObject`) for
-/// the flow cursor because the cursor is a plain value type and all
-/// necessary invalidation happens naturally through SwiftUI's value
-/// diffing.
+/// Progress is saved on every step change so setup reopens where the person
+/// left it until it is completed.
 struct GettingStartedView: View {
-    /// Shared app model — we only read a few settings here
-    /// (extension/override budgets for the budget step) and trigger
-    /// navigation actions (`openSettings`, `dismissGettingStarted`,
-    /// `completeOnboardingFlow`).
     @Environment(CurfewAppModel.self) private var model
 
-    /// Local cursor tracking which onboarding pane is visible.
-    @State private var flow = FirstRunFlow()
-    @State private var showingImmediateLockConfirmation = false
+    @State private var flow: FirstRunFlow
+    @State private var hasLoaded: Bool
+    @State private var draft: SetupScheduleDraft?
+    @State private var notificationStatus: SetupPermissionStatus
+    @State private var dragHelper: AccessibilityDragHelper?
+    @State private var preview: LockPreviewController?
+    @State private var confirmingImmediateLock = false
+    @State private var signedIn = false
+    @State private var notificationsSkipped = false
+    @State private var helperSkipped = false
+    @FocusState private var continueFocused: Bool
+    @AccessibilityFocusState private var headingFocused: Bool
 
-    /// Light poll that keeps the accessibility gate live while the window is
-    /// open. Accessibility trust is granted out-of-process in System Settings,
-    /// so there is no notification to observe — we re-read the model's polled
-    /// trust state on a slow cadence (plus on appear / activation below) so the
-    /// gate reflects a fresh grant within a second or two of the user making it.
-    private let accessibilityRefreshTimer = Timer.publish(
-        every: 1,
-        on: .main,
-        in: .common
-    ).autoconnect()
+    /// `nil` uses the system; fixed values serve snapshots.
+    private let notifications: (any NotificationPermissionProviding)?
+    /// `nil` uses the app's account enrollment, the same one Settings uses.
+    private let makeAccount: (@MainActor () -> AccountEnrollmentController)?
+    private let now: () -> Date
 
-    /// Header + current step panel + navigation action row.
+    /// - Parameters:
+    ///   - flow: A fixed cursor for snapshots; `nil` loads saved progress.
+    ///   - notifications: Reads and requests notification permission.
+    ///   - notificationStatus: The status shown before the first read.
+    init(
+        flow: FirstRunFlow? = nil,
+        notifications: (any NotificationPermissionProviding)? = nil,
+        notificationStatus: SetupPermissionStatus = .notAsked,
+        makeAccount: (@MainActor () -> AccountEnrollmentController)? = nil,
+        now: @escaping () -> Date = Date.init
+    ) {
+        self.makeAccount = makeAccount
+        _flow = State(initialValue: flow ?? FirstRunFlow())
+        _hasLoaded = State(initialValue: flow != nil)
+        _notificationStatus = State(initialValue: notificationStatus)
+        self.notifications = notifications
+        self.now = now
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    header
-                    stepPanel
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            actionRow
-        }
-        .padding(28)
-        .frame(minWidth: 640, minHeight: 470)
-        .background(CurfewTheme.canvas)
-        .foregroundStyle(CurfewTheme.ink)
-        .onAppear {
-            // Re-entry (Settings → "Show Getting Started") skips the walkthrough
-            // for an already-onboarded install — see `FirstRunFlow.returningUser()`.
-            if model.settings.hasCompletedInitialSetup, flow.currentStep == .welcome {
-                flow = .returningUser()
-            }
-            syncAccessibilityGrant()
-        }
-        .onReceive(accessibilityRefreshTimer) { _ in
-            syncAccessibilityGrant()
-        }
-        .onReceive(
-            NotificationCenter.default.publisher(
-                for: NSApplication.didBecomeActiveNotification
-            )
-        ) { _ in
-            syncAccessibilityGrant()
-        }
-        .alert(
-            "This Mac may lock within a minute",
-            isPresented: $showingImmediateLockConfirmation
-        ) {
-            Button("Enable imminent lockout", role: .destructive) {
-                model.completeOnboardingFlow(
-                    choice: .weeklySchedule,
-                    confirmedImmediateLock: true
-                )
-            }
-            Button("Keep reviewing", role: .cancel) {}
-        } message: {
-            Text(
-                model.settings.schedule.reviewLines.joined(separator: "\n") +
-                    "\n\nMay lock this Mac now. Existing lockouts stay active."
-            )
-        }
-    }
-
-    /// Content panel that switches on the active `FirstRunStep`.
-    private var stepPanel: some View {
-        CurfewPanel {
-            if !model.settings.hasCompletedInitialSetup {
-                Text(flow.currentStep.message)
-                    .font(CurfewTypography.body(14))
-                    .foregroundStyle(CurfewTheme.mutedInk)
-            }
-
-            stepExtras
-        }
-    }
-
-    /// Step-specific extra content (schedule shortcut button, budget
-    /// summary, permissions hint).
-    @ViewBuilder
-    private var stepExtras: some View {
-        if !model.settings.hasCompletedInitialSetup, flow.currentStep == .schedule {
-            scheduleReviewAndChoice
-        }
-
-        if !model.settings.hasCompletedInitialSetup, flow.currentStep == .extensionBudget {
-            extensionBudgetExtras
-        }
-
-        if !model.settings.hasCompletedInitialSetup, flow.currentStep == .permissions {
-            permissionsExtras
-        }
-
-        if model.settings.hasCompletedInitialSetup || flow.currentStep == .confirmation {
-            if model.settings.hasCompletedInitialSetup, model.isAccessibilityTrusted {
-                Label("Setup complete", systemImage: "checkmark.seal.fill")
-                    .font(CurfewTypography.bodyEmphasis(14))
-                    .foregroundStyle(CurfewTheme.accent)
-            }
-
-            if model.settings.hasCompletedInitialSetup, !model.isAccessibilityTrusted {
-                permissionsExtras
-            }
-
-            if !model.settings.hasCompletedInitialSetup {
-                ForEach(flow.confirmationRequirements) { requirement in
-                    Label(
-                        requirement.title,
-                        systemImage: requirement.isSatisfied ? "checkmark.circle.fill" : "circle"
-                    )
-                    .font(CurfewTypography.body(13))
-                    .foregroundStyle(
-                        requirement.isSatisfied ? CurfewTheme.accent : CurfewTheme.mutedInk
-                    )
-                }
-            }
-
-            if model.settings.hasCompletedInitialSetup {
-                Text(model.automaticScheduleEnabled
-                    ? model.scheduleSummarySentence
-                    : "Automatic schedule is off; your saved times are not enforcing lockouts.")
-                    .font(CurfewTypography.body(13))
-                    .foregroundStyle(CurfewTheme.mutedInk)
-            } else if flow.scheduleChoice == .weeklySchedule {
-                Text(model.settings.schedule.reviewLines.joined(separator: "\n"))
-                    .font(CurfewTypography.body(13))
-                    .foregroundStyle(CurfewTheme.mutedInk)
-                if model.scheduleWouldLockNow {
-                    Label(
-                        "Finishing setup may lock this Mac now or within a minute.",
-                        systemImage: "exclamationmark.triangle.fill"
-                    )
-                    .foregroundStyle(CurfewTheme.warning)
-                }
-            } else if flow.scheduleChoice == .remoteControlsOnly {
-                Text(
-                    "No automatic lockouts. Authorized remote locks can still apply."
-                )
-                .font(CurfewTypography.body(13))
-                .foregroundStyle(CurfewTheme.mutedInk)
-            }
-        }
-    }
-
-    /// Keep the effective seven-day review beside both choices at the minimum
-    /// onboarding window size. A tall single-column stack put the choice
-    /// buttons below the scroll viewport, where clicking could not select one.
-    private var scheduleReviewAndChoice: some View {
-        HStack(alignment: .top, spacing: 16) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Review all seven saved rules before choosing automatic lockouts:")
-                    .font(CurfewTypography.body(13))
-                    .foregroundStyle(CurfewTheme.mutedInk)
-                ForEach(model.settings.schedule.reviewLines, id: \.self) { line in
-                    Text(line)
-                        .font(CurfewTypography.body(12))
-                        .foregroundStyle(CurfewTheme.ink)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-            VStack(alignment: .leading, spacing: 8) {
-                Button("Edit weekly schedule") {
-                    model.requestWorkspaceNavigation(to: .schedule)
-                }
-                .buttonStyle(CurfewSecondaryButtonStyle())
-
-                Button {
-                    flow.chooseReviewedWeeklySchedule()
-                } label: {
-                    Text("I've reviewed these seven days — use this weekly schedule")
-                        .fixedSize(horizontal: false, vertical: true)
-                        .multilineTextAlignment(.leading)
-                }
-                .buttonStyle(CurfewSecondaryButtonStyle())
-
-                Button {
-                    flow.chooseSchedule(.remoteControlsOnly)
-                } label: {
-                    Text("No automatic schedule — remote controls only")
-                        .fixedSize(horizontal: false, vertical: true)
-                        .multilineTextAlignment(.leading)
-                }
-                .buttonStyle(CurfewSecondaryButtonStyle())
-
-                if let choice = flow.scheduleChoice {
-                    Label(
-                        choice == .weeklySchedule
-                            ? "Weekly lockouts selected. They start only when you finish setup."
-                            : "No automatic lockouts. Authorized remote locks still work.",
-                        systemImage: "checkmark.circle.fill"
-                    )
-                    .font(CurfewTypography.body(13))
-                    .foregroundStyle(CurfewTheme.accent)
-                }
-            }
-            .frame(width: 228, alignment: .leading)
-        }
-    }
-
-    /// Extension/override budget controls — the same `WeeklyBudgetSteppers`
-    /// Settings → Enforcement uses, bound straight to settings, so the
-    /// checklist's "Adjust weekly extension limit" is an action this step can
-    /// actually perform, not just a read-only preview of values editable only
-    /// elsewhere.
-    private var extensionBudgetExtras: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            WeeklyBudgetSteppers(model: model)
-        }
-        .font(CurfewTypography.body(13))
-        .foregroundStyle(CurfewTheme.ink)
-    }
-
-    // Accessibility hard-gate + soft notifications guidance for the
-    // `.permissions` step.
-    //
-    // The accessibility row is a *real* grant check, not a self-attested
-    // checkbox: "Next" stays disabled (`flow.canAdvance`) until the model's
-    // polled trust state — synced into the flow on appear / activation / the
-    // refresh timer — reports granted. The button routes through
-    // `requestAccessibilityAccess()`, which prompts and opens System Settings →
-    // Privacy & Security → Accessibility. Notifications remain optional below;
-    // denial there is non-fatal and never blocks progress.
-
-    /// Back / Not now / Next | Finish action row.
-    private var actionRow: some View {
-        HStack(spacing: 10) {
-            if model.settings.hasCompletedInitialSetup {
-                Spacer()
-                Button("Done") { model.dismissGettingStarted() }
-                    .buttonStyle(CurfewPrimaryButtonStyle())
-                    .keyboardShortcut(.defaultAction)
-            } else {
-                Button("Back") {
-                    flow.retreat()
-                }
-                .buttonStyle(CurfewSecondaryButtonStyle())
-                .disabled(flow.isFirstStep)
-
-                Button("Not now") {
-                    model.dismissGettingStarted()
-                }
-                .buttonStyle(CurfewSecondaryButtonStyle())
-                .keyboardShortcut(.cancelAction)
-
-                Spacer()
-
-                if flow.isLastStep {
-                    Button(flow.scheduleChoice == .weeklySchedule
-                        ? "Enable schedule and finish"
-                        : "Finish without automatic schedule") {
-                            guard let choice = flow.scheduleChoice else { return }
-                            if model.completeOnboardingFlow(choice: choice)
-                                == .requiresImmediateLockConfirmation {
-                                showingImmediateLockConfirmation = true
-                            }
-                        }
-                        .buttonStyle(CurfewPrimaryButtonStyle())
-                        .keyboardShortcut(.defaultAction)
-                        .disabled(!flow.canFinish)
-                } else {
-                    Button("Next") {
-                        flow.advance()
+        ZStack {
+            GettingStartedBackdrop()
+            VStack(alignment: .leading, spacing: 0) {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: GettingStartedLayout.spacing24) {
+                        header
+                        stepContent
                     }
-                    .buttonStyle(CurfewPrimaryButtonStyle())
-                    .keyboardShortcut(.defaultAction)
-                    .disabled(!flow.canAdvance)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, GettingStartedLayout.spacing40)
+                    .padding(.top, GettingStartedLayout.spacing40)
+                    .padding(.bottom, GettingStartedLayout.spacing24)
                 }
+                .scrollBounceBehavior(.basedOnSize)
+                actionRow
+                    .padding(.horizontal, GettingStartedLayout.spacing40)
+                    .padding(.bottom, GettingStartedLayout.spacing24)
+            }
+        }
+        .frame(
+            minWidth: GettingStartedLayout.contentMinimum.width,
+            idealWidth: GettingStartedLayout.windowSize.width,
+            minHeight: GettingStartedLayout.contentMinimum.height,
+            idealHeight: GettingStartedLayout.windowSize.height
+        )
+        .foregroundStyle(CurfewTheme.ink)
+        .tint(CurfewTheme.accent)
+        .onAppear(perform: load)
+        .onDisappear {
+            dragHelper?.stop()
+            preview?.dismiss()
+        }
+        .onChange(of: flow.currentStep) { _, step in stepChanged(to: step) }
+        .onChange(of: optionalsResolved) { _, resolved in
+            flow.updateOptionalPermissions(resolved: resolved)
+        }
+        .onChange(of: model.isAccessibilityTrusted) { _, trusted in
+            flow.updateAccessibilityGranted(trusted)
+        }
+        .onReceive(NotificationCenter.default.publisher(
+            for: NSApplication.didBecomeActiveNotification
+        )) { _ in
+            refreshPermissions()
+        }
+        .alert(GettingStartedCopy.immediateLockTitle, isPresented: $confirmingImmediateLock) {
+            Button(GettingStartedCopy.immediateLockConfirm, role: .destructive) {
+                continueFromPermissions(confirmedImmediateLock: true)
+            }
+            Button(GettingStartedCopy.immediateLockCancel, role: .cancel) {
+                flow.retreat()
+            }
+        } message: {
+            Text(GettingStartedCopy.immediateLockMessage)
+        }
+    }
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: GettingStartedLayout.spacing8) {
+            if !flow.isReview {
+                Text(flow.currentStep.progressLabel)
+                    .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                    .foregroundStyle(CurfewTheme.mutedInk)
+            }
+            Text(flow.currentStep.title)
+                .font(.setupHeading)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityAddTraits(.isHeader)
+                .accessibilityFocused($headingFocused)
+        }
+    }
+
+    @ViewBuilder
+    private var stepContent: some View {
+        switch flow.currentStep {
+        case .schedule:
+            GettingStartedScheduleStep(draft: draftBinding)
+        case .permissions:
+            GettingStartedPermissionsStep(
+                notificationStatus: notificationStatus,
+                helperStatus: helperStatus,
+                showsHelper: model.featureFlags.privilegedHelperEnabled,
+                accessibilityGranted: model.isAccessibilityTrusted,
+                notificationsSkipped: notificationsSkipped,
+                helperSkipped: helperSkipped,
+                onSkipNotifications: { notificationsSkipped = true },
+                onSkipHelper: { helperSkipped = true },
+                onAllowNotifications: requestNotifications,
+                onInstallHelper: installHelper,
+                onApproveHelper: approveHelper,
+                onOpenAccessibility: openAccessibility
+            )
+        case .ready:
+            GettingStartedReadyStep(
+                readyLine: GettingStartedCopy.readyLine(
+                    curfew: model.nextCurfew(after: now(), usesWeeklySchedule: usesWeeklySchedule),
+                    now: now()
+                ),
+                helperNote: model.helperAbsenceNote,
+                onPreview: previewLock
+            )
+        case .extras:
+            GettingStartedExtrasStep(
+                makeAccount: makeAccount ?? { AccountEnrollmentController.settingsController() },
+                onSignedIn: { signedIn = true }
+            )
+        }
+    }
+
+    private var actionRow: some View {
+        HStack(spacing: GettingStartedLayout.spacing12) {
+            switch flow.currentStep {
+            case .schedule:
+                Button(GettingStartedCopy.noScheduleYet) {
+                    flow.chooseSchedule(.remoteControlsOnly)
+                }
+                .buttonStyle(GettingStartedLinkButtonStyle())
+                .help(GettingStartedCopy.noScheduleYetHint)
+                .accessibilityHint(GettingStartedCopy.noScheduleYetHint)
+                Spacer()
+                Button(GettingStartedCopy.useSchedule) {
+                    if let draft {
+                        model.applySetupSchedule(draft)
+                    }
+                    flow.chooseSchedule(.weeklySchedule)
+                }
+                .buttonStyle(GettingStartedPrimaryButtonStyle())
+                .keyboardShortcut(.defaultAction)
+                .disabled(draft?.workingDays.isEmpty ?? true)
+            case .permissions:
+                if flow.canGoBack {
+                    Button("Back") { flow.retreat() }
+                        .buttonStyle(GettingStartedSecondaryButtonStyle())
+                }
+                Spacer()
+                Button(flow.isReview ? "Done" : "Continue") {
+                    continueFromPermissions()
+                }
+                .buttonStyle(GettingStartedPrimaryButtonStyle())
+                .keyboardShortcut(.defaultAction)
+                .focused($continueFocused)
+                .disabled(!flow.canAdvance)
+            case .ready:
+                Spacer()
+                if flow.isReview {
+                    Button("Done") { model.dismissGettingStarted() }
+                        .buttonStyle(GettingStartedPrimaryButtonStyle())
+                        .keyboardShortcut(.defaultAction)
+                } else {
+                    Button("Continue") { flow.advance() }
+                        .buttonStyle(GettingStartedPrimaryButtonStyle())
+                        .keyboardShortcut(.defaultAction)
+                }
+            case .extras:
+                Spacer()
+                Button(signedIn ? "Done" : "Skip") { model.finishGettingStarted() }
+                    .buttonStyle(GettingStartedSecondaryButtonStyle())
+                    .keyboardShortcut(.defaultAction)
             }
         }
     }
 }
 
 private extension GettingStartedView {
-    /// Static title + commitment sentence at the top of the window.
-    var header: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            if model.settings.hasCompletedInitialSetup {
-                Text("Review setup")
-                    .font(CurfewTypography.display(30))
-                Text(model.automaticScheduleEnabled
-                    ? "Automatic weekly lockouts are on."
-                    : "Automatic weekly lockouts are off. Authorized remote locks can still apply.")
-                    .foregroundStyle(CurfewTheme.mutedInk)
-            } else {
-                Text(flow.currentStep == .welcome ? GettingStartedCopy.title : flow.currentStep
-                    .title)
-                    .font(CurfewTypography.display(30))
-                Text("Step \(flow.currentStep.rawValue + 1) of \(FirstRunStep.allCases.count)")
-                    .foregroundStyle(CurfewTheme.mutedInk)
-            }
-        }
+    var notificationProvider: any NotificationPermissionProviding {
+        notifications ?? SystemNotificationPermission()
     }
 
-    /// Re-polls the model's Accessibility-trust state and folds it into the
-    /// flow's hard gate. The model's `refreshAccessibilityTrust()` only *reads*
-    /// the trust seam (never the prompting API), so this is safe to call on a
-    /// timer; `updateAccessibilityGranted` then opens or re-closes the gate to
-    /// match, so a revoked permission cannot leave a stale "granted" reading.
-    func syncAccessibilityGrant() {
+    var usesWeeklySchedule: Bool {
+        flow.isReview ? model.automaticScheduleEnabled : flow.usesWeeklySchedule
+    }
+
+    var draftBinding: Binding<SetupScheduleDraft> {
+        Binding(
+            get: { draft ?? model.setupScheduleDraft },
+            set: { draft = $0 }
+        )
+    }
+
+    var helperStatus: SetupHelperStatus {
+        let helper = model.privilegedHelperManager
+        return SetupHelperStatus.resolve(
+            daemon: helper.daemonStatus,
+            connection: helper.connectionState,
+            isInstalling: helper.installationInProgress
+        )
+    }
+
+    func load() {
+        if !hasLoaded {
+            hasLoaded = true
+            flow = model.loadSetupFlow()
+        }
+        if draft == nil {
+            draft = model.setupScheduleDraft
+        }
         if !model.isDemoSession {
             model.refreshAccessibilityTrust()
+            model.privilegedHelperManager.refreshStatus()
         }
+        flow.updateOptionalPermissions(resolved: optionalsResolved)
         flow.updateAccessibilityGranted(model.isAccessibilityTrusted)
+        refreshPermissions()
+        stepChanged(to: flow.currentStep, announce: false)
     }
-}
 
-private extension GettingStartedView {
-    @ViewBuilder
-    var permissionsExtras: some View {
-        if model.isAccessibilityTrusted {
-            Label("Accessibility access granted", systemImage: "checkmark.circle.fill")
-                .font(CurfewTypography.bodyEmphasis(14))
-                .foregroundStyle(CurfewTheme.accent)
-        } else {
-            Label("Accessibility access required", systemImage: "exclamationmark.triangle.fill")
-                .font(CurfewTypography.bodyEmphasis(14))
-                .foregroundStyle(CurfewTheme.warning)
-
-            Text(
-                "Curfew needs Accessibility access to block bypass shortcuts "
-                    + "(⌘⇥, ⌘Q, …) during lockout. Grant it in System Settings, "
-                    + "then return here. Curfew checks for access automatically."
-            )
-            .font(CurfewTypography.body(13))
-            .foregroundStyle(CurfewTheme.mutedInk)
-
-            Button("Open System Settings") {
-                model.requestAccessibilityAccess()
-                flow.updateAccessibilityGranted(model.isAccessibilityTrusted)
-            }
-            .buttonStyle(CurfewSecondaryButtonStyle())
+    func stepChanged(to step: FirstRunStep, announce: Bool = true) {
+        model.saveSetupProgress(flow)
+        headingFocused = true
+        if announce {
+            let prefix = flow.isReview ? "" : "\(step.progressLabel). "
+            AccessibilityNotification.Announcement("\(prefix)\(step.title)").post()
         }
+        if step == .permissions, !flow.isCommitted || flow.isReview {
+            accessibilityHelper().startPolling()
+        } else {
+            dragHelper?.stop()
+        }
+    }
 
-        Text(
-            "Notifications are optional. They warn you before lockout. "
-                + "You can allow or change them in System Settings anytime."
+    func refreshPermissions() {
+        let provider = notificationProvider
+        Task { notificationStatus = await provider.status() }
+    }
+
+    func accessibilityHelper() -> AccessibilityDragHelper {
+        if let dragHelper {
+            return dragHelper
+        }
+        let model = model
+        let helper = AccessibilityDragHelper(
+            isTrusted: {
+                if !model.isDemoSession {
+                    model.refreshAccessibilityTrust()
+                }
+                return model.isAccessibilityTrusted
+            },
+            windows: SystemSettingsWindowLocator(),
+            screens: { NSScreen.screens.map(\.visibleFrame) },
+            presenter: DragPanelWindowPresenter(),
+            openPane: { model.openAccessibilityPaneForSetup() }
         )
-        .font(CurfewTypography.body(13))
-        .foregroundStyle(CurfewTheme.mutedInk)
+        helper.onGranted = {
+            flow.updateOptionalPermissions(resolved: optionalsResolved)
+            flow.updateAccessibilityGranted(true)
+            holdOrContinueAfterGrant()
+        }
+        dragHelper = helper
+        return helper
+    }
+
+    func openAccessibility() {
+        guard !model.isDemoSession else { return }
+        accessibilityHelper().openSystemSettings()
+    }
+
+    func requestNotifications() {
+        let provider = notificationProvider
+        Task { notificationStatus = await provider.request() }
+    }
+
+    func installHelper() {
+        Task { await model.privilegedHelperManager.installAndConnectDaemon() }
+    }
+
+    func approveHelper() {
+        guard !model.isDemoSession else { return }
+        model.openHelperApprovalSettings()
+    }
+
+    /// Notifications are resolved once allowed, turned off or skipped; the
+    /// helper once installed, awaiting approval, skipped, or not offered.
+    var optionalsResolved: Bool {
+        let notifications = notificationStatus != .notAsked || notificationsSkipped
+        let helper = !model.featureFlags.privilegedHelperEnabled || helperSkipped
+            || helperStatus == .installed || helperStatus == .needsApproval
+        return notifications && helper
+    }
+
+    /// A fresh grant advances only when both optional rows are resolved;
+    /// otherwise setup comes forward on step 2 with Continue focused.
+    func holdOrContinueAfterGrant() {
+        model.appRouter.activate()
+        if flow.optionalsResolved {
+            continueFromPermissions()
+        } else {
+            AccessibilityNotification.Announcement("Accessibility allowed.").post()
+            continueFocused = true
+        }
+    }
+
+    /// Commits setup once access is granted. A schedule that would lock
+    /// right away asks first, in plain words.
+    func continueFromPermissions(confirmedImmediateLock: Bool = false) {
+        guard flow.isAccessibilityGranted, flow.currentStep == .permissions else { return }
+        switch model.commitSetup(flow, confirmedImmediateLock: confirmedImmediateLock) {
+        case .activated:
+            dragHelper?.stop()
+            flow.markCommitted()
+            model.appRouter.activate()
+        case .requiresImmediateLockConfirmation:
+            model.appRouter.activate()
+            confirmingImmediateLock = true
+        case .unavailable:
+            break
+        }
+    }
+
+    func previewLock() {
+        let model = model
+        let controller = preview ?? LockPreviewController(
+            presenter: LockPreviewWindowPresenter(appearance: { model.restAppearance })
+        )
+        preview = controller
+        controller.present(model.lockPreviewContent(
+            now: now(),
+            usesWeeklySchedule: usesWeeklySchedule
+        ))
     }
 }

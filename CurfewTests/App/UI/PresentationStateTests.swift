@@ -146,10 +146,7 @@ struct PresentationStateTests {
     @Test("Completed setup review does not depend on a stale walkthrough cursor")
     func setupReviewContent() throws {
         let setup = try source("Curfew/UI/GettingStartedView.swift")
-        #expect(setup
-            .contains(
-                "if model.settings.hasCompletedInitialSetup || flow.currentStep == .confirmation"
-            ))
+        #expect(setup.contains("model.loadSetupFlow()"))
     }
 
     @Test("Finish Setup opens the walkthrough instead of arming defaults")
@@ -162,10 +159,8 @@ struct PresentationStateTests {
     @Test("Returning setup review dismisses without changing protection")
     func returningSetup() throws {
         let setup = try source("Curfew/UI/GettingStartedView.swift")
+        #expect(setup.contains("flow.isReview"))
         #expect(setup.contains("Button(\"Done\")"))
-        #expect(setup.contains("Text(\"Review setup\")"))
-        #expect(setup.contains("Automatic weekly lockouts are on."))
-        #expect(setup.contains("Automatic weekly lockouts are off."))
     }
 
     @Test("Authentication failure explains the problem without blaming the user or build")

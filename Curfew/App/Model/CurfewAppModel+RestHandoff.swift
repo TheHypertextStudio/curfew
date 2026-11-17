@@ -43,6 +43,7 @@ extension CurfewAppModel {
     }
 
     func openRestScreenSetup() {
+        guard !isEnforcingLockout else { return }
         settingsDestination = .restScreen
         openSettings()
     }

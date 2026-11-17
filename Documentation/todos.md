@@ -99,6 +99,19 @@ Temporary audit-only `continueAfterFailure` collection restores its prior value 
 - [x] Prepare an offline signer-verified, environment-bound private import with
       no automatic readiness switch, remote mutation or resource provisioning.
 
+## Lockout bypass hardening
+
+- [x] Ignore enforcement-owner records without a recognized Curfew identity.
+- [x] Own keyboard focus during enforced lockout: activate, kiosk presentation,
+      reclaim on resign/hide, unhidable windows, immediate display coverage.
+- [x] Clamp a restored override to the recorded grant plus configured duration.
+- [x] Refuse uninstall and rest-screen Settings routes while curfew holds.
+- [x] Veto quit during lockout except logout, restart, and shutdown; no
+      supervisor back-off while a lockout deadline runs.
+- [x] Warn before an override that runs past the lock time expires.
+- [ ] Verify focus, kiosk options, hide, display attach, and quit veto in a real
+      signed lockout on an isolated Mac; unit tests inject every AppKit effect.
+
 ## Background recovery after clock corrections
 
 - [x] Keep only the remaining restart backoff when the wall clock moves backward,
@@ -157,14 +170,14 @@ Temporary audit-only `continueAfterFailure` collection restores its prior value 
 ## Copy, permissions, and Settings
 
 - [x] Explain the macOS Device Control and Data Access label, administrator
-  authentication, and background-service checks in setup, troubleshooting, and
-  privacy help.
-  The MacBook walkthrough on November 3, 2026 verified these prompts and the
-  resulting Protection states. Other macOS versions and signed-release setup
-  still need their own acceptance. The in-app repair message names both macOS
-  labels. Account help distinguishes sign-in recovery codes from the encryption
-  Recovery Key. Roll back the help and app copy together. No permission or
-  enforcement behavior changed.
+      authentication, and background-service checks in setup, troubleshooting, and
+      privacy help.
+      The MacBook walkthrough on November 3, 2026 verified these prompts and the
+      resulting Protection states. Other macOS versions and signed-release setup
+      still need their own acceptance. The in-app repair message names both macOS
+      labels. Account help distinguishes sign-in recovery codes from the encryption
+      Recovery Key. Roll back the help and app copy together. No permission or
+      enforcement behavior changed.
 
 - [x] Replace the tall Settings page with nine categories. Keep upstream Protection for permission health, background protection, and setup. Keep allowances and warning times on Lockout. Retain native grouped forms and arrow-key sidebar navigation. See `settings-ui.md`.
 - [x] Share the documented Curfew Xcode scheme with app, unit-test, and UI-test targets to keep the native commands independent of Xcode automatic scheme generation and local suppression settings. The missing-scheme build and contract test failed before the shared configuration was added.
@@ -691,17 +704,22 @@ Status legend: `[ ]` todo, `[-]` in progress, `[x]` done
 
 ## 11. Activity Log + Retrospective
 
-- [x] SQLite storage with 52-week rolling retention (direct `sqlite3` C API, no GRDB).
+- [x] SQLite storage with rolling retention (direct `sqlite3` C API, no GRDB). Retention is 400 days (`JournalRetention`) so the Journal year view and year in review can read a full year and its comparison.
+- [x] Record how each working day ended (`day_ended`) and whether the one thing was done (`one_thing_answered`); build `JournalDayRecord`, period summaries, patterns, trend lines and year totals in CurfewKit.
+- [ ] Update the published privacy and retention policies from 52 weeks to 400 days before releasing the longer retention.
+- [ ] Remove `ActivityRollups`, the weekly lockout count and the streak once the Journal no longer reads them (deprecated now).
+- [x] Replace the Journal screen with the approved prototype: a week, month and year range in the toolbar; one headline sentence; four tiles with comparisons and trend lines; the "When you stopped" chart (a grid of every working day in year range) with hover and keyboard detail; three pattern cards that say how many days they rest on; overrides in the person's words; and the "Every day" table that opens each evening. The Journal no longer reads the weekly rollup or the streak, so `ActivityRollups` now only feeds Today, the widget and `curfew_get_weekly_summary`. The old week chart, rating trend and unused `ThisWeekView` are deleted. Prompts open from the toolbar; reflections export as Markdown or JSON and activity as CSV for the shown period. Debug demo launches carry the Journal sample history; Release builds contain none of it. Roll back by reverting the Journal views; the day records are untouched.
+- [ ] Year in review card: the year's marks on the line over the sky with four totals, saved or shared as an image.
 - [x] Hours-based and combined curfew modes (lock after N hours of active work; per-day toggle in the schedule editor).
 - [x] `WorkTimeAggregator` computes active-minutes-today from ActivityStore + idle windows.
-- [x] `ThisWeekView` memoises the weekly rollup on `(weekStart, activityMutationCount)` so the tick loop stops rerunning the query every second.
+- [x] The weekly rollup is memoised on `(weekStart, activityMutationCount)` so the tick loop stops rerunning the query every second.
 - [x] Per-day schedule exception seam (`DayRuleException` struct) — Codable-compatible for future holiday pickers.
 - [x] `ActivityRecorder` writes lifecycle/extension/override events.
 - [x] `ActivityRollups` computes daily/weekly aggregates.
 - [x] `IdleWatcher` detects idle periods (5-min cutoff).
-- [x] "This Week" view in app UI.
-- [x] CSV export. (v0.2)
-- [x] Device-attributed insights. Surfaced in `ThisWeekView` when 2+ overrides exist and in `curfew_get_weekly_summary`'s `overrides_by_device` field.
+- [x] "This Week" view in app UI, since replaced by the Journal.
+- [x] CSV export, from the Journal's Export menu for the shown period. (v0.2)
+- [x] Device-attributed insights. Surfaced in `curfew_get_weekly_summary`'s `overrides_by_device` field. The unused `ThisWeekView` that also showed it was removed with the Journal redesign.
 
 ## 11.5 Audit log
 
@@ -811,8 +829,10 @@ The CLI remains in beta until launch blockers and installed-artifact acceptance 
 
 - [x] First-launch getting-started window.
 - [x] Persist one-time first-launch setup state.
-- [x] First-run flow: welcome, schedule, budgets, permissions, confirmation.
-- [x] Onboarding completion now requires opening live schedule settings and acknowledging permissions guidance before finish.
+- [x] First-run setup is three steps plus an optional closing step: the curfew and days, Accessibility (with a floating drag panel beside System Settings) plus optional notifications and the Curfew helper, then tonight's curfew with a lock preview, then one optional Curfew Plus offer with sign-in for existing owners. Setup reopens at the step reached until completed; health warnings stay hidden until then; an absent helper is healthy.
+- [ ] Verify the Accessibility drag, notification and helper prompts, and lock preview on a signed build on a real Mac.
+- [ ] Add dedicated Sign in with Apple, Google and passkey buttons to the closing step once the account service exposes provider-specific sign-in.
+- [x] Setup completion requires an explicit schedule choice (or "No schedule yet") and real Accessibility trust.
 - [x] Anti-bypass: onboarding mutations route through `queueScheduleUpdate`.
 - [x] Onboarding relaunch from Settings.
 - [-] Setup navigation must work before the main workspace has opened. Queue
@@ -1974,23 +1994,23 @@ asserts its own screen and state before attaching an image.
   when Homebrew advances independently.
 
 - [x] Reconcile native rest hosts immediately when a reflection is saved or
-  skipped, including while enforcement is disarmed. Retain the rest host when
-  another restriction or unfinished evening still requires it; do not wait for
-  an enforcement tick to restore the workspace.
+      skipped, including while enforcement is disarmed. Retain the rest host when
+      another restriction or unfinished evening still requires it; do not wait for
+      an enforcement tick to restore the workspace.
 
 - [x] Review the streak footer in light and dark workspace renders at the native
-  window dimensions, retaining the unobscured native contrast gate. The renderer
-  is offscreen and never presents a desktop window.
+      window dimensions, retaining the unobscured native contrast gate. The renderer
+      is offscreen and never presents a desktop window.
 
 - [x] Name the actual native hosting and split-column containers, not additional
-  nested SwiftUI groups. Preserve native controls and use primary text ink for
-  the small streak caption identified by the unobscured native contrast audit.
-  Keep the separate global rest and uncovered-workspace audits unchanged.
+      nested SwiftUI groups. Preserve native controls and use primary text ink for
+      the small streak caption identified by the unobscured native contrast audit.
+      Keep the separate global rest and uncovered-workspace audits unchanged.
 
 - [x] Keep Rest Screen UI and accessibility audits robust: preserve visual
-  states across app activation, ignore non-app TouchBar/container groups and
-  occluded background window contrast in modal rest scenes, and attach test
-  screenshots via XCTAttachment rather than direct disk writes.
+      states across app activation, ignore non-app TouchBar/container groups and
+      occluded background window contrast in modal rest scenes, and attach test
+      screenshots via XCTAttachment rather than direct disk writes.
 
 ### Signed installer acceptance
 

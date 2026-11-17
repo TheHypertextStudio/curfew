@@ -32,6 +32,7 @@ public struct ActivityEvent: Equatable, Hashable {
     /// Numeric payload whose meaning depends on `kind`:
     /// - `.extensionGranted` / `.overrideGranted`: minutes granted
     /// - `.warningEscalated`: minutes remaining at escalation
+    /// - `.dayEnded`: signed minutes from the day's scheduled curfew
     /// - otherwise: `nil`
     public let minutesValue: Int?
 
@@ -119,4 +120,19 @@ public enum ActivityEventKind: String, Equatable, Hashable, CaseIterable {
     /// *that* a reflection happened without duplicating its content. No
     /// `minutesValue`; no `note`.
     case reflectionRecorded = "reflection_recorded"
+
+    /// How the working day ended. One per working day. The timestamp is the
+    /// moment the person stopped, `minutesValue` is that moment's signed
+    /// minutes relative to the day's scheduled curfew (negative is early), and
+    /// `note` is a ``DayEndCause`` raw value. Storing the offset keeps the
+    /// scheduled curfew recoverable after the schedule changes. See
+    /// ``DayEnding``.
+    case dayEnded = "day_ended"
+
+    /// The answer to whether the morning's one thing was done. Carried on
+    /// ``GateKind/evening``; `note` is `done` or `not_done`; no
+    /// `minutesValue`. The latest answer for a day wins. Stored here rather
+    /// than as a reflection answer so the reflection shape returned by
+    /// `curfew_get_reflections` is unchanged. See ``OneThingOutcome``.
+    case oneThingAnswered = "one_thing_answered"
 }

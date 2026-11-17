@@ -6,50 +6,6 @@ import ServiceManagement
 import Testing
 
 @MainActor
-struct OnboardingConfirmationRequirementTests {
-    @Test("Confirmation step exposes outstanding onboarding requirements")
-    func confirmationRequirementsTrackOutstandingSteps() {
-        var flow = FirstRunFlow()
-
-        #expect(flow.confirmationRequirements == [
-            OnboardingConfirmationRequirement(
-                id: .scheduleReview,
-                title: "Choose whether to use automatic lockouts",
-                isSatisfied: false
-            ),
-            OnboardingConfirmationRequirement(
-                id: .accessibilityGrant,
-                title: "Accessibility access still required",
-                isSatisfied: false
-            )
-        ])
-
-        flow.markScheduleReviewed()
-        #expect(flow.confirmationRequirements[0] == OnboardingConfirmationRequirement(
-            id: .scheduleReview,
-            title: "Choose whether to use automatic lockouts",
-            isSatisfied: false
-        ))
-
-        flow.chooseSchedule(.weeklySchedule)
-
-        flow.updateAccessibilityGranted(true)
-        #expect(flow.confirmationRequirements == [
-            OnboardingConfirmationRequirement(
-                id: .scheduleReview,
-                title: "Automatic schedule choice confirmed",
-                isSatisfied: true
-            ),
-            OnboardingConfirmationRequirement(
-                id: .accessibilityGrant,
-                title: "Accessibility access granted",
-                isSatisfied: true
-            )
-        ])
-    }
-}
-
-@MainActor
 struct DeferredIntegrationVisibilityTests {
     @Test("Enabled deferred modules surface in a stable settings order")
     func visiblePanelsFollowEnabledFlags() {

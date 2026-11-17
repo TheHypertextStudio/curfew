@@ -15,7 +15,7 @@ extension SettingsView {
     /// guarded against the test host inside the model.
     @ViewBuilder
     var enforcementHealthPanel: some View {
-        let health = model.enforcementHealth
+        let health = model.presentedEnforcementHealth
         if health.isFullyActive {
             SettingsGroup("Accessibility") {
                 SettingsActionRow(

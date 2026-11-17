@@ -490,7 +490,7 @@ If the user also has calendar, task management (Linear, Todoist), and communicat
   - Days off taken
   - Streak: consecutive days of respecting curfew without extensions
 - Data stored locally in SQLite via the shared App Group container
-- Retention: 52 weeks of history (1 year)
+- Retention: 400 days of history, so a full calendar year and its comparison stay readable
 - Export: CSV export of historical data
 
 **UX Notes:**

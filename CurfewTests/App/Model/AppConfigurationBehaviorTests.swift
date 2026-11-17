@@ -273,8 +273,8 @@ struct AppCoordinatorTests {
         )
 
         #expect(model.isEnforcementRunning)
-        #expect((model.appRouter as? AppRouterSpy)?
-            .openedWindows == [CurfewAppModel.gettingStartedWindowID])
+        // Setup is complete, so launch does not reopen it.
+        #expect((model.appRouter as? AppRouterSpy)?.openedWindows.isEmpty == true)
     }
 
     @Test("Coordinator keeps enforcement disarmed when launch policy disables start")

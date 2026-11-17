@@ -18,12 +18,15 @@ extension SettingsView {
         SettingsGroup("Remove Curfew") {
             SettingsActionRow(
                 title: "Uninstall Curfew",
-                detail: "Deletes settings, history and the license key from this Mac. "
+                detail: model.uninstallIsBlockedByCurfew
+                    ? CurfewAppModel.uninstallBlockedMessage
+                    : "Deletes settings, history and the license key from this Mac. "
                     + "Your synced schedule is kept. This can't be undone.",
                 actionTitle: "Uninstall Curfew…"
             ) {
                 confirmUninstall()
             }
+            .disabled(model.uninstallIsBlockedByCurfew)
         }
     }
 
@@ -32,6 +35,7 @@ extension SettingsView {
     /// chaining reads better at statement level than inside a trailing
     /// closure.
     private func confirmUninstall() {
+        guard !model.uninstallIsBlockedByCurfew else { return }
         let appName = UninstallCoordinator.appBundleURL(for: .current).lastPathComponent
         let alert = NSAlert()
         alert.messageText = "Uninstall Curfew on this Mac?"
@@ -43,7 +47,8 @@ extension SettingsView {
         alert.addButton(withTitle: "Uninstall")
         alert.addButton(withTitle: "Cancel")
 
-        guard alert.runModal() == .alertFirstButtonReturn, !model.isDemoSession else { return }
+        guard alert.runModal() == .alertFirstButtonReturn, !model.isDemoSession,
+              !model.uninstallIsBlockedByCurfew else { return }
 
         model.browserNativeRuntime.stop()
         Task {

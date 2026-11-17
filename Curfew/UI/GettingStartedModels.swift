@@ -1,102 +1,108 @@
 import CurfewKit
 import Foundation
 
-/// Static copy used by the first-launch onboarding ("Getting Started")
-/// window.
-///
-/// Extracted to a namespace enum so the exact wording of commitment-framing
-/// copy lives in one place — the CLI's `curfew-ctl status` and future
-/// landing-page copy pulls from the same strings when we standardise on a
-/// shared copy deck post-v0.2. For now it's read by the SwiftUI onboarding
-/// view only.
+/// Every line first-run setup shows, in one place, so the launch words
+/// ("curfew", "this Mac", "the Curfew helper") stay consistent and testable.
 enum GettingStartedCopy {
-    /// Window title — also used as the primary heading.
-    static let title = "Welcome to Curfew"
+    /// Window title. Sentence case, like every other line in setup.
+    static let windowTitle = "Set up Curfew"
 
-    /// One-sentence framing shown under the title. Leans on the "you already
-    /// made this decision when clear-headed" argument rather than pitching
-    /// productivity benefits.
-    static let commitmentMessage =
-        "Choose your work hours. Curfew warns you before lockout and blocks access when work ends."
+    static let curfewLabel = "Curfew"
+    static let unlockLabel = "Unlocks"
+    static let curfewReason = "This Mac locks for the night."
+    static let unlockReason = "This Mac opens again in the morning."
+    static let daysLabel = "Days that lock"
+    static let useSchedule = "Use this schedule"
+    /// The small link that keeps the explicit "no automatic schedule" choice.
+    static let noScheduleYet = "No schedule yet"
+    static let noScheduleYetHint = "Nothing locks on a schedule. You can set a curfew later."
 
-    /// Secondary heading introducing the numbered configuration steps.
-    static let setupFocusTitle = "Set up Curfew"
+    static let notificationsTitle = "Notifications"
+    static let notificationsReason = "So you hear about curfew 30, 15, 5 and 1 minute ahead."
+    static let helperTitle = "Curfew helper"
+    static let helperReason = "So the lock holds even if Curfew is quit."
+    static let accessibilityTitle = "Accessibility"
+    static let accessibilityReason = "So the lock holds when shortcuts try to get past it."
+    static let openSystemSettings = "Open System Settings"
+    static let dragInstruction = "Drag Curfew into the list"
+
+    /// Said once, plainly, when this build has a helper and it is not installed.
+    static let helperAbsentNote =
+        "Without the Curfew helper, force quitting Curfew ends the lock early."
+
+    static let previewLock = "Preview the lock"
+    static let lockedHeadline = "That's the day."
+    static let endPreview = "End preview"
+
+    static let extrasTitle = "Curfew on your other devices"
+    static let plusOffer =
+        "Curfew Plus is a single payment. It syncs your schedule and lets your phone "
+            + "lock this Mac. Sign in with Apple, Google or a passkey."
+    static let getPlus = "Get Curfew Plus"
+    static let signIn = "Sign in"
+
+    static let immediateLockTitle = "This Mac locks right away"
+    static let immediateLockMessage =
+        "It's already curfew, so finishing setup locks this Mac now."
+    static let immediateLockConfirm = "Finish and lock"
+    static let immediateLockCancel = "Change the times"
+
+    /// Step 3's statement of when this Mac next locks. Times come from the
+    /// locale formatter; never a hard-coded 24-hour string.
+    static func readyLine(curfew: Date?, now: Date, calendar: Calendar = .current) -> String {
+        guard let curfew else {
+            return "Nothing locks on a schedule. Set a curfew any time in Schedule."
+        }
+        let time = curfew.formatted(date: .omitted, time: .shortened)
+        if calendar.isDate(curfew, inSameDayAs: now) {
+            let hour = calendar.component(.hour, from: curfew)
+            return hour >= 17 ? "Curfew locks tonight at \(time)." : "Curfew locks today at \(time)."
+        }
+        if let tomorrow = calendar.date(byAdding: .day, value: 1, to: now),
+           calendar.isDate(curfew, inSameDayAs: tomorrow) {
+            return "Curfew locks tomorrow at \(time)."
+        }
+        return "Curfew locks \(curfew.formatted(.dateTime.weekday(.wide))) at \(time)."
+    }
+
+    static func unlockLine(_ unlock: Date) -> String {
+        "Unlocks at \(unlock.formatted(date: .omitted, time: .shortened))"
+    }
 }
 
-/// One pane of the first-run onboarding flow.
+/// One screen of first-run setup: three steps and one optional closing step.
 ///
-/// `Int`-backed so we can advance/retreat by `rawValue ± 1` without
-/// maintaining a separate next-step table. Keep the case order stable:
-/// persisted progress (if we ever add resume-from-where-you-left) would key
-/// off `rawValue`.
+/// `Int`-backed because persisted progress keys off `rawValue`. Keep the case
+/// order stable.
 enum FirstRunStep: Int, CaseIterable, Identifiable {
-    /// Introductory pane explaining Curfew's commitment model.
-    case welcome
-
-    /// Schedule configuration (work-end/work-resume times, days off).
+    /// When should this Mac close for the night?
     case schedule
-
-    /// Extension + override budget configuration.
-    case extensionBudget
-
-    /// Notification + accessibility permissions walkthrough.
+    /// Accessibility (required), notifications and the Curfew helper.
     case permissions
+    /// Setup is committed; states tonight's curfew and offers a preview.
+    case ready
+    /// Optional: sync sign-in and the lifetime licence.
+    case extras
 
-    /// Review pane that finalises onboarding and arms enforcement.
-    case confirmation
-
-    /// `Identifiable` conformance — raw value is already unique.
     var id: Int {
         rawValue
     }
 
-    /// Human-readable heading for the pane.
     var title: String {
         switch self {
-        case .welcome:
-            "Welcome"
-        case .schedule:
-            "Schedule"
-        case .extensionBudget:
-            "Extra time"
-        case .permissions:
-            "Permissions"
-        case .confirmation:
-            "Ready to begin"
+        case .schedule: "When should this Mac close for the night?"
+        case .permissions: "Let Curfew hold the lock."
+        case .ready: "You're set."
+        case .extras: GettingStartedCopy.extrasTitle
         }
     }
 
-    /// Supporting paragraph that expands on `title`.
-    var message: String {
+    var progressLabel: String {
         switch self {
-        case .welcome:
-            "Curfew warns you before your work hours end, then shows a full-screen lockout."
-        case .schedule:
-            ScheduleSurfaceCopy.onboardingMessage
-        case .extensionBudget:
-            "Choose how many extensions and overrides you can use each week."
-        case .permissions:
-            "Curfew uses optional notifications for warnings and Accessibility access "
-                + "to block bypass shortcuts during lockout."
-        case .confirmation:
-            "Review your setup, then enable Curfew when you are ready."
-        }
-    }
-
-    /// Bullet checklist shown alongside the message. Each entry is an action
-    /// the user should complete before clicking Next.
-    var checklist: [String] {
-        switch self {
-        case .welcome:
-            ["Review how warnings and lockout work"]
-        case .schedule:
-            ScheduleSurfaceCopy.onboardingChecklist
-        case .extensionBudget:
-            ["Adjust weekly extension limit", "Set override duration"]
-        case .permissions:
-            ["Grant accessibility access", "Allow notifications (optional)"]
-        case .confirmation:
-            ["Review your schedule", "Enable Curfew"]
+        case .schedule: "Step 1 of 3"
+        case .permissions: "Step 2 of 3"
+        case .ready: "Step 3 of 3"
+        case .extras: "Optional"
         }
     }
 }
@@ -108,128 +114,134 @@ enum AutomaticScheduleChoice: Equatable {
     case remoteControlsOnly
 }
 
-/// Stateful cursor into the first-run onboarding flow.
+/// Persisted cursor so setup reopens on the step the person reached.
+struct InitialSetupProgress: Codable, Equatable {
+    var step: Int
+    var usesWeeklySchedule: Bool?
+}
+
+/// Cursor through first-run setup.
 ///
-/// Kept as a plain value type rather than an `ObservableObject` so it can be
-/// passed around between views cheaply and also exercised by unit tests
-/// without a run-loop. The UI wraps it in `@State` and advances/retreats
-/// from button handlers.
-struct FirstRunFlow {
-    /// The pane currently visible. Externally read-only; mutate via
-    /// `advance()` / `retreat()`.
-    private(set) var currentStep: FirstRunStep = .welcome
-
-    /// Whether the user has acknowledged the seven effective weekly rules.
-    private(set) var hasReviewedScheduleSettings = false
-
-    /// Opening the editor is not consent. A choice is required before the
-    /// schedule step can advance or setup can arm enforcement.
+/// A plain value type so the whole flow is unit tested without a run loop.
+/// The schedule choice is always an explicit press (`chooseSchedule`), and
+/// step 2 is a hard gate on *real* Accessibility trust; setup is committed
+/// (enforcement armed) only by the model, after which `markCommitted` moves
+/// the cursor to step 3 and going back is no longer offered.
+struct FirstRunFlow: Equatable {
+    private(set) var currentStep: FirstRunStep = .schedule
+    /// Opening the editor is not consent. A choice is required before setup
+    /// leaves step 1 or arms enforcement.
     private(set) var scheduleChoice: AutomaticScheduleChoice?
-
-    /// Whether the app currently holds macOS Accessibility trust.
-    ///
-    /// This is a *real* grant check, not a self-attested checkbox: the view
-    /// keeps it in sync with the injected `AccessibilityAuthorizing` seam
-    /// (on appear / on app activation / a light timer), and the permissions
-    /// step refuses to advance while it is `false`. Replacing the old
-    /// "I reviewed permissions" acknowledgement closes the hole where a user
-    /// could tick the box without ever granting access, leaving enforcement
-    /// silently inert.
+    /// Live Accessibility trust, synced by the view from the model.
     private(set) var isAccessibilityGranted = false
+    /// Whether setup has been completed and enforcement armed.
+    private(set) var isCommitted = false
+    /// Reopened after setup was already completed.
+    private(set) var isReview = false
+    /// Whether both optional rows on step 2 (notifications and the Curfew
+    /// helper) are allowed, installed or explicitly skipped.
+    private(set) var optionalsResolved = false
 
-    /// Whether the user is on the first step (drives "Back" button disabling).
-    var isFirstStep: Bool {
-        currentStep == .welcome
-    }
-
-    /// Whether the user is on the final step (drives the confirmation CTA).
-    var isLastStep: Bool {
-        currentStep == .confirmation
-    }
-
-    /// Whether the current step is allowed to advance.
-    ///
-    /// The permissions gate is a hard one: Accessibility must be *actually*
-    /// granted (`isAccessibilityGranted`) before the user can leave the step.
-    /// Notifications stay soft — their denial is non-fatal and never blocks
-    /// progress.
     var canAdvance: Bool {
         switch currentStep {
-        case .schedule:
-            scheduleChoice != nil
-        case .permissions:
-            isAccessibilityGranted
-        case .welcome, .extensionBudget, .confirmation:
-            true
+        case .schedule: scheduleChoice != nil
+        case .permissions: isAccessibilityGranted
+        case .ready: true
+        case .extras: false
         }
     }
 
-    /// Whether the final onboarding action should be enabled.
-    var canFinish: Bool {
-        isLastStep && scheduleChoice != nil && isAccessibilityGranted
+    var canGoBack: Bool {
+        currentStep == .permissions && !isCommitted && !isReview
     }
 
-    /// Records explicit review of the seven rules shown during onboarding.
-    mutating func markScheduleReviewed() {
-        hasReviewedScheduleSettings = true
+    var isLastStep: Bool {
+        currentStep == .extras
     }
 
-    /// The onboarding review button is one state transition. Splitting the
-    /// review acknowledgement and choice into separate SwiftUI `@State`
-    /// mutations can leave the second mutation reading the old review flag.
-    mutating func chooseReviewedWeeklySchedule() {
-        hasReviewedScheduleSettings = true
-        scheduleChoice = .weeklySchedule
+    var usesWeeklySchedule: Bool {
+        scheduleChoice == .weeklySchedule
     }
 
-    /// Selects remote-only setup directly, or the weekly schedule after the
-    /// user has acknowledged the actual configured rules.
+    var progress: InitialSetupProgress {
+        InitialSetupProgress(
+            step: currentStep.rawValue,
+            usesWeeklySchedule: scheduleChoice.map { $0 == .weeklySchedule }
+        )
+    }
+
+    /// The explicit schedule choice. Both the primary button and the small
+    /// "no schedule yet" link call this, and both move on in the same press.
     mutating func chooseSchedule(_ choice: AutomaticScheduleChoice) {
-        guard choice == .remoteControlsOnly || hasReviewedScheduleSettings else { return }
         scheduleChoice = choice
+        if currentStep == .schedule {
+            currentStep = .permissions
+        }
     }
 
-    /// Syncs the live Accessibility-trust state into the flow.
-    ///
-    /// Called by the view whenever a fresh reading is available (on appear, on
-    /// app activation, and from a light refresh timer). Passing `false` after a
-    /// previous `true` re-closes the gate, so a revoked permission can never
-    /// leave the user advancing on a stale "granted" reading.
-    mutating func updateAccessibilityGranted(_ granted: Bool) {
-        guard isAccessibilityGranted != granted else { return }
+    /// Syncs live trust. Returns `true` exactly when a fresh grant arrives
+    /// while step 2 is waiting for it and both optional rows are already
+    /// resolved, which is the only time setup advances by itself. Otherwise
+    /// setup holds on step 2 with Continue enabled, so the optional rows are
+    /// still offered. Revoked trust re-closes the gate.
+    @discardableResult
+    mutating func updateAccessibilityGranted(_ granted: Bool) -> Bool {
+        let wasGranted = isAccessibilityGranted
         isAccessibilityGranted = granted
+        return granted && !wasGranted && currentStep == .permissions && optionalsResolved
     }
 
-    /// Moves forward one step, unless already on the last step (no-op).
+    /// Records whether notifications and the Curfew helper are each allowed,
+    /// installed or explicitly skipped.
+    mutating func updateOptionalPermissions(resolved: Bool) {
+        optionalsResolved = resolved
+    }
+
+    /// Called once the model has completed setup (or, for a returning
+    /// person, once access is back).
+    mutating func markCommitted() {
+        isCommitted = true
+        if currentStep == .permissions || currentStep == .schedule {
+            currentStep = .ready
+        }
+    }
+
+    /// Step 3 to the optional closing step. Steps 1 and 2 move on only
+    /// through `chooseSchedule` and the model's commit.
     mutating func advance() {
-        guard canAdvance, let nextStep = FirstRunStep(rawValue: currentStep.rawValue + 1) else {
-            return
-        }
-        currentStep = nextStep
+        guard currentStep == .ready, !isReview else { return }
+        currentStep = .extras
     }
 
-    /// Moves backward one step, unless already on the first step (no-op).
     mutating func retreat() {
-        guard let previousStep = FirstRunStep(rawValue: currentStep.rawValue - 1) else {
-            return
-        }
-        currentStep = previousStep
+        guard canGoBack else { return }
+        currentStep = .schedule
     }
 
-    /// A flow pre-seeded for someone re-opening Getting Started *after*
-    /// finishing it once (from the Settings/menu re-entry points, which don't
-    /// gate on `hasCompletedInitialSetup`). Jumps straight to Confirmation
-    /// with the schedule gate already satisfied — walking an already-onboarded
-    /// user through Schedule/Extension-Budget/Permissions again is pure
-    /// friction, since those already govern a live, working setup.
-    /// Accessibility is intentionally left `false` here: the view's own
-    /// on-appear sync immediately re-polls the *real* current grant, so a
-    /// permission revoked since setup still shows as required.
-    static func returningUser() -> FirstRunFlow {
+    /// Restores saved progress. Without a committed setup, the furthest a
+    /// person can land is step 2, and only with a recorded schedule choice.
+    static func resuming(_ progress: InitialSetupProgress) -> FirstRunFlow {
         var flow = FirstRunFlow()
-        flow.currentStep = .confirmation
-        flow.hasReviewedScheduleSettings = true
+        guard let weekly = progress.usesWeeklySchedule,
+              progress.step >= FirstRunStep.permissions.rawValue else { return flow }
+        flow.chooseSchedule(weekly ? .weeklySchedule : .remoteControlsOnly)
+        return flow
+    }
+
+    /// Setup reopened after it was completed: the summary, or step 2 when
+    /// Accessibility has since been lost.
+    static func returningUser(isAccessibilityGranted: Bool) -> FirstRunFlow {
+        var flow = FirstRunFlow()
+        flow.isReview = true
+        flow.optionalsResolved = true
         flow.scheduleChoice = .weeklySchedule
+        if isAccessibilityGranted {
+            flow.isAccessibilityGranted = true
+            flow.isCommitted = true
+            flow.currentStep = .ready
+        } else {
+            flow.currentStep = .permissions
+        }
         return flow
     }
 }

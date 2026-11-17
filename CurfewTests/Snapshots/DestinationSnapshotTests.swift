@@ -17,7 +17,6 @@
     /// directory is resolved from `#filePath`, so the test doesn't depend on the
     /// working directory or any environment plumbing.
     @MainActor
-    // swiftlint:disable:next type_body_length
     final class DestinationSnapshotTests: XCTestCase {
         func testRenderTodayFooterAtWorkspaceHeight() throws {
             try renderBoth(
@@ -122,9 +121,9 @@
             )
         }
 
-        /// Renders the three spine destinations (Today, Schedule, Journal) with
-        /// a mid-workday demo state so the countdown, schedule, and weekly
-        /// streak all read as populated.
+        /// Renders the spine destinations with a mid-workday demo state so the
+        /// countdown and schedule read as populated. The Journal has its own
+        /// renders in `JournalSnapshotTests`.
         func testRenderSpineDestinations() throws {
             let outputDirectory = try Self.snapshotsDirectory()
             let model = Self.demoModel()
@@ -154,22 +153,6 @@
             try renderBoth(
                 emptyToday(),
                 named: "today-empty",
-                width: 900,
-                to: outputDirectory
-            )
-            try renderBoth(
-                JournalSundownView(),
-                named: "journal-sundown",
-                width: 900,
-                to: outputDirectory
-            )
-            try renderBoth(
-                JournalReflectionsView(
-                    reflections: [],
-                    referenceDate: model.currentTime,
-                    onConfigurePrompts: {}
-                ).environment(model),
-                named: "journal-reflections",
                 width: 900,
                 to: outputDirectory
             )

@@ -244,12 +244,12 @@ test('installation help retains macOS requirements and the canonical download de
   );
 });
 
-test('setup help explains seven-day consent and the choice to leave automatic lockouts off', async () => {
+test('setup help explains the explicit schedule choice and the choice to leave automatic locks off', async () => {
   const content = await read('web/docs/install.mdx');
-  assert.match(content, /all seven days/i);
-  assert.match(content, /No automatic schedule — remote controls only/);
-  assert.match(content, /Enable schedule and finish/);
-  assert.match(content, /Settings → Lockout/);
+  assert.match(content, /Use this schedule/);
+  assert.match(content, /No schedule yet/);
+  assert.match(content, /drag it into the list/);
+  assert.match(content, /Settings → Protection/);
   assert.doesNotMatch(content, /Curfew starts enforcing your schedule\./);
 });
 

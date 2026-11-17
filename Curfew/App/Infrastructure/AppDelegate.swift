@@ -23,6 +23,45 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         arguments: ProcessInfo.processInfo.arguments
     )
     var activationProbe: () -> Bool = { NSApplication.shared.isActive }
+    /// Whether the pending quit comes from logout, restart, or shutdown.
+    lazy var systemSessionEndingProbe: () -> Bool = { [weak self] in
+        self?.powerOffObserved == true || Self.quitEventEndsSession()
+    }
+
+    private var powerOffObserved = false
+    private var powerOffObserver: NSObjectProtocol?
+
+    func applicationDidFinishLaunching(_: Notification) {
+        powerOffObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.willPowerOffNotification, object: nil, queue: nil
+        ) { [weak self] _ in
+            self?.powerOffObserved = true
+        }
+    }
+
+    /// Quitting must not end an enforced lockout. Logout, restart, and shutdown
+    /// still proceed, so the Mac is never held on.
+    func applicationShouldTerminate(_: NSApplication) -> NSApplication.TerminateReply {
+        guard let model, !model.allowsQuit, !systemSessionEndingProbe() else {
+            return .terminateNow
+        }
+        return .terminateCancel
+    }
+
+    private static func quitEventEndsSession() -> Bool {
+        guard let event = NSAppleEventManager.shared().currentAppleEvent,
+              event.eventClass == AEEventClass(kCoreEventClass),
+              event.eventID == AEEventID(kAEQuitApplication)
+        else { return false }
+        let keyword = AEKeyword(kAEQuitReason)
+        let reason = event.attributeDescriptor(forKeyword: keyword)?.typeCodeValue
+            ?? event.paramDescriptor(forKeyword: keyword)?.typeCodeValue
+        let sessionEnding = [
+            kAELogOut, kAEReallyLogOut, kAEShowRestartDialog, kAERestart,
+            kAEShowShutdownDialog, kAEShutDown
+        ].map { OSType($0) }
+        return reason.map { sessionEnding.contains($0) } ?? false
+    }
 
     func applicationShouldTerminateAfterLastWindowClosed(_: NSApplication) -> Bool {
         false

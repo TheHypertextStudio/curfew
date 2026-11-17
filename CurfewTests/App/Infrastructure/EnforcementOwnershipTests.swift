@@ -127,6 +127,31 @@ struct EnforcementOwnershipTests {
         )
     }
 
+    @Test("A live owner without a recognized Curfew identity cannot hold enforcement")
+    func forgedOwnerIsIgnored() throws {
+        let url = tempLock()
+        try FileManager.default.createDirectory(
+            at: url.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        let forged = EnforcementOwner(
+            flavor: CurfewFlavor.production.rawValue,
+            bundleIdentifier: "com.apple.finder",
+            displayName: "Curfew",
+            processIdentifier: 100,
+            acquiredAt: now
+        )
+        try JSONEncoder().encode(forged).write(to: url)
+
+        #expect(EnforcementOwnership.currentOwner(lockURL: url, isAlive: alive) == nil)
+        let result = seed(.development, pid: 200, at: url, isAlive: alive)
+        #expect(result == .acquired)
+        #expect(
+            EnforcementOwnership.currentOwner(lockURL: url, isAlive: alive)?
+                .processIdentifier == 200
+        )
+    }
+
     @Test("currentOwner reports nil when the recorded owner is gone")
     func currentOwnerNilWhenDead() {
         let url = tempLock()

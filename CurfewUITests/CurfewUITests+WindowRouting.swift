@@ -9,9 +9,9 @@ extension CurfewUITests {
         XCTAssertTrue(settings.waitForExistence(timeout: 5))
 
         app.buttons["Review setup…"].click()
-        let setup = app.windows["Set Up Curfew"]
+        let setup = app.windows["Set up Curfew"]
         XCTAssertTrue(setup.waitForExistence(timeout: 5))
-        XCTAssertTrue(setup.staticTexts["Review setup"].exists)
+        XCTAssertTrue(setup.staticTexts["You're set."].exists)
         setup.buttons["Done"].click()
         XCTAssertTrue(setup.waitForNonExistence(timeout: 5))
         XCTAssertTrue(settings.exists)
@@ -27,25 +27,23 @@ extension CurfewUITests {
         let app = launchFixture("settings", state: "ready", withoutMainWindow: true)
         XCTAssertFalse(app.windows["Curfew"].exists)
         app.menuBars.menuBarItems["Window"].click()
-        app.menuItems["Set Up Curfew"].click()
-        let setup = app.windows["Set Up Curfew"]
+        app.menuItems["Set up Curfew"].click()
+        let setup = app.windows["Set up Curfew"]
         XCTAssertTrue(setup.waitForExistence(timeout: 5))
         setup.buttons["Done"].click()
         XCTAssertTrue(setup.waitForNonExistence(timeout: 5))
         XCTAssertFalse(app.windows["Curfew"].exists)
     }
 
-    func testFirstRunScheduleOpensNewMainWindow() {
+    func testFirstRunSetupOpensWithoutMainWindow() {
         let app = launchFixture("getting-started", withoutMainWindow: true)
         XCTAssertFalse(app.windows["Curfew"].exists)
         app.menuBars.menuBarItems["Window"].click()
-        app.menuItems["Set Up Curfew"].click()
-        let setup = app.windows["Set Up Curfew"]
+        app.menuItems["Set up Curfew"].click()
+        let setup = app.windows["Set up Curfew"]
         XCTAssertTrue(setup.waitForExistence(timeout: 5))
-        setup.buttons["Next"].click()
-        setup.buttons["Edit weekly schedule"].click()
-        let workspace = app.windows["Curfew"]
-        XCTAssertTrue(workspace.waitForExistence(timeout: 5))
-        XCTAssertTrue(workspace.staticTexts["Weekly schedule"].waitForExistence(timeout: 5))
+        XCTAssertTrue(setup.staticTexts["When should this Mac close for the night?"]
+            .waitForExistence(timeout: 5))
+        XCTAssertFalse(app.windows["Curfew"].exists)
     }
 }
