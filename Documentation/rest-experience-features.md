@@ -6,7 +6,7 @@ Curfew's rest experience combines a readable interactive rest screen, an optiona
 
 Rest Screen settings provide a live preview, animated atmosphere, solid background or one owned imported image, Sundown/warm amber/cool twilight palettes, rounded/standard/serif system-formatted clocks, center/upper-center/lower-left ambient positions, static-background choice and a personal message of at most 140 characters. Motion follows Reduce Motion; interactive forms keep their authored layout and readability. Existing Sundown appearance is the migration default.
 
-JPEG, PNG and HEIC imports use the system file picker. Curfew keeps an optimized owned copy, with aspect-fill cropping and adjustable focal point, so moving the original is safe. Text and controls always have a readability treatment. The saver shares the selected background; sharing the personal message is a separate opt-in. Appearance and Sunrise preferences stay local and outside account-synchronized settings.
+JPEG, PNG and HEIC imports use the system file picker. Curfew keeps an optimized owned copy, with aspect-fill cropping and adjustable focal point, so moving the original is safe. Text and controls always have a readability treatment. The saver shares the selected background; sharing the personal message is a separate opt-in. Appearance and Sunrise preferences stay local and outside account-synchronized settings. Sunrise has its own Settings pane; Rest Screen settings hold appearance only.
 
 ## Native companion
 
@@ -20,9 +20,21 @@ After reflection is submitted or skipped, 60 seconds without input may begin the
 
 Installation, system settings selection, version mismatch, update and removal are explicit actions. Curfew never rewrites the user's selected saver or simulates idle input. If launch or the companion is unavailable, interactive Curfew remains usable with an appropriate setup action.
 
+## Sunrise gate
+
+At unlock, and on the first use of the day after a cold start or relaunch while the morning is unanswered, the Mac stays on Sunrise until the person names what today is for. The gate is drawn on the Horizon sky under the small clock: "Morning." in the sky, and on the ground last night's note ("Last night you left: …", omitted when there is none), "What is today for?" as a field and "Start the day" as the prominent button. Return moves on.
+
+The gate is an ordered list of steps kept on this Mac: last night's note, the one thing, readiness and the person's own morning questions. Each can be turned on or off, reordered and marked required or skippable; the note is never required. The default is note, then the one thing (required), then readiness (skippable). Morning prompts a person had before Sunrise carry over as steps in their order. Steps are stored under their own local defaults key; the prompts and reflections keep their format and nothing reaches sync or the wire.
+
+Steps show one page at a time, the note riding on the next question. A required step holds until it has an answer and any non-empty text satisfies it; a skippable step shows "Skip". A gate whose pages cannot be read still offers "Start the day", so the person is never trapped. Answering saves one morning reflection, so Today and the Journal read the one thing, and releases the Mac. With every step off there is no gate.
+
+After the gate Curfew can run one Shortcut the person picked, through the system `shortcuts` command, with the one thing as text input. It runs after release and never holds it; if it fails, Today says so once, quietly. The intents "Get Today's One Thing" and "Is Sunrise Complete" let Shortcuts automations read the morning. macOS does not let an app define its own automation triggers, so "when Sunrise completes" and "when curfew starts" are not offered as triggers; an automation can poll the intents instead.
+
 ## Sunrise wake
 
-Automatic wake starts disabled. The default lead-in is 30 minutes, adjustable from 5 to 60; the same interval drives visual progression and wake scheduling. External power is required unless battery operation is separately enabled. Presentation may hold the display awake until five minutes after scheduled unlock, ending earlier when dismissed or disabled.
+Automatic wake starts disabled, and the Sunrise pane says what it needs: the Curfew helper, power and an open lid. The default lead-in is 30 minutes, adjustable from 5 to 60 ("Start brightening N minutes before unlock"); the same interval drives visual progression and wake scheduling. External power is required unless battery operation is separately enabled. Presentation may hold the display awake until five minutes after scheduled unlock, ending earlier when dismissed or disabled.
+
+No wake is planned while Curfew is off or for a night that unlocks into a day off, and the display hold is released at unlock when there is no gate to show, so the Mac never wakes to an empty desktop. The pane's status is a sentence with a time ("This Mac will wake at 6:30 AM tomorrow."), or what blocks the wake and where to fix it. Auto-shutdown is warned about inline, because a Mac that has shut down cannot wake.
 
 Display wake and whole-system wake are distinct operations. The running app requests display activity and a bounded display-sleep assertion. The authenticated existing helper schedules one owned kIOPMAutoWake event for a sleeping Mac, never power-on from shutdown. A typed helper-local plan carries occurrence, timing, power policy and scoped cancellation identity. Replacement, deduplication, durable recovery and schedule/timezone/DST/power reconciliation prevent stale plans. Disabling/uninstalling cancels owned events and releases assertions.
 
@@ -96,8 +108,8 @@ generation, nonce and host mode; they never authorize unlock or carry private te
 
 ### Dismissal, helper maintenance and cached appearance
 
-Starting or skipping the morning reflection, or returning from the screensaver
-during Sunrise, releases that occurrence's display hold. Later clock ticks cannot
+Starting the day at Sunrise, unlocking with no gate to show, or returning from
+the screensaver during Sunrise, releases that occurrence's display hold. Later clock ticks cannot
 reacquire it; the next occurrence remains eligible. Return uses the freshly
 resolved time, including a resume before the first ordinary clock tick. Release
 failures retain ownership and retry through the existing reconciliation path.

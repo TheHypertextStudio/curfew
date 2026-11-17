@@ -192,6 +192,7 @@ struct SettingsView: View {
             warningPanel
         case .restScreen:
             RestScreenSettingsView()
+        case .sunrise: SunriseSettingsView()
         case .presence:
             presencePanel
         case .shutdown:
