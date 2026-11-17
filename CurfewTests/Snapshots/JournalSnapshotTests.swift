@@ -92,15 +92,23 @@
             }
             for (appearance, suffix) in [(NSAppearance.Name.aqua, "light"), (.darkAqua, "dark")] {
                 try renderYearReview(
-                    review, named: "journal-year-review-\(suffix)", height: 680,
+                    JournalYearReviewView(review: review),
+                    named: "journal-year-review-\(suffix)", height: 760, appearance: appearance
+                )
+                try renderYearReview(
+                    JournalYearReviewStage(card: card, showsLift: true),
+                    named: "journal-year-review-lifted-\(suffix)", height: 760,
                     appearance: appearance
                 )
             }
-            let few = JournalYearReview(
-                records: Array(records.suffix(6)), period: period, today: now, format: format
-            )
-            try renderYearReview(
-                few, named: "journal-year-review-too-few-light", height: 140, appearance: .aqua
+            let few = Array(records.suffix(6))
+            try renderJournalPage(
+                JournalScreen(
+                    records: few, period: period, today: now,
+                    workingWeekdays: [.monday, .tuesday, .wednesday, .thursday, .friday],
+                    format: format
+                ),
+                named: "journal-year-too-few-light", height: 2450
             )
 
             let png = try await JournalYearReviewImage(card: card).pngData()
@@ -113,9 +121,9 @@
             )
         }
 
-        /// The year in review section as it sits at the end of the year range.
+        /// The year in review section as it leads the year range.
         private func renderYearReview(
-            _ review: JournalYearReview,
+            _ content: some View,
             named name: String,
             height: CGFloat,
             appearance: NSAppearance.Name
@@ -124,9 +132,10 @@
                 Text("Year in review")
                     .journalFont(.section)
                     .foregroundStyle(JournalStyle.ink)
-                JournalYearReviewView(review: review)
+                content
             }
             .padding(24)
+            .padding(.top, 28)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .background(JournalStyle.page)
             .environment(\.colorScheme, appearance == .darkAqua ? .dark : .light)
