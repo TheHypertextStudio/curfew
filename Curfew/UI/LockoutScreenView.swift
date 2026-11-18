@@ -322,10 +322,12 @@ struct NightPanelSurface: ViewModifier {
             if reduceTransparency {
                 content.background(fill.opacity(0.94), in: shape)
             } else {
-                content.glassEffect(
-                    .regular.tint(fill.opacity(0.55)),
-                    in: shape
-                )
+                // The glass sits behind the panel rather than around it, so
+                // a click still reaches the close-out's text field and gives
+                // it keyboard focus.
+                content.background {
+                    Color.clear.glassEffect(.regular.tint(fill.opacity(0.55)), in: shape)
+                }
             }
         }
         .overlay {

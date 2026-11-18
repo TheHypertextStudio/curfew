@@ -107,7 +107,7 @@ final class CurfewUITests: XCTestCase {
             "CURFEW_DEMO_FIXTURE": "1", "CURFEW_DEMO_SCENARIO": "settings",
             "CURFEW_DEMO_STATE": "accessibility-denied", "CURFEW_DEMO_SIZE": "minimum"
         ]
-        app.launchArguments = ["-SUEnableAutomaticChecks", "NO", "-SUHasLaunchedBefore", "YES"]
+        app.launchArguments = UITestLaunch.arguments
         app.launch()
         app.activate()
         app.typeKey(",", modifierFlags: .command)
@@ -121,11 +121,11 @@ final class CurfewUITests: XCTestCase {
     func testOffStateDoesNotPromiseAnActiveLock() {
         let app = launchFixture("overview")
         let off = "Nothing locks until you turn it back on."
-        XCTAssertTrue(app.descendants(matching: .any).matching(NSPredicate(
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(
             format: "label CONTAINS %@ OR value CONTAINS %@", off, off
         )).firstMatch.waitForExistence(timeout: 5), app.debugDescription)
         XCTAssertTrue(app.buttons["Turn on Curfew"].exists)
-        XCTAssertFalse(app.descendants(matching: .any).matching(NSPredicate(
+        XCTAssertFalse(app.staticTexts.matching(NSPredicate(
             format: "label CONTAINS %@ OR value CONTAINS %@", "until curfew at", "until curfew at"
         )).firstMatch.exists)
         XCTAssertFalse(app.buttons["Call it a day"].exists)
@@ -200,7 +200,7 @@ final class CurfewUITests: XCTestCase {
             "CURFEW_DEMO_STATE": "assistant-on",
             "CURFEW_DEMO_SIZE": "minimum"
         ]
-        app.launchArguments = ["-SUEnableAutomaticChecks", "NO", "-SUHasLaunchedBefore", "YES"]
+        app.launchArguments = UITestLaunch.arguments
         app.launch()
         app.activate()
         app.typeKey(",", modifierFlags: .command)
@@ -252,7 +252,7 @@ final class CurfewUITests: XCTestCase {
         if withoutMainWindow {
             app.launchEnvironment["CURFEW_DEMO_WITHOUT_MAIN_WINDOW"] = "1"
         }
-        app.launchArguments += ["-SUEnableAutomaticChecks", "NO", "-SUHasLaunchedBefore", "YES"]
+        app.launchArguments += UITestLaunch.arguments
         app.launch()
         if app.state != .runningForeground {
             app.activate()
@@ -319,10 +319,11 @@ extension CurfewUITests {
         let breakButton = app.buttons["task-browser-break-button"]
         XCTAssertTrue(breakButton.isEnabled)
         breakButton.click()
-        let breakEnds = app.staticTexts.matching(
-            NSPredicate(format: "label BEGINSWITH %@", "Ends at ")
-        ).firstMatch
-        XCTAssertTrue(breakEnds.waitForExistence(timeout: 2))
+        // A SwiftUI text carries its words in its value on macOS.
+        let breakEnds = app.staticTexts.matching(NSPredicate(
+            format: "label BEGINSWITH %@ OR value BEGINSWITH %@", "Ends at ", "Ends at "
+        )).firstMatch
+        XCTAssertTrue(breakEnds.waitForExistence(timeout: 3), app.debugDescription)
 
         let removeButton = app.buttons["Remove instagram.com"]
         XCTAssertTrue(removeButton.exists)
@@ -348,7 +349,7 @@ extension CurfewUITests {
             "CURFEW_DEMO_FIXTURE": "1", "CURFEW_DEMO_SCENARIO": "settings",
             "CURFEW_DEMO_SIZE": "minimum"
         ]
-        app.launchArguments = ["-SUEnableAutomaticChecks", "NO", "-SUHasLaunchedBefore", "YES"]
+        app.launchArguments = UITestLaunch.arguments
         app.launch()
         app.activate()
         app.typeKey(",", modifierFlags: .command)

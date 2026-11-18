@@ -253,7 +253,7 @@ extension MarketingCaptureTests {
             "CURFEW_DEMO_APPEARANCE": appearance,
             "CURFEW_DEMO_SIZE": size
         ]
-        app.launchArguments = ["-SUEnableAutomaticChecks", "NO", "-SUHasLaunchedBefore", "YES"]
+        app.launchArguments = UITestLaunch.arguments
         app.launch()
         app.activate()
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 8))

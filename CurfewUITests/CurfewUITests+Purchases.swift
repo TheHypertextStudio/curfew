@@ -8,7 +8,7 @@ extension CurfewUITests {
             "CURFEW_DEMO_FIXTURE": "1", "CURFEW_DEMO_SCENARIO": "settings",
             "CURFEW_DEMO_STATE": "license-expired"
         ]
-        app.launchArguments = ["-SUEnableAutomaticChecks", "NO", "-SUHasLaunchedBefore", "YES"]
+        app.launchArguments = UITestLaunch.arguments
         app.launch()
         let manualEntry = app.buttons["Enter a license key"]
         XCTAssertTrue(manualEntry.waitForExistence(timeout: 3))

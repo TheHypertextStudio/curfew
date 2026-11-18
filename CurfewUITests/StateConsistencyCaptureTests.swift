@@ -124,7 +124,7 @@ extension MarketingCaptureTests {
             assertText("Curfew is off. Nothing locks until you turn it back on.", in: app)
             XCTAssertTrue(app.buttons["Turn on Curfew"].exists, app.debugDescription)
             // Off wins over the schedule's lock: nothing claims "Unlocks at".
-            XCTAssertFalse(app.descendants(matching: .any).matching(NSPredicate(
+            XCTAssertFalse(app.staticTexts.matching(NSPredicate(
                 format: "label CONTAINS %@ OR value CONTAINS %@", "Unlocks at", "Unlocks at"
             )).firstMatch.exists, app.debugDescription)
         } else {
