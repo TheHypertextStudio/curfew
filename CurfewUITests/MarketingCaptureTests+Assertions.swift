@@ -6,7 +6,9 @@ extension MarketingCaptureTests {
     // swiftlint:disable:next cyclomatic_complexity
     func assertWorkspaceState(_ state: String, in app: XCUIApplication) {
         switch state {
-        case "schedule-pending": assertText("Scheduled change", in: app)
+        case "schedule-pending":
+            assertText("Waiting to apply", in: app)
+            assertText("Your later curfew starts", in: app)
         case "schedule-applied": assertText("Schedule change applied.", in: app)
         case "schedule-overnight":
             let value = app.datePickers.firstMatch.value as? String ?? ""
@@ -14,12 +16,11 @@ extension MarketingCaptureTests {
                 value.contains("8") || value.contains("20"),
                 "Unexpected overnight time: \(value)"
             )
-        case "day-off": assertText("No curfew scheduled today.", in: app)
         case "accessibility-denied": assertText("Accessibility", in: app)
         case "journal-populated": assertText("When you stopped", in: app)
         case "prompts-empty":
+            XCTAssertTrue(app.buttons["Add a question"].firstMatch.waitForExistence(timeout: 3))
             XCTAssertEqual(app.textFields.count, 0)
-            XCTAssertTrue(app.buttons["Add prompt"].firstMatch.exists)
         case "override-cooldown":
             XCTAssertTrue(app.staticTexts["override-cooldown"].exists)
             XCTAssertFalse(app.buttons["override-hold-confirm"].isEnabled)
@@ -65,12 +66,13 @@ extension MarketingCaptureTests {
             "ready": "Keyboard shortcut blocking is available",
             "accessibility-denied": "Keyboard shortcut blocking is unavailable",
             "tap-down": "Keyboard shortcut blocking was interrupted",
-            "helper-approval": "Approval needed",
-            "helper-unauthorized": "Can't verify Curfew",
-            "helper-stale": "Connection interrupted",
-            "helper-registration": "Installation failed",
-            "login-approval": "Approve in System Settings",
-            "assistant-pending": "Review Request",
+            // The Curfew helper row states each helper problem once.
+            "helper-approval": "allow the Curfew helper in Login Items",
+            "helper-unauthorized": "This Mac doesn't trust the Curfew helper right now.",
+            "helper-stale": "The Curfew helper stopped answering.",
+            "helper-registration": "The Curfew helper didn't finish installing.",
+            "login-approval": "allow the Curfew helper in Login Items",
+            "assistant-pending": "Review request…",
             "claude-configured": "Added to Claude Desktop",
             "license-invalid": "That key isn't valid",
             "license-lifetime": "Lifetime", "license-subscription": "active until",

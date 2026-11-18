@@ -214,15 +214,17 @@ Account consistency captures add `account-offline`, `account-sign-in-required`, 
 Additional account cases `account-update-failed` and `account-helper-hidden` verify that local failures do not claim removed access, and unavailable features do not direct users to hidden controls. Both appearances and window sizes are captured remotely.
 
 Menu-bar captures use `testCaptureMenuBar` on the isolated runner. They click the
-accessible native status item, require `curfew-menu-popover` and “Open Curfew,” and
-check the fixed 320-point width before attachment. The status item's accessibility
+accessible native status item, require `curfew-menu-popover`, “Open Curfew” and
+“Settings,” and check the fixed 340-point width (`ContentView.width`, the square
+sky) before attachment. The status item's accessibility
 value is the same live status shown in the popover. Never substitute a desktop
 capture or a separately hosted copy of the view. The shared scrim change is
 presentation-only and can be reverted without changing stored settings or services.
 
 An explicit off-plus-warning fixture keeps the scheduled extension flag true while
 Curfew remains disarmed. Both remote interaction and capture assertions require
-the menu to say “Curfew is off” and offer no extension action, preventing an
+the menu to say “Curfew is off.”, offer “Turn on Curfew” and offer no “15 more
+minutes,” preventing an
 inapplicable menu action from consuming the weekly budget.
 
 Remote capture regression: locked evaluations retain a zero-minute display value.

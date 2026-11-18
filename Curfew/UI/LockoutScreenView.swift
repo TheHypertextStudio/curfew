@@ -245,8 +245,8 @@ struct LockoutScreenView: View {
             .contentTransition(.numericText())
             .scaleEffect(0.9 + 0.1 * clockProgress)
             .animation(reduceMotion ? nil : .snappy(duration: 0.28), value: numerals)
-            .accessibilityElement(children: .ignore)
             .accessibilityLabel(now.formatted(date: .omitted, time: .shortened))
+            .accessibilityAddTraits(.isStaticText)
             .accessibilityFocused($clockFocused)
             .accessibilityIdentifier("rest-clock")
     }
@@ -322,10 +322,12 @@ struct NightPanelSurface: ViewModifier {
             if reduceTransparency {
                 content.background(fill.opacity(0.94), in: shape)
             } else {
-                content.glassEffect(
-                    .regular.tint(fill.opacity(0.55)),
-                    in: shape
-                )
+                // The glass sits behind the panel rather than around it, so
+                // a click still reaches the close-out's text field and gives
+                // it keyboard focus.
+                content.background {
+                    Color.clear.glassEffect(.regular.tint(fill.opacity(0.55)), in: shape)
+                }
             }
         }
         .overlay {

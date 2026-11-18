@@ -249,12 +249,12 @@ Final recovery-copy review: Today’s off state describes following the local sc
 
 ### Menu-bar contrast and actual popover coverage
 
-The menu-bar countdown now uses the same tested text scrim and supporting-text
-role as Today. Completed setup offers “Review Setup”; unfinished setup offers
-“Finish Setup.” The status item exposes its current status to accessibility.
+The menu-bar popover carries Today's countdown over the same sky, then the rows
+“Open Curfew,” “Settings” and “Quit Curfew”; setup is reviewed from Settings, not
+the popover. The status item exposes its current status to accessibility.
 These changes do not alter enforcement or extension behavior.
 
-Remote UI checks open the actual status item and assert its identified 320-point
+Remote UI checks open the actual status item and assert its identified 340-point
 popover before capture. Light/dark captures cover ready, missing permission,
 interrupted keyboard protection, and helper verification failure. The popover has
 one fixed width, so workspace minimum/default resizing does not apply. No desktop

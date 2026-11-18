@@ -83,7 +83,7 @@ test('native history routes preserve all prior documents', async () => {
 
 test('local MCP disclosure includes schedules, budgets, activity and device-attributed summaries', async () => {
   const privacy = await content('privacy');
-  const disclosure = privacy.match(/<p>When you connect an assistant on your Mac.*?<\/p>/)?.[0];
+  const disclosure = privacy.match(/<p>\s*When you connect an assistant on your Mac.*?<\/p>/)?.[0];
   assert.ok(disclosure, 'local assistant disclosure exists');
   for (const category of [
     /schedules/,

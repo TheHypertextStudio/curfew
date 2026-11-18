@@ -158,9 +158,12 @@ struct TodayHero: View {
                 }
             }
 
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel(presentation.spokenTime)
-            .accessibilityAddTraits(.updatesFrequently)
+            // One static text for the headline and its line, so VoiceOver
+            // and the accessibility audit read it as text, not a bare group.
+            .accessibilityRepresentation {
+                Text(presentation.spokenTime)
+                    .accessibilityAddTraits(.updatesFrequently)
+            }
             .accessibilitySortPriority(3)
 
             TodayActions(

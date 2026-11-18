@@ -44,7 +44,9 @@ final class CurfewUITests: XCTestCase {
         entry.tap()
         XCTAssertTrue(app.textViews["override-reason"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.staticTexts["override-cooldown"].exists)
-        XCTAssertTrue(app.staticTexts["Minimum 50 characters"].exists)
+        let progress = app.staticTexts["override-progress"]
+        XCTAssertTrue(progress.exists)
+        XCTAssertEqual(progress.value as? String, "0 of 50 characters")
         let hold = app.buttons["override-hold-confirm"]
         XCTAssertTrue(hold.exists)
         XCTAssertFalse(hold.isEnabled, "Hold confirmation must stay disabled during cooldown.")
@@ -60,8 +62,7 @@ final class CurfewUITests: XCTestCase {
         XCTAssertFalse(app.staticTexts["Calendar"].exists)
         XCTAssertFalse(app.staticTexts["iCloud sync"].exists)
         app.descendants(matching: .any)["settings-category-general"].click()
-        XCTAssertTrue(app.staticTexts["Background protection"].waitForExistence(timeout: 3))
-        XCTAssertTrue(app.disclosureTriangles["Troubleshooting"].exists)
+        assertHelperFailureIsStated(in: app)
     }
 
     @MainActor
@@ -71,7 +72,7 @@ final class CurfewUITests: XCTestCase {
         XCTAssertTrue(general.waitForExistence(timeout: 8))
         let limits = app.descendants(matching: .any)["settings-category-enforcement"]
         limits.click()
-        XCTAssertTrue(app.staticTexts["Extensions and Overrides"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["More time and overrides"].waitForExistence(timeout: 3))
         app.descendants(matching: .any)["settings-category-integrations"].click()
         XCTAssertTrue(app.staticTexts["AI assistants"].waitForExistence(timeout: 3))
         XCTAssertFalse(app.staticTexts["MCP Control Plane"].exists)
@@ -106,7 +107,7 @@ final class CurfewUITests: XCTestCase {
             "CURFEW_DEMO_FIXTURE": "1", "CURFEW_DEMO_SCENARIO": "settings",
             "CURFEW_DEMO_STATE": "accessibility-denied", "CURFEW_DEMO_SIZE": "minimum"
         ]
-        app.launchArguments = ["-SUEnableAutomaticChecks", "NO", "-SUHasLaunchedBefore", "YES"]
+        app.launchArguments = UITestLaunch.arguments
         app.launch()
         app.activate()
         app.typeKey(",", modifierFlags: .command)
@@ -119,17 +120,15 @@ final class CurfewUITests: XCTestCase {
     @MainActor
     func testOffStateDoesNotPromiseAnActiveLock() {
         let app = launchFixture("overview")
-        XCTAssertTrue(app.staticTexts.containing(NSPredicate(
-            format: "label CONTAINS %@ OR value CONTAINS %@",
-            "Scheduled unlock",
-            "Scheduled unlock"
-        ))
-        .firstMatch.waitForExistence(timeout: 5))
-        XCTAssertFalse(app.staticTexts.containing(NSPredicate(
-            format: "label CONTAINS %@",
-            "until your Mac locks"
-        ))
-        .firstMatch.exists)
+        let off = "Nothing locks until you turn it back on."
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(
+            format: "label CONTAINS %@ OR value CONTAINS %@", off, off
+        )).firstMatch.waitForExistence(timeout: 5), app.debugDescription)
+        XCTAssertTrue(app.buttons["Turn on Curfew"].exists)
+        XCTAssertFalse(app.staticTexts.matching(NSPredicate(
+            format: "label CONTAINS %@ OR value CONTAINS %@", "until curfew at", "until curfew at"
+        )).firstMatch.exists)
+        XCTAssertFalse(app.buttons["Call it a day"].exists)
     }
 
     @MainActor
@@ -201,7 +200,7 @@ final class CurfewUITests: XCTestCase {
             "CURFEW_DEMO_STATE": "assistant-on",
             "CURFEW_DEMO_SIZE": "minimum"
         ]
-        app.launchArguments = ["-SUEnableAutomaticChecks", "NO", "-SUHasLaunchedBefore", "YES"]
+        app.launchArguments = UITestLaunch.arguments
         app.launch()
         app.activate()
         app.typeKey(",", modifierFlags: .command)
@@ -253,7 +252,7 @@ final class CurfewUITests: XCTestCase {
         if withoutMainWindow {
             app.launchEnvironment["CURFEW_DEMO_WITHOUT_MAIN_WINDOW"] = "1"
         }
-        app.launchArguments += ["-SUEnableAutomaticChecks", "NO", "-SUHasLaunchedBefore", "YES"]
+        app.launchArguments += UITestLaunch.arguments
         app.launch()
         if app.state != .runningForeground {
             app.activate()
@@ -310,16 +309,21 @@ extension CurfewUITests {
         )
 
         XCTAssertTrue(app.staticTexts["Websites during work"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Complete LVBT social strategy"].exists)
+        XCTAssertTrue(app.staticTexts["Active task: Complete LVBT social strategy"].exists)
         XCTAssertTrue(app.staticTexts["instagram.com"].exists)
 
-        let enforcementToggle = app.switches["task-browser-enforcement-toggle"]
+        // Settings switch rows read as checkboxes to XCUITest.
+        let enforcementToggle = app.checkBoxes["task-browser-enforcement-toggle"]
         XCTAssertTrue(enforcementToggle.isEnabled)
 
         let breakButton = app.buttons["task-browser-break-button"]
         XCTAssertTrue(breakButton.isEnabled)
         breakButton.click()
-        XCTAssertTrue(app.staticTexts["Break ends"].waitForExistence(timeout: 2))
+        // A SwiftUI text carries its words in its value on macOS.
+        let breakEnds = app.staticTexts.matching(NSPredicate(
+            format: "label BEGINSWITH %@ OR value BEGINSWITH %@", "Ends at ", "Ends at "
+        )).firstMatch
+        XCTAssertTrue(breakEnds.waitForExistence(timeout: 3), app.debugDescription)
 
         let removeButton = app.buttons["Remove instagram.com"]
         XCTAssertTrue(removeButton.exists)
@@ -331,7 +335,7 @@ extension CurfewUITests {
         let app = launchFixture("settings", state: "ready")
         app.descendants(matching: .any)["settings-category-integrations"].click()
         let explanation = "While enabled, local assistants can read your Curfew status, "
-            + "schedule, activity, and reflection text. They cannot end lockout or turn off Curfew."
+            + "schedule, activity, and reflection text. They can't end the lock or turn off Curfew."
         let readAccess = app.staticTexts.matching(NSPredicate(
             format: "label == %@ OR value == %@", explanation, explanation
         )).firstMatch
@@ -345,7 +349,7 @@ extension CurfewUITests {
             "CURFEW_DEMO_FIXTURE": "1", "CURFEW_DEMO_SCENARIO": "settings",
             "CURFEW_DEMO_SIZE": "minimum"
         ]
-        app.launchArguments = ["-SUEnableAutomaticChecks", "NO", "-SUHasLaunchedBefore", "YES"]
+        app.launchArguments = UITestLaunch.arguments
         app.launch()
         app.activate()
         app.typeKey(",", modifierFlags: .command)
@@ -355,15 +359,15 @@ extension CurfewUITests {
         let review = app.buttons["Review setup…"]
         XCTAssertTrue(review.exists)
         XCTAssertLessThan(review.frame.maxY, window.frame.maxY - 12)
-        XCTAssertFalse(app.staticTexts["The Curfew helper needs attention."].exists)
-        XCTAssertTrue(app.disclosureTriangles["Troubleshooting"].exists)
+        XCTAssertFalse(app.staticTexts["The Curfew helper needs attention"].exists)
+        assertHelperFailureIsStated(in: app)
     }
 
     func testSettingsSidebarSupportsArrowKeys() {
         let app = launchFixture("settings", state: "ready")
         app.descendants(matching: .any)["settings-category-general"].click()
         app.typeKey(.downArrow, modifierFlags: [])
-        XCTAssertTrue(app.staticTexts["Extensions and Overrides"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["More time and overrides"].waitForExistence(timeout: 3))
         app.typeKey(.upArrow, modifierFlags: [])
         XCTAssertTrue(app.staticTexts["Accessibility"].waitForExistence(timeout: 3))
     }
@@ -371,7 +375,7 @@ extension CurfewUITests {
     func testManageAIAccessAlwaysOpensConnections() {
         let app = launchFixture("this-week")
         app.buttons["journal-edit-prompts"].firstMatch.click()
-        let manage = app.buttons["Manage AI Access…"]
+        let manage = app.buttons["Manage AI access…"]
         XCTAssertTrue(manage.waitForExistence(timeout: 3))
         app.scrollViews.allElementsBoundByIndex.max {
             $0.frame.width < $1.frame.width

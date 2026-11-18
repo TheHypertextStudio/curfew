@@ -23,13 +23,17 @@ extension CurfewUITests {
             "curfew-rest-settings.png"
         ))
         XCTAssertTrue(app.popUpButtons["rest-background-choice"].exists)
-        XCTAssertTrue(app.popUpButtons["rest-palette-choice"].exists)
-        XCTAssertTrue(app.popUpButtons["rest-clock-style"].exists)
-        XCTAssertTrue(app.popUpButtons["rest-clock-position"].exists)
-        XCTAssertTrue(app.textFields["rest-personal-message"].exists)
-        let detail = app.descendants(matching: .any)["settings-page-restScreen"]
-        let sharing = app.switches["rest-saver-message"]
-        assertOff(sharing, revealingIn: detail)
+        let controls = ["sundown", "warmAmber", "coolTwilight"].map { "rest-palette-\($0)" }
+            + ["rounded", "standard", "serif"].map { "rest-clock-style-\($0)" }
+            + ["default", "gentle", "playful"].map { "rest-voice-\($0)" }
+            + ["rest-clock-position", "rest-own-words"]
+        for identifier in controls {
+            XCTAssertTrue(app.descendants(matching: .any)[identifier].exists, identifier)
+        }
+        // No line is in the person's own words yet, so the screen saver is offered none:
+        // its consent checkbox appears only beside a rewritten lock line.
+        XCTAssertTrue(app.staticTexts["Rewrite the lines that carry the voice."].exists)
+        XCTAssertFalse(app.descendants(matching: .any)["rest-saver-message"].exists)
     }
 
     func testSunriseSettingsStartWithWakeOff() {

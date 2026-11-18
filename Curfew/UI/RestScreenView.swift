@@ -138,6 +138,27 @@ struct RestScreenView: View {
         return LockSceneSky.blend(start, night, amount: scene.timeline.sky(at: date))
     }
 
+    /// The lock's words and controls, beside the sky rather than inside its
+    /// per-frame timeline, so a sky frame never redraws the close-out or the
+    /// override composer while someone types in them. Their own timeline runs
+    /// only while the arrival plays.
+    private var lock: some View {
+        let arriving = preview == nil && scene.timeline.stage(at: Date()) == .arriving
+        return TimelineView(.animation(paused: !arriving || !display.isVisible)) { context in
+            let date = preview?.now ?? (model.isDemoSession ? model.currentTime : context.date)
+            LockoutScreenView(
+                scene: preview == nil ? scene : nil,
+                date: preview == nil ? scene.timeline.wordsDate(at: date) : date,
+                preview: preview
+            )
+        }
+        .environment(model)
+        .opacity(isAmbient ? 0 : 1)
+        .accessibilityHidden(isAmbient)
+        .allowsHitTesting(interactive)
+        .ignoresSafeArea()
+    }
+
     private var morningClock: some View {
         Text(model.currentTime, style: .time)
             .font(.system(size: 64, weight: .semibold, design: clockDesign))
@@ -173,19 +194,11 @@ struct RestScreenView: View {
                             isDayRunning: drifts
                         )
                     }
-                    .overlay {
-                        if !showsMorning {
-                            LockoutScreenView(
-                                scene: preview == nil ? scene : nil, date: date, preview: preview
-                            )
-                            .environment(model)
-                            .opacity(isAmbient ? 0 : 1)
-                            .accessibilityHidden(isAmbient)
-                            .allowsHitTesting(interactive)
-                        }
-                    }
                 }
                 .ignoresSafeArea()
+                if !showsMorning {
+                    lock
+                }
                 if showsMorning {
                     morning(in: geometry.size)
                 }
@@ -257,6 +270,13 @@ struct RestScreenView: View {
     /// sleep or a screen saver, fade in from black so a stale frame never shows.
     private func reveal() async {
         guard preview == nil, display.revealGeneration > 0, display.isVisible else { return }
+        // A demo draws the scene on its own clock, which may stand still, so
+        // its lock is shown settled rather than arriving: the same at any hour.
+        if model.isDemoSession {
+            scene.settle(at: model.currentTime)
+            coverOpacity = 0
+            return
+        }
         let now = Date()
         if scene.timeline.stage(at: now) == .waitingToBeSeen
             || scene.timeline.stage(at: now) == .arriving {
