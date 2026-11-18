@@ -33,11 +33,23 @@ extension CurfewUITests {
                 return true
             }
             if context == "uncovered-workspace", issue.auditType == .contrast,
-               issue.detailedDescription.contains("nights in a row") {
+               issue.detailedDescription.contains("nights in a row")
+               || Self.isSkyTextMeasuredElsewhere(issue.detailedDescription) {
                 return true
             }
             return false
         }
+    }
+
+    /// Text over Today's sky that the audit's sampling cannot judge. The
+    /// sidebar's labels are the system's vibrant text on the system sidebar
+    /// glass, which adapts to the sky extended beneath it. Today's headline is
+    /// measured against the rendered sky in every palette through the day by
+    /// `TodaySkyLegibilityTests`.
+    private static func isSkyTextMeasuredElsewhere(_ description: String) -> Bool {
+        let sidebar = ["Today", "Schedule", "Journal"].map { "Contrast failed for \($0)" }
+        return sidebar.contains(description)
+            || description.hasPrefix("Contrast failed for Curfew is off.")
     }
 
     private func attachRestAuditIssue(_ issue: XCUIAccessibilityAuditIssue, context: String) {
