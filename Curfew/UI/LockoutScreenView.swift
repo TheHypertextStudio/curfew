@@ -301,7 +301,17 @@ struct LockoutScreenView: View {
     private func announce() {
         guard preview == nil, model.isEnforcingLockout else { return }
         AccessibilityNotification.Announcement(content.accessibilitySummary).post()
-        clockFocused = true
+        clockFocused = Self.clockTakesFocus(
+            closeOutPending: model.reflectionState.isEveningReflectionPending,
+            composerVisible: model.isOverrideComposerVisible
+        )
+    }
+
+    /// The clock takes VoiceOver focus only when nothing on the lock waits for
+    /// words. Holding it on the clock while the close-out or the override
+    /// composer is open kept a click from focusing their text field.
+    static func clockTakesFocus(closeOutPending: Bool, composerVisible: Bool) -> Bool {
+        !closeOutPending && !composerVisible
     }
 }
 

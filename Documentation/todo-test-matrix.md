@@ -2866,3 +2866,4 @@ The website acceptance suite follows the homepage, release archive, and download
   - `CurfewHelperStatusTests/"A helper or login item awaiting approval asks for it even without a restart agent"`
   - `MarketingCaptureTests/testCaptureDistinctSettingsStates` (helper-approval, login-approval)
   - `CloseOutClickTests` (a click on the answer lands on its text view)
+  - `LockTransitionTests/"The clock takes VoiceOver focus only when nothing on the lock waits for words"`
