@@ -2867,3 +2867,4 @@ The website acceptance suite follows the homepage, release archive, and download
   - `MarketingCaptureTests/testCaptureDistinctSettingsStates` (helper-approval, login-approval)
   - `CloseOutClickTests` (a click on the answer lands on its text view)
   - `LockTransitionTests/"The clock takes VoiceOver focus only when nothing on the lock waits for words"`
+  - `CloseOutClickTests/"The close-out's first written question takes focus when it appears"`
