@@ -101,6 +101,14 @@ struct ReflectionFormView: View {
             }
         }
         .frame(maxWidth: 560, alignment: .leading)
+        // Typing starts at once, as in the override composer and Sunrise.
+        .onAppear { focusedPrompt = Self.firstWrittenPromptID(visiblePrompts) }
+    }
+
+    /// The first question answered in words, which takes focus when the form
+    /// appears; nil when every question is a rating or a mood.
+    static func firstWrittenPromptID(_ prompts: [ReflectionPrompt]) -> UUID? {
+        prompts.first { $0.kind == .text }?.id
     }
 
     /// Shown instead of a dead form when every prompt for this gate has been

@@ -42,6 +42,14 @@ struct CloseOutClickTests {
         )
     }
 
+    @Test("The close-out's first written question takes focus when it appears")
+    func firstWrittenQuestionTakesFocus() {
+        let rating = ReflectionPrompt(text: "How did today go?", kind: .rating)
+        let written = ReflectionPrompt(text: "What would you leave for tomorrow?", kind: .text)
+        #expect(ReflectionFormView.firstWrittenPromptID([rating, written]) == written.id)
+        #expect(ReflectionFormView.firstWrittenPromptID([rating]) == nil)
+    }
+
     private static func firstTextView(in view: NSView) -> NSTextView? {
         if let textView = view as? NSTextView {
             return textView
