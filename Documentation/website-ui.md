@@ -45,3 +45,11 @@ email-first recovery flow and introduces recovery codes only after a user
 selects that available method. Roll back this routing change with the previous
 landing and docs commit. This does not change authentication or device
 enforcement.
+
+The home page publishes schema.org structured data: a `SoftwareApplication`
+for the free macOS app and a `FAQPage`. `landing/src/lib/structured-data.mjs`
+builds the FAQ from the page's own `<details>` blocks, so an edited answer
+updates the structured data with it. Only the home page publishes the graph,
+because search engines require FAQ data to match visible content. Add a paid
+offer only once Curfew Plus is on sale. `landing/tests/unit/structured-data.test.mjs`
+checks the graph against the page.

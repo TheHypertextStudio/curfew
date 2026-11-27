@@ -2,6 +2,7 @@
 import { footer, header, symbols } from '../../public/site-assets/design/components.mjs';
 import { labelPolicyTables } from '../lib/policy-tables.mjs';
 import { stylesheet } from '../lib/stylesheet-url.mjs';
+import { homeStructuredData } from '../lib/structured-data.mjs';
 
 interface Props {
   title: string;
@@ -15,6 +16,8 @@ const siteOrigin = Astro.site!.origin;
 const content = rawContent
   ?.replaceAll('{{SITE_ORIGIN}}', siteOrigin)
   .replaceAll('/design/', '/site-assets/design/');
+// Only the home page shows the FAQ, so only the home page may describe it.
+const structuredData = home && content ? homeStructuredData({ siteOrigin, content }) : undefined;
 ---
 
 <!doctype html>
@@ -45,6 +48,7 @@ const content = rawContent
     <script is:inline src="/site-assets/design/theme.js" defer></script>
     <script is:inline type="module" src="/site-assets/design/landscape.js"></script>
     <script is:inline type="module" src="/site-assets/design/motion.js"></script>
+    {structuredData && <script is:inline type="application/ld+json" set:html={structuredData} />}
     <slot name="head" />
   </head>
   <body class={home ? 'home-page' : undefined}>
