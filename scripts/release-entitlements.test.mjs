@@ -98,6 +98,14 @@ test('both Release executables enable Hardened Runtime for notarization', () => 
   }
 });
 
+test('the shipped copyright notice matches the MIT license in every app configuration', () => {
+  const notices = [...projectFile.matchAll(/INFOPLIST_KEY_NSHumanReadableCopyright = "([^"]*)";/g)];
+  assert.ok(notices.length > 0, 'the app must declare a copyright notice');
+  for (const [, notice] of notices) {
+    assert.equal(notice, '© 2026 Hypertext Studio. MIT licensed.');
+  }
+});
+
 test('Debug test bundles are isolated beneath the development app identity', () => {
   assert.match(
     buildConfigurationBlock('9BD3FBA92F4D4587007B2E95', 'Debug'),

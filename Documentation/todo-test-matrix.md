@@ -1,5 +1,9 @@
 # Todo Test Matrix
 
+## Release copyright notice
+
+`scripts/release-entitlements.test.mjs` requires every `NSHumanReadableCopyright` build setting to read "© 2026 Hypertext Studio. MIT licensed.", matching `LICENSE`. It failed on the Release configuration's "All rights reserved" before the fix.
+
 ## Today and the menu bar
 
 Today and the menu bar popover read one resolved `TodayPresentation`; every string comes from the model's active `VoicePack`. Call it a day begins the lock by writing the same `LockoutDeadlineRecord` a scheduled lock writes and arming the helper with it. `MenuBarPresentationModelTests` was observed failing on the old status strings and the past curfew shown during an override before the change.

@@ -790,7 +790,7 @@
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "Curfew reads today's calendar events to show meetings on the lockout screen and warn you when a meeting overlaps your scheduled lockout. Curfew never edits your calendar.";
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "Curfew reads today's calendar events to show meetings on the lockout screen and warn you when a meeting overlaps your scheduled lockout. Curfew never edits your calendar.";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Curfew analyses camera frames on this Mac to detect a human shape and estimate your presence. It does not identify people, save images, or send frames elsewhere. You must enable this in Settings.";
-				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 Hypertext Studio. All rights reserved.";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 Hypertext Studio. MIT licensed.";
 				INFOPLIST_KEY_SUFeedURL = "$(CURFEW_APPCAST_URL)";
 				INFOPLIST_KEY_SUPublicEDKey = REPLACE_WITH_SPARKLE_PUBLIC_ED_KEY;
 				LD_RUNPATH_SEARCH_PATHS = (
