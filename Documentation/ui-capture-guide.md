@@ -22,8 +22,12 @@ pull request, and manual `full` runs retain the complete checks.
 The equivalent dedicated-runner command is:
 
 ```sh
-CURFEW_CAPTURE_TEST=testCaptureDistinctSettingsStates just capture
+just capture testCaptureDistinctSettingsStates
 ```
+
+`just capture` accepts any test `MarketingCaptureTests` declares, such as
+`testCaptureOverlays` or `testCaptureWorkspaceMatrix`. CI passes the same name
+through `CURFEW_CAPTURE_TEST`; an argument takes precedence over it.
 
 Native stepper values may be numeric rather than strings. Zero-budget assertions
 compare their numeric value and report the original value on failure.
