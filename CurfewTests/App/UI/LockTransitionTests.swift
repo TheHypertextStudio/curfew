@@ -96,6 +96,13 @@ struct LockTransitionTests {
         #expect(timeline.words(at: settled) == 1)
     }
 
+    @Test("The clock takes VoiceOver focus only when nothing on the lock waits for words")
+    func clockFocusYieldsToInput() {
+        #expect(LockoutScreenView.clockTakesFocus(closeOutPending: false, composerVisible: false))
+        #expect(!LockoutScreenView.clockTakesFocus(closeOutPending: true, composerVisible: false))
+        #expect(!LockoutScreenView.clockTakesFocus(closeOutPending: false, composerVisible: true))
+    }
+
     @Test("Windows leave only after their fade completes")
     func windowStoreFadesBeforeOrderingOut() {
         var completions: [() -> Void] = []
