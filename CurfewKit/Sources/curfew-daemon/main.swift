@@ -98,13 +98,7 @@ private func clearShadow() {
 /// Returns the age (in seconds) of the app-heartbeat file. Missing file
 /// returns `.infinity` so the daemon treats it as a hard staleness.
 private func appHeartbeatAge(now: Date) -> TimeInterval {
-    let url = SharedPaths.appHeartbeat
-    guard let attrs = try? fileManager.attributesOfItem(atPath: url.path),
-          let modified = attrs[.modificationDate] as? Date
-    else {
-        return .infinity
-    }
-    return now.timeIntervalSince(modified)
+    legacyHeartbeatClock.age(heartbeatURL: SharedPaths.appHeartbeat, at: now)
 }
 
 /// Invokes `/sbin/shutdown -h +1` as root. The `+1` gives any open
@@ -253,6 +247,7 @@ private let effects: any DaemonEnforcementEffects = CurfewFlavor.current == .dev
     : SystemDaemonEffects()
 private let observer = DaemonAuditObserver(auditLog: .shared)
 var runtime = DaemonEnforcementRuntime(auditLog: .shared)
+private var legacyHeartbeatClock = LegacyDaemonHeartbeatClock()
 
 private func discoverRemoteCommands() {
     let backendSnapshot = discoveryBackends.synchronize(at: Date())
@@ -313,12 +308,14 @@ private func logEnforcementEvent(
 }
 
 private func evaluatePolicy(
-    status: PrivilegedDaemonStatus, now: Date, requiresAuthenticatedHeartbeat: Bool
+    status: PrivilegedDaemonStatus, now: Date, requiresAuthenticatedHeartbeat: Bool,
+    authenticatedHeartbeatAge: TimeInterval
 ) -> Bool {
     touchDaemonHeartbeat(now: now)
     let record = status.activeRecord
-    let authenticatedAge = status.lastHeartbeatAt.map { now.timeIntervalSince($0) } ?? .infinity
-    let heartbeatAge = requiresAuthenticatedHeartbeat ? authenticatedAge : appHeartbeatAge(now: now)
+    let heartbeatAge = requiresAuthenticatedHeartbeat
+        ? authenticatedHeartbeatAge
+        : appHeartbeatAge(now: now)
     // Read the mirror once: the same policy has to decide both which processes
     // count as live work and how long the resulting hold may last.
     let protectedWorkPolicy = ProtectedWorkPolicy.loadMirror()

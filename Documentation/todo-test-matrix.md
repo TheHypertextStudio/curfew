@@ -1,5 +1,15 @@
 # Todo Test Matrix
 
+## Local supervisor and daemon clock recovery
+
+- `BackgroundServiceHealthTests` covers the remaining, expired and repeated-correction startup grace in `BackgroundServiceManager`.
+- `DaemonHeartbeatClockTests` covers backward corrections, future stamps, missing heartbeats and a fresh-heartbeat control for `DaemonHeartbeatClock`.
+- `DaemonHeartbeatReceiptTests` drives the real `AuthenticatedDaemonService`, control and persistence with an injected clock and temporary files. It checks that repeated-stamp receipts start a fresh grace and that failed authentication or persistence keeps the old age.
+- `LegacyHeartbeatClockTests` covers atomic replacement at the same timestamp, an unchanged file across a rollback and a missing file.
+- `HeartbeatDeliveryPolicyTests` covers the app's delivery cadence: first send, backward correction, the thirty-second boundary and same-instant flood prevention.
+- `PrivilegedDaemonWiringTests` drives the full model through rollbacks below the last send and above it inside the send interval.
+- `DaemonServiceIntegrationTests`, `SunriseDaemonServiceTests` and `SunriseScheduleIndependenceTests` keep their assertions and pass the heartbeat age through the new policy argument.
+
 ## Today and the menu bar
 
 Today and the menu bar popover read one resolved `TodayPresentation`; every string comes from the model's active `VoicePack`. Call it a day begins the lock by writing the same `LockoutDeadlineRecord` a scheduled lock writes and arming the helper with it. `MenuBarPresentationModelTests` was observed failing on the old status strings and the past curfew shown during an override before the change.

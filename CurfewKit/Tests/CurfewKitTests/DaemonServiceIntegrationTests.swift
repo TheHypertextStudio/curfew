@@ -20,7 +20,7 @@ struct DaemonServiceIntegrationTests {
         let service = AuthenticatedDaemonService(
             store: PrivilegedDaemonStateStore(stateURL: url),
             readExternal: { _, _ in remote },
-            evaluate: { _, _, _ in false },
+            evaluate: { _, _, _, _ in false },
             discover: {}
         )
         let policyState = await service.evaluateNow()
@@ -39,7 +39,7 @@ struct DaemonServiceIntegrationTests {
             store: PrivilegedDaemonStateStore(stateURL: directory
                 .appendingPathComponent("state.json")),
             readExternal: { _, _ in nil },
-            evaluate: { _, _, _ in false },
+            evaluate: { _, _, _, _ in false },
             discover: {}
         )
         let now = Date()

@@ -116,7 +116,7 @@ struct SunriseScheduleIndependenceTests {
             cancel: { effects.cancelled.append($0) }
         )
         let service = AuthenticatedDaemonService(
-            store: store, readExternal: { _, _ in nil }, evaluate: { _, _, _ in false },
+            store: store, readExternal: { _, _ in nil }, evaluate: { _, _, _, _ in false },
             discover: {}, sunriseScheduler: scheduler, sunriseOwner: owner,
             sunriseNow: { now }, sunriseOnExternalPower: { true }
         )

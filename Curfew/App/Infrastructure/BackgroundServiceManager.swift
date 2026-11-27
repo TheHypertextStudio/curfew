@@ -18,6 +18,7 @@ final class BackgroundServiceManager: ObservableObject {
     private let healthStore: SupervisorHealthStore
     private let canUnregister: Bool
     private var lastHealthPollAt: Date?
+    private var lastHealthObservationAt: Date?
     private var enabledSince: Date?
     private let retireLegacyGuard: @MainActor () throws -> Void
     private var registrationAttempted = false
@@ -122,10 +123,20 @@ final class BackgroundServiceManager: ObservableObject {
         status = service.status
         guard status == .enabled else {
             enabledSince = nil
+            lastHealthObservationAt = nil
             supervisorLastCheckedAt = nil
             supervisorHealthError = nil
             return
         }
+        if enabledSince == nil {
+            enabledSince = now
+        }
+        if let lastHealthObservationAt, now < lastHealthObservationAt {
+            let correction = now.timeIntervalSince(lastHealthObservationAt)
+            enabledSince = enabledSince?.addingTimeInterval(correction)
+            lastHealthPollAt = lastHealthPollAt?.addingTimeInterval(correction)
+        }
+        lastHealthObservationAt = now
         if let lastHealthPollAt {
             let elapsed = now.timeIntervalSince(lastHealthPollAt)
             if elapsed >= 0, elapsed < 5 {
@@ -133,9 +144,6 @@ final class BackgroundServiceManager: ObservableObject {
             }
         }
         lastHealthPollAt = now
-        if enabledSince == nil {
-            enabledSince = now
-        }
         do {
             guard let record = try healthStore.load() else {
                 supervisorLastCheckedAt = nil

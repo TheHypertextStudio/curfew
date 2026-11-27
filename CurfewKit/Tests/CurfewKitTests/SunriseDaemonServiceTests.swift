@@ -187,7 +187,7 @@ struct SunriseDaemonServiceTests {
             scheduledUnlockAt: now.addingTimeInterval(7200), kind: .remoteCommand
         ) : nil
         let service = AuthenticatedDaemonService(
-            store: store, readExternal: { _, _ in external }, evaluate: { _, _, _ in false },
+            store: store, readExternal: { _, _ in external }, evaluate: { _, _, _, _ in false },
             discover: {}, sunriseScheduler: scheduler, sunriseOwner: owner,
             sunriseNow: { now }, sunriseOnExternalPower: { effects.onExternalPower }
         )

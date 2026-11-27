@@ -13,7 +13,9 @@ public final class AuthenticatedDaemonService: NSObject, CurfewDaemonXPCProtocol
     private var discoveryInFlight = false
     private var shutdownIssued = false
     private let readExternal: (AuthenticatedDaemonControl, Date) -> LockoutDeadlineRecord?
-    private let evaluate: (PrivilegedDaemonStatus, Date, Bool) -> Bool
+    private let evaluate: (PrivilegedDaemonStatus, Date, Bool, TimeInterval) -> Bool
+    private let clock: () -> Date
+    private var heartbeatClock = DaemonHeartbeatClock()
     private let discover: () -> Void
     private let sunriseScheduler: SunriseWakeScheduler?
     private let sunriseOwner: String
@@ -23,8 +25,9 @@ public final class AuthenticatedDaemonService: NSObject, CurfewDaemonXPCProtocol
     public init(
         store: PrivilegedDaemonStateStore = PrivilegedDaemonStateStore(),
         readExternal: @escaping (AuthenticatedDaemonControl, Date) -> LockoutDeadlineRecord?,
-        evaluate: @escaping (PrivilegedDaemonStatus, Date, Bool) -> Bool,
+        evaluate: @escaping (PrivilegedDaemonStatus, Date, Bool, TimeInterval) -> Bool,
         discover: @escaping () -> Void,
+        clock: @escaping () -> Date = Date.init,
         sunriseScheduler: SunriseWakeScheduler? = nil,
         sunriseOwner: String = CurfewFlavor.current.daemonLabel + ".sunrise",
         sunriseNow: @escaping () -> Date = Date.init,
@@ -45,6 +48,7 @@ public final class AuthenticatedDaemonService: NSObject, CurfewDaemonXPCProtocol
         self.readExternal = readExternal
         self.evaluate = evaluate
         self.discover = discover
+        self.clock = clock
         self.sunriseScheduler = sunriseScheduler
         self.sunriseOwner = sunriseOwner
         self.sunriseNow = sunriseNow
@@ -55,7 +59,7 @@ public final class AuthenticatedDaemonService: NSObject, CurfewDaemonXPCProtocol
     public func evaluateNow() async -> PrivilegedDaemonStatus {
         await withCheckedContinuation { continuation in
             queue.async {
-                let now = Date()
+                let now = self.clock()
                 self.evaluatePolicy(now: now)
                 continuation.resume(returning: self.currentStatus(now: now))
             }
@@ -67,14 +71,14 @@ public final class AuthenticatedDaemonService: NSObject, CurfewDaemonXPCProtocol
         timer.schedule(deadline: .now(), repeating: 15)
         timer.setEventHandler { [weak self] in
             guard let self else { return }
-            evaluatePolicy(now: Date())
+            evaluatePolicy(now: clock())
             guard !discoveryInFlight else { return }
             discoveryInFlight = true
             discoveryQueue.async {
                 self.discover()
                 self.queue.async {
                     self.discoveryInFlight = false
-                    self.evaluatePolicy(now: Date())
+                    self.evaluatePolicy(now: self.clock())
                 }
             }
         }
@@ -95,7 +99,7 @@ public final class AuthenticatedDaemonService: NSObject, CurfewDaemonXPCProtocol
     }
 
     public func armLockout(_ request: Data, reply: @escaping (Data?, NSError?) -> Void) {
-        mutate(reply: reply) { control, _, now in
+        mutate(reply: reply, refreshesHeartbeat: true) { control, _, now in
             try control.arm(
                 Self.decoder.decode(LockoutDeadlineRecord.self, from: request),
                 now: now
@@ -104,7 +108,7 @@ public final class AuthenticatedDaemonService: NSObject, CurfewDaemonXPCProtocol
     }
 
     public func heartbeat(_ request: Data, reply: @escaping (Data?, NSError?) -> Void) {
-        mutate(reply: reply) { control, external, now in
+        mutate(reply: reply, refreshesHeartbeat: true) { control, external, now in
             let heartbeat = try Self.decoder.decode(PrivilegedHeartbeatRequest.self, from: request)
             try control.heartbeat(lockoutID: heartbeat.lockoutID, external: external, now: now)
         }
@@ -135,7 +139,7 @@ public final class AuthenticatedDaemonService: NSObject, CurfewDaemonXPCProtocol
                 if let error = self.persistenceError {
                     throw error
                 }
-                try reply(Self.encoder.encode(self.currentStatus(now: Date())), nil)
+                try reply(Self.encoder.encode(self.currentStatus(now: self.clock())), nil)
             } catch { reply(nil, Self.nsError(error)) }
         }
     }
@@ -146,7 +150,7 @@ public final class AuthenticatedDaemonService: NSObject, CurfewDaemonXPCProtocol
                 if let error = self.persistenceError {
                     throw error
                 }
-                let now = Date()
+                let now = self.clock()
                 try self.control.prepareForUninstall(
                     external: self.readExternal(self.control, now),
                     now: now
@@ -162,6 +166,7 @@ public final class AuthenticatedDaemonService: NSObject, CurfewDaemonXPCProtocol
 
     private func mutate(
         reply: @escaping (Data?, NSError?) -> Void,
+        refreshesHeartbeat: Bool = false,
         operation: @escaping (
             inout AuthenticatedDaemonControl,
             LockoutDeadlineRecord?,
@@ -173,13 +178,16 @@ public final class AuthenticatedDaemonService: NSObject, CurfewDaemonXPCProtocol
                 if let error = self.persistenceError {
                     throw error
                 }
-                let now = Date()
+                let now = self.clock()
                 let external = self.readExternal(self.control, now)
                 var candidate = self.control
                 try operation(&candidate, external, now)
                 // Commit authority and release tombstones before acknowledging.
                 try self.store.saveControl(candidate)
                 self.control = candidate
+                if refreshesHeartbeat {
+                    self.heartbeatClock = DaemonHeartbeatClock()
+                }
                 self.evaluatePolicy(now: now)
                 try reply(Self.encoder.encode(self.currentStatus(now: now)), nil)
             } catch { reply(nil, Self.nsError(error)) }
@@ -197,7 +205,8 @@ public final class AuthenticatedDaemonService: NSObject, CurfewDaemonXPCProtocol
     private func evaluatePolicy(now: Date) {
         let status = currentStatus(now: now)
         shutdownIssued = evaluate(
-            status, now, control.usesAuthenticatedHeartbeat(for: status.activeRecord, now: now)
+            status, now, control.usesAuthenticatedHeartbeat(for: status.activeRecord, now: now),
+            heartbeatClock.age(of: status.lastHeartbeatAt, at: now)
         )
     }
 
