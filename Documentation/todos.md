@@ -1,5 +1,16 @@
 # Curfew Implementation TODOs
 
+## Local supervisor and daemon clock recovery
+
+Design: [background enforcement](background-enforcement.md), "Clock recovery". No wire, persisted or XPC shapes change.
+
+- [x] Preserve the missing-supervisor warning grace through backward clock corrections, including repeated corrections inside the five-second health poll.
+- [x] Preserve the daemon heartbeat timeout through observed backward corrections. A future persisted stamp loaded after a restart gets the normal grace, and a committed authenticated arm or heartbeat starts a fresh grace even when the clock repeats its timestamp. Rejected or uncommitted requests never refresh the age. The legacy file path also compares file identity, so an atomic replacement at the same timestamp counts as fresh.
+- [x] Resume app heartbeat delivery immediately after a backward correction, then return to the thirty-second cadence. The app and its tests share one `HeartbeatDeliveryPolicy`.
+- [ ] Verify a backward clock change on a signed build with the installed helper during a real lockout.
+
+Rollback: revert the clock-recovery commit. Raw heartbeat timestamps and persisted state keep their format, so earlier builds read them unchanged.
+
 ## Sunrise gate, steps and hooks
 
 Design: the Horizon launch design, "Sunrise", and [rest experience features](rest-experience-features.md) "Sunrise gate". Steps and the picked Shortcut are local to this Mac; no wire or sync format changes.

@@ -55,14 +55,17 @@ extension CurfewAppModel {
               currentTime < record.scheduledUnlockAt
         else {
             lastPrivilegedHeartbeatAt = nil
+            lastPrivilegedHeartbeatObservationAt = nil
             return
         }
-        if let lastPrivilegedHeartbeatAt,
-           currentTime.timeIntervalSince(lastPrivilegedHeartbeatAt)
-           < Self.privilegedHeartbeatInterval {
-            return
-        }
-        lastPrivilegedHeartbeatAt = currentTime
+        let now = currentTime
+        defer { lastPrivilegedHeartbeatObservationAt = now }
+        guard HeartbeatDeliveryPolicy.shouldSend(
+            lastSentAt: lastPrivilegedHeartbeatAt,
+            lastObservedAt: lastPrivilegedHeartbeatObservationAt, now: now,
+            interval: Self.privilegedHeartbeatInterval
+        ) else { return }
+        lastPrivilegedHeartbeatAt = now
         Task { await privilegedHelperManager.heartbeat(lockoutID: record.lockoutID) }
     }
 

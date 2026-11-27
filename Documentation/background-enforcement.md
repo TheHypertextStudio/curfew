@@ -38,6 +38,14 @@ The first upgrade reconstructs extension and override usage from existing local 
 
 In-app uninstall is refused while the schedule is locked or a durable deadline is still running, with the message "Uninstall is available once curfew lifts." App, shell, and Homebrew uninstall paths unregister recovery before removing state. A failed unregister aborts removal. Successful app uninstall stops the timer, wake observers, keyboard shield, and enforcement ownership before deletion. Homebrew also unregisters during upgrade/reinstall; successful explicit unregister clears the registration-attempt marker so the replacement build can register on launch.
 
+### Clock recovery
+
+A backward clock correction preserves the remaining missing-supervisor startup grace. The app also resumes its authenticated heartbeat immediately after an observed backward correction, then returns to its existing thirty-second cadence, so a corrected daemon never mistakes a live app for a missing one.
+
+The daemon keeps raw receipt timestamps intact and tracks elapsed age separately in `DaemonHeartbeatClock`. An observed backward correction rebases only that age reference. A future stamp loaded after a restart receives the normal grace instead of an immediate action or a timeout stretched by the whole skew. Successful authenticated arm and heartbeat receipts reset the age only after storage commits, even if the timestamp repeats; rejected or uncommitted requests do not. The legacy atomic-file path also checks file identity, so a replacement at the same timestamp counts as fresh. An untrusted legacy file still cannot refresh authenticated authority.
+
+Clock observations are tracked even while delivery or file reads are throttled. A correction inside those intervals cannot refill warning grace or strand a live app heartbeat, and repeated observations at the same instant keep the throttle.
+
 ## Release evidence
 
 The acceptance run must show no ordinary window before lockout, an overlay after the scheduled transition, recovery after both Quit and Force Quit, and cleanup with no later restart. A signed staging run must verify the embedded helper signature and real SMAppService status. Login recovery requires a real logout/login acceptance run; a mocked process list does not prove it.

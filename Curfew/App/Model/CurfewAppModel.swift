@@ -330,6 +330,7 @@ final class CurfewAppModel: NSObject {
 
     /// Last local send/arm time, used to avoid one XPC connection per tick.
     @ObservationIgnored var lastPrivilegedHeartbeatAt: Date?
+    @ObservationIgnored var lastPrivilegedHeartbeatObservationAt: Date?
     // Whether enforcement is armed (the full `tick()` runs); guards `start()`
 
     var started = false

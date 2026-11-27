@@ -51,6 +51,52 @@ struct PrivilegedDaemonWiringTests {
         #expect(rpc.heartbeatIDs == [authoritative.lockoutID])
     }
 
+    @Test("A backward clock correction cannot suppress authenticated heartbeats")
+    func backwardClockDoesNotStrandAuthenticatedHeartbeat() async throws {
+        let now = Date(timeIntervalSince1970: 10000)
+        let record = makeRecord(now: now, duration: 600)
+        let (model, rpc) = makeModel(record: record, now: now)
+        model.lockoutDeadlineStore.save(record)
+        model.currentTime = now
+        model.touchAppHeartbeat()
+        for _ in 0 ..< 1000 where rpc.heartbeatIDs.count < 1 {
+            await Task.yield()
+        }
+        try #require(rpc.heartbeatIDs == [record.lockoutID])
+
+        let corrected = now.addingTimeInterval(-3600)
+        model.currentTime = corrected
+        model.touchAppHeartbeat()
+        for _ in 0 ..< 1000 where rpc.heartbeatIDs.count < 2 {
+            await Task.yield()
+        }
+        #expect(rpc.heartbeatIDs == [record.lockoutID, record.lockoutID])
+        #expect(model.lastPrivilegedHeartbeatAt == corrected)
+    }
+
+    @Test("A correction above the last send cannot starve authenticated delivery")
+    func correctionInsideCadenceWindowStillSendsHeartbeat() async throws {
+        let now = Date(timeIntervalSince1970: 10000)
+        let record = makeRecord(now: now, duration: 600)
+        let (model, rpc) = makeModel(record: record, now: now)
+        model.lockoutDeadlineStore.save(record)
+        model.currentTime = now
+        model.touchAppHeartbeat()
+        for _ in 0 ..< 1000 where rpc.heartbeatIDs.count < 1 {
+            await Task.yield()
+        }
+        try #require(rpc.heartbeatIDs == [record.lockoutID])
+        model.currentTime = now.addingTimeInterval(24)
+        model.touchAppHeartbeat()
+        #expect(rpc.heartbeatIDs == [record.lockoutID])
+        model.currentTime = now.addingTimeInterval(1)
+        model.touchAppHeartbeat()
+        for _ in 0 ..< 1000 where rpc.heartbeatIDs.count < 2 {
+            await Task.yield()
+        }
+        #expect(rpc.heartbeatIDs == [record.lockoutID, record.lockoutID])
+    }
+
     @Test("Active lockout heartbeat is sent at a bounded cadence")
     func activeLockoutHeartbeatIsThrottled() async {
         let now = Date()

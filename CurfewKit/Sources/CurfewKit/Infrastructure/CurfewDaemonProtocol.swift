@@ -70,6 +70,7 @@ public enum PrivilegedEnforcementError: String, Error, Equatable, Sendable {
 public struct PrivilegedEnforcementStateMachine: Sendable {
     public private(set) var status: PrivilegedDaemonStatus
     private var startedAt: Date
+    private var heartbeatClock = DaemonHeartbeatClock()
 
     public init(startedAt: Date) {
         self.startedAt = startedAt
@@ -112,6 +113,7 @@ public struct PrivilegedEnforcementStateMachine: Sendable {
             lastHeartbeatAt: now,
             shutdownIssued: false
         )
+        heartbeatClock = DaemonHeartbeatClock()
     }
 
     public mutating func heartbeat(lockoutID: UUID, now: Date) throws {
@@ -120,6 +122,7 @@ public struct PrivilegedEnforcementStateMachine: Sendable {
             throw PrivilegedEnforcementError.noActiveLockout
         }
         status.lastHeartbeatAt = now
+        heartbeatClock = DaemonHeartbeatClock()
     }
 
     public mutating func evaluate(
@@ -134,7 +137,7 @@ public struct PrivilegedEnforcementStateMachine: Sendable {
         }
 
         let heartbeatReference = status.lastHeartbeatAt ?? startedAt
-        guard now.timeIntervalSince(heartbeatReference) > heartbeatTimeout else {
+        guard heartbeatClock.age(of: heartbeatReference, at: now) > heartbeatTimeout else {
             return .none
         }
 
