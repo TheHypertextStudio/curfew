@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# Usage: extract-screenshots.sh
+# Usage: extract-screenshots.sh [testCaptureName]
+#
+# The test may also come from CURFEW_CAPTURE_TEST; the argument wins.
 #
 # CI / debug screenshot tier. Runs the MarketingCaptureTests UI tests to a
 # fixed result bundle, then exports their screenshot attachments into
@@ -14,13 +16,29 @@ BUNDLE="$ROOT/build/screenshots.xcresult"
 RAW="$ROOT/build/screenshots-raw"
 OUT="$ROOT/build/screenshots"
 
-# A focused run deliberately covers only the named Settings state family.
-# Keep the accepted selector explicit so a typo cannot produce a zero-test pass.
-case "${CURFEW_CAPTURE_TEST:-}" in
+# Keep the accepted selectors explicit so a typo cannot produce a zero-test
+# pass. scripts/extract-screenshots.test.mjs fails when this list drifts from
+# the tests MarketingCaptureTests declares, including its extensions in other
+# files.
+selected_test="${1:-${CURFEW_CAPTURE_TEST:-}}"
+case "$selected_test" in
     "") capture_target="CurfewUITests/MarketingCaptureTests" ;;
-    testCaptureDistinctSettingsStates)
-        capture_target="CurfewUITests/MarketingCaptureTests/$CURFEW_CAPTURE_TEST" ;;
-    *) echo "Invalid capture test: ${CURFEW_CAPTURE_TEST}" >&2; exit 2 ;;
+    testCaptureCriticalStateMatrix | testCaptureWorkspaceMatrix | \
+        testCaptureDistinctSettingsStates | testCaptureDistinctWorkspaceStates | \
+        testCaptureOverlays | testCaptureOverrideContrast | testCaptureSettingsMatrix | \
+        testCaptureMenuBar | \
+        testCaptureAStateConsistencyAccountHelper | \
+        testCaptureAStateConsistencyAccountOffline | \
+        testCaptureAStateConsistencyAccountSignIn | \
+        testCaptureAStateConsistencyAccountUnavailable | \
+        testCaptureAStateConsistencyAccountUpdate | \
+        testCaptureAStateConsistencyExhaustedRequest | \
+        testCaptureAStateConsistencyMalformedRequest | \
+        testCaptureAStateConsistencyOffLocked | \
+        testCaptureAStateConsistencySetupPermission | \
+        testCaptureAStateConsistencySetupReview)
+        capture_target="CurfewUITests/MarketingCaptureTests/$selected_test" ;;
+    *) echo "Invalid capture test: ${selected_test}" >&2; exit 2 ;;
 esac
 
 echo "==> Pre-building bundled CLI tools"

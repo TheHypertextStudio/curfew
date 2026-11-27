@@ -1,5 +1,9 @@
 # Todo Test Matrix
 
+## Focused screenshot capture
+
+`scripts/extract-screenshots.test.mjs` runs the extractor against stub `swift` and `xcodebuild` binaries. It checks that no selector runs the whole `MarketingCaptureTests` class, that every declared capture test reaches Xcode alone through either the argument or `CURFEW_CAPTURE_TEST`, that the argument wins over the environment, that typos and other UI tests fail before the build, and that the allowlist equals the capture tests `MarketingCaptureTests` declares across its extensions in every `CurfewUITests` file. The argument cases failed before the extractor read its argument.
+
 ## Home page structured data
 
 `landing/tests/unit/structured-data.test.mjs` parses the JSON-LD built from the real `home.html`. It checks the `SoftwareApplication` origin, download URL, MIT license and free-only offer; requires the `FAQPage` questions to equal the page's visible `<summary>` text with tag-free answers; proves answer text cannot close the script element; and checks that only the home layout publishes the graph. It failed before `structured-data.mjs` existed.
