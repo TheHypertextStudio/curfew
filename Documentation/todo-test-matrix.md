@@ -1,5 +1,9 @@
 # Todo Test Matrix
 
+## Home page structured data
+
+`landing/tests/unit/structured-data.test.mjs` parses the JSON-LD built from the real `home.html`. It checks the `SoftwareApplication` origin, download URL, MIT license and free-only offer; requires the `FAQPage` questions to equal the page's visible `<summary>` text with tag-free answers; proves answer text cannot close the script element; and checks that only the home layout publishes the graph. It failed before `structured-data.mjs` existed.
+
 ## Release copyright notice
 
 `scripts/release-entitlements.test.mjs` requires every `NSHumanReadableCopyright` build setting to read "© 2026 Hypertext Studio. MIT licensed.", matching `LICENSE`. It failed on the Release configuration's "All rights reserved" before the fix.
